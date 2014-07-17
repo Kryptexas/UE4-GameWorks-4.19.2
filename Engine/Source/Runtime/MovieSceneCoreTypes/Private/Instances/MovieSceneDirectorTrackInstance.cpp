@@ -39,6 +39,6 @@ void FMovieSceneDirectorTrackInstance::Update( float Position, float LastPositio
 		}
 	}
 
-	Player.UpdateViewports(PossessedCamera);
+	Player.UpdatePreviewViewports(PossessedCamera);
 }
 

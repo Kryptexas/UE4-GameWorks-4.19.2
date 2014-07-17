@@ -84,6 +84,8 @@ public:
 	int32 MaxLayer;
 };
 
+class UUMGSequencePlayer;
+
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
@@ -194,6 +196,25 @@ public:
 
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
+	/**
+ 	 * Plays an animation in this widget
+	 * 
+	 * @param The name of the animation to play
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
+	void PlayAnimation(FName AnimationName);
+
+	/**
+ 	 * Stops an already running animation in this widget
+	 * 
+	 * @param The name of the animation to stop
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
+	void StopAnimation(FName AnimationName);
+
+	/** Called when a sequence player is finished playing an animation */
+	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
+
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
@@ -209,6 +230,8 @@ public:
 	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetHandleFromName(const FString& Name) const;
 
+	/** Ticks this widget and forwards to the underlying widget to tick */
+	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
 public:
 	/** Called when the visibility changes. */
 	UPROPERTY(BlueprintAssignable)
@@ -276,6 +299,10 @@ public:
 
 	UPROPERTY()
 	class UWidgetTree* WidgetTree;
+
+	/** All the sequence players currently playing */
+	UPROPERTY(transient)
+	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;

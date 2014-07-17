@@ -109,11 +109,11 @@ private:
 	/** Sequencer for creating and previewing widget animations */
 	TSharedPtr<ISequencer> Sequencer;
 
+	/** Manager for handling bindings to sequence animations */
+	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
+
 	/** The Blueprint associated with the current preview */
 	UWidgetBlueprint* PreviewBlueprint;
-
-	/** Default movie scene for new animations */
-	UMovieScene* DefaultMovieScene;
 
 	/** The currently selected preview widgets in the preview GUI */
 	TSet<FWidgetReference> SelectedWidgets;

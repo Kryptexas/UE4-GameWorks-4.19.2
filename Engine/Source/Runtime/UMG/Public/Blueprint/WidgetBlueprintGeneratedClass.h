@@ -4,6 +4,8 @@
 
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
+class UMovieScene;
+
 USTRUCT()
 struct FDelegateRuntimeBinding
 {
@@ -25,7 +27,36 @@ struct FDelegateRuntimeBinding
 	}*/
 };
 
-class UMovieScene;
+/** A single object bound to a umg sequence */
+USTRUCT()
+struct FWidgetAnimationBinding
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FName WidgetName;
+
+	UPROPERTY()
+	FGuid AnimationGuid;
+
+	bool operator==( const FWidgetAnimationBinding& Other ) const
+	{
+		return WidgetName == Other.WidgetName && AnimationGuid == Other.AnimationGuid;
+	}
+};
+
+/** Runtime animation bindings for a single movie scene */
+USTRUCT()
+struct FWidgetAnimation
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	class UMovieScene* MovieScene;
+
+	UPROPERTY()
+	TArray<FWidgetAnimationBinding> AnimationBindings;
+};
 
 /**
  * The widget blueprint generated class allows us to create blueprintable widgets for UMG at runtime.
@@ -46,7 +77,7 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	TArray< FDelegateRuntimeBinding > Bindings;
 
 	UPROPERTY()
-	TArray< UMovieScene* > AnimationData;
+	TArray<FWidgetAnimation> AnimationData;
 
 	/** This is transient data calculated at link time. */
 	TArray<UStructProperty*> WidgetNodeProperties;
@@ -61,4 +92,12 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	 * binding and wiring nessesary to have the user's widget perform as desired.
 	 */
 	void InitializeWidget(class UUserWidget* UserWidget) const;
+
+	/** 
+	 * Finds an animation by name of the Sequence
+	 * 
+	 * @param AnimationName	Name of the animation
+	 * @return Found animation or nullptr if one is not found
+	 */
+	const FWidgetAnimation* FindAnimation( FName AnimationName ) const;
 };

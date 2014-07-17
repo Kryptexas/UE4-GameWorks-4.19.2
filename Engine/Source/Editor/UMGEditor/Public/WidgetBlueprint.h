@@ -54,11 +54,11 @@ public:
 	TArray< FDelegateEditorBinding > Bindings;
 
 	UPROPERTY()
-	TArray< UMovieScene* > AnimationData;
-	 
+	TArray<FWidgetAnimation> AnimationData;
+
+	/** UObject interface */
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
-
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	
 	// UBlueprint interface
@@ -71,6 +71,8 @@ public:
 		return false;
 	}
 	// End of UBlueprint interface
+
+	FWidgetAnimation* FindAnimationDataForMovieScene( UMovieScene& MovieScene );
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
 };

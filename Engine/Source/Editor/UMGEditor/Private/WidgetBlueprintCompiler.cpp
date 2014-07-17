@@ -486,6 +486,9 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			WidgetToMemberVariableMap.Add(Widget, WidgetProperty);
 		}
 	}
+
+	// Add movie scenes variables here
+
 }
 
 void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
@@ -496,11 +499,16 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	BPGClass->WidgetTree = DuplicateObject<UWidgetTree>(Blueprint->WidgetTree, BPGClass);
 
-	BPGClass->AnimationData.Reset();
-	for ( UMovieScene* Sequence : Blueprint->AnimationData )
+	BPGClass->AnimationData.Empty();
+	for ( const FWidgetAnimation& Animation : Blueprint->AnimationData )
 	{
-		UMovieScene* ClonedSequence = DuplicateObject<UMovieScene>(Sequence, BPGClass);
-		BPGClass->AnimationData.Add( ClonedSequence );
+		UMovieScene* ClonedSequence = DuplicateObject<UMovieScene>(Animation.MovieScene, BPGClass, *Animation.MovieScene->GetName());
+		FWidgetAnimation CompiledAnimation;
+
+		CompiledAnimation.MovieScene = ClonedSequence;
+		CompiledAnimation.AnimationBindings = Animation.AnimationBindings;
+
+		BPGClass->AnimationData.Add( CompiledAnimation );
 	}
 
 	BPGClass->Bindings.Reset();

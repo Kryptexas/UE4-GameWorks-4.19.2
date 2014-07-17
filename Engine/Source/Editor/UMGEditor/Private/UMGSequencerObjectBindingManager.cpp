@@ -5,10 +5,12 @@
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
 
-FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor )
+FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene )
 	: WidgetBlueprintEditor( InWidgetBlueprintEditor )
+	, MovieScene( &InMovieScene )
 {
 	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().AddRaw( this, &FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated );
+
 }
 
 FUMGSequencerObjectBindingManager::~FUMGSequencerObjectBindingManager()
@@ -24,12 +26,24 @@ bool FUMGSequencerObjectBindingManager::CanPossessObject( UObject& Object ) cons
 {
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
 
-	return !Object.IsIn( WidgetBlueprint );
+	// Only preview widgets in this blueprint can be possessed
+	UUserWidget* PreviewWidget = WidgetBlueprintEditor.GetPreview();
+
+	return Object.IsA<UVisual>() && Object.IsIn( PreviewWidget );
 }
 
 void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject )
 {
 	PreviewObjectToGuidMap.Add( &PossessedObject, PossessableGuid );
+
+	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
+	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
+
+	FWidgetAnimationBinding NewBinding;
+	NewBinding.WidgetName = PossessedObject.GetFName();
+	NewBinding.AnimationGuid = PossessableGuid;
+
+	WidgetAnimation->AnimationBindings.Add( NewBinding );
 }
 
 void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& PossessableGuid )
@@ -41,6 +55,12 @@ void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& P
 			It.RemoveCurrent();
 		}
 	}
+
+	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
+	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
+
+	WidgetAnimation->AnimationBindings.RemoveAll( [&]( const FWidgetAnimationBinding& Binding ) { return Binding.AnimationGuid == PossessableGuid; } );
+
 }
 
 void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const
@@ -55,30 +75,34 @@ void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMov
 	}
 }
 
-void FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated()
+void FUMGSequencerObjectBindingManager::InitPreviewObjects()
 {
-	//
+	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
+
+	// Populate preview object to guid map
 	UUserWidget* PreviewWidget = WidgetBlueprintEditor.GetPreview();
 
 	UWidgetTree* WidgetTree = PreviewWidget->WidgetTree;
 
-	TMap< TWeakObjectPtr<UObject>, FGuid> OldPreviewObjectToGuidMap = PreviewObjectToGuidMap;
-	PreviewObjectToGuidMap.Empty();
+	const FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene( *MovieScene );
+	check( WidgetAnimation );
 
-	for( auto It = OldPreviewObjectToGuidMap.CreateConstIterator(); It; ++It )
+	for( const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings )
 	{
-		const TWeakObjectPtr<UObject> Object = It.Key();
-		if(Object.IsValid())
+		FName ObjectName = Binding.WidgetName;
+		UObject* FoundObject = FindObject<UObject>(WidgetTree, *ObjectName.ToString());
+		if(FoundObject)
 		{
-			FName ObjectName = Object->GetFName();
-			UObject* NewObject = FindObject<UObject>( WidgetTree, *ObjectName.ToString() );
-			if( NewObject )
-			{
-				check( NewObject->GetClass() == Object->GetClass() );
-				PreviewObjectToGuidMap.Add( NewObject, It.Value() );
-			}
+			PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
 		}
 	}
+}
+
+void FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated()
+{
+	PreviewObjectToGuidMap.Empty();
+
+	InitPreviewObjects();
 
 	WidgetBlueprintEditor.GetSequencer()->UpdateRuntimeInstances();
 }

@@ -538,7 +538,7 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 	}*/
 }
 
-void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
+void FSequencer::UpdatePreviewViewports(UObject* ObjectToViewThrough) const
 {
 	if(!IsPerspectiveViewportPosessionEnabled())
 	{
@@ -549,7 +549,7 @@ void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
 	{
 		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
 		{
-			LevelVC->SetMatineeActorLock(ActorToViewThrough);
+			LevelVC->SetMatineeActorLock(Cast<AActor>(ObjectToViewThrough));
 		}
 	}
 }

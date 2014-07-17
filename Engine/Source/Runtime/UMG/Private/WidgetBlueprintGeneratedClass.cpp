@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
+#include "MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -62,6 +63,8 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 		TArray<UWidget*> ClonedWidgets;
 		ClonedTree->GetAllWidgets(ClonedWidgets);
 
+		// @todo UMG Create Movie Scene vars here
+
 		for ( UWidget* Widget : ClonedWidgets )
 		{
 			// Not fatal if NULL, but shouldn't happen
@@ -117,6 +120,11 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		//TODO Add OnWidgetInitialized
 	}
+}
+
+const FWidgetAnimation* UWidgetBlueprintGeneratedClass::FindAnimation( FName AnimationName ) const
+{
+	return AnimationData.FindByPredicate( [&](const FWidgetAnimation& Animation) { return Animation.MovieScene->GetFName() == AnimationName; } );
 }
 
 #undef LOCTEXT_NAMESPACE

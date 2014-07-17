@@ -56,6 +56,10 @@ bool UWidgetBlueprint::AllowsDynamicBinding() const
 	return true;
 }
 
+FWidgetAnimation* UWidgetBlueprint::FindAnimationDataForMovieScene( UMovieScene& MovieScene )
+{
+	return AnimationData.FindByPredicate( [&](const FWidgetAnimation& Data) { return Data.MovieScene == &MovieScene; } );
+}
 
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {

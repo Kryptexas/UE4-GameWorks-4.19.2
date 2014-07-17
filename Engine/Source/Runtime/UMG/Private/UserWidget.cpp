@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
 
 TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New()
@@ -180,6 +181,59 @@ UWorld* UUserWidget::GetWorld() const
 	return NULL;
 }
 
+void UUserWidget::PlayAnimation(FName AnimationName)
+{
+	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if (BPClass)
+	{
+		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
+		if( Animation )
+		{
+			// @todo UMG sequencer - Restart animations which have had Play called on them?
+			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate( [&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; } );
+
+			if( !FoundPlayer )
+			{
+				UUMGSequencePlayer* NewPlayer = ConstructObject<UUMGSequencePlayer>( UUMGSequencePlayer::StaticClass(), this );
+				ActiveSequencePlayers.Add( NewPlayer );
+
+				NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );
+
+				NewPlayer->InitSequencePlayer( *Animation, *this );
+
+				NewPlayer->Play();
+			}
+			else
+			{
+				(*FoundPlayer)->Play();
+			}
+		}
+	}
+}
+
+void UUserWidget::StopAnimation(FName AnimationName)
+{
+	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if(BPClass)
+	{
+		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
+		if(Animation)
+		{
+			// @todo UMG sequencer - Restart animations which have had Play called on them?
+			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; });
+			if(FoundPlayer)
+			{
+				(*FoundPlayer)->Stop();
+			}
+		}
+	}
+}
+
+void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
+{
+	ActiveSequencePlayers.Remove( &Player );
+}
+
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
 	TWeakObjectPtr<UWidget> VisualWidget = WidgetToComponent.FindRef(InWidget);
@@ -244,6 +298,17 @@ UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 	}
 
 	return NULL;
+}
+
+void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
+{
+	// Update active movie scenes
+	for( UUMGSequencePlayer* Player : ActiveSequencePlayers )
+	{
+		Player->Tick( InDeltaTime );
+	}
+
+	Tick( MyGeometry, InDeltaTime );
 }
 
 TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()

@@ -20,7 +20,6 @@
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(NULL)
-	, DefaultMovieScene(NULL)
 {
 }
 
@@ -51,6 +50,8 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	}
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	SequencerObjectBindingManager->InitPreviewObjects();
 
 	WidgetCommandList = MakeShareable(new FUICommandList);
 
@@ -333,10 +334,6 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	FBlueprintEditor::AddReferencedObjects( Collector );
-	if( DefaultMovieScene != nullptr )
-	{
-		Collector.AddReferencedObject( DefaultMovieScene );
-	}
 
 	UUserWidget* Preview = GetPreview();
 	Collector.AddReferencedObject( Preview );
@@ -384,11 +381,28 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	{
 		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
-		UMovieScene* MovieScene = Blueprint->AnimationData.Num() ? Blueprint->AnimationData[0] : GetDefaultMovieScene();
-		
-		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable( new FUMGSequencerObjectBindingManager( *this ) );
-		
-		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( MovieScene, ObjectBindingManager );
+		FWidgetAnimation* WidgetAnimation = nullptr;
+
+		if( Blueprint->AnimationData.Num() )
+		{
+			WidgetAnimation = &Blueprint->AnimationData[0];
+		}
+		else
+		{
+			UMovieScene* MovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), Blueprint, MakeUniqueObjectName( Blueprint, UMovieScene::StaticClass(), "DefaultAnimationData"), RF_Transactional );
+			FWidgetAnimation NewAnimation;
+			NewAnimation.MovieScene = MovieScene;
+			int32 Index = Blueprint->AnimationData.Add( NewAnimation );
+
+			WidgetAnimation = &Blueprint->AnimationData[Index];
+		}
+
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation->MovieScene) );
+		check( !SequencerObjectBindingManager.IsValid() );
+
+		SequencerObjectBindingManager = ObjectBindingManager;
+
+		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( WidgetAnimation->MovieScene, ObjectBindingManager );
 	}
 
 	return Sequencer;
@@ -460,16 +474,6 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	OnWidgetPreviewUpdated.Broadcast();
 }
 
-UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()
-{
-	if( !DefaultMovieScene )
-	{
-		FName ObjectName = MakeUniqueObjectName( GetTransientPackage(), UMovieScene::StaticClass(), "DefaultAnimationData" );
-		DefaultMovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), GetTransientPackage(), ObjectName );
-	}
-
-	return DefaultMovieScene;
-}
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 {

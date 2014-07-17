@@ -14,9 +14,8 @@
  * RuntimeMovieScenePlayer is used to actually "play" a MovieScene asset at runtime.  It keeps track of playback
  * state and provides functions for manipulating a MovieScene while its playing.
  */
-typedef IMovieScenePlayer FMovieScenePlayerInterface;	// @todo sequencer uobject: Hack for header generator
 UCLASS( MinimalAPI )
-class URuntimeMovieScenePlayer : public UObject, public FMovieScenePlayerInterface, public IRuntimeMovieScenePlayerInterface
+class URuntimeMovieScenePlayer : public UObject, public IMovieScenePlayer, public IRuntimeMovieScenePlayerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -59,7 +58,7 @@ protected:
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 	virtual void DestroyActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
-	virtual void UpdateViewports(AActor* ActorToViewThrough) const override {}
+	virtual void UpdatePreviewViewports(UObject* ObjectToViewThrough) const override {}
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
 	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) override;
 	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) override;

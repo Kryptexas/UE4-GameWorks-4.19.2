@@ -25,7 +25,7 @@ void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurre
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->Tick(AllottedGeometry, InDeltaTime);
+		return WidgetObject->NativeTick(AllottedGeometry, InDeltaTime);
 	}
 }
 
