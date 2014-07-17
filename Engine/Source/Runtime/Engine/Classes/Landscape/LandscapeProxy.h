@@ -14,6 +14,7 @@
 class ULandscapeMaterialInstanceConstant;
 class ULandscapeLayerInfoObject;
 class ULandscapeSplinesComponent;
+class ULandscapeHeightfieldCollisionComponent;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
