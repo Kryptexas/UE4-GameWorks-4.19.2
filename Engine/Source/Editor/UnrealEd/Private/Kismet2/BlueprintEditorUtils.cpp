@@ -3163,6 +3163,9 @@ void FBlueprintEditorUtils::RemoveMemberVariable(UBlueprint* Blueprint, const FN
 
 void FBlueprintEditorUtils::BulkRemoveMemberVariables(UBlueprint* Blueprint, const TArray<FName>& VarNames)
 {
+	const FScopedTransaction Transaction( LOCTEXT("DeleteUnusedVariables", "Delete Unused Variables") );
+	Blueprint->Modify();
+
 	bool bModified = false;
 	for (int32 i = 0; i < VarNames.Num(); ++i)
 	{
