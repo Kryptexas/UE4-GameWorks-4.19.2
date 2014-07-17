@@ -768,7 +768,8 @@ namespace UnrealBuildTool
 
             // Add the additional arguments specified by the environment.
             LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
-            LinkAction.CommandArguments.Replace("\\", "/");
+            LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\\\", "/");
+            LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
             // prepare a linker script
             string LinkerScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, "remove-sym.ldscript");
