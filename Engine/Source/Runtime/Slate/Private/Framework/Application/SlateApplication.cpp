@@ -2950,6 +2950,9 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 					if ( WidgetReflector.IsValid() )
 					{
 						WidgetReflector->OnWidgetPicked();
+						Reply = FReply::Handled();
+
+						return Reply.IsEventHandled();
 					}
 				}
 			}
