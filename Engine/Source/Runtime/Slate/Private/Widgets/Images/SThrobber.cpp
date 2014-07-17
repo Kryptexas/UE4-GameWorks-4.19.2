@@ -5,40 +5,66 @@
 
 void SThrobber::Construct(const FArguments& InArgs)
 {
+	PieceImage = InArgs._PieceImage;
+	NumPieces = InArgs._NumPieces;
 	Animate = InArgs._Animate;
-	AnimCurves = FCurveSequence();
-	{
-		for (int32 PieceIndex=0; PieceIndex < InArgs._NumPieces; ++PieceIndex)
-		{
-			ThrobberCurve.Add( AnimCurves.AddCurve(PieceIndex*0.05f,1.5f) );
-		}
-		AnimCurves.Play();
-	}
 
-	TSharedRef<SHorizontalBox> HBox = SNew(SHorizontalBox);
-	
-	for (int32 PieceIndex=0; PieceIndex < InArgs._NumPieces; ++PieceIndex)
+	HBox = SNew(SHorizontalBox);
+
+	this->ChildSlot.Widget = HBox.ToSharedRef();
+
+	ConstructPieces();
+}
+
+void SThrobber::ConstructPieces()
+{
+	ThrobberCurve.Empty();
+	AnimCurves = FCurveSequence();
+	for (int32 PieceIndex = 0; PieceIndex < NumPieces; ++PieceIndex)
+	{
+		ThrobberCurve.Add(AnimCurves.AddCurve(PieceIndex*0.05f, 1.5f));
+	}
+	AnimCurves.Play();
+
+	HBox->ClearChildren();
+	for (int32 PieceIndex = 0; PieceIndex < NumPieces; ++PieceIndex)
 	{
 		HBox->AddSlot()
-		.AutoWidth()
-		[
-			SNew(SBorder)
-			.BorderImage( FStyleDefaults::GetNoBrush() )
-			.ContentScale( this, &SThrobber::GetPieceScale, PieceIndex )
-			.ColorAndOpacity( this, &SThrobber::GetPieceColor, PieceIndex )
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image( InArgs._PieceImage )
-			]
-		];
+				SNew(SBorder)
+				.BorderImage(FStyleDefaults::GetNoBrush())
+				.ContentScale(this, &SThrobber::GetPieceScale, PieceIndex)
+				.ColorAndOpacity(this, &SThrobber::GetPieceColor, PieceIndex)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage)
+					.Image(this, &SThrobber::GetPieceBrush)
+				]
+			];
 	}
+}
 
-	this->ChildSlot
-	[
-		HBox
-	];
+const FSlateBrush* SThrobber::GetPieceBrush() const
+{
+	return PieceImage;
+}
+
+void SThrobber::SetPieceImage(const FSlateBrush* InPieceImage)
+{
+	PieceImage = InPieceImage;
+}
+
+void SThrobber::SetNumPieces(int InNumPieces)
+{
+	NumPieces = InNumPieces;
+	ConstructPieces();
+}
+
+void SThrobber::SetAnimate(EAnimation InAnimate)
+{
+	Animate = InAnimate;
 }
 
 FVector2D SThrobber::GetPieceScale(int32 PieceIndex) const
@@ -68,17 +94,43 @@ FLinearColor SThrobber::GetPieceColor(int32 PieceIndex) const
 	}
 }
 
-
 // SCircularThrobber
 void SCircularThrobber::Construct(const FArguments& InArgs)
 {
-	Sequence = FCurveSequence();
-	Curve = Sequence.AddCurve(0.f, InArgs._Period);
-	Sequence.Play();
-	
 	PieceImage = InArgs._PieceImage;
 	NumPieces = InArgs._NumPieces;
+	Period = InArgs._Period;
 	Radius = InArgs._Radius;
+
+	ConstructSequence();
+}
+
+void SCircularThrobber::SetPieceImage(const FSlateBrush* InPieceImage)
+{
+	PieceImage = InPieceImage;
+}
+
+void SCircularThrobber::SetNumPieces(const int32 InNumPieces)
+{
+	NumPieces = InNumPieces;
+}
+
+void SCircularThrobber::SetPeriod(const float InPeriod)
+{
+	Period = InPeriod;
+	ConstructSequence();
+}
+
+void SCircularThrobber::SetRadius(const float InRadius)
+{
+	Radius = InRadius;
+}
+
+void SCircularThrobber::ConstructSequence()
+{
+	Sequence = FCurveSequence();
+	Curve = Sequence.AddCurve(0.f, Period);
+	Sequence.Play();
 }
 
 int32 SCircularThrobber::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

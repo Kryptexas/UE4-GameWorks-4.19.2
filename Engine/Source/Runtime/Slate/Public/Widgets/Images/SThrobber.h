@@ -36,13 +36,38 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	/** Sets what each segment of the throbber looks like. */
+	void SetPieceImage(const FSlateBrush* InPieceImage);
+
+	/** Sets how many pieces there are */
+	void SetNumPieces(int InNumPieces);
+
+	/** Sets which aspects of the throbber to animate */
+	void SetAnimate(EAnimation InAnimate);
 
 private:
 	FVector2D GetPieceScale(int32 PieceIndex) const;
 	FLinearColor GetPieceColor(int32 PieceIndex) const;
+
+	/** Constructs the curves and widgets for the pieces which make up the throbber. */
+	void ConstructPieces();
+
+	/** Gets the brush used to draw each piece of the thobber. */
+	const FSlateBrush* GetPieceBrush() const;
+
+private:
 	
 	FCurveSequence AnimCurves;
 	TArray<FCurveHandle, TInlineAllocator<DefaultNumPieces> > ThrobberCurve;
+
+	/** The horizontal box which contains the widgets for the trobber pieces. */
+	TSharedPtr<SHorizontalBox> HBox;
+
+	/** The image used to draw each piece of the throbber. */
+	const FSlateBrush* PieceImage;
+	/** The number of pieces to display. */
+	int NumPieces;
+	/** Flags for which apsects of the throbber to animate. */
 	EAnimation Animate;
 };
 
@@ -71,8 +96,25 @@ public:
 	/** Constructs the widget */
 	void Construct(const FArguments& InArgs);
 
+	/** Sets what each segment of the throbber looks like */
+	void SetPieceImage(const FSlateBrush* InPieceImage);
+
+	/** Sets how many pieces there are */
+	void SetNumPieces(int32 InNumPieces);
+
+	/** Sets the amount of time in seconds for a full circle */
+	void SetPeriod(float InPeriod);
+
+	/** Sets the radius of the circle */
+	void SetRadius(float InRadius);
+
 	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FVector2D ComputeDesiredSize() const override;
+
+private:
+
+	/** Constructs the sequence used to animate the trobber. */
+	void ConstructSequence();
 
 private:
 	/** The sequence to drive the spinning animation */
@@ -83,6 +125,8 @@ private:
 	const FSlateBrush* PieceImage;
 	/** How many pieces there are */
 	int32 NumPieces;
+	/** The amount of time in seconds for a full circle */
+	float Period;
 	/** The radius of the circle */
 	float Radius;
 };

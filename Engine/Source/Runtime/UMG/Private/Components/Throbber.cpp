@@ -24,16 +24,85 @@ TSharedRef<SWidget> UThrobber::RebuildWidget()
 {
 	SThrobber::FArguments DefaultArgs;
 
-	const FSlateBrush* Image = PieceImage ? &PieceImage->Brush : DefaultArgs._PieceImage;
+	MyThrobber = SNew(SThrobber)
+		.PieceImage(GetPieceBrush())
+		.NumPieces(NumberOfPieces)
+		.Animate(GetAnimation());
 
+	return MyThrobber.ToSharedRef();
+}
+
+void UThrobber::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyThrobber->SetPieceImage(GetPieceBrush());
+	MyThrobber->SetNumPieces(NumberOfPieces);
+	MyThrobber->SetAnimate(GetAnimation());
+}
+
+SThrobber::EAnimation UThrobber::GetAnimation() const
+{
 	const int32 AnimationParams = (bAnimateVertically ? SThrobber::Vertical : 0) |
 		(bAnimateHorizontally ? SThrobber::Horizontal : 0) |
 		(bAnimateOpacity ? SThrobber::Opacity : 0);
 
-	return SNew(SThrobber)
-		.PieceImage(Image)
-		.NumPieces(NumberOfPieces)
-		.Animate(static_cast<SThrobber::EAnimation>(AnimationParams));
+	return static_cast<SThrobber::EAnimation>(AnimationParams);
+}
+
+const FSlateBrush* UThrobber::GetPieceBrush() const
+{
+	if (PieceImage == NULL)
+	{
+		SThrobber::FArguments DefaultArgs;
+		return DefaultArgs._PieceImage;
+	}
+	return &PieceImage->Brush;
+}
+
+void UThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
+{
+	NumberOfPieces = NumberOfPieces;
+	if (MyThrobber.IsValid())
+	{
+		MyThrobber->SetNumPieces(InNumberOfPieces);
+	}
+}
+
+void UThrobber:: SetAnimateHorizontally(bool bInAnimateHorizontally)
+{
+	bInAnimateHorizontally = bInAnimateHorizontally;
+	if (MyThrobber.IsValid())
+	{
+		MyThrobber->SetAnimate(GetAnimation());
+	}
+}
+
+void UThrobber:: SetAnimateVertically(bool bInAnimateVertically)
+{
+	bInAnimateVertically = bInAnimateVertically;
+	if (MyThrobber.IsValid())
+	{
+		MyThrobber->SetAnimate(GetAnimation());
+	}
+}
+
+void UThrobber:: SetAnimateOpacity(bool bInAnimateOpacity)
+{
+	bInAnimateOpacity = bInAnimateOpacity;
+	if (MyThrobber.IsValid())
+	{
+		MyThrobber->SetAnimate(GetAnimation());
+	}
+}
+
+void UThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
+{
+	PieceImage = InPieceImage;
+	if (MyThrobber.IsValid())
+	{
+		MyThrobber->SetPieceImage(GetPieceBrush());
+	}
 }
 
 /////////////////////////////////////////////////////

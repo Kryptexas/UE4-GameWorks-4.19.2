@@ -22,14 +22,71 @@ TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 {
 	SCircularThrobber::FArguments DefaultArgs;
 
-	const FSlateBrush* Image = PieceImage ? &PieceImage->Brush : DefaultArgs._PieceImage;
-	
-	return SNew(SCircularThrobber)
-		.PieceImage(Image)
+	MyCircularThrobber = SNew(SCircularThrobber)
+		.PieceImage(GetPieceBrush())
 		.NumPieces(NumberOfPieces)
 		.Period(Period)
 		.Radius(Radius);
+
+	return MyCircularThrobber.ToSharedRef();
 }
+
+void UCircularThrobber::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyCircularThrobber->SetPieceImage(GetPieceBrush());
+	MyCircularThrobber->SetNumPieces(NumberOfPieces);
+	MyCircularThrobber->SetPeriod(Period);
+	MyCircularThrobber->SetRadius(Radius);
+}
+
+const FSlateBrush* UCircularThrobber::GetPieceBrush() const
+{
+	if (PieceImage == NULL)
+	{
+		SCircularThrobber::FArguments DefaultArgs;
+		return DefaultArgs._PieceImage;
+	}
+	return &PieceImage->Brush;
+}
+
+void UCircularThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
+{
+	NumberOfPieces = NumberOfPieces;
+	if (MyCircularThrobber.IsValid())
+	{
+		MyCircularThrobber->SetNumPieces(InNumberOfPieces);
+	}
+}
+
+void UCircularThrobber::SetPeriod(float InPeriod)
+{
+	Period = InPeriod;
+	if (MyCircularThrobber.IsValid())
+	{
+		MyCircularThrobber->SetPeriod(InPeriod);
+	}
+}
+
+void UCircularThrobber::SetRadius(float InRadius)
+{
+	Radius = InRadius;
+	if (MyCircularThrobber.IsValid())
+	{
+		MyCircularThrobber->SetRadius(InRadius);
+	}
+}
+
+void UCircularThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
+{
+	PieceImage = InPieceImage;
+	if (MyCircularThrobber.IsValid())
+	{
+		MyCircularThrobber->SetPieceImage(GetPieceBrush());
+	}
+}
+
 
 /////////////////////////////////////////////////////
 
