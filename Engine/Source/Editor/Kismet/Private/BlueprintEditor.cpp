@@ -6087,13 +6087,34 @@ void FBlueprintEditor::RestoreEditedObjectState()
 	{
 		if (UObject* Obj = GetBlueprintObj()->LastEditedDocuments[i].EditedObject)
 		{
-
 			if(UEdGraph* Graph = Cast<UEdGraph>(Obj))
 			{
-				UEdGraph* TopLevelGraph = FBlueprintEditorUtils::GetTopLevelGraph(Graph);
-				
-				FDocumentTracker::EOpenDocumentCause OpenCause = TopLevelGraph != Graph? FDocumentTracker::OpenNewDocument : FDocumentTracker::RestorePreviousDocument;
-				TSharedPtr<SDockTab> TabWithGraph = OpenDocument(TopLevelGraph, OpenCause);
+				struct LocalStruct
+				{
+					static TSharedPtr<SDockTab> OpenGraphTree(FBlueprintEditor* InBlueprintEditor, UEdGraph* InGraph)
+					{
+						FDocumentTracker::EOpenDocumentCause OpenCause = FDocumentTracker::QuickNavigateCurrentDocument;
+
+						for (UObject* OuterObject = InGraph->GetOuter(); OuterObject; OuterObject = OuterObject->GetOuter())
+						{
+							if (UBlueprint* Blueprint = Cast<UBlueprint>(OuterObject))
+							{
+								// reached up to the blueprint for the graph, we are done climbing the tree
+								OpenCause = FDocumentTracker::OpenNewDocument;
+								break;
+							}
+							else if(UEdGraph* OuterGraph = Cast<UEdGraph>(OuterObject))
+							{
+								// Found another graph, open it up
+								OpenGraphTree(InBlueprintEditor, OuterGraph);
+								break;
+							}
+						}
+
+						return InBlueprintEditor->OpenDocument(InGraph, OpenCause);
+					}
+				};
+				TSharedPtr<SDockTab> TabWithGraph = LocalStruct::OpenGraphTree(this, Graph);
 
 				TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
 				GraphEditor->SetViewLocation(GetBlueprintObj()->LastEditedDocuments[i].SavedViewOffset, GetBlueprintObj()->LastEditedDocuments[i].SavedZoomAmount);

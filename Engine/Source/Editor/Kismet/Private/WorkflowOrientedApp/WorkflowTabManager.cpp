@@ -37,10 +37,10 @@ bool FTabInfo::PayloadMatches(const TSharedPtr<FTabPayload> TestPayload) const
 	}
 }
 
-void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode)
+void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory/* = true*/)
 {
 	// If the tab is not new, save the current history.
-	if(CurrentHistoryIndex >= 0)
+	if(CurrentHistoryIndex >= 0 && bInSaveHistory)
 	{
 		History[CurrentHistoryIndex]->SaveHistory();
 	}
@@ -431,7 +431,7 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 		InOpenCause = FDocumentTracker::ForceOpenNewDocument;
 	}
 
-	if(InOpenCause == NavigatingCurrentDocument)
+	if(InOpenCause == NavigatingCurrentDocument || InOpenCause == QuickNavigateCurrentDocument)
 	{
 		return NavigateCurrentTab(InPayload, InOpenCause);
 	}
@@ -497,7 +497,7 @@ TWeakPtr< FTabInfo > FDocumentTracker::FindTabInForeground()
 
 TSharedPtr<SDockTab> FDocumentTracker::NavigateCurrentTab(TSharedPtr<FTabPayload> InPayload, EOpenDocumentCause InNavigateCause)
 {
-	ensure(InNavigateCause == NavigatingCurrentDocument || InNavigateCause == NavigateBackwards || InNavigateCause == NavigateForwards);
+	ensure(InNavigateCause == NavigatingCurrentDocument || InNavigateCause == QuickNavigateCurrentDocument || InNavigateCause == NavigateBackwards || InNavigateCause == NavigateForwards);
 
 	FTabList& List = GetSpawnedList();
 	if(List.Num())
@@ -521,10 +521,11 @@ TSharedPtr<SDockTab> FDocumentTracker::NavigateCurrentTab(TSharedPtr<FTabPayload
 		SpawnInfo.Payload = InPayload;
 		SpawnInfo.TabInfo = LastEditedTabInfo.Pin();
 
-		if(InNavigateCause == NavigatingCurrentDocument)
+		if(InNavigateCause == NavigatingCurrentDocument || InNavigateCause == QuickNavigateCurrentDocument)
 		{
 			TSharedPtr<FDocumentTabFactory> Factory = FindSupportingFactory(InPayload.ToSharedRef());
-			LastEditedTabInfo.Pin()->AddTabHistory(Factory->CreateTabHistoryNode(InPayload));
+			// If doing a Quick navigate of the document, do not save history data as it's likely still at the default values. The object is always saved
+			LastEditedTabInfo.Pin()->AddTabHistory(Factory->CreateTabHistoryNode(InPayload), InNavigateCause != QuickNavigateCurrentDocument);
 		}
 		else if(InNavigateCause == NavigateBackwards)
 		{
