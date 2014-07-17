@@ -15,7 +15,7 @@ void SLandscapeAssetThumbnail::Construct(const FArguments& InArgs, UObject* Asse
 {
 	FIntPoint ThumbnailSize = InArgs._ThumbnailSize;
 
-	AssetThumbnail = MakeShareable( new FAssetThumbnail( Asset, ThumbnailSize.X, ThumbnailSize.Y, ThumbnailPool ) );
+	AssetThumbnail = MakeShareable(new FAssetThumbnail(Asset, ThumbnailSize.X, ThumbnailSize.Y, ThumbnailPool));
 
 	ChildSlot
 	[
@@ -52,9 +52,9 @@ void SLandscapeAssetThumbnail::OnMaterialCompilationFinished(UMaterialInterface*
 	}
 }
 
-void SLandscapeAssetThumbnail::SetAsset( UObject* Asset )
+void SLandscapeAssetThumbnail::SetAsset(UObject* Asset)
 {
-	AssetThumbnail->SetAsset( Asset );
+	AssetThumbnail->SetAsset(Asset);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -116,9 +116,9 @@ void SLandscapeEditor::Construct(const FArguments& InArgs, TSharedRef<FLandscape
 	//CommandList = LevelEditor->GetLevelEditorActions();
 
 	// Modes:
-	CommandList->MapAction(FLandscapeEditorCommands::Get().ManageMode, FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName(TEXT("ToolMode_Manage"))), FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Manage"))), FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Manage")))));
-	CommandList->MapAction(FLandscapeEditorCommands::Get().SculptMode, FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName(TEXT("ToolMode_Sculpt"))), FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Sculpt"))), FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Sculpt")))));
-	CommandList->MapAction(FLandscapeEditorCommands::Get().PaintMode,  FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName(TEXT("ToolMode_Paint"))),  FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Paint"))),  FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Paint")))));
+	CommandList->MapAction(FLandscapeEditorCommands::Get().ManageMode, FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName("ToolMode_Manage")), FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Manage"))), FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Manage")))));
+	CommandList->MapAction(FLandscapeEditorCommands::Get().SculptMode, FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName("ToolMode_Sculpt")), FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Sculpt"))), FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Sculpt")))));
+	CommandList->MapAction(FLandscapeEditorCommands::Get().PaintMode,  FUIAction(FExecuteAction::CreateSP(this, &SLandscapeEditor::OnChangeMode, FName("ToolMode_Paint" )), FCanExecuteAction::CreateSP(this, &SLandscapeEditor::IsModeEnabled, FName(TEXT("ToolMode_Paint" ))), FIsActionChecked::CreateSP(this, &SLandscapeEditor::IsModeActive, FName(TEXT("ToolMode_Paint" )))));
 
 	FToolBarBuilder ModeSwitchButtons(CommandList, FMultiBoxCustomization::None);
 	{
@@ -244,12 +244,12 @@ bool SLandscapeEditor::GetIsPropertyVisible(const FPropertyAndParent& PropertyAn
 	const UProperty& Property = PropertyAndParent.Property;
 
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolSet != NULL)
+	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentTool != NULL)
 	{
 		if (Property.HasMetaData("ShowForMask"))
 		{
-			const bool bMaskEnabled = LandscapeEdMode->CurrentToolSet->GetTool() &&
-				LandscapeEdMode->CurrentToolSet->GetTool()->SupportsMask() &&
+			const bool bMaskEnabled = LandscapeEdMode->CurrentTool &&
+				LandscapeEdMode->CurrentTool->SupportsMask() &&
 				LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid() &&
 				LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SelectedRegion.Num() > 0;
 
@@ -260,7 +260,7 @@ bool SLandscapeEditor::GetIsPropertyVisible(const FPropertyAndParent& PropertyAn
 		}
 		if (Property.HasMetaData("ShowForTools"))
 		{
-			const FName CurrentToolName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
+			const FName CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
 
 			TArray<FString> ShowForTools;
 			Property.GetMetaData("ShowForTools").ParseIntoArray(&ShowForTools, TEXT(","), true);
@@ -272,7 +272,7 @@ bool SLandscapeEditor::GetIsPropertyVisible(const FPropertyAndParent& PropertyAn
 		if (Property.HasMetaData("ShowForBrushes"))
 		{
 			const FName CurrentBrushSetName = LandscapeEdMode->LandscapeBrushSets[LandscapeEdMode->CurrentBrushSetIndex].BrushSetName;
-	//		const FName CurrentBrushName = LandscapeEdMode->CurrentBrush->GetBrushName();
+			// const FName CurrentBrushName = LandscapeEdMode->CurrentBrush->GetBrushName();
 
 			TArray<FString> ShowForBrushes;
 			Property.GetMetaData("ShowForBrushes").ParseIntoArray(&ShowForBrushes, TEXT(","), true);
@@ -330,7 +330,7 @@ bool SLandscapeEditor::IsModeEnabled(FName ModeName) const
 bool SLandscapeEditor::IsModeActive(FName ModeName) const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
 		return LandscapeEdMode->CurrentToolMode->ToolModeName == ModeName;
 	}

@@ -42,7 +42,7 @@ TSharedRef<IDetailCustomization> FLandscapeEditorDetailCustomization_NewLandscap
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!IsToolActive("ToolSet_NewLandscape"))
+	if (!IsToolActive("NewLandscape"))
 	{
 		return;
 	}
@@ -513,7 +513,7 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_NewLandscape::GetSection
 
 	for (int32 i = 0; i < ARRAY_COUNT(SectionSizes); i++)
 	{
-		MenuBuilder.AddMenuEntry( FText::Format( LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber( SectionSizes[i]) ), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
+		MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(SectionSizes[i])), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -545,9 +545,9 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_NewLandscape::GetSection
 	for (int32 i = 0; i < ARRAY_COUNT(NumSections); i++)
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("Width"), NumSections[i] );
-		Args.Add( TEXT("Height"), NumSections[i] );
-		MenuBuilder.AddMenuEntry(FText::Format(NumSections[i] == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args ), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionsPerComponent, PropertyHandle, NumSections[i]));
+		Args.Add(TEXT("Width"), NumSections[i]);
+		Args.Add(TEXT("Height"), NumSections[i]);
+		MenuBuilder.AddMenuEntry(FText::Format(NumSections[i] == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionsPerComponent, PropertyHandle, NumSections[i]));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -570,8 +570,8 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetSectionsPerComponent(
 	}
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("Width"), SectionsPerComponent );
-	Args.Add( TEXT("Height"), SectionsPerComponent );
+	Args.Add(TEXT("Width"), SectionsPerComponent);
+	Args.Add(TEXT("Height"), SectionsPerComponent);
 	return FText::Format(SectionsPerComponent == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args);
 }
 
@@ -750,7 +750,7 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 
 			const TArray<FLandscapeImportLayer>& ImportLandscapeLayersList = LandscapeEdMode->UISettings->ImportLandscape_Layers;
 			LayerInfos.Reserve(ImportLandscapeLayersList.Num());
-		
+
 			// Fill in LayerInfos array and allocate data
 			for (int32 LayerIdx = 0; LayerIdx < ImportLandscapeLayersList.Num(); LayerIdx++)
 			{
@@ -830,7 +830,7 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		// >=2048x2048 -> LOD1
 		// >= 4096x4096 -> LOD2
 		// >= 8192x8192 -> LOD3
-		Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((SizeX * SizeY) / (2048*2048) + 1), (uint32)2);
+		Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((SizeX * SizeY) / (2048 * 2048) + 1), (uint32)2);
 
 		if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
 		{
@@ -870,8 +870,8 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		LandscapeEdMode->CurrentToolTarget.LayerName = NAME_None;
 		LandscapeEdMode->UpdateTargetList();
 
-		LandscapeEdMode->SetCurrentTool("ToolSet_Select"); // change tool so switching back to the manage mode doesn't give "New Landscape" again
-		LandscapeEdMode->SetCurrentTool("ToolSet_Sculpt"); // change to sculpting mode and tool
+		LandscapeEdMode->SetCurrentTool("Select"); // change tool so switching back to the manage mode doesn't give "New Landscape" again
+		LandscapeEdMode->SetCurrentTool("Sculpt"); // change to sculpting mode and tool
 	}
 
 	return FReply::Handled();
@@ -1030,12 +1030,12 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilename
 				{
 					IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
 					IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-				
+
 					if (!ImageWrapper->SetCompressed(ImportData.GetData(), ImportData.Num()))
 					{
 						LandscapeEdMode->UISettings->ImportLandscape_HeightmapError = ELandscapeImportHeightmapError::CorruptFile;
 					}
-					else if(ImageWrapper->GetWidth() <= 0 || ImageWrapper->GetHeight() <= 0)
+					else if (ImageWrapper->GetWidth() <= 0 || ImageWrapper->GetHeight() <= 0)
 					{
 						LandscapeEdMode->UISettings->ImportLandscape_HeightmapError = ELandscapeImportHeightmapError::InvalidSize;
 					}
@@ -1169,9 +1169,9 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_NewLandscape::GetImportL
 	for (int32 i = 0; i < ImportResolutions.Num(); i++)
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("Width"), ImportResolutions[i].Width );
-		Args.Add( TEXT("Height"), ImportResolutions[i].Height );
-		MenuBuilder.AddMenuEntry(FText::Format( LOCTEXT("ImportResolution_Format", "{Width}\u00D7{Height}"), Args ), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &FLandscapeEditorDetailCustomization_NewLandscape::OnChangeImportLandscapeResolution, i));
+		Args.Add(TEXT("Width"), ImportResolutions[i].Width);
+		Args.Add(TEXT("Height"), ImportResolutions[i].Height);
+		MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("ImportResolution_Format", "{Width}\u00D7{Height}"), Args), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &FLandscapeEditorDetailCustomization_NewLandscape::OnChangeImportLandscapeResolution, i));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1199,9 +1199,9 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetImportLandscapeResolu
 		if (Width != 0 && Height != 0)
 		{
 			FFormatNamedArguments Args;
-			Args.Add( TEXT("Width"), Width );
-			Args.Add( TEXT("Height"), Height );
-			return FText::Format( LOCTEXT("ImportResolution_Format", "{Width}\u00D7{Height}"), Args );
+			Args.Add(TEXT("Width"), Width);
+			Args.Add(TEXT("Height"), Height);
+			return FText::Format(LOCTEXT("ImportResolution_Format", "{Width}\u00D7{Height}"), Args);
 		}
 		else
 		{
@@ -1221,21 +1221,21 @@ void FLandscapeEditorDetailCustomization_NewLandscape::ChooseBestComponentSizeFo
 	if (Width > 0 && Height > 0)
 	{
 		// Try to find a section size and number of sections that matches the dimensions of the heightfield
-		for (int32 SectionSizesIdx=ARRAY_COUNT(SectionSizes)-1; SectionSizesIdx >= 0; SectionSizesIdx--)
+		for (int32 SectionSizesIdx = ARRAY_COUNT(SectionSizes) - 1; SectionSizesIdx >= 0; SectionSizesIdx--)
 		{
-			for (int32 NumSectionsIdx=ARRAY_COUNT(NumSections)-1; NumSectionsIdx >= 0; NumSectionsIdx--)
+			for (int32 NumSectionsIdx = ARRAY_COUNT(NumSections) - 1; NumSectionsIdx >= 0; NumSectionsIdx--)
 			{
 				int32 ss = SectionSizes[SectionSizesIdx];
 				int32 ns = NumSections[NumSectionsIdx];
 
-				if (((Width-1) % (ss * ns)) == 0 && ((Width-1) / (ss * ns)) <= 32 &&
-					((Height-1) % (ss * ns)) == 0 && ((Height-1) / (ss * ns)) <= 32)
+				if (((Width - 1) % (ss * ns)) == 0 && ((Width - 1) / (ss * ns)) <= 32 &&
+					((Height - 1) % (ss * ns)) == 0 && ((Height - 1) / (ss * ns)) <= 32)
 				{
 					bFoundMatch = true;
 					LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection = ss;
 					LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent = ns;
-					LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (Width-1) / (ss * ns);
-					LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (Height-1) / (ss * ns);
+					LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (Width - 1) / (ss * ns);
+					LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (Height - 1) / (ss * ns);
 					LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 					break;
 				}
@@ -1258,8 +1258,8 @@ void FLandscapeEditorDetailCustomization_NewLandscape::ChooseBestComponentSizeFo
 					continue;
 				}
 
-				const int32 ComponentsX = FMath::DivideAndRoundUp((Width-1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
-				const int32 ComponentsY = FMath::DivideAndRoundUp((Height-1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
+				const int32 ComponentsX = FMath::DivideAndRoundUp((Width - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
+				const int32 ComponentsY = FMath::DivideAndRoundUp((Height - 1), SectionSizes[SectionSizesIdx] * CurrentNumSections);
 				if (ComponentsX <= 32 && ComponentsY <= 32)
 				{
 					bFoundMatch = true;
@@ -1275,9 +1275,9 @@ void FLandscapeEditorDetailCustomization_NewLandscape::ChooseBestComponentSizeFo
 			if (!bFoundMatch)
 			{
 				// if the heightmap is very large, fall back to using the largest values we support
-				const int32 MaxSectionSize = SectionSizes[ARRAY_COUNT(SectionSizes)-1];
-				const int32 ComponentsX = FMath::DivideAndRoundUp((Width-1), MaxSectionSize * CurrentNumSections);
-				const int32 ComponentsY = FMath::DivideAndRoundUp((Height-1), MaxSectionSize * CurrentNumSections);
+				const int32 MaxSectionSize = SectionSizes[ARRAY_COUNT(SectionSizes) - 1];
+				const int32 ComponentsX = FMath::DivideAndRoundUp((Width - 1), MaxSectionSize * CurrentNumSections);
+				const int32 ComponentsY = FMath::DivideAndRoundUp((Height - 1), MaxSectionSize * CurrentNumSections);
 
 				bFoundMatch = true;
 				LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection = SectionSizes[MaxSectionSize];
@@ -1312,11 +1312,11 @@ TSharedRef<IPropertyTypeCustomization> FLandscapeEditorStructCustomization_FLand
 	return MakeShareable(new FLandscapeEditorStructCustomization_FLandscapeImportLayer);
 }
 
-void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 }
 
-void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	TSharedRef<IPropertyHandle> PropertyHandle_LayerName = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLandscapeImportLayer, LayerName)).ToSharedRef();
 	TSharedRef<IPropertyHandle> PropertyHandle_LayerInfo = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLandscapeImportLayer, LayerInfo)).ToSharedRef();
@@ -1478,7 +1478,7 @@ FReply FLandscapeEditorStructCustomization_FLandscapeImportLayer::OnLayerFilenam
 	return FReply::Handled();
 }
 
-bool FLandscapeEditorStructCustomization_FLandscapeImportLayer::ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName)
+bool FLandscapeEditorStructCustomization_FLandscapeImportLayer::ShouldFilterLayerInfo(const FAssetData& AssetData, FName LayerName)
 {
 	ULandscapeLayerInfoObject* LayerInfo = CastChecked<ULandscapeLayerInfoObject>(AssetData.GetAsset());
 	if (LayerInfo->LayerName != LayerName)
@@ -1531,7 +1531,7 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::OnImportLayerCre
 		}
 		FString PackageName = Path + LayerObjectName.ToString();
 
-		TSharedRef<SDlgPickAssetPath> NewLayerDlg = 
+		TSharedRef<SDlgPickAssetPath> NewLayerDlg =
 			SNew(SDlgPickAssetPath)
 			.Title(LOCTEXT("CreateNewLayerInfo", "Create New Landscape Layer Info Object"))
 			.DefaultAssetPath(FText::FromString(PackageName));

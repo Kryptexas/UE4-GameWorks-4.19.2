@@ -1624,7 +1624,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 			
 		ALandscapeProxy* Landscape = TileModel->GetLandscape();
 
-		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::DataLayer;
+		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::VisibilityLayer;
 	
 		if (TargetLayer == HeightmapLayerName) // Heightmap
 		{

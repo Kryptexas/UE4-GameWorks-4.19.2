@@ -39,7 +39,7 @@ TSharedRef<IDetailCustomization> FLandscapeEditorDetailCustomization_ResizeLands
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!IsToolActive("ToolSet_ResizeLandscape"))
+	if (!IsToolActive("ResizeLandscape"))
 	{
 		return;
 	}
@@ -311,7 +311,7 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_ResizeLandscape::GetSect
 
 	for (int32 i = 0; i < ARRAY_COUNT(SectionSizes); i++)
 	{
-		MenuBuilder.AddMenuEntry( FText::Format( LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber( SectionSizes[i]) ), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
+		MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(SectionSizes[i])), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -381,7 +381,7 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_ResizeLandscape::GetSect
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Width"), NumSections[i]);
 		Args.Add(TEXT("Height"), NumSections[i]);
-		MenuBuilder.AddMenuEntry(FText::Format(NumSections[i] == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args ), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionsPerComponent, PropertyHandle, NumSections[i]));
+		MenuBuilder.AddMenuEntry(FText::Format(NumSections[i] == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionsPerComponent, PropertyHandle, NumSections[i]));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -404,8 +404,8 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetSectionsPerCompone
 	}
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("Width"), SectionsPerComponent );
-	Args.Add( TEXT("Height"), SectionsPerComponent );
+	Args.Add(TEXT("Width"), SectionsPerComponent);
+	Args.Add(TEXT("Height"), SectionsPerComponent);
 	return FText::Format(SectionsPerComponent == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args);
 }
 
@@ -434,7 +434,7 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalComponentC
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"), 
+		return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"),
 			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.X),
 			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y));
 	}
@@ -443,7 +443,7 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalComponentC
 
 FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetComponentCount(TSharedRef<IPropertyHandle> PropertyHandle_ComponentCount_X, TSharedRef<IPropertyHandle> PropertyHandle_ComponentCount_Y)
 {
-	return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"), 
+	return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"),
 		FLandscapeEditorDetailCustomization_Base::GetPropertyValueText(PropertyHandle_ComponentCount_X),
 		FLandscapeEditorDetailCustomization_Base::GetPropertyValueText(PropertyHandle_ComponentCount_Y));
 }
@@ -513,8 +513,8 @@ FReply FLandscapeEditorDetailCustomization_ResizeLandscape::OnApplyButtonClicked
 
 		LandscapeEdMode->UpdateLandscapeList();
 
-		LandscapeEdMode->SetCurrentTool("ToolSet_Select"); // change tool so switching back to the manage mode doesn't give "Resize Landscape" again
-		LandscapeEdMode->SetCurrentTool("ToolSet_Sculpt"); // change to sculpting mode and tool
+		LandscapeEdMode->SetCurrentTool("Select"); // change tool so switching back to the manage mode doesn't give "Resize Landscape" again
+		LandscapeEdMode->SetCurrentTool("Sculpt"); // change to sculpting mode and tool
 	}
 
 	return FReply::Handled();

@@ -1455,7 +1455,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 			for( int32 AllocIdx=0;AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++ )
 			{
 				FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
-				if( AllocInfo.LayerInfo == ALandscapeProxy::DataLayer )
+				if( AllocInfo.LayerInfo == ALandscapeProxy::VisibilityLayer )
 				{
 					TexIndex = AllocInfo.WeightmapTextureIndex;
 					Component->WeightmapTextures[TexIndex]->Source.GetMipData(RawVisData, 0);

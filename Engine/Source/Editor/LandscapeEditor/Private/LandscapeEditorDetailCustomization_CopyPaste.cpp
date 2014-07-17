@@ -28,7 +28,7 @@ TSharedRef<IDetailCustomization> FLandscapeEditorDetailCustomization_CopyPaste::
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!IsToolActive("ToolSet_CopyPaste"))
+	if (!IsToolActive("CopyPaste"))
 	{
 		return;
 	}
@@ -330,7 +330,7 @@ FReply FLandscapeEditorDetailCustomization_CopyPaste::OnGizmoImportButtonClicked
 				if (LayerName == TEXT(""))
 				{
 					FMessageDialog::Open(EAppMsgType::Ok,
-						FText::Format( NSLOCTEXT("UnrealEd", "LandscapeImport_BadLayerName", "You must enter a name for the layer being imported from {0}."), FText::FromString(Layer.LayerFilename) ));
+						FText::Format(NSLOCTEXT("UnrealEd", "LandscapeImport_BadLayerName", "You must enter a name for the layer being imported from {0}."), FText::FromString(Layer.LayerFilename)));
 					return FReply::Handled();
 				}
 
@@ -342,7 +342,7 @@ FReply FLandscapeEditorDetailCustomization_CopyPaste::OnGizmoImportButtonClicked
 					if (LayerData->Num() != (LandscapeEdMode->UISettings->GizmoImportSize.X * LandscapeEdMode->UISettings->GizmoImportSize.Y))
 					{
 						FMessageDialog::Open(EAppMsgType::Ok,
-							FText::Format( NSLOCTEXT("UnrealEd", "LandscapeImport_BadLayerSize", "Layer {0} file size does not match the heightmap resolution."), FText::FromString(Layer.LayerFilename) ));
+							FText::Format(NSLOCTEXT("UnrealEd", "LandscapeImport_BadLayerSize", "Layer {0} file size does not match the heightmap resolution."), FText::FromString(Layer.LayerFilename)));
 						return FReply::Handled();
 					}
 
@@ -462,11 +462,11 @@ TSharedRef<IPropertyTypeCustomization> FLandscapeEditorStructCustomization_FGizm
 	return MakeShareable(new FLandscapeEditorStructCustomization_FGizmoImportLayer);
 }
 
-void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 }
 
-void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	TSharedRef<IPropertyHandle> PropertyHandle_LayerFilename = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGizmoImportLayer, LayerFilename)).ToSharedRef();
 	ChildBuilder.AddChildProperty(PropertyHandle_LayerFilename)

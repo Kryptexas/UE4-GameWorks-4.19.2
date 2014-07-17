@@ -18,26 +18,26 @@ struct FNoiseParameter
 	// Constructors.
 
 	FNoiseParameter() {}
-	FNoiseParameter(float InBase,float InScale,float InAmount):
-	Base(InBase),
+	FNoiseParameter(float InBase, float InScale, float InAmount) :
+		Base(InBase),
 		NoiseScale(InScale),
 		NoiseAmount(InAmount)
 	{}
 
 	// Sample
-	float Sample(int32 X,int32 Y) const
+	float Sample(int32 X, int32 Y) const
 	{
 		float	Noise = 0.0f;
 		X = FMath::Abs(X);
 		Y = FMath::Abs(Y);
 
-		if(NoiseScale > DELTA)
+		if (NoiseScale > DELTA)
 		{
-			for(uint32 Octave = 0;Octave < 4;Octave++)
+			for (uint32 Octave = 0; Octave < 4; Octave++)
 			{
 				float	OctaveShift = 1 << Octave;
 				float	OctaveScale = OctaveShift / NoiseScale;
-				Noise += PerlinNoise2D(X * OctaveScale,Y * OctaveScale) / OctaveShift;
+				Noise += PerlinNoise2D(X * OctaveScale, Y * OctaveScale) / OctaveShift;
 			}
 		}
 
@@ -45,27 +45,27 @@ struct FNoiseParameter
 	}
 
 	// TestGreater - Returns 1 if TestValue is greater than the parameter.
-	bool TestGreater(int32 X,int32 Y,float TestValue) const
+	bool TestGreater(int32 X, int32 Y, float TestValue) const
 	{
 		float	ParameterValue = Base;
 
-		if(NoiseScale > DELTA)
+		if (NoiseScale > DELTA)
 		{
-			for(uint32 Octave = 0;Octave < 4;Octave++)
+			for (uint32 Octave = 0; Octave < 4; Octave++)
 			{
 				float	OctaveShift = 1 << Octave;
 				float	OctaveAmplitude = NoiseAmount / OctaveShift;
 
 				// Attempt to avoid calculating noise if the test value is outside of the noise amplitude.
 
-				if(TestValue > ParameterValue + OctaveAmplitude)
+				if (TestValue > ParameterValue + OctaveAmplitude)
 					return 1;
-				else if(TestValue < ParameterValue - OctaveAmplitude)
+				else if (TestValue < ParameterValue - OctaveAmplitude)
 					return 0;
 				else
 				{
 					float	OctaveScale = OctaveShift / NoiseScale;
-					ParameterValue += PerlinNoise2D(X * OctaveScale,Y * OctaveScale) * OctaveAmplitude;
+					ParameterValue += PerlinNoise2D(X * OctaveScale, Y * OctaveScale) * OctaveAmplitude;
 				}
 			}
 		}
@@ -74,7 +74,7 @@ struct FNoiseParameter
 	}
 
 	// TestLess
-	bool TestLess(int32 X,int32 Y,float TestValue) const { return !TestGreater(X,Y,TestValue); }
+	bool TestLess(int32 X, int32 Y, float TestValue) const { return !TestGreater(X, Y, TestValue); }
 
 private:
 	static const int32 Permutations[256];
@@ -105,7 +105,7 @@ private:
 	}
 
 
-	float Grad(int32 Hash,float X,float Y) const
+	float Grad(int32 Hash, float X, float Y) const
 	{
 		int32		H = Hash & 15;
 		float	U = H < 8 || H == 12 || H == 13 ? X : Y,
@@ -113,7 +113,7 @@ private:
 		return ((H & 1) == 0 ? U : -U) + ((H & 2) == 0 ? V : -V);
 	}
 
-	float PerlinNoise2D(float X,float Y) const
+	float PerlinNoise2D(float X, float Y) const
 	{
 		int32		TruncX = FMath::TruncToInt(X),
 			TruncY = FMath::TruncToInt(Y),
@@ -132,10 +132,10 @@ private:
 			BA = Permutations[B & 255],
 			BB = Permutations[(B + 1) & 255];
 
-		return	FMath::Lerp(	FMath::Lerp(	Grad(Permutations[AA],			FracX,	FracY	),
-			Grad(Permutations[BA],			FracX-1,FracY	),	U),
-			FMath::Lerp(	Grad(Permutations[AB],			FracX,	FracY-1	),
-			Grad(Permutations[BB],			FracX-1,FracY-1	),	U),	V);
+		return	FMath::Lerp(FMath::Lerp(Grad(Permutations[AA], FracX, FracY),
+			Grad(Permutations[BA], FracX - 1, FracY), U),
+			FMath::Lerp(Grad(Permutations[AB], FracX, FracY - 1),
+			Grad(Permutations[BB], FracX - 1, FracY - 1), U), V);
 	}
 };
 
@@ -150,30 +150,30 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 {
 #if WITH_KISSFFT
 	// Low-pass filter
-	int32 FFTWidth = X2-X1-1;
-	int32 FFTHeight = Y2-Y1-1;
+	int32 FFTWidth = X2 - X1 - 1;
+	int32 FFTHeight = Y2 - Y1 - 1;
 
 	const int NDims = 2;
-	const int32 Dims[NDims] = {FFTHeight-FFTHeight%2, FFTWidth-FFTWidth%2};
+	const int32 Dims[NDims] = { FFTHeight - FFTHeight % 2, FFTWidth - FFTWidth % 2 };
 	kiss_fftnd_cfg stf = kiss_fftnd_alloc(Dims, NDims, 0, NULL, NULL),
 		sti = kiss_fftnd_alloc(Dims, NDims, 1, NULL, NULL);
 
 	kiss_fft_cpx *buf = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 	kiss_fft_cpx *out = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 
-	for (int X = X1+1; X <= X2-1-FFTWidth%2; X++)
+	for (int X = X1 + 1; X <= X2 - 1 - FFTWidth % 2; X++)
 	{
-		for (int Y = Y1+1; Y <= Y2-1-FFTHeight%2; Y++)
+		for (int Y = Y1 + 1; Y <= Y2 - 1 - FFTHeight % 2; Y++)
 		{
-			buf[(X-X1-1) + (Y-Y1-1)*(Dims[1])].r = Data[(X-X1) + (Y-Y1)*(1+X2-X1)];
-			buf[(X-X1-1) + (Y-Y1-1)*(Dims[1])].i = 0;
+			buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].r = Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)];
+			buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].i = 0;
 		}
 	}
 
 	// Forward FFT
 	kiss_fftnd(stf, buf, out);
 
-	int32 CenterPos[2] = {Dims[0]>>1, Dims[1]>>1};
+	int32 CenterPos[2] = { Dims[0] >> 1, Dims[1] >> 1 };
 	for (int Y = 0; Y < Dims[0]; Y++)
 	{
 		float DistFromCenter = 0.f;
@@ -189,7 +189,7 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 				else
 				{
 					// 2
-					DistFromCenter = (X-Dims[1])*(X-Dims[1]) + Y*Y;
+					DistFromCenter = (X - Dims[1])*(X - Dims[1]) + Y*Y;
 				}
 			}
 			else
@@ -197,20 +197,20 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 				if (X < CenterPos[1])
 				{
 					// 3
-					DistFromCenter = X*X + (Y-Dims[0])*(Y-Dims[0]);
+					DistFromCenter = X*X + (Y - Dims[0])*(Y - Dims[0]);
 				}
 				else
 				{
 					// 4
-					DistFromCenter = (X-Dims[1])*(X-Dims[1]) + (Y-Dims[0])*(Y-Dims[0]);
+					DistFromCenter = (X - Dims[1])*(X - Dims[1]) + (Y - Dims[0])*(Y - Dims[0]);
 				}
 			}
 			// High frequency removal
 			float Ratio = 1.f - DetailScale;
-			float Dist = FMath::Min<float>((Dims[0]*Ratio)*(Dims[0]*Ratio), (Dims[1]*Ratio)*(Dims[1]*Ratio));
-			float Filter = 1.0 / (1.0 + DistFromCenter/Dist);
-			out[X+Y*Dims[1]].r *= Filter;
-			out[X+Y*Dims[1]].i *= Filter;
+			float Dist = FMath::Min<float>((Dims[0] * Ratio)*(Dims[0] * Ratio), (Dims[1] * Ratio)*(Dims[1] * Ratio));
+			float Filter = 1.0 / (1.0 + DistFromCenter / Dist);
+			out[X + Y*Dims[1]].r *= Filter;
+			out[X + Y*Dims[1]].i *= Filter;
 		}
 	}
 
@@ -218,14 +218,14 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 	kiss_fftnd(sti, out, buf);
 
 	float Scale = Dims[0] * Dims[1];
-	for( auto It = BrushInfo.CreateConstIterator(); It; ++It )
+	for (auto It = BrushInfo.CreateConstIterator(); It; ++It)
 	{
 		int32 X, Y;
 		ALandscape::UnpackKey(It.Key(), X, Y);
 
 		if (It.Value() > 0.f)
 		{
-			Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = FMath::Lerp((float)Data[(X-X1) + (Y-Y1)*(1+X2-X1)], buf[(X-X1-1) + (Y-Y1-1)*(Dims[1])].r / Scale, It.Value() * ApplyRatio);
+			Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = FMath::Lerp((float)Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)], buf[(X - X1 - 1) + (Y - Y1 - 1)*(Dims[1])].r / Scale, It.Value() * ApplyRatio);
 			//buf[(X-X1-1) + (Y-Y1-1)*(Dims[1])].r / Scale;
 		}
 	}
@@ -247,14 +247,14 @@ template<class Accessor, typename AccessorType>
 struct TLandscapeEditCache
 {
 	TLandscapeEditCache(Accessor& InDataAccess)
-		:	DataAccess(InDataAccess)
-		,	Valid(false)
+		: DataAccess(InDataAccess)
+		, Valid(false)
 	{
 	}
 
-	void CacheData( int32 X1, int32 Y1, int32 X2, int32 Y2 )
+	void CacheData(int32 X1, int32 Y1, int32 X2, int32 Y2)
 	{
-		if( !Valid )
+		if (!Valid)
 		{
 			if (Accessor::bUseInterp)
 			{
@@ -263,7 +263,7 @@ struct TLandscapeEditCache
 				ValidX2 = CachedX2 = X2;
 				ValidY2 = CachedY2 = Y2;
 
-				DataAccess.GetData( ValidX1, ValidY1, ValidX2, ValidY2, CachedData );
+				DataAccess.GetData(ValidX1, ValidY1, ValidX2, ValidY2, CachedData);
 				if (!ensureMsgf(ValidX1 <= ValidX2 && ValidY1 <= ValidY2, TEXT("Invalid cache area: X(%d-%d), Y(%d-%d) from region X(%d-%d), Y(%d-%d)"), ValidX1, ValidX2, ValidY1, ValidY2, X1, X2, Y1, Y2))
 				{
 					Valid = false;
@@ -277,7 +277,7 @@ struct TLandscapeEditCache
 				CachedX2 = X2;
 				CachedY2 = Y2;
 
-				DataAccess.GetDataFast( CachedX1, CachedY1, CachedX2, CachedY2, CachedData );
+				DataAccess.GetDataFast(CachedX1, CachedY1, CachedX2, CachedY2, CachedData);
 			}
 
 			OriginalData = CachedData;
@@ -287,48 +287,48 @@ struct TLandscapeEditCache
 		else
 		{
 			// Extend the cache area if needed
-			if( X1 < CachedX1 )
+			if (X1 < CachedX1)
 			{
 				if (Accessor::bUseInterp)
 				{
 					int32 x1 = X1;
 					int32 x2 = ValidX1;
-					int32 y1 = FMath::Min<int32>(Y1,CachedY1);
-					int32 y2 = FMath::Max<int32>(Y2,CachedY2);
+					int32 y1 = FMath::Min<int32>(Y1, CachedY1);
+					int32 y2 = FMath::Max<int32>(Y2, CachedY2);
 
-					DataAccess.GetData( x1, y1, x2, y2, CachedData );
-					ValidX1 = FMath::Min<int32>(x1,ValidX1);
+					DataAccess.GetData(x1, y1, x2, y2, CachedData);
+					ValidX1 = FMath::Min<int32>(x1, ValidX1);
 				}
 				else
 				{
-					DataAccess.GetDataFast( X1, CachedY1, CachedX1-1, CachedY2, CachedData );
+					DataAccess.GetDataFast(X1, CachedY1, CachedX1 - 1, CachedY2, CachedData);
 				}
 
-				CacheOriginalData( X1, CachedY1, CachedX1-1, CachedY2 );
+				CacheOriginalData(X1, CachedY1, CachedX1 - 1, CachedY2);
 				CachedX1 = X1;
 			}
 
-			if( X2 > CachedX2 )
+			if (X2 > CachedX2)
 			{
 				if (Accessor::bUseInterp)
 				{
 					int32 x1 = ValidX2;
 					int32 x2 = X2;
-					int32 y1 = FMath::Min<int32>(Y1,CachedY1);
-					int32 y2 = FMath::Max<int32>(Y2,CachedY2);
+					int32 y1 = FMath::Min<int32>(Y1, CachedY1);
+					int32 y2 = FMath::Max<int32>(Y2, CachedY2);
 
-					DataAccess.GetData( x1, y1, x2, y2, CachedData );
-					ValidX2 = FMath::Max<int32>(x2,ValidX2);
+					DataAccess.GetData(x1, y1, x2, y2, CachedData);
+					ValidX2 = FMath::Max<int32>(x2, ValidX2);
 				}
 				else
 				{
-					DataAccess.GetDataFast( CachedX2+1, CachedY1, X2, CachedY2, CachedData );
+					DataAccess.GetDataFast(CachedX2 + 1, CachedY1, X2, CachedY2, CachedData);
 				}
-				CacheOriginalData( CachedX2+1, CachedY1, X2, CachedY2 );			
+				CacheOriginalData(CachedX2 + 1, CachedY1, X2, CachedY2);
 				CachedX2 = X2;
-			}			
+			}
 
-			if( Y1 < CachedY1 )
+			if (Y1 < CachedY1)
 			{
 				if (Accessor::bUseInterp)
 				{
@@ -337,18 +337,18 @@ struct TLandscapeEditCache
 					int32 y1 = Y1;
 					int32 y2 = ValidY1;
 
-					DataAccess.GetData( x1, y1, x2, y2, CachedData );
-					ValidY1 = FMath::Min<int32>(y1,ValidY1);
+					DataAccess.GetData(x1, y1, x2, y2, CachedData);
+					ValidY1 = FMath::Min<int32>(y1, ValidY1);
 				}
 				else
 				{
-					DataAccess.GetDataFast( CachedX1, Y1, CachedX2, CachedY1-1, CachedData );
+					DataAccess.GetDataFast(CachedX1, Y1, CachedX2, CachedY1 - 1, CachedData);
 				}
-				CacheOriginalData( CachedX1, Y1, CachedX2, CachedY1-1 );			
+				CacheOriginalData(CachedX1, Y1, CachedX2, CachedY1 - 1);
 				CachedY1 = Y1;
 			}
 
-			if( Y2 > CachedY2 )
+			if (Y2 > CachedY2)
 			{
 				if (Accessor::bUseInterp)
 				{
@@ -357,15 +357,15 @@ struct TLandscapeEditCache
 					int32 y1 = ValidY2;
 					int32 y2 = Y2;
 
-					DataAccess.GetData( x1, y1, x2, y2, CachedData );
-					ValidY2 = FMath::Max<int32>(y2,ValidY2);
+					DataAccess.GetData(x1, y1, x2, y2, CachedData);
+					ValidY2 = FMath::Max<int32>(y2, ValidY2);
 				}
 				else
 				{
-					DataAccess.GetDataFast( CachedX1, CachedY2+1, CachedX2, Y2, CachedData );
+					DataAccess.GetDataFast(CachedX1, CachedY2 + 1, CachedX2, Y2, CachedData);
 				}
 
-				CacheOriginalData( CachedX1, CachedY2+1, CachedX2, Y2 );			
+				CacheOriginalData(CachedX1, CachedY2 + 1, CachedX2, Y2);
 				CachedY2 = Y2;
 			}
 		}
@@ -373,7 +373,7 @@ struct TLandscapeEditCache
 
 	AccessorType* GetValueRef(int32 LandscapeX, int32 LandscapeY)
 	{
-		return CachedData.Find(ALandscape::MakeKey(LandscapeX,LandscapeY));
+		return CachedData.Find(ALandscape::MakeKey(LandscapeX, LandscapeY));
 	}
 
 	float GetValue(float LandscapeX, float LandscapeY)
@@ -381,15 +381,15 @@ struct TLandscapeEditCache
 		int32 X = FMath::FloorToInt(LandscapeX);
 		int32 Y = FMath::FloorToInt(LandscapeY);
 		AccessorType* P00 = CachedData.Find(ALandscape::MakeKey(X, Y));
-		AccessorType* P10 = CachedData.Find(ALandscape::MakeKey(X+1, Y));
-		AccessorType* P01 = CachedData.Find(ALandscape::MakeKey(X, Y+1));
-		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X+1, Y+1));
+		AccessorType* P10 = CachedData.Find(ALandscape::MakeKey(X + 1, Y));
+		AccessorType* P01 = CachedData.Find(ALandscape::MakeKey(X, Y + 1));
+		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X + 1, Y + 1));
 
 		// Search for nearest value if missing data
-		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f) ));
-		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f) ));
-		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f) ));
-		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f) ));
+		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f)));
+		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f)));
+		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f)));
+		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f)));
 
 		return FMath::Lerp(
 			FMath::Lerp(V00, V10, LandscapeX - X),
@@ -400,45 +400,45 @@ struct TLandscapeEditCache
 	FVector GetNormal(int32 X, int32 Y)
 	{
 		AccessorType* P00 = CachedData.Find(ALandscape::MakeKey(X, Y));
-		AccessorType* P10 = CachedData.Find(ALandscape::MakeKey(X+1, Y));
-		AccessorType* P01 = CachedData.Find(ALandscape::MakeKey(X, Y+1));
-		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X+1, Y+1));
+		AccessorType* P10 = CachedData.Find(ALandscape::MakeKey(X + 1, Y));
+		AccessorType* P01 = CachedData.Find(ALandscape::MakeKey(X, Y + 1));
+		AccessorType* P11 = CachedData.Find(ALandscape::MakeKey(X + 1, Y + 1));
 
 		// Search for nearest value if missing data
-		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f) ));
-		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f) ));
-		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f) ));
-		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f) ));
+		float V00 = P00 ? *P00 : (P10 ? *P10 : (P01 ? *P01 : (P11 ? *P11 : 0.f)));
+		float V10 = P10 ? *P10 : (P00 ? *P00 : (P11 ? *P11 : (P01 ? *P01 : 0.f)));
+		float V01 = P01 ? *P01 : (P00 ? *P00 : (P11 ? *P11 : (P10 ? *P10 : 0.f)));
+		float V11 = P11 ? *P11 : (P10 ? *P10 : (P01 ? *P01 : (P00 ? *P00 : 0.f)));
 
-		FVector Vert00 = FVector(0.f,0.f, V00);
-		FVector Vert01 = FVector(0.f,1.f, V01);
-		FVector Vert10 = FVector(1.f,0.f, V10);
-		FVector Vert11 = FVector(1.f,1.f, V11);
+		FVector Vert00 = FVector(0.f, 0.f, V00);
+		FVector Vert01 = FVector(0.f, 1.f, V01);
+		FVector Vert10 = FVector(1.f, 0.f, V10);
+		FVector Vert11 = FVector(1.f, 1.f, V11);
 
-		FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-		FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal();
+		FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).SafeNormal();
+		FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).SafeNormal();
 		return (FaceNormal1 + FaceNormal2).SafeNormal();
 	}
 
 	void SetValue(int32 LandscapeX, int32 LandscapeY, AccessorType Value)
 	{
-		CachedData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), Value);
+		CachedData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Value);
 	}
 
 	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutData)
 	{
-		int32 NumSamples = (1+X2-X1)*(1+Y2-Y1);
+		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
 		OutData.Empty(NumSamples);
 		OutData.AddUninitialized(NumSamples);
 
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
-				AccessorType* Ptr = GetValueRef(X,Y);
-				if( Ptr )
+				AccessorType* Ptr = GetValueRef(X, Y);
+				if (Ptr)
 				{
-					OutData[(X-X1) + (Y-Y1)*(1+X2-X1)] = *Ptr;
+					OutData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = *Ptr;
 				}
 			}
 		}
@@ -447,33 +447,33 @@ struct TLandscapeEditCache
 	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		// Update cache
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
-				SetValue( X, Y, Data[(X-X1) + (Y-Y1)*(1+X2-X1)] );
+				SetValue(X, Y, Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)]);
 			}
 		}
 
 		// Update real data
-		DataAccess.SetData( X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction );
+		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction);
 	}
 
 	// Get the original data before we made any changes with the SetCachedData interface.
 	void GetOriginalData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutOriginalData)
 	{
-		int32 NumSamples = (1+X2-X1)*(1+Y2-Y1);
+		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
 		OutOriginalData.Empty(NumSamples);
 		OutOriginalData.AddUninitialized(NumSamples);
 
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
-				AccessorType* Ptr = OriginalData.Find(ALandscape::MakeKey(X,Y));
-				if( Ptr )
+				AccessorType* Ptr = OriginalData.Find(ALandscape::MakeKey(X, Y));
+				if (Ptr)
 				{
-					OutOriginalData[(X-X1) + (Y-Y1)*(1+X2-X1)] = *Ptr;
+					OutOriginalData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = *Ptr;
 				}
 			}
 		}
@@ -487,17 +487,17 @@ struct TLandscapeEditCache
 protected:
 	Accessor& DataAccess;
 private:
-	void CacheOriginalData(int32 X1, int32 Y1, int32 X2, int32 Y2 )
+	void CacheOriginalData(int32 X1, int32 Y1, int32 X2, int32 Y2)
 	{
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
-				FIntPoint Key = ALandscape::MakeKey(X,Y);
+				FIntPoint Key = ALandscape::MakeKey(X, Y);
 				AccessorType* Ptr = CachedData.Find(Key);
-				if( Ptr )
+				if (Ptr)
 				{
-					check( OriginalData.Find(Key) == NULL );
+					check(OriginalData.Find(Key) == NULL);
 					OriginalData.Add(Key, *Ptr);
 				}
 			}
@@ -525,7 +525,7 @@ template<bool bInUseInterp>
 struct FHeightmapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
-	FHeightmapAccessor( ULandscapeInfo* InLandscapeInfo )
+	FHeightmapAccessor(ULandscapeInfo* InLandscapeInfo)
 	{
 		LandscapeInfo = InLandscapeInfo;
 		LandscapeEdit = new FLandscapeEditDataInterface(InLandscapeInfo);
@@ -534,12 +534,12 @@ struct FHeightmapAccessor
 	// accessors
 	void GetData(int32& X1, int32& Y1, int32& X2, int32& Y2, TMap<FIntPoint, uint16>& Data)
 	{
-		LandscapeEdit->GetHeightData( X1, Y1, X2, Y2, Data);
+		LandscapeEdit->GetHeightData(X1, Y1, X2, Y2, Data);
 	}
 
 	void GetDataFast(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint, uint16>& Data)
 	{
-		LandscapeEdit->GetHeightDataFast( X1, Y1, X2, Y2, Data);
+		LandscapeEdit->GetHeightDataFast(X1, Y1, X2, Y2, Data);
 	}
 
 	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint16* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
@@ -598,7 +598,7 @@ struct FHeightmapAccessor
 			else
 			{
 				// No foliage, just update landscape.
-				LandscapeEdit->SetHeightData( X1, Y1, X2, Y2, Data, 0, true);
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, Data, 0, true);
 			}
 		}
 		else
@@ -618,11 +618,11 @@ struct FHeightmapAccessor
 		LandscapeEdit = NULL;
 
 		// Update the bounds and navmesh for the components we edited
-		for(TSet<ULandscapeComponent*>::TConstIterator It(ChangedComponents);It;++It)
+		for (TSet<ULandscapeComponent*>::TConstIterator It(ChangedComponents); It; ++It)
 		{
 			(*It)->UpdateCachedBounds();
 			(*It)->UpdateComponentToWorld();
-			
+
 			// Recreate collision for modified components to update the physical materials
 			ULandscapeHeightfieldCollisionComponent* CollisionComponent = (*It)->CollisionComponent.Get();
 			if (CollisionComponent)
@@ -643,16 +643,16 @@ private:
 	TSet<ULandscapeComponent*> ChangedComponents;
 };
 
-struct FLandscapeHeightCache : public TLandscapeEditCache<FHeightmapAccessor<true>,uint16>
+struct FLandscapeHeightCache : public TLandscapeEditCache < FHeightmapAccessor<true>, uint16 >
 {
 	typedef uint16 DataType;
-	static uint16 ClampValue( int32 Value ) { return FMath::Clamp(Value, 0, LandscapeDataAccess::MaxValue); }
+	static uint16 ClampValue(int32 Value) { return FMath::Clamp(Value, 0, LandscapeDataAccess::MaxValue); }
 
 	FHeightmapAccessor<true> HeightmapAccessor;
 
 	FLandscapeHeightCache(const FLandscapeToolTarget& InTarget)
-		:	HeightmapAccessor(InTarget.LandscapeInfo.Get())
-		,	TLandscapeEditCache(HeightmapAccessor)
+		: HeightmapAccessor(InTarget.LandscapeInfo.Get())
+		, TLandscapeEditCache(HeightmapAccessor)
 	{
 	}
 };
@@ -664,7 +664,7 @@ template<bool bInUseInterp>
 struct FXYOffsetmapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
-	FXYOffsetmapAccessor( ULandscapeInfo* InLandscapeInfo )
+	FXYOffsetmapAccessor(ULandscapeInfo* InLandscapeInfo)
 	{
 		LandscapeInfo = InLandscapeInfo;
 		LandscapeEdit = new FLandscapeEditDataInterface(InLandscapeInfo);
@@ -676,15 +676,15 @@ struct FXYOffsetmapAccessor
 		LandscapeEdit->GetXYOffsetData(X1, Y1, X2, Y2, Data);
 
 		TMap<FIntPoint, uint16> NewHeights;
-		LandscapeEdit->GetHeightData( X1, Y1, X2, Y2, NewHeights);
+		LandscapeEdit->GetHeightData(X1, Y1, X2, Y2, NewHeights);
 		for (int32 Y = Y1; Y <= Y2; ++Y)
 		{
 			for (int32 X = X1; X <= X2; ++X)
 			{
-				FVector* Value = Data.Find( ALandscape::MakeKey(X, Y) );
+				FVector* Value = Data.Find(ALandscape::MakeKey(X, Y));
 				if (Value)
 				{
-					Value->Z = ( (float)NewHeights.FindRef( ALandscape::MakeKey(X, Y) ) - 32768.f) * LANDSCAPE_ZSCALE;
+					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.f) * LANDSCAPE_ZSCALE;
 				}
 			}
 		}
@@ -695,15 +695,15 @@ struct FXYOffsetmapAccessor
 		LandscapeEdit->GetXYOffsetData(X1, Y1, X2, Y2, Data);
 
 		TMap<FIntPoint, uint16> NewHeights;
-		LandscapeEdit->GetHeightDataFast( X1, Y1, X2, Y2, NewHeights);
+		LandscapeEdit->GetHeightDataFast(X1, Y1, X2, Y2, NewHeights);
 		for (int32 Y = Y1; Y <= Y2; ++Y)
 		{
 			for (int32 X = X1; X <= X2; ++X)
 			{
-				FVector* Value = Data.Find( ALandscape::MakeKey(X, Y) );
+				FVector* Value = Data.Find(ALandscape::MakeKey(X, Y));
 				if (Value)
 				{
-					Value->Z = ( (float)NewHeights.FindRef( ALandscape::MakeKey(X, Y) ) - 32768.f) * LANDSCAPE_ZSCALE;
+					Value->Z = ((float)NewHeights.FindRef(ALandscape::MakeKey(X, Y)) - 32768.f) * LANDSCAPE_ZSCALE;
 				}
 			}
 		}
@@ -719,12 +719,12 @@ struct FXYOffsetmapAccessor
 
 			// Convert Height to uint16
 			TArray<uint16> NewHeights;
-			NewHeights.AddZeroed( (Y2-Y1+1) * (X2-X1+1) );
+			NewHeights.AddZeroed((Y2 - Y1 + 1) * (X2 - X1 + 1));
 			for (int32 Y = Y1; Y <= Y2; ++Y)
 			{
 				for (int32 X = X1; X <= X2; ++X)
 				{
-					NewHeights[X - X1 + (Y - Y1) * (X2-X1+1) ] = FMath::Clamp<uint16>(Data[(X - X1 + (Y - Y1) * (X2-X1+1) )].Z * LANDSCAPE_INV_ZSCALE + 32768.f, 0, 65535);
+					NewHeights[X - X1 + (Y - Y1) * (X2 - X1 + 1)] = FMath::Clamp<uint16>(Data[(X - X1 + (Y - Y1) * (X2 - X1 + 1))].Z * LANDSCAPE_INV_ZSCALE + 32768.f, 0, 65535);
 				}
 			}
 
@@ -755,8 +755,8 @@ struct FXYOffsetmapAccessor
 				}
 
 				// Update landscape.
-				LandscapeEdit->SetXYOffsetData( X1, Y1, X2, Y2, Data, 0 ); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData( X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
 
 				// Snap foliage for each component.
 				for (int32 Index = 0; Index < CollisionComponents.Num(); ++Index)
@@ -769,8 +769,8 @@ struct FXYOffsetmapAccessor
 			else
 			{
 				// No foliage, just update landscape.
-				LandscapeEdit->SetXYOffsetData( X1, Y1, X2, Y2, Data, 0 ); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData( X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
 			}
 		}
 		else
@@ -790,7 +790,7 @@ struct FXYOffsetmapAccessor
 		LandscapeEdit = NULL;
 
 		// Update the bounds for the components we edited
-		for(TSet<ULandscapeComponent*>::TConstIterator It(ChangedComponents);It;++It)
+		for (TSet<ULandscapeComponent*>::TConstIterator It(ChangedComponents); It; ++It)
 		{
 			(*It)->UpdateCachedBounds();
 			(*It)->UpdateComponentToWorld();
@@ -803,15 +803,15 @@ private:
 	TSet<ULandscapeComponent*> ChangedComponents;
 };
 
-struct FLandscapeXYOffsetCache : public TLandscapeEditCache<FXYOffsetmapAccessor<true>,FVector>
+struct FLandscapeXYOffsetCache : public TLandscapeEditCache < FXYOffsetmapAccessor<true>, FVector >
 {
 	typedef FVector DataType;
 
 	FXYOffsetmapAccessor<true> XYOffsetmapAccessor;
 
 	FLandscapeXYOffsetCache(const FLandscapeToolTarget& InTarget)
-		:	XYOffsetmapAccessor(InTarget.LandscapeInfo.Get())
-		,	TLandscapeEditCache(XYOffsetmapAccessor)
+		: XYOffsetmapAccessor(InTarget.LandscapeInfo.Get())
+		, TLandscapeEditCache(XYOffsetmapAccessor)
 	{
 	}
 };
@@ -824,16 +824,16 @@ struct FAlphamapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
 	enum { bUseTotalNormalize = bInUseTotalNormalize };
-	FAlphamapAccessor( ULandscapeInfo* InLandscapeInfo, ULandscapeLayerInfoObject* InLayerInfo )
-		:	LandscapeInfo(InLandscapeInfo)
-		,	LandscapeEdit(InLandscapeInfo)
-		,	LayerInfo(InLayerInfo)
-		,	bBlendWeight(true)
+	FAlphamapAccessor(ULandscapeInfo* InLandscapeInfo, ULandscapeLayerInfoObject* InLayerInfo)
+		: LandscapeInfo(InLandscapeInfo)
+		, LandscapeEdit(InLandscapeInfo)
+		, LayerInfo(InLayerInfo)
+		, bBlendWeight(true)
 	{
 		// should be no Layer change during FAlphamapAccessor lifetime...
 		if (InLandscapeInfo && InLayerInfo)
 		{
-			if (LayerInfo == ALandscapeProxy::DataLayer)
+			if (LayerInfo == ALandscapeProxy::VisibilityLayer)
 			{
 				bBlendWeight = false;
 			}
@@ -850,12 +850,12 @@ struct FAlphamapAccessor
 		for (auto It = ModifiedComponents.CreateConstIterator(); It; ++It)
 		{
 			ULandscapeHeightfieldCollisionComponent* CollisionComponent = (*It)->CollisionComponent.Get();
-			if( CollisionComponent )
+			if (CollisionComponent)
 			{
 				CollisionComponent->RecreateCollision(false);
-				
+
 				// We need to trigger navigation mesh build, in case user have painted holes on a landscape
-				if (LayerInfo == ALandscapeProxy::DataLayer)
+				if (LayerInfo == ALandscapeProxy::VisibilityLayer)
 				{
 					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
 					if (NavSys)
@@ -900,30 +900,30 @@ private:
 	bool bBlendWeight;
 };
 
-struct FLandscapeAlphaCache : public TLandscapeEditCache<FAlphamapAccessor<true, false>,uint8>
+struct FLandscapeAlphaCache : public TLandscapeEditCache < FAlphamapAccessor<true, false>, uint8 >
 {
 	typedef uint8 DataType;
-	static uint8 ClampValue( int32 Value ) { return FMath::Clamp(Value, 0, 255); }
+	static uint8 ClampValue(int32 Value) { return FMath::Clamp(Value, 0, 255); }
 
 	FAlphamapAccessor<true, false> AlphamapAccessor;
 
 	FLandscapeAlphaCache(const FLandscapeToolTarget& InTarget)
-		:	AlphamapAccessor(InTarget.LandscapeInfo.Get(), InTarget.LayerInfo.Get())
-		,	TLandscapeEditCache(AlphamapAccessor)
+		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), InTarget.LayerInfo.Get())
+		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
 };
 
-struct FLandscapeVisCache : public TLandscapeEditCache<FAlphamapAccessor<false, false>,uint8>
+struct FLandscapeVisCache : public TLandscapeEditCache < FAlphamapAccessor<false, false>, uint8 >
 {
 	typedef uint8 DataType;
-	static uint8 ClampValue( int32 Value ) { return FMath::Clamp(Value, 0, 255); }
+	static uint8 ClampValue(int32 Value) { return FMath::Clamp(Value, 0, 255); }
 
 	FAlphamapAccessor<false, false> AlphamapAccessor;
 
 	FLandscapeVisCache(const FLandscapeToolTarget& InTarget)
-		:	AlphamapAccessor(InTarget.LandscapeInfo.Get(), ALandscapeProxy::DataLayer)
-		,	TLandscapeEditCache(AlphamapAccessor)
+		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), ALandscapeProxy::VisibilityLayer)
+		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
 };
@@ -935,8 +935,8 @@ template<bool bInUseInterp>
 struct FFullWeightmapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
-	FFullWeightmapAccessor( ULandscapeInfo* InLandscapeInfo)
-		:	LandscapeEdit(InLandscapeInfo)
+	FFullWeightmapAccessor(ULandscapeInfo* InLandscapeInfo)
+		: LandscapeEdit(InLandscapeInfo)
 	{
 	}
 	void GetData(int32& X1, int32& Y1, int32& X2, int32& Y2, TMap<FIntPoint, TArray<uint8>>& Data)
@@ -970,35 +970,35 @@ private:
 	FLandscapeEditDataInterface LandscapeEdit;
 };
 
-struct FLandscapeFullWeightCache : public TLandscapeEditCache<FFullWeightmapAccessor<false>,TArray<uint8>>
+struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAccessor<false>, TArray<uint8> >
 {
 	typedef TArray<uint8> DataType;
 
 	FFullWeightmapAccessor<false> WeightmapAccessor;
 
 	FLandscapeFullWeightCache(const FLandscapeToolTarget& InTarget)
-		:	WeightmapAccessor(InTarget.LandscapeInfo.Get())
-		,	TLandscapeEditCache(WeightmapAccessor)
+		: WeightmapAccessor(InTarget.LandscapeInfo.Get())
+		, TLandscapeEditCache(WeightmapAccessor)
 	{
 	}
 
 	// Only for all weight case... the accessor type should be TArray<uint8>
 	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& OutData, int32 ArraySize)
 	{
-		int32 NumSamples = (1+X2-X1)*(1+Y2-Y1) * ArraySize;
+		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1) * ArraySize;
 		OutData.Empty(NumSamples);
 		OutData.AddUninitialized(NumSamples);
 
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
-				TArray<uint8>* Ptr = GetValueRef(X,Y);
-				if( Ptr )
+				TArray<uint8>* Ptr = GetValueRef(X, Y);
+				if (Ptr)
 				{
 					for (int32 Z = 0; Z < ArraySize; Z++)
 					{
-						OutData[( (X-X1) + (Y-Y1)*(1+X2-X1)) * ArraySize + Z] = (*Ptr)[Z];
+						OutData[((X - X1) + (Y - Y1)*(1 + X2 - X1)) * ArraySize + Z] = (*Ptr)[Z];
 					}
 				}
 			}
@@ -1009,18 +1009,18 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache<FFullWeightmapAcce
 	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& Data, int32 ArraySize, ELandscapeLayerPaintingRestriction::Type PaintingRestriction)
 	{
 		// Update cache
-		for( int32 Y=Y1;Y<=Y2;Y++ )
+		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
-			for( int32 X=X1;X<=X2;X++ )
+			for (int32 X = X1; X <= X2; X++)
 			{
 				TArray<uint8> Value;
 				Value.Empty(ArraySize);
 				Value.AddUninitialized(ArraySize);
-				for ( int32 Z=0; Z < ArraySize; Z++)
+				for (int32 Z = 0; Z < ArraySize; Z++)
 				{
-					Value[Z] = Data[ ((X-X1) + (Y-Y1)*(1+X2-X1)) * ArraySize + Z];
+					Value[Z] = Data[((X - X1) + (Y - Y1)*(1 + X2 - X1)) * ArraySize + Z];
 				}
-				SetValue( X, Y, Value );
+				SetValue(X, Y, Value);
 			}
 		}
 
@@ -1041,8 +1041,8 @@ template<bool bInUseInterp>
 struct FDatamapAccessor
 {
 	enum { bUseInterp = bInUseInterp };
-	FDatamapAccessor( ULandscapeInfo* InLandscapeInfo )
-		:	LandscapeEdit(InLandscapeInfo)
+	FDatamapAccessor(ULandscapeInfo* InLandscapeInfo)
+		: LandscapeEdit(InLandscapeInfo)
 	{
 	}
 
@@ -1056,7 +1056,7 @@ struct FDatamapAccessor
 		LandscapeEdit.GetSelectData(X1, Y1, X2, Y2, Data);
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None )
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2))
 		{
@@ -1073,16 +1073,16 @@ private:
 	FLandscapeEditDataInterface LandscapeEdit;
 };
 
-struct FLandscapeDataCache : public TLandscapeEditCache<FDatamapAccessor<false>,uint8>
+struct FLandscapeDataCache : public TLandscapeEditCache < FDatamapAccessor<false>, uint8 >
 {
 	typedef uint8 DataType;
-	static uint8 ClampValue( int32 Value ) { return FMath::Clamp(Value, 0, 255); }
+	static uint8 ClampValue(int32 Value) { return FMath::Clamp(Value, 0, 255); }
 
 	FDatamapAccessor<false> DataAccessor;
 
 	FLandscapeDataCache(const FLandscapeToolTarget& InTarget)
-		:	DataAccessor(InTarget.LandscapeInfo.Get())
-		,	TLandscapeEditCache(DataAccessor)
+		: DataAccessor(InTarget.LandscapeInfo.Get())
+		, TLandscapeEditCache(DataAccessor)
 	{
 	}
 };
@@ -1108,15 +1108,15 @@ struct FHeightmapToolTarget
 
 	static FMatrix ToWorldMatrix(ULandscapeInfo* LandscapeInfo)
 	{
-		FMatrix Result = FTranslationMatrix(FVector(0,0,-32768.f));
-		Result *= FScaleMatrix( FVector(1.f,1.f,LANDSCAPE_ZSCALE) * LandscapeInfo->DrawScale );
+		FMatrix Result = FTranslationMatrix(FVector(0, 0, -32768.f));
+		Result *= FScaleMatrix(FVector(1.f, 1.f, LANDSCAPE_ZSCALE) * LandscapeInfo->DrawScale);
 		return Result;
 	}
 
 	static FMatrix FromWorldMatrix(ULandscapeInfo* LandscapeInfo)
 	{
-		FMatrix Result = FScaleMatrix( FVector(1.f,1.f,LANDSCAPE_INV_ZSCALE) / (LandscapeInfo->DrawScale) );
-		Result *= FTranslationMatrix(FVector(0,0,32768.f));
+		FMatrix Result = FScaleMatrix(FVector(1.f, 1.f, LANDSCAPE_INV_ZSCALE) / (LandscapeInfo->DrawScale));
+		Result *= FTranslationMatrix(FVector(0, 0, 32768.f));
 		return Result;
 	}
 };
@@ -1155,14 +1155,14 @@ class FLandscapeToolBase : public FLandscapeTool
 {
 public:
 	FLandscapeToolBase(FEdModeLandscape* InEdMode)
-	:	EdMode(InEdMode)
-	,	bToolActive(false)
-	,	ToolStroke(NULL)
+		: EdMode(InEdMode)
+		, bToolActive(false)
+		, ToolStroke(NULL)
 	{}
 
-	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
-		if( !ensure(MousePositions.Num()==0) ) 
+		if (!ensure(MousePositions.Num() == 0))
 		{
 			MousePositions.Empty();
 		}
@@ -1172,24 +1172,24 @@ public:
 
 		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 
-		new(MousePositions) FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		new(MousePositions)FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
 		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
 		MousePositions.Empty();
 		return true;
 	}
 
-	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override 
+	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
-		if( bToolActive && MousePositions.Num() )
+		if (bToolActive && MousePositions.Num())
 		{
 			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
 			MousePositions.Empty();
 		}
 	}
 
-	virtual void EndTool(FEditorViewportClient* ViewportClient) override 
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
-		if( bToolActive && MousePositions.Num() )
+		if (bToolActive && MousePositions.Num())
 		{
 			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
 			MousePositions.Empty();
@@ -1201,30 +1201,30 @@ public:
 		EdMode->CurrentBrush->EndStroke();
 	}
 
-	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override 
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		FVector HitLocation;
-		if( EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation)  )
+		if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
 		{
-			if( EdMode->CurrentBrush )
+			if (EdMode->CurrentBrush)
 			{
 				// Inform the brush of the current location, to update the cursor
 				EdMode->CurrentBrush->MouseMove(HitLocation.X, HitLocation.Y);
 			}
 
-			if( bToolActive )
+			if (bToolActive)
 			{
 				// Save the mouse position
-				new(MousePositions) FLandscapeToolMousePosition(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				new(MousePositions)FLandscapeToolMousePosition(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
 			}
 		}
 
 		return true;
-	}	
+	}
 
 protected:
 	TArray<FLandscapeToolMousePosition> MousePositions;
-	class FEdModeLandscape* EdMode;
+	FEdModeLandscape* EdMode;
 	bool bToolActive;
 	TStrokeClass* ToolStroke;
 };

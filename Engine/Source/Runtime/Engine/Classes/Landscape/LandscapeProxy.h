@@ -12,6 +12,8 @@
 // Forward declarations.
 //
 class ULandscapeMaterialInstanceConstant;
+class ULandscapeLayerInfoObject;
+class ULandscapeSplinesComponent;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
@@ -20,7 +22,7 @@ struct FLandscapeWeightmapUsage
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	class ULandscapeComponent* ChannelUsage[4];
+	ULandscapeComponent* ChannelUsage[4];
 
 	FLandscapeWeightmapUsage()
 	{
@@ -46,7 +48,7 @@ struct FLandscapeEditorLayerSettings
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	class ULandscapeLayerInfoObject* LayerInfoObj;
+	ULandscapeLayerInfoObject* LayerInfoObj;
 
 	UPROPERTY()
 	FString ReimportLayerFilePath;
@@ -68,7 +70,7 @@ struct FLandscapeEditorLayerSettings
 		return LayerInfoObj == rhs.LayerInfoObj;
 	}
 
-	bool operator==(const class ULandscapeLayerInfoObject*& rhs)
+	bool operator==(const ULandscapeLayerInfoObject*& rhs)
 	{
 		return LayerInfoObj == rhs;
 	}
@@ -81,14 +83,14 @@ struct FLandscapeLayerStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	class ULandscapeLayerInfoObject* LayerInfoObj;
+	ULandscapeLayerInfoObject* LayerInfoObj;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
-	class UMaterialInstanceConstant* ThumbnailMIC;
+	UMaterialInstanceConstant* ThumbnailMIC;
 
 	UPROPERTY()
-	class ALandscapeProxy* Owner;
+	ALandscapeProxy* Owner;
 
 	UPROPERTY(transient)
 	int32 DebugColorChannel;
@@ -127,7 +129,7 @@ struct FLandscapeImportLayerInfo
 	ULandscapeLayerInfoObject* LayerInfo;
 
 	UPROPERTY(Category="Import", VisibleAnywhere)
-	class UMaterialInstanceConstant* ThumbnailMIC; // Optional
+	UMaterialInstanceConstant* ThumbnailMIC; // Optional
 
 	UPROPERTY(Category="Import", EditAnywhere)
 	FString SourceFilePath; // Optional
@@ -192,7 +194,7 @@ class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	class ULandscapeSplinesComponent* SplineComponent;
+	ULandscapeSplinesComponent* SplineComponent;
 
 protected:
 	/** Guid for LandscapeEditorInfo **/
@@ -220,7 +222,7 @@ public:
 
 	/** Default physical material, used when no per-layer values physical materials */
 	UPROPERTY(EditAnywhere, Category=Landscape)
-	class UPhysicalMaterial* DefaultPhysMaterial;
+	UPhysicalMaterial* DefaultPhysMaterial;
 
 	/**
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
@@ -231,22 +233,22 @@ public:
 
 	/** Combined material used to render the landscape */
 	UPROPERTY(EditAnywhere, Category=Landscape)
-	class UMaterialInterface* LandscapeMaterial;
+	UMaterialInterface* LandscapeMaterial;
 
 	/** Material used to render landscape components with holes. Should be a BLEND_Masked version of LandscapeMaterial. */
 	UPROPERTY(EditAnywhere, Category=Landscape)
-	class UMaterialInterface* LandscapeHoleMaterial;
+	UMaterialInterface* LandscapeHoleMaterial;
 
 	UPROPERTY(EditAnywhere, Category=LOD)
 	float LODDistanceFactor;
 
 	/** The array of LandscapeComponent that are used by the landscape */
 	UPROPERTY()
-	TArray<class ULandscapeComponent*> LandscapeComponents;
+	TArray<ULandscapeComponent*> LandscapeComponents;
 
 	/** Array of LandscapeHeightfieldCollisionComponent */
 	UPROPERTY()
-	TArray<class ULandscapeHeightfieldCollisionComponent*> CollisionComponents;
+	TArray<ULandscapeHeightfieldCollisionComponent*> CollisionComponents;
 
 	/**
 	 *	The resolution to cache lighting at, in texels/quad in one axis
@@ -257,7 +259,7 @@ public:
 	float StaticLightingResolution;
 
 	UPROPERTY(EditAnywhere, Category=LandscapeProxy)
-	TLazyObjectPtr<class ALandscape> LandscapeActor;
+	TLazyObjectPtr<ALandscape> LandscapeActor;
 
 	UPROPERTY(EditAnywhere, Category=Lighting)
 	uint32 bCastStaticShadow:1;
@@ -331,10 +333,10 @@ public:
 #endif
 
 public:
-	ENGINE_API static class ULandscapeLayerInfoObject* DataLayer;
+	ENGINE_API static ULandscapeLayerInfoObject* VisibilityLayer;
 
 	/** Map of material instance constants used to for the components. Key is generated with ULandscapeComponent::GetLayerAllocationKey() */
-	TMap<FString, class UMaterialInstanceConstant*> MaterialInstanceConstantMap;
+	TMap<FString, UMaterialInstanceConstant*> MaterialInstanceConstantMap;
 
 	/** Map of weightmap usage */
 	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
@@ -357,7 +359,7 @@ public:
 #endif	//WITH_EDITOR
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
-	virtual class ALandscape* GetLandscapeActor();
+	virtual ALandscape* GetLandscapeActor();
 
 	// Begin INavRelevantActorInterface Interface
 	virtual bool DoesSupplyPerComponentNavigationCollision() const override{ return true; }
@@ -382,7 +384,7 @@ public:
 	ENGINE_API static ULandscapeLayerInfoObject* CreateLayerInfo(const TCHAR* LayerName, ULevel* Level);
 	ENGINE_API ULandscapeLayerInfoObject* CreateLayerInfo(const TCHAR* LayerName);
 
-	ENGINE_API class ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true);
+	ENGINE_API ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true);
 
 	// Get Landscape Material assigned to this Landscape
 	virtual UMaterialInterface* GetLandscapeMaterial() const;
@@ -397,10 +399,10 @@ public:
 	ENGINE_API void ChangedPhysMaterial();
 
 	// Check input Landscape actor is match for this LandscapeProxy (by GUID)
-	ENGINE_API bool IsValidLandscapeActor(class ALandscape* Landscape);
+	ENGINE_API bool IsValidLandscapeActor(ALandscape* Landscape);
 
 	// Copy properties from parent Landscape actor
-	ENGINE_API void GetSharedProperties(class ALandscapeProxy* Landscape);
+	ENGINE_API void GetSharedProperties(ALandscapeProxy* Landscape);
 
 	/** Get the LandcapeActor-to-world transform with respect to landscape section offset*/
 	ENGINE_API FTransform LandscapeActorToWorld() const;
@@ -438,7 +440,7 @@ public:
 	ENGINE_API FIntRect GetBoundingRect() const;
 
 	/** Creates a Texture2D for use by this landscape proxy or one of it's components. If OptionalOverrideOuter is not specified, the level is used. */
-	ENGINE_API class UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
+	ENGINE_API UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
 #endif
 };
 

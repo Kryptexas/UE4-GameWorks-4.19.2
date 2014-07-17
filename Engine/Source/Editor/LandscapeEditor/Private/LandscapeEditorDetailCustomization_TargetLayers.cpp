@@ -56,12 +56,13 @@ bool FLandscapeEditorDetailCustomization_TargetLayers::ShouldShowTargetLayers()
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode && LandscapeEdMode->CurrentToolMode)
 	{
-		bool bSupportsHeightmap = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Heightmap) != 0;
-		bool bSupportsWeightmap = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Weightmap) != 0;
-		bool bSupportsVisibility = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Visibility) != 0;
+		//bool bSupportsHeightmap = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Heightmap) != 0;
+		//bool bSupportsWeightmap = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Weightmap) != 0;
+		//bool bSupportsVisibility = (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Visibility) != 0;
 
-		// Visible if there are possible choices
-		if (bSupportsWeightmap || bSupportsHeightmap || bSupportsVisibility)
+		//// Visible if there are possible choices
+		//if (bSupportsWeightmap || bSupportsHeightmap || bSupportsVisibility)
+		if (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes != 0)
 		{
 			return true;
 		}
@@ -124,13 +125,13 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
-		if ( !(LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & (1 << Target->TargetType)) )
+		if ((LandscapeEdMode->CurrentTool->GetSupportedTargetTypes() & LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::FromType(Target->TargetType)) == 0)
 		{
 			return;
 		}
 	}
 	
-	if (Target->TargetType == ELandscapeToolTargetType::Heightmap)
+	if (Target->TargetType != ELandscapeToolTargetType::Weightmap)
 	{
 		ChildrenBuilder.AddChildContent(Target->TargetName.ToString())
 		[
@@ -149,7 +150,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 				//.AspectRatio()
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush(TEXT("LandscapeEditor.Target_Heightmap")))
+					.Image(FEditorStyle::GetBrush(Target->TargetType == ELandscapeToolTargetType::Heightmap ? TEXT("LandscapeEditor.Target_Heightmap") : TEXT("LandscapeEditor.Target_Visibility")))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -359,7 +360,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	
+
 bool FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerIsSelected(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
@@ -557,7 +558,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnReimportLayer(const TShar
 	}
 }
 
-bool FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName)
+bool FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldFilterLayerInfo(const FAssetData& AssetData, FName LayerName)
 {
 	const FString* const LayerNameMetaData = AssetData.TagsAndValues.Find("LayerName");
 	if (LayerNameMetaData && !LayerNameMetaData->IsEmpty())
@@ -578,7 +579,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject(cons
 		return;
 	}
 
-	FScopedTransaction Transaction( LOCTEXT("Undo_UseExisting", "Assigning Layer to Landscape") );
+	FScopedTransaction Transaction(LOCTEXT("Undo_UseExisting", "Assigning Layer to Landscape"));
 
 	ULandscapeLayerInfoObject* SelectedLayerInfo = const_cast<ULandscapeLayerInfoObject*>(CastChecked<ULandscapeLayerInfoObject>(Object));
 
@@ -687,7 +688,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerCreateClicked(
 {
 	check(!Target->LayerInfoObj.IsValid());
 
-	FScopedTransaction Transaction( LOCTEXT("Undo_Create", "Creating New Landscape Layer") );
+	FScopedTransaction Transaction(LOCTEXT("Undo_Create", "Creating New Landscape Layer"));
 
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
@@ -704,7 +705,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerCreateClicked(
 		}
 		FString PackageName = Path + LayerObjectName.ToString();
 
-		TSharedRef<SDlgPickAssetPath> NewLayerDlg = 
+		TSharedRef<SDlgPickAssetPath> NewLayerDlg =
 			SNew(SDlgPickAssetPath)
 			.Title(LOCTEXT("CreateNewLayerInfo", "Create New Landscape Layer Info Object"))
 			.DefaultAssetPath(FText::FromString(PackageName));
@@ -757,7 +758,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerCreateClicked(
 
 FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerMakePublicClicked(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
-	FScopedTransaction Transaction( LOCTEXT("Undo_MakePublic", "Make Layer Public") );
+	FScopedTransaction Transaction(LOCTEXT("Undo_MakePublic", "Make Layer Public"));
 	TArray<UObject*> Objects;
 	Objects.Add(Target->LayerInfoObj.Get());
 
@@ -786,7 +787,7 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerDeleteClicke
 
 	if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("Prompt_DeleteLayer", "Are you sure you want to delete this layer?")) == EAppReturnType::Yes)
 	{
-		FScopedTransaction Transaction( LOCTEXT("Undo_Delete", "Delete Layer") );
+		FScopedTransaction Transaction(LOCTEXT("Undo_Delete", "Delete Layer"));
 
 		Target->LandscapeInfo->DeleteLayer(Target->LayerInfoObj.Get());
 

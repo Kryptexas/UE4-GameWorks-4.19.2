@@ -17,29 +17,29 @@ namespace
 {
 	FORCEINLINE FVector4 GetWorldPos(const FMatrix& LocalToWorld, FVector2D LocalXY, uint16 Height, FVector2D XYOffset)
 	{
-		return LocalToWorld.TransformPosition( FVector( LocalXY.X + XYOffset.X, LocalXY.Y + XYOffset.Y, ((float)Height - 32768.f) * LANDSCAPE_ZSCALE ) );
+		return LocalToWorld.TransformPosition(FVector(LocalXY.X + XYOffset.X, LocalXY.Y + XYOffset.Y, ((float)Height - 32768.f) * LANDSCAPE_ZSCALE));
 	}
 
 	FORCEINLINE FVector4 GetWorldPos(const FMatrix& LocalToWorld, FVector2D LocalXY, FVector XYOffsetVector)
 	{
-		return LocalToWorld.TransformPosition( FVector( LocalXY.X + XYOffsetVector.X, LocalXY.Y + XYOffsetVector.Y, XYOffsetVector.Z ) );
+		return LocalToWorld.TransformPosition(FVector(LocalXY.X + XYOffsetVector.X, LocalXY.Y + XYOffsetVector.Y, XYOffsetVector.Z));
 	}
 
 	const int32 XOffsets[4] = { 0, 1, 0, 1 };
 	const int32 YOffsets[4] = { 0, 0, 1, 1 };
 
-	float GetHeight(int32 X, int32 Y, int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, const FVector& XYOffset, const TArray<FVector>& XYOffsetVectorData )
+	float GetHeight(int32 X, int32 Y, int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, const FVector& XYOffset, const TArray<FVector>& XYOffsetVectorData)
 	{
 		float Height[4];
 		for (int32 Idx = 0; Idx < 4; ++Idx)
 		{
-			int32 XX = FMath::Clamp(FMath::FloorToInt(X+XYOffset.X + XOffsets[Idx]), MinX, MaxX);
-			int32 YY = FMath::Clamp(FMath::FloorToInt(Y+XYOffset.Y + YOffsets[Idx]), MinY, MaxY);
-			Height[Idx] = XYOffsetVectorData[ XX - MinX + (YY - MinY) * (MaxX-MinX+1) ].Z;
+			int32 XX = FMath::Clamp(FMath::FloorToInt(X + XYOffset.X + XOffsets[Idx]), MinX, MaxX);
+			int32 YY = FMath::Clamp(FMath::FloorToInt(Y + XYOffset.Y + YOffsets[Idx]), MinY, MaxY);
+			Height[Idx] = XYOffsetVectorData[XX - MinX + (YY - MinY) * (MaxX - MinX + 1)].Z;
 		}
-		float FracX = FMath::Fractional(X+XYOffset.X);
-		float FracY = FMath::Fractional(Y+XYOffset.Y);
-		return FMath::Lerp(	FMath::Lerp(Height[0], Height[1], FracX),
+		float FracX = FMath::Fractional(X + XYOffset.X);
+		float FracY = FMath::Fractional(Y + XYOffset.Y);
+		return FMath::Lerp(FMath::Lerp(Height[0], Height[1], FracX),
 			FMath::Lerp(Height[2], Height[3], FracX),
 			FracY);
 	}
@@ -54,13 +54,13 @@ class FLandscapeToolStrokeRetopologize
 {
 public:
 	FLandscapeToolStrokeRetopologize(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		:	LandscapeInfo(InTarget.LandscapeInfo.Get())
-		,	Cache(InTarget)
+		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		, Cache(InTarget)
 	{}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
-		if (!LandscapeInfo) 
+		if (!LandscapeInfo)
 		{
 			return;
 		}
@@ -81,12 +81,12 @@ public:
 		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-/*
-		X1 -= 1;
-		Y1 -= 1;
-		X2 += 1;
-		Y2 += 1;
-*/
+		/*
+				X1 -= 1;
+				Y1 -= 1;
+				X2 += 1;
+				Y2 += 1;
+				*/
 		{
 			int32 ValidX1, ValidX2, ValidY1, ValidY2;
 			ValidX1 = ValidY1 = INT_MAX;
@@ -95,19 +95,19 @@ public:
 			int32 ComponentSizeQuads = LandscapeInfo->ComponentSizeQuads;
 			ALandscape::CalcComponentIndicesOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
-			for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
+			for (int32 ComponentIndexY = ComponentIndexY1; ComponentIndexY <= ComponentIndexY2; ComponentIndexY++)
 			{
-				for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-				{		
-					ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
+				for (int32 ComponentIndexX = ComponentIndexX1; ComponentIndexX <= ComponentIndexX2; ComponentIndexX++)
+				{
+					ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY));
 
 					if (Component)
 					{
 						// Update valid region
 						ValidX1 = FMath::Min<int32>(Component->GetSectionBase().X, ValidX1);
-						ValidX2 = FMath::Max<int32>(Component->GetSectionBase().X+ComponentSizeQuads, ValidX2);
+						ValidX2 = FMath::Max<int32>(Component->GetSectionBase().X + ComponentSizeQuads, ValidX2);
 						ValidY1 = FMath::Min<int32>(Component->GetSectionBase().Y, ValidY1);
-						ValidY2 = FMath::Max<int32>(Component->GetSectionBase().Y+ComponentSizeQuads, ValidY2);
+						ValidY2 = FMath::Max<int32>(Component->GetSectionBase().Y + ComponentSizeQuads, ValidY2);
 					}
 				}
 			}
@@ -125,10 +125,10 @@ public:
 
 		const float AreaResolution = LANDSCAPE_XYOFFSET_SCALE; //1.f/256.f;
 
-		Cache.CacheData(X1,Y1,X2,Y2);
+		Cache.CacheData(X1, Y1, X2, Y2);
 
 		TArray<FVector> XYOffsetVectorData;
-		Cache.GetCachedData(X1,Y1,X2,Y2,XYOffsetVectorData);
+		Cache.GetCachedData(X1, Y1, X2, Y2, XYOffsetVectorData);
 		TArray<FVector> NewXYOffset;
 		NewXYOffset = XYOffsetVectorData;
 
@@ -140,13 +140,13 @@ public:
 			const int32 MaxIterNum = 300;
 
 			TArray<int32> QuadX, QuadY, MinX, MaxX, MinY, MaxY;
-			QuadX.AddZeroed( X2 - X1 );
-			QuadY.AddZeroed( Y2 - Y1 );
+			QuadX.AddZeroed(X2 - X1);
+			QuadY.AddZeroed(Y2 - Y1);
 
-			MinX.Empty( Y2 - Y1 + 1 );
-			MaxX.Empty( Y2 - Y1 + 1 );
-			MinY.Empty( X2 - X1 + 1 );
-			MaxY.Empty( X2 - X1 + 1 );
+			MinX.Empty(Y2 - Y1 + 1);
+			MaxX.Empty(Y2 - Y1 + 1);
+			MinY.Empty(X2 - X1 + 1);
+			MaxY.Empty(X2 - X1 + 1);
 			for (int32 X = X1; X <= X2; ++X)
 			{
 				MinY.Add(INT_MAX);
@@ -160,33 +160,33 @@ public:
 
 			// Calculate Average...
 			TArray<ULandscapeComponent*> ComponentArray; // Ptr to component
-			ComponentArray.AddZeroed( (X2-X1+1)*(Y2-Y1+1) );
+			ComponentArray.AddZeroed((X2 - X1 + 1)*(Y2 - Y1 + 1));
 			int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
 			int32 ComponentSizeQuads = LandscapeInfo->ComponentSizeQuads;
 			ALandscape::CalcComponentIndicesOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
-			for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
+			for (int32 ComponentIndexY = ComponentIndexY1; ComponentIndexY <= ComponentIndexY2; ComponentIndexY++)
 			{
-				for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-				{		
-					ULandscapeComponent* Comp = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
+				for (int32 ComponentIndexX = ComponentIndexX1; ComponentIndexX <= ComponentIndexX2; ComponentIndexX++)
+				{
+					ULandscapeComponent* Comp = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY));
 
 					if (Comp)
 					{
 						const FMatrix LocalToWorld = Comp->GetRenderMatrix();
 
 						// Find coordinates of box that lies inside component
-						int32 ComponentX1 = FMath::Clamp<int32>(X1-ComponentIndexX*ComponentSizeQuads, 0, ComponentSizeQuads);
-						int32 ComponentY1 = FMath::Clamp<int32>(Y1-ComponentIndexY*ComponentSizeQuads, 0, ComponentSizeQuads);
-						int32 ComponentX2 = FMath::Clamp<int32>(X2-ComponentIndexX*ComponentSizeQuads, 0, ComponentSizeQuads);
-						int32 ComponentY2 = FMath::Clamp<int32>(Y2-ComponentIndexY*ComponentSizeQuads, 0, ComponentSizeQuads);
+						int32 ComponentX1 = FMath::Clamp<int32>(X1 - ComponentIndexX*ComponentSizeQuads, 0, ComponentSizeQuads);
+						int32 ComponentY1 = FMath::Clamp<int32>(Y1 - ComponentIndexY*ComponentSizeQuads, 0, ComponentSizeQuads);
+						int32 ComponentX2 = FMath::Clamp<int32>(X2 - ComponentIndexX*ComponentSizeQuads, 0, ComponentSizeQuads);
+						int32 ComponentY2 = FMath::Clamp<int32>(Y2 - ComponentIndexY*ComponentSizeQuads, 0, ComponentSizeQuads);
 
 						// World space area calculation
-						for (int32 Y = ComponentY1; Y <= ComponentY2; ++Y )
+						for (int32 Y = ComponentY1; Y <= ComponentY2; ++Y)
 						{
-							for (int32 X = ComponentX1; X <= ComponentX2; ++X )
+							for (int32 X = ComponentX1; X <= ComponentX2; ++X)
 							{
-								if ( X < ComponentX2 && Y < ComponentY2)
+								if (X < ComponentX2 && Y < ComponentY2)
 								{
 									// Need to read XY Offset value from XYOffsetTexture before this
 									FVector P[4];
@@ -194,24 +194,24 @@ public:
 									{
 										int32 XX = X + XOffsets[Idx];
 										int32 YY = Y + YOffsets[Idx];
-										P[Idx] = FVector(GetWorldPos(LocalToWorld, FVector2D(XX, YY), 
-											XYOffsetVectorData[ (ComponentIndexX*ComponentSizeQuads + XX - X1) + (ComponentIndexY*ComponentSizeQuads + YY - Y1)*(X2-X1+1) ]
+										P[Idx] = FVector(GetWorldPos(LocalToWorld, FVector2D(XX, YY),
+											XYOffsetVectorData[(ComponentIndexX*ComponentSizeQuads + XX - X1) + (ComponentIndexY*ComponentSizeQuads + YY - Y1)*(X2 - X1 + 1)]
 											));
 									}
 
 									TotalArea += (((P[3] - P[0]) ^ (P[1] - P[0])).Size() + ((P[3] - P[0]) ^ (P[2] - P[0])).Size()) * 0.5f;
 									QuadNum++;
-									QuadX[ ComponentIndexX*ComponentSizeQuads + X - X1 ]++;
-									QuadY[ ComponentIndexY*ComponentSizeQuads + Y - Y1 ]++;
+									QuadX[ComponentIndexX*ComponentSizeQuads + X - X1]++;
+									QuadY[ComponentIndexY*ComponentSizeQuads + Y - Y1]++;
 
 									// Mark valid quad position
-									ComponentArray[ (ComponentIndexX*ComponentSizeQuads) + X - X1 + (ComponentIndexY*ComponentSizeQuads + Y - Y1)*(X2-X1+1) ] = Comp;
+									ComponentArray[(ComponentIndexX*ComponentSizeQuads) + X - X1 + (ComponentIndexY*ComponentSizeQuads + Y - Y1)*(X2 - X1 + 1)] = Comp;
 								}
 
-								MinX[ComponentIndexY*ComponentSizeQuads+Y-Y1] = FMath::Min<int32>(MinX[ComponentIndexY*ComponentSizeQuads+Y-Y1], ComponentIndexX*ComponentSizeQuads + X);
-								MaxX[ComponentIndexY*ComponentSizeQuads+Y-Y1] = FMath::Max<int32>(MaxX[ComponentIndexY*ComponentSizeQuads+Y-Y1], ComponentIndexX*ComponentSizeQuads + X);
-								MinY[ComponentIndexX*ComponentSizeQuads+X-X1] = FMath::Min<int32>(MinY[ComponentIndexX*ComponentSizeQuads+X-X1], ComponentIndexY*ComponentSizeQuads + Y);
-								MaxY[ComponentIndexX*ComponentSizeQuads+X-X1] = FMath::Max<int32>(MaxY[ComponentIndexX*ComponentSizeQuads+X-X1], ComponentIndexY*ComponentSizeQuads + Y);
+								MinX[ComponentIndexY*ComponentSizeQuads + Y - Y1] = FMath::Min<int32>(MinX[ComponentIndexY*ComponentSizeQuads + Y - Y1], ComponentIndexX*ComponentSizeQuads + X);
+								MaxX[ComponentIndexY*ComponentSizeQuads + Y - Y1] = FMath::Max<int32>(MaxX[ComponentIndexY*ComponentSizeQuads + Y - Y1], ComponentIndexX*ComponentSizeQuads + X);
+								MinY[ComponentIndexX*ComponentSizeQuads + X - X1] = FMath::Min<int32>(MinY[ComponentIndexX*ComponentSizeQuads + X - X1], ComponentIndexY*ComponentSizeQuads + Y);
+								MaxY[ComponentIndexX*ComponentSizeQuads + X - X1] = FMath::Max<int32>(MaxY[ComponentIndexX*ComponentSizeQuads + X - X1], ComponentIndexY*ComponentSizeQuads + Y);
 							}
 						}
 					}
@@ -224,11 +224,11 @@ public:
 			float RemainArea = TotalArea;
 			int32 RemainQuads = QuadNum;
 
-			for (int32 Y = Y1; Y < Y2-1; ++Y)
+			for (int32 Y = Y1; Y < Y2 - 1; ++Y)
 			{
 				// Like rasterization style
 				// Search for Y offset
-				if (MinX[Y-Y1] > MaxX[Y-Y1])
+				if (MinX[Y - Y1] > MaxX[Y - Y1])
 				{
 					continue;
 				}
@@ -237,15 +237,15 @@ public:
 				float AreaBaseError = AverageArea * 0.5f;
 				float TotalLineArea = 0.f;
 				float TargetLineArea = AverageArea * QuadY[Y - Y1];
-				float YOffset = Y+1, PreYOffset = Y+1; // Need to be bigger than previous Y
+				float YOffset = Y + 1, PreYOffset = Y + 1; // Need to be bigger than previous Y
 				float StepSize = FPlatformMath::Sqrt(2) * 0.25f;
 				float LineAreaDiff = FLT_MAX; //Abs(TotalLineArea - TargetLineArea);
 				int32 IterNum = 0;
 				float TotalHeightError = 0.f;
 
-				while( NewXYOffset[ (Y - Y1) * (X2-X1+1) ].Y + Y > XYOffsetVectorData[(FPlatformMath::FloorToInt(YOffset) - Y1) * (X2-X1+1) ].Y + FPlatformMath::FloorToInt(YOffset) )
+				while (NewXYOffset[(Y - Y1) * (X2 - X1 + 1)].Y + Y > XYOffsetVectorData[(FPlatformMath::FloorToInt(YOffset) - Y1) * (X2 - X1 + 1)].Y + FPlatformMath::FloorToInt(YOffset))
 				{
-					YOffset = YOffset+1.f;
+					YOffset = YOffset + 1.f;
 					if (YOffset >= Y2)
 					{
 						YOffset = Y2;
@@ -260,9 +260,9 @@ public:
 					TotalLineArea = 0.f;
 					TotalHeightError = 0.f;
 					//for (int32 X = X1; X < X2; ++X)
-					for (int32 X = MinX[Y-Y1]; X < MaxX[Y-Y1]; ++X)
+					for (int32 X = MinX[Y - Y1]; X < MaxX[Y - Y1]; ++X)
 					{
-						ULandscapeComponent* Comp = ComponentArray[X - X1 + (Y - Y1)*(X2-X1+1) ];
+						ULandscapeComponent* Comp = ComponentArray[X - X1 + (Y - Y1)*(X2 - X1 + 1)];
 						if (Comp != NULL) // valid
 						{
 							const FMatrix LocalToWorld = Comp->GetRenderMatrix();
@@ -270,23 +270,23 @@ public:
 							for (int32 Idx = 0; Idx < 2; ++Idx)
 							{
 								int32 XX = FMath::Clamp<int32>(X + XOffsets[Idx], X1, X2);
-								P[Idx] = FVector( GetWorldPos( LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, Y - Comp->GetSectionBase().Y), NewXYOffset[ XX - X1 + (Y - Y1) * (X2-X1+1) ] ) );
+								P[Idx] = FVector(GetWorldPos(LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, Y - Comp->GetSectionBase().Y), NewXYOffset[XX - X1 + (Y - Y1) * (X2 - X1 + 1)]));
 							}
 
-							int32 YY0 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset-1), Y1, Y2);
+							int32 YY0 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset - 1), Y1, Y2);
 							int32 YY1 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset), Y1, Y2);
-							int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1+YOffset), Y1, Y2);
+							int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1 + YOffset), Y1, Y2);
 							// Search for valid YOffset...
 							for (int32 Idx = 2; Idx < 4; ++Idx)
 							{
 								int32 XX = FMath::Clamp<int32>(X + XOffsets[Idx], X1, X2);
-								FVector P1( GetWorldPos( LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY1 - Comp->GetSectionBase().Y), XYOffsetVectorData[ XX - X1 + (YY1 - Y1) * (X2-X1+1) ] ) );
-								FVector P2( GetWorldPos( LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY2 - Comp->GetSectionBase().Y), XYOffsetVectorData[ XX - X1 + (YY2 - Y1) * (X2-X1+1) ] ) );
+								FVector P1(GetWorldPos(LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY1 - Comp->GetSectionBase().Y), XYOffsetVectorData[XX - X1 + (YY1 - Y1) * (X2 - X1 + 1)]));
+								FVector P2(GetWorldPos(LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY2 - Comp->GetSectionBase().Y), XYOffsetVectorData[XX - X1 + (YY2 - Y1) * (X2 - X1 + 1)]));
 								P[Idx] = FMath::Lerp(P1, P2, FMath::Fractional(YOffset));
 								if (Idx == 2)
 								{
-									FVector P0( GetWorldPos( LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY0 - Comp->GetSectionBase().Y), XYOffsetVectorData[ XX - X1 + (YY0 - Y1) * (X2-X1+1) ] ) );
-									TotalHeightError += FMath::Abs( ((P[2] - P0) ^ (P2 - P[2])).Size() - ((P1 - P0) ^ (P2 - P1)).Size() );
+									FVector P0(GetWorldPos(LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, YY0 - Comp->GetSectionBase().Y), XYOffsetVectorData[XX - X1 + (YY0 - Y1) * (X2 - X1 + 1)]));
+									TotalHeightError += FMath::Abs(((P[2] - P0) ^ (P2 - P[2])).Size() - ((P1 - P0) ^ (P2 - P1)).Size());
 								}
 							}
 
@@ -300,9 +300,9 @@ public:
 						break;
 					}
 
-					if (MaxX[Y-Y1] - MinX[Y-Y1] > 0)
+					if (MaxX[Y - Y1] - MinX[Y - Y1] > 0)
 					{
-						TotalHeightError /= (MaxX[Y-Y1] - MinX[Y-Y1]);
+						TotalHeightError /= (MaxX[Y - Y1] - MinX[Y - Y1]);
 					}
 
 					float NewLineAreaDiff = FMath::Abs(TotalLineArea - TargetLineArea);
@@ -325,12 +325,12 @@ public:
 							YOffset += StepSize;
 						}
 						// clamp
-						if ( YOffset < Y1 )
+						if (YOffset < Y1)
 						{
 							YOffset = Y1;
 							break;
 						}
-						if ( YOffset >= Y2 )
+						if (YOffset >= Y2)
 						{
 							YOffset = Y2;
 							break;
@@ -348,20 +348,20 @@ public:
 				{
 					RemainArea -= TotalLineArea;
 					RemainQuads -= QuadY[Y - Y1];
-					for (int32 X = MinX[Y-Y1]; X < MaxX[Y-Y1]; ++X)
+					for (int32 X = MinX[Y - Y1]; X < MaxX[Y - Y1]; ++X)
 					{
 						int32 YY1 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset), Y1, Y2);
-						int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1+YOffset), Y1, Y2);
-						FVector P1 = XYOffsetVectorData[ X - X1 + (YY1 - Y1) * (X2-X1+1) ];
+						int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1 + YOffset), Y1, Y2);
+						FVector P1 = XYOffsetVectorData[X - X1 + (YY1 - Y1) * (X2 - X1 + 1)];
 						//P1.X = X+P1.X;
-						P1.Y = YY1+P1.Y;
-						FVector P2 = XYOffsetVectorData[ X - X1 + (YY2 - Y1) * (X2-X1+1) ];
+						P1.Y = YY1 + P1.Y;
+						FVector P2 = XYOffsetVectorData[X - X1 + (YY2 - Y1) * (X2 - X1 + 1)];
 						//P2.X = X+P2.X;
-						P2.Y = YY2+P2.Y;
-						FVector& XYOffset =	NewXYOffset[ X - X1 + (Y+1 - Y1) * (X2-X1+1) ];
+						P2.Y = YY2 + P2.Y;
+						FVector& XYOffset = NewXYOffset[X - X1 + (Y + 1 - Y1) * (X2 - X1 + 1)];
 						XYOffset = FMath::Lerp(P1, P2, FMath::Fractional(YOffset));
 						//XYOffset.X -= X;
-						XYOffset.Y -= Y+1;
+						XYOffset.Y -= Y + 1;
 					}
 				}
 			}
@@ -371,11 +371,11 @@ public:
 			RemainArea = TotalArea;
 			RemainQuads = QuadNum;
 
-			for (int32 X = X1; X < X2-1; ++X)
+			for (int32 X = X1; X < X2 - 1; ++X)
 			{
 				// Like rasterization style
 				// Search for X offset
-				if (MinY[X-X1] > MaxY[X-X1])
+				if (MinY[X - X1] > MaxY[X - X1])
 				{
 					continue;
 				}
@@ -384,15 +384,15 @@ public:
 				float AreaBaseError = AverageArea * 0.5f;
 				float TotalLineArea = 0.f;
 				float TargetLineArea = AverageArea * QuadX[X - X1];
-				float XOffset = X+1, PreXOffset = X+1; // Need to be bigger than previous Y
+				float XOffset = X + 1, PreXOffset = X + 1; // Need to be bigger than previous Y
 				float StepSize = FMath::Sqrt(2) * 0.25f;
 				float LineAreaDiff = FLT_MAX; // Abs(TotalLineArea - TargetLineArea);
 				int32 IterNum = 0;
 				float TotalHeightError = 0.f;
 
-				while( NewXYOffset[X - X1].X + X > NewYOffsets[FMath::FloorToInt(XOffset) - X1].X + FMath::FloorToFloat(XOffset) )
+				while (NewXYOffset[X - X1].X + X > NewYOffsets[FMath::FloorToInt(XOffset) - X1].X + FMath::FloorToFloat(XOffset))
 				{
-					XOffset = XOffset+1.f;
+					XOffset = XOffset + 1.f;
 					if (XOffset >= X2)
 					{
 						XOffset = X2;
@@ -405,34 +405,34 @@ public:
 				{
 					TotalLineArea = 0.f;
 					IterNum++;
-					for (int32 Y = MinY[X-X1]; Y < MaxY[X-X1]; ++Y)
+					for (int32 Y = MinY[X - X1]; Y < MaxY[X - X1]; ++Y)
 					{
-						ULandscapeComponent* Comp = ComponentArray[X - X1 + (Y - Y1)*(X2-X1+1) ];
+						ULandscapeComponent* Comp = ComponentArray[X - X1 + (Y - Y1)*(X2 - X1 + 1)];
 						if (Comp != NULL) // valid
 						{
 							const FMatrix LocalToWorld = Comp->GetRenderMatrix();
 							FVector P[4];
-							for (int32 Idx = 0; Idx < 4; Idx+=2)
+							for (int32 Idx = 0; Idx < 4; Idx += 2)
 							{
 								int32 YY = FMath::Clamp<int32>(Y + YOffsets[Idx], Y1, Y2);
-								P[Idx] = FVector( GetWorldPos( LocalToWorld, FVector2D(X - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewXYOffset[ X - X1 + (YY - Y1) * (X2-X1+1) ] ) );
+								P[Idx] = FVector(GetWorldPos(LocalToWorld, FVector2D(X - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewXYOffset[X - X1 + (YY - Y1) * (X2 - X1 + 1)]));
 							}
 
-							int32 XX0 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset-1), X1, X2);
+							int32 XX0 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset - 1), X1, X2);
 							int32 XX1 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset), X1, X2);
-							int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1+XOffset), X1, X2);
+							int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1 + XOffset), X1, X2);
 
 							// Search for valid YOffset...
-							for (int32 Idx = 1; Idx < 4; Idx+=2)
+							for (int32 Idx = 1; Idx < 4; Idx += 2)
 							{
 								int32 YY = FMath::Clamp<int32>(Y + YOffsets[Idx], Y1, Y2);
-								FVector P1( GetWorldPos( LocalToWorld, FVector2D(XX1 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[ XX1 - X1 + (YY - Y1) * (X2-X1+1) ] ) );
-								FVector P2( GetWorldPos( LocalToWorld, FVector2D(XX2 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[ XX2 - X1 + (YY - Y1) * (X2-X1+1) ] ) );
+								FVector P1(GetWorldPos(LocalToWorld, FVector2D(XX1 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[XX1 - X1 + (YY - Y1) * (X2 - X1 + 1)]));
+								FVector P2(GetWorldPos(LocalToWorld, FVector2D(XX2 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[XX2 - X1 + (YY - Y1) * (X2 - X1 + 1)]));
 								P[Idx] = FMath::Lerp(P1, P2, FMath::Fractional(XOffset));
 								if (Idx == 1)
 								{
-									FVector P0( GetWorldPos( LocalToWorld, FVector2D(XX0 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[ XX0 - X1 + (YY - Y1) * (X2-X1+1) ] ) );
-									TotalHeightError += FMath::Abs( ((P[1] - P0) ^ (P2 - P[1])).Size() - ((P1 - P0) ^ (P2 - P1)).Size() );
+									FVector P0(GetWorldPos(LocalToWorld, FVector2D(XX0 - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewYOffsets[XX0 - X1 + (YY - Y1) * (X2 - X1 + 1)]));
+									TotalHeightError += FMath::Abs(((P[1] - P0) ^ (P2 - P[1])).Size() - ((P1 - P0) ^ (P2 - P1)).Size());
 								}
 							}
 
@@ -441,14 +441,14 @@ public:
 						}
 					}
 
-					if (TotalLineArea < AreaErrorThreshold || IterNum > MaxIterNum) 
+					if (TotalLineArea < AreaErrorThreshold || IterNum > MaxIterNum)
 					{
 						break;
 					}
 
-					if (MaxY[X-X1] - MinY[X-X1] > 0)
+					if (MaxY[X - X1] - MinY[X - X1] > 0)
 					{
-						TotalHeightError /= (MaxY[X-X1] - MinY[X-X1]);
+						TotalHeightError /= (MaxY[X - X1] - MinY[X - X1]);
 					}
 
 					float NewLineAreaDiff = FMath::Abs(TotalLineArea - TargetLineArea);
@@ -471,12 +471,12 @@ public:
 							XOffset += StepSize;
 						}
 						// clamp
-						if ( XOffset <= X1 )
+						if (XOffset <= X1)
 						{
 							XOffset = X1;
 							break;
 						}
-						else if ( XOffset >= X2 )
+						else if (XOffset >= X2)
 						{
 							XOffset = X2;
 							break;
@@ -495,17 +495,17 @@ public:
 					RemainArea -= TotalLineArea;
 					RemainQuads -= QuadX[X - X1];
 
-					for (int32 Y = MinY[X-X1]; Y < MaxY[X-X1]; ++Y)
+					for (int32 Y = MinY[X - X1]; Y < MaxY[X - X1]; ++Y)
 					{
 						int32 XX1 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset), X1, X2);
-						int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1+XOffset), X1, X2);
-						FVector P1 = NewYOffsets[ XX1 - X1 + (Y - Y1) * (X2-X1+1) ];
-						P1.X = XX1+P1.X;
-						FVector P2 = NewYOffsets[ XX2 - X1 + (Y - Y1) * (X2-X1+1) ];
-						P2.X = XX2+P2.X;
-						FVector& XYOffset =	NewXYOffset[ X+1 - X1 + (Y - Y1) * (X2-X1+1) ];
+						int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1 + XOffset), X1, X2);
+						FVector P1 = NewYOffsets[XX1 - X1 + (Y - Y1) * (X2 - X1 + 1)];
+						P1.X = XX1 + P1.X;
+						FVector P2 = NewYOffsets[XX2 - X1 + (Y - Y1) * (X2 - X1 + 1)];
+						P2.X = XX2 + P2.X;
+						FVector& XYOffset = NewXYOffset[X + 1 - X1 + (Y - Y1) * (X2 - X1 + 1)];
 						XYOffset = FMath::Lerp(P1, P2, FMath::Fractional(XOffset));
-						XYOffset.X -= X+1;
+						XYOffset.X -= X + 1;
 					}
 				}
 			}
@@ -518,20 +518,20 @@ public:
 		float H = Y2 - Y1 + 1;
 		float FalloffRadius = W * 0.5f * UISettings->BrushFalloff;
 		float SquareRadius = W * 0.5f - FalloffRadius;
-		for (int32 Y = 0; Y <= Y2-Y1; ++Y)
+		for (int32 Y = 0; Y <= Y2 - Y1; ++Y)
 		{
-			for (int32 X = 0; X <= X2-X1; ++X)
+			for (int32 X = 0; X <= X2 - X1; ++X)
 			{
-				int32 Index = X + Y * (X2-X1+1);
+				int32 Index = X + Y * (X2 - X1 + 1);
 				FVector2D TransformedLocal(FMath::Abs(X - W * 0.5f), FMath::Abs(Y - H * 0.5f) * (W / H));
 				float Cos = FMath::Abs(TransformedLocal.X) / TransformedLocal.Size();
 				float Sin = FMath::Abs(TransformedLocal.Y) / TransformedLocal.Size();
 				float RatioX = FalloffRadius > 0.f ? 1.f - FMath::Clamp((FMath::Abs(TransformedLocal.X) - Cos*SquareRadius) / FalloffRadius, 0.f, 1.f) : 1.f;
 				float RatioY = FalloffRadius > 0.f ? 1.f - FMath::Clamp((FMath::Abs(TransformedLocal.Y) - Sin*SquareRadius) / FalloffRadius, 0.f, 1.f) : 1.f;
 				float Ratio = TransformedLocal.Size() > SquareRadius ? RatioX * RatioY : 1.f; //TransformedLocal.X / LW * TransformedLocal.Y / LW;
-				float PaintAmount = Ratio*Ratio*(3-2*Ratio);
+				float PaintAmount = Ratio*Ratio*(3 - 2 * Ratio);
 
-				XYOffsetVectorData[Index] = FMath::Lerp( XYOffsetVectorData[Index], NewXYOffset[Index], PaintAmount );
+				XYOffsetVectorData[Index] = FMath::Lerp(XYOffsetVectorData[Index], NewXYOffset[Index], PaintAmount);
 				//XYOffsetVectorData(Index) = NewXYOffset(Index);
 			}
 		}
@@ -542,32 +542,32 @@ public:
 	}
 
 protected:
-	class ULandscapeInfo* LandscapeInfo;
+	ULandscapeInfo* LandscapeInfo;
 	FLandscapeXYOffsetCache Cache;
 };
 
 class FLandscapeToolRetopologize : public FLandscapeToolBase<FLandscapeToolStrokeRetopologize>
 {
 public:
-	FLandscapeToolRetopologize(class FEdModeLandscape* InEdMode)
+	FLandscapeToolRetopologize(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeRetopologize>(InEdMode)
 	{}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Retopologize"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target)
+	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() override
 	{
-		return true; // erosion applied to all...
+		// technically not entirely accurate, also modifies the XYOffset map
+		return ELandscapeToolTargetTypeMask::Heightmap;
 	}
 };
 
-void FEdModeLandscape::IntializeToolSet_Retopologize()
+void FEdModeLandscape::InitializeTool_Retopologize()
 {
-	FLandscapeToolSet* ToolSet_Retopologize = new(LandscapeToolSets) FLandscapeToolSet(TEXT("ToolSet_Retopologize"));
-	ToolSet_Retopologize->AddTool(new FLandscapeToolRetopologize(this));
-
-	ToolSet_Retopologize->ValidBrushes.Add("BrushSet_Circle");
-	ToolSet_Retopologize->ValidBrushes.Add("BrushSet_Alpha");
-	ToolSet_Retopologize->ValidBrushes.Add("BrushSet_Pattern");
+	auto Tool_Retopologize = MakeUnique<FLandscapeToolRetopologize>(this);
+	Tool_Retopologize->ValidBrushes.Add("BrushSet_Circle");
+	Tool_Retopologize->ValidBrushes.Add("BrushSet_Alpha");
+	Tool_Retopologize->ValidBrushes.Add("BrushSet_Pattern");
+	LandscapeTools.Add(MoveTemp(Tool_Retopologize));
 }

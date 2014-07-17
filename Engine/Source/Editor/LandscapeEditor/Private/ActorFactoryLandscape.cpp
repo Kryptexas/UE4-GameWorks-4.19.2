@@ -6,7 +6,7 @@
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
-UActorFactoryLandscape::UActorFactoryLandscape(const class FPostConstructInitializeProperties& PCIP)
+UActorFactoryLandscape::UActorFactoryLandscape(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	DisplayName = LOCTEXT("Landscape", "Landscape");
@@ -22,7 +22,7 @@ AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 	EdMode->UISettings->NewLandscape_Location = Location;
 	EdMode->UISettings->NewLandscape_Rotation = Rotation;
 
-	EdMode->SetCurrentTool("ToolSet_NewLandscape");
+	EdMode->SetCurrentTool("NewLandscape");
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.OverrideLevel = InLevel;
@@ -31,7 +31,7 @@ AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 	return InLevel->OwningWorld->SpawnActor(ALandscapePlaceholder::StaticClass(), &Location, &Rotation, SpawnInfo);
 }
 
-ALandscapePlaceholder::ALandscapePlaceholder(const class FPostConstructInitializeProperties& PCIP)
+ALandscapePlaceholder::ALandscapePlaceholder(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	// Structure to hold one-time initialization
@@ -73,7 +73,7 @@ bool ALandscapePlaceholder::TeleportTo(const FVector& DestLocation, const FRotat
 	EdMode->UISettings->NewLandscape_Location = GetActorLocation();
 	EdMode->UISettings->NewLandscape_Rotation = GetActorRotation();
 
-	EdMode->SetCurrentTool("ToolSet_NewLandscape");
+	EdMode->SetCurrentTool("NewLandscape");
 
 	return bResult;
 }
