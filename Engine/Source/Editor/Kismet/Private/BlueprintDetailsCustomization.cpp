@@ -917,6 +917,9 @@ void FBlueprintVarActionDetails::OnTooltipTextCommitted(const FText& NewText, ET
 
 void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, TArray<TSharedPtr<FString>>& CategorySource)
 {
+	// Used to compare found categories to prevent double adds
+	TArray<FString> CategoryNameList;
+
 	TArray<FName> VisibleVariables;
 	bool bShowUserVarsOnly = MyBlueprint->ShowUserVarsOnly();
 	UBlueprint* Blueprint = MyBlueprint->GetBlueprintObj();
@@ -956,22 +959,89 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 		}
 	}
 
-	// Search through all function entry nodes for local variables to pull their categories
-	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-	FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_FunctionEntry>(Blueprint, FunctionEntryNodes);
-
-	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	// Search through all function graphs for entry nodes to search for local variables to pull their categories
+	for( UEdGraph* FunctionGraph : MyBlueprint->GetBlueprintObj()->FunctionGraphs )
 	{
-		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		if(UFunction* Function = Blueprint->SkeletonGeneratedClass->FindFunctionByName(FunctionGraph->GetFName()))
+		{
+			FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
+
+			if(!FunctionCategory.IsEmpty())
+			{
+				bool bNewCategory = true;
+				for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
+				{
+					bNewCategory &= *CategorySource[j].Get() != FunctionCategory;
+				}
+
+				if(bNewCategory)
+				{
+					CategorySource.Add(MakeShareable(new FString(FunctionCategory)));
+				}
+			}
+		}
+
+		TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+		TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+		FBlueprintEditorUtils::GetEntryAndResultNodes(FunctionGraph, EntryNode, ResultNode);
+		if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode.Get()))
+		{
+			for( FBPVariableDescription& Variable : FunctionEntryNode->LocalVariables )
+			{
+				bool bNewCategory = true;
+				for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
+				{
+					bNewCategory &= *CategorySource[j].Get() != Variable.Category.ToString();
+				}
+				if (bNewCategory)
+				{
+					CategorySource.Add(MakeShareable(new FString(Variable.Category.ToString())));
+				}
+			}
+		}
+	}
+
+	for( UEdGraph* MacroGraph : MyBlueprint->GetBlueprintObj()->MacroGraphs )
+	{
+		TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+		TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+		FBlueprintEditorUtils::GetEntryAndResultNodes(MacroGraph, EntryNode, ResultNode);
+		if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
 		{
 			bool bNewCategory = true;
 			for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
 			{
-				bNewCategory &= *CategorySource[j].Get() != Variable.Category.ToString();
+				bNewCategory &= *CategorySource[j].Get() != TypedEntryNode->MetaData.Category;
 			}
 			if (bNewCategory)
 			{
-				CategorySource.Add(MakeShareable(new FString(Variable.Category.ToString())));
+				CategorySource.Add(MakeShareable(new FString(TypedEntryNode->MetaData.Category)));
+			}
+		}
+	}
+
+	// Pull categories from overridable functions
+	for (TFieldIterator<UFunction> FunctionIt(MyBlueprint->GetBlueprintObj()->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
+	{
+		const UFunction* Function = *FunctionIt;
+		const FName FunctionName = Function->GetFName();
+
+		if (UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+		{
+			FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
+
+			if(!FunctionCategory.IsEmpty())
+			{
+				bool bNewCategory = true;
+				for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
+				{
+					bNewCategory &= *CategorySource[j].Get() != FunctionCategory;
+				}
+
+				if(bNewCategory)
+				{
+					CategorySource.Add(MakeShareable(new FString(FunctionCategory)));
+				}
 			}
 		}
 	}
@@ -1049,10 +1119,10 @@ FText FBlueprintVarActionDetails::OnGetCategoryText() const
 
 		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()));
 
-		// Older blueprints will have their name as the default category
-		if( Category == GetBlueprintObj()->GetFName() )
+		// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
+		if( Category == GetBlueprintObj()->GetFName() || Category == K2Schema->VR_DefaultCategory )
 		{
-			return FText::FromName(K2Schema->VR_DefaultCategory);
+			return LOCTEXT("DefaultCategory", "Default");
 		}
 		else
 		{
@@ -1067,7 +1137,10 @@ void FBlueprintVarActionDetails::OnCategoryTextCommitted(const FText& NewText, E
 {
 	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
 	{
-		FString NewCategory = NewText.ToString();
+		// Remove excess whitespace and prevent categories with just spaces
+		FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
+
+		FString NewCategory = CategoryName.ToString();
 		if(NewCategory.Len() <= NAME_SIZE)
 		{
 			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FName( *NewCategory ));
@@ -1968,21 +2041,60 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					.OnTextCommitted( this, &FBlueprintGraphActionDetails::OnTooltipTextCommitted )
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			];
-			Category.AddCustomRow( LOCTEXT( "Category", "Category" ).ToString() )
-			.NameContent()
-			[
-				SNew(STextBlock)
-					.Text( LOCTEXT( "Category", "Category" ).ToString() )
-					.ToolTipText(LOCTEXT("CategoryTooltip", "The category affects how this function will show up in menus and when searching").ToString())
+
+			FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
+			TSharedPtr<SComboButton> NewComboButton;
+			TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
+
+			const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
+			TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+
+			Category.AddCustomRow( TEXT("Category") )
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Text( LOCTEXT("CategoryLabel", "Category") )
+					.ToolTip(CategoryTooltip)
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
-			]
+				]
 			.ValueContent()
-			[
-				SNew(SEditableTextBox)
-					.Text( this, &FBlueprintGraphActionDetails::OnGetCategoryText )
-					.OnTextCommitted( this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-			];
+				[
+					SAssignNew(NewComboButton, SComboButton)
+					.ContentPadding(FMargin(0,0,5,0))
+					.ToolTip(CategoryTooltip)
+					.ButtonContent()
+					[
+						SNew(SBorder)
+						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+						.Padding(FMargin(0, 0, 5, 0))
+						[
+							SNew(SEditableTextBox)
+							.Text(this, &FBlueprintGraphActionDetails::OnGetCategoryText)
+							.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
+							.ToolTip(CategoryTooltip)
+							.SelectAllTextWhenFocused(true)
+							.RevertTextOnEscape(true)
+							.Font( IDetailLayoutBuilder::GetDetailFont() )
+						]
+					]
+					.MenuContent()
+						[
+							SNew(SVerticalBox)
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							.MaxHeight(400.0f)
+							[
+								SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
+								.ListItemsSource(&CategorySource)
+								.OnGenerateRow(this, &FBlueprintGraphActionDetails::MakeCategoryViewWidget)
+								.OnSelectionChanged(this, &FBlueprintGraphActionDetails::OnCategorySelectionChanged)
+							]
+						]
+				];
+
+			CategoryComboButton = NewComboButton;
+			CategoryListView = NewListView;
+
 			if (IsAccessSpecifierVisible())
 			{
 				Category.AddCustomRow( LOCTEXT( "AccessSpecifier", "Access Specifier" ).ToString() )
@@ -2427,9 +2539,9 @@ FText FBlueprintDelegateActionDetails::OnGetCategoryText() const
 		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), DelegateName, NULL);
 
 		// Older blueprints will have their name as the default category
-		if( Category == GetBlueprintObj()->GetFName() )
+		if( Category == GetBlueprintObj()->GetFName() || Category == K2Schema->VR_DefaultCategory )
 		{
-			return FText::FromName(K2Schema->VR_DefaultCategory);
+			return LOCTEXT("DefaultCategory", "Default");
 		}
 		else
 		{
@@ -2446,7 +2558,9 @@ void FBlueprintDelegateActionDetails::OnCategoryTextCommitted(const FText& NewTe
 	{
 		if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
 		{
-			FString NewCategory = NewText.ToString();
+			// Remove excess whitespace and prevent categories with just spaces
+			FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
+			FString NewCategory = CategoryName.ToString();
 			
 			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, FName( *NewCategory ));
 			check(MyBlueprint.IsValid());
@@ -3092,6 +3206,12 @@ FText FBlueprintGraphActionDetails::OnGetCategoryText() const
 {
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if( Metadata->Category.IsEmpty() || Metadata->Category == K2Schema->VR_DefaultCategory.ToString() )
+		{
+			return LOCTEXT("DefaultCategory", "Default");
+		}
+		
 		return FText::FromString(Metadata->Category);
 	}
 	else
@@ -3102,15 +3222,62 @@ FText FBlueprintGraphActionDetails::OnGetCategoryText() const
 
 void FBlueprintGraphActionDetails::OnCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
-	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
 	{
-		Metadata->Category = NewText.ToString();
-		if(auto Function = FindFunction())
+		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 		{
-			Function->Modify();
-			Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *NewText.ToString());
+			// Remove excess whitespace and prevent categories with just spaces
+			FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
+
+			if(CategoryName.IsEmpty())
+			{
+				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+				Metadata->Category = K2Schema->VR_DefaultCategory.ToString();
+			}
+			else
+			{
+				Metadata->Category = CategoryName.ToString();
+			}
+
+			if(auto Function = FindFunction())
+			{
+				Function->Modify();
+				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *CategoryName.ToString());
+			}
+			MyBlueprint.Pin()->Refresh();
+			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
 		}
 	}
+}
+
+void FBlueprintGraphActionDetails::OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ )
+{
+	if(ProposedSelection.IsValid())
+	{
+		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+		{
+			Metadata->Category = *ProposedSelection.Get();
+			if(auto Function = FindFunction())
+			{
+				Function->Modify();
+				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, **ProposedSelection.Get());
+			}
+			MyBlueprint.Pin()->Refresh();
+			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+
+			CategoryListView.Pin()->ClearSelection();
+			CategoryComboButton.Pin()->SetIsOpen(false);
+			MyBlueprint.Pin()->ExpandCategory(*ProposedSelection.Get());
+		}
+	}
+}
+
+TSharedRef< ITableRow > FBlueprintGraphActionDetails::MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable )
+{
+	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+		[
+			SNew(STextBlock) .Text(*Item.Get())
+		];
 }
 
 FText FBlueprintGraphActionDetails::AccessSpecifierProperName( uint32 AccessSpecifierFlag ) const

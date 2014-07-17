@@ -448,6 +448,12 @@ private:
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);
 
+	/** Callback when a graph category is changed */
+	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
+
+	/** Callback to make category widgets */
+	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
+
 private:
 
 	/** List of available localized access specifiers names */
@@ -458,6 +464,13 @@ private:
 
 	/** Color block for parenting the color picker */
 	TSharedPtr<class SColorBlock> ColorBlock;
+
+	/** A list of all category names to choose from */
+	TArray<TSharedPtr<FString>> CategorySource;
+
+	/** Widgets for the categories */
+	TWeakPtr<SComboButton> CategoryComboButton;
+	TWeakPtr<SListView<TSharedPtr<FString>>> CategoryListView;
 };
 
 /** Blueprint Interface List Details */

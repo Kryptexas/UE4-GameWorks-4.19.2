@@ -98,7 +98,7 @@ public:
 				TSharedPtr<FGraphActionNode>& CurrentChild = Children[i];
 				if(CurrentChild->IsCategoryNode())
 				{
-					bFoundMatch = NextCategory == CurrentChild->Category;
+					bFoundMatch = NextCategory == CurrentChild->Category && NodeToAdd->SectionID == CurrentChild->SectionID;
 				}
 				else if(CurrentChild->IsActionNode())
 				{
