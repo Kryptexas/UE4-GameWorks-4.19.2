@@ -102,7 +102,7 @@ bool FOpenGLES2::bSupportsShaderTextureCubeLod = true;
 bool FOpenGLES2::bSupportsCopyTextureLevels = false;
 
 /** GL_OES_texture_npot */
-bool FOpenGLES2::bSupportsTextureNPOT = true;
+bool FOpenGLES2::bSupportsTextureNPOT = false;
 
 /** GL_EXT_texture_storage */
 bool FOpenGLES2::bSupportsTextureStorageEXT = false;
