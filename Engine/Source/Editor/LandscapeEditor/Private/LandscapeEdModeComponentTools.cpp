@@ -13,6 +13,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
