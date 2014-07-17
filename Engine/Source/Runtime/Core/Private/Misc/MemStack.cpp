@@ -8,41 +8,36 @@
 
 DECLARE_THREAD_SINGLETON( FMemStack );
 
-DECLARE_MEMORY_STAT(TEXT("MemStack Allocated (all threads)"), STAT_MemStackAllocated,STATGROUP_Memory);
-DECLARE_MEMORY_STAT(TEXT("MemStack Used (all threads)"), STAT_MemStackUsed,STATGROUP_Memory);
+DECLARE_MEMORY_STAT(TEXT("MemStack Large Block"), STAT_MemStackLargeBLock,STATGROUP_Memory);
+DECLARE_MEMORY_STAT(TEXT("PageAllocator Free"), STAT_PageAllocatorFree, STATGROUP_Memory);
+DECLARE_MEMORY_STAT(TEXT("PageAllocator Used"), STAT_PageAllocatorUsed, STATGROUP_Memory);
 
+
+TLockFreeFixedSizeAllocator<FPageAllocator::PageSize, FThreadSafeCounter> FPageAllocator::TheAllocator;
+
+#if STATS
+void FPageAllocator::UpdateStats()
+{
+	SET_MEMORY_STAT(STAT_PageAllocatorFree, BytesFree());
+	SET_MEMORY_STAT(STAT_PageAllocatorUsed, BytesUsed());
+}
+#endif
 /*-----------------------------------------------------------------------------
 	FMemStack implementation.
 -----------------------------------------------------------------------------*/
 
-FMemStack::FMemStack( int32 InDefaultChunkSize /*= DEFAULT_CHUNK_SIZE*/ )
-:	Top(NULL)
-,	End(NULL)
-,	DefaultChunkSize(InDefaultChunkSize)
-,	TopChunk(NULL)
-,	TopMark(NULL)
-,	UnusedChunks(NULL)
+FMemStack::FMemStack()
+:	Top(nullptr)
+,	End(nullptr)
+,	TopChunk(nullptr)
+,	TopMark(nullptr)
 ,	NumMarks(0)
 {
 }
 
 FMemStack::~FMemStack()
 {
-	check(GIsCriticalError || !NumMarks);
-
-	Tick();
-	while( UnusedChunks )
-	{
-		FTaggedMemory* Old = UnusedChunks;
-		UnusedChunks = UnusedChunks->Next;
-		DEC_MEMORY_STAT_BY( STAT_MemStackAllocated, Old->DataSize + sizeof(FTaggedMemory) );
-		FMemory::Free( Old );
-	}
-}
-
-void FMemStack::Tick() const
-{
-	check(TopChunk==NULL);
+	check((GIsCriticalError || !NumMarks) && IsEmpty());
 }
 
 int32 FMemStack::GetByteCount() const
@@ -61,44 +56,23 @@ int32 FMemStack::GetByteCount() const
 	}
 	return Count;
 }
-int32 FMemStack::GetUnusedByteCount() const
-{
-	int32 Count = 0;
-	for( FTaggedMemory* Chunk=UnusedChunks; Chunk; Chunk=Chunk->Next )
-	{
-		Count += Chunk->DataSize;
-	}
-	return Count;
-}
 
 void FMemStack::AllocateNewChunk( int32 MinSize )
 {
-	FTaggedMemory* Chunk=NULL;
-	for( FTaggedMemory** Link=&UnusedChunks; *Link; Link=&(*Link)->Next )
+	FTaggedMemory* Chunk=nullptr;
+	// Create new chunk.
+	const int32 DataSize = AlignArbitrary<int32>(MinSize + (int32)sizeof(FTaggedMemory), FPageAllocator::PageSize) - sizeof(FTaggedMemory);
+	const uint32 AllocSize = DataSize + sizeof(FTaggedMemory);
+	if (AllocSize == FPageAllocator::PageSize)
 	{
-		// Find existing chunk.
-		if( (*Link)->DataSize >= MinSize )
-		{
-			Chunk = *Link;
-			*Link = (*Link)->Next;
-			break;
-		}
+		Chunk = (FTaggedMemory*)FPageAllocator::Alloc();
 	}
-
-	if( !Chunk )
+	else
 	{
-		// Create new chunk.
-		const int32 DataSize   = AlignArbitrary<int32>( MinSize + (int32)sizeof(FTaggedMemory), DefaultChunkSize ) - sizeof(FTaggedMemory);
-		const uint32 AllocSize = DataSize + sizeof(FTaggedMemory);
-		Chunk                  = (FTaggedMemory*)FMemory::Malloc( AllocSize );
-		Chunk->DataSize        = DataSize;
-		INC_MEMORY_STAT_BY( STAT_MemStackAllocated, AllocSize );	
+		Chunk = (FTaggedMemory*)FMemory::Malloc(AllocSize);
+		INC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, AllocSize);
 	}
-
-	if( Chunk != TopChunk )
-	{
-		INC_MEMORY_STAT_BY( STAT_MemStackUsed, Chunk->DataSize );
-	}
+	Chunk->DataSize        = DataSize;
 
 	Chunk->Next = TopChunk;
 	TopChunk    = Chunk;
@@ -112,13 +86,20 @@ void FMemStack::FreeChunks( FTaggedMemory* NewTopChunk )
 	{
 		FTaggedMemory* RemoveChunk = TopChunk;
 		TopChunk                   = TopChunk->Next;
-		RemoveChunk->Next          = UnusedChunks;
-		UnusedChunks               = RemoveChunk;
 
-		DEC_MEMORY_STAT_BY( STAT_MemStackUsed, RemoveChunk->DataSize );
+		if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::PageSize)
+		{
+			FPageAllocator::Free(RemoveChunk);
+		}
+		else
+		{
+			DEC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, RemoveChunk->DataSize + sizeof(FTaggedMemory));
+			FMemory::Free(RemoveChunk);
+		}
+
 	}
-	Top = NULL;
-	End = NULL;
+	Top = nullptr;
+	End = nullptr;
 	if( TopChunk )
 	{
 		Top = TopChunk->Data;

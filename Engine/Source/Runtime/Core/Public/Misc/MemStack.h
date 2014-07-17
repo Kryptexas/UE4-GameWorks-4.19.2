@@ -5,14 +5,46 @@
 =============================================================================*/
 
 #pragma once
+#include "LockFreeFixedSizeAllocator.h"
 
-/*-----------------------------------------------------------------------------
-	Globals.
------------------------------------------------------------------------------*/
 
 // Enums for specifying memory allocation type.
 enum EMemZeroed {MEM_Zeroed=1};
 enum EMemOned   {MEM_Oned  =1};
+
+class CORE_API FPageAllocator
+{
+public:
+	enum
+	{
+		PageSize = 64 * 1024
+	};
+	FORCEINLINE static void *Alloc()
+	{
+		void *Result = TheAllocator.Allocate();
+		STAT(UpdateStats());
+		return Result;
+	}
+	FORCEINLINE static void Free(void *Mem)
+	{
+		TheAllocator.Free(Mem);
+		STAT(UpdateStats());
+	}
+	static uint64 BytesUsed()
+	{
+		return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize;
+	}
+	static uint64 BytesFree()
+	{
+		return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize;
+	}
+private:
+
+#if STATS
+	static void UpdateStats();
+#endif
+	static TLockFreeFixedSizeAllocator<PageSize, FThreadSafeCounter> TheAllocator;
+};
 
 /**
  * Simple linear-allocation memory stack.
@@ -24,16 +56,18 @@ class CORE_API FMemStack : public TThreadSingleton<FMemStack>
 public:
 
 	/** Initialization constructor. */
-	FMemStack(int32 DefaultChunkSize = DEFAULT_CHUNK_SIZE);
+	FMemStack();
 
 	/** Destructor. */
 	~FMemStack();
 
 	// Get bytes.
-	FORCEINLINE uint8* PushBytes( int32 AllocSize, int32 Alignment )
+	FORCEINLINE uint8* PushBytes(int32 AllocSize, int32 Alignment)
 	{
-		Alignment = FMath::Max(AllocSize >= 16 ? (int32)16 : (int32)8, Alignment);
-
+		return (uint8*)Alloc(AllocSize, FMath::Max(AllocSize >= 16 ? (int32)16 : (int32)8, Alignment));
+	}
+	FORCEINLINE void* Alloc(int32 AllocSize, int32 Alignment)
+	{
 		// Debug checks.
 		checkSlow(AllocSize>=0);
 		checkSlow((Alignment&(Alignment-1))==0);
@@ -60,14 +94,14 @@ public:
 		return Result;
 	}
 
-	/** Timer tick. Makes sure the memory stack is empty. */
-	void Tick() const;
+	/** return true if this stack is empty. */
+	FORCEINLINE bool IsEmpty() const
+	{
+		return TopChunk == nullptr;
+	}
 
 	/** @return the number of bytes allocated for this FMemStack that are currently in use. */
 	int32 GetByteCount() const;
-
-	/** @return the number of bytes allocated for this FMemStack that are currently unused and available. */
-	int32 GetUnusedByteCount() const;
 
 	// Returns true if the pointer was allocated using this allocator
 	bool ContainsPointer(const void* Pointer) const;
@@ -90,24 +124,14 @@ public:
 	};
 
 private:
-	// Constants.
-	enum 
-	{
-		MAX_CHUNKS=1024,
-		DEFAULT_CHUNK_SIZE=65536,
-	};
 
 	// Variables.
 	uint8*			Top;				// Top of current chunk (Top<=End).
 	uint8*			End;				// End of current chunk.
-	int32			DefaultChunkSize;	// Maximum chunk size to allocate.
 	FTaggedMemory*	TopChunk;			// Only chunks 0..ActiveChunks-1 are valid.
 
 	/** The top mark on the stack. */
 	class FMemMark*	TopMark;
-
-	/** The memory chunks that have been allocated but are currently unused. */
-	FTaggedMemory*	UnusedChunks;
 
 	/** The number of marks on this stack. */
 	int32 NumMarks;
@@ -204,7 +228,7 @@ public:
 
 		/** Default constructor. */
 		ForElementType():
-			Data(NULL)
+			Data(nullptr)
 		{}
 
 		// FContainerAllocatorInterface
@@ -301,7 +325,7 @@ public:
 			Mem.TopMark = NextTopmostMark;
 
 			// Ensure that the mark is only popped once by clearing the top pointer.
-			Top = NULL;
+			Top = nullptr;
 		}
 	}
 

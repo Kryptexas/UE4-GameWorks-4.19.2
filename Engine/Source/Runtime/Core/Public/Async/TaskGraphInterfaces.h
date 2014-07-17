@@ -669,6 +669,7 @@ private:
 #endif
 
 			Task.~TTask();
+			checkSlow(ENamedThreads::GetThreadIndex(CurrentThread) <= ENamedThreads::RenderThread || FMemStack::Get().IsEmpty()); // you must mark and pop memstacks if you use them in tasks! Named threads are excepted.
 		}
 		
 		TaskConstructed = false;

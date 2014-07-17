@@ -4,37 +4,8 @@
 
 #include "LockFreeList.h"
 
-/** If this is set to one, then the current allocation state is monitored with thread safe pointers **/
-#define MONITOR_FIXED_ALLOCATION (0)
-
-#define USE_RECYCLING (1)
-
-
-#if !USE_RECYCLING
-
 /** Thread safe, lock free pooling allocator of fixed size blocks that never returns free space until program shutdown. **/
-template<int32 SIZE>
-class TLockFreeFixedSizeAllocator	// alignment isn't handled, assumes FMemory::Malloc will work
-{
-public:
-	/** Returns a memory block of size SIZE **/
-	void* Allocate()
-	{
-		return FMemory::Malloc(SIZE);
-	}
-	/** Given a memory block (obtained from Allocate) free it **/
-	void Free(void *Item)
-	{
-		FMemory::Free(Item);
-	}
-};
-
-
-#else //!USE_RECYCLING
-
-
-/** Thread safe, lock free pooling allocator of fixed size blocks that never returns free space until program shutdown. **/
-template<int32 SIZE>
+template<int32 SIZE, typename TTrackingCounter = FNoopCounter>
 class TLockFreeFixedSizeAllocator	// alignment isn't handled, assumes FMemory::Malloc will work
 {
 public:
@@ -45,6 +16,7 @@ public:
 		while (void* Mem = FreeList.Pop())
 		{
 			FMemory::Free(Mem);
+			NumFree.Decrement();
 		}
 		check(!NumFree.GetValue());
 	}
@@ -70,23 +42,27 @@ public:
 		FreeList.Push(Item);
 		NumFree.Increment();
 	}
+
+	const TTrackingCounter& GetNumUsed() const
+	{
+		return NumUsed;
+	}
+
+	const TTrackingCounter& GetNumFree() const
+	{
+		return NumFree;
+	}
+
 private:
 	/** Lock free list of free memory blocks **/
 	TLockFreePointerList<void>		FreeList;
 
-#if MONITOR_FIXED_ALLOCATION
 	/** Total number of blocks outstanding and not in the free list **/
-	FThreadSafeCounter	NumUsed; 
+	TTrackingCounter	NumUsed; 
 	/** Total number of blocks in the free list **/
-	FThreadSafeCounter	NumFree;
-#else
-	/** If we aren't monitoring allocation, these do nothing **/
-	FNoopCounter		NumUsed; 
-	FNoopCounter		NumFree;
-#endif
+	TTrackingCounter	NumFree;
 };
 
-#endif //!USE_RECYCLING
 
 
 /** Thread safe, lock free pooling allocator of memory for instances of T. Never returns free space until program shutdown. **/
