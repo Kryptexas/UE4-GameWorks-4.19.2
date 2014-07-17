@@ -483,6 +483,12 @@ FString CreateProjectPath()
 	{
 		return UTF8_TO_TCHAR([[[NSBundle mainBundle] executablePath] fileSystemRepresentation]);
 	}
+#elif PLATFORM_LINUX
+	const TCHAR* PlatformConfig = FPlatformMisc::GetUBTPlatform();
+	FString ExeFileName = FPaths::EngineDir() / TEXT("Binaries") / PlatformConfig / FString(FPlatformProcess::ExecutableName());
+	return ExeFileName;
+#else
+#error "Unknown platform"
 #endif
 }
 

@@ -6,7 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-namespace UnrealBuildTool.Linux
+namespace UnrealBuildTool
 {
     class LinuxPlatform : UEBuildPlatform
     {
@@ -120,9 +120,7 @@ namespace UnrealBuildTool.Linux
                 string EngineSourcePath = Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine", "Source");
                 string LinuxTargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "Linux", "LinuxTargetPlatform", "LinuxTargetPlatform.Build.cs");
 
-                if (
-                    (File.Exists(LinuxTargetPlatformFile) == false)
-                    )
+                if (File.Exists(LinuxTargetPlatformFile) == false)
                 {
                     bRegisterBuildPlatform = false;
                 }
@@ -216,8 +214,7 @@ namespace UnrealBuildTool.Linux
          */
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
         {
-            // increase Unity size to avoid too long command lines
-            BuildConfiguration.NumIncludedBytesPerUnityCPP = 1024 * 1024;
+            UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bCompileICU = true;
         }
 
@@ -228,6 +225,13 @@ namespace UnrealBuildTool.Linux
          */
         public override void ValidateUEBuildConfiguration()
         {
+            if (ProjectFileGenerator.bGenerateProjectFiles && !ProjectFileGenerator.bGeneratingRocketProjectFiles)
+            {
+                // When generating non-Rocket project files we need intellisense generator to include info from all modules,
+                // including editor-only third party libs
+                UEBuildConfiguration.bCompileLeanAndMeanUE = false;
+            }
+
             BuildConfiguration.bUseUnityBuild = true;
 
             // Don't stop compilation at first error...
@@ -293,6 +297,32 @@ namespace UnrealBuildTool.Linux
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
+                }
+            }
+            else if (Target.Platform == UnrealTargetPlatform.Linux)
+            {
+                bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+
+                if (!UEBuildConfiguration.bBuildRequiresCookedData)
+                {
+                    if (InModule.ToString() == "TargetPlatform")
+                    {
+                        bBuildShaderFormats = true;
+                    }
+                }
+
+                // allow standalone tools to use target platform modules, without needing Engine
+                if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+                {
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
+                    InModule.AddDynamicallyLoadedModule("LinuxTargetPlatform");
+                    InModule.AddDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
+                    InModule.AddDynamicallyLoadedModule("LinuxServerTargetPlatform");
+                }
+
+                if (bBuildShaderFormats)
+                {
+                    InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
                 }
             }
         }

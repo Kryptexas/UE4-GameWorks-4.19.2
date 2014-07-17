@@ -6,7 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-namespace UnrealBuildTool.Linux
+namespace UnrealBuildTool
 {
     /**
      *	Base class for platform-specific project generators 

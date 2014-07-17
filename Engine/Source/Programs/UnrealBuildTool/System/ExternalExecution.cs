@@ -215,17 +215,12 @@ namespace UnrealBuildTool
 			{
 			case PlatformID.Win32NT:
 				return UnrealTargetPlatform.Win64;
-            case PlatformID.Unix:
-                // Mono returns Unix when running on Mac OSX, so we need some kind of addtional
-                // check check to detect when we are running on Linux vs MacOSX.
-                // TODO(sbc): Find a better way to do this.  Shelling out to uname would seem
-                // to make the most sense but I'm not sure there is an elegant way to do that from
-                // C#.
-                if (File.Exists("/etc/lsb-release") || File.Exists("/etc/debian_version") || (Directory.Exists("/etc/portage") && Directory.Exists("/usr/portage")))
+			case PlatformID.Unix:
+                if (File.Exists("/System/Library/CoreServices/SystemVersion.plist"))
                 {
-                    return UnrealTargetPlatform.Linux;
+                    return UnrealTargetPlatform.Mac;
                 }
-                return UnrealTargetPlatform.Mac;
+                return UnrealTargetPlatform.Linux;
 			default:
 				throw new BuildException("Unhandled runtime platform " + Platform);
 			}
@@ -428,6 +423,7 @@ namespace UnrealBuildTool
 		public static int RunExternalExecutable(string ExePath, string Commandline)
 		{
 			var ExeInfo = new ProcessStartInfo(ExePath, Commandline);
+			Log.TraceVerbose( "RunExternalExecutable {0} {1}", ExePath, Commandline );
 			ExeInfo.UseShellExecute = false;
 			ExeInfo.RedirectStandardOutput = true;
 			using (var GameProcess = Process.Start(ExeInfo))

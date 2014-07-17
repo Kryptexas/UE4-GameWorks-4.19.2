@@ -402,13 +402,13 @@ namespace UnrealBuildTool
 			}
 
 			// Otherwise make sure it's absolute
-			string FullInputPath = Utils.CleanDirectorySeparators(Path.GetFullPath(InputPath), '\\');
+			string FullInputPath = Utils.CleanDirectorySeparators(Path.GetFullPath(InputPath));
 
 			// Try to make it relative to the solution directory.
-			string FullSolutionPath = Utils.CleanDirectorySeparators(Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath), '\\');
-			if (!FullSolutionPath.EndsWith("\\"))
+			string FullSolutionPath = Utils.CleanDirectorySeparators(Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath));
+			if (FullSolutionPath.Last() != Path.DirectorySeparatorChar)
 			{
-				FullSolutionPath += "\\";
+				FullSolutionPath += Path.DirectorySeparatorChar;
 			}
 			if (FullInputPath.StartsWith(FullSolutionPath))
 			{

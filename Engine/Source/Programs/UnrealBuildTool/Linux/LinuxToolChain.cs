@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 
-namespace UnrealBuildTool.Linux
+namespace UnrealBuildTool
 {
     class LinuxToolChain : UEToolChain
     {
@@ -35,7 +35,7 @@ namespace UnrealBuildTool.Linux
             proc.WaitForExit();
 
             string path = proc.StandardOutput.ReadLine();
-            Console.WriteLine(String.Format("which {0} result: ({1}) {2}", name, proc.ExitCode, path));
+            Log.TraceVerbose(String.Format("which {0} result: ({1}) {2}", name, proc.ExitCode, path));
 
             if (proc.ExitCode == 0 && String.IsNullOrEmpty(proc.StandardError.ReadToEnd()))
             {
@@ -96,12 +96,22 @@ namespace UnrealBuildTool.Linux
             }
 
             Result += " -Wall -Werror";
+            // test without this next line?
+            Result += " -funwind-tables";               // generate unwind tables as they seem to be needed for stack tracing (why??)
             Result += " -Wsequence-point";              // additional warning not normally included in Wall: warns if order of operations is ambigious
             //Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar 
             //Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
             Result += " -mmmx -msse -msse2";            // allows use of SIMD intrinsics
             Result += " -fno-math-errno";               // do not assume that math ops have side effects
             Result += " -fno-rtti";                     // no run-time type info
+
+            // these needs to be removed ASAP
+            Result += " -Wno-delete-non-virtual-dtor";
+            Result += " -Wno-reorder";
+            Result += " -Wno-logical-op-parentheses";
+            Result += " -Wno-ignored-attributes";
+            Result += " -Wno-overloaded-virtual";
+            Result += " -Wno-unused-value";
 
             if (String.IsNullOrEmpty(ClangPath))
             {
@@ -159,7 +169,7 @@ namespace UnrealBuildTool.Linux
             {
                 Result += " -g3";
                 Result += " -fno-omit-frame-pointer";
-                Result += " -funwind-tables";               // generate unwind tables as they seem to be needed for stack tracing (why??)
+                Result += " -funwind-tables";               // generate unwind tables as they seem to be needed for stack tracing
                 Result += " -fstack-protector";
                 //Result += " -fsanitize=address";  // Preferred clang tool for detecting address based errors but unusable for some reason with Module.Engine.7_of_42.cpp
             }
@@ -257,24 +267,19 @@ namespace UnrealBuildTool.Linux
             {
                 Result += " -s"; // Strip binaries in Shipping
             }
-
             if (LinkEnvironment.Config.bIsBuildingDLL)
             {
                 Result += " -shared";
             }
-            //Result += " -v";
-
-            if (CrossCompiling())
-            {
-                // ignore unresolved symbols in shared libs
-                Result += " -Wl,--unresolved-symbols=ignore-in-shared-libs";
-            }
             else
             {
-                Result += " -Wl,--no-undefined";
+                // ignore unresolved symbols in shared libs
+                Result += string.Format(" -Wl,--unresolved-symbols=ignore-in-shared-libs");
             }
 
             // RPATH for third party libs
+            Result += " -Wl,-rpath=${{ORIGIN}}";
+            Result += " -Wl,-rpath-link=${{ORIGIN}}";
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/Linux";
             // FIXME: really ugly temp solution. Modules need to be able to specify this
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/jemalloc/Linux/x86_64-unknown-linux-gnu";
@@ -348,10 +353,20 @@ namespace UnrealBuildTool.Linux
         static string ArPath;
         static string RanlibPath;
 
+		/** Track which scripts need to be deleted before appending to */
+		private bool bHasWipedFixDepsScript = false;
+
+		private static List<FileItem> BundleDependencies = new List<FileItem>();
+
         public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
         {
             string Arguments = GetCLArguments_Global(CompileEnvironment);
             string PCHArguments = "";
+
+            if (CompileEnvironment.Config.bIsBuildingDLL)
+            {
+                Arguments += " -fPIC";
+            }
 
             if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
             {
@@ -549,8 +564,69 @@ namespace UnrealBuildTool.Linux
             return OutputFile;
         }
 
+		public FileItem FixDependencies(LinkEnvironment LinkEnvironment, FileItem Executable)
+		{
+			if (!LinkEnvironment.Config.bIsCrossReferenced)
+			{
+				return null;
+			}
+
+			Log.TraceVerbose("Adding postlink step");
+
+            bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+            string ShellBinary = bUseCmdExe ? "cmd.exe" : "/bin/sh";
+            string ExecuteSwitch = bUseCmdExe ? " /C" : " -c";
+            string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
+
+            FileItem FixDepsScript = FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName));
+
+			Action PostLinkAction = new Action(ActionType.Link);
+			PostLinkAction.WorkingDirectory = Path.GetFullPath(".");
+            PostLinkAction.CommandPath = ShellBinary;
+			PostLinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(Executable.AbsolutePath));
+			PostLinkAction.CommandDescription = "FixDeps";
+			PostLinkAction.bCanExecuteRemotely = false;
+            PostLinkAction.CommandArguments = ExecuteSwitch;
+            
+            if (bUseCmdExe)
+            {
+                PostLinkAction.CommandArguments += " \"";
+            }
+            else
+            {
+                PostLinkAction.CommandArguments += String.Format(" 'chmod +x {0}' && {1} {2} '", FixDepsScript.AbsolutePath, ShellBinary, ExecuteSwitch);
+            }
+
+			FileItem OutputFile = FileItem.GetItemByPath(Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, Path.GetFileNameWithoutExtension(Executable.AbsolutePath) + ".link"));
+
+			// Make sure we don't run this script until the all executables and shared libraries
+			// have been built.
+			PostLinkAction.PrerequisiteItems.Add(Executable);
+			foreach (FileItem Dependency in BundleDependencies)
+			{
+				PostLinkAction.PrerequisiteItems.Add(Dependency);
+			}
+
+			PostLinkAction.CommandArguments += ShellBinary + ExecuteSwitch + " \"" + FixDepsScript.AbsolutePath + "\" && ";
+
+            string Touch = bUseCmdExe ? "echo \"\" >> \"{0}\" && copy /b \"{0}\" +,," : "echo \"After script\" && touch \"{0}\"";
+
+            PostLinkAction.CommandArguments += String.Format(Touch, OutputFile.AbsolutePath);
+			PostLinkAction.CommandArguments += bUseCmdExe ? "\"" : "'";
+
+			System.Console.WriteLine("{0} {1}", PostLinkAction.CommandPath, PostLinkAction.CommandArguments);
+			
+			PostLinkAction.ProducedItems.Add(OutputFile);
+			return OutputFile;
+		}
+
+
         public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
         {
+            Debug.Assert(!bBuildImportLibraryOnly);
+
+            List<string> RPaths = new List<string>();
+
             if (LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly)
             {
                 return CreateArchiveAndIndex(LinkEnvironment);
@@ -595,27 +671,97 @@ namespace UnrealBuildTool.Linux
             string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
             LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
+            if (LinkEnvironment.Config.bIsBuildingDLL)
+            {
+	            LinkAction.CommandArguments += string.Format(" -Wl,-soname={0}", OutputFile);
+            }
+
+            // Start with the configured LibraryPaths and also add paths to any libraries that
+            // we depend on (libraries that we've build ourselves).
+            List<string> AllLibraryPaths = LinkEnvironment.Config.LibraryPaths;
+            foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
+            {
+                string PathToLib = Path.GetDirectoryName(AdditionalLibrary);
+                if (!String.IsNullOrEmpty(PathToLib)) 
+                {
+                    // make path absolute, because FixDependencies script may be executed in a different directory
+                    string AbsolutePathToLib = Path.GetFullPath(PathToLib);
+                    if (!AllLibraryPaths.Contains(AbsolutePathToLib))
+                    {
+                        AllLibraryPaths.Add(AbsolutePathToLib);
+                    }
+                }
+
+                if ((AdditionalLibrary.Contains("Plugins") || AdditionalLibrary.Contains("Binaries/ThirdParty") || AdditionalLibrary.Contains("Binaries\\ThirdParty")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(OutputFile.AbsolutePath))
+                {
+                    string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(OutputFile.AbsolutePath));
+                    if (!RPaths.Contains(RelativePath))
+                    {
+                        RPaths.Add(RelativePath);
+                        LinkAction.CommandArguments += string.Format(" -Wl,-rpath=\"${{ORIGIN}}/{0}\"", RelativePath);
+                    }
+                }
+            }
+
+            LinkAction.CommandArguments += string.Format(" -Wl,-rpath-link=\"{0}\"", Path.GetDirectoryName(OutputFile.AbsolutePath));
+
 			// Add the library paths to the argument list.
-			foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
+			foreach (string LibraryPath in AllLibraryPaths)
 			{
-				LinkAction.CommandArguments += string.Format(" -Wl,-L\"{0}\"", LibraryPath);
+                // use absolute paths because of FixDependencies script again
+				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", Path.GetFullPath(LibraryPath));
 			}
 
 			// add libraries in a library group
             LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
+
+            List<string> EngineAndGameLibraries = new List<string>();
             foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
-			{
-				if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
-				{
-					LinkAction.CommandArguments += string.Format(" -l{0}", AdditionalLibrary);
-				}
-				else
-				{
-					// full pathed libs are compiled by us, so we depend on linking them
-					LinkAction.CommandArguments += string.Format(" \"{0}\"", AdditionalLibrary);
-					LinkAction.PrerequisiteItems.Add(FileItem.GetItemByFullPath(AdditionalLibrary));
-				}
-			}
+            {
+                if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
+                {
+                    // library was passed just like "jemalloc", turn it into -ljemalloc
+                    LinkAction.CommandArguments += string.Format(" -l{0}", AdditionalLibrary);
+                }
+                else if (Path.GetExtension(AdditionalLibrary) == ".a")
+                {
+                    // static library passed in, pass it along but make path absolute, because FixDependencies script may be executed in a different directory
+                    string AbsoluteAdditionalLibrary = Path.GetFullPath(AdditionalLibrary);
+                    LinkAction.CommandArguments += (" " + AbsoluteAdditionalLibrary);
+                    LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
+                }
+                else
+                {
+                    // Skip over full-pathed library dependencies when building DLLs to avoid circular
+                    // dependencies.
+                    FileItem LibraryDependency = FileItem.GetItemByPath(AdditionalLibrary);
+
+                    var LibName = Path.GetFileNameWithoutExtension(AdditionalLibrary);
+                    if (LibName.StartsWith("lib"))
+                    {
+                        // Remove lib prefix
+                        LibName = LibName.Remove(0, 3);
+                    }
+                    string LibLinkFlag = string.Format(" -l{0}", LibName);
+
+                    if (LinkEnvironment.Config.bIsBuildingDLL && LinkEnvironment.Config.bIsCrossReferenced)
+                    {
+                        // We are building a cross referenced DLL so we can't actually include
+                        // dependencies at this point. Instead we add it to the list of
+                        // libraries to be used in the FixDependencies step.
+                        EngineAndGameLibraries.Add(LibLinkFlag);
+                        if (!LinkAction.CommandArguments.Contains("--allow-shlib-undefined"))
+                        {
+                            LinkAction.CommandArguments += string.Format(" -Wl,--allow-shlib-undefined");
+                        }
+                    }
+                    else
+                    {
+                        LinkAction.PrerequisiteItems.Add(LibraryDependency);
+                        LinkAction.CommandArguments += LibLinkFlag;
+                    }
+                }
+            }
             LinkAction.CommandArguments += " -lrt"; // needed for clock_gettime()
             LinkAction.CommandArguments += " -lm"; // math
             LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
@@ -651,12 +797,83 @@ namespace UnrealBuildTool.Linux
             // Only execute linking on the local PC.
             LinkAction.bCanExecuteRemotely = false;
 
+			// Prepare a script that will run later, once all shared libraries and the executable
+			// are created. This script will be called by action created in FixDependencies()
+			if (LinkEnvironment.Config.bIsCrossReferenced && LinkEnvironment.Config.bIsBuildingDLL)
+			{
+                bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+                string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
+
+				string FixDepsScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName);
+				if (!bHasWipedFixDepsScript)
+				{
+					bHasWipedFixDepsScript = true;
+					Log.TraceVerbose("Creating script: {0}", FixDepsScriptPath);
+					StreamWriter Writer = File.CreateText(FixDepsScriptPath);
+
+                    if (bUseCmdExe)
+                    {
+					    Writer.Write("rem Automatically generated by UnrealBuildTool\n");
+					    Writer.Write("rem *DO NOT EDIT*\n\n");
+                    }
+                    else
+                    {
+					    Writer.Write("#!/bin/sh\n");
+					    Writer.Write("# Automatically generated by UnrealBuildTool\n");
+					    Writer.Write("# *DO NOT EDIT*\n\n");
+					    Writer.Write("set -o errexit\n");
+                    }
+				    Writer.Close();
+				}
+
+				StreamWriter FixDepsScript = File.AppendText(FixDepsScriptPath);
+
+				string EngineAndGameLibrariesString = "";
+				foreach (string Library in EngineAndGameLibraries)
+				{
+					EngineAndGameLibrariesString += Library;
+				}
+
+				FixDepsScript.Write(string.Format("echo Fixing {0}\n", Path.GetFileName(OutputFile.AbsolutePath)));
+                if (!bUseCmdExe)
+                {
+				    FixDepsScript.Write(string.Format("TIMESTAMP=`stat --format %y \"{0}\"`\n", OutputFile.AbsolutePath));
+                }
+				string FixDepsLine = LinkAction.CommandPath + " " + LinkAction.CommandArguments;
+				string Replace = "-Wl,--allow-shlib-undefined";
+					
+				FixDepsLine = FixDepsLine.Replace(Replace, EngineAndGameLibrariesString);
+				FixDepsLine = FixDepsLine.Replace(OutputFile.AbsolutePath, OutputFile.AbsolutePath + ".fixed");
+				FixDepsLine = FixDepsLine.Replace("$", "\\$");
+				FixDepsScript.Write(FixDepsLine + "\n");
+                if (bUseCmdExe)
+                {
+                    FixDepsScript.Write(string.Format("move /Y \"{0}.fixed\" \"{0}\"\n", OutputFile.AbsolutePath));
+                }
+                else
+                {
+                    FixDepsScript.Write(string.Format("mv \"{0}.fixed\" \"{0}\"\n", OutputFile.AbsolutePath));
+                    FixDepsScript.Write(string.Format("touch -d \"$TIMESTAMP\" \"{0}\"\n\n", OutputFile.AbsolutePath));
+                }
+				FixDepsScript.Close();
+			}
+
+            //LinkAction.CommandArguments += " -v";
+
             return OutputFile;
         }
 
         public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
         {
             throw new BuildException("Linux cannot compile C# files");
+        }
+
+        static public void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+        {
+            foreach (UEBuildBinary Binary in Binaries)
+            {
+                BundleDependencies.Add(FileItem.GetItemByPath(Binary.ToString()));
+            }
         }
 
         /** Converts the passed in path from UBT host to compiler native format. */
@@ -670,6 +887,24 @@ namespace UnrealBuildTool.Linux
             {
                 return OriginalPath;
             }
+        }
+
+        public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+        {
+            var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
+
+            if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary)
+            {
+                return OutputFiles;
+            }
+
+            FileItem FixDepsOutputFile = FixDependencies(BinaryLinkEnvironment, Executable);
+            if (FixDepsOutputFile != null)
+            {
+                OutputFiles.Add(FixDepsOutputFile);
+            }
+
+            return OutputFiles;
         }
     }
 }

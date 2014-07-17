@@ -1069,7 +1069,7 @@ namespace UnrealBuildTool
 						string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
 						if(File.Exists(UnixLibraryFileName))
 						{
-							FileNames.Add(UnixLibraryFileName);
+                            FileNames.Add(UnixLibraryFileName);
 						}
 					}
 				}
@@ -2031,14 +2031,19 @@ namespace UnrealBuildTool
 
 			string OutBinaryPath = "";
 			// Append binary file name
+			string Prefix = "";
+			if (Platform == UnrealTargetPlatform.Linux && (BinaryType == UEBuildBinaryType.DynamicLinkLibrary || BinaryType == UEBuildBinaryType.StaticLibrary))
+			{
+				Prefix = "lib";
+			}
 			if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
 			{
-				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{0}{1}{2}", BinaryName, BinarySuffix, BinaryExtension));
+				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{3}{0}{1}{2}", BinaryName, BinarySuffix, BinaryExtension, Prefix));
 			}
 			else
 			{
-				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{0}-{1}-{2}{3}{4}", 
-					BinaryName, Platform.ToString(), LocalConfig.ToString(), BinarySuffix, BinaryExtension));
+				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{5}{0}-{1}-{2}{3}{4}", 
+					BinaryName, Platform.ToString(), LocalConfig.ToString(), BinarySuffix, BinaryExtension, Prefix));
 			}
 			return OutBinaryPath;
 		}

@@ -26,7 +26,7 @@
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_LINUX
 	#define GL_GLEXT_PROTOTYPES
-	#include <GL/gl.h>
+	#include <GL/glcorearb.h>
 	#include <GL/glext.h>
 #elif PLATFORM_MAC
 	#include <OpenGL/OpenGL.h>
