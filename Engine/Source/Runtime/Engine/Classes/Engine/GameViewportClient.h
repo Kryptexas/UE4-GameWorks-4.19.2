@@ -19,6 +19,8 @@
 #include "Engine/ScriptViewportClient.h"
 #include "GameViewportClient.generated.h"
 
+class UGameInstance;
+
 /**
  * Enum of the different splitscreen types
  */
@@ -254,7 +256,7 @@ public:
 
 	class FSceneViewport* GetGameViewport();
 
-	class UGameInstance* GetGameInstance() const;
+	UGameInstance* GetGameInstance() const;
 
 	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
 

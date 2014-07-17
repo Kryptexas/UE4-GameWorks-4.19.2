@@ -1525,6 +1525,85 @@ struct FAnimSlotDesc
 
 };
 
+/** Container for Animation Update Rate parameters.
+ * They are shared for all components of an Actor, so they can be updated in sync. */
+USTRUCT()
+struct FAnimUpdateRateParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+private:
+	/** How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc. */
+	UPROPERTY()
+	int32 UpdateRate;
+
+	/** How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
+	 *  has to be a multiple of UpdateRate. */
+	UPROPERTY()
+	int32 EvaluationRate;
+
+	/** When skipping a frame, should it be interpolated or frozen? */
+	UPROPERTY()
+	bool bInterpolateSkippedFrames;
+
+	/** (This frame) animation update should be skipped. */
+	UPROPERTY()
+	bool bSkipUpdate;
+
+	/** (This frame) animation evaluation should be skipped. */
+	UPROPERTY()
+	bool bSkipEvaluation;
+
+public:
+	/** Default constructor */
+	FAnimUpdateRateParameters()
+		: UpdateRate(1)
+		, EvaluationRate(1)
+		, bInterpolateSkippedFrames(false)
+		, bSkipUpdate(false)
+		, bSkipEvaluation(false)
+	{
+	}
+
+	/** Set parameters and verify inputs.
+	 * @param : Owner Actor owner calling this.
+	 * @param : NewUpdateRate. How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc.
+	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
+	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
+	 */
+	void Set(const class AActor & Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+
+	/* Getter for UpdateRate */
+	int32 GetUpdateRate() const
+	{
+		return UpdateRate;
+	}
+
+	/* Getter for EvaluationRate */
+	int32 GetEvaluationRate() const
+	{
+		return EvaluationRate;
+	}
+
+	/* Getter for bSkipUpdate */
+	bool ShouldSkipUpdate() const
+	{
+		return bSkipUpdate;
+	}
+
+	/* Getter for bSkipEvaluation */
+	bool ShouldSkipEvaluation() const
+	{
+		return bSkipEvaluation;
+	}
+
+	/* Getter for bInterpolateSkippedFrames */
+	bool ShouldInterpolateSkippedFrames() const
+	{
+		return bInterpolateSkippedFrames;
+	}
+};
+
 /**
  * Point Of View type.
  */
