@@ -39,19 +39,19 @@ void UGameInstance::Init()
 }
 
 #if WITH_EDITOR
-bool UGameInstance::InitPIE(bool bAnyBlueprintErrors)
+bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 
 	WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
 	WorldContext->OwningGameInstance = this;
-	WorldContext->PIEInstance = 0;		// @fixme?
+	WorldContext->PIEInstance = PIEInstance;
 
 	const FString WorldPackageName = EditorEngine->EditorWorld->GetOutermost()->GetName();
 
 	// Establish World Context for PIE World
 	WorldContext->LastURL.Map = WorldPackageName;
-	WorldContext->PIEPrefix = UWorld::BuildPIEPackagePrefix(WorldContext->PIEInstance);
+	WorldContext->PIEPrefix = UWorld::BuildPIEPackagePrefix(PIEInstance);
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 

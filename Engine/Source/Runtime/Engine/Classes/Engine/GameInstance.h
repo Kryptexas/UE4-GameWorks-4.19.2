@@ -55,7 +55,7 @@ public:
 	virtual void Init();
 
 #if WITH_EDITOR
-	virtual bool InitPIE(bool bAnyBlueprintErrors);
+	virtual bool InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
 	bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
 #endif
