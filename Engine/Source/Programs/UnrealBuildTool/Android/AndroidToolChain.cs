@@ -338,9 +338,7 @@ namespace UnrealBuildTool
 						string[] Tokens = Line.Data.Split("(".ToCharArray());
 						if (Tokens.Length > 1)
 						{
-							// make sure what follows the parens is what we expdect
-							string[] ErrorPos = Tokens[1].Split(")".ToCharArray());
-
+							// make sure what follows the parens is what we expect
 							string Filename = Path.GetFullPath(Tokens[0]);
 							// build up the final string
 							string Output = string.Format("{0}({1}", Filename, Tokens[1], Line.Data[0]);

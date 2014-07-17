@@ -106,7 +106,6 @@ namespace UnrealBuildTool
 					if (FilesInSource.Contains(DestFilename.ToUpperInvariant()) == false)
 					{
 						Log.TraceInformation("Destination file does not exist in Source - DELETING: {0}", DestFile);
-						FileAttributes attributes = File.GetAttributes(DestFile);
 						try
 						{
 							DeployHelper_DeleteFile(DestFile);

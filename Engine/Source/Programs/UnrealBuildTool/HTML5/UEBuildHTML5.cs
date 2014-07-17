@@ -117,9 +117,9 @@ namespace UnrealBuildTool
 		/**
 		 *	Get the extension to use for the given binary type
 		 *	
-		 *	@param	InBinaryType		The binrary type being built
+		 *	@param	InBinaryType		The binary type being built
 		 *	
-		 *	@return	string				The binary extenstion (ie 'exe' or 'dll')
+		 *	@return	string				The binary extension (ie 'exe' or 'dll')
 		 */
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{

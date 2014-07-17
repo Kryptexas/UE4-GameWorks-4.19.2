@@ -163,7 +163,7 @@ namespace UnrealBuildTool
         //protected override bool WriteMasterProjectFile( ProjectFile UBTProject )
         protected override bool WriteProjectFiles ()
         {
-            return WriteMakefile() & WriteCMakeLists();
+            return WriteMakefile() && WriteCMakeLists();
         }
 
         /// ProjectFileGenerator interface
