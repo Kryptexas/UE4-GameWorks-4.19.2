@@ -333,6 +333,25 @@ void FLevelModel::SetLevelTranslationDelta(FVector2D InAbsoluteDelta)
 	}
 }
 
+bool FLevelModel::SupportsLevelColor() const
+{
+	// By default Levels don't support a level color
+	return false;
+}
+
+FColor FLevelModel::GetLevelColor() const
+{
+	// Returns Constant color, base classes will override this
+	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
+	return FColor::White;
+}
+
+void FLevelModel::SetLevelColor(FColor InColor)
+{
+	// Does nothing, base classes will override this
+	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
+}
+
 bool FLevelModel::HasKismet() const
 {
 	return (GetLevelObject() != NULL);

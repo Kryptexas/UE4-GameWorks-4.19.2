@@ -104,17 +104,44 @@ TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName 
 			]
 		;
 	}
+	else if (ColumnID == HierarchyColumns::ColumnID_Color)
+	{
+		if (LevelModel->SupportsLevelColor())
+		{
+			TableRowContent =
+				SAssignNew(ColorButton, SButton)
+				.ContentPadding(0)
+				.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+				.IsEnabled(true)
+				.OnClicked(this, &SWorldHierarchyItem::OnChangeColor)
+				.ToolTipText(LOCTEXT("LevelColorButtonToolTip", "Change Level Color"))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Content()
+				[
+					SNew(SImage)
+					.ColorAndOpacity(this, &SWorldHierarchyItem::GetDrawColor)
+					.Image(this, &SWorldHierarchyItem::GetLevelColorBrush)
+				]
+			;
+		}
+		else
+		{
+			TableRowContent =
+				SNew(SHorizontalBox);
+		}
+	}
 	else if (ColumnID == HierarchyColumns::ColumnID_Kismet)
 	{
-		TableRowContent = 
+		TableRowContent =
 			SAssignNew(KismetButton, SButton)
 			.ContentPadding(0)
 			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 			.IsEnabled(this, &SWorldHierarchyItem::IsKismetEnabled)
 			.OnClicked(this, &SWorldHierarchyItem::OnOpenKismet)
 			.ToolTipText(LOCTEXT("KismetButtonToolTip", "Open Level Blueprint"))
-			.HAlign( HAlign_Center )
-			.VAlign( VAlign_Center )
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
 			.Content()
 			[
 				SNew(SImage)
@@ -191,6 +218,11 @@ bool SWorldHierarchyItem::IsKismetEnabled() const
 	return LevelModel->HasKismet();
 }
 
+FSlateColor SWorldHierarchyItem::GetDrawColor() const
+{
+	return FSlateColor(LevelModel->GetLevelColor());
+}
+
 FReply SWorldHierarchyItem::OnToggleVisibility()
 {
 	FLevelModelList LevelList; 
@@ -238,6 +270,52 @@ FReply SWorldHierarchyItem::OnSave()
 FReply SWorldHierarchyItem::OnOpenKismet()
 {
 	LevelModel->OpenKismet();
+	return FReply::Handled();
+}
+
+void SWorldHierarchyItem::OnSetColorFromColorPicker(FLinearColor NewColor)
+{
+	LevelModel->SetLevelColor(NewColor.ToFColor(true));
+}
+
+void SWorldHierarchyItem::OnColorPickerCancelled(FLinearColor OriginalColor)
+{
+	LevelModel->SetLevelColor(OriginalColor.ToFColor(true));
+}
+
+void SWorldHierarchyItem::OnColorPickerInteractiveBegin()
+{
+	GEditor->BeginTransaction(NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit Level Draw Color"));
+}
+
+void SWorldHierarchyItem::OnColorPickerInteractiveEnd()
+{
+	GEditor->EndTransaction();
+}
+
+FReply SWorldHierarchyItem::OnChangeColor()
+{
+	if (LevelModel.IsValid())
+	{
+		// Initialize the color data for the picker window.
+		FColor NewColor = LevelModel->GetLevelColor();
+		TArray<FColor*> ColorArray;
+		ColorArray.Add(&NewColor);
+
+		FColorPickerArgs PickerArgs;
+		PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
+		PickerArgs.ColorArray = &ColorArray;
+		PickerArgs.bOnlyRefreshOnMouseUp = false;
+		PickerArgs.bOnlyRefreshOnOk = false;
+		PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &SWorldHierarchyItem::OnSetColorFromColorPicker);
+		PickerArgs.OnColorPickerCancelled = FOnColorPickerCancelled::CreateSP(this, &SWorldHierarchyItem::OnColorPickerCancelled);
+		PickerArgs.OnInteractivePickBegin = FSimpleDelegate::CreateSP(this, &SWorldHierarchyItem::OnColorPickerInteractiveBegin);
+		PickerArgs.OnInteractivePickEnd = FSimpleDelegate::CreateSP(this, &SWorldHierarchyItem::OnColorPickerInteractiveEnd);
+		PickerArgs.ParentWidget = AsShared();
+
+		OpenColorPicker(PickerArgs);
+	}
+
 	return FReply::Handled();
 }
 
@@ -487,6 +565,11 @@ const FSlateBrush* SWorldHierarchyItem::GetLevelKismetBrush() const
 	{
 		return FEditorStyle::GetBrush( "Level.EmptyIcon16x" );
 	}	
+}
+
+const FSlateBrush* SWorldHierarchyItem::GetLevelColorBrush() const
+{
+	return FEditorStyle::GetBrush("Level.ColorIcon40x");
 }
 
 #undef LOCTEXT_NAMESPACE

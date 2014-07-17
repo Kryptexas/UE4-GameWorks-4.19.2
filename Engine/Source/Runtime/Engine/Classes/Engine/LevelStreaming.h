@@ -126,7 +126,7 @@ class ULevelStreaming : public UObject
 	uint32 bDrawOnLevelStatusMap:1;
 
 	/** The level color used for visualization. (Show -> Advanced -> Level Coloration) */
-	UPROPERTY(EditAnywhere, Category=LevelStreaming)
+	UPROPERTY(EditAnywhere, Category = LevelStreaming, meta=(InterpretAsLinear))
 	FColor DrawColor;
 
 	/** The level streaming volumes bound to this level.																		*/
@@ -151,7 +151,7 @@ class ULevelStreaming : public UObject
 	virtual void PostLoad() override;
 	virtual void Serialize( FArchive& Ar ) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	
 	/** Remove duplicates in EditorStreamingVolumes list*/
 	void RemoveStreamingVolumeDuplicates();

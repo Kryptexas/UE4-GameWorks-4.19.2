@@ -64,6 +64,34 @@ FName FStreamingLevelModel::GetLongPackageName() const
 	}
 }
 
+bool FStreamingLevelModel::SupportsLevelColor() const
+{
+	return LevelStreaming.IsValid();
+}
+
+FColor FStreamingLevelModel::GetLevelColor() const
+{
+	if (LevelStreaming.IsValid())
+	{
+		return LevelStreaming.Get()->DrawColor;
+	}
+	return FLevelModel::GetLevelColor();
+}
+
+void FStreamingLevelModel::SetLevelColor(FColor InColor)
+{
+	if (LevelStreaming.IsValid())
+	{
+		UProperty* DrawColorProperty = FindField<UProperty>(LevelStreaming->GetClass(), "DrawColor");
+		LevelStreaming->PreEditChange(DrawColorProperty);
+
+		LevelStreaming.Get()->DrawColor = InColor;
+
+		FPropertyChangedEvent PropertyChangedEvent(DrawColorProperty, false, EPropertyChangeType::ValueSet);
+		LevelStreaming->PostEditChangeProperty(PropertyChangedEvent);
+	}
+}
+
 void FStreamingLevelModel::Update()
 {
 	UpdatePackageFileAvailability();

@@ -138,6 +138,15 @@ public:
 
 	/** Sets new translation delta to this model and all descendants*/
 	void SetLevelTranslationDelta(FVector2D InAbsoluteDelta);
+
+	/** @return Whether level supports a Level Color for visualization. (Show -> Advanced -> Level Coloration) */
+	virtual bool SupportsLevelColor() const;
+
+	/** @return level color, used for visualization. (Show -> Advanced -> Level Coloration) */
+	virtual FColor GetLevelColor() const;
+
+	/** Sets level color, used for visualization. (Show -> Advanced -> Level Coloration) */
+	virtual void SetLevelColor(FColor InColor);
 	
 	/**	@return Whether level has associated blueprint script */
 	bool HasKismet() const;

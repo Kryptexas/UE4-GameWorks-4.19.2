@@ -104,6 +104,15 @@ public:
 				[
 					SNew(STextBlock)
 						.ToolTipText(NSLOCTEXT("WorldBrowser", "Save", "Save this Level"))
+				]
+
+			/** Level color column */
+			+ SHeaderRow::Column(HierarchyColumns::ColumnID_Color)
+				.FixedWidth(24.0f)
+				.HeaderContent()
+				[
+					SNew(STextBlock)
+					.ToolTipText(NSLOCTEXT("WorldBrowser", "Color", "Color used for visualization of Level"))
 				];
 
 

@@ -754,46 +754,43 @@ FBox ULevelStreaming::GetStreamingVolumeBounds()
 }
 
 #if WITH_EDITOR
-void ULevelStreaming::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+void ULevelStreaming::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if ( PropertyChangedEvent.PropertyChain.Num() > 0 )
+	UProperty* OutermostProperty = PropertyChangedEvent.Property;
+	if ( OutermostProperty != NULL )
 	{
-		UProperty* OutermostProperty = PropertyChangedEvent.PropertyChain.GetHead()->GetValue();
-		if ( OutermostProperty != NULL )
+		const FName PropertyName = OutermostProperty->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, LevelTransform))
 		{
-			const FName PropertyName = OutermostProperty->GetFName();
-			if ( PropertyName == TEXT("LevelTransform") )
+			GetWorld()->UpdateLevelStreaming();
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, EditorStreamingVolumes))
+		{
+			RemoveStreamingVolumeDuplicates();
+
+			// Update levels references in each streaming volume 
+			for (TActorIterator<ALevelStreamingVolume> It(GetWorld()); It; ++It)
 			{
-				GetWorld()->UpdateLevelStreaming();
+				(*It)->UpdateStreamingLevelsRefs();
 			}
+		}
 
-			if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, EditorStreamingVolumes))
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, DrawColor))
+		{
+			// Make sure the level's DrawColor change is applied immediately by reregistering the
+			// components of the actor's in the level
+			if( LoadedLevel != NULL )
 			{
-				RemoveStreamingVolumeDuplicates();
-
-				// Update levels references in each streaming volume 
-				for (TActorIterator<ALevelStreamingVolume> It(GetWorld()); It; ++It)
+				UPackage* Package = LoadedLevel->GetOutermost();
+				for( TObjectIterator<UActorComponent> It; It; ++It )
 				{
-					(*It)->UpdateStreamingLevelsRefs();
-				}
-			}
-
-			else if( PropertyName == TEXT( "DrawColor" ) )
-			{
-				// Make sure the level's DrawColor change is applied immediately by reregistering the
-				// components of the actor's in the level
-				if( LoadedLevel != NULL )
-				{
-					UPackage* Package = LoadedLevel->GetOutermost();
-					for( TObjectIterator<UActorComponent> It; It; ++It )
+					if( It->IsIn( Package ) )
 					{
-						if( It->IsIn( Package ) )
+						UActorComponent* ActorComponent = Cast<UActorComponent>( *It );
+						if( ActorComponent )
 						{
-							UActorComponent* ActorComponent = Cast<UActorComponent>( *It );
-							if( ActorComponent )
-							{
-								ActorComponent->RecreateRenderState_Concurrent();
-							}
+							ActorComponent->RecreateRenderState_Concurrent();
 						}
 					}
 				}
@@ -801,7 +798,7 @@ void ULevelStreaming::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 		}
 	}
 
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void ULevelStreaming::RemoveStreamingVolumeDuplicates()
