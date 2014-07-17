@@ -210,7 +210,14 @@ bool FOnlineVoiceImpl::UnregisterLocalTalker(uint32 LocalUserNum)
 			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
 			{
 				TSharedPtr<FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
-				OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), Talker.bIsTalking);
+				if (UniqueId.IsValid())
+				{
+					OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), false);
+				}
+				else
+				{
+					UE_LOG(LogVoice, Warning, TEXT("Invalid UserId for local player %d in UnregisterLocalTalker"), LocalUserNum);
+				}
 			}
 
 			// Remove them from engine too
@@ -334,7 +341,7 @@ void FOnlineVoiceImpl::RemoveAllRemoteTalkers()
 		{
 			const FRemoteTalker& Talker = RemoteTalkers[Index];
 
-			if (OnPlayerTalkingStateChangedDelegates.IsBound() && Talker.bIsTalking)
+			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
 			{
 				OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), false);
 			}
