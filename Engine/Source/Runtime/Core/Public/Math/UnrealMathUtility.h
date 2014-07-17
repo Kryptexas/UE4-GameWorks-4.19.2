@@ -594,10 +594,10 @@ struct FMath : public FPlatformMath
 	static CORE_API FVector2D Vector2DInterpTo( const FVector2D& Current, const FVector2D& Target, float DeltaTime, float InterpSpeed );
 
 	/** Interpolate rotator from Current to Target with constant step */
-	static CORE_API FRotator RInterpConstantTo( const FRotator& Current, const FRotator& Target, float& DeltaTime, float InterpSpeed);
+	static CORE_API FRotator RInterpConstantTo( const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 
 	/** Interpolate rotator from Current to Target. Scaled by distance to Target, so it has a strong start speed and ease out. */
-	static CORE_API FRotator RInterpTo( const FRotator& Current, const FRotator& Target, const float& DeltaTime, float InterpSpeed);
+	static CORE_API FRotator RInterpTo( const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 
 	/** Interpolate float from Current to Target with constant step */
 	static CORE_API float FInterpConstantTo( float Current, float Target, float DeltaTime, float InterpSpeed );

@@ -1953,7 +1953,7 @@ CORE_API FVector2D FMath::Vector2DInterpTo( const FVector2D& Current, const FVec
 	return Current + DeltaMove;
 }
 
-CORE_API FRotator FMath::RInterpConstantTo( const FRotator& Current, const FRotator& Target, float& DeltaTime, float InterpSpeed )
+CORE_API FRotator FMath::RInterpConstantTo( const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed )
 {
 	// if DeltaTime is 0, do not perform any interpolation (Location was already calculated for that frame)
 	if( DeltaTime == 0.f || Current == Target )
@@ -1977,7 +1977,7 @@ CORE_API FRotator FMath::RInterpConstantTo( const FRotator& Current, const FRota
 	return Result.GetNormalized();
 }
 
-CORE_API FRotator FMath::RInterpTo( const FRotator& Current, const FRotator& Target, const float& DeltaTime, float InterpSpeed)
+CORE_API FRotator FMath::RInterpTo( const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
 	// if DeltaTime is 0, do not perform any interpolation (Location was already calculated for that frame)
 	if( DeltaTime == 0.f || Current == Target )
