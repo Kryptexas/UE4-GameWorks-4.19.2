@@ -237,6 +237,14 @@ void FEditorFileUtils::RegisterLevelFilename(UObject* Object, const FString& New
 
 static FString GetFilename(const FName& PackageName)
 {
+	// First see if it is an in-memory package that already has an associated filename
+	const FString PackageNameString = PackageName.ToString();
+	const bool bIncludeReadOnlyRoots = false;
+	if ( FPackageName::IsValidLongPackageName(PackageNameString, bIncludeReadOnlyRoots) )
+	{
+		return FPackageName::LongPackageNameToFilename(PackageNameString, FPackageName::GetMapPackageExtension());
+	}
+
 	FString* Result = LevelFilenames.Find( PackageName );
 	if ( !Result )
 	{
@@ -381,6 +389,13 @@ static bool SaveWorld(UWorld* World,
 			Path			= FPaths::GetPath(ExistingFilename);
 			CleanFilename	= FPaths::GetCleanFilename(ExistingFilename);
 		}
+	}
+	else if ( !bAutosaving && FPackageName::IsValidLongPackageName(PackageName, false) )
+	{
+		// If the package is made with a path in a non-read-only root, save it there
+		const FString ImplicitFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
+		Path = FPaths::GetPath(ImplicitFilename);
+		CleanFilename = FPaths::GetCleanFilename(ImplicitFilename);
 	}
 	else
 	{
