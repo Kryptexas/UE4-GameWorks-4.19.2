@@ -727,6 +727,7 @@ void FMacApplication::PollGameDeviceState( const float TimeDelta )
 
 void FMacApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
 {
+	FPlatformMisc::PumpMessages(true);
 	bIsMouseCaptureEnabled = InWindow.IsValid();
 	UpdateMouseCaptureWindow( bIsMouseCaptureEnabled ? ((FMacWindow*)InWindow.Get())->GetWindowHandle() : NULL );
 }
