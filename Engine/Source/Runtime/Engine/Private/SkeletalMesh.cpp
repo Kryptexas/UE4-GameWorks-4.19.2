@@ -2709,10 +2709,10 @@ void USkeletalMesh::DebugVerifySkeletalMeshLOD()
 	{
 		for(int32 i=1; i<LODInfo.Num(); i++)
 		{
-			if (LODInfo[i].DisplayFactor <= 0.1f)
+			if (LODInfo[i].ScreenSize <= 0.1f)
 			{
 				// too small
-				UE_LOG(LogSkeletalMesh, Warning, TEXT("SkelMeshLOD (%s) : DisplayFactor for LOD %d may be too small (%0.5f)"), *GetPathName(), i, LODInfo[i].DisplayFactor);
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("SkelMeshLOD (%s) : ScreenSize for LOD %d may be too small (%0.5f)"), *GetPathName(), i, LODInfo[i].ScreenSize);
 			}
 		}
 	}

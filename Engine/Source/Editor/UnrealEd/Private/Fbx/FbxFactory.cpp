@@ -398,7 +398,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 								if (bImportSucceeded)
 								{
-									BaseSkeletalMesh->LODInfo[LODIndex].DisplayFactor = 1.0f / (MaxLODLevel * LODIndex);
+									BaseSkeletalMesh->LODInfo[LODIndex].ScreenSize = 1.0f / (MaxLODLevel * LODIndex);
 								}
 								else
 								{

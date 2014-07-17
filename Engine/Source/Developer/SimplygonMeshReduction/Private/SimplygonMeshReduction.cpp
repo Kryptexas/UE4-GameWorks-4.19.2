@@ -283,7 +283,7 @@ public:
 			if( bCalcLODDistance )
 			{
 				float ViewDistance = CalculateViewDistance( MaxDeviation );
-				SkeletalMesh->LODInfo[LODIndex].DisplayFactor = 2.0f * SkeletalMesh->Bounds.SphereRadius / ViewDistance;
+				SkeletalMesh->LODInfo[LODIndex].ScreenSize = 2.0f * SkeletalMesh->Bounds.SphereRadius / ViewDistance;
 			}
 
 			// Flag this LOD as having been simplified.

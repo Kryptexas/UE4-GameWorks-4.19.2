@@ -496,7 +496,7 @@ struct FSkeletalMeshLODInfo
 
 	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
-	float DisplayFactor;
+	float ScreenSize;
 
 	/**	Used to avoid 'flickering' when on LOD boundary. Only taken into account when moving from complex->simple. */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
@@ -526,7 +526,7 @@ struct FSkeletalMeshLODInfo
 	FSkeletalMeshOptimizationSettings ReductionSettings;
 
 	FSkeletalMeshLODInfo()
-		: DisplayFactor(0)
+		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
 	{
