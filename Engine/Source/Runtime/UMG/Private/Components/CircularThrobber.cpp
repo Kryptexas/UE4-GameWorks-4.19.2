@@ -53,7 +53,7 @@ const FSlateBrush* UCircularThrobber::GetPieceBrush() const
 
 void UCircularThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
 {
-	NumberOfPieces = NumberOfPieces;
+	NumberOfPieces = InNumberOfPieces;
 	if (MyCircularThrobber.IsValid())
 	{
 		MyCircularThrobber->SetNumPieces(InNumberOfPieces);

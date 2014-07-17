@@ -62,7 +62,7 @@ const FSlateBrush* UThrobber::GetPieceBrush() const
 
 void UThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
 {
-	NumberOfPieces = NumberOfPieces;
+	NumberOfPieces = InNumberOfPieces;
 	if (MyThrobber.IsValid())
 	{
 		MyThrobber->SetNumPieces(InNumberOfPieces);
