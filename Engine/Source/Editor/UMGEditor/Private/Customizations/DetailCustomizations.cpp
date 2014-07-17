@@ -377,6 +377,15 @@ void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(TSharedRef<IProper
 	SelectedFunction->EdGraph = FunctionGraph;
 
 	HandleAddBinding(PropertyHandle, SelectedFunction);
+
+	GotoFunction(FunctionGraph);
+}
+
+void FBlueprintWidgetCustomization::GotoFunction(UEdGraph* FunctionGraph)
+{
+	Editor.Pin()->SetCurrentMode(FWidgetBlueprintApplicationModes::GraphMode);
+
+	Editor.Pin()->OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
 }
 
 #undef LOCTEXT_NAMESPACE

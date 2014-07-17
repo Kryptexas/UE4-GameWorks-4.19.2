@@ -6,13 +6,14 @@ class FBlueprintWidgetCustomization : public IDetailCustomization
 {
 public:
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<class IDetailCustomization> MakeInstance(UBlueprint* Blueprint)
+	static TSharedRef<class IDetailCustomization> MakeInstance(TSharedRef<FWidgetBlueprintEditor> InEditor, UBlueprint* InBlueprint)
 	{
-		return MakeShareable(new FBlueprintWidgetCustomization(Blueprint));
+		return MakeShareable(new FBlueprintWidgetCustomization(InEditor, InBlueprint));
 	}
 
-	FBlueprintWidgetCustomization(UBlueprint* InBlueprint)
-		: Blueprint(CastChecked<UWidgetBlueprint>(InBlueprint))
+	FBlueprintWidgetCustomization(TSharedRef<FWidgetBlueprintEditor> InEditor, UBlueprint* InBlueprint)
+		: Editor(InEditor)
+		, Blueprint(CastChecked<UWidgetBlueprint>(InBlueprint))
 	{
 	}
 	
@@ -38,8 +39,11 @@ private:
 	void HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 	void HandleAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
 	void HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
+	void GotoFunction(UEdGraph* FunctionGraph);
 
 private:
+
+	TWeakPtr<FWidgetBlueprintEditor> Editor;
 
 	UWidgetBlueprint* Blueprint;
 

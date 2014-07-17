@@ -192,6 +192,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
+	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
+
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
