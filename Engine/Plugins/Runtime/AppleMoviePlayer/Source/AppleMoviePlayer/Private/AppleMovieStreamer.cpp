@@ -212,7 +212,10 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
         NSURL* nsURL = nil;
 #if PLATFORM_MAC
 		FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + MovieQueue[0] + TEXT(".") + FString(MOVIE_FILE_EXTENSION);
-		nsURL = [NSURL fileURLWithPath:MoviePath.GetNSString()];
+		if (FPaths::FileExists(MoviePath))
+		{
+			nsURL = [NSURL fileURLWithPath:MoviePath.GetNSString()];
+		}
 #else
         NSString* moviestring = MovieQueue[0].GetNSString();
 		nsURL = [[NSBundle mainBundle] URLForResource: moviestring withExtension: MOVIE_FILE_EXTENSION ];
