@@ -208,7 +208,7 @@ namespace UnrealBuildTool
 							BuildExceptionMessage += "Exception:\n";
 							BuildExceptionMessage += ex.ToString();
 							BuildExceptionMessage += "\n";
-							throw new BuildException(ex, BuildExceptionMessage);
+							throw new BuildException(ex, "{0}", BuildExceptionMessage);
 						}
 					}
 					else
