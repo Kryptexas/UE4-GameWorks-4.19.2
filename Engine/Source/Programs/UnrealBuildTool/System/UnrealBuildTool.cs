@@ -918,7 +918,7 @@ namespace UnrealBuildTool
 								{
 									// Setup environment wasn't called, so set the flag
 									BuildConfiguration.bDeployAfterCompile = BuildPlatform.RequiresDeployPrepAfterCompile();
-									BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, CheckPlatform.ToString() + BuildPlatform.GetActiveArchitecture());
+									BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, CheckPlatform.ToString(), BuildPlatform.GetActiveArchitecture());
 								}
 							}
 
@@ -1040,7 +1040,7 @@ namespace UnrealBuildTool
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
 
 			// now that we have the platform, we can set the intermediate path to include the platform/architecture name
-			BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString() + BuildPlatform.GetActiveArchitecture());
+			BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString(), BuildPlatform.GetActiveArchitecture());
 
 			BuildPlatform.ResetBuildConfiguration(ResetPlatform, ResetConfiguration);
 
