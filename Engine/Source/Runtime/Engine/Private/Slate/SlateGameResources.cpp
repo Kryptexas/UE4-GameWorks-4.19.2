@@ -43,11 +43,12 @@ void FSlateGameResources::SetContentRoot( const FString& InContentRootDir )
 const FSlateBrush* FSlateGameResources::GetBrush( const FName PropertyName, const ANSICHAR* Specifier ) const
 {
 	ensureMsgf(Specifier == NULL, TEXT("Attempting to look up resource (%s, %s). \n Specifiers not supported by Slate Resource Sets loaded from content browser."), *PropertyName.ToString(), Specifier);
-	UObject* const * Resource = UIResources.Find(PropertyName);
+	FName CleanName = GetCleanName(PropertyName);
+	UObject* const * Resource = UIResources.Find(CleanName);
 	if(Resource)
 	{
 		const USlateBrushAsset* BrushAsset = Cast<USlateBrushAsset>(*Resource);
-		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *PropertyName.ToString());
+		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *CleanName.ToString());
 		return BrushAsset ? &BrushAsset->Brush : GetDefaultBrush();
 	}
 	return FSlateStyleSet::GetBrush(PropertyName, Specifier);
@@ -56,11 +57,12 @@ const FSlateBrush* FSlateGameResources::GetBrush( const FName PropertyName, cons
 const FSlateBrush* FSlateGameResources::GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier, const FSlateBrush* const DefaultBrush) const
 {
 	ensureMsgf(Specifier == NULL, TEXT("Attempting to look up resource (%s, %s). \n Specifiers not supported by Slate Resource Sets loaded from content browser."), *PropertyName.ToString(), Specifier);
-	UObject* const * Resource = UIResources.Find(PropertyName);
+	FName CleanName = GetCleanName(PropertyName);
+	UObject* const * Resource = UIResources.Find(CleanName);
 	if(Resource)
 	{
 		const USlateBrushAsset* BrushAsset = Cast<USlateBrushAsset>(*Resource);
-		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *PropertyName.ToString());
+		ensureMsgf(BrushAsset, TEXT("Could not find resource '%s'"), *CleanName.ToString());
 		return BrushAsset ? &BrushAsset->Brush : DefaultBrush;
 	}
 	return FSlateStyleSet::GetOptionalBrush(PropertyName, Specifier, DefaultBrush);
@@ -68,25 +70,28 @@ const FSlateBrush* FSlateGameResources::GetOptionalBrush(const FName PropertyNam
 
 UCurveFloat* FSlateGameResources::GetCurveFloat( const FName AssetName ) const
 {
-	UObject* const* Resource = UIResources.Find( AssetName );
+	FName CleanName = GetCleanName(AssetName);
+	UObject* const* Resource = UIResources.Find(CleanName);
 	UCurveFloat* Curve = Resource ? Cast<UCurveFloat>(*Resource) : NULL;
-	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *AssetName.ToString());
+	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *CleanName.ToString());
 	return Curve;
 }
 
 UCurveVector* FSlateGameResources::GetCurveVector( const FName AssetName ) const
 {
-	UObject* const* Resource = UIResources.Find( AssetName );
+	FName CleanName = GetCleanName(AssetName);
+	UObject* const* Resource = UIResources.Find(CleanName);
 	UCurveVector* Curve = Resource ? Cast<UCurveVector>(*Resource) : NULL;
-	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *AssetName.ToString());
+	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *CleanName.ToString());
 	return Curve;
 }
 
 UCurveLinearColor* FSlateGameResources::GetCurveLinearColor( const FName AssetName ) const
 {
-	UObject* const* Resource = UIResources.Find( AssetName );
+	FName CleanName = GetCleanName(AssetName);
+	UObject* const* Resource = UIResources.Find(CleanName);
 	UCurveLinearColor* Curve = Resource ? Cast<UCurveLinearColor>(*Resource) : NULL;
-	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *AssetName.ToString());
+	ensureMsgf(Curve, TEXT("Could not find resource '%s'"), *CleanName.ToString());
 	return Curve;
 }
 
@@ -277,6 +282,17 @@ FName FSlateGameResources::GenerateMapName( const FAssetData& AssetData )
 FName FSlateGameResources::GenerateMapName( UObject* StyleObject )
 {
 	return GenerateMapName( FAssetData( StyleObject ) );
+}
+
+FName FSlateGameResources::GetCleanName(const FName& AssetName) const
+{
+	static const FString SplitOn = TEXT("'");
+	FString RetValue = AssetName.ToString();
+	if (!FPaths::GetBaseFilename(RetValue, false).Split(SplitOn, NULL, &RetValue))
+	{
+		return AssetName;
+	}
+	return FName(*RetValue);
 }
 
 void FSlateGameResources::AddReferencedObjects( FReferenceCollector& Collector )

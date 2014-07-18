@@ -73,6 +73,15 @@ protected:
 
 	FName GenerateMapName( UObject* StyleObject );
 
+	/** Takes paths from the Editor's "Copy Reference" button and turns them into paths accepted by this object.
+	 *
+	 *   Example: 
+	 *   This: "SlateBrushAsset'/Game/UI/STeamAndHeroSelection/CS_Port_Brush.CS_Port_Brush'"
+	 *	 into
+	 *	 This: "/Game/UI/STeamAndHeroSelection/CS_Port_Brush"
+	*/
+	FName GetCleanName(const FName& AssetName) const;
+
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
