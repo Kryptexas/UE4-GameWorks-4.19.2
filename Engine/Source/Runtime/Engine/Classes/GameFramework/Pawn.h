@@ -319,7 +319,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
 	virtual bool IsMoveInputIgnored() const;
 
-private:
+protected:
 
 	/** Accumulated control input vector, stored in world space. */
 	UPROPERTY(Transient)
