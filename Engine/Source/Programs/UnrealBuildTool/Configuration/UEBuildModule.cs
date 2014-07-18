@@ -1748,7 +1748,6 @@ namespace UnrealBuildTool
 				if (!Regex.IsMatch(FileContents, "^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Multiline))
 					continue;
 
-				UObjectHeaderFileItem.HasUObjects = true;
 				if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
 				{
 					_AllClassesHeaders.Add(UObjectHeaderFileItem);
