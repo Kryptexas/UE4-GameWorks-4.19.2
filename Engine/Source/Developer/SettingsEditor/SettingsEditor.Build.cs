@@ -28,6 +28,8 @@ public class SettingsEditor : ModuleRules
 				"PropertyEditor",
 				"SlateCore",
 				"SourceControl",
+				"Analytics",
+				"Engine",
             }
         );
 
