@@ -198,7 +198,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					Console.WriteLine("ProjectInfo: Skipping directory {0} from .uprojectdirs file as it doesn't exist.", DirToSearch);
+					Log.TraceVerbose("ProjectInfo: Skipping directory {0} from .uprojectdirs file as it doesn't exist.", DirToSearch);
 				}
 			}
 
