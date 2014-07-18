@@ -373,7 +373,7 @@ private:
 
 	void PrecalculatePostProcess_NoLock();
 
-	void UpdateSensorHmdCaps();
+	void UpdateHmdCaps();
 
 	void PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const;
 
