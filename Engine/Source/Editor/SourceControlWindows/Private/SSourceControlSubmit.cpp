@@ -140,12 +140,12 @@ public:
 				.AutoHeight()
 				.Padding(FMargin(5, 0, 5, 5))
 				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.MaxWidth(500.f)
+					SNew(SBox)
+					.WidthOverride(520)
 					[
-						SAssignNew( ChangeListDescriptionTextCtrl, SEditableTextBox )
+						SAssignNew( ChangeListDescriptionTextCtrl, SMultiLineEditableTextBox )
 						.SelectAllTextWhenFocused( true )
+						.AutoWrapText( true )
 					]
 				]
 				+SVerticalBox::Slot()
@@ -447,7 +447,7 @@ private:
 	TWeakPtr<SWindow> ParentFrame;
 
 	/** Internal widgets to save having to get in multiple places*/
-	TSharedPtr<SEditableTextBox> ChangeListDescriptionTextCtrl;
+	TSharedPtr<SMultiLineEditableTextBox> ChangeListDescriptionTextCtrl;
 
 	ESlateCheckBoxState::Type	KeepCheckedOut;
 };
