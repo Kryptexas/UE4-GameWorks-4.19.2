@@ -4,6 +4,7 @@
 #include "UMGSequencerObjectBindingManager.h"
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
+#include "MovieScene.h"
 
 FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene )
 	: WidgetBlueprintEditor( InWidgetBlueprintEditor )
