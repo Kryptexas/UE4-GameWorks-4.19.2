@@ -153,9 +153,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		GAlwaysReportCrash = true;
 	}
 #endif
-
-	// OS X always uses the CrashReportClient, since the other paths aren't reliable
-	GUseCrashReportClient = true;
 	
 #if WITH_EDITOR
 	bHasFinishedLaunching = true;
