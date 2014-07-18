@@ -111,6 +111,10 @@ public:
 	void CopySelectedNotifiesToClipboard() const;
 	void OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
 
+	/** Handler for properties changing on objects */
+	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	void OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent);
+
 private:
 	TSharedPtr<SBorder> PanelArea;
 	class UAnimSequenceBase* Sequence;

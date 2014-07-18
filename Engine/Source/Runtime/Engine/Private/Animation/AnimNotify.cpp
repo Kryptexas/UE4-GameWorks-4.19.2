@@ -29,3 +29,24 @@ class UWorld* UAnimNotify::GetWorld() const
 {
 	return (MeshContext ? MeshContext->GetWorld() : NULL);
 }
+
+FString UAnimNotify::GetNotifyName_Implementation() const
+{
+	UObject* ClassGeneratedBy = GetClass()->ClassGeneratedBy;
+	FString NotifyName;
+
+	if(ClassGeneratedBy)
+	{
+		// GeneratedBy will be valid for blueprint types and gives a clean name without a suffix
+		NotifyName = ClassGeneratedBy->GetName();
+	}
+	else
+	{
+		// Native notify classes are clean without a suffix otherwise
+		NotifyName = GetClass()->GetName();
+	}
+
+	NotifyName = NotifyName.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
+	
+	return NotifyName;
+}

@@ -14,6 +14,12 @@ class ENGINE_API UAnimNotifyState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	/** 
+	 * Implementable event to get a custom name for the notify
+	 */
+	UFUNCTION(BlueprintNativeEvent)
+	FString GetNotifyName() const;
+
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual bool Received_NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation) const;
 	

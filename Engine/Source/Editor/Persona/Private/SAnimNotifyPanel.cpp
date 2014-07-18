@@ -810,6 +810,16 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 	bDrawTooltipToRight = true;
 	bSelected = false;
 
+	// Cache notify name for blueprint / Native notifies.
+	if(NotifyEvent->Notify)
+	{
+		NotifyEvent->NotifyName = FName(*NotifyEvent->Notify->GetNotifyName());
+	}
+	else if(NotifyEvent->NotifyStateClass)
+	{
+		NotifyEvent->NotifyName = FName(*NotifyEvent->NotifyStateClass->GetNotifyName());
+	}
+
 	OnNodeDragStarted = InArgs._OnNodeDragStarted;
 	PanTrackRequest = InArgs._PanTrackRequest;
 
@@ -1741,6 +1751,11 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 		if( NewEvent.NotifyStateClass )
 		{
 			NewEvent.Duration = 1 / 30.f;
+			NewEvent.NotifyName = FName(*NewEvent.NotifyStateClass->GetNotifyName());
+		}
+		else
+		{
+			NewEvent.NotifyName = FName(*NewEvent.Notify->GetNotifyName());
 		}
 	}
 	else
@@ -2762,6 +2777,9 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 		]
 	];
 
+	OnPropertyChangedHandle = FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAnimNotifyPanel::OnPropertyChanged);
+	FCoreDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
 	Update();
 }
 
@@ -2773,6 +2791,8 @@ SAnimNotifyPanel::~SAnimNotifyPanel()
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
 		PersonaPtr.Pin()->UnregisterOnGenericDelete(this);
 	}
+
+	FCoreDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
 }
 
 FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
@@ -3204,6 +3224,22 @@ void SAnimNotifyPanel::OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float Cli
 				TSharedPtr<SAnimNotifyTrack> TrackToUse = NotifyAnimTracks[NotifyAnimTracks.Num() - 1 - (PasteIdx + TrackOffset)];
 
 				TrackToUse->PasteSingleNotify(CurrentLine, TimeToPaste);
+			}
+		}
+	}
+}
+
+void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent)
+{
+	// Don't process if it's an interactive change; wait till we receive the final event.
+	if(PropertyEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		for(FAnimNotifyEvent& Event : Sequence->Notifies)
+		{
+			if(Event.Notify == ChangedObject || Event.NotifyStateClass == ChangedObject)
+			{
+				// If we've changed a notify present in the sequence, refresh our tracks.
+				RefreshNotifyTracks();
 			}
 		}
 	}

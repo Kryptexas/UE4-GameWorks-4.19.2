@@ -92,6 +92,16 @@ bool UAnimNotifyState_TimedParticleEffect::ValidateParameters(USkeletalMeshCompo
 	return bValid;
 }
 
+FString UAnimNotifyState_TimedParticleEffect::GetNotifyName_Implementation() const
+{
+	if(PSTemplate)
+	{
+		return PSTemplate->GetName();
+	}
+
+	return UAnimNotifyState::GetNotifyName_Implementation();
+}
+
 #if WITH_EDITORONLY_DATA
 void UAnimNotifyState_TimedParticleEffect::PreEditChange(UProperty* PropertyAboutToChange)
 {
