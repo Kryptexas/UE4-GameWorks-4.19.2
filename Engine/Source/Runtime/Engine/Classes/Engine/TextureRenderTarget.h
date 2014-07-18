@@ -37,8 +37,8 @@ class UTextureRenderTarget : public UTexture
 
 
 	// Begin UTexture Interface
-	virtual class FTextureResource* CreateResource();
-	virtual EMaterialValueType GetMaterialType();
+	ENGINE_API virtual class FTextureResource* CreateResource();
+	ENGINE_API virtual EMaterialValueType GetMaterialType();
 	// End UTexture Interface
 };
 

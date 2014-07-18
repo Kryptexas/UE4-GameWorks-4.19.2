@@ -626,7 +626,7 @@ public:
 	/**
 	* Return maximum dimension for this texture type.
 	*/
-	virtual uint32 GetMaximumDimension() const;
+	ENGINE_API virtual uint32 GetMaximumDimension() const;
 #endif
 
 	/** @return the width of the surface represented by the texture. */
