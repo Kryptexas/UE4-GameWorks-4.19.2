@@ -11,8 +11,7 @@ namespace UnrealBuildTool
 	public enum SDKStatus
 	{
 		Valid,			// Desired SDK is installed and set up.
-		Invalid,		// Could not find the desired SDK, SDK setup failed, etc.
-		Unknown,		// Not enough info to determine SDK state. 
+		Invalid,		// Could not find the desired SDK, SDK setup failed, etc.		
 	};
 
 	public interface IUEBuildPlatform
@@ -243,31 +242,13 @@ namespace UnrealBuildTool
 		void SetupBinaries(UEBuildTarget InBuildTarget);
 	}
 
-	public abstract class UEBuildPlatform : IUEBuildPlatform
+	public abstract partial class UEBuildPlatform : IUEBuildPlatform
 	{
 		public static Dictionary<UnrealTargetPlatform, IUEBuildPlatform> BuildPlatformDictionary = new Dictionary<UnrealTargetPlatform, IUEBuildPlatform>();
 
 		// a mapping of a group to the platforms in the group (ie, Microsoft contains Win32 and Win64)
-		static Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>> PlatformGroupDictionary = new Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>>();
-
-        /** Name of the file that holds currently install SDK version string */
-        static string CurrentlyInstalledSDKStringManifest = "CurrentlyInstalled.txt";
-
-        /** name of the file that holds the last succesfully run SDK setup script version */
-        static string LastRunScriptVersionManifest = "CurrentlyInstalled.Version.txt";
-
-        /** Name of the file that holds environment variables of current SDK */
-        static string SDKEnvironmentVarsFile = "OutputEnvVars.txt";
-
-        /** Enum describing types of hooks a platform SDK can have */
-        public enum SDKHookType
-        {
-            Install,
-            Uninstall
-        };
-
-		public static readonly string SDKRootEnvVar = "UE_SDKS_ROOT";
-
+		static Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>> PlatformGroupDictionary = new Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>>();        
+        
         /**
          * Attempt to convert a string to an UnrealTargetPlatform enum entry
          * 
@@ -406,241 +387,7 @@ namespace UnrealBuildTool
                     PlatformEntry.Value.ModifyNewlyLoadedModule(InModule, Target);
                 }
 			}
-		}
-
-        /** 
-         * Whether platform supports switching SDKs during runtime
-         * 
-         * @return true if supports
-         */
-        public virtual bool PlatformSupportsSDKSwitching()
-        {
-            return false;
-        }
-
-        /** 
-         * Returns platform-specific name used in SDK repository
-         * 
-         * @return path to SDK Repository
-         */
-        public virtual string GetSDKTargetPlatformName()
-        {
-            return "";
-        }
-
-        /** 
-         * Returns SDK string as required by the platform 
-         * 
-         * @return Valid SDK string
-         */
-        public virtual string GetRequiredSDKString()
-        {
-            return "";
-        }
-
-        /**
-        * Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be 1.0.  If you need to force a rebuild for a given platform, override this for the given platform.
-        * @return Setup script version
-        */
-        public virtual String GetRequiredScriptVersionString()
-        {
-            return "1.0";
-        }
-
-        /** 
-         * Returns path to platform SDKs
-         * 
-         * @return Valid SDK string
-         */
-        public virtual string GetPathToPlatformSDKs(out bool SDKRootSet)
-        {
-            string SDKPath = "";
-            SDKRootSet = false;
-
-            string SDKRoot = Environment.GetEnvironmentVariable(SDKRootEnvVar);
-            if (SDKRoot != null)
-            {
-                SDKRootSet = true;
-                if (SDKRoot != "")
-                {
-                    SDKPath = Path.Combine(SDKRoot, "Host" + ExternalExecution.GetRuntimePlatform(), GetSDKTargetPlatformName());
-                }
-            }
-            return SDKPath;
-        }
-
-        /**
-         * Gets currently installed version
-         * 
-         * @param PlatformSDKRoot absolute path to platform SDK root
-         * @param OutInstalledSDKVersionString version string as currently installed
-         * 
-         * @return true if was able to read it
-         */
-        public virtual bool GetCurrentlyInstalledSDKString(string PlatformSDKRoot, out string OutInstalledSDKVersionString)
-        {
-            if (Directory.Exists(PlatformSDKRoot))
-            {
-                string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
-                if (File.Exists(VersionFilename))
-                {
-                    using (StreamReader Reader = new StreamReader(VersionFilename))
-                    {
-                        string Version = Reader.ReadLine();
-                        if (Version != null)
-                        {
-                            OutInstalledSDKVersionString = Version;
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            OutInstalledSDKVersionString = "";
-            return false;
-        }
-
-        /**
-         * Gets the version of the last successfully run setup script.
-         * 
-         * @param PlatformSDKRoot absolute path to platform SDK root
-         * @param OutLastRunScriptVersion version string
-         * 
-         * @return true if was able to read it
-         */
-        public virtual bool GetLastRunScriptVersionString(string PlatformSDKRoot, out string OutLastRunScriptVersion)
-        {
-            if (Directory.Exists(PlatformSDKRoot))
-            {
-                string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
-                if (File.Exists(VersionFilename))
-                {
-                    using (StreamReader Reader = new StreamReader(VersionFilename))
-                    {
-                        string Version = Reader.ReadLine();
-                        if (Version != null)
-                        {
-                            OutLastRunScriptVersion = Version;
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            OutLastRunScriptVersion = "";
-            return false;
-        }
-       
-
-        /**
-         * Sets currently installed version
-         * 
-         * @param PlatformSDKRoot absolute path to platform SDK root
-         * @param InstalledSDKVersionString SDK version string to set
-         * 
-         * @return true if was able to set it
-         */
-        public virtual bool SetCurrentlyInstalledSDKString(string PlatformSDKRoot, string InstalledSDKVersionString)
-        {
-            if (Directory.Exists(PlatformSDKRoot))
-            {
-                string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
-                if (File.Exists(VersionFilename))
-                {
-                    File.Delete(VersionFilename);
-                }
-
-                using (StreamWriter Writer = File.CreateText(VersionFilename))
-                {
-                    Writer.WriteLine(InstalledSDKVersionString);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public virtual bool SetLastRunScriptVersion(string PlatformSDKRoot, string LastRunScriptVersion)
-        {
-            if (Directory.Exists(PlatformSDKRoot))
-            {
-                string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
-                if (File.Exists(VersionFilename))
-                {
-                    File.Delete(VersionFilename);
-                }
-
-                using (StreamWriter Writer = File.CreateText(VersionFilename))
-                {
-                    Writer.WriteLine(LastRunScriptVersion);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /**
-         * Returns Hook names as needed by the platform
-         * (e.g. can be overriden with custom executables or scripts)
-         *
-         * @param Hook Hook type
-         */
-        public virtual string GetHookExecutableName(SDKHookType Hook)
-        {
-            if (Hook == SDKHookType.Uninstall)
-            {
-                return "unsetup.bat";
-            }
-
-            return "setup.bat";
-        }
-
-        /**
-         * Runs install/uninstall hooks for SDK
-         * 
-         * @param PlatformSDKRoot absolute path to platform SDK root
-         * @param SDKVersionString version string to run for (can be empty!)
-         * @param Hook which one of hooks to run
-         * @param bHookCanBeNonExistent whether a non-existing hook means failure
-         * 
-         * @return true if succeeded
-         */
-        public virtual bool RunSDKHooks(string PlatformSDKRoot, string SDKVersionString, SDKHookType Hook, bool bHookCanBeNonExistent = true)
-        {
-            if (SDKVersionString != "")
-            {
-                string SDKDirectory = Path.Combine(PlatformSDKRoot, SDKVersionString);
-                string HookExe = Path.Combine(SDKDirectory, GetHookExecutableName(Hook));
-
-                if (File.Exists(HookExe))
-                {
-                    Console.WriteLine("Running {0} hook {1}", Hook, HookExe);
-
-                    // run it
-                    Process HookProcess = new Process();
-                    HookProcess.StartInfo.WorkingDirectory = SDKDirectory;
-                    HookProcess.StartInfo.FileName = HookExe;
-                    HookProcess.StartInfo.Arguments = "";
-                    HookProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-
-                    //installers may require administrator access to succeed. so run as an admmin.
-					HookProcess.StartInfo.Verb = "runas";
-                    HookProcess.Start();
-                    HookProcess.WaitForExit();
-
-                    if (HookProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine("Hook exited uncleanly (returned {0}), considering it failed.", HookProcess.ExitCode);
-                        return false;
-                    }
-
-                    return true;
-                }
-            }
-
-            return bHookCanBeNonExistent;
-        }
+		}                      
 
         /**
          * Returns the delimiter used to separate paths in the PATH environment variable for the platform we are executing on.
@@ -661,208 +408,7 @@ namespace UnrealBuildTool
             }
         }
 
-        /**
-         * Loads environment variables from SDK
-         * 
-         * @param PlatformSDKRoot absolute path to platform SDK
-         * @param SDKVersionString SDK version string (cannot be empty!)
-         * 
-         * @return true if succeeded
-         */
-        public virtual bool SetupEnvironmentFromSDK(string PlatformSDKRoot, string SDKVersionString)
-        {
-            string EnvVarFile = Path.Combine(PlatformSDKRoot, SDKVersionString, SDKEnvironmentVarsFile);
-            if (File.Exists(EnvVarFile))
-            {
-                using (StreamReader Reader = new StreamReader(EnvVarFile))
-                {
-                    List<string> PathAdds = new List<string>();
-                    List<string> PathRemoves = new List<string>();
-
-                    List<string> EnvVarNames = new List<string>();
-                    List<string> EnvVarValues = new List<string>();
-                    for (; ;)
-                    {
-                        string VariableString = Reader.ReadLine();
-                        if (VariableString == null)
-                        {
-                            break;
-                        }
-						
-                        string[] Parts = VariableString.Split('=');
-                        if (Parts.Length != 2)
-                        {
-                            Console.WriteLine("Incorrect environment variable declaration:");
-                            Console.WriteLine(VariableString);
-                            return false;
-                        }
-
-                        if (String.Compare(Parts[0], "strippath", true) == 0)
-                        {
-                            PathRemoves.Add(Parts[1]);
-                        }
-                        else if (String.Compare(Parts[0], "addpath", true) == 0)
-                        {
-                            PathAdds.Add(Parts[1]);
-                        }
-                        else
-                        {
-                            // convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
-                            EnvVarNames.Add(Parts[0].Trim());
-                            EnvVarValues.Add(Parts[1].Trim());
-                        }
-                    }
-
-                    // don't actually set anything until we successfully validate and read all values in.
-                    // we don't want to set a few vars, return a failure, and then have a platform try to
-                    // build against a manually installed SDK with half-set env vars.
-                    for (int i = 0; i < EnvVarNames.Count; ++i)
-                    {
-                        string EnvVarName = EnvVarNames[i];
-                        string EnvVarValue = EnvVarValues[i];                        
-                        if (BuildConfiguration.bPrintDebugInfo)
-                        {
-                            Console.WriteLine("Setting variable '{0}' to '{1}'", EnvVarName, EnvVarValue);
-                        }
-                        Environment.SetEnvironmentVariable(EnvVarName, EnvVarValue);
-                    }
-                       
-                    
-                    // actually perform the PATH stripping / adding.
-                    String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
-                    String PathDelimiter = GetPathVarDelimiter();
-                    String[] PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
-
-                    List<String> ModifiedPathVars = new List<string>();
-                    ModifiedPathVars.AddRange(PathVars);
-
-                    // perform removes first, in case they overlap with any adds.
-                    foreach (String PathRemove in PathRemoves)
-                    {
-                        foreach (String PathVar in PathVars)
-                        {
-                            if (PathVar.IndexOf(PathRemove, StringComparison.OrdinalIgnoreCase) >= 0)
-                            {
-                                if (BuildConfiguration.bPrintDebugInfo)
-                                {
-                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
-                                }
-                                ModifiedPathVars.Remove(PathVar);
-                            }
-                        }
-                    }
-
-                    // remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
-                    // If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
-                    foreach (String PathAdd in PathAdds)
-                    {
-                        foreach (String PathVar in PathVars)
-                        {
-                            if (String.Compare(PathAdd, PathVar, true) == 0)
-                            {
-                                if (BuildConfiguration.bPrintDebugInfo)
-                                {
-                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
-                                }
-                                ModifiedPathVars.Remove(PathVar);
-                            }
-                        }
-                    }
-
-                    // perform adds, but don't add duplicates
-                    foreach (String PathAdd in PathAdds)
-                    {
-                        if (!ModifiedPathVars.Contains(PathAdd))
-                        {
-                            if (BuildConfiguration.bPrintDebugInfo)
-                            {
-                                Console.WriteLine("Adding Path: '{0}'", PathAdd);
-                            }
-                            ModifiedPathVars.Add(PathAdd);
-                        }
-                    }
-
-                    String ModifiedPath = String.Join(PathDelimiter, ModifiedPathVars);
-                    Environment.SetEnvironmentVariable("PATH", ModifiedPath);
-
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public void InvalidateCurrentlyInstalled(String PlatformSDKRoot)
-        {
-            SetCurrentlyInstalledSDKString(PlatformSDKRoot, "");
-            SetLastRunScriptVersion(PlatformSDKRoot, "");
-        }
-
-        /**
-         *	Whether the required external SDKs are installed for this platform
-         */
-		public virtual SDKStatus HasRequiredSDKsInstalled()
-		{			
-            if (PlatformSupportsSDKSwitching())
-            {				
-                // if we don't have a path to platform SDK's, take no action
-                bool bSDKPathSet;
-                string PlatformSDKRoot = GetPathToPlatformSDKs(out bSDKPathSet);				
-                if (bSDKPathSet)
-                {					
-                    if (PlatformSDKRoot != "")
-                    {
-                        // check script version so script fixes can be propagated without touching every build machine's CurrentlyInstalled file manually.
-                        bool bScriptVersionMatches = false;
-                        string CurrentScriptVersionString;
-                        if (GetLastRunScriptVersionString(PlatformSDKRoot, out CurrentScriptVersionString) && CurrentScriptVersionString == GetRequiredScriptVersionString())
-                        {
-                            bScriptVersionMatches = true;
-                        }
-
-                        string CurrentSDKString;
-                        if (!GetCurrentlyInstalledSDKString(PlatformSDKRoot, out CurrentSDKString) || CurrentSDKString != GetRequiredSDKString() || !bScriptVersionMatches)
-                        {
-                        
-                            // switch over (note that version string can be empty)
-                            if (!RunSDKHooks(PlatformSDKRoot, CurrentSDKString, SDKHookType.Uninstall))
-                            {
-                                Console.WriteLine("Failed to uninstall currently installed SDK {0}", CurrentSDKString);
-                                InvalidateCurrentlyInstalled(PlatformSDKRoot);
-                                return SDKStatus.Invalid;
-                            }
-                            // delete Manifest file to avoid multiple uninstalls
-                            InvalidateCurrentlyInstalled(PlatformSDKRoot);
-
-                            if (!RunSDKHooks(PlatformSDKRoot, GetRequiredSDKString(), SDKHookType.Install, false))
-                            {								
-                                Console.WriteLine("Failed to install required SDK {0}.  Attemping to uninstall", GetRequiredSDKString());
-                                RunSDKHooks(PlatformSDKRoot, GetRequiredSDKString(), SDKHookType.Uninstall, false);
-
-                                return SDKStatus.Invalid;
-                            }
-                            SetCurrentlyInstalledSDKString(PlatformSDKRoot, GetRequiredSDKString());
-                            SetLastRunScriptVersion(PlatformSDKRoot, GetRequiredScriptVersionString());
-                        }
-
-                        // load environment variables from current SDK
-                        if (!SetupEnvironmentFromSDK(PlatformSDKRoot, GetRequiredSDKString()))
-                        {
-                            Console.WriteLine("Failed to load environment from required SDK {0}", GetRequiredSDKString());
-                            InvalidateCurrentlyInstalled(PlatformSDKRoot);
-                            return SDKStatus.Invalid;
-                        }                        
-                        return SDKStatus.Valid;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Failed to install required SDK {0}. {1} is blank.", GetRequiredSDKString(), SDKRootEnvVar);
-                        return SDKStatus.Invalid;
-                    }
-                }
-            }
-            return SDKStatus.Unknown;
-        }
+        
 
         /**
          *	If this platform can be compiled with XGE
@@ -875,7 +421,13 @@ namespace UnrealBuildTool
 		/**
 		 *	Register the platform with the UEBuildPlatform class
 		 */
-		public abstract void RegisterBuildPlatform();
+        public void RegisterBuildPlatform()
+        {
+            ManageAndValidateSDK();
+            RegisterBuildPlatformInternal();
+        }
+
+        protected abstract void RegisterBuildPlatformInternal();
 
 		/**
 		 *	Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
@@ -1253,4 +805,636 @@ namespace UnrealBuildTool
 		{
 		}
 	}
+
+    // AutoSDKs handling portion
+    public abstract partial class UEBuildPlatform : IUEBuildPlatform
+    {
+
+        #region protected AutoSDKs Utility
+
+        /** Name of the file that holds currently install SDK version string */
+        protected static string CurrentlyInstalledSDKStringManifest = "CurrentlyInstalled.txt";
+
+        /** name of the file that holds the last succesfully run SDK setup script version */
+        protected static string LastRunScriptVersionManifest = "CurrentlyInstalled.Version.txt";
+
+        /** Name of the file that holds environment variables of current SDK */
+        protected static string SDKEnvironmentVarsFile = "OutputEnvVars.txt";
+
+        protected static readonly string SDKRootEnvVar = "UE_SDKS_ROOT";
+
+        /** 
+         * Whether platform supports switching SDKs during runtime
+         * 
+         * @return true if supports
+         */
+        protected virtual bool PlatformSupportsAutoSDKs()
+        {
+            return false;
+        }
+
+        static private bool bCheckedAutoSDKRootEnvVar = false;
+        static private bool bAutoSDKSystemEnabled = false;
+        static private bool HasAutoSDKSystemEnabled()
+        {
+            if (!bCheckedAutoSDKRootEnvVar)
+            {
+                string SDKRoot = Environment.GetEnvironmentVariable(SDKRootEnvVar);
+                if (SDKRoot != null)
+                {
+                    bAutoSDKSystemEnabled = true;
+                }
+                bCheckedAutoSDKRootEnvVar = true;
+            }
+            return bAutoSDKSystemEnabled;
+        }
+
+        // Whether AutoSDK setup is safe. AutoSDKs will damage manual installs on some platforms.
+        protected bool IsAutoSDKSafe()
+        {
+            return !IsAutoSDKDestructive() || !HasAnyManualInstall();
+        }
+
+        /** 
+         * Returns SDK string as required by the platform 
+         * 
+         * @return Valid SDK string
+         */
+        protected virtual string GetRequiredSDKString()
+        {
+            return "";
+        }
+
+        /**
+        * Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be 1.0.  If you need to force a rebuild for a given platform, override this for the given platform.
+        * @return Setup script version
+        */
+        protected virtual String GetRequiredScriptVersionString()
+        {
+            return "1.0";
+        }
+
+        /** 
+         * Returns path to platform SDKs
+         * 
+         * @return Valid SDK string
+         */
+        protected string GetPathToPlatformAutoSDKs()
+        {
+            string SDKPath = "";            
+            string SDKRoot = Environment.GetEnvironmentVariable(SDKRootEnvVar);
+            if (SDKRoot != null)
+            {                
+                if (SDKRoot != "")
+                {
+                    SDKPath = Path.Combine(SDKRoot, "Host" + ExternalExecution.GetRuntimePlatform(), GetSDKTargetPlatformName());
+                }
+            }
+            return SDKPath;
+        }
+
+        /**
+         * Gets currently installed version
+         * 
+         * @param PlatformSDKRoot absolute path to platform SDK root
+         * @param OutInstalledSDKVersionString version string as currently installed
+         * 
+         * @return true if was able to read it
+         */
+        protected bool GetCurrentlyInstalledSDKString(string PlatformSDKRoot, out string OutInstalledSDKVersionString)
+        {
+            if (Directory.Exists(PlatformSDKRoot))
+            {
+                string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
+                if (File.Exists(VersionFilename))
+                {
+                    using (StreamReader Reader = new StreamReader(VersionFilename))
+                    {
+                        string Version = Reader.ReadLine();
+                        if (Version != null)
+                        {
+                            OutInstalledSDKVersionString = Version;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            OutInstalledSDKVersionString = "";
+            return false;
+        }
+
+        /**
+         * Gets the version of the last successfully run setup script.
+         * 
+         * @param PlatformSDKRoot absolute path to platform SDK root
+         * @param OutLastRunScriptVersion version string
+         * 
+         * @return true if was able to read it
+         */
+        protected bool GetLastRunScriptVersionString(string PlatformSDKRoot, out string OutLastRunScriptVersion)
+        {
+            if (Directory.Exists(PlatformSDKRoot))
+            {
+                string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
+                if (File.Exists(VersionFilename))
+                {
+                    using (StreamReader Reader = new StreamReader(VersionFilename))
+                    {
+                        string Version = Reader.ReadLine();
+                        if (Version != null)
+                        {
+                            OutLastRunScriptVersion = Version;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            OutLastRunScriptVersion = "";
+            return false;
+        }
+
+        /**
+         * Sets currently installed version
+         * 
+         * @param PlatformSDKRoot absolute path to platform SDK root
+         * @param InstalledSDKVersionString SDK version string to set
+         * 
+         * @return true if was able to set it
+         */
+        protected bool SetCurrentlyInstalledAutoSDKString(string PlatformSDKRoot, string InstalledSDKVersionString)
+        {
+            if (Directory.Exists(PlatformSDKRoot))
+            {
+                string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
+                if (File.Exists(VersionFilename))
+                {
+                    File.Delete(VersionFilename);
+                }
+
+                using (StreamWriter Writer = File.CreateText(VersionFilename))
+                {
+                    Writer.WriteLine(InstalledSDKVersionString);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        protected bool SetLastRunAutoSDKScriptVersion(string PlatformSDKRoot, string LastRunScriptVersion)
+        {
+            if (Directory.Exists(PlatformSDKRoot))
+            {
+                string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
+                if (File.Exists(VersionFilename))
+                {
+                    File.Delete(VersionFilename);
+                }
+
+                using (StreamWriter Writer = File.CreateText(VersionFilename))
+                {
+                    Writer.WriteLine(LastRunScriptVersion);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+        * Returns Hook names as needed by the platform
+        * (e.g. can be overriden with custom executables or scripts)
+        *
+        * @param Hook Hook type
+        */
+        protected virtual string GetHookExecutableName(SDKHookType Hook)
+        {
+            if (Hook == SDKHookType.Uninstall)
+            {
+                return "unsetup.bat";
+            }
+
+            return "setup.bat";
+        }
+
+        /**
+         * Runs install/uninstall hooks for SDK
+         * 
+         * @param PlatformSDKRoot absolute path to platform SDK root
+         * @param SDKVersionString version string to run for (can be empty!)
+         * @param Hook which one of hooks to run
+         * @param bHookCanBeNonExistent whether a non-existing hook means failure
+         * 
+         * @return true if succeeded
+         */
+        protected virtual bool RunAutoSDKHooks(string PlatformSDKRoot, string SDKVersionString, SDKHookType Hook, bool bHookCanBeNonExistent = true)
+        {
+            if (!IsAutoSDKSafe())
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(GetSDKTargetPlatformName() + " attempted to run SDK hook which could have damaged manual SDK install!");
+                Console.ResetColor();
+
+                return false;
+            }
+            if (SDKVersionString != "")
+            {
+                string SDKDirectory = Path.Combine(PlatformSDKRoot, SDKVersionString);
+                string HookExe = Path.Combine(SDKDirectory, GetHookExecutableName(Hook));
+
+                if (File.Exists(HookExe))
+                {
+                    Console.WriteLine("Running {0} hook {1}", Hook, HookExe);
+
+                    // run it
+                    Process HookProcess = new Process();
+                    HookProcess.StartInfo.WorkingDirectory = SDKDirectory;
+                    HookProcess.StartInfo.FileName = HookExe;
+                    HookProcess.StartInfo.Arguments = "";
+                    HookProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+                    //installers may require administrator access to succeed. so run as an admmin.
+                    HookProcess.StartInfo.Verb = "runas";
+                    HookProcess.Start();
+                    HookProcess.WaitForExit();
+
+                    if (HookProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine("Hook exited uncleanly (returned {0}), considering it failed.", HookProcess.ExitCode);
+                        return false;
+                    }
+
+                    return true;
+                }
+            }
+
+            return bHookCanBeNonExistent;
+        }
+
+        /**
+         * Loads environment variables from SDK
+         * 
+         * @param PlatformSDKRoot absolute path to platform SDK         
+         * 
+         * @return true if succeeded
+         */
+        protected bool SetupEnvironmentFromAutoSDK(string PlatformSDKRoot)
+        {
+            string EnvVarFile = Path.Combine(PlatformSDKRoot, SDKEnvironmentVarsFile);
+            if (File.Exists(EnvVarFile))
+            {
+                using (StreamReader Reader = new StreamReader(EnvVarFile))
+                {
+                    List<string> PathAdds = new List<string>();
+                    List<string> PathRemoves = new List<string>();
+
+                    List<string> EnvVarNames = new List<string>();
+                    List<string> EnvVarValues = new List<string>();
+                    for (; ; )
+                    {
+                        string VariableString = Reader.ReadLine();
+                        if (VariableString == null)
+                        {
+                            break;
+                        }
+
+                        string[] Parts = VariableString.Split('=');
+                        if (Parts.Length != 2)
+                        {
+                            Console.WriteLine("Incorrect environment variable declaration:");
+                            Console.WriteLine(VariableString);
+                            return false;
+                        }
+
+                        if (String.Compare(Parts[0], "strippath", true) == 0)
+                        {
+                            PathRemoves.Add(Parts[1]);
+                        }
+                        else if (String.Compare(Parts[0], "addpath", true) == 0)
+                        {
+                            PathAdds.Add(Parts[1]);
+                        }
+                        else
+                        {
+                            // convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
+                            EnvVarNames.Add(Parts[0].Trim());
+                            EnvVarValues.Add(Parts[1].Trim());
+                        }
+                    }
+
+                    // don't actually set anything until we successfully validate and read all values in.
+                    // we don't want to set a few vars, return a failure, and then have a platform try to
+                    // build against a manually installed SDK with half-set env vars.
+                    for (int i = 0; i < EnvVarNames.Count; ++i)
+                    {
+                        string EnvVarName = EnvVarNames[i];
+                        string EnvVarValue = EnvVarValues[i];
+                        if (BuildConfiguration.bPrintDebugInfo)
+                        {
+                            Console.WriteLine("Setting variable '{0}' to '{1}'", EnvVarName, EnvVarValue);
+                        }
+                        Environment.SetEnvironmentVariable(EnvVarName, EnvVarValue);
+                    }
+
+
+                    // actually perform the PATH stripping / adding.
+                    String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
+                    String PathDelimiter = GetPathVarDelimiter();
+                    String[] PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+
+                    List<String> ModifiedPathVars = new List<string>();
+                    ModifiedPathVars.AddRange(PathVars);
+
+                    // perform removes first, in case they overlap with any adds.
+                    foreach (String PathRemove in PathRemoves)
+                    {
+                        foreach (String PathVar in PathVars)
+                        {
+                            if (PathVar.IndexOf(PathRemove, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                if (BuildConfiguration.bPrintDebugInfo)
+                                {
+                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
+                                }
+                                ModifiedPathVars.Remove(PathVar);
+                            }
+                        }
+                    }
+
+                    // remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
+                    // If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
+                    foreach (String PathAdd in PathAdds)
+                    {
+                        foreach (String PathVar in PathVars)
+                        {
+                            if (String.Compare(PathAdd, PathVar, true) == 0)
+                            {
+                                if (BuildConfiguration.bPrintDebugInfo)
+                                {
+                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
+                                }
+                                ModifiedPathVars.Remove(PathVar);
+                            }
+                        }
+                    }
+
+                    // perform adds, but don't add duplicates
+                    foreach (String PathAdd in PathAdds)
+                    {
+                        if (!ModifiedPathVars.Contains(PathAdd))
+                        {
+                            if (BuildConfiguration.bPrintDebugInfo)
+                            {
+                                Console.WriteLine("Adding Path: '{0}'", PathAdd);
+                            }
+                            ModifiedPathVars.Add(PathAdd);
+                        }
+                    }
+
+                    String ModifiedPath = String.Join(PathDelimiter, ModifiedPathVars);
+                    Environment.SetEnvironmentVariable("PATH", ModifiedPath);
+
+                    // make sure we know that we've modified the local environment, invalidating manual installs for this run.
+                    bProcessEnvSetupAutoSDK = true;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        protected void InvalidateCurrentlyInstalledAutoSDK(String PlatformSDKRoot)
+        {
+            SetCurrentlyInstalledAutoSDKString(PlatformSDKRoot, "");
+            SetLastRunAutoSDKScriptVersion(PlatformSDKRoot, "");
+        }
+
+        /** 
+         * Currently installed AutoSDK is written out to a text file in a known location.  
+         * This function just compares the file's contents with the current requirements.
+         */
+        protected SDKStatus HasRequiredAutoSDKInstalled()
+        {
+            if (PlatformSupportsAutoSDKs() && HasAutoSDKSystemEnabled())
+            {                
+                string AutoSDKRoot = GetPathToPlatformAutoSDKs();                
+                if (AutoSDKRoot != "")
+                {
+                    // check script version so script fixes can be propagated without touching every build machine's CurrentlyInstalled file manually.
+                    bool bScriptVersionMatches = false;
+                    string CurrentScriptVersionString;
+                    if (GetLastRunScriptVersionString(AutoSDKRoot, out CurrentScriptVersionString) && CurrentScriptVersionString == GetRequiredScriptVersionString())
+                    {
+                        bScriptVersionMatches = true;
+                    }
+
+                    string CurrentSDKString;
+                    if (GetCurrentlyInstalledSDKString(AutoSDKRoot, out CurrentSDKString) && CurrentSDKString == GetRequiredSDKString() && bScriptVersionMatches)
+                    {
+                        return SDKStatus.Valid;
+                    }
+                    return SDKStatus.Invalid;
+                }                
+            }
+            return SDKStatus.Invalid;
+        }
+
+        // This tracks if we have already checked the sdk installation.
+        private Int32 SDKCheckStatus = -1;
+
+        // true if we've ever overridden the process's environment with AutoSDK data.  After that, manual installs cannot be considered valid ever again.
+        private bool bProcessEnvSetupAutoSDK = false;
+
+        protected bool HasSetupAutoSDK()
+        {
+            return bProcessEnvSetupAutoSDK;
+        }
+
+        protected SDKStatus HasRequiredManualSDK()
+        {
+            if (bProcessEnvSetupAutoSDK)
+            {
+                return SDKStatus.Invalid;
+            }
+
+            // manual installs are always invalid if we have modified the process's environment for AutoSDKs
+            return HasRequiredManualSDKInternal();
+        }
+
+        // for platforms with destructive AutoSDK.  Report if any manual sdk is installed that may be damaged by an autosdk.
+        protected virtual bool HasAnyManualInstall()
+        {
+            return false;
+        }
+
+        // tells us if the user has a valid manual install.
+        protected abstract SDKStatus HasRequiredManualSDKInternal();
+
+        // some platforms will fail if there is a manual install that is the WRONG manual install.
+        protected virtual bool AllowInvalidManualInstall()
+        {
+            return true;
+        }
+
+        // platforms can choose if they prefer a correct the the AutoSDK install over the manual install.
+        protected virtual bool PreferAutoSDK()
+        {
+            return false;
+        }
+
+        // some platforms don't support parallel SDK installs.  AutoSDK on these platforms will
+        // actively damage an existing manual install by overwriting files in it.  AutoSDK must NOT
+        // run any setup if a manual install exists in this case.
+        protected virtual bool IsAutoSDKDestructive()
+        {
+            return false;
+        }
+
+        /**
+        * Runs batch files if necessary to set up required AutoSDK.
+        * AutoSDKs are SDKs that have not been setup through a formal installer, but rather come from
+        * a source control directory, or other local copy.
+        */
+        private void SetupAutoSDK()
+        {
+            if (IsAutoSDKSafe() && PlatformSupportsAutoSDKs() && HasAutoSDKSystemEnabled())
+            {
+                // run installation for autosdk if necessary.
+                if (HasRequiredAutoSDKInstalled() == SDKStatus.Invalid)
+                {
+                    //reset check status so any checking sdk status after the attempted setup will do a real check again.
+                    SDKCheckStatus = -1;
+
+                    string AutoSDKRoot = GetPathToPlatformAutoSDKs();
+                    string CurrentSDKString;
+                    GetCurrentlyInstalledSDKString(AutoSDKRoot, out CurrentSDKString);
+
+                    // switch over (note that version string can be empty)
+                    if (!RunAutoSDKHooks(AutoSDKRoot, CurrentSDKString, SDKHookType.Uninstall))
+                    {
+                        Console.WriteLine("Failed to uninstall currently installed SDK {0}", CurrentSDKString);
+                        InvalidateCurrentlyInstalledAutoSDK(AutoSDKRoot);
+                        return;
+                    }
+                    // delete Manifest file to avoid multiple uninstalls
+                    InvalidateCurrentlyInstalledAutoSDK(AutoSDKRoot);
+
+                    if (!RunAutoSDKHooks(AutoSDKRoot, GetRequiredSDKString(), SDKHookType.Install, false))
+                    {
+                        Console.WriteLine("Failed to install required SDK {0}.  Attemping to uninstall", GetRequiredSDKString());
+                        RunAutoSDKHooks(AutoSDKRoot, GetRequiredSDKString(), SDKHookType.Uninstall, false);
+                        return;
+                    }
+                    SetCurrentlyInstalledAutoSDKString(AutoSDKRoot, GetRequiredSDKString());
+                    SetLastRunAutoSDKScriptVersion(AutoSDKRoot, GetRequiredScriptVersionString());
+                }
+
+                // fixup process environment to match autosdk
+                SetupEnvironmentFromAutoSDK();                
+            }
+        }        
+
+        #endregion
+
+        #region public AutoSDKs Utility
+
+        /** Enum describing types of hooks a platform SDK can have */
+        public enum SDKHookType
+        {
+            Install,
+            Uninstall
+        };
+
+        /** 
+         * Returns platform-specific name used in SDK repository
+         * 
+         * @return path to SDK Repository
+         */
+        public virtual string GetSDKTargetPlatformName()
+        {
+            return "";
+        }  
+
+        /* Whether or not we should try to automatically switch SDKs when asked to validate the platform's SDK state. */
+        public static bool bAllowAutoSDKSwitching = true;               
+
+        public SDKStatus SetupEnvironmentFromAutoSDK()
+        {            
+            string PlatformSDKRoot = GetPathToPlatformAutoSDKs();
+
+            // load environment variables from current SDK
+            if (!SetupEnvironmentFromAutoSDK(PlatformSDKRoot))
+            {
+                Console.WriteLine("Failed to load environment from required SDK {0}", GetRequiredSDKString());
+                InvalidateCurrentlyInstalledAutoSDK(PlatformSDKRoot);
+                return SDKStatus.Invalid;
+            }            
+            return SDKStatus.Valid;
+        }
+
+        /**
+         *	Whether the required external SDKs are installed for this platform.  
+         *	Could be either a manual install or an AutoSDK.
+         */
+        public SDKStatus HasRequiredSDKsInstalled()
+        {
+            // avoid redundant potentially expensive SDK checks.
+            if (SDKCheckStatus == -1)
+            {                
+                bool bHasManualSDK = HasRequiredManualSDK() == SDKStatus.Valid;
+                bool bHasAutoSDK = HasRequiredAutoSDKInstalled() == SDKStatus.Valid;
+                
+                // Per-Platform implementations can choose how to handle non-Auto SDK detection / handling.
+                SDKCheckStatus = (bHasManualSDK || bHasAutoSDK) ? 1 : 0;
+            }
+            return SDKCheckStatus == 1 ? SDKStatus.Valid : SDKStatus.Invalid;
+        }
+
+        // Arbitrates between manual SDKs and setting up AutoSDK based on program options and platform preferences.
+        public void ManageAndValidateSDK()
+        {
+            bool bHasRequiredManualSDK = HasRequiredManualSDK() == SDKStatus.Valid;
+            if (bAllowAutoSDKSwitching && IsAutoSDKSafe() && (PreferAutoSDK() || !bHasRequiredManualSDK))
+            {
+                SetupAutoSDK();
+            }
+
+            if (BuildConfiguration.bPrintDebugInfo)
+            {
+                PrintSDKInfo();
+            }
+        }
+
+        public void PrintSDKInfo()
+        {
+            
+            
+            if (HasRequiredSDKsInstalled() == SDKStatus.Valid)
+            {
+                bool bHasRequiredManualSDK = HasRequiredManualSDK() == SDKStatus.Valid;
+                if (HasSetupAutoSDK())
+                {
+                    string PlatformSDKRoot = GetPathToPlatformAutoSDKs();
+                    Console.WriteLine(GetSDKTargetPlatformName() + " using SDK from: " + Path.Combine(PlatformSDKRoot, GetRequiredSDKString()));
+                }
+                else if (bHasRequiredManualSDK)
+                {
+                    Console.WriteLine(this.ToString() + " using manually installed SDK " + GetRequiredSDKString());
+                }
+                else
+                {
+                    Console.WriteLine(this.ToString() + " setup error.  Inform platform team.");
+                }
+            }
+            else
+            {
+                Console.WriteLine(this.ToString() + " has no valid SDK");
+            }
+        }
+
+        #endregion
+    }
 }

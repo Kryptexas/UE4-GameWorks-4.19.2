@@ -39,7 +39,7 @@ namespace UnrealBuildTool
          * 
          * @return true if supports
          */
-        public override bool PlatformSupportsSDKSwitching()
+        protected override bool PlatformSupportsAutoSDKs()
         {
             return true;
         }
@@ -59,23 +59,22 @@ namespace UnrealBuildTool
          * 
          * @return Valid SDK string
          */
-        public override string GetRequiredSDKString()
+        protected override string GetRequiredSDKString()
         {
             return ExpectedSDKVersion;
+        }
+
+        protected override String GetRequiredScriptVersionString()
+        {
+            return "2.0";
         }
 
         /**
          *	Whether the required external SDKs are installed for this platform
          */
-        public override SDKStatus HasRequiredSDKsInstalled()
+        protected override SDKStatus HasRequiredManualSDKInternal()
         {
             if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
-            {
-                return SDKStatus.Valid;
-            }
-
-            // attempt to switch SDKs
-            if (base.HasRequiredSDKsInstalled() == SDKStatus.Valid)
             {
                 return SDKStatus.Valid;
             }
@@ -105,7 +104,7 @@ namespace UnrealBuildTool
         /**
          *	Register the platform with the UEBuildPlatform class
          */
-        public override void RegisterBuildPlatform()
+        protected override void RegisterBuildPlatformInternal()
         {
 			//@todo.Rocket: Add platform support
 			if (UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket())

@@ -16,7 +16,7 @@ namespace UnrealBuildTool
             return false;
         }
 
-		public override SDKStatus HasRequiredSDKsInstalled()
+		protected override SDKStatus HasRequiredManualSDKInternal()
 		{
 			return SDKStatus.Valid;
 		}
@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		/**
 		 *	Register the platform with the UEBuildPlatform class
 		 */
-		public override void RegisterBuildPlatform()
+		protected override void RegisterBuildPlatformInternal()
 		{
 			// Register this build platform for Mac
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Mac.ToString());

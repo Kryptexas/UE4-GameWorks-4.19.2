@@ -21,10 +21,6 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
 
-        // this is to make sure we don't check the sdk all the time
-        static int HasSDK = -1;
-
-
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
 		{
@@ -37,7 +33,7 @@ namespace UnrealBuildTool
             return false;
         }
 
-        public override bool PlatformSupportsSDKSwitching()
+        protected override bool PlatformSupportsAutoSDKs()
         {
             return true;
         }
@@ -47,14 +43,14 @@ namespace UnrealBuildTool
             return "Android";
         }
 
-        public override string GetRequiredSDKString()
+        protected override string GetRequiredSDKString()
         {
             return "-19";
         }
 
-        public override String GetRequiredScriptVersionString()
+        protected override String GetRequiredScriptVersionString()
         {
-            return "1.1";
+            return "2.0";
         }
 
         /// <summary>
@@ -63,11 +59,6 @@ namespace UnrealBuildTool
         /// <returns></returns>
         private bool HasAnySDK()
         {
-            if (base.HasRequiredSDKsInstalled() == SDKStatus.Valid)
-            {
-                return true;
-            }
-
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 
             // we don't have an NDKROOT specified
@@ -87,23 +78,23 @@ namespace UnrealBuildTool
         }
 
 
-		public override SDKStatus HasRequiredSDKsInstalled()
+        protected override SDKStatus HasRequiredManualSDKInternal()
 		{
-            if (HasSDK == -1)
+            // if any autosdk setup has been done then the local process environment is suspect
+            if (HasSetupAutoSDK())
             {
-                if (HasAnySDK())
-                {
-                    HasSDK = 1;
-                }
-                else
-                {
-                    HasSDK = 0;
-                }
+                return SDKStatus.Invalid;
             }
-            return HasSDK == 1 ? SDKStatus.Valid : SDKStatus.Invalid;
+
+            if (HasAnySDK())
+            {
+                return SDKStatus.Valid;
+            }
+
+            return SDKStatus.Invalid;            
 		}
 
-		public override void RegisterBuildPlatform()
+		protected override void RegisterBuildPlatformInternal()
 		{
 			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
 			{
