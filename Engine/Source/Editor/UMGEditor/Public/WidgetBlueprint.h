@@ -25,7 +25,13 @@ struct UMGEDITOR_API FDelegateEditorBinding
 	FName FunctionName;
 
 	UPROPERTY()
+	FName SourceProperty;
+
+	UPROPERTY()
 	FGuid MemberGuid;
+
+	UPROPERTY()
+	TEnumAsByte<EBindingKind::Type> Kind;
 
 	bool operator==( const FDelegateEditorBinding& Other ) const
 	{

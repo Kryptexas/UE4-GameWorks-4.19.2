@@ -91,8 +91,6 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 				//TODO UMG Terrible performance, improve with Maps.
 				if ( Binding.ObjectName == VariableName )
 				{
-					UFunction* BoundFunction = UserWidget->FindFunction(Binding.FunctionName);
-
 					FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
 
 					for ( TFieldIterator<UProperty> It(Widget->GetClass()); It; ++It )
@@ -102,7 +100,31 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 							if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
 							{
 								FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
-								ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+
+								if ( Binding.Kind == EBindingKind::Function )
+								{
+									ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+								}
+								else if ( Binding.Kind == EBindingKind::Property )
+								{
+									//FString FunctionNameStr = FString(TEXT("__Get")) + Binding.FunctionName.ToString();// +TEXT("_0");
+									//FName FunctionName = FName(*FunctionNameStr, 1);
+									UFunction* Fun = UserWidget->FindFunction(Binding.FunctionName);
+
+									TArray<FName> names;
+									for ( TFieldIterator<UFunction> It(WidgetBlueprintClass); It; ++It )
+									{
+										FName FunName = It->GetFName();
+										names.Add(FunName);
+									}
+
+									ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+								}
+								else
+								{
+									check(false);
+								}
+								
 								break;
 							}
 						}

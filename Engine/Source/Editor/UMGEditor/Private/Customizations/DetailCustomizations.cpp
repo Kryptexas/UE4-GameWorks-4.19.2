@@ -67,9 +67,26 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 				.ContentPadding(0)
 				.ButtonContent()
 				[
-					SNew(STextBlock)
-					.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SImage)
+						.Image(this, &FBlueprintWidgetCustomization::GetCurrentBindingImage, ConstPropertyHandle)
+						.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4,1,0,0)
+					[
+						SNew(STextBlock)
+						.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+					]
 				];
 
 				const bool bShowChildren = true;
@@ -167,12 +184,13 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 	}
 }
 
-void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache(const UFunction* DelegateSignature)
+void FBlueprintWidgetCustomization::RefreshBlueprintMemberCache(const UFunction* DelegateSignature)
 {
 	const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	BlueprintFunctionCache.Reset();
+	BlueprintPropertyCache.Reset();
 
 	// Get the current skeleton class, think header for the blueprint.
 	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
@@ -212,27 +230,49 @@ void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache(const UFunctio
 			BlueprintFunctionCache.Add(NewFuncAction);
 		}
 	}
+
+	// Grab functions implemented by the blueprint
+	for ( TFieldIterator<UProperty> PropIt(SkeletonClass, EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt )
+	{
+		UProperty* Prop = *PropIt;
+		
+		if ( DelegateSignature->GetReturnProperty()->SameType(Prop) )
+		{
+			if ( Prop->HasAnyPropertyFlags(UP::BlueprintReadWrite) )
+			{
+				BlueprintPropertyCache.Add(Prop);
+			}
+		}
+	}
 }
 
 TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature)
 {
-	RefreshBlueprintFunctionCache(DelegateSignature);
+	RefreshBlueprintMemberCache(DelegateSignature);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
 
-	//TODO UMG Enable or disable Remove Binding if needed.
+	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
+	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
 
-	MenuBuilder.BeginSection("ClearBinding");
+	//FLinearColor ColorOut;
+	//const UClass* VarClass = PropertyHandle->GetPropertyClass();
+	//BrushOut = FBlueprintEditor::GetVarIconAndColor(VarClass, PropertyHandle->GetProperty()->GetFName(), ColorOut);
+
+	if ( CanRemoveBinding(PropertyHandle) )
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("RemoveBinding", "Remove Binding"),
-			LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleRemoveBinding, PropertyHandle))
-			);
+		MenuBuilder.BeginSection("RemoveBinding");
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RemoveBinding", "Remove Binding"),
+				LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleRemoveBinding, PropertyHandle))
+				);
+		}
+		MenuBuilder.EndSection(); //RemoveBinding
 	}
-	MenuBuilder.EndSection(); //ClearBinding
 
 	MenuBuilder.BeginSection("CreateBinding");
 	{
@@ -245,15 +285,29 @@ TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TShare
 	}
 	MenuBuilder.EndSection(); //CreateBinding
 
-	MenuBuilder.BeginSection("Functions");
+	MenuBuilder.BeginSection("Functions", LOCTEXT("Functions", "Functions"));
 	{
 		for ( TSharedPtr<FunctionInfo>& Function : BlueprintFunctionCache )
 		{
 			MenuBuilder.AddMenuEntry(
 				Function->DisplayName,
 				FText::FromString(Function->Tooltip),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddBinding, PropertyHandle, Function))
+				FSlateIcon(FEditorStyle::GetStyleSetName(), FunctionIcon),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddFunctionBinding, PropertyHandle, Function))
+				);
+		}
+	}
+	MenuBuilder.EndSection(); //Functions
+
+	MenuBuilder.BeginSection("Properties", LOCTEXT("Properties", "Properties"));
+	{
+		for ( UProperty* ExistingProperty : BlueprintPropertyCache )
+		{
+			MenuBuilder.AddMenuEntry(
+				ExistingProperty->GetDisplayNameText(),
+				ExistingProperty->GetToolTipText(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), PropertyIcon),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddPropertyBinding, PropertyHandle, ExistingProperty))
 				);
 		}
 	}
@@ -273,8 +327,11 @@ TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TShare
 		];
 }
 
-FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
+const FSlateBrush* FBlueprintWidgetCustomization::GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const
 {
+	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
+	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
+
 	TArray<UObject*> OuterObjects;
 	PropertyHandle->GetOuterObjects(OuterObjects);
 
@@ -283,7 +340,7 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
-		// Ignore null outter objects
+		// Ignore null outer objects
 		if ( OuterObjects[ObjectIndex] == NULL )
 		{
 			continue;
@@ -295,9 +352,53 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 		{
 			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
 			{
-				FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
-				return FText::FromName(FoundName);
-				//return FText::FromName(Binding.FunctionName);
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					return FEditorStyle::GetBrush(FunctionIcon);
+				}
+				else // Property
+				{
+					return FEditorStyle::GetBrush(PropertyIcon);
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
+					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+				}
+				else // Property
+				{
+					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
+					return FText::FromString( FName::NameToDisplayString(FoundName.ToString(), false) );
+				}
 			}
 		}
 
@@ -307,6 +408,26 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 	}
 
 	return LOCTEXT("Bind", "Bind");
+}
+
+bool FBlueprintWidgetCustomization::CanRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+	for ( UObject* SelectedObject : OuterObjects )
+	{
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == SelectedObject->GetName() && Binding.PropertyName == PropertyName )
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void FBlueprintWidgetCustomization::HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle)
@@ -329,7 +450,7 @@ void FBlueprintWidgetCustomization::HandleRemoveBinding(TSharedRef<IPropertyHand
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void FBlueprintWidgetCustomization::HandleAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction)
+void FBlueprintWidgetCustomization::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction)
 {
 	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
 
@@ -344,6 +465,37 @@ void FBlueprintWidgetCustomization::HandleAddBinding(TSharedRef<IPropertyHandle>
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
 		Binding.MemberGuid = SelectedFunction->EdGraph->GraphGuid;
+		Binding.Kind = EBindingKind::Function;
+
+		Blueprint->Bindings.Remove(Binding);
+		Blueprint->Bindings.AddUnique(Binding);
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+}
+
+void FBlueprintWidgetCustomization::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty)
+{
+	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
+
+	// Get the current skeleton class, think header for the blueprint.
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
+
+	Blueprint->Modify();
+
+	FGuid MemberGuid;
+	UBlueprint::GetGuidFromClassByFieldName<UProperty>(SkeletonClass, SelectedProperty->GetFName(), MemberGuid);
+
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+	for ( UObject* SelectedObject : OuterObjects )
+	{
+		FDelegateEditorBinding Binding;
+		Binding.ObjectName = SelectedObject->GetName();
+		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
+		Binding.SourceProperty = SelectedProperty->GetFName();
+		Binding.MemberGuid = MemberGuid;
+		Binding.Kind = EBindingKind::Property;
 
 		Blueprint->Bindings.Remove(Binding);
 		Blueprint->Bindings.AddUnique(Binding);
@@ -376,7 +528,7 @@ void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(TSharedRef<IProper
 	SelectedFunction->FuncName = FunctionGraph->GetFName();
 	SelectedFunction->EdGraph = FunctionGraph;
 
-	HandleAddBinding(PropertyHandle, SelectedFunction);
+	HandleAddFunctionBinding(PropertyHandle, SelectedFunction);
 
 	GotoFunction(FunctionGraph);
 }

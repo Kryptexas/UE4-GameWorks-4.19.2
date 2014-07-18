@@ -30,14 +30,19 @@ private:
 		UEdGraph* EdGraph;
 	};
 
-	void RefreshBlueprintFunctionCache(const UFunction* DelegateSignature);
+	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature);
 
 	TSharedRef<SWidget> OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
 
+	const FSlateBrush* GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const;
 	FText GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
+	bool CanRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 	void HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
-	void HandleAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
+
+	void HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
+	void HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty);
+
 	void HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
 	void GotoFunction(UEdGraph* FunctionGraph);
 
@@ -48,4 +53,5 @@ private:
 	UWidgetBlueprint* Blueprint;
 
 	TArray< TSharedPtr<FunctionInfo> > BlueprintFunctionCache;
+	TArray< UProperty* > BlueprintPropertyCache;
 };

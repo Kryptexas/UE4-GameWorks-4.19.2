@@ -10,7 +10,15 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 	FDelegateRuntimeBinding Binding;
 	Binding.ObjectName = ObjectName;
 	Binding.PropertyName = PropertyName;
-	Binding.FunctionName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+	if ( Kind == EBindingKind::Function )
+	{
+		Binding.FunctionName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+	}
+	else
+	{
+		Binding.FunctionName = FunctionName;// Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+	}
+	Binding.Kind = Kind;
 
 	return Binding;
 }

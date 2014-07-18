@@ -6,6 +6,16 @@
 
 class UMovieScene;
 
+UENUM()
+namespace EBindingKind
+{
+	enum Type
+	{
+		Function,
+		Property,
+	};
+}
+
 USTRUCT()
 struct FDelegateRuntimeBinding
 {
@@ -19,6 +29,9 @@ struct FDelegateRuntimeBinding
 
 	UPROPERTY()
 	FName FunctionName;
+
+	UPROPERTY()
+	TEnumAsByte<EBindingKind::Type> Kind;
 	
 	/*UFunction* UK2Node_CallFunction::GetTargetFunction() const
 	{

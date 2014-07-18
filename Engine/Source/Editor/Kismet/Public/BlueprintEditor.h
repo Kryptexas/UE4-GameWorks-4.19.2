@@ -296,7 +296,7 @@ public:
 	 * @param IconColorOut		The resulting color for the glyph
 	 * @return					The resulting glyph brush
 	 */
-	static FSlateBrush const* GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
+	static FSlateBrush const* GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
 
 	/** Overridable function for determining if the current mode can script */
 	virtual bool IsInAScriptingMode() const;

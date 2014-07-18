@@ -8,6 +8,9 @@
 #include "KismetReinstanceUtilities.h"
 #include "MovieScene.h"
 
+#include "BlueprintPropertyNodeSpawner.h"
+#include "K2Node_FunctionEntry.h"
+
 template<>
 FString FNetNameMapping::MakeBaseName<UWidgetGraphNode_Base>(const UWidgetGraphNode_Base* Net)
 {
@@ -68,13 +71,86 @@ void FWidgetBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 	// Build the raw node list
 	TArray<UWidgetGraphNode_Base*> WidgetNodeList;
 	ConsolidatedEventGraph->GetNodesOfClass<UWidgetGraphNode_Base>(/*out*/ WidgetNodeList);
-	
+
 	AllocateNodeIndexCounter = 0;
 
 	// Process the remaining nodes
 	for ( UWidgetGraphNode_Base* VisualWidgetNode : WidgetNodeList )
 	{
 		ProcessWidgetNode(VisualWidgetNode);
+	}
+}
+
+void FWidgetBlueprintCompiler::CreateFunctionList()
+{
+	Super::CreateFunctionList();
+
+	for ( FDelegateEditorBinding& EditorBinding : WidgetBlueprint()->Bindings )
+	{
+		FName PropertyName = EditorBinding.SourceProperty;
+
+		UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
+		if ( Property )
+		{
+			// Create the function graph.
+			FString FunctionName = FString(TEXT("__Get")) + PropertyName.ToString();
+			UEdGraph* FunctionGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, FunctionName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+
+			// Update the function binding to match the generated graph name
+			EditorBinding.FunctionName = FunctionGraph->GetFName();
+
+			const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(FunctionGraph->GetSchema());
+
+			Schema->CreateDefaultNodesForGraph(*FunctionGraph);
+
+			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
+			int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public );
+			if ( BPTYPE_FunctionLibrary == Blueprint->BlueprintType )
+			{
+				ExtraFunctionFlags |= FUNC_Static;
+			}
+			K2Schema->AddExtraFunctionFlags(FunctionGraph, ExtraFunctionFlags);
+			K2Schema->MarkFunctionEntryAsEditable(FunctionGraph, true);
+
+			// Create a function entry node
+			FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(*FunctionGraph);
+			UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
+			EntryNode->SignatureClass = NULL;
+			EntryNode->SignatureName = FunctionGraph->GetFName();
+			FunctionEntryCreator.Finalize();
+
+			FGraphNodeCreator<UK2Node_FunctionResult> FunctionReturnCreator(*FunctionGraph);
+			UK2Node_FunctionResult* ReturnNode = FunctionReturnCreator.CreateNode();
+			ReturnNode->SignatureClass = NULL;
+			ReturnNode->SignatureName = FunctionGraph->GetFName();
+			ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
+			ReturnNode->NodePosY = EntryNode->NodePosY;
+			FunctionReturnCreator.Finalize();
+
+			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
+
+			FEdGraphPinType PinType;
+			K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);
+
+			UEdGraphPin* ReturnPin = ReturnNode->CreateUserDefinedPin(TEXT("ReturnValue"), PinType);
+
+			// Auto-connect the pins for entry and exit, so that by default the signature is properly generated
+			UEdGraphPin* EntryNodeExec = K2Schema->FindExecutionPin(*EntryNode, EGPD_Output);
+			UEdGraphPin* ResultNodeExec = K2Schema->FindExecutionPin(*ReturnNode, EGPD_Input);
+			EntryNodeExec->MakeLinkTo(ResultNodeExec);
+
+			FGraphNodeCreator<UK2Node_VariableGet> MemberGetCreator(*FunctionGraph);
+			UK2Node_VariableGet* VarNode = MemberGetCreator.CreateNode();
+			VarNode->VariableReference.SetSelfMember(PropertyName);
+			MemberGetCreator.Finalize();
+
+			ReturnPin->MakeLinkTo(VarNode->GetValuePin());
+
+			//Blueprint->FunctionGraphs.Add(FunctionGraph);
+
+			ProcessOneFunctionGraph(FunctionGraph);
+			//FEdGraphUtilities::MergeChildrenGraphsIn(Ubergraph, FunctionGraph, /*bRequireSchemaMatch=*/ true);
+		}
 	}
 }
 

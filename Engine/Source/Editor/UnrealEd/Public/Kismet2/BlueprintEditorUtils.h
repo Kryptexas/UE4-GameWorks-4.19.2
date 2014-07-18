@@ -160,12 +160,13 @@ public:
 	 */
 	static class UEdGraph* CreateNewGraph(UObject* ParentScope, const FName& GraphName, TSubclassOf<class UEdGraph> GraphClass, TSubclassOf<class UEdGraphSchema> SchemaClass);
 
-	/** 
-	 * Adds a function graph to this blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. SignatureFromObject is used to find signature for entry/exit nodes if using an existing signature.
+	/**
+	 * Creates a function graph, but does not add it to the blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. 
+	 * SignatureFromObject is used to find signature for entry/exit nodes if using an existing signature.
 	 * The template argument SignatureType should be UClass or UFunction.
 	 */
 	template <typename SignatureType>
-	static void AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, SignatureType* SignatureFromObject)
+	static void CreateFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, SignatureType* SignatureFromObject)
 	{
 		// Give the schema a chance to fill out any required nodes (like the entry node or results node)
 		const UEdGraphSchema* Schema = Graph->GetSchema();
@@ -189,6 +190,17 @@ public:
 				K2Schema->MarkFunctionEntryAsEditable(Graph, true);
 			}
 		}
+	}
+
+	/** 
+	 * Adds a function graph to this blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. 
+	 * SignatureFromObject is used to find signature for entry/exit nodes if using an existing signature.
+	 * The template argument SignatureType should be UClass or UFunction.
+	 */
+	template <typename SignatureType>
+	static void AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, SignatureType* SignatureFromObject)
+	{
+		CreateFunctionGraph(Blueprint, Graph, bIsUserCreated, SignatureFromObject);
 
 		Blueprint->FunctionGraphs.Add(Graph);
 
