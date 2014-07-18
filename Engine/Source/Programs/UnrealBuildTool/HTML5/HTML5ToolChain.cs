@@ -32,10 +32,6 @@ namespace UnrealBuildTool
 					{
 						PythonPath = Utils.IsRunningOnMono ? "python" : "python.exe";
 					}
-					else
-					{
-						PythonPath += Utils.IsRunningOnMono ? "/python" : "/python.exe";
-					}
                     EMCCPath = "\"" + EMCCPath + "\""; 
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
