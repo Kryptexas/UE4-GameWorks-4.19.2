@@ -12,11 +12,11 @@ namespace EP4ParamType
 {
 	enum Type
 	{
-		Path,
-		Port,
-		User,
-		Client,
-		Branch
+		Path	= 0,
+		Port	= 1,
+		User	= 2,
+		Client	= 3,
+		Branch	= 4
 	};
 }
 
@@ -130,16 +130,23 @@ public:
 	 */
 	FString GetCommandLine();
 
+	/**
+	 * Gets param type name.
+	 *
+	 * @param Type Param type enum id.
+	 *
+	 * @returns Param type name.
+	 */
+	static FString GetParamName(EP4ParamType::Type Type);
+
 private:
 	/* Param serialization delegate. */
 	DECLARE_DELEGATE_TwoParams(FSerializationTask, FString&, EP4ParamType::Type);
 
 	/**
 	 * Constructor
-	 *
-	 * @param CommandLine Command line to parse params from.
 	 */
-	FP4Env(const TCHAR* CommandLine);
+	FP4Env();
 
 	/**
 	 * Serializes all P4Env params.
@@ -151,29 +158,19 @@ private:
 	/**
 	 * Auto-detect missing params.
 	 *
+	 * @param CommandLine Command line that the program was run with.
+	 *
 	 * @returns True if succeeded. False otherwise.
 	 */
-	bool AutoDetectMissingParams();
+	bool AutoDetectMissingParams(const TCHAR* CommandLine);
 
 	/**
-	 * Gets param type name.
+	 * Sets param value.
 	 *
-	 * @param Type Param type enum id.
-	 *
-	 * @returns Param type name.
+	 * @param Type Type of param to set.
+	 * @param Value Value to set.
 	 */
-	static FString GetParamName(EP4ParamType::Type Type);
-
-	/**
-	 * Parses param either from command line or environment variables.
-	 * Command line has priority.
-	 *
-	 * @param CommandLine Command line to parse.
-	 * @param ParamName Param name to parse.
-	 *
-	 * @returns Parsed value.
-	 */
-	static FString GetParam(const TCHAR* CommandLine, const FString& ParamName);
+	void SetParam(EP4ParamType::Type Type, const FString& Value);
 
 	/* Singleton instance pointer. */
 	static TSharedPtr<FP4Env> Env;
