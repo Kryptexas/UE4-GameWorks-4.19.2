@@ -68,6 +68,10 @@ public:
 	/** Starts the GameInstance state machine running */
 	virtual void StartGameInstance();
 
-	APlayerController* GetFirstLocalPlayerController() const;
-	ULocalPlayer* GetFirstGamePlayer() const;
+	/** Local player access */
+	int32				GetNumLocalPlayers() const;
+	ULocalPlayer*		GetLocalPlayerByIndex(const int32 Index) const;
+	APlayerController*	GetFirstLocalPlayerController() const;
+	ULocalPlayer*		FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const;
+	ULocalPlayer*		GetFirstGamePlayer() const;
 };

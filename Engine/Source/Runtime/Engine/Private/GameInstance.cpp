@@ -325,6 +325,25 @@ bool UGameInstance::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	return false;
 }
 
+int32 UGameInstance::GetNumLocalPlayers() const
+{
+	return ( WorldContext != nullptr ) ? WorldContext->GamePlayers.Num() : 0;
+}
+
+ULocalPlayer* UGameInstance::GetLocalPlayerByIndex( const int32 Index ) const
+{
+	if ( WorldContext == nullptr )
+	{
+		return nullptr;
+	}
+
+	if ( !ensure( Index >= 0 && Index < WorldContext->GamePlayers.Num() ) )
+	{
+		return nullptr;
+	}
+
+	return WorldContext->GamePlayers[Index];
+}
 
 APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 {
@@ -336,6 +355,24 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 			{
 				// return first non-null entry
 				return Player->PlayerController;
+			}
+		}
+	}
+
+	// didn't find one
+	return nullptr;
+}
+
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId( TSharedPtr<FUniqueNetId> UniqueNetId ) const
+{
+	if (WorldContext)
+	{
+		for (ULocalPlayer* Player : WorldContext->GamePlayers)
+		{
+			if (Player && Player->GetUniqueNetId() == UniqueNetId)
+			{
+				// Match
+				return Player;
 			}
 		}
 	}
