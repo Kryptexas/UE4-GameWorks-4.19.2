@@ -286,6 +286,7 @@ namespace UnrealBuildTool
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/SDL2/Linux/x86_64-unknown-linux-gnu";
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/zlib/Linux/x86_64-unknown-linux-gnu";
+            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/libPNG/Linux/x86_64-unknown-linux-gnu";
 
             if (CrossCompiling())
             {
