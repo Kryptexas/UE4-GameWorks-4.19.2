@@ -521,9 +521,9 @@ APlayerController* AController::CastToPlayerController()
 	return Cast<APlayerController>(this);
 }
 
-APawn* AController::GetControlledPawn() const
+APawn* AController::K2_GetPawn() const
 {
-	return Pawn;
+	return GetPawn();
 }
 
 const FNavAgentProperties* AController::GetNavAgentProperties() const

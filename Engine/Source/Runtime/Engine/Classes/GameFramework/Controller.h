@@ -161,8 +161,13 @@ public:
 	void ClientSetRotation(FRotator NewRotation, bool bResetCamera = false);
 
 	/** Return the Pawn that is currently 'controlled' by this PlayerController */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
-	class APawn* GetControlledPawn() const;
+	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(FriendlyName="Get Controlled Pawn"))
+	class APawn* K2_GetPawn() const;
+
+	DEPRECATED(4.4, "Use GetPawn() instead of GetControlledPawn()")
+	class APawn* GetControlledPawn() const { return GetPawn(); }
+
+public:
 
 	// Begin AActor interface
 	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) override;

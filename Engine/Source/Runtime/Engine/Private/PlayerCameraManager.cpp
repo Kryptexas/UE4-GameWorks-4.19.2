@@ -1120,7 +1120,7 @@ APawn* FTViewTarget::GetTargetPawn() const
 	}
 	else if (AController* Controller = Cast<AController>(Target))
 	{
-		return Controller->GetControlledPawn();
+		return Controller->GetPawn();
 	}
 	else
 	{

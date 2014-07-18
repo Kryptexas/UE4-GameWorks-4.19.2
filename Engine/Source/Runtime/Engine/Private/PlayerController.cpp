@@ -663,7 +663,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		check(GetPawn() != NULL);
 
 		GetPawn()->SetActorTickEnabled(true);
-		GetControlledPawn()->Restart();
+		GetPawn()->Restart();
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
