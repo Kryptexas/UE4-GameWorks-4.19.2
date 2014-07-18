@@ -774,10 +774,26 @@ public:
  **/
 class PAKFILE_API FPakPlatformFile : public IPlatformFile
 {
+	struct FPakListEntry
+	{
+		FPakListEntry()
+			: ReadOrder(0)
+			, PakFile(nullptr)
+		{}
+
+		uint32		ReadOrder;
+		FPakFile*	PakFile;
+
+		bool operator < (const FPakListEntry& RHS) const
+		{
+			return ReadOrder > RHS.ReadOrder;
+		}
+	};
+
 	/** Wrapped file */
 	IPlatformFile* LowerLevel;
 	/** List of all available pak files. */
-	TArray<FPakFile*> PakFiles;
+	TArray<FPakListEntry> PakFiles;
 	/** True if this we're using signed content. */
 	bool bSigned;
 	/** Synchronization object for accessing the list of currently mounted pak files. */
@@ -786,7 +802,7 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	/**
 	 * Gets mounted pak files
 	 */
-	FORCEINLINE void GetMountedPaks(TArray<FPakFile*>& Paks)
+	FORCEINLINE void GetMountedPaks(TArray<FPakListEntry>& Paks)
 	{
 		FScopeLock ScopedLock(&PakListCritical);
 		Paks.Append(PakFiles);
@@ -803,13 +819,13 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 		FString StandardPath = Directory;
 		FPaths::MakeStandardFilename(StandardPath);
 
-		TArray<FPakFile*> Paks;
+		TArray<FPakListEntry> Paks;
 		GetMountedPaks(Paks);
 
 		// Check all pak files.
 		for (int32 PakIndex = 0; PakIndex < Paks.Num(); PakIndex++)
 		{
-			if (Paks[PakIndex]->DirectoryExists(*StandardPath))
+			if (Paks[PakIndex].PakFile->DirectoryExists(*StandardPath))
 			{
 				return true;
 			}
@@ -842,7 +858,7 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	/**
 	 * Handler for device delegate to prompt us to load a new pak.	 
 	 */
-	bool HandleMountPakDelegate(const FString& PakFilePath);
+	bool HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder);
 
 	/**
 	 * Finds all pak files in the given directory.
@@ -907,7 +923,7 @@ public:
 	 * @param InPakFilename Pak filename.
 	 * @param InPath Path to mount the pak at.
 	 */
-	bool Mount(const TCHAR* InPakFilename, const TCHAR* InPath = NULL);
+	bool Mount(const TCHAR* InPakFilename, uint32 PakOrder, const TCHAR* InPath = NULL);
 
 	/**
 	 * Finds a file in the specified pak files.
@@ -917,7 +933,7 @@ public:
 	 * @param OutPakFile Optional pointer to a pak file where the filename was found.
 	 * @return Pointer to pak entry if the file was found, NULL otherwise.
 	 */
-	FORCEINLINE static const FPakEntry* FindFileInPakFiles(TArray<FPakFile*>& Paks, const TCHAR* Filename,  FPakFile** OutPakFile)
+	FORCEINLINE static const FPakEntry* FindFileInPakFiles(TArray<FPakListEntry>& Paks,const TCHAR* Filename,FPakFile** OutPakFile)
 	{
 		FString StandardFilename(Filename);
 		FPaths::MakeStandardFilename(StandardFilename);
@@ -925,12 +941,12 @@ public:
 
 		for (int32 PakIndex = 0; !FoundEntry && PakIndex < Paks.Num(); PakIndex++)
 		{
-			FoundEntry = Paks[PakIndex]->Find(*StandardFilename);
+			FoundEntry = Paks[PakIndex].PakFile->Find(*StandardFilename);
 			if (FoundEntry != NULL)
 			{
 				if (OutPakFile != NULL)
 				{
-					*OutPakFile = Paks[PakIndex];
+					*OutPakFile = Paks[PakIndex].PakFile;
 				}
 			}
 		}
@@ -947,7 +963,7 @@ public:
 	 */
 	const FPakEntry* FindFileInPakFiles(const TCHAR* Filename, FPakFile** OutPakFile = NULL)
 	{
-		TArray<FPakFile*> Paks;
+		TArray<FPakListEntry> Paks;
 		GetMountedPaks(Paks);
 
 		return FindFileInPakFiles(Paks, Filename, OutPakFile);
@@ -1118,10 +1134,10 @@ public:
 		/** Visited pak files. */
 		TSet<FString>& VisitedPakFiles;
 		/** Cached list of pak files. */
-		TArray<FPakFile*>& Paks;
+		TArray<FPakListEntry>& Paks;
 
 		/** Constructor. */
-		FPakVisitor(FDirectoryVisitor& InVisitor, TArray<FPakFile*>& InPaks, TSet<FString>& InVisitedPakFiles)
+		FPakVisitor(FDirectoryVisitor& InVisitor, TArray<FPakListEntry>& InPaks, TSet<FString>& InVisitedPakFiles)
 			: Visitor(InVisitor)
 			, VisitedPakFiles(InVisitedPakFiles)
 			, Paks(InPaks)
@@ -1152,13 +1168,13 @@ public:
 		bool Result = true;
 		TSet<FString> FilesVisitedInPak;
 
-		TArray<FPakFile*> Paks;
+		TArray<FPakListEntry> Paks;
 		GetMountedPaks(Paks);
 
 		// Iterate pak files first
 		for (int32 PakIndex = 0; PakIndex < Paks.Num(); PakIndex++)
 		{
-			FPakFile& PakFile = *Paks[PakIndex];
+			FPakFile& PakFile = *Paks[PakIndex].PakFile;
 			
 			const bool bIncludeFiles = true;
 			const bool bIncludeFolders = true;
@@ -1205,7 +1221,7 @@ public:
 	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		TSet<FString> FilesVisitedInPak;
-		TArray<FPakFile*> Paks;
+		TArray<FPakListEntry> Paks;
 		GetMountedPaks(Paks);
 		FPakVisitor PakVisitor(Visitor, Paks, FilesVisitedInPak);
 		return IPlatformFile::IterateDirectoryRecursively(Directory, PakVisitor);

@@ -1048,7 +1048,7 @@ void FAssetRegistry::PrioritizeAssetInstall(const FAssetData& AssetData) const
 		return;
 	}
 
-	ChunkInstall->PrioritizeChunk(AssetData.ChunkIDs[0]);
+	ChunkInstall->PrioritizeChunk(AssetData.ChunkIDs[0], EChunkPriority::Immediate);
 }
 
 bool FAssetRegistry::AddPath(const FString& PathToAdd)

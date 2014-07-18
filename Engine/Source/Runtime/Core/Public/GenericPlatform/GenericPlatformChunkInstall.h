@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(LogChunkInstaller, Log, All);
 
 namespace EChunkLocation
@@ -34,6 +36,15 @@ namespace EChunkInstallSpeed
 	};
 }
 
+namespace EChunkPriority
+{
+	enum Type
+	{
+		Immediate,	// Chunk install is of highest priority, this can cancel lower priority installs.
+		High	 ,	// Chunk is probably required soon so grab is as soon as possible.
+		Low		 ,	// Install this chunk only when other chunks are not needed.
+	};
+}
 
 namespace EChunkProgressReportingType
 {
@@ -44,6 +55,18 @@ namespace EChunkProgressReportingType
 	};
 }
 
+/**
+ * Platform Chunk Install Module Interface
+ */
+class IPlatformChunkInstallModule : public IModuleInterface
+{
+public:
+
+	virtual IPlatformChunkInstall* GetPlatformChunkInstall() = 0;
+};
+
+
+DECLARE_DELEGATE_OneParam(FPlatformChunkInstallCompleteDelegate, uint32);
 
 /**
 * Interface for platform specific chunk based install
@@ -90,11 +113,12 @@ public:
 	virtual bool SetInstallSpeed( EChunkInstallSpeed::Type InstallSpeed ) = 0;
 	
 	/**
-	 * Hint to the installer that we would like to prioritize a specific chunk (moves it to the head of the list.)
+	 * Hint to the installer that we would like to prioritize a specific chunk
 	 * @param ChunkID		The id of the chunk to prioritize.
+	 * @param Priority		The priority for the chunk.
 	 * @return				false if the operation is not allowed or the chunk doesn't exist, otherwise true.
 	 **/
-	virtual bool PrioritizeChunk( uint32 ChunkID ) = 0;
+	virtual bool PrioritizeChunk( uint32 ChunkID, EChunkPriority::Type Priority ) = 0;
 
 	/**
 	 * For platforms that support emulation of the Chunk install.  Starts transfer of the next chunk.
@@ -102,6 +126,21 @@ public:
 	 * @return				true if the opreation succeeds.
 	 **/
 	virtual bool DebugStartNextChunk() = 0;
+
+	/** 
+	 * Request a delegate callback on chunk install completion. Request may not be respected.
+	 * @param ChunkID		The id of the chunk of interest.
+	 * @param Delegate		The delegate to call when the chunk is installed.
+	 * @return				False if the delegate was not registered. True on success.
+	 */
+	virtual bool SetChunkInstallDelgate( uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate ) = 0;
+
+	/**
+	* Remove a delegate callback on chunk install completion.
+	* @param ChunkID		The id of the chunk of interest.
+	* @param Delegate		The delegate to remove.
+	*/
+	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate) = 0;
 };
 
 
@@ -175,7 +214,7 @@ public:
 	 * @param ChunkID		The id of the chunk to prioritize.
 	 * @return				false if the operation is not allowed or the chunk doesn't exist, otherwise true.
 	 **/
-	virtual bool PrioritizeChunk( uint32 ChunkID ) override
+	virtual bool PrioritizeChunk( uint32 ChunkID, EChunkPriority::Type Priority ) override
 	{
 		return false;
 	}
@@ -188,5 +227,27 @@ public:
 	virtual bool DebugStartNextChunk()
 	{
 		return true;
+	}
+
+	/**
+	* Request a delegate callback on chunk install completion. Request may not be respected.
+	* @param ChunkID		The id of the chunk of interest.
+	* @param Delegate		The delegate when the chunk is installed.
+	* @return				False if the delegate was not registered or the chunk is already installed. True on success.
+	*/
+	virtual bool SetChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate)
+	{
+		return false;
+	}
+
+	/**
+	* Remove a delegate callback on chunk install completion.
+	* @param ChunkID		The id of the chunk of interest.
+	* @param Delegate		The delegate to remove.
+	* @return				False if the delegate was not registered with a call to SetChunkInstallDelgate. True on success.
+	*/
+	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate)
+	{
+		return;
 	}
 };
