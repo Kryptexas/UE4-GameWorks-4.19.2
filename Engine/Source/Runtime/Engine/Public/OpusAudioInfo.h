@@ -81,9 +81,11 @@ protected:
 	uint32			SrcBufferOffset;
 	uint32			AudioDataOffset;
 
+	uint16			SampleRate;
 	uint32			TrueSampleCount;
 	uint32			CurrentSampleCount;
 	uint8			NumChannels;
+	uint32			MaxFrameSizeSamples;
 	uint32			SampleStride;
 
 	TArray<uint8>	LastDecodedPCM;

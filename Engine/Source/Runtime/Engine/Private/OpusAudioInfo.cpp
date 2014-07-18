@@ -13,8 +13,7 @@
 #endif
 
 #define USE_UE4_MEM_ALLOC 1
-#define OPUS_SAMPLE_RATE 48000
-#define OPUS_MAX_FRAME_SIZE 5760
+#define OPUS_MAX_FRAME_SIZE_MS 120
 #define SAMPLE_SIZE			( ( uint32 )sizeof( short ) )
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +43,7 @@ FOpusDecoderWrapper
 ------------------------------------------------------------------------------------*/
 struct FOpusDecoderWrapper
 {
-	FOpusDecoderWrapper(uint8 NumChannels)
+	FOpusDecoderWrapper(uint16 SampleRate, uint8 NumChannels)
 	{
 #if WITH_OPUS
 		check(NumChannels <= 8);
@@ -52,9 +51,9 @@ struct FOpusDecoderWrapper
 	#if USE_UE4_MEM_ALLOC
 		int32 DecSize = opus_multistream_decoder_get_size(Layout.NumStreams, Layout.NumCoupledStreams);
 		Decoder = (OpusMSDecoder*)FMemory::Malloc(DecSize);
-		DecError = opus_multistream_decoder_init(Decoder, OPUS_SAMPLE_RATE, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping);
+		DecError = opus_multistream_decoder_init(Decoder, SampleRate, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping);
 	#else
-		Decoder = opus_multistream_decoder_create(OPUS_SAMPLE_RATE, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping, &DecError);
+		Decoder = opus_multistream_decoder_create(SampleRate, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping, &DecError);
 	#endif
 #endif
 	}
@@ -104,9 +103,11 @@ FOpusAudioInfo::FOpusAudioInfo(void)
 	, SrcBufferDataSize(0)
 	, SrcBufferOffset(0)
 	, AudioDataOffset(0)
+	, SampleRate(0)
 	, TrueSampleCount(0)
 	, CurrentSampleCount(0)
 	, NumChannels(0)
+	, MaxFrameSizeSamples(0)
 	, SampleStride(0)
 	, LastPCMByteSize(0)
 	, LastPCMOffset(0)
@@ -150,6 +151,7 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 	{
 		SrcBufferOffset += FCStringAnsi::Strlen(OPUS_ID_STRING) + 1;
 	}
+	Read(&SampleRate, sizeof(uint16));
 	Read(&TrueSampleCount, sizeof(uint32));
 	Read(&NumChannels, sizeof(uint8));
 	uint16 SerializedFrames = 0;
@@ -158,7 +160,7 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 	SampleStride = SAMPLE_SIZE * NumChannels;
 
 	check(OpusDecoderWrapper == NULL);
-	OpusDecoderWrapper = new FOpusDecoderWrapper(NumChannels);
+	OpusDecoderWrapper = new FOpusDecoderWrapper(SampleRate, NumChannels);
 	if (!OpusDecoderWrapper->WasInitialisedSuccessfully())
 	{
 		delete OpusDecoderWrapper;
@@ -166,12 +168,14 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 		return false;
 	}
 
-	LastDecodedPCM.Empty(OPUS_MAX_FRAME_SIZE * SampleStride);
-	LastDecodedPCM.AddUninitialized(OPUS_MAX_FRAME_SIZE * SampleStride);
+	MaxFrameSizeSamples = (SampleRate * OPUS_MAX_FRAME_SIZE_MS) / 1000;
+
+	LastDecodedPCM.Empty(MaxFrameSizeSamples * SampleStride);
+	LastDecodedPCM.AddUninitialized(MaxFrameSizeSamples * SampleStride);
 
 	if (QualityInfo)
 	{
-		QualityInfo->SampleRate = OPUS_SAMPLE_RATE;
+		QualityInfo->SampleRate = SampleRate;
 		QualityInfo->NumChannels = NumChannels;
 		QualityInfo->SampleDataSize = TrueSampleCount * QualityInfo->NumChannels * SAMPLE_SIZE;
 		QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
@@ -400,7 +404,7 @@ int32 FOpusAudioInfo::DecompressToPCMBuffer(uint16 FrameSize)
 	const uint8* SrcPtr = SrcBufferData + SrcBufferOffset;
 	SrcBufferOffset += FrameSize;
 	LastPCMOffset = 0;
-	return OpusDecoderWrapper->Decode(SrcPtr, FrameSize, (int16*)LastDecodedPCM.GetTypedData(), OPUS_MAX_FRAME_SIZE);
+	return OpusDecoderWrapper->Decode(SrcPtr, FrameSize, (int16*)LastDecodedPCM.GetTypedData(), MaxFrameSizeSamples);
 }
 
 uint32 FOpusAudioInfo::IncrementCurrentSampleCount(uint32 NewSamples)

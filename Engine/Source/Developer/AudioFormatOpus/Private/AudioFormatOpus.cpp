@@ -29,7 +29,7 @@ class FAudioFormatOpus : public IAudioFormat
 	enum
 	{
 		/** Version for OPUS format, this becomes part of the DDC key. */
-		UE_AUDIO_OPUS_VER = 2,
+		UE_AUDIO_OPUS_VER = 3,
 	};
 
 public:
@@ -54,8 +54,8 @@ public:
 	{
 		check(Format == NAME_OPUS);
 
-		// Constant sample rate for simplicity
-		const int32 kOpusSampleRate = 48000;
+		// Get best compatible sample rate
+		const uint16 kOpusSampleRate = GetBestOutputSampleRate(QualityInfo.SampleRate);
 		// Frame size must be one of 2.5, 5, 10, 20, 40 or 60 ms
 		const int32 kOpusFrameSizeMs = 60;
 		// Calculate frame size required by Opus
@@ -94,7 +94,8 @@ public:
 			return false;
 		}
 
-		opus_encoder_ctl(Encoder, OPUS_SET_BITRATE(GetBitRateFromQuality(QualityInfo.Quality)));
+		int32 BitRate = GetBitRateFromQuality(QualityInfo);
+		opus_encoder_ctl(Encoder, OPUS_SET_BITRATE(BitRate));
 
 		// Create a buffer to store compressed data
 		CompressedDataStore.Empty();
@@ -115,7 +116,7 @@ public:
 
 		check(QualityInfo.NumChannels <= MAX_uint8);
 		check(FramesToEncode <= MAX_uint16);
-		SerializeHeaderData(CompressedData, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
+		SerializeHeaderData(CompressedData, kOpusSampleRate, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
 
 		// Temporary storage with more than enough to store any compressed frame
 		TArray<uint8> TempCompressedData;
@@ -153,8 +154,8 @@ public:
 	{
 		check(Format == NAME_OPUS);
 
-		// Constant sample rate for simplicity
-		const int32 kOpusSampleRate = 48000;
+		// Get best compatible sample rate
+		const uint16 kOpusSampleRate = GetBestOutputSampleRate(QualityInfo.SampleRate);
 		// Frame size must be one of 2.5, 5, 10, 20, 40 or 60 ms
 		const int32 kOpusFrameSizeMs = 60;
 		// Calculate frame size required by Opus
@@ -227,7 +228,8 @@ public:
 			return false;
 		}
 
-		opus_multistream_encoder_ctl(Encoder, OPUS_SET_BITRATE(GetBitRateFromQuality(QualityInfo.Quality)));
+		int32 BitRate = GetBitRateFromQuality(QualityInfo);
+		opus_multistream_encoder_ctl(Encoder, OPUS_SET_BITRATE(BitRate));
 
 		// Create a buffer to store compressed data
 		CompressedDataStore.Empty();
@@ -246,7 +248,7 @@ public:
 
 		check(QualityInfo.NumChannels <= MAX_uint8);
 		check(FramesToEncode <= MAX_uint16);
-		SerializeHeaderData(CompressedData, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
+		SerializeHeaderData(CompressedData, kOpusSampleRate, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
 
 		// Temporary storage for source data in an interleaved format
 		TArray<uint8> TempInterleavedSrc;
@@ -361,6 +363,8 @@ public:
 			return false;
 		}
 		ReadOffset += FCStringAnsi::Strlen(OPUS_ID_STRING) + 1;
+		uint16 SampleRate = *((uint16*)(LockedSrc + ReadOffset));
+		ReadOffset += sizeof(uint16);
 		uint32 TrueSampleCount = *((uint32*)(LockedSrc + ReadOffset));
 		ReadOffset += sizeof(uint32);
 		uint8 NumChannels = *(LockedSrc + ReadOffset);
@@ -389,6 +393,34 @@ public:
 		}
 
 		return true;
+	}
+
+	/**
+	 * Calculate the best sample rate for the output opus data
+	 */
+	static uint16 GetBestOutputSampleRate(int32 SampleRate)
+	{
+		static const uint16 ValidSampleRates[] = 
+		{
+			0, // not really valid, but simplifies logic below
+			8000,
+			12000,
+			16000,
+			24000,
+			48000,
+		};
+
+		// look for the next highest valid rate
+		for (int32 Index = ARRAY_COUNT(ValidSampleRates) - 2; Index >= 0; Index--)
+		{
+			if (SampleRate > ValidSampleRates[Index])
+			{
+				return ValidSampleRates[Index + 1];
+			}
+		}
+		// this should never get here!
+		check(0);
+		return 0;
 	}
 
 	bool ResamplePCM(uint32 NumChannels, const TArray<uint8>& InBuffer, uint32 InSampleRate, TArray<uint8>& OutBuffer, uint32 OutSampleRate) const
@@ -437,18 +469,20 @@ public:
 		return true;
 	}
 
-	int32 GetBitRateFromQuality(int32 Quality) const
+	int32 GetBitRateFromQuality(FSoundQualityInfo& QualityInfo) const
 	{
-		// Basic attempt at mapping quality to a bit rate range similar to Vorbis
-		// TODO: Not sure if range should be expanded or to make sure that it creates
-		// frequently used bit rates ie. 128000, 192000 etc.
-		return FMath::GetMappedRangeValue(FVector2D(1, 100), FVector2D(64000, 400000), Quality);
+		// There is no perfect way to map Vorbis' Quality setting to an Opus bitrate but this 
+		// will use it as a multiplier to decide how much smaller than the original the
+		// compressed data should be
+		int32 OriginalBitRate = QualityInfo.SampleRate * QualityInfo.NumChannels * SAMPLE_SIZE * 8;
+		return (float)OriginalBitRate * FMath::GetMappedRangeValue(FVector2D(1, 100), FVector2D(0.04, 0.25), QualityInfo.Quality);
 	}
 
-	void SerializeHeaderData(FMemoryWriter& CompressedData, uint32 TrueSampleCount, uint8 NumChannels, uint16 NumFrames) const
+	void SerializeHeaderData(FMemoryWriter& CompressedData, uint16 SampleRate, uint32 TrueSampleCount, uint8 NumChannels, uint16 NumFrames) const
 	{
 		const char* OpusIdentifier = OPUS_ID_STRING;
 		CompressedData.Serialize((void*)OpusIdentifier, FCStringAnsi::Strlen(OpusIdentifier) + 1);
+		CompressedData.Serialize(&SampleRate, sizeof(uint16));
 		CompressedData.Serialize(&TrueSampleCount, sizeof(uint32));
 		CompressedData.Serialize(&NumChannels, sizeof(uint8));
 		CompressedData.Serialize(&NumFrames, sizeof(uint16));
