@@ -60,9 +60,14 @@
 #include "TextBlock.h"
 #include "Border.h"
 #include "CheckBox.h"
+#include "Image.h"
+
 #include "EditableText.h"
 #include "EditableTextBox.h"
-#include "Image.h"
+
+#include "MultiLineEditableText.h"
+#include "MultiLineEditableTextBox.h"
+
 #include "Slider.h"
 #include "ProgressBar.h"
 #include "ComboBox.h"
