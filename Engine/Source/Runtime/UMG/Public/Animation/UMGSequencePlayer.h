@@ -3,6 +3,8 @@
 #pragma once
 
 #include "IMovieScenePlayer.h"
+#include "MovieScene.h"
+#include "MovieSceneBindings.h"
 #include "UMGSequencePlayer.generated.h"
 
 UCLASS(transient)
