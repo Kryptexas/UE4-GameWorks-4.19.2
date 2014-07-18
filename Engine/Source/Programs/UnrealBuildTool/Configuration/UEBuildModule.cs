@@ -1062,6 +1062,9 @@ namespace UnrealBuildTool
 				return LinkInputFiles;
 			}
 
+			// Process all of the header file dependencies for this module
+			this.ProcessAllCppDependencies( ModuleCompileEnvironment );
+
 			// Throw an error if the module's source file list referenced any non-existent files.
 			if (SourceFilesToBuild.MissingFiles.Count > 0)
 			{
@@ -1541,18 +1544,18 @@ namespace UnrealBuildTool
 
 		public void ProcessAllCppDependencies(CPPEnvironment ModuleCompileEnvironment)
 		{
-			if (ProcessedDependencies != null)
-				return;
-
-			FileItem UniquePCH = null;
-			foreach( var CPPFile in SourceFilesFound.CPPFiles )
+			if( ProcessedDependencies == null )
 			{
-				// Find headers used by the source file.
-				var PCH = ProcessDependencies(CPPFile, ModuleCompileEnvironment);
-				UniquePCH = UniquePCH ?? PCH;
-			}
+				FileItem UniquePCH = null;
+				foreach( var CPPFile in SourceFilesFound.CPPFiles )
+				{
+					// Find headers used by the source file.
+					var PCH = ProcessDependencies(CPPFile, ModuleCompileEnvironment);
+					UniquePCH = UniquePCH ?? PCH;
+				}
 
-			ProcessedDependencies = new ProcessedDependenciesClass{ UniquePCHHeaderFile = UniquePCH };
+				ProcessedDependencies = new ProcessedDependenciesClass{ UniquePCHHeaderFile = UniquePCH };
+			}
 		}
 
 		private FileItem ProcessDependencies(FileItem CPPFile, CPPEnvironment ModuleCompileEnvironment)
@@ -1564,7 +1567,9 @@ namespace UnrealBuildTool
 			}
 
 			if (DirectIncludeFilenames.Count == 0)
+			{ 
 				return null;
+			}
 
 			var FirstInclude = DirectIncludeFilenames[0];
 
@@ -1716,7 +1721,7 @@ namespace UnrealBuildTool
 		public HashSet<FileItem> _PublicUObjectHeaders  = new HashSet<FileItem>();
 		public HashSet<FileItem> _PrivateUObjectHeaders = new HashSet<FileItem>();
 
-		private UHTModuleInfo? CachedModuleUHTInfo = null;
+		private UHTModuleInfo CachedModuleUHTInfo = null;
 
 		/// Total time spent figuring out which PCH to use for each module and source file
 		public static double TotalPCHTime = 0.0;
@@ -1732,10 +1737,12 @@ namespace UnrealBuildTool
 		/// <param name="PublicUObjectHeaders">Dependent UObject headers in Public source folders</param>
 		/// <param name="PrivateUObjectHeaders">Dependent UObject headers not in Public source folders</param>
 		/// <returns>
-		public UHTModuleInfo GetUHTModuleInfo(CPPEnvironment CompileEnvironment)
+		public UHTModuleInfo GetUHTModuleInfo()
 		{
-			if (CachedModuleUHTInfo.HasValue)
-				return CachedModuleUHTInfo.Value;
+			if (CachedModuleUHTInfo != null)
+			{
+				return CachedModuleUHTInfo;
+			}
 
 			var ClassesFolder = Path.Combine(this.ModuleDirectory, "Classes");
 			var PublicFolder  = Path.Combine(this.ModuleDirectory, "Public");
@@ -1746,7 +1753,9 @@ namespace UnrealBuildTool
 				var UObjectHeaderFileItem = FileItem.GetExistingItemByPath( ClassHeader );
 				var FileContents = Utils.ReadAllText(UObjectHeaderFileItem.AbsolutePath);
 				if (!Regex.IsMatch(FileContents, "^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Multiline))
+				{ 
 					continue;
+				}
 
 				if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
 				{
@@ -1771,7 +1780,7 @@ namespace UnrealBuildTool
 				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList()
 			};
 
-			return CachedModuleUHTInfo.Value;
+			return CachedModuleUHTInfo;
 		}
 
 		public override void GetAllDependencyModules( ref Dictionary<string, UEBuildModule> ReferencedModules, ref List<UEBuildModule> OrderedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular )

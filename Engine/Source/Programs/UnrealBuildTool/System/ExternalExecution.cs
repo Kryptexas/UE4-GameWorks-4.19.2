@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 	}
 
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */
-	public struct UHTModuleInfo
+	public class UHTModuleInfo
 	{
 		/** Module name */
 		public string ModuleName;
@@ -453,21 +453,51 @@ namespace UnrealBuildTool
 		 * Builds and runs the header tool and touches the header directories.
 		 * Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		 */
-		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
+		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
-			// We never want to try to execute the header tool when we're already trying to build it!
-			var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
-			var BuildPlatform  = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-			var CppPlatform    = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
-			var ToolChain      = UEToolChain.GetPlatformToolChain(CppPlatform);
-			var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
-			var Manifest       = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
-
 			using (ProgressWriter Progress = new ProgressWriter("Generating headers...", false))
 			{
+				// We never want to try to execute the header tool when we're already trying to build it!
+				var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
+
+				var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+				var CppPlatform = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
+				var ToolChain = UEToolChain.GetPlatformToolChain(CppPlatform);
+				var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+
+
 				// ensure the headers are up to date
-				if (!bIsBuildingUHT && 
-					(UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules)))
+				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules));
+				if( bUHTNeedsToRun )
+				{
+					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
+					// want to save this work until we know that UHT actually needs to be run to speed up best-case iteration times.
+					foreach( var UHTModuleInfo in UObjectModules )
+					{
+						UHTModuleInfo.PCH = "";
+						UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
+
+						// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
+						var DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName( UHTModuleInfo.ModuleName );
+						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+						DependencyModuleCPP.ProcessAllCppDependencies(ModuleCompileEnvironment);
+						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+						{
+							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+						}
+
+						// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
+						// engine files, so we don't need a .generated.cpp either
+						if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
+						{
+							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+						}
+					}
+				}
+
+				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
+
+				if( !bIsBuildingUHT && bUHTNeedsToRun )
 				{
 					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
 					if (UnrealBuildTool.RunningRocket() == false && UEBuildConfiguration.bDoNotBuildUHT == false)
@@ -494,7 +524,9 @@ namespace UnrealBuildTool
 						}
 
 						if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
+						{ 
 							return false;
+						}
 					}
 
 					Progress.Write(1, 3);
