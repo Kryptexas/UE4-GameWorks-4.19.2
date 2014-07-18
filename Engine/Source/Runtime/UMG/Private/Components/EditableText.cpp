@@ -27,6 +27,13 @@ UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
+void UEditableText::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyEditableText.Reset();
+}
+
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();

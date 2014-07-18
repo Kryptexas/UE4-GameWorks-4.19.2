@@ -91,6 +91,8 @@ class UMG_API UBorder : public UContentWidget
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 #endif

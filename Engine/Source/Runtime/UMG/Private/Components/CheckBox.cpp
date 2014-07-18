@@ -21,6 +21,13 @@ UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	BorderBackgroundColor = FLinearColor::White;
 }
 
+void UCheckBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyCheckbox.Reset();
+}
+
 TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
 	TOptional<FSlateSound> OptionalCheckedSound;

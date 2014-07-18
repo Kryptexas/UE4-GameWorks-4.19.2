@@ -14,6 +14,13 @@ UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UHorizontalBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyHorizontalBox.Reset();
+}
+
 UClass* UHorizontalBox::GetSlotClass() const
 {
 	return UHorizontalBoxSlot::StaticClass();

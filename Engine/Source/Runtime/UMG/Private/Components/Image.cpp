@@ -15,6 +15,13 @@ UImage::UImage(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
+void UImage::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyImage.Reset();
+}
+
 TSharedRef<SWidget> UImage::RebuildWidget()
 {
 	MyImage = SNew(SImage);

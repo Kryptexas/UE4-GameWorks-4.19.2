@@ -16,6 +16,13 @@ UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UWidgetSwitcher::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyWidgetSwitcher.Reset();
+}
+
 int32 UWidgetSwitcher::GetNumWidgets() const
 {
 	if ( MyWidgetSwitcher.IsValid() )

@@ -46,6 +46,8 @@ public:
 	/** Called when the button is clicked */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnReply OnClickedEvent;
+
+	virtual void ReleaseNativeWidget() override;
 	
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

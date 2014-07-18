@@ -58,6 +58,8 @@ public:
 		return bCanHaveMultipleChildren;
 	}
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	virtual void ConnectEditorData() override
 	{

@@ -142,6 +142,8 @@ public:
 	 */
 	TSharedRef<SWidget> GetWidget() const;
 
+	TSharedPtr<SWidget> GetCachedWidget() const;
+
 	/**
 	 * Applies all properties to the native widget if possible.  This is called after a widget is constructed.
 	 * It can also be called by the editor to update modified state, so ensure all initialization to a widgets

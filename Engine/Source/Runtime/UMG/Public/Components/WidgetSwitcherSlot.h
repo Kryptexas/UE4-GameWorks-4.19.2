@@ -37,6 +37,8 @@ class UMG_API UWidgetSwitcherSlot : public UPanelSlot
 	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
+	virtual void ReleaseNativeWidget() override;
+
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SWidgetSwitcher> InWidgetSwitcher);
 

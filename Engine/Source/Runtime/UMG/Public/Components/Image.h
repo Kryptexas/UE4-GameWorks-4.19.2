@@ -45,6 +45,8 @@ public:
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;

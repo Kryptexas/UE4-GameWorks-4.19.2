@@ -30,6 +30,13 @@ UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCI
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
+void UEditableTextBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyEditableTextBlock.Reset();
+}
+
 TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();

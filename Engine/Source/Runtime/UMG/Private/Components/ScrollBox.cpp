@@ -16,6 +16,13 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UScrollBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyScrollBox.Reset();
+}
+
 UClass* UScrollBox::GetSlotClass() const
 {
 	return UScrollBoxSlot::StaticClass();

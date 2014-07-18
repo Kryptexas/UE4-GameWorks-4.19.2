@@ -18,6 +18,19 @@ UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
+void UPanelWidget::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
+	{
+		if ( Slots[SlotIndex]->Content != NULL )
+		{
+			Slots[SlotIndex]->ReleaseNativeWidget();
+		}
+	}
+}
+
 int32 UPanelWidget::GetChildrenCount() const
 {
 	return Slots.Num();

@@ -121,6 +121,11 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 	}
 }
 
+TSharedPtr<SWidget> UWidget::GetCachedWidget() const
+{
+	return MyWidget.Pin();
+}
+
 TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)
 {
 	if (IsDesignTime())

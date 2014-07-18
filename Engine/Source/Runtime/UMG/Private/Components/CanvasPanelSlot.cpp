@@ -15,6 +15,13 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	ZOrder = 0;
 }
 
+void UCanvasPanelSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 {
 	Slot = &Canvas->AddSlot()

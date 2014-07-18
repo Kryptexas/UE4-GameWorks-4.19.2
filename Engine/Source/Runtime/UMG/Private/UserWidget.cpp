@@ -148,6 +148,17 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;
 }
 
+void UUserWidget::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	UWidget* RootWidget = GetRootWidgetComponent();
+	if ( RootWidget )
+	{
+		RootWidget->ReleaseNativeWidget();
+	}
+}
+
 void UUserWidget::PostInitProperties()
 {
 	Super::PostInitProperties();

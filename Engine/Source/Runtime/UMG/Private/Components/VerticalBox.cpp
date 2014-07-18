@@ -14,6 +14,13 @@ UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
 }
 
+void UVerticalBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyVerticalBox.Reset();
+}
+
 UClass* UVerticalBox::GetSlotClass() const
 {
 	return UVerticalBoxSlot::StaticClass();

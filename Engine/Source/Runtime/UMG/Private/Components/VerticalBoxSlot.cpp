@@ -14,6 +14,13 @@ UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCI
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 
+void UVerticalBoxSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
 {
 	Slot = &VerticalBox->AddSlot()

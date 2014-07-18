@@ -9,6 +9,8 @@ class UMG_API UOverlay : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void ReleaseNativeWidget() override;
+
 protected:
 
 	// UPanelWidget

@@ -49,6 +49,13 @@ UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UCanvasPanel::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyCanvas.Reset();
+}
+
 UClass* UCanvasPanel::GetSlotClass() const
 {
 	return UCanvasPanelSlot::StaticClass();

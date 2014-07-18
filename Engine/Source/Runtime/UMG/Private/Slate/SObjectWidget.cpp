@@ -14,6 +14,10 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 
 SObjectWidget::~SObjectWidget(void)
 {
+	if ( WidgetObject )
+	{
+		WidgetObject->ReleaseNativeWidget();
+	}
 }
 
 void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
@@ -54,7 +58,11 @@ FReply SObjectWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->OnKeyboardFocusReceived(MyGeometry, InKeyboardFocusEvent).ToReply(WidgetObject->GetWidget());
+		TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+		if ( SlateWidget.IsValid() )
+		{
+			return WidgetObject->OnKeyboardFocusReceived(MyGeometry, InKeyboardFocusEvent).ToReply(SlateWidget.ToSharedRef());
+		}
 	}
 
 	return FReply::Unhandled();
@@ -75,49 +83,98 @@ void SObjectWidget::OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocus
 
 FReply SObjectWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
 {
-	return WidgetObject->OnKeyChar(MyGeometry, InCharacterEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnKeyChar(MyGeometry, InCharacterEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
 {
-	return WidgetObject->OnPreviewKeyDown(MyGeometry, InKeyboardEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnPreviewKeyDown(MyGeometry, InKeyboardEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
 {
-	return WidgetObject->OnKeyDown(MyGeometry, InKeyboardEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnKeyDown(MyGeometry, InKeyboardEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
 {
-	return WidgetObject->OnKeyUp(MyGeometry, InKeyboardEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnKeyUp(MyGeometry, InKeyboardEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FReply Reply = WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
-	//TODO UMG Figure out how to let the user more easily manage when drags start.
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
 	{
-		return Reply.DetectDrag(WidgetObject->GetWidget(), EKeys::LeftMouseButton);
+		FReply Reply = WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+
+		//TODO UMG Figure out how to let the user more easily manage when drags start.
+		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+		{
+			return Reply.DetectDrag(SlateWidget.ToSharedRef(), EKeys::LeftMouseButton);
+		}
+
+		return Reply;
 	}
 
-	return Reply;
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return WidgetObject->OnPreviewMouseButtonDown(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnPreviewMouseButtonDown(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return WidgetObject->OnMouseButtonUp(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnMouseButtonUp(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return WidgetObject->OnMouseMove(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnMouseMove(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 void SObjectWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -132,7 +189,13 @@ void SObjectWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 
 FReply SObjectWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return WidgetObject->OnMouseWheel(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnMouseWheel(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FCursorReply SObjectWidget::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
@@ -143,7 +206,13 @@ FCursorReply SObjectWidget::OnCursorQuery(const FGeometry& MyGeometry, const FPo
 
 FReply SObjectWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	return WidgetObject->OnMouseButtonDoubleClick(MyGeometry, MouseEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnMouseButtonDoubleClick(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -186,40 +255,88 @@ FReply SObjectWidget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 
 FReply SObjectWidget::OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
 {
-	return WidgetObject->OnControllerButtonPressed(MyGeometry, ControllerEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnControllerButtonPressed(MyGeometry, ControllerEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnControllerButtonReleased(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
 {
-	return WidgetObject->OnControllerButtonReleased(MyGeometry, ControllerEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnControllerButtonReleased(MyGeometry, ControllerEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnControllerAnalogValueChanged(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
 {
-	return WidgetObject->OnControllerAnalogValueChanged(MyGeometry, ControllerEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnControllerAnalogValueChanged(MyGeometry, ControllerEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent)
 {
-	return WidgetObject->OnTouchGesture(MyGeometry, GestureEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnTouchGesture(MyGeometry, GestureEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	return WidgetObject->OnTouchStarted(MyGeometry, InTouchEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnTouchStarted(MyGeometry, InTouchEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	return WidgetObject->OnTouchMoved(MyGeometry, InTouchEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnTouchMoved(MyGeometry, InTouchEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
 {
-	return WidgetObject->OnTouchEnded(MyGeometry, InTouchEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnTouchEnded(MyGeometry, InTouchEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent)
 {
-	return WidgetObject->OnMotionDetected(MyGeometry, InMotionEvent).ToReply(WidgetObject->GetWidget());
+	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
+	if ( SlateWidget.IsValid() )
+	{
+		return WidgetObject->OnMotionDetected(MyGeometry, InMotionEvent).ToReply(SlateWidget.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }

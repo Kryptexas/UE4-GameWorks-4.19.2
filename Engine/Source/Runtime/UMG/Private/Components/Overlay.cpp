@@ -14,6 +14,13 @@ UOverlay::UOverlay(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UOverlay::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyOverlay.Reset();
+}
+
 UClass* UOverlay::GetSlotClass() const
 {
 	return UOverlaySlot::StaticClass();

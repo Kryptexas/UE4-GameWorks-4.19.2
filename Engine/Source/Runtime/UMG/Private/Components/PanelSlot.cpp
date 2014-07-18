@@ -44,3 +44,13 @@ bool UPanelSlot::IsDesignTime() const
 {
 	return Parent->IsDesignTime();
 }
+
+void UPanelSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	if ( Content )
+	{
+		Content->ReleaseNativeWidget();
+	}
+}

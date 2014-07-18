@@ -45,3 +45,9 @@ void UScrollBoxSlot::SyncronizeProperties()
 	SetPadding(Padding);
 	SetHorizontalAlignment(HorizontalAlignment);
 }
+
+void UScrollBoxSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+	Slot = NULL;
+}

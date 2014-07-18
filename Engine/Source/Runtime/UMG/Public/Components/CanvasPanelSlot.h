@@ -68,6 +68,8 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;

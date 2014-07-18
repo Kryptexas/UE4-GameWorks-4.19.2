@@ -11,5 +11,5 @@ class UMG_API UVisual : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-
+	virtual void ReleaseNativeWidget();
 };

@@ -18,6 +18,8 @@ class UMG_API UScrollBox : public UPanelWidget
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* BarStyle;
 
+	virtual void ReleaseNativeWidget() override;
+
 	/** Removes all child widget from the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ClearChildren();

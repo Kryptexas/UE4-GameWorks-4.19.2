@@ -16,6 +16,13 @@ UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& P
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
+void UUniformGridPanel::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyUniformGridPanel.Reset();
+}
+
 UClass* UUniformGridPanel::GetSlotClass() const
 {
 	return UUniformGridSlot::StaticClass();

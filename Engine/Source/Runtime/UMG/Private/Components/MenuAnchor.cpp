@@ -13,6 +13,13 @@ UMenuAnchor::UMenuAnchor(const FPostConstructInitializeProperties& PCIP)
 	Placement = MenuPlacement_ComboBox;
 }
 
+void UMenuAnchor::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyMenuAnchor.Reset();
+}
+
 TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 {
 	MyMenuAnchor = SNew(SMenuAnchor)

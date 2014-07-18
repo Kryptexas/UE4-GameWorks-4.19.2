@@ -42,6 +42,8 @@ class UMG_API UOverlaySlot : public UPanelSlot
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SOverlay> InOverlay);
 
+	virtual void ReleaseNativeWidget() override;
+
 private:
 	//TODO UMG Slots should hold weak or shared refs to slots.
 

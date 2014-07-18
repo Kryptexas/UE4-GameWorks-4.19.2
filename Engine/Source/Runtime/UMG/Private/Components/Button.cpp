@@ -22,6 +22,13 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	ForegroundColor = FLinearColor::Black;
 }
 
+void UButton::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyButton.Reset();
+}
+
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton);

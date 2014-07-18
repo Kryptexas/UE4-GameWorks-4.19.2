@@ -104,6 +104,10 @@ public:
 	virtual class UWorld* GetWorld() const override;
 	// End of UObject interface
 
+	//UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void Show();
@@ -197,7 +201,7 @@ public:
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
 	/**
- 	 * Plays an animation in this widget
+	 * Plays an animation in this widget
 	 * 
 	 * @param The name of the animation to play
 	 */
@@ -205,7 +209,7 @@ public:
 	void PlayAnimation(FName AnimationName);
 
 	/**
- 	 * Stops an already running animation in this widget
+	 * Stops an already running animation in this widget
 	 * 
 	 * @param The name of the animation to stop
 	 */

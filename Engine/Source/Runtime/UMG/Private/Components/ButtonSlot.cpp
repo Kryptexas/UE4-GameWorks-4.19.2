@@ -14,6 +14,13 @@ UButtonSlot::UButtonSlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Center;
 }
 
+void UButtonSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Button.Reset();
+}
+
 void UButtonSlot::BuildSlot(TSharedRef<SButton> InButton)
 {
 	Button = InButton;

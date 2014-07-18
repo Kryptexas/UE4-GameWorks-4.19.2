@@ -33,6 +33,8 @@ class UMG_API UScrollBoxSlot : public UPanelSlot
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SScrollBox> ScrollBox);
 
+	virtual void ReleaseNativeWidget() override;
+
 private:
 	//TODO UMG Slots should hold weak or shared refs to slots.
 

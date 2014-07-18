@@ -12,6 +12,13 @@ UOverlaySlot::UOverlaySlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Top;
 }
 
+void UOverlaySlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UOverlaySlot::BuildSlot(TSharedRef<SOverlay> Overlay)
 {
 	Slot = &Overlay->AddSlot()

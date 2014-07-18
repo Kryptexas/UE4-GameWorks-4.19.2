@@ -13,6 +13,13 @@ UUniformGridSlot::UUniformGridSlot(const FPostConstructInitializeProperties& PCI
 	VerticalAlignment = VAlign_Top;
 }
 
+void UUniformGridSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UUniformGridSlot::BuildSlot(TSharedRef<SUniformGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row)

@@ -19,6 +19,8 @@ public:
 	/** Called when the widget is needed for the item. */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FGenerateWidgetUObject OnGenerateWidget;
+
+	virtual void ReleaseNativeWidget() override;
 	
 protected:
 	TSharedRef<SWidget> HandleGenerateWidget(UObject* Item) const;

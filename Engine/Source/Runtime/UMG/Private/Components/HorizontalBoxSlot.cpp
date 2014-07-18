@@ -13,6 +13,13 @@ UHorizontalBoxSlot::UHorizontalBoxSlot(const FPostConstructInitializeProperties&
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 
+void UHorizontalBoxSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UHorizontalBoxSlot::BuildSlot(TSharedRef<SHorizontalBox> HorizontalBox)
 {
 	Slot = &HorizontalBox->AddSlot()

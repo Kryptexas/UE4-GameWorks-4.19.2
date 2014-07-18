@@ -26,6 +26,8 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+	void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;

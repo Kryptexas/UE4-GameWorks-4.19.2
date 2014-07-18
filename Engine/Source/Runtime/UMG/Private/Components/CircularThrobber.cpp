@@ -18,6 +18,13 @@ UCircularThrobber::UCircularThrobber(const FPostConstructInitializeProperties& P
 	Radius = DefaultArgs._Radius;
 }
 
+void UCircularThrobber::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyCircularThrobber.Reset();
+}
+
 TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 {
 	SCircularThrobber::FArguments DefaultArgs;

@@ -43,6 +43,8 @@ class UMG_API UHorizontalBoxSlot : public UPanelSlot
 	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
+	virtual void ReleaseNativeWidget() override;
+
 private:
 	SHorizontalBox::FSlot* Slot;
 };

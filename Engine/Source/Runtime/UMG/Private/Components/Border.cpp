@@ -29,6 +29,13 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
 }
 
+void UBorder::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyBorder.Reset();
+}
+
 TSharedRef<SWidget> UBorder::RebuildWidget()
 {
 	MyBorder = SNew(SBorder);
