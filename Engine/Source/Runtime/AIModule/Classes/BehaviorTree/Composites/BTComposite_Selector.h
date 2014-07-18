@@ -4,6 +4,10 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BTComposite_Selector.generated.h"
 
+/** 
+ * Selector composite node.
+ * A selector node runs each child in turn until the first child node succeeds, in which case the selector fails.
+ */
 UCLASS()
 class UBTComposite_Selector : public UBTCompositeNode
 {

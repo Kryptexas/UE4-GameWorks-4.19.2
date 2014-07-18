@@ -12,6 +12,10 @@ struct FBTMoveToTaskMemory
 	uint8 bWaitingForPath : 1;
 };
 
+/**
+ * Move To task node.
+ * Moves the AI pawn toward the specified Actor or Location blackboard entry using the navigation system.
+ */
 UCLASS(config=Game)
 class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 {

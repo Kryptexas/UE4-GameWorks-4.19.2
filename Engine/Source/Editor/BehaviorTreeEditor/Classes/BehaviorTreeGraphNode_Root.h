@@ -3,6 +3,7 @@
 #pragma once
 #include "BehaviorTreeGraphNode_Root.generated.h"
 
+/** Root node of this behavior tree, holds Blackboard data */
 UCLASS()
 class UBehaviorTreeGraphNode_Root : public UBehaviorTreeGraphNode
 {

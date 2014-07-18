@@ -8,6 +8,10 @@ struct FBTLoopDecoratorMemory
 	uint8 RemainingExecutions;
 };
 
+/**
+ * Loop decorator node.
+ * A decorator node that bases its condition on whether its loop counter has been exceeded.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 {

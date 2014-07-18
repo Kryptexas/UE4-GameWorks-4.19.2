@@ -5,6 +5,10 @@
 #include "SGraphEditorActionMenu_BehaviorTree.h"
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "AssetData.h"
+#include "BehaviorTree/Decorators/BTDecorator_BlueprintBase.h"
+#include "BehaviorTree/Services/BTService_BlueprintBase.h"
+#include "BehaviorTree/Tasks/BTTask_BlueprintBase.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
@@ -125,9 +129,45 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 
 FString UBehaviorTreeGraphNode::GetTooltip() const
 {
-	FString TooltipDesc = !NodeInstance ? LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString() :
-		bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
-		(DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : ErrorMessage;
+	FString TooltipDesc;
+
+	if(!NodeInstance)
+	{
+		TooltipDesc = LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString();
+	}
+	else
+	{
+		if(bHasObserverError)
+		{
+			TooltipDesc = LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString();
+		}
+		else if(DebuggerRuntimeDescription.Len() > 0)
+		{
+			TooltipDesc = DebuggerRuntimeDescription;
+		}
+		else if(ErrorMessage.Len() > 0)
+		{
+			TooltipDesc = ErrorMessage;
+		}
+		else
+		{
+			if( NodeInstance->GetClass()->IsChildOf(UBTDecorator_BlueprintBase::StaticClass()) ||
+				NodeInstance->GetClass()->IsChildOf(UBTService_BlueprintBase::StaticClass()) ||
+				NodeInstance->GetClass()->IsChildOf(UBTTask_BlueprintBase::StaticClass()) )
+			{
+				FAssetData AssetData(NodeInstance->GetClass()->ClassGeneratedBy);
+				const FString* Description = AssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
+				if (Description && !Description->IsEmpty())
+				{
+					TooltipDesc = Description->Replace(TEXT("\\n"), TEXT("\n"));
+				}
+			}
+			else
+			{
+				TooltipDesc = NodeInstance->GetClass()->GetToolTipText().ToString();
+			}	
+		}
+	}
 
 	if (bInjectedNode)
 	{

@@ -10,6 +10,10 @@ struct FBTCooldownDecoratorMemory
 	uint8 RequestedRestart;
 };
 
+/**
+ * Cooldown decorator node.
+ * A decorator node that bases its condition on whether a cooldown timer has expired.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Cooldown : public UBTDecorator
 {

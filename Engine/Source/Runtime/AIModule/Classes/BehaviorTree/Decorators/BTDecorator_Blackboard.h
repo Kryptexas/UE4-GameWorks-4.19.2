@@ -19,6 +19,10 @@ namespace EBTBlackboardRestart
 	};
 }
 
+/**
+ * Blackboard decorator node.
+ * A decorator node that bases its condition on a Blackboard key.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Blackboard : public UBTDecorator_BlackboardBase
 {

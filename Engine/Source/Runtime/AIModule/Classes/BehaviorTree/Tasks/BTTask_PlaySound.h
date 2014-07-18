@@ -6,6 +6,10 @@
 class UBehaviorTreeComponent;
 class USoundCue;
 
+/**
+ * Play Sound task node.
+ * Plays the specified sound when executed.
+ */
 UCLASS()
 class UBTTask_PlaySound : public UBTTaskNode
 {

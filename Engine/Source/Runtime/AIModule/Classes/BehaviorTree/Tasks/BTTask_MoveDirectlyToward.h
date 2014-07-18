@@ -10,8 +10,11 @@ struct FBTMoveDirectlyTowardMemory
 	FAIRequestID MoveRequestID;
 };
 
-UCLASS(config=Game, Meta=(
-	Tooltip="Moves the AI pawn toward the specified Actor or Location (Vector) blackboard entry in a straight line, without regard to any navigation system.  If you need the AI to navigate, use the \"Move To\" node instead."))
+/**
+ * Move Directly Toward task node.
+ * Moves the AI pawn toward the specified Actor or Location (Vector) blackboard entry in a straight line, without regard to any navigation system. If you need the AI to navigate, use the "Move To" node instead.
+ */
+UCLASS(config=Game)
 class AIMODULE_API UBTTask_MoveDirectlyToward : public UBTTask_BlackboardBase
 {
 	GENERATED_UCLASS_BODY()

@@ -42,7 +42,7 @@ FName UBehaviorTreeGraphNode_Root::GetNameIcon() const
 
 FString UBehaviorTreeGraphNode_Root::GetTooltip() const
 {
-	return NSLOCTEXT("BehaviorTreeGraphNode", "RootTooltip", "Root node of this behavior tree, holds Blackboard data").ToString();
+	return UEdGraphNode::GetTooltip();
 }
 
 void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)

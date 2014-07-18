@@ -14,6 +14,10 @@ namespace EBlackBoardEntryComparison
 	};
 }
 
+/**
+ * Blackboard comparison decorator node.
+ * A decorator node that bases its condition on a comparison between two Blackboard keys.
+ */
 UCLASS(HideCategories=(Condition))
 class UBTDecorator_CompareBBEntries : public UBTDecorator
 {
