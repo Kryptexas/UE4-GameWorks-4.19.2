@@ -467,6 +467,7 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("netapi32.lib");
                 InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("iphlpapi.lib");
                 InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("setupapi.lib"); //  Required for access monitor device enumeration
+                InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("hid.lib");
 
                 // Windows Vista/7 Desktop Windows Manager API for Slate Windows Compliance
                 if( !SupportWindowsXP )		// Windows XP does not support DWM

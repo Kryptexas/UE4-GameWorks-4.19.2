@@ -20,6 +20,8 @@
 	#include <shlobj.h>
 	#include <objbase.h>
 	#include <SetupApi.h>
+	#include <Hidsdi.h>
+	#include <devguid.h>
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
@@ -42,6 +44,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	: GenericApplication( MakeShareable( new FWindowsCursor() ) )
 	, InstanceHandle( HInstance )
 	, bUsingHighPrecisionMouseInput( false )
+	, bIsMouseAttached( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
 	, CVarDeferMessageProcessing( 
 		TEXT( "Slate.DeferWindowsMessageProcessing" ),
@@ -122,6 +125,8 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 
 	// Disable accessibility shortcuts
 	AllowAccessibilityShortcutKeys(false);
+
+	QueryConnectedMice();
 }
 
 void FWindowsApplication::AllowAccessibilityShortcutKeys(const bool bAllowKeys)
@@ -1033,6 +1038,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_DEVICECHANGE:
 			{
 				XInput->SetNeedsControllerStateUpdate(); 
+				QueryConnectedMice();
 			}
 		}
 
@@ -1790,6 +1796,52 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 	}
 
 	return 0;
+}
+
+void FWindowsApplication::QueryConnectedMice()
+{
+	GUID HIDGuid;
+	GUID MouseGuid = GUID_DEVCLASS_MOUSE;
+	HDEVINFO hDevInfo;
+	BYTE TempBuffer[4096];
+
+	HidD_GetHidGuid(&HIDGuid);
+
+	hDevInfo = SetupDiGetClassDevs(&HIDGuid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+	if (hDevInfo == INVALID_HANDLE_VALUE)
+	{
+		// in this case, on a desktop it's proably safer to assume that a mouse exists rather than doesn't
+		bIsMouseAttached = true;
+		return;
+	}
+
+	bIsMouseAttached = false;
+
+	for (DWORD DeviceIndex = 0; ; DeviceIndex++)
+	{
+		SP_DEVICE_INTERFACE_DATA DevInterface;
+		SP_DEVINFO_DATA DevInfo;
+		PSP_DEVICE_INTERFACE_DETAIL_DATA DevDetail;
+
+		DevInterface.cbSize = sizeof(DevInterface);
+		if (!SetupDiEnumDeviceInterfaces(hDevInfo, NULL, &HIDGuid, DeviceIndex, &DevInterface))
+		{
+			break;
+		}
+		DevDetail = (PSP_DEVICE_INTERFACE_DETAIL_DATA)TempBuffer;
+		DevDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+		DevInfo.cbSize = sizeof(DevInfo);
+		if (!SetupDiGetDeviceInterfaceDetail(hDevInfo, &DevInterface, DevDetail, sizeof(TempBuffer), NULL, &DevInfo))
+		{
+			break;
+		}
+		if (IsEqualGUID(DevInfo.ClassGuid, MouseGuid))
+		{
+			bIsMouseAttached = true;
+			break;
+		}
+	}
 }
 
 void FTaskbarList::Initialize()

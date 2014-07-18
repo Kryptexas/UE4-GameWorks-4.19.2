@@ -275,6 +275,8 @@ public:
 	
 	virtual bool IsUsingTrackpad() const { return false; }
 
+	virtual bool IsMouseAttached() const { return true; }
+
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const
 	{
 		FPlatformRect OutRect;

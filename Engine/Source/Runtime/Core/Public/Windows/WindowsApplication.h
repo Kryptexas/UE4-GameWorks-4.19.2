@@ -240,6 +240,8 @@ public:
 
 	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }
 
+	virtual bool IsMouseAttached() const override { return bIsMouseAttached; }
+
 	virtual FModifierKeysState GetModifierKeys() const override;
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
@@ -317,6 +319,8 @@ private:
 
 	void AllowAccessibilityShortcutKeys(const bool bAllowKeys);
 
+	void QueryConnectedMice();
+
 private:
 
 	static const FIntPoint MinimizedWindowPosition;
@@ -324,6 +328,8 @@ private:
 	HINSTANCE InstanceHandle;
 
 	bool bUsingHighPrecisionMouseInput;
+
+	bool bIsMouseAttached;
 
 	TArray< FDeferredWindowsMessage > DeferredMessages;
 
