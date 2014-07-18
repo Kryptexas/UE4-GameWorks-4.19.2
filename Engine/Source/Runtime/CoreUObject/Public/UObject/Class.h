@@ -1211,7 +1211,8 @@ public:
 		checkSlow(!SuperStruct||SuperStruct->IsA<UFunction>());
 		return (UFunction*)SuperStruct;
 	}
-	UProperty* GetReturnProperty();
+
+	UProperty* GetReturnProperty() const;
 
 	/**
 	 * Used to safely check whether the passed in flag is set.

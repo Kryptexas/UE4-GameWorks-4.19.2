@@ -3621,7 +3621,7 @@ void UFunction::Serialize( FArchive& Ar )
 	}
 }
 
-UProperty* UFunction::GetReturnProperty()
+UProperty* UFunction::GetReturnProperty() const
 {
 	for( TFieldIterator<UProperty> It(this); It && (It->PropertyFlags & CPF_Parm); ++It )
 	{
