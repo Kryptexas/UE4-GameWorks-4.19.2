@@ -441,6 +441,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bOutputToEngineBinaries = false;
 
+        /// <summary>
+        /// Sub folder where the built target goes: Engine/Binaries/<PLATFORM>/<SUBDIR>
+        /// </summary>
+        public string ExeBinariesSubFolder = String.Empty;
+
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
 		/// </summary>
