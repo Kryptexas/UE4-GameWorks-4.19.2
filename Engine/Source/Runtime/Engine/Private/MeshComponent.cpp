@@ -11,7 +11,6 @@ UMeshComponent::UMeshComponent(const class FPostConstructInitializeProperties& P
 	bCanEverAffectNavigation = true;
 }
 
-
 void UMeshComponent::BeginDestroy()
 {
 	// Notify the streaming system.
@@ -22,31 +21,40 @@ void UMeshComponent::BeginDestroy()
 
 UMaterialInterface* UMeshComponent::GetMaterial(int32 ElementIndex) const
 {
-	if(ElementIndex < Materials.Num() && Materials[ElementIndex])
+	if (Materials.IsValidIndex(ElementIndex))
 	{
 		return Materials[ElementIndex];
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
-void UMeshComponent::SetMaterial(int32 ElementIndex,UMaterialInterface* Material)
+void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Material)
 {
-	if (ElementIndex >= 0 && (Materials.Num() <= ElementIndex || Materials[ElementIndex] != Material))
+	if (ElementIndex >= 0)
 	{
-		if (Materials.Num() <= ElementIndex)
+		if (Materials.IsValidIndex(ElementIndex) && (Materials[ElementIndex] == Material))
 		{
-			Materials.AddZeroed(ElementIndex + 1 - Materials.Num());
+			// Do nothing, the material is already set
 		}
-
-		Materials[ElementIndex] = Material;
-		MarkRenderStateDirty();
-
-		if(BodyInstance.IsValidBodyInstance())
+		else
 		{
-			BodyInstance.UpdatePhysicalMaterials();
+			// Grow the array if the new index is too large
+			if (Materials.Num() <= ElementIndex)
+			{
+				Materials.AddZeroed(ElementIndex + 1 - Materials.Num());
+			}
+
+			// Set the material and invalidate things
+			Materials[ElementIndex] = Material;
+			MarkRenderStateDirty();
+
+			if (BodyInstance.IsValidBodyInstance())
+			{
+				BodyInstance.UpdatePhysicalMaterials();
+			}
 		}
 	}
 }
@@ -72,37 +80,51 @@ int32 UMeshComponent::GetNumMaterials() const
 	return 0;
 }
 
-void UMeshComponent::PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups )
+void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
 {
-	// If requested, tell the streaming system to only process character textures for 30 frames.
-	if ( bPrioritizeCharacterTextures )
+	for (int32 ElementIndex = 0; ElementIndex < GetNumMaterials(); ElementIndex++)
 	{
-		IStreamingManager::Get().SetDisregardWorldResourcesForFrames( 30 );
-	}
-
-	int32 NumElements = GetNumMaterials();
-	for ( int32 ElementIndex=0; ElementIndex < NumElements; ++ElementIndex )
-	{
-		UMaterialInterface* Material = GetMaterial( ElementIndex );
-		if ( Material )
+		if (UMaterialInterface* MaterialInterface = GetMaterial(ElementIndex))
 		{
-			Material->SetForceMipLevelsToBeResident( false, false, Seconds, CinematicTextureGroups );
+			OutMaterials.Add(MaterialInterface);
 		}
 	}
 }
 
+void UMeshComponent::PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups )
+{
+	// If requested, tell the streaming system to only process character textures for 30 frames.
+	if (bPrioritizeCharacterTextures)
+	{
+		IStreamingManager::Get().SetDisregardWorldResourcesForFrames(30);
+	}
+
+	TArray<UTexture*> Textures;
+	GetUsedTextures(/*out*/ Textures, EMaterialQualityLevel::Num);
+
+	for (UTexture* Texture : Textures)
+	{
+		if (UTexture2D* Texture2D = Cast<UTexture2D>(Texture))
+		{
+			Texture2D->SetForceMipLevelsToBeResident(Seconds, CinematicTextureGroups);
+		}
+	}
+}
 
 void UMeshComponent::SetTextureForceResidentFlag( bool bForceMiplevelsToBeResident )
 {
 	const int32 CinematicTextureGroups = 0;
+	const float Seconds = -1.0f;
 
-	int32 NumElements = GetNumMaterials();
-	for ( int32 ElementIndex=0; ElementIndex < NumElements; ++ElementIndex )
+	TArray<UTexture*> Textures;
+	GetUsedTextures(/*out*/ Textures, EMaterialQualityLevel::Num);
+
+	for (UTexture* Texture : Textures)
 	{
-		UMaterialInterface* Material = GetMaterial( ElementIndex );
-		if ( Material )
+		if (UTexture2D* Texture2D = Cast<UTexture2D>(Texture))
 		{
-			Material->SetForceMipLevelsToBeResident( true, bForceMiplevelsToBeResident, -1.0f, CinematicTextureGroups );
+			Texture2D->SetForceMipLevelsToBeResident(Seconds, CinematicTextureGroups);
+			Texture2D->bForceMiplevelsToBeResident = bForceMiplevelsToBeResident;
 		}
 	}
 }

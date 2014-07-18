@@ -23,6 +23,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	// End UPrimitiveComponent Interface
 
 	/** Accesses the scene relevance information for the materials applied to the mesh. */
@@ -32,7 +33,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 *	Tell the streaming system whether or not all mip levels of all textures used by this component should be loaded and remain loaded.
 	 *	@param bForceMiplevelsToBeResident		Whether textures should be forced to be resident or not.
 	 */
-	void SetTextureForceResidentFlag( bool bForceMiplevelsToBeResident );
+	virtual void SetTextureForceResidentFlag( bool bForceMiplevelsToBeResident );
 
 	/**
 	 *	Tell the streaming system to start loading all textures with all mip-levels.
@@ -40,10 +41,5 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 *	@param bPrioritizeCharacterTextures		Whether character textures should be prioritized for a while by the streaming system
 	 *	@param CinematicTextureGroups			Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
-	void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
-
-
+	virtual void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
 };
-
-
-
