@@ -115,6 +115,21 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 					[
 						DelegateButton
 					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
+						.Visibility( this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, ConstPropertyHandle )
+						.OnClicked( this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, ConstPropertyHandle )
+						.VAlign(VAlign_Center)
+						.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+						[
+							SNew(SImage)
+							.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Browse") )
+						]
+					]
 				];
 			}
 		}
@@ -176,6 +191,21 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 					.FillWidth(1)
 					[
 						DelegateButton
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
+						.Visibility( this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, DelegatePropertyHandle )
+						.OnClicked( this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, DelegatePropertyHandle )
+						.VAlign(VAlign_Center)
+						.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+						[
+							SNew(SImage)
+							.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Browse") )
+						]
 					]
 				];
 			}
@@ -531,6 +561,85 @@ void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(TSharedRef<IProper
 	HandleAddFunctionBinding(PropertyHandle, SelectedFunction);
 
 	GotoFunction(FunctionGraph);
+}
+
+EVisibility FBlueprintWidgetCustomization::GetGotoBindingVisibility(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					return EVisibility::Visible;
+				}
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
+FReply FBlueprintWidgetCustomization::HandleGotoBindingClicked(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					TArray<UEdGraph*> AllGraphs;
+					Blueprint->GetAllGraphs(AllGraphs);
+
+					for ( UEdGraph* Graph : AllGraphs )
+					{
+						if ( Graph->GraphGuid == Binding.MemberGuid )
+						{
+							GotoFunction(Graph);
+						}
+					}
+
+
+					// Either way return
+					return FReply::Handled();
+				}
+			}
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 void FBlueprintWidgetCustomization::GotoFunction(UEdGraph* FunctionGraph)

@@ -46,6 +46,10 @@ private:
 	void HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
 	void GotoFunction(UEdGraph* FunctionGraph);
 
+	EVisibility GetGotoBindingVisibility(TSharedRef<IPropertyHandle> PropertyHandle) const;
+
+	FReply HandleGotoBindingClicked(TSharedRef<IPropertyHandle> PropertyHandle);
+
 private:
 
 	TWeakPtr<FWidgetBlueprintEditor> Editor;
