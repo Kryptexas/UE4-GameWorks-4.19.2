@@ -18,7 +18,6 @@ public class SessionServices : ModuleRules
 			{
 				"CoreUObject",
 				"EngineMessages",
-				"Messaging",
 				"SessionMessages",
 			}
 		);

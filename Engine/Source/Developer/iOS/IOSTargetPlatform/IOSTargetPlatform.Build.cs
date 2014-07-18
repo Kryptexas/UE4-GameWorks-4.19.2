@@ -13,7 +13,6 @@ public class IOSTargetPlatform : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-				"Messaging",
 				"TargetPlatform",
 				"DesktopPlatform",
 				"LaunchDaemonMessages",

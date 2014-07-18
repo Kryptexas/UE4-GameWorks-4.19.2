@@ -21,7 +21,6 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"CoreUObject",
-					"Messaging",
 					"SessionMessages",
 					"TargetPlatform",
 					"UnrealEdMessages",
