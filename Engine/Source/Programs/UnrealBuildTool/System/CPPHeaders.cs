@@ -188,28 +188,14 @@ namespace UnrealBuildTool
 						)
 					{
 						++TotalDirectIncludeResolveCacheMisses;
-						try
+
+						// search the include paths to resolve the file
+						FileItem DirectIncludeResolvedFile = FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, SourceFilesDirectory);
+						if (DirectIncludeResolvedFile != null)
 						{
-							// search the include paths to resolve the file
-							FileItem DirectIncludeResolvedFile = FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, SourceFilesDirectory);
-							if (DirectIncludeResolvedFile != null)
-							{
-								DirectlyIncludedFiles.Add(DirectIncludeResolvedFile);
-							}
-							IncludeDependencyCache.CacheResolvedIncludeFullPath(CPPFile, DirectlyIncludedFileNameIndex, DirectIncludeResolvedFile != null ? DirectIncludeResolvedFile.AbsolutePath : "");
+							DirectlyIncludedFiles.Add(DirectIncludeResolvedFile);
 						}
-						catch (System.Exception ex)
-						{
-							string BuildExceptionMessage = "GetIncludeDependencies: Failed to FindIncludedFile \n\t\"";
-							BuildExceptionMessage += DirectInclude.IncludeName;
-							BuildExceptionMessage += "\"\n while processing \n\t\"";
-							BuildExceptionMessage += CPPFile.AbsolutePath;
-							BuildExceptionMessage += "\"\n";
-							BuildExceptionMessage += "Exception:\n";
-							BuildExceptionMessage += ex.ToString();
-							BuildExceptionMessage += "\n";
-							throw new BuildException(ex, "{0}", BuildExceptionMessage);
-						}
+						IncludeDependencyCache.CacheResolvedIncludeFullPath(CPPFile, DirectlyIncludedFileNameIndex, DirectIncludeResolvedFile != null ? DirectIncludeResolvedFile.AbsolutePath : "");
 					}
 					else
 					{

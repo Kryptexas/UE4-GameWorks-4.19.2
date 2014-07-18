@@ -1062,6 +1062,9 @@ namespace UnrealBuildTool
 				return LinkInputFiles;
 			}
 
+			// Process all of the header file dependencies for this module
+			this.ProcessAllCppDependencies( ModuleCompileEnvironment );
+
 			// Throw an error if the module's source file list referenced any non-existent files.
 			if (SourceFilesToBuild.MissingFiles.Count > 0)
 			{
@@ -1591,7 +1594,9 @@ namespace UnrealBuildTool
 			// search the include paths to resolve the file.
 			FileItem PrecompiledHeaderIncludeFile = ModuleCompileEnvironment.FindIncludedFile(CPPFile.PCHHeaderNameInCode, !BuildConfiguration.bCheckExternalHeadersForModification, SourceFilesDirectory);
 			if (PrecompiledHeaderIncludeFile == null)
+			{ 
 				throw new BuildException("The first include statement in source file '{0}' is trying to include the file '{1}' as the precompiled header for module '{2}', but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, CPPFile.PCHHeaderNameInCode, this.Name);
+			}
 
 			CPPEnvironment.IncludeDependencyCache.CacheResolvedIncludeFullPath(CPPFile, 0, PrecompiledHeaderIncludeFile.AbsolutePath);
 			CPPFile.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFile.AbsolutePath;
