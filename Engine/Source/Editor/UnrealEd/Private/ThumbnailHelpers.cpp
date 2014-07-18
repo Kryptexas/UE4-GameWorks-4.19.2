@@ -495,6 +495,364 @@ void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees
 
 /*
 ***************************************************************
+FAnimationThumbnailScene
+***************************************************************
+*/
+
+FAnimationSequenceThumbnailScene::FAnimationSequenceThumbnailScene()
+	: FThumbnailPreviewScene()
+{
+	bForceAllUsedMipsResident = false;
+	// Create preview actor
+	// checked
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.bNoFail = true;
+	SpawnInfo.ObjectFlags = RF_Transient;
+	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
+
+	PreviewActor->SetActorEnableCollision(false);
+}
+
+bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimation)
+{
+	PreviewActor->SkeletalMeshComponent->Materials.Empty();
+
+	bool bSetSucessfully = false;
+
+	PreviewAnimation = InAnimation;
+
+	if (InAnimation)
+	{
+		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
+		{
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
+
+			PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(PreviewSkeletalMesh);
+
+			if (PreviewSkeletalMesh)
+			{
+				bSetSucessfully = true;
+
+				// Handle posing the mesh at the middle of the animation
+				const float AnimPosition = InAnimation->SequenceLength / 2.f;
+
+				PreviewActor->SkeletalMeshComponent->PlayAnimation(InAnimation,false);
+				PreviewActor->SkeletalMeshComponent->Stop();
+				PreviewActor->SkeletalMeshComponent->SetPosition(AnimPosition);
+
+				UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->SkeletalMeshComponent->GetSingleNodeInstance();
+				if (SingleNodeInstance)
+				{
+					SingleNodeInstance->UpdateMontageWeightForTimeSkip(AnimPosition);
+				}
+
+				PreviewActor->SkeletalMeshComponent->RefreshBoneTransforms(nullptr);
+
+				FTransform MeshTransform = FTransform::Identity;
+
+				PreviewActor->SetActorLocation(FVector(0, 0, 0), false);
+				PreviewActor->SkeletalMeshComponent->UpdateBounds();
+
+				// Center the mesh at the world origin then offset to put it on top of the plane
+				const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+				PreviewActor->SetActorLocation(-PreviewActor->SkeletalMeshComponent->Bounds.Origin + FVector(0, 0, BoundsZOffset), false);
+				PreviewActor->SkeletalMeshComponent->RecreateRenderState_Concurrent();
+			}
+		}
+	}
+	
+	if(!bSetSucessfully)
+	{
+		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
+		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+	}
+
+	return bSetSucessfully;
+}
+
+void FAnimationSequenceThumbnailScene::CleanupComponentChildren(USceneComponent* Component)
+{
+	if (Component)
+	{
+		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		{
+			CleanupComponentChildren(Component->AttachChildren[I]);
+			Component->AttachChildren[I]->DestroyComponent();
+		}
+
+		Component->AttachChildren.Empty();
+	}
+}
+
+void FAnimationSequenceThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+{
+	check(PreviewAnimation);
+	check(PreviewActor->SkeletalMeshComponent);
+	check(PreviewActor->SkeletalMeshComponent->SkeletalMesh);
+
+	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
+	// No need to add extra size to view slightly outside of the sphere to compensate for perspective since skeletal meshes already buffer bounds.
+	const float HalfMeshSize = PreviewActor->SkeletalMeshComponent->Bounds.SphereRadius;
+	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
+
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewAnimation->ThumbnailInfo);
+	if (ThumbnailInfo)
+	{
+		if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)
+		{
+			ThumbnailInfo->OrbitZoom = -TargetDistance;
+		}
+	}
+	else
+	{
+		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	}
+
+	OutOrigin = FVector(0, 0, -BoundsZOffset);
+	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
+	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
+	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
+}
+
+/*
+***************************************************************
+FBlendSpaceThumbnailScene
+***************************************************************
+*/
+
+FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
+	: FThumbnailPreviewScene()
+{
+	bForceAllUsedMipsResident = false;
+	// Create preview actor
+	// checked
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.bNoFail = true;
+	SpawnInfo.ObjectFlags = RF_Transient;
+	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
+
+	PreviewActor->SetActorEnableCollision(false);
+}
+
+bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpace)
+{
+	PreviewActor->SkeletalMeshComponent->Materials.Empty();
+
+	bool bSetSucessfully = false;
+
+	PreviewAnimation = InBlendSpace;
+
+	if (InBlendSpace)
+	{
+		if (USkeleton* Skeleton = InBlendSpace->GetSkeleton())
+		{
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
+
+			PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(PreviewSkeletalMesh);
+
+			if (PreviewSkeletalMesh)
+			{
+				bSetSucessfully = true;
+
+				// Handle posing the mesh at the middle of the animation
+				PreviewActor->SkeletalMeshComponent->PlayAnimation(InBlendSpace, false);
+				PreviewActor->SkeletalMeshComponent->Stop();
+
+				UAnimSingleNodeInstance* AnimInstance = PreviewActor->SkeletalMeshComponent->GetSingleNodeInstance();
+				if (AnimInstance)
+				{
+					FVector BlendInput(0.f);
+					for (int32 i = 0; i < InBlendSpace->NumOfDimension; ++i)
+					{
+						const FBlendParameter& Param = InBlendSpace->GetBlendParameter(i);
+						BlendInput[i] = (Param.GetRange() / 2.f) + Param.Min;
+					}
+					AnimInstance->UpdateBlendspaceSamples(BlendInput);
+				}
+				PreviewActor->SkeletalMeshComponent->RefreshBoneTransforms(nullptr);
+
+				FTransform MeshTransform = FTransform::Identity;
+
+				PreviewActor->SetActorLocation(FVector(0, 0, 0), false);
+				PreviewActor->SkeletalMeshComponent->UpdateBounds();
+
+				// Center the mesh at the world origin then offset to put it on top of the plane
+				const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+				PreviewActor->SetActorLocation(-PreviewActor->SkeletalMeshComponent->Bounds.Origin + FVector(0, 0, BoundsZOffset), false);
+				PreviewActor->SkeletalMeshComponent->RecreateRenderState_Concurrent();
+			}
+		}
+	}
+
+	if (!bSetSucessfully)
+	{
+		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
+		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+	}
+
+	return bSetSucessfully;
+}
+
+void FBlendSpaceThumbnailScene::CleanupComponentChildren(USceneComponent* Component)
+{
+	if (Component)
+	{
+		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		{
+			CleanupComponentChildren(Component->AttachChildren[I]);
+			Component->AttachChildren[I]->DestroyComponent();
+		}
+
+		Component->AttachChildren.Empty();
+	}
+}
+
+void FBlendSpaceThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+{
+	check(PreviewAnimation);
+	check(PreviewActor->SkeletalMeshComponent);
+	check(PreviewActor->SkeletalMeshComponent->SkeletalMesh);
+
+	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
+	// No need to add extra size to view slightly outside of the sphere to compensate for perspective since skeletal meshes already buffer bounds.
+	const float HalfMeshSize = PreviewActor->SkeletalMeshComponent->Bounds.SphereRadius;
+	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
+
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewAnimation->ThumbnailInfo);
+	if (ThumbnailInfo)
+	{
+		if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)
+		{
+			ThumbnailInfo->OrbitZoom = -TargetDistance;
+		}
+	}
+	else
+	{
+		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	}
+
+	OutOrigin = FVector(0, 0, -BoundsZOffset);
+	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
+	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
+	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
+}
+
+/*
+***************************************************************
+FAnimBlueprintThumbnailScene
+***************************************************************
+*/
+
+FAnimBlueprintThumbnailScene::FAnimBlueprintThumbnailScene()
+	: FThumbnailPreviewScene()
+{
+	bForceAllUsedMipsResident = false;
+	
+	// Create preview actor
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.bNoFail = true;
+	SpawnInfo.ObjectFlags = RF_Transient;
+	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
+
+	PreviewActor->SetActorEnableCollision(false);
+}
+
+bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlueprint)
+{
+	PreviewActor->SkeletalMeshComponent->Materials.Empty();
+
+	bool bSetSucessfully = false;
+
+	PreviewBlueprint = InBlueprint;
+
+	if (InBlueprint)
+	{
+		if (USkeleton* Skeleton = InBlueprint->TargetSkeleton)
+		{
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
+
+			PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(PreviewSkeletalMesh);
+
+			if (PreviewSkeletalMesh)
+			{
+				bSetSucessfully = true;
+
+				PreviewActor->SkeletalMeshComponent->SetAnimInstanceClass(InBlueprint->GeneratedClass);
+
+				FTransform MeshTransform = FTransform::Identity;
+
+				PreviewActor->SetActorLocation(FVector(0, 0, 0), false);
+				PreviewActor->SkeletalMeshComponent->UpdateBounds();
+
+				// Center the mesh at the world origin then offset to put it on top of the plane
+				const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+				PreviewActor->SetActorLocation(-PreviewActor->SkeletalMeshComponent->Bounds.Origin + FVector(0, 0, BoundsZOffset), false);
+				PreviewActor->SkeletalMeshComponent->RecreateRenderState_Concurrent();
+			}
+		}
+	}
+
+	if (!bSetSucessfully)
+	{
+		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
+		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+	}
+
+	return bSetSucessfully;
+}
+
+void FAnimBlueprintThumbnailScene::CleanupComponentChildren(USceneComponent* Component)
+{
+	if (Component)
+	{
+		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		{
+			CleanupComponentChildren(Component->AttachChildren[I]);
+			Component->AttachChildren[I]->DestroyComponent();
+		}
+
+		Component->AttachChildren.Empty();
+	}
+}
+
+void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+{
+	check(PreviewBlueprint);
+	check(PreviewActor->SkeletalMeshComponent);
+	check(PreviewActor->SkeletalMeshComponent->SkeletalMesh);
+
+	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
+	// No need to add extra size to view slightly outside of the sphere to compensate for perspective since skeletal meshes already buffer bounds.
+	const float HalfMeshSize = PreviewActor->SkeletalMeshComponent->Bounds.SphereRadius;
+	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->SkeletalMeshComponent->Bounds);
+	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
+
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewBlueprint->ThumbnailInfo);
+	if (ThumbnailInfo)
+	{
+		if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)
+		{
+			ThumbnailInfo->OrbitZoom = -TargetDistance;
+		}
+	}
+	else
+	{
+		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	}
+
+	OutOrigin = FVector(0, 0, -BoundsZOffset);
+	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
+	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
+	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
+}
+
+/*
+***************************************************************
   FBlueprintThumbnailScene
 ***************************************************************
 */

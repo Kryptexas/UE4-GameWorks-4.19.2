@@ -163,6 +163,20 @@ void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLoop
 	}
 }
 
+void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifference)
+{
+	Montage_UpdateWeight(TimeDifference);
+}
+
+void UAnimSingleNodeInstance::UpdateBlendspaceSamples(FVector InBlendInput)
+{
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
+	{
+		float CurrentTime = 0.f;
+		BlendSpaceAdvanceImmediate(BlendSpace, InBlendInput, BlendSampleData, BlendFilter, false, 1.f, 0.f, CurrentTime);
+	}
+}
+
 void UAnimSingleNodeInstance::RestartMontage(UAnimMontage * Montage, FName FromSection)
 {
 	if( Montage == CurrentAsset )

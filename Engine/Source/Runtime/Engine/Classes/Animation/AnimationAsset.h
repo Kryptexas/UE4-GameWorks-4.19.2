@@ -413,7 +413,12 @@ public:
 	 * @param ReplacementMap	Mapping of original asset to new asset
 	 **/
 	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);	
+#endif
 
+#if WITH_EDITORONLY_DATA
+	/** Information for thumbnail rendering */
+	UPROPERTY(VisibleAnywhere, EditInline, Category = Thumbnail)
+	class UThumbnailInfo* ThumbnailInfo;
 #endif
 
 public:
