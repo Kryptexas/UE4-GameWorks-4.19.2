@@ -536,6 +536,7 @@ void FBodyInstance::CreateDOFLock()
 	{
 		DOFConstraint->TermConstraint();
 		FConstraintInstance::Free(DOFConstraint);
+		DOFConstraint = NULL;
 	}
 
 	//setup constraint based on DOF
