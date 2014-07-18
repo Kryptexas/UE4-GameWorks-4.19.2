@@ -489,6 +489,11 @@ UBodySetup* USkeletalMeshComponent::GetBodySetup()
 	return NULL;
 }
 
+bool USkeletalMeshComponent::CanEditSimulatePhysics()
+{
+	return GetPhysicsAsset() != nullptr;
+}
+
 void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 {
 	if ( !bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer() )

@@ -387,6 +387,11 @@ UBodySetup* UDestructibleComponent::GetBodySetup()
 	return NULL;
 }
 
+bool UDestructibleComponent::CanEditSimulatePhysics()
+{
+	// if destructiblemeshcomponent, we will allow it always
+	return true;
+}
 
 void UDestructibleComponent::AddImpulse( FVector Impulse, FName BoneName /*= NAME_None*/, bool bVelChange /*= false*/ )
 {

@@ -656,6 +656,11 @@ public:
 	virtual void SetSimulatePhysics(bool bSimulate);
 
 	/**
+	 * Determines whether or not the simulate physics setting can be edited interactively on this component
+	 */
+	virtual bool CanEditSimulatePhysics();
+
+	/**
 	 *	Add an impulse to a single rigid body. Good for one time instant burst.
 	 *
 	 *	@param	Impulse		Magnitude and direction of impulse to apply.

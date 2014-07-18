@@ -27,61 +27,18 @@ bool FPrimitiveComponentDetails::IsSimulatePhysicsEditable() const
 {
 	// Check whether to enable editing of bSimulatePhysics - this will happen if all objects are UPrimitiveComponents & have collision geometry.
 	bool bEnableSimulatePhysics = ObjectsCustomized.Num() > 0;
-	for ( TWeakObjectPtr<UObject> CustomizedObject : ObjectsCustomized )
+	for (TWeakObjectPtr<UObject> CustomizedObject : ObjectsCustomized)
 	{
-		if ( CustomizedObject.IsValid() && CustomizedObject->IsA(UPrimitiveComponent::StaticClass()) )
+		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(CustomizedObject.Get()))
 		{
-			// Primitive components are the simplest - they have the physics data within them
-			TWeakObjectPtr<UPrimitiveComponent> PrimitiveComponent = CastChecked<UPrimitiveComponent>(CustomizedObject.Get());
-			// Static mesh components can query the underlying mesh too
-			TWeakObjectPtr<UStaticMeshComponent> StaticMeshComponent = Cast<UStaticMeshComponent>(CustomizedObject.Get());
-			// if skeletalmeshcomponent, you'll have to check physics asset to verify if it's eligible to have collision
-			TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent = Cast<USkeletalMeshComponent>(PrimitiveComponent.Get());
-			// if destructiblemeshcomponent, we will allow it always
-			TWeakObjectPtr<UDestructibleComponent> DestructibleComponent = Cast<UDestructibleComponent>(PrimitiveComponent.Get());
-			// if shape component, we will check another body setup
-			TWeakObjectPtr<UShapeComponent> ShapeComponent = Cast<UShapeComponent>(CustomizedObject.Get());
-			// if instancedstaticmeshcomponent, we will never allow it
-			TWeakObjectPtr<UInstancedStaticMeshComponent> InstancedSMComponent = Cast<UInstancedStaticMeshComponent>(PrimitiveComponent.Get());
-			
-			if(DestructibleComponent.IsValid())
-			{
-				bEnableSimulatePhysics = true;
-			}
-			else if(ShapeComponent.IsValid())
-			{
-				// ShapeComponent : ShapeBodySetup is null when not registered, so we just allow it all the time. 
-				bEnableSimulatePhysics &= true;
-			}
-			else if(InstancedSMComponent.IsValid())
-			{
-				bEnableSimulatePhysics = false;
-			}
-			else if(PrimitiveComponent->BodyInstance.BodySetup.IsValid())
-			{
-												//If there's no collision we still let them simulate physics. The object falls through the world - this behavior is debatable but what we decided on for now
-				bEnableSimulatePhysics &= true; // (PrimitiveComponent->BodyInstance.BodySetup->AggGeom.GetElementCount() > 0 || PrimitiveComponent->BodyInstance.BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
-			}
-			else if(StaticMeshComponent.IsValid() && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->BodySetup)
-			{
-				bEnableSimulatePhysics &= (StaticMeshComponent->StaticMesh->BodySetup->AggGeom.GetElementCount() > 0 || StaticMeshComponent->StaticMesh->BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
-			}
-			else if(SkeletalMeshComponent.IsValid())
-			{
-				bEnableSimulatePhysics &= (SkeletalMeshComponent->GetPhysicsAsset() != NULL);
-			}
-			else
+			if (!PrimitiveComponent->CanEditSimulatePhysics())
 			{
 				bEnableSimulatePhysics = false;
 				break;
 			}
 		}
-		else
-		{
-			bEnableSimulatePhysics = false;
-			break;
-		}
 	}
+
 	return bEnableSimulatePhysics;
 }
 

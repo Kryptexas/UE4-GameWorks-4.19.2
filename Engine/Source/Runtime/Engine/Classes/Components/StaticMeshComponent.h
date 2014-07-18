@@ -257,6 +257,7 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual class UBodySetup* GetBodySetup() override;
+	virtual bool CanEditSimulatePhysics() override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 	virtual bool UsesOnlyUnlitMaterials() const override;

@@ -2462,6 +2462,12 @@ bool UPrimitiveComponent::CanCharacterStepUp(APawn* Pawn) const
 	}
 }
 
+bool UPrimitiveComponent::CanEditSimulatePhysics()
+{
+	//Even if there's no collision but there is a body setup, we still let them simulate physics.
+	// The object falls through the world - this behavior is debatable but what we decided on for now
+	return GetBodySetup() != nullptr;
+}
 
 #undef LOCTEXT_NAMESPACE
 

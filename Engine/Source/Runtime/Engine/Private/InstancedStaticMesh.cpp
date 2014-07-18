@@ -1259,6 +1259,12 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 #endif //WITH_PHYSX
 }
 
+bool UInstancedStaticMeshComponent::CanEditSimulatePhysics()
+{
+	// if instancedstaticmeshcomponent, we will never allow it
+	return false;
+}
+
 FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& BoundTransform) const
 {
 	FMatrix BoundTransformMatrix = BoundTransform.ToMatrixWithScale();

@@ -118,6 +118,7 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
+	virtual bool CanEditSimulatePhysics() override;
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
 #if WITH_EDITOR
