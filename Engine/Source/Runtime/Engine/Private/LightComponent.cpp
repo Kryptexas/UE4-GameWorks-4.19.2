@@ -488,7 +488,6 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
 	const FString PropertyName = PropertyThatChanged ? PropertyThatChanged->GetName() : TEXT("");
-	const FName PropertyCategory = FObjectEditorUtils::GetCategoryFName(PropertyThatChanged);
 
 	Intensity = FMath::Max(0.0f, Intensity);
 

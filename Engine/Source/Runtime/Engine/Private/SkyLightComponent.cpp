@@ -223,8 +223,6 @@ void USkyLightComponent::DestroyRenderState_Concurrent()
 #if WITH_EDITOR
 void USkyLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	SetCaptureIsDirty();
