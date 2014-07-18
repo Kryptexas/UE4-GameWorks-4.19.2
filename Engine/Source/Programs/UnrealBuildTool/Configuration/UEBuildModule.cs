@@ -1062,9 +1062,6 @@ namespace UnrealBuildTool
 				return LinkInputFiles;
 			}
 
-			// Process all of the header file dependencies for this module
-			this.ProcessAllCppDependencies( ModuleCompileEnvironment );
-
 			// Throw an error if the module's source file list referenced any non-existent files.
 			if (SourceFilesToBuild.MissingFiles.Count > 0)
 			{
