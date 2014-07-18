@@ -21,13 +21,16 @@ AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleL
 	bBindToConfirmCancelInputs = true;
 }
 
-FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo)
+void AGameplayAbilityTargetActor_SingleLineTrace::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
-	// very temp - do a mostly hardcoded trace from the source actor
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, bDebug);
+	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceActor);
+}
 
-	AActor * SourceActor = ActorInfo->Actor.Get();
-	check(SourceActor);
 
+FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *SourceActor)
+{
 	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_SingleLineTrace"));
 	bool bTraceComplex = false;
 	TArray<AActor*> ActorsToIgnore;
@@ -39,21 +42,23 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::St
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
-	FVector Start = SourceActor->GetActorLocation();
-	FVector End = Start + (SourceActor->GetActorForwardVector() * 3000.f);
+	FVector TraceStart = SourceActor->GetActorLocation();
+	FVector TraceEnd = TraceStart + (SourceActor->GetActorForwardVector() * 3000.f);
 
 	// ------------------------------------------------------
 
+	FHitResult ReturnHitResult;
+	SourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
+	return ReturnHitResult;
+}
+
+FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo)
+{
+	SourceActor = ActorInfo->Actor.Get();
+	check(SourceActor.Get());
+
 	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-
-	SourceActor->GetWorld()->LineTraceSingle(ReturnData->HitResult, Start, End, ECC_WorldStatic, Params);
-
-	if (bDebug)
-	{
-		DrawDebugLine(World, Start, End, FLinearColor::Green, false);
-		DrawDebugSphere(World, ReturnData->HitResult.Location, 16, 10, FLinearColor::Green, false);
-	}
-
+	ReturnData->HitResult = PerformTrace(SourceActor.Get());
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
 
@@ -95,12 +100,31 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Cancel()
 
 void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
+	//Super::Tick(DeltaSeconds);
+	FGameplayAbilityTargetDataHandle Handle;
+	FHitResult HitResult;
 
 	/** Temp: Do a trace wiuth bDebug=true to draw a cheap "preview" */
 	if (Ability.IsValid())
 	{
-		StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
+		Super::Tick(DeltaSeconds);
+		Handle = StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
+		HitResult = *Handle.Data->GetHitResult();
+	}
+	else
+	{
+		Super::Tick(DeltaSeconds);
+	}
+
+	// very temp - do a mostly hardcoded trace from the source actor
+	if (bDebug && SourceActor.Get())
+	{
+		if (!Ability.IsValid())
+		{
+			HitResult = PerformTrace(SourceActor.Get());
+		}
+		DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), HitResult.Location, FLinearColor::Green, false);
+		DrawDebugSphere(GetWorld(), HitResult.Location, 16, 10, FLinearColor::Green, false);
 	}
 }
 
@@ -115,3 +139,4 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 
 	Destroy();
 }
+

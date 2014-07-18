@@ -11,7 +11,6 @@ class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_SingleLineTrace : public
 	GENERATED_UCLASS_BODY()
 
 public:
-	
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) override;
 
 	virtual void StartTargeting(UGameplayAbility* Ability);
@@ -28,8 +27,16 @@ public:
 	
 	TWeakObjectPtr<UGameplayAbility> Ability;
 	
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	bool bDebug;
+
+	//For remote clients, the actor who starts the trace (also gives us trace direction)
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	TWeakObjectPtr<AActor> SourceActor;		//Maybe add a socket to this?
 
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
+
+protected:
+	FHitResult PerformTrace(AActor *SourceActor);
 };

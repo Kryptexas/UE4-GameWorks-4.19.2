@@ -152,6 +152,11 @@ public:
 		return ReplicationPolicy;
 	}
 
+	EGameplayAbilityNetExecutionPolicy::Type GetNetExecutionPolicy() const
+	{
+		return NetExecutionPolicy;
+	}
+
 	/** Gets the current actor info bound to this ability - can only be called on instanced abilities. */
 	const FGameplayAbilityActorInfo* GetCurrentActorInfo()
 	{

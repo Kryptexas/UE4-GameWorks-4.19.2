@@ -27,7 +27,12 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 
 	if (Ability.IsValid())
 	{
-		if (Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled())
+		bool bSpawnLocalVersion = false;
+
+		bSpawnLocalVersion |= (Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled() && (Ability.Get()->GetNetExecutionPolicy() != EGameplayAbilityNetExecutionPolicy::Server));
+		bSpawnLocalVersion |= (Ability.Get()->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive);
+
+		if (bSpawnLocalVersion)
 		{
 			// Locally controlled - spawn the targeting actor.
 			AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
@@ -50,6 +55,12 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 				SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
 
 				MySpawnedTargetActor = SpawnedActor;
+
+				AGameplayAbilityTargetActor* TargetActor = CastChecked<AGameplayAbilityTargetActor>(SpawnedActor);
+				if (TargetActor)
+				{
+					TargetActor->MasterPC = Ability.Get()->GetCurrentActorInfo()->PlayerController.Get();
+				}
 			}
 		}
 		else

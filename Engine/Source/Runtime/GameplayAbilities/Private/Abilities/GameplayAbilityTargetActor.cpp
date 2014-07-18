@@ -29,3 +29,9 @@ void AGameplayAbilityTargetActor::CancelTargeting()
 {
 	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 }
+
+bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
+{
+	//The player who created the ability doesn't need to be updated about it - there should be local prediction in place.
+	return (RealViewer == MasterPC) ? false : Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+}
