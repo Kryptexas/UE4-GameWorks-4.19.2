@@ -466,6 +466,9 @@ public:
 	/** Called before rendering to allow the game viewport to allocate subregions to players. */
 	virtual void LayoutPlayers();
 
+	/** Allows game code to disable splitscreen (useful when in menus) */
+	void SetDisableSplitscreenOverride( const bool bDisabled );
+
 	/** called before rending subtitles to allow the game viewport to determine the size of the subtitle area
 	 * @param Min top left bounds of subtitle region (0 to 1)
 	 * @param Max bottom right bounds of subtitle region (0 to 1)
@@ -757,6 +760,9 @@ private:
 
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
+
+	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
+	bool bDisableSplitScreenOverride;
 };
 
 
