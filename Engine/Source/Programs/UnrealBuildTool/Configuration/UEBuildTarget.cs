@@ -1499,6 +1499,8 @@ namespace UnrealBuildTool
 
 			if( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles) )
 			{
+				var UObjectDiscoveryStartTime = DateTime.UtcNow;
+
 				var UObjectModules = new List<UHTModuleInfo>();
 
 				// Figure out which modules have UObjects that we may need to generate headers for
@@ -1535,6 +1537,12 @@ namespace UnrealBuildTool
 						UObjectModules.Add( UHTModuleInfo );
 						Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
 					}
+				}
+				
+				if( BuildConfiguration.bPrintPerformanceInfo )
+				{
+					double UObjectDiscoveryTime = ( DateTime.UtcNow - UObjectDiscoveryStartTime ).TotalSeconds;
+					Trace.TraceInformation( "UObject discovery time: " + UObjectDiscoveryTime + "s" );
 				}
 
 				if( UObjectModules.Count > 0 )
