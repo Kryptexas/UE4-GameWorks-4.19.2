@@ -24,6 +24,7 @@
 #include "AssetSelection.h"
 #include "HighResScreenshot.h"
 #include "ActorEditorUtils.h"
+#include "Editor/ActorPositioning.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Landscape/LandscapeInfo.h"
@@ -1585,9 +1586,6 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 			}
 		}
 
-		FVector SaveClickLocation = GEditor->ClickLocation;
-		FSnappingUtils::SnapPointToGrid( SaveClickLocation, FVector(GEditor->GetGridSize(),GEditor->GetGridSize(),GEditor->GetGridSize()) );
-
 		// How should this paste be handled
 		EPasteTo PasteTo = PT_OriginalLocation;
 		FText TransDescription = NSLOCTEXT("UnrealEd", "Paste", "Paste");
@@ -1983,49 +1981,13 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		UClass* Class;
 		if( ParseObject<UClass>( Str, TEXT("CLASS="), Class, ANY_PACKAGE ) )
 		{
-			AActor* Default   = Class->GetDefaultObject<AActor>();
-			
-			FVector Collision;
-			UCapsuleComponent* CylComp = Cast<UCapsuleComponent>(Default->GetRootComponent());
-			if (CylComp)
-			{
-				Collision = FVector(CylComp->GetScaledCapsuleRadius(), CylComp->GetScaledCapsuleRadius(), CylComp->GetScaledCapsuleHalfHeight());
-			}
-			else
-			{
-				float CollisionRadius, CollisionHeight;
-				Default->GetComponentsBoundingCylinder(CollisionRadius, CollisionHeight);
-				Collision = FVector(CollisionRadius, CollisionRadius, CollisionHeight);
-			}
-			
 			int32 bSnap = 1;
 			FParse::Value(Str,TEXT("SNAP="),bSnap);
-			if( bSnap )
-			{
-				FSnappingUtils::SnapPointToGrid( ClickLocation, FVector(0, 0, 0) );
-			}
-			FVector Location = ClickLocation + ClickPlane * (FVector::BoxPushOut(ClickPlane,Collision) + 0.1);
-			if( bSnap )
-			{
-				FSnappingUtils::SnapPointToGrid( Location, FVector(0, 0, 0) );
-			}
+			
+			AActor* Default = Class->GetDefaultObject<AActor>();
+			const FTransform ActorTransform = FActorPositioning::GetCurrentViewportPlacementTransform(*Default, !!bSnap);
 
-			// Determine if we clicked on the background.
-			FIntPoint CurrentMousePos;
-			GCurrentLevelEditingViewportClient->Viewport->GetMousePos(CurrentMousePos);
-
-			HHitProxy* HitProxy = GCurrentLevelEditingViewportClient->Viewport->GetHitProxy( CurrentMousePos.X, CurrentMousePos.Y );
-			// If the hit proxy is NULL we clicked on the background
-			bool bClickedOnBackground = (HitProxy == NULL);
-
-			AActor* NewActor = AddActor( InWorld->GetCurrentLevel(), Class, Location );
-
-			if( NewActor && bClickedOnBackground && GCurrentLevelEditingViewportClient->IsPerspective() )
-			{
-				// Only move the actor in front of the camera if we didn't click on something useful like bsp or another actor and if we are in the perspective view
-				MoveActorInFrontOfCamera( *NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector() );
-			}
-
+			AddActor( InWorld->GetCurrentLevel(), Class, ActorTransform );
 			RedrawLevelEditingViewports();
 			return true;
 		}

@@ -956,12 +956,12 @@ public:
 	 *
 	 * @param	InLevel			Level in which to add the actor
 	 * @param	Class			A non-abstract, non-transient, placeable class.  Must be non-NULL.
-	 * @param	Location		The world-space location to spawn the actor.
+	 * @param	Transform		The world-space transform to spawn the actor with.
 	 * @param	bSilent			If true, suppress logging (optional, defaults to false).
 	 * @param	ObjectFlags		The object flags to place on the spawned actor.
 	 * @result					A pointer to the newly added actor, or NULL if add failed.
 	 */
-	virtual AActor* AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent = false, EObjectFlags ObjectFlags = RF_Transactional);
+	virtual AActor* AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent = false, EObjectFlags ObjectFlags = RF_Transactional);
 
 	/**
 	 * Adds actors to the world at the specified location using export text.
@@ -1055,12 +1055,10 @@ public:
 	 * Uses the supplied factory to create an actor at the clicked location and adds to level.
 	 *
 	 * @param	Factory					The factory to create the actor from.  Must be non-NULL.
-	 * @param	ActorLocation			[opt] If null, positions the actor at the mouse location, otherwise specified. Default is null.
-	 * @param	bUseSurfaceOrientation	[opt] If true, align new actor's orientation to the underlying surface normal.  Default is false.
 	 * @param	ObjectFlags				[opt] The flags to apply to the actor when it is created
 	 * @return							A pointer to the new actor, or NULL on fail.
 	 */
-	AActor* UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, EObjectFlags ObjectFlags = RF_Transactional );
+	AActor* UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags = RF_Transactional );
 
 	/**
 	 * Uses the supplied factory to create an actor at the clicked location and adds to level.
@@ -1072,7 +1070,7 @@ public:
 	 * @param	ObjectFlags				[opt] The flags to apply to the actor when it is created
 	 * @return							A pointer to the new actor, or NULL on fail.
 	 */
-	AActor* UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, EObjectFlags ObjectFlags = RF_Transactional );
+	AActor* UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* ActorLocation, EObjectFlags ObjectFlags = RF_Transactional );
 
 	/**
 	 * Replaces the selected Actors with the same number of a different kind of Actor

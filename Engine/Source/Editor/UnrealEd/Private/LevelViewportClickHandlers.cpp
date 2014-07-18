@@ -11,6 +11,7 @@
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "MessageLog.h"
 #include "ActorEditorUtils.h"
+#include "Editor/ActorPositioning.h"
 
 #define LOCTEXT_NAMESPACE "ClickHandlers"
 
@@ -29,7 +30,7 @@ namespace ClickHandlers
 	 * falling back to "ACTOR ADD" exec and SpawnActor if no factory is found.
 	 * Does nothing if ActorClass is NULL.
 	 */
-	static AActor* PrivateAddActor(UClass* ActorClass, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, bool bTransactional = true)
+	static AActor* PrivateAddActor(UClass* ActorClass)
 	{
 		if ( ActorClass )
 		{
@@ -37,51 +38,13 @@ namespace ClickHandlers
 			UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( ActorClass );
 			if( ActorFactory )
 			{
-				return GEditor->UseActorFactory( ActorFactory, FAssetData(), ActorLocation, bUseSurfaceOrientation || ActorFactory->bUseSurfaceOrientation );
+				return GEditor->UseActorFactory( ActorFactory, FAssetData(), nullptr );
 			}
 			// otherwise use AddActor so that we can return the newly created actor
 			else
 			{
-				// Get cursor origin and direction in world space.
-				const FViewportCursorLocation& CursorLocation = GCurrentLevelEditingViewportClient->GetCursorWorldLocationFromMousePos();
-
-				// Determine if the actor is being added onto the backdrop. If so, and it is being added from a perspective viewport,
-				// it will be moved in front of the camera.
-				FVector Location = FVector::ZeroVector;
-				bool bOnBackdrop = false;
-				if ( ActorLocation )
-				{
-					Location = *ActorLocation;
-				}
-				else
-				{
-					const FIntPoint& CursorPos = CursorLocation.GetCursorPos();
-					bOnBackdrop = ( GCurrentLevelEditingViewportClient->Viewport->GetHitProxy( CursorPos.X, CursorPos.Y ) == NULL );
-
-					AActor* Default = ActorClass->GetDefaultObject<AActor>();
-					FVector Collision;
-					UCapsuleComponent* CylComp = Cast<UCapsuleComponent>(Default->GetRootComponent());
-					if (CylComp)
-					{
-						Collision = FVector(CylComp->GetScaledCapsuleRadius(), CylComp->GetScaledCapsuleRadius(), CylComp->GetScaledCapsuleHalfHeight());
-					}
-					else
-					{
-						float CollisionRadius, CollisionHeight;
-						Default->GetComponentsBoundingCylinder(CollisionRadius, CollisionHeight);
-						Collision = FVector(CollisionRadius, CollisionRadius, CollisionHeight);
-					}
-
-					Location = GEditor->ClickLocation + GEditor->ClickPlane * ( FVector::BoxPushOut( GEditor->ClickPlane, Collision ) + 0.1 );
-				}					
-				AActor* CreatedActor = GEditor->AddActor( GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(), ActorClass, Location );
-
-				// If the actor was added to the backdrop in a perspective viewport, move it in front of the camera 
-				if ( CreatedActor && !ActorLocation && GCurrentLevelEditingViewportClient->IsPerspective() && bOnBackdrop )
-				{
-					GEditor->MoveActorInFrontOfCamera( *CreatedActor, CursorLocation.GetOrigin(), CursorLocation.GetDirection() );
-				}
-				return CreatedActor;
+				const FTransform ActorTransform = FActorPositioning::GetCurrentViewportPlacementTransform(*ActorClass->GetDefaultObject<AActor>());
+				return GEditor->AddActor( GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(), ActorClass, ActorTransform );
 			}
 		}
 		return NULL;
@@ -123,20 +86,9 @@ namespace ClickHandlers
 
 	bool ClickActor(FLevelEditorViewportClient* ViewportClient,AActor* Actor,const FViewportClick& Click,bool bAllowSelectionChange)
 	{
-		// Find the point on the actor component which was clicked on.
-		// Do an accurate trace to avoid legacy pull back by an arbitrary amount.
-		// TRACE_Accurate is needed for texel selection to work.
-		FHitResult Hit(ForceInit);
-		if ( GWorld->LineTraceSingle(Hit, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, ECC_Pawn, FCollisionQueryParams(true)) )
-		{	
-			GEditor->ClickLocation = Hit.Location;
-			GEditor->ClickPlane = FPlane(Hit.Location,Hit.Normal);
-		}
-
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 
 			return true;
@@ -226,7 +178,7 @@ namespace ClickHandlers
 			else if( Click.GetKey() == EKeys::LeftMouseButton && ViewportClient->Viewport->KeyState(EKeys::S) )
 			{
 				// Create a static mesh.
-				PrivateAddActor( AStaticMeshActor::StaticClass(), NULL, Click.IsAltDown() );
+				PrivateAddActor( AStaticMeshActor::StaticClass() );
 
 				return true;
 			}
@@ -313,7 +265,6 @@ namespace ClickHandlers
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 		}
 		else if( Click.GetKey() == EKeys::RightMouseButton )
@@ -355,7 +306,6 @@ namespace ClickHandlers
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 		}
 		else if( Click.GetKey() == EKeys::RightMouseButton )
@@ -388,7 +338,6 @@ namespace ClickHandlers
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 
 			return true;
@@ -471,7 +420,6 @@ namespace ClickHandlers
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 
 			return true;
@@ -597,7 +545,6 @@ namespace ClickHandlers
 		{
 			// Pivot snapping
 
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 
 			return true;
@@ -663,14 +610,10 @@ namespace ClickHandlers
 
 		// Remember hit location for actor-adding.
 		FBspSurf& Surf			= Model->Surfs[iSurf];
-		const FPlane Plane		= Surf.Plane;
-		GEditor->ClickLocation	= FMath::LinePlaneIntersection( Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection(), Plane );
-		GEditor->ClickPlane		= Plane;
 
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 		}
 		else if( Click.GetKey() == EKeys::LeftMouseButton && Click.IsShiftDown() && Click.IsControlDown() )
@@ -759,7 +702,7 @@ namespace ClickHandlers
 		else if( Click.GetKey() == EKeys::LeftMouseButton && ViewportClient->Viewport->KeyState(EKeys::S) )
 		{
 			// Create a static mesh.
-			PrivateAddActor( AStaticMeshActor::StaticClass(), NULL, Click.IsAltDown() );
+			PrivateAddActor( AStaticMeshActor::StaticClass() );
 		}
 		else if( Click.GetKey() == EKeys::LeftMouseButton && ViewportClient->Viewport->KeyState(EKeys::Period) )
 		{
@@ -912,13 +855,9 @@ namespace ClickHandlers
 
 	void ClickBackdrop(FLevelEditorViewportClient* ViewportClient,const FViewportClick& Click)
 	{
-		GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
-		GEditor->ClickPlane    = FPlane(0,0,0,0);
-
 		// Pivot snapping
 		if( Click.GetKey() == EKeys::MiddleMouseButton && Click.IsAltDown() )
 		{
-			GEditor->ClickLocation = Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX;
 			GEditor->SetPivot( GEditor->ClickLocation, true, false, true );
 		}
 		else if( Click.GetKey() == EKeys::LeftMouseButton && ViewportClient->Viewport->KeyState(EKeys::A) )

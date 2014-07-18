@@ -257,6 +257,12 @@ void SEditorViewport::BindCommands()
 		//FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("CAMERA ALIGN ACTIVEVIEWPORTONLY") ) )
 		);
 
+	CommandListRef.MapAction(
+		Commands.SurfaceSnapping,
+		FExecuteAction::CreateStatic( &SEditorViewport::OnToggleSurfaceSnap ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic( &SEditorViewport::OnIsSurfaceSnapEnabled ) 
+		);
 
 		// Simple macro for binding many Exposure Setting commands
 #define MAP_EXPOSURE_ACTION( Command, ID ) \
@@ -435,6 +441,17 @@ void SEditorViewport::OnCycleCoordinateSystem()
 	}
 
 	Client->SetWidgetCoordSystemSpace( (ECoordSystem)CoordSystemAsInt );
+}
+
+void SEditorViewport::OnToggleSurfaceSnap()
+{
+	auto* Settings = GetMutableDefault<ULevelEditorViewportSettings>();
+	Settings->SnapToSurface.bEnabled = !Settings->SnapToSurface.bEnabled;
+}
+
+bool SEditorViewport::OnIsSurfaceSnapEnabled()
+{
+	return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled;
 }
 
 #undef LOCTEXT_NAMESPACE

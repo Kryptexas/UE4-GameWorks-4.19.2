@@ -167,8 +167,8 @@ void  FMatinee::UpdateCameraRecording (void)
 							ActorToUseForBase = CastChecked< AActor >( SelectedActors.GetSelectedObject( 0 ) );
 						}
 
-						ACameraActor* NewCam = Cast<ACameraActor>(GEditor->AddActor( LevelVC->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), LevelVC->GetViewLocation() ));
-						NewCam->SetActorRotation(LevelVC->GetViewRotation());
+						const FTransform Transform(LevelVC->GetViewRotation(), LevelVC->GetViewLocation());
+						ACameraActor* NewCam = Cast<ACameraActor>(GEditor->AddActor( LevelVC->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), Transform ));
 						NewCam->CameraComponent->bConstrainAspectRatio = LevelVC->IsAspectRatioConstrained();
 						NewCam->CameraComponent->AspectRatio = LevelVC->AspectRatio;
 						NewCam->CameraComponent->FieldOfView = LevelVC->ViewFOV;

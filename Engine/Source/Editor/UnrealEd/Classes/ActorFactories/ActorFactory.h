@@ -38,8 +38,8 @@ class UNREALED_API UActorFactory : public UObject
 	UPROPERTY()
 	FVector SpawnPositionOffset;
 
-	/** Called to actual create an actor at the supplied location/rotation, using the properties in the ActorFactory */
-	AActor* CreateActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator* const Rotation, EObjectFlags ObjectFlags = RF_Transactional, const FName Name = NAME_None );
+	/** Called to actual create an actor with the supplied transform (scale is ignored), using the properties in the ActorFactory */
+	AActor* CreateActor( UObject* Asset, ULevel* InLevel, FTransform Transform, EObjectFlags ObjectFlags = RF_Transactional, const FName Name = NAME_None );
 
 	/** Called to create a blueprint class that can be used to spawn an actor from this factory */
 	UBlueprint* CreateBlueprint( UObject* Instance, UObject* Outer, const FName Name, const FName CallingContext = NAME_None );
@@ -58,9 +58,12 @@ class UNREALED_API UActorFactory : public UObject
 	/** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor */
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance);
 
+	/** Return a rotator which aligns this actor type to the specified surface normal */
+	virtual FQuat AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation = FQuat::Identity) const;
+
 protected:
 
-	virtual bool PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied);
+	virtual bool PreSpawnActor( UObject* Asset, FTransform& InOutLocation);
 	virtual AActor* SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name );
 
 	/** Subclasses may implement this to modify the actor after it has been spawned 

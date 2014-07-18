@@ -233,7 +233,7 @@ void FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 			CameraNode = FindCamera(Node);
 			if ( bCreateUnknownCameras && CameraNode != NULL )
 			{
-				Actor = GEditor->AddActor( InMatineeActor->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), FVector::ZeroVector );
+				Actor = GEditor->AddActor( InMatineeActor->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), FTransform::Identity );
 				Actor->SetActorLabel( ANSI_TO_TCHAR(CameraNode->GetName()) );
 			}
 			else

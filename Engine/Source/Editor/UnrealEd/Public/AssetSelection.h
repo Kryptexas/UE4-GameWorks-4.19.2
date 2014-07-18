@@ -252,10 +252,6 @@ public:
 	 * Places an actor instance using the factory appropriate for the type of asset
 	 *
 	 * @param	AssetObj						the asset that is contained in the d&d operation
-	 * @param	ActorLocation					specify null to position the actor at the mouse location, 
-												otherwise it will be placed at the origin.
-	 * @param	bUseSurfaceOrientation			specify true to indicate that the factory should align the actor
-	 *											instance with the target surface.
 	 * @param	ObjectFlags						The object flags to place on the actor when it is spawned
 	 * @param	FactoryToUse					optional actor factory to use to create the actor; if not specified,
 	 *											the highest priority factory that is valid will be used
@@ -263,7 +259,7 @@ public:
 	 * @return	the actor that was created by the factory, or NULL if there aren't any factories for this asset (or
 	 *			the actor couldn't be created for some other reason)
 	 */
-	static AActor* AddActorForAsset( UObject* AssetObj, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, UActorFactory* FactoryToUse = NULL, const FName Name = NAME_None );
+	static AActor* AddActorForAsset( UObject* AssetObj, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, UActorFactory* FactoryToUse = NULL, const FName Name = NAME_None );
 
 	/**
 	 * Places an actor instance using the factory appropriate for the type of asset using the current object selection as the asset
@@ -271,8 +267,6 @@ public:
 	 * @param	ActorClass						The type of actor to create
 	 * @param	ActorLocation					specify null to position the actor at the mouse location, 
 												otherwise it will be placed at the origin.
-	 * @param	bUseSurfaceOrientation			specify true to indicate that the factory should align the actor
-	 *											instance with the target surface.
 	 * @param	ObjectFlags						The object flags to place on the actor when it is spawned
 	 * @param	FactoryToUse					optional actor factory to use to create the actor; if not specified,
 	 *											the highest priority factory that is valid will be used
@@ -280,7 +274,7 @@ public:
 	 * @return	the actor that was created by the factory, or NULL if there aren't any factories for this asset (or
 	 *			the actor couldn't be created for some other reason)
 	 */
-	static AActor* AddActorFromSelection( UClass* ActorClass, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, UActorFactory* ActorFactory = NULL, const FName Name = NAME_None );
+	static AActor* AddActorFromSelection( UClass* ActorClass, const FVector* ActorLocation=NULL, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, UActorFactory* ActorFactory = NULL, const FName Name = NAME_None );
 
 	/**
 	 * Determines if the provided actor is capable of having a material applied to it.

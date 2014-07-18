@@ -571,9 +571,6 @@ private:
 		return EnabledStats.Num();
 	}
 
-	/** Get the list of visible actors for editor viewport op. It filters out certain actor or component types */
-	bool GetVisibleActors(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params) const;
-
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.
@@ -649,34 +646,14 @@ private:
 	* @param	DroppedObjects		Array of objects dropped into the viewport
 	* @param	DroppedUponActor	The actor that we are dropping upon
 	* @param    DroppedUponSlot     The material slot/submesh that was identified as the drop location.  If unknown use -1.
-	* @param	DroppedLocation		The location that we're dropping the objects
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
-	* @param	bUsedHitProxy		Whether or not a hit proxy was used for spawning
 	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	* @param	FactoryToUse		The preferred actor factory to use (optional)
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
-
-	/**
-	* Called when an asset is dropped upon an existing actor.
-	*
-	* @param	Cursor				Mouse cursor location
-	* @param	DroppedObject		Object dropped into the viewport
-	* @param	DroppedUponActor	The actor that we are dropping upon
-	* @param    DroppedUponSlot		The material slot/submesh that was identified as the drop location.  If unknown use -1.
-	* @param	DroppedLocation		The location that we're dropping the objects
-	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
-	* @param	OutNewActors		The list of actors created while dropping
-	* @param	bUsedHitProxy		Whether or not a hit proxy was used for spawning
-	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
-	* @param	FactoryToUse		The preferred actor factory to use (optional)
-	*
-	* @return	true if the drop operation was successfully handled; false otherwise
-	*/
-	bool DropSingleObjectOnActor(struct FViewportCursorLocation& Cursor, UObject* DroppedObject, AActor* DroppedUponActor, int32 DroppedUponSlot, const FVector& DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -692,7 +669,7 @@ private:
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, class HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
+	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
 
 	/**
 	 * Called when an asset is dropped upon a manipulation widget.
@@ -710,6 +687,9 @@ private:
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
+
+	/** Project the specified actors into the world according to the current drag parameters */
+	void ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot);
 
 	/** Delegate handler to see if a stat is enabled on this viewport */
 	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
@@ -784,6 +764,9 @@ public:
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
+
+	/** A map of actor locations before a drag operation */
+	TMap<TWeakObjectPtr<AActor>, FTransform> PreDragActorTransforms;
 
 	/** Bit array representing the visibility of every sprite category in the current viewport */
 	TBitArray<>	SpriteCategoryVisibility;

@@ -156,6 +156,8 @@ public:
 	/** Enables or disables snapping to a scaling grid while scaling objects */
 	TSharedPtr< FUICommandInfo > ScaleGridSnap;
 
+	/** Enables or disables snapping to surfaces when dragging in the viewport */
+	TSharedPtr< FUICommandInfo > SurfaceSnapping;
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

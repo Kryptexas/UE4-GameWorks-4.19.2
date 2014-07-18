@@ -39,6 +39,8 @@
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
 
+#include "Editor/ActorPositioning.h"
+
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "ActorEditorUtils.h"
 #include "ContentBrowserModule.h"
@@ -2998,19 +3000,8 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		return;
 	}
 
-	FVector SaveClickLocation = GEditor->ClickLocation;
-	FSnappingUtils::SnapPointToGrid( SaveClickLocation, FVector(GEditor->GetGridSize(),GEditor->GetGridSize(),GEditor->GetGridSize()) );
-
-	FVector AnyActorLocation = FVector::ZeroVector;
-	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = static_cast<AActor*>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		AnyActorLocation = Actor->GetActorLocation();
-		break;
-	}
-
+	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, nullptr, GEditor->ClickLocation, GEditor->ClickPlane).GetLocation();
+	
 	ULevel* DesiredLevel = InWorld->GetCurrentLevel();
 
 	// Don't allow pasting to levels that are locked
@@ -4400,24 +4391,7 @@ bool UEditorEngine::SnapActorTo( AActor* InActor, const bool InAlign, const bool
 
 void UEditorEngine::MoveActorInFrontOfCamera( AActor& InActor, const FVector& InCameraOrigin, const FVector& InCameraDirection )
 {
-	// Get the  radius of the actors bounding cylinder.  Height is not needed.
-	float CylRadius, CylHeight;
-	InActor.GetComponentsBoundingCylinder(CylRadius, CylHeight);
-
-	// a default cylinder radius if no bounding cylinder exists.  
-	const float	DefaultCylinderRadius = 50.0f;
-
-	if( CylRadius == 0.0f )
-	{
-		// If the actor does not have a bounding cylinder, use a default value.
-		CylRadius = DefaultCylinderRadius;
-	}
-
-	// The new location the cameras origin offset by the actors bounding cylinder radius down the direction of the cameras view. 
-	FVector NewLocation = InCameraOrigin + InCameraDirection * CylRadius + InCameraDirection * GetDefault<ULevelEditorViewportSettings>()->BackgroundDropDistance;
-
-	// Snap the new location if snapping is enabled
-	FSnappingUtils::SnapPointToGrid( NewLocation, FVector::ZeroVector );
+	const FVector NewLocation = FActorPositioning::GetActorPositionInFrontOfCamera(InActor, InCameraOrigin, InCameraDirection);
 
 	// Move the actor to its new location.  Not checking for collisions
 	InActor.TeleportTo( NewLocation, InActor.GetActorRotation(), false, true );

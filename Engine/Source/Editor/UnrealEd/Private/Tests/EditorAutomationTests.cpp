@@ -1144,7 +1144,8 @@ bool FBSPValidation::RunTest(const FString& Parameters)
 	GEditor->Exec( World, TEXT("BRUSH SUBTRACT"));
 
 	//Directional Light
-	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), FVector(-611.0f, 242.0f, 805.0f)));
+	const FTransform Transform(FVector(-611.0f, 242.0f, 805.0f));
+	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), Transform));
 	DirectionalLight->SetMobility(EComponentMobility::Movable);
 	DirectionalLight->SetActorRotation(FRotator(300, 250, -91));
 	DirectionalLight->SetBrightness(3.142f);
@@ -1214,11 +1215,12 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 
 	//Single Anim Skeletal Mesh
 	//UActorFactory* SingleAnimSkeletalActorFactory = GEditor->FindActorFactoryForActorClass( ASingleAnimSkeletalActor::StaticClass() );
-	//SkeletalMesh = FActorFactoryAssetProxy::AddActorForAsset( EditorSkeletalMesh, NULL, false, true, RF_Transactional, SingleAnimSkeletalActorFactory );
+	//SkeletalMesh = FActorFactoryAssetProxy::AddActorForAsset( EditorSkeletalMesh, false, true, RF_Transactional, SingleAnimSkeletalActorFactory );
 	//SkeletalMesh->TeleportTo(FVector(1152.0f, 256.0f, 256.0f), FRotator(0, 0, 0));
 
 	//Directional Light
-	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), FVector(-611.0f, 242.0f, 805.0f)));
+	const FTransform Transform(FVector(-611.0f, 242.0f, 805.0f));
+	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), Transform));
 	DirectionalLight->SetMobility(EComponentMobility::Movable);
 	DirectionalLight->SetActorRotation(FRotator(329, 346, -105));
 	DirectionalLight->SetBrightness(3.142f);
@@ -1371,6 +1373,14 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 	
 	//Wait to give the screenshot capture some time to complete.
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+
+	//Directional Light
+	const FTransform Transform(FVector(384, 0, 384));
+	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), Transform));
+	DirectionalLight->SetMobility(EComponentMobility::Movable);
+	DirectionalLight->SetActorRotation(FRotator(314, 339, 0));
+	DirectionalLight->SetBrightness(3.142f);
+	DirectionalLight->SetLightColor(FColor::White);
 
 	GLevelEditorModeTools().MapChangeNotify();
 
@@ -1556,7 +1566,8 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	}
 
 	//Create the point light and set it's mobility, brightness, and light color.
-	APointLight* PointLight = Cast<APointLight>(GEditor->AddActor(World->GetCurrentLevel(), APointLight::StaticClass(), FVector(0.0f, 0.0f, 400.0f)));
+	const FTransform Transform(FVector(0.0f, 0.0f, 400.0f));
+	APointLight* PointLight = Cast<APointLight>(GEditor->AddActor(World->GetCurrentLevel(), APointLight::StaticClass(), Transform));
 	LightParameters.PointLight = PointLight;
 	LightParameters.LightColor = FColor(255, 0, 0);
 	LightParameters.LightLocation = FVector(0.0f, 0.0f, 400.0f);

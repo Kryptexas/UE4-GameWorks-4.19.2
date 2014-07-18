@@ -44,6 +44,8 @@
 #include "LevelEditor.h"
 #include "SCreateAssetFromActor.h"
 
+#include "Editor/ActorPositioning.h"
+
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
@@ -2159,16 +2161,6 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 				{
 					InActor->SetActorRotation( InDeltaRot );
 				}
-			}
-
-			if ( bDelta )
-			{
-				FVector NewActorLocation = InActor->GetActorLocation();
-				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
-				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
-				NewActorLocation += GLevelEditorModeTools().PivotLocation;
-				NewActorLocation -= InActor->GetActorLocation();
-				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
 			}
 		}
 	}
@@ -4644,46 +4636,14 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
-AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FVector* ActorLocation, bool bUseSurfaceOrientation, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
 {
 	// ensure that all selected assets are loaded
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), ActorLocation, bUseSurfaceOrientation, ObjectFlags );
+	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, ObjectFlags );
 }
 
-/**
- * Corrects the orientation if the mesh if placed on a mesh 
- * and applies static mesh tool settings if applicable. 
- *
- * @param	Actor					The static mesh or speed tree actor that was placed.
- * @param	bUseSurfaceOrientation	When true, changes the mesh orientation to reflect the surface.
- */
-void OnPlaceStaticMeshActor( AActor* Actor, bool bUseSurfaceOrientation )
-{
-	check( Actor );
-
-	if( Actor->IsA(AStaticMeshActor::StaticClass())  && bUseSurfaceOrientation )
-	{
-		AStaticMeshActor* MeshActor = CastChecked<AStaticMeshActor>(Actor);
-		if( bUseSurfaceOrientation )
-		{
-			MeshActor->SetActorRotation(GEditor->ClickPlane.SafeNormal().Rotation());
-
-			// This is necessary because static meshes are authored along the vertical axis rather than
-			// the X axis, as the surface orientation code expects.  To compensate for this, we add 90
-			// degrees to the static mesh's Pitch.
-
-			FRotator Rot = MeshActor->GetActorRotation();
-			Rot.Pitch -= 90.f;
-			MeshActor->SetActorRotation(Rot);
-		}
-
-		MeshActor->UpdateComponentTransforms();
-	}
-}
-
-
-AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FVector* ActorLocation, bool bUseSurfaceOrientation, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
 {
 	check( Factory );
 
@@ -4711,47 +4671,7 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 			return NULL;
 		}
 
-		FVector Collision = NewActorTemplate->GetPlacementExtent();
-
-		// Get cursor origin and direction in world space.
-		FViewportCursorLocation CursorLocation = GCurrentLevelEditingViewportClient->GetCursorWorldLocationFromMousePos();
-
-		// Position the actor relative to the mouse?
-		FVector Location = FVector::ZeroVector;
-		HHitProxy* HitProxy = NULL;
-		if ( ActorLocation )
-		{
-			Location = *ActorLocation;
-		}
-		else
-		{
-			FSnappingUtils::SnapPointToGrid( ClickLocation, FVector(0, 0, 0) );
-
-			float DistanceMultiplier = 1.0f;
-			if( CursorLocation.GetViewportType() != LVT_Perspective )
-			{
-				// If an asset was dropped in an orthographic view,
-				// adjust the location so the asset will not be positioned at the camera origin (which is at the edge of the world for ortho cams)
-				DistanceMultiplier = HALF_WORLD_MAX;
-			}
-
-			const FIntPoint CursorPos = CursorLocation.GetCursorPos();
-			HitProxy = GCurrentLevelEditingViewportClient->Viewport->GetHitProxy( CursorPos.X, CursorPos.Y );
-			if( HitProxy == NULL )
-			{
-				// If the hit proxy is null, we clicked on the background so we need to calculate our own click location since the old one will be off at the worlds edge somewhere.
-				ClickLocation = CursorLocation.GetOrigin() + CursorLocation.GetDirection() * DistanceMultiplier;
-			}
-
-			// Calculate the new actors location from the mouse click location and collision information.
-			Location = ClickLocation + ClickPlane * (FVector::BoxPushOut(ClickPlane, Collision) + 0.1);
-
-			FSnappingUtils::SnapPointToGrid( Location, FVector(0, 0, 0) );
-		}
-
-		// Orient the new actor with the surface normal?
-		const FRotator SurfaceOrientation( ClickPlane.Rotation() );
-		const FRotator* const Rotation = bUseSurfaceOrientation ? &SurfaceOrientation : NULL;
+		const FTransform ActorTransform = InActorTransform ? *InActorTransform : FActorPositioning::GetCurrentViewportPlacementTransform(*NewActorTemplate);
 
 		ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
@@ -4765,18 +4685,9 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
 
 				// Create the actor.
-				Actor = Factory->CreateActor( Asset, DesiredLevel, Location, Rotation, ObjectFlags );
+				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags );
 				if(Actor != NULL)
 				{
-					// Apply any static mesh tool settings if we placed a static mesh. 
-					OnPlaceStaticMeshActor( Actor, bUseSurfaceOrientation );
-
-					if( !ActorLocation && CursorLocation.GetViewportType() == LVT_Perspective && HitProxy == NULL  )
-					{
-						// Move the actor in front of the camera if the cursor location is in the perspective viewport and we dont have a valid hit proxy (which would place the actor somewhere else)
-						MoveActorInFrontOfCamera( *Actor, CursorLocation.GetOrigin(), CursorLocation.GetDirection() );
-					}
-
 					SelectNone( false, true );
 					SelectActor( Actor, true, true );
 					Actor->InvalidateLightingCache();
@@ -5070,13 +4981,12 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		ULevel* Level = OldActor->GetLevel();
 		AActor* NewActor = NULL;
 
-		const FVector OldLocation = OldActor->GetActorLocation();
-		const FRotator OldRotation = OldActor->GetActorRotation();
+		const FTransform OldTransform = OldActor->ActorToWorld();
 
 		// create the actor
 		if (Factory != NULL)
 		{
-			NewActor = Factory->CreateActor( Asset, Level, OldLocation, &OldRotation);
+			NewActor = Factory->CreateActor( Asset, Level, OldTransform);
 			// For blueprints, try to copy over properties
 			if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
 			{
@@ -5095,7 +5005,10 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = Level;
-			NewActor = World->SpawnActor( NewActorClass, &OldLocation, &OldRotation,	SpawnInfo );
+
+			const auto Rotation = OldTransform.GetRotation().Rotator();
+			const auto Translation = OldTransform.GetTranslation();
+			NewActor = World->SpawnActor( NewActorClass, &Translation, &Rotation, SpawnInfo );
 		}
 		if ( NewActor != NULL )
 		{
@@ -6038,12 +5951,13 @@ bool UEditorEngine::AreAllWindowsHidden() const
 	return bAllHidden;
 }
 
-AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent, EObjectFlags ObjectFlags)
+AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags ObjectFlags)
 {
 	check( Class );
 
 	if( !bSilent )
 	{
+		const auto Location = Transform.GetLocation();
 		UE_LOG(LogEditor, Log,
 			TEXT("Attempting to add actor of class '%s' to level at %0.2f,%0.2f,%0.2f"),
 			*Class->GetName(), Location.X, Location.Y, Location.Z );
@@ -6098,7 +6012,9 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 		SpawnInfo.OverrideLevel = DesiredLevel;
 		SpawnInfo.bNoCollisionFail = true;
 		SpawnInfo.ObjectFlags = ObjectFlags;
-		Actor = World->SpawnActor( Class, &Location, NULL, SpawnInfo );
+		const auto Location = Transform.GetLocation();
+		const auto Rotation = Transform.GetRotation().Rotator();
+		Actor = World->SpawnActor( Class, &Location, &Rotation, SpawnInfo );
 
 		if( Actor )
 		{

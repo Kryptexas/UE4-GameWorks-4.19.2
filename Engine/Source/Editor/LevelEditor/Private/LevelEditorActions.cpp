@@ -1137,9 +1137,9 @@ void FLevelEditorActionCallbacks::AddActor_Clicked( UActorFactory* ActorFactory,
 	}
 }
 
-AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FVector* ActorLocation )
+AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FTransform* ActorTransform )
 {
-	AActor* NewActor = GEditor->UseActorFactory( ActorFactory, AssetData, ActorLocation, ActorFactory->bUseSurfaceOrientation );
+	AActor* NewActor = GEditor->UseActorFactory( ActorFactory, AssetData, ActorTransform );
 
 	if ( NewActor != NULL && IPlacementModeModule::IsAvailable() )
 	{
@@ -1151,10 +1151,10 @@ AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, cons
 
 void FLevelEditorActionCallbacks::AddActorFromClass_Clicked( UClass* ActorClass )
 {
-	FLevelEditorActionCallbacks::AddActorFromClass(ActorClass, NULL);
+	FLevelEditorActionCallbacks::AddActorFromClass(ActorClass);
 }
 
-AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass, const FVector* ActorLocation )
+AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass )
 {
 	AActor* NewActor = NULL;
 
@@ -1164,7 +1164,7 @@ AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass, cons
 		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( ActorClass );
 		if( ActorFactory )
 		{
-			NewActor = GEditor->UseActorFactoryOnCurrentSelection( ActorFactory, ActorLocation, ActorFactory->bUseSurfaceOrientation );
+			NewActor = GEditor->UseActorFactoryOnCurrentSelection( ActorFactory, nullptr );
 
 			if ( NewActor != NULL && IPlacementModeModule::IsAvailable() )
 			{
@@ -2193,7 +2193,7 @@ void FLevelEditorActionCallbacks::OnAddMatinee()
 		// Spawn a matinee actor at the origin, and either move infront of the camera or focus camera on it (depending on the viewport) and open for edit
 		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( AMatineeActor::StaticClass() );
 		check( ActorFactory );
-		AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( FLevelEditorActionCallbacks::AddActor( ActorFactory, FAssetData(), &FVector::ZeroVector ) );
+		AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( FLevelEditorActionCallbacks::AddActor( ActorFactory, FAssetData(), &FTransform::Identity ) );
 		if( GCurrentLevelEditingViewportClient->IsPerspective() )
 		{
 			GEditor->MoveActorInFrontOfCamera( *MatineeActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector() );

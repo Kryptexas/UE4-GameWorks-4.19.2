@@ -10,7 +10,7 @@ class UActorFactoryClass : public UActorFactory
 	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
-	virtual bool PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied ) override;
+	virtual bool PreSpawnActor( UObject* Asset, FTransform& InOutLocation ) override;
 	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor ) override;
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 	virtual AActor* GetDefaultActor( const FAssetData& AssetData ) override;

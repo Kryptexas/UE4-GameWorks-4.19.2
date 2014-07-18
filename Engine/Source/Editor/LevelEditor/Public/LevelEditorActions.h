@@ -800,16 +800,15 @@ public:
 	 * @param ActorLocation		[opt] If NULL, positions the actor at the mouse location, otherwise the location specified. Default is true.
 	 */
 	static void AddActor_Clicked( UActorFactory* ActorFactory, FAssetData AssetData, bool bUsePlacement );
-	static AActor* AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FVector* ActorLocation );
+	static AActor* AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FTransform* ActorLocation );
 
 	/**
 	 * Called when the AddActor command is executed and a class is selected in the actor browser
 	 *
 	 * @param ActorClass		The class of the actor to add
-	 * @param ActorLocation		[opt] If NULL, positions the actor at the mouse location, otherwise the location specified. Default is true.
 	 */
 	static void AddActorFromClass_Clicked( UClass* ActorClass );
-	static AActor* AddActorFromClass( UClass* ActorClass, const FVector* ActorLocation );
+	static AActor* AddActorFromClass( UClass* ActorClass );
 
 	/**
 	 * Replaces currently selected actors with an actor from the given actor factory

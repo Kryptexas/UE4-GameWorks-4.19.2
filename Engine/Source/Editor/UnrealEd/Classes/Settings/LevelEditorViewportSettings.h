@@ -159,6 +159,31 @@ struct UNREALED_API FLevelEditorViewportInstanceSettingsKeyValuePair
 
 
 /**
+ * Settings that control the behavior of the "snap to surface" feature
+ */
+USTRUCT()
+struct UNREALED_API FSnapToSurfaceSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	FSnapToSurfaceSettings() : bEnabled(false), SnapOffsetExtent(0.f), bSnapRotation(true)
+	{}
+
+	/** Whether snapping to surfaces in the world is enabled */
+	UPROPERTY(config)
+	bool bEnabled;
+
+	/** The amount of offset to apply when snapping to surfaces */
+	UPROPERTY(config)
+	float SnapOffsetExtent;
+
+	/** Whether objects should match the rotation of the surfaces they snap to */
+	UPROPERTY(config)
+	bool bSnapRotation;
+};
+
+
+/**
  * Implements the Level Editor's view port settings.
  */
 UCLASS(config=EditorUserSettings)
@@ -279,9 +304,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Enable Scale Snapping"))
 	uint32 SnapScaleEnabled:1;
 
-	/** If enabled the when dragging new objects out of the content browser, it will snap the objects Z coordinate to the floor below it (if any) instead of the Z grid snapping location */
-	UPROPERTY(EditAnywhere, config, Category=GridSnapping)
-	bool bSnapNewObjectsToFloor;
+	/** If enabled, actors will snap to surfaces in the viewport when dragged around */
+	UPROPERTY(config)
+	FSnapToSurfaceSettings SnapToSurface;
 
 private:
 

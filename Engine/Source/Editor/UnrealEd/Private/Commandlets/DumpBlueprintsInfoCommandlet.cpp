@@ -598,8 +598,6 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 
 		UBlueprint* ActorTemplate = MakeTempBlueprint(ActorClass);
 		SpawnedActor = FActorFactoryAssetProxy::AddActorForAsset(ActorTemplate,
-			/*ActorLocation =*/nullptr,
-			/*bUseSurfaceOrientation =*/false,
 			/*SelectActor =*/bSelect,
 			RF_Transient, NewFactory, NAME_None);
 	}

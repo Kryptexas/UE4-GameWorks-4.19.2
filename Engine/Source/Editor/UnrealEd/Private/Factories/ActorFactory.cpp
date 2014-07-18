@@ -30,6 +30,63 @@ DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
 
+/**
+ * Find am alignment transform for the specified actor rotation, given a model-space axis to align, and a world space normal to align to.
+ * This function attempts to find a 'natural' looking rotation by rotating around a local pitch axis, and a world Z. Rotating in this way
+ * should retain the roll around the model space axis, removing rotation artifacts introduced by a simpler quaternion rotation.
+ */
+FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& InModelAxis, const FVector& InWorldNormal)
+{
+	FVector TransformedModelAxis = InActorRotation.RotateVector(InModelAxis);
+
+	const auto InverseActorRotation = InActorRotation.Inverse();
+	const auto DestNormalModelSpace = InverseActorRotation.RotateVector(InWorldNormal);
+
+	FQuat DeltaRotation = FQuat::Identity;
+
+	const float VectorDot = InWorldNormal | TransformedModelAxis;
+	if (1.f - FMath::Abs(VectorDot) <= KINDA_SMALL_NUMBER)
+	{
+		if (VectorDot < 0.f)
+		{
+			// Anti-parallel
+			return InActorRotation * FQuat::FindBetween(InModelAxis, DestNormalModelSpace);
+		}
+	}
+	else
+	{
+		const FVector Z(0.f, 0.f, 1.f);
+
+		// Find a reference axis to measure the relative pitch rotations between the source axis, and the destination axis.
+		FVector PitchReferenceAxis = InverseActorRotation.RotateVector(Z);
+		if (FMath::Abs(FVector::DotProduct(InModelAxis, PitchReferenceAxis)) > 0.7f)
+		{
+			PitchReferenceAxis = DestNormalModelSpace;
+		}
+		
+		// Find a local 'pitch' axis to rotate around
+		const FVector OrthoPitchAxis = FVector::CrossProduct(PitchReferenceAxis, InModelAxis);
+		const float Pitch = FMath::Acos(PitchReferenceAxis | DestNormalModelSpace) - FMath::Acos(PitchReferenceAxis | InModelAxis);//FMath::Asin(OrthoPitchAxis.Size());
+
+		DeltaRotation = FQuat(OrthoPitchAxis.SafeNormal(), Pitch);
+		DeltaRotation.Normalize();
+
+		// Transform the model axis with this new pitch rotation to see if there is any need for yaw
+		TransformedModelAxis = (InActorRotation * DeltaRotation).RotateVector(InModelAxis);
+
+		if (!FVector::Parallel(InWorldNormal, TransformedModelAxis))
+		{
+			const float Yaw = FMath::Atan2(InWorldNormal.X, InWorldNormal.Y) - FMath::Atan2(TransformedModelAxis.X, TransformedModelAxis.Y);
+
+			// Rotation axis for yaw is the Z axis in world space
+			const FVector WorldYawAxis = (InActorRotation * DeltaRotation).Inverse().RotateVector(Z);
+			DeltaRotation *= FQuat(WorldYawAxis, -Yaw);
+		}
+	}
+
+	return InActorRotation * DeltaRotation;
+}
+
 /*-----------------------------------------------------------------------------
 UActorFactory
 -----------------------------------------------------------------------------*/
@@ -78,16 +135,29 @@ UObject* UActorFactory::GetAssetFromActorInstance(AActor* ActorInstance)
 	return NULL;
 }
 
-AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator* const Rotation, EObjectFlags ObjectFlags, const FName Name )
+/** Return a rotator which aligns this actor type to the specified surface normal */
+FQuat UActorFactory::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
 {
-	AActor* DefaultActor = GetDefaultActor( FAssetData( Asset ) );
-
-	FVector SpawnLocation = Location + SpawnPositionOffset;
-	FRotator SpawnRotation = Rotation ? *Rotation : DefaultActor ? DefaultActor->GetActorRotation() : FRotator::ZeroRotator;
-	AActor* NewActor = NULL;
-	if ( PreSpawnActor(Asset, SpawnLocation, SpawnRotation, Rotation != NULL) )
+	if (bUseSurfaceOrientation)
 	{
-		NewActor = SpawnActor(Asset, InLevel, SpawnLocation, SpawnRotation, ObjectFlags, Name);
+		// By default we align the X axis with the inverse of the surface normal (so things look at the surface)
+		return FindActorAlignmentRotation(ActorRotation, FVector(-1.f, 0.f, 0.f), InSurfaceNormal);
+	}
+	else
+	{
+		return FQuat::Identity;
+	}
+}
+
+AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform SpawnTransform, EObjectFlags ObjectFlags, const FName Name )
+{
+	AActor* NewActor = NULL;
+
+	if ( PreSpawnActor(Asset, SpawnTransform) )
+	{
+		const auto Location = SpawnTransform.GetLocation();
+		const auto Rotation = SpawnTransform.GetRotation().Rotator();
+		NewActor = SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
 
 		if ( NewActor )
 		{
@@ -109,7 +179,7 @@ UBlueprint* UActorFactory::CreateBlueprint( UObject* Asset, UObject* Outer, cons
 	return NewBlueprint;
 }
 
-bool UActorFactory::PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
+bool UActorFactory::PreSpawnActor( UObject* Asset, FTransform& InOutLocation)
 {
 	// Subclasses may implement this to set up a spawn or to adjust the spawn location or rotation.
 	return true;
@@ -149,6 +219,7 @@ UActorFactoryStaticMesh::UActorFactoryStaticMesh(const class FPostConstructIniti
 {
 	DisplayName = LOCTEXT("StaticMeshDisplayName", "Static Mesh");
 	NewActorClass = AStaticMeshActor::StaticClass();
+	bUseSurfaceOrientation = true;
 }
 
 bool UActorFactoryStaticMesh::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -203,6 +274,12 @@ void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		StaticMeshComponent->StaticMesh = StaticMesh;
 		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
 	}
+}
+
+FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
+{
+	// Meshes align the Z (up) axis with the surface normal
+	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
 /*-----------------------------------------------------------------------------
@@ -271,17 +348,6 @@ bool UActorFactoryDeferredDecal::CanCreateActorFrom( const FAssetData& AssetData
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NotDecalMaterial", "Only materials with a material domain of DeferredDecal can be specified.");
 		return false;
-	}
-
-	return true;
-}
-
-bool UActorFactoryDeferredDecal::PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
-{
-	if ( bRotationWasSupplied )
-	{
-		// Orient the decal in the opposite direction of the receiving surface's normal
-		InOutRotation = -InOutRotation;
 	}
 
 	return true;
@@ -487,7 +553,7 @@ bool UActorFactoryPhysicsAsset::CanCreateActorFrom( const FAssetData& AssetData,
 	return true;
 }
 
-bool UActorFactoryPhysicsAsset::PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
+bool UActorFactoryPhysicsAsset::PreSpawnActor(UObject* Asset, FTransform& InOutLocation)
 {
 	UPhysicsAsset* PhysicsAsset = CastChecked<UPhysicsAsset>(Asset);
 	USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.Get();
@@ -743,6 +809,7 @@ UActorFactorySkeletalMesh::UActorFactorySkeletalMesh(const class FPostConstructI
 { 
 	DisplayName = LOCTEXT("SkeletalMeshDisplayName", "Skeletal Mesh");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
+	bUseSurfaceOrientation = true;
 }
 
 bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -902,6 +969,11 @@ void UActorFactorySkeletalMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO
 	}
 }
 
+FQuat UActorFactorySkeletalMesh::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
+{
+	// Meshes align the Z (up) axis with the surface normal
+	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
+}
 
 /*-----------------------------------------------------------------------------
 UActorFactoryCameraActor
@@ -1015,7 +1087,7 @@ AActor* UActorFactoryClass::GetDefaultActor( const FAssetData& AssetData )
 	return NULL;
 }
 
-bool UActorFactoryClass::PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
+bool UActorFactoryClass::PreSpawnActor( UObject* Asset, FTransform& InOutLocation)
 {
 	UClass* ActualClass = Cast<UClass>(Asset);
 
@@ -1129,7 +1201,7 @@ AActor* UActorFactoryBlueprint::GetDefaultActor( const FAssetData& AssetData )
 	return GeneratedClass->GetDefaultObject<AActor>();
 }
 
-bool UActorFactoryBlueprint::PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
+bool UActorFactoryBlueprint::PreSpawnActor( UObject* Asset, FTransform& InOutLocation)
 {
 	UBlueprint* Blueprint = CastChecked<UBlueprint>(Asset);
 
@@ -1218,6 +1290,8 @@ UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const class FPostCo
 {
 	DisplayName = LOCTEXT("DirectionalLightDisplayName", "Directional Light");
 	NewActorClass = ADirectionalLight::StaticClass();
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1228,6 +1302,8 @@ UActorFactorySpotLight::UActorFactorySpotLight(const class FPostConstructInitial
 {
 	DisplayName = LOCTEXT("SpotLightDisplayName", "Spot Light");
 	NewActorClass = ASpotLight::StaticClass();
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1258,7 +1334,8 @@ UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const
 {
 	DisplayName = LOCTEXT("ReflectionCaptureSphereDisplayName", "Sphere Reflection Capture");
 	NewActorClass = ASphereReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(0, 0, 200);
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1269,7 +1346,8 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const class
 {
 	DisplayName = LOCTEXT("ReflectionCaptureBoxDisplayName", "Box Reflection Capture");
 	NewActorClass = ABoxReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(0, 0, 200);
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1280,7 +1358,8 @@ UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const c
 {
 	DisplayName = LOCTEXT("ReflectionCapturePlaneDisplayName", "Plane Reflection Capture");
 	NewActorClass = APlaneReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(0, 0, 200);
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
