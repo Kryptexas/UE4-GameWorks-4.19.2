@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayAbilityTargetActor_SingleLineTrace.h"
 #include "Engine/World.h"
+#include "Runtime/Engine/Public/Net/UnrealNetwork.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
