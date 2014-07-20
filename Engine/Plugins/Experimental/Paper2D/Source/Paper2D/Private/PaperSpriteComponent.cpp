@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
-#include "PaperRenderSceneProxy.h"
+#include "PaperSpriteSceneProxy.h"
 #include "PaperSpriteComponent.h"
 #include "PhysicsEngine/BodySetup2D.h"
 
@@ -29,7 +29,7 @@ void UPaperSpriteComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 {
-	FPaperRenderSceneProxy* NewProxy = new FPaperRenderSceneProxy(this);
+	FPaperSpriteSceneProxy* NewProxy = new FPaperSpriteSceneProxy(this);
 	FSpriteDrawCallRecord DrawCall;
 	DrawCall.BuildFromSprite(SourceSprite);
 	DrawCall.Color = SpriteColor;

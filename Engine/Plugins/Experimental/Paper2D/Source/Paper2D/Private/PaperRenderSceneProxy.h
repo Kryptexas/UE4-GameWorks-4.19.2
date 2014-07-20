@@ -5,6 +5,34 @@
 #define TEST_BATCHING 0
 
 //////////////////////////////////////////////////////////////////////////
+// FPaperSpriteVertex
+
+/** A Paper2D sprite vertex. */
+struct FPaperSpriteVertex
+{
+	FVector Position;
+	FPackedNormal TangentX;
+	FPackedNormal TangentZ;
+	FLinearColor Color;
+	FVector2D TexCoords;
+
+	FPaperSpriteVertex() {}
+
+	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FLinearColor& InColor)
+		: Position(InPosition)
+		, TangentX(PackedNormalX)
+		, TangentZ(PackedNormalZ)
+		, Color(InColor)
+		, TexCoords(InTextureCoordinate)
+	{}
+
+	static void SetTangentsFromPaperAxes();
+
+	static FPackedNormal PackedNormalX;
+	static FPackedNormal PackedNormalZ;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FPaperRenderSceneProxy
 
 class FPaperRenderSceneProxy : public FPrimitiveSceneProxy
@@ -46,7 +74,6 @@ protected:
 	class UMaterialInterface* Material;
 	FVector Origin;
 	AActor* Owner;
-	const UPaperSprite* SourceSprite;
 
 	// The color to draw as in wireframe mode
 	FLinearColor WireframeColor;

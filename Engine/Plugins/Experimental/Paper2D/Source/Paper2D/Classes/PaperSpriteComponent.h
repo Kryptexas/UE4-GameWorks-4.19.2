@@ -65,7 +65,7 @@ public:
 	// End of UPrimitiveComponent interface
 
 protected:
-	friend class FPaperRenderSceneProxy;
+	friend class FPaperSpriteSceneProxy;
 };
 
 // Allow the old name to continue to work for one release

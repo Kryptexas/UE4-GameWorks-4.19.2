@@ -7,30 +7,24 @@
 #include "Rendering/PaperBatchSceneProxy.h"
 #include "PhysicsEngine/BodySetup2D.h"
 
-static FPackedNormal PackedNormalX(FVector(1.0f, 0.0f, 0.0f));
-static FPackedNormal PackedNormalY(FVector(0.0f, 1.0f, 0.0f));
+//////////////////////////////////////////////////////////////////////////
+// FPaperSpriteVertex
 
-/** A material sprite vertex. */
-struct FPaperSpriteVertex
+FPackedNormal FPaperSpriteVertex::PackedNormalX(FVector(1.0f, 0.0f, 0.0f));
+FPackedNormal FPaperSpriteVertex::PackedNormalZ(FVector(0.0f, -1.0f, 0.0f));
+
+void FPaperSpriteVertex::SetTangentsFromPaperAxes()
 {
-	FVector Position;
-	FPackedNormal TangentX;
-	FPackedNormal TangentZ;
-	FLinearColor Color;
-	FVector2D TexCoords;
+	PackedNormalX = PaperAxisX;
+	PackedNormalZ = PaperAxisZ;
+	// store determinant of basis in w component of normal vector
+	PackedNormalZ.Vector.W = (GetBasisDeterminantSign(PaperAxisX, PaperAxisY, PaperAxisZ) < 0.0f) ? 0 : 255;
+}
 
-	FPaperSpriteVertex() {}
+//////////////////////////////////////////////////////////////////////////
+// FPaperSpriteVertexBuffer
 
-	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FLinearColor& InColor)
-		: Position(InPosition)
-		, TangentX(PackedNormalX)
-		, TangentZ(PackedNormalY)
-		, Color(InColor)
-		, TexCoords(InTextureCoordinate)
-	{}
-};
-
-/** A dummy vertex buffer used to give the FMaterialSpriteVertexFactory something to reference as a stream source. */
+/** A dummy vertex buffer used to give the FPaperSpriteVertexFactory something to reference as a stream source. */
 class FPaperSpriteVertexBuffer : public FVertexBuffer
 {
 public:
@@ -164,30 +158,9 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	: FPrimitiveSceneProxy(InComponent)
 	, Material(NULL)
 	, Owner(InComponent->GetOwner())
-	, SourceSprite(NULL)
 	, WireframeColor(FLinearColor::White)
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
-	if (const UPaperSpriteComponent* RenderComp = Cast<const UPaperSpriteComponent>(InComponent))
-	{
-		WireframeColor = RenderComp->GetWireframeColor();
-
-		SourceSprite = RenderComp->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
-		if (SourceSprite)
-		{
-			Material = SourceSprite->GetDefaultMaterial();
-		}
-		
-		if (RenderComp->MaterialOverride)
-		{
-			Material = RenderComp->MaterialOverride;
-		}
-
-		if (Material)
-		{
-			MaterialRelevance = Material->GetRelevance();
-		}
-	}
 }
 
 FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
@@ -215,57 +188,6 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PaperRenderSceneProxy_DrawDynamicElements);
 
 	checkSlow(IsInRenderingThread());
-
-	if (SourceSprite != NULL)
-	{
-		// Show 3D physics
-		if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
-		{
-			if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(SourceSprite->BodySetup))
-			{
-				//@TODO: Draw 2D debugging geometry
-			}
-			else if (UBodySetup* BodySetup = SourceSprite->BodySetup)
-			{
-				if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
-				{
-					// Catch this here or otherwise GeomTransform below will assert
-					// This spams so commented out
-					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
-				}
-				else
-				{
-					// Make a material for drawing solid collision stuff
-					const UMaterial* LevelColorationMaterial = View->Family->EngineShowFlags.Lighting 
-						? GEngine->ShadedLevelColorationLitMaterial : GEngine->ShadedLevelColorationUnlitMaterial;
-
-					const FColoredMaterialRenderProxy CollisionMaterialInstance(
-						LevelColorationMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-						WireframeColor
-						);
-
-					// Draw the static mesh's body setup.
-
-					// Get transform without scaling.
-					FTransform GeomTransform(GetLocalToWorld());
-
-					// In old wireframe collision mode, always draw the wireframe highlighted (selected or not).
-					bool bDrawWireSelected = IsSelected();
-					if (View->Family->EngineShowFlags.Collision)
-					{
-						bDrawWireSelected = true;
-					}
-
-					// Differentiate the color based on bBlockNonZeroExtent.  Helps greatly with skimming a level for optimization opportunities.
-					const FColor CollisionColor = FColor(220,149,223,255);
-
-					const bool bUseSeparateColorPerHull = (Owner == NULL);
-					const bool bDrawSolid = false;
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(CollisionColor, bDrawWireSelected, IsHovered()), &CollisionMaterialInstance, bUseSeparateColorPerHull, bDrawSolid);
-				}
-			}
-		}
-	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (View->Family->EngineShowFlags.Paper2DSprites)
@@ -299,6 +221,13 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 
 FVertexFactory* FPaperRenderSceneProxy::GetPaperSpriteVertexFactory() const
 {
+	static bool bInitAxes = false;
+	if (!bInitAxes)
+	{
+		bInitAxes = true;
+		FPaperSpriteVertex::SetTangentsFromPaperAxes();
+	}
+
 	static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;
 	return &GPaperSpriteVertexFactory;
 }
