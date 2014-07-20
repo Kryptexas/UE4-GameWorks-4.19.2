@@ -6,7 +6,7 @@
 
 #include "PaperTileMapRenderComponent.generated.h"
 
-UCLASS(hideCategories=Object, Experimental)
+UCLASS(hideCategories=Object, Experimental, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperTileMapRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

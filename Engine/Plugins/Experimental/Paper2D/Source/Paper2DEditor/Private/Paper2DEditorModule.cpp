@@ -3,23 +3,33 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "Paper2DEditorModule.h"
 
-#include "SpriteAssetTypeActions.h"
-#include "FlipbookAssetTypeActions.h"
-#include "TileSetAssetTypeActions.h"
-
 #include "AssetToolsModule.h"
 #include "PropertyEditorModule.h"
 #include "PaperStyle.h"
 #include "PaperEditorCommands.h"
-#include "TileMapEditing/EdModeTileMap.h"
-#include "TileMapEditing/PaperTileMapDetailsCustomization.h"
-#include "SpriteEditor/SpriteDetailsCustomization.h"
-#include "SpriteEditor/SpritePolygonCollectionCustomization.h"
-#include "PaperSpriteAssetBroker.h"
-#include "PaperFlipbookAssetBroker.h"
+
 #include "AssetEditorToolkit.h"
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+
+// Sprite support
+#include "SpriteAssetTypeActions.h"
+#include "PaperSpriteAssetBroker.h"
+#include "SpriteEditor/SpriteDetailsCustomization.h"
+#include "SpriteEditor/SpritePolygonCollectionCustomization.h"
+
+// Flipbook support
+#include "FlipbookAssetTypeActions.h"
+#include "PaperFlipbookAssetBroker.h"
+
+// Tile set support
+#include "TileSetAssetTypeActions.h"
+
+// Tile map support
+#include "TileMapEditing/TileMapAssetTypeActions.h"
+#include "TileMapEditing/PaperTileMapAssetBroker.h"
+#include "TileMapEditing/EdModeTileMap.h"
+#include "TileMapEditing/PaperTileMapDetailsCustomization.h"
 
 // Atlas support
 #include "Atlasing/AtlasAssetTypeActions.h"
@@ -62,6 +72,7 @@ private:
 
 	TSharedPtr<IComponentAssetBroker> PaperSpriteBroker;
 	TSharedPtr<IComponentAssetBroker> PaperFlipbookBroker;
+	TSharedPtr<IComponentAssetBroker> PaperTileMapBroker;
 
 	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 
@@ -85,6 +96,7 @@ public:
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FSpriteAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFlipbookAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileSetAssetTypeActions));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileMapAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAtlasAssetTypeActions));
 
 		PaperSpriteBroker = MakeShareable(new FPaperSpriteAssetBroker);
@@ -92,6 +104,9 @@ public:
 
 		PaperFlipbookBroker = MakeShareable(new FPaperFlipbookAssetBroker);
 		FComponentAssetBrokerage::RegisterBroker(PaperFlipbookBroker, UPaperFlipbookComponent::StaticClass(), true, true);
+
+		PaperTileMapBroker = MakeShareable(new FPaperTileMapAssetBroker);
+		FComponentAssetBrokerage::RegisterBroker(PaperTileMapBroker, UPaperTileMapRenderComponent::StaticClass(), true, true);
 
 		// Register the details customizations
 		{
@@ -113,6 +128,7 @@ public:
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperTileSet::StaticClass(), UPaperTileSetThumbnailRenderer::StaticClass());
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperFlipbook::StaticClass(), UPaperFlipbookThumbnailRenderer::StaticClass());
+		//@TODO: PAPER2D: UThumbnailManager::Get().RegisterCustomRenderer(UPaperTileMap::StaticClass(), UPaperTileMapThumbnailRenderer::StaticClass());
 
 		// Register the editor modes
 		UpdateTileMapEditorModeInstallation();
@@ -139,6 +155,7 @@ public:
 
 			FPaperContentBrowserExtensions::RemoveHooks();
 
+			FComponentAssetBrokerage::UnregisterBroker(PaperTileMapBroker);
 			FComponentAssetBrokerage::UnregisterBroker(PaperFlipbookBroker);
 			FComponentAssetBrokerage::UnregisterBroker(PaperSpriteBroker);
 
@@ -147,6 +164,7 @@ public:
 
 			// Unregister the thumbnail renderers
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperSprite::StaticClass());
+			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperTileMap::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperTileSet::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
 
