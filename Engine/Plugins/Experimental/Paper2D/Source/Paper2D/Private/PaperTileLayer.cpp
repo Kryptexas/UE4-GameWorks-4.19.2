@@ -153,8 +153,8 @@ void UPaperTileLayer::ConvertToTileSetPerCell()
 	const int32 NumCells = AllocatedWidth * AllocatedHeight;
 	for (int32 Index = 0; Index < NumCells; ++Index)
 	{
-		FPaperTileInfo* Info = new (AllocatedCells)FPaperTileInfo();
-		Info->TileSet = TileSet;
+		FPaperTileInfo* Info = new (AllocatedCells) FPaperTileInfo();
+		Info->TileSet = TileSet_DEPRECATED;
 		Info->PackedTileIndex = AllocatedGrid_DEPRECATED[Index];
 	}
 }

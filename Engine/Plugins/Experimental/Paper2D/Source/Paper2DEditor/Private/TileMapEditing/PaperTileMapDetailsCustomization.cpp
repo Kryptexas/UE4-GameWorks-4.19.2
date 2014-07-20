@@ -150,7 +150,6 @@ UPaperTileLayer* FPaperTileMapDetailsCustomization::AddLayer(bool bCollisionLaye
 		NewLayer->LayerWidth = TileMap->MapWidth;
 		NewLayer->LayerHeight = TileMap->MapHeight;
 		NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
-		NewLayer->TileSet = TileMap->DefaultLayerTileSet;
 		NewLayer->LayerName = LOCTEXT("DefaultNewLayerName", "New Layer");
 		NewLayer->bCollisionLayer = bCollisionLayer;
 

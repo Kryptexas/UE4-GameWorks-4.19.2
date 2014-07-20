@@ -215,15 +215,16 @@ void STileLayerItem::OnLayerNameCommitted(const FText& NewText, ETextCommit::Typ
 
 void STileLayerItem::OnChangeLayerTileSet(UObject* NewAsset)
 {
-	if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(NewAsset))
-	{
-		MyLayer->TileSet = TileSet;
-	}
+	//@TODO: PAPER2D: Dead code now?
+// 	if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(NewAsset))
+// 	{
+// 		MyLayer->TileSet = TileSet;
+// 	}
 }
 
 UObject* STileLayerItem::GetLayerTileset() const
 {
-	return MyLayer->TileSet;
+	return nullptr;// MyLayer->TileSet;
 }
 
 FReply STileLayerItem::OnToggleVisibility()

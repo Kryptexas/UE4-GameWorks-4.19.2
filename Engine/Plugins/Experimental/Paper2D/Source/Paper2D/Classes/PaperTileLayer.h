@@ -51,10 +51,6 @@ class PAPER2D_API UPaperTileLayer : public UObject
 	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 LayerHeight;
 
-	// Tile Set associated with the layer //@TODO: Remove this or make it editor only
-	UPROPERTY(Category=Debug, VisibleAnywhere)
-	UPaperTileSet* TileSet;
-
 #if WITH_EDITORONLY_DATA
 	// Opacity of the layer (editor only)
 	UPROPERTY(Category=Debug, VisibleAnywhere)
@@ -82,12 +78,16 @@ protected:
 	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 AllocatedHeight;
 
-	UPROPERTY()
-	TArray<int32> AllocatedGrid_DEPRECATED;
-
 	// The allocated tile data
 	UPROPERTY(Category=Debug, VisibleAnywhere)
 	TArray<FPaperTileInfo> AllocatedCells;
+
+private:
+	UPROPERTY()
+	UPaperTileSet* TileSet_DEPRECATED;
+
+	UPROPERTY()
+	TArray<int32> AllocatedGrid_DEPRECATED;
 
 public:
 	void ConvertToTileSetPerCell();

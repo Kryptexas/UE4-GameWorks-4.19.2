@@ -103,7 +103,7 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 			FTransform LocalToWorld(GetLocalToWorld());
 
-			const float TW = TileMap ->TileWidth;
+			const float TW = TileMap->TileWidth;
 			const float TH = TileMap->TileHeight;
 			//@TODO: PAPER: Tiles probably shouldn't be drawn with their pivot at the center - RE: all the 0.5f in here
 
@@ -171,10 +171,8 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 			ensure(Layer->LayerWidth == TileMap->MapWidth);
 			ensure(Layer->LayerHeight == TileMap->MapHeight);
 
-			UPaperTileSet* TileSet = Layer->TileSet;
-				
-			int32 TileWidth = 4;
-			int32 TileHeight = 4;
+			const int32 TileWidth = TileMap->TileWidth;
+			const int32 TileHeight = TileMap->TileHeight;
 
 			UTexture2D* LastSourceTexture = nullptr;
 			FVector2D InverseTextureSize(1.0f, 1.0f);
@@ -227,8 +225,6 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 					if (SourceTexture != LastSourceTexture)
 					{
-						TileWidth = TileSet->TileWidth;
-						TileHeight = TileSet->TileHeight;
 						InverseTextureSize = FVector2D(1.0f / SourceTexture->GetSizeX(), 1.0f / SourceTexture->GetSizeY());
 						SourceDimensionsUV = FVector2D(TileWidth * InverseTextureSize.X, TileHeight * InverseTextureSize.Y);
 						LastSourceTexture = SourceTexture;

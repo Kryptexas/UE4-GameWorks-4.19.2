@@ -462,7 +462,7 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 					}
 
 					Ink.PackedTileIndex = SX + (SY * InkSource->GetTileCountX());
-					Ink.TileSet = Layer->TileSet;
+					Ink.TileSet = InkSource;
 				}
 
 				if (Layer->GetCell(DX, DY) != Ink)
@@ -662,7 +662,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 					{
 						const int32 TileSetX = PaintSourceTopLeft.X + InsideBrushX;
 						const int32 TileSetY = PaintSourceTopLeft.Y + InsideBrushY;
-						NewInk.TileSet = Layer->TileSet;
+						NewInk.TileSet = InkSource;
 						NewInk.PackedTileIndex = TileSetX + (TileSetY * InkSource->GetTileCountX());
 					}
 
