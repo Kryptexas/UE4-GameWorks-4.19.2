@@ -27,6 +27,10 @@
 			"Type" : "Editor"
 		},
 		{
+			"Name" : "PaperTiledImporter",
+			"Type" : "Editor"
+		},
+		{
 			"Name" : "SmartSnapping",
 			"Type" : "Editor"
 		}

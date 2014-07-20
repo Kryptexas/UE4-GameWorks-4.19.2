@@ -40,16 +40,23 @@ class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it eas
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY()
+	UPROPERTY(Category=Debug, VisibleAnywhere, EditInline) //@TODO: Remove this
 	TArray<UPaperTileLayer*> TileLayers;
 
 	// Collision domain (no collision, 2D, or 3D)
-	UPROPERTY(Category = Collision, EditAnywhere)
+	UPROPERTY(Category=Collision, EditAnywhere)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
 	// Baked physics data.
 	UPROPERTY()
 	class UBodySetup* BodySetup;
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Importing data and options used for this tile map */
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, EditInline)
+	class UAssetImportData* AssetImportData;
+#endif
 
 public:
 	// UObject interface

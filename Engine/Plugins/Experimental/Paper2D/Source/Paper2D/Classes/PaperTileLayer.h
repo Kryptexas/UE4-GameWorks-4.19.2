@@ -11,10 +11,10 @@ struct FPaperTileInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	UPaperTileSet* TileSet;
 
-	UPROPERTY()
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 PackedTileIndex;
 
 	FPaperTileInfo()
@@ -39,38 +39,54 @@ class PAPER2D_API UPaperTileLayer : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
+	// Name of the layer
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	FText LayerName;
 
-	UPROPERTY()
+	// Width of the layer (in tiles)
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 LayerWidth;
 
-	UPROPERTY()
+	// Height of the layer (in tiles)
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 LayerHeight;
 
-	UPROPERTY()
+	// Tile Set associated with the layer //@TODO: Remove this or make it editor only
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	UPaperTileSet* TileSet;
 
-	UPROPERTY()
-	bool bHiddenInEditor;
+#if WITH_EDITORONLY_DATA
+	// Opacity of the layer (editor only)
+	UPROPERTY(Category=Debug, VisibleAnywhere)
+	float LayerOpacity;
 
-	UPROPERTY()
+	// Is this layer currently hidden in the editor?
+	UPROPERTY(Category=Debug, VisibleAnywhere)
+	bool bHiddenInEditor;
+#endif
+
+	// Should this layer be hidden in the game?
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	bool bHiddenInGame;
 
-	UPROPERTY()
+	// Is this layer a collision layer?
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	bool bCollisionLayer;
 
 protected:
-	UPROPERTY()
+	// The allocated width of the tile data (used to handle resizing without data loss)
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 AllocatedWidth;
 
-	UPROPERTY()
+	// The allocated height of the tile data (used to handle resizing without data loss)
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	int32 AllocatedHeight;
 
 	UPROPERTY()
 	TArray<int32> AllocatedGrid_DEPRECATED;
 
-	UPROPERTY()
+	// The allocated tile data
+	UPROPERTY(Category=Debug, VisibleAnywhere)
 	TArray<FPaperTileInfo> AllocatedCells;
 
 public:

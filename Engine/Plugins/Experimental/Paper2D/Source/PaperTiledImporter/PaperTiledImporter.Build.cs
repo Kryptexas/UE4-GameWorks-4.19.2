@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class PaperJsonImporter : ModuleRules
+public class PaperTiledImporter : ModuleRules
 {
-	public PaperJsonImporter(TargetInfo Target)
+	public PaperTiledImporter(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

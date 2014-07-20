@@ -3,6 +3,7 @@
 #include "PaperJsonImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
 #include "Json.h"
+#include "PaperJSONHelpers.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
@@ -38,7 +39,7 @@ UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FPostConstructInitial
 	bEditorImport = true;
 	bText = true;
 
-	Formats.Add(TEXT("json;JSON file"));
+	Formats.Add(TEXT("json;Spritesheet JSON file"));
 }
 
 FText UPaperJsonImporterFactory::GetToolTip() const
@@ -78,7 +79,7 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 		UTexture2D* ImportedTexture = NULL;
 
 		// Validate the meta block
-		TSharedPtr<FJsonObject> MetaBlock = ReadObject(SpriteDescriptorObject, TEXT("meta"));
+		TSharedPtr<FJsonObject> MetaBlock = FPaperJSONHelpers::ReadObject(SpriteDescriptorObject, TEXT("meta"));
 		if (MetaBlock.IsValid())
 		{
 			// Example contents:
@@ -89,8 +90,8 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 			//   "size": {"w":2048,"h":2048},    (ignored)
 			//   "scale": "1"                    (ignored)
 
-			const FString AppName = ReadString(MetaBlock, TEXT("app"), TEXT(""));
-			const FString Image = ReadString(MetaBlock, TEXT("image"), TEXT(""));
+			const FString AppName = FPaperJSONHelpers::ReadString(MetaBlock, TEXT("app"), TEXT(""));
+			const FString Image = FPaperJSONHelpers::ReadString(MetaBlock, TEXT("image"), TEXT(""));
 			
  			if (bLoadedSuccessfully)
 			{
@@ -163,7 +164,7 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 		// Parse the frames
 		if (bLoadedSuccessfully)
 		{
-			TSharedPtr<FJsonObject> FramesBlock = ReadObject(SpriteDescriptorObject, TEXT("frames"));
+			TSharedPtr<FJsonObject> FramesBlock = FPaperJSONHelpers::ReadObject(SpriteDescriptorObject, TEXT("frames"));
 			if (FramesBlock.IsValid())
 			{
 				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frame"), true, true);
@@ -201,8 +202,8 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 						//   "spriteSourceSize": {"x":0,"y":11,"w":216,"h":240},
 						//   "sourceSize": {"w":216,"h":240}
 
-						Frame.bRotated = ReadBoolean(FrameData, TEXT("rotated"), false);
-						Frame.bTrimmed = ReadBoolean(FrameData, TEXT("trimmed"), false);
+						Frame.bRotated = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("rotated"), false);
+						Frame.bTrimmed = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("trimmed"), false);
 
 						if (Frame.bRotated || !Frame.bTrimmed)
 						{
@@ -210,11 +211,11 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 							UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is either rotated or not trimmed, which may not be handled correctly"), *Frame.FrameName.ToString());
 						}
 
-						bReadFrameSuccessfully = bReadFrameSuccessfully && ReadRectangle(FrameData, "frame", /*out*/ Frame.SpritePosInSheet, /*out*/ Frame.SpriteSizeInSheet);
+						bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadRectangle(FrameData, "frame", /*out*/ Frame.SpritePosInSheet, /*out*/ Frame.SpriteSizeInSheet);
 
 						if (Frame.bTrimmed)
 						{
-							bReadFrameSuccessfully = bReadFrameSuccessfully && ReadRectangle(FrameData, "spriteSourceSize", /*out*/ Frame.SpriteSourcePos, /*out*/ Frame.SpriteSourceSize);
+							bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadRectangle(FrameData, "spriteSourceSize", /*out*/ Frame.SpriteSourcePos, /*out*/ Frame.SpriteSourceSize);
 						}
 						else
 						{
@@ -345,101 +346,5 @@ TSharedPtr<FJsonObject> UPaperJsonImporterFactory::ParseJSON(const FString& File
 	{
 		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Sprite descriptor file '%s' was empty.  This sprite cannot be imported."), *NameForErrors);
 		return NULL;
-	}
-}
-
-// returns the value of Key in Item, or DefaultValue if the Key is missing or the wrong type
-FString UPaperJsonImporterFactory::ReadString(TSharedPtr<class FJsonObject> Item, const FString& Key, const FString& DefaultValue)
-{
-	const TSharedPtr<FJsonValue>& ValuePtr = Item->GetField<EJson::String>(Key);
-	return ValuePtr.IsValid() ? ValuePtr->AsString() : DefaultValue;
-}
-
-// Returns the object named Key or NULL if it is missing or the wrong type
-TSharedPtr<class FJsonObject> UPaperJsonImporterFactory::ReadObject(TSharedPtr<class FJsonObject> Item, const FString& Key)
-{
-	if (Item->HasTypedField<EJson::Object>(Key))
-	{
-		return Item->GetObjectField(Key);
-	}
-	else
-	{
-		return NULL;
-	}
-}
-
-// Returns the bool named Key or bDefaultIfMissing if it is missing or the wrong type (note: no way to determine errors!)
-bool UPaperJsonImporterFactory::ReadBoolean(const TSharedPtr<class FJsonObject> Item, const FString& Key, bool bDefaultIfMissing)
-{
-	if (Item->HasTypedField<EJson::Boolean>(Key))
-	{
-		return Item->GetBoolField(Key);
-	}
-	else
-	{
-		return bDefaultIfMissing;
-	}
-}
-
-bool UPaperJsonImporterFactory::ReadFloatNoDefault(const TSharedPtr<class FJsonObject> Item, const FString& Key, float& Out_Value)
-{
-	if (Item->HasTypedField<EJson::Number>(Key))
-	{
-		Out_Value = Item->GetNumberField(Key);
-		return true;
-	}
-	else
-	{
-		Out_Value = 0.0f;
-		return false;
-	}
-}
-
-// Returns true if the object named Key is a struct containing four floats (x,y,w,h), populating XY and WH with the values)
-bool UPaperJsonImporterFactory::ReadRectangle(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_XY, FVector2D& Out_WH)
-{
-	const TSharedPtr<FJsonObject> Struct = ReadObject(Item, Key);
-	if (Struct.IsValid())
-	{
-		if (ReadFloatNoDefault(Struct, TEXT("x"), /*out*/ Out_XY.X) &&
-			ReadFloatNoDefault(Struct, TEXT("y"), /*out*/ Out_XY.Y) &&
-			ReadFloatNoDefault(Struct, TEXT("w"), /*out*/ Out_WH.X) &&
-			ReadFloatNoDefault(Struct, TEXT("h"), /*out*/ Out_WH.Y))
-		{
-			return true;
-		}
-		else
-		{
-			Out_XY = FVector2D::ZeroVector;
-			Out_WH = FVector2D::ZeroVector;
-			return false;
-		}
-	}
-	else
-	{
-		return false;
-	}
-}
-
-// Returns true if the object named Key is a struct containing two floats (w,h), populating WH with the values)
-bool UPaperJsonImporterFactory::ReadSize(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_WH)
-{
-	const TSharedPtr<FJsonObject> Struct = ReadObject(Item, Key);
-	if (Struct.IsValid())
-	{
-		if (ReadFloatNoDefault(Struct, TEXT("w"), /*out*/ Out_WH.X) &&
-			ReadFloatNoDefault(Struct, TEXT("h"), /*out*/ Out_WH.Y))
-		{
-			return true;
-		}
-		else
-		{
-			Out_WH = FVector2D::ZeroVector;
-			return false;
-		}
-	}
-	else
-	{
-		return false;
 	}
 }
