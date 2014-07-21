@@ -27,6 +27,9 @@ struct FActorPositionTraceResult
 
 	/** The surface normal of the trace hit */
 	FVector		SurfaceNormal;
+
+	/** Pointer to the actor that was hit, if any. nullptr otherwise */
+	TWeakObjectPtr<AActor>	HitActor;
 };
 
 struct FActorPositioning

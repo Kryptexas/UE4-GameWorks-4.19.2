@@ -992,12 +992,28 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	// Snap the new location if snapping is enabled
 	FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
 
+	AActor* DroppedOnActor = TraceResult.HitActor.Get();
+	
+	if (DroppedOnActor)
+	{
+		// We indicate that the dropped objects are visible if *any* of them are not applicable to other actors
+		out_bDroppedObjectsVisible = DroppedObjects.ContainsByPredicate([&](UObject* AssetObj){
+			return !AttemptApplyObjToActor(AssetObj, DroppedOnActor, -1, true);
+		});
+	}
+	else
+	{
+		// All dropped objects are visible if we're not dropping on an actor
+		out_bDroppedObjectsVisible = true;
+	}
+
 	for (AActor* Actor : DraggingActors)
 	{
 		const UActorFactory* ActorFactory = FactoryToUse ? FactoryToUse : GEditor->FindActorFactoryForActorClass(Actor->GetClass());
 		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(this, ActorFactory, TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent());
 
 		Actor->SetActorTransform(ActorTransform);
+		Actor->SetIsTemporarilyHiddenInEditor(false);
 	}
 
 	return true;

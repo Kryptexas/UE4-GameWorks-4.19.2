@@ -118,6 +118,7 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 				Results.Location = Hit.Location;
 				Results.SurfaceNormal = Hit.Normal.SafeNormal();
 				Results.State = FActorPositionTraceResult::HitSuccess;
+				Results.HitActor = Hit.Actor;
 			}
 		}
 	}
