@@ -1411,7 +1411,8 @@ namespace UnrealBuildTool
 		{
 			string EULAViolationWarning = null;
 
-			if (Rules.Type != TargetRules.TargetType.Editor && Rules.Type != TargetRules.TargetType.Program)
+			if (Rules.Type != TargetRules.TargetType.Editor && Rules.Type != TargetRules.TargetType.Program &&
+				BuildConfiguration.bCheckLicenseViolations)
 			{
 				var RedistributionErrorMessageBuilder = new StringBuilder();
 				foreach (var Binary in AppBinaries)

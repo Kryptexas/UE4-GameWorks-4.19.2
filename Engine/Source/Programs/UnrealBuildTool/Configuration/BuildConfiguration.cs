@@ -337,6 +337,12 @@ namespace UnrealBuildTool
 		public static bool bDebugBuildsActuallyUseDebugCRT;
 
 		/// <summary>
+		/// Tells the UBT to check if module currently being built is violating EULA.
+		/// </summary>
+		[XmlConfig]
+		public static bool bCheckLicenseViolations;
+
+		/// <summary>
 		/// Tells the UBT to break build if module currently being built is violating EULA.
 		/// </summary>
 		[XmlConfig]
@@ -445,6 +451,8 @@ namespace UnrealBuildTool
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
 
+			// By default check and stop the build on EULA violation
+			bCheckLicenseViolations = true;
 			bBreakBuildOnLicenseViolation = true;
 		}
 
