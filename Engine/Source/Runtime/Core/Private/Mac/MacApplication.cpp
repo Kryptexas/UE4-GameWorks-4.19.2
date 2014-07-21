@@ -815,14 +815,16 @@ FModifierKeysState FMacApplication::GetModifierKeys() const
 {
 	uint32 CurrentFlags = ModifierKeysFlags;
 
-	const bool bIsLeftShiftDown		= ( CurrentFlags & ( 1 << 0 ) ) != 0;
-	const bool bIsRightShiftDown	= ( CurrentFlags & ( 1 << 1 ) ) != 0;
-	const bool bIsLeftControlDown	= ( CurrentFlags & ( 1 << 6 ) ) != 0 || ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Command key is Ctrl
-	const bool bIsRightControlDown	= ( CurrentFlags & ( 1 << 7 ) ) != 0 || ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Command key is Ctrl
-	const bool bIsLeftAltDown		= ( CurrentFlags & ( 1 << 4 ) ) != 0;
-	const bool bIsRightAltDown		= ( CurrentFlags & ( 1 << 5 ) ) != 0;
+	const bool bIsLeftShiftDown			= ( CurrentFlags & ( 1 << 0 ) ) != 0;
+	const bool bIsRightShiftDown		= ( CurrentFlags & ( 1 << 1 ) ) != 0;
+	const bool bIsLeftControlDown		= ( CurrentFlags & ( 1 << 6 ) ) != 0; // Mac pretends the Command key is Control
+	const bool bIsRightControlDown		= ( CurrentFlags & ( 1 << 7 ) ) != 0; // Mac pretends the Command key is Control
+	const bool bIsLeftAltDown			= ( CurrentFlags & ( 1 << 4 ) ) != 0;
+	const bool bIsRightAltDown			= ( CurrentFlags & ( 1 << 5 ) ) != 0;
+	const bool bIsLeftCommandDown		= ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Control key is Command
+	const bool bIsRightCommandDown		= ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Control key is Command
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown );
+	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown );
 }
 
 FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const

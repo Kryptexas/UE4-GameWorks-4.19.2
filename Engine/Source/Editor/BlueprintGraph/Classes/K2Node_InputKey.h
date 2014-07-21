@@ -26,17 +26,21 @@ class UK2Node_InputKey : public UK2Node
 	UPROPERTY(EditAnywhere, Category="Input")
 	uint32 bOverrideParentBinding:1;
 
-	// Does this binding requires the control key to be held
+	// Does this binding require the control key to be held
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bControl:1;
 
-	// Does this binding requires the alt key to be held
+	// Does this binding require the alt key to be held
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bAlt:1;
 
-	// Does this binding requires the shift key to be held
+	// Does this binding require the shift key to be held
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bShift:1;
+
+	// Does this binding require the command key to be held
+	UPROPERTY(EditAnywhere, Category="Modifier")
+	uint32 bCommand:1;
 
 	// Begin UObject interface
 	virtual void PostLoad() override;

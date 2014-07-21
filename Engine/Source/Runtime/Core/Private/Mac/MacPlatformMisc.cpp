@@ -317,7 +317,7 @@ void FMacPlatformMisc::UpdateWindowMenu()
 
 	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
 	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
-	NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@""] autorelease];
+	NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
 	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
 
 	[WindowMenu addItem:MinimizeItem];
@@ -555,16 +555,16 @@ uint32 FMacPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 
 		ADDKEYMAP( kVK_F11, TEXT("F11") );
 		ADDKEYMAP( kVK_F12, TEXT("F12") );
 
-        //Mac pretends the Command key is Ctrl
-        ADDKEYMAP( MMK_RightCommand, TEXT("RightControl") );
-        ADDKEYMAP( MMK_LeftCommand, TEXT("LeftControl") );
-        ADDKEYMAP( MMK_LeftShift, TEXT("LeftShift") );
-        ADDKEYMAP( MMK_CapsLock, TEXT("CapsLock") );
-        ADDKEYMAP( MMK_LeftAlt, TEXT("LeftAlt") );
-        ADDKEYMAP( MMK_LeftControl, TEXT("LeftControl") );
-        ADDKEYMAP( MMK_RightShift, TEXT("RightShift") );
-        ADDKEYMAP( MMK_RightAlt, TEXT("RightAlt") );
-        ADDKEYMAP( MMK_RightControl, TEXT("RightControl") );
+		// Mac pretends the Command key is Ctrl and Ctrl is Command key
+		ADDKEYMAP( MMK_RightCommand, TEXT("RightControl") );
+		ADDKEYMAP( MMK_LeftCommand, TEXT("LeftControl") );
+		ADDKEYMAP( MMK_LeftShift, TEXT("LeftShift") );
+		ADDKEYMAP( MMK_CapsLock, TEXT("CapsLock") );
+		ADDKEYMAP( MMK_LeftAlt, TEXT("LeftAlt") );
+		ADDKEYMAP( MMK_LeftControl, TEXT("LeftCommand") );
+		ADDKEYMAP( MMK_RightShift, TEXT("RightShift") );
+		ADDKEYMAP( MMK_RightAlt, TEXT("RightAlt") );
+		ADDKEYMAP( MMK_RightControl, TEXT("RightCommand") );
 	}
 
 	check(NumMappings < MaxMappings);

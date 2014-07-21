@@ -86,7 +86,7 @@ int32 SViewport::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& M
 				CursorPosScreenSpace,
 				FVector2D::ZeroVector,
 				TSet<FKey>(),
-				FModifierKeysState(false, false, false, false, false, false) )
+				FModifierKeysState(false, false, false, false, false, false, false, false) )
 		 );
 		EMouseCursor::Type CursorType = Reply.GetCursor();
 

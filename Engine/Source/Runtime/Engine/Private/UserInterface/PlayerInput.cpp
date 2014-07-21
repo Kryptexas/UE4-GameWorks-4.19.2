@@ -551,13 +551,14 @@ void UPlayerInput::GetChordsForAction(const FInputActionBinding& ActionBinding, 
 				// test modifier conditions and ignore the event if they failed
 				if (	(KeyMapping.bAlt == false || IsAltPressed())
 					&&	(KeyMapping.bCtrl == false || IsCtrlPressed())
-					&&	(KeyMapping.bShift == false || IsShiftPressed())
+					&&	(KeyMapping.bShift == false || IsShiftPressed()
+					&&	(KeyMapping.bCmd == false || IsCmdPressed()))
 					&& 	KeyEventOccurred(KeyMapping.Key, ActionBinding.KeyEvent, EventIndices))
 				{
 					bool bAddDelegate = true;
 
 					// look through the found chords and determine if this is masked (or masks) anything in the array
-					const FInputChord Chord(KeyMapping.Key, KeyMapping.bShift, KeyMapping.bCtrl, KeyMapping.bAlt);
+					const FInputChord Chord(KeyMapping.Key, KeyMapping.bShift, KeyMapping.bCtrl, KeyMapping.bAlt, KeyMapping.bCmd);
 					for (int32 ChordIndex = FoundChords.Num() - 1; ChordIndex >= 0; --ChordIndex)
 					{
 						FInputChord::RelationshipType ChordRelationship = Chord.GetRelationship(FoundChords[ChordIndex].Chord);
@@ -614,6 +615,7 @@ void UPlayerInput::GetChordForKey(const FInputKeyBinding& KeyBinding, const bool
 		if (	(KeyBinding.Chord.bAlt == false || IsAltPressed())
 			&&	(KeyBinding.Chord.bCtrl == false || IsCtrlPressed())
 			&&	(KeyBinding.Chord.bShift == false || IsShiftPressed())
+			&&	(KeyBinding.Chord.bCmd == false || IsCmdPressed())
 			&& 	KeyEventOccurred(KeyBinding.Chord.Key, KeyBinding.KeyEvent, EventIndices))
 		{
 			bool bAddDelegate = true;
@@ -1408,6 +1410,11 @@ bool UPlayerInput::IsShiftPressed() const
 	return IsPressed(EKeys::LeftShift) || IsPressed(EKeys::RightShift);
 }
 
+bool UPlayerInput::IsCmdPressed() const
+{
+	return IsPressed(EKeys::LeftCommand) || IsPressed(EKeys::RightCommand);
+}
+
 void UPlayerInput::ConditionalInitAxisProperties()
 {
 	// Initialize AxisProperties map if needed.
@@ -1432,7 +1439,8 @@ bool UPlayerInput::IsKeyHandledByAction( FKey Key ) const
 		if( Mapping.Key == Key && 
 			(Mapping.bAlt == false || IsAltPressed()) &&
 			(Mapping.bCtrl == false || IsCtrlPressed()) &&
-			(Mapping.bShift == false || IsShiftPressed()) )
+			(Mapping.bShift == false || IsShiftPressed()) &&
+			(Mapping.bCmd == false || IsCmdPressed()) )
 		{
 			return true;
 		}
@@ -1540,6 +1548,7 @@ FString UPlayerInput::GetBind(FKey Key)
 		const bool bControlPressed = IsCtrlPressed();
 		const bool bShiftPressed = IsShiftPressed();
 		const bool bAltPressed = IsAltPressed();
+		const bool bCmdPressed = IsCmdPressed();
 
 		for ( int32 BindIndex = DebugExecBindings.Num() - 1; BindIndex >= 0; BindIndex-- )
 		{
@@ -1548,8 +1557,8 @@ FString UPlayerInput::GetBind(FKey Key)
 			{
 				// if the modifier key pressed [or this key-bind doesn't require that key], and the key-bind isn't
 				// configured to ignore they modifier key, we've found a match.
-				if ((!Bind.Control || bControlPressed) && (!Bind.Shift || bShiftPressed) && (!Bind.Alt || bAltPressed)
-					&&	(!Bind.bIgnoreCtrl || !bControlPressed) && (!Bind.bIgnoreShift || !bShiftPressed) && (!Bind.bIgnoreAlt || !bAltPressed))
+				if ((!Bind.Control || bControlPressed) && (!Bind.Shift || bShiftPressed) && (!Bind.Alt || bAltPressed) && (!Bind.Cmd || bCmdPressed)
+					&&	(!Bind.bIgnoreCtrl || !bControlPressed) && (!Bind.bIgnoreShift || !bShiftPressed) && (!Bind.bIgnoreAlt || !bAltPressed) && (!Bind.bIgnoreCmd || !bCmdPressed))
 				{
 					return DebugExecBindings[BindIndex].Command;
 				}

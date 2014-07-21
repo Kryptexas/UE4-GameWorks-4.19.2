@@ -44,33 +44,65 @@ FLinearColor UK2Node_InputKey::GetNodeTitleColor() const
 
 FName UK2Node_InputKey::GetModifierName() const
 {
-	if ( bControl && !bAlt && !bShift )
+	if ( bControl && !bAlt && !bShift && !bCommand )
 	{
 		return FName("Ctrl");
 	}
-	else if ( bControl && bAlt && !bShift )
+	else if ( bControl && bAlt && !bShift && !bCommand )
 	{
 		return FName("Ctrl+Alt");
 	}
-	else if ( bControl && !bAlt && bShift )
+	else if ( bControl && !bAlt && bShift && !bCommand )
 	{
 		return FName("Ctrl+Shift");
 	}
-	else if ( bControl && bAlt && bShift )
+	else if ( bControl && !bAlt && !bShift && bCommand )
+	{
+		return FName("Ctrl+Cmd");
+	}
+	else if ( bControl && bAlt && bShift && !bCommand )
 	{
 		return FName("Ctrl+Alt+Shift");
 	}
-	else if ( !bControl && bAlt && !bShift )
+	else if ( bControl && bAlt && !bShift && bCommand )
+	{
+		return FName("Ctrl+Cmd+Alt");
+	}
+	else if ( bControl && !bAlt && bShift && bCommand )
+	{
+		return FName("Ctrl+Cmd+Shift");
+	}
+	else if ( !bControl && bAlt && bShift && bCommand )
+	{
+		return FName("Cmd+Alt+Shift");
+	}
+	else if ( bControl && bAlt && bShift && bCommand )
+	{
+		return FName("Ctrl+Cmd+Alt+Shift");
+	}
+	else if ( !bControl && bAlt && !bShift && !bCommand )
 	{
 		return FName("Alt");
 	}
-	else if ( !bControl && bAlt && bShift )
+	else if ( !bControl && bAlt && bShift && !bCommand )
 	{
 		return FName("Alt+Shift");
 	}
-	else if ( !bControl && !bAlt && bShift )
+	else if ( !bControl && bAlt && !bShift && bCommand )
+	{
+		return FName("Cmd+Alt");
+	}
+	else if ( !bControl && !bAlt && bShift && bCommand )
+	{
+		return FName("Cmd+Shift");
+	}
+	else if ( !bControl && !bAlt && bShift && !bCommand )
 	{
 		return FName("Shift");
+	}
+	else if ( !bControl && !bAlt && !bShift && bCommand )
+	{
+		return FName("Cmd");
 	}
 
 	return NAME_None;
@@ -79,49 +111,109 @@ FName UK2Node_InputKey::GetModifierName() const
 FText UK2Node_InputKey::GetModifierText() const
 {
 	//@todo This should be unified with other places in the editor [10/11/2013 justin.sargent]
-	if ( bControl && !bAlt && !bShift )
+	if ( bControl && !bAlt && !bShift && !bCommand )
 	{
 #if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Command");
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
 #else
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control", "Ctrl");
 #endif
 	}
-	else if ( bControl && bAlt && !bShift )
+	else if ( bControl && bAlt && !bShift && !bCommand )
 	{
 #if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Command+Alt");
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
 #else
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
 #endif
 	}
-	else if ( bControl && !bAlt && bShift )
+	else if ( bControl && !bAlt && bShift && !bCommand )
 	{
 #if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Shift", "Command+Shift");
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Shift", "Cmd+Shift");
 #else
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Shift", "Ctrl+Shift");
 #endif
 	}
-	else if ( bControl && bAlt && bShift )
+	else if ( bControl && !bAlt && !bShift && bCommand )
 	{
 #if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt + KeyName_Shift", "Command+Alt+Shift");
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control", "Cmd+Ctrl");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command", "Ctrl+Cmd");
+#endif
+	}
+	else if ( !bControl && bAlt && !bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
+#endif
+	}
+	else if ( !bControl && !bAlt && bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Shift", "Ctrl+Shift");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Shift", "Cmd+Shift");
+#endif
+	}
+	else if ( bControl && bAlt && bShift && !bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt + KeyName_Shift", "Cmd+Alt+Shift");
 #else
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt + KeyName_Shift", "Ctrl+Alt+Shift");
 #endif
 	}
-	else if ( !bControl && bAlt && !bShift )
+	else if ( bControl && bAlt && !bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Alt", "Cmd+Ctrl+Alt");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Alt", "Ctrl+Cmd+Alt");
+#endif
+	}
+	else if ( bControl && !bAlt && bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Shift", "Cmd+Ctrl+Shift");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Shift", "Ctrl+Cmd+Shift");
+#endif
+	}
+	else if ( bControl && bAlt && bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Alt + KeyName_Shift", "Cmd+Ctrl+Alt+Shift");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Alt + KeyName_Shift", "Ctrl+Cmd+Alt+Shift");
+#endif
+	}
+	else if ( !bControl && bAlt && !bShift && !bCommand )
 	{
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Alt", "Alt");
 	}
-	else if ( !bControl && bAlt && bShift )
+	else if ( !bControl && bAlt && bShift && !bCommand )
 	{
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Alt + KeyName_Shift", "Alt+Shift");
 	}
-	else if ( !bControl && !bAlt && bShift )
+	else if ( !bControl && bAlt && !bShift && bCommand )
+	{
+#if PLATFORM_MAC
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
+#else
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
+#endif
+	}
+	else if ( !bControl && !bAlt && bShift && !bCommand )
 	{
 		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Shift", "Shift");
+	}
+	else if ( !bControl && !bAlt && !bShift && bCommand )
+	{
+		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
 	}
 
 	return FText::GetEmpty();

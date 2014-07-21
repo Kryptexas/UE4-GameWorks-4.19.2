@@ -42,6 +42,9 @@ struct FKeyBind
 	UPROPERTY(config)
 	uint32 Alt:1;
 
+	UPROPERTY(config)
+	uint32 Cmd:1;
+
 	/** if true, the bind will not be activated if the corresponding key is held down */
 	UPROPERTY(config)
 	uint32 bIgnoreCtrl:1;
@@ -51,6 +54,9 @@ struct FKeyBind
 
 	UPROPERTY(config)
 	uint32 bIgnoreAlt:1;
+
+	UPROPERTY(config)
+	uint32 bIgnoreCmd:1;
 
 	FKeyBind() 
 	{
@@ -127,13 +133,18 @@ struct FInputActionKeyMapping
 	UPROPERTY(EditAnywhere, Category="Input")
 	uint32 bAlt:1;
 
+	/** true if one of the Cmd keys must be down when the KeyEvent is received to be acknowledged */
+	UPROPERTY(EditAnywhere, Category="Input")
+	uint32 bCmd:1;
+
 	bool operator==(const FInputActionKeyMapping& Other) const
 	{
 		return (   ActionName == Other.ActionName
 				&& Key == Other.Key
 				&& bShift == Other.bShift
 				&& bCtrl == Other.bCtrl
-				&& bAlt == Other.bAlt);
+				&& bAlt == Other.bAlt
+				&& bCmd == Other.bCmd);
 	}
 
 	bool operator<(const FInputActionKeyMapping& Other) const
@@ -150,12 +161,13 @@ struct FInputActionKeyMapping
 		return bResult;
 	}
 
-	FInputActionKeyMapping(const FName InActionName = NAME_None, const FKey InKey = EKeys::Invalid, const bool bInShift = false, const bool bInCtrl = false, const bool bInAlt = false)
+	FInputActionKeyMapping(const FName InActionName = NAME_None, const FKey InKey = EKeys::Invalid, const bool bInShift = false, const bool bInCtrl = false, const bool bInAlt = false, const bool bInCmd = false)
 		: ActionName(InActionName)
 		, Key(InKey)
 		, bShift(bInShift)
 		, bCtrl(bInCtrl)
 		, bAlt(bInAlt)
+		, bCmd(bInCmd)
 	{}
 };
 
@@ -435,6 +447,9 @@ public:
 
 	/** @return true if shift key is pressed */
 	bool IsShiftPressed() const;
+
+	/** @return true if cmd key is pressed */
+	bool IsCmdPressed() const;
 
 #if !UE_BUILD_SHIPPING
 	/**

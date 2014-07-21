@@ -2700,7 +2700,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( MergeActors, "Create Mesh Proxy...", "Harvest geometry from selected actors and merge them into single mesh", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( MergeActorsByMaterials, "Merge Actors...", "Harvest geometry from selected actors and merge grouping them by materials", EUserInterfaceActionType::Button, FInputGesture() );
 
+#if PLATFORM_MAC
+	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Command, EKeys::H ) );
+#else
 	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::H ) );
+#endif
 	UI_COMMAND( ShowSelectedOnly, "Show Only Selected", "Shows only the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( ShowSelected, "Show Selected", "Shows the selected actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::H ) );
 	UI_COMMAND( HideSelected, "Hide Selected", "Hides the selected actors", EUserInterfaceActionType::Button, FInputGesture( EKeys::H ) );
@@ -2763,7 +2767,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputGesture( EKeys::K ) );
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actors level the current level", EUserInterfaceActionType::Button, FInputGesture( EKeys::M ) );
+#if PLATFORM_MAC
+	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Command, EKeys::M ) );
+#else
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::M ) );
+#endif
 	UI_COMMAND( FindLevelsInLevelBrowser, "Find Levels in Level Browser", "Finds the selected actors level in the level browser", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AddLevelsToSelection, "Add Levels to Selection", "Adds the selected actors levels  to the current level browser selection", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RemoveLevelsFromSelection, "Remove Levels from Selection", "Removes the selected actors levels from the current level browser selection", EUserInterfaceActionType::Button, FInputGesture() );

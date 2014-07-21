@@ -86,6 +86,9 @@ struct FInputChord
 	UPROPERTY()
 	uint32 bAlt:1;
 
+	UPROPERTY()
+	uint32 bCmd:1;
+
 	enum RelationshipType
 	{
 		None,
@@ -100,14 +103,16 @@ struct FInputChord
 		: bShift(false)
 		, bCtrl(false)
 		, bAlt(false)
+		, bCmd(false)
 	{
 	}
 
-	FInputChord(const FKey InKey, const bool bInShift, const bool bInCtrl, const bool bInAlt)
+	FInputChord(const FKey InKey, const bool bInShift, const bool bInCtrl, const bool bInAlt, const bool bInCmd)
 		: Key(InKey)
 		, bShift(bInShift)
 		, bCtrl(bInCtrl)
 		, bAlt(bInAlt)
+		, bCmd(bInCmd)
 	{
 	}
 
@@ -116,7 +121,8 @@ struct FInputChord
 		return (   Key == Other.Key
 				&& bShift == Other.bShift
 				&& bCtrl == Other.bCtrl
-				&& bAlt == Other.bAlt);
+				&& bAlt == Other.bAlt
+				&& bCmd == Other.bCmd);
 	}
 };
 
@@ -507,7 +513,7 @@ public:
 	template<class UserClass>
 	FInputKeyBinding& BindKey(const FKey Key, const EInputEvent KeyEvent, UserClass* Object, typename FInputActionHandlerSignature::TUObjectMethodDelegate< UserClass >::FMethodPtr Func)
 	{
-		return BindKey(FInputChord(Key, false, false, false), KeyEvent, Object, Func);
+		return BindKey(FInputChord(Key, false, false, false, false), KeyEvent, Object, Func);
 	}
 
 	template<class UserClass>

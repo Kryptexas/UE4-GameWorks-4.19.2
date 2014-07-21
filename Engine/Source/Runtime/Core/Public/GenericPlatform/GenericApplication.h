@@ -41,13 +41,17 @@ public:
 					    const bool bInIsLeftControlDown,
 					    const bool bInIsRightControlDown,
 					    const bool bInIsLeftAltDown,
-					    const bool bInIsRightAltDown )
+						const bool bInIsRightAltDown,
+						const bool bInIsLeftCommandDown,
+						const bool bInIsRightCommandDown )
 		: bIsLeftShiftDown( bInIsLeftShiftDown ),
 		  bIsRightShiftDown( bInIsRightShiftDown ),
 		  bIsLeftControlDown( bInIsLeftControlDown ),
 		  bIsRightControlDown( bInIsRightControlDown ),
 		  bIsLeftAltDown( bInIsLeftAltDown ),
-		  bIsRightAltDown( bInIsRightAltDown )
+		  bIsRightAltDown( bInIsRightAltDown ),
+		  bIsLeftCommandDown( bInIsLeftCommandDown ),
+		  bIsRightCommandDown( bInIsRightCommandDown )
 	{
 	}
 
@@ -141,6 +145,36 @@ public:
 	{
 		return bIsRightAltDown;
 	}
+	
+	/**
+	 * Returns true if either command key was down when this event occurred
+	 *
+	 * @return  True if command is pressed
+	 */
+	bool IsCommandDown() const
+	{
+		return bIsLeftCommandDown || bIsRightCommandDown;
+	}
+	
+	/**
+	 * Returns true if left command key was down when this event occurred
+	 *
+	 * @return  True if left command is pressed
+	 */
+	bool IsLeftCommandDown() const
+	{
+		return bIsLeftCommandDown;
+	}
+	
+	/**
+	 * Returns true if right command key was down when this event occurred
+	 *
+	 * @return  True if right command is pressed
+	 */
+	bool IsRightCommandDown() const
+	{
+		return bIsRightCommandDown;
+	}
 
 
 private:
@@ -162,6 +196,12 @@ private:
 
 	/** True if the right alt key was down when this event occurred. */
 	bool bIsRightAltDown;
+	
+	/** True if the left command key was down when this event occurred. */
+	bool bIsLeftCommandDown;
+	
+	/** True if the right command key was down when this event occurred. */
+	bool bIsRightCommandDown;
 };
 
 struct FPlatformRect
@@ -267,7 +307,7 @@ public:
 
 	virtual void* GetCapture( void ) const { return NULL; }
 
-	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState( false, false, false, false, false, false ); }
+	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState( false, false, false, false, false, false, false, false ); }
 
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
