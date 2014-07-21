@@ -105,6 +105,16 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent * Parent,
 	}
 }
 
+void USceneComponent::OnRegister()
+{
+	// If we need to perform a call to AttachTo, do that now
+	// At this point scene component still has no any state (rendering, physics),
+	// so this call will just add this component to an AttachChildren array of a the Parent component
+	AttachTo(AttachParent, AttachSocketName);
+	
+	Super::OnRegister();
+}
+
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
 {
 	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove);
