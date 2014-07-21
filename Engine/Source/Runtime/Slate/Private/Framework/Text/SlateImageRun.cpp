@@ -53,7 +53,7 @@ void FSlateImageRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, c
 	// no widgets
 }
 
-int32 FSlateImageRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const
+int32 FSlateImageRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale, ETextHitPoint* const OutHitPoint ) const
 {
 	return INDEX_NONE;
 }

@@ -4,7 +4,7 @@
 #include "TextEditHelper.h"
 #include "SlateWordWrapper.h"
 
-void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition, const ECursorEOLMode CursorEOLMode)
+void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
 {
 	FTextLocation NewCursorPosition = InCursorPosition;
 	ECursorAlignment NewAlignment = ECursorAlignment::Left;
@@ -15,27 +15,9 @@ void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment
 	// A CursorOffset of zero could mark the end of an empty line, but we don't need to adjust the cursor for an empty line
 	if (TextLayout.IsValid() && CursorOffset > 0)
 	{
-		bool bHasFoundEOL = false;
-
-		if (CursorEOLMode == ECursorEOLMode::HardLines)
-		{
-			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-			const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
-			bHasFoundEOL = (Line.Text->Len() == CursorOffset);
-		}
-		else
-		{
-			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, InCursorPosition);
-
-			if (LineViews.IsValidIndex(LineViewIndex))
-			{
-				const FTextLayout::FLineView& CurrentLineView = LineViews[LineViewIndex];
-				bHasFoundEOL = (CurrentLineView.Range.EndIndex == CursorOffset);
-			}
-		}
-
-		if (bHasFoundEOL)
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
+		if (Line.Text->Len() == CursorOffset)
 		{
 			// We need to move the cursor back one from where it currently is; this keeps the interaction point the same 
 			// (since the cursor is aligned to the right), but visually draws the cursor in the correct place
@@ -520,6 +502,9 @@ void SMultiLineEditableText::FinishChangingText()
 
 		// Let outsiders know that the text content has been changed
 		OnTextChanged.ExecuteIfBound(EditedText);
+
+		// Update the desired cursor position, since typing will have moved it
+		UpdatePreferredCursorScreenOffsetInLine();
 	}
 }
 
@@ -856,29 +841,41 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		}
 	}
 
-	ECursorEOLMode CursorEOLMode = ECursorEOLMode::HardLines;
+	TOptional<ECursorAlignment> NewCursorAlignment;
+	bool bUpdatePreferredCursorScreenOffsetInLine = false;
 	if (bAllowMoveCursor)
 	{
 		switch (Method)
 		{
 		case ECursorMoveMethod::CharacterHorizontal:
 			NewCursorPosition = TranslatedLocation( CursorPosition, Direction.X );
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt( NewCursorPosition ).X;
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 			break;
 
 		case ECursorMoveMethod::Word:
 			NewCursorPosition = ScanForWordBoundary( CursorPosition, Direction.X );
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt( NewCursorPosition ).X;
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 			break;
 	
 		case ECursorMoveMethod::CharacterVertical:
-			NewCursorPosition = TranslateLocationVertical( CursorPosition, Direction.Y );
+			TranslateLocationVertical( CursorPosition, Direction.Y, NewCursorPosition, NewCursorAlignment );
 			break;
 	
 		case ECursorMoveMethod::ScreenPosition:
-			NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale() );
-			CursorEOLMode = ECursorEOLMode::SoftLines;
-			PreferredCursorScreenOffsetInLine = Direction.X;
+			{
+				ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+				NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale(), &HitPoint );
+				bUpdatePreferredCursorScreenOffsetInLine = true;
+
+				// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
+				// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+				// We use the HitPoint to work this out and then adjust the cursor position accordingly
+				if (HitPoint == ETextHitPoint::RightGutter)
+				{
+					NewCursorPosition = FTextLocation(NewCursorPosition, -1);
+					NewCursorAlignment = ECursorAlignment::Right;
+				}
+			}
 			break;
 
 		default:
@@ -902,7 +899,20 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		this->ClearSelection();
 	}
 
-	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition, CursorEOLMode);
+	if (NewCursorAlignment.IsSet())
+	{
+		CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+	}
+	else
+	{
+		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+	}
+
+	if (bUpdatePreferredCursorScreenOffsetInLine)
+	{
+		UpdatePreferredCursorScreenOffsetInLine();
+	}
+
 	UpdateCursorHighlight();
 
 	// If we've moved the cursor while composing, we need to end the current composition session
@@ -1037,6 +1047,11 @@ void SMultiLineEditableText::RemoveCursorHighlight()
 	TextLayout->ClearLineHighlights();
 }
 
+void SMultiLineEditableText::UpdatePreferredCursorScreenOffsetInLine()
+{
+	PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right).X;
+}
+
 void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action)
 {
 	switch (JumpLocation)
@@ -1045,7 +1060,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 		{
 			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition );
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
 
 			if (LineViews.IsValidIndex(CurrentLineViewIndex))
 			{
@@ -1053,7 +1068,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				
 				const FTextLocation OldCursorPosition = CursorInteractionPosition;
 				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), CurrentLineView.Range.BeginIndex);
-				
+
 				if (Action == ECursorAction::SelectText)
 				{
 					this->SelectionStart = OldCursorPosition;
@@ -1063,9 +1078,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1085,9 +1099,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				ClearSelection();
 			}
 
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+			UpdatePreferredCursorScreenOffsetInLine();
 			UpdateCursorHighlight();
 		}
 		break;
@@ -1096,14 +1109,14 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 		{
 			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition);
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
 
 			if (LineViews.IsValidIndex(CurrentLineViewIndex))
 			{
 				const FTextLayout::FLineView& CurrentLineView = LineViews[CurrentLineViewIndex];
 
 				const FTextLocation OldCursorPosition = CursorInteractionPosition;
-				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), CurrentLineView.Range.EndIndex);
+				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), FMath::Max(0, CurrentLineView.Range.EndIndex - 1));
 
 				if (Action == ECursorAction::SelectText)
 				{
@@ -1114,9 +1127,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
-				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, ECursorAlignment::Right);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1140,9 +1152,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1900,12 +1911,12 @@ FTextLocation SMultiLineEditableText::TranslatedLocation( const FTextLocation& L
 	}
 }
 
-FTextLocation SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction ) const
+void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
 {
 	const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
 	const int32 NumberOfLineViews = LineViews.Num();
 
-	const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, Location);
+	const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, Location, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
 	ensure(CurrentLineViewIndex != INDEX_NONE);
 	const FTextLayout::FLineView& CurrentLineView = LineViews[ CurrentLineViewIndex ];
 
@@ -1913,7 +1924,17 @@ FTextLocation SMultiLineEditableText::TranslateLocationVertical( const FTextLoca
 	const FTextLayout::FLineView& NewLineView = LineViews[ NewLineViewIndex ];
 	
 	// Our horizontal position is the clamped version of whatever the user explicitly set with horizontal movement.
-	return TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale() );
+	ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale(), &HitPoint );
+
+	// PreferredCursorScreenOffsetInLine can cause the cursor to move to the right hand gutter, and it needs to be placed there
+	// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+	// We use the HitPoint to work this out and then adjust the cursor position accordingly
+	if(HitPoint == ETextHitPoint::RightGutter)
+	{
+		OutCursorPosition = FTextLocation(OutCursorPosition, -1);
+		OutCursorAlignment = ECursorAlignment::Right;
+	}
 }
 
 FTextLocation SMultiLineEditableText::ScanForWordBoundary( const FTextLocation& CurrentLocation, int8 Direction ) const
@@ -2139,8 +2160,8 @@ bool SMultiLineEditableText::FTextInputMethodContext::GetTextBounds(const uint32
 		const FTextLocation BeginLocation = OffsetLocations.OffsetToTextLocation(BeginIndex);
 		const FTextLocation EndLocation = OffsetLocations.OffsetToTextLocation(BeginIndex + Length);
 
-		const FVector2D BeginPosition = OwningWidgetPtr->TextLayout->GetLocationAt(BeginLocation);
-		const FVector2D EndPosition = OwningWidgetPtr->TextLayout->GetLocationAt(EndLocation);
+		const FVector2D BeginPosition = OwningWidgetPtr->TextLayout->GetLocationAt(BeginLocation, false);
+		const FVector2D EndPosition = OwningWidgetPtr->TextLayout->GetLocationAt(EndLocation, false);
 
 		if(BeginPosition.Y == EndPosition.Y)
 		{

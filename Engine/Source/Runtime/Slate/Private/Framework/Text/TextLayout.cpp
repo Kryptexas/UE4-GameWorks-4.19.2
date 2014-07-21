@@ -709,12 +709,12 @@ void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 	DirtyFlags |= EDirtyState::Highlights;
 }
 
-FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative )
+FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint )
 {
 	for (int32 BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
 	{
 		const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[ BlockIndex ];
-		const int32 TextIndex = Block->GetRun()->GetTextIndexAt(Block, FVector2D(Relative.X, Block->GetLocationOffset().Y), Scale);
+		const int32 TextIndex = Block->GetRun()->GetTextIndexAt(Block, FVector2D(Relative.X, Block->GetLocationOffset().Y), Scale, OutHitPoint);
 
 		if ( TextIndex == INDEX_NONE )
 		{
@@ -727,36 +727,59 @@ FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const F
 	const int32 LineTextLength = LineModels[ LineView.ModelIndex ].Text->Len();
 	if ( LineTextLength == 0 || !LineView.Blocks.Num() )
 	{
+		if(OutHitPoint)
+		{
+			*OutHitPoint = ETextHitPoint::WithinText;
+		}
 		return FTextLocation( LineView.ModelIndex, 0 );
 	}
 	else if (Relative.X < LineView.Blocks[0]->GetLocationOffset().X)
 	{
+		if(OutHitPoint)
+		{
+			*OutHitPoint = ETextHitPoint::LeftGutter;
+		}
 		return FTextLocation(LineView.ModelIndex, LineView.Range.BeginIndex);
 	}
 
+	if(OutHitPoint)
+	{
+		*OutHitPoint = ETextHitPoint::RightGutter;
+	}
 	return FTextLocation( LineView.ModelIndex, LineView.Range.EndIndex );
 }
 
-int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location)
+int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck)
 {
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
 	const FLineModel& LineModel = LineModels[LineModelIndex];
-	for (int Index = 0; Index < LineViews.Num(); Index++)
+	for(int32 Index = 0; Index < LineViews.Num(); Index++)
 	{
 		const FTextLayout::FLineView& LineView = LineViews[Index];
 
-		if (LineView.ModelIndex == LineModelIndex && (Offset == 0 || LineView.Range.InclusiveContains(Offset) || LineModel.Text->IsEmpty()))
+		if(LineView.ModelIndex == LineModelIndex)
 		{
-			return Index;
+			// Simple case where we're either the start of, or are contained within, the line view
+			if(Offset == 0 || LineModel.Text->IsEmpty() || LineView.Range.Contains(Offset))
+			{
+				return Index;
+			}
+
+			// If we're the last line, then we also need to test for the end index being part of the range
+			const bool bIsLastLineForModel = Index == (LineViews.Num() - 1) || LineViews[Index + 1].ModelIndex != LineModelIndex;
+			if((bIsLastLineForModel || bPerformInclusiveBoundsCheck) && LineView.Range.EndIndex == Offset)
+			{
+				return Index;
+			}
 		}
 	}
 
 	return INDEX_NONE;
 }
 
-FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
+FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint )
 {
 	// Early out if we have no LineViews
 	if (LineViews.Num() == 0)
@@ -784,7 +807,7 @@ FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
 		// just use the very last line
 		ViewIndex = LineViews.Num() - 1;
 		const FLineView& LineView = LineViews[ ViewIndex ];
-		return GetTextLocationAt( LineView, Relative );
+		return GetTextLocationAt( LineView, Relative, OutHitPoint );
 	}
 	else 
 	{
@@ -798,25 +821,16 @@ FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
 	}
 
 	const FLineView& LineView = LineViews[ ViewIndex ];
-	return GetTextLocationAt(LineView, FVector2D(Relative.X, LineView.Offset.Y));
+	return GetTextLocationAt( LineView, FVector2D(Relative.X, LineView.Offset.Y), OutHitPoint );
 }
 
-FVector2D FTextLayout::GetLocationAt( const FTextLocation& Location )
+FVector2D FTextLayout::GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck )
 {
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
 	// Find the LineView which encapsulates the location's offset
-	int LineViewIndex;
-	for (LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
-	{
-		const FTextLayout::FLineView& LineView = LineViews[ LineViewIndex ];
-
-		if ( LineView.ModelIndex == LineModelIndex && ( Offset == 0 || LineView.Range.InclusiveContains(Offset) ) )
-		{
-			break;
-		}
-	}
+	const int32 LineViewIndex = GetLineViewIndexForTextLocation( LineViews, Location, bPerformInclusiveBoundsCheck );
 
 	// if we failed to find a LineView for the location, early out
 	if ( !LineViews.IsValidIndex( LineViewIndex ) )

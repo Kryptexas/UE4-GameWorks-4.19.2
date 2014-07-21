@@ -331,16 +331,16 @@ public:
 
 	virtual void UpdateHighlights();
 
-	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location);
+	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
 
 	/**
 	 * 
 	 */
-	FTextLocation GetTextLocationAt( const FVector2D& Relative );
+	FTextLocation GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
 
-	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative );
+	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
 
-	FVector2D GetLocationAt( const FTextLocation& Location );
+	FVector2D GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck );
 
 	bool SplitLineAt(const FTextLocation& Location);
 

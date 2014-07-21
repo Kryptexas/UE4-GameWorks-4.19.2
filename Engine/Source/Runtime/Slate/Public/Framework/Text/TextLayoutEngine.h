@@ -6,6 +6,7 @@
 #include "TextRunRenderer.h"
 #include "TextLineHighlight.h"
 
+#include "TextHitPoint.h"
 #include "IRun.h"
 #include "IRunRenderer.h"
 #include "ILineHighlighter.h"
