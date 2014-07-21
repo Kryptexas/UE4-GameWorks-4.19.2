@@ -96,6 +96,7 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector & Collector) override;
 
 	virtual void Draw(FViewport* InViewport, FCanvas* Canvas) override;
+	using FViewElementDrawer::Draw;
 
 	virtual UWorld* GetWorld() const override;
 
