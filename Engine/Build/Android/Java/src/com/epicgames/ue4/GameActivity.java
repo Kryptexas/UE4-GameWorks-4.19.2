@@ -62,8 +62,15 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 {
 	public static Logger Log = new Logger("UE4");
 	
-	GameActivity _activity;	
-	AlertDialog alert;
+	GameActivity _activity;
+
+	// Console
+	AlertDialog consoleAlert;
+	EditText consoleInputBox;
+
+	// Virtual keyboard
+	AlertDialog virtualKeyboardAlert;
+	EditText virtualKeyboardInputBox;
 
 	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
 	private AssetManager			AssetManagerReference;
@@ -285,32 +292,51 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// enable the physical volume controls to the game
 		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
-		final AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-		final EditText consoleInputBox = new EditText(this);
-		
-		alertBuilder.setView(consoleInputBox);
-		alertBuilder.setPositiveButton("Ok", new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface dialog, int whichButton) {
+		AlertDialog.Builder builder;
+
+		consoleInputBox = new EditText(this);
+
+		builder = new AlertDialog.Builder(this);
+		builder.setTitle("Console Window - Enter Command")
+		.setMessage("")
+		.setView(consoleInputBox)
+		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
 				String message = consoleInputBox.getText().toString().trim();
 				nativeConsoleCommand(message);
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
 			}
-		});
-
-		alertBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface dialog, int whichButton)
-			{
+		})
+		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
 			}
 		});
-		
-		alertBuilder.setTitle("Console Window - Enter Command");
-		
-		alert = alertBuilder.create();
+		consoleAlert = builder.create();
+
+		virtualKeyboardInputBox = new EditText(this);
+
+		builder = new AlertDialog.Builder(this);
+		builder.setTitle("")
+		.setView(virtualKeyboardInputBox)
+		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				String message = virtualKeyboardInputBox.getText().toString();
+				nativeVirtualKeyboardResult(true, message);
+				virtualKeyboardInputBox.setText(" ");
+				dialog.dismiss();
+			}
+		})
+		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				nativeVirtualKeyboardResult(false, " ");
+				virtualKeyboardInputBox.setText(" ");
+				dialog.dismiss();
+			}
+		});
+		virtualKeyboardAlert = builder.create();
 
 		// Connect to Google Play Services
 		googleClient = new GoogleApiClient.Builder(this)
@@ -325,6 +351,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		
 		// Try to establish a connection to Google Play
 		AndroidThunkJava_GooglePlayConnect();
+
+		Log.debug("==============> GameActive.onCreate complete!");
 	}
 
 	@Override
@@ -547,21 +575,49 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	// Called from event thread in NativeActivity	
 	public void AndroidThunkJava_ShowConsoleWindow(String Formats)
 	{
-		if(alert.isShowing() == true)
+		if (consoleAlert.isShowing() == true)
 		{
 			Log.debug("Console already showing.");
 			return;
 		}
 
-		alert.setMessage("[Availble texture formats: " + Formats + "]");
+		consoleAlert.setMessage("[Available texture formats: " + Formats + "]");
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
-				if(alert.isShowing() == false)
+				if (consoleAlert.isShowing() == false)
 				{
 					Log.debug("Console not showing yet");
-					alert.show(); 
+					consoleAlert.show(); 
+				}
+			}
+		});
+	}
+
+	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	{
+		if (virtualKeyboardAlert.isShowing() == true)
+		{
+			Log.debug("Virtual keyboard already showing.");
+			return;
+		}
+
+		// Set label and starting contents
+		virtualKeyboardAlert.setTitle(Label);
+		virtualKeyboardInputBox.setText(Contents);
+
+		// configure for type of input
+		virtualKeyboardInputBox.setInputType(InputType);
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (virtualKeyboardAlert.isShowing() == false)
+				{
+					Log.debug("Virtual keyboard not showing yet");
+					virtualKeyboardAlert.show(); 
 				}
 			}
 		});
@@ -860,6 +916,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel );
 
 	public native void nativeConsoleCommand(String commandString);
+	public native void nativeVirtualKeyboardResult(boolean update, String contents);
 	
 	public native boolean nativeIsGooglePlayEnabled();
 

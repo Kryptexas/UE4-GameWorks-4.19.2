@@ -40,6 +40,8 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 
 #if PLATFORM_IOS
 	#include "IOS/IOSPlatformTextField.h"
+#elif PLATFORM_ANDROID
+	#include "Android/AndroidPlatformTextField.h"
 #else
 	#include "GenericPlatformTextField.h"
 #endif

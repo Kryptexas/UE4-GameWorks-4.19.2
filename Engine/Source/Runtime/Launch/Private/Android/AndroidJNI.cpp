@@ -14,6 +14,9 @@
 JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
 
+// Pointer to target widget for virtual keyboard contents
+static SVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
+
 extern FString GFilePathBase;
 extern bool GOBBinAPK;
 
@@ -102,6 +105,7 @@ JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 //Declare all the static members of the class defs 
 jclass JDef_GameActivity::ClassID;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
+jmethodID JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
@@ -172,6 +176,42 @@ void AndroidThunkCpp_ShowConsoleWindow()
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow, ConsoleTextJava);
 		Env->DeleteLocalRef(ConsoleTextJava);
 	}
+}
+
+void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<SVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		// remember target widget for contents
+		VirtualKeyboardWidget = &(*TextWidget);
+
+		// call the java side
+		jstring LabelJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Label));
+		jstring ContentsJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Contents));
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput, InputType, LabelJava, ContentsJava);
+		Env->DeleteLocalRef(ContentsJava);
+		Env->DeleteLocalRef(LabelJava);
+	}
+}
+
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardResult(bool update, String contents);"
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(JNIEnv* jenv, jobject thiz, jboolean update, jstring contents)
+{
+	// update text widget with new contents if OK pressed
+	if (update == JNI_TRUE)
+	{
+		if (VirtualKeyboardWidget != NULL)
+		{
+			const char* javaChars = jenv->GetStringUTFChars(contents, 0);
+			VirtualKeyboardWidget->SetText(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
+
+			//Release the string
+			jenv->ReleaseStringUTFChars(contents, javaChars);
+		}
+	}
+
+	// release reference
+	VirtualKeyboardWidget = NULL;
 }
 
 void AndroidThunkCpp_LaunchURL(const FString& URL)
@@ -310,6 +350,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::ClassID = env->FindClass("com/epicgames/ue4/GameActivity");
 
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");
+	JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowVirtualKeyboardInput", "(ILjava/lang/String;Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
