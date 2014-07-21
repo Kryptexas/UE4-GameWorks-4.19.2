@@ -29,7 +29,6 @@ public:
 	virtual bool SetSessionID(const FString& InSessionID) override;
 
 	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
-	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual void RecordItemPurchase(const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity) override;
 	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const FString& RealCurrencyType, float RealMoneyCost, const FString& PaymentProvider) override;
 	virtual void RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount) override;
@@ -198,14 +197,6 @@ void FAnalyticsProviderMulticast::RecordEvent( const FString& EventName, const T
 	for (TArray<TSharedPtr<IAnalyticsProvider> >::TConstIterator it(Providers);it;++it)
 	{
 		(*it)->RecordEvent(EventName, Attributes);
-	}
-}
-
-void FAnalyticsProviderMulticast::RecordUserAttribute( const TArray<FAnalyticsEventAttribute>& Attributes )
-{
-	for (TArray<TSharedPtr<IAnalyticsProvider> >::TConstIterator it(Providers);it;++it)
-	{
-		(*it)->RecordUserAttribute(Attributes);
 	}
 }
 

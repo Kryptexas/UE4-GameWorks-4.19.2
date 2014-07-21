@@ -149,54 +149,6 @@ public:
 	}
 
 	/**
-	 * Update an array of user attributes.
-	 * 
-	 * Note that not all providers support user attributes. In this case this method
-	 * is equivalent to sending a regular event named "User Attribute".
-	 * 
-	 * @param AttributeArray - the array of attribute name/values to set.
-	 */
-	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes)
-	{
-		RecordEvent(TEXT("User Attribute"), Attributes);
-	}
-
-	/**
-	 * Overload for RecordUserAttribute that takes a single attribute name/value pair.
-	 * 
-	 * @param ParamName attribute name
-	 * @param ParamValue attribute value
-	 * 
-	 * Note that not all providers support user attributes. In this case this method
-	 * is equivalent to sending a regular event named "User Attribute".
-	 */
-	void RecordUserAttribute(const FString& ParamName, const FString& ParamValue)
-	{
-		TArray<FAnalyticsEventAttribute> Attributes;
-		Attributes.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
-		RecordUserAttribute(Attributes);
-	}
-
-	/**
-	 * Overload for RecordUserAttribute that takes two attribute name/value pairs.
-	 * 
-	 * @param Param1Name attribute name
-	 * @param Param1Value attribute value
-	 * @param Param2Name attribute name
-	 * @param Param2Value attribute value
-	 * 
-	 * Note that not all providers support user attributes. In this case this method
-	 * is equivalent to sending a regular event named "User Attribute".
-	 */
-	void RecordUserAttribute(const FString& Param1Name, const FString& Param1Value, const FString& Param2Name, const FString& Param2Value)
-	{
-		TArray<FAnalyticsEventAttribute> Attributes;
-		Attributes.Add(FAnalyticsEventAttribute(Param1Name, Param1Value));
-		Attributes.Add(FAnalyticsEventAttribute(Param2Name, Param2Value));
-		RecordUserAttribute(Attributes);
-	}
-
-	/**
 	 * Record an in-game purchase of a an item.
 	 * 
 	 * Note that not all providers support item purchase events. In this case this method

@@ -1280,7 +1280,6 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 			FString AveFrameRateString = FString::Printf( TEXT( "%.1f" ), AveFrameRate);
 			IAnalyticsProvider& EngineAnalytics = FEngineAnalytics::GetProvider();
 			EngineAnalytics.RecordEvent(TEXT( "Editor.Performance.FrameRate" ), TEXT( "MeanFrameRate" ), AveFrameRateString);
-			EngineAnalytics.RecordUserAttribute(TEXT( "MeanFrameRate" ), AveFrameRateString);
 		}
 
 		CancelPerformanceSurvey();
