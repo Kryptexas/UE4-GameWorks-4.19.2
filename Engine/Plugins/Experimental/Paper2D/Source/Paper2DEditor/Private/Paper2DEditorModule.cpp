@@ -188,6 +188,9 @@ public:
 
 		// Unregister commands
 		FPaperEditorCommands::Unregister();
+
+		// Unregister slate style overrides
+		FPaperStyle::Shutdown();
 	}
 private:
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)

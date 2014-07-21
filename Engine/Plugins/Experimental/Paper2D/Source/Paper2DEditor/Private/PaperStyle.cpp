@@ -3,110 +3,110 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperStyle.h"
 #include "SlateStyle.h"
-#include "EditorStyle.h"
 
-#define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(Style.RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
-#define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(Style.RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
+#define IMAGE_PLUGIN_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaperStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
+#define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
+#define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 
-//////////////////////////////////////////////////////////////////////////
-// FPaperStyle
+FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Extension)
+{
+	static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Experimental/Paper2D/Content");
+	return (ContentDir / RelativePath) + Extension;
+}
 
-TSharedPtr<FSlateStyleSet> FPaperStyle::PaperStyleInstance = NULL;
+TSharedPtr< FSlateStyleSet > FPaperStyle::StyleSet = NULL;
+TSharedPtr< class ISlateStyle > FPaperStyle::Get() { return StyleSet; }
 
 void FPaperStyle::Initialize()
 {
-	if (!PaperStyleInstance.IsValid())
-	{
-		PaperStyleInstance = Create();
-	}
-
-	SetStyle(PaperStyleInstance.ToSharedRef());
-}
-
-void FPaperStyle::Shutdown()
-{
-	ResetToDefault();
-	ensure(PaperStyleInstance.IsUnique());
-	PaperStyleInstance.Reset();
-}
-
-TSharedRef<FSlateStyleSet> FPaperStyle::Create()
-{
-	IEditorStyleModule& EditorStyle = FModuleManager::LoadModuleChecked<IEditorStyleModule>(TEXT("EditorStyle"));
-	TSharedRef< FSlateStyleSet > StyleRef = EditorStyle.CreateEditorStyleInstance();
-	FSlateStyleSet& Style = StyleRef.Get();
-
+	// Const icon sizes
 	const FVector2D Icon20x20(20.0f, 20.0f);
 	const FVector2D Icon40x40(40.0f, 40.0f);
 
+	// Only register once
+	if (StyleSet.IsValid())
+	{
+		return;
+	}
+
+	StyleSet = MakeShareable(new FSlateStyleSet("PaperStyle"));
+	StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
+	StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+
 	// Tile map editor
 	{
-		Style.Set("PaperEditor.EnterTileMapEditMode", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/TileMapEdModeIcon.TileMapEdModeIcon"), Icon40x40));
+		StyleSet->Set("PaperEditor.EnterTileMapEditMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_TileMapEdModeIcon_40x"), Icon40x40));
 
-		Style.Set("PaperEditor.SelectPaintTool", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/ToolIcon_PaintBrush.ToolIcon_PaintBrush"), Icon40x40));
-		Style.Set("PaperEditor.SelectEraserTool", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/ToolIcon_Eraser.ToolIcon_Eraser"), Icon40x40));
-		Style.Set("PaperEditor.SelectFillTool", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/ToolIcon_PaintBucket.ToolIcon_PaintBucket"), Icon40x40));
+		StyleSet->Set("PaperEditor.SelectPaintTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_PaintBrush_40x"), Icon40x40));
+		StyleSet->Set("PaperEditor.SelectEraserTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Eraser_40x"), Icon40x40));
+		StyleSet->Set("PaperEditor.SelectFillTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_PaintBucket_40x"), Icon40x40));
 	}
 
 	// Sprite editor
 	{
-		Style.Set("SpriteEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
-		Style.Set("SpriteEditor.SetShowSourceTexture", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/ShowSpriteSheetButton.ShowSpriteSheetButton"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowSourceTexture.Small", new FSlateImageBrush(TEXT("texture://Paper2D/SlateBrushes/ShowSpriteSheetButton.ShowSpriteSheetButton"), Icon20x20));
-		Style.Set("SpriteEditor.SetShowBounds", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowBounds.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon20x20));
-		Style.Set("SpriteEditor.SetShowCollision", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowSourceTexture", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_ShowSpriteSheetButton_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowSourceTexture.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_ShowSpriteSheetButton_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowBounds", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowBounds.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowCollision", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.SetShowSockets", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowSockets.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon20x20));
-		Style.Set("SpriteEditor.SetShowNormals", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowNormals.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon20x20));
-		Style.Set("SpriteEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowSockets", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowSockets.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowNormals", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowNormals.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.AddPolygon", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon40x40));
-		Style.Set("SpriteEditor.AddPolygon.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.AddPolygon", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.AddPolygon.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.SnapAllVertices", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon40x40));
-		Style.Set("SpriteEditor.SnapAllVertices.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.SnapAllVertices", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.SnapAllVertices.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon20x20));
 
-		Style.Set("SpriteEditor.EnterViewMode", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon40x40));
-		Style.Set("SpriteEditor.EnterViewMode.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon20x20));
-
-		Style.Set("SpriteEditor.EnterCollisionEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon40x40));
-		Style.Set("SpriteEditor.EnterCollisionEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon20x20));
-
-		Style.Set("SpriteEditor.EnterSourceRegionEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon40x40));
-		Style.Set("SpriteEditor.EnterSourceRegionEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon20x20));
-
-		Style.Set("SpriteEditor.EnterRenderingEditMode", new IMAGE_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon40x40));
-		Style.Set("SpriteEditor.EnterRenderingEditMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon20x20));
-
-		Style.Set("SpriteEditor.EnterAddSpriteMode", new IMAGE_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon40x40));
-		Style.Set("SpriteEditor.EnterAddSpriteMode.Small", new IMAGE_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon20x20));
+		StyleSet->Set("SpriteEditor.EnterViewMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.EnterViewMode.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_ViewSprite_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.EnterCollisionEditMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon40x40));
+		StyleSet->Set("SpriteEditor.EnterCollisionEditMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_EditCollision_40x", Icon20x20));
+		StyleSet->Set("SpriteEditor.EnterSourceRegionEditMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon40x40));
+		StyleSet->Set("SpriteEditor.EnterSourceRegionEditMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon20x20));
+		StyleSet->Set("SpriteEditor.EnterRenderingEditMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon40x40));
+		StyleSet->Set("SpriteEditor.EnterRenderingEditMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon20x20));
+		StyleSet->Set("SpriteEditor.EnterAddSpriteMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon40x40));
+		StyleSet->Set("SpriteEditor.EnterAddSpriteMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon20x20));
 	}
 
 	// Flipbook editor
 	{
-		Style.Set("FlipbookEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
-		Style.Set("FlipbookEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
-		Style.Set("FlipbookEditor.SetShowBounds", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon40x40));
-		Style.Set("FlipbookEditor.SetShowBounds.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon20x20));
-		Style.Set("FlipbookEditor.SetShowCollision", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon40x40));
-		Style.Set("FlipbookEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
-		Style.Set("FlipbookEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
-		Style.Set("FlipbookEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
+		StyleSet->Set("FlipbookEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
+		StyleSet->Set("FlipbookEditor.SetShowBounds", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.SetShowBounds.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon20x20));
+		StyleSet->Set("FlipbookEditor.SetShowCollision", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
+		StyleSet->Set("FlipbookEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
 
-		Style.Set("FlipbookEditor.RegionGrabHandle", new BOX_BRUSH("Sequencer/ScrubHandleWhole", FMargin(6.f / 13.f, 10 / 24.f, 6 / 13.f, 10 / 24.f)));
-		Style.Set("FlipbookEditor.RegionBody", new BOX_BRUSH("Common/Scrollbar_Thumb", FMargin(4.f / 16.f)));
-		Style.Set("FlipbookEditor.RegionBorder", new BOX_BRUSH("Common/CurrentCellBorder", FMargin(4.f / 16.f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f)));
+		StyleSet->Set("FlipbookEditor.RegionGrabHandle", new BOX_BRUSH("Sequencer/ScrubHandleWhole", FMargin(6.f / 13.f, 10 / 24.f, 6 / 13.f, 10 / 24.f)));
+		StyleSet->Set("FlipbookEditor.RegionBody", new BOX_BRUSH("Common/Scrollbar_Thumb", FMargin(4.f / 16.f)));
+		StyleSet->Set("FlipbookEditor.RegionBorder", new BOX_BRUSH("Common/CurrentCellBorder", FMargin(4.f / 16.f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f)));
 	}
 
-	return StyleRef;
-}
+	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
+};
 
-//////////////////////////////////////////////////////////////////////////
-
+#undef IMAGE_PLUGIN_BRUSH
 #undef IMAGE_BRUSH
+#undef BOX_BRUSH
+
+void FPaperStyle::Shutdown()
+{
+	if (StyleSet.IsValid())
+	{
+		FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
+		ensure(StyleSet.IsUnique());
+		StyleSet.Reset();
+	}
+}

@@ -10,7 +10,7 @@ public:
 			TEXT("TileMapEditor"), // Context name for fast lookup
 			NSLOCTEXT("Contexts", "TileMapEditor", "Tile Map Editor"), // Localized context name for displaying
 			NAME_None, // Parent
-			FEditorStyle::GetStyleSetName() // Icon Style Set
+			FPaperStyle::Get()->GetStyleSetName() // Icon Style Set
 			)
 	{
 	}

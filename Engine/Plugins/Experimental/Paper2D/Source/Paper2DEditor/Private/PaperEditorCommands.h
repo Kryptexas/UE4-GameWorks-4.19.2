@@ -10,7 +10,7 @@ public:
 			TEXT("PaperEditor"), // Context name for fast lookup
 			NSLOCTEXT("Contexts", "PaperEditor", "Paper2D Editor"), // Localized context name for displaying
 			NAME_None, // Parent
-			FEditorStyle::GetStyleSetName() // Icon Style Set
+			FPaperStyle::Get()->GetStyleSetName() // Icon Style Set
 			)
 	{
 	}
