@@ -2,6 +2,7 @@
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSpriteSceneProxy.h"
+#include "PhysicsEngine/BodySetup2D.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy
