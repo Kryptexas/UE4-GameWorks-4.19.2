@@ -940,6 +940,11 @@ protected:
 	/** The virtual touch interface */
 	TSharedPtr<class SVirtualJoystick> VirtualJoystick;
 
+	/** The currently set touch interface */
+	UPROPERTY()
+	class UTouchInterface* CurrentTouchInterface;
+
+
 public:
 	/** Adds an inputcomponent to the top of the input stack. */
 	void PushInputComponent(UInputComponent* Input);

@@ -22,6 +22,7 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/HUD.h"
 #include "ContentStreaming.h"
+#include "GameFramework/PawnMovementComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
@@ -923,6 +924,12 @@ void APlayerController::CreateTouchInterface()
 	// do we want to show virtual joysticks?
 	if (LocalPlayer && LocalPlayer->ViewportClient && SVirtualJoystick::ShouldDisplayTouchInterface())
 	{
+		// in case we already had one, remove it
+		if (VirtualJoystick.IsValid())
+		{
+			Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		}
+
 		// load what the game wants to show at startup
 		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
@@ -938,7 +945,7 @@ void APlayerController::CreateTouchInterface()
 			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
 			if (DefaultTouchInterface != NULL)
 			{
-				DefaultTouchInterface->Activate(VirtualJoystick);
+				ActivateTouchInterface(DefaultTouchInterface);
 			}
 		}
 	}
@@ -3948,6 +3955,7 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 	{
 		NewTouchInterface->Activate(VirtualJoystick);
 	}
+	CurrentTouchInterface = NewTouchInterface;
 }
 
 void APlayerController::UpdateCameraManager(float DeltaSeconds)
