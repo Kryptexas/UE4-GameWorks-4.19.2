@@ -21,6 +21,7 @@
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "ChunkManifestGenerator.h"
+#include "CookerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
