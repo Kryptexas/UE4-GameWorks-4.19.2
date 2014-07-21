@@ -396,6 +396,8 @@ public:
 	void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
 	/** Set the maximum angular velocity of this body */
 	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent);
+	/** Set the maximum depenetration velocity the physics simulation will introduce */
+	void SetMaxDepenetrationVelocity(float MaxVelocity);
 	/** Set whether we should get a notification about physics collisions */
 	void SetInstanceNotifyRBCollision(bool bNewNotifyCollision);
 	/** Enables/disables whether this body is affected by gravity. */

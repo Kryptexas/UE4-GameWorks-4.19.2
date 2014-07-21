@@ -99,6 +99,11 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category=Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
 
+	/** Max velocity which may be used to depenetrate simulated physics objects. 0 means no maximum. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	float MaxDepenetrationVelocity;
+
+
 	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
 	float MaxPhysicsDeltaTime;

@@ -1088,6 +1088,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 
 			SetMaxAngularVelocity(MaxAngularVelocity, false);
 
+			SetMaxDepenetrationVelocity(UPhysicsSettings::Get()->MaxDepenetrationVelocity);
+
 			//@TODO: BOX2D: Determine if sleep threshold and solver settings can be configured per-body or not
 #if 0
 			// Set the parameters for determining when to put the object to sleep.
@@ -1282,6 +1284,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		UpdateDampingProperties();
 
 		SetMaxAngularVelocity(MaxAngularVelocity, false);
+
+		SetMaxDepenetrationVelocity(UPhysicsSettings::Get()->MaxDepenetrationVelocity);
 
 		// Set initial velocity 
 		if(bUseSimulate)
@@ -2732,6 +2736,18 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 #endif
 
 	//@TODO: BOX2D: Implement SetMaxAngularVelocity
+}
+
+void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
+{
+#if WITH_PHYSX
+	float UseMaxVelocity = MaxVelocity == 0.f ? PX_MAX_F32 : MaxVelocity;
+
+	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	{
+		PRigidDynamic->setMaxDepenetrationVelocity(MaxVelocity);
+	}
+#endif
 }
 
 
