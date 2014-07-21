@@ -1411,7 +1411,7 @@ namespace UnrealBuildTool
 		{
 			string EULAViolationWarning = null;
 
-			if (Rules.Type != TargetRules.TargetType.Editor && IsAppRedistributable(AppName))
+			if (Rules.Type != TargetRules.TargetType.Editor)
 			{
 				var RedistributionErrorMessageBuilder = new StringBuilder();
 				foreach (var Binary in AppBinaries)
@@ -1441,26 +1441,6 @@ namespace UnrealBuildTool
 			}
 
 			return EULAViolationWarning;
-		}
-
-		/// <summary>
-		/// Tells if app with given app name is redistributable.
-		/// </summary>
-		/// <param name="AppName"></param>
-		/// <returns></returns>
-		private bool IsAppRedistributable(string AppName)
-		{
-			if(AppName == "UE4Client" || AppName == "UE4Server")
-			{
-				return true;
-			}
-			
-			if(AppName == "UE4Editor")
-			{
-				return false;
-			}
-			
-			return FindOrCreateModuleByName(AppName).IsRedistributable();
 		}
 
 		/// <summary>
