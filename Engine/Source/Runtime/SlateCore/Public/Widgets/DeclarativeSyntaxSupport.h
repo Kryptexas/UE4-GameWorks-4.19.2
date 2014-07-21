@@ -1206,6 +1206,17 @@ struct TDecl
 	}
 
 	/**
+	 * Initialize OutVarToInit with the widget that is being constructed.
+	 * @see SAssignNew
+	 */
+	template<class ExposeAsWidgetType>
+	TDecl& Expose( TSharedRef<ExposeAsWidgetType>& OutVarToInit )
+	{
+		OutVarToInit = _Widget;
+		return *this;
+	}
+
+	/**
 	 * Initialize a WEAK OutVarToInit with the widget that is being constructed.
 	 * @see SAssignNew
 	 */
