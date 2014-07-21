@@ -4,6 +4,7 @@
 #include "UMGSequencePlayer.h"
 #include "MovieSceneBindings.h"
 #include "MovieSceneInstance.h"
+#include "MovieScene.h"
 
 UUMGSequencePlayer::UUMGSequencePlayer(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
