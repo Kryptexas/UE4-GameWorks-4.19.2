@@ -3,9 +3,10 @@
 #pragma once
 
 #include "IMovieScenePlayer.h"
-#include "MovieScene.h"
-#include "MovieSceneBindings.h"
 #include "UMGSequencePlayer.generated.h"
+
+class UMovieScene;
+class UMovieSceneBindings;
 
 UCLASS(transient)
 class UMG_API UUMGSequencePlayer : public UObject, public IMovieScenePlayer
