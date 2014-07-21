@@ -57,6 +57,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 
 	bLooping = bIsLooping;
 	PlayRate = InPlayRate;
+	CurrentTime = 0.f;
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
 #endif
