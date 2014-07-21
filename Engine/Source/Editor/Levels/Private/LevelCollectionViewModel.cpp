@@ -1098,8 +1098,38 @@ void FLevelCollectionViewModel::EditProperties_Executed()
 void FLevelCollectionViewModel::MoveActorsToSelected_Executed()
 {
 	// We shouldn't be able to get here if we have more than 1 level selected. But just in case lets check.
-	if( SelectedLevels.Num() == 1 ) 
-	{		
+	if (SelectedLevels.Num() == 1)
+	{
+		// If matinee is open, and if an actor being moved belongs to it, message the user
+		if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
+		{
+			const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+			if (InterpEditMode && InterpEditMode->MatineeActor)
+			{
+				TArray<AActor*> ControlledActors;
+				InterpEditMode->MatineeActor->GetControlledActors(ControlledActors);
+				if (ControlledActors.Num() > 0)
+				{
+					// are any of the selected actors in the matinee
+					USelection* SelectedActors = GEditor->GetSelectedActors();
+					for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+					{
+						AActor* Actor = CastChecked<AActor>(*Iter);
+						if (Actor != nullptr && ControlledActors.Contains(Actor))
+						{
+							const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
+							if (!ExitInterp)
+							{
+								return;
+							}
+							GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
+							break;
+						}
+					}
+				}
+			}
+		}
+		
 		GEditor->MoveSelectedActorsToLevel( SelectedLevels[0]->GetLevel().Get() );
 	}	
 }
