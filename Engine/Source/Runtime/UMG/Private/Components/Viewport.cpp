@@ -4,6 +4,7 @@
 #include "Slate/SlateBrushAsset.h"
 #include "PreviewScene.h"
 #include "EngineModule.h"
+#include "SceneViewport.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
