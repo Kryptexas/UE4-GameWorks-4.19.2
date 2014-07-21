@@ -569,8 +569,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	}
 
 	// Synchronize the actor with the view target results
-	SetActorLocation(OutVT.POV.Location, false);
-	SetActorRotation(OutVT.POV.Rotation);
+	SetActorLocationAndRotation(OutVT.POV.Location, OutVT.POV.Rotation, false);
 }
 
 
