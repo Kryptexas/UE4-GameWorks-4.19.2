@@ -6473,7 +6473,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			ComponentValues[i] = [Component integerValue];
 		}
 		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || ComponentValues[2] < 2)
+		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
 		{
 			FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorGameAgnosticIni );
 			Info.ConfirmText = LOCTEXT( "OK", "OK");
