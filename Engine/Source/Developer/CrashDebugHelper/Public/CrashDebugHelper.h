@@ -221,7 +221,7 @@ struct FPDBCacheEntry
 
 	void SetLastAccessTimeToNow()
 	{
-		LastAccessTime = FDateTime::Now();
+		LastAccessTime = FDateTime::UtcNow();
 	}
 
 	/** Paths to files associated with this PDB Cache entry. */
