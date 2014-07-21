@@ -4,6 +4,7 @@
 
 #include "Sound/DialogueTypes.h"
 #include "Engine/LatentActionManager.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "GameplayStatics.generated.h"
 
 //

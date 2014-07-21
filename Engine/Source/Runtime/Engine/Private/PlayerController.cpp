@@ -6,6 +6,8 @@
 #include "Engine/WorldComposition.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/NetworkPredictionInterface.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"

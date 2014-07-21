@@ -7,6 +7,8 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "DisplayDebugHelpers.h"
 #include "Animation/AnimInstance.h"
@@ -116,6 +118,11 @@ void ACharacter::PostInitializeComponents()
 			CharacterMovement->UpdateNavAgent(CapsuleComponent);
 		}
 	}
+}
+
+UPawnMovementComponent* ACharacter::GetMovementComponent() const
+{
+	return CharacterMovement;
 }
 
 
@@ -369,6 +376,11 @@ void ACharacter::ClearCrossLevelReferences()
 
 namespace MovementBaseUtility
 {
+	bool IsDynamicBase(const UPrimitiveComponent* MovementBase)
+	{
+		return (MovementBase && MovementBase->Mobility == EComponentMobility::Movable);
+	}
+
 	void AddTickDependency(FTickFunction& BasedObjectTick, UPrimitiveComponent* NewBase)
 	{
 		if (NewBase && MovementBaseUtility::UseRelativeLocation(NewBase))

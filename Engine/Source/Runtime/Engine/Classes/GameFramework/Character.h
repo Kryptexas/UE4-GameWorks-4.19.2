@@ -2,9 +2,12 @@
 
 #pragma once
 #include "GameFramework/Pawn.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Components/PrimitiveComponent.h"
+#include "Animation/AnimationAsset.h"
 #include "Character.generated.h"
+
+class UPawnMovementComponent;
+class UCharacterMovementComponent;
+class UPrimitiveComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
@@ -82,10 +85,7 @@ struct FSimulatedRootMotionReplicatedMove
 namespace MovementBaseUtility
 {
 	/** Determine whether MovementBase can possibly move. */
-	FORCEINLINE bool IsDynamicBase(const UPrimitiveComponent* MovementBase)
-	{
-		return (MovementBase && MovementBase->Mobility == EComponentMobility::Movable);
-	}
+	ENGINE_API bool IsDynamicBase(const UPrimitiveComponent* MovementBase);
 
 	/** Determine if we should use relative positioning when based on a component (because it may move). */
 	FORCEINLINE bool UseRelativeLocation(const UPrimitiveComponent* MovementBase)
@@ -339,7 +339,7 @@ public:
 
 	// Begin APawn Interface.
 	virtual void PostInitializeComponents() override;
-	virtual class UPawnMovementComponent* GetMovementComponent() const override { return CharacterMovement; }
+	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	virtual UPrimitiveComponent* GetMovementBase() const override final { return BasedMovement.MovementBase; }
 	virtual float GetDefaultHalfHeight() const override;
 	virtual void TurnOff() override;

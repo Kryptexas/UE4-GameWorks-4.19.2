@@ -19,19 +19,6 @@ struct FVector_NetQuantize100;
 struct FVector_NetQuantizeNormal;
 class FDebugDisplayInfo;
 
-/** Movement modes for Characters.  */
-UENUM(BlueprintType)
-enum EMovementMode
-{
-	MOVE_None		UMETA(DisplayName="None"),
-	MOVE_Walking	UMETA(DisplayName="Walking"),
-	MOVE_Falling	UMETA(DisplayName="Falling"),
-	MOVE_Swimming	UMETA(DisplayName="Swimming"),
-	MOVE_Flying		UMETA(DisplayName="Flying"),
-	MOVE_Custom		UMETA(DisplayName="Custom"),
-	MOVE_MAX		UMETA(Hidden),
-};
-
 // Data about the floor for walking movement.
 USTRUCT(BlueprintType)
 struct ENGINE_API FFindFloorResult

@@ -188,6 +188,19 @@ enum ETriangleSortAxis
 	TSA_MAX,
 };
 
+/** Movement modes for Characters.  */
+UENUM(BlueprintType)
+enum EMovementMode
+{
+	MOVE_None		UMETA(DisplayName="None"),
+	MOVE_Walking	UMETA(DisplayName="Walking"),
+	MOVE_Falling	UMETA(DisplayName="Falling"),
+	MOVE_Swimming	UMETA(DisplayName="Swimming"),
+	MOVE_Flying		UMETA(DisplayName="Flying"),
+	MOVE_Custom		UMETA(DisplayName="Custom"),
+	MOVE_MAX		UMETA(Hidden),
+};
+
 
 /** 
  * Enum indicating different type of objects for rigid-body collision purposes. 

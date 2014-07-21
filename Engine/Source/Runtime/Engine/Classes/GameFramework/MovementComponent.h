@@ -5,9 +5,10 @@
  */
 
 #pragma once
-#include "Components/SceneComponent.h"
+#include "Components/ActorComponent.h"
 #include "MovementComponent.generated.h"
 
+class UPrimitiveComponent;
 struct FCollisionQueryParams;
 struct FCollisionResponseParams;
 struct FCollisionShape;
@@ -19,7 +20,7 @@ class ENGINE_API UMovementComponent : public UActorComponent
 
 	/** The component we move and update. **/
 	UPROPERTY(BlueprintReadOnly, Category=MovementComponent)
-	class UPrimitiveComponent* UpdatedComponent;
+	UPrimitiveComponent* UpdatedComponent;
 
 	/**
 	 * Flags that control the behavior of calls to MoveComponent() on our UpdatedComponent.

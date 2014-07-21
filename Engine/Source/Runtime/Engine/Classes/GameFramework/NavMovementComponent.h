@@ -9,7 +9,6 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "AI/Navigation/NavAgentInterface.h"
 #include "AI/Navigation/NavigationTypes.h"
-#include "Components/PrimitiveComponent.h"
 #include "GameFramework/MovementComponent.h"
 #include "NavMovementComponent.generated.h"
 
