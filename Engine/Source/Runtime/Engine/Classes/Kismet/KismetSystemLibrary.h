@@ -5,6 +5,9 @@
 #include "Engine/LatentActionManager.h"
 #include "KismetSystemLibrary.generated.h"
 
+/** It's just a proxy for FTimerDynamicDelegate */
+DECLARE_DYNAMIC_DELEGATE(FBlueprintTimerDynamicDelegate);
+
 UENUM(BlueprintType)
 namespace EDrawDebugTrace
 {
@@ -234,6 +237,15 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static void K2_SetTimer(UObject* Object, FString FunctionName, float Time, bool bLooping);
+
+	/**
+	 * Set a timer to execute delegate. Setting an existing timer will reset that timer with updated parameters.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 * @param Time			How long to wait before executing the delegate, in seconds. Setting a timer to <= 0 seconds will clear it if it is set.
+	 * @param bLooping		true to keep executing the delegate every Time seconds, false to execute delegate only once.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimerDelegate"), Category="Utilities|Time")
+	static void K2_SetTimerDelegate(FBlueprintTimerDynamicDelegate Delegate, float Time, bool bLooping);
 
 	/**
 	 * Clears a set timer.
