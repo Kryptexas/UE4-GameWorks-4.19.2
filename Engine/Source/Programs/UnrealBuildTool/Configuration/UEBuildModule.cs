@@ -119,6 +119,21 @@ namespace UnrealBuildTool
 		/** An optional output path for the module */
 		public readonly string OutputDirectory;
 
+		/** Is this module allowed to be redistributed. */
+		private readonly bool? IsRedistributableOverride;
+
+		/**
+		 * Tells if this module can be redistributed.
+		 * 
+		 * @returns True if this module can be redistributed. False otherwise.
+		 */
+		public bool IsRedistributable()
+		{
+			return IsRedistributableOverride.HasValue
+				? IsRedistributableOverride.Value
+				: (Type != UEBuildModuleType.Developer && Type != UEBuildModuleType.Editor);
+		}
+
 		/** The binary the module will be linked into for the current target.  Only set after UEBuildBinary.BindModules is called. */
 		public UEBuildBinary Binary = null;
 
@@ -170,6 +185,7 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			string InModuleDirectory,
 			string InOutputDirectory,
+			bool? InIsRedistributableOverride,
 			IEnumerable<string> InPublicDefinitions = null,
 			IEnumerable<string> InPublicIncludePaths = null,
 			IEnumerable<string> InPublicSystemIncludePaths = null,
@@ -213,6 +229,7 @@ namespace UnrealBuildTool
 			CircularlyReferencedDependentModules = new HashSet<string>( ListFromOptionalEnumerableStringParameter( InCircularlyReferencedDependentModules ) );
 			DynamicallyLoadedModuleNames = ListFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
             PlatformSpecificDynamicallyLoadedModuleNames = ListFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
+			IsRedistributableOverride = InIsRedistributableOverride;
 
 			Target.RegisterModule(this);
 		}
@@ -764,6 +781,7 @@ namespace UnrealBuildTool
 			string InName,
 			string InModuleDirectory,
 			string InOutputDirectory,
+			bool? InIsRedistributableOverride,
 			IEnumerable<string> InPublicDefinitions = null,
 			IEnumerable<string> InPublicIncludePaths = null,
 			IEnumerable<string> InPublicSystemIncludePaths = null,
@@ -782,6 +800,7 @@ namespace UnrealBuildTool
 			InName:							InName,
 			InModuleDirectory:				InModuleDirectory,
 			InOutputDirectory:				InOutputDirectory,
+			InIsRedistributableOverride:		InIsRedistributableOverride,
 			InPublicDefinitions:			InPublicDefinitions,
 			InPublicIncludePaths:			InPublicIncludePaths,
 			InPublicSystemIncludePaths:		InPublicSystemIncludePaths,
@@ -954,6 +973,7 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			string InModuleDirectory,
 			string InOutputDirectory,
+			bool? InIsRedistributableOverride,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
 			IEnumerable<string> InPublicIncludePaths,
@@ -987,7 +1007,8 @@ namespace UnrealBuildTool
 					InName, 
 					InType,
 					InModuleDirectory,
-					InOutputDirectory, 
+					InOutputDirectory,
+					InIsRedistributableOverride,
 					InDefinitions, 
 					InPublicIncludePaths,
 					InPublicSystemIncludePaths, 
@@ -1999,6 +2020,7 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			string InModuleDirectory,
 			string InOutputDirectory,
+			bool? InIsRedistributableOverride,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
 			IEnumerable<string> InPublicIncludePaths,
@@ -2029,7 +2051,7 @@ namespace UnrealBuildTool
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
 			)
-		: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIntelliSenseGatherer,
+			: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,InDefinitions,
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,

@@ -300,6 +300,9 @@ namespace UnrealBuildTool
 			// Box2D included define (required because pointer types may be in public exported structures)
 			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 		}
+
+		/** Redistribution override flag for this module. */
+		public bool? IsRedistributableOverride { get; set; }
 	}
 
 	/// <summary>

@@ -1050,6 +1050,8 @@ namespace UnrealBuildTool
 
 			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
 
+			string EULAViolationWarning = null;
+
 			try
 			{
 				List<string[]> TargetSettings = ParseCommandLineFlags(Arguments);
@@ -1089,7 +1091,7 @@ namespace UnrealBuildTool
 					}
 
 					var TargetOutputItems = new List<FileItem>();
-					BuildResult = Target.Build(ToolChain, TargetOutputItems);
+					BuildResult = Target.Build(ToolChain, TargetOutputItems, out EULAViolationWarning);
 
 					if(BuildResult != ECompilationResult.Succeeded)
 					{
@@ -1194,6 +1196,11 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation("ERROR: {0}", Exception);
 				BuildResult = ECompilationResult.OtherCompilationError;
+			}
+
+			if(EULAViolationWarning != null)
+			{
+				Log.TraceWarning("WARNING: {0}", EULAViolationWarning);
 			}
 
 			// Figure out how long we took to execute.
