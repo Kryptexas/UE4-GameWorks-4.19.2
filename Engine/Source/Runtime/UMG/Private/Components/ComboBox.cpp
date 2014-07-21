@@ -35,7 +35,7 @@ TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 		UWidget* Widget = OnGenerateWidget.Execute(Item);
 		if ( Widget != NULL )
 		{
-			return Widget->GetWidget();
+			return Widget->TakeWidget();
 		}
 	}
 

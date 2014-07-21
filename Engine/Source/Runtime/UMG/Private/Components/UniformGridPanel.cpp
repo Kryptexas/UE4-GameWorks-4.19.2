@@ -42,7 +42,11 @@ void UUniformGridPanel::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyUniformGridPanel.IsValid() )
 	{
-		MyUniformGridPanel->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyUniformGridPanel->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 

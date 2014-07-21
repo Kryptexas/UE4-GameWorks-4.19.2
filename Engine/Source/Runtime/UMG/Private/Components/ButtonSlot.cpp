@@ -29,7 +29,7 @@ void UButtonSlot::BuildSlot(TSharedRef<SButton> InButton)
 	Button->SetHAlign(HorizontalAlignment);
 	Button->SetVAlign(VerticalAlignment);
 
-	Button->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
+	Button->SetContent(Content ? Content->TakeWidget() : SNullWidget::NullWidget);
 }
 
 void UButtonSlot::SetPadding(FMargin InPadding)

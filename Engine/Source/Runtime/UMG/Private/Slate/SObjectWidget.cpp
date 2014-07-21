@@ -33,9 +33,11 @@ void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	}
 }
 
-//bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
+//bool SObjectWidget::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
 //{
-
+//	if ( WidgetObject && !WidgetObject->IsDesignTime() )
+//	{
+//	}
 //}
 
 int32 SObjectWidget::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const

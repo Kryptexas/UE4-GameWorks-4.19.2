@@ -47,7 +47,7 @@ TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TShare
 		{
 			return SNew(STableRow< UObject* >, OwnerTable)
 			[
-				Widget->GetWidget()
+				Widget->TakeWidget()
 			];
 		}
 	}

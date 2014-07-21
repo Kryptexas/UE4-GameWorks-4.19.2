@@ -73,7 +73,11 @@ void UWidgetSwitcher::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyWidgetSwitcher.IsValid() )
 	{
-		MyWidgetSwitcher->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyWidgetSwitcher->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 

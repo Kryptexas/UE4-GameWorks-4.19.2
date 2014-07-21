@@ -26,7 +26,7 @@ void UOverlaySlot::BuildSlot(TSharedRef<SOverlay> Overlay)
 		.HAlign(HorizontalAlignment)
 		.VAlign(VerticalAlignment)
 		[
-			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
+			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 }
 

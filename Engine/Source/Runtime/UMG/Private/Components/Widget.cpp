@@ -86,11 +86,9 @@ UPanelWidget* UWidget::GetParent() const
 	return NULL;
 }
 
-TSharedRef<SWidget> UWidget::GetWidget() const
+TSharedRef<SWidget> UWidget::TakeWidget()
 {
 	TSharedPtr<SWidget> SafeWidget;
-
-	UWidget* MutableThis = const_cast<UWidget*>( this );
 
 	if ( !MyWidget.IsValid() )
 	{
@@ -98,9 +96,9 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 		// and we need to construct and cache the widget for the first run.  But instead of forcing everyone
 		// downstream to make RebuildWidget const and force every implementation to make things mutable, we
 		// just blow away the const here.
-		SafeWidget = MutableThis->RebuildWidget();
+		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
-		MutableThis->SyncronizeProperties();
+		SyncronizeProperties();
 	}
 	else
 	{
@@ -108,12 +106,23 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 	}
 
 	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
-	if ( MutableThis->IsA(UUserWidget::StaticClass()) )
+	if ( IsA(UUserWidget::StaticClass()) )
 	{
-		return SNew(SObjectWidget, Cast<UUserWidget>(MutableThis))
-		[
-			SafeWidget.ToSharedRef()
-		];
+		if ( MyGCWidget.IsValid() )
+		{
+			return MyGCWidget.Pin().ToSharedRef();
+		}
+		else
+		{
+			TSharedPtr<SWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
+				[
+					SafeWidget.ToSharedRef()
+				];
+
+			MyGCWidget = SafeGCWidget;
+
+			return SafeGCWidget.ToSharedRef();
+		}
 	}
 	else
 	{
@@ -123,6 +132,11 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 
 TSharedPtr<SWidget> UWidget::GetCachedWidget() const
 {
+	if ( MyGCWidget.IsValid() )
+	{
+		return MyGCWidget.Pin();
+	}
+
 	return MyWidget.Pin();
 }
 

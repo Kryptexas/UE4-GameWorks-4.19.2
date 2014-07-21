@@ -11,7 +11,6 @@ DECLARE_DELEGATE_OneParam( FOnSceneViewportResize, FVector2D );
 
 /**
  * A viewport for use with Slate SViewport widgets.
- * This viewport does not render directly to the back buffer but instead renders to a separate render target which Slate uses when it draws
  */
 class ENGINE_API FSceneViewport : public FViewportFrame, public FViewport, public ISlateViewport
 {

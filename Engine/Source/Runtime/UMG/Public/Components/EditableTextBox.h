@@ -103,6 +103,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetError(FText InError);
 
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ClearError();
+
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface

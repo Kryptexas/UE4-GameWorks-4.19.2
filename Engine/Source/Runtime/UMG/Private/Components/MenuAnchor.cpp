@@ -29,7 +29,7 @@ TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 
 	if ( GetChildrenCount() > 0 )
 	{
-		MyMenuAnchor->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+		MyMenuAnchor->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
 	return BuildDesignTimeWidget( MyMenuAnchor.ToSharedRef() );
@@ -45,7 +45,7 @@ void UMenuAnchor::OnSlotAdded(UPanelSlot* Slot)
 	// Add the child to the live slot if it already exists
 	if ( MyMenuAnchor.IsValid() )
 	{
-		MyMenuAnchor->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+		MyMenuAnchor->SetContent(Slot->Content ? Slot->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 }
 
@@ -67,7 +67,7 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 		UWidget* MenuWidget = OnGetMenuContentEvent.Execute();
 		if ( MenuWidget )
 		{
-			SlateMenuWidget = MenuWidget->GetWidget();
+			SlateMenuWidget = MenuWidget->TakeWidget();
 		}
 	}
 
@@ -76,7 +76,7 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 		UWidget* MenuWidget = (UWidget*)ConstructObject<UWidget>(MenuClass, GetOuter());
 		if ( MenuWidget )
 		{
-			SlateMenuWidget = MenuWidget->GetWidget();
+			SlateMenuWidget = MenuWidget->TakeWidget();
 		}
 	}
 

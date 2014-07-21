@@ -131,7 +131,7 @@ void UButton::SetForegroundColor(FLinearColor InForegroundColor)
 
 FReply UButton::HandleOnClicked()
 {
-	if ( OnClickedEvent.IsBound() )
+	if ( OnClickedEvent.IsBound() && MyButton.IsValid() )
 	{
 		return OnClickedEvent.Execute().ToReply( MyButton.ToSharedRef() );
 	}

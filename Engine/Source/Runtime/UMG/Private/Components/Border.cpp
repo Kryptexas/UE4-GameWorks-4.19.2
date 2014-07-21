@@ -42,7 +42,7 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 	
 	if ( GetChildrenCount() > 0 )
 	{
-		MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+		MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 
 	return MyBorder.ToSharedRef();
@@ -78,7 +78,7 @@ void UBorder::OnSlotAdded(UPanelSlot* Slot)
 	// Add the child to the live canvas if it already exists
 	if ( MyBorder.IsValid() )
 	{
-		MyBorder->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+		MyBorder->SetContent(Slot->Content ? Slot->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 }
 

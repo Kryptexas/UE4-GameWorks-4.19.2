@@ -83,6 +83,8 @@
 #include "ListView.h"
 #include "TileView.h"
 
+#include "Viewport.h"
+
 // Slate
 #include "SObjectWidget.h"
 

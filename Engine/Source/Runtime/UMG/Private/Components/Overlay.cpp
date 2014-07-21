@@ -40,7 +40,11 @@ void UOverlay::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyOverlay.IsValid() )
 	{
-		MyOverlay->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyOverlay->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 

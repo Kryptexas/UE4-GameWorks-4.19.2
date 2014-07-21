@@ -1077,7 +1077,8 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 			if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
 			{
-				TSharedPtr<SWidget> SlateWidget = Widget->GetWidget();
+				// HACK UMG - This seems like a bad idea to call TakeWidget
+				TSharedPtr<SWidget> SlateWidget = Widget->TakeWidget();
 				SlateWidget->SlatePrepass();
 				const FVector2D& WidgetDesiredSize = SlateWidget->GetDesiredSize();
 

@@ -75,7 +75,11 @@ void UCanvasPanel::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyCanvas.IsValid() )
 	{
-		MyCanvas->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyCanvas->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 
@@ -128,7 +132,7 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
 		{
-			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->GetWidget() )
+			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->TakeWidget() )
 			{
 				ArrangedGeometry = ArrangedChildren(ChildIndex).Geometry;
 				return true;

@@ -161,11 +161,13 @@ private:
 	{
 		return ChildSlot;
 	}
-	
-private:
+
+protected:
 
 	// Interface to the rendering and I/O implementation of the viewport.
 	TWeakPtr<ISlateViewport> ViewportInterface;
+	
+private:
 
 	// Whether or not to show the disabled effect when this viewport is disabled.
 	TAttribute<bool> ShowDisabledEffect;

@@ -140,8 +140,9 @@ public:
 	 * virtual however, you should not inherit this function unless you're very aware of what you're
 	 * doing.  Normal derived versions should only ever override RebuildWidget.
 	 */
-	TSharedRef<SWidget> GetWidget() const;
+	TSharedRef<SWidget> TakeWidget();
 
+	/** Gets the last created widget does not recreate the gc container for the widget if one is needed. */
 	TSharedPtr<SWidget> GetCachedWidget() const;
 
 	/**
@@ -233,7 +234,10 @@ protected:
 
 protected:
 	/** The underlying SWidget. */
-	mutable TWeakPtr<SWidget> MyWidget;
+	TWeakPtr<SWidget> MyWidget;
+
+	/** The underlying SWidget contained in a SObjectWidget */
+	TWeakPtr<SWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
 	bool bDesignTime;

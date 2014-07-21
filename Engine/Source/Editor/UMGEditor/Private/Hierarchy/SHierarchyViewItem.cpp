@@ -294,7 +294,11 @@ FReply SHierarchyViewItem::ProcessDragDrop(const FDragDropEvent& DragDropEvent, 
 					}
 					else
 					{
-						Item.GetPreview()->GetWidget()->SlatePrepass();
+						TSharedPtr<SWidget> Widget = Item.GetPreview()->GetCachedWidget();
+						if ( Widget.IsValid() )
+						{
+							Widget->SlatePrepass();
+						}
 					}
 				}
 				else

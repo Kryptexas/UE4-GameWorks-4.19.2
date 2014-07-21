@@ -106,6 +106,14 @@ void UEditableTextBox::SetError(FText InError)
 	}
 }
 
+void UEditableTextBox::ClearError()
+{
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetError(FText::GetEmpty());
+	}
+}
+
 void UEditableTextBox::HandleOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
