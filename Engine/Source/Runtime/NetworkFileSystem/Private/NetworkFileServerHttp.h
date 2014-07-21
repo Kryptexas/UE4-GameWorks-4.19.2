@@ -59,7 +59,7 @@ private:
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;
 
 	// libwebsocket context. All access to the library happens via this context. 
-	struct libwebsocket_context *context;
+	struct libwebsocket_context *Context;
 
 	// Service Http connections on this thread.
 	FRunnableThread* WorkerThread;

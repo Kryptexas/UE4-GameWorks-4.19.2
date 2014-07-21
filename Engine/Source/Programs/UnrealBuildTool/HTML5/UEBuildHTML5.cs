@@ -18,10 +18,6 @@ namespace UnrealBuildTool
         [XmlConfig]
         public static bool EnableHTTPForNFS = false;
 
-        // Actually use HTTP code path for both Client and Server. 
-        [XmlConfig]
-        public static bool UseHTTPForNFS = false;
-
         static private string TargetPlatformName = "HTML5";
 
 		// This is the SDK version we support in //CarefullyRedist.
@@ -149,9 +145,6 @@ namespace UnrealBuildTool
                 }
             }
 
-            // if HTTP is not enabled, we can't use it. 
-            if (EnableHTTPForNFS == false)
-                UseHTTPForNFS = false; 
         }
 
         /**
@@ -351,14 +344,17 @@ namespace UnrealBuildTool
 
                 if (InModule.ToString() == "NetworkFile")
                 {
-                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
-                    if (Target.Architecture == "-win32")
-                    {
-                        InModule.AddPrivateDependencyModule("HTML5Win32");
-                    }
-                    else
-                    {
-                        InModule.AddPrivateDependencyModule("HTML5JS");
+                    if (EnableHTTPForNFS)
+                    {   
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        if (Target.Architecture == "-win32")
+                        {
+                            InModule.AddPrivateDependencyModule("HTML5Win32");
+                        }
+                        else
+                        {
+                            InModule.AddPrivateDependencyModule("HTML5JS");
+                        }
                     }
                 }
             }
@@ -371,15 +367,18 @@ namespace UnrealBuildTool
                 {
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                 }
-                if (InModule.ToString() == "NetworkFile") // client
+                if (EnableHTTPForNFS)
                 {
-                    InModule.AddPrivateDependencyModule("HTTP");
-                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
-                }
-                else if (InModule.ToString() == "NetworkFileSystem") // server 
-                {
-                    InModule.AddPublicDependencyModule("WebSockets");
-                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    if (InModule.ToString() == "NetworkFile") // client
+                    {
+                        InModule.AddPrivateDependencyModule("HTTP");
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    }
+                    else if (InModule.ToString() == "NetworkFileSystem") // server 
+                    {
+                        InModule.AddPublicDependencyModule("WebSockets");
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    }
                 }
             }
         }
