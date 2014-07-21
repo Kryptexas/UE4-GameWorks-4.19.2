@@ -17,7 +17,7 @@ struct FActorPositionTraceResult
 	};
 
 	/** Constructor */
-	FActorPositionTraceResult() : State(Failed), Location(0.f), SurfaceNormal(0.f) {}
+	FActorPositionTraceResult() : State(Failed), Location(0.f), SurfaceNormal(0.f, 0.f, 1.f) {}
 
 	/** The state of this result */
 	ResultState	State;
