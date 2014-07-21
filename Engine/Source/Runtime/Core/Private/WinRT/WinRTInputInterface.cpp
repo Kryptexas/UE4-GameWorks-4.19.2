@@ -142,6 +142,8 @@ void FWinRTInputInterface::ConditionalScanForKeyboardChanges( float DeltaTime )
 		(WinRTKeyState[VK_LCONTROL] == true) ? true : false,
 		(WinRTKeyState[VK_RCONTROL] == true) ? true : false,
 		false,
+		false,
+		false,
 		false
 		);
 
