@@ -2751,6 +2751,8 @@ void FBlueprintEditor::OnSplitStructPin()
 		check(GetBlueprintObj()->SkeletonGeneratedClass);
 		check(TargetPin);
 
+		const FScopedTransaction Transaction( LOCTEXT("SplitStructPin", "Split Struct Pin") );
+
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		K2Schema->SplitPin(TargetPin);
 	}
@@ -2783,6 +2785,8 @@ void FBlueprintEditor::OnRecombineStructPin()
 		check(IsEditingSingleBlueprint());
 		check(GetBlueprintObj()->SkeletonGeneratedClass);
 		check(TargetPin);
+
+		const FScopedTransaction Transaction( LOCTEXT("RecombineStructPin", "Recombine Struct Pin") );
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		K2Schema->RecombinePin(TargetPin);

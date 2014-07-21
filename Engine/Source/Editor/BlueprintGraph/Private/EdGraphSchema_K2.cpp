@@ -4590,8 +4590,6 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 	UK2Node* K2Node = Cast<UK2Node>(GraphNode);
 	UEdGraph* Graph = CastChecked<UEdGraph>(GraphNode->GetOuter());
 
-	const FScopedTransaction Transaction( LOCTEXT("SplitStructPin", "Split Struct Pin") );
-
 	GraphNode->Modify();
 	Pin->Modify();
 
@@ -4691,8 +4689,6 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 
 void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 {
-	const FScopedTransaction Transaction( LOCTEXT("RecombineStructPin", "Recombine Struct Pin") );
-
 	UEdGraphNode* GraphNode = Pin->GetOwningNode();
 	UEdGraphPin* ParentPin = Pin->ParentPin;
 
