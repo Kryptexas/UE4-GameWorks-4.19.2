@@ -145,6 +145,10 @@ public class IOSPlatform : Platform
 			if (bNeedToSign)
 			{
 				IPPArguments += " -sign";
+				if (Params.Distribution)
+				{
+					IPPArguments += " -distribution";
+				}
 			}
 
 			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
@@ -154,10 +158,10 @@ public class IOSPlatform : Platform
 			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
 				if (TargetConfiguration != UnrealTargetConfiguration.Development)
 				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
+					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
 				}
 			}
 
@@ -233,6 +237,19 @@ public class IOSPlatform : Platform
 		if (File.Exists(ProjectRoot + "/Build/IOS/" + ShortProjectName + "-Info.plist"))
 		{
 			SourcePListFile = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + "-Info.plist");
+		}
+		else if (File.Exists(ProjectRoot + "/Build/IOS/Info.plist"))
+		{
+			SourcePListFile = CombinePaths(ProjectRoot, "Build", "IOS", "Info.plist");
+		}
+		else if (Directory.Exists(ProjectRoot + "/Build/IOS"))
+		{
+			// look for any plist file
+			string[] Plists = Directory.GetFiles(ProjectRoot + "/Build/IOS", "*.plist");
+			if (Plists.Length > 0)
+			{
+				SourcePListFile = Plists[0];
+			}
 		}
 
 		//@TODO: This is writing to the engine directory!
@@ -564,10 +581,10 @@ public class IOSPlatform : Platform
 		// rename the .ipa if not code based
 		if (!Params.IsCodeBasedProject)
 		{
-			ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
+			ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
 			if (TargetConfiguration != UnrealTargetConfiguration.Development)
 			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
 			}
 		}
 
@@ -587,6 +604,10 @@ public class IOSPlatform : Platform
 			if (SC.StageTargetConfigurations.Count != 1)
 			{
 				throw new AutomationException ("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+			}
+			if (Params.Distribution)
+			{
+				throw new AutomationException("iOS cannot deploy a package made for distribution.");
 			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
 
