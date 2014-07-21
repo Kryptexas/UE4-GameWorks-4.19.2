@@ -157,12 +157,12 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 			{
 				continue;
 			}
-
+#if WITH_EDITORONLY_DATA
 			if (Layer->bHiddenInEditor)
 			{
 				continue;
 			}
-
+#endif
 			if (Layer->bCollisionLayer && View->bIsGameView)
 			{
 				continue;
