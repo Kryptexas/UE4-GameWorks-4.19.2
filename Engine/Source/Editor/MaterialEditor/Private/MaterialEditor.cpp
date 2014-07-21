@@ -10,6 +10,7 @@
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
@@ -2713,6 +2714,13 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		{
 			PositionTransform->TransformSourceType = TRANSFORMPOSSOURCE_Local;
 			PositionTransform->TransformType = TRANSFORMPOSSOURCE_World;
+		}
+
+		// Make sure the dynamic parameters are named based on existing ones
+		UMaterialExpressionDynamicParameter* DynamicExpression = Cast<UMaterialExpressionDynamicParameter>(NewExpression);
+		if (DynamicExpression)
+		{
+			DynamicExpression->UpdateDynamicParameterNames();
 		}
 
 		Material->AddExpressionParameter(NewExpression);

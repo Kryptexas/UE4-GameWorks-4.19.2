@@ -1027,13 +1027,13 @@ public:
 	 * Return whether the provided expression parameter has duplicates.
 	 * @param	Expression	The expression parameter to check for duplicates.
 	 */
-	ENGINE_API virtual bool HasDuplicateParameters(UMaterialExpression* Expression);
+	ENGINE_API virtual bool HasDuplicateParameters(const UMaterialExpression* Expression);
 
 	/**
 	 * Return whether the provided expression dynamic parameter has duplicates.
 	 * @param	Expression	The expression dynamic parameter to check for duplicates.
 	 */
-	ENGINE_API virtual bool HasDuplicateDynamicParameters(UMaterialExpression* Expression);
+	ENGINE_API virtual bool HasDuplicateDynamicParameters(const UMaterialExpression* Expression);
 
 	/**
 	 * Iterate through all of the expression nodes and fix up changed names on
@@ -1041,7 +1041,7 @@ public:
 	 *
 	 * @param	Expression	The expression dynamic parameter.
 	 */
-	ENGINE_API virtual void UpdateExpressionDynamicParameterNames(UMaterialExpression* Expression);
+	ENGINE_API virtual void UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression);
 
 	/**
 	 * Get the name of a parameter.
@@ -1049,7 +1049,7 @@ public:
 	 * @param	OutName		The variable that will hold the parameter name.
 	 * @return	true if the expression is a parameter with a name.
 	 */
-	static bool GetExpressionParameterName(UMaterialExpression* Expression, FName& OutName);
+	static bool GetExpressionParameterName(const UMaterialExpression* Expression, FName& OutName);
 
 	/**
 	 * Copy the values of an expression parameter to another expression parameter of the same class.
@@ -1071,7 +1071,7 @@ public:
 	 *
 	 * @param	Expression	The expression node to inspect.
 	 */
-	ENGINE_API static bool IsDynamicParameter(UMaterialExpression* Expression);
+	ENGINE_API static bool IsDynamicParameter(const UMaterialExpression* Expression);
 
 	/**
 	 * Return wheter the number of parameter groups. NOTE: The number returned can be innaccurate if you have parameters of different types with the same name.

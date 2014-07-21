@@ -4363,6 +4363,32 @@ void UMaterialExpressionDynamicParameter::PostEditChangeProperty(FPropertyChange
 
 #endif // WITH_EDITOR
 
+void UMaterialExpressionDynamicParameter::UpdateDynamicParameterNames()
+{
+	check(Material);
+	for (int32 ExpIndex = 0; ExpIndex < Material->Expressions.Num(); ExpIndex++)
+	{
+		const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Material->Expressions[ExpIndex]);
+		if (CopyDynamicParameterNames(DynParam))
+		{
+			break;
+		}
+	}
+}
+
+bool UMaterialExpressionDynamicParameter::CopyDynamicParameterNames(const UMaterialExpressionDynamicParameter* FromParam)
+{
+	if (FromParam && (FromParam != this))
+	{
+		for (int32 NameIndex = 0; NameIndex < 4; NameIndex++)
+		{
+			ParamNames[NameIndex] = FromParam->ParamNames[NameIndex];
+		}
+		return true;
+	}
+	return false;
+}
+
 //
 //	MaterialExpressionParticleSubUV
 //

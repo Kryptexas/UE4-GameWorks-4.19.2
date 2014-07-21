@@ -2376,7 +2376,7 @@ bool UMaterial::IsParameter(const UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::IsDynamicParameter(UMaterialExpression* Expression)
+bool UMaterial::IsDynamicParameter(const UMaterialExpression* Expression)
 {
 	if (Expression->IsA(UMaterialExpressionDynamicParameter::StaticClass()))
 	{
@@ -2399,7 +2399,7 @@ void UMaterial::BuildEditorParameterList()
 }
 
 
-bool UMaterial::HasDuplicateParameters(UMaterialExpression* Expression)
+bool UMaterial::HasDuplicateParameters(const UMaterialExpression* Expression)
 {
 	FName ExpressionName;
 
@@ -2424,9 +2424,9 @@ bool UMaterial::HasDuplicateParameters(UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::HasDuplicateDynamicParameters(UMaterialExpression* Expression)
+bool UMaterial::HasDuplicateDynamicParameters(const UMaterialExpression* Expression)
 {
-	UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
+	const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
 	if (DynParam)
 	{
 		for (int32 ExpIndex = 0; ExpIndex < Expressions.Num(); ExpIndex++)
@@ -2442,20 +2442,16 @@ bool UMaterial::HasDuplicateDynamicParameters(UMaterialExpression* Expression)
 }
 
 
-void UMaterial::UpdateExpressionDynamicParameterNames(UMaterialExpression* Expression)
+void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression)
 {
-	UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
+	const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
 	if (DynParam)
 	{
 		for (int32 ExpIndex = 0; ExpIndex < Expressions.Num(); ExpIndex++)
 		{
 			UMaterialExpressionDynamicParameter* CheckParam = Cast<UMaterialExpressionDynamicParameter>(Expressions[ExpIndex]);
-			if (CheckParam && (CheckParam != DynParam))
+			if (CheckParam->CopyDynamicParameterNames(DynParam))
 			{
-				for (int32 NameIndex = 0; NameIndex < 4; NameIndex++)
-				{
-					CheckParam->ParamNames[NameIndex] = DynParam->ParamNames[NameIndex];
-				}
 #if WITH_EDITORONLY_DATA
 				CheckParam->GraphNode->ReconstructNode();
 #endif // WITH_EDITORONLY_DATA
@@ -2509,7 +2505,7 @@ void UMaterial::UpdateExpressionParameterName(UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::GetExpressionParameterName(UMaterialExpression* Expression, FName& OutName)
+bool UMaterial::GetExpressionParameterName(const UMaterialExpression* Expression, FName& OutName)
 {
 	bool bRet = false;
 
