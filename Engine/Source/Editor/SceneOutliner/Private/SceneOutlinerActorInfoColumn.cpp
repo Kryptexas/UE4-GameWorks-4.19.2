@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SceneOutlinerPrivatePCH.h"
-#include "SourceCodeNavigation.h"
 #include "SceneOutlinerTreeItems.h"
+
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerActorInfoColumn"
 
@@ -71,60 +72,11 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 
 	UClass* ObjectClass = Actor->GetClass();
 
-	if ( UBlueprint* Blueprint = Cast<UBlueprint>( ObjectClass->ClassGeneratedBy ) )
+	TSharedPtr<SWidget> SourceLink = FEditorClassUtils::GetSourceLink(ObjectClass, InActor);
+
+	if (SourceLink.IsValid())
 	{
-		TWeakObjectPtr<UBlueprint> BlueprintPtr = Blueprint;
-
-		struct Local
-		{
-			static void OnEditBlueprintClicked( TWeakObjectPtr<UBlueprint> InBlueprint, TWeakObjectPtr<AActor> InAsset )
-			{
-				if ( UBlueprint* GeneratedByBlueprint = InBlueprint.Get() )
-				{
-					// Set the object being debugged if given an actor reference (if we don't do this before we edit the object the editor wont know we are debugging something)
-					if ( UObject* Asset = InAsset.Get() )
-					{
-						check(Asset->GetClass()->ClassGeneratedBy == GeneratedByBlueprint);
-						GeneratedByBlueprint->SetObjectBeingDebugged(Asset);
-					}
-					// Open the blueprint
-					GEditor->EditObject(GeneratedByBlueprint);
-				}
-			}
-		};
-
-		return SNew( SHyperlink )
-			.Visibility( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, true )
-			.Style( FEditorStyle::Get(), "HoverOnlyHyperlink" )
-			.TextStyle( FEditorStyle::Get(), "SceneOutliner.EditBlueprintHyperlinkStyle" )
-			.OnNavigate_Static( &Local::OnEditBlueprintClicked, BlueprintPtr, InActor )
-			//.Text( FText::FromString( Blueprint->GetName() ) )
-			.Text( FText::FromString( ObjectClass->GetName() ) )
-			.ToolTipText( LOCTEXT( "EditBlueprint_ToolTip", "Click to edit the blueprint" ) );
-	}
-	else if ( FSourceCodeNavigation::IsCompilerAvailable() )
-	{
-		FString ClassHeaderPath;
-		if ( FSourceCodeNavigation::FindClassHeaderPath( ObjectClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
-		{
-			struct Local
-			{
-				static void OnEditCodeClicked( FString InClassHeaderPath )
-				{
-					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
-					FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-				}
-			};
-
-			return SNew( SHyperlink )
-				.Visibility( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, true )
-				.Style( FEditorStyle::Get(), "HoverOnlyHyperlink" )
-				.TextStyle( FEditorStyle::Get(), "SceneOutliner.GoToCodeHyperlinkStyle" )
-				.OnNavigate_Static( &Local::OnEditCodeClicked, ClassHeaderPath )
-				//.Text( FText::FromString( FPaths::GetCleanFilename( *ClassHeaderPath ) ) )
-				.Text( FText::FromString( ObjectClass->GetName() ) )
-				.ToolTipText( LOCTEXT( "GoToCode_ToolTip", "Click to open this source file in a text editor" ) );
-		}
+		return SourceLink.ToSharedRef();
 	}
 
 	return SNew( STextBlock )

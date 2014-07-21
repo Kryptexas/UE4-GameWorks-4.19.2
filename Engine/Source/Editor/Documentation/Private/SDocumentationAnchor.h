@@ -8,9 +8,14 @@ public:
 	{}
 		SLATE_ARGUMENT( FString, PreviewLink )
 		SLATE_ARGUMENT( FString, PreviewExcerptName )
+
+		/** The string for the link to follow when clicked  */
+		SLATE_ATTRIBUTE( FString, Link )
+
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const FString& InLink );
+
+	void Construct(const FArguments& InArgs);
 
 private:
 	
@@ -20,7 +25,7 @@ private:
 
 private:
 
-	FString Link;
+	TAttribute<FString> Link;
 	TSharedPtr< SButton > Button;
 	TSharedPtr< SImage > ButtonImage;
 	const FSlateBrush* Default; 

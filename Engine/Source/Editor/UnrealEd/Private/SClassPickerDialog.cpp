@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "SClassPickerDialog.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "SClassPicker"
 
@@ -164,6 +165,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 			[
 				SNew(SButton)
 				.OnClicked(this, &SClassPickerDialog::OnDefaultClassPicked, ItemClass)
+				.ToolTip(FEditorClassUtils::GetTooltip(ItemClass))
 				.Content()
 				[
 					SNew(SHorizontalBox)
@@ -183,15 +185,20 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 						SNew(STextBlock)
 						.Text(Obj->GetName())
 					]
+
 				]
 			]
 			+SHorizontalBox::Slot()
 			.Padding(10.0f, 0.0f)
-			.MaxWidth(500.0f)
 			[
 				SNew(STextBlock)
 				.Text(FString::Printf(*NSLOCTEXT("EditorFactories", "FClassPickerDefaults", "%s").ToString(), *Obj->GetDescription()))
 				.AutoWrapText(true)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				FEditorClassUtils::GetDocumentationLinkWidget(ItemClass)
 			]
 		]
 		+SVerticalBox::Slot()

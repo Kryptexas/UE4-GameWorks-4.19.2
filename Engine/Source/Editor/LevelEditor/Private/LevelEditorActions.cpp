@@ -43,6 +43,7 @@
 #include "IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "EditorClassUtils.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
@@ -971,6 +972,19 @@ void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 		{
 			FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
 			FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
+		}
+	}
+}
+
+void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
+{
+	const auto& SelectedActorInfo = AssetSelectionUtils::GetSelectedActorInfo();
+	if( SelectedActorInfo.SelectionClass != nullptr )
+	{
+		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedActorInfo.SelectionClass);
+		if (!DocumentationLink.IsEmpty())
+		{
+			IDocumentation::Get()->Open( DocumentationLink );
 		}
 	}
 }
@@ -2637,6 +2651,7 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( SnapCameraToActor, "Snap View to Actor", "Snaps the view to the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( PasteHere, "Paste Here", "Pastes the actor at the click location", EUserInterfaceActionType::Button, FInputGesture() );
 

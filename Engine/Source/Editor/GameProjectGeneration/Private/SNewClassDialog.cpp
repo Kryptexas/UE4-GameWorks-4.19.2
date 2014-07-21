@@ -8,6 +8,7 @@
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "DesktopPlatformModule.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 
@@ -89,6 +90,9 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter);
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
+
+	TSharedRef<SWidget> DocWidget = IDocumentation::Get()->CreateAnchor(TAttribute<FString>(this, &SNewClassDialog::GetSelectedParentDocLink));
+	DocWidget->SetVisibility(TAttribute<EVisibility>(this, &SNewClassDialog::GetDocLinkVisibility));
 
 	const float EditableTextHeight = 26.0f;
 
@@ -244,8 +248,20 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							.VAlign(VAlign_Center)
 							.Padding(0, 0, 12, 0)
 							[
-								SNew(STextBlock)
-								.Text( this, &SNewClassDialog::GetSelectedParentClassName )
+								SNew(SHorizontalBox)
+
+								+SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.Text( this, &SNewClassDialog::GetSelectedParentClassName )
+								]
+
+								+SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									DocWidget
+								]
 							]
 
 							+ SVerticalBox::Slot()
@@ -685,6 +701,16 @@ FString SNewClassDialog::GetSelectedParentClassFilename() const
 		return FPaths::GetCleanFilename(*ClassHeaderPath);
 	}
 	return FString();
+}
+
+EVisibility SNewClassDialog::GetDocLinkVisibility() const
+{
+	return (ParentClassInfo.BaseClass == nullptr || FEditorClassUtils::GetDocumentationLink(ParentClassInfo.BaseClass).IsEmpty() ? EVisibility::Hidden : EVisibility::Visible);
+}
+
+FString SNewClassDialog::GetSelectedParentDocLink() const
+{
+	return FEditorClassUtils::GetDocumentationLink(ParentClassInfo.BaseClass);
 }
 
 void SNewClassDialog::OnEditCodeClicked()

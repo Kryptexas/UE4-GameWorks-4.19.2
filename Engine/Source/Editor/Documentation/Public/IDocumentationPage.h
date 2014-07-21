@@ -5,6 +5,10 @@
 
 struct FExcerpt
 {
+	FExcerpt()
+		: LineNumber( INDEX_NONE )
+	{}
+
 	FExcerpt( const FString& InName, const TSharedPtr< SWidget >& InContent, const TMap< FString, FString >& InVariables, int32 InLineNumber )
 		: Name( InName )
 		, Content( InContent )
@@ -23,6 +27,7 @@ class IDocumentationPage
 public:
 	virtual bool HasExcerpt( const FString& ExcerptName ) = 0;
 	virtual int32 GetNumExcerpts() const = 0;
+	virtual bool GetExcerpt( const FString& ExcerptName, FExcerpt& Excerpt) = 0;
 	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) = 0;
 	virtual bool GetExcerptContent( FExcerpt& Excerpt ) = 0;
 

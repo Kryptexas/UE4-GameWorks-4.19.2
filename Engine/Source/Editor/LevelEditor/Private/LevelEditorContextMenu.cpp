@@ -27,6 +27,7 @@
 #include "GlobalEditorCommonCommands.h"
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -235,19 +236,35 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 	MenuBuilder.EndSection();
 
 	// Go to C++ Code
-	if( SelectionInfo.SelectionClass != NULL && FSourceCodeNavigation::IsCompilerAvailable() )
+	if( SelectionInfo.SelectionClass != NULL )
 	{
-		FString ClassHeaderPath;
-		if( FSourceCodeNavigation::FindClassHeaderPath( SelectionInfo.SelectionClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
+		if ( FSourceCodeNavigation::IsCompilerAvailable())
 		{
-			const FString CodeFileName = FPaths::GetCleanFilename( *ClassHeaderPath );
-
-			MenuBuilder.BeginSection( "ActorCode", LOCTEXT("ActorCodeHeading", "C++") );
+			FString ClassHeaderPath;
+			if( FSourceCodeNavigation::FindClassHeaderPath( SelectionInfo.SelectionClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
 			{
-				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().GoToCodeForActor,
+				const FString CodeFileName = FPaths::GetCleanFilename( *ClassHeaderPath );
+
+				MenuBuilder.BeginSection( "ActorCode", LOCTEXT("ActorCodeHeading", "C++") );
+				{
+					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().GoToCodeForActor,
+						NAME_None, 
+						FText::Format( LOCTEXT("GoToCodeForActor", "Open {0}"), FText::FromString( CodeFileName ) ),
+						FText::Format( LOCTEXT("GoToCodeForActor_ToolTip", "Opens the header file for this actor ({0}) in a code editing program"), FText::FromString( CodeFileName ) ) );
+				}
+				MenuBuilder.EndSection();
+			}
+		}
+
+		const FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectionInfo.SelectionClass);
+		if (!DocumentationLink.IsEmpty())
+		{
+			MenuBuilder.BeginSection( "ActorDocumentation", LOCTEXT("ActorDocsHeading", "Documentation") );
+			{
+				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().GoToDocsForActor,
 					NAME_None, 
-					FText::Format( LOCTEXT("GoToCodeForActor", "Open {0}"), FText::FromString( CodeFileName ) ),
-					FText::Format( LOCTEXT("GoToCodeForActor_ToolTip", "Opens the header file for this actor ({0}) in a code editing program"), FText::FromString( CodeFileName ) ) );
+					LOCTEXT("GoToDocsForActor", "Full documentation"),
+					LOCTEXT("GoToDocsForActor_ToolTip", "Click to open documentation for this actor"));
 			}
 			MenuBuilder.EndSection();
 		}

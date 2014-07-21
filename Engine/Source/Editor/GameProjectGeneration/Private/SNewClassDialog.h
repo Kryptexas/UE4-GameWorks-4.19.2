@@ -38,6 +38,12 @@ private:
 	/** Whether the hyper link to go to source should be visible */
 	EVisibility GetSourceHyperlinkVisibility() const;
 
+	/** Gets the currently select parent class's doc link */
+	FString GetSelectedParentDocLink() const;
+
+	/** Whether the document link anchor should be visible */
+	EVisibility GetDocLinkVisibility() const;
+	
 	/** Handler for when the seleted parent class's filename is clicked */
 	void OnEditCodeClicked();
 

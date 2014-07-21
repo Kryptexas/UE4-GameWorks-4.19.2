@@ -21,6 +21,7 @@
 
 #include "UnloadedBlueprintData.h"
 
+#include "EditorClassUtils.h"
 #include "IDocumentation.h"
 
 #include "PropertyEditorModule.h"
@@ -1339,7 +1340,7 @@ public:
 					UPackage*  Package  = Class->GetOutermost();
 					UMetaData* MetaData = Package->GetMetaData();
 
-					ToolTip = IDocumentation::Get()->CreateToolTip(Class->GetToolTipText(), nullptr, "Shared/Classes", Class->GetName());
+					ToolTip = FEditorClassUtils::GetTooltip(Class);
 				}
 
 				return ToolTip;

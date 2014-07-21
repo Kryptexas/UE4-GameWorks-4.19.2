@@ -116,6 +116,9 @@ public:
 	/** Goes to the source code for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToCodeForActor;
 
+	/** Goes to the documentation for the selected actor's class. */
+	TSharedPtr< FUICommandInfo > GoToDocsForActor;
+
 	/** Paste actor at click location*/
 	TSharedPtr< FUICommandInfo > PasteHere;
 
@@ -780,6 +783,8 @@ public:
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();
 
+	/** Called when 'Go to Documentation for Actor' is clicked */
+	static void GoToDocsForActor_Clicked();
 
 	/**
 	 * Called when the LockActorMovement command is executed
