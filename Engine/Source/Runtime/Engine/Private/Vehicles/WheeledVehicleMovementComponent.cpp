@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "Vehicles/VehicleWheel.h"

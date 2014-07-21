@@ -8,6 +8,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "ParticleDefinitions.h"
@@ -1047,4 +1048,9 @@ void APawn::PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseM
 		NoiseMaker = this;
 	}
 	NoiseMaker->MakeNoise(Loudness, this, bUseNoiseMakerLocation ? NoiseMaker->GetActorLocation() : NoiseLocation);
+}
+
+const struct FNavAgentProperties* APawn::GetNavAgentProperties() const
+{
+	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;
 }

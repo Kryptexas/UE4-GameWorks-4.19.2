@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GameFramework/PawnMovementComponent.h"
 #include "VehicleWheel.h"
 #include "Curves/CurveBase.h"
-
 #include "WheeledVehicleMovementComponent.generated.h"
 
 #if WITH_VEHICLE

@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "GameFramework/MovementComponent.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "MessageLog.h"
 

@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/DefaultPawn.h"
+#include "GameFramework/FloatingPawnMovement.h"
 
 FName ADefaultPawn::MovementComponentName(TEXT("MovementComponent0"));
 FName ADefaultPawn::CollisionComponentName(TEXT("CollisionComponent0"));
@@ -191,4 +192,9 @@ void ADefaultPawn::Turn(float Val)
 	{
 		PC->AddYawInput(Val);
 	}
+}
+
+UPawnMovementComponent* ADefaultPawn::GetMovementComponent() const
+{
+	return MovementComponent;
 }
