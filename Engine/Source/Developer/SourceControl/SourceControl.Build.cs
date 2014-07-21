@@ -41,6 +41,8 @@ public class SourceControl : ModuleRules
 					"AssetTools"
 				}
 			);
+	        
+			CircularlyReferencedDependentModules.Add("UnrealEd");
         }
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)
