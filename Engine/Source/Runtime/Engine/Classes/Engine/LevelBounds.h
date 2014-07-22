@@ -38,6 +38,9 @@ class ALevelBounds : public AActor
 	
 	/** Tells actors that level bounds was changed so actor bounds should be recalculated  */
 	void OnLevelBoundsDirtied();
+
+	/** @return True if there were no actors contributing to bounds and we are currently using the default bounds */
+	ENGINE_API bool IsUsingDefaultBounds() const;
 	
 private:
 	/** Updates this actor bounding box by summing all level actors bounding boxes  */
@@ -66,6 +69,9 @@ private:
 
 	/** Whether currently level bounds is dirty and needs to be updated  */
 	bool bLevelBoundsDirty;
+
+	/** True when there are no actors contributing to the bounds and we are currently using the default bounds instead */
+	bool bUsingDefaultBounds;
 #endif
 };
 

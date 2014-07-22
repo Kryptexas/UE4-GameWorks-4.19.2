@@ -27,6 +27,7 @@ ALevelBounds::ALevelBounds(const class FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITOR
 	bLevelBoundsDirty = true;
 	bSubscribedToEvents = false;
+	bUsingDefaultBounds = false;
 #endif
 }
 
@@ -118,10 +119,12 @@ void ALevelBounds::UpdateLevelBounds()
 		FVector LevelSize = LevelBounds.GetSize();
 		
 		SetActorTransform(FTransform(FQuat::Identity, LevelCenter, LevelSize));
+		bUsingDefaultBounds = false;
 	}
 	else
 	{
 		SetActorTransform(FTransform(FQuat::Identity, FVector::ZeroVector, DefaultLevelSize));
+		bUsingDefaultBounds = true;
 	}
 	
 	BroadcastLevelBoundsUpdated();
@@ -130,6 +133,11 @@ void ALevelBounds::UpdateLevelBounds()
 void ALevelBounds::OnLevelBoundsDirtied()
 {
 	bLevelBoundsDirty = true;
+}
+
+bool ALevelBounds::IsUsingDefaultBounds() const
+{
+	return bUsingDefaultBounds;
 }
 
 void ALevelBounds::OnLevelActorMoved(AActor* InActor)

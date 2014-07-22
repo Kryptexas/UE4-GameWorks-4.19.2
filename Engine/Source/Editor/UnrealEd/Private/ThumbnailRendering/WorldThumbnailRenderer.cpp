@@ -90,18 +90,23 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 		TArray<ULevel*> LevelsToRender = World->GetLevels();
 		for ( auto* Level : LevelsToRender )
 		{
-			if (Level)
+			if (Level && Level->bIsVisible)
 			{
-				if (Level->LevelBoundsActor.IsValid())
+				ALevelBounds* LevelBounds = Level->LevelBoundsActor.Get();
+				if (LevelBounds)
 				{
-					WorldBox += Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
+					if ( !LevelBounds->IsUsingDefaultBounds() )
+					{
+						WorldBox += Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
+					}
 				}
 				else
 				{
 					// Ensure a Level Bounds Actor exists for future renders
 					FActorSpawnParameters SpawnParameters;
 					SpawnParameters.OverrideLevel = Level;
-					World->SpawnActor<ALevelBounds>(SpawnParameters);
+					ALevelBounds* NewLevelBounds = World->SpawnActor<ALevelBounds>(SpawnParameters);
+					Level->LevelBoundsActor = NewLevelBounds;
 
 					// Calculate the bounds manually for this frame. Real data should be available shortly
 					WorldBox += ALevelBounds::CalculateLevelBounds(Level);
