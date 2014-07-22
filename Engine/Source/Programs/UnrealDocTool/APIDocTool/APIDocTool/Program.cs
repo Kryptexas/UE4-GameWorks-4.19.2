@@ -571,7 +571,7 @@ namespace APIDocTool
 			{
 				foreach(BuildModule Module in Binary.Modules)
 				{
-					if(Module.Type == "cpp" && !Module.Path.ToLowerInvariant().Contains("\\engine\\plugins\\"))
+					if(Module.Type == "cpp")
 					{
 						if(!Module.Path.ToLowerInvariant().Split('\\', '/').Any(x => InvariantExcludeDirectories.Contains(x)))
 						{
