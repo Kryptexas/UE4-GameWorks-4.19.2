@@ -9,8 +9,6 @@ const uint32 RingBufferSize = 8 * 1024 * 1024;
 TMap<id, int32> ClassCounts;
 #endif
 
-#define NUMBITS_DEPTH_WRITE_ENABLED				1
-#define NUMBITS_STENCIL_WRITE_ENABLED			1
 #define NUMBITS_SOURCE_RGB_BLEND_FACTOR			4
 #define NUMBITS_DEST_RGB_BLEND_FACTOR			4
 #define NUMBITS_RGB_BLEND_OPERATION				3
@@ -23,9 +21,7 @@ TMap<id, int32> ClassCounts;
 #define NUMBITS_SAMPLE_COUNT					3
 
 
-#define OFFSET_DEPTH_WRITE_ENABLED				(0)
-#define OFFSET_STENCIL_WRITE_ENABLED			(OFFSET_DEPTH_WRITE_ENABLED		+ NUMBITS_DEPTH_WRITE_ENABLED)
-#define OFFSET_SOURCE_RGB_BLEND_FACTOR			(OFFSET_STENCIL_WRITE_ENABLED	+ NUMBITS_STENCIL_WRITE_ENABLED)
+#define OFFSET_SOURCE_RGB_BLEND_FACTOR			(0)
 #define OFFSET_DEST_RGB_BLEND_FACTOR			(OFFSET_SOURCE_RGB_BLEND_FACTOR	+ NUMBITS_SOURCE_RGB_BLEND_FACTOR)
 #define OFFSET_RGB_BLEND_OPERATION				(OFFSET_DEST_RGB_BLEND_FACTOR	+ NUMBITS_DEST_RGB_BLEND_FACTOR)
 #define OFFSET_SOURCE_A_BLEND_FACTOR			(OFFSET_RGB_BLEND_OPERATION		+ NUMBITS_RGB_BLEND_OPERATION)
@@ -58,8 +54,6 @@ void FPipelineShadow::SetHash(uint64 InHash)
 {
 	Hash = InHash;
 
-	bIsDepthWriteEnabled = GET_HASH(OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED);
-	bIsStencilWriteEnabled = GET_HASH(OFFSET_STENCIL_WRITE_ENABLED, NUMBITS_STENCIL_WRITE_ENABLED);
 	RenderTargets[0] = [[MTLRenderPipelineColorAttachmentDescriptor alloc] init];
 	FMetalManager::Get()->ReleaseObject(RenderTargets[0]);
 	RenderTargets[0].sourceRGBBlendFactor = (MTLBlendFactor)GET_HASH(OFFSET_SOURCE_RGB_BLEND_FACTOR, NUMBITS_SOURCE_RGB_BLEND_FACTOR);
@@ -106,10 +100,6 @@ id<MTLRenderPipelineState> FPipelineShadow::CreatePipelineStateForBoundShaderSta
 	SCOPE_CYCLE_COUNTER(STAT_MetalPipelineStateTime);
 	
 	MTLRenderPipelineDescriptor* Desc = [[MTLRenderPipelineDescriptor alloc] init];
-
-	// some basic settings
-	Desc.depthWriteEnabled = bIsDepthWriteEnabled;
-	Desc.stencilWriteEnabled = bIsStencilWriteEnabled;
 
 	// set per-MRT settings
 	for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
@@ -408,15 +398,6 @@ void FMetalManager::PrepareToDraw(uint32 NumVertices)
 	
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
-}
-
-void FMetalManager::SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled)
-{
-	Pipeline.bIsDepthWriteEnabled = bIsDepthWriteEnabled;
-	Pipeline.bIsStencilWriteEnabled = bIsStencilWriteEnabled;
-
-	SET_HASH(OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED, bIsDepthWriteEnabled);
-	SET_HASH(OFFSET_STENCIL_WRITE_ENABLED, NUMBITS_STENCIL_WRITE_ENABLED, bIsStencilWriteEnabled);
 }
 
 void FMetalManager::SetBlendState(FMetalBlendState* BlendState)
