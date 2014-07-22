@@ -14,7 +14,7 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeP
 {
 }
 
-UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType)
+UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType, APlayerController* OwningPlayer)
 {
 	if ( WidgetType == NULL || WidgetType->HasAnyClassFlags(CLASS_Abstract) )
 	{
@@ -22,10 +22,22 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 		return NULL;
 	}
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(WidgetType, World->GetCurrentLevel());
-	NewWidget->SetFlags(RF_Transactional);
-	
+	UUserWidget* NewWidget = NULL;
+
+	if ( OwningPlayer == NULL )
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		ULocalPlayer* Player = GEngine->GetGamePlayer(World, 0);
+
+		NewWidget = ConstructObject<UUserWidget>(WidgetType, Player);
+		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+	}
+	else
+	{
+		NewWidget = ConstructObject<UUserWidget>(WidgetType, OwningPlayer);
+		NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
+	}
+
 	return NewWidget;
 }
 

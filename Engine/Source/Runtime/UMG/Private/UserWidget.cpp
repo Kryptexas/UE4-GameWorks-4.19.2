@@ -177,17 +177,15 @@ void UUserWidget::PostInitProperties()
 
 UWorld* UUserWidget::GetWorld() const
 {
-	UObject* Outer = GetOuter();
-	if ( Outer == NULL )
+	if ( PlayerContext.IsValid() )
 	{
-		return NULL;
+		return PlayerContext.GetWorld();
 	}
 
-	// TODO UMG Global UI elements should go where?  who will be their outer.  Currently CreateWidget node makes the level their owner.
-	if ( ULevel* Level = Cast<ULevel>(Outer) )
-	{
-		return Level->OwningWorld;
-	}
+	//if ( ULevel* Level = Cast<ULevel>(Outer) )
+	//{
+	//	return Level->OwningWorld;
+	//}
 
 	return NULL;
 }
@@ -443,4 +441,25 @@ TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 	}
 
 	return ESlateVisibility::Collapsed;
+}
+
+void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
+{
+	PlayerContext = InPlayerContext;
+}
+
+const FLocalPlayerContext& UUserWidget::GetPlayerContext() const
+{
+	return PlayerContext;
+}
+
+ULocalPlayer* UUserWidget::GetLocalPlayer() const
+{
+	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
+	return PC ? Cast<ULocalPlayer>(PC->Player) : NULL;
+}
+
+APlayerController* UUserWidget::GetPlayerController() const
+{
+	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 }

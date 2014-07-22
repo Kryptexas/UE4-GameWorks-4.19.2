@@ -122,6 +122,20 @@ public:
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
 
+	/** Sets the player context associated with this UI. */
+	void SetPlayerContext(FLocalPlayerContext InPlayerContext);
+
+	/** Gets the player context associated with this UI. */
+	const FLocalPlayerContext& GetPlayerContext() const;
+
+	/** Gets the local player associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class ULocalPlayer* GetLocalPlayer() const;
+
+	/** Gets the player controller associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class APlayerController* GetPlayerController() const;
+
 	/** Called when the widget is constructed */
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	void Construct();
@@ -236,6 +250,7 @@ public:
 
 	/** Ticks this widget and forwards to the underlying widget to tick */
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
+
 public:
 	/** Called when the visibility changes. */
 	UPROPERTY(BlueprintAssignable)
@@ -315,4 +330,6 @@ private:
 	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;
 
 	TWeakPtr<SWidget> FullScreenWidget;
+
+	FLocalPlayerContext PlayerContext;
 };
