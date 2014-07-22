@@ -606,6 +606,7 @@ void UBehaviorTreeComponent::RequestExecution(class UBTCompositeNode* RequestedO
 	ExecutionRequest.ContinueWithResult = ContinueWithResult;
 	ExecutionRequest.SearchStart = ExecutionIdx;
 	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
+	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
 
 	ScheduleExecutionUpdate();
 }

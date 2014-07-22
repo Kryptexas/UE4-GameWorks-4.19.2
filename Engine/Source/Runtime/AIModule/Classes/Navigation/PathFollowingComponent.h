@@ -221,6 +221,10 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 
 	void SetDestinationActor(const AActor* InDestinationActor);
 
+	/** returns index of the currently followed element of path. Depending on the actual 
+	 *	path it may represent different things, like a path point or navigation corridor index */
+	virtual int32 GetCurrentPathElement() const { return MoveSegmentEndIndex; }
+
 	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
 	virtual FString GetDebugString() const;
 

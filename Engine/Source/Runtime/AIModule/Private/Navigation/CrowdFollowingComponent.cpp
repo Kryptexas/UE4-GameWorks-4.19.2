@@ -463,7 +463,7 @@ void LogPathPartHelper(AActor* LogOwner, FNavMeshPath* NavMeshPath, int32 StartI
 		!NavMeshPath->PathCorridor.IsValidIndex(EndIdx))
 	{
 		return;
-	}	
+	}
 
 	NavMesh->BeginBatchQuery();
 	

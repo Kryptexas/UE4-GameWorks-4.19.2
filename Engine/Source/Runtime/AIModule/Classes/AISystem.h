@@ -65,7 +65,9 @@ class AIMODULE_API UAISystem : public UAISystemBase
 		return AISys->GetEnvironmentQueryManager();
 	}
 
-	FORCEINLINE UWorld* GetOuterWorld() { return Cast<UWorld>(GetOuter()); }
+	FORCEINLINE UWorld* GetOuterWorld() const { return Cast<UWorld>(GetOuter()); }
+
+	virtual UWorld* GetWorld() const override { return GetOuterWorld(); }
 	
 	//----------------------------------------------------------------------//
 	// cheats

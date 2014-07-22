@@ -3,11 +3,6 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSessionSettings.h"
 
-/**
- * Logs session properties used from the session settings
- *
- * @param NamedSession the session to log the information for
- */
 void DumpNamedSession(const FNamedOnlineSession* NamedSession)
 {
 	if (NamedSession != NULL)
@@ -33,11 +28,6 @@ void DumpNamedSession(const FNamedOnlineSession* NamedSession)
 	}
 }
 
-/**
- * Logs session properties used from the session settings
- *
- * @param Session the session to log the information for
- */
 void DumpSession(const FOnlineSession* Session)
 {
 	if (Session != NULL)
@@ -52,11 +42,6 @@ void DumpSession(const FOnlineSession* Session)
 	}
 }
 
-/**
- * Logs session properties used from the session settings
- *
- * @param SessionSettings the session to log the information for
- */
 void DumpSessionSettings(const FOnlineSessionSettings* SessionSettings)
 {
 	if (SessionSettings != NULL)
@@ -84,13 +69,6 @@ void DumpSessionSettings(const FOnlineSessionSettings* SessionSettings)
 	}
 }
 
-/**
- *	Sets a key value pair combination that defines a session setting
- *
- * @param Key key for the setting
- * @param Value value of the setting
- * @param InType type of online advertisement
- */
 template<typename ValueType> 
 void FOnlineSessionSettings::Set(FName Key, const ValueType& Value, EOnlineDataAdvertisementType::Type InType)
 {
@@ -117,13 +95,6 @@ template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const b
 template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const TArray<uint8>& Value, EOnlineDataAdvertisementType::Type InType);
 #endif
 
-/**
- *	Sets a key value pair combination that defines a session setting
- * from an existing session setting
- *
- * @param Key key for the setting
- * @param SrcSetting setting values
- */
 void FOnlineSessionSettings::Set(FName Key, const FOnlineSessionSetting& SrcSetting)
 {
 	FOnlineSessionSetting* Setting = Settings.Find(Key);
@@ -138,14 +109,6 @@ void FOnlineSessionSettings::Set(FName Key, const FOnlineSessionSetting& SrcSett
 	}
 }
 
-/**
- *	Gets a key value pair combination that defines a session setting
- *
- * @param Key key for the setting
- * @param Value value of the setting
- * 
- * @return true if found, false otherwise
- */
 template<typename ValueType> 
 bool FOnlineSessionSettings::Get(FName Key, ValueType& Value) const
 {
@@ -168,25 +131,11 @@ template ONLINESUBSYSTEM_API bool FOnlineSessionSettings::Get(FName Key, bool& V
 template ONLINESUBSYSTEM_API bool FOnlineSessionSettings::Get(FName Key, FString& Value) const;
 template ONLINESUBSYSTEM_API bool FOnlineSessionSettings::Get(FName Key, TArray<uint8>& Value) const;
 
-/**
- *  Removes a key value pair combination
- *
- * @param Key key to remove
- * 
- * @return true if found and removed, false otherwise
- */
 bool FOnlineSessionSettings::Remove(FName Key)
 {
 	return Settings.Remove(Key);
 }
 
-/** 
- * Retrieve a setting's advertisement type
- *
- * @param Key key of the setting
- * 
- * @return the advertisement type for the setting
- */
 EOnlineDataAdvertisementType::Type FOnlineSessionSettings::GetAdvertisementType(FName Key) const
 {
 	const FOnlineSessionSetting* Setting = Settings.Find(Key);
@@ -199,13 +148,6 @@ EOnlineDataAdvertisementType::Type FOnlineSessionSettings::GetAdvertisementType(
 	return EOnlineDataAdvertisementType::DontAdvertise;
 }
 
-/**
- *	Sets a key value pair combination that defines a search parameter
- *
- * @param Key key for the setting
- * @param Value value of the setting
- * @param InType type of comparison
- */
 template<typename ValueType> 
 void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType)
 {
@@ -230,14 +172,6 @@ template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<FString>(FName Key,
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set< TArray<uint8> >(FName Key, const TArray<uint8>& Value, EOnlineComparisonOp::Type InType);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<bool>(FName Key, const bool& Value, EOnlineComparisonOp::Type InType);
 
-/**
- *	Gets a key value pair combination that defines a search parameter
- *
- * @param Key key for the setting
- * @param Value value of the setting
- * 
- * @return true if found, false otherwise
- */
 template<typename ValueType> 
 bool FOnlineSearchSettings::Get(FName Key, ValueType& Value) const
 {
@@ -260,13 +194,6 @@ template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<FString>(FName Key,
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get< TArray<uint8> >(FName Key, TArray<uint8>& Value) const;
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<bool>(FName Key, bool& Value) const;
 
-/** 
- * Retrieve a setting's advertisement type
- *
- * @param Key key of the setting
- * 
- * @return the advertisement type for the setting
- */
 EOnlineComparisonOp::Type FOnlineSearchSettings::GetComparisonOp(FName Key) const
 {
 	const FOnlineSessionSearchParam* SearchParam = SearchParams.Find(Key);

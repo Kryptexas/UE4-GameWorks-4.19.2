@@ -551,8 +551,8 @@ namespace AutomationTool
 			string AuthenticationToken = null;
 
 			string Output;
-			string P4Passwd = InternalUtils.GetEnvironmentVariable("uebp_PASS", "", true) + '\n';
-			P4Output(out Output, "login -a -p", P4Passwd);
+            string P4Passwd = InternalUtils.GetEnvironmentVariable("uebp_PASS", "", true) + '\n';
+            P4Output(out Output, "login -a -p", P4Passwd);
 
 			// Validate output.
 			const string PasswordPromptString = "Enter password: \r\n";

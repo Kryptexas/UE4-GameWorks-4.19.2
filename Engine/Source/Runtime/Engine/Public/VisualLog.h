@@ -197,7 +197,7 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
+	FVisualLog::Get().LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
 	{ \
 		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Actor) != NULL) \
@@ -216,9 +216,9 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
+		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
 	} \
 }
 
@@ -228,9 +228,9 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
+		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
 	} \
 }
 
@@ -238,9 +238,9 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
 	} \
 }
 
@@ -248,9 +248,9 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
+		FVisualLog::Get().GetEntryToWrite(Actor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
 	} \
 }
 
@@ -294,6 +294,7 @@ struct ENGINE_API FActorsVisLog
 	TSharedPtr<FJsonValue> ToJson() const;
 };
 
+DECLARE_DELEGATE_RetVal(FString, FVisualLogFilenameGetterDelegate);
 
 /** This class is to capture all log output even if the Visual Logger is closed */
 class ENGINE_API FVisualLog : public FOutputDevice
@@ -307,10 +308,10 @@ public:
 	FVisualLog();
 	~FVisualLog();
 	
-	static FVisualLog* Get()
+	static FVisualLog& Get()
 	{
 		static FVisualLog StaticLog;
-		return &StaticLog;
+		return StaticLog;
 	}
 
 	void Cleanup(bool bReleaseMemory = false);
@@ -340,7 +341,12 @@ public:
 
 	FVisLogEntry* GetEntryToWrite(const class AActor* Actor);
 
+	/** highly encouradged to use FVisualLogFilenameGetterDelegate::CreateUObject with this */
+	void SetLogFileNameGetter(const FVisualLogFilenameGetterDelegate& InLogFileNameGetter) { LogFileNameGetter = InLogFileNameGetter; }
+
 protected:
+
+	FString GetLogFileFullName() const;
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
@@ -369,12 +375,13 @@ private:
 	FOnNewLogCreatedDelegate OnNewLogCreated;
 
 	float StartRecordingTime;
-	FString TempFileName;
 
 	int32 bIsRecording : 1;
 	int32 bIsRecordingOnServer : 1;
 	int32 bIsRecordingToFile : 1;
 	int32 bIsAllBlocked : 1;
+
+	FVisualLogFilenameGetterDelegate LogFileNameGetter;
 };
 
 #else

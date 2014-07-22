@@ -27,6 +27,11 @@ public:
 	void OnLevelActorAdded(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);
 #endif
+
+private:
+	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) const override;
+
+	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController) const;
 };
 
 IMPLEMENT_MODULE(FGameplayDebugger, GameplayDebugger)
@@ -66,30 +71,90 @@ void FGameplayDebugger::ShutdownModule()
 
 void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 {
+}
 
+bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController) const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (PlayerController == NULL)
+	{
+		return false;
+	}
+
+	UWorld* World = PlayerController->GetWorld();
+	if (World == NULL)
+	{
+		return false;
+	}
+
+	for (TActorIterator<AGameplayDebuggingReplicator> It(World); It; ++It)
+	{
+		AGameplayDebuggingReplicator* Replicator = *It;
+		if (Replicator != NULL)
+		{
+			if (Replicator->GetLocalPlayerOwner() == PlayerController)
+			{
+				return true;
+			}
+		}
+	}
+#endif
+
+	return false;
+}
+
+bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (PlayerController == NULL)
+	{
+		return false;
+	}
+
+	bool bIsServer = PlayerController->GetNetMode() < ENetMode::NM_Client; // (Only create on some sort of server)
+	if (!bIsServer)
+	{
+		return false;
+	}
+
+	UWorld* World = PlayerController->GetWorld();
+	if (World == NULL)
+	{
+		return false;
+	}
+
+	if (DoesGameplayDebuggingReplicatorExistForPlayerController(PlayerController))
+	{
+		// No need to create one if we already have one.
+		return false;
+	}
+
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_%s"), *PlayerController->GetName());
+	AGameplayDebuggingReplicator* DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
+	if (DestActor != NULL)
+	{
+		DestActor->SetLocalPlayerOwner(PlayerController);
+		DestActor->SetReplicates(true);
+
+		return true;
+	}
+#endif
+	
+	return false;
 }
 
 void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 {
 
 }
-
 #if WITH_EDITOR
 void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APlayerController* PC = Cast<APlayerController>(InActor);
-	if (PC && PC->GetNetMode() < ENetMode::NM_Client)
-	{
-		UWorld* World = PC->GetWorld();
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
-		SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_%s"), *PC->GetName());
-		AGameplayDebuggingReplicator *DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
-		DestActor->SetLocalPlayerOwner(PC);
-		DestActor->SetReplicates(true);
-	}
-#endif
+	// This function doesn't help much, because it's only called in EDITOR!
+	// We need a function that is called in the game!  So instead of creating it automatically, I'm leaving it
+	// to be created explicitly by any player controller that needs to create it.
 }
 
 void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)

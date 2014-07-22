@@ -18,8 +18,8 @@ void FLogVisualizer::SummonUI(UWorld* InWorld)
 		}
 
 		World = InWorld;
-		FVisualLog* VisualLog = FVisualLog::Get();
-		VisualLog->RegisterNewLogsObserver(FVisualLog::FOnNewLogCreatedDelegate::CreateRaw(this, &FLogVisualizer::OnNewLog));
+		FVisualLog& VisualLog = FVisualLog::Get();
+		VisualLog.RegisterNewLogsObserver(FVisualLog::FOnNewLogCreatedDelegate::CreateRaw(this, &FLogVisualizer::OnNewLog));
 		PullDataFromVisualLog(VisualLog);
 
 		// Give window to slate
@@ -74,18 +74,13 @@ bool FLogVisualizer::IsOpenUI(UWorld* InWorld)
 
 void FLogVisualizer::CleanUp()
 {
-	FVisualLog::Get()->ClearNewLogsObserver();
+	FVisualLog::Get().ClearNewLogsObserver();
 }
 
-void FLogVisualizer::PullDataFromVisualLog(FVisualLog* VisualLog)
+void FLogVisualizer::PullDataFromVisualLog(FVisualLog& VisualLog)
 {
-	if (VisualLog == NULL)
-	{
-		return;
-	}
-
 	Logs.Reset();
-	const FVisualLog::FLogsMap* LogsMap = VisualLog->GetLogs();
+	const FVisualLog::FLogsMap* LogsMap = VisualLog.GetLogs();
 	for (FVisualLog::FLogsMap::TConstIterator MapIt(*LogsMap); MapIt; ++MapIt)
 	{
 		Logs.Add(MapIt.Value());
@@ -120,12 +115,12 @@ void FLogVisualizer::AddLoadedLog(TSharedPtr<FActorsVisLog> Log)
 
 bool FLogVisualizer::IsRecording()
 {
-	return FVisualLog::Get()->IsRecording();
+	return FVisualLog::Get().IsRecording();
 }
 
 void FLogVisualizer::SetIsRecording(bool bNewRecording)
 {
-	FVisualLog::Get()->SetIsRecording(bNewRecording);
+	FVisualLog::Get().SetIsRecording(bNewRecording);
 }
 
 int32 FLogVisualizer::GetLogIndexForActor(const AActor* Actor)

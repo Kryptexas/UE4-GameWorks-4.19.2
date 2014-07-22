@@ -1361,8 +1361,12 @@ void SLogVisualizer::LogsListSelectionChanged(TSharedPtr<FLogsListItem> Selected
 	if (NewLogIndex != SelectedLogIndex && NewLogIndex != INDEX_NONE)
 	{
 		SelectedLogIndex = NewLogIndex;
-		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[NewLogIndex];
-		LogEntryIndex = Log->Entries.Num() - 1;
+		
+		if (LogVisualizer->Logs.IsValidIndex(NewLogIndex))
+		{
+			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[NewLogIndex];
+			LogEntryIndex = Log->Entries.Num() - 1;
+		}
 	}
 	
 	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
@@ -2344,9 +2348,16 @@ FReply SLogVisualizer::OnRemove()
 
 		IndicesToRemove.Sort();
 
+		int32 PrevIdx = -1;
 		for (int32 LogToRemove = IndicesToRemove.Num() - 1; LogToRemove >= 0; --LogToRemove)
 		{
+			if (IndicesToRemove[LogToRemove] == PrevIdx)
+			{
+				continue;
+			}
+
 			LogVisualizer->Logs.RemoveAtSwap(IndicesToRemove[LogToRemove], 1, false);
+			PrevIdx = IndicesToRemove[LogToRemove];
 
 			const int32 IndexInList = FindIndexInLogsList(IndicesToRemove[LogToRemove]);
 			if (IndexInList != INDEX_NONE)

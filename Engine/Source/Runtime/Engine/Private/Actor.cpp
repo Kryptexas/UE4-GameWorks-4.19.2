@@ -2428,7 +2428,7 @@ void AActor::BeginPlay()
 #if ENABLE_VISUAL_LOG
 void AActor::RedirectToVisualLog(const AActor* NewRedir)
 { 
-	FVisualLog::Get()->Redirect(this, NewRedir);
+	FVisualLog::Get().Redirect(this, NewRedir);
 }
 #endif // ENABLE_VISUAL_LOG
 

@@ -341,7 +341,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE const TArray<FNavPathPoint>& GetPathPoints() const { return PathPoints; }
 	FORCEINLINE TArray<FNavPathPoint>& GetPathPoints() { return PathPoints; }
 
-	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const;
+	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
 
 	/** type safe casts */
 	template<typename PathClass>

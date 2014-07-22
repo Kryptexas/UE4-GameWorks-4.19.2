@@ -18,17 +18,17 @@ public:
 		: _ErrorText()
 		, _BackgroundColor(FCoreStyle::Get().GetColor("ErrorReporting.BackgroundColor"))
 		, _Font()
+		, _AutoWrapText(false)
 		{}
 
 		SLATE_TEXT_ARGUMENT(ErrorText)
 		SLATE_ATTRIBUTE(FSlateColor, BackgroundColor)
 		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
+		SLATE_ATTRIBUTE(bool, AutoWrapText)
 		
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
-	
-	inline const TSharedPtr<class STextBlock>& GetTextBlock() const { return TextBlock; }
 
 	// IErrorReportingWidget interface
 

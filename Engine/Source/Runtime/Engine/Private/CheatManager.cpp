@@ -561,8 +561,7 @@ void UCheatManager::InitCheatManager()
 void UCheatManager::BeginDestroy()
 {
 #if ENABLE_VISUAL_LOG
-	FVisualLog* VisLog = FVisualLog::Get();
-	if (VisLog && VisLog->IsRecording() && bToggleAILogging)
+	if (FVisualLog::Get().IsRecording() && bToggleAILogging)
 	{
 		UWorld *World = GetWorld();
 		if (World)
@@ -572,7 +571,7 @@ void UCheatManager::BeginDestroy()
 		}
 
 		// stop recording and dump all remaining logs
-		VisLog->SetIsRecording(false);
+		FVisualLog::Get().SetIsRecording(false);
 		bToggleAILogging = false;
 	}
 #endif
@@ -588,13 +587,12 @@ void UCheatManager::DumpAILogs()
 {
 #if ENABLE_VISUAL_LOG
 	UWorld *World = GetWorld();
-	FVisualLog* VisLog = FVisualLog::Get();
-	if (!VisLog || !World)
+	if (World == NULL)
 	{
 		return;
 	}
 
-	VisLog->DumpRecordedLogs();
+	FVisualLog::Get().DumpRecordedLogs();
 	World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
 #endif
 }
@@ -602,14 +600,8 @@ void UCheatManager::DumpAILogs()
 void UCheatManager::ServerToggleAILogging_Implementation()
 {
 #if ENABLE_VISUAL_LOG
-	FVisualLog* VisLog = FVisualLog::Get();
-	if (!VisLog)
-	{
-		return;
-	}
-
 	UWorld *World = GetWorld();
-	if (VisLog->IsRecording())
+	if (FVisualLog::Get().IsRecording())
 	{
 		// clear timer, we'll dump all remaining logs in a moment
 		if (World)
@@ -618,7 +610,7 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 		}
 
 		// stop recording and dump all remaining logs in a moment
-		VisLog->SetIsRecording(false, true);
+		FVisualLog::Get().SetIsRecording(false, true);
 		bToggleAILogging = false;
 	}
 	else
@@ -627,11 +619,11 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 		{
 			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
 		}
-		VisLog->SetIsRecording(true, true);
+		FVisualLog::Get().SetIsRecording(true, true);
 		bToggleAILogging = true;
 	}
 
-	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
 #endif
 }
 
@@ -647,12 +639,8 @@ void UCheatManager::ToggleAILogging()
 	UWorld *World = GetWorld();
 	if (World && World->GetNetMode() == NM_Client)
 	{
-		FVisualLog* VisLog = FVisualLog::Get();
-		if (VisLog)
-		{
-			VisLog->SetIsRecordingOnServer(!VisLog->IsRecordingOnServer());
-			GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
-		}
+		FVisualLog::Get().SetIsRecordingOnServer(!FVisualLog::Get().IsRecordingOnServer());
+		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
 		PC->ServerToggleAILogging();
 	}
 	else

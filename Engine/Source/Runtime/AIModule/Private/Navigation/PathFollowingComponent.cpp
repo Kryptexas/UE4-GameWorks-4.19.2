@@ -54,11 +54,11 @@ UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructIniti
 void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
 {
 #if ENABLE_VISUAL_LOG
-	FVisualLog* Vlog = FVisualLog::Get();
-	if (Vlog && Vlog->IsRecording() && 
+	FVisualLog& Vlog = FVisualLog::Get();
+	if (Vlog.IsRecording() && 
 		Path.IsValid() && Path->IsValid() && Path->GetPathPoints().Num())
 	{
-		FVisLogEntry* Entry = Vlog->GetEntryToWrite(LogOwner);
+		FVisLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner);
 		Path->DescribeSelfToVisLog(Entry);
 
 		const FVector PathEnd = Path->GetPathPoints().Last().Location;

@@ -217,16 +217,16 @@ bool FNavigationPath::ContainsAnyCustomLink() const
 	return false;
 }
 
-bool FNavigationPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
 	// iterate over all segments and check if any intersects with given box
 	bool bIntersects = false;
 	int32 PathPointIndex = INDEX_NONE;
 
-	if (PathPoints.Num() > 1)
+	if (PathPoints.Num() > 1 && PathPoints.IsValidIndex(int32(StartingIndex)))
 	{
-		FVector Start = PathPoints[0].Location;
-		for (PathPointIndex = 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
+		FVector Start = PathPoints[StartingIndex].Location;
+		for (PathPointIndex = int32(StartingIndex) + 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
 		{
 			const FVector End = PathPoints[PathPointIndex].Location;
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
@@ -810,23 +810,24 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 	return bAreTheSame;
 }
 
-bool FNavMeshPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
 	if (IsStringPulled())
 	{
-		return Super::DoesIntersectBox(Box, IntersectingSegmentIndex);
+		return Super::DoesIntersectBox(Box, StartingIndex, IntersectingSegmentIndex);
 	}
 
-	// note that it's a big simplified. It work
+	// note that it's a big simplified. It works
 
 	bool bIntersects = false;
 	int32 PortalIndex = INDEX_NONE;
 	const TArray<FNavigationPortalEdge>* CorridorEdges = GetPathCorridorEdges();
 
-	if (CorridorEdges->Num() > 0)
+	if (CorridorEdges->Num() > 0 && CorridorEdges->IsValidIndex(StartingIndex))
 	{
-		FVector Start = PathPoints[0].Location;
-		for (PortalIndex = 0; PortalIndex < CorridorEdges->Num() && bIntersects == false; ++PortalIndex)
+		FVector Start = StartingIndex == 0 ? PathPoints[0].Location
+			: ((*CorridorEdges)[StartingIndex].Right + ((*CorridorEdges)[StartingIndex].Left - (*CorridorEdges)[StartingIndex].Right) / 2);
+		for (PortalIndex = StartingIndex; PortalIndex < CorridorEdges->Num() && bIntersects == false; ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = (*CorridorEdges)[PortalIndex];
 			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2;

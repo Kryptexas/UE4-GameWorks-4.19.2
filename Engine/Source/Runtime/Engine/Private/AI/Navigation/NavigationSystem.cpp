@@ -2986,7 +2986,7 @@ bool UNavigationSystem::CanRebuildDirtyNavigation() const
 	return true;
 }
 
-bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box)
+bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex)
 {
-	return Path != NULL && Path->DoesIntersectBox(Box);
+	return Path != NULL && Path->DoesIntersectBox(Box, StartingIndex);
 }

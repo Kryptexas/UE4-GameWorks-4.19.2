@@ -348,12 +348,18 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 // FVisualLog
 //----------------------------------------------------------------------//
 FVisualLog::FVisualLog()
-: bIsRecording(GEngine->bEnableVisualLogRecordingOnStart), bIsRecordingOnServer(false)
 {
-	FileAr = NULL;
-	bIsRecordingToFile = false;
-	bIsAllBlocked = false;
-	Whitelist.Reserve(10);
+	// just in case someone tries to VLog something when the engine is being destroyed
+	if (GEngine)
+	{
+		bIsRecording = GEngine->bEnableVisualLogRecordingOnStart;
+		bIsRecordingOnServer = false;
+
+		FileAr = NULL;
+		bIsRecordingToFile = false;
+		bIsAllBlocked = false;
+		Whitelist.Reserve(10);
+	}
 }
 
 FVisualLog::~FVisualLog()
@@ -364,13 +370,30 @@ FVisualLog::~FVisualLog()
 	}
 }
 
+FString FVisualLog::GetLogFileFullName() const
+{
+	FString NameCore(TEXT(""));
+	if (LogFileNameGetter.IsBound())
+	{
+		NameCore = LogFileNameGetter.Execute();
+	}
+	if (NameCore.IsEmpty())
+	{
+		NameCore = TEXT("VisualLog");
+	}
+
+	FString FileName = FString::Printf(TEXT("%s_%.0f-%.0f_%s.vlog"), *NameCore, StartRecordingTime, GWorld ? GWorld->TimeSeconds : 0, *FDateTime::Now().ToString());
+
+	const FString FullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *FileName);
+
+	return FullFilename;
+}
+
 void FVisualLog::DumpRecordedLogs()
 {
 	if (!FileAr)
-	{
-		TempFileName = FString::Printf(TEXT("VisualLog_TEMP_%s.vlog"), *FDateTime::Now().ToString());
-		const FString TempFullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *TempFileName);
-		FileAr = IFileManager::Get().CreateFileWriter(*TempFullFilename);
+	{		
+		FileAr = IFileManager::Get().CreateFileWriter(*GetLogFileFullName());
 
 		const FString HeadetStr = TEXT("{\"Logs\":[{}");
 		auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
@@ -443,12 +466,6 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 
 		Cleanup(true);
 		bIsRecordingToFile = false;
-
-		const FString TempFullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *TempFileName);
-		const FString FileName = FString::Printf(TEXT("VisualLog_%.0f-%.0f_%s.vlog"), StartRecordingTime, GWorld ? GWorld->TimeSeconds : 0, *FDateTime::Now().ToString());
-		FString FullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *FileName);
-		
-		IFileManager::Get().Move(*FullFilename, *TempFullFilename, true, true);
 	}
 
 	bIsRecording = NewRecording;
@@ -574,12 +591,12 @@ public:
 			FString Command = FParse::Token(Cmd, 0);
 			if (Command == TEXT("record"))
 			{
-				FVisualLog::Get()->SetIsRecording(true);
+				FVisualLog::Get().SetIsRecording(true);
 				return true;
 			}
 			else if (Command == TEXT("stop"))
 			{
-				FVisualLog::Get()->SetIsRecording(false);
+				FVisualLog::Get().SetIsRecording(false);
 				return true;
 			}
 			else if (Command == TEXT("exit"))
@@ -590,12 +607,8 @@ public:
 			else if (Command == TEXT("disableallbut"))
 			{
 				FString Category = FParse::Token(Cmd, 1);
-				FVisualLog* VisLog = FVisualLog::Get();
-				if (VisLog)
-				{
-					VisLog->BlockAllLogs(true);
-					VisLog->AddCategortyToWhiteList(*Category);
-				}
+				FVisualLog::Get().BlockAllLogs(true);
+				FVisualLog::Get().AddCategortyToWhiteList(*Category);
 				return true;
 			}
 			else
