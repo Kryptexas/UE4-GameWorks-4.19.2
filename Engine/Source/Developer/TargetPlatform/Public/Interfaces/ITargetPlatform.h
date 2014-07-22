@@ -86,6 +86,37 @@ namespace ETargetPlatformFeatures
 };
 
 
+namespace ETargetPlatformReadyStatus
+{
+	/**
+	 * Flags specifiying what is needed to be able to complete and deploy a build
+	 */
+	enum Type
+	{
+		/** Ready */
+		Ready = 0,
+
+		/** SDK Not Found*/
+		SDKNotFound = 1,
+
+		/** Code Build Not Supported */
+		CodeUnsupported = 2,
+
+		/** Plugins Not Supported */
+		PluginsUnsupported = 4,
+
+		/** Signing Key Not Found */
+		SigningKeyNotFound = 8,
+
+		/** Provision Not Found */
+		ProvisionNotFound = 16,
+
+		/** Manifest Not Found */
+		ManifestNotFound = 32,
+	};
+};
+
+
 /**
  * ITargetPlatform, abstraction for cooking platforms and enumerating actual target devices
 **/
@@ -259,6 +290,18 @@ public:
 	 * @return true if the platform is ready for use
 	 */
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+
+
+	/**
+	 * Checks whether the platform's build requirements are met so that we can do things like
+	 * package for the platform
+	 *
+	 * @param ProjectPath Path to the project
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
+	 * @return Readiness status
+	 */
+	virtual int IsReadyToBuild(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 #if WITH_ENGINE
 	/**

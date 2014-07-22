@@ -1285,21 +1285,6 @@ void UEditorEngine::PlayUsingLauncher()
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
-#if PLATFORM_WINDOWS
-		if (bHasCode && FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS"))
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
-			bPlayUsingLauncher = false;
-			return;
-		}
-		if (FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
-			bPlayUsingLauncher = false;
-			return;
-		}
-#endif
-
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
 		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);

@@ -170,6 +170,11 @@ public:
 		return true;
 	}
 
+	virtual int IsReadyToBuild(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override
+	{
+		return ETargetPlatformReadyStatus::Ready;
+	}
+
 	// End ITargetPlatform interface
 
 protected:

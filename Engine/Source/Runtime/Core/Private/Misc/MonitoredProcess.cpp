@@ -17,6 +17,7 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, Thread(NULL)
 	, URL(InURL)
 	, WritePipe(NULL)
+	, ReturnCode(0)
 { }
 
 
@@ -118,8 +119,6 @@ uint32 FMonitoredProcess::Run( )
 	ReadPipe = WritePipe = NULL;
 
 	// get completion status
-	int32 ReturnCode;
-	
 	if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
 	{
 		ReturnCode = -1;

@@ -14,6 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Ionic.Zlib;
 using System.ComponentModel;
+using System.Security.Cryptography.X509Certificates;
 
 namespace iPhonePackager
 {
@@ -51,11 +52,11 @@ namespace iPhonePackager
 			Log(String.Format(Line, Args));
 		}
 
-		static public void Error( string Line )
+		static public void Error( string Line, int Code = 1 )
 		{
 			if (Program.ReturnCode == 0)
 			{
-				Program.ReturnCode = 1;
+				Program.ReturnCode = Code;
 			}
 			
 			Console.ForegroundColor = ConsoleColor.Red;
@@ -471,6 +472,7 @@ namespace iPhonePackager
 					Log(" ... Deploy PathToIPA");
 					Log(" ... RepackageFromStage GameName");
 					Log(" ... Devices");
+					Log(" ... Validate");
 					Log("");
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
@@ -497,6 +499,8 @@ namespace iPhonePackager
 
 				Log("Executing iPhonePackager " + String.Join(" ", args));
 				Log("CWD: " + Directory.GetCurrentDirectory());
+				Log("Initial Dir: " + InitialCurrentDirectory);
+				Log("Env CWD: " + Environment.CurrentDirectory);
 
 				// Ensure shipping configuration for final distributions
 				if (Config.bForDistribution && (GameConfiguration != "Shipping"))
@@ -514,11 +518,44 @@ namespace iPhonePackager
 				// setup configuration
 				if (!Config.Initialize(InitialCurrentDirectory, GamePath))
 				{
-					return 1;
+					return -1;
 				}
 
 				switch (MainCommand.ToLowerInvariant())
 				{
+					case "validate":
+						// check to see if iTunes is installed
+						string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+						{
+							Error("iTunes Not Found!!", 10);
+						}
+						else
+						{
+							// validate there is a useable provision and cert
+							MobileProvision Provision;
+							X509Certificate2 Cert;
+							bool bHasOverrides;
+							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides);
+							if (!foundPlist)
+							{
+								Error("Could not find a valid plist file!!", 14);
+							}
+							else if (Provision == null && Cert == null)
+							{
+								Error("No Provision or cert found!!", 13);
+							}
+							else if (Provision == null)
+							{
+								Error("No Provision found!!", 11);
+							}
+							else if (Cert == null)
+							{
+								Error("No Signing Certificate found!!", 12);
+							}
+						}
+						break;
+
 					case "packageapp":
 						if (CheckArguments())
 						{
@@ -607,7 +644,8 @@ namespace iPhonePackager
 				}
 			}
 
-			return ( ReturnCode );
+			Environment.ExitCode = ReturnCode;
+			return (ReturnCode);
 		}
 	}
 }

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "IOSTargetPlatformPrivatePCH.h"
-
+#include "IProjectManager.h"
 
 /* FIOSTargetPlatform structors
  *****************************************************************************/
@@ -82,8 +82,77 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocume
 #if PLATFORM_MAC
 	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
 	biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
+#else
+	{
+		HKEY hKey;
+		LRESULT lRes = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared"), 0, KEY_READ, &hKey);
+		TCHAR dllPath[256];
+		unsigned long pathSize = 256;
+		if (lRes != ERROR_SUCCESS || RegQueryValueEx(hKey, TEXT("iTunesMobileDeviceDLL"), 0, NULL, (BYTE*)dllPath, &pathSize) != ERROR_SUCCESS || IFileManager::Get().FileSize(*FString(dllPath)) == INDEX_NONE)
+		{
+			OutDocumentationPath = FString("Shared/Tutorials/InstallingiTunesTutorial");
+			biOSSDKInstalled = false;
+		}
+	}
+
 #endif
 	return biOSSDKInstalled;
+}
+
+int FIOSTargetPlatform::IsReadyToBuild(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const
+{
+	int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+	if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
+	{
+		bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
+	}
+#if PLATFORM_MAC
+	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
+#else
+	if (bProjectHasCode && FRocketSupport::IsRocket())
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCRestrictions");
+		bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
+	}
+	if (FRocketSupport::IsRocket() && IProjectManager::Get().IsNonDefaultPluginEnabled())
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCValidPlugins");
+		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
+	}
+
+	// shell to IPP and get the status of the provision and cert
+	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+	FString CommandLine = FString::Printf(TEXT("Validate Engine -project %s"), *ProjectPath);
+	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, false));
+	IPPProcess->Launch();
+	while(IPPProcess->IsRunning())
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}
+	int RetCode = IPPProcess->GetReturnCode();
+	if (RetCode == 14)
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/CreatingInfoPlist");
+		bReadyToBuild |= ETargetPlatformReadyStatus::ManifestNotFound;
+	}
+	else if (RetCode == 13)
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
+		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
+	}
+	else if (RetCode == 12)
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
+	}
+	else if (RetCode == 11)
+	{
+		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
+	}
+#endif
+	return bReadyToBuild;
 }
 
 

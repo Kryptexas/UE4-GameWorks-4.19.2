@@ -479,28 +479,36 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		if (Platform)
 		{
 			FString NotInstalledDocLink;
-			if (!Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+			switch (Platform->IsReadyToBuild(ProjectPath, bProjectHasCode, NotInstalledDocLink))
 			{
 				// broadcast this, and assume someone will pick it up
-				IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
+			case ETargetPlatformReadyStatus::SDKNotFound:
+			case ETargetPlatformReadyStatus::ProvisionNotFound:
+			case ETargetPlatformReadyStatus::SigningKeyNotFound:
+			case (ETargetPlatformReadyStatus::ProvisionNotFound | ETargetPlatformReadyStatus::SigningKeyNotFound):
+				{
+					IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+					MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
+				}
 				return;
+
+#if PLATFORM_WINDOWS
+			case ETargetPlatformReadyStatus::CodeUnsupported:
+				// show the message
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+				return;
+
+			case ETargetPlatformReadyStatus::PluginsUnsupported:
+				// show the message
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+				return;
+#endif
+			default:
+				break;
 			}
 		}
 	}
-
-#if PLATFORM_WINDOWS
-	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS"))
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
-		return;
-	}
-	if (FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
-		return;
-	}
-#endif
 
 	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(PlatformInfo->VanillaPlatformName))
 	{

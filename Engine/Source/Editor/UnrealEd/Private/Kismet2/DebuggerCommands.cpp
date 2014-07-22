@@ -123,6 +123,9 @@ protected:
 
 	/** Get the player start location to use when starting PIE */
 	static EPlayModeLocations GetPlayModeLocation();
+
+	/** checks to see if we have everything needed to launch a build to device */
+	static bool IsReadyToLaunchOnDevice(FString DeviceId);
 };
 
 
@@ -1224,7 +1227,10 @@ void FInternalPlayWorldCommandCallbacks::RepeatLastLaunch_Clicked()
 	switch (PlaySettings->LastExecutedLaunchModeType)
 	{
 	case LaunchMode_OnDevice:
-		LaunchOnDevice(PlaySettings->LastExecutedLaunchDevice, PlaySettings->LastExecutedLaunchName);
+		if (IsReadyToLaunchOnDevice(PlaySettings->LastExecutedLaunchDevice))
+		{
+			LaunchOnDevice(PlaySettings->LastExecutedLaunchDevice, PlaySettings->LastExecutedLaunchName);
+		}
 		break;
 
 	default:
@@ -1287,8 +1293,7 @@ FSlateIcon FInternalPlayWorldCommandCallbacks::GetRepeatLastLaunchIcon()
 	return FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.RepeatLastLaunch");
 }
 
-
-void FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute( FString DeviceId, FString DeviceName )
+bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceId)
 {
 	int32 Index = 0;
 	DeviceId.FindChar(TEXT('@'), Index);
@@ -1302,23 +1307,53 @@ void FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute( FStr
 	if (Platform)
 	{
 		FString NotInstalledDocLink;
-		if (!Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+		switch (Platform->IsReadyToBuild(ProjectPath, bProjectHasCode, NotInstalledDocLink))
 		{
 			// broadcast this, and assume someone will pick it up
-			IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformName, NotInstalledDocLink);
-			return;
+		case ETargetPlatformReadyStatus::SDKNotFound:
+		case ETargetPlatformReadyStatus::ProvisionNotFound:
+		case ETargetPlatformReadyStatus::SigningKeyNotFound:
+		case (ETargetPlatformReadyStatus::ProvisionNotFound | ETargetPlatformReadyStatus::SigningKeyNotFound):
+			{
+				IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+				MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformName, NotInstalledDocLink);
+			}
+			return false;
+
+#if PLATFORM_WINDOWS
+		case ETargetPlatformReadyStatus::CodeUnsupported:
+			// show the message
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+			return false;
+
+		case ETargetPlatformReadyStatus::PluginsUnsupported:
+			// show the message
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+			return false;
+#endif
+		default:
+			break;
 		}
 	}
 
-	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	return true;
+}
 
-	PlaySettings->LastExecutedLaunchModeType = LaunchMode_OnDevice;
-	PlaySettings->LastExecutedLaunchDevice = DeviceId;
-    PlaySettings->LastExecutedLaunchName = DeviceName;
-	PlaySettings->SaveConfig();
+void FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute( FString DeviceId, FString DeviceName )
+{
+	if (IsReadyToLaunchOnDevice(DeviceId))
+	{
+		ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 
-	LaunchOnDevice(DeviceId, DeviceName);
+		PlaySettings->LastExecutedLaunchModeType = LaunchMode_OnDevice;
+		PlaySettings->LastExecutedLaunchDevice = DeviceId;
+		PlaySettings->LastExecutedLaunchName = DeviceName;
+		PlaySettings->SaveConfig();
+
+		LaunchOnDevice(DeviceId, DeviceName);
+	}
+
 }
 
 

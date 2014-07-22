@@ -107,6 +107,16 @@ public:
 		return OutputDelegate;
 	}
 
+	/**
+	 * Returns the return code from the exited process
+	 *
+	 * @return Process return code
+	 */
+	int GetReturnCode() const
+	{
+		return ReturnCode;
+	}
+
 public:
 
 	// FRunnable interface
@@ -168,6 +178,9 @@ private:
 
 	// Holds the write pipe.
 	void* WritePipe;
+
+	// Holds the return code
+	int ReturnCode;
 
 private:
 
