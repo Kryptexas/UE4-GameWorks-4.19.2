@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/AvoidanceManager.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 DEFINE_STAT(STAT_AI_ObstacleAvoidance);
 
