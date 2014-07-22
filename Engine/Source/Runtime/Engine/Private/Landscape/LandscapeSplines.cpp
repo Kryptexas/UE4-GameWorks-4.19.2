@@ -464,7 +464,7 @@ UControlPointMeshComponent::UControlPointMeshComponent(const class FPostConstruc
 	: Super(PCIP)
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	Mobility = EComponentMobility:Static;
+	Mobility = EComponentMobility::Static;
 
 #if WITH_EDITORONLY_DATA
 	bSelected = false;
