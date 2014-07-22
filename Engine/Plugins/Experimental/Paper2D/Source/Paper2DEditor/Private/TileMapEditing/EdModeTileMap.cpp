@@ -480,7 +480,7 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 			}
 		}
 
-		if ( bChangedSomething && GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers )
+		if (bChangedSomething)
 		{
 			TileMap->PostEditChange();
 		}
@@ -543,7 +543,7 @@ bool FEdModeTileMap::EraseTiles(const FViewportCursorLocation& Ray)
 			}
 		}
 
-		if ( bChangedSomething && GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers )
+		if (bChangedSomething)
 		{
 			TileMap->PostEditChange();
 		}
@@ -682,7 +682,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 			}
 		}
 
-		if ( bChangedSomething && GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers )
+		if (bChangedSomething)
 		{
 			TileMap->PostEditChange();
 		}

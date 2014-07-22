@@ -12,6 +12,12 @@ UPaperTileLayer::UPaperTileLayer(const FPostConstructInitializeProperties& PCIP)
 	LayerWidth = 4;
 	LayerHeight = 4;
 
+#if WITH_EDITORONLY_DATA
+	LayerOpacity = 1.0f;
+
+	bHiddenInEditor = false;
+#endif
+
 	DestructiveAllocateMap(LayerWidth, LayerHeight);
 }
 

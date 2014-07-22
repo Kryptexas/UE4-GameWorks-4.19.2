@@ -15,30 +15,50 @@ UTileMapActorFactory::UTileMapActorFactory(const FPostConstructInitializePropert
 
 void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	APaperTileMapActor* TypedActor = CastChecked<APaperTileMapActor>(NewActor);
+	UPaperTileMapRenderComponent* RenderComponent = TypedActor->RenderComponent;
+	check(RenderComponent);
+
 	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
 	{
 		GEditor->SetActorLabelUnique(NewActor, TileMap->GetName());
-
-		APaperTileMapActor* TypedActor = CastChecked<APaperTileMapActor>(NewActor);
-		UPaperTileMapRenderComponent* RenderComponent = TypedActor->RenderComponent;
-		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();
 		RenderComponent->TileMap = TileMap;
 		RenderComponent->RegisterComponent();
 	}
+	else if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(Asset))
+	{
+		GEditor->SetActorLabelUnique(NewActor, TileSet->GetName());
+
+		if (RenderComponent->TileMap != nullptr)
+		{
+			RenderComponent->UnregisterComponent();
+			RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
+			RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
+			RenderComponent->RegisterComponent();
+		}
+	}
 }
 
 void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
+	if (APaperTileMapActor* TypedActor = Cast<APaperTileMapActor>(CDO))
 	{
-		if (APaperTileMapActor* TypedActor = Cast<APaperTileMapActor>(CDO))
-		{
-			UPaperTileMapRenderComponent* RenderComponent = TypedActor->RenderComponent;
-			check(RenderComponent);
+		UPaperTileMapRenderComponent* RenderComponent = TypedActor->RenderComponent;
+		check(RenderComponent);
 
+		if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
+		{
 			RenderComponent->TileMap = TileMap;
+		}
+		else if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(Asset))
+		{
+			if (RenderComponent->TileMap != nullptr)
+			{
+				RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
+				RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
+			}
 		}
 	}
 }
@@ -47,14 +67,22 @@ bool UTileMapActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText
 {
 	if (GetDefault<UPaperRuntimeSettings>()->bEnableTileMapEditing)
 	{
-		if (AssetData.IsValid() && AssetData.GetClass()->IsChildOf(UPaperTileMap::StaticClass()))
+		if (AssetData.IsValid())
 		{
-			return true;
+			UClass* AssetClass = AssetData.GetClass();
+			if ((AssetClass != nullptr) && (AssetClass->IsChildOf(UPaperTileMap::StaticClass()) || AssetClass->IsChildOf(UPaperTileSet::StaticClass())))
+			{
+				return true;
+			}
+			else
+			{
+				OutErrorMsg = NSLOCTEXT("Paper2D", "CanCreateActorFrom_NoTileMap", "No tile map was specified.");
+				return false;
+			}
 		}
 		else
 		{
-			OutErrorMsg = NSLOCTEXT("Paper2D", "CanCreateActorFrom_NoTileMap", "No tile map was specified.");
-			return false;
+			return true;
 		}
 	}
 	else

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "PaperTileMap.h"
 #include "PaperTileLayer.h"
 #include "PaperTiledImporterFactory.generated.h"
 
@@ -11,7 +12,8 @@ namespace ETiledOrientation
 	{
 		Unknown,
 		Orthogonal,
-		Isometric
+		Isometric,
+		Staggered
 	};
 }
 
@@ -120,6 +122,7 @@ struct FTileMapFromTiled
 	//map of properties
 
 	FPaperTileInfo ConvertTileGIDToPaper2D(int32 GID) const;
+	ETileMapProjectionMode::Type GetOrientationType() const;
 
 	FTileMapFromTiled();
 	bool IsValid() const;

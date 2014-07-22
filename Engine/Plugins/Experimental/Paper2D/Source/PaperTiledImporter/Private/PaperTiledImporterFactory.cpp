@@ -197,7 +197,10 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		Result->MapHeight = GlobalInfo.Height;
 		Result->TileWidth = GlobalInfo.TileWidth;
 		Result->TileHeight = GlobalInfo.TileHeight;
-		//@TODO: Need to handle Orientation
+		Result->SeparationPerTileX = 0.0f;
+		Result->SeparationPerTileY = 0.0f;
+		Result->SeparationPerLayer = -1.0f;
+		Result->ProjectionMode = GlobalInfo.GetOrientationType();
 
 		// Create the tile sets
 		for (const FTileSetFromTiled& TileSetData : GlobalInfo.TileSets)
@@ -438,6 +441,10 @@ void UPaperTiledImporterFactory::ParseGlobalInfoFromJSON(TSharedPtr<FJsonObject>
 	{
 		OutParsedInfo.Orientation = ETiledOrientation::Isometric;
 	}
+	else if (OrientationModeStr == TEXT("staggered"))
+	{
+		OutParsedInfo.Orientation = ETiledOrientation::Staggered;
+	}
 	else
 	{
 		TILED_IMPORT_ERROR(TEXT("Failed to parse '%s'.  Invalid value for '%s' (%s but expected 'orthogonal' or 'isometric')"), *NameForErrors, TEXT("orientation"), *OrientationModeStr);
@@ -489,6 +496,20 @@ FPaperTileInfo FTileMapFromTiled::ConvertTileGIDToPaper2D(int32 GID) const
 	}
 
 	return Result;
+}
+
+ETileMapProjectionMode::Type FTileMapFromTiled::GetOrientationType() const
+{
+	switch (Orientation)
+	{
+	case ETiledOrientation::Isometric:
+		return ETileMapProjectionMode::IsometricDiamond;
+	case ETiledOrientation::Staggered:
+		return ETileMapProjectionMode::IsometricStaggered;
+	case ETiledOrientation::Orthogonal:
+	default:
+		return ETileMapProjectionMode::Orthogonal;
+	};
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -604,7 +625,6 @@ void FTileLayerFromTiled::ParseFromJSON(TSharedPtr<FJsonObject> Tree, const FStr
 
 	if (!Tree->TryGetStringField(TEXT("name"), /*out*/ Name))
 	{
-		//@TODO: Figure out what to do with the layer type!
 		TILED_IMPORT_ERROR(TEXT("Failed to parse '%s'.  Expected a layer name"), *NameForErrors);
 		bSuccessfullyParsed = false;
 	}

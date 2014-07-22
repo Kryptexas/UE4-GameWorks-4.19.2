@@ -237,6 +237,74 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 	if (Material != nullptr)
 	{
 		DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Material, BatchedSprites);
+		DrawNewBatches(PDI, View, bUseOverrideColor, OverrideColor);
+	}
+}
+
+void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
+{
+	//@TODO: Doesn't support OverrideColor yet
+	if (BatchedSections.Num() == 0)
+	{
+		return;
+	}
+
+	const uint8 DPG = GetDepthPriorityGroup(View);
+	
+	FVertexFactory* VertexFactory = GetPaperSpriteVertexFactory();
+
+	FMeshBatch Mesh;
+
+	Mesh.UseDynamicData = true;
+	Mesh.DynamicVertexData = BatchedVertices.GetTypedData();
+	Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
+
+	Mesh.VertexFactory = VertexFactory;
+	Mesh.LCI = NULL;
+	Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
+	Mesh.CastShadow = false;
+	Mesh.DepthPriorityGroup = DPG;
+	Mesh.Type = PT_TriangleList;
+	Mesh.bDisableBackfaceCulling = true;
+
+	// Set up the FMeshBatchElement.
+	FMeshBatchElement& BatchElement = Mesh.Elements[0];
+	BatchElement.IndexBuffer = NULL;
+	BatchElement.DynamicIndexData = NULL;
+	BatchElement.DynamicIndexStride = 0;
+	BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
+
+	const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
+
+	for (const FSpriteRenderSection& Batch : BatchedSections)
+	{
+		FMaterialRenderProxy* ParentMaterialProxy = Batch.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
+
+		FTexture* TextureResource = (Batch.Texture != nullptr) ? Batch.Texture->Resource : nullptr;
+		if ((TextureResource != nullptr) && (Batch.NumVertices > 0))
+		{
+			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
+			FTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FTextureOverrideRenderProxy(ParentMaterialProxy, Batch.Texture, TEXT("SpriteTexture"));
+			PDI->RegisterDynamicResource(TextureOverrideMaterialProxy);
+
+			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
+
+			BatchElement.FirstIndex = Batch.VertexOffset;
+			BatchElement.MinVertexIndex = Batch.VertexOffset;
+			BatchElement.MaxVertexIndex = Batch.VertexOffset + Batch.NumVertices;
+			BatchElement.NumPrimitives = Batch.NumVertices / 3;
+
+			DrawRichMesh(
+				PDI, 
+				Mesh,
+				WireframeColor,
+				FLinearColor(1.0f, 1.0f, 1.0f),//LevelColor,
+				FLinearColor(1.0f, 1.0f, 1.0f),//PropertyColor,
+				this,
+				IsSelected(),
+				bIsWireframeView
+				);
+		}
 	}
 }
 

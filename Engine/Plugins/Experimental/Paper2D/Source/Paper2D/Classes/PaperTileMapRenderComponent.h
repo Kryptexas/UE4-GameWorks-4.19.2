@@ -45,6 +45,8 @@ public:
 protected:
 	friend class FPaperTileMapRenderSceneProxy;
 
+	void RebuildRenderData(class FPaperTileMapRenderSceneProxy* Proxy);
+
 public:
 	// UObject interface
 	virtual void PostInitProperties() override;
