@@ -171,6 +171,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 {
 	//PRE SET
 	SaveExpandedItems();
+	RootNode->SetStructure(NULL);
 	RootNodePendingKill = RootNode;
 	RootNode = MakeShareable(new FStructurePropertyNode);
 
