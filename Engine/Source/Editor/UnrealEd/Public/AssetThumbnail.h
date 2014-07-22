@@ -197,6 +197,9 @@ private:
 	/** Handler for when an asset is loaded */
 	void OnObjectPropertyChanged( UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent );
 
+	/** Handler to dirty cached thumbnails in packages to make sure they are re-rendered later */
+	void DirtyThumbnailForObject( UObject* ObjectBeingModified );
+
 private:
 	/** Information about a thumbnail */
 	struct FThumbnailInfo

@@ -1247,34 +1247,65 @@ void FAssetThumbnailPool::OnAssetLoaded( UObject* Asset )
 
 void FAssetThumbnailPool::OnActorPostEditMove( AActor* Actor )
 {
-	if (Actor != NULL)
-	{
-		UWorld* World = Actor->GetWorld();
-		if (World)
-		{
-			RefreshThumbnailsFor(FName(*World->GetPathName()));
-		}
-	}
+	DirtyThumbnailForObject(Actor);
 }
 
 void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent )
 {
-	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) )
+	DirtyThumbnailForObject(ObjectBeingModified);
+}
+
+void FAssetThumbnailPool::DirtyThumbnailForObject(UObject* ObjectBeingModified)
+{
+	if (!ObjectBeingModified)
 	{
-		if ( ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
+		return;
+	}
+
+	if (ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL)
 		{
 			// This is a blueprint modification. Check to see if this thumbnail is the blueprint of the modified CDO
 			ObjectBeingModified = ObjectBeingModified->GetClass()->ClassGeneratedBy;
 		}
 	}
-	else if ( AActor* ActorBeingModified = Cast<AActor>(ObjectBeingModified) )
+	else if (AActor* ActorBeingModified = Cast<AActor>(ObjectBeingModified))
 	{
 		// This is a non CDO actor getting modified. Update the actor's world's thumbnail.
 		ObjectBeingModified = ActorBeingModified->GetWorld();
 	}
 
-	if ( ObjectBeingModified )
+	if (ObjectBeingModified && ObjectBeingModified->IsAsset())
 	{
+		// An object in memory was modified.  We'll mark it's thumbnail as dirty so that it'll be
+		// regenerated on demand later. (Before being displayed in the browser, or package saves, etc.)
+		FObjectThumbnail* Thumbnail = ThumbnailTools::GetThumbnailForObject(ObjectBeingModified);
+
+		if (Thumbnail == NULL)
+		{
+			// If we don't yet have a thumbnail map, load one from disk if possible
+			FName ObjectFullName = FName(*ObjectBeingModified->GetFullName());
+			TArray<FName> ObjectFullNames;
+			FThumbnailMap LoadedThumbnails;
+			ObjectFullNames.Add(ObjectFullName);
+			if (ThumbnailTools::ConditionallyLoadThumbnailsForObjects(ObjectFullNames, LoadedThumbnails))
+			{
+				Thumbnail = LoadedThumbnails.Find(ObjectFullName);
+
+				if (Thumbnail != NULL)
+				{
+					Thumbnail = ThumbnailTools::CacheThumbnail(ObjectBeingModified->GetFullName(), Thumbnail, ObjectBeingModified->GetOutermost());
+				}
+			}
+		}
+
+		if (Thumbnail != NULL)
+		{
+			// Mark the thumbnail as dirty
+			Thumbnail->MarkAsDirty();
+		}
+
 		RefreshThumbnailsFor( FName(*ObjectBeingModified->GetPathName()) );
 	}
 }
