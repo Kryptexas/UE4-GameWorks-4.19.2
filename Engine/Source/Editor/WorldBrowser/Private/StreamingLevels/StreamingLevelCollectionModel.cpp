@@ -128,6 +128,11 @@ void FStreamingLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevel
 	PopulateLevelsList();
 }
 
+void FStreamingLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList)
+{
+	HandleAddExistingLevelSelected(WorldList, false);
+}
+
 void FStreamingLevelCollectionModel::BindCommands()
 {
 	FLevelCollectionModel::BindCommands();
@@ -470,6 +475,9 @@ void FStreamingLevelCollectionModel::HandleAddExistingLevelSelected(const TArray
 	FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
 
 	EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
+
+	// Force a cached level list rebuild
+	PopulateLevelsList();
 
 	if (bRemoveInvalidSelectedLevelsAfter)
 	{

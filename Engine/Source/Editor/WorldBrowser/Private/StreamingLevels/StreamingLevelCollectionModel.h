@@ -29,6 +29,7 @@ public:
 public:
 	/** FLevelCollection interface */
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) override;
+	virtual void AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList) override;
 	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;

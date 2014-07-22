@@ -6,10 +6,88 @@
 #include "SWorldHierarchy.h"
 #include "SWorldHierarchyItem.h"
 
+#include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-typedef STreeView<TSharedPtr<FLevelModel>> SLevelsTreeWidget;
 typedef TTextFilter<const TSharedPtr<FLevelModel>& > LevelTextFilter;
+
+class SLevelsTreeWidget : public STreeView<TSharedPtr<FLevelModel>>
+{
+public:
+	void Construct(const FArguments& InArgs, const TSharedPtr<FLevelCollectionModel>& InWorldModel)
+	{
+		STreeView<TSharedPtr<FLevelModel>>::Construct(InArgs);
+
+		WorldModel = InWorldModel;
+	}
+
+	void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+	{
+		TArray<FAssetData> AssetList;
+		if ( GetWorldAssetsFromDrag(DragDropEvent, AssetList) )
+		{
+			TSharedPtr< FAssetDragDropOp > DragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+			check(DragDropOp.IsValid());
+
+			DragDropOp->SetToolTip(LOCTEXT("OnDragWorldAssetsOverFolder", "Add Level(s)"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")));
+		}
+	}
+
+	FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+	{
+		TArray<FAssetData> AssetList;
+		if (GetWorldAssetsFromDrag(DragDropEvent, AssetList))
+		{
+			return FReply::Handled();
+		}
+
+		return FReply::Unhandled();
+	}
+
+	void OnDragLeave(const FDragDropEvent& DragDropEvent)
+	{
+		TSharedPtr< FAssetDragDropOp > DragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+		if (DragDropOp.IsValid())
+		{
+			DragDropOp->ResetToDefaultToolTip();
+		}
+	}
+
+	FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+	{
+		if ( WorldModel.IsValid() )
+		{
+			// Handle adding dropped levels to world
+			TArray<FAssetData> AssetList;
+			if ( GetWorldAssetsFromDrag(DragDropEvent, AssetList) )
+			{
+				WorldModel->AddExistingLevelsFromAssetData(AssetList);
+				return FReply::Handled();
+			}
+		}
+
+		return FReply::Unhandled();
+	}
+
+private:
+	bool GetWorldAssetsFromDrag(const FDragDropEvent& DragDropEvent, TArray<FAssetData>& OutWorldAssetList)
+	{
+		TArray<FAssetData> AssetList = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
+		for (const auto& AssetData : AssetList)
+		{
+			if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
+			{
+				OutWorldAssetList.Add(AssetData);
+			}
+		}
+
+		return OutWorldAssetList.Num() > 0;
+	}
+
+	TSharedPtr<FLevelCollectionModel> WorldModel;
+};
 
 //----------------------------------------------------------------
 //
@@ -132,7 +210,7 @@ public:
 			+SVerticalBox::Slot()
 			.FillHeight(1.f)
 			[
-				SAssignNew(TreeWidget, SLevelsTreeWidget)
+				SAssignNew(TreeWidget, SLevelsTreeWidget, WorldModel)
 				.TreeItemsSource(&WorldModel->GetRootLevelList())
 				.SelectionMode(ESelectionMode::Multi)
 				.OnGenerateRow(this, &SWorldHierarchyImpl::GenerateTreeRow)

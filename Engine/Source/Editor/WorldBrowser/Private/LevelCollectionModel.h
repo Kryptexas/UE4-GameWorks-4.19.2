@@ -111,6 +111,9 @@ public:
 
 	/** Attach levels as children to specified level */
 	void AssignParent(const FLevelModelList& InLevels, TSharedPtr<FLevelModel> InParent);
+
+	/** Adds all levels in worlds represented by the supplied world list as sublevels */
+	virtual void AddExistingLevelsFromAssetData(const TArray<class FAssetData>& WorldList);
 			
 	/**	Create drag drop operation for a selected level models */
 	virtual TSharedPtr<class FLevelDragDropOp> CreateDragDropOp() const;

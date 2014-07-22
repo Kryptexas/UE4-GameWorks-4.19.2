@@ -615,6 +615,11 @@ void FLevelCollectionModel::AssignParent(const FLevelModelList& InLevels, TShare
 	OnLevelsHierarchyChanged();
 }
 
+void FLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList)
+{
+	
+}
+
 TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 {
 	return TSharedPtr<FLevelDragDropOp>();
