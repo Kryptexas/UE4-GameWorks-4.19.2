@@ -173,7 +173,7 @@ class FPhysCommandHandler
 public:
 
 	/** Executes pending commands and clears buffer **/
-	void Flush();
+	void ENGINE_API Flush();
 
 #if WITH_APEX
 	/** enqueues a command to release destructible actor once apex has finished simulating */
