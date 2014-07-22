@@ -52,6 +52,7 @@ APlayerController::APlayerController(const class FPostConstructInitializePropert
 	bCinemaDisableInputLook = false;
 
 	bInputEnabled = true;
+	bEnableTouchEvents = true;
 
 	bAutoManageActiveCameraTarget = true;
 
