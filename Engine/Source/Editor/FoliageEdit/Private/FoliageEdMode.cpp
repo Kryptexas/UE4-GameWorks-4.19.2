@@ -27,6 +27,7 @@
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeInfo.h"
+#include "Components/SplineMeshComponent.h"
 
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
@@ -1305,8 +1306,6 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 	{
 		TMap<UPrimitiveComponent*, TArray<FFoliagePaintBucketTriangle> > ComponentPotentialTriangles;
 
-		FTransform LocalToWorld = Actor->GetRootComponent()->ComponentToWorld;
-
 		// Check all the components of the hit actor
 		TArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents(StaticMeshComponents);
@@ -1334,25 +1333,55 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 				const bool bHasColorData = bHasInstancedColorData || LODModel.ColorVertexBuffer.GetNumVertices();
 
 				// Get the raw triangle data for this static mesh
+				FTransform LocalToWorld = StaticMeshComponent->ComponentToWorld;
 				FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 				const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 				const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
 
-				// Build a mapping of vertex positions to vertex colors.  Using a TMap will allow for fast lookups so we can match new static mesh vertices with existing colors 
-				for (int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
+				if (USplineMeshComponent* SplineMesh = Cast<USplineMeshComponent>(StaticMeshComponent))
 				{
-					const int32 Index0 = Indices[Idx];
-					const int32 Index1 = Indices[Idx + 1];
-					const int32 Index2 = Indices[Idx + 2];
+					// Transform spline mesh verts correctly
+					FVector Mask = FVector(1, 1, 1);
+					USplineMeshComponent::GetAxisValue(Mask, SplineMesh->ForwardAxis) = 0;
 
-					new(PotentialTriangles)FFoliagePaintBucketTriangle(LocalToWorld
-						, PositionVertexBuffer.VertexPosition(Index0)
-						, PositionVertexBuffer.VertexPosition(Index1)
-						, PositionVertexBuffer.VertexPosition(Index2)
-						, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index0].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index0) : FColor::White)
-						, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index1].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index1) : FColor::White)
-						, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index2].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index2) : FColor::White)
-						);
+					for (int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
+					{
+						const int32 Index0 = Indices[Idx];
+						const int32 Index1 = Indices[Idx + 1];
+						const int32 Index2 = Indices[Idx + 2];
+
+						const FVector Vert0 = SplineMesh->CalcSliceTransform(USplineMeshComponent::GetAxisValue(PositionVertexBuffer.VertexPosition(Index0), SplineMesh->ForwardAxis)).TransformPosition(PositionVertexBuffer.VertexPosition(Index0) * Mask);
+						const FVector Vert1 = SplineMesh->CalcSliceTransform(USplineMeshComponent::GetAxisValue(PositionVertexBuffer.VertexPosition(Index1), SplineMesh->ForwardAxis)).TransformPosition(PositionVertexBuffer.VertexPosition(Index1) * Mask);
+						const FVector Vert2 = SplineMesh->CalcSliceTransform(USplineMeshComponent::GetAxisValue(PositionVertexBuffer.VertexPosition(Index2), SplineMesh->ForwardAxis)).TransformPosition(PositionVertexBuffer.VertexPosition(Index2) * Mask);
+
+						new(PotentialTriangles)FFoliagePaintBucketTriangle(LocalToWorld
+							, Vert0
+							, Vert1
+							, Vert2
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index0].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index0) : FColor::White)
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index1].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index1) : FColor::White)
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index2].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index2) : FColor::White)
+							);
+					}
+				}
+				else
+				{
+					// Build a mapping of vertex positions to vertex colors.  Using a TMap will allow for fast lookups so we can match new static mesh vertices with existing colors 
+					for (int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
+					{
+						const int32 Index0 = Indices[Idx];
+						const int32 Index1 = Indices[Idx + 1];
+						const int32 Index2 = Indices[Idx + 2];
+
+						new(PotentialTriangles)FFoliagePaintBucketTriangle(LocalToWorld
+							, PositionVertexBuffer.VertexPosition(Index0)
+							, PositionVertexBuffer.VertexPosition(Index1)
+							, PositionVertexBuffer.VertexPosition(Index2)
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index0].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index0) : FColor::White)
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index1].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index1) : FColor::White)
+							, bHasInstancedColorData ? InstanceMeshLODInfo->PaintedVertices[Index2].Color : (bHasColorData ? ColorVertexBuffer.VertexColor(Index2) : FColor::White)
+							);
+					}
 				}
 			}
 		}

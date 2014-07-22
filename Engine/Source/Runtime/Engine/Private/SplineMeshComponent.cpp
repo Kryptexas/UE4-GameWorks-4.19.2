@@ -740,36 +740,3 @@ FStaticMeshStaticLightingMesh* USplineMeshComponent::AllocateStaticLightingMesh(
 {
 	return new FSplineStaticLightingMesh(this, LODIndex, InRelevantLights);
 }
-
-
-const float& USplineMeshComponent::GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis)
-{
-	switch (InAxis)
-	{
-	case ESplineMeshAxis::X:
-		return InVector.X;
-	case ESplineMeshAxis::Y:
-		return InVector.Y;
-	case ESplineMeshAxis::Z:
-		return InVector.Z;
-	default:
-		check(0);
-		return InVector.Z;
-	}
-}
-
-float& USplineMeshComponent::GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis)
-{
-	switch (InAxis)
-	{
-	case ESplineMeshAxis::X:
-		return InVector.X;
-	case ESplineMeshAxis::Y:
-		return InVector.Y;
-	case ESplineMeshAxis::Z:
-		return InVector.Z;
-	default:
-		check(0);
-		return InVector.Z;
-	}
-}

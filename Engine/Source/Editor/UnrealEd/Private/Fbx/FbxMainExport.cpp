@@ -2015,22 +2015,6 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(UStaticMesh* StaticMesh, FStaticMes
 	return FbxActor;
 }
 
-static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis)
-{
-	switch (InAxis)
-	{
-	case ESplineMeshAxis::X:
-		return InVector.X;
-	case ESplineMeshAxis::Y:
-		return InVector.Y;
-	case ESplineMeshAxis::Z:
-		return InVector.Z;
-	default:
-		check(0);
-		return InVector.Z;
-	}
-}
-
 FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshComp, FStaticMeshLODResources& RenderMesh, const TCHAR* MeshName, FbxNode* FbxActor)
 {
 	const UStaticMesh* StaticMesh = SplineMeshComp->StaticMesh;
@@ -2082,8 +2066,8 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 		int32 UnrealPosIndex = UniqueVerts[PosIndex];
 		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
 
-		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(GetAxisValue(Position, SplineMeshComp->ForwardAxis));
-		GetAxisValue(Position, SplineMeshComp->ForwardAxis) = 0;
+		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
+		USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis) = 0;
 		Position = SliceTransform.TransformPosition(Position);
 
 		ControlPoints[PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
@@ -2129,7 +2113,7 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 	for (int32 VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
 	{
 		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(VertIndex);
-		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(GetAxisValue(Position, SplineMeshComp->ForwardAxis));
+		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
 		FVector Normal = FVector(RenderMesh.VertexBuffer.VertexTangentZ(VertIndex));
 		Normal = SliceTransform.TransformVector(Normal);
 		FbxVector4& FbxNormal = FbxNormals[VertIndex];

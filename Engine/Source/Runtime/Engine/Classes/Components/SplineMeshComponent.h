@@ -209,10 +209,39 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	 */
 	FTransform CalcSliceTransform(const float DistanceAlong) const;
 
-	static const float& GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis);
-	static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis);
-
+	inline static const float& GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis);
+	inline static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis);
 };
 
+const float& USplineMeshComponent::GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis)
+{
+	switch (InAxis)
+	{
+	case ESplineMeshAxis::X:
+		return InVector.X;
+	case ESplineMeshAxis::Y:
+		return InVector.Y;
+	case ESplineMeshAxis::Z:
+		return InVector.Z;
+	default:
+		check(0);
+		return InVector.Z;
+	}
+}
 
+float& USplineMeshComponent::GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis)
+{
+	switch (InAxis)
+	{
+	case ESplineMeshAxis::X:
+		return InVector.X;
+	case ESplineMeshAxis::Y:
+		return InVector.Y;
+	case ESplineMeshAxis::Z:
+		return InVector.Z;
+	default:
+		check(0);
+		return InVector.Z;
+	}
+}
 
