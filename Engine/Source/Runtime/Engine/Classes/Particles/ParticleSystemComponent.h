@@ -3,10 +3,7 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
-#include "Materials/MaterialInterface.h"
-#include "ParticleHelper.h"
 #include "Particles/Emitter.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystem.h"
 #include "ParticleSystemComponent.generated.h"
 
