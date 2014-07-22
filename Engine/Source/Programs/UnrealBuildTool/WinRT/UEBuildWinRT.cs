@@ -45,7 +45,7 @@ namespace UnrealBuildTool
          */
         protected override SDKStatus HasRequiredManualSDKInternal()
         {
-            return IsVisualStudioInstalled() ? SDKStatus.Valid : SDKStatus.Invalid;
+            return IsVisualStudioInstalled() && !Utils.IsRunningOnMono ? SDKStatus.Valid : SDKStatus.Invalid;
         }
 
         /**
