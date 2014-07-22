@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperStyle.h"
+
 class FTileMapEditorCommands : public TCommands<FTileMapEditorCommands>
 {
 public:

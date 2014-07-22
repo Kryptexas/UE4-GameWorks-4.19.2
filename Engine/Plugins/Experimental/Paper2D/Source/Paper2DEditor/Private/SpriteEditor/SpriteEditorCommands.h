@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperStyle.h"
+
 class FSpriteEditorCommands : public TCommands<FSpriteEditorCommands>
 {
 public:

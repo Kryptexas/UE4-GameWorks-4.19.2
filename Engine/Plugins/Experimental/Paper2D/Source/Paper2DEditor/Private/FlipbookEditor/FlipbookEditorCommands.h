@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperStyle.h"
+
 class FFlipbookEditorCommands : public TCommands<FFlipbookEditorCommands>
 {
 public:
