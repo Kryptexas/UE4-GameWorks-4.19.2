@@ -204,7 +204,14 @@ void XInputInterface::SendControllerEvents()
 					// Update the state for next time
 					ControllerState.ButtonStates[ButtonIndex] = CurrentStates[ButtonIndex];
 				}	
-			}
+
+ 				// apply force feedback
+ 				XINPUT_VIBRATION VibrationState;
+ 
+ 				VibrationState.wLeftMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.LeftLarge * 65535.0f );
+ 				VibrationState.wRightMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.RightSmall * 65535.0f );
+ 
+ 				XInputSetState( ( ::DWORD ) ControllerState.ControllerId, &VibrationState );			}
 		}
 	}
 
@@ -214,4 +221,41 @@ void XInputInterface::SendControllerEvents()
 void XInputInterface::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {
 	MessageHandler = InMessageHandler;
+}
+
+void XInputInterface::SetChannelValue( const int32 ControllerId, const FForceFeedbackChannelType ChannelType, const float Value )
+{
+	FControllerState& ControllerState = ControllerStates[ ControllerId ];
+
+	if( ControllerState.bIsConnected )
+	{
+		switch( ChannelType )
+		{
+			case FF_CHANNEL_LEFT_LARGE:
+				ControllerState.ForceFeedback.LeftLarge = Value;
+				break;
+
+			case FF_CHANNEL_LEFT_SMALL:
+				ControllerState.ForceFeedback.LeftSmall = Value;
+				break;
+
+			case FF_CHANNEL_RIGHT_LARGE:
+				ControllerState.ForceFeedback.RightLarge = Value;
+				break;
+
+			case FF_CHANNEL_RIGHT_SMALL:
+				ControllerState.ForceFeedback.RightSmall = Value;
+				break;
+		}
+	}
+}
+
+void XInputInterface::SetChannelValues( const int32 ControllerId, const FForceFeedbackValues &Values )
+{
+	FControllerState& ControllerState = ControllerStates[ ControllerId ];
+
+	if( ControllerState.bIsConnected )
+	{
+		ControllerState.ForceFeedback = Values;
+	}
 }

@@ -1714,6 +1714,10 @@ void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackCha
 
 void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeedbackValues &Values)
 {
+	const FForceFeedbackValues* InternalValues = &Values;
+ 
+ 	XInput->SetChannelValues( ControllerId, *InternalValues );
+ 
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
