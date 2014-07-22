@@ -468,6 +468,18 @@ public:
 	 */
 	virtual bool Init();
 
+	/** Get the depot name */
+	const FString& GetDepotName() const
+	{
+		return DepotName;
+	}
+
+	/** Set the depot name */
+	void SetDepotName( const FString& InDepotName )
+	{
+		DepotName = InDepotName;
+	}
+
 	/**
 	 *	Parse the given crash dump, determining EngineVersion of the build that produced it - if possible. 
 	 *
