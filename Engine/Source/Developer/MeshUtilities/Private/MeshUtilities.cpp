@@ -482,7 +482,7 @@ private:
 		const FStaticMeshLODGroup& LODGroup
 		) override;
 
-	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true );
+	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true, TArray<FText> * OutWarningMessages = NULL);
 
 	virtual bool GenerateUVs(
 		FRawMesh& RawMesh,
@@ -2551,7 +2551,7 @@ bool FMeshUtilities::BuildStaticMesh(
 }
 
 
-bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents )
+bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages )
 {
 #if WITH_EDITORONLY_DATA
 	bool bTooManyVerts = false;
@@ -2624,9 +2624,21 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 	{
 		uint32* InfluenceIndex = VertexIndexToInfluenceIndexMap.Find( Wedges[WedgeIndex].iVertex );
 
-		check( InfluenceIndex );
+		if ( InfluenceIndex )
+		{
+			WedgeInfluenceIndices.Add( *InfluenceIndex );
+		}
+		else
+		{
+			// we have missing influence vert,  we weight to root
+			WedgeInfluenceIndices.Add(0);
 
-		WedgeInfluenceIndices.Add( *InfluenceIndex );
+			// add warning message
+			if (OutWarningMessages)
+			{
+				OutWarningMessages->Add(FText::Format(FText::FromString("Missing influence on vert {0}. Weighting it to root."), FText::FromString(FString::FromInt(Wedges[WedgeIndex].iVertex))));
+			}
+		}
 	}
 
  	check(Wedges.Num() == WedgeInfluenceIndices.Num());
@@ -2970,19 +2982,43 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 		}
 		if( bHasBadSections )
 		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SkeletalMeshHasBadSections", "Input mesh has a section with no triangles.  This mesh may not render properly.") );
+			FText BadSectionMessage(NSLOCTEXT("UnrealEd", "Error_SkeletalMeshHasBadSections", "Input mesh has a section with no triangles.  This mesh may not render properly."));
+			if(OutWarningMessages)
+			{
+				OutWarningMessages->Add(BadSectionMessage);
+			}
+			else
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, BadSectionMessage );
+			}
 		}
 
 		if (bTooManyVerts)
 		{
-			UE_LOG(LogSkeletalMesh, Log, TEXT("Input mesh has too many vertices.  The generated mesh will be corrupt!"));
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SkeletalMeshTooManyVertices", "Input mesh has too many vertices.  The generated mesh will be corrupt!  Consider adding extra materials to split up the source mesh into smaller chunks."));
+			FText TooManyVertsMessage(NSLOCTEXT("UnrealEd", "Error_SkeletalMeshTooManyVertices", "Input mesh has too many vertices.  The generated mesh will be corrupt!  Consider adding extra materials to split up the source mesh into smaller chunks."));
+
+			if(OutWarningMessages)
+			{
+				OutWarningMessages->Add(TooManyVertsMessage);
+			}
+			else
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, TooManyVertsMessage);
+			}
 		}
 	}
 
 	return true;
 #else
-	UE_LOG(LogSkeletalMesh, Fatal,TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!"));
+
+	if(OutWarningMessages)
+	{
+		OutWarningMessages->Add(FText::FromString(TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!")));
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Fatal,TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!"));
+	}
 	return false;
 #endif
 }

@@ -149,7 +149,8 @@ public:
 		const TArray<int32>& PointToOriginalMap,
 		bool bKeepOverlappingVertices = false,
 		bool bComputeNormals = true,
-		bool bComputeTangents = true
+		bool bComputeTangents = true,
+		TArray<FText> * OutWarningMessages = NULL
 		) = 0;
 
 
