@@ -32,12 +32,27 @@ void UUMGSequencePlayer::InitSequencePlayer( const FWidgetAnimation& Animation, 
 	for (const FWidgetAnimationBinding& Binding : Animation.AnimationBindings)
 	{
 		FName ObjectName = Binding.WidgetName;
-		UObject* FoundObject = FindObject<UObject>(WidgetTree, *ObjectName.ToString());
-		if (FoundObject)
+		FName SlotWidgetName = Binding.SlotWidgetName;
+
+		FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
+
+		UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
+		if(FoundObject)
 		{
-			TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd( Binding.AnimationGuid );
-			Objects.Add( FoundObject );
-		
+			if(SlotWidgetName == NAME_None)
+			{
+				TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
+				Objects.Add(FoundObject);
+			}
+			else
+			{
+				FoundObject = FindObject<UObject>(FoundObject, *ObjectName.ToString());
+				if(FoundObject)
+				{
+					TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
+					Objects.Add(FoundObject);
+				}
+			}
 		}
 	}
 
@@ -63,7 +78,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 		bool bIsFinished = false;
 
-		if (!TimeRange.Contains(TimeCursorPosition))
+		if ( TimeCursorPosition >= TimeRange.GetUpperBoundValue() )
 		{
 			bIsFinished = true;
 		}

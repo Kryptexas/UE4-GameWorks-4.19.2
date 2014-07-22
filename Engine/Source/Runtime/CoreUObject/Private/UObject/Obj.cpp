@@ -194,7 +194,6 @@ void UObject::PostLoad()
 void UObject::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	Modify();
-	FCoreDelegates::OnPreObjectPropertyChanged.Broadcast(this);
 }
 
 
@@ -215,6 +214,8 @@ void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 {
 	// forward the notification to the UProperty* version of PreEditChange
 	PreEditChange(PropertyAboutToChange.GetActiveNode()->GetValue());
+
+	FCoreDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
 
 	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead() && !FApp::IsGame())
 	{

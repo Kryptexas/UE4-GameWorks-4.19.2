@@ -38,7 +38,10 @@ public:
 
 	virtual void DeleteKey(FKeyHandle KeyHandle) override
 	{
-		Curve.DeleteKey(KeyHandle);
+		if( Curve.IsKeyHandleValid(KeyHandle) )
+		{
+			Curve.DeleteKey(KeyHandle);
+		}
 	}
 private:
 	/** Curve with keys in this area */

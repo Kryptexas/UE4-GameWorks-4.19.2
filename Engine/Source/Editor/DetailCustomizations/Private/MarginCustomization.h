@@ -7,6 +7,10 @@ class FMarginStructCustomization : public IPropertyTypeCustomization
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
+	FMarginStructCustomization()
+		: bIsUsingSlider( false )
+	{}
+
 	/** IPropertyTypeCustomization interface */
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 

@@ -23,8 +23,9 @@ private:
 	 * Called when PreEditChange is called on an object
 	 *
 	 * @param Object	The object that PreEditChange was called on
+	 * @param Property	The property that is about to change
 	 */
-	void OnObjectPreEditChange( UObject* Object );
+	void OnObjectPreEditChange( UObject* Object, const FEditPropertyChain& PropertyChain );
 
 	/**
 	 * Called when PostEditChange is called on an object

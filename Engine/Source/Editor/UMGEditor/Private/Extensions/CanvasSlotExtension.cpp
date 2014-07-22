@@ -261,13 +261,13 @@ void FCanvasSlotExtension::MoveByAmount(FWidgetReference& WidgetRef, FVector2D D
 		Offsets.Bottom -= Delta.Y;
 	}
 
-	CanvasSlot->SetOffset(Offsets);
+	CanvasSlot->SetOffsets(Offsets);
 
 	// Update the Template widget to match
 	UWidget* TemplateWidget = WidgetRef.GetTemplate();
 	UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
 
-	TemplateSlot->SetOffset(Offsets);
+	TemplateSlot->SetOffsets(Offsets);
 }
 
 #undef LOCTEXT_NAMESPACE

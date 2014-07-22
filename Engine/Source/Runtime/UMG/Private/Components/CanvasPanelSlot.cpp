@@ -34,12 +34,12 @@ void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 
 void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
 {
-	SetOffset(FMargin(InPosition.X, InPosition.Y, LayoutData.Offsets.Right, LayoutData.Offsets.Bottom));
+	SetOffsets(FMargin(InPosition.X, InPosition.Y, LayoutData.Offsets.Right, LayoutData.Offsets.Bottom));
 }
 
 void UCanvasPanelSlot::SetDesiredSize(FVector2D InSize)
 {
-	SetOffset(FMargin(LayoutData.Offsets.Left, LayoutData.Offsets.Top, InSize.X, InSize.Y));
+	SetOffsets(FMargin(LayoutData.Offsets.Left, LayoutData.Offsets.Top, InSize.X, InSize.Y));
 }
 
 void UCanvasPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amount)
@@ -103,7 +103,7 @@ bool UCanvasPanelSlot::CanResize(const FVector2D& Direction) const
 	return true;
 }
 
-void UCanvasPanelSlot::SetOffset(FMargin InOffset)
+void UCanvasPanelSlot::SetOffsets(FMargin InOffset)
 {
 	LayoutData.Offsets = InOffset;
 	if ( Slot )
@@ -141,7 +141,7 @@ void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 
 void UCanvasPanelSlot::SyncronizeProperties()
 {
-	SetOffset(LayoutData.Offsets);
+	SetOffsets(LayoutData.Offsets);
 	SetAnchors(LayoutData.Anchors);
 	SetAlignment(LayoutData.Alignment);
 	SetZOrder(ZOrder);

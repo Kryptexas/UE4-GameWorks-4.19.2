@@ -63,15 +63,16 @@ FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectC
 }
 
 
-void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
+void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object, const FEditPropertyChain& PropertyChain )
 {
 	// We only care if we are in auto-key mode and not attempting to change properties of a CDO (which cannot be animated)
-	if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && !Object->HasAnyFlags(RF_ClassDefaultObject) )
+	if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && !Object->HasAnyFlags(RF_ClassDefaultObject) && PropertyChain.GetActiveMemberNode() )
 	{
 		// Register with the property editor module that we'd like to know about animated float properties that change
 		FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
-		if( IsObjectValidForListening(Object) )
+		// Sometimes due to edit inline new the object is not actually the object that contains the property
+		if( IsObjectValidForListening(Object) && PropertyChain.GetActiveMemberNode()->GetValue()->IsIn( Object->GetClass() ) )
 		{
 			TSharedPtr<IPropertyChangeListener> PropertyChangeListener = ActivePropertyChangeListeners.FindRef( Object );
 

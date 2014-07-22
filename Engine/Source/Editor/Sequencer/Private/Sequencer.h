@@ -24,7 +24,10 @@ struct FSequencerInitParams
 	
 	/** The asset editor created for this (if any) */
 	TSharedPtr<IToolkitHost> ToolkitHost;
-	
+
+	/** View parameters */
+	FSequencerViewParams ViewParams;
+
 	/** Whether or not sequencer should be edited within the level editor */
 	bool bEditWithinLevelEditor;
 };

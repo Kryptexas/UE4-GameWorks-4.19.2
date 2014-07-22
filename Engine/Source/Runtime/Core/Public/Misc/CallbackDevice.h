@@ -51,7 +51,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);
 
 	// Callback for PreEditChange
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreObjectPropertyChanged, UObject*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain& );
 
 	#if WITH_EDITOR
 	// Callback for all object modifications

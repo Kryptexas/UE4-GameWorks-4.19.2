@@ -56,6 +56,9 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 		ToolkitHost = InitParams.ToolkitHost;
 
+		LastViewRange = InitParams.ViewParams.InitalViewRange;
+		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
+
 		ObjectChangeListener = InitParams.ObjectChangeListener;
 		ObjectBindingManager = InitParams.ObjectBindingManager;
 

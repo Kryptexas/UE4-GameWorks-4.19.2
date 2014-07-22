@@ -50,7 +50,7 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 
 	/** Sets the position of the slot */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetOffset(FMargin InOffset);
+	void SetOffsets(FMargin InOffset);
 	
 	/** Sets the anchors on the slot */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

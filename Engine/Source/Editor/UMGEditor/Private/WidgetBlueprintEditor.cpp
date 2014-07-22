@@ -402,7 +402,11 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 		SequencerObjectBindingManager = ObjectBindingManager;
 
-		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( WidgetAnimation->MovieScene, ObjectBindingManager );
+		FSequencerViewParams ViewParams;
+		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
+		ViewParams.InitialScrubPosition = 0;
+
+		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( WidgetAnimation->MovieScene, ViewParams, ObjectBindingManager );
 	}
 
 	return Sequencer;

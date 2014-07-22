@@ -50,11 +50,14 @@ struct FWidgetAnimationBinding
 	FName WidgetName;
 
 	UPROPERTY()
+	FName SlotWidgetName;
+
+	UPROPERTY()
 	FGuid AnimationGuid;
 
 	bool operator==( const FWidgetAnimationBinding& Other ) const
 	{
-		return WidgetName == Other.WidgetName && AnimationGuid == Other.AnimationGuid;
+		return WidgetName == Other.WidgetName && SlotWidgetName == Other.SlotWidgetName && AnimationGuid == Other.AnimationGuid;
 	}
 };
 
