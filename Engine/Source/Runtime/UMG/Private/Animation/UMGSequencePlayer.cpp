@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "UMGSequencePlayer.h"
+#include "MovieScene.h"
 #include "MovieSceneBindings.h"
 #include "MovieSceneInstance.h"
 #include "MovieScene.h"
