@@ -277,7 +277,7 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ESlateCheckBoxState::Type Ne
 
 	ItemData->PluginStatus.bIsEnabled = bNewEnabledState;
 
-	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable();
+	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
 
 	FText FailMessage;
 	if(!IProjectManager::Get().SetPluginEnabled(ItemData->PluginStatus.Name, bNewEnabledState, FailMessage))

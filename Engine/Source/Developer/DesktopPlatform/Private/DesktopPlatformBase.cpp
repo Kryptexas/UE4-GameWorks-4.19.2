@@ -303,7 +303,7 @@ bool FDesktopPlatformBase::OpenProject(const FString& ProjectFileName)
 	return true;
 }
 
-bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedbackContext* Warn)
+bool FDesktopPlatformBase::CleanGameProject(const FString& ProjectDir, FString& OutFailPath, FFeedbackContext* Warn)
 {
 	// Begin a task
 	Warn->BeginSlowTask(LOCTEXT("CleaningProject", "Removing stale build products..."), true);
@@ -319,7 +319,8 @@ bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedback
 		// Remove the file
 		if(!IFileManager::Get().Delete(*FileNames[Idx]))
 		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete file '%s'"), *FileNames[Idx]);
+			OutFailPath = FileNames[Idx];
+			Warn->EndSlowTask();
 			return false;
 		}
 
@@ -333,7 +334,8 @@ bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedback
 		// Remove the directory
 		if(!IFileManager::Get().DeleteDirectory(*DirectoryNames[Idx], false, true))
 		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete directory '%s'"), *DirectoryNames[Idx]);
+			OutFailPath = DirectoryNames[Idx];
+			Warn->EndSlowTask();
 			return false;
 		}
 

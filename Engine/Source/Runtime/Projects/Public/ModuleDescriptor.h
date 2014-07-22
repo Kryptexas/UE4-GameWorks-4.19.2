@@ -41,7 +41,7 @@ namespace ELoadingPhase
 	 * @param	The string to convert to a value
 	 * @return	The corresponding value, or 'Max' if the string is not valid.
 	 */
-	ELoadingPhase::Type FromString( const TCHAR *Text );
+	PROJECTS_API ELoadingPhase::Type FromString( const TCHAR *Text );
 
 	/**
 	 * Returns the name of a module load phase.
@@ -49,7 +49,7 @@ namespace ELoadingPhase
 	 * @param	The value to convert to a string
 	 * @return	The string representation of this enum value
 	 */
-	const TCHAR* ToString( const ELoadingPhase::Type Value );
+	PROJECTS_API const TCHAR* ToString( const ELoadingPhase::Type Value );
 };
 
 /**
@@ -77,7 +77,7 @@ namespace EHostType
 	 * @param	The string to convert to a value
 	 * @return	The corresponding value, or 'Max' if the string is not valid.
 	 */
-	EHostType::Type FromString( const TCHAR *Text );
+	PROJECTS_API EHostType::Type FromString( const TCHAR *Text );
 
 	/**
 	 * Converts an EHostType::Type value to a string literal
@@ -85,13 +85,13 @@ namespace EHostType
 	 * @param	The value to convert to a string
 	 * @return	The string representation of this enum value
 	 */
-	const TCHAR* ToString( const EHostType::Type Value );
+	PROJECTS_API const TCHAR* ToString( const EHostType::Type Value );
 };
 
 /**
  * Description of a loadable module.
  */
-struct FModuleDescriptor
+struct PROJECTS_API FModuleDescriptor
 {
 	/** Name of this module */
 	FName Name;

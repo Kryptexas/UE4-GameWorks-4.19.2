@@ -126,56 +126,6 @@ bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, 
 	return Descriptor.Save(NewProjectFilename, OutFailReason);
 }
 
-bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason)
-{
-	// Load the source project
-	FProjectDescriptor Project;
-	if(!Project.Load(SourceProjectFilename, OutFailReason))
-	{
-		return false;
-	}
-
-	// Update it to current
-	Project.EngineAssociation = EngineIdentifier;
-	Project.EpicSampleNameHash = 0;
-
-	// Fix up module names
-	const FString BaseSourceName = FPaths::GetBaseFilename(SourceProjectFilename);
-	const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFilename);
-	for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
-	{
-		FModuleDescriptor& ModuleInfo = *ModuleIt;
-		ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
-	}
-
-	// Save it to disk
-	return Project.Save(NewProjectFilename, OutFailReason);
-}
-
-bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
-{
-	if ( !CurrentProject.IsValid() )
-	{
-		return false;
-	}
-
-	// Freshen version information
-	CurrentProject->EngineAssociation = EngineIdentifier;
-
-	// Replace the modules names, if specified
-	if(StartupModuleNames != NULL)
-	{
-		CurrentProject->Modules.Empty();
-		for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
-		{
-			CurrentProject->Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
-		}
-	}
-
-	// Update file on disk
-	return CurrentProject->Save(FPaths::GetProjectFilePath(), OutFailReason);
-}
-
 bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason)
 {
 	FProjectDescriptor Descriptor;

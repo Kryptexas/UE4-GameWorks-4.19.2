@@ -139,29 +139,6 @@ public:
 	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) = 0;
 
 	/**
-	 * Generates a new project file based on a source file and saves it to disk at the specified location
-	 * 
-	 * @param SourceProjectFilename	The filename of the file to duplicate
-	 * @param NewProjectFilename	The filename of the file to be written out
-	 * @param EngineIdentifier		Identifier of the engine that the project should be associated with
-	 * @param OutFailReason			When returning false, this provides a display reason why the file could not be created.
-	 *
-	 * @return true when the file was successfully written
-	 */
-	virtual bool DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason) = 0;
-
-	/**
-	 * Updates the loaded game project file to the current version and saves it to disk
-	 * 
-	 * @param StartupModuleNames	When specified, replaces the existing module names with these new ones			
-	 * @param EngineIdentifier		Identifier for the current engine
-	 * @param OutFailReason			When returning false, this provides a display reason why the file could not be created.
-	 *
-	 * @return true if the file was successfully updated and saved to disk
-	 */
-	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) = 0;
-
-	/**
 	 * Sets the project's EpicSampleNameHash (based on its filename) and category, then saves the file to disk.
 	 * This marks the project as a sample and fixes its filename so that
 	 * it isn't mistaken for a sample if a copy of the file is made.

@@ -35,7 +35,7 @@ public:
 
 	virtual bool OpenProject(const FString& ProjectFileName) override;
 
-	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) override;
+	virtual bool CleanGameProject(const FString& ProjectDir, FString& OutFailPath, FFeedbackContext* Warn) override;
 	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 

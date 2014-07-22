@@ -142,10 +142,10 @@ public:
 	static void CheckAndWarnProjectFilenameValid();
 
 	/** Checks out the current project file (or prompts to make writable) */
-	static void TryMakeProjectFileWriteable();
+	static void TryMakeProjectFileWriteable(const FString& ProjectFile);
 
-	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
-	static bool UpdateGameProject(const FString &EngineIdentifier);
+	/** Updates the given project file to an engine identifier. Returns true if the project was updated successfully or if no update was needed */
+	static bool UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason);
 
 	/** Opens a dialog to add code files to a project */
 	static void OpenAddCodeToProjectDialog();
@@ -354,16 +354,16 @@ private:
 	static void OnUpdateProjectCancel();
 
 	/**
-	 * Updates the loaded game project file to the current version
+	 * Updates the loaded game project file to the current version and to use the given modules
 	 *
 	 * @param ProjectFilename		The name of the project (used to checkout from source control)
+	 * @param EngineIdentifier		The identifier for the engine to open the project with
 	 * @param StartupModuleNames	if specified, replaces the existing module names with this version
-	 * @param OutbWasCheckedOut		Out, whether or not the project was checked out from source control
 	 * @param OutFailReason			Out, if unsuccessful this is the reason why
 
 	 * @return true, if successful
 	 */
-	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason);
+	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason);
 
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);

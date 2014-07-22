@@ -43,9 +43,9 @@ void FGameProjectGenerationModule::OpenAddCodeToProjectDialog()
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 
-void FGameProjectGenerationModule::TryMakeProjectFileWriteable()
+void FGameProjectGenerationModule::TryMakeProjectFileWriteable(const FString& ProjectFile)
 {
-	GameProjectUtils::TryMakeProjectFileWriteable();
+	GameProjectUtils::TryMakeProjectFileWriteable(ProjectFile);
 }
 
 void FGameProjectGenerationModule::CheckForOutOfDateGameProjectFile()
@@ -54,9 +54,9 @@ void FGameProjectGenerationModule::CheckForOutOfDateGameProjectFile()
 }
 
 
-bool FGameProjectGenerationModule::UpdateGameProject(const FString& EngineIdentifier)
+bool FGameProjectGenerationModule::UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	return GameProjectUtils::UpdateGameProject(EngineIdentifier);
+	return GameProjectUtils::UpdateGameProject(ProjectFile, EngineIdentifier, OutFailReason);
 }
 
 

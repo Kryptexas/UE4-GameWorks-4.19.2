@@ -48,13 +48,13 @@ public:
 	FAddCodeToProjectDialogOpenedEvent& OnAddCodeToProjectDialogOpened() { return AddCodeToProjectDialogOpenedEvent; }
 
 	/** Tries to make the project file writable. Prompts to check out as necessary. */
-	virtual void TryMakeProjectFileWriteable();
+	virtual void TryMakeProjectFileWriteable(const FString& ProjectFile);
 
 	/** Prompts the user to update his project file, if necessary. */
 	virtual void CheckForOutOfDateGameProjectFile();
 
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
-	virtual bool UpdateGameProject(const FString& EngineIdentifier);
+	virtual bool UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason);
 
 	/** Updates the current code project */
 	virtual bool UpdateCodeProject(FText& OutFailReason);

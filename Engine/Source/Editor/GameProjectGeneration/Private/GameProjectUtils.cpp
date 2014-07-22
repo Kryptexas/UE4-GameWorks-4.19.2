@@ -691,25 +691,9 @@ void GameProjectUtils::OnWarningReasonOk()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
+bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
-	if ( !ProjectFilename.IsEmpty() )
-	{
-		FText FailReason;
-		bool bWasCheckedOut = false;
-		if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
-		{
-			// The user chose to update, but the update failed. Notify the user.
-			UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
-			return false;
-		}
-
-		// The project was updated successfully.
-		UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
-	}
-
-	return true;
+	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
 void GameProjectUtils::OpenAddCodeToProjectDialog()
@@ -1241,17 +1225,36 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 
 	// Generate the project file
 	{
-		FText LocalFailReason;
-		if (IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
+		// Load the source project
+		FProjectDescriptor Project;
+		if(!Project.Load(TemplateFile, OutFailReason))
 		{
-			CreatedFiles.Add(NewProjectFile);
-		}
-		else
-		{
-			OutFailReason = LocalFailReason;
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
+
+		// Update it to current
+		Project.EngineAssociation = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+		Project.EpicSampleNameHash = 0;
+
+		// Fix up module names
+		const FString BaseSourceName = FPaths::GetBaseFilename(TemplateFile);
+		const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFile);
+		for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+		{
+			FModuleDescriptor& ModuleInfo = *ModuleIt;
+			ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
+		}
+
+		// Save it to disk
+		if(!Project.Save(NewProjectFile, OutFailReason))
+		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
+			return false;
+		}
+
+		// Add it to the list of created files
+		CreatedFiles.Add(NewProjectFile);
 	}
 
 	if ( bShouldGenerateCode )
@@ -2442,17 +2445,12 @@ void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
 	FText FailReason;
 	FText UpdateMessage;
 	SNotificationItem::ECompletionState NewCompletionState;
-	bool bWasCheckedOut = false;
-	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, bWasCheckedOut, FailReason) )
+	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, FailReason) )
 	{
 		// The project was updated successfully.
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("ShortFilename"), FText::FromString( ShortFilename ) );
 		UpdateMessage = FText::Format( LOCTEXT("ProjectFileUpdateComplete", "{ShortFilename} was successfully updated."), Args );
-		if ( bWasCheckedOut )
-		{
-			UpdateMessage = FText::Format( LOCTEXT("ProjectFileUpdateCheckin", "{ShortFilename} was successfully updated. Please check this file into source control."), Args );
-		}
 		NewCompletionState = SNotificationItem::CS_Success;
 	}
 	else
@@ -2484,44 +2482,56 @@ void GameProjectUtils::OnUpdateProjectCancel()
 	}
 }
 
-void GameProjectUtils::TryMakeProjectFileWriteable()
+void GameProjectUtils::TryMakeProjectFileWriteable(const FString& ProjectFile)
 {
-	FString ProjectFileName = FPaths::GetProjectFilePath();
-
 	// First attempt to check out the file if SCC is enabled
 	if ( ISourceControlModule::Get().IsEnabled() )
 	{
 		FText FailReason;
-		GameProjectUtils::CheckoutGameProjectFile(ProjectFileName, FailReason);
+		GameProjectUtils::CheckoutGameProjectFile(ProjectFile, FailReason);
 	}
 
-	// Check if it's writeable
-	if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFileName))
+	// Check if it's writable
+	if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFile))
 	{
-		FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated, would you like to make it writeable?");
+		FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated. Would you like to make it writeable?");
 
 		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFileName));
+		Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFile));
 
 		if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldMakeProjectWriteable, Arguments)) == EAppReturnType::Yes)
 		{
-			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFileName, false);
+			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFile, false);
 		}
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason)
 {
 	// Make sure we can write to the project file
-	TryMakeProjectFileWriteable();
+	TryMakeProjectFileWriteable(ProjectFile);
 
-	// Now tell the project manager to update the file
-	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, EngineIdentifier, OutFailReason))
+	// Load the descriptor
+	FProjectDescriptor Descriptor;
+	if(Descriptor.Load(ProjectFile, OutFailReason))
 	{
-		return false;
-	}
+		// Freshen version information
+		Descriptor.EngineAssociation = EngineIdentifier;
 
-	return true;
+		// Replace the modules names, if specified
+		if(StartupModuleNames != NULL)
+		{
+			Descriptor.Modules.Empty();
+			for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
+			{
+				Descriptor.Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+			}
+		}
+
+		// Update file on disk
+		return Descriptor.Save(ProjectFile, OutFailReason);
+	}
+	return false;
 }
 
 bool GameProjectUtils::CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason)

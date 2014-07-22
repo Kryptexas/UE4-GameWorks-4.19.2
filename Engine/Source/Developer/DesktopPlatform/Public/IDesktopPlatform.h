@@ -300,7 +300,7 @@ public:
 	* @param ProjectDirName		Directory for the project
 	* @param OutFileNames		Output array of the project's build products
 	*/
-	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) = 0;
+	virtual bool CleanGameProject(const FString& ProjectDir, FString& OutFailPath, FFeedbackContext* Warn) = 0;
 
 	/**
 	* Compiles a game project.
