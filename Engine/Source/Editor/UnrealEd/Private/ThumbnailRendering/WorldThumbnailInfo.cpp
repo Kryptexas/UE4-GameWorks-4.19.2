@@ -5,6 +5,6 @@
 UWorldThumbnailInfo::UWorldThumbnailInfo(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	CameraMode = ECameraProjectionMode::Orthographic;
+	CameraMode = ECameraProjectionMode::Perspective;
 	OrthoDirection = EOrthoThumbnailDirection::Top;
 }
