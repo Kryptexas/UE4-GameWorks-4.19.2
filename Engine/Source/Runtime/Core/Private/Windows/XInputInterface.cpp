@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
+#include "WindowsApplication.h"
 #include "XInputInterface.h"
 #include "GenericApplication.h"
-#include "WindowsApplication.h"
 
 #pragma pack (push,8)
 #include "AllowWindowsPlatformTypes.h"
