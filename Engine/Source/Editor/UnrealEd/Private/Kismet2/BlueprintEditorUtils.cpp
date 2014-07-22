@@ -1026,16 +1026,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			}
 		}
 
-		// Ensure that the package metadata is preloaded and valid
-		if( Package )
-		{
-			UMetaData* MetaData = Package->GetMetaData();
-			if( MetaData->HasAnyFlags(RF_NeedLoad) )
-			{
-				MetaData->GetLinker()->Preload(MetaData);
-			}
-		}
-
 		// Make sure the simple construction script is loaded, since the outer hierarchy isn't compatible with PreloadMembers past the root node
 		FBlueprintEditorUtils::PreloadConstructionScript(Blueprint);
 
