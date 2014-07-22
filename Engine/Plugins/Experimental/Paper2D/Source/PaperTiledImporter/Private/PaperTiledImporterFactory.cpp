@@ -632,7 +632,7 @@ void FTileLayerFromTiled::ParseFromJSON(TSharedPtr<FJsonObject> Tree, const FStr
 	if (!Tree->TryGetStringField(TEXT("type"), /*out*/ Type))
 	{
 		//@TODO: Figure out what to do with the layer type!
-		TILED_IMPORT_ERROR(TEXT("Failed to parse '%s'.  Invalid value for '%s' (%s but expected a ???)"), *NameForErrors, TEXT("type"), *Type);
+		TILED_IMPORT_ERROR(TEXT("Failed to parse '%s'.  Invalid value for '%s' (%s but expected a ??? )"), *NameForErrors, TEXT("type"), *Type);
 		bSuccessfullyParsed = false;
 	}
 
