@@ -262,6 +262,9 @@ private:
 
 	/** Wind actor used for preview */
 	TWeakObjectPtr<AWindDirectionalSource> SelectedWindActor;
+
+	/** Distance to trace for physics bodies */
+	const float BodyTraceDistance;
 private:
 	int32 FindSelectedBone() const;
 	class USkeletalMeshSocket* FindSelectedSocket() const;
