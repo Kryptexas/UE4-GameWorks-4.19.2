@@ -3,7 +3,9 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperSpriteSceneProxy.h"
 #include "PaperSpriteComponent.h"
-#include "PhysicsEngine/BodySetup2D.h"
+#include "PaperCustomVersion.h"
+#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup2D.h"
+#include "Runtime/Engine/Public/ContentStreaming.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteComponent
@@ -13,9 +15,13 @@ UPaperSpriteComponent::UPaperSpriteComponent(const FPostConstructInitializePrope
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
-	MaterialOverride = nullptr;
+	MaterialOverride_DEPRECATED = nullptr;
 
 	SpriteColor = FLinearColor::White;
+
+	CastShadow = false;
+	bUseAsOccluder = false;
+	bCanEverAffectNavigation = false;
 }
 
 #if WITH_EDITOR
@@ -24,6 +30,30 @@ void UPaperSpriteComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
+
+#if WITH_EDITORONLY_DATA
+void UPaperSpriteComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperSpriteComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	if (PaperVer < FPaperCustomVersion::ConvertPaperSpriteComponentToBeMeshComponent)
+	{
+		if (MaterialOverride_DEPRECATED != nullptr)
+		{
+			SetMaterial(0, MaterialOverride_DEPRECATED);
+		}
+	}
 }
 #endif
 
@@ -157,6 +187,10 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 			// Update physics representation right away
 			RecreatePhysicsState();
 
+			// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
+			// and the component may have to be added to the streaming system for the first time.
+			IStreamingManager::Get().NotifyPrimitiveAttached(this, DPT_Spawned);
+
 			// Since we have new mesh, we need to update bounds
 			UpdateBounds();
 
@@ -165,6 +199,52 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 	}
 
 	return false;
+}
+
+void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
+{
+	// Get any textures referenced by our materials
+	Super::GetUsedTextures(OutTextures, QualityLevel);
+
+	// Get the texture referenced by the sprite
+	if (SourceSprite != nullptr)
+	{
+		if (UTexture* BakedTexture = SourceSprite->GetBakedTexture())
+		{
+			OutTextures.AddUnique(BakedTexture);
+		}
+	}
+}
+
+UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) const
+{
+	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	{
+		return Materials[MaterialIndex];
+	}
+	else if (SourceSprite != nullptr)
+	{
+		//@TODO: PAPER2D: Need to support this for multi-material support
+		return SourceSprite->GetDefaultMaterial();
+	}
+
+	return nullptr;
+}
+
+void UPaperSpriteComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	return Super::GetUsedMaterials(OutMaterials);
+}
+
+void UPaperSpriteComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	//@TODO: PAPER2D: Need to support this for proper texture streaming
+	return Super::GetStreamingTextureInfo(OutStreamingTextures);
+}
+
+int32 UPaperSpriteComponent::GetNumMaterials() const
+{
+	return FMath::Max<int32>(Materials.Num(), 1);
 }
 
 UPaperSprite* UPaperSpriteComponent::GetSprite()

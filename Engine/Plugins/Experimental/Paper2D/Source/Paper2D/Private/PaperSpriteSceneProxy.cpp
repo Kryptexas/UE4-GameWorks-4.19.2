@@ -12,22 +12,10 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 	, SourceSprite(nullptr)
 {
 	WireframeColor = InComponent->GetWireframeColor();
-	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
-	
-	if (SourceSprite)
-	{
-		Material = SourceSprite->GetDefaultMaterial();
-	}
-		
-	if (InComponent->MaterialOverride)
-	{
-		Material = InComponent->MaterialOverride;
-	}
+	Material = InComponent->GetMaterial(0);
+	MaterialRelevance = InComponent->GetMaterialRelevance();
 
-	if (Material)
-	{
-		MaterialRelevance = Material->GetRelevance();
-	}
+	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
 }
 
 void FPaperSpriteSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)

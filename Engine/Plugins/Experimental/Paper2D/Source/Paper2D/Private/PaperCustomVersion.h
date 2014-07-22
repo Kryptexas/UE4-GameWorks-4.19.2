@@ -31,6 +31,9 @@ struct FPaperCustomVersion
 		// Fixed undo issues in several asset types due to missing RF_Transactional flag
 		AddTransactionalToClasses = 7,
 
+		// Converted UPaperSpriteComponent to be derived from UMeshComponent
+		ConvertPaperSpriteComponentToBeMeshComponent = 8,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
