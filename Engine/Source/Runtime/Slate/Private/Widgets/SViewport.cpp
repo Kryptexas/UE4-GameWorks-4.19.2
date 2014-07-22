@@ -27,6 +27,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
+	ViewportSize = InArgs._ViewportSize;
 
 	this->ChildSlot
 	[

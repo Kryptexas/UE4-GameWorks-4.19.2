@@ -18,6 +18,7 @@ public:
 		, _EnableGammaCorrection(true)
 		, _EnableBlending(false)
 		, _IgnoreTextureAlpha(true)
+		, _ViewportSize(FVector2D(320, 240))
 		{}
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -45,6 +46,12 @@ public:
 		 * If false, the texture alpha is used during blending
 		 */
 		SLATE_ARGUMENT( bool, IgnoreTextureAlpha )
+
+		/**
+		 * Size of the viewport widget
+		 */
+		SLATE_ATTRIBUTE(FVector2D, ViewportSize);
+
 	SLATE_END_ARGS()
 
 	/**
@@ -69,7 +76,7 @@ public:
 	 */
 	virtual FVector2D ComputeDesiredSize() const override
 	{
-		return FVector2D( 320, 240 );
+		return ViewportSize.Get();
 	}
 
 	/**
@@ -171,6 +178,9 @@ private:
 
 	// Whether or not to show the disabled effect when this viewport is disabled.
 	TAttribute<bool> ShowDisabledEffect;
+
+	// Size of the viewport
+	TAttribute<FVector2D> ViewportSize;
 
 	// Whether or not this viewport renders directly to the window back-buffer.
 	bool bRenderDirectlyToWindow;

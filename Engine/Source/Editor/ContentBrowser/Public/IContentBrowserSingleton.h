@@ -74,6 +74,12 @@ struct FAssetPickerConfig
 	/** The delegate that fires when an asset is right clicked and a context menu is requested */
 	FOnGetAssetContextMenu OnGetAssetContextMenu;
 
+	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
+	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
+
+	/** Fired when an asset item is about to show it's tool tip */
+	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
+
 	/** If more detailed filtering is required than simply Filter, this delegate will get fired for every asset to determine if it should be culled. */
 	FOnShouldFilterAsset OnShouldFilterAsset;
 

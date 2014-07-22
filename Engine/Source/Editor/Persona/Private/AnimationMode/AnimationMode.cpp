@@ -122,15 +122,7 @@ TSharedRef<SWidget> FAnimAssetPropertiesSummoner::CreateTabBody(const FWorkflowT
 {
 	TSharedPtr<FPersona> PersonaApp = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
 
-	return SNew(SOverlay)
-		+SOverlay::Slot()
-		[
-			SNew(SAnimAssetPropertiesTabBody, PersonaApp)
-		]
-		+SOverlay::Slot()
-		[
-			SNew(SAnimDifferentAssetBeingPreviewedWarning, PersonaApp)
-		];
+	return SNew(SAnimAssetPropertiesTabBody, PersonaApp);
 }
 
 /////////////////////////////////////////////////////
@@ -214,51 +206,5 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 			)
 		);
 }
-
-/////////////////////////////////////////////////////
-// SAnimDifferentAssetBeingPreviewedWarning
-
-void SAnimDifferentAssetBeingPreviewedWarning::Construct(const FArguments& InArgs, TSharedPtr<FPersona> InPersona)
-{
-	PersonaPtr = InPersona;
-
-	FSlateFontInfo BoldFont = FEditorStyle::GetFontStyle(TEXT("NotificationList.FontBold"));
-
-	Visibility = EVisibility::HitTestInvisible;
-
-	ChildSlot
-	[
-		SNew(SBorder)
-		.Padding(20.0f)
-		.Visibility(this, &SAnimDifferentAssetBeingPreviewedWarning::GetVisibility)
-		.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
-		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.62f))
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Font(BoldFont)
-			.Text(LOCTEXT("AssetPreviewMismatch", "Currently previewing\nanother asset"))
-		]
-	];
-}
-
-EVisibility SAnimDifferentAssetBeingPreviewedWarning::GetVisibility() const
-{
-	UObject* AssetBeingEdited = PersonaPtr.Pin()->GetAnimationAssetBeingEdited();
-	UObject* AssetBeingPreviewed = PersonaPtr.Pin()->GetPreviewAnimationAsset();
-
-	if (AssetBeingEdited != NULL)
-	{
-		if ((AssetBeingPreviewed != NULL) && (AssetBeingPreviewed != AssetBeingEdited))
-		{
-			return EVisibility::HitTestInvisible;
-		}
-	}
-	
-	return EVisibility::Collapsed;
-}
-
-/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

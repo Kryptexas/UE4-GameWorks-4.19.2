@@ -8,10 +8,13 @@
 #include "Persona.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "FeedbackContextEditor.h"
 #include "EditorAnimUtils.h"
 #include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "SceneViewport.h"
+#include "AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -40,29 +43,27 @@ const int32 SAnimationSequenceBrowser::MaxAssetsHistory = 10;
 
 SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
 {
+	if(PreviewComponent)
+	{
+		for(int32 ComponentIdx = PreviewComponent->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		{
+			USceneComponent* Component = PreviewComponent->AttachChildren[ComponentIdx];
+			if(Component)
+			{
+				CleanupPreviewSceneComponent(Component);
+			}
+		}
+		PreviewComponent->AttachChildren.Empty();
+	}
+
+	if(ViewportClient.IsValid())
+	{
+		ViewportClient->Viewport = NULL;
+	}
+
 	if (PersonaPtr.IsValid())
 	{
 		PersonaPtr.Pin()->SetSequenceBrowser(NULL);
-	}
-}
-
-void SAnimationSequenceBrowser::OnAnimSelected(const FAssetData& AssetData)
-{
-	CacheOriginalAnimAssetHistory();
-	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
-	if (Persona.IsValid())
-	{
-		if (UObject* RawAsset = AssetData.GetAsset())
-		{
-			if (UAnimationAsset* Asset = Cast<UAnimationAsset>(RawAsset))
-			{
-				Persona->SetPreviewAnimationAsset(Asset);
-			}
-			else if(UVertexAnimation* VertexAnim = Cast<UVertexAnimation>(RawAsset))
-			{
-				Persona->SetPreviewVertexAnim(VertexAnim);
-			}
-		}
 	}
 }
 
@@ -330,6 +331,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
+	CreateAssetTooltipResources();
+
 	// Configure filter for asset picker
 	FAssetPickerConfig Config;
 	Config.Filter.bRecursiveClasses = true;
@@ -350,7 +353,6 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	}
 
 	// Configure response to click and double-click
-	Config.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SAnimationSequenceBrowser::OnAnimSelected);
 	Config.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &SAnimationSequenceBrowser::OnRequestOpenAsset, false);
 	Config.OnGetAssetContextMenu = FOnGetAssetContextMenu::CreateSP(this, &SAnimationSequenceBrowser::OnGetAssetContextMenu);
 	Config.OnAssetTagWantsToBeDisplayed = FOnShouldDisplayAssetTag::CreateSP(this, &SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag);
@@ -362,6 +364,9 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	TSharedPtr<FFrontendFilterCategory> AnimCategory = MakeShareable( new FFrontendFilterCategory(LOCTEXT("ExtraAnimationFilters", "Anim Filters"), LOCTEXT("ExtraAnimationFiltersTooltip", "Filter assets by all filters in this category.")) );
 	Config.ExtraFrontendFilters.Add( MakeShareable(new FFrontendFilter_AdditiveAnimAssets(AnimCategory)) );
 	
+	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
+	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
+
 	TWeakPtr< SMenuAnchor > MenuAnchorPtr;
 	
 	this->ChildSlot
@@ -634,4 +639,250 @@ void SAnimationSequenceBrowser::SelectAsset(UAnimationAsset * AnimAsset)
 		}
 	}
 }
+
+TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetData& AssetData)
+{
+	// Make a list of tags to show
+	TArray<UObject::FAssetRegistryTag> Tags;
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	check(AssetClass);
+	AssetClass->GetDefaultObject()->GetAssetRegistryTags(Tags);
+
+	TArray<FName> TagsToShow;
+	for(UObject::FAssetRegistryTag& TagEntry : Tags)
+	{
+		if(TagEntry.Name != FName(TEXT("Skeleton")) && TagEntry.Type != UObject::FAssetRegistryTag::TT_Hidden)
+		{
+			TagsToShow.Add(TagEntry.Name);
+		}
+	}
+
+	// Add asset registry tags to a text list; except skeleton as that is implied in Persona
+	TSharedRef<SVerticalBox> DescriptionBox = SNew(SVerticalBox);
+	bool bDescriptionCreated = false;
+	for(TPair<FName, FString> TagPair : AssetData.TagsAndValues)
+	{
+		if(TagsToShow.Contains(TagPair.Key))
+		{
+			if(!bDescriptionCreated)
+			{
+				bDescriptionCreated = true;
+			}
+
+			DescriptionBox->AddSlot()
+			.AutoHeight()
+			.Padding(0,0,5,0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(FText::Format(LOCTEXT("AssetTagKey", "{0} :"), FText::FromName(TagPair.Key)))
+					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(TagPair.Value)
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			];
+		}
+	}
+
+	TSharedPtr<SHorizontalBox> ContentBox = nullptr;
+	TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
+	.TextMargin(1)
+	.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ToolTipBorder"))
+	[
+		SNew(SBorder)
+		.Padding(6)
+		.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.NonContentBorder"))
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0,0,0,4)
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+				[
+					SNew(SBox)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromName(AssetData.AssetName))
+						.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
+					]
+				]
+			]
+		
+			+ SVerticalBox::Slot()
+			[
+				SAssignNew(ContentBox, SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBorder)
+					.Padding(6)
+					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+					[
+						ViewportWidget.ToSharedRef()
+					]
+				]
+			]
+		]
+	];
+
+	// If we have a description, add an extra section to the tooltip for it.
+	if(bDescriptionCreated)
+	{
+		ContentBox->AddSlot()
+		.Padding(4, 0, 0, 0)
+		[
+			SNew(SBorder)
+			.Padding(6)
+			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+			[
+				DescriptionBox
+			]
+		];
+	}
+
+	return ToolTip;
+}
+
+void SAnimationSequenceBrowser::CreateAssetTooltipResources()
+{
+	SAssignNew(ViewportWidget, SViewport)
+		.EnableGammaCorrection(false)
+		.ViewportSize(FVector2D(128, 128));
+
+	ViewportClient = MakeShareable(new FAnimationAssetViewportClient(PreviewScene));
+	SceneViewport = MakeShareable(new FSceneViewport(ViewportClient.Get(), ViewportWidget));
+	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass());
+
+	// Client options
+	ViewportClient->ViewportType = LVT_Perspective;
+	ViewportClient->bSetListenerPosition = false;
+	// Default view until we need to show the viewport
+	ViewportClient->SetViewLocation(EditorViewportDefs::DefaultPerspectiveViewLocation);
+	ViewportClient->SetViewRotation(EditorViewportDefs::DefaultPerspectiveViewRotation);
+
+	ViewportClient->Viewport = SceneViewport.Get();
+	ViewportClient->SetRealtime(true);
+	ViewportClient->SetViewMode(VMI_Lit);
+	ViewportClient->ToggleOrbitCamera(true);
+
+	// Add the scene viewport
+	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
+
+	// Setup the preview component to ensure an animation will update when requested
+	PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
+
+	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
+
+	PreviewScene.SetLightDirection(Options->AnimPreviewLightingDirection);
+	PreviewScene.GetScene()->UpdateDynamicSkyLight(Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewSkyColor), Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewFloorColor));
+	PreviewScene.SetLightColor(Options->AnimPreviewDirectionalColor);
+	PreviewScene.SetLightBrightness(Options->AnimPreviewLightBrightness);
+}
+
+bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget>& TooltipContent, FAssetData& AssetData)
+{
+	// Resolve the asset
+	USkeletalMesh* MeshToUse = nullptr;
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	if(AssetClass->IsChildOf(UAnimationAsset::StaticClass()))
+	{
+		// Set up the viewport to show the asset. Catching the visualize allows us to use
+		// one viewport between all of the assets in the sequence browser.
+		UAnimationAsset* Asset = StaticCast<UAnimationAsset*>(AssetData.GetAsset());
+		check(Asset);
+
+		USkeleton* Skeleton = Asset->GetSkeleton();
+		
+		MeshToUse = Skeleton->GetPreviewMesh(true);
+		check(MeshToUse);
+		if(PreviewComponent->SkeletalMesh != MeshToUse)
+		{
+			PreviewComponent->SetSkeletalMesh(MeshToUse);
+		}
+
+		PreviewComponent->EnablePreview(true, Asset, NULL);
+		PreviewComponent->PreviewInstance->SetLooping(true);
+
+		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
+		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
+
+		ViewportClient->SetViewRotation(FRotator(0.0f, 135.0f, 0.0f));
+		ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+	}
+
+	// We return false here as we aren't visualizing the tooltip - just detecting when it is about to be shown.
+	// We still want slate to draw it.
+	return false;
+}
+
+void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Component)
+{
+	if(Component)
+	{
+		for(int32 ComponentIdx = Component->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		{
+			USceneComponent* ChildComponent = Component->AttachChildren[ComponentIdx];
+			CleanupPreviewSceneComponent(ChildComponent);
+		}
+		Component->AttachChildren.Empty();
+		Component->DestroyComponent();
+	}
+}
+
+void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(PreviewComponent && ViewportWidget->GetVisibility() == EVisibility::Visible)
+	{
+		// Tick the world to update preview viewport for tooltips
+		PreviewComponent->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+	}
+}
+
+FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+{
+	SetViewMode(VMI_Lit);
+
+	// Always composite editor objects after post processing in the editor
+	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.DisableAdvancedFeatures();
+
+	// Setup defaults for the common draw helper.
+	DrawHelper.bDrawPivot = false;
+	DrawHelper.bDrawWorldBox = false;
+	DrawHelper.bDrawKillZ = false;
+	DrawHelper.bDrawGrid = true;
+	DrawHelper.GridColorAxis = FColor(70, 70, 70);
+	DrawHelper.GridColorMajor = FColor(40, 40, 40);
+	DrawHelper.GridColorMinor = FColor(20, 20, 20);
+	DrawHelper.PerspectiveGridSize = HALF_WORLD_MAX1;
+	bDrawAxes = false;
+}
+
+FSceneInterface* FAnimationAssetViewportClient::GetScene() const
+{
+	return PreviewScene->GetScene();
+}
+
+FLinearColor FAnimationAssetViewportClient::GetBackgroundColor() const
+{
+	return FLinearColor(0.8f, 0.85f, 0.85f);
+}
+
+
 #undef LOCTEXT_NAMESPACE

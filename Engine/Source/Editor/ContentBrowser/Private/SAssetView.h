@@ -57,6 +57,12 @@ public:
 		/** Called when the user has committed a rename of one or more assets */
 		SLATE_EVENT( FOnAssetRenameCommitted, OnAssetRenameCommitted )
 
+		/** Called to get a custom asset item tool tip (if necessary) */
+		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip )
+
+		/** Called when an asset item is about to show a tooltip */
+		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip )
+
 		/** The warning text to display when there are no assets to show */
 		SLATE_ATTRIBUTE( FText, AssetShowWarningText )
 
@@ -672,6 +678,12 @@ private:
 
 	/** Called to check if an asset tag should be display in details view. */
 	FOnShouldDisplayAssetTag OnAssetTagWantsToBeDisplayed;
+
+	/** Called to get a custom asset item tooltip (If necessary) */
+	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
+
+	/** Called when a custom asset item is about to show a tooltip */
+	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
 	
 	/** When true, filtered list items will be sorted next tick. Provided another sort hasn't happened recently or we are renaming an asset */
 	bool bPendingSortFilteredItems;

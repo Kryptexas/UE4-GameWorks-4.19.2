@@ -276,17 +276,6 @@ TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimA
 
 	if (Result.IsValid())
 	{
-		// Wrap the document editor with a potential preview mismatch warning
-		Result = SNew(SOverlay)
-			+SOverlay::Slot()
-			[
-				Result.ToSharedRef()
-			]
-			+SOverlay::Slot()
-			[
-				SNew(SAnimDifferentAssetBeingPreviewedWarning, SharedThis(this))
-			];
-
 		InAnimAsset->SetFlags(RF_Transactional);
 	}
 

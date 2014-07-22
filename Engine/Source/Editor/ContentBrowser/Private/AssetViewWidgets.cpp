@@ -131,6 +131,8 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
 	OnPathsDragDropped = InArgs._OnPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
+	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
+	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 
 	bDraggedOver = false;
 
@@ -428,7 +430,12 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 {
 	if ( AssetItem.IsValid() )
 	{
-		if(AssetItem->GetType() != EAssetItemType::Folder)
+		if(OnGetCustomAssetToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
+		{
+			FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+			return OnGetCustomAssetToolTip.Execute(AssetData);
+		}
+		else if(AssetItem->GetType() != EAssetItemType::Folder)
 		{
 			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 			UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
@@ -892,6 +899,18 @@ void SAssetViewItem::HandleAssetLoaded(UObject* InAsset) const
 	}
 }
 
+bool SAssetViewItem::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
+{
+	if(OnVisualizeAssetToolTip.IsBound() && TooltipContent.IsValid() && AssetItem->GetType() != EAssetItemType::Folder)
+	{
+		FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+		return OnVisualizeAssetToolTip.Execute(TooltipContent, AssetData);
+	}
+
+	// No custom behaviour, return false to allow slate to visualize the widget
+	return false;
+}
+
 ///////////////////////////////
 // SAssetListItem
 ///////////////////////////////
@@ -916,6 +935,8 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
+		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
@@ -1117,6 +1138,8 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
+		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
@@ -1306,6 +1329,8 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
+		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		);
 	
 	HighlightText = InArgs._HighlightText;
@@ -1339,8 +1364,6 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		const float IconOverlaySize = IconBrush->ImageSize.X * 0.6f;
 
 		Content = SNew(SHorizontalBox)
-			.ToolTipText(this, &SAssetColumnItem::GetAssetNameToolTipText)
-
 			// Icon
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -1427,6 +1450,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 
 	return SNew(SBox)
 		.Padding(FMargin(0, 0, 6, 0)) // Add a little right padding so text from this column does not run directly into text from the next.
+		.ToolTip(CreateToolTipWidget())
 		[
 			Content.ToSharedRef()
 		];
@@ -1446,6 +1470,8 @@ void SAssetColumnItem::OnAssetDataChanged()
 	{
 		PathText->SetText( GetAssetPathText() );
 	}
+
+	SetToolTip( CreateToolTipWidget() );
 }
 
 FString SAssetColumnItem::GetAssetNameToolTipText() const
