@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "ActiveSound.h"
 #include "Audio.h"
 #include "AudioDevice.h"
 #include "Sound/SoundCue.h"
