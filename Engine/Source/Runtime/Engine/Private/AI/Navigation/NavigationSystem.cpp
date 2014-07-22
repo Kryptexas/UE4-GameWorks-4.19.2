@@ -247,7 +247,7 @@ void UNavigationSystem::DoInitialSetup()
 	NavDataClasses.Empty(RequiredNavigationDataClassNames.Num());
 	for (int32 Index = 0; Index < RequiredNavigationDataClassNames.Num(); ++Index)
 	{
-		TSubclassOf<class ANavigationData> NavDataClass = LoadClass<ANavigationData>(NULL, *RequiredNavigationDataClassNames[Index].ClassName, NULL, LOAD_None, NULL);
+		TSubclassOf<class ANavigationData> NavDataClass = LoadClass<ANavigationData>(NULL, *RequiredNavigationDataClassNames[Index].ToString(), NULL, LOAD_None, NULL);
 		if (NavDataClass)
 		{
 			NavDataClasses.AddUnique(NavDataClass);
@@ -255,7 +255,7 @@ void UNavigationSystem::DoInitialSetup()
 		else
 		{
 			UE_LOG(LogNavigation, Warning, TEXT("Unable to find navigation data class \'%s\' while setting up require navigation types")
-				, *RequiredNavigationDataClassNames[Index].ClassName);
+				, *RequiredNavigationDataClassNames[Index].ToString());
 		}
 	}
 

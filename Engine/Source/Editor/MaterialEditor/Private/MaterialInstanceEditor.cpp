@@ -225,7 +225,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	{
 		InstanceConstant->PreviewMesh = ThumbnailInfoWithPrim->PreviewMesh;
 	}
-	SetPreviewMesh( *InstanceConstant->PreviewMesh.AssetLongPathname );
+	SetPreviewMesh(*InstanceConstant->PreviewMesh.ToString());
 }
 
 FMaterialInstanceEditor::~FMaterialInstanceEditor()

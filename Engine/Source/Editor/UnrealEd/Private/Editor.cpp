@@ -6325,7 +6325,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 
 		// Load the new mesh, if not already loaded. 
-		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName.AssetLongPathname, NULL, LOAD_None, NULL );
+		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(NULL, *MeshName.ToString(), NULL, LOAD_None, NULL);
 
 		// Swap out the meshes if we loaded or found the given static mesh. 
 		if( PreviewMesh )
@@ -6335,7 +6335,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 		else
 		{
-			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.AssetLongPathname );
+			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.ToString());
 		}
 	}
 	else

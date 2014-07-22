@@ -404,7 +404,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	LoadEditorSettings();
 	
 	// Set the preview mesh for the material.  This call must occur after the toolbar is initialized.
-	if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
+	if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
 	{
 		// The material preview mesh couldn't be found or isn't loaded.  Default to the one of the primitive types.
 		Viewport->SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
@@ -3255,7 +3255,7 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 		{
 			// SetPreviewMesh will return false if the material has bUsedWithSkeletalMesh and
 			// a skeleton was requested, in which case revert to a sphere static mesh.
-			if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
+			if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
 			{
 				SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
 			}

@@ -100,7 +100,7 @@ void FStreamableManager::OnPostGarbageCollect()
 			if (Existing->WeakTarget.Get())
 			{
 				// This is reasonable if someone else has made a hard reference to it
-				UE_LOG(LogStreamableManager, Verbose, TEXT("Failed to unload %s."), *It.Key().AssetLongPathname);
+				UE_LOG(LogStreamableManager, Verbose, TEXT("Failed to unload %s."), *It.Key().ToString());
 			}
 			delete Existing;
 			It.RemoveCurrent();
@@ -110,11 +110,11 @@ void FStreamableManager::OnPostGarbageCollect()
 
 UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTargetName)
 {
-	UE_LOG(LogStreamableManager, Verbose, TEXT("Synchronous load %s"), *InTargetName.AssetLongPathname);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("Synchronous load %s"), *InTargetName.ToString());
 
-	if (FPackageName::IsShortPackageName(InTargetName.AssetLongPathname))
+	if (FPackageName::IsShortPackageName(InTargetName.ToString()))
 	{
-		UE_LOG(LogStreamableManager, Error, TEXT("     Can't load invalid package name %s"), *InTargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Error, TEXT("     Can't load invalid package name %s"), *InTargetName.ToString());
 		return NULL;
 	}
 
@@ -122,7 +122,7 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 	while (Existing && Existing->bAsyncLoadRequestOutstanding)
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("     Flushing async load for %s"), *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("     Flushing async load for %s"), *TargetName.ToString());
 		check(!Existing->bAsyncUnloadRequestOutstanding); // we should not be both loading and unloading
 		FlushAsyncLoading(); 
 		// the async request might have found a redirect and retried
@@ -138,15 +138,15 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 	if (Existing->bAsyncUnloadRequestOutstanding)
 	{
 		check(!Existing->bAsyncLoadRequestOutstanding); // we should not be both loading and unloading
-		UE_LOG(LogStreamableManager, Verbose, TEXT("     Aborted unload for %s"), *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("     Aborted unload for %s"), *TargetName.ToString());
 		Existing->bAsyncUnloadRequestOutstanding = false;
 	}
 	check(!Existing->bAsyncUnloadRequestOutstanding); // should have already dealt with this
 	check(!Existing->WeakTarget.Get()); // weak target is only valid during GC
 	if (!Existing->Target)
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("     Static loading %s"), *TargetName.AssetLongPathname);
-		Existing->Target = StaticLoadObject(UObject::StaticClass(), NULL, *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("     Static loading %s"), *TargetName.ToString());
+		Existing->Target = StaticLoadObject(UObject::StaticClass(), NULL, *TargetName.ToString());
 		// need to manually detect redirectors because the above call only expects to load a UObject::StaticClass() type
 		while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(Existing->Target))
 		{
@@ -155,11 +155,10 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 		if (Existing->Target)
 		{
 			UE_LOG(LogStreamableManager, Verbose, TEXT("     Static loaded %s"), *Existing->Target->GetFullName());
-			FStringAssetReference PossiblyNewName;
-			PossiblyNewName.AssetLongPathname = Existing->Target->GetPathName();
+			FStringAssetReference PossiblyNewName(Existing->Target->GetPathName());
 			if (PossiblyNewName != TargetName)
 			{
-				UE_LOG(LogStreamableManager, Verbose, TEXT("     Which redirected to %s"), *PossiblyNewName.AssetLongPathname);
+				UE_LOG(LogStreamableManager, Verbose, TEXT("     Which redirected to %s"), *PossiblyNewName.ToString());
 				StreamableRedirects.Add(TargetName, PossiblyNewName);
 				StreamableItems.Add(PossiblyNewName, Existing);
 				StreamableItems.Remove(TargetName);
@@ -169,7 +168,7 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 		else
 		{
 			Existing->bLoadFailed = true;
-			UE_LOG(LogStreamableManager, Log, TEXT("Failed attempt to load %s"), *TargetName.AssetLongPathname);
+			UE_LOG(LogStreamableManager, Log, TEXT("Failed attempt to load %s"), *TargetName.ToString());
 		}
 	}
 	else
@@ -182,11 +181,11 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference const& InTargetName)
 {
 	check(IsInGameThread());
-	UE_LOG(LogStreamableManager, Verbose, TEXT("Asynchronous load %s"), *InTargetName.AssetLongPathname);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("Asynchronous load %s"), *InTargetName.ToString());
 
-	if (FPackageName::IsShortPackageName(InTargetName.AssetLongPathname))
+	if (FPackageName::IsShortPackageName(InTargetName.ToString()))
 	{
-		UE_LOG(LogStreamableManager, Error, TEXT("     Can't load invalid package name %s"), *InTargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Error, TEXT("     Can't load invalid package name %s"), *InTargetName.ToString());
 		return NULL;
 	}
 
@@ -198,21 +197,21 @@ struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference con
 		{
 			// It's valid to have a live pointer if an async loaded object was hard referenced later
 			check(!Existing->bAsyncLoadRequestOutstanding); // we should not be both loading and unloading
-			UE_LOG(LogStreamableManager, Verbose, TEXT("     Aborted unload for %s"), *TargetName.AssetLongPathname);
+			UE_LOG(LogStreamableManager, Verbose, TEXT("     Aborted unload for %s"), *TargetName.ToString());
 			Existing->bAsyncUnloadRequestOutstanding = false;
 			check(Existing->Target || Existing->bLoadFailed); // should not be an unload request unless the target is valid
 			return Existing;
 		}
 		if (Existing->bAsyncLoadRequestOutstanding)
 		{
-			UE_LOG(LogStreamableManager, Verbose, TEXT("     Already in progress %s"), *TargetName.AssetLongPathname);
+			UE_LOG(LogStreamableManager, Verbose, TEXT("     Already in progress %s"), *TargetName.ToString());
 			check(!Existing->bAsyncUnloadRequestOutstanding); // we should not be both loading and unloading
 			check(!Existing->Target); // should not be an load request unless the target is invalid
 			return Existing; // already have one in process
 		}
 		if (Existing->Target)
 		{
-			UE_LOG(LogStreamableManager, Verbose, TEXT("     Already Loaded %s"), *TargetName.AssetLongPathname);
+			UE_LOG(LogStreamableManager, Verbose, TEXT("     Already Loaded %s"), *TargetName.ToString());
 			return Existing; 
 		}
 	}
@@ -225,7 +224,7 @@ struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference con
 
 	if (!Existing->Target)
 	{
-		FString Package = TargetName.AssetLongPathname;
+		FString Package = TargetName.ToString();
 		int32 FirstDot = Package.Find(TEXT("."));
 		if (FirstDot != INDEX_NONE)
 		{
@@ -282,8 +281,8 @@ void FStreamableManager::FindInMemory(FStringAssetReference& InOutTargetName, st
 	check(Existing);
 	check(!Existing->bAsyncUnloadRequestOutstanding);
 	check(!Existing->bAsyncLoadRequestOutstanding);
-	UE_LOG(LogStreamableManager, Verbose, TEXT("     Searching in memory for %s"), *InOutTargetName.AssetLongPathname);
-	Existing->Target = StaticFindObject(UObject::StaticClass(), NULL, *InOutTargetName.AssetLongPathname);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("     Searching in memory for %s"), *InOutTargetName.ToString());
+	Existing->Target = StaticFindObject(UObject::StaticClass(), NULL, *InOutTargetName.ToString());
 
 	UObjectRedirector* Redir = Cast<UObjectRedirector>(Existing->Target);
 	if (Redir)
@@ -293,7 +292,7 @@ void FStreamableManager::FindInMemory(FStringAssetReference& InOutTargetName, st
 		if (!Existing->Target)
 		{
 			Existing->bLoadFailed = true;
-			UE_LOG(LogStreamableManager, Warning, TEXT("Destination of redirector was not found %s -> %s."), *InOutTargetName.AssetLongPathname, *Redir->GetFullName());
+			UE_LOG(LogStreamableManager, Warning, TEXT("Destination of redirector was not found %s -> %s."), *InOutTargetName.ToString(), *Redir->GetFullName());
 		}
 		else
 		{
@@ -302,11 +301,10 @@ void FStreamableManager::FindInMemory(FStringAssetReference& InOutTargetName, st
 	}
 	if (Existing->Target)
 	{
-		FStringAssetReference PossiblyNewName;
-		PossiblyNewName.AssetLongPathname = Existing->Target->GetPathName();
+		FStringAssetReference PossiblyNewName(Existing->Target->GetPathName());
 		if (InOutTargetName != PossiblyNewName)
 		{
-			UE_LOG(LogStreamableManager, Verbose, TEXT("     Name changed to %s"), *PossiblyNewName.AssetLongPathname);
+			UE_LOG(LogStreamableManager, Verbose, TEXT("     Name changed to %s"), *PossiblyNewName.ToString());
 			StreamableRedirects.Add(InOutTargetName, PossiblyNewName);
 			StreamableItems.Add(PossiblyNewName, Existing);
 			StreamableItems.Remove(InOutTargetName);
@@ -323,7 +321,7 @@ void FStreamableManager::AsyncLoadCallback(FStringAssetReference Request)
 	FStringAssetReference TargetName = Request;
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 
-	UE_LOG(LogStreamableManager, Verbose, TEXT("Stream Complete callback %s"), *TargetName.AssetLongPathname);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("Stream Complete callback %s"), *TargetName.ToString());
 	if (!Existing)
 	{
 		// hmm, maybe it was redirected by a consolidate
@@ -348,7 +346,7 @@ void FStreamableManager::AsyncLoadCallback(FStringAssetReference Request)
 	{
 		// Async load failed to find the object
 		Existing->bLoadFailed = true;
-		UE_LOG(LogStreamableManager, Verbose, TEXT("    Failed async load."), *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("    Failed async load."), *TargetName.ToString());
 	}
 }
 
@@ -382,7 +380,7 @@ bool FStreamableManager::IsAsyncLoadComplete(FStringAssetReference const& InTarg
 	check(IsInGameThread());
 	FStringAssetReference TargetName = ResolveRedirects(InTargetName);
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
-	UE_LOG(LogStreamableManager, Verbose, TEXT("IsStreamComplete %s  -> %d"), *TargetName.AssetLongPathname, !Existing || !Existing->bAsyncLoadRequestOutstanding);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("IsStreamComplete %s  -> %d"), *TargetName.ToString(), !Existing || !Existing->bAsyncLoadRequestOutstanding);
 	return !Existing || !Existing->bAsyncLoadRequestOutstanding;
 }
 
@@ -393,10 +391,10 @@ UObject* FStreamableManager::GetStreamed(FStringAssetReference const& InTargetNa
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 	if (Existing && Existing->Target)
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("GetStreamed %s  -> %s"), *TargetName.AssetLongPathname, *Existing->Target->GetFullName());
+		UE_LOG(LogStreamableManager, Verbose, TEXT("GetStreamed %s  -> %s"), *TargetName.ToString(), *Existing->Target->GetFullName());
 		return Existing->Target;
 	}
-	UE_LOG(LogStreamableManager, Verbose, TEXT("GetStreamed %s  -> NULL"), *TargetName.AssetLongPathname);
+	UE_LOG(LogStreamableManager, Verbose, TEXT("GetStreamed %s  -> NULL"), *TargetName.ToString());
 	return NULL;
 }
 
@@ -407,13 +405,13 @@ void FStreamableManager::Unload(FStringAssetReference const& InTargetName)
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 	if (Existing)
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("Unload %s"), *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("Unload %s"), *TargetName.ToString());
 		Existing->bAsyncLoadRequestOutstanding = false;
 		Existing->bAsyncUnloadRequestOutstanding = true;
 	}
 	else
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("Attempt to unload %s, but it isn't loaded"), *TargetName.AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("Attempt to unload %s, but it isn't loaded"), *TargetName.ToString());
 	}
 }
 
@@ -435,7 +433,7 @@ FStringAssetReference FStreamableManager::ResolveRedirects(FStringAssetReference
 	if (Redir)
 	{
 		check(Target != *Redir);
-		UE_LOG(LogStreamableManager, Verbose, TEXT("Redirected %s -> %s"), *Target.AssetLongPathname, *Redir->AssetLongPathname);
+		UE_LOG(LogStreamableManager, Verbose, TEXT("Redirected %s -> %s"), *Target.ToString(), *Redir->ToString());
 		return *Redir;
 	}
 	return Target;

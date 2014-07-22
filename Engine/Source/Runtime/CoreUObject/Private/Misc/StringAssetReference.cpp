@@ -89,44 +89,17 @@ bool FStringAssetReference::ImportTextItem( const TCHAR*& Buffer, int32 PortFlag
 	return true;
 }
 
+#include "StringReferenceTemplates.h"
 
 bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar)
 {
-	if (Tag.Type == NAME_ObjectProperty)
+	struct UObjectTypePolicy
 	{
-		UObject* Object = NULL;
-		Ar << Object;
-		if (Object)
-		{
-			AssetLongPathname = Object->GetPathName();
-		}
-		else
-		{
-			AssetLongPathname = FString();
-		}
-#if WITH_EDITOR
-		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
-		{
-			FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
-		}
-#endif // WITH_EDITOR
-		return true;
-	}
-	else if( Tag.Type == NAME_StrProperty )
-	{
-		FString String;
-		Ar << String;
+		typedef UObject Type;
+		static const FName FORCEINLINE GetTypeName() { return NAME_ObjectProperty; }
+	};
 
-		AssetLongPathname = String;
-#if WITH_EDITOR
-		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
-		{
-			FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
-		}
-#endif // WITH_EDITOR
-		return true;
-	}
-	return false;
+	return SerializeFromMismatchedTagTemplate<UObjectTypePolicy>(AssetLongPathname, Tag, Ar);
 }
 
 UObject *FStringAssetReference::ResolveObject() const

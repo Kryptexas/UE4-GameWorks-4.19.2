@@ -771,7 +771,7 @@ UAISystemBase* UWorld::CreateAISystem()
 				AISystem = AISystemModule->CreateAISystemInstance(this);
 				if (AISystem == NULL)
 				{
-					UE_LOG(LogWorld, Error, TEXT("Failed to create AISystem instance of class %s!"), *UAISystemBase::GetAISystemClassName().ClassName);
+					UE_LOG(LogWorld, Error, TEXT("Failed to create AISystem instance of class %s!"), *UAISystemBase::GetAISystemClassName().ToString());
 				}
 			}
 		}

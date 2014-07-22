@@ -7,7 +7,7 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
-	ClassNamePropertyHandle = InStructPropertyHandle->GetChildHandle("ClassName");
+	ClassNamePropertyHandle = InStructPropertyHandle->GetChildHandle("AssetLongPathname");
 	check(ClassNamePropertyHandle.IsValid());
 
 	const FString& MetaClassName = StructPropertyHandle->GetMetaData("MetaClass");
@@ -48,7 +48,7 @@ void FStringClassReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyH
 const UClass* FStringClassReferenceCustomization::OnGetClass() const
 {
 	FString ClassName;
-	ClassNamePropertyHandle->GetValue(ClassName);
+	ClassNamePropertyHandle->GetValueAsFormattedString(ClassName);
 
 	// Do we have a valid cached class pointer?
 	const UClass* Class = CachedClassPtr.Get();

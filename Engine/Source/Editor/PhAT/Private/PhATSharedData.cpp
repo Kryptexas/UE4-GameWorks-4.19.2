@@ -75,9 +75,9 @@ void FPhATSharedData::Initialize()
 	USkeletalMesh * PreviewMesh =  NULL; 
 	FStringAssetReference PreviewMeshStringRef = PhysicsAsset->PreviewSkeletalMesh.ToStringReference();
 	// load it since now is the time to load
-	if(!PreviewMeshStringRef.AssetLongPathname.IsEmpty())
+	if (!PreviewMeshStringRef.ToString().IsEmpty())
 	{
-		PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
+		PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
 	}
 
 	if ( PreviewMesh == NULL)

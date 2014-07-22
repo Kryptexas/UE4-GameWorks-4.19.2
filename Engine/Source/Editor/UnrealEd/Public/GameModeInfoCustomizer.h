@@ -86,25 +86,12 @@ public:
 	void CustomizeGameModeSetting(IDetailLayoutBuilder& LayoutBuilder, IDetailCategoryBuilder& CategoryBuilder)
 	{
 		// Add GameMode picker widget
-		TSharedPtr<IPropertyHandle> DefaultGameModeHandle = LayoutBuilder.GetProperty(GameModePropertyName);
+		DefaultGameModeClassHandle = LayoutBuilder.GetProperty(GameModePropertyName);
+		check(DefaultGameModeClassHandle.IsValid());
 
-		UProperty* DefaultGameProperty = DefaultGameModeHandle->GetProperty();
-		// See if its a FStringClassReference property
-		if (UStructProperty* GameModeStructProp = Cast<UStructProperty>(DefaultGameProperty))
-		{
-			check(GameModeStructProp->Struct->GetName() == TEXT("StringClassReference"));
-			DefaultGameModeClassHandle = DefaultGameModeHandle->GetChildHandle("ClassName");
-			check(DefaultGameModeClassHandle.IsValid());
-		}
-		// Look for a regular Class property
-		else if (UClassProperty* GameModeClassProp = Cast<UClassProperty>(DefaultGameProperty))
-		{
-			DefaultGameModeClassHandle = DefaultGameModeHandle;
-		}
-
-		IDetailPropertyRow& DefaultGameModeRow = CategoryBuilder.AddProperty(DefaultGameModeHandle);
+		IDetailPropertyRow& DefaultGameModeRow = CategoryBuilder.AddProperty(DefaultGameModeClassHandle);
 		// SEe if we are allowed to choose 'no' GameMode
-		const bool bAllowNone = !(DefaultGameModeHandle->GetProperty()->PropertyFlags & CPF_NoClear);
+		const bool bAllowNone = !(DefaultGameModeClassHandle->GetProperty()->PropertyFlags & CPF_NoClear);
 
 		TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>(this, &FGameModeInfoCustomizer::CanBrowseGameMode);
 
@@ -113,7 +100,7 @@ public:
 		.CustomWidget()
 		.NameContent()
 		[
-			DefaultGameModeHandle->CreatePropertyNameWidget()
+			DefaultGameModeClassHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
 		.MaxDesiredWidth(0)

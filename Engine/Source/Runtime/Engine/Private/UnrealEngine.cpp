@@ -1216,40 +1216,40 @@ void UEngine::InitializeObjectReferences()
 	if (AllowDebugViewmodes())
 	{
 		// Materials that are needed in-game if debug viewmodes are allowed
-		LoadSpecialMaterial(WireframeMaterialName.AssetLongPathname, WireframeMaterial, true);
-		LoadSpecialMaterial(LevelColorationLitMaterialName.AssetLongPathname, LevelColorationLitMaterial, true);
-		LoadSpecialMaterial(LevelColorationUnlitMaterialName.AssetLongPathname, LevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(LightingTexelDensityName.AssetLongPathname, LightingTexelDensityMaterial, false);
-		LoadSpecialMaterial(ShadedLevelColorationLitMaterialName.AssetLongPathname, ShadedLevelColorationLitMaterial, true);
-		LoadSpecialMaterial(ShadedLevelColorationUnlitMaterialName.AssetLongPathname, ShadedLevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(VertexColorMaterialName.AssetLongPathname, VertexColorMaterial, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_ColorOnly.AssetLongPathname, VertexColorViewModeMaterial_ColorOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_AlphaAsColor.AssetLongPathname, VertexColorViewModeMaterial_AlphaAsColor, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_RedOnly.AssetLongPathname, VertexColorViewModeMaterial_RedOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_GreenOnly.AssetLongPathname, VertexColorViewModeMaterial_GreenOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_BlueOnly.AssetLongPathname, VertexColorViewModeMaterial_BlueOnly, false);
+		LoadSpecialMaterial(WireframeMaterialName.ToString(), WireframeMaterial, true);
+		LoadSpecialMaterial(LevelColorationLitMaterialName.ToString(), LevelColorationLitMaterial, true);
+		LoadSpecialMaterial(LevelColorationUnlitMaterialName.ToString(), LevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(LightingTexelDensityName.ToString(), LightingTexelDensityMaterial, false);
+		LoadSpecialMaterial(ShadedLevelColorationLitMaterialName.ToString(), ShadedLevelColorationLitMaterial, true);
+		LoadSpecialMaterial(ShadedLevelColorationUnlitMaterialName.ToString(), ShadedLevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(VertexColorMaterialName.ToString(), VertexColorMaterial, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_ColorOnly.ToString(), VertexColorViewModeMaterial_ColorOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_AlphaAsColor.ToString(), VertexColorViewModeMaterial_AlphaAsColor, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_RedOnly.ToString(), VertexColorViewModeMaterial_RedOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_GreenOnly.ToString(), VertexColorViewModeMaterial_GreenOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_BlueOnly.ToString(), VertexColorViewModeMaterial_BlueOnly, false);
 	}
 
 	// Materials that may or may not be needed when debug viewmodes are disabled but haven't been fixed up yet
-	LoadSpecialMaterial(RemoveSurfaceMaterialName.AssetLongPathname, RemoveSurfaceMaterial, false);	
+	LoadSpecialMaterial(RemoveSurfaceMaterialName.ToString(), RemoveSurfaceMaterial, false);
 
 	// these one's are needed both editor and standalone 
-	LoadSpecialMaterial(DebugMeshMaterialName.AssetLongPathname, DebugMeshMaterial, false);
-	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.AssetLongPathname, InvalidLightmapSettingsMaterial, false);
-	LoadSpecialMaterial(ArrowMaterialName.AssetLongPathname, ArrowMaterial, false);
+	LoadSpecialMaterial(DebugMeshMaterialName.ToString(), DebugMeshMaterial, false);
+	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.ToString(), InvalidLightmapSettingsMaterial, false);
+	LoadSpecialMaterial(ArrowMaterialName.ToString(), ArrowMaterial, false);
 
 
 	if (GIsEditor && !IsRunningCommandlet())
 	{
 		// Materials that are only needed in the interactive editor
 #if WITH_EDITORONLY_DATA
-		LoadSpecialMaterial(GeomMaterialName.AssetLongPathname, GeomMaterial, false);
-		LoadSpecialMaterial(EditorBrushMaterialName.AssetLongPathname, EditorBrushMaterial, false);
-		LoadSpecialMaterial(BoneWeightMaterialName.AssetLongPathname, BoneWeightMaterial, false);
+		LoadSpecialMaterial(GeomMaterialName.ToString(), GeomMaterial, false);
+		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
+		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
 #endif
 
-		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.AssetLongPathname, PreviewShadowsIndicatorMaterial, false);
-		LoadSpecialMaterial(ConstraintLimitMaterialName.AssetLongPathname, ConstraintLimitMaterial, false);
+		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);
+		LoadSpecialMaterial(ConstraintLimitMaterialName.ToString(), ConstraintLimitMaterial, false);
 
 		ConstraintLimitMaterialX = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
 		ConstraintLimitMaterialX->SetVectorParameterValue(FName("Color"), FLinearColor::Red);
@@ -1261,124 +1261,124 @@ void UEngine::InitializeObjectReferences()
 		//@TODO: This should move into the editor (used in editor modes exclusively)
 		if (DefaultBSPVertexTexture == NULL)
 		{
-			DefaultBSPVertexTexture = LoadObject<UTexture2D>(NULL, *DefaultBSPVertexTextureName.AssetLongPathname, NULL, LOAD_None, NULL);
+			DefaultBSPVertexTexture = LoadObject<UTexture2D>(NULL, *DefaultBSPVertexTextureName.ToString(), NULL, LOAD_None, NULL);
 		}
 	}
 
 	if( DefaultTexture == NULL )
 	{
-		DefaultTexture = LoadObject<UTexture2D>(NULL, *DefaultTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultTexture = LoadObject<UTexture2D>(NULL, *DefaultTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( DefaultDiffuseTexture == NULL )
 	{
-		DefaultDiffuseTexture = LoadObject<UTexture2D>(NULL, *DefaultDiffuseTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultDiffuseTexture = LoadObject<UTexture2D>(NULL, *DefaultDiffuseTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( HighFrequencyNoiseTexture == NULL )
 	{
-		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( DefaultBokehTexture == NULL )
 	{
-		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( PreIntegratedSkinBRDFTexture == NULL )
 	{
-		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( MiniFontTexture == NULL )
 	{
-		MiniFontTexture = LoadObject<UTexture2D>(NULL, *MiniFontTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		MiniFontTexture = LoadObject<UTexture2D>(NULL, *MiniFontTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( WeightMapPlaceholderTexture == NULL )
 	{
-		WeightMapPlaceholderTexture = LoadObject<UTexture2D>(NULL, *WeightMapPlaceholderTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		WeightMapPlaceholderTexture = LoadObject<UTexture2D>(NULL, *WeightMapPlaceholderTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if (LightMapDensityTexture == NULL)
 	{
-		LightMapDensityTexture = LoadObject<UTexture2D>(NULL, *LightMapDensityTextureName.AssetLongPathname, NULL, LOAD_None, NULL);
+		LightMapDensityTexture = LoadObject<UTexture2D>(NULL, *LightMapDensityTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( DefaultPhysMaterial == NULL )
 	{
-		DefaultPhysMaterial = LoadObject<UPhysicalMaterial>(NULL, *DefaultPhysMaterialName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultPhysMaterial = LoadObject<UPhysicalMaterial>(NULL, *DefaultPhysMaterialName.ToString(), NULL, LOAD_None, NULL);
 
-		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.AssetLongPathname);
+		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.ToString());
 	}
 
 	if ( ConsoleClass == NULL )
 	{
-		ConsoleClass = LoadClass<UConsole>(NULL, *ConsoleClassName.ClassName, NULL, LOAD_None, NULL);
+		ConsoleClass = LoadClass<UConsole>(NULL, *ConsoleClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( GameViewportClientClass == NULL )
 	{
-		GameViewportClientClass = LoadClass<UGameViewportClient>(NULL, *GameViewportClientClassName.ClassName, NULL, LOAD_None, NULL);
+		GameViewportClientClass = LoadClass<UGameViewportClient>(NULL, *GameViewportClientClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(GameViewportClientClass != NULL, TEXT("Engine config value GameViewportClientClassName is not a valid class name."));
 	}
 
 	if ( LocalPlayerClass == NULL )
 	{
-		LocalPlayerClass = LoadClass<ULocalPlayer>(NULL, *LocalPlayerClassName.ClassName, NULL, LOAD_None, NULL);
+		LocalPlayerClass = LoadClass<ULocalPlayer>(NULL, *LocalPlayerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( WorldSettingsClass == NULL )
 	{
-		WorldSettingsClass = LoadClass<AWorldSettings>(NULL, *WorldSettingsClassName.ClassName, NULL, LOAD_None, NULL);
+		WorldSettingsClass = LoadClass<AWorldSettings>(NULL, *WorldSettingsClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( NavigationSystemClass == NULL )
 	{
-		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ClassName, NULL, LOAD_None, NULL);
+		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( AvoidanceManagerClass == NULL )
 	{
-		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ClassName, NULL, LOAD_None, NULL);
+		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( PhysicsCollisionHandlerClass == NULL )
 	{
-		PhysicsCollisionHandlerClass = LoadClass<UPhysicsCollisionHandler>(NULL, *PhysicsCollisionHandlerClassName.ClassName, NULL, LOAD_None, NULL);
+		PhysicsCollisionHandlerClass = LoadClass<UPhysicsCollisionHandler>(NULL, *PhysicsCollisionHandlerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( GameUserSettingsClass == NULL )
 	{
-		GameUserSettingsClass = LoadClass<UGameUserSettings>(NULL, *GameUserSettingsClassName.ClassName, NULL, LOAD_None, NULL);
+		GameUserSettingsClass = LoadClass<UGameUserSettings>(NULL, *GameUserSettingsClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( LevelScriptActorClass == NULL )
 	{
-		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ClassName, NULL, LOAD_None, NULL);
+		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	// set the font object pointers
-	if( TinyFont == NULL && TinyFontName.AssetLongPathname.Len() )
+	if (TinyFont == NULL && TinyFontName.ToString().Len())
 	{
-		TinyFont = LoadObject<UFont>(NULL,*TinyFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( SmallFont == NULL && SmallFontName.AssetLongPathname.Len() )
+	if (SmallFont == NULL && SmallFontName.ToString().Len())
 	{
-		SmallFont = LoadObject<UFont>(NULL,*SmallFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( MediumFont == NULL && MediumFontName.AssetLongPathname.Len() )
+	if (MediumFont == NULL && MediumFontName.ToString().Len())
 	{
-		MediumFont = LoadObject<UFont>(NULL,*MediumFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( LargeFont == NULL && LargeFontName.AssetLongPathname.Len() )
+	if (LargeFont == NULL && LargeFontName.ToString().Len())
 	{
-		LargeFont = LoadObject<UFont>(NULL,*LargeFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( SubtitleFont == NULL && SubtitleFontName.AssetLongPathname.Len() )
+	if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
 	{
-		SubtitleFont = LoadObject<UFont>(NULL,*SubtitleFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	// Additional fonts.
@@ -1394,23 +1394,23 @@ void UEngine::InitializeObjectReferences()
 		AdditionalFonts.Add( NewFont );
 	}
 
-	if ( GameSingleton == NULL && GameSingletonClassName.ClassName.Len() > 0)
+	if (GameSingleton == NULL && GameSingletonClassName.ToString().Len() > 0)
 	{
-		UClass *SingletonClass = LoadClass<UObject>(NULL, *GameSingletonClassName.ClassName, NULL, LOAD_None, NULL);
+		UClass *SingletonClass = LoadClass<UObject>(NULL, *GameSingletonClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(SingletonClass != NULL, TEXT("Engine config value GameSingletonClassName is not a valid class name."));
 
 		GameSingleton = ConstructObject<UObject>(SingletonClass, this);
 	}
 
-	if ( DefaultTireType == NULL && DefaultTireTypeName.AssetLongPathname.Len() )
+	if (DefaultTireType == NULL && DefaultTireTypeName.ToString().Len())
 	{
-		DefaultTireType = LoadObject<UTireType>(NULL,*DefaultTireTypeName.AssetLongPathname,NULL,LOAD_None,NULL);
+		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString(), NULL, LOAD_None, NULL);
 	}
 
-	if( DefaultPreviewPawnClass == NULL && DefaultPreviewPawnClassName.ClassName.Len() )
+	if (DefaultPreviewPawnClass == NULL && DefaultPreviewPawnClassName.ToString().Len())
 	{
-		DefaultPreviewPawnClass = LoadClass<APawn>(NULL, *DefaultPreviewPawnClassName.ClassName, NULL, LOAD_None, NULL);
+		DefaultPreviewPawnClass = LoadClass<APawn>(NULL, *DefaultPreviewPawnClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(DefaultPreviewPawnClass != NULL, TEXT("Engine config value DefaultPreviewPawnClass is not a valid class name."));
 	}

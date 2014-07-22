@@ -133,7 +133,7 @@ struct FGatherStructTypesFromAssetsHelper
 		if (AssetReference.IsValid())
 		{
 			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-			const FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetReference.AssetLongPathname);
+			const FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetReference.ToString());
 			return AssetData.GetAsset();
 		}
 		return NULL;

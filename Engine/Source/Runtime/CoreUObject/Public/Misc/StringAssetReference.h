@@ -2,18 +2,22 @@
 
 #pragma once
 
+class UObject;
+struct FPropertyTag;
+
 /**
  * A struct that contains a string reference to an asset, can be used to make soft references to assets
  */
 struct COREUOBJECT_API FStringAssetReference
 {
-	// Caution, this is mirrored in Object.h as a non export struct.
+	/** Asset path */
 	FString AssetLongPathname;
-
+	
 	FStringAssetReference()
 	{
 	}
-	FStringAssetReference(FStringAssetReference const& Other)
+
+	FStringAssetReference(const FStringAssetReference& Other)
 		: AssetLongPathname(Other.AssetLongPathname)
 	{
 	}
@@ -33,7 +37,7 @@ struct COREUOBJECT_API FStringAssetReference
 	/**
 	 * Construct from an existing object, will do some string processing
 	 */
-	FStringAssetReference(const class UObject* InObject);
+	FStringAssetReference(const UObject* InObject);
 
 	/**
 	 * Converts in to a string
@@ -47,7 +51,7 @@ struct COREUOBJECT_API FStringAssetReference
 	 * Attempts to find a currently loaded object that matches this object ID
 	 * @return Found UObject, or NULL if not currently loaded
 	 */
-	class UObject *ResolveObject() const;
+	UObject *ResolveObject() const;
 
 	/**
 	 * Resets reference to point to NULL
@@ -98,13 +102,14 @@ struct COREUOBJECT_API FStringAssetReference
 		return CurrentTag++;
 	}
 
-	static FStringAssetReference GetOrCreateIDForObject(const class UObject *Object);
+	static FStringAssetReference GetOrCreateIDForObject(const UObject *Object);
 
 	static void SetPackageNamesBeingDuplicatedForPIE(const TArray<FString>& InPackageNamesBeingDuplicatedForPIE);
 	static void ClearPackageNamesBeingDuplicatedForPIE();
 
-private:
+protected:
 
+private:
 	/**
 	 * Fixes up this StringAssetReference to add or remove the PIE prefix depending on what is currently active
 	 */
@@ -113,7 +118,6 @@ private:
 	/** Global counter that determines when we need to re-search for GUIDs because more objects have been loaded **/
 	static int32 CurrentTag;
 	static TArray<FString> PackageNamesBeingDuplicatedForPIE;
-
 };
 
 template<>

@@ -666,10 +666,8 @@ struct FStringAssetReference
 // A string class reference
 
 USTRUCT(noexport)
-struct FStringClassReference
+struct FStringClassReference : public FStringAssetReference
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringClassReference)
-	FString ClassName;
 };
 
 // A struct used as stub for deleted ones.
