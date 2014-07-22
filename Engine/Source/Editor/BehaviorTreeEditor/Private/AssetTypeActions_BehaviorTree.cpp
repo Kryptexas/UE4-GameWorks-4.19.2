@@ -69,7 +69,7 @@ void FAssetTypeActions_BehaviorTree::OpenAssetEditor( const TArray<UObject*>& In
 			bool bFoundExisting = false;
 			if(BehaviorTree->BlackboardAsset != nullptr)
 			{
-				const bool bFocusIfOpen = true;
+				const bool bFocusIfOpen = false;
 				FBehaviorTreeEditor* ExistingInstance = static_cast<FBehaviorTreeEditor*>(FAssetEditorManager::Get().FindEditorForAsset(BehaviorTree->BlackboardAsset, bFocusIfOpen));
 				if(ExistingInstance != nullptr && ExistingInstance->GetBehaviorTree() == nullptr)
 				{
