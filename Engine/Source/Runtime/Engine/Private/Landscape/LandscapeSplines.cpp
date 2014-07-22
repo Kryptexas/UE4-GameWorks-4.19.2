@@ -463,6 +463,9 @@ void ULandscapeSplinesComponent::ShowSplineEditorMesh(bool bShow)
 UControlPointMeshComponent::UControlPointMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	Mobility = EComponentMobility:Static;
+
 #if WITH_EDITORONLY_DATA
 	bSelected = false;
 #endif
