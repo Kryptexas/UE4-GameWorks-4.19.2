@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
+#include "Engine/GameInstance.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
