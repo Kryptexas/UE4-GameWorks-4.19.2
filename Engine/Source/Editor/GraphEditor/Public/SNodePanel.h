@@ -173,6 +173,30 @@ public:
 	}
 };
 
+// Entry for an overlay widget in the node panel
+struct FOverlayWidgetInfo
+{
+public:
+	/** Widget to use */
+	TSharedPtr<SWidget> Widget;
+
+	/** Offset origin of the overlay from the widget */
+	FVector2D OverlayOffset;
+
+public:
+	FOverlayWidgetInfo()
+		: Widget(nullptr)
+		, OverlayOffset(0.f, 0.f)
+	{
+	}
+
+	FOverlayWidgetInfo(TSharedPtr<SWidget> InWidget)
+		: Widget(InWidget)
+		, OverlayOffset(0.f, 0.f)
+	{
+	}
+};
+
 // Entry for an information popup in the node panel
 struct FGraphInformationPopupInfo
 {
@@ -292,10 +316,16 @@ public:
 		{
 		}
 
+		/** Populate the widgets array with any overlay widgets to render */
+		virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const
+		{
+			return TArray<FOverlayWidgetInfo>();
+		}
+
 		/** Populate the popups array with any popups to render */
 		virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const
 		{
-		}
+		}	
 
 		/** Returns true if this node is dependent on the location of other nodes (it can only depend on the location of first-pass only nodes) */
 		virtual bool RequiresSecondPassLayout() const
@@ -476,6 +506,9 @@ protected:
 	
 	/** Populate visibile children array */
 	virtual void PopulateVisibleChildren(const FGeometry& AllottedGeometry);
+
+	/** Arrange child nodes - allows derived classes to supply non-node children in OnArrangeChildren */
+	virtual void ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
 
 	// Paint the background as lines
 	void PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;

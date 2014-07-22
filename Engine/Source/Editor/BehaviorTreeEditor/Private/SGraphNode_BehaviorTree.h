@@ -20,6 +20,7 @@ public:
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const override;
+	virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const override;
 	// End of SGraphNode interface
 
 	/** handle double click */
@@ -93,6 +94,13 @@ protected:
 	TSharedPtr<SVerticalBox> DecoratorsBox;
 	TSharedPtr<SVerticalBox> ServicesBox;
 	TSharedPtr<SHorizontalBox> OutputPinBox;
+
+	/** The widget we use to display the index of the node */
+	TSharedPtr<SWidget> IndexOverlay;
+
+	/** The node body widget, cached here so we can determine its size when we want ot position our overlays */
+	TSharedPtr<SBorder> NodeBody;
+
 	FSlateColor GetBorderBackgroundColor() const;
 	FSlateColor GetBackgroundColor() const;
 	FString	GetDescription() const;
@@ -100,6 +108,21 @@ protected:
 	virtual FString GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
 	virtual EVisibility GetBlueprintIconVisibility() const;
+
+	/** Get the visibility of the index overlay */
+	EVisibility GetIndexVisibility() const;
+
+	/** Get the text to display in the index overlay */
+	FText GetIndexText() const;
+
+	/** Get the tooltip for the index overlay */
+	FText GetIndexTooltipText() const;
+
+	/** Get the color to display for the index overlay. This changes on hover state of sibling nodes */
+	FSlateColor GetIndexColor(bool bHovered) const;
+
+	/** Handle hover state changing for the index widget - we use this to highlight sibling nodes */
+	void OnIndexHoverStateChanged(bool bHovered);
 
 	FString GetPinTooltip(UEdGraphPin* GraphPinObj) const;
 };

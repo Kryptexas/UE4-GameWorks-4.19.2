@@ -200,6 +200,11 @@ namespace NodePanelDefs
 
 void SNodePanel::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
+	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);
+}
+
+void SNodePanel::ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+{
 	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
 	// First pass nodes
 	for (int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex)
@@ -555,7 +560,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	{
 		// LEFT BUTTON is for selecting nodes and manipulating pins.
 		FArrangedChildren ArrangedChildren(EVisibility::Visible);
-		ArrangeChildren(MyGeometry, ArrangedChildren);
+		ArrangeChildNodes(MyGeometry, ArrangedChildren);
 
 		const int32 NodeUnderMouseIndex = SWidget::FindChildUnderMouse( ArrangedChildren, MouseEvent );
 		if ( NodeUnderMouseIndex != INDEX_NONE )

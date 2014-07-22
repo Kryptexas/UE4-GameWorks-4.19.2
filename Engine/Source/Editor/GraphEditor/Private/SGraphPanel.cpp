@@ -133,7 +133,7 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 	const float ZoomFactor = AllottedGeometry.Scale * GetZoomAmount();
 
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
+	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);
 
 	// Determine some 'global' settings based on current LOD
 	const bool bDrawScaledCommentBubblesThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
@@ -282,31 +282,51 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 					// Get its size
 					const FVector2D WidgetSize = CurWidget.Geometry.Size;
 
-					TArray<FOverlayBrushInfo> OverlayBrushes;
-					ChildNode->GetOverlayBrushes(bSelected, WidgetSize, /*out*/ OverlayBrushes);
-
-					for (int32 BrushIndex = 0; BrushIndex < OverlayBrushes.Num(); ++BrushIndex)
 					{
-						FOverlayBrushInfo& OverlayInfo = OverlayBrushes[BrushIndex];
-						const FSlateBrush* OverlayBrush = OverlayInfo.Brush;
-						if(OverlayBrush != NULL)
+						TArray<FOverlayBrushInfo> OverlayBrushes;
+						ChildNode->GetOverlayBrushes(bSelected, WidgetSize, /*out*/ OverlayBrushes);
+
+						for (int32 BrushIndex = 0; BrushIndex < OverlayBrushes.Num(); ++BrushIndex)
 						{
-							FPaintGeometry BouncedGeometry = CurWidget.Geometry.ToPaintGeometry(OverlayInfo.OverlayOffset, OverlayBrush->ImageSize, 1.f);
+							FOverlayBrushInfo& OverlayInfo = OverlayBrushes[BrushIndex];
+							const FSlateBrush* OverlayBrush = OverlayInfo.Brush;
+							if(OverlayBrush != NULL)
+							{
+								FPaintGeometry BouncedGeometry = CurWidget.Geometry.ToPaintGeometry(OverlayInfo.OverlayOffset, OverlayBrush->ImageSize, 1.f);
 
-							// Handle bouncing
-							const float BounceValue = FMath::Sin(2.0f * PI * BounceCurve.GetLerpLooping());
-							BouncedGeometry.DrawPosition += (OverlayInfo.AnimationEnvelope * BounceValue * ZoomFactor);
+								// Handle bouncing
+								const float BounceValue = FMath::Sin(2.0f * PI * BounceCurve.GetLerpLooping());
+								BouncedGeometry.DrawPosition += (OverlayInfo.AnimationEnvelope * BounceValue * ZoomFactor);
 
-							CurWidgetsMaxLayerId++;
-							FSlateDrawElement::MakeBox(
-								OutDrawElements,
-								CurWidgetsMaxLayerId,
-								BouncedGeometry,
-								OverlayBrush,
-								MyClippingRect
-								);
+								CurWidgetsMaxLayerId++;
+								FSlateDrawElement::MakeBox(
+									OutDrawElements,
+									CurWidgetsMaxLayerId,
+									BouncedGeometry,
+									OverlayBrush,
+									MyClippingRect
+									);
+							}
+
 						}
+					}
 
+					{
+						TArray<FOverlayWidgetInfo> OverlayWidgets = ChildNode->GetOverlayWidgets(bSelected, WidgetSize);
+
+						for (int32 WidgetIndex = 0; WidgetIndex < OverlayWidgets.Num(); ++WidgetIndex)
+						{
+							FOverlayWidgetInfo& OverlayInfo = OverlayWidgets[WidgetIndex];
+							if(OverlayInfo.Widget->GetVisibility() == EVisibility::Visible)
+							{
+								// call SlatePrepass as these widgets are not in the 'normal' child hierarchy
+								OverlayInfo.Widget->SlatePrepass();
+
+								const FGeometry WidgetGeometry = CurWidget.Geometry.MakeChild(OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize(), 1.f);
+
+								OverlayInfo.Widget->Paint(WidgetGeometry, MyClippingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
+							}
+						}
 					}
 				}
 
@@ -499,6 +519,29 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 bool SGraphPanel::SupportsKeyboardFocus() const
 {
 	return true;
+}
+
+void SGraphPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+{
+	SNodePanel::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+
+	FArrangedChildren MyArrangedChildren(ArrangedChildren.GetFilter());
+	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
+	{
+		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
+
+		TArray<FOverlayWidgetInfo> OverlayWidgets = ChildNode->GetOverlayWidgets(false, CurWidget.Geometry.Size);
+
+		for (int32 WidgetIndex = 0; WidgetIndex < OverlayWidgets.Num(); ++WidgetIndex)
+		{
+			FOverlayWidgetInfo& OverlayInfo = OverlayWidgets[WidgetIndex];
+
+			MyArrangedChildren.AddWidget(AllottedGeometry.MakeChild( OverlayInfo.Widget.ToSharedRef(), CurWidget.Geometry.Position + OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize(), GetZoomAmount() ));
+		}
+	}
+
+	ArrangedChildren.Append(MyArrangedChildren);
 }
 
 void SGraphPanel::UpdateSelectedNodesPositions (FVector2D PositionIncrement)
