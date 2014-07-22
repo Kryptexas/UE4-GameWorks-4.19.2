@@ -1122,7 +1122,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 	LineModels.RemoveAt(LineIndex);
 
-	return true;;
+	DirtyFlags |= EDirtyState::Layout;
+	return true;
 }
 
 void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs )
