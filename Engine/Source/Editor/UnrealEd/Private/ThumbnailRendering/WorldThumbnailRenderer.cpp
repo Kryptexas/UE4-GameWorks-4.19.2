@@ -20,7 +20,7 @@ bool UWorldThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 		if (World && World->PersistentLevel)
 		{
 			// If this is a world, only render the current persistent editor world. Other worlds don't have an initialized scene to render.
-			return World->WorldType == EWorldType::Editor && World->PersistentLevel->OwningWorld == World;
+			return World->bIsWorldInitialized;
 		}
 	}
 
@@ -93,23 +93,19 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 			if (Level && Level->bIsVisible)
 			{
 				ALevelBounds* LevelBounds = Level->LevelBoundsActor.Get();
-				if (LevelBounds)
-				{
-					if ( !LevelBounds->IsUsingDefaultBounds() )
-					{
-						WorldBox += Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
-					}
-				}
-				else
+				if (!LevelBounds)
 				{
 					// Ensure a Level Bounds Actor exists for future renders
 					FActorSpawnParameters SpawnParameters;
 					SpawnParameters.OverrideLevel = Level;
-					ALevelBounds* NewLevelBounds = World->SpawnActor<ALevelBounds>(SpawnParameters);
-					Level->LevelBoundsActor = NewLevelBounds;
+					LevelBounds = World->SpawnActor<ALevelBounds>(SpawnParameters);
+					LevelBounds->UpdateLevelBoundsImmediately();
+					Level->LevelBoundsActor = LevelBounds;
+				}
 
-					// Calculate the bounds manually for this frame. Real data should be available shortly
-					WorldBox += ALevelBounds::CalculateLevelBounds(Level);
+				if (!LevelBounds->IsUsingDefaultBounds())
+				{
+					WorldBox += LevelBounds->GetComponentsBoundingBox();
 				}
 			}
 		}

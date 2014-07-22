@@ -625,6 +625,9 @@ public:
 	/** Return the array of objects currently bieng debugged. */
 	const FBlueprintToDebuggedObjectMap& GetBlueprintObjectsBeingDebugged() const{ return BlueprintObjectsBeingDebugged; };
 
+	/** Creates a new FX system for this world */
+	void CreateFXSystem();
+
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
 
@@ -1468,6 +1471,9 @@ public:
 	/** Helper for getting the time since a certain time. */
 	float TimeSince( float Time ) const;
 
+	/** Creates a new physics scene for this world. */
+	void CreatePhysicsScene();
+
 	FPhysScene* GetPhysicsScene() const { return PhysicsScene; }
 
 	/** Set the physics scene to use by this world */
@@ -1769,6 +1775,7 @@ public:
 			, bShouldSimulatePhysics(true)
 			, bEnableTraceCollision(false)
 			, bTransactional(true)
+			, bCreateFXSystem(true)
 		{
 		}
 
@@ -1781,6 +1788,7 @@ public:
 		uint32 bShouldSimulatePhysics:1;
 		uint32 bEnableTraceCollision:1;
 		uint32 bTransactional:1;
+		uint32 bCreateFXSystem:1;
 
 
 		InitializationValues& InitializeScenes(const bool bInitialize) { bInitializeScenes = bInitialize; return *this; }
@@ -1792,6 +1800,7 @@ public:
 		InitializationValues& ShouldSimulatePhysics(const bool bInShouldSimulatePhysics) { bShouldSimulatePhysics = bInShouldSimulatePhysics; return *this; }
 		InitializationValues& EnableTraceCollision(const bool bInEnableTraceCollision) { bEnableTraceCollision = bInEnableTraceCollision; return *this; }
 		InitializationValues& SetTransactional(const bool bInTransactional) { bTransactional = bInTransactional; return *this; }
+		InitializationValues& CreateFXSystem(const bool bCreate) { bCreateFXSystem = bCreate; return *this; }
 	};
 
 	/**

@@ -140,6 +140,13 @@ bool ALevelBounds::IsUsingDefaultBounds() const
 	return bUsingDefaultBounds;
 }
 
+void ALevelBounds::UpdateLevelBoundsImmediately()
+{
+	// This is used to get accurate bounds right when spawned.
+	// This can't be done in PostActorCreated because the SpawnLocation interferes with the root component transform
+	UpdateLevelBounds();
+}
+
 void ALevelBounds::OnLevelActorMoved(AActor* InActor)
 {
 	if (InActor->GetOuter() == GetOuter())

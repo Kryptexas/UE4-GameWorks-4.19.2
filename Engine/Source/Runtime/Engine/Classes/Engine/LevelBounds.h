@@ -41,6 +41,9 @@ class ALevelBounds : public AActor
 
 	/** @return True if there were no actors contributing to bounds and we are currently using the default bounds */
 	ENGINE_API bool IsUsingDefaultBounds() const;
+
+	/** Update level bounds immediately so the bounds are accurate when returning. Use only when needed because updating the bounds is slow */
+	ENGINE_API void UpdateLevelBoundsImmediately();
 	
 private:
 	/** Updates this actor bounding box by summing all level actors bounding boxes  */

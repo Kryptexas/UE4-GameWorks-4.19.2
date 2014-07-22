@@ -2593,6 +2593,13 @@ protected:
 	void HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCompleted(bool Succeeded, double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+
+private:
+	/** Handler for when any asset is loaded in the editor */
+	void OnAssetLoaded( UObject* Asset );
+
+	/** Gets the init values for worlds opened via Map_Load in the editor */
+	UWorld::InitializationValues GetEditorWorldInitializationValues() const;
 };
 
 

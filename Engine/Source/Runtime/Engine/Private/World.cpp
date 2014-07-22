@@ -794,7 +794,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		if (IVS.bCreatePhysicsScene)
 		{
 			// Create the physics scene
-			SetPhysicsScene(new FPhysScene());
+			CreatePhysicsScene();
 		}
 
 		bShouldSimulatePhysics = IVS.bShouldSimulatePhysics;
@@ -802,10 +802,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		// Save off the value used to create the scene, so this UWorld can recreate its scene later
 		bRequiresHitProxies = IVS.bRequiresHitProxies;
 		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies, FeatureLevel );
-		if ( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+		if ( IVS.bCreateFXSystem )
 		{
-			FXSystem = FFXSystemInterface::Create(FeatureLevel);
-			Scene->SetFXSystem( FXSystem );
+			CreateFXSystem();
 		}
 		else
 		{
@@ -3146,6 +3145,11 @@ float UWorld::TimeSince( float Time ) const
 	return GetTimeSeconds() - Time;
 }
 
+void UWorld::CreatePhysicsScene()
+{
+	SetPhysicsScene(new FPhysScene());
+}
+
 void UWorld::SetPhysicsScene(FPhysScene* InScene)
 { 
 	// Clear world pointer in old FPhysScene (if there is one)
@@ -5080,6 +5084,20 @@ void UWorld::GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLi
 	}
 
 	FFindLightmapsArchive FindArchive(SearchObject, OutLightMapsAndShadowMaps);
+}
+
+void UWorld::CreateFXSystem()
+{
+	if ( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+	{
+		FXSystem = FFXSystemInterface::Create(FeatureLevel);
+		Scene->SetFXSystem(FXSystem);
+	}
+	else
+	{
+		FXSystem = NULL;
+		Scene->SetFXSystem(NULL);
+	}
 }
 
 void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials)
