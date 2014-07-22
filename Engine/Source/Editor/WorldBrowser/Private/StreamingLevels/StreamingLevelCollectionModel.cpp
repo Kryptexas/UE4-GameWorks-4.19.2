@@ -17,6 +17,11 @@ FStreamingLevelCollectionModel::FStreamingLevelCollectionModel(UEditorEngine* In
 	: FLevelCollectionModel(InEditor)
 	, AddedLevelStreamingClass(ULevelStreamingKismet::StaticClass())
 {
+	const TSubclassOf<ULevelStreaming> DefaultLevelStreamingClass = GetDefault<ULevelEditorMiscSettings>()->DefaultLevelStreamingClass;
+	if ( DefaultLevelStreamingClass )
+	{
+		AddedLevelStreamingClass = DefaultLevelStreamingClass;
+	}
 }
 
 FStreamingLevelCollectionModel::~FStreamingLevelCollectionModel()

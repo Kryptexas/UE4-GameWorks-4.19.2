@@ -53,6 +53,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Sound)
 	uint32 bEnableEditorSounds:1;
 
+public:
+
+	/** The default level streaming class to use when adding new streaming levels */
+	UPROPERTY(EditAnywhere, config, Category=Levels)
+	TSubclassOf<ULevelStreaming> DefaultLevelStreamingClass;
+
 protected:
 
 	// Begin UObject overrides
