@@ -10,6 +10,7 @@
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
+class UStaticMesh;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
