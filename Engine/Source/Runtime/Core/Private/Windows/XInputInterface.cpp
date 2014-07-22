@@ -211,7 +211,8 @@ void XInputInterface::SendControllerEvents()
  				VibrationState.wLeftMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.LeftLarge * 65535.0f );
  				VibrationState.wRightMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.RightSmall * 65535.0f );
  
- 				XInputSetState( ( ::DWORD ) ControllerState.ControllerId, &VibrationState );			}
+				XInputSetState( ( ::DWORD ) ControllerState.ControllerId, &VibrationState );			
+			}
 		}
 	}
 
