@@ -18,9 +18,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
 	USlateBrushAsset* Image;
 
+	/** A bindable delegate for the Image. */
+	UPROPERTY()
+	FGetSlateBrushAsset ImageDelegate;
+
 	/** Color and opacity */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor ColorAndOpacity;
+
+	/** A bindable delegate for the ColorAndOpacity. */
+	UPROPERTY()
+	FGetSlateColor ColorAndOpacityDelegate;
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;
@@ -59,6 +67,8 @@ protected:
 	// End of UWidget interface
 
 	const FSlateBrush* GetImageBrush() const;
+
+	const FSlateBrush* ConvertImage(TAttribute<USlateBrushAsset*> InImageAsset) const;
 
 	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 

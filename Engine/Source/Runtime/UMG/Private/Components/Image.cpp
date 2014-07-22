@@ -30,8 +30,11 @@ TSharedRef<SWidget> UImage::RebuildWidget()
 
 void UImage::SyncronizeProperties()
 {
-	MyImage->SetImage(GetImageBrush());
-	MyImage->SetColorAndOpacity(ColorAndOpacity);
+	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
+	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(USlateBrushAsset*, Image, const FSlateBrush*, ConvertImage);
+
+	MyImage->SetImage(ImageBinding);
+	MyImage->SetColorAndOpacity(ColorAndOpacityBinding);
 	MyImage->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
 }
 
@@ -53,8 +56,41 @@ void UImage::SetOpacity(float InOpacity)
 	}
 }
 
+const FSlateBrush* UImage::ConvertImage(TAttribute<USlateBrushAsset*> InImageAsset) const
+{
+	USlateBrushAsset* ImageAsset = InImageAsset.Get();
+	if ( ImageAsset != Image )
+	{
+		UImage* MutableThis = const_cast< UImage* >( this );
+		MutableThis->DynamicBrush = TOptional<FSlateBrush>();
+		MutableThis->Image = ImageAsset;
+	}
+	else if ( DynamicBrush.IsSet() )
+	{
+		return &DynamicBrush.GetValue();
+	}
+
+	if ( Image == NULL )
+	{
+		SImage::FArguments ImageDefaults;
+		return ImageDefaults._Image.Get();
+	}
+
+	return &Image->Brush;
+}
+
+const FSlateBrush* UImage::GetImageBrush() const
+{
+	return ConvertImage(Image);
+}
+
 void UImage::SetImage(USlateBrushAsset* InImage)
 {
+	if ( InImage != Image )
+	{
+		DynamicBrush = TOptional<FSlateBrush>();
+	}
+
 	Image = InImage;
 	if ( MyImage.IsValid() )
 	{
@@ -66,7 +102,7 @@ UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 {
 	if ( !DynamicBrush.IsSet() )
 	{
-		const FSlateBrush* Brush = UImage::GetImageBrush();
+		const FSlateBrush* Brush = GetImageBrush();
 		FSlateBrush ClonedBrush = *Brush;
 		UObject* Resource = ClonedBrush.GetResourceObject();
 		UMaterialInterface* Material = Cast<UMaterialInterface>(Resource);
@@ -95,22 +131,6 @@ UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 	}
 
 	return NULL;
-}
-
-const FSlateBrush* UImage::GetImageBrush() const
-{
-	if ( DynamicBrush.IsSet() )
-	{
-		return &DynamicBrush.GetValue();
-	}
-
-	if ( Image == NULL )
-	{
-		SImage::FArguments ImageDefaults;
-		return ImageDefaults._Image.Get();
-	}
-
-	return &Image->Brush;
 }
 
 FReply UImage::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
