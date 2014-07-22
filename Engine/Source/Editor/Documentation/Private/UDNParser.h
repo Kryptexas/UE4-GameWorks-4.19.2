@@ -166,6 +166,27 @@ private:
 	void NavigateToLink( FString AdditionalContent );
 
 private:
+	/* 
+	 * Parses a code link embedded in the doc.
+	 * Allows us to specify files in code to link to in one of 2 ways. In both cases the last 2 parameters are line and column.
+	 * [Project based link](CODELINK:Private/[PROJECT]File.cpp, 29, 5)
+	 * This will attempt to parse the active solution name and replace instances of [PROJECT] within this so
+	 * (CODELINK:Private/[PROJECT]Ball.cpp, 29, 5) will in a project called marble will equate to
+	 * <UE4ROOT>Marble/Source/Marble/Private/MarbleBall.cpp
+	 * [Explicit link](CODELINK:Templates/TP_Rolling/Source/TP_Rolling/Private/TP_Rolling.cpp will equate to
+	 * <UE4ROOT>Templates/TP_Rolling/Source/TP_Rolling/Private/TP_Rolling.cpp	 
+	 */
+	bool ParseCodeLink(FString &InternalLink);
+		
+	/* 
+	 * Parses an asset link embedded in the doc.
+	 * Allows us to specify assets to either highlight or edit in the editor
+	 * (ASSETLINK:SELECT,MyCharacter)
+	 * This will highlight the MyCharacter asset in the content browser
+	 * (ASSETLINK:EDIT,MyCharacter)
+	 * This will edit the given asset in the appropriate editor window type.
+	 */
+	bool ParseAssetLink(FString &InternalLink);
 
 	FUDNParser( const TSharedRef< FParserConfiguration >& InConfiguration, const FDocumentationStyle& InStyle );
 	void Initialize();
