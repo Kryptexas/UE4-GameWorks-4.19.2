@@ -1463,11 +1463,57 @@ void UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& Worl
 	AddInstance(RelativeTM);
 }
 
+bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace) const
+{
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		return false;
+	}
+
+	const FInstancedStaticMeshInstanceData& InstanceData = PerInstanceSMData[InstanceIndex];
+
+	OutInstanceTransform = FTransform(InstanceData.Transform);
+	if (bWorldSpace)
+	{
+		OutInstanceTransform = OutInstanceTransform * ComponentToWorld;
+	}
+
+	return true;
+}
+
+bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace)
+{
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		return false;
+	}
+
+	FInstancedStaticMeshInstanceData& InstanceData = PerInstanceSMData[InstanceIndex];
+
+	// Render data uses local transform of the instance
+	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
+	InstanceData.Transform = LocalTransform.ToMatrixWithScale();
+
+	if (bPhysicsStateCreated)
+	{
+		// Physics uses world transform of the instance
+		FTransform WorldTransform = bWorldSpace ? NewInstanceTransform : (LocalTransform * ComponentToWorld);
+		FBodyInstance* InstanceBodyInstance = InstanceBodies[InstanceIndex];
+#if WITH_PHYSX
+		// Update transform.
+		InstanceBodyInstance->SetBodyTransform(WorldTransform, false);
+#endif //WITH_PHYSX
+	}
+
+	MarkRenderStateDirty();
+
+	return true;
+}
+
 bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 {
 	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
-
 
 void UInstancedStaticMeshComponent::ClearInstances()
 {
@@ -1480,6 +1526,10 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	MarkRenderStateDirty();
 }
 
+int32 UInstancedStaticMeshComponent::GetInstanceCount() const
+{
+	return PerInstanceSMData.Num();
+}
 
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {
