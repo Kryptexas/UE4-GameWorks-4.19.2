@@ -53,6 +53,7 @@ APlayerController::APlayerController(const class FPostConstructInitializePropert
 
 	bInputEnabled = true;
 	bEnableTouchEvents = true;
+	bForceFeedbackEnabled = true;
 
 	bAutoManageActiveCameraTarget = true;
 
@@ -1218,6 +1219,22 @@ void APlayerController::PawnLeavingGame()
 	}
 }
 
+void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (VirtualJoystick.IsValid())
+	{
+		CastChecked<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+	}
+
+	// Stop any force feedback effects that may be active
+	IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
+	if (ForceFeedbackSystem)
+	{
+		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, FForceFeedbackValues());
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
 
 void APlayerController::Destroyed()
 {
@@ -1260,11 +1277,6 @@ void APlayerController::Destroyed()
 
 	PlayerInput = NULL;
 	CheatManager = NULL;
-
-	if (VirtualJoystick.IsValid())
-	{
-		Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
-	}
 
 	Super::Destroyed();
 }
@@ -2667,7 +2679,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
 		Canvas->SetDrawColor(255, 255, 255);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
 		YPos += YL;
 	}
 }
@@ -3219,6 +3231,109 @@ void APlayerController::ClientStopForceFeedback_Implementation( UForceFeedbackEf
 	}
 }
 
+/** Action that interpolates a component over time to a desired position */
+class FDynamicForceFeedbackAction : public FPendingLatentAction
+{
+public:
+	/** Time over which interpolation should happen */
+	float TotalTime;
+	/** Time so far elapsed for the interpolation */
+	float TimeElapsed;
+	/** If we are currently running. If false, update will complete */
+	uint32 bRunning:1;
+	
+	TWeakObjectPtr<APlayerController> PlayerController;
+
+	FDynamicForceFeedbackDetails ForceFeedbackDetails;
+
+	FLatentActionInfo LatentInfo;
+	/** Function to execute on completion */
+	FName ExecutionFunction;
+	/** Link to fire on completion */
+	int32 OutputLink;
+	/** Latent action ID */
+	int32 LatentUUID;
+	/** Object to call callback on upon completion */
+	FWeakObjectPtr CallbackTarget;
+
+	FDynamicForceFeedbackAction(APlayerController* InPlayerController, const float InDuration, const FLatentActionInfo& LatentInfo)
+		: TotalTime(InDuration)
+		, TimeElapsed(0.f)
+		, bRunning(true)
+		, PlayerController(InPlayerController)
+		, ExecutionFunction(LatentInfo.ExecutionFunction)
+		, OutputLink(LatentInfo.Linkage)
+		, LatentUUID(LatentInfo.UUID)
+		, CallbackTarget(LatentInfo.CallbackTarget)
+	{
+	}
+
+	virtual void UpdateOperation(FLatentResponse& Response)
+	{
+		// Update elapsed time
+		TimeElapsed += Response.ElapsedTime();
+
+		const bool bComplete = (!bRunning || (TotalTime >= 0.f && TimeElapsed >= TotalTime) || !PlayerController.IsValid());
+
+		APlayerController* PC = PlayerController.Get();
+		if (PC)
+		{
+			if (bComplete)
+			{
+				PC->DynamicForceFeedbacks.Remove(LatentUUID);
+			}
+			else
+			{
+				PC->DynamicForceFeedbacks.Add(LatentUUID, ForceFeedbackDetails);
+			}
+		}
+
+
+		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
+	}
+};
+
+void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo)
+{
+	FLatentActionManager& LatentActionManager = GetWorld()->GetLatentActionManager();
+	FDynamicForceFeedbackAction* LatentAction = LatentActionManager.FindExistingAction<FDynamicForceFeedbackAction>(LatentInfo.CallbackTarget, LatentInfo.UUID);
+
+	if (LatentAction)
+	{
+		if (Action == EDynamicForceFeedbackAction::Stop)
+		{
+			LatentAction->bRunning = false;
+		}
+		else
+		{
+			if (Action == EDynamicForceFeedbackAction::Start)
+			{
+				LatentAction->TotalTime = Duration;
+				LatentAction->TimeElapsed = 0.f;
+				LatentAction->bRunning = true;
+			}
+
+			LatentAction->ForceFeedbackDetails.Intensity = Intensity;
+			LatentAction->ForceFeedbackDetails.bAffectsLeftLarge = bAffectsLeftLarge;
+			LatentAction->ForceFeedbackDetails.bAffectsLeftSmall = bAffectsLeftSmall;
+			LatentAction->ForceFeedbackDetails.bAffectsRightLarge = bAffectsRightLarge;
+			LatentAction->ForceFeedbackDetails.bAffectsRightSmall = bAffectsRightSmall;
+		}
+	}
+	else if (Action == EDynamicForceFeedbackAction::Start)
+	{
+		LatentAction = new FDynamicForceFeedbackAction(this, Duration, LatentInfo);
+
+		LatentAction->ForceFeedbackDetails.Intensity = Intensity;
+		LatentAction->ForceFeedbackDetails.bAffectsLeftLarge = bAffectsLeftLarge;
+		LatentAction->ForceFeedbackDetails.bAffectsLeftSmall = bAffectsLeftSmall;
+		LatentAction->ForceFeedbackDetails.bAffectsRightLarge = bAffectsRightLarge;
+		LatentAction->ForceFeedbackDetails.bAffectsRightSmall = bAffectsRightSmall;
+
+		LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, LatentAction);
+	}
+}
+
 void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool bGamePaused)
 {
 	if (Player == NULL)
@@ -3237,13 +3352,16 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 				ActiveForceFeedbackEffects.RemoveAtSwap(Index);
 			}
 		}
+		for (const auto& DynamicEntry : DynamicForceFeedbacks)
+		{
+			DynamicEntry.Value.Update(ForceFeedbackValues);
+		}
 	}
 
-	// Get the IForceFeedbackSystem pointer from the global application, returning if NULL
 	IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
 	if (ForceFeedbackSystem)
 	{
-		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, ForceFeedbackValues);
+		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
 	}
 }
 

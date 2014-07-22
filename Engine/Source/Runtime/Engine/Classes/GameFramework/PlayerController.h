@@ -9,12 +9,62 @@
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
+#include "Engine/LatentActionManager.h"
 #include "PlayerController.generated.h"
 
 class FPrimitiveComponentId;
 
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
+
+UENUM()
+namespace EDynamicForceFeedbackAction
+{
+	enum Type
+	{
+		Start,
+		Update,
+		Stop,
+	};
+}
+
+struct FDynamicForceFeedbackDetails
+{
+	uint32 bAffectsLeftLarge:1;
+	uint32 bAffectsLeftSmall:1;
+	uint32 bAffectsRightLarge:1;
+	uint32 bAffectsRightSmall:1;
+
+	float Intensity;
+
+	FDynamicForceFeedbackDetails()
+		: bAffectsLeftLarge(true)
+		, bAffectsLeftSmall(true)
+		, bAffectsRightLarge(true)
+		, bAffectsRightSmall(true)
+		, Intensity(0.f)
+	{}
+
+	void Update(FForceFeedbackValues& Values) const
+	{
+		if (bAffectsLeftLarge)
+		{
+			Values.LeftLarge = FMath::Clamp(Intensity, Values.LeftLarge, 1.f);
+		}
+		if (bAffectsLeftSmall)
+		{
+			Values.LeftSmall = FMath::Clamp(Intensity, Values.LeftSmall, 1.f);
+		}
+		if (bAffectsRightLarge)
+		{
+			Values.RightLarge = FMath::Clamp(Intensity, Values.RightLarge, 1.f);
+		}
+		if (bAffectsRightSmall)
+		{
+			Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
+		}
+	}
+};
 
 //=============================================================================
 /**
@@ -111,6 +161,8 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(transient)
 	TArray<FActiveForceFeedbackEffect> ActiveForceFeedbackEffects;
 
+	TMap<int32, FDynamicForceFeedbackDetails> DynamicForceFeedbacks;
+
 	/** list of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
 	TArray<FName> PendingMapChangeLevelNames;
 
@@ -179,6 +231,9 @@ class ENGINE_API APlayerController : public AController
 	/** Whether actor/component touch over events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableTouchOverEvents:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Game|Feedback")
+	uint32 bForceFeedbackEnabled:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MouseInterface)
 	TEnumAsByte<EMouseCursor::Type> DefaultMouseCursor;
@@ -684,6 +739,21 @@ public:
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
 	void ClientStopForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, FName Tag);
 
+	/** 
+	 * Latent action that controls the playing of force feedback 
+	 * Begins playing when Start is called.  Calling Update or Stop if the feedback is not active will have no effect.
+	 * Completed will execute when Stop is called or the duration ends.
+	 * When Update is called the Intensity, Duration, and affect values will be updated with the current inputs
+	 * @param	Intensity				How strong the feedback should be.  Valid values are between 0.0 and 1.0
+	 * @param	Duration				How long the feedback should play for.  If the value is negative it will play until stopped
+	 * @param   bAffectsLeftLarge		Whether the intensity should be applied to the large left servo
+	 * @param   bAffectsLeftSmall		Whether the intensity should be applied to the small left servo
+	 * @param   bAffectsRightLarge		Whether the intensity should be applied to the large right servo
+	 * @param   bAffectsRightSmall		Whether the intensity should be applied to the small right servo
+	 */
+	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", ExpandEnumAsExecs="Action", Duration="-1", bAffectsLeftLarge="true", bAffectsLeftSmall="true", bAffectsRightLarge="true", bAffectsRightSmall="true", AdvancedDisplay="bAffectsLeftLarge,bAffectsLeftSmall,bAffectsRightLarge,bAffectsRightSmall"), Category="Game|Feedback")
+	void PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo);
+
 	/**
 	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
 	 * NOTE: This is implemented as a locally executed wrapper for ClientTravelInternal, to avoid API compatability breakage
@@ -986,6 +1056,7 @@ public:
 	virtual void Possess(APawn* aPawn) override;
 	virtual void UnPossess() override;
 	virtual void CleanupPlayerState() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
 	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
