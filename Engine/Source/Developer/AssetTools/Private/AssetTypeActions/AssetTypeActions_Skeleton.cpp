@@ -9,6 +9,7 @@
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "SSkeletonWidget.h"
+#include "AnimationEditorUtils.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -71,81 +72,9 @@ void FAssetTypeActions_Skeleton::FillCreateMenu(FMenuBuilder& MenuBuilder, TArra
 			)
 		);
 
-	MenuBuilder.AddSubMenu(
-		LOCTEXT("SkeletalMesh_NewAimOffset", "Create AimOffset"),
-		LOCTEXT("SkeletalMesh_NewAimOffsetTooltip", "Creates an aimoffset blendspace using the selected skeleton."),
-		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillAimOffsetBlendSpaceMenu, Skeletons));
-
-	MenuBuilder.AddSubMenu(
-		LOCTEXT("SkeletalMesh_NewBlendspace", "Create BlendSpace"),
-		LOCTEXT("SkeletalMesh_NewBlendspaceTooltip", "Creates a blendspace using the skeleton of the selected mesh."),
-		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillBlendSpaceMenu, Skeletons));
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimComposite", "Create AnimComposite"),
-		LOCTEXT("Skeleton_NewAnimCompositeTooltip", "Creates an AnimComposite using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimCompositeFactory, UAnimComposite>, Skeletons, FString("_Composite")),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimMontage", "Create AnimMontage"),
-		LOCTEXT("Skeleton_NewAnimMontageTooltip", "Creates an AnimMontage using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimMontageFactory, UAnimMontage>, Skeletons, FString("_Montage")),
-			FCanExecuteAction()
-			)
-		);
-}
-
-void FAssetTypeActions_Skeleton::FillBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons )
-{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_New1DBlendspace", "Create 1D BlendSpace"),
-		LOCTEXT("SkeletalMesh_New1DBlendspaceTooltip", "Creates a 1D blendspace using the skeleton of the selected mesh."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UBlendSpaceFactory1D, UBlendSpace1D>, Skeletons, FString("_BlendSpace1D") ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_New2DBlendspace", "Create 2D BlendSpace"),
-		LOCTEXT("SkeletalMesh_New2DBlendspaceTooltip", "Creates a 2D blendspace using the skeleton of the selected mesh."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UBlendSpaceFactoryNew, UBlendSpace>, Skeletons, FString("_BlendSpace2D") ),
-			FCanExecuteAction()
-			)
-		);
-}
-
-void FAssetTypeActions_Skeleton::FillAimOffsetBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons )
-{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_New1DAimOffset", "Create 1D AimOffset"),
-		LOCTEXT("SkeletalMesh_New1DAimOffsetTooltip", "Creates a 1D aimoffset blendspace using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAimOffsetBlendSpaceFactory1D, UAimOffsetBlendSpace1D>, Skeletons, FString("_AimOffset1D") ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_New2DAimOffset", "Create 2D AimOffset"),
-		LOCTEXT("SkeletalMesh_New2DAimOffsetTooltip", "Creates a 2D aimoffset blendspace using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAimOffsetBlendSpaceFactoryNew, UAimOffsetBlendSpace>, Skeletons, FString("_AimOffset2D") ),
-			FCanExecuteAction()
-			)
-		);
+	FAnimAssetCreated OnAssetCreated;
+	OnAssetCreated.BindSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated);
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
 }
 
 void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -172,33 +101,6 @@ void FAssetTypeActions_Skeleton::ExecuteEdit(TArray<TWeakObjectPtr<USkeleton>> O
 		{
 			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
-	}
-}
-
-template <typename TFactory, typename T>
-void FAssetTypeActions_Skeleton::ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeleton>> Objects, const FString InSuffix)
-{
-	if ( Objects.Num() == 1 )
-	{
-		auto Object = Objects[0].Get();
-
-		if ( Object )
-		{
-			// Determine an appropriate name for inline-rename
-			FString Name;
-			FString PackageName;
-			CreateUniqueAssetName(Object->GetOutermost()->GetName(), InSuffix, PackageName, Name);
-
-			TFactory* Factory = ConstructObject<TFactory>(TFactory::StaticClass());
-			Factory->TargetSkeleton = Object;
-
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-			ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), T::StaticClass(), Factory);
-		}
-	}
-	else
-	{
-		CreateAnimationAssets(Objects, T::StaticClass(), InSuffix);
 	}
 }
 
@@ -260,35 +162,9 @@ void FAssetTypeActions_Skeleton::ExecuteNewAnimBlueprint(TArray<TWeakObjectPtr<U
 
 void FAssetTypeActions_Skeleton::CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix)
 {
-	TArray<UObject*> ObjectsToSync;
-	for (auto SkelIt = Skeletons.CreateConstIterator(); SkelIt; ++SkelIt)
-	{
-		USkeleton* Skeleton = (*SkelIt).Get();
-		if ( Skeleton )
-		{
-			// Determine an appropriate name
-			FString Name;
-			FString PackageName;
-			CreateUniqueAssetName(Skeleton->GetOutermost()->GetName(), InPrefix, PackageName, Name);
-
-			// Create the asset, and assign its skeleton
-			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-			UAnimationAsset* NewAsset = Cast<UAnimationAsset>(AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), AssetClass, NULL));
-
-			if ( NewAsset )
-			{
-				NewAsset->SetSkeleton(Skeleton);
-				NewAsset->MarkPackageDirty();
-
-				ObjectsToSync.Add(NewAsset);
-			}
-		}
-	}
-
-	if ( ObjectsToSync.Num() > 0 )
-	{
-		FAssetTools::Get().SyncBrowserToAssets(ObjectsToSync);
-	}
+	FAnimAssetCreated OnAssetCreated;
+	OnAssetCreated.BindSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated);
+	AnimationEditorUtils::CreateAnimationAssets(Skeletons, AssetClass, InPrefix, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
 }
 
 void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<USkeleton>> Skeletons)
@@ -609,5 +485,14 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 			MeshComponent->InitAnim(true);
 		}
 	}
+}
+
+void FAssetTypeActions_Skeleton::OnAssetCreated(TArray<UObject*> NewAssets) const
+{
+	if(NewAssets.Num() > 1)
+	{
+		FAssetTools::Get().SyncBrowserToAssets(NewAssets);
+	}
+
 }
 #undef LOCTEXT_NAMESPACE

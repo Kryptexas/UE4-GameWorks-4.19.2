@@ -25,6 +25,9 @@ DECLARE_DELEGATE_OneParam( FOnThumbnailScaleChanged, const float /*NewScale*/);
 /** Called to retrieve an array of the currently selected asset data */
 DECLARE_DELEGATE_RetVal( TArray< FAssetData >, FGetCurrentSelectionDelegate );
 
+/** Called to retrieve an array of the currently selected asset data */
+DECLARE_DELEGATE_OneParam(FSyncToAssetsDelegate, const TArray< FAssetData >& /*AssetData*/);
+
 /** Called to set a new filter for an existing asset picker */
 DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
 

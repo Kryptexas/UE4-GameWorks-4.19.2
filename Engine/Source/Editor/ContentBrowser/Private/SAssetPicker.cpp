@@ -25,6 +25,14 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		}
 	}
 
+	for(auto DelegateIt = InArgs._AssetPickerConfig.SyncToAssetsDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
+	{
+		if((*DelegateIt) != NULL)
+		{
+			(**DelegateIt) = FSyncToAssetsDelegate::CreateSP(this, &SAssetPicker::SyncToAssets);
+		}
+	}
+
 	for (auto DelegateIt = InArgs._AssetPickerConfig.SetFilterDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
 		if ((*DelegateIt) != NULL)
@@ -335,6 +343,11 @@ void SAssetPicker::HandleAssetsActivated(const TArray<FAssetData>& ActivatedAsse
 	}
 
 	OnAssetsActivated.ExecuteIfBound( ActivatedAssets, ActivationMethod );
+}
+
+void SAssetPicker::SyncToAssets(const TArray<FAssetData>& AssetDataList)
+{
+	AssetViewPtr->SyncToAssets(AssetDataList);
 }
 
 TArray< FAssetData > SAssetPicker::GetCurrentSelection()

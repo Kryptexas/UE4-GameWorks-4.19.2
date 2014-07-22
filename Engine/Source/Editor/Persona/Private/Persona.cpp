@@ -61,6 +61,8 @@
 #include "SAnimationDlgs.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "FbxMeshUtils.h"
+#include "AnimationEditorUtils.h"
+#include "SAnimationSequenceBrowser.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 
@@ -351,6 +353,12 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 				SharedAnimDocumentTab = OpenedTab;
 			}
 		}
+
+		if(SequenceBrowser.IsValid())
+		{
+			UAnimationAsset * NewAsset = CastChecked<UAnimationAsset>(InAnimAsset);
+			SequenceBrowser.Pin()->SelectAsset(NewAsset);
+		}
 	}
 
 	return OpenedTab;
@@ -383,6 +391,18 @@ void FPersona::SetViewport(TWeakPtr<class SAnimationEditorViewportTabBody> NewVi
 		Viewport.Pin()->SetPreviewComponent(PreviewComponent);
 	}
 	OnViewportCreated.Broadcast(Viewport);
+}
+
+void FPersona::SetSequenceBrowser(class SAnimationSequenceBrowser* InSequenceBrowser)
+{
+	if (InSequenceBrowser)
+	{
+		SequenceBrowser = SharedThis(InSequenceBrowser);
+	}
+	else
+	{
+		SequenceBrowser = NULL;
+	}
 }
 
 void FPersona::RefreshViewport()
@@ -674,7 +694,33 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// Register post import callback to catch animation imports when we have the asset open (we need to reinit)
 	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FPersona::OnPostImport);
 }
+	
+TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) const
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
 
+	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+	
+	Skeletons.Add(Skeleton);
+	
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("Persona_CreateAsset", "Create Asset"));
+	{
+		AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FPersona::OnAssetCreated(const TArray<UObject*> NewAssets) 
+{
+	if ( NewAssets.Num() > 0 )
+	{
+		FAssetRegistryModule::AssetCreated(NewAssets[0]);
+		OpenNewDocumentTab(CastChecked<UAnimationAsset>(NewAssets[0]));
+	}
+}
 
 void FPersona::ExtendDefaultPersonaToolbar()
 {
@@ -692,23 +738,42 @@ void FPersona::ExtendDefaultPersonaToolbar()
 	// extend extra menu/toolbars
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, USkeleton * Skeleton, FPersona* PersonaPtr)
 		{
-			ToolbarBuilder.BeginSection("Person");
+			ToolbarBuilder.BeginSection("Skeleton");
 			{
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ChangeSkeletonPreviewMesh, NAME_None, LOCTEXT("Toolbar_ChangePreviewMesh", "Set Preview"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().AnimNotifyWindow);
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetSourceMgr, NAME_None, LOCTEXT("Toolbar_RetargetSourceMgr", "Retarget Source"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportMesh);
-
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ReimportMesh);
-				//ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportLODs);
-				//ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().AddBodyPart);
 
+				// animation import menu
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportAnimation, NAME_None, LOCTEXT("Toolbar_ImportAnimation", "Import"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ReimportAnimation, NAME_None, LOCTEXT("Toolbar_ReimportAnimation", "Reimport"));
-				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ExportToFBX, NAME_None, LOCTEXT("Toolbar_ExportToFBX", "Export"));
+			}
+			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("Animation");
+			{
+				// create button
+				{
+					ToolbarBuilder.AddComboButton(
+						FUIAction(
+							FExecuteAction(),
+							FCanExecuteAction(),
+							FIsActionChecked(),
+							FIsActionButtonVisible::CreateSP(PersonaPtr, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
+							),
+						FOnGetContent::CreateSP(PersonaPtr, &GenerateCreateAssetMenu, Skeleton),
+						LOCTEXT("OpenBlueprint_Label", "Create Asset"),
+						LOCTEXT("OpenBlueprint_ToolTip", "Create Assets for this skeleton."),
+						FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.CreateAsset")
+						);
+				}
+
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -719,7 +784,7 @@ void FPersona::ExtendDefaultPersonaToolbar()
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, TargetSkeleton, this)
 		);
 
 	AddToolbarExtender(ToolbarExtender);

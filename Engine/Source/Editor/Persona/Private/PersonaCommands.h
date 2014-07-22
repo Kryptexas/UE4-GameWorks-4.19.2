@@ -47,4 +47,11 @@ public:
 	TSharedPtr<FUICommandInfo> ExportToFBX;
 	// Add looping interpolation
 	TSharedPtr<FUICommandInfo> AddLoopingInterpolation;
+	// Create Asset command
+	TSharedPtr<FUICommandInfo> CreateAimOffset1D;
+	TSharedPtr<FUICommandInfo> CreateAimOffset2D;
+	TSharedPtr<FUICommandInfo> CreateBlendSpace1D;
+	TSharedPtr<FUICommandInfo> CreateBlendSpace2D;
+	TSharedPtr<FUICommandInfo> CreateAnimComposite;
+	TSharedPtr<FUICommandInfo> CreateAanimMontage;
 };

@@ -8,10 +8,10 @@
 #include "Persona.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "FeedbackContextEditor.h"
 #include "EditorAnimUtils.h"
 #include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -37,6 +37,14 @@ public:
 ////////////////////////////////////////////////////
 
 const int32 SAnimationSequenceBrowser::MaxAssetsHistory = 10;
+
+SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
+{
+	if (PersonaPtr.IsValid())
+	{
+		PersonaPtr.Pin()->SetSequenceBrowser(NULL);
+	}
+}
 
 void SAnimationSequenceBrowser::OnAnimSelected(const FAssetData& AssetData)
 {
@@ -293,8 +301,9 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 
 			if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
 			{
+				FAssetRegistryModule::AssetCreated(AssetToOpen);
 				// once all success, attempt to open new persona module with new skeleton
-				EToolkitMode::Type Mode = EToolkitMode::Standalone;
+				EToolkitMode::Type Mode = EToolkitMode::WorldCentric;
 				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 				PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), NewSkeleton, NULL, AnimAsset, NULL );
 			}
@@ -310,6 +319,12 @@ bool SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag(FName AssetType
 void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 {
 	PersonaPtr = InArgs._Persona;
+
+	if (PersonaPtr.IsValid())
+	{
+		PersonaPtr.Pin()->SetSequenceBrowser(this);
+	}
+
 	CurrentAssetHistoryIndex = INDEX_NONE;
 	bTriedToCacheOrginalAsset = false;
 
@@ -339,6 +354,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &SAnimationSequenceBrowser::OnRequestOpenAsset, false);
 	Config.OnGetAssetContextMenu = FOnGetAssetContextMenu::CreateSP(this, &SAnimationSequenceBrowser::OnGetAssetContextMenu);
 	Config.OnAssetTagWantsToBeDisplayed = FOnShouldDisplayAssetTag::CreateSP(this, &SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag);
+	Config.SyncToAssetsDelegates.Add(&SyncToAssetsDelegate);
+	Config.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
 	Config.bFocusSearchBoxWhenOpened = false;
 	Config.DefaultFilterMenuExpansion = EAssetTypeCategories::Animation;
 
@@ -600,4 +617,21 @@ void SAnimationSequenceBrowser::CacheOriginalAnimAssetHistory()
 	}
 }
 
+void SAnimationSequenceBrowser::SelectAsset(UAnimationAsset * AnimAsset)
+{
+	FAssetData AssetData(AnimAsset);
+
+	if (AssetData.IsValid())
+	{
+		TArray<FAssetData> CurrentSelection = GetCurrentSelectionDelegate.Execute();
+
+		if ( !CurrentSelection.Contains(AssetData) )
+		{
+			TArray<FAssetData> AssetsToSelect;
+			AssetsToSelect.Add(AssetData);
+
+			SyncToAssetsDelegate.Execute(AssetsToSelect);
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE

@@ -45,6 +45,9 @@ private:
 	/** Handler for when the user double clicks, presses enter, or presses space on an asset */
 	void HandleAssetsActivated(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);
 
+	/** Selects the paths containing the specified assets. */
+	void SyncToAssets(const TArray<FAssetData>& AssetDataList);
+
 	/** @return The currently selected asset */
 	TArray< FAssetData > GetCurrentSelection();
 

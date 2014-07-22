@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AssetData.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationSequenceBrowser
@@ -22,6 +23,8 @@ public:
 
 	void OnAnimSelected(const FAssetData& AssetData);
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
+
+	virtual ~SAnimationSequenceBrowser();
 
 	/** Delegate that handles creation of context menu */
 	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
@@ -50,6 +53,9 @@ public:
 	 *	Only allowed for AnimSequence 
 	 */
 	void OnCreateCopy(TArray<FAssetData> Selected);
+
+	/** Refresh list */
+	void SelectAsset(UAnimationAsset * AnimAsset);
 
 protected:
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
@@ -112,4 +118,8 @@ protected:
 
 	// Track if we have tried to cache the first asset we were playing
 	bool bTriedToCacheOrginalAsset;
+
+	// delegate to sync the asset picker to selected assets
+	FSyncToAssetsDelegate SyncToAssetsDelegate;
+	FGetCurrentSelectionDelegate GetCurrentSelectionDelegate;
 };

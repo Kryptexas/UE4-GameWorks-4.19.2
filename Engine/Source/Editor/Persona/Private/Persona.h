@@ -67,6 +67,8 @@ public:
 
 	/** Set the current preview viewport for Persona */
 	void SetViewport(TWeakPtr<class SAnimationEditorViewportTabBody> NewViewport);
+	/** Set Sequence browser */
+	void SetSequenceBrowser(class SAnimationSequenceBrowser * SequenceBrowser);
 
 	/** Refresh viewport */
 	void RefreshViewport();
@@ -563,6 +565,8 @@ private:
 	void OnReimportMesh();
 	void OnImportAsset(enum EFBXImportType DefaultImportType);
 	void OnReimportAnimation();
+	void OnAssetCreated(const TArray<UObject*> NewAssets);
+	TSharedRef< SWidget > GenerateCreateAssetMenu( USkeleton* Skeleton ) const;
 
 	/** Extend menu and toolbar */
 	void ExtendMenu();
@@ -584,4 +588,7 @@ private:
 
 	/** Preview instance inspector widget */
 	TSharedPtr<class SKismetInspector> PreviewEditor;
+
+	/** Sequence Browser **/
+	TWeakPtr<class SAnimationSequenceBrowser> SequenceBrowser;
 };
