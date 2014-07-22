@@ -51,13 +51,37 @@ private:
 typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState_Internal;
 
 
-/**
-* SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
-*
-* @param BoundShaderState			- global bound shader state to initialize and set
-*/
+struct FGlobalBoundShaderStateArgs
+{
+	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
+	FShader* VertexShader;
+	FShader* PixelShader;
+	FShader* GeometryShader;
+};
 
-extern ENGINE_API void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& BoundShaderState);
+struct FGlobalBoundShaderStateWorkArea
+{
+	FGlobalBoundShaderStateArgs Args;
+	FGlobalBoundShaderState_Internal* BSS; //ideally this would be part of this memory block and not a separate allocation...that is doable, if a little tedious. The point is we need to delay the construction until we get back to the render thread.
+
+	FGlobalBoundShaderStateWorkArea()
+		: BSS(nullptr)
+	{
+	}
+};
+
+struct FGlobalBoundShaderState
+{
+public:
+
+	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
+	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
+
+private:
+
+	FGlobalBoundShaderStateWorkArea* WorkAreas[ERHIFeatureLevel::Num];
+};
+
 
 
 /**
@@ -71,16 +95,13 @@ extern ENGINE_API void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderStat
  * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
  */
 
-FORCEINLINE void SetGlobalBoundShaderState(
+ENGINE_API void SetGlobalBoundShaderState(
 	FRHICommandList& RHICmdList,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,
 	FShader* PixelShader,
 	FShader* GeometryShader = nullptr
-	)
-{
-	RHICmdList.BuildAndSetGlobalBoundShaderState(BoundShaderState, VertexDeclaration, VertexShader, PixelShader, GeometryShader);
-}
+	);
 
 #endif

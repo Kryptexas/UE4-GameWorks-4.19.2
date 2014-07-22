@@ -8,7 +8,7 @@
 #define __RHICOMMANDLIST_INL__
 #include "RHICommandList.h"
 
-FORCEINLINE_DEBUGGABLE void FRHICommandList::Flush()
+FORCEINLINE_DEBUGGABLE void FRHICommandListBase::Flush()
 {
 	if (HasCommands())
 	{
@@ -16,6 +16,12 @@ FORCEINLINE_DEBUGGABLE void FRHICommandList::Flush()
 		GRHICommandList.ExecuteList(*this);
 	}
 }
+
+FORCEINLINE_DEBUGGABLE bool FRHICommandListBase::Bypass()
+{
+	return GRHICommandList.Bypass();
+}
+
 
 FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::Flush()
 {
@@ -31,63 +37,33 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::Flush()
 class FRHICommandListIterator
 {
 public:
-	FRHICommandListIterator(FRHICommandList& CmdList)
+	FRHICommandListIterator(FRHICommandListBase& CmdList)
 	{
+		CmdPtr = CmdList.Root;
 		NumCommands = 0;
 		CmdListNumCommands = CmdList.NumCommands;
-		Page = CmdList.MemManager.FirstPage;
-		CmdPtr = Page->Head;
-		CmdTail = Page->Current;
+	}
+	~FRHICommandListIterator()
+	{
+		checkf(CmdListNumCommands == NumCommands, TEXT("Missed %d Commands!"), CmdListNumCommands - NumCommands);
 	}
 
 	FORCEINLINE_DEBUGGABLE bool HasCommandsLeft() const
 	{
-		return (CmdPtr < CmdTail);
+		return !!CmdPtr;
 	}
 
-	// Current command
-	FORCEINLINE_DEBUGGABLE FRHICommand* operator * ()
+	FORCEINLINE_DEBUGGABLE FRHICommandBase* NextCommand()
 	{
-		return (FRHICommand*)CmdPtr;
-	}
-
-	// Get the next RHICommand and advance the iterator
-	template <typename TCmd>
-	FORCEINLINE_DEBUGGABLE TCmd* NextCommand()
-	{
-		TCmd* RHICmd = (TCmd*)CmdPtr;
-		//::OutputDebugStringW(*FString::Printf(TEXT("Exec %d: %d @ 0x%p, %d bytes\n"), NumCommands, (int32)RHICmd->Type, (void*)RHICmd, sizeof(TCmd) + RHICmd->ExtraSize()));
-		CmdPtr += sizeof(TCmd) + RHICmd->ExtraSize();
-		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
-
-		//@todo-rco: Fix me!
-		if (!TCmd::IsEndOfPage)
-		{
-			// Don't count EOP as that is an allocator construct
-			++NumCommands;
-		}
-
-		if (TCmd::IsEndOfPage || CmdPtr >= CmdTail)
-		{
-			Page = Page->NextPage;
-			CmdPtr = Page ? Page->Head : nullptr;
-			CmdTail = Page ? Page->Current : nullptr;
-		}
-
+		FRHICommandBase* RHICmd = CmdPtr;
+		CmdPtr = RHICmd->Next;
+		NumCommands++;
 		return RHICmd;
 	}
 
-	void CheckNumCommands()
-	{
-		checkf(CmdListNumCommands == NumCommands, TEXT("Missed %d Commands!"), CmdListNumCommands - NumCommands);
-		checkf(CmdPtr == CmdTail, TEXT("Mismatched Tail Pointer!"));
-	}
-
-protected:
-	FRHICommandList::FMemManager::FPage* Page;
+private:
+	FRHICommandBase* CmdPtr;
 	uint32 NumCommands;
-	const uint8* CmdPtr;
-	const uint8* CmdTail;
 	uint32 CmdListNumCommands;
 };
 

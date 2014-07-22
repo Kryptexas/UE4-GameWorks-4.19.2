@@ -7,23 +7,8 @@
 #include "EnginePrivate.h"
 #include "StaticBoundShaderState.h"
 
-static struct FStartupSetBSSPtr
-{
-	int DontDeadStripMeInt;
-	FStartupSetBSSPtr()
-	{
-		DontDeadStripMeInt = 0;
-		SetGlobalBoundShaderState_InternalPtr = &SetGlobalBoundShaderState_Internal;
-	}
-	void DontDeadStripMe()
-	{
-		DontDeadStripMeInt++;
-	}
-} StartupSetBSSPtr;
-
 TLinkedList<FGlobalBoundShaderStateResource*>*& FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()
 {
-	StartupSetBSSPtr.DontDeadStripMe();
 	static TLinkedList<FGlobalBoundShaderStateResource*>* List = NULL;
 	return List;
 }
@@ -107,7 +92,7 @@ void FGlobalBoundShaderStateResource::ReleaseRHI()
 	BoundShaderState.SafeRelease();
 }
 
-void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShaderState)
+static void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShaderState)
 {
 	// Check for unset uniform buffer parameters
 	// Technically you can set uniform buffer parameters after calling RHISetBoundShaderState, but this is the most global place to check for unset parameters
@@ -129,6 +114,69 @@ void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShad
 			GETSAFERHISHADER_PIXEL(GlobalBoundShaderState.Get()->Args.PixelShader),
 			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState.Get()->Args.GeometryShader))
 		);
+}
+
+
+struct FRHICommandSetGlobalBoundShaderState : public FRHICommand<FRHICommandSetGlobalBoundShaderState>
+{
+	FGlobalBoundShaderState GlobalBoundShaderState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetGlobalBoundShaderState(FGlobalBoundShaderState& InGlobalBoundShaderState)
+		: GlobalBoundShaderState(InGlobalBoundShaderState)
+	{
+	}
+	void Execute()
+	{
+		SetGlobalBoundShaderState_Internal(GlobalBoundShaderState);
+	}
+};
+
+
+void SetGlobalBoundShaderState(
+	FRHICommandList& RHICmdList,
+	FGlobalBoundShaderState& GlobalBoundShaderState,
+	FVertexDeclarationRHIParamRef VertexDeclarationRHI,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	FShader* GeometryShader
+	)
+{
+	FGlobalBoundShaderStateWorkArea* ExistingGlobalBoundShaderState = GlobalBoundShaderState.Get();
+	if (!ExistingGlobalBoundShaderState)
+	{
+		FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
+		NewGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
+		NewGlobalBoundShaderState->Args.VertexShader = VertexShader;
+		NewGlobalBoundShaderState->Args.PixelShader = PixelShader;
+		NewGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
+		FPlatformMisc::MemoryBarrier();
+
+		FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)GlobalBoundShaderState.GetPtr(), NewGlobalBoundShaderState, nullptr);
+
+		if (OldGlobalBoundShaderState != nullptr)
+		{
+			//we lost
+			delete NewGlobalBoundShaderState;
+			check(OldGlobalBoundShaderState == ExistingGlobalBoundShaderState);
+		}
+	}
+	else if (!(VertexDeclarationRHI == ExistingGlobalBoundShaderState->Args.VertexDeclarationRHI &&
+		VertexShader == ExistingGlobalBoundShaderState->Args.VertexShader &&
+		PixelShader == ExistingGlobalBoundShaderState->Args.PixelShader &&
+		GeometryShader == ExistingGlobalBoundShaderState->Args.GeometryShader))
+	{
+		// this is sketchy from a parallel perspective, but assuming the writes are atomic, and probably even if they aren't, this should be ok
+		ExistingGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
+		ExistingGlobalBoundShaderState->Args.VertexShader = VertexShader;
+		ExistingGlobalBoundShaderState->Args.PixelShader = PixelShader;
+		ExistingGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
+	}
+
+	if (RHICmdList.Bypass())
+	{
+		SetGlobalBoundShaderState_Internal(GlobalBoundShaderState);
+		return;
+	}
+	new (RHICmdList.AllocCommand<FRHICommandSetGlobalBoundShaderState>()) FRHICommandSetGlobalBoundShaderState(GlobalBoundShaderState);
 }
 
 

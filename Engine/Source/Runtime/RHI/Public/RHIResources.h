@@ -43,6 +43,10 @@ public:
 				{
 					PendingDeletes.Push(const_cast<FRHIResource*>(this));
 				}
+				else
+				{
+					MarkedForDelete.Decrement();
+				}
 			}
 		}
 		check(NewValue >= 0);

@@ -19,266 +19,303 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command List memory"), STAT_Immed
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
 
 
-enum ERHICommandType
-{
-	// Start the enum at non-zero to help debugging
-
-	// List control
-	ERCT_NopBlob				= 512,	// NoOp, maybe has a buffer to be auto alloc/freed (512=0x200)
-	ERCT_NopEndOfPage,					// NoOp, stop traversing the current page
-
-	// RHI Commands
-	ERCT_SetRasterizerState,
-	ERCT_SetShaderParameter,
-	ERCT_SetShaderUniformBuffer,
-	ERCT_SetShaderTexture,
-	ERCT_SetShaderSampler,
-	ERCT_DrawPrimitive,
-	ERCT_DrawIndexedPrimitive,
-	ERCT_SetBoundShaderState,
-	ERCT_SetBlendState,
-	ERCT_SetStreamSource,
-	ERCT_SetDepthStencilState,
-	ERCT_SetShaderResourceViewParameter,
-	ERCT_SetUAVParameter,
-	ERCT_SetUAVParameter_IntialCount,
-	ERCT_SetViewport,
-	ERCT_SetScissorRect,
-	ERCT_SetRenderTargets,
-	ERCT_EndDrawPrimitiveUP,
-	ERCT_EndDrawIndexedPrimitiveUP,
-	ERCT_BuildLocalBoundShaderState,
-	ERCT_SetLocalBoundShaderState,
-	ERCT_SetGlobalBoundShaderState,
-	ERCT_SetComputeShader,
-	ERCT_DispatchComputeShader,
-	ERCT_DispatchIndirectComputeShader,
-	ERCT_AutomaticCacheFlushAfterComputeShader,
-	ERCT_FlushComputeShaderCache,
-	ERCT_DrawPrimitiveIndirect,
-	ERCT_DrawIndexedIndirect,
-	ERCT_DrawIndexedPrimitiveIndirect,
-	ERCT_EnableDepthBoundsTest,
-	ERCT_ClearUAV,
-	ERCT_CopyToResolveTarget,
-	ERCT_ClearMRT,
-	ERCT_Clear,
-	ERCT_BuildLocalUniformBuffer,
-	ERCT_SetLocalUniformBuffer,
-
-
-
-
-	ERCT_NUM,
-};
 
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 
-struct FRHICommand
+struct FRHICommandBase
 {
-	// This is a union only to force alignment to SIZE_T
-	union
+	FRHICommandBase* Next;
+	void(*ExecuteAndDestructPtr)(FRHICommandBase *Cmd);
+	FORCEINLINE FRHICommandBase(void(*InExecuteAndDestructPtr)(FRHICommandBase *Cmd))
+		: Next(nullptr)
+		, ExecuteAndDestructPtr(InExecuteAndDestructPtr)
 	{
-		ERHICommandType	Type;
-		SIZE_T			RawType;
+	}
+	FORCEINLINE void CallExecuteAndDestruct()
+	{
+		ExecuteAndDestructPtr(this);
+	}
+};
+
+class RHI_API FRHICommandListBase : public FNoncopyable
+{
+public:
+
+	FRHICommandListBase();
+	~FRHICommandListBase();
+
+	inline void Flush();
+	const int32 GetUsedMemory() const;
+
+	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
+	{
+		return MemManager.Alloc(AllocSize, Alignment);
+	}
+
+	template <typename T>
+	FORCEINLINE_DEBUGGABLE void* Alloc()
+	{
+		return MemManager.Alloc(sizeof(T), ALIGNOF(T));
+	}
+
+	template <typename TCmd>
+	FORCEINLINE_DEBUGGABLE void* AllocCommand()
+	{
+		checkSlow(!bExecuting);
+		TCmd* Result = (TCmd*)Alloc<TCmd>();
+		++NumCommands;
+		*CommandLink = Result;
+		CommandLink = &Result->Next;
+		return Result;
+	}
+	FORCEINLINE uint32 GetUID()
+	{
+		return UID;
+	}
+	FORCEINLINE bool HasCommands() const
+	{
+		return (NumCommands > 0);
+	}
+
+	inline bool Bypass();
+
+	struct FDrawUpData
+	{
+
+		uint32 PrimitiveType;
+		uint32 NumPrimitives;
+		uint32 NumVertices;
+		uint32 VertexDataStride;
+		void* OutVertexData;
+		uint32 MinVertexIndex;
+		uint32 NumIndices;
+		uint32 IndexDataStride;
+		void* OutIndexData;
+
+		FDrawUpData()
+			: PrimitiveType(PT_Num)
+			, OutVertexData(nullptr)
+			, OutIndexData(nullptr)
+		{
+		}
+
 	};
 
-	uint32 ExtraSize() const
-	{
-		return 0;
-	}
+	FDrawUpData DrawUPData;
 
-	enum
-	{
-		IsEndOfPage = 0,
-	};
+private:
+	FMemStackBase MemManager;
+	FRHICommandBase* Root;
+	FRHICommandBase** CommandLink;
+	bool bExecuting;
+	uint32 NumCommands;
+	uint32 UID;
+
+
+	void Reset();
+
+	friend class FRHICommandListExecutor;
+	friend class FRHICommandListIterator;
+
 };
 
-
-struct FRHICommandPerShader : public FRHICommand
+template<typename TCmd>
+struct FRHICommand : public FRHICommandBase
 {
-	FRHIResource* Shader;
-	EShaderFrequency ShaderFrequency;
-
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void SetShader(TShaderRHIParamRef InShader)
+	FORCEINLINE FRHICommand()
+		: FRHICommandBase(&ExecuteAndDestruct)
 	{
-		Shader = InShader;
-		ShaderFrequency = (EShaderFrequency)TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency;
+
+	}
+	static FORCEINLINE void ExecuteAndDestruct(FRHICommandBase *Cmd)
+	{
+		TCmd *ThisCmd = (TCmd*)Cmd;
+		ThisCmd->Execute();
+		ThisCmd->~TCmd();
 	}
 };
 
-struct FRHICommandNopEndOfPage : public FRHICommand
-{
-	enum
-	{
-		IsEndOfPage = 1
-	};
-};
-
-struct FRHICommandNopBlob : public FRHICommand
-{
-	void* Data;
-	uint32 Size;
-	FORCEINLINE_DEBUGGABLE void Set(FRHICommandList* List, uint32 InSize, const void* InData)
-	{
-		Type = ERCT_NopBlob;
-		Size = InSize;
-
-		// Data is stored after 'this'
-		Data = &this[1];
-		FMemory::Memcpy(Data, InData, InSize);
-	}
-
-	uint32 ExtraSize() const
-	{
-		return Size;
-	}
-};
-
-struct FRHICommandSetRasterizerState : public FRHICommand
+struct FRHICommandSetRasterizerState : public FRHICommand<FRHICommandSetRasterizerState>
 {
 	FRasterizerStateRHIParamRef State;
-	FORCEINLINE_DEBUGGABLE void Set(FRasterizerStateRHIParamRef InState)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetRasterizerState(FRasterizerStateRHIParamRef InState)
+		: State(InState)
 	{
-		Type = ERCT_SetRasterizerState;
-		State = InState;
+	}
+	void Execute()
+	{
+		SetRasterizerState_Internal(State);
 	}
 };
 
-struct FRHICommandSetDepthStencilState : public FRHICommand
+struct FRHICommandSetDepthStencilState : public FRHICommand<FRHICommandSetDepthStencilState>
 {
 	FDepthStencilStateRHIParamRef State;
 	uint32 StencilRef;
-	FORCEINLINE_DEBUGGABLE void Set(FDepthStencilStateRHIParamRef InState, uint32 InStencilRef)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetDepthStencilState(FDepthStencilStateRHIParamRef InState, uint32 InStencilRef)
+		: State(InState)
+		, StencilRef(InStencilRef)
 	{
-		Type = ERCT_SetDepthStencilState;
-		State = InState;
-		StencilRef = InStencilRef;
+	}
+	void Execute()
+	{
+		SetDepthStencilState_Internal(State, StencilRef);
 	}
 };
 
-struct FRHICommandSetShaderParameter : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetShaderParameter : public FRHICommand<FRHICommandSetShaderParameter<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	const void* NewValue;
 	uint32 BufferIndex;
 	uint32 BaseIndex;
 	uint32 NumBytes;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InBufferIndex, uint32 InBaseIndex, uint32 InNumBytes, const void* InNewValue)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetShaderParameter(TShaderRHIParamRef InShader, uint32 InBufferIndex, uint32 InBaseIndex, uint32 InNumBytes, const void* InNewValue)
+		: Shader(InShader)
+		, NewValue(InNewValue)
+		, BufferIndex(InBufferIndex)
+		, BaseIndex(InBaseIndex)
+		, NumBytes(InNumBytes)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetShaderParameter;
-		BufferIndex = InBufferIndex;
-		BaseIndex = InBaseIndex;
-		NumBytes = InNumBytes;
-		NewValue = InNewValue;
+	}
+	void Execute()
+	{
+		SetShaderParameter_Internal(Shader, BufferIndex, BaseIndex, NumBytes, NewValue); 
 	}
 };
 
-struct FRHICommandSetShaderUniformBuffer : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetShaderUniformBuffer : public FRHICommand<FRHICommandSetShaderUniformBuffer<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 BaseIndex;
 	FUniformBufferRHIParamRef UniformBuffer;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InBaseIndex, FUniformBufferRHIParamRef InUniformBuffer)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetShaderUniformBuffer(TShaderRHIParamRef InShader, uint32 InBaseIndex, FUniformBufferRHIParamRef InUniformBuffer)
+		: Shader(InShader)
+		, BaseIndex(InBaseIndex)
+		, UniformBuffer(InUniformBuffer)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetShaderUniformBuffer;
-		BaseIndex = InBaseIndex;
-		UniformBuffer = InUniformBuffer;
+	}
+	void Execute()
+	{
+		SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer);
 	}
 };
 
-struct FRHICommandSetShaderTexture : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetShaderTexture : public FRHICommand<FRHICommandSetShaderTexture<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 TextureIndex;
 	FTextureRHIParamRef Texture;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InTextureIndex, FTextureRHIParamRef InTexture)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetShaderTexture(TShaderRHIParamRef InShader, uint32 InTextureIndex, FTextureRHIParamRef InTexture)
+		: Shader(InShader)
+		, TextureIndex(InTextureIndex)
+		, Texture(InTexture)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetShaderTexture;
-		TextureIndex = InTextureIndex;
-		Texture = InTexture;
+	}
+	void Execute()
+	{
+		SetShaderTexture_Internal(Shader, TextureIndex, Texture);
 	}
 };
 
-struct FRHICommandSetShaderResourceViewParameter : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetShaderResourceViewParameter : public FRHICommand<FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 SamplerIndex;
 	FShaderResourceViewRHIParamRef SRV;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FShaderResourceViewRHIParamRef InSRV)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetShaderResourceViewParameter(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FShaderResourceViewRHIParamRef InSRV)
+		: Shader(InShader)
+		, SamplerIndex(InSamplerIndex)
+		, SRV(InSRV)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetShaderResourceViewParameter;
-		SamplerIndex = InSamplerIndex;
-		SRV = InSRV;
+	}
+	void Execute()
+	{
+		SetShaderResourceViewParameter_Internal(Shader, SamplerIndex, SRV);
 	}
 };
 
-struct FRHICommandSetUAVParameter : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetUAVParameter : public FRHICommand<FRHICommandSetUAVParameter<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 UAVIndex;
 	FUnorderedAccessViewRHIParamRef UAV;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetUAVParameter(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV)
+		: Shader(InShader)
+		, UAVIndex(InUAVIndex)
+		, UAV(InUAV)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetUAVParameter;
-		UAVIndex = InUAVIndex;
-		UAV = InUAV;
+	}
+	void Execute()
+	{
+		SetUAVParameter_Internal(Shader, UAVIndex, UAV);
 	}
 };
 
-struct FRHICommandSetUAVParameter_IntialCount : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetUAVParameter_IntialCount : public FRHICommand<FRHICommandSetUAVParameter_IntialCount<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 UAVIndex;
 	FUnorderedAccessViewRHIParamRef UAV;
 	uint32 InitialCount;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV, uint32 InInitialCount)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetUAVParameter_IntialCount(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV, uint32 InInitialCount)
+		: Shader(InShader)
+		, UAVIndex(InUAVIndex)
+		, UAV(InUAV)
+		, InitialCount(InInitialCount)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetUAVParameter_IntialCount;
-		UAVIndex = InUAVIndex;
-		UAV = InUAV;
-		InitialCount = InInitialCount;
+	}
+	void Execute()
+	{
+		SetUAVParameter_Internal(Shader, UAVIndex, UAV, InitialCount);
 	}
 };
 
-struct FRHICommandSetShaderSampler : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetShaderSampler : public FRHICommand<FRHICommandSetShaderSampler<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 SamplerIndex;
 	FSamplerStateRHIParamRef Sampler;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FSamplerStateRHIParamRef InSampler)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetShaderSampler(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FSamplerStateRHIParamRef InSampler)
+		: Shader(InShader)
+		, SamplerIndex(InSamplerIndex)
+		, Sampler(InSampler)
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetShaderSampler;
-		SamplerIndex = InSamplerIndex;
-		Sampler = InSampler;
+	}
+	void Execute()
+	{
+		SetShaderSampler_Internal(Shader, SamplerIndex, Sampler);
 	}
 };
 
-struct FRHICommandDrawPrimitive : public FRHICommand
+struct FRHICommandDrawPrimitive : public FRHICommand<FRHICommandDrawPrimitive>
 {
 	uint32 PrimitiveType;
 	uint32 BaseVertexIndex;
 	uint32 NumPrimitives;
 	uint32 NumInstances;
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, uint32 InBaseVertexIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawPrimitive(uint32 InPrimitiveType, uint32 InBaseVertexIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+		: PrimitiveType(InPrimitiveType)
+		, BaseVertexIndex(InBaseVertexIndex)
+		, NumPrimitives(InNumPrimitives)
+		, NumInstances(InNumInstances)
 	{
-		Type = ERCT_DrawPrimitive;
-		PrimitiveType = InPrimitiveType;
-		BaseVertexIndex = InBaseVertexIndex;
-		NumPrimitives = InNumPrimitives;
-		NumInstances = InNumInstances;
 	}
+	void Execute()
+	{
+		DrawPrimitive_Internal(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+	}
+
 };
 
-struct FRHICommandDrawIndexedPrimitive : public FRHICommand
+struct FRHICommandDrawIndexedPrimitive : public FRHICommand<FRHICommandDrawIndexedPrimitive>
 {
 	FIndexBufferRHIParamRef IndexBuffer;
 	uint32 PrimitiveType;
@@ -288,59 +325,71 @@ struct FRHICommandDrawIndexedPrimitive : public FRHICommand
 	uint32 StartIndex;
 	uint32 NumPrimitives;
 	uint32 NumInstances;
-	FORCEINLINE_DEBUGGABLE void Set(FIndexBufferRHIParamRef InIndexBuffer, uint32 InPrimitiveType, int32 InBaseVertexIndex, uint32 InMinIndex, uint32 InNumVertices, uint32 InStartIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedPrimitive(FIndexBufferRHIParamRef InIndexBuffer, uint32 InPrimitiveType, int32 InBaseVertexIndex, uint32 InMinIndex, uint32 InNumVertices, uint32 InStartIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+		: IndexBuffer(InIndexBuffer)
+		, PrimitiveType(InPrimitiveType)
+		, BaseVertexIndex(InBaseVertexIndex)
+		, MinIndex(InMinIndex)
+		, NumVertices(InNumVertices)
+		, StartIndex(InStartIndex)
+		, NumPrimitives(InNumPrimitives)
+		, NumInstances(InNumInstances)
 	{
-		Type = ERCT_DrawIndexedPrimitive;
-		IndexBuffer = InIndexBuffer;
-		PrimitiveType = InPrimitiveType;
-		BaseVertexIndex = InBaseVertexIndex;
-		MinIndex = InMinIndex;
-		NumVertices = InNumVertices;
-		StartIndex = InStartIndex;
-		NumPrimitives = InNumPrimitives;
-		NumInstances = InNumInstances;
+	}
+	void Execute()
+	{
+		DrawIndexedPrimitive_Internal(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
 	}
 };
 
-struct FRHICommandSetBoundShaderState : public FRHICommand
+struct FRHICommandSetBoundShaderState : public FRHICommand<FRHICommandSetBoundShaderState>
 {
 	FBoundShaderStateRHIParamRef BoundShaderState;
-	FORCEINLINE_DEBUGGABLE void Set(FBoundShaderStateRHIParamRef InBoundShaderState)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetBoundShaderState(FBoundShaderStateRHIParamRef InBoundShaderState)
+		: BoundShaderState(InBoundShaderState)
 	{
-		Type = ERCT_SetBoundShaderState;
-		BoundShaderState = InBoundShaderState;
+	}
+	void Execute()
+	{
+		SetBoundShaderState_Internal(BoundShaderState);
 	}
 };
 
-struct FRHICommandSetBlendState : public FRHICommand
+struct FRHICommandSetBlendState : public FRHICommand<FRHICommandSetBlendState>
 {
 	FBlendStateRHIParamRef State;
 	FLinearColor BlendFactor;
-	FORCEINLINE_DEBUGGABLE void Set(FBlendStateRHIParamRef InState, const FLinearColor& InBlendFactor)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetBlendState(FBlendStateRHIParamRef InState, const FLinearColor& InBlendFactor)
+		: State(InState)
+		, BlendFactor(InBlendFactor)
 	{
-		Type = ERCT_SetBlendState;
-		State = InState;
-		BlendFactor = InBlendFactor;
+	}
+	void Execute()
+	{
+		SetBlendState_Internal(State, BlendFactor);
 	}
 };
 
-struct FRHICommandSetStreamSource : public FRHICommand
+struct FRHICommandSetStreamSource : public FRHICommand<FRHICommandSetStreamSource>
 {
 	uint32 StreamIndex;
 	FVertexBufferRHIParamRef VertexBuffer;
 	uint32 Stride;
 	uint32 Offset;
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InStreamIndex, FVertexBufferRHIParamRef InVertexBuffer, uint32 InStride, uint32 InOffset)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetStreamSource(uint32 InStreamIndex, FVertexBufferRHIParamRef InVertexBuffer, uint32 InStride, uint32 InOffset)
+		: StreamIndex(InStreamIndex)
+		, VertexBuffer(InVertexBuffer)
+		, Stride(InStride)
+		, Offset(InOffset)
 	{
-		Type = ERCT_SetStreamSource;
-		StreamIndex = InStreamIndex;
-		VertexBuffer = InVertexBuffer;
-		Stride = InStride;
-		Offset = InOffset;
+	}
+	void Execute()
+	{
+		SetStreamSource_Internal(StreamIndex, VertexBuffer, Stride, Offset);
 	}
 };
 
-struct FRHICommandSetViewport : public FRHICommand
+struct FRHICommandSetViewport : public FRHICommand<FRHICommandSetViewport>
 {
 	uint32 MinX;
 	uint32 MinY;
@@ -348,37 +397,43 @@ struct FRHICommandSetViewport : public FRHICommand
 	uint32 MaxX;
 	uint32 MaxY;
 	float MaxZ;
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InMinX, uint32 InMinY, float InMinZ, uint32 InMaxX, uint32 InMaxY, float InMaxZ)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetViewport(uint32 InMinX, uint32 InMinY, float InMinZ, uint32 InMaxX, uint32 InMaxY, float InMaxZ)
+		: MinX(InMinX)
+		, MinY(InMinY)
+		, MinZ(InMinZ)
+		, MaxX(InMaxX)
+		, MaxY(InMaxY)
+		, MaxZ(InMaxZ)
 	{
-		Type = ERCT_SetViewport;
-		MinX = InMinX;
-		MinY = InMinY;
-		MinZ = InMinZ;
-		MaxX = InMaxX;
-		MaxY = InMaxY;
-		MaxZ = InMaxZ;
+	}
+	void Execute()
+	{
+		SetViewport_Internal(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 	}
 };
 
-struct FRHICommandSetScissorRect : public FRHICommand
+struct FRHICommandSetScissorRect : public FRHICommand<FRHICommandSetScissorRect>
 {
 	bool bEnable;
 	uint32 MinX;
 	uint32 MinY;
 	uint32 MaxX;
 	uint32 MaxY;
-	FORCEINLINE_DEBUGGABLE void Set(bool InbEnable, uint32 InMinX, uint32 InMinY, uint32 InMaxX, uint32 InMaxY)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetScissorRect(bool InbEnable, uint32 InMinX, uint32 InMinY, uint32 InMaxX, uint32 InMaxY)
+		: bEnable(InbEnable)
+		, MinX(InMinX)
+		, MinY(InMinY)
+		, MaxX(InMaxX)
+		, MaxY(InMaxY)
 	{
-		Type = ERCT_SetScissorRect;
-		bEnable = InbEnable;
-		MinX = InMinX;
-		MinY = InMinY;
-		MaxX = InMaxX;
-		MaxY = InMaxY;
+	}
+	void Execute()
+	{
+		SetScissorRect_Internal(bEnable, MinX, MinY, MaxX, MaxY);
 	}
 };
 
-struct FRHICommandSetRenderTargets : public FRHICommand
+struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTargets>
 {
 	uint32 NewNumSimultaneousRenderTargets;
 	FRHIRenderTargetView NewRenderTargetsRHI[MaxSimultaneousRenderTargets];
@@ -386,32 +441,40 @@ struct FRHICommandSetRenderTargets : public FRHICommand
 	uint32 NewNumUAVs;
 	FUnorderedAccessViewRHIParamRef UAVs[MaxSimultaneousUAVs];
 
-	FORCEINLINE_DEBUGGABLE void Set(
+	FORCEINLINE_DEBUGGABLE FRHICommandSetRenderTargets(
 		uint32 InNewNumSimultaneousRenderTargets,
 		const FRHIRenderTargetView* InNewRenderTargetsRHI,
 		FTextureRHIParamRef InNewDepthStencilTargetRHI,
 		uint32 InNewNumUAVs,
 		const FUnorderedAccessViewRHIParamRef* InUAVs
 		)
+		: NewNumSimultaneousRenderTargets(InNewNumSimultaneousRenderTargets)
+		, NewDepthStencilTargetRHI(InNewDepthStencilTargetRHI)
+		, NewNumUAVs(InNewNumUAVs)
 
 	{
-		Type = ERCT_SetRenderTargets;
 		check(InNewNumSimultaneousRenderTargets <= MaxSimultaneousRenderTargets && InNewNumUAVs <= MaxSimultaneousUAVs);
-		NewNumSimultaneousRenderTargets = InNewNumSimultaneousRenderTargets;
 		for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
 		{
 			NewRenderTargetsRHI[Index] = InNewRenderTargetsRHI[Index];
 		}
-		NewDepthStencilTargetRHI = InNewDepthStencilTargetRHI;
-		NewNumUAVs = InNewNumUAVs;
 		for (uint32 Index = 0; Index < NewNumUAVs; Index++)
 		{
 			UAVs[Index] = InUAVs[Index];
 		}
 	}
+	void Execute()
+	{
+		SetRenderTargets_Internal(
+			NewNumSimultaneousRenderTargets,
+			NewRenderTargetsRHI,
+			NewDepthStencilTargetRHI,
+			NewNumUAVs,
+			UAVs);
+	}
 };
 
-struct FRHICommandEndDrawPrimitiveUP : public FRHICommand
+struct FRHICommandEndDrawPrimitiveUP : public FRHICommand<FRHICommandEndDrawPrimitiveUP>
 {
 	uint32 PrimitiveType;
 	uint32 NumPrimitives;
@@ -419,19 +482,25 @@ struct FRHICommandEndDrawPrimitiveUP : public FRHICommand
 	uint32 VertexDataStride;
 	void* OutVertexData;
 
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, uint32 InNumPrimitives, uint32 InNumVertices, uint32 InVertexDataStride, void* InOutVertexData)
+	FORCEINLINE_DEBUGGABLE FRHICommandEndDrawPrimitiveUP(uint32 InPrimitiveType, uint32 InNumPrimitives, uint32 InNumVertices, uint32 InVertexDataStride, void* InOutVertexData)
+		: PrimitiveType(InPrimitiveType)
+		, NumPrimitives(InNumPrimitives)
+		, NumVertices(InNumVertices)
+		, VertexDataStride(InVertexDataStride)
+		, OutVertexData(InOutVertexData)
 	{
-		Type = ERCT_EndDrawPrimitiveUP;
-		PrimitiveType = InPrimitiveType;
-		NumPrimitives = InNumPrimitives;
-		NumVertices = InNumVertices;
-		VertexDataStride = InVertexDataStride;
-		OutVertexData = InOutVertexData;
+	}
+	void Execute()
+	{
+		void* Buffer = NULL;
+		BeginDrawPrimitiveUP_Internal(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, Buffer);
+		FMemory::Memcpy(Buffer, OutVertexData, NumVertices * VertexDataStride);
+		EndDrawPrimitiveUP_Internal();
 	}
 };
 
 
-struct FRHICommandEndDrawIndexedPrimitiveUP : public FRHICommand
+struct FRHICommandEndDrawIndexedPrimitiveUP : public FRHICommand<FRHICommandEndDrawIndexedPrimitiveUP>
 {
 	uint32 PrimitiveType;
 	uint32 NumPrimitives;
@@ -443,92 +512,123 @@ struct FRHICommandEndDrawIndexedPrimitiveUP : public FRHICommand
 	uint32 IndexDataStride;
 	void* OutIndexData;
 
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, uint32 InNumPrimitives, uint32 InNumVertices, uint32 InVertexDataStride, void* InOutVertexData, uint32 InMinVertexIndex, uint32 InNumIndices, uint32 InIndexDataStride, void* InOutIndexData)
+	FORCEINLINE_DEBUGGABLE FRHICommandEndDrawIndexedPrimitiveUP(uint32 InPrimitiveType, uint32 InNumPrimitives, uint32 InNumVertices, uint32 InVertexDataStride, void* InOutVertexData, uint32 InMinVertexIndex, uint32 InNumIndices, uint32 InIndexDataStride, void* InOutIndexData)
+		: PrimitiveType(InPrimitiveType)
+		, NumPrimitives(InNumPrimitives)
+		, NumVertices(InNumVertices)
+		, VertexDataStride(InVertexDataStride)
+		, OutVertexData(InOutVertexData)
+		, MinVertexIndex(InMinVertexIndex)
+		, NumIndices(InNumIndices)
+		, IndexDataStride(InIndexDataStride)
+		, OutIndexData(InOutIndexData)
 	{
-		Type = ERCT_EndDrawIndexedPrimitiveUP;
-		PrimitiveType = InPrimitiveType;
-		NumPrimitives = InNumPrimitives;
-		NumVertices = InNumVertices;
-		VertexDataStride = InVertexDataStride;
-		OutVertexData = InOutVertexData;
-		MinVertexIndex = InMinVertexIndex;
-		NumIndices = InNumIndices;
-		IndexDataStride = InIndexDataStride;
-		OutIndexData = InOutIndexData;
+	}
+	void Execute()
+	{
+		void* VertexBuffer = nullptr;
+		void* IndexBuffer = nullptr;
+		BeginDrawIndexedPrimitiveUP_Internal(
+			PrimitiveType,
+			NumPrimitives,
+			NumVertices,
+			VertexDataStride,
+			VertexBuffer,
+			MinVertexIndex,
+			NumIndices,
+			IndexDataStride,
+			IndexBuffer);
+		FMemory::Memcpy(VertexBuffer, OutVertexData, NumVertices * VertexDataStride);
+		FMemory::Memcpy(IndexBuffer, OutIndexData, NumIndices * IndexDataStride);
+		EndDrawIndexedPrimitiveUP_Internal();
 	}
 };
 
-struct FRHICommandSetComputeShader : public FRHICommand
+struct FRHICommandSetComputeShader : public FRHICommand<FRHICommandSetComputeShader>
 {
 	FComputeShaderRHIParamRef ComputeShader;
-	FORCEINLINE_DEBUGGABLE void Set(FComputeShaderRHIParamRef InComputeShader)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetComputeShader(FComputeShaderRHIParamRef InComputeShader)
+		: ComputeShader(InComputeShader)
 	{
-		Type = ERCT_SetComputeShader;
-		ComputeShader = InComputeShader;
+	}
+	void Execute()
+	{
+		SetComputeShader_Internal(ComputeShader);
 	}
 };
 
-struct FRHICommandDispatchComputeShader : public FRHICommand
+struct FRHICommandDispatchComputeShader : public FRHICommand<FRHICommandDispatchComputeShader>
 {
 	uint32 ThreadGroupCountX;
 	uint32 ThreadGroupCountY;
 	uint32 ThreadGroupCountZ;
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InThreadGroupCountX, uint32 InThreadGroupCountY, uint32 InThreadGroupCountZ)
+	FORCEINLINE_DEBUGGABLE FRHICommandDispatchComputeShader(uint32 InThreadGroupCountX, uint32 InThreadGroupCountY, uint32 InThreadGroupCountZ)
+		: ThreadGroupCountX(InThreadGroupCountX)
+		, ThreadGroupCountY(InThreadGroupCountY)
+		, ThreadGroupCountZ(InThreadGroupCountZ)
 	{
-		Type = ERCT_DispatchComputeShader;
-		ThreadGroupCountX = InThreadGroupCountX;
-		ThreadGroupCountY = InThreadGroupCountY;
-		ThreadGroupCountZ = InThreadGroupCountZ;
 	}
+	void Execute()
+	{
+		DispatchComputeShader_Internal(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+	}
+
 };
 
-struct FRHICommandDispatchIndirectComputeShader : public FRHICommand
+struct FRHICommandDispatchIndirectComputeShader : public FRHICommand<FRHICommandDispatchIndirectComputeShader>
 {
 	FVertexBufferRHIParamRef ArgumentBuffer;
 	uint32 ArgumentOffset;
-	FORCEINLINE_DEBUGGABLE void Set(FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+	FORCEINLINE_DEBUGGABLE FRHICommandDispatchIndirectComputeShader(FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+		: ArgumentBuffer(InArgumentBuffer)
+		, ArgumentOffset(InArgumentOffset)
 	{
-		Type = ERCT_DispatchIndirectComputeShader;
-		ArgumentBuffer = InArgumentBuffer;
-		ArgumentOffset = InArgumentOffset;
-
+	}
+	void Execute()
+	{
+		DispatchIndirectComputeShader_Internal(ArgumentBuffer, ArgumentOffset);
 	}
 };
 
-struct FRHICommandAutomaticCacheFlushAfterComputeShader : public FRHICommand
+struct FRHICommandAutomaticCacheFlushAfterComputeShader : public FRHICommand<FRHICommandAutomaticCacheFlushAfterComputeShader>
 {
 	bool bEnable;
-	FORCEINLINE_DEBUGGABLE void Set(bool InbEnable)
+	FORCEINLINE_DEBUGGABLE FRHICommandAutomaticCacheFlushAfterComputeShader(bool InbEnable)
+		: bEnable(InbEnable)
 	{
-		Type = ERCT_AutomaticCacheFlushAfterComputeShader;
-		bEnable = InbEnable;
+	}
+	void Execute()
+	{
+		AutomaticCacheFlushAfterComputeShader_Internal(bEnable);
 	}
 };
 
-struct FRHICommandFlushComputeShaderCache : public FRHICommand
+struct FRHICommandFlushComputeShaderCache : public FRHICommand<FRHICommandFlushComputeShaderCache>
 {
-	FORCEINLINE_DEBUGGABLE void Set()
+	void Execute()
 	{
-		Type = ERCT_FlushComputeShaderCache;
+		FlushComputeShaderCache_Internal();
 	}
 };
 
-struct FRHICommandDrawPrimitiveIndirect : public FRHICommand
+struct FRHICommandDrawPrimitiveIndirect : public FRHICommand<FRHICommandDrawPrimitiveIndirect>
 {
 	uint32 PrimitiveType;
 	FVertexBufferRHIParamRef ArgumentBuffer;
 	uint32 ArgumentOffset;
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawPrimitiveIndirect(uint32 InPrimitiveType, FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+		: PrimitiveType(InPrimitiveType)
+		, ArgumentBuffer(InArgumentBuffer)
+		, ArgumentOffset(InArgumentOffset)
 	{
-		Type = ERCT_DrawPrimitiveIndirect;
-		PrimitiveType = InPrimitiveType;
-		ArgumentBuffer = InArgumentBuffer;
-		ArgumentOffset = InArgumentOffset;
-
+	}
+	void Execute()
+	{
+		DrawPrimitiveIndirect_Internal(PrimitiveType, ArgumentBuffer, ArgumentOffset);
 	}
 };
 
-struct FRHICommandDrawIndexedIndirect : public FRHICommand
+struct FRHICommandDrawIndexedIndirect : public FRHICommand<FRHICommandDrawIndexedIndirect>
 {
 	FIndexBufferRHIParamRef IndexBufferRHI;
 	uint32 PrimitiveType;
@@ -536,83 +636,99 @@ struct FRHICommandDrawIndexedIndirect : public FRHICommand
 	uint32 DrawArgumentsIndex;
 	uint32 NumInstances;
 
-	FORCEINLINE_DEBUGGABLE void Set(FIndexBufferRHIParamRef InIndexBufferRHI, uint32 InPrimitiveType, FStructuredBufferRHIParamRef InArgumentsBufferRHI, uint32 InDrawArgumentsIndex, uint32 InNumInstances)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedIndirect(FIndexBufferRHIParamRef InIndexBufferRHI, uint32 InPrimitiveType, FStructuredBufferRHIParamRef InArgumentsBufferRHI, uint32 InDrawArgumentsIndex, uint32 InNumInstances)
+		: IndexBufferRHI(InIndexBufferRHI)
+		, PrimitiveType(InPrimitiveType)
+		, ArgumentsBufferRHI(InArgumentsBufferRHI)
+		, DrawArgumentsIndex(InDrawArgumentsIndex)
+		, NumInstances(InNumInstances)
 	{
-		Type = ERCT_DrawIndexedIndirect;
-		IndexBufferRHI = InIndexBufferRHI;
-		PrimitiveType = InPrimitiveType;
-		ArgumentsBufferRHI = InArgumentsBufferRHI;
-		DrawArgumentsIndex = InDrawArgumentsIndex;
-		NumInstances = InNumInstances;
+	}
+	void Execute()
+	{
+		DrawIndexedIndirect_Internal(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
 	}
 };
 
-struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand
+struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand<FRHICommandDrawIndexedPrimitiveIndirect>
 {
 	uint32 PrimitiveType;
 	FIndexBufferRHIParamRef IndexBuffer;
 	FVertexBufferRHIParamRef ArgumentsBuffer;
 	uint32 ArgumentOffset;
 
-	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, FIndexBufferRHIParamRef InIndexBuffer, FVertexBufferRHIParamRef InArgumentsBuffer, uint32 InArgumentOffset)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedPrimitiveIndirect(uint32 InPrimitiveType, FIndexBufferRHIParamRef InIndexBuffer, FVertexBufferRHIParamRef InArgumentsBuffer, uint32 InArgumentOffset)
+		: PrimitiveType(InPrimitiveType)
+		, IndexBuffer(InIndexBuffer)
+		, ArgumentsBuffer(InArgumentsBuffer)
+		, ArgumentOffset(InArgumentOffset)
 	{
-		Type = ERCT_DrawIndexedPrimitiveIndirect;
-		PrimitiveType = InPrimitiveType;
-		IndexBuffer = InIndexBuffer;
-		ArgumentsBuffer = InArgumentsBuffer;
-		ArgumentOffset = InArgumentOffset;
+	}
+	void Execute()
+	{
+		DrawIndexedPrimitiveIndirect_Internal(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
 	}
 };
 
-struct FRHICommandEnableDepthBoundsTest : public FRHICommand
+struct FRHICommandEnableDepthBoundsTest : public FRHICommand<FRHICommandEnableDepthBoundsTest>
 {
 	bool bEnable;
 	float MinDepth;
 	float MaxDepth;
 
-	FORCEINLINE_DEBUGGABLE void Set(bool InbEnable, float InMinDepth, float InMaxDepth)
+	FORCEINLINE_DEBUGGABLE FRHICommandEnableDepthBoundsTest(bool InbEnable, float InMinDepth, float InMaxDepth)
+		: bEnable(InbEnable)
+		, MinDepth(InMinDepth)
+		, MaxDepth(InMaxDepth)
 	{
-		Type = ERCT_EnableDepthBoundsTest;
-		bEnable = InbEnable;
-		MinDepth = InMinDepth;
-		MaxDepth = InMaxDepth;
+	}
+	void Execute()
+	{
+		EnableDepthBoundsTest_Internal(bEnable, MinDepth, MaxDepth);
 	}
 };
 
-struct FRHICommandClearUAV : public FRHICommand
+struct FRHICommandClearUAV : public FRHICommand<FRHICommandClearUAV>
 {
 	FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI;
 	uint32 Values[4];
 
-	FORCEINLINE_DEBUGGABLE void Set(FUnorderedAccessViewRHIParamRef InUnorderedAccessViewRHI, const uint32* InValues)
+	FORCEINLINE_DEBUGGABLE FRHICommandClearUAV(FUnorderedAccessViewRHIParamRef InUnorderedAccessViewRHI, const uint32* InValues)
+		: UnorderedAccessViewRHI(InUnorderedAccessViewRHI)
 	{
-		Type = ERCT_ClearUAV;
-		UnorderedAccessViewRHI = InUnorderedAccessViewRHI;
 		Values[0] = InValues[0];
 		Values[1] = InValues[1];
 		Values[2] = InValues[2];
 		Values[3] = InValues[3];
 	}
+	void Execute()
+	{
+		ClearUAV_Internal(UnorderedAccessViewRHI, Values);
+	}
 };
 
-struct FRHICommandCopyToResolveTarget : public FRHICommand
+struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToResolveTarget>
 {
 	FTextureRHIParamRef SourceTexture;
 	FTextureRHIParamRef DestTexture;
 	bool bKeepOriginalSurface;
 	FResolveParams ResolveParams;
 
-	FORCEINLINE_DEBUGGABLE void Set(FTextureRHIParamRef InSourceTexture, FTextureRHIParamRef InDestTexture, bool InbKeepOriginalSurface, const FResolveParams& InResolveParams)
+	FORCEINLINE_DEBUGGABLE FRHICommandCopyToResolveTarget(FTextureRHIParamRef InSourceTexture, FTextureRHIParamRef InDestTexture, bool InbKeepOriginalSurface, const FResolveParams& InResolveParams)
+		: SourceTexture(InSourceTexture)
+		, DestTexture(InDestTexture)
+		, bKeepOriginalSurface(InbKeepOriginalSurface)
+		, ResolveParams(InResolveParams)
 	{
-		Type = ERCT_CopyToResolveTarget;
-		SourceTexture = InSourceTexture;
-		DestTexture = InDestTexture;
-		bKeepOriginalSurface = InbKeepOriginalSurface;
-		ResolveParams = InResolveParams;
 	}
+	void Execute()
+	{
+		CopyToResolveTarget_Internal(SourceTexture, DestTexture, bKeepOriginalSurface, ResolveParams);
+	}
+
 };
 
-struct FRHICommandClear : public FRHICommand
+struct FRHICommandClear : public FRHICommand<FRHICommandClear>
 {
 	FLinearColor Color;
 	FIntRect ExcludeRect;
@@ -621,7 +737,8 @@ struct FRHICommandClear : public FRHICommand
 	bool bClearColor;
 	bool bClearDepth;
 	bool bClearStencil;
-	FORCEINLINE_DEBUGGABLE void Set(
+
+	FORCEINLINE_DEBUGGABLE FRHICommandClear(
 		bool InbClearColor,
 		const FLinearColor& InColor,
 		bool InbClearDepth,
@@ -630,19 +747,22 @@ struct FRHICommandClear : public FRHICommand
 		uint32 InStencil,
 		FIntRect InExcludeRect
 		)
+		: Color(InColor)
+		, ExcludeRect(InExcludeRect)
+		, Depth(InDepth)
+		, Stencil(InStencil)
+		, bClearColor(InbClearColor)
+		, bClearDepth(InbClearDepth)
+		, bClearStencil(InbClearStencil)
 	{
-		Type = ERCT_Clear;
-		Color = InColor;
-		ExcludeRect = InExcludeRect;
-		Depth = InDepth;
-		Stencil = InStencil;
-		bClearColor = InbClearColor;
-		bClearDepth = InbClearDepth;
-		bClearStencil = InbClearStencil;
+	}
+	void Execute()
+	{
+		Clear_Internal(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
 };
 
-struct FRHICommandClearMRT : public FRHICommand
+struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
 {
 	FLinearColor ColorArray[MaxSimultaneousRenderTargets];
 	FIntRect ExcludeRect;
@@ -652,7 +772,8 @@ struct FRHICommandClearMRT : public FRHICommand
 	bool bClearColor;
 	bool bClearDepth;
 	bool bClearStencil;
-	FORCEINLINE_DEBUGGABLE void Set(
+
+	FORCEINLINE_DEBUGGABLE FRHICommandClearMRT(
 		bool InbClearColor,
 		int32 InNumClearColors,
 		const FLinearColor* InColorArray,
@@ -662,20 +783,23 @@ struct FRHICommandClearMRT : public FRHICommand
 		uint32 InStencil,
 		FIntRect InExcludeRect
 		)
+		: ExcludeRect(InExcludeRect)
+		, Depth(InDepth)
+		, Stencil(InStencil)
+		, NumClearColors(InNumClearColors)
+		, bClearColor(InbClearColor)
+		, bClearDepth(InbClearDepth)
+		, bClearStencil(InbClearStencil)
 	{
-		Type = ERCT_ClearMRT;
 		check(InNumClearColors < MaxSimultaneousRenderTargets);
 		for (int32 Index = 0; Index < InNumClearColors; Index++)
 		{
 			ColorArray[Index] = InColorArray[Index];
 		}
-		ExcludeRect = InExcludeRect;
-		Depth = InDepth;
-		Stencil = InStencil;
-		NumClearColors = InNumClearColors;
-		bClearColor = InbClearColor;
-		bClearDepth = InbClearDepth;
-		bClearStencil = InbClearStencil;
+	}
+	void Execute()
+	{
+		ClearMRT_Internal(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
 };
 
@@ -710,16 +834,42 @@ struct FBoundShaderStateInput
 	}
 };
 
+struct FComputedBSS
+{
+	FBoundShaderStateRHIRef BSS;
+	int32 UseCount;
+	FComputedBSS()
+		: UseCount(0)
+	{
+	}
+};
 
 struct FLocalBoundShaderStateWorkArea
 {
 	FBoundShaderStateInput Args;
-	FBoundShaderStateRHIRef BSS;
-	int32 UseCount;
+	FComputedBSS* ComputedBSS;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	class FRHICommandList* CheckCmdList;
+	FRHICommandListBase* CheckCmdList;
 	int32 UID;
 #endif
+
+	FORCEINLINE_DEBUGGABLE FLocalBoundShaderStateWorkArea(
+		FRHICommandListBase* InCheckCmdList,
+		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
+		FVertexShaderRHIParamRef VertexShaderRHI,
+		FHullShaderRHIParamRef HullShaderRHI,
+		FDomainShaderRHIParamRef DomainShaderRHI,
+		FPixelShaderRHIParamRef PixelShaderRHI,
+		FGeometryShaderRHIParamRef GeometryShaderRHI
+		)
+		: Args(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		, CheckCmdList(InCheckCmdList)
+		, UID(InCheckCmdList->GetUID())
+#endif
+	{
+		ComputedBSS = new (InCheckCmdList->Alloc<FComputedBSS>()) FComputedBSS;
+	}
 };
 
 struct FLocalBoundShaderState
@@ -730,14 +880,19 @@ struct FLocalBoundShaderState
 		: WorkArea(nullptr)
 	{
 	}
+	FLocalBoundShaderState(const FLocalBoundShaderState& Other)
+		: WorkArea(Other.WorkArea)
+		, BypassBSS(Other.BypassBSS)
+	{
+	}
 };
 
-struct FRHICommandBuildLocalBoundShaderState : public FRHICommand
+struct FRHICommandBuildLocalBoundShaderState : public FRHICommand<FRHICommandBuildLocalBoundShaderState>
 {
 	FLocalBoundShaderStateWorkArea WorkArea;
-	FORCEINLINE_DEBUGGABLE void Set(
-		class FRHICommandList* CheckCmdList,
-		int32 UID,
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBuildLocalBoundShaderState(
+		FRHICommandListBase* CheckCmdList,
 		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
 		FVertexShaderRHIParamRef VertexShaderRHI,
 		FHullShaderRHIParamRef HullShaderRHI,
@@ -745,98 +900,78 @@ struct FRHICommandBuildLocalBoundShaderState : public FRHICommand
 		FPixelShaderRHIParamRef PixelShaderRHI,
 		FGeometryShaderRHIParamRef GeometryShaderRHI
 		)
-	{
-		Type = ERCT_BuildLocalBoundShaderState;
-		WorkArea.Args.VertexDeclarationRHI = VertexDeclarationRHI;
-		WorkArea.Args.VertexShaderRHI = VertexShaderRHI;
-		WorkArea.Args.HullShaderRHI = HullShaderRHI;
-		WorkArea.Args.DomainShaderRHI = DomainShaderRHI;
-		WorkArea.Args.PixelShaderRHI = PixelShaderRHI;
-		WorkArea.Args.GeometryShaderRHI = GeometryShaderRHI;
+		: WorkArea(CheckCmdList, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI)
 
-		// these RHI commands are bad, no constructor! we construct this in place
-		new ((void*)&WorkArea.BSS) FBoundShaderStateRHIRef();
-		WorkArea.UseCount = 0;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		WorkArea.CheckCmdList = CheckCmdList;
-		WorkArea.UID = UID;
-#endif
+	{
 	}
+	void Execute()
+	{
+		check(!IsValidRef(WorkArea.ComputedBSS->BSS)); // should not already have been created
+		if (WorkArea.ComputedBSS->UseCount)
+		{
+			WorkArea.ComputedBSS->BSS = CreateBoundShaderState_Internal(WorkArea.Args.VertexDeclarationRHI, WorkArea.Args.VertexShaderRHI, WorkArea.Args.HullShaderRHI, WorkArea.Args.DomainShaderRHI, WorkArea.Args.PixelShaderRHI, WorkArea.Args.GeometryShaderRHI);
+		}
+	}
+
 };
 
-struct FRHICommandSetLocalBoundShaderState : public FRHICommand
+struct FRHICommandSetLocalBoundShaderState : public FRHICommand<FRHICommandSetLocalBoundShaderState>
 {
 	FLocalBoundShaderState LocalBoundShaderState;
-	FORCEINLINE_DEBUGGABLE void Set(class FRHICommandList* CheckCmdList, int32 UID, FLocalBoundShaderState& InLocalBoundShaderState)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetLocalBoundShaderState(FRHICommandListBase* CheckCmdList, FLocalBoundShaderState& InLocalBoundShaderState)
+		: LocalBoundShaderState(InLocalBoundShaderState)
 	{
-		Type = ERCT_SetLocalBoundShaderState;
-		LocalBoundShaderState.WorkArea = InLocalBoundShaderState.WorkArea;
-		check(CheckCmdList == LocalBoundShaderState.WorkArea->CheckCmdList && UID == LocalBoundShaderState.WorkArea->UID); // this BSS was not built for this particular commandlist
-		LocalBoundShaderState.WorkArea->UseCount++;
+		check(CheckCmdList == LocalBoundShaderState.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalBoundShaderState.WorkArea->UID); // this BSS was not built for this particular commandlist
+		LocalBoundShaderState.WorkArea->ComputedBSS->UseCount++;
 	}
+	void Execute()
+	{
+		check(LocalBoundShaderState.WorkArea->ComputedBSS->UseCount > 0 && IsValidRef(LocalBoundShaderState.WorkArea->ComputedBSS->BSS)); // this should have been created and should have uses outstanding
+
+		SetBoundShaderState_Internal(LocalBoundShaderState.WorkArea->ComputedBSS->BSS);
+
+		if (--LocalBoundShaderState.WorkArea->ComputedBSS->UseCount == 0)
+		{
+			LocalBoundShaderState.WorkArea->ComputedBSS->~FComputedBSS();
+		}
+	}
+
 };
 
 
-class FShader;
-
-struct FGlobalBoundShaderStateArgs
+struct FComputedUniformBuffer
 {
-	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
-	FShader* VertexShader;
-	FShader* PixelShader;
-	FShader* GeometryShader;
-};
-
-class FGlobalBoundShaderStateResource;
-template<class ResourceType> class TGlobalResource;
-
-
-struct FGlobalBoundShaderStateWorkArea
-{
-	FGlobalBoundShaderStateArgs Args;
-	TGlobalResource<FGlobalBoundShaderStateResource>* BSS; //ideally this would be part of this memory block and not a separate allocation...that is doable, if a little tedious. The point is we need to delay the construction until we get back to the render thread.
-
-	FGlobalBoundShaderStateWorkArea()
-		: BSS(nullptr)
+	FUniformBufferRHIRef UniformBuffer;
+	mutable int32 UseCount;
+	FComputedUniformBuffer()
+		: UseCount(0)
 	{
 	}
 };
 
-struct FGlobalBoundShaderState
-{
-public:
-
-	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
-	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
-
-private:
-
-	FGlobalBoundShaderStateWorkArea* WorkAreas[ERHIFeatureLevel::Num];
-};
-
-struct FRHICommandSetGlobalBoundShaderState : public FRHICommand
-{
-	FGlobalBoundShaderState GlobalBoundShaderState;
-	FORCEINLINE_DEBUGGABLE void Set(FGlobalBoundShaderState& InGlobalBoundShaderState)
-	{
-		Type = ERCT_SetGlobalBoundShaderState;
-		GlobalBoundShaderState = InGlobalBoundShaderState;
-	}
-};
-
-// there is a layering problem here, we use a function pointer to avoid making RHI depend on engine
-extern RHI_API void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState);
 
 struct FLocalUniformBufferWorkArea
 {
 	void* Contents;
 	const FRHIUniformBufferLayout* Layout;
-	FUniformBufferRHIRef UniformBuffer;
-	mutable int32 UseCount;
+	FComputedUniformBuffer* ComputedUniformBuffer;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	class FRHICommandList* CheckCmdList;
+	FRHICommandListBase* CheckCmdList;
 	int32 UID;
 #endif
+
+	FLocalUniformBufferWorkArea(FRHICommandListBase* InCheckCmdList, const void* InContents, uint32 ContentsSize, const FRHIUniformBufferLayout* InLayout)
+		: Layout(InLayout)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		, CheckCmdList(InCheckCmdList)
+		, UID(InCheckCmdList->GetUID())
+#endif
+	{
+		check(ContentsSize);
+		Contents = InCheckCmdList->Alloc(ContentsSize, UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+		FMemory::Memcpy(Contents, InContents, ContentsSize);
+		ComputedUniformBuffer = new (InCheckCmdList->Alloc<FComputedUniformBuffer>()) FComputedUniformBuffer;
+	}
 };
 
 struct FLocalUniformBuffer
@@ -847,191 +982,73 @@ struct FLocalUniformBuffer
 		: WorkArea(nullptr)
 	{
 	}
+	FLocalUniformBuffer(const FLocalUniformBuffer& Other)
+		: WorkArea(Other.WorkArea)
+		, BypassUniform(Other.BypassUniform)
+	{
+	}
 	FORCEINLINE_DEBUGGABLE bool IsValid() const
 	{
 		return WorkArea || IsValidRef(BypassUniform);
 	}
 };
 
-struct FRHICommandBuildLocalUniformBuffer : public FRHICommand
+struct FRHICommandBuildLocalUniformBuffer : public FRHICommand<FRHICommandBuildLocalUniformBuffer>
 {
 	FLocalUniformBufferWorkArea WorkArea;
-	FORCEINLINE_DEBUGGABLE void Set(
-	class FRHICommandList* CheckCmdList,
-		int32 UID,
+	FORCEINLINE_DEBUGGABLE FRHICommandBuildLocalUniformBuffer(
+		FRHICommandListBase* CheckCmdList,
 		const void* Contents,
 		uint32 ContentsSize,
 		const FRHIUniformBufferLayout& Layout
 		)
+		: WorkArea(CheckCmdList, Contents, ContentsSize, &Layout)
+
 	{
-		Type = ERCT_BuildLocalUniformBuffer;
-		// these RHI commands are bad, no constructor! we construct this in place
-		WorkArea.Layout = &Layout;
-		WorkArea.Contents = FMemory::Malloc(ContentsSize, UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-		FMemory::Memcpy(WorkArea.Contents, Contents, ContentsSize);
-		new ((void*)&WorkArea.UniformBuffer) FUniformBufferRHIRef();
-		WorkArea.UseCount = 0;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		WorkArea.CheckCmdList = CheckCmdList;
-		WorkArea.UID = UID;
-#endif
 	}
+	void Execute()
+	{
+		check(!IsValidRef(WorkArea.ComputedUniformBuffer->UniformBuffer) && WorkArea.Layout && WorkArea.Contents); // should not already have been created
+		if (WorkArea.ComputedUniformBuffer->UseCount)
+		{
+			WorkArea.ComputedUniformBuffer->UniformBuffer = RHICreateUniformBuffer(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
+		}
+		WorkArea.Layout = nullptr;
+		WorkArea.Contents = nullptr;
+	}
+
 };
 
-struct FRHICommandSetLocalUniformBuffer : public FRHICommandPerShader
+template <typename TShaderRHIParamRef>
+struct FRHICommandSetLocalUniformBuffer : public FRHICommand<FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef> >
 {
+	TShaderRHIParamRef Shader;
 	uint32 BaseIndex;
 	FLocalUniformBuffer LocalUniformBuffer;
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void Set(class FRHICommandList* CheckCmdList, int32 UID, TShaderRHIParamRef InShader, uint32 InBaseIndex, const FLocalUniformBuffer& InLocalUniformBuffer)
+	FORCEINLINE_DEBUGGABLE FRHICommandSetLocalUniformBuffer(FRHICommandListBase* CheckCmdList, TShaderRHIParamRef InShader, uint32 InBaseIndex, const FLocalUniformBuffer& InLocalUniformBuffer)
+		: Shader(InShader)
+		, BaseIndex(InBaseIndex)
+		, LocalUniformBuffer(InLocalUniformBuffer)
+
 	{
-		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
-		Type = ERCT_SetLocalUniformBuffer;
-		BaseIndex = InBaseIndex;
-		LocalUniformBuffer.WorkArea = InLocalUniformBuffer.WorkArea;
-		check(CheckCmdList == LocalUniformBuffer.WorkArea->CheckCmdList && UID == LocalUniformBuffer.WorkArea->UID); // this uniform buffer was not built for this particular commandlist
-		LocalUniformBuffer.WorkArea->UseCount++;
+		check(CheckCmdList == LocalUniformBuffer.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalUniformBuffer.WorkArea->UID); // this uniform buffer was not built for this particular commandlist
+		LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount++;
 	}
+	void Execute()
+	{
+		check(LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount > 0 && IsValidRef(LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UniformBuffer)); // this should have been created and should have uses outstanding
+		SetShaderUniformBuffer_Internal(Shader, BaseIndex, LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UniformBuffer);
+		if (--LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount == 0)
+		{
+			LocalUniformBuffer.WorkArea->ComputedUniformBuffer->~FComputedUniformBuffer();
+		}
+	}
+
 };
 
-class RHI_API FRHICommandList : public FNoncopyable
+class RHI_API FRHICommandList : public FRHICommandListBase
 {
-private:
-
-	struct FMemManager
-	{
-		struct FPage
-		{
-			enum
-			{
-				PageSize = 64 * 1024
-			};
-
-			RHI_API static TLockFreeFixedSizeAllocator<PageSize> TheAllocator;
-
-			FPage() :
-				NextPage(nullptr)
-			{
-				Head = (uint8*)TheAllocator.Allocate();
-				check((UPTRINT(Head) & (Alignment - 1)) == 0);
-				Current = Head;
-				Tail = Head + PageSize;
-				//::OutputDebugStringW(*FString::Printf(TEXT("PAGE %p, %p - %p\n"), this, Head, Tail));
-			}
-
-			~FPage()
-			{
-				TheAllocator.Free(Head);
-				Head = Current = Tail = nullptr;
-
-				// Caller/owner is responsible for freeing the linked list
-				NextPage = nullptr;
-			}
-
-			void Reset()
-			{
-				Current = Head;
-			}
-
-			FORCEINLINE_DEBUGGABLE SIZE_T MemUsed() const
-			{
-				return Current - Head;
-			}
-
-			FORCEINLINE_DEBUGGABLE SIZE_T MemAvailable() const
-			{
-				return Tail - Current;
-			}
-
-			FORCEINLINE_DEBUGGABLE bool CanFitAllocation(SIZE_T AlignedSize) const
-			{
-				return (AlignedSize + Current <= Tail);
-			}
-
-			FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T AlignedSize)
-			{
-				auto* Ptr = Current;
-				Current += AlignedSize;
-				return Ptr;
-			}
-			FORCEINLINE_DEBUGGABLE void Dealloc(SIZE_T AlignedSize)
-			{
-				Current -= AlignedSize;
-			}
-
-			uint8* Current;
-			uint8* Tail;
-			uint8* Head;
-
-			FPage* NextPage;
-		};
-
-		FMemManager();
-		~FMemManager();
-
-		FORCEINLINE_DEBUGGABLE void Dealloc(SIZE_T InSize)
-		{
-			checkSlow(LastPage);
-			LastPage->Dealloc(InSize);
-		}
-		FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)
-		{
-			InSize = (InSize + (Alignment - 1)) & ~(Alignment - 1);
-			bool bTryAgain = false;
-
-			if (LastPage)
-			{
-				if (LastPage->CanFitAllocation(InSize))
-				{
-					return LastPage->Alloc(InSize);
-				}
-
-				// Insert End Of Page if there's trailing space
-				if (LastPage->MemAvailable() >= sizeof(FRHICommand))
-				{
-					//@todo-rco: Fix me!
-					// This is an allocator command, so it should not be counted during regular execution...
-					auto* EndOfPageCmd = (FRHICommand*)LastPage->Alloc(sizeof(FRHICommand));
-					EndOfPageCmd->Type = ERCT_NopEndOfPage;
-				}
-			}
-
-			checkfSlow(InSize <= FPage::PageSize, TEXT("Can't allocate an FPage bigger than %d!"), FPage::PageSize);
-			if (!FirstPage)
-			{
-				FirstPage = new FPage();
-				check(!LastPage);
-				LastPage = FirstPage;
-			}
-			else
-			{
-				LastPage->NextPage = new FPage();
-				LastPage = LastPage->NextPage;
-			}
-			return LastPage->Alloc(InSize);
-		}
-
-		const SIZE_T GetUsedMemory() const;
-
-		void Reset();
-
-		FPage* FirstPage;
-		FPage* LastPage;
-	};
-
-	FMemManager MemManager;
-
 public:
-	enum
-	{
-		Alignment = sizeof(SIZE_T),
-	};
-
-	FRHICommandList();
-	~FRHICommandList();
-
-	inline void Flush();
-
 	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
 	{
 		return BuildLocalBoundShaderState(
@@ -1072,8 +1089,7 @@ public:
 		}
 		else
 		{
-			auto* Cmd = AddCommand<FRHICommandBuildLocalBoundShaderState>();
-			Cmd->Set(this, this->UID, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
+			auto* Cmd = new (AllocCommand<FRHICommandBuildLocalBoundShaderState>()) FRHICommandBuildLocalBoundShaderState(this, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
 			Result.WorkArea = &Cmd->WorkArea;
 		}
 		return Result;
@@ -1086,56 +1102,7 @@ public:
 			SetBoundShaderState_Internal(LocalBoundShaderState.BypassBSS);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetLocalBoundShaderState>();
-		Cmd->Set(this, this->UID, LocalBoundShaderState);
-	}
-
-	FORCEINLINE_DEBUGGABLE void BuildAndSetGlobalBoundShaderState(
-		FGlobalBoundShaderState& GlobalBoundShaderState,
-		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
-		FShader* VertexShader,
-		FShader* PixelShader,
-		FShader* GeometryShader
-		)
-	{
-		FGlobalBoundShaderStateWorkArea* ExistingGlobalBoundShaderState = GlobalBoundShaderState.Get();
-		if (!ExistingGlobalBoundShaderState)
-		{
-			FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
-			NewGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
-			NewGlobalBoundShaderState->Args.VertexShader = VertexShader;
-			NewGlobalBoundShaderState->Args.PixelShader = PixelShader;
-			NewGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
-			FPlatformMisc::MemoryBarrier();
-
-			FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)GlobalBoundShaderState.GetPtr(), NewGlobalBoundShaderState, nullptr);
-
-			if (OldGlobalBoundShaderState != nullptr)
-			{
-				//we lost
-				delete NewGlobalBoundShaderState;
-				check(OldGlobalBoundShaderState == ExistingGlobalBoundShaderState);
-			}
-		}
-		else if (!(VertexDeclarationRHI == ExistingGlobalBoundShaderState->Args.VertexDeclarationRHI &&
-			VertexShader == ExistingGlobalBoundShaderState->Args.VertexShader &&
-			PixelShader == ExistingGlobalBoundShaderState->Args.PixelShader &&
-			GeometryShader == ExistingGlobalBoundShaderState->Args.GeometryShader))
-		{
-			// this is sketchy from a parallel perspective, but assuming the writes are atomic, and probably even if they aren't, this should be ok
-			ExistingGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
-			ExistingGlobalBoundShaderState->Args.VertexShader = VertexShader;
-			ExistingGlobalBoundShaderState->Args.PixelShader = PixelShader;
-			ExistingGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
-		}
-
-		if (Bypass())
-		{
-			SetGlobalBoundShaderState_InternalPtr(GlobalBoundShaderState);
-			return;
-		}
-		auto* Cmd = AddCommand<FRHICommandSetGlobalBoundShaderState>();
-		Cmd->Set(GlobalBoundShaderState);
+		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
 	}
 
 	FORCEINLINE_DEBUGGABLE FLocalUniformBuffer BuildLocalUniformBuffer(const void* Contents, uint32 ContentsSize, const FRHIUniformBufferLayout& Layout)
@@ -1147,9 +1114,7 @@ public:
 		}
 		else
 		{
-			auto* Cmd = AddCommand<FRHICommandBuildLocalUniformBuffer>();
-			check(ContentsSize);
-			Cmd->Set(this, this->UID, Contents, ContentsSize, Layout);
+			auto* Cmd = new (AllocCommand<FRHICommandBuildLocalUniformBuffer>()) FRHICommandBuildLocalUniformBuffer(this, Contents, ContentsSize, Layout);
 			Result.WorkArea = &Cmd->WorkArea;
 		}
 		return Result;
@@ -1163,8 +1128,7 @@ public:
 			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer.BypassUniform);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetLocalUniformBuffer>();
-		Cmd->Set<TShaderRHIParamRef>(this, this->UID, Shader, BaseIndex, UniformBuffer);
+		new (AllocCommand<FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef>(this, Shader, BaseIndex, UniformBuffer);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1175,27 +1139,20 @@ public:
 			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetShaderUniformBuffer>();
-		Cmd->Set<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
+		new (AllocCommand<FRHICommandSetShaderUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetShaderUniformBuffer<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
 	}
 
 	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue, bool bValueInStack = false)
+	FORCEINLINE_DEBUGGABLE void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 	{
 		if (Bypass())
 		{
 			SetShaderParameter_Internal(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
 			return;
 		}
-
-		if (bValueInStack)
-		{
-			auto* Blob = AddCommand<FRHICommandNopBlob>(NumBytes);
-			Blob->Set(this, NumBytes, NewValue);
-			NewValue = Blob->Data;
-		}
-		auto* Cmd = AddCommand<FRHICommandSetShaderParameter>();
-		Cmd->Set<TShaderRHIParamRef>(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+		void* UseValue = Alloc(NumBytes, 16);
+		FMemory::Memcpy(UseValue, NewValue, NumBytes);
+		new (AllocCommand<FRHICommandSetShaderParameter<TShaderRHIParamRef> >()) FRHICommandSetShaderParameter<TShaderRHIParamRef>(Shader, BufferIndex, BaseIndex, NumBytes, UseValue);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1206,9 +1163,7 @@ public:
 			SetShaderTexture_Internal(Shader, TextureIndex, Texture);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetShaderTexture>();
-		Cmd->Set<TShaderRHIParamRef>(Shader, TextureIndex, Texture);
+		new (AllocCommand<FRHICommandSetShaderTexture<TShaderRHIParamRef> >()) FRHICommandSetShaderTexture<TShaderRHIParamRef>(Shader, TextureIndex, Texture);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1219,8 +1174,7 @@ public:
 			SetShaderResourceViewParameter_Internal(Shader, SamplerIndex, SRV);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetShaderResourceViewParameter>();
-		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, SRV);
+		new (AllocCommand<FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef> >()) FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef>(Shader, SamplerIndex, SRV);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1231,9 +1185,7 @@ public:
 			SetShaderSampler_Internal(Shader, SamplerIndex, State);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetShaderSampler>();
-		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, State);
+		new (AllocCommand<FRHICommandSetShaderSampler<TShaderRHIParamRef> >()) FRHICommandSetShaderSampler<TShaderRHIParamRef>(Shader, SamplerIndex, State);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
@@ -1243,8 +1195,7 @@ public:
 			SetUAVParameter_Internal(Shader, UAVIndex, UAV);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetUAVParameter>();
-		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV);
+		new (AllocCommand<FRHICommandSetUAVParameter<FComputeShaderRHIParamRef> >()) FRHICommandSetUAVParameter<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
@@ -1254,8 +1205,7 @@ public:
 			SetUAVParameter_Internal(Shader, UAVIndex, UAV, InitialCount);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetUAVParameter_IntialCount>();
-		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV, InitialCount);
+		new (AllocCommand<FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef> >()) FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV, InitialCount);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
@@ -1265,9 +1215,7 @@ public:
 			SetBoundShaderState_Internal(BoundShaderState);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetBoundShaderState>();
-		Cmd->Set(BoundShaderState);
+		new (AllocCommand<FRHICommandSetBoundShaderState>()) FRHICommandSetBoundShaderState(BoundShaderState);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetRasterizerState(FRasterizerStateRHIParamRef State)
@@ -1277,9 +1225,7 @@ public:
 			SetRasterizerState_Internal(State);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetRasterizerState>();
-		Cmd->Set(State);
+		new (AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
@@ -1289,9 +1235,7 @@ public:
 			SetBlendState_Internal(State, BlendFactor);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetBlendState>();
-		Cmd->Set(State, BlendFactor);
+		new (AllocCommand<FRHICommandSetBlendState>()) FRHICommandSetBlendState(State, BlendFactor);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances)
@@ -1301,9 +1245,7 @@ public:
 			DrawPrimitive_Internal(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandDrawPrimitive>();
-		Cmd->Set(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+		new (AllocCommand<FRHICommandDrawPrimitive>()) FRHICommandDrawPrimitive(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
@@ -1313,9 +1255,7 @@ public:
 			DrawIndexedPrimitive_Internal(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandDrawIndexedPrimitive>();
-		Cmd->Set(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+		new (AllocCommand<FRHICommandDrawIndexedPrimitive>()) FRHICommandDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
@@ -1325,9 +1265,7 @@ public:
 			SetStreamSource_Internal(StreamIndex, VertexBuffer, Stride, Offset);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetStreamSource>();
-		Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
+		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSource(StreamIndex, VertexBuffer, Stride, Offset);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
@@ -1337,9 +1275,7 @@ public:
 			SetDepthStencilState_Internal(NewStateRHI, StencilRef);
 			return;
 		}
-
-		auto* Cmd = AddCommand<FRHICommandSetDepthStencilState>();
-		Cmd->Set(NewStateRHI, StencilRef);
+		new (AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
@@ -1349,8 +1285,7 @@ public:
 			SetViewport_Internal(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetViewport>();
-		Cmd->Set(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+		new (AllocCommand<FRHICommandSetViewport>()) FRHICommandSetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
@@ -1360,8 +1295,7 @@ public:
 			SetScissorRect_Internal(bEnable, MinX, MinY, MaxX, MaxY);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetScissorRect>();
-		Cmd->Set(bEnable,  MinX, MinY, MaxX, MaxY);
+		new (AllocCommand<FRHICommandSetScissorRect>()) FRHICommandSetScissorRect(bEnable, MinX, MinY, MaxX, MaxY);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetRenderTargets(
@@ -1382,8 +1316,7 @@ public:
 				UAVs);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetRenderTargets>();
-		Cmd->Set(
+		new (AllocCommand<FRHICommandSetRenderTargets>()) FRHICommandSetRenderTargets(
 			NewNumSimultaneousRenderTargets,
 			NewRenderTargetsRHI,
 			NewDepthStencilTargetRHI,
@@ -1400,7 +1333,7 @@ public:
 		}
 		check(!DrawUPData.OutVertexData && NumVertices * VertexDataStride > 0);
 
-		OutVertexData = FMemory::Malloc(NumVertices * VertexDataStride);
+		OutVertexData = Alloc(NumVertices * VertexDataStride, 16);
 
 		DrawUPData.PrimitiveType = PrimitiveType;
 		DrawUPData.NumPrimitives = NumPrimitives;
@@ -1417,8 +1350,7 @@ public:
 			return;
 		}
 		check(DrawUPData.OutVertexData && DrawUPData.NumVertices);
-		auto* Cmd = AddCommand<FRHICommandEndDrawPrimitiveUP>();
-		Cmd->Set(DrawUPData.PrimitiveType, DrawUPData.NumPrimitives, DrawUPData.NumVertices, DrawUPData.VertexDataStride, DrawUPData.OutVertexData);
+		new (AllocCommand<FRHICommandEndDrawPrimitiveUP>()) FRHICommandEndDrawPrimitiveUP(DrawUPData.PrimitiveType, DrawUPData.NumPrimitives, DrawUPData.NumVertices, DrawUPData.VertexDataStride, DrawUPData.OutVertexData);
 
 		DrawUPData.OutVertexData = nullptr;
 		DrawUPData.NumVertices = 0;
@@ -1433,8 +1365,8 @@ public:
 		}
 		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData && NumVertices * VertexDataStride > 0 && NumIndices * IndexDataStride > 0);
 
-		OutVertexData = FMemory::Malloc(NumVertices * VertexDataStride);
-		OutIndexData = FMemory::Malloc(NumIndices * IndexDataStride);
+		OutVertexData = Alloc(NumVertices * VertexDataStride, 16);
+		OutIndexData = Alloc(NumIndices * IndexDataStride, 16);
 
 		DrawUPData.PrimitiveType = PrimitiveType;
 		DrawUPData.NumPrimitives = NumPrimitives;
@@ -1457,8 +1389,7 @@ public:
 		}
 		check(DrawUPData.OutVertexData && DrawUPData.OutIndexData && DrawUPData.NumIndices && DrawUPData.NumVertices);
 
-		auto* Cmd = AddCommand<FRHICommandEndDrawIndexedPrimitiveUP>();
-		Cmd->Set(DrawUPData.PrimitiveType, DrawUPData.NumPrimitives, DrawUPData.NumVertices, DrawUPData.VertexDataStride, DrawUPData.OutVertexData, DrawUPData.MinVertexIndex, DrawUPData.NumIndices, DrawUPData.IndexDataStride, DrawUPData.OutIndexData);
+		new (AllocCommand<FRHICommandEndDrawIndexedPrimitiveUP>()) FRHICommandEndDrawIndexedPrimitiveUP(DrawUPData.PrimitiveType, DrawUPData.NumPrimitives, DrawUPData.NumVertices, DrawUPData.VertexDataStride, DrawUPData.OutVertexData, DrawUPData.MinVertexIndex, DrawUPData.NumIndices, DrawUPData.IndexDataStride, DrawUPData.OutIndexData);
 
 		DrawUPData.OutVertexData = nullptr;
 		DrawUPData.OutIndexData = nullptr;
@@ -1473,8 +1404,7 @@ public:
 			SetComputeShader_Internal(ComputeShader);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandSetComputeShader>();
-		Cmd->Set(ComputeShader);
+		new (AllocCommand<FRHICommandSetComputeShader>()) FRHICommandSetComputeShader(ComputeShader);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
@@ -1484,8 +1414,7 @@ public:
 			DispatchComputeShader_Internal(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandDispatchComputeShader>();
-		Cmd->Set(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+		new (AllocCommand<FRHICommandDispatchComputeShader>()) FRHICommandDispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
@@ -1495,8 +1424,7 @@ public:
 			DispatchIndirectComputeShader_Internal(ArgumentBuffer, ArgumentOffset);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandDispatchIndirectComputeShader>();
-		Cmd->Set(ArgumentBuffer, ArgumentOffset);
+		new (AllocCommand<FRHICommandDispatchIndirectComputeShader>()) FRHICommandDispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);
 	}
 
 	FORCEINLINE_DEBUGGABLE void AutomaticCacheFlushAfterComputeShader(bool bEnable)
@@ -1506,8 +1434,7 @@ public:
 			AutomaticCacheFlushAfterComputeShader_Internal(bEnable);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandAutomaticCacheFlushAfterComputeShader>();
-		Cmd->Set(bEnable);
+		new (AllocCommand<FRHICommandAutomaticCacheFlushAfterComputeShader>()) FRHICommandAutomaticCacheFlushAfterComputeShader(bEnable);
 	}
 
 	FORCEINLINE_DEBUGGABLE void FlushComputeShaderCache()
@@ -1517,8 +1444,7 @@ public:
 			FlushComputeShaderCache_Internal();
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandFlushComputeShaderCache>();
-		Cmd->Set();
+		new (AllocCommand<FRHICommandFlushComputeShaderCache>()) FRHICommandFlushComputeShaderCache();
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
@@ -1528,8 +1454,7 @@ public:
 			DrawPrimitiveIndirect_Internal(PrimitiveType, ArgumentBuffer, ArgumentOffset);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandDrawPrimitiveIndirect>();
-		Cmd->Set(PrimitiveType, ArgumentBuffer, ArgumentOffset);
+		new (AllocCommand<FRHICommandDrawPrimitiveIndirect>()) FRHICommandDrawPrimitiveIndirect(PrimitiveType, ArgumentBuffer, ArgumentOffset);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, uint32 DrawArgumentsIndex, uint32 NumInstances)
@@ -1539,8 +1464,7 @@ public:
 			DrawIndexedIndirect_Internal(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandDrawIndexedIndirect>();
-		Cmd->Set(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
+		new (AllocCommand<FRHICommandDrawIndexedIndirect>()) FRHICommandDrawIndexedIndirect(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawIndexedPrimitiveIndirect(uint32 PrimitiveType, FIndexBufferRHIParamRef IndexBuffer, FVertexBufferRHIParamRef ArgumentsBuffer, uint32 ArgumentOffset)
@@ -1550,8 +1474,7 @@ public:
 			DrawIndexedPrimitiveIndirect_Internal(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandDrawIndexedPrimitiveIndirect>();
-		Cmd->Set(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
+		new (AllocCommand<FRHICommandDrawIndexedPrimitiveIndirect>()) FRHICommandDrawIndexedPrimitiveIndirect(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
 	}
 
 	FORCEINLINE_DEBUGGABLE void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
@@ -1561,8 +1484,7 @@ public:
 			EnableDepthBoundsTest_Internal(bEnable, MinDepth, MaxDepth);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandEnableDepthBoundsTest>();
-		Cmd->Set(bEnable, MinDepth, MaxDepth);
+		new (AllocCommand<FRHICommandEnableDepthBoundsTest>()) FRHICommandEnableDepthBoundsTest(bEnable, MinDepth, MaxDepth);
 	}
 
 	FORCEINLINE_DEBUGGABLE void ClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32(&Values)[4])
@@ -1572,8 +1494,7 @@ public:
 			ClearUAV_Internal(UnorderedAccessViewRHI, Values);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandClearUAV>();
-		Cmd->Set(UnorderedAccessViewRHI, Values);
+		new (AllocCommand<FRHICommandClearUAV>()) FRHICommandClearUAV(UnorderedAccessViewRHI, Values);
 	}
 
 	FORCEINLINE_DEBUGGABLE void CopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
@@ -1583,8 +1504,7 @@ public:
 			CopyToResolveTarget_Internal(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandCopyToResolveTarget>();
-		Cmd->Set(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
+		new (AllocCommand<FRHICommandCopyToResolveTarget>()) FRHICommandCopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
 	}
 
 	FORCEINLINE_DEBUGGABLE void Clear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
@@ -1594,8 +1514,7 @@ public:
 			Clear_Internal(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandClear>();
-		Cmd->Set(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+		new (AllocCommand<FRHICommandClear>()) FRHICommandClear(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
 
 	FORCEINLINE_DEBUGGABLE void ClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
@@ -1605,73 +1524,8 @@ public:
 			ClearMRT_Internal(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 			return;
 		}
-		auto* Cmd = AddCommand<FRHICommandClearMRT>();
-		Cmd->Set(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+		new (AllocCommand<FRHICommandClearMRT>()) FRHICommandClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
-
-	const SIZE_T GetUsedMemory() const;
-
-protected:
-
-	struct FDrawUpData
-	{
-
-		uint32 PrimitiveType;
-		uint32 NumPrimitives;
-		uint32 NumVertices;
-		uint32 VertexDataStride;
-		void* OutVertexData;
-		uint32 MinVertexIndex;
-		uint32 NumIndices;
-		uint32 IndexDataStride;
-		void* OutIndexData;
-
-		FDrawUpData()
-			: PrimitiveType(PT_Num)
-			, OutVertexData(nullptr)
-			, OutIndexData(nullptr)
-		{
-		}
-
-	};
-
-	FDrawUpData DrawUPData;
-
-	FORCEINLINE_DEBUGGABLE bool HasCommands() const
-	{
-		return (NumCommands > 0);
-	}
-
-
-private:
-	bool bExecuting;
-	uint32 NumCommands;
-	uint32 UID;
-
-	FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)
-	{
-		return MemManager.Alloc(InSize);
-	}
-
-	template <typename TCmd>
-	FORCEINLINE_DEBUGGABLE TCmd* AddCommand(uint32 ExtraData = 0)
-	{
-		checkSlow(!bExecuting);
-		TCmd* Cmd = (TCmd*)Alloc(sizeof(TCmd) + ExtraData);
-		//::OutputDebugStringW(*FString::Printf(TEXT("Add %d: @ 0x%p, %d bytes\n"), NumCommands, (void*)Cmd, (sizeof(TCmd) + ExtraData)));
-		++NumCommands;
-		return Cmd;
-	}
-
-	void Reset();
-
-	inline bool Bypass();
-
-	friend class FRHICommandListExecutor;
-	friend class FRHICommandListIterator;
-
-	// Used here as we really want Alloc() to only work for this class, nobody else should use it
-	friend struct FRHICommandNopBlob;
 };
 
 class RHI_API FRHICommandListImmediate : public FRHICommandList
@@ -1765,7 +1619,7 @@ public:
 	}
 	static inline FRHICommandListImmediate& GetImmediateCommandList();
 
-	void ExecuteList(FRHICommandList& CmdList);
+	void ExecuteList(FRHICommandListBase& CmdList);
 	void ExecuteList(FRHICommandListImmediate& CmdList);
 	void LatchBypass();
 
@@ -1785,22 +1639,16 @@ public:
 
 private:
 
-	void ExecuteInner(FRHICommandList& CmdList);
+	void ExecuteInner(FRHICommandListBase& CmdList);
 
 	bool bLatchedBypass;
-	friend class FRHICommandList;
+	friend class FRHICommandListBase;
 	FThreadSafeCounter UIDCounter;
 	FThreadSafeCounter OutstandingCmdListCount;
 	FRHICommandListImmediate CommandListImmediate;
-
-	void ExecuteListGenericRHI(FRHICommandList& CmdList);
 };
-extern RHI_API FRHICommandListExecutor GRHICommandList;
 
-FORCEINLINE_DEBUGGABLE bool FRHICommandList::Bypass()
-{
-	return GRHICommandList.Bypass();
-}
+extern RHI_API FRHICommandListExecutor GRHICommandList;
 
 FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImmediateCommandList()
 {

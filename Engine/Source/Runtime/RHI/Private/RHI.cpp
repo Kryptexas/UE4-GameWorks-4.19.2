@@ -94,6 +94,10 @@ void FRHIResource::FlushPendingDeletes()
 				delete Ref;
 				CurrentlyDeleting = nullptr;
 			}
+			else
+			{
+				verify(Ref->MarkedForDelete.Decrement() == 0);
+			}
 		}
 	}
 }

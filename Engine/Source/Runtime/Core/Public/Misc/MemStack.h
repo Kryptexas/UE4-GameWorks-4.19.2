@@ -55,12 +55,13 @@ class CORE_API FMemStackBase
 {
 public:
 
-	FMemStackBase()
+	FMemStackBase(int32 InMinMarksToAlloc = 1)
 		: Top(nullptr)
 		, End(nullptr)
 		, TopChunk(nullptr)
 		, TopMark(nullptr)
 		, NumMarks(0)
+		, MinMarksToAlloc(InMinMarksToAlloc)
 	{
 	}
 
@@ -70,19 +71,19 @@ public:
 		FreeChunks(nullptr);
 	}
 
-
-	// Get bytes.
 	FORCEINLINE uint8* PushBytes(int32 AllocSize, int32 Alignment)
 	{
 		return (uint8*)Alloc(AllocSize, FMath::Max(AllocSize >= 16 ? (int32)16 : (int32)8, Alignment));
 	}
+
 	FORCEINLINE void* Alloc(int32 AllocSize, int32 Alignment)
 	{
 		// Debug checks.
 		checkSlow(AllocSize>=0);
 		checkSlow((Alignment&(Alignment-1))==0);
 		checkSlow(Top<=End);
-		checkSlow(NumMarks > 0);
+		checkSlow(NumMarks >= MinMarksToAlloc);
+
 
 		// Try to get memory from the current chunk.
 		uint8* Result = Align( Top, Alignment );
@@ -110,6 +111,11 @@ public:
 		return TopChunk == nullptr;
 	}
 
+	FORCEINLINE void Flush()
+	{
+		check(!NumMarks && !MinMarksToAlloc);
+		FreeChunks(nullptr);
+	}
 	/** @return the number of bytes allocated for this FMemStack that are currently in use. */
 	int32 GetByteCount() const;
 
@@ -135,6 +141,15 @@ public:
 
 private:
 
+	/**
+	 * Allocate a new chunk of memory of at least MinSize size,
+	 * updates the memory stack's Chunks table and ActiveChunks counter.
+	 */
+	void AllocateNewChunk( int32 MinSize );
+
+	/** Frees the chunks above the specified chunk on the stack. */
+	void FreeChunks( FTaggedMemory* NewTopChunk );
+
 	// Variables.
 	uint8*			Top;				// Top of current chunk (Top<=End).
 	uint8*			End;				// End of current chunk.
@@ -146,19 +161,12 @@ private:
 	/** The number of marks on this stack. */
 	int32 NumMarks;
 
-	/**
-	 * Allocate a new chunk of memory of at least MinSize size,
-	 * updates the memory stack's Chunks table and ActiveChunks counter.
-	 */
-	void AllocateNewChunk( int32 MinSize );
-
-	/** Frees the chunks above the specified chunk on the stack. */
-	void FreeChunks( FTaggedMemory* NewTopChunk );
+	/** Used for a checkSlow. Most stacks require a mark to allocate. Command lists don't because they never mark, only flush*/
+	int32 MinMarksToAlloc;
 };
 
 class CORE_API FMemStack : public TThreadSingleton<FMemStack>, public FMemStackBase
 {
-
 };
 
 /*-----------------------------------------------------------------------------

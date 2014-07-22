@@ -40,8 +40,7 @@ void SetShaderValue(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex() + ElementIndex * AlignedTypeSize,
 			(uint32)NumBytesToSet,
-			&Value,
-			true
+			&Value
 			);
 	}
 }
@@ -89,8 +88,7 @@ void SetShaderValueArray(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex() + BaseElementIndex * AlignedTypeSize,
 			(uint32)NumBytesToSet,
-			Values,
-			true
+			Values
 			);
 	}
 }
@@ -131,8 +129,7 @@ inline void SetPixelShaderBool(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex(),
 			sizeof(BoolValue),
-			&BoolValue,
-			true
+			&BoolValue
 			);
 	}
 }

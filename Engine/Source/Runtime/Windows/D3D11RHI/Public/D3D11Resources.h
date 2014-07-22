@@ -148,6 +148,8 @@ public:
 		ID3D11Device* Direct3DDevice
 		);
 
+	~FD3D11BoundShaderState();
+
 	/**
 	 * Get the shader for the given frequency.
 	 */
