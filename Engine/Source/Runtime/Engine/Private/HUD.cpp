@@ -31,6 +31,7 @@ AHUD::AHUD(const class FPostConstructInitializeProperties& PCIP)
 	bLostFocusPaused = false;
 
 	bCanBeDamaged = false;
+	bEnableDebugTextShadow = false;
 }
 
 void AHUD::SetCanvas(class UCanvas* InCanvas, class UCanvas* InDebugCanvas)
@@ -330,16 +331,16 @@ void AHUD::DrawHUD()
 	ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
 }
 
-
 void AHUD::DrawText(const FString& Text, FVector2D Position, UFont* TextFont, FVector2D FontScale, FColor TextColor)
 {
 	float XL, YL;
 	Canvas->TextSize(TextFont, Text, XL, YL);
 	const float X = Canvas->ClipX/2.0f - XL/2.0f + Position.X;
-	const float Y = Canvas->ClipY/3.0f - YL/2.0f + Position.Y;
-	FCanvasTextItem TextItem( FVector2D( X, Y ), FText::FromString( Text ), GEngine->GetTinyFont(), FLinearColor( TextColor ) );
+	const float Y = Canvas->ClipY/2.0f - YL/2.0f + Position.Y;
+	FCanvasTextItem TextItem( FVector2D( X, Y ), FText::FromString( Text ), TextFont, FLinearColor( TextColor ) );
 	TextItem.Scale = FontScale;
-	Canvas->DrawText(TextFont, Text, X, Y, FontScale.X, FontScale.Y);
+	
+	Canvas->DrawItem(TextItem);
 }
 
 UFont* AHUD::GetFontFromSizeIndex(int32 FontSizeIndex) const
@@ -378,6 +379,10 @@ void AHUD::DrawDebugTextList()
 		PlayerOwner->GetPlayerViewPoint(CameraLoc, CameraRot);
 
 		FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
+		if (bEnableDebugTextShadow == true)
+		{
+			TextItem.EnableShadow(FLinearColor::Black);
+		}
 		for (int32 Idx = 0; Idx < DebugTextList.Num(); Idx++)
 		{
 			if (DebugTextList[Idx].SrcActor == NULL)

@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "HUD.generated.h"
 
+class FCanvasTextItem;
+
 /** List of actors and debug text to draw, @see AddDebugText(), RemoveDebugText(), and DrawDebugTextList() */
 USTRUCT()
 struct FDebugTextInfo
@@ -191,6 +193,10 @@ class ENGINE_API AHUD : public AActor
 	UPROPERTY()
 	uint32 bShowOverlays:1;
 
+	/** Put shadow on debug strings */
+	UPROPERTY()
+	uint32 bEnableDebugTextShadow : 1;	
+
 	/** Holds a list of Actors that need PostRender() calls. */
 	UPROPERTY()
 	TArray<class AActor*> PostRenderedActors;
@@ -220,9 +226,10 @@ protected:
 	UPROPERTY()
 	class UCanvas* DebugCanvas;
 
-private:
 	UPROPERTY()
 	TArray<struct FDebugTextInfo> DebugTextList;
+
+private:
 
 	/** Areas of the screen where UIBlur is enabled. */
 	TArray< FIntRect > UIBlurOverrideRectangles;
@@ -625,8 +632,7 @@ public:
 
 	/** Get the array of rectangles in which UIBlur enabled */
 	const TArray<FIntRect>& GetUIBlurRectangles() const;
-
-
+	
 protected:
 	bool IsCanvasValid_WarnIfNot() const;
 
