@@ -9,6 +9,10 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const class FPostConstructInitializePro
 {
 	bEnableGameCenterSupport = true;
 	bSupportsPortraitOrientation = true;
+	BundleDisplayName = TEXT("UE4 Game");
+	BundleName = TEXT("MyUE4Game");
+	BundleIdentifier = TEXT("com.YourCompany.GameNameNoSpaces");
+	VersionInfo = TEXT("1.0.0");
 }
 
 #if WITH_EDITOR

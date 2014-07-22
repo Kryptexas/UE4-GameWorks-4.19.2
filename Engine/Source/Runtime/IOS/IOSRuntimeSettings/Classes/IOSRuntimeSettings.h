@@ -34,6 +34,22 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
 	uint32 bSupportsLandscapeRightOrientation : 1;
 
+	// Bundle Display Name
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInfo)
+	FString BundleDisplayName;
+
+	// Bundle Name
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInfo)
+	FString BundleName;
+
+	// Bundle identifier
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInfo)
+	FString BundleIdentifier;
+
+	// version info
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInfo)
+	FString VersionInfo;
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
