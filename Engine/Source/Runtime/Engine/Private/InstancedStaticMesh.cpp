@@ -145,6 +145,11 @@ public:
 		return NumInstances;
 	}
 
+	const void* GetRawData() const
+	{
+		return InstanceData->GetDataPointer();
+	}
+
 	// FRenderResource interface.
 	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("Static-mesh instances"); }
@@ -200,7 +205,7 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	// so we make a TArray of the right type, then assign it
 	TArray<FVector4> RawData;
 	check( GetStride() % sizeof(FVector4) == 0 );
-	RawData.Empty(NumInstances * GetStride() / sizeof(FVector));
+	RawData.Empty(NumInstances * GetStride() / sizeof(FVector4));
 
 	// @todo: Make LD-customizable per component?
 	const float RandomInstanceIDBase = 0.0f;
@@ -303,7 +308,8 @@ void FStaticMeshInstanceBuffer::AllocateData()
 	// Clear any old VertexData before allocating.
 	CleanUp();
 
-	const bool bNeedsCPUAccess=false;
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bNeedsCPUAccess = !bInstanced;
 	InstanceData = new FStaticMeshInstanceData(bNeedsCPUAccess);
 	// Calculate the vertex stride.
 	Stride = InstanceData->GetStride();
@@ -315,8 +321,16 @@ void FStaticMeshInstanceBuffer::AllocateData()
 	FInstancedStaticMeshVertexFactory
 -----------------------------------------------------------------------------*/
 
-struct FInstancingUserData 
+struct FInstancingUserData
 {
+	struct FInstanceStream
+	{
+		FVector4 InstanceShadowmapUVBias;
+		FVector4 InstanceTransform[3];
+		FVector4 InstanceInverseTransform[3];
+	};
+	class FInstancedStaticMeshRenderData* RenderData;
+
 	int32 StartCullDistance;
 	int32 EndCullDistance;
 
@@ -354,11 +368,9 @@ public:
 	 */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		OutEnvironment.SetDefine(TEXT("USE_INSTANCING"),TEXT("1"));
 		const bool bInstanced = RHISupportsInstancing(Platform);
-		if (bInstanced)
-		{
-			OutEnvironment.SetDefine(TEXT("USE_INSTANCING"),TEXT("1"));
-		}
+		OutEnvironment.SetDefine(TEXT("USE_INSTANCING_EMULATED"), bInstanced ? TEXT("0") : TEXT("1"));
 	}
 
 	/**
@@ -380,6 +392,16 @@ public:
 	virtual void InitRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
+
+	/**
+	* Get a bitmask representing the visibility of each FMeshBatch element.
+	*/
+	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const override
+	{
+		//@todo-rco: Only draw the first 64 instances
+		int32 NumElements = FMath::Min(Batch->Elements.Num(), 64);
+		return (1ULL << (uint64)NumElements) - 1ULL;
+	}
 
 private:
 	DataType Data;
@@ -512,60 +534,29 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
 		InstancingFadeOutParamsParameter.Bind(ParameterMap,TEXT("InstancingFadeOutParams"));
+		CPUInstanceShadowMapBias.Bind(ParameterMap, TEXT("CPUInstanceShadowMapBias"));
+		CPUInstanceTransform.Bind(ParameterMap, TEXT("CPUInstanceTransform"));
+		CPUInstanceInverseTransform.Bind(ParameterMap, TEXT("CPUInstanceInverseTransform"));
 	}
 
-	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override
-	{
-		if( InstancingFadeOutParamsParameter.IsBound() )
-		{
-			FVector4 InstancingFadeOutParams(0.f,0.f,1.f,1.f);
-
-			const FInstancingUserData* InstancingUserData = (FInstancingUserData*)BatchElement.UserData;
-			if (InstancingUserData)
-			{
-				InstancingFadeOutParams.X = InstancingUserData->StartCullDistance;
-				if( InstancingUserData->EndCullDistance > 0 )
-				{
-					if( InstancingUserData->EndCullDistance > InstancingUserData->StartCullDistance )
-					{
-						InstancingFadeOutParams.Y = 1.f / (float)(InstancingUserData->EndCullDistance - InstancingUserData->StartCullDistance);
-					}
-					else
-					{
-						InstancingFadeOutParams.Y = 1.f;
-					}
-				}
-				else
-				{
-					InstancingFadeOutParams.Y = 0.f;
-				}
-
-				InstancingFadeOutParams.Z = InstancingUserData->bRenderSelected ? 1.f : 0.f;
-				InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
-			}
-			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), InstancingFadeOutParamsParameter, InstancingFadeOutParams );
-		}
-
-		// upload SpeedTree buffer, if available
-		if (View.Family != NULL && View.Family->Scene != NULL)
-		{
-			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
-			if (SpeedTreeUniformBuffer != NULL)
-			{
-				SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
-			}
-		}
-	}
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
 
 	void Serialize(FArchive& Ar)
 	{
 		Ar << InstancingFadeOutParamsParameter;
+		Ar << CPUInstanceShadowMapBias;
+		Ar << CPUInstanceTransform;
+		Ar << CPUInstanceInverseTransform;
 	}
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
 
 private:
 	FShaderParameter InstancingFadeOutParamsParameter;
+
+	FShaderParameter CPUInstanceShadowMapBias;
+	FShaderParameter CPUInstanceTransform;
+	FShaderParameter CPUInstanceInverseTransform;
 };
 
 FVertexFactoryShaderParameters* FInstancedStaticMeshVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
@@ -893,11 +884,16 @@ public:
 			}
 		}
 
+		check(InstancedRenderData.InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
+
+		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+
 		// Copy the parameters for LOD - all instances
 		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
 		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
 		UserData_AllInstances.bRenderSelected = true;
 		UserData_AllInstances.bRenderUnselected = true;
+		UserData_AllInstances.RenderData = bInstanced ? nullptr : &InstancedRenderData;
 
 		// selected only
 		UserData_SelectedInstances = UserData_AllInstances;
@@ -926,6 +922,9 @@ public:
 		}
 		return Result;
 	}
+
+	/** Common path for the Get*MeshElement functions */
+	inline void SetupInstancedMeshBatch(int32 LODIndex, FMeshBatch& OutMeshBatch) const;
 
 	/** Draw the scene proxy as a dynamic element */
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
@@ -1043,29 +1042,48 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 #endif
 }
 
+inline void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, FMeshBatch& OutMeshBatch) const
+{
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	OutMeshBatch.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
+	uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
+	auto* OutBatchElement0 = OutMeshBatch.Elements.GetTypedData();
+	OutBatchElement0->UserData = (void*)&UserData_AllInstances;
+	OutBatchElement0->UserIndex = 0;
+	if (bInstanced && NumInstances > 1)
+	{
+		OutBatchElement0->NumInstances = NumInstances;
+	}
+	else
+	{
+		OutMeshBatch.Elements.Reserve(NumInstances);
+		OutBatchElement0->NumInstances = 1;
+		for (uint32 Instance = 1; Instance < NumInstances; ++Instance)
+		{
+			auto* NewBatchElement = new(OutMeshBatch.Elements) FMeshBatchElement();
+			*NewBatchElement = *OutBatchElement0;
+			NewBatchElement->UserIndex = Instance;
+		}
+	}
+}
+
+
 bool FInstancedStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const
 {
 	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetShadowMeshElement(LODIndex, InDepthPriorityGroup, OutMeshElement))
 	{
-		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
-		OutMeshElement.Elements[0].NumInstances = bInstanced ? InstancedRenderData.InstanceBuffer.GetNumInstances() : 1;
-		OutMeshElement.Elements[0].UserData = (void*)&UserData_AllInstances;
-		OutMeshElement.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
+		SetupInstancedMeshBatch(LODIndex, OutMeshElement);
 		return true;
 	}
 	return false;
 }
-
 
 /** Sets up a FMeshBatch for a specific LOD and element. */
 bool FInstancedStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 ElementIndex,uint8 InDepthPriorityGroup,FMeshBatch& OutMeshElement, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const
 {
 	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetMeshElement(LODIndex, ElementIndex, InDepthPriorityGroup, OutMeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 	{
-		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
-		OutMeshElement.Elements[0].NumInstances = bInstanced ? InstancedRenderData.InstanceBuffer.GetNumInstances() : 1;
-		OutMeshElement.Elements[0].UserData = (void*)&UserData_AllInstances;
-		OutMeshElement.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
+		SetupInstancedMeshBatch(LODIndex, OutMeshElement);
 		return true;
 	}
 	return false;
@@ -1076,10 +1094,7 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, con
 {
 	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetWireframeMeshElement(LODIndex, WireframeRenderProxy, InDepthPriorityGroup, OutMeshElement))
 	{
-		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
-		OutMeshElement.Elements[0].NumInstances = bInstanced ? InstancedRenderData.InstanceBuffer.GetNumInstances() : 1;
-		OutMeshElement.Elements[0].UserData = (void*)&UserData_AllInstances;
-		OutMeshElement.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
+		SetupInstancedMeshBatch(LODIndex, OutMeshElement);
 		return true;
 	}
 	return false;
@@ -1657,4 +1672,62 @@ void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InIns
 		SelectedInstances[InstanceIndex] = bInSelected;
 	}
 #endif
+}
+
+void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags ) const 
+{
+	SCOPED_DRAW_EVENT(STATIC_INSTANCED, DEC_SCENE_ITEMS);
+	FRHIVertexShader* VS = VertexShader->GetVertexShader();
+	if( InstancingFadeOutParamsParameter.IsBound() )
+	{
+		FVector4 InstancingFadeOutParams(0.f,0.f,1.f,1.f);
+
+		const FInstancingUserData* InstancingUserData = (FInstancingUserData*)BatchElement.UserData;
+		if (InstancingUserData)
+		{
+			InstancingFadeOutParams.X = InstancingUserData->StartCullDistance;
+			if( InstancingUserData->EndCullDistance > 0 )
+			{
+				if( InstancingUserData->EndCullDistance > InstancingUserData->StartCullDistance )
+				{
+					InstancingFadeOutParams.Y = 1.f / (float)(InstancingUserData->EndCullDistance - InstancingUserData->StartCullDistance);
+				}
+				else
+				{
+					InstancingFadeOutParams.Y = 1.f;
+				}
+			}
+			else
+			{
+				InstancingFadeOutParams.Y = 0.f;
+			}
+
+			InstancingFadeOutParams.Z = InstancingUserData->bRenderSelected ? 1.f : 0.f;
+			InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
+		}
+		SetShaderValue(RHICmdList, VS, InstancingFadeOutParamsParameter, InstancingFadeOutParams );
+	}
+
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	if (!bInstanced)
+	{
+		if (CPUInstanceShadowMapBias.IsBound())
+		{
+			const auto* InstancingData = (FInstancingUserData*)BatchElement.UserData;
+			auto* InstanceStream = ((FInstancingUserData::FInstanceStream*)InstancingData->RenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
+			SetShaderValue(RHICmdList, VS, CPUInstanceShadowMapBias, InstanceStream->InstanceShadowmapUVBias);
+			SetShaderValueArray(RHICmdList, VS, CPUInstanceTransform, InstanceStream->InstanceTransform, 3);
+			SetShaderValueArray(RHICmdList, VS, CPUInstanceInverseTransform, InstanceStream->InstanceInverseTransform, 3);
+		}
+	}
+
+	// upload SpeedTree buffer, if available
+	if (View.Family != NULL && View.Family->Scene != NULL)
+	{
+		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
+		if (SpeedTreeUniformBuffer != NULL)
+		{
+			SetUniformBufferParameter(RHICmdList, VS, VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+		}
+	}
 }
