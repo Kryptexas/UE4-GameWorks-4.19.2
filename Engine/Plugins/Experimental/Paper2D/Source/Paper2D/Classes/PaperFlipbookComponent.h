@@ -5,32 +5,47 @@
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.generated.h"
 
-UCLASS(ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
+UCLASS(ShowCategories=(Mobility, ComponentReplication), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperFlipbookComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
 protected:
-	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
+	/** Flipbook currently being played */
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"), ReplicatedUsing=OnRep_SourceFlipbook)
 	UPaperFlipbook* SourceFlipbook;
 
+	/** Material used to display the flipbook */
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	UMaterialInterface* Material;
 
-	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadWrite)
+	/** Current play rate of the flipbook */
+	UPROPERTY(Category=Sprite, EditAnywhere, Replicated)
 	float PlayRate;
 
 	/** Whether the flipbook should loop when it reaches the end, or stop */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	uint32 bLooping:1;
 
 	/** If playback should move the current position backwards instead of forwards */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	uint32 bReversePlayback:1;
 
 	/** Are we currently playing (moving Position) */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	uint32 bPlaying:1;
+
+	/** Current position in the timeline */
+	UPROPERTY(Replicated)
+	float AccumulatedTime;
+
+	/** Last frame index calculated */
+	UPROPERTY()
+	int32 CachedFrameIndex;
+
+	/** Vertex color to apply to the frames */
+	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
+	FLinearColor SpriteColor;
 
 public:
 	/** Change the flipbook used by this instance. */
@@ -118,19 +133,9 @@ public:
 	float GetFlipbookFramerate() const;
 
 protected:
-	/** Current position in the timeline */
-	UPROPERTY()
-	float AccumulatedTime;
+	UFUNCTION()
+	void OnRep_SourceFlipbook(class UPaperFlipbook* OldFlipbook);
 
-	/** Last frame index calculated */
-	UPROPERTY()
-	int32 CachedFrameIndex;
-
-	/* Vertex color to apply to the frames */
-	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
-	FLinearColor SpriteColor;
-
-protected:
 	void CalculateCurrentFrame();
 	UPaperSprite* GetSpriteAtCachedIndex() const;
 

@@ -3,6 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbookSceneProxy.h"
 #include "PaperFlipbookComponent.h"
+#include "Runtime/Engine/Public/Net/UnrealNetwork.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookComponent
@@ -187,6 +188,25 @@ void UPaperFlipbookComponent::TickFlipbook(float DeltaTime)
 		TimelineFinishFuncStatic.ExecuteIfBound();
 	}
 #endif
+}
+
+void UPaperFlipbookComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPaperFlipbookComponent, SourceFlipbook);
+}
+
+void UPaperFlipbookComponent::OnRep_SourceFlipbook(class UPaperFlipbook* OldFlipbook)
+{
+	if (OldFlipbook != SourceFlipbook)
+	{
+		// Force SetFlipbook to change the animation (by default it won't change)
+		UPaperFlipbook* NewFlipbook = SourceFlipbook;
+		SourceFlipbook = nullptr;
+
+		SetFlipbook(NewFlipbook);
+	}
 }
 
 void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
