@@ -149,26 +149,26 @@ void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 M
 	}
 }
 
-bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const
+bool FStaticMeshSceneProxy::GetShadowMeshElements(int32 LODIndex, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const
 {
 	const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 	const FLODInfo& ProxyLODInfo = LODs[LODIndex];
 
-	FMeshBatchElement& OutBatchElement = OutMeshElement.Elements[0];
-	OutMeshElement.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false, false);
-	OutMeshElement.VertexFactory = &LOD.VertexFactory;
+	FMeshBatchElement& OutBatchElement = OutMeshBatches[0].Elements[0];
+	OutMeshBatches[0].MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false, false);
+	OutMeshBatches[0].VertexFactory = &LOD.VertexFactory;
 	OutBatchElement.IndexBuffer = &LOD.DepthOnlyIndexBuffer;
-	OutMeshElement.Type = PT_TriangleList;
+	OutMeshBatches[0].Type = PT_TriangleList;
 	OutBatchElement.FirstIndex = 0;
 	OutBatchElement.NumPrimitives = LOD.DepthOnlyIndexBuffer.GetNumIndices() / 3;
 	OutBatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	OutBatchElement.MinVertexIndex = 0;
 	OutBatchElement.MaxVertexIndex = LOD.PositionVertexBuffer.GetNumVertices() - 1;
-	OutMeshElement.DepthPriorityGroup = InDepthPriorityGroup;
-	OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
-	OutMeshElement.CastShadow = true;
-	OutMeshElement.LODIndex = LODIndex;
-	OutMeshElement.LCI = &ProxyLODInfo;
+	OutMeshBatches[0].DepthPriorityGroup = InDepthPriorityGroup;
+	OutMeshBatches[0].ReverseCulling = IsLocalToWorldDeterminantNegative();
+	OutMeshBatches[0].CastShadow = true;
+	OutMeshBatches[0].LODIndex = LODIndex;
+	OutMeshBatches[0].LCI = &ProxyLODInfo;
 	if (ForcedLodModel > 0) 
 	{
 		OutBatchElement.MaxScreenSize = 0.0f;
@@ -188,15 +188,15 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, uint8 InDepthPr
 }
 
 /** Sets up a FMeshBatch for a specific LOD and element. */
-bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uint8 InDepthPriorityGroup,FMeshBatch& OutMeshElement, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const
+bool FStaticMeshSceneProxy::GetMeshElements(int32 LODIndex,int32 SectionIndex,uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const
 {
 	const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 	const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
 
 	const FLODInfo& ProxyLODInfo = LODs[LODIndex];
 	UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
-	OutMeshElement.MaterialRenderProxy = Material->GetRenderProxy(bUseSelectedMaterial,bUseHoveredMaterial);
-	OutMeshElement.VertexFactory = &LOD.VertexFactory;
+	OutMeshBatches[0].MaterialRenderProxy = Material->GetRenderProxy(bUseSelectedMaterial,bUseHoveredMaterial);
+	OutMeshBatches[0].VertexFactory = &LOD.VertexFactory;
 
 	// Has the mesh component overridden the vertex color stream for this mesh LOD?
 	if( ProxyLODInfo.OverrideColorVertexBuffer != NULL )
@@ -208,29 +208,29 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uin
 		{
 			// Switch out the stock mesh vertex factory with own own vertex factory that points to
 			// our overridden color data
-			OutMeshElement.VertexFactory = ProxyLODInfo.OverrideColorVertexFactory.GetOwnedPointer();
+			OutMeshBatches[0].VertexFactory = ProxyLODInfo.OverrideColorVertexFactory.GetOwnedPointer();
 		}
 	}
 
 	const bool bWireframe = false;
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshElement.VertexFactory->GetType(), GetScene()->GetFeatureLevel() );
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatches[0].VertexFactory->GetType(), GetScene()->GetFeatureLevel() );
 
-	SetIndexSource(LODIndex, SectionIndex, OutMeshElement, bWireframe, bRequiresAdjacencyInformation );
+	SetIndexSource(LODIndex, SectionIndex, OutMeshBatches[0], bWireframe, bRequiresAdjacencyInformation );
 
-	FMeshBatchElement& OutBatchElement = OutMeshElement.Elements[0];
+	FMeshBatchElement& OutBatchElement = OutMeshBatches[0].Elements[0];
 
 	if(OutBatchElement.NumPrimitives > 0)
 	{
-		OutMeshElement.DynamicVertexData = NULL;
-		OutMeshElement.LCI = &ProxyLODInfo;
+		OutMeshBatches[0].DynamicVertexData = NULL;
+		OutMeshBatches[0].LCI = &ProxyLODInfo;
 		OutBatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 		OutBatchElement.MinVertexIndex = Section.MinVertexIndex;
 		OutBatchElement.MaxVertexIndex = Section.MaxVertexIndex;
-		OutMeshElement.LODIndex = LODIndex;
-		OutMeshElement.UseDynamicData = false;
-		OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
-		OutMeshElement.CastShadow = bCastShadow && Section.bCastShadow;
-		OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+		OutMeshBatches[0].LODIndex = LODIndex;
+		OutMeshBatches[0].UseDynamicData = false;
+		OutMeshBatches[0].ReverseCulling = IsLocalToWorldDeterminantNegative();
+		OutMeshBatches[0].CastShadow = bCastShadow && Section.bCastShadow;
+		OutMeshBatches[0].DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
 		if (ForcedLodModel > 0) 
 		{
 			OutBatchElement.MaxScreenSize = 0.0f;
@@ -255,20 +255,20 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uin
 }
 
 /** Sets up a wireframe FMeshBatch for a specific LOD. */
-bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const
+bool FStaticMeshSceneProxy::GetWireframeMeshElements(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const
 {
 	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
 	
-	FMeshBatchElement& OutBatchElement = OutMeshElement.Elements[0];
+	FMeshBatchElement& OutBatchElement = OutMeshBatches[0].Elements[0];
 
-	OutMeshElement.VertexFactory = &LODModel.VertexFactory;
-	OutMeshElement.MaterialRenderProxy = WireframeRenderProxy;
+	OutMeshBatches[0].VertexFactory = &LODModel.VertexFactory;
+	OutMeshBatches[0].MaterialRenderProxy = WireframeRenderProxy;
 	OutBatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	OutBatchElement.MinVertexIndex = 0;
 	OutBatchElement.MaxVertexIndex = LODModel.GetNumVertices() - 1;
-	OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
-	OutMeshElement.CastShadow = bCastShadow;
-	OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+	OutMeshBatches[0].ReverseCulling = IsLocalToWorldDeterminantNegative();
+	OutMeshBatches[0].CastShadow = bCastShadow;
+	OutMeshBatches[0].DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
 	if (ForcedLodModel > 0) 
 	{
 		OutBatchElement.MaxScreenSize = 0.0f;
@@ -287,7 +287,7 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, const FMater
 	const bool bWireframe = true;
 	const bool bRequiresAdjacencyInformation = false;
 
-	SetIndexSource(LODIndex, 0, OutMeshElement, bWireframe, bRequiresAdjacencyInformation);
+	SetIndexSource(LODIndex, 0, OutMeshBatches[0], bWireframe, bRequiresAdjacencyInformation);
 
 	return OutBatchElement.NumPrimitives > 0;
 }
@@ -438,10 +438,14 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 				}
 #endif // WITH_EDITOR
 
-				FMeshBatch MeshElement;
-				if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
+				TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
+				new (MeshBatches) FMeshBatch();
+				if(GetMeshElements(LODIndex, SectionIndex, PrimitiveDPG, MeshBatches, bUseSelectedMaterial, bUseHoveredMaterial))
 				{
-					PDI->DrawMesh(MeshElement, FLT_MAX);
+					for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+					{
+						PDI->DrawMesh(MeshBatches[Index], FLT_MAX);
+					}
 				}
 			}
 		} 
@@ -478,11 +482,15 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 
 					if (bAnySectionCastsShadow && bSafeToUseShadowOnlyMesh)
 					{
-						FMeshBatch MeshElement;
-						if (GetShadowMeshElement(LODIndex, PrimitiveDPG, MeshElement))
+						TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
+						new (MeshBatches) FMeshBatch();
+						if (GetShadowMeshElements(LODIndex, PrimitiveDPG, MeshBatches))
 						{
 							bHaveShadowOnlyMesh = true;
-							PDI->DrawMesh(MeshElement, ScreenSize, /*bShadowOnly=*/true);
+							for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+							{
+								PDI->DrawMesh(MeshBatches[Index], ScreenSize, /*bShadowOnly=*/true);
+							}
 						}
 					}
 				}
@@ -500,12 +508,16 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 					}
 #endif // WITH_EDITOR
 
-					FMeshBatch MeshElement;
-					if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
+					TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
+					new (MeshBatches) FMeshBatch();
+					if(GetMeshElements(LODIndex, SectionIndex, PrimitiveDPG, MeshBatches, bUseSelectedMaterial, bUseHoveredMaterial))
 					{
 						// If we have submitted an optimized shadow-only mesh, remaining mesh elements must not cast shadows.
-						MeshElement.CastShadow = MeshElement.CastShadow && !bHaveShadowOnlyMesh;
-						PDI->DrawMesh(MeshElement, ScreenSize);
+						for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+						{
+							MeshBatches[Index].CastShadow = MeshBatches[Index].CastShadow && !bHaveShadowOnlyMesh;
+							PDI->DrawMesh(MeshBatches[Index], ScreenSize);
+						}
 					}
 				}
 			}
@@ -603,13 +615,15 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 					GetSelectionColor(ViewWireframeColor,!(GIsEditor && View->Family->EngineShowFlags.Selection) || bProxyIsSelected, IsHovered(), /*bUseOverlayIntensity=*/false)
 					);
 
-				FMeshBatch Mesh;
-
-				if (GetWireframeMeshElement(LODIndex, &WireframeMaterialInstance, GetDepthPriorityGroup(View), Mesh))
+				TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
+				new (MeshBatches) FMeshBatch();
+				if (GetWireframeMeshElements(LODIndex, &WireframeMaterialInstance, GetDepthPriorityGroup(View), MeshBatches))
 				{
-					const int32 NumPasses = PDI->DrawMesh(Mesh);
-
-					INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Mesh.GetNumPrimitives() * NumPasses);
+					for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+					{
+						const int32 NumPasses = PDI->DrawMesh(MeshBatches[Index]);
+						INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatches[Index].GetNumPrimitives() * NumPasses);
+					}
 				}
 			}
 			else
@@ -631,8 +645,9 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 					}
 #endif // WITH_EDITOR
 
-					FMeshBatch MeshElement;
-					if(GetMeshElement(LODIndex,SectionIndex,GetDepthPriorityGroup(View),MeshElement,bSectionIsSelected,IsHovered()))
+					TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
+					new (MeshBatches) FMeshBatch();
+					if(GetMeshElements(LODIndex,SectionIndex,GetDepthPriorityGroup(View), MeshBatches,bSectionIsSelected,IsHovered()))
 					{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 						if( View->Family->EngineShowFlags.VertexColors && AllowDebugViewmodes() )
@@ -663,37 +678,14 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 							}
 							check( VertexColorVisualizationMaterial != NULL );
 
-							const FColoredMaterialRenderProxy VertexColorVisualizationMaterialInstance(
-								VertexColorVisualizationMaterial->GetRenderProxy( MeshElement.MaterialRenderProxy->IsSelected(),MeshElement.MaterialRenderProxy->IsHovered() ),
-								GetSelectionColor( FLinearColor::White, bSectionIsSelected, IsHovered() )
-								);
-							FMeshBatch ModifiedMeshElement = MeshElement;
-							ModifiedMeshElement.MaterialRenderProxy = &VertexColorVisualizationMaterialInstance;
-
-							const int32 NumPasses = DrawRichMesh(
-								PDI,
-								ModifiedMeshElement,
-								WireframeColor,
-								UtilColor,
-								PropertyColor,
-								this,
-								bSectionIsSelected,
-								bIsWireframeView
-								);
-							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshElement.GetNumPrimitives() * NumPasses);
-						}
-						else if( bInCollisionView && bDrawComplexCollision && AllowDebugViewmodes() )
-						{
-							if (LODModel.Sections[SectionIndex].bEnableCollision)
+							for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
 							{
-								// Override the mesh's material with our material that draws the collision color
-								const FColoredMaterialRenderProxy CollisionMaterialInstance(
-									GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bProxyIsSelected, IsHovered()),
-									WireframeColor
+								const FColoredMaterialRenderProxy VertexColorVisualizationMaterialInstance(
+									VertexColorVisualizationMaterial->GetRenderProxy( MeshBatches[Index].MaterialRenderProxy->IsSelected(),MeshBatches[Index].MaterialRenderProxy->IsHovered() ),
+									GetSelectionColor( FLinearColor::White, bSectionIsSelected, IsHovered() )
 									);
-
-								FMeshBatch ModifiedMeshElement = MeshElement;
-								ModifiedMeshElement.MaterialRenderProxy = &CollisionMaterialInstance;
+								FMeshBatch ModifiedMeshElement = MeshBatches[Index];
+								ModifiedMeshElement.MaterialRenderProxy = &VertexColorVisualizationMaterialInstance;
 
 								const int32 NumPasses = DrawRichMesh(
 									PDI,
@@ -705,7 +697,36 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 									bSectionIsSelected,
 									bIsWireframeView
 									);
-								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshElement.GetNumPrimitives() * NumPasses);
+								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatches[Index].GetNumPrimitives() * NumPasses);
+							}
+						}
+						else if( bInCollisionView && bDrawComplexCollision && AllowDebugViewmodes() )
+						{
+							if (LODModel.Sections[SectionIndex].bEnableCollision)
+							{
+								// Override the mesh's material with our material that draws the collision color
+								const FColoredMaterialRenderProxy CollisionMaterialInstance(
+									GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bProxyIsSelected, IsHovered()),
+									WireframeColor
+									);
+
+								for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+								{
+									FMeshBatch ModifiedMeshElement = MeshBatches[Index];
+									ModifiedMeshElement.MaterialRenderProxy = &CollisionMaterialInstance;
+
+									const int32 NumPasses = DrawRichMesh(
+										PDI,
+										ModifiedMeshElement,
+										WireframeColor,
+										UtilColor,
+										PropertyColor,
+										this,
+										bSectionIsSelected,
+										bIsWireframeView
+										);
+									INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatches[Index].GetNumPrimitives() * NumPasses);
+								}
 							}
 						}
 						else
@@ -719,35 +740,41 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 								GetSelectionColor(GEngine->GetSelectedMaterialColor(), bSectionIsSelected, IsHovered())
 								);
 
-							FMeshBatch ModifiedMeshElement(MeshElement);
-							ModifiedMeshElement.MaterialRenderProxy = &SelectedMaterialInstance;
+							for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+							{
+								FMeshBatch ModifiedMeshElement(MeshBatches[Index]);
+								ModifiedMeshElement.MaterialRenderProxy = &SelectedMaterialInstance;
 
-							const int32 NumPasses = DrawRichMesh(
-								PDI,
-								ModifiedMeshElement,
-								WireframeColor,
-								UtilColor,
-								PropertyColor,
-								this,
-								bSectionIsSelected,
-								bIsWireframeView
-								);
-							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshElement.GetNumPrimitives() * NumPasses);
+								const int32 NumPasses = DrawRichMesh(
+									PDI,
+									ModifiedMeshElement,
+									WireframeColor,
+									UtilColor,
+									PropertyColor,
+									this,
+									bSectionIsSelected,
+									bIsWireframeView
+									);
+								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshBatches[Index].GetNumPrimitives() * NumPasses);
+							}
 						}
 						else
 #endif
 						{
-							const int32 NumPasses = DrawRichMesh(
-								PDI,
-								MeshElement,
-								WireframeColor,
-								UtilColor,
-								PropertyColor,
-								this,
-								bSectionIsSelected,
-								bIsWireframeView
-								);
-							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshElement.GetNumPrimitives() * NumPasses);
+							for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+							{
+								const int32 NumPasses = DrawRichMesh(
+									PDI,
+									MeshBatches[Index],
+									WireframeColor,
+									UtilColor,
+									PropertyColor,
+									this,
+									bSectionIsSelected,
+									bIsWireframeView
+									);
+								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatches[Index].GetNumPrimitives() * NumPasses);
+							}
 						}
 
 					}
