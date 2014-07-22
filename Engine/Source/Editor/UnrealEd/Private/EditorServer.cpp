@@ -3986,8 +3986,6 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 	else if( FParse::Command( &Str, TEXT( "SavePackage" ) ) )
 	{
 		UPackage* Pkg;
-		bool bSilent = false;
-		bool bAutosaving = false;
 		bool bWasSuccessful = true;
 
 		if( FParse::Value( Str, TEXT( "FILE=" ), TempFname, 256 ) && ParseObject<UPackage>( Str, TEXT( "Package=" ), Pkg, NULL ) )
@@ -3999,8 +3997,12 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 
 			const FScopedBusyCursor BusyCursor;
 
+			bool bSilent = false;
+			bool bAutosaving = false;
+			bool bKeepDirty = false;
 			FParse::Bool( Str, TEXT( "SILENT=" ), bSilent );
 			FParse::Bool( Str, TEXT( "AUTOSAVING=" ), bAutosaving );
+			FParse::Bool( Str, TEXT( "KEEPDIRTY=" ), bKeepDirty );
 
 			// Save the package.
 			if( !bSilent )
@@ -4017,8 +4019,13 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 			}
 
 			uint32 SaveFlags = bAutosaving ? SAVE_FromAutosave : SAVE_None;
+			if ( bKeepDirty )
+			{
+				SaveFlags |= SAVE_KeepDirty;
+			}
 
-			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, true, SaveFlags );
+			const bool bWarnOfLongFilename = !bAutosaving;
+			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, bWarnOfLongFilename, SaveFlags );
 			if( !bSilent )
 			{
 				GWarn->EndSlowTask();

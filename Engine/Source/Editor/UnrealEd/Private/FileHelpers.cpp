@@ -501,11 +501,11 @@ static bool SaveWorld(UWorld* World,
 
 		// Save package.
 		{
-			const bool bWarnOfLongFilename = !(bAutosaving | bPIESaving);
-			uint32 SaveFlags = ( bAutosaving || bPIESaving ) ? SAVE_FromAutosave : SAVE_None;
-			SaveFlags |= bPIESaving ? SAVE_KeepDirty : SAVE_None;
+			const FString AutoSavingString = (bAutosaving || bPIESaving) ? TEXT("true") : TEXT("false");
+			const FString KeepDirtyString = bPIESaving ? TEXT("true") : TEXT("false");
 			FSaveErrorOutputDevice SaveErrors;
-			bSuccess = GEditor->SavePackage(Package, World, RF_Standalone, *FinalFilename, &SaveErrors, NULL, false, bWarnOfLongFilename, SaveFlags);
+
+			bSuccess = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true AUTOSAVING=%s KEEPDIRTY=%s"), *Package->GetName(), *FinalFilename, *AutoSavingString, *KeepDirtyString ), SaveErrors );
 			SaveErrors.Flush();
 		}
 
