@@ -128,6 +128,8 @@ namespace EditorLevelUtils
 			return nullptr;
 		}
 
+		FScopedSlowTask SlowTask(LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"), true);
+
 		TArray<FString> PackageNames = LevelPackageNames;
 
 		// Sort the level packages alphabetically by name.
