@@ -202,6 +202,10 @@ public:
 	virtual void SaveAsset_Execute() override;
 	// End of IToolkit interface
 
+	/** Saves all animation assets related to a skeleton */
+	void SaveAnimationAssets_Execute();
+	bool CanSaveAnimationAssets() const;
+
 	/** @return the documentation location for this editor */
 	virtual FString GetDocumentationLink() const override
 	{

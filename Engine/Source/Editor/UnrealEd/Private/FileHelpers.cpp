@@ -2428,6 +2428,145 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 	return bReturnCode;
 }
 
+bool FEditorFileUtils::SaveDirtyContentPackages(TArray<UClass*>& SaveContentClasses, const bool bPromptUserToSave, const bool bFastSave, const bool bNotifyNoPackagesSaved)
+{
+	bool bReturnCode = true;
+
+	// A list of all packages that need to be saved
+	TArray<UPackage*> PackagesToSave;
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+	// Make a list of all content packages that we should save
+	for (TObjectIterator<UPackage> It; It; ++It)
+	{
+		UPackage*	Package = *It;
+		bool		bShouldIgnorePackage = false;
+
+		// Only look at root packages.
+		bShouldIgnorePackage |= Package->GetOuter() != NULL;
+		// Don't try to save "Transient" package.
+		bShouldIgnorePackage |= Package == GetTransientPackage();
+		// Ignore PIE packages.
+		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		// Ignore packages that haven't been modified.
+		bShouldIgnorePackage |= !Package->IsDirty();
+
+		// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
+		bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
+
+		if (!bShouldIgnorePackage)
+		{
+			TArray<UObject*> Objects;
+			GetObjectsWithOuter(Package, Objects);
+
+			for (auto Iter = Objects.CreateIterator(); Iter; ++Iter)
+			{
+				bool bNeedToSave = false;
+
+				for (const UClass* ClassType : SaveContentClasses)
+				{
+					if ((*Iter)->GetClass()->IsChildOf(ClassType))
+					{
+						bNeedToSave = true;
+						break;
+					}
+				}
+
+				if (bNeedToSave)
+				{
+					// add to asset 
+					PackagesToSave.Add(Package);
+					break;
+				}
+			}
+		}
+	}
+
+	if (PackagesToSave.Num() > 0)
+	{
+		if (!bFastSave)
+		{
+			const FEditorFileUtils::EPromptReturnCode Return = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, bPromptUserToSave);
+			if (Return == FEditorFileUtils::EPromptReturnCode::PR_Cancelled)
+			{
+				// Only cancel should return false and stop whatever we were doing before.(like closing the editor)
+				// If failure is returned, the user was given ample times to retry saving the package and didn't want to
+				// So we should continue with whatever we were doing.  
+				bReturnCode = false;
+			}
+		}
+		else
+		{
+			FSaveErrorOutputDevice SaveErrors;
+			GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true);
+
+			// Packages that failed to save
+			TArray< UPackage* > FailedPackages;
+
+			for (TArray<UPackage*>::TConstIterator PkgIter(PackagesToSave); PkgIter; ++PkgIter)
+			{
+				UPackage* CurPackage = *PkgIter;
+
+				// Check if a file exists for this package
+				FString Filename;
+				bool bFoundFile = FPackageName::DoesPackageExist(CurPackage->GetName(), NULL, &Filename);
+				if (bFoundFile)
+				{
+					// determine if the package file is read only
+					const bool bPkgReadOnly = IFileManager::Get().IsReadOnly(*Filename);
+
+					// Only save writable files in fast mode
+					if (!bPkgReadOnly)
+					{
+						if (!CurPackage->IsFullyLoaded())
+						{
+							// Packages must be fully loaded to save
+							CurPackage->FullyLoad();
+						}
+
+						const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(CurPackage);
+						const bool bIsMapPackage = AssociatedWorld != nullptr;
+
+						const FText SavingPackageText = (bIsMapPackage)
+							? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(CurPackage->GetName()))
+							: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(CurPackage->GetName()));
+
+						GWarn->StatusForceUpdate(PkgIter.GetIndex(), PackagesToSave.Num(), SavingPackageText);
+
+						// Save the package
+						bool bPackageLocallyWritable;
+						const int32 SaveStatus = InternalSavePackage(CurPackage, bPackageLocallyWritable, SaveErrors);
+
+						if (SaveStatus == EAppReturnType::No)
+						{
+							// The package could not be saved so add it to the failed array 
+							FailedPackages.Add(CurPackage);
+
+						}
+					}
+				}
+
+			}
+			GWarn->EndSlowTask();
+			SaveErrors.Flush();
+
+			// Warn the user about any packages which failed to save.
+			WarnUserAboutFailedSave(FailedPackages);
+		}
+	}
+	else
+	{
+		FNotificationInfo NotificationInfo(LOCTEXT("NoAssetsToSave", "No new changes to save!"));
+		NotificationInfo.Image = FEditorStyle::GetBrush(FTokenizedMessage::GetSeverityIconName(EMessageSeverity::Info));
+		NotificationInfo.bFireAndForget = true;
+		NotificationInfo.ExpireDuration = 4.0f; // Need this message to last a little longer than normal since the user may have expected there to be modified files.
+		NotificationInfo.bUseThrobber = true;
+		FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+	}
+
+	return bReturnCode;
+}
 
 /**
  * Saves the active level, prompting the use for checkout if necessary.

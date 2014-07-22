@@ -14,6 +14,11 @@ public:
 	virtual void RegisterCommands() override;
 
 public:
+
+	// save and load menu options
+	// save all animation assets related to skeleton
+	TSharedPtr<FUICommandInfo> SaveAnimationAssets;
+
 	// skeleton menu options
 	// Command to allow users to set the skeletons preview mesh
 	TSharedPtr<FUICommandInfo> ChangeSkeletonPreviewMesh;

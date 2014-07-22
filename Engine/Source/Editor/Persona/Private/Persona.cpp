@@ -458,6 +458,12 @@ void FPersona::ExtendMenu()
 	// Add additional persona editor menus
 	struct Local
 	{
+		static void AddPersonaSaveLoadMenu(FMenuBuilder& MenuBuilder)
+		{
+			MenuBuilder.AddMenuEntry(FPersonaCommands::Get().SaveAnimationAssets);
+			MenuBuilder.AddMenuSeparator();
+		}
+		
 		static void AddPersonaFileMenu(FMenuBuilder& MenuBuilder)
 		{
 			// View
@@ -511,6 +517,12 @@ void FPersona::ExtendMenu()
 			GetToolkitCommands(),
 			FMenuExtensionDelegate::CreateStatic(&Local::AddPersonaFileMenu));
 	}
+
+	MenuExtender->AddMenuExtension(
+		"FileLoadAndSave",
+		EExtensionHook::First,
+		GetToolkitCommands(),
+		FMenuExtensionDelegate::CreateStatic(&Local::AddPersonaSaveLoadMenu));
 
 	MenuExtender->AddMenuExtension(
 			"AssetEditorActions",
@@ -1512,6 +1524,24 @@ void FPersona::SaveAsset_Execute()
 	}
 }
 
+void FPersona::SaveAnimationAssets_Execute()
+{
+	// only save animation assets or animation blueprints
+	TArray<UClass*> SaveClasses;
+	SaveClasses.Add(UAnimationAsset::StaticClass());
+	SaveClasses.Add(UAnimBlueprint::StaticClass());
+	SaveClasses.Add(USkeletalMesh::StaticClass());
+	SaveClasses.Add(USkeleton::StaticClass());
+
+	const bool bPromptUserToSave = false;
+	const bool bFastSave = false;
+	FEditorFileUtils::SaveDirtyContentPackages(SaveClasses, bPromptUserToSave, bFastSave);
+}
+
+bool FPersona::CanSaveAnimationAssets() const
+{
+	return true;
+}
 
 void FPersona::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated )
 {
