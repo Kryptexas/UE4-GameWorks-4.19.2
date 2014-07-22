@@ -31,6 +31,8 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static class GenericApplication* CreateApplication();
 	static void SetGracefulTerminationHandler();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
+	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
+
 	static TArray<uint8> GetMacAddress();
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 

@@ -6,9 +6,14 @@
 
 #include "TargetPlatformPrivatePCH.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
 
+// autosdks only function properly on windows right now.
+#if !IS_MONOLITHIC && (PLATFORM_WINDOWS)
+#define AUTOSDKS_ENABLED 1
+#else
+#define AUTOSDKS_ENABLED 0
+#endif
 
 /**
  * Module for the target platform manager
@@ -24,6 +29,18 @@ public:
 	FTargetPlatformManagerModule()
 		: bRestrictFormatsToRuntimeOnly(false), bForceCacheUpdate(true)
 	{
+
+#if AUTOSDKS_ENABLED		
+		// amortize UBT cost by calling it once for all platforms, rather than once per platform.
+		FString UBTParams(TEXT("-autosdkonly"));
+		int32 UBTReturnCode = -1;
+		FString UBTOutput;
+		if (!FUBTInvoker::InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
+		{
+			UE_LOG(LogTargetPlatformManager, Fatal, TEXT("Failed to run UBT to check SDK status!"));
+		}		
+#endif
+
 		GetTargetPlatforms();
 		GetActiveTargetPlatforms();
 		GetAudioFormats();
@@ -33,6 +50,8 @@ public:
 		bForceCacheUpdate = false;
 
 		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FTargetPlatformManagerModule::ModulesChangesCallback);
+
+
 	}
 
 	virtual ~FTargetPlatformManagerModule()
@@ -148,8 +167,8 @@ public:
 					for (int32 Index = 0; Index < TargetPlatforms.Num(); Index++)
 					{
 						if (PlatformNames.Contains(TargetPlatforms[Index]->PlatformName()))
-						{
-							Results.Add(TargetPlatforms[Index]);
+						{							
+							Results.Add(TargetPlatforms[Index]);						
 						}
 					}
 
@@ -169,8 +188,8 @@ public:
 				for (int32 Index = 0; Index < TargetPlatforms.Num(); Index++)
 				{
 					if (TargetPlatforms[Index]->IsRunningPlatform())
-					{
-						Results.Add(TargetPlatforms[Index]);
+					{						
+						Results.Add(TargetPlatforms[Index]);					
 					}
 				}
 			}
@@ -508,10 +527,250 @@ protected:
 				ITargetPlatform* Platform = Module->GetTargetPlatform();
 				if (Platform != NULL)
 				{
-					Platforms.Add(Platform);
+					// would like to move this check to GetActiveTargetPlatforms, but too many things cache this result
+					// this setup will become faster after TTP 341897 is complete.
+					if (SetupAndValidateAutoSDK(*Platform))
+					{
+						Platforms.Add(Platform);
+					}
 				}
 			}
 		}
+	}
+
+	bool SetupAndValidateAutoSDK(ITargetPlatform& Platform)
+	{
+		bool bValidSDK = false;
+		// Invoke UBT to perform SDK switching, or detect that a proper manual SDK is already setup.
+		FString PlatformName = Platform.IniPlatformName();
+		FName PlatformFName(*PlatformName);
+
+		// cache result of the last setup attempt to avoid calling UBT all the time.
+		bool* bPreviousSetupSuccessful = PlatformsSetup.Find(PlatformFName);
+		if (bPreviousSetupSuccessful)
+		{
+			bValidSDK = *bPreviousSetupSuccessful;
+		}
+		else
+		{
+			bValidSDK = SetupEnvironmentFromAutoSDK(Platform);
+			PlatformsSetup.Add(PlatformFName, bValidSDK);
+		}
+		return bValidSDK;
+	}
+	
+	bool SetupEnvironmentFromAutoSDK(ITargetPlatform& Platform)
+	{						
+#if AUTOSDKS_ENABLED
+		static const FString SDKRootEnvFar(TEXT("UE_SDKS_ROOT"));		
+		const int32 MaxPathSize = 32768;
+		TCHAR SDKPath[MaxPathSize] = { 0 };
+		FPlatformMisc::GetEnvironmentVariable(*SDKRootEnvFar, SDKPath, MaxPathSize);
+
+		// AutoSDKs only enabled if UE_SDKS_ROOT is set.
+		if (SDKPath[0] == 0)
+		{
+			return true;
+		}
+
+		// if this platform hasn't been setup with AutoSDK handling, then we just assume it's setup
+		// properly.
+		if (!Platform.SupportsAutoSDK())
+		{
+			return true;
+		}
+
+		// Invoke UBT to perform SDK switching, or detect that a proper manual SDK is already setup.
+		FString PlatformName = Platform.IniPlatformName();
+		FName PlatformFName(*PlatformName);		
+
+#if PLATFORM_WINDOWS
+		FString HostPlatform(TEXT("HostWin64"));
+#else
+#error Fill in your host platform directory
+#endif
+
+		if (PlatformName.Find(TEXT("Linux"), ESearchCase::IgnoreCase) != -1)
+		{
+			PlatformName = TEXT("Linux_x64");
+		}
+
+		FString TargetSDKRoot = FPaths::Combine(SDKPath, *HostPlatform, *PlatformName);
+		static const FString SDKInstallManifestFileName(TEXT("CurrentlyInstalled.txt"));
+		FString SDKInstallManifestFilePath = FPaths::Combine(*TargetSDKRoot, *SDKInstallManifestFileName);
+
+		// If we are using a manual install, then it is valid for there to be no OutputEnvVars file.
+		TAutoPtr<FArchive> InstallManifestFile(IFileManager::Get().CreateFileReader(*SDKInstallManifestFilePath));
+		if (InstallManifestFile.IsValid())
+		{
+			TArray<FString> FileLines;
+			int64 FileSize = InstallManifestFile->TotalSize();
+			int64 MemSize = FileSize + 1;
+			void* FileMem = FMemory::Malloc(MemSize);
+			FMemory::Memset(FileMem, 0, MemSize);
+
+			InstallManifestFile->Serialize(FileMem, FileSize);
+
+			FString FileAsString(ANSI_TO_TCHAR(FileMem));
+			FileAsString.ParseIntoArrayLines(&FileLines);
+
+			FMemory::Free(FileMem);
+			InstallManifestFile->Close();
+
+			
+			if (FileLines.Num() != 2)
+			{
+				UE_LOG(LogTargetPlatformManager, Error, TEXT("Malformed install manifest file for Platform %s"), *PlatformName);				
+				return false;
+			}
+
+			static const FString ManualSDKString(TEXT("ManualSDK"));
+			if (FileLines[1].Compare(ManualSDKString, ESearchCase::IgnoreCase) == 0)
+			{
+				UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has manual sdk install"), *PlatformName);				
+				return true;
+			}
+		}
+		else
+		{	
+			UE_LOG(LogTargetPlatformManager, Error, TEXT("install manifest file for Platform %s not found."), *PlatformName);			
+			return false;			
+		}		
+
+		static const FString SDKEnvironmentVarsFile(TEXT("OutputEnvVars.txt"));
+		FString EnvVarFileName = FPaths::Combine(*TargetSDKRoot, *SDKEnvironmentVarsFile);		
+
+		// If we are using a manual install, then it is valid for there to be no OutputEnvVars file.
+		TAutoPtr<FArchive> EnvVarFile(IFileManager::Get().CreateFileReader(*EnvVarFileName));
+		if (EnvVarFile.IsValid())
+		{
+			TArray<FString> FileLines;
+			{
+				int64 FileSize = EnvVarFile->TotalSize();
+				int64 MemSize = FileSize + 1;
+				void* FileMem = FMemory::Malloc(MemSize);
+				FMemory::Memset(FileMem, 0, MemSize);
+
+				EnvVarFile->Serialize(FileMem, FileSize);
+
+				FString FileAsString(ANSI_TO_TCHAR(FileMem));
+				FileAsString.ParseIntoArrayLines(&FileLines);
+
+				FMemory::Free(FileMem);
+				EnvVarFile->Close();				
+			}			
+
+			TArray<FString> PathAdds;
+			TArray<FString> PathRemoves;
+			TArray<FString> EnvVarNames;
+			TArray<FString> EnvVarValues;
+
+			const FString VariableSplit(TEXT("="));
+			for (int32 i = 0; i < FileLines.Num(); ++i)
+			{				
+				const FString& VariableString = FileLines[i];
+
+				FString Left;
+				FString Right;
+				VariableString.Split(VariableSplit, &Left, &Right);
+				
+				if (Left.Compare(TEXT("strippath"), ESearchCase::IgnoreCase) == 0)
+				{
+					PathRemoves.Add(Right);
+				}
+				else if (Left.Compare(TEXT("addpath"), ESearchCase::IgnoreCase) == 0)
+				{
+					PathAdds.Add(Right);
+				}
+				else
+				{
+					// convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
+					EnvVarNames.Add(Left.Trim().TrimTrailing());
+					EnvVarValues.Add(Right.Trim().TrimTrailing());
+				}
+			}
+
+			// don't actually set anything until we successfully validate and read all values in.
+			// we don't want to set a few vars, return a failure, and then have a platform try to
+			// build against a manually installed SDK with half-set env vars.
+			for (int i = 0; i < EnvVarNames.Num(); ++i)
+			{
+				const FString& EnvVarName = EnvVarNames[i];
+				const FString& EnvVarValue = EnvVarValues[i];
+				UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Setting variable '%s' to '%s'."), *EnvVarName, *EnvVarValue);
+				FPlatformMisc::SetEnvironmentVar(*EnvVarName, *EnvVarValue);
+			}
+
+			const int32 MaxPathVarLen = 32768;
+			TCHAR OrigPathVarMem[MaxPathVarLen];
+			FPlatformMisc::GetEnvironmentVariable(TEXT("PATH"), OrigPathVarMem, MaxPathVarLen);
+
+			// actually perform the PATH stripping / adding.
+			FString OrigPathVar(OrigPathVarMem);
+
+			const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
+			TArray<FString> PathVars;
+			OrigPathVar.ParseIntoArray(&PathVars, PathDelimiter, true);
+
+			TArray<FString> ModifiedPathVars;
+			ModifiedPathVars = PathVars;
+
+			// perform removes first, in case they overlap with any adds.
+			for (int32 PathRemoveIndex = 0; PathRemoveIndex < PathRemoves.Num(); ++PathRemoveIndex)
+			{
+				const FString& PathRemove = PathRemoves[PathRemoveIndex];
+				for (int32 PathVarIndex = 0; PathVarIndex < PathVars.Num(); ++PathVarIndex)
+				{
+					const FString& PathVar = PathVars[PathVarIndex];
+					if (PathVar.Find(PathRemove, ESearchCase::IgnoreCase) >= 0)
+					{
+						UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Removing Path: '%s'"), *PathVar);
+						ModifiedPathVars.Remove(PathVar);
+					}
+				}
+			}
+
+			// remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
+			// If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
+			for (int32 PathAddIndex = 0; PathAddIndex < PathAdds.Num(); ++PathAddIndex)			
+			{
+				const FString& PathAdd = PathAdds[PathAddIndex];				
+				for (int32 PathVarIndex = 0; PathVarIndex < PathVars.Num(); ++PathVarIndex)
+				{
+					const FString& PathVar = PathVars[PathVarIndex];
+					if (PathVar.Find(PathAdd, ESearchCase::IgnoreCase) >= 0)
+					{
+						UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Removing Path: '%s'"), *PathVar);
+						ModifiedPathVars.Remove(PathVar);
+					}
+				}
+			}
+
+			// perform adds, but don't add duplicates
+			for (int32 PathAddIndex = 0; PathAddIndex < PathAdds.Num(); ++PathAddIndex)
+			{
+				const FString& PathAdd = PathAdds[PathAddIndex];
+				if (!ModifiedPathVars.Contains(PathAdd))
+				{
+					UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Adding Path: '%s'"), *PathAdd);					
+					ModifiedPathVars.Add(PathAdd);
+				}
+			}
+
+			FString ModifiedPath = FString::Join(ModifiedPathVars, PathDelimiter);
+			FPlatformMisc::SetEnvironmentVar(TEXT("PATH"), *ModifiedPath);			
+		}
+		else
+		{
+			UE_LOG(LogTargetPlatformManager, Error, TEXT("OutputEnvVars.txt not found for platform: '%s'"), *PlatformName);			
+			return false;
+		}
+
+		UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has auto sdk install"), *PlatformName);		
+		return true;
+#else
+		return true;
+#endif
 	}
 
 
@@ -536,6 +795,11 @@ private:
 
 	// Holds the list of discovered platforms.
 	TArray<ITargetPlatform*> Platforms;
+
+#if AUTOSDKS_ENABLED
+	// holds the list of Platforms that have attempted setup.
+	TMap<FName, bool> PlatformsSetup;
+#endif
 };
 
 

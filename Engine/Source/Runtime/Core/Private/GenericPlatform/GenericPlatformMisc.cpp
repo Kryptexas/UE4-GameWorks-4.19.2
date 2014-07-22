@@ -161,6 +161,16 @@ GenericApplication* FGenericPlatformMisc::CreateApplication()
 	return new GenericApplication( nullptr );
 }
 
+void FGenericPlatformMisc::SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value)
+{
+	UE_LOG(LogGenericPlatformMisc, Error, TEXT("SetEnvironmentVar not implemented for this platform: %s = %s"), VariableName, Value);
+}
+
+const TCHAR* FGenericPlatformMisc::GetPathVarDelimiter()
+{
+	return TEXT(";");
+}
+
 TArray<uint8> FGenericPlatformMisc::GetMacAddress()
 {
 	return TArray<uint8>();

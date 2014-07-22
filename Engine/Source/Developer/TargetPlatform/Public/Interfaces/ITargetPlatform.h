@@ -273,6 +273,11 @@ public:
 	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
 
 	/**
+	 * Returns true if the platform supports the AutoSDK system
+	 */
+	virtual bool SupportsAutoSDK() const = 0;
+
+	/**
 	 * Checks whether the target platform supports the specified feature.
 	 *
 	 * @param Feature - The feature to check.

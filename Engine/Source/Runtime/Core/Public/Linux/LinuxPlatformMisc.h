@@ -108,6 +108,11 @@ struct CORE_API FLinuxMisc : public FGenericPlatformMisc
 	static const TCHAR* RootDir();
 	static void NormalizePath(FString& InPath);
 
+	static const TCHAR* GetPathVarDelimiter()
+	{
+		return TEXT(":");
+	}
+
 	FORCEINLINE static void MemoryBarrier()
 	{
 		__sync_synchronize();

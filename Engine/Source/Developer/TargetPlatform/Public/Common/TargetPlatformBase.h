@@ -259,6 +259,11 @@ public:
 		return TPlatformProperties::SupportsBuildTarget(BuildTarget);
 	}
 
+	virtual bool SupportsAutoSDK() const override
+	{
+		return TPlatformProperties::SupportsAutoSDK();
+	}
+
 	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
 	{
 		switch (Feature)

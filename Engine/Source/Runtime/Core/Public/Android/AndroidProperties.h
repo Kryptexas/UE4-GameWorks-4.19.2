@@ -58,6 +58,11 @@ struct FAndroidPlatformProperties
 		return (BuildTarget == EBuildTargets::Game);
 	}
 
+	static FORCEINLINE bool SupportsAutoSDK()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
 		return false;

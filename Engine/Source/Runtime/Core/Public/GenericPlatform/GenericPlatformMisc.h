@@ -244,6 +244,20 @@ struct CORE_API FGenericPlatformMisc
 		*Result = 0;
 	}
 
+	
+	/**
+	* Sets an environment variable to the local process's environment
+	*
+	* @param VariableName The name of the variable (ie "Path")
+	* @param Value The string to set the variable to.	
+	*/
+	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
+
+	/**
+	 * return the delimiter between paths in the PATH environment variable.
+	 */
+	static const TCHAR* GetPathVarDelimiter();
+
 	/**
 	 * Retrieve the Mac address of the current adapter.
 	 * 

@@ -743,6 +743,26 @@ int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtra
 		WhiteSpace[NumWhiteSpaces++] = pchExtraDelim;
 	}
 
+	return ParseIntoArray(InArray, WhiteSpace, NumWhiteSpaces);
+}
+
+int32 FString::ParseIntoArrayLines(TArray<FString>* InArray) const
+{
+	// default array of LineEndings
+	static const TCHAR* LineEndings[] =
+	{				
+		TEXT("\r"),
+		TEXT("\n"),	
+	};
+
+	// start with just the standard line endings
+	int32 NumLineEndings = ARRAY_COUNT(LineEndings);	
+	return ParseIntoArray(InArray, LineEndings, NumLineEndings);
+}
+
+int32 FString::ParseIntoArray(TArray<FString>* InArray, const TCHAR** DelimArray, int32 NumDelims) const
+{
+	check(DelimArray);
 	check(InArray);
 	InArray->Empty();
 
@@ -754,35 +774,35 @@ int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtra
 	while (!bStop)
 	{
 		// skip over any white space at the beginning of the string
-		SkipOver(WhiteSpace, NumWhiteSpaces, S);
-		
+		SkipOver(DelimArray, NumDelims, S);
+
 		// find the first token in the string, and if we get one, add it to the output array of tokens
 		FString Token;
 		TCHAR ch;
-		if (SplitOn(WhiteSpace, NumWhiteSpaces, Token, S, ch))
+		if (SplitOn(DelimArray, NumDelims, Token, S, ch))
 		{
-			if( Token[0] == TEXT('"') )
+			if (Token[0] == TEXT('"'))
 			{
 				int32 SaveSz = Token.Len();
 
-				FString Wk = FString::Printf( TEXT("%s%c"), *Token, ch );
-				for( int32 x = 1 ; x < S.Len() ; ++x )
+				FString Wk = FString::Printf(TEXT("%s%c"), *Token, ch);
+				for (int32 x = 1; x < S.Len(); ++x)
 				{
-					if( S[x] == TEXT('"') )
+					if (S[x] == TEXT('"'))
 					{
 						Wk += TEXT("\"");
 						break;
 					}
 					else
 					{
-						Wk = Wk + S.Mid(x,1);
+						Wk = Wk + S.Mid(x, 1);
 					}
 				}
 
 				Token = Wk;
 
 				int32 DiffSz = Token.Len() - SaveSz;
-				S = S.Mid( DiffSz );
+				S = S.Mid(DiffSz);
 			}
 
 			// stick it on the end

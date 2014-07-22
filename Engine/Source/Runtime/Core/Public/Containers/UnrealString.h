@@ -1193,6 +1193,28 @@ public:
 	int32 ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtraDelim = NULL ) const;
 
 	/**
+	* Breaks up a delimited string into elements of a string array, using line ending characters
+	* @warning Caution!! this routine is O(N^2) allocations...use it for parsing very short text or not at all!
+	*
+	* @param	InArray			The array to fill with the string pieces	
+	*
+	* @return	The number of elements in InArray
+	*/
+	int32 ParseIntoArrayLines(TArray<FString>* InArray) const;
+
+	/**
+	* Breaks up a delimited string into elements of a string array, using the given delimiters
+	* @warning Caution!! this routine is O(N^2) allocations...use it for parsing very short text or not at all!
+	*
+	* @param	InArray			The array to fill with the string pieces
+	* @param	DelimArray		The strings to delimit on
+	* @param	NumDelims		The number of delimters.
+	*
+	* @return	The number of elements in InArray
+	*/
+	int32 ParseIntoArray(TArray<FString>* InArray, const TCHAR** DelimArray, int32 NumDelims) const;
+
+	/**
 	 * Takes an array of strings and removes any zero length entries.
 	 *
 	 * @param	InArray	The array to cull

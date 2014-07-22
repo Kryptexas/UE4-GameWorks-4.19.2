@@ -109,6 +109,29 @@ struct FModuleStatus
 	FString CompilationMethod;
 };
 
+/**
+ * Class for managing Sync/Async calls to UBT with the option to rebuild UBT.
+ * Separated from ModuleManager in prep for merging this into the UBT calling code in DesktopPlatform.
+ */
+class CORE_API FUBTInvoker
+{
+public:	
+
+	/** Returns the filename for UBT including the path */
+	static FString GetUnrealBuildToolExecutableFilename();
+
+	/** Returns true if tool was invoked properly */
+	static bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput);
+
+	/** Launches UnrealBuildTool with the specified command line parameters */
+	static FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false);
+
+	/** Builds unreal build tool using a compiler specific to the currently running platform */
+	static bool BuildUnrealBuildTool(FOutputDevice &Ar);
+
+	/** Returns the path to the unreal build tool source code */
+	static FString GetUnrealBuildToolSourceCodePath();	
+};
 
 /**
  * Implements the module manager.
@@ -438,12 +461,7 @@ public:
 	 * @param Ar Output device for logging compilation status.
 	 * @return	Returns true if the project was successfully compiled.
 	 */
-	bool GenerateCodeProjectFiles( const FString& GameProjectFilename, FOutputDevice &Ar );
-
-	/**
-	 * @return true if the UBT executable exists (in Rocket) or source code is available to compile it (in non-Rocket)
-	 */
-	bool IsUnrealBuildToolAvailable();
+	bool GenerateCodeProjectFiles( const FString& GameProjectFilename, FOutputDevice &Ar );	
 
 	/** Delegate that's used by the module manager to initialize a registered module that we statically linked with (monolithic only) */
 	DECLARE_DELEGATE_RetVal( IModuleInterface*, FInitializeStaticallyLinkedModule )
@@ -565,14 +583,16 @@ public:
 
 public:
 
-	// FSelfRegisteringExec interface.
-
-	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
+	/**
+	* @return true if the UBT executable exists (in Rocket) or source code is available to compile it (in non-Rocket)
+	*/
+	bool IsUnrealBuildToolAvailable();
 
 public:
 
-	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
-	static FString MakeUBTArgumentsForModuleCompiling();
+	// FSelfRegisteringExec interface.
+
+	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 protected:
 
@@ -686,6 +706,9 @@ protected:
 	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName );
 
+	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
+	FString MakeUBTArgumentsForModuleCompiling();
+
 	/** 
 	 *	Starts compiling DLL files for one or more modules.
 	 *
@@ -701,17 +724,8 @@ protected:
 		const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
 		const FString& InAdditionalCmdLineArgs = FString() );
 
-	/** Returns the path to the unreal build tool source code */
-	FString GetUnrealBuildToolSourceCodePath();
-
-	/** Returns the filename for UBT including the path */
-	FString GetUnrealBuildToolExecutableFilename();
-
-	/** Builds unreal build tool using a compiler specific to the currently running platform */
-	bool BuildUnrealBuildTool(FOutputDevice &Ar);
-
 	/** Launches UnrealBuildTool with the specified command line parameters */
-	bool InvokeUnrealBuildTool(const FString& InCmdLineParams, FOutputDevice &Ar);
+	bool InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar);	
 
 	/** Checks to see if a pending compilation action has completed and optionally waits for it to finish.  If completed, fires any appropriate callbacks and reports status provided bFireEvents is true. */
 	void CheckForFinishedModuleDLLCompile( const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideTest = FText::GetEmpty(), bool bFireEvents = true );
@@ -796,7 +810,6 @@ private:
 	/** Array of game binaries directories. */
 	TArray<FString> GameBinariesDirectories;
 };
-
 
 /**
  * Utility class for registering modules that are statically linked.

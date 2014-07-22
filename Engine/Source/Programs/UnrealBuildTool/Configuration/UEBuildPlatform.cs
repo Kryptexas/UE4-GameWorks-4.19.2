@@ -30,6 +30,11 @@ namespace UnrealBuildTool
 		 * Register the platform with the UEBuildPlatform class
 		 */
 		void RegisterBuildPlatform();
+
+        /**
+         * Attempt to set up AutoSDK for this paltform
+         */
+        void ManageAndValidateSDK();
 		
 		/**
 		 * Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
@@ -911,10 +916,16 @@ namespace UnrealBuildTool
                     using (StreamReader Reader = new StreamReader(VersionFilename))
                     {
                         string Version = Reader.ReadLine();
-                        if (Version != null)
+                        string Type = Reader.ReadLine();
+
+                        // don't allow ManualSDK installs to count as an AutoSDK install version.
+                        if (Type != null && Type == "AutoSDK")
                         {
-                            OutInstalledSDKVersionString = Version;
-                            return true;
+                            if (Version != null)
+                            {
+                                OutInstalledSDKVersionString = Version;
+                                return true;
+                            }
                         }
                     }
                 }
@@ -963,8 +974,9 @@ namespace UnrealBuildTool
          * 
          * @return true if was able to set it
          */
-        protected bool SetCurrentlyInstalledAutoSDKString(string PlatformSDKRoot, string InstalledSDKVersionString)
+        protected bool SetCurrentlyInstalledAutoSDKString(String InstalledSDKVersionString)
         {
+            String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
             if (Directory.Exists(PlatformSDKRoot))
             {
                 string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
@@ -976,6 +988,7 @@ namespace UnrealBuildTool
                 using (StreamWriter Writer = File.CreateText(VersionFilename))
                 {
                     Writer.WriteLine(InstalledSDKVersionString);
+                    Writer.WriteLine("AutoSDK");
                     return true;
                 }
             }
@@ -983,8 +996,38 @@ namespace UnrealBuildTool
             return false;
         }
 
-        protected bool SetLastRunAutoSDKScriptVersion(string PlatformSDKRoot, string LastRunScriptVersion)
+        protected void SetupManualSDK()
         {
+            if (PlatformSupportsAutoSDKs() && HasAutoSDKSystemEnabled())
+            {
+                String InstalledSDKVersionString = GetRequiredSDKString();
+                String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
+                if (Directory.Exists(PlatformSDKRoot))
+                {
+                    string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
+                    if (File.Exists(VersionFilename))
+                    {
+                        File.Delete(VersionFilename);
+                    }
+
+                    string EnvVarFile = Path.Combine(PlatformSDKRoot, SDKEnvironmentVarsFile);
+                    if (File.Exists(EnvVarFile))
+                    {
+                        File.Delete(EnvVarFile);
+                    }
+
+                    using (StreamWriter Writer = File.CreateText(VersionFilename))
+                    {
+                        Writer.WriteLine(InstalledSDKVersionString);
+                        Writer.WriteLine("ManualSDK");                        
+                    }
+                }                
+            }
+        }
+
+        protected bool SetLastRunAutoSDKScriptVersion(string LastRunScriptVersion)
+        {
+            String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
             if (Directory.Exists(PlatformSDKRoot))
             {
                 string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
@@ -999,7 +1042,6 @@ namespace UnrealBuildTool
                     return true;
                 }
             }
-
             return false;
         }
 
@@ -1049,7 +1091,7 @@ namespace UnrealBuildTool
                     Console.WriteLine("Running {0} hook {1}", Hook, HookExe);
 
                     // run it
-                    Process HookProcess = new Process();
+                    Process HookProcess = new Process();                                        
                     HookProcess.StartInfo.WorkingDirectory = SDKDirectory;
                     HookProcess.StartInfo.FileName = HookExe;
                     HookProcess.StartInfo.Arguments = "";
@@ -1062,7 +1104,7 @@ namespace UnrealBuildTool
 
                     if (HookProcess.ExitCode != 0)
                     {
-                        Console.WriteLine("Hook exited uncleanly (returned {0}), considering it failed.", HookProcess.ExitCode);
+                        Console.WriteLine("Hook exited uncleanly (returned {0}), considering it failed.", HookProcess.ExitCode);                        
                         return false;
                     }
 
@@ -1075,6 +1117,8 @@ namespace UnrealBuildTool
 
         /**
          * Loads environment variables from SDK
+         * If any commands are added or removed the handling needs to be duplicated in
+         * TargetPlatformManagerModule.cpp
          * 
          * @param PlatformSDKRoot absolute path to platform SDK         
          * 
@@ -1206,10 +1250,29 @@ namespace UnrealBuildTool
             return false;
         }
 
-        protected void InvalidateCurrentlyInstalledAutoSDK(String PlatformSDKRoot)
+        protected void InvalidateCurrentlyInstalledAutoSDK()
         {
-            SetCurrentlyInstalledAutoSDKString(PlatformSDKRoot, "");
-            SetLastRunAutoSDKScriptVersion(PlatformSDKRoot, "");
+            String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
+            if (Directory.Exists(PlatformSDKRoot))
+            {
+                string SDKFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
+                if (File.Exists(SDKFilename))
+                {
+                    File.Delete(SDKFilename);
+                }
+
+                string VersionFilename = Path.Combine(PlatformSDKRoot, LastRunScriptVersionManifest);
+                if (File.Exists(VersionFilename))
+                {
+                    File.Delete(VersionFilename);
+                }
+
+                string EnvVarFile = Path.Combine(PlatformSDKRoot, SDKEnvironmentVarsFile);
+                if (File.Exists(EnvVarFile))
+                {
+                    File.Delete(EnvVarFile);
+                }
+            }            
         }
 
         /** 
@@ -1231,8 +1294,12 @@ namespace UnrealBuildTool
                         bScriptVersionMatches = true;
                     }
 
+                    // check to make sure OutputEnvVars doesn't need regenerating
+                    string EnvVarFile = Path.Combine(AutoSDKRoot, SDKEnvironmentVarsFile);
+                    bool bEnvVarFileExists = File.Exists(EnvVarFile);
+                    
                     string CurrentSDKString;
-                    if (GetCurrentlyInstalledSDKString(AutoSDKRoot, out CurrentSDKString) && CurrentSDKString == GetRequiredSDKString() && bScriptVersionMatches)
+                    if (bEnvVarFileExists && GetCurrentlyInstalledSDKString(AutoSDKRoot, out CurrentSDKString) && CurrentSDKString == GetRequiredSDKString() && bScriptVersionMatches)
                     {
                         return SDKStatus.Valid;
                     }
@@ -1316,11 +1383,11 @@ namespace UnrealBuildTool
                     if (!RunAutoSDKHooks(AutoSDKRoot, CurrentSDKString, SDKHookType.Uninstall))
                     {
                         Console.WriteLine("Failed to uninstall currently installed SDK {0}", CurrentSDKString);
-                        InvalidateCurrentlyInstalledAutoSDK(AutoSDKRoot);
+                        InvalidateCurrentlyInstalledAutoSDK();
                         return;
                     }
                     // delete Manifest file to avoid multiple uninstalls
-                    InvalidateCurrentlyInstalledAutoSDK(AutoSDKRoot);
+                    InvalidateCurrentlyInstalledAutoSDK();
 
                     if (!RunAutoSDKHooks(AutoSDKRoot, GetRequiredSDKString(), SDKHookType.Install, false))
                     {
@@ -1328,8 +1395,8 @@ namespace UnrealBuildTool
                         RunAutoSDKHooks(AutoSDKRoot, GetRequiredSDKString(), SDKHookType.Uninstall, false);
                         return;
                     }
-                    SetCurrentlyInstalledAutoSDKString(AutoSDKRoot, GetRequiredSDKString());
-                    SetLastRunAutoSDKScriptVersion(AutoSDKRoot, GetRequiredScriptVersionString());
+                    SetCurrentlyInstalledAutoSDKString(GetRequiredSDKString());
+                    SetLastRunAutoSDKScriptVersion(GetRequiredScriptVersionString());
                 }
 
                 // fixup process environment to match autosdk
@@ -1369,7 +1436,7 @@ namespace UnrealBuildTool
             if (!SetupEnvironmentFromAutoSDK(PlatformSDKRoot))
             {
                 Console.WriteLine("Failed to load environment from required SDK {0}", GetRequiredSDKString());
-                InvalidateCurrentlyInstalledAutoSDK(PlatformSDKRoot);
+                InvalidateCurrentlyInstalledAutoSDK();
                 return SDKStatus.Invalid;
             }            
             return SDKStatus.Valid;
@@ -1395,16 +1462,27 @@ namespace UnrealBuildTool
 
         // Arbitrates between manual SDKs and setting up AutoSDK based on program options and platform preferences.
         public void ManageAndValidateSDK()
-        {
-            bool bHasRequiredManualSDK = HasRequiredManualSDK() == SDKStatus.Valid;
-            if (bAllowAutoSDKSwitching && IsAutoSDKSafe() && (PreferAutoSDK() || !bHasRequiredManualSDK))
+        {            
+            if (bAllowAutoSDKSwitching)
             {
-                SetupAutoSDK();
-            }
+                bool bHasRequiredManualSDK = HasRequiredManualSDK() == SDKStatus.Valid;
+                if (IsAutoSDKSafe() && (PreferAutoSDK() || !bHasRequiredManualSDK))
+                {
+                    SetupAutoSDK();
+                }
+                else if (bHasRequiredManualSDK)
+                {
+                    SetupManualSDK();
+                }
+                else
+                {
+                    InvalidateCurrentlyInstalledAutoSDK();
+                }
 
-            if (BuildConfiguration.bPrintDebugInfo)
-            {
-                PrintSDKInfo();
+                if (BuildConfiguration.bPrintDebugInfo)
+                {
+                    PrintSDKInfo();
+                }
             }
         }
 
