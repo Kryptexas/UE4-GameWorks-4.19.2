@@ -409,7 +409,7 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 {
 	// We create our own transient package here so that we can deserialize the data in isolation and ensure unreferenced
 	// objects not part of the deserialization set are unresolved.
-	UPackage* TempPackage = new( NULL, TEXT("/Engine/UMG/Editor/Transient") )UPackage(FPostConstructInitializeProperties());
+	UPackage* TempPackage = ConstructObject<UPackage>(UPackage::StaticClass(), nullptr, TEXT("/Engine/UMG/Editor/Transient"), RF_Transient);
 	TempPackage->AddToRoot();
 
 	// Turn the text buffer into objects

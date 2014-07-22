@@ -8,6 +8,7 @@
 #include "BlueprintEditorUtils.h"
 
 #include "WidgetTemplateDragDropOp.h"
+#include "SZoomPan.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -126,6 +127,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	Blueprint->OnChanged().AddSP(this, &SDesignerView::OnBlueprintChanged);
 
 	SDesignSurface::Construct(SDesignSurface::FArguments()
+		.AllowContinousZoomInterpolation(false)
 		.Content()
 		[
 			SNew(SOverlay)
@@ -135,8 +137,10 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
 			[
-				SAssignNew(PreviewSurface, SBorder)
+				SAssignNew(PreviewSurface, SZoomPan)
 				.Visibility(EVisibility::HitTestInvisible)
+				.ZoomAmount(this, &SDesignerView::GetZoomAmount)
+				.ViewOffset(this, &SDesignerView::GetViewOffset)
 			]
 
 			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
@@ -343,6 +347,8 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 
 FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SDesignSurface::OnMouseButtonDown(MyGeometry, MouseEvent);
+
 	CurrentHandle = HitTestDragHandles(MyGeometry, MouseEvent);
 
 	if ( CurrentHandle != DH_NONE )
@@ -389,8 +395,13 @@ FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointe
 	}
 	else if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
-		ShowContextMenu(MyGeometry, MouseEvent);
+		if ( !bIsPanning )
+		{
+			ShowContextMenu(MyGeometry, MouseEvent);
+		}
 	}
+
+	SDesignSurface::OnMouseButtonUp(MyGeometry, MouseEvent);
 
 	return FReply::Handled().ReleaseMouseCapture();
 }
@@ -400,6 +411,12 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	if ( MouseEvent.GetCursorDelta().IsZero() )
 	{
 		return FReply::Unhandled();
+	}
+
+	FReply SurfaceHandled = SDesignSurface::OnMouseMove(MyGeometry, MouseEvent);
+	if ( SurfaceHandled.IsEventHandled() )
+	{
+		return SurfaceHandled;
 	}
 
 	// Update the resizing based on the mouse movement
@@ -574,6 +591,31 @@ FVector2D SDesignerView::GetSelectionDesignerWidgetsLocation() const
 
 	return FVector2D(0, 0);
 }
+
+//void SDesignerView::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+//{
+//	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
+//	// First pass nodes
+//	for ( int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex )
+//	{
+//		const TSharedRef<SNode>& SomeChild = ChildrenToArrange[ChildIndex];
+//		if ( !SomeChild->RequiresSecondPassLayout() )
+//		{
+//			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
+//		}
+//	}
+//
+//	// Second pass nodes
+//	for ( int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex )
+//	{
+//		const TSharedRef<SNode>& SomeChild = ChildrenToArrange[ChildIndex];
+//		if ( SomeChild->RequiresSecondPassLayout() )
+//		{
+//			SomeChild->PerformSecondPassLayout(NodeToWidgetLookup);
+//			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
+//		}
+//	}
+//}
 
 int32 SDesignerView::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {

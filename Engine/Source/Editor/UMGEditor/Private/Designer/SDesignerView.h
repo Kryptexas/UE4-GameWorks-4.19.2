@@ -34,6 +34,8 @@ public:
 
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 
+	//virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
+
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
@@ -51,6 +53,8 @@ private:
 
 	/** Displays the context menu when you right click */
 	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	FVector2D GetZoomVector() const;
 
 	void OnEditorSelectionChanged();
 
@@ -123,7 +127,7 @@ private:
 	UWidget* DropPreviewWidget;
 	UPanelWidget* DropPreviewParent;
 
-	TSharedPtr<SBorder> PreviewSurface;
+	TSharedPtr<class SZoomPan> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 
 	DragHandle CurrentHandle;

@@ -112,7 +112,8 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PostChangedZoom();
 	SnapGridSize = 16.0f;
-	bAllowContinousZoomInterpolation = false;
+	AllowContinousZoomInterpolation = InArgs._AllowContinousZoomInterpolation;
+	bIsPanning = false;
 
 	ViewOffset = FVector2D::ZeroVector;
 
@@ -138,6 +139,51 @@ int32 SDesignSurface::OnPaint(const FGeometry& AllottedGeometry, const FSlateRec
 	return LayerId;
 }
 
+FReply SDesignSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	{
+		bIsPanning = false;
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SDesignSurface::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	{
+		bIsPanning = false;
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SDesignSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton);
+	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton);
+	const FModifierKeysState ModifierKeysState = FSlateApplication::Get().GetModifierKeys();
+
+	if ( HasMouseCapture() )
+	{
+		const FVector2D CursorDelta = MouseEvent.GetCursorDelta();
+
+		//const bool bShouldZoom = bIsRightMouseButtonDown && ( bIsLeftMouseButtonDown || ModifierKeysState.IsAltDown() || FSlateApplication::Get().IsUsingTrackpad() );
+		if ( bIsRightMouseButtonDown )
+		{
+			FReply ReplyState = FReply::Handled();
+
+			bIsPanning = true;
+			ViewOffset -= CursorDelta / GetZoomAmount();
+
+			return ReplyState;
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
 FReply SDesignSurface::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
@@ -155,7 +201,7 @@ inline float FancyMod(float Value, float Size)
 
 float SDesignSurface::GetZoomAmount() const
 {
-	if ( bAllowContinousZoomInterpolation )
+	if ( AllowContinousZoomInterpolation.Get() )
 	{
 		return FMath::Lerp(ZoomLevels->GetZoomAmount(PreviousZoomLevel), ZoomLevels->GetZoomAmount(ZoomLevel), ZoomLevelGraphFade.GetLerp());
 	}
@@ -194,22 +240,22 @@ void SDesignSurface::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& Widg
 	if ( OldZoomLevel != ZoomLevel )
 	{
 		PostChangedZoom();
-	}
 
-	// Note: This happens even when maxed out at a stop; so the user sees the animation and knows that they're at max zoom in/out
-	ZoomLevelFade.Play();
+		// Note: This happens even when maxed out at a stop; so the user sees the animation and knows that they're at max zoom in/out
+		ZoomLevelFade.Play();
 
-	// Re-center the screen so that it feels like zooming around the cursor.
-	{
-		FSlateRect GraphBounds = ComputeSensibleGraphBounds();
+		// Re-center the screen so that it feels like zooming around the cursor.
+		{
+			FSlateRect GraphBounds = ComputeSensibleGraphBounds();
 
-		// Make sure we are not zooming into/out into emptiness; otherwise the user will get lost..
-		const FVector2D ClampedPointToMaintainGraphSpace(
-			FMath::Clamp(PointToMaintainGraphSpace.X, GraphBounds.Left, GraphBounds.Right),
-			FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
-			);
+			// Make sure we are not zooming into/out into emptiness; otherwise the user will get lost..
+			const FVector2D ClampedPointToMaintainGraphSpace(
+				FMath::Clamp(PointToMaintainGraphSpace.X, GraphBounds.Left, GraphBounds.Right),
+				FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
+				);
 
-		this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
+			this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
+		}
 	}
 }
 
@@ -217,8 +263,8 @@ FSlateRect SDesignSurface::ComputeSensibleGraphBounds() const
 {
 	float Left = 0.0f;
 	float Top = 0.0f;
-	float Right = 0.0f;
-	float Bottom = 0.0f;
+	float Right = 1920.f;
+	float Bottom = 1080.0f;
 
 	// Find the bounds of the node positions
 	//for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )

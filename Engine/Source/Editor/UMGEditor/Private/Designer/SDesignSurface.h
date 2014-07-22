@@ -9,14 +9,22 @@ class SDesignSurface : public SCompoundWidget
 {
 public:
 
-	SLATE_BEGIN_ARGS( SDesignSurface ) {}
+	SLATE_BEGIN_ARGS( SDesignSurface )
+		: _AllowContinousZoomInterpolation(false)
+	{ }
+
 		/** Slot for this designers content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
+
+		SLATE_ATTRIBUTE(bool, AllowContinousZoomInterpolation)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
 
 	// SWidget interface
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
@@ -53,8 +61,11 @@ protected:
 	/** How zoomed in/out we are. e.g. 0.25f results in quarter-sized nodes. */
 	int32 ZoomLevel;
 
+	/** Are we panning the view at the moment? */
+	bool bIsPanning;
+
 	/** Allow continuous zoom interpolation? */
-	bool bAllowContinousZoomInterpolation;
+	TAttribute<bool> AllowContinousZoomInterpolation;
 
 	/** Fade on zoom for graph */
 	FCurveSequence ZoomLevelGraphFade;
