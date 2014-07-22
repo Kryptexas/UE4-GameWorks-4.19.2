@@ -641,7 +641,7 @@ void USplineMeshComponent::RecreateCollision()
 		}
 		else
 		{
-			FVector Mask = FVector(1,1,1);
+			FVector Mask = FVector(1, 1, 1);
 			GetAxisValue(Mask, ForwardAxis) = 0;
 
 			// distortion of a sphere can't be done nicely, so we just transform the origin and size
@@ -701,10 +701,10 @@ void USplineMeshComponent::RecreateCollision()
 					Point = CalcSliceTransform(GetAxisValue(Point, ForwardAxis)).TransformPosition(Point * Mask);
 				}
 			}
-
-			BodySetup->CreatePhysicsMeshes();
-			CachedMeshBodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 		}
+
+		BodySetup->CreatePhysicsMeshes();
+		CachedMeshBodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 	}
 	else
 	{
