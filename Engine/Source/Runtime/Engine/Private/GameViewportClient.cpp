@@ -1234,120 +1234,6 @@ void UGameViewportClient::PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver
 	UE_LOG(LogNet, Warning, TEXT("Network Failure: %s[%s]: %s"), NetDriver ? *NetDriver->NetDriverName.ToString() : TEXT("NULL"), ENetworkFailure::ToString(FailureType), *ErrorString);
 }
 
-ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
-{
-	checkf(GetOuterUEngine()->LocalPlayerClass != NULL);
-
-	ULocalPlayer* NewPlayer = NULL;
-	int32 InsertIndex = INDEX_NONE;
-
-	if (GetOuterUEngine()->GetLocalPlayerFromControllerId(this, ControllerId) != NULL)
-	{
-		OutError = FString::Printf(TEXT("A local player already exists for controller ID %d,"), ControllerId);
-	}
-	else if (GetOuterUEngine()->GetNumGamePlayers(this) < MaxSplitscreenPlayers)
-	{
-		// If the controller ID is not specified then find the first available
-		if (ControllerId < 0)
-		{
-			for (ControllerId = 0; ControllerId < MaxSplitscreenPlayers; ++ControllerId)
-			{
-				if (GetOuterUEngine()->GetLocalPlayerFromControllerId(this, ControllerId) == NULL)
-				{
-					break;
-				}
-			}
-			check(ControllerId < MaxSplitscreenPlayers);
-		}
-		else if (ControllerId >= MaxSplitscreenPlayers)
-		{
-			UE_LOG(LogPlayerManagement, Warning, TEXT("Controller ID (%d) is unlikely to map to any physical device, so this player will not receive input"), ControllerId);
-		}
-
-		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetOuterUEngine()->LocalPlayerClass, GetOuter()));
-		InsertIndex = AddLocalPlayer(NewPlayer, ControllerId);
-		if ( bSpawnActor && InsertIndex != INDEX_NONE )
-		{
-			if (World->GetNetMode() != NM_Client)
-			{
-				// server; spawn a new PlayerController immediately
-				if (!NewPlayer->SpawnPlayActor("", OutError, World ))
-				{
-					RemoveLocalPlayer(NewPlayer);
-					NewPlayer = NULL;
-				}
-			}
-			else
-			{
-				// client; ask the server to let the new player join
-				NewPlayer->SendSplitJoin();
-			}
-		}
-	}
-	else
-	{
-		OutError = FString::Printf(TEXT("Maximum number of players (%d) already created.  Unable to create more."), MaxSplitscreenPlayers);
-	}
-
-	if (OutError != TEXT(""))
-	{
-		UE_LOG(LogPlayerManagement, Log, TEXT("UPlayer* creation failed with error: %s"), *OutError);
-	}
-	else
-	{
-		if ( NewPlayer != NULL && InsertIndex != INDEX_NONE )
-		{
-			NotifyPlayerAdded(InsertIndex, NewPlayer);
-		}
-	}
-	return NewPlayer;
-}
-
-
-bool UGameViewportClient::RemovePlayer(ULocalPlayer* ExPlayer)
-{
-	if ( ExPlayer->PlayerController != NULL )
-	{
-		if (ExPlayer->PlayerController->Role == ROLE_Authority)
-		{
-			// Destroy the player's actors.
-			ExPlayer->PlayerController->Destroy();
-		}
-		else
-		{
-			// FIXME: Notify server we want to leave the game
-		}
-	}
-
-	// Remove the player from the context list
-	const int32 OldIndex = RemoveLocalPlayer(ExPlayer);
-	
-	// Notify the viewport so the viewport can do the fixups, resize, etc
-	if ( OldIndex != INDEX_NONE )
-	{
-		NotifyPlayerRemoved(OldIndex, ExPlayer);
-	}
-
-	// Disassociate this viewport client from the player.
-	// Do this after notifications, as some of them require the ViewportClient.
-	ExPlayer->ViewportClient = NULL;
-
-	UE_LOG(LogPlayerManagement, Log, TEXT("UGameViewportClient::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExPlayer->GetName(), ExPlayer->ControllerId, OldIndex, GetOuterUEngine()->GetNumGamePlayers(this));
-	return true;
-}
-
-void UGameViewportClient::DebugCreatePlayer(int32 ControllerId)
-{
-#if !UE_BUILD_SHIPPING
-	FString Error;
-	CreatePlayer(ControllerId, Error, true);
-	if (Error.Len() > 0)
-	{
-		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to DebugCreatePlayer: %s"), *Error);
-	}
-#endif
-}
-
 void UGameViewportClient::SSSwapControllers()
 {
 #if !UE_BUILD_SHIPPING
@@ -1361,25 +1247,12 @@ void UGameViewportClient::SSSwapControllers()
 #endif
 }
 
-
-void UGameViewportClient::DebugRemovePlayer(int32 ControllerId)
-{
-#if !UE_BUILD_SHIPPING
-	ULocalPlayer* const ExPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-	if (ExPlayer != NULL)
-	{
-		RemovePlayer(ExPlayer);
-	}
-#endif
-}
-
 void UGameViewportClient::ShowTitleSafeArea()
 {
 #if !UE_BUILD_SHIPPING
 	bShowTitleSafeZone = !bShowTitleSafeZone;
 #endif
 }
-
 
 void UGameViewportClient::SetConsoleTarget(int32 PlayerIndex)
 {
@@ -1399,7 +1272,7 @@ void UGameViewportClient::SetConsoleTarget(int32 PlayerIndex)
 }
 
 
-ULocalPlayer* UGameViewportClient::Init(FString& OutError)
+ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 {
 	checkf(GetOuterUEngine()->ConsoleClass != NULL);
 
@@ -1416,14 +1289,27 @@ ULocalPlayer* UGameViewportClient::Init(FString& OutError)
 	GEngine->OnTravelFailure().AddUObject(this, &UGameViewportClient::PeekTravelFailureMessages);
 	GEngine->OnNetworkFailure().AddUObject(this, &UGameViewportClient::PeekNetworkFailureMessages);
 
-	// create the initial player - this is necessary or we can't render anything in-game.
-	return CreateInitialPlayer(OutError);
+	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+
+	if ( !ensure( GameInstance != NULL ) )
+	{
+		return NULL;
+	}
+
+	// Create the initial player - this is necessary or we can't render anything in-game.
+	return GameInstance->CreateInitialPlayer(OutError);
 }
 
-
-ULocalPlayer* UGameViewportClient::CreateInitialPlayer( FString& OutError )
+ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
 {
-	return CreatePlayer(0, OutError, false);
+	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+	return (GameInstance != NULL) ? GameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
+}
+
+bool UGameViewportClient::RemovePlayer(class ULocalPlayer* ExPlayer)
+{
+	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+	return (GameInstance != NULL) ? GameInstance->RemoveLocalPlayer(ExPlayer) : false;
 }
 
 void UGameViewportClient::UpdateActiveSplitscreenType()
@@ -1809,32 +1695,6 @@ void UGameViewportClient::NotifyPlayerRemoved( int32 PlayerIndex, ULocalPlayer* 
 	LayoutPlayers();
 }
 
-
-int32 UGameViewportClient::AddLocalPlayer( ULocalPlayer* NewPlayer, int32 ControllerId )
-{
-	int32 InsertIndex = INDEX_NONE;
-	if ( NewPlayer != NULL )
-	{
-		// add to list
-		NewPlayer->PlayerAdded(this, ControllerId);
-		InsertIndex = GetOuterUEngine()->GetNumGamePlayers(this);
-		GetOuterUEngine()->AddGamePlayer(this, NewPlayer);
-	}
-	return InsertIndex;
-}
-
-int32 UGameViewportClient::RemoveLocalPlayer( ULocalPlayer* ExistingPlayer )
-{
-	int32 Index = GetOuterUEngine()->GetGamePlayers(this).Find(ExistingPlayer);
-	if ( Index != INDEX_NONE )
-	{
-		ExistingPlayer->PlayerRemoved();
-		GetOuterUEngine()->RemoveGamePlayer(this, Index);
-	}
-
-	return Index;
-}
-
 void UGameViewportClient::AddViewportWidgetContent( TSharedRef<SWidget> ViewportContent, const int32 ZOrder )
 {
 	TSharedPtr< SOverlay > PinnedViewportOverlayWidget( ViewportOverlayWidget.Pin() );
@@ -1868,8 +1728,6 @@ void UGameViewportClient::RemoveAllViewportWidgets()
 		}
 	}
 }
-
-void UGameViewportClient::OnPrimaryPlayerSwitch(ULocalPlayer* OldPrimaryPlayer, ULocalPlayer* NewPrimaryPlayer) {}
 
 void UGameViewportClient::VerifyPathRenderingComponents()
 {

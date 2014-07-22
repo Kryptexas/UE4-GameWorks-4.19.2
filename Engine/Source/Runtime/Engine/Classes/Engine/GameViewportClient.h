@@ -150,6 +150,8 @@ struct FDebugDisplayProperty
 
 };
 
+class ULocalPlayer;
+
 /**
  * Delegate type for when a screenshot has been captured
  *
@@ -225,23 +227,9 @@ public:
 	/** see enum EViewModeIndex */
 	int32 ViewModeIndex;
 
-	/**
-	 * Debug console command to create a player.
-	 * @param ControllerId - The controller ID the player should accept input from.
-	 */
-	UFUNCTION(exec)
-	virtual void DebugCreatePlayer(int32 ControllerId);
-
 	/** Rotates controller ids among gameplayers, useful for testing splitscreen with only one controller. */
 	UFUNCTION(exec)
 	virtual void SSSwapControllers();
-
-	/**
-	 * Debug console command to remove the player with a given controller ID.
-	 * @param ControllerId - The controller ID to search for.
-	 */
-	UFUNCTION(exec)
-	virtual void DebugRemovePlayer(int32 ControllerId);
 
 	/** Exec for toggling the display of the title safe area */
 	UFUNCTION(exec)
@@ -419,37 +407,17 @@ public:
 	bool ShouldForceFullscreenViewport() const;
 
 	/**
-	 * Adds a new player.
-	 * @param ControllerId - The controller ID the player should accept input from.
-	 * @param OutError - If no player is returned, OutError will contain a string describing the reason.
-	 * @param SpawnActor - True if an actor should be spawned for the new player.
-	 * @return The player which was created.
-	 */
-	virtual class ULocalPlayer* CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
-
-	/**
-	 * Removes a player.
-	 * @param Player - The player to remove.
-	 * @return whether the player was successfully removed. Removal is not allowed while connected to a server.
-	 */
-	virtual bool RemovePlayer(class ULocalPlayer* ExPlayer);
-
-	/**
 	 * Initialize the game viewport.
 	 * @param OutError - If an error occurs, returns the error description.
 	 * @return False if an error occurred, true if the viewport was initialized successfully.
 	 */
-	virtual ULocalPlayer* Init(FString& OutError);
+	virtual ULocalPlayer* SetupInitialLocalPlayer(FString& OutError);
 
-	/**
-	 * Create the game's initial player at startup.  
-	 * Creates a player with a ControllerId of 0.
-	 *
-	 * @param	OutError	receives the error string if an error occurs while creating the player.
-	 *
-	 * @return	player that was created (NULL if failed).
-	 */
-	virtual ULocalPlayer* CreateInitialPlayer( FString& OutError );
+	DEPRECATED(4.4, "CreatePlayer is deprecated UGameInstance::CreateLocalPlayer instead.")
+	virtual ULocalPlayer* CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
+
+	DEPRECATED(4.4, "RemovePlayer is deprecated UGameInstance::RemoveLocalPlayer instead.")
+	virtual bool RemovePlayer(class ULocalPlayer* ExPlayer);
 
 	/** @return Returns the splitscreen type that is currently being used */
 	FORCEINLINE ESplitScreenType::Type GetCurrentSplitscreenConfiguration() const
@@ -544,21 +512,6 @@ public:
 	void NotifyPlayerRemoved( int32 PlayerIndex, class ULocalPlayer* RemovedPlayer );
 
 	/**
-	 * Adds a LocalPlayer to the local and global list of Players.
-	 *
-	 * @param	NewPlayer	the player to add
-	 * @param	ControllerId id of the controller associated with the player
-	 */
-	int32 AddLocalPlayer( class ULocalPlayer* NewPlayer, int32 ControllerId );
-
-	/**
-	 * Removes a LocalPlayer from the local and global list of Players.
-	 *
-	 * @param	ExistingPlayer	the player to remove
-	 */
-	int32 RemoveLocalPlayer( class ULocalPlayer* ExistingPlayer );
-
-	/**
 	 * Notification of server travel error messages, generally network connection related (package verification, client server handshaking, etc) 
 	 * generally not expected to handle the failure here, but provide notification to the user
 	 *
@@ -576,16 +529,6 @@ public:
 	 * @param	ErrorString	additional string detailing the error
 	 */
 	virtual void PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
-
-	/**
-	 * Retrieves a reference to a LocalPlayer.
-	 *
-	 * @param	PlayerIndex		if specified, returns the player at this index in the GamePlayers array.  Otherwise, returns
-	 *							the player associated with the owner scene.
-	 * @return	the player that owns this scene or is located in the specified index of the GamePlayers array.
-	 */
-	virtual void OnPrimaryPlayerSwitch(class ULocalPlayer* OldPrimaryPlayer, class ULocalPlayer* NewPrimaryPlayer);
-
 
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();

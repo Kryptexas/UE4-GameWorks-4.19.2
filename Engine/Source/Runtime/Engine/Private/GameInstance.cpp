@@ -187,7 +187,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 			PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 		}
 
-		UNavigationSystem::InitializeForWorld(PlayWorld, WorldContext->GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
+		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 		PlayWorld->CreateAISystem();
 
 		PlayWorld->InitializeActorsForPlay(URL);
@@ -325,37 +325,176 @@ bool UGameInstance::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	return false;
 }
 
-int32 UGameInstance::GetNumLocalPlayers() const
+ULocalPlayer* UGameInstance::CreateInitialPlayer(FString& OutError)
 {
-	return ( WorldContext != nullptr ) ? WorldContext->GamePlayers.Num() : 0;
+	return CreateLocalPlayer( 0, OutError, false );
 }
 
-ULocalPlayer* UGameInstance::GetLocalPlayerByIndex( const int32 Index ) const
+ULocalPlayer* UGameInstance::CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
 {
-	if ( WorldContext == nullptr )
+	checkf(GetEngine()->LocalPlayerClass != NULL);
+
+	ULocalPlayer* NewPlayer = NULL;
+	int32 InsertIndex = INDEX_NONE;
+
+	const int32 MaxSplitscreenPlayers = (GetGameViewportClient() != NULL) ? GetGameViewportClient()->MaxSplitscreenPlayers : 1;
+
+	if (FindLocalPlayerFromControllerId( ControllerId ) != NULL)
 	{
-		return nullptr;
+		OutError = FString::Printf(TEXT("A local player already exists for controller ID %d,"), ControllerId);
+	}
+	else if (LocalPlayers.Num() < MaxSplitscreenPlayers)
+	{
+		// If the controller ID is not specified then find the first available
+		if (ControllerId < 0)
+		{
+			for (ControllerId = 0; ControllerId < MaxSplitscreenPlayers; ++ControllerId)
+			{
+				if (FindLocalPlayerFromControllerId( ControllerId ) == NULL)
+				{
+					break;
+				}
+			}
+			check(ControllerId < MaxSplitscreenPlayers);
+		}
+		else if (ControllerId >= MaxSplitscreenPlayers)
+		{
+			UE_LOG(LogPlayerManagement, Warning, TEXT("Controller ID (%d) is unlikely to map to any physical device, so this player will not receive input"), ControllerId);
+		}
+
+		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetEngine()->LocalPlayerClass, GetEngine()));
+		InsertIndex = AddLocalPlayer(NewPlayer, ControllerId);
+		if (bSpawnActor && InsertIndex != INDEX_NONE && GetWorld() != NULL)
+		{
+			if (GetWorld()->GetNetMode() != NM_Client)
+			{
+				// server; spawn a new PlayerController immediately
+				if (!NewPlayer->SpawnPlayActor("", OutError, GetWorld()))
+				{
+					RemoveLocalPlayer(NewPlayer);
+					NewPlayer = NULL;
+				}
+			}
+			else
+			{
+				// client; ask the server to let the new player join
+				NewPlayer->SendSplitJoin();
+			}
+		}
+	}
+	else
+	{
+		OutError = FString::Printf(TEXT( "Maximum number of players (%d) already created.  Unable to create more."), MaxSplitscreenPlayers);
 	}
 
-	if ( !ensure( Index >= 0 && Index < WorldContext->GamePlayers.Num() ) )
+	if (OutError != TEXT(""))
 	{
-		return nullptr;
+		UE_LOG(LogPlayerManagement, Log, TEXT("UPlayer* creation failed with error: %s"), *OutError);
 	}
 
-	return WorldContext->GamePlayers[Index];
+	return NewPlayer;
+}
+
+int32 UGameInstance::AddLocalPlayer(ULocalPlayer* NewLocalPlayer, int32 ControllerId)
+{
+	if (NewLocalPlayer == NULL)
+	{
+		return INDEX_NONE;
+	}
+
+	const int32 InsertIndex = LocalPlayers.Num();
+
+	// Add to list
+	LocalPlayers.AddUnique(NewLocalPlayer);
+
+	// Notify the player he/she was added
+	NewLocalPlayer->PlayerAdded(GetGameViewportClient(), ControllerId);
+
+	// Notify the viewport that we added a player (so it can update splitscreen settings, etc)
+	if ( GetGameViewportClient() != NULL )
+	{
+		GetGameViewportClient()->NotifyPlayerAdded(InsertIndex, NewLocalPlayer);
+	}
+
+	return InsertIndex;
+}
+
+bool UGameInstance::RemoveLocalPlayer(ULocalPlayer* ExistingPlayer)
+{
+	// FIXME: Notify server we want to leave the game if this is an online game
+	if (ExistingPlayer->PlayerController != NULL)
+	{
+		// FIXME: Do this all inside PlayerRemoved?
+		ExistingPlayer->PlayerController->CleanupGameViewport();
+		// Destroy the player's actors.
+		ExistingPlayer->PlayerController->Destroy();
+	}
+
+	// Remove the player from the context list
+	const int32 OldIndex = LocalPlayers.Find(ExistingPlayer);
+
+	if (OldIndex != INDEX_NONE)
+	{
+		ExistingPlayer->PlayerRemoved();
+		LocalPlayers.RemoveAt(OldIndex);
+
+		// Notify the viewport so the viewport can do the fixups, resize, etc
+		if (GetGameViewportClient() != NULL)
+		{
+			GetGameViewportClient()->NotifyPlayerRemoved(OldIndex, ExistingPlayer);
+		}
+	}
+
+	// Disassociate this viewport client from the player.
+	// Do this after notifications, as some of them require the ViewportClient.
+	ExistingPlayer->ViewportClient = NULL;
+
+	UE_LOG(LogPlayerManagement, Log, TEXT("UGameInstance::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExistingPlayer->GetName(), ExistingPlayer->ControllerId, OldIndex, LocalPlayers.Num());
+
+	return true;
+}
+
+void UGameInstance::DebugCreatePlayer(int32 ControllerId)
+{
+#if !UE_BUILD_SHIPPING
+	FString Error;
+	CreateLocalPlayer(ControllerId, Error, true);
+	if (Error.Len() > 0)
+	{
+		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to DebugCreatePlayer: %s"), *Error);
+	}
+#endif
+}
+
+void UGameInstance::DebugRemovePlayer(int32 ControllerId)
+{
+#if !UE_BUILD_SHIPPING
+	ULocalPlayer* const ExistingPlayer = FindLocalPlayerFromControllerId(ControllerId);
+	if (ExistingPlayer != NULL)
+	{
+		RemoveLocalPlayer(ExistingPlayer);
+	}
+#endif
+}
+
+int32 UGameInstance::GetNumLocalPlayers() const
+{
+	return LocalPlayers.Num();
+}
+
+ULocalPlayer* UGameInstance::GetLocalPlayerByIndex(const int32 Index) const
+{
+	return LocalPlayers[Index];
 }
 
 APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 {
-	if (WorldContext)
+	for (ULocalPlayer* Player : LocalPlayers)
 	{
-		for (ULocalPlayer* Player : WorldContext->GamePlayers)
+		if (Player && Player->PlayerController)
 		{
-			if (Player && Player->PlayerController)
-			{
-				// return first non-null entry
-				return Player->PlayerController;
-			}
+			// return first non-null entry
+			return Player->PlayerController;
 		}
 	}
 
@@ -363,17 +502,27 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId( TSharedPtr<FUniqueNetId> UniqueNetId ) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(int32 ControllerId) const
 {
-	if (WorldContext)
+	for (ULocalPlayer * LP : LocalPlayers)
 	{
-		for (ULocalPlayer* Player : WorldContext->GamePlayers)
+		if (LP && (LP->ControllerId == ControllerId))
 		{
-			if (Player && Player->GetUniqueNetId() == UniqueNetId)
-			{
-				// Match
-				return Player;
-			}
+			return LP;
+		}
+	}
+
+	return nullptr;
+}
+
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+{
+	for (ULocalPlayer* Player : LocalPlayers)
+	{
+		if (Player && Player->GetUniqueNetId() == UniqueNetId)
+		{
+			// Match
+			return Player;
 		}
 	}
 
@@ -383,6 +532,41 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId( TSharedPtr<FUniqueN
 
 ULocalPlayer* UGameInstance::GetFirstGamePlayer() const
 {
-	return (WorldContext && WorldContext->GamePlayers.Num() > 0) ? WorldContext->GamePlayers[0] : nullptr;
+	return (LocalPlayers.Num() > 0) ? LocalPlayers[0] : nullptr;
 }
 
+void UGameInstance::CleanupGameViewport()
+{
+	// Clean up the viewports that have been closed.
+	for(int32 idx = LocalPlayers.Num()-1; idx >= 0; --idx)
+	{
+		ULocalPlayer *Player = LocalPlayers[idx];
+
+		if(Player && Player->ViewportClient && !Player->ViewportClient->Viewport)
+		{
+			RemoveLocalPlayer( Player );
+		}
+	}
+}
+
+TArray<class ULocalPlayer*>::TConstIterator	UGameInstance::GetLocalPlayerIterator()
+{
+	return LocalPlayers.CreateConstIterator();
+}
+
+const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers()
+{
+	return LocalPlayers;
+}
+
+void UGameInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UGameInstance* This = CastChecked<UGameInstance>(InThis);
+
+	for (ULocalPlayer* LocalPlayer : This->LocalPlayers)
+	{
+		Collector.AddReferencedObject(LocalPlayer, This);
+	}
+
+	Super::AddReferencedObjects(This, Collector);
+}

@@ -2381,7 +2381,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 		RequestedDestinationSlateViewport = NULL;
 
 		FString Error;
-		NewLocalPlayer = ViewportClient->Init(Error);
+		NewLocalPlayer = ViewportClient->SetupInitialLocalPlayer(Error);
 		if(!NewLocalPlayer)
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_CouldntSpawnPlayer", "Couldn't spawn player: {0}"), FText::FromString(Error)) );

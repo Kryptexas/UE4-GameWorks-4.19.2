@@ -498,7 +498,10 @@ void FOnlineVoiceSteam::ProcessMuteChangeNotification()
 			// For each local user with voice
 			for (int32 Index = 0; Index < MaxLocalTalkers; Index++)
 			{
-				ULocalPlayer* LP = GEngine->LocalPlayerFromVoiceIndex(Index);
+				// Find the very first ULocalPlayer for this ControllerId. 
+				// This is imperfect and means we cannot support voice chat properly for
+				// multiple UWorlds (but thats ok for the time being).
+				ULocalPlayer* LP = GEngine->FindFirstLocalPlayerFromControllerId(Index);
 				if (LP && LP->PlayerController)
 				{
 					// If there is a player controller, we can mute/unmute people

@@ -72,7 +72,7 @@ APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, i
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	FString Error;
 
-	ULocalPlayer* LocalPlayer = World->GetGameViewport()->CreatePlayer(ControllerId, Error, bSpawnPawn);
+	ULocalPlayer* LocalPlayer = World->GetGameInstance()->CreateLocalPlayer(ControllerId, Error, bSpawnPawn);
 
 	if (Error.Len() > 0)
 	{

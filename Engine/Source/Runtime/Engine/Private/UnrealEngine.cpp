@@ -79,6 +79,8 @@
 #include "ComponentReregisterContext.h"
 #include "ContentStreaming.h"
 
+#include "Engine/GameInstance.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -559,10 +561,6 @@ void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const U
 	}
 	Collector.AddReferencedObject(GameViewport, ReferencingObject);
 	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
-	for (ULocalPlayer* GamePlayer : GamePlayers)
-	{
-		Collector.AddReferencedObject(GamePlayer, ReferencingObject);
-	}
 	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
 	{
 		Collector.AddReferencedObject(ActiveNetDriver.NetDriver, ReferencingObject);
@@ -1049,10 +1047,10 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			int32 NumGamePlayers = 0;
 			for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
 			{
-				if (WorldList[WorldIndex].WorldType == EWorldType::Game)
+				if (WorldList[WorldIndex].WorldType == EWorldType::Game && WorldList[WorldIndex].OwningGameInstance != NULL)
 				{
 					World = WorldList[WorldIndex].World();
-					NumGamePlayers = WorldList[WorldIndex].GamePlayers.Num();
+					NumGamePlayers = WorldList[WorldIndex].OwningGameInstance->GetNumLocalPlayers();
 					break;
 				}
 			}
@@ -1479,21 +1477,10 @@ void UEngine::CleanupGameViewport()
 	for (auto WorldIt = WorldList.CreateIterator(); WorldIt; ++WorldIt)
 	{
 		FWorldContext &Context = *WorldIt;
-		// Clean up the viewports that have been closed.
-		for(int32 idx = Context.GamePlayers.Num()-1; idx >= 0; --idx)
-		{
-			ULocalPlayer *Player = Context.GamePlayers[idx];
 
-			if(Player && Player->ViewportClient && !Player->ViewportClient->Viewport)
-			{
-				if (Player->PlayerController)
-				{
-					Player->PlayerController->CleanupGameViewport();
-				}
-				Player->ViewportClient = NULL;
-				Player->PlayerRemoved();
-				Context.GamePlayers.RemoveAt(idx);
-			}
+		if ( Context.OwningGameInstance != NULL )
+		{
+			Context.OwningGameInstance->CleanupGameViewport();
 		}
 
 		if ( Context.GameViewport != NULL && Context.GameViewport->Viewport == NULL )
@@ -1753,7 +1740,7 @@ bool UEngine::IsSplitScreen(UWorld *InWorld)
 		// If no specified world, return true if any world context has multiple local players
 		for (auto It = WorldList.CreateIterator(); It; ++It)
 		{
-			if (It->GamePlayers.Num() > 1)
+			if (It->OwningGameInstance != NULL && It->OwningGameInstance->GetNumLocalPlayers() > 1)
 			{
 				return true;
 			}
@@ -1804,15 +1791,22 @@ ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( UWorld * InWorld, int32 C
 void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID)
 {
 	for (auto It = WorldList.CreateIterator(); It; ++It)
-{
-		if (It->GamePlayers.Contains(NewPlayer))
+	{
+		if (It->OwningGameInstance == NULL)
+		{
+			continue;
+		}
+
+		const TArray<class ULocalPlayer*> & LocalPlayers = It->OwningGameInstance->GetLocalPlayers();
+
+		if (LocalPlayers.Contains(NewPlayer))
 		{
 			// This is the world context that NewPlayer belongs to, see if anyone is using his CurrentControllerId
-			for (int32 i=0; i < It->GamePlayers.Num(); ++i)
+			for (int32 i=0; i < LocalPlayers.Num(); ++i)
 			{
-				if(It->GamePlayers[i] && It->GamePlayers[i]->ControllerId == NewControllerID)
+				if(LocalPlayers[i] && LocalPlayers[i]->ControllerId == NewControllerID)
 				{
-					It->GamePlayers[i]->ControllerId = CurrentControllerId;
+					LocalPlayers[i]->ControllerId = CurrentControllerId;
 					return;
 				}
 			}
@@ -1822,24 +1816,20 @@ void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerI
 
 APlayerController* UEngine::GetFirstLocalPlayerController(UWorld *InWorld)
 {
-	const TArray<class ULocalPlayer*>& GamePlayers = GetGamePlayers(InWorld);
-
-	for( int32 iPlayers=0; iPlayers < GamePlayers.Num(); iPlayers++ )
-	{
-		if( GamePlayers[iPlayers] && GamePlayers[iPlayers]->PlayerController )
-		{
-			return GamePlayers[iPlayers]->PlayerController;
-		}
-	}
-
-	return NULL;
+	const FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
+	
+	return ( Context.OwningGameInstance != NULL ) ? Context.OwningGameInstance->GetFirstLocalPlayerController() : NULL;
 }
 
 void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerList)
 {
 	for (auto It = WorldList.CreateIterator(); It; ++It)
 	{
-		for (auto PlayerIt = It->GamePlayers.CreateIterator(); PlayerIt; ++PlayerIt)
+		if ( It->OwningGameInstance == NULL )
+		{
+			continue;
+		}
+		for (auto PlayerIt = It->OwningGameInstance->GetLocalPlayerIterator(); PlayerIt; ++PlayerIt)
 		{
 			ULocalPlayer *Player = *PlayerIt;
 			PlayerList.Add( Player->PlayerController );
@@ -5261,18 +5251,25 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 		{
 			FWorldContext &Context = *It;
 
-		// Iterate over all players and pause / unpause them
-		// Note: pausing / unpausing the player is done via their HUD pausing / unpausing
-			for (int32 PlayerIndex = 0; PlayerIndex < Context.GamePlayers.Num(); ++PlayerIndex)
-		{
-				APlayerController* PlayerController = Context.GamePlayers[PlayerIndex]->PlayerController;
-			if(PlayerController && PlayerController->MyHUD)
+			if ( Context.OwningGameInstance == NULL )
 			{
-				PlayerController->MyHUD->OnLostFocusPause(EnablePause);
+				continue;
+			}
+
+			const TArray<class ULocalPlayer*> & LocalPlayers = Context.OwningGameInstance->GetLocalPlayers();
+
+			// Iterate over all players and pause / unpause them
+			// Note: pausing / unpausing the player is done via their HUD pausing / unpausing
+			for (int32 PlayerIndex = 0; PlayerIndex < LocalPlayers.Num(); ++PlayerIndex)
+			{
+				APlayerController* PlayerController = LocalPlayers[PlayerIndex]->PlayerController;
+				if(PlayerController && PlayerController->MyHUD)
+				{
+					PlayerController->MyHUD->OnLostFocusPause(EnablePause);
+				}
 			}
 		}
 	}
-}
 }
 
 void UEngine::InitHardwareSurvey()
@@ -6946,32 +6943,56 @@ TArray<class ULocalPlayer*>::TConstIterator UEngine::GetLocalPlayerIterator(cons
 	return GetGamePlayers(Viewport).CreateConstIterator();
 }
 
+static TArray<ULocalPlayer*> FakeEmptyLocalPlayers;
+
+const TArray<class ULocalPlayer*>& HandleFakeLocalPlayersList()
+{
+#if 0
+	if (!IsRunningCommandlet())
+	{
+		UE_LOG(LogLoad, Error, TEXT("WorldContext requested with NULL game instance object.") );
+		check(false);
+	}
+#endif
+	check(FakeEmptyLocalPlayers.Num() == 0);
+	return FakeEmptyLocalPlayers;
+}
+
 const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(UWorld *World)
 {
 	const FWorldContext &Context = GetWorldContextFromWorldChecked(World);
-	return Context.GamePlayers;
+	if ( Context.OwningGameInstance == NULL )
+	{
+		return HandleFakeLocalPlayersList();
+	}
+	return Context.OwningGameInstance->GetLocalPlayers();
 }
 	
 const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(const UGameViewportClient *Viewport)
 {
-	return GetWorldContextFromGameViewportChecked(Viewport).GamePlayers;
+	const FWorldContext &Context = GetWorldContextFromGameViewportChecked(Viewport);
+	if ( Context.OwningGameInstance == NULL )
+	{
+		return HandleFakeLocalPlayersList();
+	}
+	return Context.OwningGameInstance->GetLocalPlayers();
 }
 
-ULocalPlayer* UEngine::LocalPlayerFromVoiceIndex(int32 VoiceId) const
+ULocalPlayer* UEngine::FindFirstLocalPlayerFromControllerId(int32 ControllerId) const
 {
-	// Search for the first Game or PIE instance. This is imperfect and means we cannot support voice chat properly for
-	// multiple UWorlds (but thats ok for the time being).
 	for (auto It=WorldList.CreateConstIterator(); It; ++It)
 	{
 		const FWorldContext &Context = *It;
-		if (Context.World() && (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE))
+		if (Context.World() && Context.OwningGameInstance && (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE))
 		{
+			const TArray<class ULocalPlayer*> & LocalPlayers = Context.OwningGameInstance->GetLocalPlayers();
+
 			// Use this world context, look for the ULocalPlayer with this ControllerId
-			for (int32 i=0; i < Context.GamePlayers.Num(); ++i)
+			for (int32 i=0; i < LocalPlayers.Num(); ++i)
 			{
-				if (Context.GamePlayers[i] && Context.GamePlayers[i]->ControllerId == VoiceId)
+				if (LocalPlayers[i] && LocalPlayers[i]->ControllerId == ControllerId)
 				{
-					return Context.GamePlayers[i];
+					return LocalPlayers[i];
 				}
 			}
 		}
@@ -7016,7 +7037,7 @@ ULocalPlayer* UEngine::GetFirstGamePlayer( UPendingNetGame *PendingNetGame )
 	{
 		if (It->PendingNetGame == PendingNetGame)
 		{
-			return It->GamePlayers.Num() > 0 ? It->GamePlayers[0] : NULL;
+			return ( It->OwningGameInstance != NULL ) ? It->OwningGameInstance->GetFirstGamePlayer() : NULL;
 		}
 	}
 	return NULL;
@@ -7028,7 +7049,7 @@ ULocalPlayer* UEngine::GetFirstGamePlayer(const UGameViewportClient *InViewport 
 	{
 		if (It->GameViewport == InViewport)
 		{
-			return It->GamePlayers.Num() > 0 ? It->GamePlayers[0] : NULL;
+			return ( It->OwningGameInstance != NULL ) ? It->OwningGameInstance->GetFirstGamePlayer() : NULL;
 		}
 	}
 	return NULL;
@@ -7038,48 +7059,12 @@ ULocalPlayer* UEngine::GetDebugLocalPlayer()
 {
 	for (auto It = WorldList.CreateConstIterator(); It; ++It)
 	{
-		if (It->World() && It->GamePlayers.Num() > 0 )
+		if (It->OwningGameInstance != NULL && It->OwningGameInstance->GetFirstGamePlayer() != NULL )
 		{
-			return It->GamePlayers[0];
+			return It->OwningGameInstance->GetFirstGamePlayer();
 		}
 	}
 	return NULL;
-}
-
-void UEngine::AddGamePlayer( UWorld *InWorld, ULocalPlayer* InPlayer )
-{
-	GetWorldContextFromWorldChecked(InWorld).GamePlayers.AddUnique(InPlayer);
-}
-
-void UEngine::AddGamePlayer( const UGameViewportClient *InViewport, ULocalPlayer* InPlayer )
-{
-	GetWorldContextFromGameViewportChecked(InViewport).GamePlayers.AddUnique(InPlayer);
-}
-
-bool RemoveGamePlayer_Local(TArray<class ULocalPlayer*>& PlayerList, int32 InPlayerIndex)
-{
-	bool bResult = true;
-	if( PlayerList.IsValidIndex( InPlayerIndex ) )
-	{
-		PlayerList.RemoveAt(InPlayerIndex);		
-	}
-	else
-	{
-		bResult = false;
-	}
-	return bResult;
-}
-
-bool UEngine::RemoveGamePlayer( UWorld *InWorld, int32 InPlayerIndex )
-{
-	TArray<class ULocalPlayer*>& PlayerList = const_cast<TArray<class ULocalPlayer*> & >(GetGamePlayers(InWorld));
-	return RemoveGamePlayer_Local(PlayerList, InPlayerIndex);
-}
-
-bool UEngine::RemoveGamePlayer( const UGameViewportClient *InViewport, int32 InPlayerIndex )
-{
-	TArray<class ULocalPlayer*>& PlayerList = const_cast<TArray<class ULocalPlayer*> & >(GetGamePlayers(InViewport));
-	return RemoveGamePlayer_Local(PlayerList, InPlayerIndex);
 }
 
 #if !UE_BUILD_SHIPPING
@@ -7318,9 +7303,9 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 	{
 		// The only disconnect case without a valid InWorld, should be in a travel case where there is a pending game net driver.
 		FWorldContext &Context = GEngine->GetWorldContextFromPendingNetGameNetDriverChecked(NetDriver);
-		check(Context.GamePlayers.Num() > 0);
+		check(Context.OwningGameInstance != NULL && Context.OwningGameInstance->GetFirstGamePlayer() != NULL);
 
-		ULocalPlayer* const LP = Context.GamePlayers[0];
+		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
 		check(LP);
 		LP->HandleDisconnect(InWorld, NetDriver);
 	}
@@ -8242,20 +8227,23 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		FWorldDelegates::LevelRemovedFromWorld.Broadcast(NULL, WorldContext.World());
 
 		// Disassociate the players from their PlayerControllers.
-		for(auto It = WorldContext.GamePlayers.CreateIterator(); It; ++It)
+		if (WorldContext.OwningGameInstance != NULL)
 		{
-			ULocalPlayer *Player = *It;
-			if(Player->PlayerController)
+			for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
-				if(Player->PlayerController->GetPawn())
+				ULocalPlayer *Player = *It;
+				if(Player->PlayerController)
 				{
-					WorldContext.World()->DestroyActor(Player->PlayerController->GetPawn(), true);
+					if(Player->PlayerController->GetPawn())
+					{
+						WorldContext.World()->DestroyActor(Player->PlayerController->GetPawn(), true);
+					}
+					WorldContext.World()->DestroyActor(Player->PlayerController, true);
+					Player->PlayerController = NULL;
 				}
-				WorldContext.World()->DestroyActor(Player->PlayerController, true);
-				Player->PlayerController = NULL;
+				// reset split join info so we'll send one after loading the new map if necessary
+				Player->bSentSplitJoin = false;
 			}
-			// reset split join info so we'll send one after loading the new map if necessary
-			Player->bSentSplitJoin = false;
 		}
 
 		for (FActorIterator ActorIt(WorldContext.World()); ActorIt; ++ActorIt)
@@ -8619,13 +8607,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.LastRemoteURL = URL;
 	}
 
-	// Client init.
-	for(auto It = WorldContext.GamePlayers.CreateIterator(); It; ++It)
+	// Spawn play actors for all active local players
+	if (WorldContext.OwningGameInstance != NULL)
 	{
-		FString Error2;
-		if(!(*It)->SpawnPlayActor(URL.ToString(1),Error2,WorldContext.World()))
+		for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 		{
-			UE_LOG(LogEngine, Fatal, TEXT("Couldn't spawn player: %s"), *Error2);
+			FString Error2;
+			if(!(*It)->SpawnPlayActor(URL.ToString(1),Error2,WorldContext.World()))
+			{
+				UE_LOG(LogEngine, Fatal, TEXT("Couldn't spawn player: %s"), *Error2);
+			}
 		}
 	}
 
@@ -8832,13 +8823,16 @@ void UEngine::UpdateTransitionType(UWorld *CurrentWorld)
 		TransitionType = TT_None;
 
 		FWorldContext &Context = GetWorldContextFromWorldChecked(CurrentWorld);
-		for (auto It = Context.GamePlayers.CreateIterator(); It; ++It)
+		if (Context.OwningGameInstance != NULL)
 		{
-			if(!(*It)->PlayerController)
+			for(auto It = Context.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
-				// This player has not received a PlayerController from the server yet, so leave the connecting screen up.
-				TransitionType = TT_Connecting;
-				break;
+				if(!(*It)->PlayerController)
+				{
+					// This player has not received a PlayerController from the server yet, so leave the connecting screen up.
+					TransitionType = TT_Connecting;
+					break;
+				}
 			}
 		}
 	}

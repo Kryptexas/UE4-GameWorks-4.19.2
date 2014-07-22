@@ -466,7 +466,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 			SwitchGameWindowToUseGameViewport();
 		}
 		FString Error;
-		if(!ViewportClient->Init(Error))
+		if(ViewportClient->SetupInitialLocalPlayer(Error) == NULL)
 		{
 			UE_LOG(LogEngine, Fatal,TEXT("%s"),*Error);
 		}
@@ -875,7 +875,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			Context.World()->bWorldWasLoadedThisTick = false;
 			
 			const TCHAR* InitialExec = Context.LastURL.GetOption(TEXT("causeevent="),NULL);
-			ULocalPlayer* GamePlayer = Context.GamePlayers.Num() > 0 ? Context.GamePlayers[0] : NULL;
+			ULocalPlayer* GamePlayer = Context.OwningGameInstance ? Context.OwningGameInstance->GetFirstGamePlayer() : NULL;
 			if( InitialExec && GamePlayer )
 			{
 				UE_LOG(LogEngine, Log, TEXT("Issuing initial cause event passed from URL: %s"), InitialExec);

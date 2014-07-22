@@ -259,9 +259,6 @@ struct FWorldContext
 	UPROPERTY()
 	class UGameInstance* OwningGameInstance;
 
-	UPROPERTY()
-	TArray<ULocalPlayer*> GamePlayers;
-
 	/** A list of active net drivers */
 	UPROPERTY(transient)
 	TArray<FNamedNetDriver> ActiveNetDrivers;
@@ -1282,10 +1279,6 @@ public:
 	float MinDesiredFrameRate;
 
 private:
-	/** Viewports for all players in all game instances (all PIE windows, for example) */
-	//UPROPERTY()
-	//TArray<class ULocalPlayer*> GamePlayers;
-
 	/** Default color of selected objects in the level viewport (additive) */
 	UPROPERTY(globalconfig)
 	FLinearColor DefaultSelectedMaterialColor;
@@ -1769,10 +1762,10 @@ public:
 	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport);
 
 	/**
-	 *	returns ULocalPlayer from a given Voice chat index. This should only be used by the online subsystems module
-	 *  and never by game code to get quick access to a local player - please use FLocalPlayerIterator instead!
+	 *	Returns the first ULocalPlayer that matches the given ControllerId. 
+	 *  This will search across all world contexts.
 	 */
-	class ULocalPlayer* LocalPlayerFromVoiceIndex(int32 index) const;
+	class ULocalPlayer* FindFirstLocalPlayerFromControllerId(int32 ControllerId) const;
 
 	/**
 	 * return the number of entries in the GamePlayers array
@@ -1808,22 +1801,6 @@ public:
 	 * @returns the first ULocalPlayer
 	 */
 	ULocalPlayer* GetDebugLocalPlayer();
-
-	/**
-	 * Add a ULocalPlayer to the GamePlayers array
-	 *
-	 * @param	InPlayer		Player pointer to store at the given index	 
-	 */
-	void AddGamePlayer( UWorld *InWorld, ULocalPlayer* InPlayer );
-	void AddGamePlayer( const UGameViewportClient *InViewport, ULocalPlayer* InPlayer );
-
-	/**
-	 * Remove the player with the given index from the player array if valid
-	 *
-	 * @param	InPlayerIndex		Index of the player to remove.
-	 */
-	bool RemoveGamePlayer( UWorld *InWorld, int32 InPlayerIndex );
-	bool RemoveGamePlayer( const UGameViewportClient *InViewport, int32 InPlayerIndex );
 
 	/** Clean up the GameViewport */
 	void CleanupGameViewport();
