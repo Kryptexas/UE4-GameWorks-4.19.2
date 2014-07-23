@@ -213,7 +213,7 @@ void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePo
 	FIntPoint ClosestValidPoint;
 
 	FBitmap Bitmap(SourceTexture, 0, 0);
-	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ClosestValidPoint))
+	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ ClosestValidPoint))
 	{
 		FIntPoint Origin;
 		FIntPoint Dimension;
@@ -254,6 +254,8 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 {
 	// Default to using physics
 	SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	
+	AlternateMaterialSplitIndex = INDEX_NONE;
 
 #if WITH_EDITORONLY_DATA
 	PivotMode = ESpritePivotMode::Center_Center;
@@ -264,8 +266,11 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 	PixelsPerUnrealUnit = 2.56f;
 #endif
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
-	DefaultMaterial = DefaultMaterialRef.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial"));
+	DefaultMaterial = MaskedMaterialRef.Object;
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial.OpaqueUnlitSpriteMaterial"));
+	AlternateMaterial = OpaqueMaterialRef.Object;
 }
 
 #if WITH_EDITORONLY_DATA
@@ -275,6 +280,14 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	{
 		PixelsPerUnrealUnit = 1.0f;
 	}
+
+	if (CollisionGeometry.GeometryType == ESpritePolygonMode::Diced)
+	{
+		// Disallow dicing on collision geometry for now
+		CollisionGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox;
+	}
+	RenderGeometry.PixelsPerSubdivisionX = FMath::Max(RenderGeometry.PixelsPerSubdivisionX, 4);
+	RenderGeometry.PixelsPerSubdivisionY = FMath::Max(RenderGeometry.PixelsPerSubdivisionY, 4);
 
 	SourceDimension.X = FMath::Max(SourceDimension.X, 0.0f);
 	SourceDimension.Y = FMath::Max(SourceDimension.Y, 0.0f);
@@ -379,6 +392,7 @@ void UPaperSprite::RebuildCollisionData()
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		switch (CollisionGeometry.GeometryType)
 		{
+		case ESpritePolygonMode::Diced:
 		case ESpritePolygonMode::SourceBoundingBox:
 			BuildBoundingBoxCollisionData(/*bUseTightBounds=*/ false);
 			break;
@@ -549,8 +563,11 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 
 void UPaperSprite::RebuildRenderData()
 {
+	FSpritePolygonCollection AlternateGeometry;
+
 	switch (RenderGeometry.GeometryType)
 	{
+	case ESpritePolygonMode::Diced:
 	case ESpritePolygonMode::SourceBoundingBox:
 		CreatePolygonFromBoundingBox(RenderGeometry, /*bUseTightBounds=*/ false);
 		break;
@@ -569,10 +586,6 @@ void UPaperSprite::RebuildRenderData()
 	default:
 		check(false); // unknown mode
 	};
-
-	// Triangulate the render geometry
-	TArray<FVector2D> TriangluatedPoints;
-	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
 
 	// Determine the texture size
 	UTexture2D* EffectiveTexture = GetBakedTexture();
@@ -596,6 +609,79 @@ void UPaperSprite::RebuildRenderData()
 
 	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
+	if ((RenderGeometry.GeometryType == ESpritePolygonMode::Diced) && (EffectiveTexture != nullptr))
+	{
+		const int32 AlphaThresholdInt = FMath::Clamp<int32>(RenderGeometry.AlphaThreshold * 255, 0, 255);
+		FAlphaBitmap SourceBitmap(EffectiveTexture);
+		SourceBitmap.ThresholdImageBothWays(AlphaThresholdInt, 255);
+
+		bool bSeparateOpaqueSections = true;
+
+		// Dice up the source geometry and sort into translucent and opaque sections
+		RenderGeometry.Polygons.Empty();
+
+		const int32 X0 = (int32)SourceUV.X;
+		const int32 Y0 = (int32)SourceUV.Y;
+		const int32 X1 = (int32)(SourceUV.X + SourceDimension.X);
+		const int32 Y1 = (int32)(SourceUV.Y + SourceDimension.Y);
+
+		for (int32 Y = Y0; Y < Y1; Y += RenderGeometry.PixelsPerSubdivisionY)
+		{
+			const int32 TileHeight = FMath::Min(RenderGeometry.PixelsPerSubdivisionY, Y1 - Y);
+
+			for (int32 X = X0; X < X1; X += RenderGeometry.PixelsPerSubdivisionX)
+			{
+				const int32 TileWidth = FMath::Min(RenderGeometry.PixelsPerSubdivisionX, X1 - X);
+
+				if (!SourceBitmap.IsRegionEmpty(X, Y, X + TileWidth - 1, Y + TileHeight - 1))
+				{
+					FIntPoint Origin(X, Y);
+					FIntPoint Dimension(TileWidth, TileHeight);
+					
+					SourceBitmap.TightenBounds(Origin, Dimension);
+
+					bool bOpaqueSection = false;
+					if (bSeparateOpaqueSections)
+					{
+						if (SourceBitmap.IsRegionEqual(Origin.X, Origin.Y, Origin.X + Dimension.X - 1, Origin.Y + Dimension.Y - 1, 255))
+						{
+							bOpaqueSection = true;
+						}
+					}
+
+					if (bOpaqueSection)
+					{
+						AlternateGeometry.AddRectanglePolygon(Origin, Dimension);
+					}
+					else
+					{
+						RenderGeometry.AddRectanglePolygon(Origin, Dimension);
+					}
+				}
+			}
+		}
+	}
+
+	// Triangulate the render geometry
+	TArray<FVector2D> TriangluatedPoints;
+	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
+
+	// Triangulate the alternate render geometry, if present
+	if (AlternateGeometry.Polygons.Num() > 0)
+	{
+		TArray<FVector2D> AlternateTriangluatedPoints;
+		Triangulate(AlternateGeometry, /*out*/ AlternateTriangluatedPoints);
+
+		AlternateMaterialSplitIndex = TriangluatedPoints.Num();
+		TriangluatedPoints.Append(AlternateTriangluatedPoints);
+		RenderGeometry.Polygons.Append(AlternateGeometry.Polygons);
+	}
+	else
+	{
+		AlternateMaterialSplitIndex = INDEX_NONE;
+	}
+
+	// Bake the verts
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
 	{
@@ -862,18 +948,14 @@ void UPaperSprite::CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOw
 
 	// Put the bounding box into the geometry array
 	GeomOwner.Polygons.Empty();
-	FSpritePolygon& Poly = *new (GeomOwner.Polygons) FSpritePolygon();
-	new (Poly.Vertices) FVector2D(BoxPosition.X, BoxPosition.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X + BoxSize.X, BoxPosition.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X + BoxSize.X, BoxPosition.Y + BoxSize.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X, BoxPosition.Y + BoxSize.Y);
-	Poly.BoxSize = BoxSize;
-	Poly.BoxPosition = BoxPosition;
+	GeomOwner.AddRectanglePolygon(BoxPosition, BoxSize);
 }
 
 void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target)
 {
 	Target.Empty();
+
+	TArray<FClipSMTriangle> AllGeneratedTriangles;
 
 	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
 	{
@@ -882,7 +964,7 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 		{
 			// Convert our format into one the triangulation library supports
 			FClipSMPolygon ClipPolygon(0);
-			for (int32 VertexIndex = 0; VertexIndex < SourcePoly.Vertices.Num() ; ++VertexIndex)
+			for (int32 VertexIndex = 0; VertexIndex < SourcePoly.Vertices.Num(); ++VertexIndex)
 			{
 				FClipSMVertex* ClipVertex = new (ClipPolygon.Vertices) FClipSMVertex;
 				FMemory::Memzero(ClipVertex, sizeof(FClipSMVertex));
@@ -897,17 +979,22 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 			TArray<FClipSMTriangle> GeneratedTriangles;
 			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon, Source.bAvoidVertexMerging))
 			{
-				// Convert the triangles back to our 2D data structure
-				for (int32 TriangleIndex = 0; TriangleIndex < GeneratedTriangles.Num(); ++TriangleIndex)
-				{
-					const FClipSMTriangle& Triangle = GeneratedTriangles[TriangleIndex];
-
-					new (Target) FVector2D(Triangle.Vertices[0].Pos.X, Triangle.Vertices[0].Pos.Z);
-					new (Target) FVector2D(Triangle.Vertices[1].Pos.X, Triangle.Vertices[1].Pos.Z);
-					new (Target) FVector2D(Triangle.Vertices[2].Pos.X, Triangle.Vertices[2].Pos.Z);
-				}
+				AllGeneratedTriangles.Append(GeneratedTriangles);
 			}
 		}
+	}
+
+	if (!Source.bAvoidVertexMerging && (Source.Polygons.Num() > 1) && (AllGeneratedTriangles.Num() > 1))
+	{
+		RemoveRedundantTriangles(AllGeneratedTriangles);
+	}
+
+	// Convert the triangles back to our 2D data structure
+	for (const FClipSMTriangle& Triangle : AllGeneratedTriangles)
+	{
+		new (Target) FVector2D(Triangle.Vertices[0].Pos.X, Triangle.Vertices[0].Pos.Z);
+		new (Target) FVector2D(Triangle.Vertices[1].Pos.X, Triangle.Vertices[1].Pos.Z);
+		new (Target) FVector2D(Triangle.Vertices[2].Pos.X, Triangle.Vertices[2].Pos.Z);
 	}
 }
 
@@ -1165,4 +1252,25 @@ void UPaperSprite::PostLoad()
 UTexture2D* UPaperSprite::GetBakedTexture() const
 {
 	return (BakedSourceTexture != nullptr) ? BakedSourceTexture : SourceTexture;
+}
+
+UMaterialInterface* UPaperSprite::GetMaterial(int32 MaterialIndex) const
+{
+	if (MaterialIndex == 0)
+	{
+		return GetDefaultMaterial();
+	}
+	else if (MaterialIndex == 1)
+	{
+		return GetAlternateMaterial();
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+int32 UPaperSprite::GetNumMaterials() const
+{
+	return (AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
 }

@@ -319,7 +319,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos)
 {
 	// Draw the type of geometry we're displaying stats for
-	const FText GeometryName = bIsRenderGeometry ? LOCTEXT("RenderGeometry", "Render Geometry") : LOCTEXT("CollisionGeometry", "Collision Geometry");
+	const FText GeometryName = bIsRenderGeometry ? LOCTEXT("RenderGeometry", "Render Geometry (source)") : LOCTEXT("CollisionGeometry", "Collision Geometry (source)");
 
 	FCanvasTextItem TextItem(FVector2D(6, YPos), GeometryName, GEngine->GetSmallFont(), FLinearColor::White);
 	TextItem.EnableShadow(FLinearColor::Black);
@@ -343,8 +343,92 @@ void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FScen
 	TextItem.Text = FText::Format(LOCTEXT("VerticesCount", "Verts: {0}"), FText::AsNumber(NumVerts));
 	TextItem.Draw(&Canvas);
 	TextItem.Position.Y += 18.0f;
-	
-	
+
+	YPos = (int32)TextItem.Position.Y;
+}
+
+void AttributeTrianglesByMaterialType(int32 NumTriangles, UMaterialInterface* Material, int32& NumOpaqueTriangles, int32& NumMaskedTriangles, int32& NumTranslucentTriangles)
+{
+	if (Material != nullptr)
+	{
+		switch (Material->GetBlendMode())
+		{
+		case EBlendMode::BLEND_Opaque:
+			NumOpaqueTriangles += NumTriangles;
+			break;
+		case EBlendMode::BLEND_Translucent:
+		case EBlendMode::BLEND_Additive:
+		case EBlendMode::BLEND_Modulate:
+			NumTranslucentTriangles += NumTriangles;
+			break;
+		case EBlendMode::BLEND_Masked:
+			NumMaskedTriangles += NumTriangles;
+			break;
+		}
+	}
+}
+
+void FSpriteEditorViewportClient::DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos)
+{
+	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("RenderGeomBaked", "Render Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	TextItem.Draw(&Canvas);
+	TextItem.Position += FVector2D(6.0f, 18.0f);
+
+	int32 NumSections = (Sprite->AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
+	if (NumSections > 1)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("SectionCount", "Sections: {0}"), FText::AsNumber(NumSections));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	int32 NumOpaqueTriangles = 0;
+	int32 NumMaskedTriangles = 0;
+	int32 NumTranslucentTriangles = 0;
+
+	int32 NumVerts = Sprite->BakedRenderData.Num();
+	int32 DefaultTriangles = 0;
+	int32 AlternateTriangles = 0;
+	if (Sprite->AlternateMaterialSplitIndex != INDEX_NONE)
+	{
+		DefaultTriangles = Sprite->AlternateMaterialSplitIndex / 3;
+		AlternateTriangles = (NumVerts - Sprite->AlternateMaterialSplitIndex) / 3;
+	}
+	else
+	{
+		DefaultTriangles = NumVerts / 3;
+	}
+
+	AttributeTrianglesByMaterialType(DefaultTriangles, Sprite->GetDefaultMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
+	AttributeTrianglesByMaterialType(AlternateTriangles, Sprite->GetAlternateMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
+
+	// Draw the number of polygons
+	if (NumOpaqueTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("OpaqueTriangleCount", "Triangles: {0} (opaque)"), FText::AsNumber(NumOpaqueTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumMaskedTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("MaskedTriangleCount", "Triangles: {0} (masked)"), FText::AsNumber(NumMaskedTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumTranslucentTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("TranslucentTriangleCount", "Triangles: {0} (translucent)"), FText::AsNumber(NumTranslucentTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	TextItem.Text = FText::Format(LOCTEXT("BakedVertexCount", "Verts: {0}"), FText::AsNumber(Sprite->BakedRenderData.Num()));
+	TextItem.Draw(&Canvas);
+	TextItem.Position.Y += 18.0f;
 
 	YPos = (int32)TextItem.Position.Y;
 }
@@ -485,6 +569,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		// As well as all of the geometry
 		DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
 		DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+		DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
 		// And bounds
 		DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
@@ -520,6 +605,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			const FLinearColor RenderGeomColor(1.0f, 0.2f, 0.0f, 1.0f);
 			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, true);
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+			DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
 			// And bounds
 			DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);

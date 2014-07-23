@@ -13,6 +13,8 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 {
 	WireframeColor = InComponent->GetWireframeColor();
 	Material = InComponent->GetMaterial(0);
+	AlternateMaterial = InComponent->GetMaterial(1);
+	MaterialSplitIndex = INDEX_NONE;
 	MaterialRelevance = InComponent->GetMaterialRelevance();
 
 	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
@@ -72,4 +74,44 @@ void FPaperSpriteSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 	}
 
 	FPaperRenderSceneProxy::DrawDynamicElements(PDI, View);
+}
+
+void FPaperSpriteSceneProxy::SetSprite_RenderThread(const FSpriteDrawCallRecord& NewDynamicData, int32 SplitIndex)
+{
+	BatchedSprites.Empty();
+	AlternateBatchedSprites.Empty();
+
+	if (SplitIndex != INDEX_NONE)
+	{
+		FSpriteDrawCallRecord& Record = *new (BatchedSprites) FSpriteDrawCallRecord;
+		FSpriteDrawCallRecord& AltRecord = *new (AlternateBatchedSprites) FSpriteDrawCallRecord;
+		
+		Record.Color = NewDynamicData.Color;
+		Record.Destination = NewDynamicData.Destination;
+		Record.Texture = NewDynamicData.Texture;
+		Record.RenderVerts.Append(NewDynamicData.RenderVerts.GetTypedData(), SplitIndex);
+
+		AltRecord.Color = NewDynamicData.Color;
+		AltRecord.Destination = NewDynamicData.Destination;
+		AltRecord.Texture = NewDynamicData.Texture;
+		AltRecord.RenderVerts.Append(NewDynamicData.RenderVerts.GetTypedData() + SplitIndex, NewDynamicData.RenderVerts.Num() - SplitIndex);
+	}
+	else
+	{
+		FSpriteDrawCallRecord& Record = *new (BatchedSprites) FSpriteDrawCallRecord;
+		Record = NewDynamicData;
+	}
+}
+
+void FPaperSpriteSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
+{
+	if (Material != nullptr)
+	{
+		DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Material, BatchedSprites);
+	}
+
+	if ((AlternateMaterial != nullptr) && (AlternateBatchedSprites.Num() > 0))
+	{
+		DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, AlternateMaterial, AlternateBatchedSprites);
+	}
 }

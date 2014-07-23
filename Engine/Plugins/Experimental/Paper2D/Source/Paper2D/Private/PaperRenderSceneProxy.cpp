@@ -237,8 +237,8 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 	if (Material != nullptr)
 	{
 		DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Material, BatchedSprites);
-		DrawNewBatches(PDI, View, bUseOverrideColor, OverrideColor);
 	}
+	DrawNewBatches(PDI, View, bUseOverrideColor, OverrideColor);
 }
 
 void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)

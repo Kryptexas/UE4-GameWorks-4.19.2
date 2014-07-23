@@ -67,9 +67,13 @@ protected:
 	UPROPERTY()
 	UTexture2D* BakedSourceTexture;
 
-	// The material to use on a sprite instance if not overridden
+	// The material to use on a sprite instance if not overridden (this is the default material when only one is being used, and is the translucent/masked material for Diced render geometry, slot 0)
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* DefaultMaterial;
+
+	// The alternate material to use on a sprite instance if not overridden (this is only used for Diced render geometry, and will be the opaque material in that case, slot 1)
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	UMaterialInterface* AlternateMaterial;
 
 	// List of sockets on this sprite
 	UPROPERTY(Category=Sprite, EditAnywhere)
@@ -117,6 +121,10 @@ protected:
 #endif
 
 public:
+	// The point at which the alternate material takes over in the baked render data (or INDEX_NONE)
+	UPROPERTY()
+	int32 AlternateMaterialSplitIndex;
+
 	// Baked render data (triangle vertices, stored as XY UV tuples)
 	//   XY is the XZ position in world space, relative to the pivot
 	//   UV is normalized (0..1)
@@ -187,6 +195,15 @@ public:
 
 	// Return the default material for this sprite
 	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
+
+	// Return the alternate material for this sprite
+	UMaterialInterface* GetAlternateMaterial() const { return AlternateMaterial; }
+
+	// Returns either the default material (index 0) or alternate material (index 1)
+	UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
+
+	// Returns the number of materials (1 or 2, depending on if there is alternate geometry)
+	int32 GetNumMaterials() const;
 
 	// Returns the render bounds of this sprite
 	FBoxSphereBounds GetRenderBounds() const;

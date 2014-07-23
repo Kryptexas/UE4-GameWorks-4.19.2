@@ -60,10 +60,13 @@ void UPaperSpriteComponent::PostLoad()
 FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 {
 	FPaperSpriteSceneProxy* NewProxy = new FPaperSpriteSceneProxy(this);
-	FSpriteDrawCallRecord DrawCall;
-	DrawCall.BuildFromSprite(SourceSprite);
-	DrawCall.Color = SpriteColor;
-	NewProxy->SetDrawCall_RenderThread(DrawCall);
+	if (SourceSprite != nullptr)
+	{
+		FSpriteDrawCallRecord DrawCall;
+		DrawCall.BuildFromSprite(SourceSprite);
+		DrawCall.Color = SpriteColor;
+		NewProxy->SetSprite_RenderThread(DrawCall, SourceSprite->AlternateMaterialSplitIndex);
+	}
 	return NewProxy;
 }
 
@@ -103,13 +106,15 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
 		DrawCall.Color = SpriteColor;
+		int32 SplitIndex = (SourceSprite != nullptr) ? SourceSprite->AlternateMaterialSplitIndex : INDEX_NONE;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 				FSendPaperSpriteComponentDynamicData,
-				FPaperRenderSceneProxy*,InSceneProxy,(FPaperRenderSceneProxy*)SceneProxy,
+				FPaperSpriteSceneProxy*,InSceneProxy,(FPaperSpriteSceneProxy*)SceneProxy,
 				FSpriteDrawCallRecord,InSpriteToSend,DrawCall,
+				int32,InSplitIndex,SplitIndex,
 			{
-				InSceneProxy->SetDrawCall_RenderThread(InSpriteToSend);
+				InSceneProxy->SetSprite_RenderThread(InSpriteToSend, InSplitIndex);
 			});
 	}
 }
@@ -224,8 +229,7 @@ UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) cons
 	}
 	else if (SourceSprite != nullptr)
 	{
-		//@TODO: PAPER2D: Need to support this for multi-material support
-		return SourceSprite->GetDefaultMaterial();
+		return SourceSprite->GetMaterial(MaterialIndex);
 	}
 
 	return nullptr;
@@ -244,7 +248,14 @@ void UPaperSpriteComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 
 int32 UPaperSpriteComponent::GetNumMaterials() const
 {
-	return FMath::Max<int32>(Materials.Num(), 1);
+	if (SourceSprite != nullptr)
+	{
+		return FMath::Max<int32>(Materials.Num(), SourceSprite->GetNumMaterials());
+	}
+	else
+	{
+		return FMath::Max<int32>(Materials.Num(), 1);
+	}
 }
 
 UPaperSprite* UPaperSpriteComponent::GetSprite()
