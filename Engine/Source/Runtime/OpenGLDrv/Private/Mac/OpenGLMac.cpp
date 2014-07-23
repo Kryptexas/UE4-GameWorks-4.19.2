@@ -302,6 +302,15 @@ static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
 		ECVF_RenderThreadSafe
 		);
 
+// @todo: remove once Apple fixes radr://15553950, TTP# 315197
+static int32 GMacMustFlushTexStorage = 0;
+static FAutoConsoleVariableRef CVarMacMustFlushTexStorage(
+	TEXT("r.Mac.MustFlushTexStorage"),
+	GMacMustFlushTexStorage,
+	TEXT("If true, flush the OpenGL command stream after calls to glTexStorage* to avoid driver errors, do nothing if false (faster, the default)."),
+	ECVF_RenderThreadSafe
+	);
+
 bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
 static bool GIsEmulatingTimestamp = false; // @todo: Now crashing on Nvidia cards, but not on AMD...
 
@@ -543,6 +552,10 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	if (VendorName.Contains(TEXT("Intel ")))
 	{
 		GIsRunningOnIntelCard = true;
+	}
+	else if (VendorName.Contains(TEXT("NVIDIA ")))
+	{
+		GMacMustFlushTexStorage = true;
 	}
 	
 	// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
@@ -1788,4 +1801,9 @@ void FMacOpenGL::MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint 
 	{
 		FOpenGL3::GetQueryObject(QueryId, QueryMode, OutResult);
 	}
+}
+
+bool FMacOpenGL::MustFlushTexStorage(void)
+{
+	return GMacMustFlushTexStorage;
 }

@@ -47,6 +47,9 @@ struct FMacOpenGL : public FOpenGL3
 	static void MacEndQuery(GLenum QueryType);
 	static void MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64 *OutResult);
 	
+	/** Must we employ a workaround for radr://15553950, TTP# 315197 */
+	static bool MustFlushTexStorage(void);
+	
 	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult)
 	{
 		MacGetQueryObject(QueryId, QueryMode, OutResult);
@@ -102,7 +105,10 @@ struct FMacOpenGL : public FOpenGL3
 		if( glTexStorage3D )
 		{
 			glTexStorage3D( Target, Levels, InternalFormat, Width, Height, Depth);
-			glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
+			if(MustFlushTexStorage())
+			{
+				glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
+			}
 		}
 		else
 		{
@@ -131,7 +137,10 @@ struct FMacOpenGL : public FOpenGL3
 		if( glTexStorage2D )
 		{
 			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
-			glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
+			if(MustFlushTexStorage())
+			{
+				glFlushRenderAPPLE(); // Workaround for radr://15553950, TTP# 315197
+			}
 			return true;
 		}
 		else
