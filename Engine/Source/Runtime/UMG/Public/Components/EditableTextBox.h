@@ -35,15 +35,15 @@ public:
 
 	/** Text color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ForegroundColor;
+	FLinearColor ForegroundColor;
 
 	/** The color of the background/border around the editable text (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor BackgroundColor;
+	FLinearColor BackgroundColor;
 
 	/** Text color and opacity when read-only (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ReadOnlyForegroundColor;
+	FLinearColor ReadOnlyForegroundColor;
 
 	/** Sets whether this text box can actually be modified interactively by the user */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)

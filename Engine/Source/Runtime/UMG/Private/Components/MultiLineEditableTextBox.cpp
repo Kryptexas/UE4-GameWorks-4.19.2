@@ -16,18 +16,6 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FPostConstructInitial
 
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
-
-	// Grab other defaults from slate arguments.
-	SMultiLineEditableTextBox::FArguments Defaults;
-	IsReadOnly = Defaults._IsReadOnly.Get();
-	IsPassword = Defaults._IsReadOnly.Get();
-//	MinimumDesiredWidth = Defaults._MinDesiredWidth.Get();
-	Padding = Defaults._Padding.Get();
-	IsCaretMovedWhenGainFocus = Defaults._IsCaretMovedWhenGainFocus.Get();
-	SelectAllTextWhenFocused = Defaults._SelectAllTextWhenFocused.Get();
-	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
-	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
-	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
 TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
@@ -36,6 +24,7 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
+		.Justification(Justification)
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
 		.ReadOnlyForegroundColor(ReadOnlyForegroundColor)

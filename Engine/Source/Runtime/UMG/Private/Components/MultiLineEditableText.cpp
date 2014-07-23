@@ -10,21 +10,8 @@
 UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	ColorAndOpacity = FLinearColor::Black;
-
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
-
-	// Grab other defaults from slate arguments.
-	SMultiLineEditableTextBox::FArguments Defaults;
-	IsReadOnly = Defaults._IsReadOnly.Get();
-	IsPassword = Defaults._IsReadOnly.Get();
-//	MinimumDesiredWidth = Defaults._MinDesiredWidth.Get();
-	IsCaretMovedWhenGainFocus = Defaults._IsCaretMovedWhenGainFocus.Get();
-	SelectAllTextWhenFocused = Defaults._SelectAllTextWhenFocused.Get();
-	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
-	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
-	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
 TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
@@ -42,6 +29,7 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	//.Style(StylePtr)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Justification(Justification)
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 //	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
