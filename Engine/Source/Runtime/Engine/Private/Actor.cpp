@@ -310,7 +310,7 @@ void AActor::PostInitProperties()
 void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	AActor* This = CastChecked<AActor>(InThis);
-	Collector.AddReferencedObject(This->OwnedComponents);
+	Collector.AddReferencedObjects(This->OwnedComponents);
 	Super::AddReferencedObjects(InThis, Collector);
 }
 
