@@ -56,10 +56,7 @@ FActorFolders::~FActorFolders()
 void FActorFolders::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	// Add references for all our UObjects so they don't get collected
-	for (auto Pair : TemporaryWorldFolders)
-	{
-		Collector.AddReferencedObject(Pair.Value);
-	}
+	Collector.AddReferencedObjects(TemporaryWorldFolders);
 }
 
 FActorFolders& FActorFolders::Get()

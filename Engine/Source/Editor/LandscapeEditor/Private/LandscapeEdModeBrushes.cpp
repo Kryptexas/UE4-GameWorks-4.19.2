@@ -71,10 +71,7 @@ public:
 		// Allow any currently unused material instances to be GC'd
 		BrushMaterialFreeInstances.Empty();
 
-		for (auto It = BrushMaterialInstanceMap.CreateIterator(); It; ++It)
-		{
-			Collector.AddReferencedObject(It.Value());
-		}
+		Collector.AddReferencedObjects(BrushMaterialInstanceMap);
 	}
 
 	virtual void LeaveBrush() override

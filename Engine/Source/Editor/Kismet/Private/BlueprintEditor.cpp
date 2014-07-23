@@ -2498,10 +2498,8 @@ void FBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 		UObject* EditingObject = GetEditingObjects()[i];
 		Collector.AddReferencedObject(EditingObject);
 	}
-	for (int32 Index = 0; Index < StandardLibraries.Num(); Index++)
-	{
-		Collector.AddReferencedObject(StandardLibraries[Index]);
-	}
+
+	Collector.AddReferencedObjects(StandardLibraries);
 
 	UserDefinedEnumerators.Remove(TWeakObjectPtr<UUserDefinedEnum>()); // Remove NULLs
 	for (auto ObjectPtr : UserDefinedEnumerators)

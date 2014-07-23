@@ -916,10 +916,7 @@ void ALandscapeProxy::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 
 	Super::AddReferencedObjects(InThis, Collector);
 
-	for (auto It = This->MaterialInstanceConstantMap.CreateIterator(); It; ++It)
-	{
-		Collector.AddReferencedObject(It.Value(), This);
-	}
+	Collector.AddReferencedObjects(This->MaterialInstanceConstantMap, This);
 
 	for (auto It = This->WeightmapUsageMap.CreateIterator(); It; ++It)
 	{

@@ -193,11 +193,8 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
 
 #if WITH_EDITORONLY_DATA
-		for( auto It = This->LandscapeInfoMap.CreateIterator(); It; ++It )
-		{
-			Collector.AddReferencedObject( It.Value(), This );
-		}
-		//@todo.CONSOLE: How to handle w/out having a cooker/pakcager?
+		Collector.AddReferencedObjects(This->LandscapeInfoMap, This);
+		//@todo.CONSOLE: How to handle w/out having a cooker/packager?
 #endif	//#if WITH_EDITORONLY_DATA
 
 		for( int32 Index = 0; Index < This->ExtraReferencedObjects.Num(); Index++ )

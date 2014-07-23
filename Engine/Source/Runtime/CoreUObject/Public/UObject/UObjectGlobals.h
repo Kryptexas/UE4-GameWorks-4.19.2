@@ -1373,11 +1373,81 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObject(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	void AddReferencedObjects(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
 	{
 		for (auto& Object : ObjectArray)
 		{
 			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+		}
+	}
+
+	/**
+	* Adds references to a set of objects.
+	*
+	* @param ObjectSet Referenced objects set.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template<class UObjectType>
+	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		for (auto& Object : ObjectSet)
+		{
+			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+		}
+	}
+
+private:
+
+	/** Compile time check if a type can be automatically converted to another one */
+	template<class From, class To>
+	class CanConverFromTo
+	{
+		static uint8 Test(...);
+		static uint16 Test(To);
+	public:
+		enum Type
+		{
+			Result = sizeof(Test(From())) - 1
+		};
+	};
+
+	/**
+	* Functions used by AddReferencedObject (TMap version). Adds references to UObjects, ignores value types
+	*/
+	template<class UObjectType>
+	void AddReferencedObjectOrIgnoreValue(UObjectType& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty)
+	{
+	}
+	template<class UObjectType>
+	void AddReferencedObjectOrIgnoreValue(UObjectType*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty)
+	{
+		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+	}
+
+public:
+
+	/**
+	* Adds references to a map of objects.
+	*
+	* @param ObjectArray Referenced objects map.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template <typename TKeyType, typename TValueType>
+	void AddReferencedObjects(TMap<TKeyType, TValueType>& Map, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		static_assert(CanConverFromTo<TKeyType, UObjectBase*>::Result || CanConverFromTo<TValueType, UObjectBase*>::Result, "At least one of TMap template types must be derived from UObject");
+		for (auto& It : Map)
+		{
+			if (CanConverFromTo<TKeyType, UObjectBase*>::Result)
+			{
+				AddReferencedObjectOrIgnoreValue(It.Key, ReferencingObject, ReferencingProperty);
+			}
+			if (CanConverFromTo<TValueType, UObjectBase*>::Result)
+			{
+				AddReferencedObjectOrIgnoreValue(It.Value, ReferencingObject, ReferencingProperty);
+			}
 		}
 	}
 

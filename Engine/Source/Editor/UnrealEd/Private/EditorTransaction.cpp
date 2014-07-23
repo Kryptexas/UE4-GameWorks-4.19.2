@@ -176,10 +176,7 @@ void FTransaction::AddReferencedObjects( FReferenceCollector& Collector )
 	{
 		Records[ Index ].AddReferencedObjects( Collector );
 	}
-	for( ObjectMapType::TIterator It( ObjectMap ); It; ++It )
-	{
-		Collector.AddReferencedObject( It.Key() );
-	}
+	Collector.AddReferencedObjects(ObjectMap);
 }
 
 // FTransactionBase interface.
