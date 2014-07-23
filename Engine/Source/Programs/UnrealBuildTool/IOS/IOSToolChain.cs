@@ -613,6 +613,7 @@ namespace UnrealBuildTool
 				CompileAction.bIsGCCCompiler = true;
 				// We're already distributing the command by execution on Mac.
 				CompileAction.bCanExecuteRemotely = false;
+				CompileAction.bShouldOutputStatusDescription = true;
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 			}
 			return Result;
