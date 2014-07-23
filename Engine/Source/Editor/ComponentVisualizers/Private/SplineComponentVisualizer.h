@@ -21,12 +21,24 @@ struct HSplineKeyProxy : public HSplineVisProxy
 	DECLARE_HIT_PROXY();
 
 	HSplineKeyProxy(const UActorComponent* InComponent, int32 InKeyIndex) 
-	: HSplineVisProxy(InComponent)
-	, KeyIndex(InKeyIndex)
+		: HSplineVisProxy(InComponent)
+		, KeyIndex(InKeyIndex)
 	{}
 
-
 	int32 KeyIndex;
+};
+
+/** Proxy for a spline segment */
+struct HSplineSegmentProxy : public HSplineVisProxy
+{
+	DECLARE_HIT_PROXY();
+
+	HSplineSegmentProxy(const UActorComponent* InComponent, int32 InSegmentIndex)
+		: HSplineVisProxy(InComponent)
+		, SegmentIndex(InSegmentIndex)
+	{}
+
+	int32 SegmentIndex;
 };
 
 /** SplineComponent visualizer/edit functionality */
@@ -39,9 +51,10 @@ public:
 	// Begin FComponentVisualizer interface
 	virtual void OnRegister() override;
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	virtual bool VisProxyHandleClick(HComponentVisProxy* VisProxy) override;
+	virtual bool VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click) override;
 	virtual void EndEditing() override;
-	virtual bool GetWidgetLocation(FVector& OutLocation) const override;
+	virtual bool GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const override;
+	virtual bool GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
 	virtual bool HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 	virtual bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 	virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
@@ -56,7 +69,10 @@ private:
 
 	void OnDeleteKey();
 	void OnDuplicateKey();
-	bool IsSelectionValid() const;
+	bool IsKeySelectionValid() const;
+
+	void OnAddKey();
+	bool CanAddKey() const;
 
 	void OnResetToAutomaticTangent(EInterpCurveMode Mode);
 	bool CanResetToAutomaticTangent(EInterpCurveMode Mode) const;
@@ -75,10 +91,18 @@ private:
 
 	/** Actor that owns the currently edited spline */
 	TWeakObjectPtr<AActor> SplineOwningActor;
+
 	/** Name of property on the actor that references the spline we are editing */
 	FName SplineCompPropName;
+
 	/** Index of key we have selected */
 	int32 SelectedKeyIndex;
+
+	/** Index of segment we have selected */
+	int32 SelectedSegmentIndex;
+
+	/** Position on spline we have selected */
+	FVector SelectedSplinePosition;
 
 	/** Whether we currently allow duplication when dragging */
 	bool bAllowDuplication;

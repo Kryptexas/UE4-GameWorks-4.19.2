@@ -3069,7 +3069,7 @@ FWidget::EWidgetMode FLevelEditorViewportClient::GetWidgetMode() const
 FVector FLevelEditorViewportClient::GetWidgetLocation() const
 {
 	FVector ComponentVisWidgetLocation;
-	if (GUnrealEd->ComponentVisManager.GetWidgetLocation(ComponentVisWidgetLocation))
+	if (GUnrealEd->ComponentVisManager.GetWidgetLocation(this, ComponentVisWidgetLocation))
 	{
 		return ComponentVisWidgetLocation;
 	}
@@ -3079,6 +3079,12 @@ FVector FLevelEditorViewportClient::GetWidgetLocation() const
 
 FMatrix FLevelEditorViewportClient::GetWidgetCoordSystem() const 
 {
+	FMatrix ComponentVisWidgetCoordSystem;
+	if (GUnrealEd->ComponentVisManager.GetCustomInputCoordinateSystem(this, ComponentVisWidgetCoordSystem))
+	{
+		return ComponentVisWidgetCoordSystem;
+	}
+
 	return GLevelEditorModeTools().GetCustomInputCoordinateSystem();
 }
 

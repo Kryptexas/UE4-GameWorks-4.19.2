@@ -4,20 +4,20 @@
 #include "ComponentVisualizerManager.h"
 #include "ILevelEditor.h"
 
-/** Handle a click on the specified level editor viewport client */
-bool FComponentVisualizerManager::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
+/** Handle a click on the specified editor viewport client */
+bool FComponentVisualizerManager::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
 {
-	bool bHandled = HandleProxyForComponentVis(HitProxy);
+	bool bHandled = HandleProxyForComponentVis(InViewportClient, HitProxy, Click);
 	if (bHandled && Click.GetKey() == EKeys::RightMouseButton)
 	{
 		TSharedPtr<SWidget> MenuWidget = GenerateContextMenuForComponentVis();
 		if (MenuWidget.IsValid())
 		{
-			auto ParentLevelEditorPinned = InViewportClient->ParentLevelEditor.Pin();
-			if (ParentLevelEditorPinned.IsValid())
+			auto ParentLevelEditor = InViewportClient->ParentLevelEditor.Pin();
+			if (ParentLevelEditor.IsValid())
 			{
 				FSlateApplication::Get().PushMenu(
-					ParentLevelEditorPinned.ToSharedRef(),
+					ParentLevelEditor.ToSharedRef(),
 					MenuWidget.ToSharedRef(),
 					FSlateApplication::Get().GetCursorPos(),
 					FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
@@ -30,7 +30,7 @@ bool FComponentVisualizerManager::HandleClick(FLevelEditorViewportClient* InView
 	return false;
 }
 
-bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy)
+bool FComponentVisualizerManager::HandleProxyForComponentVis(FLevelEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
 {
 	if (HitProxy->IsA(HComponentVisProxy::StaticGetType()))
 	{
@@ -41,16 +41,17 @@ bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy
 			TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(ClickedComponent->GetClass());
 			if (Visualizer.IsValid())
 			{
-				bool bIsActive = Visualizer->VisProxyHandleClick(VisProxy);
+				bool bIsActive = Visualizer->VisProxyHandleClick(InViewportClient, VisProxy, Click);
 				if (bIsActive)
 				{
 					// call EndEditing on any currently edited visualizer, if we are going to change it
-					if (EditedVisualizer.IsValid() && Visualizer.Get() != EditedVisualizer.Pin().Get())
+					TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+					if (EditedVisualizer.IsValid() && Visualizer.Get() != EditedVisualizer.Get())
 					{
-						EditedVisualizer.Pin()->EndEditing();
+						EditedVisualizer->EndEditing();
 					}
 
-					EditedVisualizer = Visualizer;
+					EditedVisualizerPtr = Visualizer;
 					return true;
 				}
 			}
@@ -66,18 +67,22 @@ bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy
 
 void FComponentVisualizerManager::ClearActiveComponentVis()
 {
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
 	if (EditedVisualizer.IsValid())
 	{
-		EditedVisualizer.Pin()->EndEditing();
-		EditedVisualizer = NULL;
+		EditedVisualizer->EndEditing();
+		EditedVisualizerPtr = NULL;
 	}
 }
 
 bool FComponentVisualizerManager::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const
 {
-	if(EditedVisualizer.IsValid())
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
+	if (EditedVisualizer.IsValid())
 	{
-		if(EditedVisualizer.Pin()->HandleInputKey(ViewportClient, Viewport, Key, Event))
+		if(EditedVisualizer->HandleInputKey(ViewportClient, Viewport, Key, Event))
 		{
 			return true;
 		}
@@ -88,9 +93,11 @@ bool FComponentVisualizerManager::HandleInputKey(FEditorViewportClient* Viewport
 
 bool FComponentVisualizerManager::HandleInputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const
 {
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
 	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 	{
-		if (EditedVisualizer.Pin()->HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
+		if (EditedVisualizer->HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
 		{
 			return true;
 		}
@@ -100,11 +107,26 @@ bool FComponentVisualizerManager::HandleInputDelta(FEditorViewportClient* InView
 }
 
 
-bool FComponentVisualizerManager::GetWidgetLocation(FVector& OutLocation) const
+bool FComponentVisualizerManager::GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const
 {
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
 	if (EditedVisualizer.IsValid())
 	{
-		return EditedVisualizer.Pin()->GetWidgetLocation(OutLocation);
+		return EditedVisualizer->GetWidgetLocation(ViewportClient, OutLocation);
+	}
+
+	return false;
+}
+
+
+bool FComponentVisualizerManager::GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const
+{
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
+	if (EditedVisualizer.IsValid())
+	{
+		return EditedVisualizer->GetCustomInputCoordinateSystem(ViewportClient, OutMatrix);
 	}
 
 	return false;
@@ -113,9 +135,11 @@ bool FComponentVisualizerManager::GetWidgetLocation(FVector& OutLocation) const
 
 TSharedPtr<SWidget> FComponentVisualizerManager::GenerateContextMenuForComponentVis() const
 {
+	TSharedPtr<FComponentVisualizer> EditedVisualizer = EditedVisualizerPtr.Pin();
+
 	if (EditedVisualizer.IsValid())
 	{
-		return EditedVisualizer.Pin()->GenerateContextMenu();
+		return EditedVisualizer->GenerateContextMenu();
 	}
 
 	return TSharedPtr<SWidget>();
