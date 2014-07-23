@@ -13,14 +13,26 @@ FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 
 FText FWidgetTemplateClass::GetCategory()
 {
-	const FString& Category = WidgetClass->GetMetaData("Category");
-
 	if ( Category.IsEmpty() )
 	{
-		return LOCTEXT("Misc", "Misc");
+		const FString& MetadatCategory = WidgetClass->GetMetaData("Category");
+
+		if ( MetadatCategory.IsEmpty() )
+		{
+			if ( WidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+			{
+				return LOCTEXT("UserControls", "User Controls");
+			}
+
+			return LOCTEXT("Misc", "Misc");
+		}
+		else
+		{
+			Category = FText::FromString(MetadatCategory);
+		}
 	}
 
-	return FText::FromString(Category);
+	return Category;
 }
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)

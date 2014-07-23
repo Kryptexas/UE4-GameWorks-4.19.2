@@ -35,16 +35,16 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 	WidgetNodeProperties.Empty();
 
 	// Initialize derived members
-	for ( TFieldIterator<UProperty> It(this); It; ++It )
-	{
-		if ( UStructProperty* StructProp = Cast<UStructProperty>(*It) )
-		{
-			if ( StructProp->Struct->IsChildOf(FWidgetNode_Base::StaticStruct()) )
-			{
-				WidgetNodeProperties.Add(StructProp);
-			}
-		}
-	}
+	//for ( TFieldIterator<UProperty> It(this); It; ++It )
+	//{
+	//	if ( UStructProperty* StructProp = Cast<UStructProperty>(*It) )
+	//	{
+	//		if ( StructProp->Struct->IsChildOf(FWidgetNode_Base::StaticStruct()) )
+	//		{
+	//			WidgetNodeProperties.Add(StructProp);
+	//		}
+	//	}
+	//}
 }
 
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const

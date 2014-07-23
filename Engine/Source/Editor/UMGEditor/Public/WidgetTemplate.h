@@ -13,7 +13,7 @@ public:
 	FWidgetTemplate();
 
 	/** The category this template fits into. */
-	virtual FText GetCategory() = 0;
+	virtual FText GetCategory() const = 0;
 
 	/** Constructs the widget template. */
 	virtual UWidget* Create(class UWidgetTree* Tree) = 0;

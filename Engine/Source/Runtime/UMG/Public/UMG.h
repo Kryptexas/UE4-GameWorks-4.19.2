@@ -92,12 +92,7 @@
 #include "WidgetTree.h"
 #include "UserWidget.h"
 
-#include "WidgetNode_Base.h"
-#include "WidgetNode_Text.h"
-
 #include "WidgetBlueprintGeneratedClass.h"
-
-#include "WidgetActor.h"
 
 // Interfaces
 #include "IUMGModule.h"

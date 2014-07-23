@@ -463,3 +463,12 @@ APlayerController* UUserWidget::GetPlayerController() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UUserWidget::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.UserWidget");
+}
+
+#endif

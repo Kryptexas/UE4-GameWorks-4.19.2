@@ -94,7 +94,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVis
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
-UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable)
+UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls" ))
 class UMG_API UUserWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -250,6 +250,12 @@ public:
 
 	/** Ticks this widget and forwards to the underlying widget to tick */
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
+
+#if WITH_EDITOR
+	// UWidget interface
+	virtual const FSlateBrush* GetEditorIcon() override;
+	// End UWidget interface
+#endif
 
 public:
 	/** Called when the visibility changes. */

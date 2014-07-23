@@ -15,8 +15,6 @@
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateClass.h"
-#include "WidgetTemplateButton.h"
-#include "WidgetTemplateCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -310,10 +308,10 @@ void SPaletteView::BuildClassWidgetList()
 
 void SPaletteView::BuildSpecialWidgetList()
 {
-	AddWidgetTemplate(MakeShareable(new FWidgetTemplateButton()));
-	AddWidgetTemplate(MakeShareable(new FWidgetTemplateCheckBox()));
+	//AddWidgetTemplate(MakeShareable(new FWidgetTemplateButton()));
+	//AddWidgetTemplate(MakeShareable(new FWidgetTemplateCheckBox()));
 
-	//TODO Make this pluggable.
+	//TODO UMG Make this pluggable.
 }
 
 void SPaletteView::AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template)
