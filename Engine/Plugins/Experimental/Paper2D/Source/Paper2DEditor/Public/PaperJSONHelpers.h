@@ -14,6 +14,9 @@ public:
 	// Returns the object named Key or NULL if it is missing or the wrong type
 	static TSharedPtr<class FJsonObject> ReadObject(TSharedPtr<class FJsonObject> Item, const FString& Key);
 
+	// Returns the array named Key or NULL if it is missing or the wrong type
+	static const TArray< TSharedPtr<FJsonValue> >& ReadArray(TSharedPtr<class FJsonObject> Item, const FString& Key);
+
 	// Returns the bool named Key or bDefaultIfMissing if it is missing or the wrong type (note: no way to determine errors!)
 	static bool ReadBoolean(const TSharedPtr<class FJsonObject> Item, const FString& Key, bool bDefaultIfMissing);
 

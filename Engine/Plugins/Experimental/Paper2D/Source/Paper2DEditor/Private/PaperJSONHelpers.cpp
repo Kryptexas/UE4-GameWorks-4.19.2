@@ -7,6 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FPaperJSONHelpers
 
+static TArray< TSharedPtr<FJsonValue> > EmptyArray;
+
 FString FPaperJSONHelpers::ReadString(TSharedPtr<class FJsonObject> Item, const FString& Key, const FString& DefaultValue)
 {
 	const TSharedPtr<FJsonValue>& ValuePtr = Item->GetField<EJson::String>(Key);
@@ -22,6 +24,18 @@ TSharedPtr<class FJsonObject> FPaperJSONHelpers::ReadObject(TSharedPtr<class FJs
 	else
 	{
 		return NULL;
+	}
+}
+
+const TArray< TSharedPtr<FJsonValue> >& FPaperJSONHelpers::ReadArray(TSharedPtr<class FJsonObject> Item, const FString& Key)
+{
+	if (Item->HasTypedField<EJson::Array>(Key))
+	{
+		return Item->GetArrayField(Key);
+	}
+	else
+	{
+		return EmptyArray;
 	}
 }
 
