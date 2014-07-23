@@ -639,7 +639,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 
 				if (Distance < KINDA_SMALL_NUMBER)
 				{
-					UE_LOG(LogCollision, Warning, TEXT("ConvertOverlappedShapeToImpactHit: Query origin inside shape, giving poor MTD."));
+					UE_LOG(LogCollision, Verbose, TEXT("Warning: ConvertOverlappedShapeToImpactHit: Query origin inside shape, giving poor MTD."));
 					PClosestPoint = PxShapeExt::getWorldBounds(*PShape, *PActor).getCenter(); 
 				}
 
