@@ -6,7 +6,7 @@
 
 void FMathStructProxyCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-
+	PropertyUtilities = StructCustomizationUtils.GetPropertyUtilities();
 }
 
 void FMathStructProxyCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row )
@@ -110,6 +110,8 @@ void FMatrixStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>
 
 void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
+	FMathStructProxyCustomization::CustomizeChildren(StructPropertyHandle, StructBuilder, StructCustomizationUtils);
+
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = StructPropertyHandle;
 
 	StructBuilder.AddChildContent(LOCTEXT("LocationLabel", "Location").ToString())
@@ -449,6 +451,13 @@ bool FTransformStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Prope
 		}
 	}
 	PropertyHandle->NotifyPostChange();
+
+	if(PropertyUtilities.IsValid() && !bIsUsingSlider)
+	{
+		const bool bTopologyChange = false;
+		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
+	}
 
 	return true;
 }

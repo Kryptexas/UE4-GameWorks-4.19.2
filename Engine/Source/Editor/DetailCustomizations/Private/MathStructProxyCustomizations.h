@@ -205,6 +205,10 @@ private:
 	/** Called when a value stops being changed by a slider */
 	template<typename NumericType>
 	void OnEndSliderMovement( NumericType NewValue );
+
+protected:
+	/** Cached property utilities */
+	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 };
 
 /** 
