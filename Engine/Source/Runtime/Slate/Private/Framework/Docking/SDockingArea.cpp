@@ -251,6 +251,7 @@ void SDockingArea::SetParentWindow( const TSharedRef<SWindow>& NewParentWindow )
 	}
 
 	ParentWindowPtr = NewParentWindow;
+	NewParentWindow->SetOnWindowActivated( FOnWindowActivated::CreateSP( this, &SDockingArea::OnOwningWindowActivated ) );
 }
 
 TSharedPtr<FTabManager::FLayoutNode> SDockingArea::GatherPersistentLayout() const
@@ -423,6 +424,25 @@ void SDockingArea::OnOwningWindowBeingDestroyed(const TSharedRef<SWindow>& Windo
 
 }
 
+void SDockingArea::OnOwningWindowActivated()
+{
+	// Update the global menu bar when the window activation changes.
+	TSharedPtr< SWidget > MenuBar;
+	TSharedPtr<FTabManager> TabManager = MyTabManager.Pin();
+	if(FGlobalTabmanager::Get() == TabManager)
+	{
+		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
+		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
+		if(ActiveTab.IsValid())
+		{
+			ActiveTab->GetTabManager()->UpdateMainMenu(true);
+		}
+	}
+	else
+	{
+		TabManager->UpdateMainMenu(true);
+	}
+}
 
 void SDockingArea::OnLiveTabAdded()
 {

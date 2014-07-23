@@ -254,9 +254,9 @@ void SDockingTabStack::Tick( const FGeometry& AllottedGeometry, const double InC
 void SDockingTabStack::OpenTab( const TSharedRef<SDockTab>& InTab, int32 InsertLocationAmongActiveTabs )
 {
 	const int32 TabIndex = OpenPersistentTab( InTab->GetLayoutIdentifier(), InsertLocationAmongActiveTabs );
-	AddTabWidget( InTab, TabIndex );
 	// The tab may be a nomad tab, in which case it should inherit whichever tab manager it is being put into!
 	InTab->SetTabManager( GetDockArea()->GetTabManager() );
+	AddTabWidget( InTab, TabIndex );
 	OnLiveTabAdded();
 	TabWell->RefreshParentContent();
 }
@@ -388,6 +388,7 @@ void SDockingTabStack::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousF
 		{
 			// If a widget inside this tab stack got focused, activate this tab.
 			FGlobalTabmanager::Get()->SetActiveTab( ForegroundTab );
+			ForegroundTab->ActivateInParent(ETabActivationCause::SetDirectly);
 		}
 	}
 }

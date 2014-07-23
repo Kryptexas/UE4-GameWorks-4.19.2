@@ -11,7 +11,7 @@
  * @param	InHeadingText	Heading text
  */
 FWidgetBlock::FWidgetBlock( TSharedRef<SWidget> InContent, const FText& InLabel, bool bInNoIndent )
-	: FMultiBlock( NULL, NULL )
+	: FMultiBlock( NULL, NULL, NAME_None, EMultiBlockType::Widget )
 	, ContentWidget( InContent )
 	, Label( InLabel )
 	, bNoIndent( bInNoIndent )

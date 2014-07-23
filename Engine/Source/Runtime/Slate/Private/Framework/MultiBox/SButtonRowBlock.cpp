@@ -7,7 +7,7 @@
 
 
 FButtonRowBlock::FButtonRowBlock( const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const FSlateIcon& InIconOverride )
-	: FMultiBlock( InCommand, InCommandList )
+	: FMultiBlock( InCommand, InCommandList, NAME_None, EMultiBlockType::ButtonRow )
 	, LabelOverride( InLabelOverride )
 	, ToolTipOverride( InToolTipOverride )
 	, IconOverride( InIconOverride )
@@ -15,7 +15,7 @@ FButtonRowBlock::FButtonRowBlock( const TSharedPtr< const FUICommandInfo > InCom
 }
 
 FButtonRowBlock::FButtonRowBlock( const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType )
-	: FMultiBlock( UIAction )
+	: FMultiBlock( UIAction, NAME_None, EMultiBlockType::ButtonRow )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
 	, IconOverride( InIcon )

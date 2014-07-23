@@ -51,6 +51,14 @@ public:
 	 * @return  New widget object
 	 */
 	TSharedRef< class SWidget > MakeWidget();
+	
+	
+	/** 
+	 * Get the multi-box being built.
+	 *
+	 * @return The multi-box being built.
+	 */
+	TSharedRef< class FMultiBox > GetMultiBox();
 
 
 	/**

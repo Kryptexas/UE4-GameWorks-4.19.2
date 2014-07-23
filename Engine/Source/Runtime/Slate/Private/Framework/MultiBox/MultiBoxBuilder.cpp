@@ -85,6 +85,10 @@ TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget()
 	return MultiBox->MakeWidget();
 }
 
+TSharedRef< class FMultiBox > FMultiBoxBuilder::GetMultiBox()
+{
+	return MultiBox;
+}
 
 FBaseMenuBuilder::FBaseMenuBuilder( const EMultiBoxType::Type InType, const bool bInShouldCloseWindowAfterMenuSelection, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, TSharedPtr<FExtender> InExtender, const ISlateStyle* InStyleSet )
 	: FMultiBoxBuilder( InType, FMultiBoxCustomization::None, bInShouldCloseWindowAfterMenuSelection, InCommandList, InExtender )

@@ -11,7 +11,7 @@
  * @param	InHeadingText	Heading text
  */
 FHeadingBlock::FHeadingBlock( const FName& InExtensionHook, const TAttribute< FText >& InHeadingText )
-	: FMultiBlock( NULL, NULL, InExtensionHook )
+	: FMultiBlock( NULL, NULL, InExtensionHook, EMultiBlockType::Heading )
 	, HeadingText( InHeadingText )
 {
 }

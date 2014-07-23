@@ -408,6 +408,20 @@ void SDockingTabWell::BringTabToFront( int32 TabIndexToActivate )
 
 	// Always force a refresh, even if we don't think the active index changed.
 	RefreshParentContent();
+
+	// Update the native, global menu bar if a tab is in the foreground.
+	if( ForegroundTabIndex != INDEX_NONE )
+	{
+		TSharedPtr<FTabManager> TabManager = Tabs[ForegroundTabIndex]->GetTabManager();
+		if(TabManager == FGlobalTabmanager::Get())
+		{
+			FGlobalTabmanager::Get()->UpdateMainMenu(Tabs[ForegroundTabIndex], false);
+		}
+		else
+		{
+			TabManager->UpdateMainMenu(false);
+		}
+	}
 }
 
 /** Activate the tab specified by TabToActivate SDockTab. */

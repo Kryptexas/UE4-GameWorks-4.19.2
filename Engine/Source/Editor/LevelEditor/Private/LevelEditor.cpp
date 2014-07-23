@@ -101,7 +101,17 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.3f ) )
 					]
 				]
-
+// Put the level editor stats/notification widgets on the main window title bar since we don't have a menu bar on OS X
+#if PLATFORM_MAC
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					LevelEditorTab->GetRightContent()
+				]
+#endif
+		
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(16.0f, 0.0f, 0.0f, 0.0f)

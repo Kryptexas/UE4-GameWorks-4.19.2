@@ -87,6 +87,9 @@ private:
 	/** We were placed in a window, and it is being destroyed */
 	void OnOwningWindowBeingDestroyed(const TSharedRef<SWindow>& WindowBeingDestroyed);
 
+	/** We were placed in a window and it is being activated */
+	void OnOwningWindowActivated();
+	
 	virtual void OnLiveTabAdded() override;
 
 	/**

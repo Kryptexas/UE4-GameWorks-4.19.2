@@ -285,6 +285,9 @@ TSharedRef<SWidget> FMainMenu::MakeMainMenu( const TSharedPtr<FTabManager>& TabM
 	// Create the menu bar!
 	TSharedRef<SWidget> MenuBarWidget = MenuBuilder.MakeWidget();
 
+	// Tell tab-manager about the multi-box for platforms with a global menu bar
+	TabManager->SetMenuMultiBox(MenuBuilder.GetMultiBox());
+	
 	return MenuBarWidget;
 }
 

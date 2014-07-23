@@ -219,7 +219,14 @@ TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget()
 
 	// Build up the widget
 	NewMultiBoxWidget->BuildMultiBoxWidget();
-
+	
+#if PLATFORM_MAC
+	if(Type == EMultiBoxType::MenuBar)
+	{
+		NewMultiBoxWidget->SetVisibility(EVisibility::Collapsed);
+	}
+#endif
+	
 	return NewMultiBoxWidget;
 }
 

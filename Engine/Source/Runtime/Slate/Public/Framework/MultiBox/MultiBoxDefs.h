@@ -27,6 +27,26 @@ namespace EMultiBoxType
 	};
 }
 
+/**
+ * Types of MultiBlocks
+ */
+namespace EMultiBlockType
+{
+	enum Type
+	{
+		None = 0,
+		ButtonRow,
+		EditableText,
+		Heading,
+		MenuEntry,
+		MenuSeparator,
+		ToolBarButton,
+		ToolBarComboButton,
+		ToolBarSeparator,
+		Widget,
+	};
+}
+
 class SLATE_API FMultiBoxSettings
 {
 public:

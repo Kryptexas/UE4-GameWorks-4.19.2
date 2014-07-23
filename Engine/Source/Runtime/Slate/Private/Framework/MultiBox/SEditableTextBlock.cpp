@@ -9,7 +9,7 @@
 
 
 FEditableTextBlock::FEditableTextBlock( const FText& InLabel, const FText& InToolTip, const FSlateIcon& InIcon, const TAttribute< FText >& InTextAttribute, bool bInReadOnly, const FOnTextCommitted& InOnTextCommitted, const FOnTextChanged& InOnTextChanged )
-	: FMultiBlock( FUIAction() ),
+	: FMultiBlock( FUIAction(), NAME_None, EMultiBlockType::EditableText ),
 	  LabelOverride( InLabel ),
 	  ToolTipOverride( InToolTip ),
 	  IconOverride( InIcon ),

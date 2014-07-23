@@ -192,7 +192,9 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 					Widget1
 				]
 			]
-
+		 
+// For platforms without a global menu bar we can put the perf. tools in the editor window's menu bar
+#if !PLATFORM_MAC
 			+SOverlay::Slot()
 			.HAlign( HAlign_Right )
 			[
@@ -201,6 +203,7 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 					SAssignNew( NotificationBarBox, SHorizontalBox )
 				]
 			]
+#endif
 		]
 
 		+SVerticalBox::Slot()
@@ -209,6 +212,16 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			Widget2
 		]
 	];
+	
+// For OS X we need to put it into the window's title bar since there's no per-window menu bar
+#if PLATFORM_MAC
+	TSharedRef<SWidget> TutorialWidget = SNew( STutorialWrapper, TEXT("PerformanceTools") )
+	[
+		SAssignNew( NotificationBarBox, SHorizontalBox )
+	];
+	
+	OwnerTab->SetRightContent(TutorialWidget);
+#endif
 
 	ConstructNotificationBar();
 
@@ -274,7 +287,7 @@ FText SLevelEditor::GetTabTitle() const
 
 	const bool bIncludeGameName = false;
 
-	const bool bDirtyState = World->GetCurrentLevel()->GetOutermost()->IsDirty();
+	const bool bDirtyState = World && World->GetCurrentLevel()->GetOutermost()->IsDirty();
 
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("LevelName"), FText::FromString( MainFrameModule.GetLoadedLevelName() ) );

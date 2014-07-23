@@ -585,6 +585,17 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		{
 		}
 
+		/**
+		 * Set the multi-box to use for generating a native, global menu bar.
+		 * @param NewMenuMutliBox The multi-box to generate the global menu bar from.
+		 */
+		void SetMenuMultiBox(const TSharedPtr< FMultiBox >& NewMenuMutliBox);
+
+		/**
+		 * Update the native, global menu bar if it is being used.
+		 * @param bForce Used to force an update even if the parent window doesn't contain the widget with keyboard focus.
+		 */
+		void UpdateMainMenu(bool const bForce);
 
 	protected:
 		void InvokeTabForMenu( FName TabId );
@@ -663,6 +674,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		/** A Major tab that contains this TabManager's widgets. */
 		TWeakPtr<SDockTab> OwnerTabPtr;
 
+		/** The current menu multi-box for the tab, used to construct platform native main menus */
+		TSharedPtr< FMultiBox > MenuMultiBox;
+
 		/** Protected private API that must only be accessed by the docking framework internals */
 		TSharedRef<FPrivateApi> PrivateApi;
 
@@ -732,6 +746,13 @@ public:
 	void DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager );
 
 	TSharedRef<FTabManager> NewTabManager( const TSharedRef<SDockTab>& InOwnerTab );
+	
+	/**
+	 * Update the native, global menu bar if it is being used for a specific tab managed by the global tab manager.
+	 * @param ForTab The tab to update the main menu.
+	 * @param bForce Used to force an update even if the parent window doesn't contain the widget with keyboard focus.
+	 */
+	void UpdateMainMenu(const TSharedRef<SDockTab>& ForTab, bool const bForce);
 
 	/** Persist and serialize the layout of every TabManager and the custom visual state of every Tab. */
 	void SaveAllVisualState();

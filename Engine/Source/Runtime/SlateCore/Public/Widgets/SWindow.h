@@ -7,6 +7,9 @@
 #pragma once
 
 
+/** Notification that a window has been activated */
+DECLARE_DELEGATE( FOnWindowActivated );
+
 /** Notification that a window has been deactivated */
 DECLARE_DELEGATE( FOnWindowDeactivated );
 
@@ -380,6 +383,10 @@ public:
 	/** @return should this window show up in the taskbar */
 	bool AppearsInTaskbar() const;
 
+	/** Sets the delegate to execute when the window is activated */
+	void SetOnWindowActivated( const FOnWindowActivated& InDelegate );
+
+	/** Sets the delegate to execute when the window is deactivated */
 	void SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate );
 
 	/** Sets the delegate to execute right before the window is closed */
@@ -764,6 +771,9 @@ protected:
 private:
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
+	
+	/** Invoked when the window has been activated. */
+	FOnWindowActivated OnWindowActivated;
 	
 	/** Invoked when the window has been deactivated. */
 	FOnWindowDeactivated OnWindowDeactivated;
