@@ -2147,9 +2147,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 			
 				UPackage* WorldPackage;
-				const FName WorldPackageFName = FName(*LongTempFname);
-				UWorld::WorldTypePreLoadMap.FindOrAdd(WorldPackageFName) = EWorldType::Editor;
-
 				// Load startup maps and templates into new outermost packages so that the Save function in the editor won't overwrite the original
 				if (bIsLoadingMapTemplate)
 				{
@@ -2157,7 +2154,10 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					WorldPackage = CreatePackage(NULL, *(MakeUniqueObjectName(NULL, UPackage::StaticClass()).ToString()));
 
 					//now load the map into the package created above
+					const FName WorldPackageFName = WorldPackage->GetFName();
+					UWorld::WorldTypePreLoadMap.FindOrAdd(WorldPackageFName) = EWorldType::Editor;
 					WorldPackage = LoadPackage( WorldPackage, *LongTempFname, LoadFlags );
+					UWorld::WorldTypePreLoadMap.Remove(WorldPackageFName);
 				}
 				else
 				{
@@ -2168,11 +2168,12 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					else
 					{
 						//Load the map normally into a new package
+						const FName WorldPackageFName = FName(*LongTempFname);
+						UWorld::WorldTypePreLoadMap.FindOrAdd(WorldPackageFName) = EWorldType::Editor;
 						WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+						UWorld::WorldTypePreLoadMap.Remove(WorldPackageFName);
 					}
 				}
-
-				UWorld::WorldTypePreLoadMap.Remove(WorldPackageFName);
 
 				if (WorldPackage == NULL)
 				{
