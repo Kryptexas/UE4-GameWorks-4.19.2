@@ -219,6 +219,10 @@ CFStringRef FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class
 		{
 			*OutModifiers |= NSAlternateKeyMask;
 		}
+		if (Gesture->bCmd)
+		{
+			*OutModifiers |= NSControlKeyMask;
+		}
 
 		FString KeyString = Gesture->GetKeyText().ToString().ToLower();
 		return FPlatformString::TCHARToCFString(*KeyString);
