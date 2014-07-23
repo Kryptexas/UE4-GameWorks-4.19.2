@@ -7,9 +7,8 @@ public class TargetPlatform : ModuleRules
 {
 	public TargetPlatform(TargetInfo Target)
 	{
-		PrivateDependencyModuleNames.Add("Core");
-
-		PublicIncludePathModuleNames.Add("DesktopPlatform");
+		PrivateDependencyModuleNames.Add("Core");		
+        PublicDependencyModuleNames.Add("DesktopPlatform");
 
 		if (!UEBuildConfiguration.bBuildRequiresCookedData)
 		{

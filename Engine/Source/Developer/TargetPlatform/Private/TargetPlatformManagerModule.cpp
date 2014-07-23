@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "TargetPlatformPrivatePCH.h"
+#include "PlatformInfo.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
 
@@ -38,7 +39,20 @@ public:
 		if (!FUBTInvoker::InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
 		{
 			UE_LOG(LogTargetPlatformManager, Fatal, TEXT("Failed to run UBT to check SDK status!"));
-		}		
+		}
+
+		// we have to setup our local environment according to AutoSDKs or the ITargetPlatform's IsSDkInstalled calls may fail
+		// before we get a change to setup for a given platform.  Use the platforminfo list to avoid any kind of interdependency.
+		int32 NumPlatforms;
+		const PlatformInfo::FPlatformInfo* PlatformInfoArray = PlatformInfo::GetPlatformInfoArray(NumPlatforms);
+		for (int32 i = 0; i < NumPlatforms; ++i)
+		{
+			const PlatformInfo::FPlatformInfo& PlatformInfo = PlatformInfoArray[i];
+			if (PlatformInfo.AutoSDKPath.Len() > 0)
+			{
+				SetupAndValidateAutoSDK(PlatformInfo.AutoSDKPath);
+			}
+		}
 #endif
 
 		GetTargetPlatforms();
@@ -528,8 +542,8 @@ protected:
 				if (Platform != NULL)
 				{
 					// would like to move this check to GetActiveTargetPlatforms, but too many things cache this result
-					// this setup will become faster after TTP 341897 is complete.
-					if (SetupAndValidateAutoSDK(*Platform))
+					// this setup will become faster after TTP 341897 is complete.					
+					if (SetupAndValidateAutoSDK(Platform->GetPlatformInfo().AutoSDKPath))
 					{
 						Platforms.Add(Platform);
 					}
@@ -538,24 +552,30 @@ protected:
 		}
 	}
 
-	bool SetupAndValidateAutoSDK(ITargetPlatform& Platform)
+	bool SetupAndValidateAutoSDK(const FString& AutoSDKPath)
 	{
 #if AUTOSDKS_ENABLED
 		bool bValidSDK = false;
-		// Invoke UBT to perform SDK switching, or detect that a proper manual SDK is already setup.
-		FString PlatformName = Platform.IniPlatformName();
-		FName PlatformFName(*PlatformName);
+		if (AutoSDKPath.Len() > 0)
+		{		
+			FName PlatformFName(*AutoSDKPath);
 
-		// cache result of the last setup attempt to avoid calling UBT all the time.
-		bool* bPreviousSetupSuccessful = PlatformsSetup.Find(PlatformFName);
-		if (bPreviousSetupSuccessful)
-		{
-			bValidSDK = *bPreviousSetupSuccessful;
+			// cache result of the last setup attempt to avoid calling UBT all the time.
+			bool* bPreviousSetupSuccessful = PlatformsSetup.Find(PlatformFName);
+			if (bPreviousSetupSuccessful)
+			{
+				bValidSDK = *bPreviousSetupSuccessful;
+			}
+			else
+			{
+				bValidSDK = SetupEnvironmentFromAutoSDK(AutoSDKPath);
+				PlatformsSetup.Add(PlatformFName, bValidSDK);
+			}
 		}
 		else
 		{
-			bValidSDK = SetupEnvironmentFromAutoSDK(Platform);
-			PlatformsSetup.Add(PlatformFName, bValidSDK);
+			// if a platform has no AutoSDKPath, then just assume the SDK is installed, we have no basis for determining it.
+			bValidSDK = true;
 		}
 		return bValidSDK;
 #else
@@ -563,7 +583,7 @@ protected:
 #endif // AUTOSDKS_ENABLED
 	}
 	
-	bool SetupEnvironmentFromAutoSDK(ITargetPlatform& Platform)
+	bool SetupEnvironmentFromAutoSDK(const FString& AutoSDKPath)
 	{						
 #if AUTOSDKS_ENABLED
 		static const FString SDKRootEnvFar(TEXT("UE_SDKS_ROOT"));		
@@ -575,31 +595,16 @@ protected:
 		if (SDKPath[0] == 0)
 		{
 			return true;
-		}
+		}		
 
-		// if this platform hasn't been setup with AutoSDK handling, then we just assume it's setup
-		// properly.
-		if (!Platform.SupportsAutoSDK())
-		{
-			return true;
-		}
-
-		// Invoke UBT to perform SDK switching, or detect that a proper manual SDK is already setup.
-		FString PlatformName = Platform.IniPlatformName();
-		FName PlatformFName(*PlatformName);		
-
+		// Invoke UBT to perform SDK switching, or detect that a proper manual SDK is already setup.				
 #if PLATFORM_WINDOWS
 		FString HostPlatform(TEXT("HostWin64"));
 #else
 #error Fill in your host platform directory
-#endif
+#endif		
 
-		if (PlatformName.Find(TEXT("Linux"), ESearchCase::IgnoreCase) != -1)
-		{
-			PlatformName = TEXT("Linux_x64");
-		}
-
-		FString TargetSDKRoot = FPaths::Combine(SDKPath, *HostPlatform, *PlatformName);
+		FString TargetSDKRoot = FPaths::Combine(SDKPath, *HostPlatform, *AutoSDKPath);
 		static const FString SDKInstallManifestFileName(TEXT("CurrentlyInstalled.txt"));
 		FString SDKInstallManifestFilePath = FPaths::Combine(*TargetSDKRoot, *SDKInstallManifestFileName);
 
@@ -624,20 +629,20 @@ protected:
 			
 			if (FileLines.Num() != 2)
 			{
-				UE_LOG(LogTargetPlatformManager, Error, TEXT("Malformed install manifest file for Platform %s"), *PlatformName);				
+				UE_LOG(LogTargetPlatformManager, Error, TEXT("Malformed install manifest file for Platform %s"), *AutoSDKPath);				
 				return false;
 			}
 
 			static const FString ManualSDKString(TEXT("ManualSDK"));
 			if (FileLines[1].Compare(ManualSDKString, ESearchCase::IgnoreCase) == 0)
 			{
-				UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has manual sdk install"), *PlatformName);				
+				UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has manual sdk install"), *AutoSDKPath);				
 				return true;
 			}
 		}
 		else
 		{	
-			UE_LOG(LogTargetPlatformManager, Error, TEXT("install manifest file for Platform %s not found."), *PlatformName);			
+			UE_LOG(LogTargetPlatformManager, Error, TEXT("install manifest file for Platform %s not found."), *AutoSDKPath);			
 			return false;			
 		}		
 
@@ -766,11 +771,11 @@ protected:
 		}
 		else
 		{
-			UE_LOG(LogTargetPlatformManager, Error, TEXT("OutputEnvVars.txt not found for platform: '%s'"), *PlatformName);			
+			UE_LOG(LogTargetPlatformManager, Error, TEXT("OutputEnvVars.txt not found for platform: '%s'"), *AutoSDKPath);			
 			return false;
 		}
 
-		UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has auto sdk install"), *PlatformName);		
+		UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Platform %s has auto sdk install"), *AutoSDKPath);		
 		return true;
 #else
 		return true;

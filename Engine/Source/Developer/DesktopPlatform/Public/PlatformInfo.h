@@ -131,6 +131,9 @@ namespace PlatformInfo
 		/** Additional argument string data to append to UAT commands relating to this platform */
 		FString UATCommandLine;
 
+		/** Path under CarefullyRedist for the SDK.  FString so case sensitive platforms don't get messed up by a pre-existing FName of a different casing. */
+		FString AutoSDKPath;
+
 		/** Returns true if this platform is vanilla */
 		FORCEINLINE bool IsVanilla() const
 		{
