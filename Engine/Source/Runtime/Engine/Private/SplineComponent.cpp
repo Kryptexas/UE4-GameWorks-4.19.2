@@ -36,9 +36,9 @@ void USplineComponent::PostLoad()
 }
 
 
-void USplineComponent::PostDuplicate(bool bDuplicateForPIE)
+void USplineComponent::PostEditImport()
 {
-	Super::PostDuplicate(bDuplicateForPIE);
+	Super::PostEditImport();
 	UpdateSpline();
 }
 
@@ -299,6 +299,14 @@ FVector USplineComponent::GetWorldLocationAtDistanceAlongSpline(float Distance) 
 	const float Param = SplineReparamTable.Eval(Distance, 0.f);
 	const FVector Location = SplineInfo.Eval(Param, FVector::ZeroVector);
 	return ComponentToWorld.TransformPosition(Location);
+}
+
+
+FVector USplineComponent::GetWorldTangentAtDistanceAlongSpline(float Distance) const
+{
+	const float Param = SplineReparamTable.Eval(Distance, 0.f);
+	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector);
+	return ComponentToWorld.TransformVector(Tangent);
 }
 
 
