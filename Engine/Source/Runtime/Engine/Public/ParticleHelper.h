@@ -750,7 +750,8 @@ struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** Mesh rotation data payload										*/
 struct FMeshRotationPayloadData
 {
-	FVector	 InitialOrientation;
+	FVector	 InitialOrientation;		// from mesh data module
+	FVector  InitRotation;				// from init rotation module
 	FVector  Rotation;
 	FVector	 CurContinuousRotation;
 	FVector  RotationRate;

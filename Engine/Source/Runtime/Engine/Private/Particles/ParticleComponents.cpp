@@ -976,7 +976,8 @@ bool UParticleLODLevel::IsModuleEditable(UParticleModule* InModule)
 	UParticleEmitter implementation.
 -----------------------------------------------------------------------------*/
 UParticleEmitter::UParticleEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+	: Super(PCIP),
+	QualityLevelSpawnRateScale(1.0f)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -992,7 +993,6 @@ UParticleEmitter::UParticleEmitter(const class FPostConstructInitializePropertie
 	EmitterName = ConstructorStatics.NAME_Particle_Emitter;
 	ConvertedModules = true;
 	PeakActiveParticles = 0;
-	MediumDetailSpawnRateScale = 1.0;
 #if WITH_EDITORONLY_DATA
 	EmitterEditorColor = FColor(0, 150, 150, 255);
 #endif // WITH_EDITORONLY_DATA
@@ -1275,7 +1275,7 @@ void UParticleEmitter::PostLoad()
 	}
 
 	// Clamp the detail spawn rate scale...
-	MediumDetailSpawnRateScale = FMath::Clamp<float>(MediumDetailSpawnRateScale, 0.0f, 1.0f);
+	QualityLevelSpawnRateScale = FMath::Clamp<float>(QualityLevelSpawnRateScale, 0.0f, 1.0f);
 
 	UpdateModuleLists();
 }
@@ -1324,7 +1324,7 @@ void UParticleEmitter::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 	}
 
 	// Clamp the detail spawn rate scale...
-	MediumDetailSpawnRateScale = FMath::Clamp<float>(MediumDetailSpawnRateScale, 0.0f, 1.0f);
+	QualityLevelSpawnRateScale = FMath::Clamp<float>(QualityLevelSpawnRateScale, 0.0f, 1.0f);
 }
 #endif // WITH_EDITOR
 

@@ -1280,9 +1280,11 @@ void UParticleModuleMeshRotation::SpawnEx(FParticleEmitterInstance* Owner, int32
 				Rotation.Z	+= ParentAffectedRotation.Z / 360.0f;
 			}
 			FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-			PayloadData->Rotation.X	+= Rotation.X * 360.0f;
-			PayloadData->Rotation.Y	+= Rotation.Y * 360.0f;
-			PayloadData->Rotation.Z	+= Rotation.Z * 360.0f;
+			//PayloadData->Rotation.X	+= Rotation.X * 360.0f;
+			//PayloadData->Rotation.Y	+= Rotation.Y * 360.0f;
+			//PayloadData->Rotation.Z	+= Rotation.Z * 360.0f;
+			PayloadData->InitRotation = Rotation * 360.0f;
+			PayloadData->Rotation += PayloadData->InitRotation;
 		}
 	}
 }

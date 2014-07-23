@@ -137,8 +137,11 @@ class UParticleEmitter : public UObject
 	 * A value of 0 effectively disables this emitter outside of high detail mode,
 	 * And this does not affect spawn per unit, unless the value is 0.
 	 */
-	UPROPERTY(EditAnywhere, Category=Particle)
-	float MediumDetailSpawnRateScale;
+	UPROPERTY()
+	float MediumDetailSpawnRateScale_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, Category = Particle)
+	float QualityLevelSpawnRateScale;
 
 	/** If detail mode is >= system detail mode, primitive won't be rendered. */
 	UPROPERTY(EditAnywhere, Category=Particle)
@@ -248,6 +251,7 @@ class UParticleEmitter : public UObject
 		}
 	}
 
+
 	/**
 	 * This will update the LOD of the particle in the editor.
 	 *
@@ -298,6 +302,21 @@ class UParticleEmitter : public UObject
 	 * Builds data needed for simulation by the emitter from all modules.
 	 */
 	void Build();
+
+	/*
+	 *   Calculate spawn rate multiplier based on global effects quality level and emitter's quality scale
+ 	 */
+	FORCEINLINE float GetQualityLevelSpawnRateMult()
+	{
+		float Level = (1 - Scalability::GetQualityLevels().EffectsQuality);
+		float Q = 1;
+		for (int i = 0; i < Level + 1; i++)
+		{
+
+			Q = Q*QualityLevelSpawnRateScale;
+		}
+		return Q;
+	}
 };
 
 

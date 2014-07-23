@@ -440,7 +440,7 @@ void FParticleEmitterInstance::Init()
 	// Resize to sensible default.
 	if (Component->GetWorld()->IsGameWorld() == true &&
 		// Only presize if any particles will be spawned 
-		(Component->GetCurrentDetailMode() == DM_High || SpriteTemplate->MediumDetailSpawnRateScale > 0))
+		SpriteTemplate->QualityLevelSpawnRateScale > 0)
 	{
 		if ((LODLevel->PeakActiveParticles > 0) || (SpriteTemplate->InitialAllocationCount > 0))
 		{
@@ -1720,7 +1720,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 	bool bProcessBurstList = true;
 	int32 DetailMode = Component->GetCurrentDetailMode();
 
-	if ((DetailMode == DM_High) || (SpriteTemplate->MediumDetailSpawnRateScale > 0.0f))
+	if (SpriteTemplate->QualityLevelSpawnRateScale > 0.0f)
 	{
 		// Process all Spawning modules that are present in the emitter.
 		for (int32 SpawnModIndex = 0; SpawnModIndex < LODLevel->SpawningModules.Num(); SpawnModIndex++)
@@ -1771,11 +1771,9 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 			BurstCount += Burst;
 		}
 
-		if (DetailMode != DM_High)
-		{
-			SpawnRate = FMath::Max<float>(0.0f, SpawnRate * SpriteTemplate->MediumDetailSpawnRateScale);
-			BurstCount = FMath::CeilToInt(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
-		}
+		float QualityMult = SpriteTemplate->GetQualityLevelSpawnRateMult();
+		SpawnRate = FMath::Max<float>(0.0f, SpawnRate * QualityMult);
+		BurstCount = FMath::CeilToInt(BurstCount * QualityMult);
 	}
 	else
 	{
@@ -2934,16 +2932,14 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 				FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 				FVector Euler	= Rotation.Euler();
-				PayloadData->Rotation.X	= PayloadData->InitialOrientation.X + Euler.X;
-				PayloadData->Rotation.Y = PayloadData->InitialOrientation.Y + Euler.Y;
-				PayloadData->Rotation.Z = PayloadData->InitialOrientation.Z + Euler.Z;
+				PayloadData->Rotation = PayloadData->InitialOrientation + PayloadData->InitRotation + Euler;
 				PayloadData->Rotation += PayloadData->CurContinuousRotation;
 			}
 			else // not PSA_Velocity or PSA_AwayfromCenter, so rotation is not reset every tick
 			{
 				if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
 				{
-					PayloadData->Rotation = PayloadData->CurContinuousRotation;
+					PayloadData->Rotation = PayloadData->InitialOrientation + PayloadData->InitRotation + PayloadData->CurContinuousRotation;
 				}
 			}
 
