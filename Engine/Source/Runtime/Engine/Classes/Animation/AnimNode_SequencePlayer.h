@@ -21,11 +21,11 @@ public:
 	float InternalTimeAccumulator;
 
 	// Should the animation continue looping when it reaches the end?
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(DefaultValue="true", PinHiddenByDefault))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable bool bLoopAnimation;
 
 	// The play rate multiplier. Can be negative, which will cause the animation to play in reverse.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(DefaultValue="1.0", PinHiddenByDefault))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable float PlayRate;
 
 	// The group index, assigned at compile time based on the editoronly GroupName (or INDEX_NONE if it is not part of any group)
