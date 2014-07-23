@@ -118,14 +118,18 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 	}
 
 	// very temp - do a mostly hardcoded trace from the source actor
-	if (bDebug && SourceActor.Get())
+	if (SourceActor.Get())
 	{
 		if (!Ability.IsValid())
 		{
 			HitResult = PerformTrace(SourceActor.Get());
 		}
-		DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), HitResult.Location, FLinearColor::Green, false);
-		DrawDebugSphere(GetWorld(), HitResult.Location, 16, 10, FLinearColor::Green, false);
+		if (bDebug)
+		{
+			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), HitResult.Location, FLinearColor::Green, false);
+			DrawDebugSphere(GetWorld(), HitResult.Location, 16, 10, FLinearColor::Green, false);
+		}
+		SetActorLocationAndRotation(HitResult.Location, SourceActor.Get()->GetActorRotation());
 	}
 }
 
