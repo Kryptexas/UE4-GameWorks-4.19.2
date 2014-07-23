@@ -6,7 +6,6 @@
 	World.h: UWorld definition.
 =============================================================================*/
 
-#include "CollisionQueryParams.h"
 #include "WorldCollision.h"
 #include "PendingNetGame.h"
 #include "EngineDefines.h"

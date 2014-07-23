@@ -6,11 +6,7 @@
 //=============================================================================
 
 #pragma once
-
-#include "ParticleLODLevel.h"
-#include "ParticleHelper.h"
 #include "ParticleEmitterInstances.h"
-
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================

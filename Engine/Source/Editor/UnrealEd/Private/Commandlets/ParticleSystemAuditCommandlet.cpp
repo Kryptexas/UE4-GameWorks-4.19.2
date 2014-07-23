@@ -8,6 +8,7 @@
 #include "Runtime/Engine/Classes/Particles/Collision/ParticleModuleCollision.h"
 #include "Runtime/Engine/Classes/Particles/Spawn/ParticleModuleSpawn.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "Particles/ParticleLODLevel.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogParticleSystemAuditCommandlet, Log, All);
 
