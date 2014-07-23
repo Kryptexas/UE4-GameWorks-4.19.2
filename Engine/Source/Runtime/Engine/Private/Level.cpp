@@ -747,6 +747,19 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	if (CurrentActorIndexForUpdateComponents == 0)
 	{
 		UpdateModelComponents();
+		
+		// Sort actors to ensure that parent actors will be registered before child actors
+		Actors.Remove(nullptr);
+		
+		auto CalcAttachDepth = [](AActor& InActor) -> int32 {
+			int32 Depth = 0;
+			for (const USceneComponent* Test = InActor.GetRootComponent()->AttachParent; Test != nullptr; Test = Test->AttachParent, Depth++);
+			return Depth;
+		};
+
+		Actors.StableSort([&](AActor& L, AActor& R) {
+			return CalcAttachDepth(L) < CalcAttachDepth(R);
+		});
 	}
 
 	// Find next valid actor to process components registration

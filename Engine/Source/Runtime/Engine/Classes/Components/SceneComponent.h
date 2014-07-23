@@ -437,6 +437,7 @@ public:
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
+	virtual void OnRegister() override;
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
 	virtual void DestroyComponent() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;

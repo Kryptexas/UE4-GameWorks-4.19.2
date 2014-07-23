@@ -105,6 +105,16 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent * Parent,
 	}
 }
 
+void USceneComponent::OnRegister()
+{
+	// If we need to perform a call to AttachTo, do that now
+	// At this point scene component still has no any state (rendering, physics),
+	// so this call will just add this component to an AttachChildren array of a the Parent component
+	AttachTo(AttachParent, AttachSocketName);
+	
+	Super::OnRegister();
+}
+
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
 {
 	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove);
@@ -710,6 +720,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
+		// Make sure we are detached
+		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
+		DetachFromParent(bMaintainWorldPosition);
+
 		{
 			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
 			//At runtime we must not attach physically simulated objects as it will cause double transform updates, and you should just use a physical constraint if attachment is the desired behavior.
@@ -727,11 +741,6 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				return;
 			}
 		}
-		
-
-		// Make sure we are detached
-		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
-		DetachFromParent(bMaintainWorldPosition);
 
 		// Detach removes all Prerequisite, so will need to add after Detach happens
 		PrimaryComponentTick.AddPrerequisite(Parent, Parent->PrimaryComponentTick); // force us to tick after the parent does
