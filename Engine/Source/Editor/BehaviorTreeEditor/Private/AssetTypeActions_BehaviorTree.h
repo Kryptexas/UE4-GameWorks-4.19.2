@@ -16,9 +16,6 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
 	virtual void PerformAssetDiff(UObject* Asset1, UObject* Asset2, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const override;
 
-	/** Check whether the behavior tree system is enabled */
-	static bool BehaviorTreeEditorEnabled();
-
 private:
 
 	/* Called to open the Behavior Tree defaults view, this opens whatever text dif tool the user has */

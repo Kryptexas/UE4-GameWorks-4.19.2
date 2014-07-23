@@ -29,33 +29,6 @@ void UBehaviorTreeManager::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-bool UBehaviorTreeManager::IsBehaviorTreeUsageEnabled()
-{
-	struct FCheckMeStaticly
-	{
-		bool bBehaviorTreeEditorEnabled;
-		bool bBehaviorTreeUsageEnabled;
-		FCheckMeStaticly() : bBehaviorTreeEditorEnabled(false), bBehaviorTreeUsageEnabled(true)
-		{
-#if WITH_EDITOR
-			bool bBehaviorTreeEditorEnabledFromUserSettings = false;
-			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorExperimentalSettings"), TEXT("bBehaviorTreeEditor"), bBehaviorTreeEditorEnabledFromUserSettings, GEditorUserSettingsIni);
-
-			GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
-			bBehaviorTreeEditorEnabled = bBehaviorTreeEditorEnabled || bBehaviorTreeEditorEnabledFromUserSettings;
-			if (bBehaviorTreeUsageEnabled && bBehaviorTreeEditorEnabled && !FModuleManager::Get().IsModuleLoaded(TEXT("BehaviorTreeEditor")))
-			{
-				// load this module earlier, before any access to BehaviorTree assets
-				FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
-			}
-#endif
-		}
-	};
-
-	static FCheckMeStaticly CheckMeStaticly;
-	return CheckMeStaticly.bBehaviorTreeUsageEnabled;
-}
-
 int32 UBehaviorTreeManager::GetAlignedDataSize(int32 Size)
 {
 	// round to 4 bytes

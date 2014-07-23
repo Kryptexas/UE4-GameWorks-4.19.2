@@ -95,12 +95,6 @@ bool UBehaviorTreeComponent::IsPaused() const
 
 bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecutionMode::Type ExecuteMode)
 {
-	if (UBehaviorTreeManager::IsBehaviorTreeUsageEnabled() == false)
-	{
-		UE_VLOG(GetOwner(), LogBehaviorTree, Error, TEXT("Behavior tree usage is not enabled"));
-		return false;
-	}
-
 	// clear instance stack, start should always run new tree from root
 	class UBehaviorTree* CurrentRoot = GetRootTree();
 	

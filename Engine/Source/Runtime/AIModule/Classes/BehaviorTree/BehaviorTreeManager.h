@@ -32,9 +32,6 @@ class AIMODULE_API UBehaviorTreeManager : public UObject
 	/** get behavior tree template for given blueprint */
 	bool LoadTree(class UBehaviorTree* Asset, class UBTCompositeNode*& Root, uint16& InstanceMemorySize);
 
-	/** check if BT system is to be used. Here only for BT development time */
-	static bool IsBehaviorTreeUsageEnabled();
-
 	/** get aligned memory size */
 	static int32 GetAlignedDataSize(int32 Size);
 

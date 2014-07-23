@@ -13,31 +13,13 @@
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-bool FAssetTypeActions_BehaviorTree::BehaviorTreeEditorEnabled()
-{
-	bool BehaviorTreeNewAssetsEnabled=false;
-	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), BehaviorTreeNewAssetsEnabled, GEngineIni);
-
-	if (!BehaviorTreeNewAssetsEnabled && !GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 bool FAssetTypeActions_BehaviorTree::HasActions ( const TArray<UObject*>& InObjects ) const
 {
-	return BehaviorTreeEditorEnabled();
+	return true;
 }
 
 void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
-	if(!BehaviorTreeEditorEnabled())
-	{
-		return;
-	}
-
 	auto BehaviorTrees = GetTypedWeakObjectPtrs<UBehaviorTree>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
@@ -53,11 +35,6 @@ void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjec
 
 void FAssetTypeActions_BehaviorTree::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
-	if(!BehaviorTreeEditorEnabled())
-	{
-		return;
-	}
-
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
 
 	for(auto Object : InObjects)

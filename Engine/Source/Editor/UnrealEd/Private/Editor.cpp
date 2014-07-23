@@ -555,6 +555,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
+		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 
 		if (!IsRunningCommandlet())
 		{
@@ -565,14 +566,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("PListEditor"));
-		}
-		
-		//check if we need to load behavior tree editor module (it could be loaded earlier) 
-		bool bBehaviorTreeEditorEnabled = false;
-		GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
-		if ( (GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor || bBehaviorTreeEditorEnabled) && UBehaviorTreeManager::IsBehaviorTreeUsageEnabled() && !FModuleManager::Get().IsModuleLoaded(TEXT("BehaviorTreeEditor")))
-		{
-			FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 		}
 
 		bool bEnvironmentQueryEditor = false;

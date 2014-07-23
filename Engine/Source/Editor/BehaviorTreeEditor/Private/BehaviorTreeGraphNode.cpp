@@ -20,6 +20,7 @@ UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitial
 	bHighlightInSearchRange0 = false;
 	bHighlightInSearchRange1 = false;
 	bHighlightInSearchTree = false;
+	bHighlightChildNodeIndices = false;
 	bRootLevel = false;
 	bInjectedNode = false;
 	bHasObserverError = false;
