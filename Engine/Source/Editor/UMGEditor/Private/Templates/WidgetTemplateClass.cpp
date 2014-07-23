@@ -11,7 +11,7 @@ FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 {
 }
 
-FText FWidgetTemplateClass::GetCategory()
+FText FWidgetTemplateClass::GetCategory() const
 {
 	if ( Category.IsEmpty() )
 	{
