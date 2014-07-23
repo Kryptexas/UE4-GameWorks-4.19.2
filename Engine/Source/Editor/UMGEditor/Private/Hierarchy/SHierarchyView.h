@@ -4,6 +4,7 @@
 
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
+#include "TreeFilterHandler.h"
 
 //TODO rename SUMGEditorHierarchy
 
@@ -14,7 +15,7 @@
 class SHierarchyView : public SCompoundWidget
 {
 public:
-	typedef TTextFilter< const UWidget* > WidgetTextFilter;
+	typedef TTextFilter< UWidget* > WidgetTextFilter;
 
 public:
 	SLATE_BEGIN_ARGS( SHierarchyView ){}
@@ -72,36 +73,27 @@ private:
 	FText GetSearchText() const;
 
 	/** Transforms the widget into a searchable string */
-	void TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array);
-
-	/** Builds a filterable set by recursing through the widget hierarchy */
-	bool FilterWidgetHierarchy(UWidget* CurrentWidget);
+	void TransformWidgetToString(UWidget* Widget, OUT TArray< FString >& Array);
 
 private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 
-	/** The tree item source.  We only ever have one root widget, but the tree expects an array. */
+	/** Handles filtering the hierarchy based on an IFilter. */
+	TSharedPtr<TreeFilterHandler<UWidget*>> FilterHandler;
+
+	/** The source root widgets for the tree. */
 	TArray< UWidget* > RootWidgets;
+
+	/** The root widgets which are actually displayed by the TreeView which will be managed by the TreeFilterHandler. */
+	TArray< UWidget* > TreeRootWidgets;
 
 	/** The widget hierarchy slate treeview widget */
 	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
 
 	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
-
-	/** The set of widgets currently passing the filter.  Used to quickly filter children when the tree is expanded lazily. */
-	TSet< UWidget* > WidgetsPassingFilter;
-
-	/**
-	  * A cache of the expanded items.  We store this off before a user filters the list so that we can 
-	  * restore the expansion state after the filter is cleared.
-	  */
-	TSet< UWidget* > CachedExpandedWidgets;
-
-	/** Caches a value to know if a filter is currently active. */
-	bool bIsFilterActive;
 
 	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;

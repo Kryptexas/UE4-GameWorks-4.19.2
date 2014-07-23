@@ -25,6 +25,10 @@ class SPaletteViewItem : public SCompoundWidget
 public:
 
 	SLATE_BEGIN_ARGS(SPaletteViewItem) {}
+
+		/** The current text to highlight */
+		SLATE_ATTRIBUTE(FText, HighlightText)
+
 	SLATE_END_ARGS()
 
 	/**
@@ -56,6 +60,7 @@ public:
 			[
 				SNew(STextBlock)
 				.Text(Template->Name)
+				.HighlightText(InArgs._HighlightText)
 			]
 		];
 	}
@@ -72,6 +77,11 @@ public:
 		return Template->Name;
 	}
 
+	virtual FString GetFilterString() const
+	{
+		return Template->Name.ToString();
+	}
+
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
@@ -79,6 +89,7 @@ public:
 			.OnDragDetected(this, &FWidgetTemplateViewModel::OnDraggingWidgetTemplateItem)
 			[
 				SNew(SPaletteViewItem, Template)
+				.HighlightText(OwnerView, &SPaletteView::GetSearchText)
 			];
 	}
 
@@ -87,6 +98,7 @@ public:
 		return FReply::Handled().BeginDragDrop(FWidgetTemplateDragDropOp::New(Template));
 	}
 
+	SPaletteView* OwnerView;
 	TSharedPtr<FWidgetTemplate> Template;
 };
 
@@ -96,6 +108,13 @@ public:
 	virtual FText GetName() const
 	{
 		return GroupName;
+	}
+
+	virtual FString GetFilterString() const
+	{
+		// Headers should never be included in filtering to avoid showing a header with all of
+		// it's widgets filtered out, so return an empty filter string.
+		return TEXT("");
 	}
 	
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
@@ -128,15 +147,25 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 
 	UBlueprint* BP = InBlueprintEditor->GetBlueprintObj();
 
+	WidgetFilter = MakeShareable(new WidgetViewModelTextFilter(
+		WidgetViewModelTextFilter::FItemToStringArray::CreateSP(this, &SPaletteView::TransformWidgetViewModelToString)));
+
 	BuildWidgetList();
 
 	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SPaletteView::OnObjectPropertyChanged);
 
+	FilterHandler = MakeShareable(new PaletteFilterHandler());
+	FilterHandler->SetFilter(WidgetFilter.Get());
+	FilterHandler->SetRootItems(&WidgetViewModels, &TreeWidgetViewModels);
+	FilterHandler->SetGetChildrenDelegate(PaletteFilterHandler::FOnGetChildren::CreateRaw(this, &SPaletteView::OnGetChildren));
+
 	SAssignNew(WidgetTemplatesView, STreeView< TSharedPtr<FWidgetViewModel> >)
 	.SelectionMode(ESelectionMode::Single)
 	.OnGenerateRow(this, &SPaletteView::OnGenerateWidgetTemplateItem)
-	.OnGetChildren(this, &SPaletteView::OnGetChildren)
-	.TreeItemsSource(&WidgetViewModels);
+	.OnGetChildren(FilterHandler.ToSharedRef(), &PaletteFilterHandler::OnGetFilteredChildren)
+	.TreeItemsSource(&TreeWidgetViewModels);
+
+	FilterHandler->SetTreeView(WidgetTemplatesView.Get());
 
 	ChildSlot
 	[
@@ -162,18 +191,34 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	];
 
 	LoadItemExpanssion();
+	bRefreshRequested = true;
 }
 
 SPaletteView::~SPaletteView()
 {
 	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+
+	// If the filter is enabled, disable it before saving the expanded items since
+	// filtering expands all items by default.
+	if (FilterHandler->GetIsEnabled())
+	{
+		FilterHandler->SetIsEnabled(false);
+		FilterHandler->RefreshAndFilterTree();
+	}
 	SaveItemExpansion();
 }
 
 void SPaletteView::OnSearchChanged(const FText& InFilterText)
 {
 	bRefreshRequested = true;
+	FilterHandler->SetIsEnabled(!InFilterText.IsEmpty());
+	WidgetFilter->SetRawFilterText(InFilterText);
 	SearchText = InFilterText;
+}
+
+FText SPaletteView::GetSearchText() const
+{
+	return SearchText;
 }
 
 void SPaletteView::LoadItemExpanssion()
@@ -227,7 +272,7 @@ void SPaletteView::BuildWidgetList()
 		{
 			TSharedPtr<FWidgetTemplateViewModel> TemplateViewModel = MakeShareable(new FWidgetTemplateViewModel());
 			TemplateViewModel->Template = Template;
-
+			TemplateViewModel->OwnerView = this;
 			Header->Children.Add(TemplateViewModel);
 		}
 
@@ -286,6 +331,20 @@ void SPaletteView::OnGetChildren(TSharedPtr<FWidgetViewModel> Item, TArray< TSha
 TSharedRef<ITableRow> SPaletteView::OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return Item->BuildRow(OwnerTable);
+}
+
+void SPaletteView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if (bRefreshRequested)
+	{
+		bRefreshRequested = false;
+		FilterHandler->RefreshAndFilterTree();
+	}
+}
+
+void SPaletteView::TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array)
+{
+	Array.Add(WidgetViewModel->GetFilterString());
 }
 
 #undef LOCTEXT_NAMESPACE

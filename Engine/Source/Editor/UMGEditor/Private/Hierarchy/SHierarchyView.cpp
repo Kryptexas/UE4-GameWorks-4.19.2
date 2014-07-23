@@ -21,21 +21,27 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 {
 	BlueprintEditor = InBlueprintEditor;
 	bRefreshRequested = false;
-	bIsFilterActive = false;
 
 	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SHierarchyView::TransformWidgetToString)));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SHierarchyView::OnBlueprintChanged);
 
+	FilterHandler = MakeShareable(new TreeFilterHandler<UWidget*>());
+	FilterHandler->SetFilter(SearchBoxWidgetFilter.Get());
+	FilterHandler->SetRootItems(&RootWidgets, &TreeRootWidgets);
+	FilterHandler->SetGetChildrenDelegate(TreeFilterHandler<UWidget*>::FOnGetChildren::CreateRaw(this, &SHierarchyView::WidgetHierarchy_OnGetChildren));
+
 	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
 	.ItemHeight(20.0f)
 	.SelectionMode(ESelectionMode::Single)
-	.OnGetChildren(this, &SHierarchyView::WidgetHierarchy_OnGetChildren)
+	.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler<UWidget*>::OnGetFilteredChildren)
 	.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 	.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
 	.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
-	.TreeItemsSource(&RootWidgets);
+	.TreeItemsSource(&TreeRootWidgets);
+
+	FilterHandler->SetTreeView(WidgetTreeView.Get());
 
 	ChildSlot
 	[
@@ -105,7 +111,7 @@ FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEve
 	return FReply::Unhandled();
 }
 
-void SHierarchyView::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
+void SHierarchyView::TransformWidgetToString(UWidget* Widget, OUT TArray< FString >& Array)
 {
 	Array.Add( Widget->GetLabel() );
 }
@@ -113,6 +119,7 @@ void SHierarchyView::TransformWidgetToString(const UWidget* Widget, OUT TArray< 
 void SHierarchyView::OnSearchChanged(const FText& InFilterText)
 {
 	bRefreshRequested = true;
+	FilterHandler->SetIsEnabled(!InFilterText.IsEmpty());
 	SearchBoxWidgetFilter->SetRawFilterText(InFilterText);
 }
 
@@ -210,11 +217,6 @@ void SHierarchyView::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UW
 			UWidget* Child = Widget->GetChildAt(i);
 			if ( Child )
 			{
-				if ( bIsFilterActive && !WidgetsPassingFilter.Contains(Child) )
-				{
-					continue;
-				}
-
 				OutChildren.Add(Child);
 			}
 		}
@@ -242,12 +244,11 @@ void SHierarchyView::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, E
 FReply SHierarchyView::HandleDeleteSelected()
 {
 	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-	//TArray<UWidget*> SelectedWidgets = WidgetTreeView->GetSelectedItems();
 
-	// Remove the selected items from the widget cache
-	for ( FWidgetReference& Item : SelectedWidgets )
+	// Remove the selected items from the filter cache
+	for (FWidgetReference& Item : SelectedWidgets)
 	{
-		CachedExpandedWidgets.Remove(Item.GetTemplate());
+		FilterHandler->RemoveCachedItem(Item.GetTemplate());
 	}
 
 	FWidgetBlueprintEditorUtils::DeleteWidgets(GetBlueprint(), SelectedWidgets);
@@ -255,89 +256,16 @@ FReply SHierarchyView::HandleDeleteSelected()
 	return FReply::Handled();
 }
 
-bool SHierarchyView::FilterWidgetHierarchy(UWidget* CurrentWidget)
-{
-	bool bAnyChildrenPass = false;
-
-	// Iterate over children and check to see if any of them pass the current filter
-	UPanelWidget* Widget = Cast<UPanelWidget>(CurrentWidget);
-	if ( Widget )
-	{
-		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
-		{
-			UWidget* Child = Widget->GetChildAt(i);
-			if ( Child )
-			{
-				bAnyChildrenPass |= FilterWidgetHierarchy(Child);
-			}
-		}
-	}
-
-	// Check to see if I pass the filter
-	const bool bWidgetPass = SearchBoxWidgetFilter->PassesFilter(CurrentWidget);
-
-	// If this particular widget passes the filter, expand every widget leading up to it.
-	if ( bWidgetPass )
-	{
-		ExpandPathToWidget(CurrentWidget);
-	}
-
-	// If either the widget or the children pass, add the current widget
-	if ( bWidgetPass || bAnyChildrenPass )
-	{
-		WidgetsPassingFilter.Add(CurrentWidget);
-		return true;
-	}
-
-	return false;
-}
-
 void SHierarchyView::RefreshTree()
 {
-	RootWidgets.Reset();
-
+	RootWidgets.Empty();
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-
-	if ( Blueprint->WidgetTree->RootWidget )
+	if (Blueprint->WidgetTree->RootWidget)
 	{
-		bool bRootPassed = true;
-
-		const bool bWillFilterBeActive = !SearchBoxWidgetFilter->GetRawFilterText().IsEmpty();
-
-		// Save the expansion state when the filter becomes active
-		if ( !bIsFilterActive && bWillFilterBeActive )
-		{
-			CachedExpandedWidgets.Empty();
-			WidgetTreeView->GetExpandedItems(CachedExpandedWidgets);
-		}
-		// Restore the expansion state when the filter is removed
-		else if ( bIsFilterActive && !bWillFilterBeActive )
-		{
-			WidgetTreeView->ClearExpandedItems();
-			for ( UWidget* ExpandedWidget : CachedExpandedWidgets )
-			{
-				WidgetTreeView->SetItemExpansion(ExpandedWidget, true);
-			}
-			CachedExpandedWidgets.Empty();
-		}
-		
-		bIsFilterActive = bWillFilterBeActive;
-
-		WidgetsPassingFilter.Empty();
-		if ( bIsFilterActive )
-		{
-			bRootPassed = FilterWidgetHierarchy(Blueprint->WidgetTree->RootWidget);
-		}
-
-		if ( bRootPassed )
-		{
-			RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
-		}
+		RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
 	}
-
-	WidgetTreeView->RequestTreeRefresh();
+	FilterHandler->RefreshAndFilterTree();
 }
-
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?
 

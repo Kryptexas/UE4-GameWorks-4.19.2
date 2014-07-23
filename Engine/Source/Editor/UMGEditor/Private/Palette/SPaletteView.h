@@ -4,6 +4,7 @@
 
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
+#include "TreeFilterHandler.h"
 
 #include "WidgetTemplate.h"
 
@@ -12,6 +13,9 @@ class FWidgetViewModel : public TSharedFromThis<FWidgetViewModel>
 {
 public:
 	virtual FText GetName() const = 0;
+
+	/** Get the string which should be used for filtering the item. */
+	virtual FString GetFilterString() const = 0;
 
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) = 0;
 
@@ -24,11 +28,19 @@ public:
 class SPaletteView : public SCompoundWidget
 {
 public:
+	typedef TTextFilter<TSharedPtr<FWidgetViewModel>> WidgetViewModelTextFilter;
+
+public:
 	SLATE_BEGIN_ARGS( SPaletteView ){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor);
 	virtual ~SPaletteView();
+	
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+
+	/** Gets the text currently displayed in the search box. */
+	FText GetSearchText() const;
 
 private:
 	UWidgetBlueprint* GetBlueprint() const;
@@ -49,15 +61,30 @@ private:
 
 	void AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template);
 
+	/** Transforms the widget view model into a searchable string. */
+	void TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array);
+
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+
+	/** Handles filtering the palette based on an IFilter. */
+	typedef TreeFilterHandler<TSharedPtr<FWidgetViewModel>> PaletteFilterHandler;
+	TSharedPtr<PaletteFilterHandler> FilterHandler;
 
 	typedef TArray< TSharedPtr<FWidgetTemplate> > WidgetTemplateArray;
 	TMap< FString, WidgetTemplateArray > WidgetTemplateCategories;
 
 	typedef TArray< TSharedPtr<FWidgetViewModel> > ViewModelsArray;
+	
+	/** The source root view models for the tree. */
 	ViewModelsArray WidgetViewModels;
 
+	/** The root view models which are actually displayed by the TreeView which will be managed by the TreeFilterHandler. */
+	ViewModelsArray TreeWidgetViewModels;
+
 	TSharedPtr< STreeView< TSharedPtr<FWidgetViewModel> > > WidgetTemplatesView;
+
+	/** The filter instance which is used by the TreeFilterHandler to filter the TreeView. */
+	TSharedPtr<WidgetViewModelTextFilter> WidgetFilter;
 
 	bool bRefreshRequested;
 	FText SearchText;
