@@ -21,7 +21,7 @@ enum ETextureObjectSets
 };
 
 /** Statistics page for textures. */
-UCLASS(Transient, MinimalAPI, meta=( DisplayName = "Texture Stats", TObjectSetType = "ETextureObjectSets" ) )
+UCLASS(Transient, MinimalAPI, meta=( DisplayName = "Texture Stats", ObjectSetType = "ETextureObjectSets" ) )
 class UTextureStats : public UObject
 {
 	GENERATED_UCLASS_BODY()
