@@ -8,6 +8,7 @@
 class SToolTip;
 class SViewport;
 class SWindow;
+class FHittestGrid;
 
 
 /** A Delegate for querying whether source code access is possible */
@@ -1070,6 +1071,11 @@ private:
 	FSlateApplication();
 
 private:
+	/**
+	 * Will be invoked when the size of the geometry of the virtual
+	 * desktop changes (e.g. resolution change or monitors re-arranged)
+	 */
+	void OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDisplayMetric);
 
 	/** Application singleton */
 	static TSharedPtr< FSlateApplication > CurrentApplication;
@@ -1357,4 +1363,17 @@ private:
 
 	/** The icon to use on application windows */
 	const FSlateBrush *AppIcon;
+
+	//
+	// Hittest 2.0
+	//
+
+	// The rectangle that bounds all the physical monitors given their arrangement.
+	// Info comes from the native platform.
+	// e.g. On windows the origin (coordinates X=0, Y=0) is the upper left of the primary monitor,
+	// but there could be another monitor on any of the sides.
+	FSlateRect VirtualDesktopRect;
+
+	// Hittest acceleration structure. Filled out during Paint.
+	TSharedRef<FHittestGrid> HittestGrid;
 };

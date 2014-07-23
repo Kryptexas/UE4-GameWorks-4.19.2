@@ -30,19 +30,19 @@ void SThrobber::ConstructPieces()
 	for (int32 PieceIndex = 0; PieceIndex < NumPieces; ++PieceIndex)
 	{
 		HBox->AddSlot()
-			.AutoWidth()
+		.AutoWidth()
+		[
+			SNew(SBorder)
+			.BorderImage(FStyleDefaults::GetNoBrush())
+			.ContentScale(this, &SThrobber::GetPieceScale, PieceIndex)
+			.ColorAndOpacity(this, &SThrobber::GetPieceColor, PieceIndex)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
 			[
-				SNew(SBorder)
-				.BorderImage(FStyleDefaults::GetNoBrush())
-				.ContentScale(this, &SThrobber::GetPieceScale, PieceIndex)
-				.ColorAndOpacity(this, &SThrobber::GetPieceColor, PieceIndex)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-					.Image(this, &SThrobber::GetPieceBrush)
-				]
-			];
+				SNew(SImage)
+				.Image(this, &SThrobber::GetPieceBrush)
+			]
+		];
 	}
 }
 
@@ -133,7 +133,7 @@ void SCircularThrobber::ConstructSequence()
 	Sequence.Play();
 }
 
-int32 SCircularThrobber::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SCircularThrobber::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FColor FinalColorAndOpacity( InWidgetStyle.GetColorAndOpacityTint() * PieceImage->GetTint( InWidgetStyle ) );
 	

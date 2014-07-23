@@ -88,7 +88,7 @@ public:
 	virtual TSharedPtr<class FComplexPropertyNode> GetRootNode() override;
 
 	// Begin SWidget interface
-	virtual int32 OnPaint(FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const override;
 	// End SWidget interface
 protected:
 	virtual void CustomUpdatePropertyMap() override;

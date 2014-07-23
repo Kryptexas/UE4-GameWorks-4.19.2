@@ -32,6 +32,14 @@ class SLATECORE_API FArrangedChildren
 	{
 	}
 
+	// @todo hittest2.0 : we should get rid of this eventually.
+	static FArrangedChildren Hittest2_FromArray(const TArray<FArrangedWidget>& InWidgets)
+	{
+		FArrangedChildren Temp( EVisibility::All );
+		Temp.Array = InWidgets;
+		return Temp;
+	}
+
 	/** Reverse the order of the arranged children */
 	void Reverse()
 	{

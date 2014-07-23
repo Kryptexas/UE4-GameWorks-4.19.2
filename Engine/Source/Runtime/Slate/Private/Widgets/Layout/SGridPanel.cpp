@@ -29,13 +29,10 @@ void SGridPanel::Construct( const FArguments& InArgs )
 
 	ColFillCoefficients = InArgs.ColFillCoefficients;
 	RowFillCoefficients = InArgs.RowFillCoefficients;
-
-//	check( ColFillCoefficients.Num() <= Columns.Num() );
-//	check( RowFillCoefficients.Num() <= Rows.Num() );
 }
 
 
-int32 SGridPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
@@ -69,6 +66,7 @@ int32 SGridPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 			}
 
 			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
+				Args.WithNewParent(this),
 				CurWidget.Geometry,
 				ChildClipRect,
 				OutDrawElements,

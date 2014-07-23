@@ -61,20 +61,7 @@ public:
 		return FVector2D(128, 128);
 	}
 
-	/**
-	 * The widget should respond by populating the OutDrawElements array with FDrawElements 
-	 * that represent it and any of its children.
-	 *
-	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
-	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
-	 * @param LayerId           The Layer onto which this widget should be rendered.
-	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- 	 * @param bParentEnabled	True if the parent of this widget is enabled.
-	 *
-	 * @return The maximum layer ID attained by this widget or any of its children.
-	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		if( OnPaintHandler.IsBound() )
 		{
@@ -91,7 +78,7 @@ public:
 			);
 		}
 
-		return SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+		return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 	}
 
 private:
@@ -823,6 +810,8 @@ protected:
 
 };
 
+#if WITH_FANCY_TEXT
+
 class SRichTextTest : public SCompoundWidget
 {
 public:
@@ -1543,6 +1532,8 @@ private:
 	TSharedPtr< SRichTextBlock > InteractiveRichText;
 };
 
+#endif //WITH_FANCY_TEXT
+
 
 class STextEditTest : public SCompoundWidget
 {
@@ -1645,6 +1636,8 @@ public:
 				[
 					SAssignNew(ErrorText, SErrorText)
 				]
+
+#if WITH_FANCY_TEXT
 				+SVerticalBox::Slot().FillHeight(1)
 				[
 					SNew(SHorizontalBox)
@@ -1732,6 +1725,7 @@ public:
 						]
 					]
 				]
+				#endif //WITH_FANCY_TEXT
 			]
 		];
 	}
@@ -1837,7 +1831,11 @@ protected:
 
 	TSharedPtr<SEditableTextBox> NumericInput;
 
+#if WITH_FANCY_TEXT
+
 	TSharedPtr<SRichTextBlock> RichTextBlock;
+
+#endif //WITH_FANCY_TEXT
 
 	TSharedPtr<STextEntryPopup> PopupInput;
 
@@ -2531,8 +2529,8 @@ class SFxTest : public SCompoundWidget
 							]
 							+SHorizontalBox::Slot() .AutoWidth()
 							[
-								SNew(STextBlock)
-								.Text( LOCTEXT("FxTextContentLabel", "Content" ) )
+								SNew(SButton)
+								.Text( LOCTEXT("FxTextContentLabel", "Click Me!" ) )
 							]
 						]
 					]
@@ -3259,7 +3257,11 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. Label( LOCTEXT("RichTextTestTab", "Rich Text") )
 			. ToolTipText( LOCTEXT( "RichTextTestTabToolTip", "Switches to the Rich Text tab, where you can test the various rich text features." ) )
 			[
+				#if WITH_FANCY_TEXT
 				SNew( SRichTextTest )
+				#else
+				SNew( SSpacer )
+				#endif //WITH_FANCY_TEXT
 			];
 	}
 	else if (TabIdentifier == FName(TEXT("EditableTextTab")))

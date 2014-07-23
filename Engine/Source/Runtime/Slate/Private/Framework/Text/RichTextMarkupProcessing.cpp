@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+
+#if WITH_FANCY_TEXT
+
 #include "RichTextMarkupProcessing.h"
 
 
@@ -291,3 +294,5 @@ void FRichTextMarkupProcessing::HandleEscapeSequences(const FString& Input, TArr
 		LineParseResults.Range.EndIndex = ConcatenatedUnescapedLines.Len();
 	}
 }
+
+#endif //WITH_FANCY_TEXT

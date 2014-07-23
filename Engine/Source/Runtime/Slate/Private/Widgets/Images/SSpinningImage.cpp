@@ -14,7 +14,8 @@ void SSpinningImage::Construct(const FArguments& InArgs)
 	Sequence.Play();
 }
 
-int32 SSpinningImage::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+// Override SImage's OnPaint to draw rotated
+int32 SSpinningImage::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
 

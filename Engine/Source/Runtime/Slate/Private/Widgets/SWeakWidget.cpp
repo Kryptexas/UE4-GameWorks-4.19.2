@@ -44,7 +44,7 @@ FChildren* SWeakWidget::GetChildren()
 	return &WeakChild;
 }
 
-int32 SWeakWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Just draw the children.
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
@@ -56,7 +56,9 @@ int32 SWeakWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 		check( ArrangedChildren.Num() == 1 );
 		FArrangedWidget& TheChild = ArrangedChildren(0);
 
-		return TheChild.Widget->Paint( TheChild.Geometry, 
+		return TheChild.Widget->Paint( 
+			Args.WithNewParent(this), 
+			TheChild.Geometry, 
 			MyClippingRect, 
 			OutDrawElements, 
 			LayerId + 1,

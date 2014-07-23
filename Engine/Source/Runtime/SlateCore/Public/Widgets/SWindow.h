@@ -625,6 +625,9 @@ protected:
 	/** Get the color used to tint the window outline */
 	FSlateColor GetWindowOutlineColor() const;
 
+	/** Windows that are not hittestable should not show up in the hittest grid. */
+	EVisibility SWindow::GetWindowVisibility() const;
+
 protected:
 
 	/** Title of the window, displayed in the title bar as well as potentially in the task bar (Windows platform) */

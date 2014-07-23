@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 /**
  * Editable text box widget
  */
@@ -173,3 +175,6 @@ private:
 	const FSlateBrush* GetBorderImage() const;
 
 };
+
+
+#endif //WITH_FANCY_TEXT

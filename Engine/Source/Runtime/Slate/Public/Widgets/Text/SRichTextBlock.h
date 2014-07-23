@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 /**
  * A rich static text widget. 
  * Through the use of markup and text decorators, text with different styles, embedded image and widgets can be achieved.
@@ -95,12 +97,10 @@ public:
 		return FHyperlinkDecorator::Create( Id, FSlateHyperlinkRun::FOnClick::CreateSP( InUserObjectPtr, NavigateFunc ) );
 	}
 
-	/************************************************************************/
-	/* SWidget                                                              */
-	/************************************************************************/
+	// Begin SWidget Interface
 	void Construct( const FArguments& InArgs );
 
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	virtual void CacheDesiredSize() override;
@@ -109,6 +109,7 @@ public:
 	virtual FChildren* GetChildren() override;
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	// End SWidget Interface
 
 	/**
 	 * Gets the text assigned to this text block
@@ -161,3 +162,5 @@ private:
 
 	TSharedPtr< class IRichTextMarkupParser > Parser;
 };
+
+#endif //WITH_FANCY_TEXT

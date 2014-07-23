@@ -1025,6 +1025,15 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
+		case WM_DISPLAYCHANGE:
+			{
+				// Slate needs to know when desktop size changes.
+				FDisplayMetrics DisplayMetrics;
+				GetDisplayMetrics( DisplayMetrics );
+				BroadcastDisplayMetricsChanged(DisplayMetrics);
+			}
+			break;
+
 		case WM_GETDLGCODE:
 			{
 				// Slate wants all keys and messages.

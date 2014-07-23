@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 #include "ITextDecorator.h"
 
 class SLATE_API FWidgetDecorator : public ITextDecorator
@@ -75,3 +77,6 @@ private:
 	FString Id;
 	FSlateHyperlinkRun::FOnClick NavigateDelegate;
 };
+
+
+#endif //WITH_FANCY_TEXT

@@ -97,6 +97,7 @@ public:
 	 * The widget should respond by populating the OutDrawElements array with FDrawElements 
 	 * that represent it and any of its children.
 	 *
+	 * @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
 	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
 	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
 	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
@@ -106,7 +107,7 @@ public:
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	int32 Paint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+	int32 Paint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 
 	/**
 	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
@@ -696,6 +697,7 @@ private:
 	* that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
 	* during OnPaint.
 	*
+	* @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
 	* @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
 	* @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
 	* @param OutDrawElements   A list of FDrawElements to populate with the output.
@@ -705,7 +707,7 @@ private:
 	*
 	* @return The maximum layer ID attained by this widget or any of its children.
 	*/
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
 
 	/**
 	* Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
@@ -755,4 +757,13 @@ private:
 
 	/** Is this widget hovered? */
 	bool bIsHovered;
+
+	// @see UseLegacyHittest()
+	static int32 bUseLegacyHittest;
+	static FAutoConsoleVariableRef CVarUseLegacyHittest;
+
+public:
+	/** For perf testing. Old hittest schema does not support widgets outside their parents' bounds. */
+	static bool UseLegacyHittest();
+
 };

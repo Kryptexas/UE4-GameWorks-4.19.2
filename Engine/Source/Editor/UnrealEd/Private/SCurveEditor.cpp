@@ -371,7 +371,7 @@ bool SCurveEditor::GetInputEditEnabled() const
 	return (SelectedKeys.Num() == 1);
 }
 
-int32 SCurveEditor::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -463,7 +463,7 @@ int32 SCurveEditor::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 	}
 
 	// Paint children
-	SCompoundWidget::OnPaint(CurveAreaGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SCompoundWidget::OnPaint(Args, CurveAreaGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	PaintGridLines(CurveAreaGeometry, ScaleInfo, OutDrawElements, LayerId++, MyClippingRect, DrawEffects);
 

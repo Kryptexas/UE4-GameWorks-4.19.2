@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 /**
  */
 class SLATE_API IRichTextMarkupParser
@@ -18,3 +20,6 @@ public:
 	virtual void Process(TArray<FTextLineParseResults>& Results, const FString& Input, FString& Output) = 0;
 
 };
+
+
+#endif //WITH_FANCY_TEXT

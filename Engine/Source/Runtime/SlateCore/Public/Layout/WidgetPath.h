@@ -44,6 +44,13 @@ public:
 	
 	}
 
+	FWidgetPath( const TArray<FArrangedWidget>& InWidgetPath )
+	: Widgets( FArrangedChildren::Hittest2_FromArray(InWidgetPath) )
+	, TopLevelWindow( InWidgetPath.Num() > 0 ? StaticCastSharedRef<SWindow>(InWidgetPath[0].Widget) : TSharedPtr<SWindow>(nullptr) )
+	{
+	
+	}
+
 	/**
 	 * @param MarkerWidget Copy the path up to and including this widget 
 	 *

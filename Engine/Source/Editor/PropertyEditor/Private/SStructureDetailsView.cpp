@@ -204,7 +204,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	UpdatePropertyMap();
 }
 
-int32 SStructureDetailsView::OnPaint(FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const
+int32 SStructureDetailsView::OnPaint(const FPaintArgs& Args, FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 LayerIdOut = LayerId;
 	// if the details table is still in need of a refresh, then wait for it to
@@ -215,7 +215,7 @@ int32 SStructureDetailsView::OnPaint(FGeometry const& AllottedGeometry, FSlateRe
 	//        better, lower level solution (this could happen for other detail panels)
 	if (!DetailTree->IsPendingRefresh())
 	{
-		LayerIdOut = SDetailsViewBase::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		LayerIdOut = SDetailsViewBase::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 	
 	return LayerIdOut;

@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+
+#if WITH_FANCY_TEXT
+
 #include "AutomationTest.h"
 
 #include "../Text/RichTextMarkupProcessing.h"
@@ -381,3 +384,5 @@ bool FRTFProcessingTest::RunTest (const FString& Parameters)
 #undef LOCTEXT_NAMESPACE 
 
 PRAGMA_ENABLE_OPTIMIZATION
+
+#endif //WITH_FANCY_TEXT

@@ -266,6 +266,9 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->InitialDesiredScreenPosition = WindowPosition;
 	this->InitialDesiredSize = WindowSize;
 
+	// Window visibility is currently driven by whether the window is interactive.
+	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );
+
 	this->ConstructWindowInternals( bCreateTitleBar );
 	this->SetContent( InArgs._Content.Widget );
 }
@@ -338,7 +341,6 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	//                  size reported here will be too large!
 	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize) + SWindowDefs::WindowBorderSize.GetDesiredSize();
 }
-
 
 void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 {
@@ -469,6 +471,7 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 		];
 	}
 }
+
 
 /** Are any of our child windows active? */
 bool SWindow::HasActiveChildren() const
@@ -773,6 +776,13 @@ const FSlateBrush* SWindow::GetWindowOutline() const
 FSlateColor SWindow::GetWindowOutlineColor() const
 {
 	return Style->OutlineColor;
+}
+
+EVisibility SWindow::GetWindowVisibility() const
+{
+	return ( AcceptsInput() )
+		? EVisibility::Visible
+		: EVisibility::HitTestInvisible;
 }
 
 void SWindow::UpdateMorphTargetShape( const FSlateRect& TargetShape )
@@ -1634,6 +1644,7 @@ SWindow::SWindow()
 	, bShouldShowWindowContentDuringOverlay( false )
 	, ExpectedMaxWidth( INDEX_NONE )
 	, ExpectedMaxHeight( INDEX_NONE )
+	, TitleBar()
 {
 }
 

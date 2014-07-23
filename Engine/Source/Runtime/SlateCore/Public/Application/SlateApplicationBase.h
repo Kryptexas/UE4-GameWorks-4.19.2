@@ -6,6 +6,8 @@
 
 #pragma once
 
+class FHittestGrid;
+
 
 /**
  * Interface for window title bars.

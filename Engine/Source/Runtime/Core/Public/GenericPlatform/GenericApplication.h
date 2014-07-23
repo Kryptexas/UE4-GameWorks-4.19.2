@@ -270,13 +270,12 @@ namespace EWindowTitleAlignment
 	};
 }
 
-
 /**
  * Generic platform application interface
  */
 class GenericApplication 
 {
-public:	
+public:
 
 	GenericApplication( const TSharedPtr< ICursor >& InCursor )
 		: Cursor( InCursor )
@@ -330,6 +329,11 @@ public:
 
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const { return false; }
 
+	DECLARE_EVENT_OneParam(GenericApplication, FOnDisplayMetricsChanged, const FDisplayMetrics&);
+	
+	/** Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged. */
+	FOnDisplayMetricsChanged& OnDisplayMetricsChanged(){ return OnDisplayMetricsChangedEvent; }
+	
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { }
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { GetDisplayMetrics(OutDisplayMetrics); }
@@ -362,4 +366,10 @@ public:
 protected:
 
 	TSharedRef< class FGenericApplicationMessageHandler > MessageHandler;
+	
+	/** Trigger the OnDisplayMetricsChanged event with the argument 'InMetrics' */
+	void BroadcastDisplayMetricsChanged( const FDisplayMetrics& InMetrics ){ OnDisplayMetricsChangedEvent.Broadcast( InMetrics ); }
+	
+	// Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged.
+	FOnDisplayMetricsChanged OnDisplayMetricsChangedEvent;
 };
