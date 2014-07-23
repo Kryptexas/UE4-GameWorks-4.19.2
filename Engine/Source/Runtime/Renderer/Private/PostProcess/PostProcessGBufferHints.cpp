@@ -76,6 +76,14 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessGBufferHintsPS,TEXT("PostProcessGBufferHints"),TEXT("MainPS"),SF_Pixel);
 
+
+FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints()
+{
+	// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+	GSceneRenderTargets.AdjustGBufferRefCount(1);
+}
+
+
 void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(GBufferHints, DEC_SCENE_ITEMS);
@@ -172,6 +180,9 @@ void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Con
 	Canvas.Flush_RenderThread(Context.RHICmdList);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// AdjustGBufferRefCount(1) call is done in constructor
+	GSceneRenderTargets.AdjustGBufferRefCount(-1);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessGBufferHints::ComputeOutputDesc(EPassOutputId InPassOutputId) const
