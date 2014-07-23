@@ -4328,6 +4328,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("ForceFeedbackEffect"),
 			TEXT("InterpData"),
 			TEXT("KillZVolume"),
+			TEXT("Landscape"),
 			TEXT("LevelStreamingVolume"),
 			TEXT("LightmassCharacterIndirectDetailVolume"),
 			TEXT("LightmassImportanceVolume"),
