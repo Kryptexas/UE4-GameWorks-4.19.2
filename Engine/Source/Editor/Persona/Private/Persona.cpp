@@ -943,6 +943,14 @@ void FPersona::CreateDefaultCommands()
 	// now add default commands
 	FPersonaCommands::Register();
 
+	// save all animation assets
+	ToolkitCommands->MapAction(FPersonaCommands::Get().SaveAnimationAssets,
+		FExecuteAction::CreateSP(this, &FPersona::SaveAnimationAssets_Execute),
+		FCanExecuteAction::CreateSP(this, &FPersona::CanSaveAnimationAssets),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &FPersona::IsRecordAvailable)
+		);
+
 	// record animation
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RecordAnimation,
 		FExecuteAction::CreateSP( this, &FPersona::RecordAnimation ),
