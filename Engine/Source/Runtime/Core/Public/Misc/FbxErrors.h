@@ -87,7 +87,11 @@ struct CORE_API FFbxErrors
 
 	static FName SkeletalMesh_BonesAreMissingFromBindPose;
 
-	static FName SkeletalMesh_BuildingSkeletalMesh;
+	static FName SkeletalMesh_VertMissingInfluences;
+
+	static FName SkeletalMesh_SectionWithNoTriangle;
+
+	static FName SkeletalMesh_TooManyVertices;
 
 	static FName SkeletalMesh_FailedToCreatePhyscisAsset;
 

@@ -1259,12 +1259,17 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 		
 		TArray<FText> WarningMessages;
+		TArray<FName> WarningNames;
 		// Create actual rendering data.
-		if ( !MeshUtilities.BuildSkeletalMesh(ImportedResource->LODModels[0],SkeletalMesh->RefSkeleton,LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap, ImportOptions->bKeepOverlappingVertices, bShouldComputeNormals, bShouldComputeTangents, &WarningMessages ) )
+		if ( !MeshUtilities.BuildSkeletalMesh(ImportedResource->LODModels[0],SkeletalMesh->RefSkeleton,LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap, ImportOptions->bKeepOverlappingVertices, bShouldComputeNormals, bShouldComputeTangents, &WarningMessages, &WarningNames ) )
 		{
-			for (auto Message : WarningMessages)
+			if (WarningNames.Num() == WarningMessages.Num())
 			{
-				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, Message), FFbxErrors::SkeletalMesh_BuildingSkeletalMesh);
+				// temporary hack of message/names, should be one token or a struct
+				for(int32 MessageIdx = 0; MessageIdx<WarningMessages.Num(); ++MessageIdx)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, WarningMessages[MessageIdx]), WarningNames[MessageIdx]);
+				}
 			}
 
 			SkeletalMesh->MarkPendingKill();
@@ -1272,9 +1277,14 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 		else if (WarningMessages.Num() > 0)
 		{
-			for (auto Message : WarningMessages)
+			// temporary hack of message/names, should be one token or a struct
+			if(WarningNames.Num() == WarningMessages.Num())
 			{
-				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, Message), FFbxErrors::SkeletalMesh_BuildingSkeletalMesh);
+				// temporary hack of message/names, should be one token or a struct
+				for(int32 MessageIdx = 0; MessageIdx<WarningMessages.Num(); ++MessageIdx)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, WarningMessages[MessageIdx]), WarningNames[MessageIdx]);
+				}
 			}
 		}
 

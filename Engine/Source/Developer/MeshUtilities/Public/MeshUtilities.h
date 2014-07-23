@@ -150,7 +150,8 @@ public:
 		bool bKeepOverlappingVertices = false,
 		bool bComputeNormals = true,
 		bool bComputeTangents = true,
-		TArray<FText> * OutWarningMessages = NULL
+		TArray<FText> * OutWarningMessages = NULL,
+		TArray<FName> * OutWarningNames = NULL
 		) = 0;
 
 
