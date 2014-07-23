@@ -1355,7 +1355,10 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 
 	if( Desc.Len() && Desc != ShortName )
 	{
-		Desc += TEXT(" - ");
+		Desc += TEXT( " - " );
+	}
+	if( ShortName.Len() )
+	{
 		Desc += ShortName;
 	}
 
