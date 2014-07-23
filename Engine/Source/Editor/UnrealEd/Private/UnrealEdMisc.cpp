@@ -1353,10 +1353,10 @@ void FUnrealEdMisc::OnUserDefinedGestureChanged(const FUICommandInfo& CommandInf
 		FString GestureName = FString::Printf(TEXT("%s.%s"), *CommandInfo.GetBindingContext().ToString(), *CommandInfo.GetCommandName().ToString());
 
 		//@todo This shouldn't be using a localized value; GetInputText() [10/11/2013 justin.sargent]
-		FEngineAnalytics::GetProvider().RecordEvent(
-			TEXT("Editor.Usage.KeyboardShortcut"),
-			TEXT("Context"), GestureName,
-			TEXT("Shortcut"), CommandInfo.GetActiveGesture()->GetInputText().ToString());
+		TArray< FAnalyticsEventAttribute > GestureAttribs;
+		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), GestureName));
+		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveGesture()->GetInputText().ToString()));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), GestureAttribs);
 	}
 }
 

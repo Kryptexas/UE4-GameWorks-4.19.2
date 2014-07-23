@@ -719,10 +719,10 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 
 		if( FEngineAnalytics::IsAvailable() )
 		{
-			FEngineAnalytics::GetProvider().RecordEvent( 
-				TEXT("Editor.Modules.Recompile"),
-				TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration),
-				TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed"));
+			TArray< FAnalyticsEventAttribute > CompileAttribs;
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration)));
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed")));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Modules.Recompile"), CompileAttribs);
 		}
 	}
 

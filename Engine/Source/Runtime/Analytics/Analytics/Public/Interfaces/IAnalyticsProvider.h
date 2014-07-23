@@ -31,6 +31,18 @@ public:
 	}
 
 	/**
+	 * Overload for StartSession that takes a single attribute
+	 *
+	 * @param Attribute attribute name and value
+	 */
+	bool StartSession(const FAnalyticsEventAttribute& Attribute)
+	{
+		TArray<FAnalyticsEventAttribute> Attributes;
+		Attributes.Add(Attribute);
+		return StartSession(Attributes);
+	}
+
+	/**
 	 * Overload for StartSession that takes a single name/value pair
 	 *
 	 * @param ParamName attribute name
@@ -40,22 +52,6 @@ public:
 	{
 		TArray<FAnalyticsEventAttribute> Attributes;
 		Attributes.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
-		return StartSession(Attributes);
-	}
-
-	/**
-	 * Overload for StartSession that takes a two name/value pairs
-	 *
-	 * @param Param1Name attribute name
-	 * @param Param1Value attribute value
-	 * @param Param2Name attribute name
-	 * @param Param2Value attribute value
-	 */
-	bool StartSession(const FString& Param1Name, const FString& Param1Value, const FString& Param2Name, const FString& Param2Value)
-	{
-		TArray<FAnalyticsEventAttribute> Attributes;
-		Attributes.Add(FAnalyticsEventAttribute(Param1Name, Param1Value));
-		Attributes.Add(FAnalyticsEventAttribute(Param2Name, Param2Value));
 		return StartSession(Attributes);
 	}
 
@@ -118,6 +114,19 @@ public:
 	}
 
 	/**
+	 * Overload for RecordEvent that takes a single attribute
+	 *
+	 * @param EventName name of the event
+	 * @param Attribute attribute name and value
+	 */
+	void RecordEvent(const FString& EventName, const FAnalyticsEventAttribute& Attribute)
+	{
+		TArray<FAnalyticsEventAttribute> Attributes;
+		Attributes.Add(Attribute);
+		RecordEvent(EventName, Attributes);
+	}
+
+	/**
 	 * Overload for RecordEvent that takes a single name/value pair
 	 *
 	 * @param EventName name of the event
@@ -128,23 +137,6 @@ public:
 	{
 		TArray<FAnalyticsEventAttribute> Attributes;
 		Attributes.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
-		RecordEvent(EventName, Attributes);
-	}
-
-	/**
-	 * Overload for RecordEvent that takes two name/value pairs
-	 *
-	 * @param EventName name of the event
-	 * @param Param1Name attribute name
-	 * @param Param1Value attribute value
-	 * @param Param2Name attribute name
-	 * @param Param2Value attribute value
-	 */
-	void RecordEvent(const FString& EventName, const FString& Param1Name, const FString& Param1Value, const FString& Param2Name, const FString& Param2Value)
-	{
-		TArray<FAnalyticsEventAttribute> Attributes;
-		Attributes.Add(FAnalyticsEventAttribute(Param1Name, Param1Value));
-		Attributes.Add(FAnalyticsEventAttribute(Param2Name, Param2Value));
 		RecordEvent(EventName, Attributes);
 	}
 
