@@ -1081,7 +1081,7 @@ public:
 	virtual bool ApplyBrush(const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2) override
 	{
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
-		if (OldMousePosition.IsZero())
+		if (EdMode->UISettings->bAlphaBrushAutoRotate && OldMousePosition.IsZero())
 		{
 			X1 = FMath::FloorToInt(LastMousePosition.X);
 			Y1 = FMath::FloorToInt(LastMousePosition.Y);
@@ -1099,6 +1099,7 @@ public:
 			int32 SizeY = EdMode->UISettings->AlphaTextureSizeY;
 			float MaxSize = 2.f * FMath::Sqrt(FMath::Square(Radius) / 2.f);
 			float AlphaBrushScale = MaxSize / (float)FMath::Max<int32>(SizeX, SizeY);
+			const float BrushAngle = EdMode->UISettings->bAlphaBrushAutoRotate ? LastMouseAngle : FMath::DegreesToRadians(EdMode->UISettings->AlphaBrushRotation);
 
 			X1 = FMath::FloorToInt(LastMousePosition.X - Radius);
 			Y1 = FMath::FloorToInt(LastMousePosition.Y - Radius);
@@ -1114,14 +1115,14 @@ public:
 					float ScaleSampleY = ((float)Y - LastMousePosition.Y) / AlphaBrushScale;
 
 					// Rotate around center to match angle
-					float SampleX = ScaleSampleX * FMath::Cos(LastMouseAngle) - ScaleSampleY * FMath::Sin(LastMouseAngle);
-					float SampleY = ScaleSampleY * FMath::Cos(LastMouseAngle) + ScaleSampleX * FMath::Sin(LastMouseAngle);
+					float SampleX = ScaleSampleX * FMath::Cos(BrushAngle) - ScaleSampleY * FMath::Sin(BrushAngle);
+					float SampleY = ScaleSampleY * FMath::Cos(BrushAngle) + ScaleSampleX * FMath::Sin(BrushAngle);
 
 					SampleX += (float)SizeX * 0.5f;
 					SampleY += (float)SizeY * 0.5f;
 
-					if (SampleX >= 0.f && SampleX < (float)SizeX &&
-						SampleY >= 0.f && SampleY < (float)SizeY)
+					if (SampleX >= 0 && SampleX <= (SizeX - 1) &&
+						SampleY >= 0 && SampleY <= (SizeY - 1))
 					{
 						// Sample the alpha texture
 						float Alpha = GetAlphaSample(SampleX, SampleY);
@@ -1156,18 +1157,21 @@ public:
 	{
 		FLandscapeBrushAlphaBase::MouseMove(LandscapeX, LandscapeY);
 
-		// don't do anything with the angle unless we move at least 0.1 units.
-		FVector2D MouseDelta = LastMousePosition - OldMousePosition;
-		if (MouseDelta.SizeSquared() >= FMath::Square(0.5f))
+		if (EdMode->UISettings->bAlphaBrushAutoRotate)
 		{
-			double SampleTime = FPlatformTime::Seconds();
-			float DeltaTime = (float)(SampleTime - LastMouseSampleTime);
-			FVector2D MouseDirection = MouseDelta.SafeNormal();
-			float MouseAngle = FMath::Lerp(LastMouseAngle, FMath::Atan2(-MouseDirection.Y, MouseDirection.X), FMath::Min<float>(10.f * DeltaTime, 1.f));		// lerp over 100ms
-			LastMouseAngle = MouseAngle;
-			LastMouseSampleTime = SampleTime;
-			OldMousePosition = LastMousePosition;
-			// UE_LOG(LogLandscape, Log, TEXT("(%f,%f) delta (%f,%f) angle %f"), LandscapeX, LandscapeY, MouseDirection.X, MouseDirection.Y, MouseAngle);
+			// don't do anything with the angle unless we move at least 0.1 units.
+			FVector2D MouseDelta = LastMousePosition - OldMousePosition;
+			if (MouseDelta.SizeSquared() >= FMath::Square(0.5f))
+			{
+				double SampleTime = FPlatformTime::Seconds();
+				float DeltaTime = (float)(SampleTime - LastMouseSampleTime);
+				FVector2D MouseDirection = MouseDelta.SafeNormal();
+				float MouseAngle = FMath::Lerp(LastMouseAngle, FMath::Atan2(-MouseDirection.Y, MouseDirection.X), FMath::Min<float>(10.f * DeltaTime, 1.f));		// lerp over 100ms
+				LastMouseAngle = MouseAngle;
+				LastMouseSampleTime = SampleTime;
+				OldMousePosition = LastMousePosition;
+				// UE_LOG(LogLandscape, Log, TEXT("(%f,%f) delta (%f,%f) angle %f"), LandscapeX, LandscapeY, MouseDirection.X, MouseDirection.Y, MouseAngle);
+			}
 		}
 	}
 
@@ -1189,7 +1193,7 @@ public:
 				1.0f / (AlphaBrushScale * SizeX),
 				1.0f / (AlphaBrushScale * SizeY),
 				0.f,
-				LastMouseAngle
+				EdMode->UISettings->bAlphaBrushAutoRotate ? LastMouseAngle : FMath::DegreesToRadians(EdMode->UISettings->AlphaBrushRotation)
 				);
 
 			int32 Channel = EdMode->UISettings->AlphaTextureChannel;

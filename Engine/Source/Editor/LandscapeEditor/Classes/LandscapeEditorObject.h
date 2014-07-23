@@ -447,8 +447,12 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(Category="Brush Settings", EditAnywhere, meta=(DisplayName="Texture Scale", ShowForBrushes="BrushSet_Pattern", ClampMin="0.005", ClampMax="5", SliderExponent="3"))
 	float AlphaBrushScale;
 
+	// Rotate brush to follow mouse
+	UPROPERTY(Category = "Brush Settings", EditAnywhere, meta = (DisplayName = "Auto-Rotate", ShowForBrushes = "BrushSet_Alpha"))
+	bool bAlphaBrushAutoRotate;
+
 	// Rotates the brush mask texture
-	UPROPERTY(Category="Brush Settings", EditAnywhere, meta=(DisplayName="Texture Rotation", ShowForBrushes="BrushSet_Pattern", ClampMin="-360", ClampMax="360", UIMin="-180", UIMax="180"))
+	UPROPERTY(Category="Brush Settings", EditAnywhere, meta=(DisplayName="Texture Rotation", ShowForBrushes="BrushSet_Alpha,BrushSet_Pattern", ClampMin="-360", ClampMax="360", UIMin="-180", UIMax="180"))
 	float AlphaBrushRotation;
 
 	// Horizontally offsets the brush mask texture
