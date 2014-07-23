@@ -86,6 +86,10 @@ void FRHICommandListExecutor::LatchBypass()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1 && !GRHICommandList.GetImmediateCommandList().HasCommands());
 	bool NewBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+	if (NewBypass && !bLatchedBypass)
+	{
+		FRHIResource::FlushPendingDeletes();
+	}
 	bLatchedBypass = NewBypass;
 #endif
 }

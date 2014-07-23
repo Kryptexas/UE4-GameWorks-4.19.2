@@ -74,8 +74,8 @@ private:
 IMPLEMENT_SHADER_TYPE(,FSimpleElementNormalMapPS,TEXT("SimpleElementNormalMapPixelShader"),TEXT("Main"),SF_Pixel);
 
 /** Binds vertex and pixel shaders for this element */
-void FNormalMapBatchedElementParameters::BindShaders_RenderThread(
-	FRHICommandListImmediate& RHICmdList,
+void FNormalMapBatchedElementParameters::BindShaders(
+	FRHICommandList& RHICmdList,
 	const FMatrix& InTransform,
 	const float InGamma,
 	const FMatrix& ColorWeights,

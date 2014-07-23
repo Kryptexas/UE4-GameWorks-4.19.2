@@ -349,9 +349,43 @@ FGraphEventRef FDeferredShadingSceneRenderer::RenderBasePassStaticDataParallel(F
 * @return true if anything was rendered to scene color
 */
 
-bool FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
+void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty)
 {
-	bool bDirty=0;
+	bool bDirty = false;
+
+	SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
+	SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
+
+	if (View.VisibleDynamicPrimitives.Num() > 0)
+	{
+		// Draw the dynamic non-occluded primitives using a base pass drawing policy.
+		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
+			RHICmdList, &View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), true);
+		for (int32 PrimitiveIndex = 0, Num = View.VisibleDynamicPrimitives.Num(); PrimitiveIndex < Num; PrimitiveIndex++)
+		{
+			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
+			int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
+			const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
+
+			const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
+
+			// Only draw the primitive if it's visible
+			if (bVisible &&
+				// only draw opaque and masked primitives if wireframe is disabled
+				(PrimitiveViewRelevance.bOpaqueRelevance || ViewFamily.EngineShowFlags.Wireframe) &&
+				PrimitiveViewRelevance.bRenderInMainPass
+				)
+			{
+				FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
+				Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+					&Drawer,
+					&View
+					);
+			}
+		}
+		bDirty |= Drawer.IsDirty();
+	}
 
 	if( !View.Family->EngineShowFlags.CompositeEditorPrimitives )
 	{
@@ -372,7 +406,69 @@ bool FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandListImm
 
 	}
 
-	return bDirty;
+	// this little bit of code is required because multiple threads might be writing bOutDirty...this you cannot use || bDirty - type things.
+	if (bDirty)
+	{
+		bOutDirty = true;
+	}
+}
+
+
+class FRenderBasePassDynamicDataThreadTask
+{
+	FDeferredShadingSceneRenderer& ThisRenderer;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	bool& OutDirty;
+
+public:
+
+	FRenderBasePassDynamicDataThreadTask(
+		FDeferredShadingSceneRenderer* InThisRenderer,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		bool* InOutDirty
+		)
+		: ThisRenderer(*InThisRenderer)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, OutDirty(*InOutDirty)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderBasePassDynamicDataThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		ThisRenderer.RenderBasePassDynamicData(RHICmdList, View, OutDirty);
+	}
+};
+
+FGraphEventRef FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FViewInfo& View, FGraphEventRef SubmitChain, bool& bOutDirty)
+{
+	FRHICommandList* CmdList = new FRHICommandList;
+
+	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+		.ConstructAndDispatchWhenReady(this, CmdList, &View, &bOutDirty);
+
+	FGraphEventArray Prereqs;
+	Prereqs.Add(AnyThreadCompletionEvent);
+	if (SubmitChain.GetReference())
+	{
+		Prereqs.Add(SubmitChain);
+	}
+
+	return TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
 }
 
 /**
@@ -381,9 +477,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandListImm
 */
 bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
-	bool bDirty = false;
-	bool bParallelDirty = false; // we keep this separate because |= is not threadsafe
-	FGraphEventRef SubmitChain;
+	bool bDirty = false; 
 
 	// Render the base pass static data
 	{
@@ -391,70 +485,23 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 		{
 			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
-			SubmitChain = RenderBasePassStaticDataParallel(View, Width, FGraphEventRef(), bParallelDirty);
+			FGraphEventRef SubmitChain = RenderBasePassStaticDataParallel(View, Width, FGraphEventRef(), bDirty);
+			SubmitChain = RenderBasePassDynamicDataParallel(View, SubmitChain, bDirty);
 
-			static TAutoConsoleVariable<int32> CVarLatencyTest(
-				TEXT("r.LatencyTest"),
-				0,
-				TEXT("0: Executes static base pass stuff first (default)\n")
-				TEXT("1: Executes static base pass stuff after we have done the dynamics")
-				);
-
-			if (!CVarLatencyTest.GetValueOnRenderThread() && SubmitChain.GetReference())
+			if (SubmitChain.GetReference())
 			{
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
-				SubmitChain = nullptr;
 			}
 		}
 		else
 		{
+			bool bDirty = false;
 			bDirty |= RenderBasePassStaticData(RHICmdList, View);
+			RenderBasePassDynamicData(RHICmdList, View, bDirty);
 		}
 	}
 
-	{
-		SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
-		SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
-
-		if( View.VisibleDynamicPrimitives.Num() > 0 )
-		{
-			// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-			TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
-				RHICmdList, &View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), true);
-			for(int32 PrimitiveIndex = 0, Num = View.VisibleDynamicPrimitives.Num();PrimitiveIndex < Num;PrimitiveIndex++)
-			{
-				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-				int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-				const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
-				const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-				// Only draw the primitive if it's visible
-				if( bVisible && 
-					// only draw opaque and masked primitives if wireframe is disabled
-					(PrimitiveViewRelevance.bOpaqueRelevance || ViewFamily.EngineShowFlags.Wireframe) &&
-					PrimitiveViewRelevance.bRenderInMainPass
-					)
-				{
-					FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-					Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-						&Drawer,
-						&View			
-						);
-				}
-			}
-			bDirty |= Drawer.IsDirty(); 
-		}
-
-		bDirty |= RenderBasePassDynamicData(RHICmdList, View);
-	}
-	if (SubmitChain.GetReference())
-	{
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
-	}
-
-	return bDirty || bParallelDirty;
+	return bDirty;
 }
 
 /** Render the TexturePool texture */
@@ -978,7 +1025,6 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHICmdList)
 {
 	bool bDirty = false;
-
 
 	if(ViewFamily.EngineShowFlags.LightMapDensity && AllowDebugViewmodes())
 	{

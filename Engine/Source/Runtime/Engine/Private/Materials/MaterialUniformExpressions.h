@@ -238,7 +238,7 @@ public:
 	}
 	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const
 	{
-		check(IsInRenderingThread());
+		check(IsInParallelRenderingThread());
 		if( TransientOverrideValue_RenderThread != NULL )
 		{
 			OutValue = TransientOverrideValue_RenderThread;

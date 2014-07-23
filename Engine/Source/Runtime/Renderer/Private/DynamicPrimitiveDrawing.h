@@ -25,7 +25,7 @@ public:
 	* @param bInIsVelocityRendering - rendering is occurring during velocity pass
 	*/
 	TDynamicPrimitiveDrawer(
-		FRHICommandListImmediate& InRHICmdList,
+		FRHICommandList& InRHICmdList,
 		const FViewInfo* InView,
 		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
 		bool InPreFog,
@@ -110,7 +110,7 @@ public:
 private:
 
 	/** Command list to draw to. */
-	FRHICommandListImmediate& RHICmdList;
+	FRHICommandList& RHICmdList;
 
 	/** The view which is being rendered. */
 	const FViewInfo* const View;
@@ -159,7 +159,7 @@ private:
  */
 template<class DrawingPolicyFactoryType>
 bool DrawViewElements(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,

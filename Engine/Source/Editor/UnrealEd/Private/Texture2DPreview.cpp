@@ -76,8 +76,8 @@ private:
 IMPLEMENT_SHADER_TYPE(,FSimpleElementTexture2DPreviewPS,TEXT("SimpleElementTexture2DPreviewPixelShader"),TEXT("Main"),SF_Pixel);
 
 /** Binds vertex and pixel shaders for this element */
-void FBatchedElementTexture2DPreviewParameters::BindShaders_RenderThread(
-	FRHICommandListImmediate& RHICmdList,
+void FBatchedElementTexture2DPreviewParameters::BindShaders(
+	FRHICommandList& RHICmdList,
 	const FMatrix& InTransform,
 	const float InGamma,
 	const FMatrix& ColorWeights,

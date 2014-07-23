@@ -15,7 +15,8 @@ class RHI_API FRHIResource
 {
 public:
 	FRHIResource(bool InbDoNotDeferDelete = false)
-		: bDoNotDeferDelete(InbDoNotDeferDelete)
+		: MarkedForDelete(0)
+		, bDoNotDeferDelete(InbDoNotDeferDelete)
 	{
 	}
 	virtual ~FRHIResource() 
@@ -39,13 +40,9 @@ public:
 			}
 			else
 			{
-				if (MarkedForDelete.Increment() == 1)
+				if (FPlatformAtomics::InterlockedCompareExchange(&MarkedForDelete, 1, 0) == 0)
 				{
 					PendingDeletes.Push(const_cast<FRHIResource*>(this));
-				}
-				else
-				{
-					MarkedForDelete.Decrement();
 				}
 			}
 		}
@@ -60,10 +57,10 @@ public:
 	}
 	void DoNoDeferDelete()
 	{
-		check(!MarkedForDelete.GetValue());
+		check(!MarkedForDelete);
 		bDoNotDeferDelete = true;
 		FPlatformMisc::MemoryBarrier();
-		check(!MarkedForDelete.GetValue());
+		check(!MarkedForDelete);
 	}
 
 	static void FlushPendingDeletes();
@@ -79,7 +76,7 @@ public:
 
 private:
 	mutable FThreadSafeCounter NumRefs;
-	mutable FThreadSafeCounter MarkedForDelete;
+	mutable int32 MarkedForDelete;
 	bool bDoNotDeferDelete;
 	static TLockFreePointerList<FRHIResource> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;

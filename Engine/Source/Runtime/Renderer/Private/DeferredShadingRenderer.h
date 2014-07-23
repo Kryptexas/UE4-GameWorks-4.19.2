@@ -64,7 +64,10 @@ public:
 	void SortBasePassStaticData(FVector ViewPosition);
 
     /** Renders the basepass for the dynamic data of a given View. */
-	bool RenderBasePassDynamicData(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
+
+	/** Renders the basepass for the dynamic data of a given View, in parallel. */
+	FGraphEventRef RenderBasePassDynamicDataParallel(FViewInfo& View, FGraphEventRef SubmitChain, bool& bOutDirty);
 
     /** Renders the basepass for a given View. */
 	bool RenderBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View);

@@ -88,6 +88,7 @@ void FRHIResource::FlushPendingDeletes()
 		for (int32 Index = 0; Index < ToDelete.Num(); Index++)
 		{
 			FRHIResource* Ref = ToDelete[Index];
+			check(Ref->MarkedForDelete == 1);
 			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
 			{
 				CurrentlyDeleting = Ref;
@@ -96,7 +97,8 @@ void FRHIResource::FlushPendingDeletes()
 			}
 			else
 			{
-				verify(Ref->MarkedForDelete.Decrement() == 0);
+				Ref->MarkedForDelete = 0;
+				FPlatformMisc::MemoryBarrier();
 			}
 		}
 	}

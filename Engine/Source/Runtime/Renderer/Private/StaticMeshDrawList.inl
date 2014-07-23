@@ -351,12 +351,12 @@ public:
 	}
 };
 
-class FDrawVisibleRenderThreadTask
+class FSubmitCommandlistThreadTask
 {
 	FRHICommandList* RHICmdList;
 public:
 
-	FDrawVisibleRenderThreadTask(FRHICommandList* InRHICmdList)
+	FSubmitCommandlistThreadTask(FRHICommandList* InRHICmdList)
 		: RHICmdList(InRHICmdList)
 	{
 	}
@@ -417,7 +417,7 @@ FGraphEventRef TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 				Prereqs.Add(SubmitChain);
 			}
 
-			SubmitChain = TGraphTask<FDrawVisibleRenderThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+			SubmitChain = TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
 
 		}
 	}

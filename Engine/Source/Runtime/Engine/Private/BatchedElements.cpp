@@ -350,7 +350,7 @@ float GBatchedElementSmoothWidth = 12;
  * Sets the appropriate vertex and pixel shader.
  */
 void FBatchedElements::PrepareShaders(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	ESimpleElementBlendMode BlendMode,
 	const FMatrix& Transform,
 	bool bSwitchVerticalAxis,
@@ -430,7 +430,7 @@ void FBatchedElements::PrepareShaders(
 	if( BatchedElementParameters != NULL )
 	{
 		// Use the vertex/pixel shader that we were given
-		BatchedElementParameters->BindShaders_RenderThread(RHICmdList, Transform, Gamma, ColorWeights, Texture );
+		BatchedElementParameters->BindShaders(RHICmdList, Transform, Gamma, ColorWeights, Texture );
 	}
 	else
 	{
@@ -554,7 +554,7 @@ void FBatchedElements::PrepareShaders(
 PRAGMA_DISABLE_OPTIMIZATION
 #endif
 
-void FBatchedElements::DrawPointElements(FRHICommandListImmediate& RHICmdList, const FMatrix& Transform, const uint32 ViewportSizeX, const uint32 ViewportSizeY, const FVector& CameraX, const FVector& CameraY) const
+void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMatrix& Transform, const uint32 ViewportSizeX, const uint32 ViewportSizeY, const FVector& CameraX, const FVector& CameraY) const
 {
 	// Draw the point elements.
 	if( Points.Num() > 0 )
@@ -596,7 +596,7 @@ void FBatchedElements::DrawPointElements(FRHICommandListImmediate& RHICmdList, c
 }
 
 
-bool FBatchedElements::Draw(FRHICommandListImmediate& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture) const
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture) const
 {
 	if( HasPrimsToDraw() )
 	{
