@@ -150,17 +150,33 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	/** Called when spline params are changed, to notify render thread and possibly collision */
 	void MarkSplineParamsDirty();
 
+	/** Get the start position of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetStartPosition() const;
+
 	/** Set the start position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category=SplineMesh)
 	void SetStartPosition(FVector StartPos);
+
+	/** Get the start tangent vector of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetStartTangent() const;
 
 	/** Set the start tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetStartTangent(FVector StartTangent);
 
+	/** Get the end position of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetEndPosition() const;
+
 	/** Set the end position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetEndPosition(FVector EndPos);
+
+	/** Get the end tangent vector of spline in local space */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetEndTangent() const;
 
 	/** Set the end tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -170,25 +186,49 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent);
 
+	/** Get the start scaling */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector2D GetStartScale() const;
+
 	/** Set the start scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetStartScale(FVector2D StartScale = FVector2D(1,1));
+
+	/** Get the start roll */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	float GetStartRoll() const;
 
 	/** Set the start roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetStartRoll(float StartRoll);
 
+	/** Get the start offset */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector2D GetStartOffset() const;
+
 	/** Set the start offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetStartOffset(FVector2D StartOffset);
+
+	/** Get the end scaling */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector2D GetEndScale() const;
 
 	/** Set the end scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetEndScale(FVector2D EndScale = FVector2D(1,1));
 
+	/** Get the end roll */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	float GetEndRoll() const;
+
 	/** Set the end roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetEndRoll(float EndRoll);
+
+	/** Get the end offset */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector2D GetEndOffset() const;
 
 	/** Set the end offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)

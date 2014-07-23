@@ -235,10 +235,20 @@ USplineMeshComponent::USplineMeshComponent(const class FPostConstructInitializeP
 	SplineParams.EndScale = FVector2D(1.f, 1.f);
 }
 
+FVector USplineMeshComponent::GetStartPosition() const
+{
+	return SplineParams.StartPos;
+}
+
 void USplineMeshComponent::SetStartPosition(FVector StartPos)
 {
 	SplineParams.StartPos = StartPos;
 	MarkSplineParamsDirty();
+}
+
+FVector USplineMeshComponent::GetStartTangent() const
+{
+	return SplineParams.StartTangent;
 }
 
 void USplineMeshComponent::SetStartTangent(FVector StartTangent)
@@ -247,10 +257,20 @@ void USplineMeshComponent::SetStartTangent(FVector StartTangent)
 	MarkSplineParamsDirty();
 }
 
+FVector USplineMeshComponent::GetEndPosition() const
+{
+	return SplineParams.EndPos;
+}
+
 void USplineMeshComponent::SetEndPosition(FVector EndPos)
 {
 	SplineParams.EndPos = EndPos;
 	MarkSplineParamsDirty();
+}
+
+FVector USplineMeshComponent::GetEndTangent() const
+{
+	return SplineParams.EndTangent;
 }
 
 void USplineMeshComponent::SetEndTangent(FVector EndTangent)
@@ -268,10 +288,20 @@ void USplineMeshComponent::SetStartAndEnd(FVector StartPos, FVector StartTangent
 	MarkSplineParamsDirty();
 }
 
+FVector2D USplineMeshComponent::GetStartScale() const
+{
+	return SplineParams.StartScale;
+}
+
 void USplineMeshComponent::SetStartScale(FVector2D StartScale)
 {
 	SplineParams.StartScale = StartScale;
 	MarkSplineParamsDirty();
+}
+
+float USplineMeshComponent::GetStartRoll() const
+{
+	return SplineParams.StartRoll;
 }
 
 void USplineMeshComponent::SetStartRoll(float StartRoll)
@@ -280,10 +310,20 @@ void USplineMeshComponent::SetStartRoll(float StartRoll)
 	MarkSplineParamsDirty();
 }
 
+FVector2D USplineMeshComponent::GetStartOffset() const
+{
+	return SplineParams.StartOffset;
+}
+
 void USplineMeshComponent::SetStartOffset(FVector2D StartOffset)
 {
 	SplineParams.StartOffset = StartOffset;
 	MarkSplineParamsDirty();
+}
+
+FVector2D USplineMeshComponent::GetEndScale() const
+{
+	return SplineParams.EndScale;
 }
 
 void USplineMeshComponent::SetEndScale(FVector2D EndScale)
@@ -292,10 +332,20 @@ void USplineMeshComponent::SetEndScale(FVector2D EndScale)
 	MarkSplineParamsDirty();
 }
 
+float USplineMeshComponent::GetEndRoll() const
+{
+	return SplineParams.EndRoll;
+}
+
 void USplineMeshComponent::SetEndRoll(float EndRoll)
 {
 	SplineParams.EndRoll = EndRoll;
 	MarkSplineParamsDirty();
+}
+
+FVector2D USplineMeshComponent::GetEndOffset() const
+{
+	return SplineParams.EndOffset;
 }
 
 void USplineMeshComponent::SetEndOffset(FVector2D EndOffset)
