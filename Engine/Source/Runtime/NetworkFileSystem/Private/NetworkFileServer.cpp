@@ -43,7 +43,13 @@ public:
 				break; 
 			// now process the contents of the payload
 			FBufferArchive Out;
-			FNetworkFileServerClientConnection::ProcessPayload(Payload,Out); 
+			if ( !FNetworkFileServerClientConnection::ProcessPayload(Payload,Out) )
+			{
+				// give the processing of the payload a chance to terminate the connection
+				// failed to process message
+				UE_LOG(LogFileServer, Warning, TEXT("Unable to process payload terminating connection"));
+				break;
+			}
 			if ( !FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket)))
 				break; 
 		}

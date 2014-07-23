@@ -69,11 +69,15 @@ bool FNetworkPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 				// find the correct transport for this ip address 
 				Transport = CreateTransportForHostAddress( HostIpList[HostIpIndex] );
 
+				UE_LOG(LogNetworkPlatformFile, Warning, TEXT("Created transport for %s."), *HostIpList[HostIpIndex]);
+
 				if ( Transport )
 				{
 					bResult = Transport->Initialize( *HostIpList[HostIpIndex] ) && InitializeInternal(Inner, *HostIpList[HostIpIndex]);		
 					if (bResult)
 						break;
+
+					UE_LOG(LogNetworkPlatformFile, Warning, TEXT("Failed to initialize %s."), *HostIpList[HostIpIndex]);
 
 					// try a different host might be a different protocol
 					delete Transport;
