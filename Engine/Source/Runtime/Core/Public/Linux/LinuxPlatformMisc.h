@@ -83,7 +83,7 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 /**
  * Linux implementation of the misc OS functions
  */
-struct CORE_API FLinuxMisc : public FGenericPlatformMisc
+struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
 	static void SetGracefulTerminationHandler();
@@ -120,6 +120,40 @@ struct CORE_API FLinuxMisc : public FGenericPlatformMisc
 
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
+	static void LoadPreInitModules();
+	static void LoadStartupModules();
+
+	/**
+	 * Determines the shader format for the platform
+	 *
+	 * @return	Returns the shader format to be used by that platform
+	 */
+	static const TCHAR* GetNullRHIShaderFormat();
+
+#if PLATFORM_HAS_CPUID
+	/**
+	 * Uses cpuid instruction to get the vendor string
+	 *
+	 * @return	CPU vendor name
+	 */
+	static FString GetCPUVendor();
+
+	/**
+	 * Uses cpuid instruction to get the vendor string
+	 *
+	 * @return	CPU info bitfield
+	 *
+	 *			Bits 0-3	Stepping ID
+	 *			Bits 4-7	Model
+	 *			Bits 8-11	Family
+	 *			Bits 12-13	Processor type (Intel) / Reserved (AMD)
+	 *			Bits 14-15	Reserved
+	 *			Bits 16-19	Extended model
+	 *			Bits 20-27	Extended family
+	 *			Bits 28-31	Reserved
+	 */
+	static uint32 GetCPUInfo();
+#endif // PLATFORM_HAS_CPUID
 
 	static const TCHAR* EngineDir()
 	{
@@ -127,4 +161,4 @@ struct CORE_API FLinuxMisc : public FGenericPlatformMisc
 	}
 };
 
-typedef FLinuxMisc FPlatformMisc;
+typedef FLinuxPlatformMisc FPlatformMisc;

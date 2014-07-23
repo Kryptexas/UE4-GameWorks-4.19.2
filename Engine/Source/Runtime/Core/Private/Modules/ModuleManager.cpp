@@ -350,7 +350,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 			UE_LOG(LogModuleManager, Verbose, TEXT( "ModuleManager: Load Module '%s' DLL '%s'" ), *InModuleName.ToString(), *ModuleInfo->Filename);
 
 			// Determine which file to load for this module.
-			const FString ModuleFileToLoad = ModuleInfo->Filename;
+			const FString ModuleFileToLoad = FPaths::ConvertRelativePathToFull(ModuleInfo->Filename);
 
 			// Clear the handle and set it again below if the module is successfully loaded
 			ModuleInfo->Handle = NULL;
@@ -828,6 +828,9 @@ FString FModuleManager::GetSolutionFilepath()
 {
 #if PLATFORM_MAC
 	const TCHAR* Postfix = TEXT(".xcodeproj/project.pbxproj");
+#elif PLATFORM_LINUX
+	UE_LOG(LogModuleManager, Warning, TEXT("STUBBED: solution file path for Linux"));
+	const TCHAR* Postfix = TEXT("/stubbed/path/to.solution");
 #else
 	const TCHAR* Postfix = TEXT(".sln");
 #endif
@@ -1162,7 +1165,7 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 	}
 
 	// Get the base name for modules of this application
-	FString ModulePrefix = FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
+	FString ModulePrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
 	if (ModulePrefix.Contains(TEXT("-")))
 	{
 		ModulePrefix = ModulePrefix.Left(ModulePrefix.Find(TEXT("-")) + 1);
@@ -1334,6 +1337,8 @@ bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, F
 
 #if PLATFORM_MAC
 	FString CmdLineParams = TEXT("-xcodeprojectfile");
+#elif PLATFORM_LINUX
+	FString CmdLineParams = TEXT("-makefile");
 #else
 	FString CmdLineParams = TEXT("-projectfiles");
 #endif
@@ -1898,6 +1903,8 @@ bool FUBTInvoker::BuildUnrealBuildTool(FOutputDevice &Ar)
 	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunXBuild.sh"));
 	CompilerExecutableFilename = TEXT("/bin/sh");
 	CmdLineParams = FString::Printf(TEXT("\"%s\" /property:Configuration=Development %s"), *ScriptPath, *CsProjLocation);
+#elif PLATFORM_LINUX
+	printf("ModuleManager.cpp: TODO: Linux BuildUBT");
 #else
 	Ar.Log(TEXT("Unknown platform, unable to build UnrealBuildTool."));
 #endif
