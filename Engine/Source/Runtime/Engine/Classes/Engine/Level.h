@@ -5,10 +5,8 @@
 //
 
 #pragma once
-#include "PhysicsEngine/BodyInstance.h"
 #include "Engine/LevelBase.h"
 #include "Engine/World.h"
-#include "Model.h"
 #include "Level.generated.h"
 
 class ALevelBounds;

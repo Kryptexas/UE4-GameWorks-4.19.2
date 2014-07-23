@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "SpeedTreeWind.h"
 #include "ShaderParameterUtils.h"
+#include "LocalVertexFactory.h"
 
 class FSpeedTreeVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {

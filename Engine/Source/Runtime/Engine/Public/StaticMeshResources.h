@@ -8,6 +8,7 @@
 
 #include "RawIndexBuffer.h"
 #include "TextureLayout3d.h"
+#include "LocalVertexFactory.h"
 
 /**
  * The LOD settings to use for a group of static meshes.

@@ -17,6 +17,7 @@
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "LocalVertexFactory.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);
 

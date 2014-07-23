@@ -8,7 +8,7 @@
 #pragma once
 
 #include "PhysxUserData.h"
-
+#include "LocalVertexFactory.h"
 /**
  * Physics stats
  */

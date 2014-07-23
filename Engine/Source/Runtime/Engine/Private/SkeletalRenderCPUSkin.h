@@ -9,6 +9,7 @@
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
 #include "GPUSkinVertexFactory.h"
+#include "LocalVertexFactory.h"
 
 /** data for a single skinned skeletal mesh vertex */
 struct FFinalSkinVertex

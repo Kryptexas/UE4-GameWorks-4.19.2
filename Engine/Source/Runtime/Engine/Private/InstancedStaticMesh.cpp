@@ -34,6 +34,7 @@
 #include "SpeedTreeWind.h"
 #include "ComponentInstanceDataCache.h"
 #include "InstancedFoliage.h"
+#include "VertexFactory.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
