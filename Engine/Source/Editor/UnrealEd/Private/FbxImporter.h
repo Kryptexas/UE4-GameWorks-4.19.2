@@ -125,6 +125,7 @@ struct FBXImportOptions
 	bool bPreserveSmoothingGroups;
 	bool bKeepOverlappingVertices;
 	bool bImportMeshesInBoneHierarchy;
+	bool bImportGroupNodeAsRoot;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
 	// Animation option
@@ -980,8 +981,7 @@ public:
 	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject * InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString & Filename);
 
 	/** error message handler */
-	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error);
-	void AddErrorMessage(const FText & Error);
+	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error, FName FbxErrorName );
 	void ClearTokenizedErrorMessages();
 	void FlushToTokenizedErrorMessage(enum EMessageSeverity::Type Severity);
 

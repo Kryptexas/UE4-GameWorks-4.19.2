@@ -10,6 +10,7 @@
 #include "SkeletalMeshSorting.h"
 #include "../../../../Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h"
 #include "FbxImporter.h"
+#include "FbxErrors.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -22,7 +23,7 @@ bool SkeletonsAreCompatible( const FReferenceSkeleton& NewSkel, const FReference
 	{
 		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();	
 		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("MeshHasDifferentRoot", "Root Bone is '{0}' instead of '{1}'.\nDiscarding existing LODs."),
-			FText::FromName(NewSkel.GetBoneName(0)), FText::FromName(ExistSkel.GetBoneName(0)))));
+			FText::FromName(NewSkel.GetBoneName(0)), FText::FromName(ExistSkel.GetBoneName(0)))), FFbxErrors::SkeletalMesh_DifferentRoots);
 		return false;
 	}
 
@@ -43,7 +44,7 @@ bool SkeletonsAreCompatible( const FReferenceSkeleton& NewSkel, const FReference
 			{
 				UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();			
 				FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("MeshHasDifferentRoot", "Root Bone is '{0}' instead of '{1}'.\nDiscarding existing LODs."),
-					FText::FromName(NewBoneName), FText::FromName(NewParentName))));
+					FText::FromName(NewBoneName), FText::FromName(NewParentName))), FFbxErrors::SkeletalMesh_DifferentRoots);
 				return false;
 			}
 		}
@@ -207,7 +208,7 @@ bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalD
 		if(RefSkeleton.FindBoneIndex(BoneInfo.Name) != INDEX_NONE)
 		{
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("SkeletonHasDuplicateBones", "Skeleton has non-unique bone names.\nBone named '{0}' encountered more than once."), FText::FromName(BoneInfo.Name))));
+			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("SkeletonHasDuplicateBones", "Skeleton has non-unique bone names.\nBone named '{0}' encountered more than once."), FText::FromName(BoneInfo.Name))), FFbxErrors::SkeletalMesh_DuplicateBones);
 			return false;
 		}
 
@@ -328,7 +329,7 @@ void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
 	{
 		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 		// warn about no influences
-		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("WarningNoSkelInfluences", "Warning skeletal mesh is has no vertex influences")));
+		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("WarningNoSkelInfluences", "Warning skeletal mesh is has no vertex influences")), FFbxErrors::SkeletalMesh_NoInfluences);
 		// add one for each wedge entry
 		Influences.AddUninitialized(Wedges.Num());
 		for( int32 WedgeIdx=0; WedgeIdx<Wedges.Num(); WedgeIdx++ )
@@ -575,7 +576,8 @@ void FSavedCustomSortSectionInfo::Restore(USkeletalMesh* NewSkelMesh, int32 LODM
 						FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SavedSortOption)),
 						FText::AsNumber(SavedSectionIdx),
 						FText::AsNumber(NumMismatchedStrips),
-						FText::AsNumber(OldStrips[0].Num()))));
+						FText::AsNumber(OldStrips[0].Num()))), 
+						FFbxErrors::SkeletalMesh_RestoreSortingMismatchedStrips);
 				}
 
 				// Restore the settings saved in the LODInfo (used for the UI)
@@ -614,7 +616,7 @@ void FSavedCustomSortSectionInfo::Restore(USkeletalMesh* NewSkelMesh, int32 LODM
 	{
 		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FailedRestoreSortingNoSectionMatch", "Unable to restore triangle sort setting \"{0}\" for section number {1} in the old mesh, as a matching section could not be found in the new mesh. The custom sorting information has been lost."),
-			FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SavedSortOption)), FText::AsNumber(SavedSectionIdx))));
+			FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SavedSortOption)), FText::AsNumber(SavedSectionIdx))), FFbxErrors::SkeletalMesh_RestoreSortingNoSectionMatch);
 	}
 }
 
@@ -661,7 +663,8 @@ void FSavedCustomSortInfo::Restore(USkeletalMesh* NewSkeletalMesh, int32 LODMode
 				UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 				FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("FailedRestoreSortingForSectionNumber", "Unable to restore triangle sort setting \"{0}\" for section {1} as the new mesh does not contain that many sections. Please find the matching section and apply manually."),
 					FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SortSectionInfo.SavedSortOption)),
-					FText::AsNumber(SortSectionInfo.SavedSectionIdx))));
+					FText::AsNumber(SortSectionInfo.SavedSectionIdx))), 
+					FFbxErrors::SkeletalMesh_RestoreSortingForSectionNumber);
 				continue;
 			}
 
@@ -870,7 +873,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 				if(bMissingBone)
 				{
 					UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-					FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("NewMeshMissingBoneFromLOD", "New mesh is missing bone '{0}' required by an LOD. LOD will be removed."), FText::FromName(MissingBoneName))));
+					FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("NewMeshMissingBoneFromLOD", "New mesh is missing bone '{0}' required by an LOD. LOD will be removed."), FText::FromName(MissingBoneName))), FFbxErrors::SkeletalMesh_LOD_MissingBone);
 				}
 				else
 				{

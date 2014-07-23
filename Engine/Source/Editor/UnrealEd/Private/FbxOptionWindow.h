@@ -110,6 +110,7 @@ private:
 	void SetSkeletalMesh_ReserveSmoothingGroups(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_KeepOverlappingVertices(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_ImportMeshesInBoneHierarchy(ESlateCheckBoxState::Type NewType);
+	void SetSkeletalMesh_ImportGroupNodeAsRoot(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_CreatePhysicsAsset(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_ImportMeshLODs(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_LODGroup(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);

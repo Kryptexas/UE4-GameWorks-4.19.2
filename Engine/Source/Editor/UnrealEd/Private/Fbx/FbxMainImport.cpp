@@ -196,6 +196,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bOneConvexHullPerUCX = ImportUI->StaticMeshImportData->bOneConvexHullPerUCX;
 	InOutImportOptions.StaticMeshLODGroup = ImportUI->StaticMeshImportData->StaticMeshLODGroup;
 	InOutImportOptions.bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
+	InOutImportOptions.bImportGroupNodeAsRoot = ImportUI->SkeletalMeshImportData->bImportGroupNodeAsRoot;
 	InOutImportOptions.bCreatePhysicsAsset = ImportUI->bCreatePhysicsAsset;
 	InOutImportOptions.PhysicsAsset = ImportUI->PhysicsAsset;
 	// animation options
@@ -663,7 +664,7 @@ bool FFbxImporter::ImportFile(FString Filename)
 	else
 	{
 		ErrorMessage = ANSI_TO_TCHAR(Importer->GetStatus().GetErrorString());
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_TriangulatingFailed", "FBX Scene Loading Failed : '{0}'"), FText::FromString(ErrorMessage))));
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_FileLoadingFailed", "FBX Scene Loading Failed : '{0}'"), FText::FromString(ErrorMessage))), FFbxErrors::Generic_LoadingSceneFailed);
 		CleanUp();
 		Result = false;
 		CurPhase = NOTSTARTED;
@@ -1078,14 +1079,18 @@ void DumpFBXNode(FbxNode* Node)
 	if(Mesh)
 	{
 		int DeformerCount = Mesh->GetDeformerCount();
-		UE_LOG(LogFbx, Log,TEXT("Dumping Node [%s] : Total Deformer Count %d."), *NodeName, DeformerCount);
+		UE_LOG(LogFbx, Log,TEXT("================================================="));
+		UE_LOG(LogFbx, Log,TEXT("Dumping Node START [%s] : Total Deformer Count %d."), *NodeName, DeformerCount);
 		for(int i=0; i<DeformerCount; i++)
 		{
 			FbxDeformer* Deformer = Mesh->GetDeformer(i);
 			const FString DeformerName(Deformer->GetName());
 			const FString DeformerTypeName(Deformer->GetTypeName());
 			UE_LOG(LogFbx, Log,TEXT("\t[Node %d] %s (Type %s)."), i+1, *DeformerName, *DeformerTypeName);
+			UE_LOG(LogFbx, Log,TEXT("================================================="));
 		}
+
+		UE_LOG(LogFbx, Log,TEXT("Dumping Node END [%s]"), *NodeName);
 	}
 
 	for(int ChildIdx=0; ChildIdx < Node->GetChildCount(); ChildIdx++)
@@ -1175,7 +1180,8 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 					FTokenizedMessage::Create(
 						EMessageSeverity::Warning, 
 						FText::Format( LOCTEXT("FBX_NoWeightsOnDeformer", "Ignoring mesh {0} because it but no weights."), FText::FromString( ANSI_TO_TCHAR(SkelMeshNode->GetName()) ) )
-					)
+					), 
+					FFbxErrors::SkeletalMesh_NoWeightsOnDeformer
 				);
 			}
 		}
@@ -1289,6 +1295,40 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 	{
 		RecursiveFixSkeleton(SkeletonArray[SkelIndex], *outSkelMeshArray[SkelIndex], ImportOptions->bImportMeshesInBoneHierarchy );
 	}
+
+	// if it doesn't want group node (or null node) for root, remove them
+	/*
+	if (ImportOptions->bImportGroupNodeAsRoot == false)
+	{
+		// find the last node
+		for ( int32 SkelMeshIndex=0; SkelMeshIndex < outSkelMeshArray.Num() ; ++SkelMeshIndex )
+		{
+			auto SkelMesh = outSkelMeshArray[SkelMeshIndex];
+			if ( SkelMesh->Num() > 0 )
+			{
+				auto Node = SkelMesh->Last();
+
+				if(Node)
+				{
+					DumpFBXNode(Node);
+
+					FbxNodeAttribute* Attr = Node->GetNodeAttribute();
+					if(Attr && Attr->GetAttributeType() == FbxNodeAttribute::eNull)
+					{
+						// if root is null, just remove
+						SkelMesh->Remove(Node);
+						// SkelMesh is still valid?
+						if ( SkelMesh->Num() == 0 )
+						{
+							// we remove this from outSkelMeshArray
+							outSkelMeshArray.RemoveAt(SkelMeshIndex);
+							--SkelMeshIndex;
+						}
+					}
+				}
+			}
+		}
+	}*/
 
 	SkeletonArray.Empty();
 	// b) find rigid mesh
@@ -1461,7 +1501,7 @@ void FFbxImporter::CheckSmoothingInfo(FbxMesh* FbxMesh)
 		FbxLayer* LayerSmoothing = FbxMesh->GetLayer(0, FbxLayerElement::eSmoothing);
 		if (!LayerSmoothing)
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_NoSmoothgroupForFBXScene", "Warning: No smoothing group information was found in this FBX scene.  Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter plug-in before exporting the file.  Even for tools that don't support smoothing groups, the FBX Exporter will generate appropriate smoothing data at export-time so that correct vertex normals can be inferred while importing.")));
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_NoSmoothgroupForFBXScene", "Warning: No smoothing group information was found in this FBX scene.  Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter plug-in before exporting the file.  Even for tools that don't support smoothing groups, the FBX Exporter will generate appropriate smoothing data at export-time so that correct vertex normals can be inferred while importing.")), FFbxErrors::Generic_Mesh_NoSmoothingGroup);
 		}
 	}
 }
