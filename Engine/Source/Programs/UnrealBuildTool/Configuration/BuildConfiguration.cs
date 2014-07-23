@@ -452,7 +452,7 @@ namespace UnrealBuildTool
 			BaseIntermediateFolder = "Intermediate/Build/";
 
 			// By default check and stop the build on EULA violation
-			bCheckLicenseViolations = true;
+			bCheckLicenseViolations = false;
 			bBreakBuildOnLicenseViolation = true;
 		}
 
