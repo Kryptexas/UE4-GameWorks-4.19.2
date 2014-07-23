@@ -13,7 +13,7 @@
  * Android cooking platform which cooks only ETC2 based textures.
  */
 class FAndroid_ETC2TargetPlatform
-	: public FAndroidTargetPlatform
+	: public FAndroidTargetPlatform<FAndroid_ETC2PlatformProperties>
 {
 public:
 

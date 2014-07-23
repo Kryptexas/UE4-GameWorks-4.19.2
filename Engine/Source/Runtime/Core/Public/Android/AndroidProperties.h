@@ -107,7 +107,7 @@ struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
 	}
 };
 
-struct FAndroid_ATCCPlatformProperties : public FAndroidPlatformProperties
+struct FAndroid_ATCPlatformProperties : public FAndroidPlatformProperties
 {
 	static FORCEINLINE const char* PlatformName()
 	{

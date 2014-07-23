@@ -13,7 +13,7 @@
  * Android cooking platform which cooks only ETC1 based textures.
  */
 class FAndroid_ETC1TargetPlatform
-	: public FAndroidTargetPlatform
+	: public FAndroidTargetPlatform<FAndroid_ETC1PlatformProperties>
 {
 public:
 
