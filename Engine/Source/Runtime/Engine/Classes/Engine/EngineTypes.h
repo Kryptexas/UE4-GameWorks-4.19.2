@@ -2694,3 +2694,142 @@ public:
 	}
 };
 
+/** info for glow when using depth field rendering */
+USTRUCT()
+struct FDepthFieldGlowInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** whether to turn on the outline glow (depth field fonts only) */
+	UPROPERTY()
+	uint32 bEnableGlow:1;
+
+	/** base color to use for the glow */
+	UPROPERTY()
+	FLinearColor GlowColor;
+
+	/** if bEnableGlow, outline glow outer radius (0 to 1, 0.5 is edge of character silhouette)
+	 * glow influence will be 0 at GlowOuterRadius.X and 1 at GlowOuterRadius.Y
+	*/
+	UPROPERTY()
+	FVector2D GlowOuterRadius;
+
+	/** if bEnableGlow, outline glow inner radius (0 to 1, 0.5 is edge of character silhouette)
+	 * glow influence will be 1 at GlowInnerRadius.X and 0 at GlowInnerRadius.Y
+	 */
+	UPROPERTY()
+	FVector2D GlowInnerRadius;
+
+
+	FDepthFieldGlowInfo()
+		: bEnableGlow(false)
+		, GlowColor(ForceInit)
+		, GlowOuterRadius(ForceInit)
+		, GlowInnerRadius(ForceInit)
+	{
+	}
+
+
+		bool operator==(const FDepthFieldGlowInfo& Other) const
+		{
+			if (Other.bEnableGlow != bEnableGlow)
+			{
+				return false;
+			}
+			else if (!bEnableGlow)
+			{
+				// if the glow is disabled on both, the other values don't matter
+				return true;
+			}
+			else
+			{
+				return (Other.GlowColor == GlowColor && Other.GlowOuterRadius == GlowOuterRadius && Other.GlowInnerRadius == GlowInnerRadius);
+			}
+		}
+		bool operator!=(const FDepthFieldGlowInfo& Other) const
+		{
+			return !(*this == Other);
+		}
+	
+};
+
+/** information used in font rendering */
+USTRUCT()
+struct FFontRenderInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** whether to clip text */
+	UPROPERTY()
+	uint32 bClipText:1;
+
+	/** whether to turn on shadowing */
+	UPROPERTY()
+	uint32 bEnableShadow:1;
+
+	/** depth field glow parameters (only usable if font was imported with a depth field) */
+	UPROPERTY()
+	struct FDepthFieldGlowInfo GlowInfo;
+
+	FFontRenderInfo()
+		: bClipText(false), bEnableShadow(false)
+	{}
+};
+
+/** Simple 2d triangle with UVs */
+USTRUCT()
+struct FCanvasUVTri
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Position of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+	FVector2D V0_Pos;
+
+	/** UV of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V0_UV;
+
+	/** Color of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V0_Color;
+
+	/** Position of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V1_Pos;
+
+	/** UV of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V1_UV;
+
+	/** Color of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V1_Color;
+
+	/** Position of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V2_Pos;
+
+	/** UV of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V2_UV;
+
+	/** Color of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V2_Color;
+
+	FCanvasUVTri()
+		: V0_Pos(ForceInit)
+		, V0_UV(ForceInit)
+		, V0_Color(ForceInit)
+		, V1_Pos(ForceInit)
+		, V1_UV(ForceInit)
+		, V1_Color(ForceInit)
+		, V2_Pos(ForceInit)
+		, V2_UV(ForceInit)
+		, V2_Color(ForceInit)
+	{
+	}
+};
+
+template <> struct TIsZeroConstructType<FCanvasUVTri> { enum { Value = true }; };

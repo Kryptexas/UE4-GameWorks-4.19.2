@@ -5,6 +5,7 @@
  */
 #pragma once
 #include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Curves/CurveFloat.h"
 #include "WheeledVehicleMovementComponent4W.generated.h"
 
 UENUM()

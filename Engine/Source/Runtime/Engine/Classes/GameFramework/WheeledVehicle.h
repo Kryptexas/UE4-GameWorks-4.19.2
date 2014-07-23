@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Controller.h"
-
+#include "GameFramework/Pawn.h"
 #include "WheeledVehicle.generated.h"
+
+class FDebugDisplayInfo;
 
 UCLASS(abstract, config=Game, BlueprintType)
 class ENGINE_API AWheeledVehicle : public APawn

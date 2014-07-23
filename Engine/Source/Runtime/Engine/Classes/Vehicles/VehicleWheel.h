@@ -7,6 +7,15 @@
 #pragma once
 #include "VehicleWheel.generated.h"
 
+class UPhysicalMaterial;
+
+#if WITH_PHYSX
+namespace physx
+{
+	class PxShape;
+}
+#endif // WITH_PHYSX
+
 UCLASS(BlueprintType, Blueprintable)
 class ENGINE_API UVehicleWheel : public UObject
 {

@@ -10,6 +10,7 @@
 #include "AI/Navigation/NavAgentInterface.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "GameFramework/MovementComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
 
 UCLASS(abstract)

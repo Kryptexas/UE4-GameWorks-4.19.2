@@ -6,8 +6,15 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
 #include "BatchedElements.h"
 #include "CanvasItem.h"
+
+class FMaterialRenderProxy;
+class FTexture;
+class FRenderTarget;
+class FHitProxyConsumer;
+class FRHICommandListImmediate;
 
 /**
  * Encapsulates the canvas state.

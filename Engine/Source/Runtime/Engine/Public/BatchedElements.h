@@ -9,28 +9,8 @@
 
 #include "StaticBoundShaderState.h"
 #include "HitProxies.h"
+#include "SceneTypes.h"
 
-/** Blend modes supported for simple element rendering */
-enum ESimpleElementBlendMode
-{
-	SE_BLEND_Opaque=0,
-	SE_BLEND_Masked,
-	SE_BLEND_Translucent,
-	SE_BLEND_Additive,
-	SE_BLEND_Modulate,
-	SE_BLEND_MaskedDistanceField,
-	SE_BLEND_MaskedDistanceFieldShadowed,
-	SE_BLEND_TranslucentDistanceField,
-	SE_BLEND_TranslucentDistanceFieldShadowed,
-	SE_BLEND_AlphaComposite,
-	// Like SE_BLEND_Translucent, but modifies destination alpha
-	SE_BLEND_AlphaBlend,
-
-	SE_BLEND_RGBA_MASK_START,
-	SE_BLEND_RGBA_MASK_END = SE_BLEND_RGBA_MASK_START+31, //Using 5bit bit-field for red, green, blue, alpha and desaturation
-
-	SE_BLEND_MAX
-};
 
 /** The type used to store batched line vertices. */
 struct FSimpleElementVertex

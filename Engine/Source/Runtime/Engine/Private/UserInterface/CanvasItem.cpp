@@ -241,6 +241,39 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 #endif // WITH_EDITOR
 
 
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FTexture* InTexture, const FLinearColor& InColor)
+	: FCanvasItem(InPosition)
+	, Z(1.0f)
+	, UV0(0.0f, 0.0f)
+	, UV1(1.0f, 1.0f)
+	, Texture(InTexture)
+	, MaterialRenderProxy(NULL)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	SetColor(InColor);
+	// Ensure texture is valid.
+	check(InTexture);
+	Size.X = InTexture->GetSizeX();
+	Size.Y = InTexture->GetSizeY();
+}
+
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FLinearColor& InColor)
+	: FCanvasItem(InPosition)
+	, Size(InSize)
+	, Z(1.0f)
+	, UV0(0.0f, 0.0f)
+	, UV1(1.0f, 1.0f)
+	, Texture(InTexture)
+	, MaterialRenderProxy(NULL)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	SetColor(InColor);
+	// Ensure texture is valid
+	check(InTexture);
+}
+
 FCanvasTileItem::FCanvasTileItem( const FVector2D& InPosition, const FVector2D& InSize, const FLinearColor& InColor )
 	: FCanvasItem( InPosition )
 	, Size( InSize )
@@ -253,6 +286,69 @@ FCanvasTileItem::FCanvasTileItem( const FVector2D& InPosition, const FVector2D& 
 	, PivotPoint( FVector2D::ZeroVector )
 {		
 	SetColor( InColor );
+}
+
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor)
+	: FCanvasItem(InPosition)
+	, Z(1.0f)
+	, UV0(InUV0)
+	, UV1(InUV1)
+	, MaterialRenderProxy(NULL)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	SetColor(InColor);
+	// Ensure texture is valid.
+	check(InTexture);
+
+	Size.X = InTexture->GetSizeX();
+	Size.Y = InTexture->GetSizeY();
+}
+
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor)
+	: FCanvasItem(InPosition)
+	, Size(InSize)
+	, Z(1.0f)
+	, UV0(InUV0)
+	, UV1(InUV1)
+	, Texture(InTexture)
+	, MaterialRenderProxy(NULL)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	SetColor(InColor);
+	// Ensure texture is valid.
+	check(InTexture != NULL);
+}
+
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize)
+	: FCanvasItem(InPosition)
+	, Size(InSize)
+	, Z(1.0f)
+	, UV0(0.0f, 0.0f)
+	, UV1(1.0f, 1.0f)
+	, Texture(NULL)
+	, MaterialRenderProxy(InMaterialRenderProxy)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	// Ensure specify Texture or material, but not both.
+	check(InMaterialRenderProxy);
+}
+
+FCanvasTileItem::FCanvasTileItem(const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1)
+	: FCanvasItem(InPosition)
+	, Size(InSize)
+	, Z(1.0f)
+	, UV0(InUV0)
+	, UV1(InUV1)
+	, Texture(NULL)
+	, MaterialRenderProxy(InMaterialRenderProxy)
+	, Rotation(ForceInitToZero)
+	, PivotPoint(FVector2D::ZeroVector)
+{
+	// Ensure material proxy is valid.
+	check(InMaterialRenderProxy);
 }
 
 void FCanvasTileItem::Draw( class FCanvas* InCanvas )

@@ -312,7 +312,7 @@
 #include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"
 #include "UnrealEngine.h"					// Unreal engine helpers.
-#include "Canvas.h"							// Canvas.
+#include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "InstancedFoliage.h"				// Instanced foliage.
 #include "UnrealExporter.h"					// Exporter definition.

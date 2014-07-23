@@ -103,6 +103,35 @@ void UAnimationAsset::ValidateSkeleton()
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+// FBoneContainer
+
+FBoneContainer::FBoneContainer()
+: Asset(NULL)
+, AssetSkeletalMesh(NULL)
+, AssetSkeleton(NULL)
+, RefSkeleton(NULL)
+, bDisableRetargeting(false)
+, bUseRAWData(false)
+{
+	BoneIndicesArray.Empty();
+	BoneSwitchArray.Empty();
+	SkeletonToPoseBoneIndexArray.Empty();
+	PoseToSkeletonBoneIndexArray.Empty();
+}
+
+FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
+: BoneIndicesArray(InRequiredBoneIndexArray)
+, Asset(&InAsset)
+, AssetSkeletalMesh(NULL)
+, AssetSkeleton(NULL)
+, RefSkeleton(NULL)
+, bDisableRetargeting(false)
+, bUseRAWData(false)
+{
+	Initialize();
+}
+
 void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
 {
 	BoneIndicesArray = InRequiredBoneIndexArray;

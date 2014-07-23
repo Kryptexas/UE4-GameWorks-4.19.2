@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "Canvas.h"
 #include "CanvasRenderTarget2D.generated.h"
+
+class UCanvas;
 
 /** This delegate is assignable through Blueprint and has similar functionality to the above. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCanvasRenderTargetUpdate, UCanvas*, Canvas, int32, Width, int32, Height);
@@ -54,7 +55,7 @@ public:
 	 * @param	Height				Height of the render target.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Canvas Render Target 2D")
-	virtual void ReceiveUpdate(class UCanvas* Canvas, int32 Width, int32 Height);
+	virtual void ReceiveUpdate(UCanvas* Canvas, int32 Width, int32 Height);
 
 	/**
 	 * Gets a specific render target's size from the global map of canvas render targets.
