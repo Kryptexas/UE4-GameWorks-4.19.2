@@ -847,7 +847,7 @@ void FMacWindow::BringToFront( bool bForce )
 	if (bIsVisible)
 	{
 		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle orderFrontAndMakeMain:true andKey:true];
+		[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
 	}
 }
 
