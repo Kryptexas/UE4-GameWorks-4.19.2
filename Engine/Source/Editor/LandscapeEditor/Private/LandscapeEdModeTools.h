@@ -425,11 +425,12 @@ struct TLandscapeEditCache
 		CachedData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Value);
 	}
 
-	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutData)
+	bool GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutData)
 	{
 		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
 		OutData.Empty(NumSamples);
 		OutData.AddUninitialized(NumSamples);
+		bool bHasNonZero = false;
 
 		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
@@ -438,10 +439,16 @@ struct TLandscapeEditCache
 				AccessorType* Ptr = GetValueRef(X, Y);
 				if (Ptr)
 				{
-					OutData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = *Ptr;
+					OutData[(X-X1) + (Y-Y1)*(1+X2-X1)] = *Ptr;
+					if (*Ptr != (AccessorType)0)
+					{
+						bHasNonZero = true;
+					}
 				}
 			}
 		}
+
+		return bHasNonZero;
 	}
 
 	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
@@ -692,7 +699,7 @@ struct FXYOffsetmapAccessor
 
 	void GetDataFast(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint, FVector>& Data)
 	{
-		LandscapeEdit->GetXYOffsetData(X1, Y1, X2, Y2, Data);
+		LandscapeEdit->GetXYOffsetDataFast(X1, Y1, X2, Y2, Data);
 
 		TMap<FIntPoint, uint16> NewHeights;
 		LandscapeEdit->GetHeightDataFast(X1, Y1, X2, Y2, NewHeights);
@@ -803,11 +810,12 @@ private:
 	TSet<ULandscapeComponent*> ChangedComponents;
 };
 
-struct FLandscapeXYOffsetCache : public TLandscapeEditCache < FXYOffsetmapAccessor<true>, FVector >
+template<bool bInUseInterp>
+struct FLandscapeXYOffsetCache : public TLandscapeEditCache < FXYOffsetmapAccessor<bInUseInterp>, FVector >
 {
 	typedef FVector DataType;
 
-	FXYOffsetmapAccessor<true> XYOffsetmapAccessor;
+	FXYOffsetmapAccessor<bInUseInterp> XYOffsetmapAccessor;
 
 	FLandscapeXYOffsetCache(const FLandscapeToolTarget& InTarget)
 		: XYOffsetmapAccessor(InTarget.LandscapeInfo.Get())

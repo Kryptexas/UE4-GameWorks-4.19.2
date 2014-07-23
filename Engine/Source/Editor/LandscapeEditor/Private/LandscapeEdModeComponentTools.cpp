@@ -743,9 +743,10 @@ class FLandscapeToolStrokeAddComponent
 {
 public:
 	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: EdMode(InEdMode)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
-		, HeightCache(InTarget)
+		:	EdMode(InEdMode)
+		,	LandscapeInfo(InTarget.LandscapeInfo.Get())
+		,	HeightCache(InTarget)
+		,	XYOffsetCache(InTarget)
 	{}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
@@ -769,7 +770,10 @@ public:
 
 			HeightCache.CacheData(X1, Y1, X2, Y2);
 			TArray<uint16> Data;
-			HeightCache.GetCachedData(X1, Y1, X2, Y2, Data);
+			HeightCache.GetCachedData(X1,Y1,X2,Y2,Data);
+			XYOffsetCache.CacheData(X1, Y1, X2, Y2);
+			TArray<FVector> XYOffsetData;
+			bool bHasXYOffset = XYOffsetCache.GetCachedData(X1, Y1, X2, Y2, XYOffsetData);
 
 			// Find component range for this block of data, non shared vertices
 			int32 ComponentIndexX1 = (X1 + 1 >= 0) ? (X1 + 1) / Landscape->ComponentSizeQuads : (X1 + 2) / Landscape->ComponentSizeQuads - 1;
@@ -820,8 +824,16 @@ public:
 
 			Landscape->RegisterAllComponents();
 
-			HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
-			HeightCache.Flush();
+			if (bHasXYOffset)
+			{
+				XYOffsetCache.SetCachedData(X1, Y1, X2, Y2, XYOffsetData);
+				XYOffsetCache.Flush();
+			}
+			else
+			{
+				HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
+				HeightCache.Flush();
+			}
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
 			{
@@ -854,7 +866,7 @@ public:
 				NewComponents[Idx]->UpdateBounds();
 				NewComponents[Idx]->MarkRenderStateDirty();
 				ULandscapeHeightfieldCollisionComponent* CollisionComp = NewComponents[Idx]->CollisionComponent.Get();
-				if (CollisionComp)
+				if (CollisionComp && !bHasXYOffset)
 				{
 					CollisionComp->MarkRenderStateDirty();
 					CollisionComp->RecreateCollision();
@@ -871,6 +883,7 @@ protected:
 	FEdModeLandscape* EdMode;
 	ULandscapeInfo* LandscapeInfo;
 	FLandscapeHeightCache HeightCache;
+	FLandscapeXYOffsetCache<true> XYOffsetCache;
 };
 
 // 

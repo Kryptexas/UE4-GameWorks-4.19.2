@@ -543,7 +543,7 @@ public:
 
 protected:
 	ULandscapeInfo* LandscapeInfo;
-	FLandscapeXYOffsetCache Cache;
+	FLandscapeXYOffsetCache<false> Cache;
 };
 
 class FLandscapeToolRetopologize : public FLandscapeToolBase<FLandscapeToolStrokeRetopologize>
