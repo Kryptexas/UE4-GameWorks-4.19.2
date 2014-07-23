@@ -80,6 +80,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SubsectionSizeVertsLayerUVPan)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SubsectionOffsetParams)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,LightmapSubsectionOffsetParams)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,LocalToWorldNoScaling)
 END_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters)
 
 /* Data needed for the landscape vertex factory to set the render state for an individual batch element */

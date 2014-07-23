@@ -702,7 +702,7 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(FVertexFacto
 #if USING_TESSELLATION
 	// Calculate LocalToTangent directly from normal map texture.
 	float3x3 TangentToLocal = CalcTangentBasisFromWorldNormal( Intermediates.WorldNormal );
-	float3x3 TangentToWorld = mul(TangentToLocal, GetLocalToWorld3x3());
+	float3x3 TangentToWorld = mul(TangentToLocal, (float3x3)LandscapeParameters.LocalToWorldNoScaling);
 	
 	Interpolants.TangentToWorld0 = TangentToWorld[0];
 	Interpolants.TangentToWorld2 = float4(TangentToWorld[2], 1);

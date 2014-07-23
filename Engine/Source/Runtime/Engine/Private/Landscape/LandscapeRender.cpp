@@ -985,6 +985,7 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 	FLandscapeUniformShaderParameters LandscapeParams;
 	LandscapeParams.HeightmapUVScaleBias = HeightmapScaleBias;
 	LandscapeParams.WeightmapUVScaleBias = WeightmapScaleBias;
+	LandscapeParams.LocalToWorldNoScaling = LocalToWorldNoScaling;
 
 	LandscapeParams.LandscapeLightmapScaleBias = FVector4(
 		LightmapScaleX,
