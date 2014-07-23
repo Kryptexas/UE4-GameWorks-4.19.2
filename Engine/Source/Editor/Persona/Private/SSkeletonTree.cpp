@@ -314,7 +314,11 @@ TSharedRef< SWidget > FDisplayedMeshBoneInfo::GenerateWidgetForDataColumn()
 	return SNew( SComboButton )
 		.ContentPadding(3)
 		.OnGetMenuContent( this, &FDisplayedMeshBoneInfo::CreateBoneTranslationRetargetingModeMenu )
-		.ToolTipText( LOCTEXT( "RetargetingToolTip", "Set bone translation retargeting mode" ) )
+		.ToolTip(IDocumentation::Get()->CreateToolTip(
+		LOCTEXT("RetargetingToolTip", "Set bone translation retargeting mode"),
+		NULL,
+		TEXT("Shared/Editors/Persona"),
+		TEXT("TranslationRetargeting")))
 		.ButtonContent()
 		[
 			SNew( STextBlock )

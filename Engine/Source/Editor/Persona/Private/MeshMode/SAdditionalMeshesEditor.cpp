@@ -177,6 +177,11 @@ void SAdditionalMeshesEditor::Construct(const FArguments& InArgs, TSharedPtr<FPe
 				.ButtonContent()
 				[
 					SNew(STextBlock) .Text(LOCTEXT("AdditionalMeshesAddButtonLabel", "Add Mesh"))
+					.ToolTip(IDocumentation::Get()->CreateToolTip(
+					LOCTEXT("AdditionalMeshesAddButtonTooltip", "Add a body part which is a skeletal mesh sharing the same skeleton"),
+					NULL,
+					TEXT("Shared/Editors/Persona"),
+					TEXT("AdditionalMeshes")))
 				]
 			]
 			+SHorizontalBox::Slot()

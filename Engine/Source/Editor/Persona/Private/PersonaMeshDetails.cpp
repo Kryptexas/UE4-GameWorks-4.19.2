@@ -1291,7 +1291,11 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 			SNew(SButton)
 			.OnClicked(this, &FPersonaMeshDetails::OnOpenClothingFileClicked, &DetailLayout)
 			.Text(LOCTEXT("AddAPEXClothingFile", "Add APEX clothing file..."))
-			.ToolTipText(LOCTEXT("AddAPEXClothingFileTip", "Select a new APEX clothing file and add it to the skeletal mesh."))
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("AddClothingButtonTooltip", "Select a new APEX clothing file and add it to the skeletal mesh."),
+				NULL,
+				TEXT("Shared/Editors/Persona"),
+				TEXT("AddClothing")))
 		]
 	];
 }
