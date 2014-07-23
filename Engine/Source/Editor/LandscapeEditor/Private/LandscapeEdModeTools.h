@@ -818,8 +818,8 @@ struct FLandscapeXYOffsetCache : public TLandscapeEditCache < FXYOffsetmapAccess
 	FXYOffsetmapAccessor<bInUseInterp> XYOffsetmapAccessor;
 
 	FLandscapeXYOffsetCache(const FLandscapeToolTarget& InTarget)
-		: XYOffsetmapAccessor(InTarget.LandscapeInfo.Get())
-		, TLandscapeEditCache(XYOffsetmapAccessor)
+		: TLandscapeEditCache< FXYOffsetmapAccessor<bInUseInterp>, FVector >(XYOffsetmapAccessor)
+		, XYOffsetmapAccessor(InTarget.LandscapeInfo.Get())
 	{
 	}
 };
