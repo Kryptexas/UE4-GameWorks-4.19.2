@@ -180,14 +180,11 @@ void UPaperFlipbookComponent::TickFlipbook(float DeltaTime)
 		SetPlaybackPosition(NewPosition, true);
 	}
 
-#if 0
-	// Notify user that timeline finished
+	// Notify user that the flipbook finished playing
 	if (bIsFinished)
 	{
-		TimelineFinishedFunc.ExecuteIfBound();
-		TimelineFinishFuncStatic.ExecuteIfBound();
+		OnFinishedPlaying.Broadcast();
 	}
-#endif
 }
 
 void UPaperFlipbookComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

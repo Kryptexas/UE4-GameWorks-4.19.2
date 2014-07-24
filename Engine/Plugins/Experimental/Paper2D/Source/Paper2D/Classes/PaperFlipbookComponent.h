@@ -5,6 +5,9 @@
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.generated.h"
 
+// Event for a non-looping flipbook finishing play
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFlipbookFinishedPlaySignature);
+
 UCLASS(ShowCategories=(Mobility, ComponentReplication), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperFlipbookComponent : public UPrimitiveComponent
 {
@@ -46,6 +49,11 @@ protected:
 	/** Vertex color to apply to the frames */
 	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
 	FLinearColor SpriteColor;
+
+public:
+	/** Event called whenever a non-looping flipbook finishes playing (either reaching the beginning or the end, depending on the play direction) */
+	UPROPERTY(BlueprintAssignable)
+	FFlipbookFinishedPlaySignature OnFinishedPlaying;
 
 public:
 	/** Change the flipbook used by this instance (will reset the play time to 0 if it is a new flipbook). */
