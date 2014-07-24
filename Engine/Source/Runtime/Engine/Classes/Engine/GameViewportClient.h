@@ -318,14 +318,14 @@ public:
 	 * @param  ViewportContent	The widget to add.  Must be valid.
 	 * @param  ZOrder  The Z-order index for this widget.  Larger values will cause the widget to appear on top of widgets with lower values.
 	 */
-	void AddViewportWidgetContent( TSharedRef<class SWidget> ViewportContent, const int32 ZOrder = 0 );
+	virtual void AddViewportWidgetContent( TSharedRef<class SWidget> ViewportContent, const int32 ZOrder = 0 );
 
 	/**
 	 * Removes a previously-added widget from the Slate viewport
 	 *
 	 * @param	ViewportContent  The widget to remove.  Must be valid.
 	 */
-	void RemoveViewportWidgetContent( TSharedRef<class SWidget> ViewportContent );
+	virtual void RemoveViewportWidgetContent( TSharedRef<class SWidget> ViewportContent );
 
 
 	/**
