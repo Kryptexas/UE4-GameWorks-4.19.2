@@ -2160,6 +2160,16 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 					InActor->SetActorRotation( InDeltaRot );
 				}
 			}
+
+			if ( bDelta )
+			{
+				FVector NewActorLocation = InActor->GetActorLocation();
+				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
+				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
+				NewActorLocation += GLevelEditorModeTools().PivotLocation;
+				NewActorLocation -= InActor->GetActorLocation();
+				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
+			}
 		}
 	}
 

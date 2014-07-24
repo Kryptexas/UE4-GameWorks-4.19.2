@@ -1986,15 +1986,18 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			const auto ActorLocation = Actor->GetActorLocation();
 			const auto ActorRotation = Actor->GetActorRotation().Quaternion();
 
-			FTransform* PreDragActorTransform = PreDragActorTransforms.Find(Actor);
+			const FTransform* PreDragActorTransform = PreDragActorTransforms.Find(Actor);
 			check(PreDragActorTransform);
 
 			// Compute the surface aligned transform. Note we do not use the snapped version here as our DragDelta is already snapped
-			const FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(Factory,
+			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(Factory,
 				TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent(), *PreDragActorTransform);
 			
-			const FRotator DeltaRotation(ActorTransform.GetRotation() * ActorRotation.Inverse());
-			ApplyDeltaToActor(Actor, ActorTransform.GetLocation() - ActorLocation, DeltaRotation, FVector(0.f, 0.f, 0.f));
+			ActorTransform.SetScale3D(Actor->GetActorScale3D());
+			if (auto* RootComponent = Actor->GetRootComponent())
+			{
+				RootComponent->SetWorldTransform(ActorTransform);
+			}
 		}
 		else
 		{
