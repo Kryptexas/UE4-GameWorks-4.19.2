@@ -1632,7 +1632,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return bLatchedBypass;
 #else
-		return !!DefaultBypass;
+		return  !FApp::ShouldUseThreadingForPerformance() || !!DefaultBypass;
 #endif
 	}
 	static void CheckNoOutstandingCmdLists();

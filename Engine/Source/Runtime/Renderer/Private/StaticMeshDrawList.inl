@@ -325,8 +325,6 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(AA_FDrawVisibleAnyThreadTask);
-
 		for (int32 Index = this->FirstPolicy; Index <= this->LastPolicy; Index++)
 		{
 			typename TStaticMeshDrawList<DrawingPolicyType>::FDrawingPolicyLink* DrawingPolicyLink = &this->Caller.DrawingPolicySet[this->Caller.OrderedDrawingPolicies[Index]];

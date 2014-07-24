@@ -28,6 +28,7 @@ void FRenderResource::InitResource()
 			InitDynamicRHI();
 			InitRHI();
 		}
+		FPlatformMisc::MemoryBarrier(); // there are some multithreaded reads of bInitialized
 		bInitialized = true;
 	}
 }
@@ -61,6 +62,53 @@ void FRenderResource::UpdateRHI()
 		InitRHI();
 	}
 }
+
+void FRenderResource::InitResourceFromPossiblyParallelRendering()
+{
+	if (IsInRenderingThread())
+	{
+		InitResource();
+	}
+	else
+	{
+		check(IsInParallelRenderingThread());
+		class FInitResourceRenderThreadTask
+		{
+			FRenderResource& Resource;
+			FScopedEvent& Event;
+		public:
+
+			FInitResourceRenderThreadTask(FRenderResource* InResource, FScopedEvent* InEvent)
+				: Resource(*InResource)
+				, Event(*InEvent)
+			{
+			}
+
+			FORCEINLINE TStatId GetStatId() const
+			{
+				RETURN_QUICK_DECLARE_CYCLE_STAT(FInitResourceRenderThreadTask, STATGROUP_TaskGraphTasks);
+			}
+
+			ENamedThreads::Type GetDesiredThread()
+			{
+				return ENamedThreads::RenderThread_Local;
+			}
+
+			static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+
+			void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+			{
+				Resource.InitResource();
+				Event.Trigger();
+			}
+		};
+		{
+			FScopedEvent Event;
+			TGraphTask<FInitResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(this, &Event);
+		}
+	}
+}
+
 
 FRenderResource::~FRenderResource()
 {

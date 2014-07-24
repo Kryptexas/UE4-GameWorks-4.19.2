@@ -19,6 +19,7 @@ void RHIInit(bool bHasEditorToken)
 {
 	if(!GStaticRHI)
 	{		
+		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 		GStaticRHI = CreateStaticRHI();
 	}
 }

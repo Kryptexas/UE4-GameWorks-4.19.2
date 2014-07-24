@@ -60,7 +60,6 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
 	);
 #endif
 
-
 TLockFreePointerList<FRHIResource> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
 

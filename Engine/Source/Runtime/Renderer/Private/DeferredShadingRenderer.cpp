@@ -481,7 +481,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 	// Render the base pass static data
 	{
-		if (!GRHICommandList.Bypass() && FApp::ShouldUseThreadingForPerformance())
+		if (!GRHICommandList.Bypass())
 		{
 			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
@@ -920,6 +920,213 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderFinish(RHICmdList);
 }
 
+bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View)
+{
+	// Draw the dynamic occluder primitives using a depth drawing policy.
+	TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, &View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode), true);
+	{
+		SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
+		for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
+		{
+			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
+			int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
+			const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
+
+			bool bShouldUseAsOccluder = true;
+
+			if(EarlyZPassMode != DDM_AllOccluders)
+			{
+				extern float GMinScreenRadiusForDepthPrepass;
+				const float LODFactorDistanceSquared = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
+
+				// Only render primitives marked as occluders
+				bShouldUseAsOccluder = PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder()
+					// Only render static objects unless movable are requested
+					&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable)
+					&& (FMath::Square(PrimitiveSceneInfo->Proxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
+			}
+
+			// Only render opaque primitives marked as occluders
+			if (bShouldUseAsOccluder && PrimitiveViewRelevance.bOpaqueRelevance && PrimitiveViewRelevance.bRenderInMainPass)
+			{
+				FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
+				Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+					&Drawer,
+					&View
+					);
+			}
+		}
+	}
+	return Drawer.IsDirty();
+}
+
+bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
+{
+	bool bDirty = false;
+
+	// Disable color writes, enable depth tests and writes.
+	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
+
+	// Draw the static occluder primitives using a depth drawing policy.
+	{
+		// Draw opaque occluders which support a separate position-only
+		// vertex buffer to minimize vertex fetch bandwidth, which is
+		// often the bottleneck during the depth only pass.
+		SCOPED_DRAW_EVENT(PosOnlyOpaque, DEC_SCENE_ITEMS);
+		bDirty |= Scene->PositionOnlyDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+	}
+	{
+		// Draw opaque occluders, using double speed z where supported.
+		SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
+		bDirty |= Scene->DepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+	}
+
+	if(EarlyZPassMode >= DDM_AllOccluders)
+	{
+		// Draw opaque occluders with masked materials
+		SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
+		bDirty |= Scene->MaskedDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+	}
+
+	bDirty |= RenderPrePassViewDynamic(RHICmdList, View);
+	return bDirty;
+}
+
+class FSubmitCommandlistSetupPrepassView
+{
+	const FViewInfo& View;
+public:
+
+	FSubmitCommandlistSetupPrepassView(const FViewInfo* InView)
+		: View(*InView)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FSubmitCommandlistSetupPrepassView, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::RenderThread_Local;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		FRHICommandList RHICmdList;
+		// Disable color writes, enable depth tests and writes.
+		RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
+	}
+};
+
+class FRenderPrepassDynamicDataThreadTask
+{
+	FDeferredShadingSceneRenderer& ThisRenderer;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	bool& OutDirty;
+
+public:
+
+	FRenderPrepassDynamicDataThreadTask(
+		FDeferredShadingSceneRenderer* InThisRenderer,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		bool* InOutDirty
+		)
+		: ThisRenderer(*InThisRenderer)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, OutDirty(*InOutDirty)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderPrepassDynamicDataThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		if (ThisRenderer.RenderPrePassViewDynamic(RHICmdList, View))
+		{
+			OutDirty = true;
+		}
+	}
+};
+
+
+FGraphEventRef FDeferredShadingSceneRenderer::RenderPrePassViewParallel(FRHICommandList& RHICmdList, const FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty)
+{
+	{
+		//optimization: this is probably only needed on the first view
+		FGraphEventArray Prereqs;
+		if (SubmitChain.GetReference())
+		{
+			Prereqs.Add(SubmitChain);
+		}
+		SubmitChain = TGraphTask<FSubmitCommandlistSetupPrepassView>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&View);
+
+	}
+
+	// Draw the static occluder primitives using a depth drawing policy.
+	{
+		// Draw opaque occluders which support a separate position-only
+		// vertex buffer to minimize vertex fetch bandwidth, which is
+		// often the bottleneck during the depth only pass.
+		//SCOPED_DRAW_EVENT(PosOnlyOpaque, DEC_SCENE_ITEMS);
+		SubmitChain = Scene->PositionOnlyDepthDrawList.DrawVisibleParallel(View, View.StaticMeshOccluderMap, View.StaticMeshBatchVisibility, Width, SubmitChain, OutDirty);
+	}
+	{
+		// Draw opaque occluders, using double speed z where supported.
+		//SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
+		SubmitChain = Scene->DepthDrawList.DrawVisibleParallel(View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, Width, SubmitChain, OutDirty);
+	}
+
+	if(EarlyZPassMode >= DDM_AllOccluders)
+	{
+		// Draw opaque occluders with masked materials
+		//SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
+		SubmitChain = Scene->MaskedDepthDrawList.DrawVisibleParallel(View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, Width, SubmitChain, OutDirty);
+	}
+
+	{
+		FRHICommandList* CmdList = new FRHICommandList;
+
+		FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderPrepassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+			.ConstructAndDispatchWhenReady(this, CmdList, &View, &OutDirty);
+
+		FGraphEventArray Prereqs;
+		Prereqs.Add(AnyThreadCompletionEvent);
+		if (SubmitChain.GetReference())
+		{
+			Prereqs.Add(SubmitChain);
+		}
+
+		SubmitChain = TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+	}
+
+	return SubmitChain;
+}
+
+
 /** Renders the scene's prepass and occlusion queries */
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList)
 {
@@ -938,76 +1145,31 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	// Draw a depth pass to avoid overdraw in the other passes.
 	if(EarlyZPassMode != DDM_None)
 	{
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		if (!GRHICommandList.Bypass())
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
-			const FViewInfo& View = Views[ViewIndex];
-
-			// Disable color writes, enable depth tests and writes.
-			RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
-			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
-
-			// Draw the static occluder primitives using a depth drawing policy.
+			FGraphEventRef SubmitChain;
+			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				// Draw opaque occluders which support a separate position-only
-				// vertex buffer to minimize vertex fetch bandwidth, which is
-				// often the bottleneck during the depth only pass.
-				SCOPED_DRAW_EVENT(PosOnlyOpaque, DEC_SCENE_ITEMS);
-				bDirty |= Scene->PositionOnlyDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				const FViewInfo& View = Views[ViewIndex];
+				SubmitChain = RenderPrePassViewParallel(RHICmdList, View, Width, SubmitChain, bDirty);
 			}
+			
+			if (SubmitChain.GetReference())
 			{
-				// Draw opaque occluders, using double speed z where supported.
-				SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
-				bDirty |= Scene->DepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
 			}
-
-			if(EarlyZPassMode >= DDM_AllOccluders)
+		}
+		else
+		{
+			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				// Draw opaque occluders with masked materials
-				SCOPED_DRAW_EVENT(Opaque, DEC_SCENE_ITEMS);
-				bDirty |= Scene->MaskedDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				const FViewInfo& View = Views[ViewIndex];
+				bDirty |= RenderPrePassView(RHICmdList, View);
 			}
-
-			// Draw the dynamic occluder primitives using a depth drawing policy.
-			TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, &View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode), true);
-			{
-				SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
-				for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
-				{
-					const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-					int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-					const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
-					bool bShouldUseAsOccluder = true;
-					
-					if(EarlyZPassMode != DDM_AllOccluders)
-					{
-						extern float GMinScreenRadiusForDepthPrepass;
-						const float LODFactorDistanceSquared = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
-
-						// Only render primitives marked as occluders
-						bShouldUseAsOccluder = PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder()
-							// Only render static objects unless movable are requested
-							&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable)
-							&& (FMath::Square(PrimitiveSceneInfo->Proxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
-					}
-
-					// Only render opaque primitives marked as occluders
-					if (bShouldUseAsOccluder && PrimitiveViewRelevance.bOpaqueRelevance && PrimitiveViewRelevance.bRenderInMainPass)
-					{
-						FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-						Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-						PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-							&Drawer,
-							&View
-							);
-					}
-				}
-			}
-			bDirty |= Drawer.IsDirty();
 		}
 	}
 

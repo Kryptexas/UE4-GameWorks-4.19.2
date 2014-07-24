@@ -83,6 +83,9 @@ public:
 	 */
 	void UpdateRHI();
 
+	// Probably temporary code that sends a task back to renderthread_local and blocks waiting for it to call InitResource
+	void InitResourceFromPossiblyParallelRendering();
+
 	/** @return The resource's friendly name.  Typically a UObject name. */
 	virtual FString GetFriendlyName() const { return TEXT("undefined"); }
 

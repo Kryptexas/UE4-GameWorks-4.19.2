@@ -84,8 +84,20 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 void FRHICommandListExecutor::LatchBypass()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+	static bool bOnce = false;
+	if (!bOnce)
+	{
+		bOnce = true;
+		if (FParse::Param(FCommandLine::Get(),TEXT("parallelrendering")) && CVarRHICmdBypass.GetValueOnRenderThread() >= 1)
+		{
+			IConsoleVariable* BypassVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmdBypass"));
+			BypassVar->Set(0);
+		}
+	}
+
 	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1 && !GRHICommandList.GetImmediateCommandList().HasCommands());
-	bool NewBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+	bool NewBypass = (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
 	if (NewBypass && !bLatchedBypass)
 	{
 		FRHIResource::FlushPendingDeletes();

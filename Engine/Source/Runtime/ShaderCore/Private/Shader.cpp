@@ -457,7 +457,6 @@ void FShaderResource::ReleaseRHI()
 	ComputeShader.SafeRelease();
 }
 
-
 void FShaderResource::InitializeVertexShaderRHI() 
 { 
 	if (!IsInitialized())
@@ -467,7 +466,7 @@ void FShaderResource::InitializeVertexShaderRHI()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 
 		}
 
@@ -487,7 +486,7 @@ void FShaderResource::InitializePixelShaderRHI()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 		}
 
 		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
@@ -507,7 +506,7 @@ const FHullShaderRHIRef& FShaderResource::GetHullShader()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 		}
 
 		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
@@ -530,7 +529,7 @@ const FDomainShaderRHIRef& FShaderResource::GetDomainShader()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 		}
 		
 		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
@@ -553,7 +552,7 @@ const FGeometryShaderRHIRef& FShaderResource::GetGeometryShader()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 		}
 
 		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
@@ -576,7 +575,7 @@ const FComputeShaderRHIRef& FShaderResource::GetComputeShader()
 			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
 			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
 
-			InitResource();
+			InitResourceFromPossiblyParallelRendering();
 		}
 
 		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
