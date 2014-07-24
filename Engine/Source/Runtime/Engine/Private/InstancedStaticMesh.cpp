@@ -1242,6 +1242,18 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 #endif //WITH_PHYSX
 }
 
+void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
+{
+	int32 NumBodies = PerInstanceSMData.Num();
+	InstanceBodies.Init(NumBodies);
+
+	for (int32 i = 0; i < NumBodies; ++i)
+	{
+		InstanceBodies[i] = new FBodyInstance;
+		InitInstanceBody(i, InstanceBodies[i]);
+	}
+}
+
 void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
 {
 	for (int32 i = 0; i < InstanceBodies.Num(); i++)
@@ -1273,14 +1285,7 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 #endif
 
 	// Create all the bodies.
-	int32 NumBodies = PerInstanceSMData.Num();
-	InstanceBodies.Init(NumBodies);
-
-	for(int32 i=0; i < NumBodies; ++i)
-	{
-		InstanceBodies[i] = new FBodyInstance;
-		InitInstanceBody(i, InstanceBodies[i]);
-	}
+	CreateAllInstanceBodies();
 
 	USceneComponent::CreatePhysicsState();
 }
@@ -1559,6 +1564,38 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
+bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+{
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		return false;
+	}
+
+	// remove instance
+	PerInstanceSMData.RemoveAt(InstanceIndex);
+
+#if WITH_EDITOR
+	// remove selection flag if array is filled in
+	if (SelectedInstances.IsValidIndex(InstanceIndex))
+	{
+		SelectedInstances.RemoveAt(InstanceIndex);
+	}
+#endif
+
+	// update the physics state
+	if (bPhysicsStateCreated)
+	{
+		// TODO: it may be possible to instead just update the BodyInstanceIndex for all bodies after the removed instance. 
+		ClearAllInstanceBodies();
+		CreateAllInstanceBodies();
+	}
+
+	// Indicate we need to update render state to reflect changes
+	MarkRenderStateDirty();
+
+	return true;
+}
+
 void UInstancedStaticMeshComponent::ClearInstances()
 {
 	// Clear all the per-instance data
@@ -1573,6 +1610,13 @@ void UInstancedStaticMeshComponent::ClearInstances()
 int32 UInstancedStaticMeshComponent::GetInstanceCount() const
 {
 	return PerInstanceSMData.Num();
+}
+
+void UInstancedStaticMeshComponent::SetCullDistances(int32 StartCullDistance, int32 EndCullDistance)
+{
+	InstanceStartCullDistance = StartCullDistance;
+	InstanceEndCullDistance = EndCullDistance;
+	MarkRenderStateDirty();
 }
 
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)

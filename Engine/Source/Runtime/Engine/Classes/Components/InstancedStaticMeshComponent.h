@@ -96,6 +96,10 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
 	bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false);
 
+	/** Remove the instance specified. Returns True on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	bool RemoveInstance(int32 InstanceIndex);
+	
 	/** Clear all instances being rendered by this component */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
 	void ClearInstances();
@@ -103,7 +107,11 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	/** Get the number of instances in this component */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
 	int32 GetInstanceCount() const;
-	
+
+	/** Sets the fading start and culling end distances for this component. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	void SetCullDistances(int32 StartCullDistance, int32 EndCullDistance);
+
 	virtual bool ShouldCreatePhysicsState() const;
 
 public:
@@ -158,6 +166,9 @@ public:
 private:
 	/** Initializes the body instance for the specified instance of the static mesh*/
 	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
+
+	/** Creates body instances for all instances owned by this component */
+	void CreateAllInstanceBodies();
 
 	/** Terminate all body instances owned by this component */
 	void ClearAllInstanceBodies();

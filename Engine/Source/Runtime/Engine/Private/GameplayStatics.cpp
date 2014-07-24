@@ -557,7 +557,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem)
 {
 	Location = Hit.Location;
 	Normal = Hit.Normal;
@@ -567,6 +567,7 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, 
 	HitActor = Hit.GetActor();
 	HitComponent = Hit.Component.Get();
 	HitBoneName = Hit.BoneName;
+	HitItem = Hit.Item;
 }
 
 EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
