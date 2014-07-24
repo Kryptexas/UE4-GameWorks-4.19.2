@@ -546,13 +546,15 @@ namespace EpicGames.MCP.Config
     // Class for storing mcp configuration data
     public class McpConfigData
     {
-        public McpConfigData(string InName, string InAccountBaseUrl, string InFortniteBaseUrl, string InBuildInfoBaseUrl, string InLauncherBaseUrl, string InClientId, string InClientSecret)
+		public McpConfigData(string InName, string InAccountBaseUrl, string InFortniteBaseUrl, string InBuildInfoBaseUrl, string InLauncherBaseUrl, string InBuildInfoV2BaseUrl, string InLauncherV2BaseUrl, string InClientId, string InClientSecret)
         {
             Name = InName;
             AccountBaseUrl = InAccountBaseUrl;
             FortniteBaseUrl = InFortniteBaseUrl;
             BuildInfoBaseUrl = InBuildInfoBaseUrl;
             LauncherBaseUrl = InLauncherBaseUrl;
+			BuildInfoV2BaseUrl = InBuildInfoV2BaseUrl;
+			LauncherV2BaseUrl = InLauncherV2BaseUrl;
             ClientId = InClientId;
             ClientSecret = InClientSecret;
         }
@@ -562,6 +564,8 @@ namespace EpicGames.MCP.Config
         public string FortniteBaseUrl;
         public string BuildInfoBaseUrl;
         public string LauncherBaseUrl;
+		public string BuildInfoV2BaseUrl;
+		public string LauncherV2BaseUrl;
         public string ClientId;
         public string ClientSecret;
 
@@ -572,6 +576,8 @@ namespace EpicGames.MCP.Config
             CommandUtils.Log("FortniteBaseUrl : {0}", FortniteBaseUrl);
             CommandUtils.Log("BuildInfoBaseUrl : {0}", BuildInfoBaseUrl);
             CommandUtils.Log("LauncherBaseUrl : {0}", LauncherBaseUrl);
+			CommandUtils.Log("BuildInfoV2BaseUrl : {0}", BuildInfoV2BaseUrl);
+			CommandUtils.Log("LauncherV2BaseUrl : {0}", LauncherV2BaseUrl);
             CommandUtils.Log("ClientId : {0}", ClientId);
             // we don't really want this in logs CommandUtils.Log("ClientSecret : {0}", ClientSecret);
         }
