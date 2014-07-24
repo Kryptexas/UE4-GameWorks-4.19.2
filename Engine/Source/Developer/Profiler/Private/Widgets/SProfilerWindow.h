@@ -62,6 +62,30 @@ protected:
 
 private:
 	/**
+	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
+	 *
+	 * @param  AllottedGeometry The space allotted for this widget
+	 * @param  InCurrentTime  Current absolute real time
+	 * @param  InDeltaTime  Real time passed since last tick
+	 */
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
+	/**
+	 * The system will use this event to notify a widget that the cursor has entered it. This event is NOT bubbled.
+	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event
+	 * @param MouseEvent Information about the input event
+	 */
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+	/**
+	 * The system will use this event to notify a widget that the cursor has left it. This event is NOT bubbled.
+	 *
+	 * @param MouseEvent Information about the input event
+	 */
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
+
+	/**
 	 * Called after a key is pressed when this widget has keyboard focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
@@ -117,6 +141,12 @@ public:
 	/** Active event graphs, one event graph for each profiler instance, stored as FGuid -> SEventGraph. */
 	TMap< FGuid, TSharedRef<class SEventGraph> > ActiveEventGraphs;
 
-
+	/** Widget for the profiler mini view */
 	TSharedPtr<SProfilerMiniView> ProfilerMiniView;
+
+	/** The number of seconds the profiler has been active */
+	float	DurationActive;
+
+	/** Whether or not the profiler widget is being used */
+	bool	bIsActive;
 };
