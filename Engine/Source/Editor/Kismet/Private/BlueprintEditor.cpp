@@ -318,6 +318,9 @@ void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphN
 {
 	if( Blueprint && GraphNode && FEngineAnalytics::IsAvailable() )
 	{
+		// we'd like to see if this was happening in normal blueprint editor or persona 
+		const FString EditorName = Cast<UAnimBlueprint>(Blueprint) != NULL ? TEXT("Persona") : TEXT("BlueprintEditor");
+
 		// Build Node Details
 		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
 		FString ProjectID = ProjectSettings.ProjectID.ToString();
@@ -343,9 +346,9 @@ void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphN
 			{
 				NodeAttributes.Add( FAnalyticsEventAttribute( Iter->Key, Iter->Value ));
 			}
-			// Send Analytics event
-			FString EventType = bNodeDelete ?	TEXT( "Editor.Usage.BlueprintEditor.NodeDeleted" ) :
-												TEXT( "Editor.Usage.BlueprintEditor.NodeCreated" );
+			// Send Analytics event 
+			FString EventType = bNodeDelete ?	FString::Printf(TEXT( "Editor.Usage.%s.NodeDeleted" ), *EditorName) :
+												FString::Printf(TEXT( "Editor.Usage.%s.NodeCreated" ), *EditorName);
 			FEngineAnalytics::GetProvider().RecordEvent( EventType, NodeAttributes );
 		}
 	}

@@ -13,8 +13,6 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhAT.h"
 
-
-
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -24,6 +22,9 @@
 #include "AssetData.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "UnrealEd.h"
+
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 DEFINE_LOG_CATEGORY(LogPhAT);
 #define LOCTEXT_NAMESPACE "PhAT"
@@ -2186,6 +2187,8 @@ void FPhAT::OnEditingMode(int32 Mode)
 	// Rebuild the toolbar, as the icons shown will have changed
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
+
+	OnAddPhatRecord(TEXT("ModeSelected"), false, true);
 }
 
 bool FPhAT::IsEditingMode(int32 Mode) const
@@ -2309,6 +2312,9 @@ void FPhAT::ImpToggleSimulation()
 	{
 		PreviewViewport->GetViewportClient()->SetRealtime(true);
 	}
+
+	// add to analytics record
+	OnAddPhatRecord(TEXT("ToggleSimulate"), true, true);
 }
 
 void FPhAT::OnSetSimulationMode(EPhATSimulationMode Mode)
@@ -3101,4 +3107,30 @@ void FPhAT::OnSelectAll()
 	}
 }
 
+// record if simulating or not, or mode changed or not, or what mode it is in while simulating and what kind of simulation options
+void FPhAT::OnAddPhatRecord(const FString & Action, bool bRecordSimulate, bool bRecordMode )
+{
+	// Don't attempt to report usage stats if analytics isn't available
+	if( Action.IsEmpty() == false && SharedData.IsValid() && FEngineAnalytics::IsAvailable())
+	{
+		TArray<FAnalyticsEventAttribute> Attribs;
+		if (bRecordSimulate)
+		{
+			Attribs.Add(FAnalyticsEventAttribute(TEXT("Simulation"), SharedData->bRunningSimulation? TEXT("ON") : TEXT("OFF")));
+			if ( SharedData->bRunningSimulation )
+			{
+				Attribs.Add(FAnalyticsEventAttribute(TEXT("Selected"), IsSelectedSimulation()? TEXT("ON") : TEXT("OFF")));
+				Attribs.Add(FAnalyticsEventAttribute(TEXT("Gravity"), IsSimulationMode(EPSM_Gravity)? TEXT("ON") : TEXT("OFF")));
+			}
+		}
+
+		if (bRecordMode)
+		{
+			Attribs.Add(FAnalyticsEventAttribute(TEXT("EditMode"), SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit? TEXT("Constraint") : TEXT("Body")));
+		}
+
+		FString EventString = FString::Printf(TEXT("Editor.PHAT.%s"), *Action);
+		FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
+	}
+}
 #undef LOCTEXT_NAMESPACE

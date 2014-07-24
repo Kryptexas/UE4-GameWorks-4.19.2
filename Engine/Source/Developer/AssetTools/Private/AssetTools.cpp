@@ -252,6 +252,9 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 		// Notify the asset registry
 		FAssetRegistryModule::AssetCreated(NewObj);
 
+		// analytics create record
+		FAssetTools::OnNewCreateRecord(AssetClass, false);
+
 		// Mark the package dirty...
 		Pkg->MarkPackageDirty();
 	}
@@ -296,6 +299,9 @@ UObject* FAssetTools::DuplicateAsset(const FString& AssetName, const FString& Pa
 		// now attempt to branch, we can do this now as we should have a file on disk
 		SourceControlHelpers::BranchPackage(NewObject->GetOutermost(), OriginalObject->GetOutermost());
 	}
+
+	// analytics create record
+	FAssetTools::OnNewCreateRecord(NewObject->GetClass(), true);
 
 	return NewObject;
 }
@@ -1050,7 +1056,6 @@ void FAssetTools::MigratePackages(const TArray<FName>& PackageNamesToMigrate) co
 	}
 }
 
-
 void FAssetTools::OnNewImportRecord(UClass* AssetType, const FString& FileExtension, bool bSucceeded, bool bWasCancelled, const FDateTime& StartTime)
 {
 	// Don't attempt to report usage stats if analytics isn't available
@@ -1064,6 +1069,19 @@ void FAssetTools::OnNewImportRecord(UClass* AssetType, const FString& FileExtens
 		Attribs.Add(FAnalyticsEventAttribute(TEXT("TimeTaken.Seconds"), (float)TimeTaken.GetTotalSeconds()));
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ImportAsset"), Attribs);
+	}
+}
+
+void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
+{
+	// Don't attempt to report usage stats if analytics isn't available
+	if(AssetType != NULL && FEngineAnalytics::IsAvailable())
+	{
+		TArray<FAnalyticsEventAttribute> Attribs;
+		Attribs.Add(FAnalyticsEventAttribute(TEXT("AssetType"), AssetType->GetName()));
+		Attribs.Add(FAnalyticsEventAttribute(TEXT("Duplicated"), bDuplicated? TEXT("Yes") : TEXT("No")));
+
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.CreateAsset"), Attribs);
 	}
 }
 
