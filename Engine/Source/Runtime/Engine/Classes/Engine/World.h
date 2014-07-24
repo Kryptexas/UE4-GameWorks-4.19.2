@@ -11,6 +11,7 @@
 #include "EngineDefines.h"
 #include "Engine/LatentActionManager.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "GameFramework/Actor.h"
 #include "World.generated.h"
 
 class FPhysScene;
@@ -22,6 +23,9 @@ class ABrush;
 class UModel;
 class APhysicsVolume;
 class UTexture2D;
+class APlayerController;
+class AMatineeActor;
+class AWorldSettings;
 
 template<typename,typename> class TOctree;
 

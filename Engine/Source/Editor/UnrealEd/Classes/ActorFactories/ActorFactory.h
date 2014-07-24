@@ -4,7 +4,9 @@
 #pragma once
 #include "ActorFactory.generated.h"
 
-#pragma once
+class FAssetData;
+class UBlueprint;
+class ULevel;
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, config=Editor, abstract, transient)
 class UNREALED_API UActorFactory : public UObject

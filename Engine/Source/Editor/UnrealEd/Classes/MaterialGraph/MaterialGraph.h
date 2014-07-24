@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraph.h"
+#include "Materials/Material.h"
 #include "MaterialGraph.generated.h"
 
 DECLARE_DELEGATE_RetVal( bool, FRealtimeStateGetter );

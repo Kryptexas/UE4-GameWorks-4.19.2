@@ -2,17 +2,19 @@
 
 #pragma once
 
+#include "Engine/Brush.h"
+#include "Engine/Engine.h"
 #include "EditorUserSettings.h"
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
 #include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
+class APlayerStart;
 class FAssetData;
+class FPoly;
 class UAnimSequence;
 class USkeleton;
-class FPoly;
-
 //
 // Things to set in mapSetBrush.
 //

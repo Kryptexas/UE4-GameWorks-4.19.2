@@ -20,6 +20,7 @@
 #include "GameViewportClient.generated.h"
 
 class UGameInstance;
+class UNetDriver;
 
 /**
  * Enum of the different splitscreen types

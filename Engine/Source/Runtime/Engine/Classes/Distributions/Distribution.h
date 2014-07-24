@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Math/CurveEdInterface.h"
 #include "Distribution.generated.h"
 
 /** Lookup table for distributions. */

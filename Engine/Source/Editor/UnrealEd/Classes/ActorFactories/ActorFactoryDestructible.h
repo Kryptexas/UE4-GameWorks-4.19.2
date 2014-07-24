@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryDestructible.generated.h"
 
 UCLASS(MinimalAPI, config=Editor)

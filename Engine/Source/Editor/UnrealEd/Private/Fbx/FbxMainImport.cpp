@@ -38,6 +38,7 @@
 #include "Factories.h"
 #include "Engine.h"
 #include "SkelImport.h"
+#include "FbxErrors.h"
 #include "FbxImporter.h"
 #include "FbxOptionWindow.h"
 #include "FbxErrors.h"

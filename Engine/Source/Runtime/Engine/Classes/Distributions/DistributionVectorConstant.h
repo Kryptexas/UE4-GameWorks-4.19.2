@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionVector.h"
 #include "DistributionVectorConstant.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew)

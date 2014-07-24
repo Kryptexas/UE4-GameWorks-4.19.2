@@ -8,6 +8,8 @@
 #pragma once
 
 #include "Distributions.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------

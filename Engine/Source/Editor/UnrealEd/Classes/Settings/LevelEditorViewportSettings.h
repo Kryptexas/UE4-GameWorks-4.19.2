@@ -8,6 +8,7 @@
 
 #include "Viewports.h"
 #include "Editor/UnrealEdTypes.h"
+#include "Engine/EngineBaseTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
 
 

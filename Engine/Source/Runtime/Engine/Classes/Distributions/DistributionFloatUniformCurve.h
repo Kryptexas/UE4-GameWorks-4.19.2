@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Distributions.h"
+#include "Distributions/DistributionFloat.h"
 #include "DistributionFloatUniformCurve.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)

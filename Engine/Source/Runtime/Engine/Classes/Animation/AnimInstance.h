@@ -18,6 +18,7 @@ class UAnimationAsset;
 class UCanvas;
 class UWorld;
 class FTransform;
+class FDebugDisplayInfo;
 
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
 DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)

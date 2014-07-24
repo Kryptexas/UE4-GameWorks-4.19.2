@@ -11,10 +11,13 @@
 #include "RenderUtils.h"
 #include "SceneTypes.h"
 
+struct FLightmassPrimitiveSettings;
 struct FStaticLightingVertex;
 class ABrush;
-class UModel;
+class ULevel;
 class ULightComponent;
+class UMaterialInterface;
+class UModel;
 class UPolys;
 
 //
