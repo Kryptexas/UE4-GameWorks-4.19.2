@@ -44,16 +44,7 @@ struct FStreamingTexturePrimitiveInfo
 	float TexelFactor;
 };
 
-/** Enum for controlling the falloff of strength of a radial impulse as a function of distance from Origin. */
-UENUM()
-enum ERadialImpulseFalloff
-{
-	/** Impulse is a constant strength, up to the limit of its range. */
-	RIF_Constant,
-	/** Impulse should get linearly weaker the further from origin. */
-	RIF_Linear,
-	RIF_MAX,
-};
+
 
 UENUM()
 enum ECanBeCharacterBase

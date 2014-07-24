@@ -666,6 +666,16 @@ private:
 	friend class UCollisionProfile;
 };
 
+/** Enum for controlling the falloff of strength of a radial impulse as a function of distance from Origin. */
+UENUM()
+enum ERadialImpulseFalloff
+{
+	/** Impulse is a constant strength, up to the limit of its range. */
+	RIF_Constant,
+	/** Impulse should get linearly weaker the further from origin. */
+	RIF_Linear,
+	RIF_MAX,
+};
 
 /** Presets of values used in considering when put this body to sleep. */
 UENUM()
@@ -868,6 +878,7 @@ struct FCollisionImpactData
 	/** Iterate over ContactInfos array and swap order of information */
 	void SwapContactOrders();
 };
+
 
 /** Struct used to hold effects for destructible damage events */
 USTRUCT()
