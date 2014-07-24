@@ -259,6 +259,7 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 
 #if WITH_EDITORONLY_DATA
 	PivotMode = ESpritePivotMode::Center_Center;
+	bSnapPivotToPixelGrid = true;
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
@@ -276,6 +277,14 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
+	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
+
+	// Look for changed properties
+	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+
 	if (PixelsPerUnrealUnit <= 0.0f)
 	{
 		PixelsPerUnrealUnit = 1.0f;
@@ -289,22 +298,19 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	RenderGeometry.PixelsPerSubdivisionX = FMath::Max(RenderGeometry.PixelsPerSubdivisionX, 4);
 	RenderGeometry.PixelsPerSubdivisionY = FMath::Max(RenderGeometry.PixelsPerSubdivisionY, 4);
 
-	SourceDimension.X = FMath::Max(SourceDimension.X, 0.0f);
-	SourceDimension.Y = FMath::Max(SourceDimension.Y, 0.0f);
-
-	//@TODO: Determine when these are really needed, as they're seriously expensive!
-	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
-	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
-
-	// Update the pivot
-	if (PivotMode != ESpritePivotMode::Custom)
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceUV))
 	{
-		CustomPivotPoint = GetPivotPosition();
+		SourceUV.X = FMath::Max(FMath::RoundToFloat(SourceUV.X), 0.0f);
+		SourceUV.Y = FMath::Max(FMath::RoundToFloat(SourceUV.Y), 0.0f);
+	}
+	else if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceDimension))
+	{
+		SourceDimension.X = FMath::Max(FMath::RoundToFloat(SourceDimension.X), 0.0f);
+		SourceDimension.Y = FMath::Max(FMath::RoundToFloat(SourceDimension.Y), 0.0f);
 	}
 
-	// Look for changed properties
-
-	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	// Update the pivot (roundtripping thru the function will round to a pixel position if that option is enabled)
+	CustomPivotPoint = GetPivotPosition();
 
 	bool bRenderDataModified = false;
 	bool bCollisionDataModified = false;
@@ -1106,7 +1112,7 @@ FTransform UPaperSprite::GetPivotToWorld() const
 	return FTransform(Translation);
 }
 
-FVector2D UPaperSprite::GetPivotPosition() const
+FVector2D UPaperSprite::GetRawPivotPosition() const
 {
 	switch (PivotMode)
 	{
@@ -1134,6 +1140,19 @@ FVector2D UPaperSprite::GetPivotPosition() const
 		return CustomPivotPoint;
 		break;
 	};
+}
+
+FVector2D UPaperSprite::GetPivotPosition() const
+{
+	FVector2D RawPivot = GetRawPivotPosition();
+
+	if (bSnapPivotToPixelGrid)
+	{
+		RawPivot.X = FMath::RoundToFloat(RawPivot.X);
+		RawPivot.Y = FMath::RoundToFloat(RawPivot.Y);
+	}
+
+	return RawPivot;
 }
 
 void UPaperSprite::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -1223,6 +1242,11 @@ void UPaperSprite::PostLoad()
 	if (PaperVer < FPaperCustomVersion::AddTransactionalToClasses)
 	{
 		SetFlags(RF_Transactional);
+	}
+
+	if (PaperVer < FPaperCustomVersion::AddPivotSnapToPixelGrid)
+	{
+		bSnapPivotToPixelGrid = false;
 	}
 
 	if (PaperVer < FPaperCustomVersion::AddPixelsPerUnrealUnit)

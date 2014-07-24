@@ -865,7 +865,6 @@ void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 {
 	if (ScopedTransaction == NULL)
 	{
-
 		ScopedTransaction = new FScopedTransaction(SessionName);
 
 		UPaperSprite* Sprite = GetSpriteBeingEdited();
@@ -877,7 +876,18 @@ void FSpriteEditorViewportClient::EndTransaction()
 {
 	if (bManipulationDirtiedSomething)
 	{
-		RenderSpriteComponent->GetSprite()->PostEditChange();
+		UPaperSprite* Sprite = RenderSpriteComponent->GetSprite();
+
+		if (IsInSourceRegionEditMode())
+		{
+			// Snap to pixel grid at the end of the drag
+			Sprite->SourceUV.X = FMath::Max(FMath::RoundToFloat(Sprite->SourceUV.X), 0.0f);
+			Sprite->SourceUV.Y = FMath::Max(FMath::RoundToFloat(Sprite->SourceUV.Y), 0.0f);
+			Sprite->SourceDimension.X = FMath::Max(FMath::RoundToFloat(Sprite->SourceDimension.X), 0.0f);
+			Sprite->SourceDimension.Y = FMath::Max(FMath::RoundToFloat(Sprite->SourceDimension.Y), 0.0f);
+		}
+
+		Sprite->PostEditChange();
 	}
 	
 	bManipulationDirtiedSomething = false;

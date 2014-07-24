@@ -103,6 +103,10 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	FVector2D CustomPivotPoint;
 
+	// Should the pivot be snapped to a pixel boundary?
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bSnapPivotToPixelGrid;
+
 	// Custom collision geometry polygons (in texture space)
 	UPROPERTY(Category=Collision, EditAnywhere)
 	FSpritePolygonCollection CollisionGeometry;
@@ -118,6 +122,7 @@ protected:
 	// Spritesheet group that this sprite belongs to
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	class UPaperSpriteAtlas* AtlasGroup;
+
 #endif
 
 public:
@@ -152,6 +157,9 @@ public:
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
 	//FVector ConvertTextureSpaceToWorldSpace(const FVector& SourcePoint) const;
 	FTransform GetPivotToWorld() const;
+
+	// Returns the raw pivot position (ignoring pixel snapping)
+	FVector2D GetRawPivotPosition() const;
 
 	// Returns the current pivot position in texture space
 	FVector2D GetPivotPosition() const;
