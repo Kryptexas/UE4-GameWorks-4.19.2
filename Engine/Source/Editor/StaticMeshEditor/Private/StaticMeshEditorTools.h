@@ -157,6 +157,7 @@ private:
 	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );
 
 	void OnDistanceFieldResolutionScaleChanged(float NewValue);
+	void OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType);
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;
 	FMeshBuildSettings BuildSettings;
@@ -188,12 +189,15 @@ private:
 	float GetHardAngleThreshold() const;
 
 	void OnPercentTrianglesChanged(float NewValue);
+	void OnPercentTrianglesCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnMaxDeviationChanged(float NewValue);
+	void OnMaxDeviationCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnReductionAmountChanged(float NewValue);
 	void OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue);
 	void OnWeldingThresholdChanged(float NewValue);
-	
+	void OnWeldingThresholdCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnHardAngleThresholdChanged(float NewValue);
+	void OnHardAngleThresholdCommitted(float NewValue, ETextCommit::Type TextCommitType);
 
 	void OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void OnTextureImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);

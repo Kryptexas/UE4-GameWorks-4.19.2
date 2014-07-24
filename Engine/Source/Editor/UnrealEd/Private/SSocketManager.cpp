@@ -10,6 +10,9 @@
 #include "SSocketManager.h"
 #include "ScopedTransaction.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #define LOCTEXT_NAMESPACE "SSCSSocketManagerEditor"
 
 struct SocketListItem
@@ -415,6 +418,11 @@ void SSocketManager::CreateSocket()
 
 		UStaticMeshSocket* NewSocket = ConstructObject<UStaticMeshSocket>(UStaticMeshSocket::StaticClass(), CurrentStaticMesh);
 		check(NewSocket);
+
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.CreateSocket"));
+		}
 
 		FString SocketNameString = TEXT("Socket");
 		FName SocketName = FName(*SocketNameString);

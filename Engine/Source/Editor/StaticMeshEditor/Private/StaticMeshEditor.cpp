@@ -22,6 +22,9 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStaticMeshEditor, Log, All);
@@ -1062,6 +1065,10 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 	GEditor->EndTransaction();
 	if (PrimIndex != INDEX_NONE)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
+		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Convex, PrimIndex));
 	}
@@ -1076,6 +1083,10 @@ void FStaticMeshEditor::OnCollisionBox()
 	GEditor->EndTransaction();
 	if (PrimIndex != INDEX_NONE)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
+		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Box, PrimIndex));
 	}
@@ -1090,6 +1101,10 @@ void FStaticMeshEditor::OnCollisionSphere()
 	GEditor->EndTransaction();
 	if (PrimIndex != INDEX_NONE)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
+		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Sphere, PrimIndex));
 	}
@@ -1104,6 +1119,10 @@ void FStaticMeshEditor::OnCollisionSphyl()
 	GEditor->EndTransaction();
 	if (PrimIndex != INDEX_NONE)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
+		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Sphyl, PrimIndex));
 	}
@@ -1756,7 +1775,14 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 		return;
 	}
 
-	RefreshTool();
+	if (bSuccess)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReimportedViaEditor"));
+		}
+		RefreshTool();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

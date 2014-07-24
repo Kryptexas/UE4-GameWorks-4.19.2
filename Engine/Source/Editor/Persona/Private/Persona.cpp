@@ -64,6 +64,9 @@
 #include "AnimationEditorUtils.h"
 #include "SAnimationSequenceBrowser.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -898,7 +901,14 @@ UDebugSkelMeshComponent* FPersona::GetPreviewMeshComponent()
 
 void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {
-	ConditionalRefreshEditor(InObject);
+	if (bSuccess)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Persona.ReimportedViaEditor"));
+		}
+		ConditionalRefreshEditor(InObject);
+	}
 }
 
 void FPersona::OnPostImport(UFactory* InFactory, UObject* InObject)

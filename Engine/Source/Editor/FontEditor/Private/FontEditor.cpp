@@ -12,6 +12,9 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #define LOCTEXT_NAMESPACE "FontEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFontEditor, Log, All);
@@ -718,6 +721,10 @@ void FFontEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 
 	if ( bSuccess )
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Font.ReimportedViaEditor"));
+		}
 		FontViewport->RefreshViewport();
 		FontPreviewWidget->RefreshViewport();
 	}

@@ -12,6 +12,9 @@
 #include "FbxMeshUtils.h"
 #include "SVectorInputBox.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 const int32 DefaultHullCount = 4;
 const int32 DefaultVertsPerHull = 12;
 const int32 MaxHullCount = 24;
@@ -416,6 +419,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.MaxValue(100.0f)
 			.Value(this, &FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale)
 			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged)
+			.OnValueCommitted(this, &FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleCommitted)
 		];
 	}
 		
@@ -492,44 +496,88 @@ float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
 
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
 {
-	BuildSettings.bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bRecomputeNormals != bRecomputeNormals)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRecomputeNormals"), bRecomputeNormals ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bRecomputeNormals = bRecomputeNormals;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState)
 {
-	BuildSettings.bRecomputeTangents = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeTangents = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bRecomputeTangents != bRecomputeTangents)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRecomputeTangents"), bRecomputeTangents ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bRecomputeTangents = bRecomputeTangents;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState)
 {
-	BuildSettings.bRemoveDegenerates = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRemoveDegenerates = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bRemoveDegenerates != bRemoveDegenerates)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRemoveDegenerates"), bRemoveDegenerates ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bRemoveDegenerates = bRemoveDegenerates;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState)
 {
-	BuildSettings.bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bUseFullPrecisionUVs != bUseFullPrecisionUVs)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bUseFullPrecisionUVs"), bUseFullPrecisionUVs ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bUseFullPrecisionUVs = bUseFullPrecisionUVs;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType )
 {
-	if (!FMath::IsNearlyEqual(NewScaleX, 0.0f))
+	if (!FMath::IsNearlyEqual(NewScaleX, 0.0f) && BuildSettings.BuildScale3D.X != NewScaleX)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.X"), FString::Printf(TEXT("%.3f"), NewScaleX));
+		}
 		BuildSettings.BuildScale3D.X = NewScaleX;
 	}
 }
 
 void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType )
 {
-	if (!FMath::IsNearlyEqual(NewScaleY, 0.0f))
+	if (!FMath::IsNearlyEqual(NewScaleY, 0.0f) && BuildSettings.BuildScale3D.Y != NewScaleY)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Y"), FString::Printf(TEXT("%.3f"), NewScaleY));
+		}
 		BuildSettings.BuildScale3D.Y = NewScaleY;
 	}
 }
 
 void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType )
 {
-	if (!FMath::IsNearlyEqual(NewScaleZ, 0.0f))
+	if (!FMath::IsNearlyEqual(NewScaleZ, 0.0f) && BuildSettings.BuildScale3D.Z != NewScaleZ)
 	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Z"), FString::Printf(TEXT("%.3f"), NewScaleZ));
+		}
 		BuildSettings.BuildScale3D.Z = NewScaleZ;
 	}
 }
@@ -537,6 +585,15 @@ void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommi
 void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged(float NewValue)
 {
 	BuildSettings.DistanceFieldResolutionScale = NewValue;
+}
+
+void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("DistanceFieldResolutionScale"), FString::Printf(TEXT("%.3f"), NewValue));
+	}
+	OnDistanceFieldResolutionScaleChanged(NewValue);
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
@@ -579,6 +636,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 			.MaxValue(100.0f)
 			.Value(this, &FMeshReductionSettingsLayout::GetPercentTriangles)
 			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnPercentTrianglesChanged)
+			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnPercentTrianglesCommitted)
 		];
 
 	}
@@ -599,6 +657,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 			.MaxValue(1000.0f)
 			.Value(this, &FMeshReductionSettingsLayout::GetMaxDeviation)
 			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnMaxDeviationChanged)
+			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnMaxDeviationCommitted)
 		];
 
 	}
@@ -678,6 +737,8 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 			.MinValue(0.0f)
 			.MaxValue(10.0f)
 			.Value(this, &FMeshReductionSettingsLayout::GetWeldingThreshold)
+			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnWeldingThresholdChanged)
+			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnWeldingThresholdCommitted)
 		];
 
 	}
@@ -715,6 +776,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 			.MaxValue(180.0f)
 			.Value(this, &FMeshReductionSettingsLayout::GetHardAngleThreshold)
 			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnHardAngleThresholdChanged)
+			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnHardAngleThresholdCommitted)
 		];
 
 	}
@@ -791,9 +853,27 @@ void FMeshReductionSettingsLayout::OnPercentTrianglesChanged(float NewValue)
 	ReductionSettings.PercentTriangles = NewValue * 0.01f;
 }
 
+void FMeshReductionSettingsLayout::OnPercentTrianglesCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("PercentTriangles"), FString::Printf(TEXT("%.1f"), NewValue));
+	}
+	OnPercentTrianglesChanged(NewValue);
+}
+
 void FMeshReductionSettingsLayout::OnMaxDeviationChanged(float NewValue)
 {
 	ReductionSettings.MaxDeviation = NewValue;
+}
+
+void FMeshReductionSettingsLayout::OnMaxDeviationCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("MaxDeviation"), FString::Printf(TEXT("%.1f"), NewValue));
+	}
+	OnMaxDeviationChanged(NewValue);
 }
 
 void FMeshReductionSettingsLayout::OnWeldingThresholdChanged(float NewValue)
@@ -801,9 +881,26 @@ void FMeshReductionSettingsLayout::OnWeldingThresholdChanged(float NewValue)
 	ReductionSettings.WeldingThreshold = NewValue;
 }
 
+void FMeshReductionSettingsLayout::OnWeldingThresholdCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("WeldingThreshold"), FString::Printf(TEXT("%.2f"), NewValue));
+	}
+	OnWeldingThresholdChanged(NewValue);
+}
+
 void FMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue)
 {
-	ReductionSettings.bRecalculateNormals = NewValue == ESlateCheckBoxState::Checked;
+	const bool bRecalculateNormals = NewValue == ESlateCheckBoxState::Checked;
+	if (ReductionSettings.bRecalculateNormals != bRecalculateNormals)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("bRecalculateNormals"), bRecalculateNormals ? TEXT("True") : TEXT("False"));
+		}
+		ReductionSettings.bRecalculateNormals = bRecalculateNormals;
+	}
 }
 
 void FMeshReductionSettingsLayout::OnHardAngleThresholdChanged(float NewValue)
@@ -811,19 +908,52 @@ void FMeshReductionSettingsLayout::OnHardAngleThresholdChanged(float NewValue)
 	ReductionSettings.HardAngleThreshold = NewValue;
 }
 
+void FMeshReductionSettingsLayout::OnHardAngleThresholdCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("HardAngleThreshold"), FString::Printf(TEXT("%.3f"), NewValue));
+	}
+	OnHardAngleThresholdChanged(NewValue);
+}
+
 void FMeshReductionSettingsLayout::OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
 {
-	ReductionSettings.SilhouetteImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	const EMeshFeatureImportance::Type SilhouetteImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	if (ReductionSettings.SilhouetteImportance != SilhouetteImportance)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("SilhouetteImportance"), *NewValue.Get());
+		}
+		ReductionSettings.SilhouetteImportance = SilhouetteImportance;
+	}
 }
 
 void FMeshReductionSettingsLayout::OnTextureImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
 {
-	ReductionSettings.TextureImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	const EMeshFeatureImportance::Type TextureImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	if (ReductionSettings.TextureImportance != TextureImportance)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("TextureImportance"), *NewValue.Get());
+		}
+		ReductionSettings.TextureImportance = TextureImportance;
+	}
 }
 
 void FMeshReductionSettingsLayout::OnShadingImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
 {
-	ReductionSettings.ShadingImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	const EMeshFeatureImportance::Type ShadingImportance = (EMeshFeatureImportance::Type)ImportanceOptions.Find(NewValue);
+	if (ReductionSettings.ShadingImportance != ShadingImportance)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReductionSettings"), TEXT("ShadingImportance"), *NewValue.Get());
+		}
+		ReductionSettings.ShadingImportance = ShadingImportance;
+	}
 }
 
 FMeshSectionSettingsLayout::~FMeshSectionSettingsLayout()

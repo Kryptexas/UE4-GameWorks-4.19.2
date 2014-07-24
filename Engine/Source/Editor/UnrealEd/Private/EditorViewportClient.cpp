@@ -3562,7 +3562,11 @@ bool FEditorViewportClient::IsCameraLocked() const
 
 void FEditorViewportClient::SetShowGrid()
 {
-	DrawHelper.bDrawGrid = !DrawHelper.bDrawGrid;	
+	DrawHelper.bDrawGrid = !DrawHelper.bDrawGrid;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawGrid"), DrawHelper.bDrawGrid ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -3579,6 +3583,10 @@ void FEditorViewportClient::SetShowBounds(bool bShow)
 void FEditorViewportClient::ToggleShowBounds()
 {
 	EngineShowFlags.Bounds = 1 - EngineShowFlags.Bounds;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("Bounds"), FString::Printf(TEXT("%d"), EngineShowFlags.Bounds));
+	}
 	Invalidate();
 }
 

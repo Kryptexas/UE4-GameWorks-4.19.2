@@ -17,6 +17,9 @@
 #include "ObjectTools.h"
 #include "SStaticMeshEditorViewport.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
@@ -1142,6 +1145,10 @@ void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, 
 void FStaticMeshEditorViewportClient::SetDrawUVOverlay()
 {
 	bDrawUVs = !bDrawUVs;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawUVs"), bDrawUVs ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -1153,6 +1160,10 @@ bool FStaticMeshEditorViewportClient::IsSetDrawUVOverlayChecked() const
 void FStaticMeshEditorViewportClient::SetShowNormals()
 {
 	bDrawNormals = !bDrawNormals;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawNormals"), bDrawNormals ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -1164,6 +1175,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowNormalsChecked() const
 void FStaticMeshEditorViewportClient::SetShowTangents()
 {
 	bDrawTangents = !bDrawTangents;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawTangents"), bDrawTangents ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -1175,6 +1190,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowTangentsChecked() const
 void FStaticMeshEditorViewportClient::SetShowBinormals()
 {
 	bDrawBinormals = !bDrawBinormals;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawBinormals"), bDrawBinormals ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -1186,6 +1205,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowBinormalsChecked() const
 void FStaticMeshEditorViewportClient::SetShowWireframeCollision()
 {
 	bShowCollision = !bShowCollision;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bShowCollision"), bShowCollision ? TEXT("True") : TEXT("False"));
+	}
 	StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
 	Invalidate();
 }
@@ -1198,6 +1221,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked() const
 void FStaticMeshEditorViewportClient::SetShowSockets()
 {
 	bShowSockets = !bShowSockets;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bShowSockets"), bShowSockets ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 bool FStaticMeshEditorViewportClient::IsSetShowSocketsChecked() const
@@ -1208,6 +1235,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowSocketsChecked() const
 void FStaticMeshEditorViewportClient::SetShowPivot()
 {
 	bShowPivot = !bShowPivot;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bShowPivot"), bShowPivot ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 
@@ -1219,6 +1250,10 @@ bool FStaticMeshEditorViewportClient::IsSetShowPivotChecked() const
 void FStaticMeshEditorViewportClient::SetDrawAdditionalData()
 {
 	bDrawAdditionalData = !bDrawAdditionalData;
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("bDrawAdditionalData"), bDrawAdditionalData ? TEXT("True") : TEXT("False"));
+	}
 	Invalidate();
 }
 

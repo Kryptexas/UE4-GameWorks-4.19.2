@@ -23,6 +23,9 @@
 #include "../Private/GeomFitUtils.h"
 #include "ComponentReregisterContext.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
@@ -244,7 +247,10 @@ void SStaticMeshEditorViewport::SetViewModeWireframe()
 	{
 		CurrentViewMode = VMI_Lit;
 	}
-
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("CurrentViewMode"), FString::Printf(TEXT("%d"), static_cast<int32>(CurrentViewMode)));
+	}
 	EditorViewportClient->SetViewMode(CurrentViewMode);
 	SceneViewport->Invalidate();
 
@@ -267,7 +273,10 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 		EditorViewportClient->EngineShowFlags.VertexColors = false;
 		EditorViewportClient->EngineShowFlags.Lighting = true;
 	}
-
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), EditorViewportClient->EngineShowFlags.VertexColors));
+	}
 	SceneViewport->Invalidate();
 }
 

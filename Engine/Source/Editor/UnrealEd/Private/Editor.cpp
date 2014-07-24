@@ -81,6 +81,9 @@
 #include "EditorStyle.h"
 #include "EngineBuildSettings.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 // AIMdule
 #include "BehaviorTree/BehaviorTreeManager.h"
 
@@ -2588,6 +2591,10 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 					{
 						Obj->PostEditChange();
 						GEditor->BroadcastObjectReimported(Obj);
+						if (FEngineAnalytics::IsAvailable())
+						{
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.AssetReimported"));
+						}
 						bSuccess = true;
 					}
 					else if( Result == EReimportResult::Cancelled )
