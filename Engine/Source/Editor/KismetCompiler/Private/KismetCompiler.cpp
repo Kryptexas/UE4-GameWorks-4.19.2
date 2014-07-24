@@ -1151,6 +1151,10 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category);
 		}
+		if( FunctionMetaData.bCallInEditor )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
+		}
 		
 		// Link it
 		//@TODO: should this be in regular or reverse order?
@@ -1531,7 +1535,10 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
 	}
-
+	if (EntryNode->MetaData.bCallInEditor)
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
+	}
 	if (auto WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_DefaultToSelf, *WorldContextPin->PinName); 
@@ -2225,6 +2232,8 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
 		// CustomEvents may inherit net flags (so let's use their GetNetFlags() incase this is an override)
 		StubContext.MarkAsNetFunction(SrcCustomEventNode->GetNetFlags());
+		// Synchronize the entry node call in editor value with the entry point
+		EntryNode->MetaData.bCallInEditor = SrcCustomEventNode->bCallInEditor;
 	}
 	EntryNode->AllocateDefaultPins();
 

@@ -2284,6 +2284,31 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					]
 				]
 			];
+			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ).ToString() )
+			.NameContent()
+			[
+				SNew(STextBlock)
+					.Text( LOCTEXT( "EditorCallable", "Call In Editor" ) )
+					.ToolTipText( LOCTEXT("EditorCallable_Tooltip", "Enable this event to be called from within the editor") )
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+			]
+			.ValueContent()
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew( SCheckBox )
+						.IsChecked( this, &FBlueprintGraphActionDetails::GetIsEditorCallableEvent )
+						.ToolTipText( LOCTEXT("EditorCallable_Tooltip", "Enable this event to be called from within the editor" ))
+						.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnEditorCallableEventModified )
+					]
+				]
+			];
 		}
 
 		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Inputs", LOCTEXT("FunctionDetailsInputs", "Inputs").ToString());
@@ -2459,6 +2484,41 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
 {
 	((bForInputs) ? RegenerateInputsChildrenDelegate : RegenerateOutputsChildrenDelegate) = RefreshDelegate;
+}
+
+ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsEditorCallableEvent() const
+{
+	ESlateCheckBoxState::Type Result = ESlateCheckBoxState::Unchecked;
+
+	if( FunctionEntryNodePtr.IsValid() )
+	{
+		UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get());
+
+		if( CustomEventNode && CustomEventNode->bCallInEditor )
+		{
+			Result = ESlateCheckBoxState::Checked;
+		}
+	}
+	return Result;
+}
+
+void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const
+{
+	if( FunctionEntryNodePtr.IsValid() )
+	{
+		if( UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get()) )
+		{
+			if( UBlueprint* Blueprint = FunctionEntryNodePtr->GetBlueprint() )
+			{
+				const bool bCallInEditor = NewCheckedState == ESlateCheckBoxState::Checked;
+				const FText TransactionType = bCallInEditor ?	LOCTEXT( "DisableCallInEditor", "Disable Call In Editor " ) : 
+																LOCTEXT( "EnableCallInEditor", "Enable Call In Editor" );
+				const FScopedTransaction Transaction( TransactionType );
+				CustomEventNode->bCallInEditor = bCallInEditor;
+				FBlueprintEditorUtils::MarkBlueprintAsModified( CustomEventNode->GetBlueprint() );
+			}
+		}
+	}
 }
 
 UMulticastDelegateProperty* FBlueprintDelegateActionDetails::GetDelegatePoperty() const
@@ -4756,6 +4816,16 @@ void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCo
 	{
 		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
 	}
+}
+
+UBlueprint* FBlueprintGraphNodeDetails::GetBlueprintObj() const
+{
+	if(BlueprintEditorPtr.IsValid())
+	{
+		return BlueprintEditorPtr.Pin()->GetBlueprintObj();
+	}
+
+	return NULL;
 }
 
 TSharedRef<IDetailCustomization> FChildActorComponentDetails::MakeInstance(TWeakPtr<FBlueprintEditor> BlueprintEditorPtrIn)

@@ -81,6 +81,8 @@ const FName FBlueprintMetadata::MD_MaterialParameterCollectionFunction(TEXT("Mat
 
 const FName FBlueprintMetadata::MD_Tooltip(TEXT("Tooltip"));
 
+const FName FBlueprintMetadata::MD_CallInEditor(TEXT("CallInEditor"));
+
 //////////////////////////////////////////////////////////////////////////
 
 #define LOCTEXT_NAMESPACE "KismetSchema"

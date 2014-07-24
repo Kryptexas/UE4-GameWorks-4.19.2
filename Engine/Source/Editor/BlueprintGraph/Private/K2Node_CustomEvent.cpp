@@ -100,6 +100,7 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 	bOverrideFunction = false;
 	bIsEditable = true;
 	bCanRenameNode = true;
+	bCallInEditor = false;
 }
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -364,6 +365,11 @@ FString UK2Node_CustomEvent::GetDocumentationLink() const
 FString UK2Node_CustomEvent::GetDocumentationExcerptName() const
 {
 	return TEXT("UK2Node_CustomEvent");
+}
+
+FName UK2Node_CustomEvent::GetPaletteIcon(FLinearColor& OutColor) const
+{
+	return bCallInEditor ? TEXT("GraphEditor.CallInEditorEvent_16x") : TEXT("GraphEditor.CustomEvent_16x");
 }
 
 #undef LOCTEXT_NAMESPACE

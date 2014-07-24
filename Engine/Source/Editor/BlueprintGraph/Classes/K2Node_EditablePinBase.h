@@ -66,6 +66,9 @@ struct FKismetUserDeclaredFunctionMetadata
 	UPROPERTY()
 	FLinearColor InstanceTitleColor;
 
+	UPROPERTY()
+	bool bCallInEditor;
+
 public:
 	FKismetUserDeclaredFunctionMetadata()
 		: InstanceTitleColor(FLinearColor::White)

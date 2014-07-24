@@ -132,6 +132,10 @@ public:
 
 	/** Metadata string that sets the tooltip */
 	static const FName MD_Tooltip;
+
+	/** Metadata string that indicates the specified event can be triggered in editor */
+	static const FName MD_CallInEditor;
+
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}

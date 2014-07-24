@@ -111,6 +111,7 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		if (!HideCategories.Contains(TEXT("Blueprint")))
 		{
 			AddBlueprintCategory(DetailLayout, UniqueBlueprints);
+			AddBlutilityCategory(DetailLayout, UniqueBlueprints);
 		}
 
 		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
@@ -572,6 +573,78 @@ void FActorDetails::AddBlueprintCategory( IDetailLayoutBuilder& DetailBuilder, c
 		{
 			AddSingleBlueprintRow( BlueprintCategory, NULL, SelectedActors[0].Get() );
 		}
+	}
+}
+
+void FActorDetails::AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<UBlueprint*, UObject*>& UniqueBlueprints )
+{
+	// Create the Blutilities Category
+	IDetailCategoryBuilder& BlutilitiesCategory = DetailBuilder.EditCategory("Blutilities", NSLOCTEXT("Blutilities", "BlutilityTitle", "Blutilities").ToString(), ECategoryPriority::Uncommon );
+
+	// Only show the bluetilities section if a single actor is selected
+	if ( SelectedActors.Num() > 0 && DoesActorHaveBlutiltyFunctions() )
+	{
+		// Reset function Selection
+		ActiveBlutilityFunction.Reset();
+
+		// Grab actor label for later use
+		TWeakObjectPtr<AActor> ActorPtr = SelectedActors[0];
+		FText ActorLabel = NSLOCTEXT( "UnrealEd", "None", "None" );
+
+		if ( ActorPtr.IsValid() )
+		{
+			ActorLabel = FText::FromString( ActorPtr.Get()->GetActorLabel() );
+		}
+
+		FFormatNamedArguments Args;
+		Args.Add( TEXT( "ActorLabel" ), ActorLabel );
+		const FText ButtonLabel = FText::Format( NSLOCTEXT( "Blutilities", "CallInEditor_ButtonLabel", "Run" ), Args );
+		const FText ButtonToolTip = FText::Format( NSLOCTEXT( "Blutilities", "CallInEditor_ButtonTooltip", "Run Selected Blutility Function on {ActorLabel}" ), Args );
+		// Build Content
+		BlutilitiesCategory.AddCustomRow( NSLOCTEXT( "Blutilities", "CallInEditorHeader", "Blutility Functions").ToString())
+		.WholeRowContent()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( 0, 0, 2, 0 )
+			[
+				SNew( SBox )
+				.WidthOverride( 200 )
+				[
+					SNew( SComboButton )
+					.ContentPadding( 2 )
+					.HAlign(HAlign_Fill)
+					.OnGetMenuContent( this, &FActorDetails::BuildBlutiltyFunctionContent)
+					.ButtonContent()
+					[
+						SNew( STextBlock )
+						.Text( this, &FActorDetails::GetBlutilityComboButtonLabel ) 
+						.ToolTipText( this, &FActorDetails::GetBlutilityComboButtonLabel )
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					]
+				]
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew( SBox )
+				.WidthOverride( 50 )
+				[
+					SNew( SButton )
+					.ToolTipText( ButtonToolTip )
+					.OnClicked( this, &FActorDetails::CallBlutilityFunction )
+					.IsEnabled( this, &FActorDetails::CanCallBlutilityFunction )
+					.HAlign( HAlign_Center )
+					.ContentPadding( 2 )
+					[
+						SNew( STextBlock )
+						.Text( ButtonLabel )
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					]
+				]
+			]
+		];
 	}
 }
 
@@ -1371,6 +1444,87 @@ FReply FActorDetails::ResetToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBluepr
 		// Add the notification to the queue
 		const auto Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
 		Notification->SetCompletionState(CompletionState);
+	}
+
+	return FReply::Handled();
+}
+
+bool FActorDetails::DoesActorHaveBlutiltyFunctions() const
+{
+	bool bFunctionsFound = false;
+
+	if( SelectedActors.Num() > 0 )
+	{
+		TWeakObjectPtr<AActor> WeakActorPtr = SelectedActors[ 0 ];
+		UClass* ActorClass = WeakActorPtr.IsValid() ? WeakActorPtr->GetClass() : nullptr;
+
+		if( ActorClass )
+		{
+			for (TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
+			{
+				if( FunctionIter->GetBoolMetaData( FBlueprintMetadata::MD_CallInEditor ))
+				{
+					bFunctionsFound = true;
+					break;
+				}
+			}
+		}
+	}
+
+	return bFunctionsFound;
+}
+
+FText FActorDetails::GetBlutilityComboButtonLabel() const
+{
+	return ActiveBlutilityFunction.IsValid() ?  FText::FromString( ActiveBlutilityFunction->GetName() ) : 
+												NSLOCTEXT( "Blutilities", "CallInEditor_ComboLabel", "Select Blutility" );
+}
+
+TSharedRef<SWidget> FActorDetails::BuildBlutiltyFunctionContent() const
+{
+	if( SelectedActors.Num() > 0 )
+	{
+		TWeakObjectPtr<AActor> WeakActorPtr = SelectedActors[ 0 ];
+		UClass* ActorClass = WeakActorPtr.IsValid() ? WeakActorPtr->GetClass() : nullptr;
+
+		if( ActorClass )
+		{
+			FMenuBuilder MenuBuilder( true, NULL );
+			MenuBuilder.BeginSection("BlutilityFunctions", NSLOCTEXT( "Blutilities", "CallInEditorHeader", "Blutility Functions") );
+			const FSlateIcon BlutilityIcon(FEditorStyle::GetStyleSetName(), "GraphEditor.CallInEditorEvent_16x");
+
+			for (TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
+			{
+				if( FunctionIter->GetBoolMetaData( FBlueprintMetadata::MD_CallInEditor ))
+				{
+					MenuBuilder.AddMenuEntry(	FText::FromString( *FunctionIter->GetName() ), 
+												FunctionIter->GetToolTipText(), 
+												BlutilityIcon,
+												FUIAction( FExecuteAction::CreateSP( this, &FActorDetails::SetActiveBlutilityFunction, TWeakObjectPtr<UFunction>(*FunctionIter))));
+				}
+			}
+			MenuBuilder.EndSection();
+
+			return MenuBuilder.MakeWidget();
+		}
+	}
+
+	return SNullWidget::NullWidget;
+}
+
+FReply FActorDetails::CallBlutilityFunction()
+{
+	TWeakObjectPtr<AActor> ActorWeakPtr = SelectedActors.Num() ? SelectedActors[ 0 ] : nullptr;
+	
+	if( ActorWeakPtr.IsValid() && ActiveBlutilityFunction.IsValid() )
+	{
+		AActor* Actor = ActorWeakPtr.Get();
+		UFunction* Function = ActiveBlutilityFunction.Get();
+
+		if( Function->GetOuter() == Actor->GetClass() )
+		{
+			Actor->ProcessEvent( Function, NULL );
+		}
 	}
 
 	return FReply::Handled();

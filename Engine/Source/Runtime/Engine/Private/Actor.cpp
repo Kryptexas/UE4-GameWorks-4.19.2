@@ -609,7 +609,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
-	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
+	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData( "CallInEditor" );
+	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
 		Super::ProcessEvent(Function, Parameters);
 	}

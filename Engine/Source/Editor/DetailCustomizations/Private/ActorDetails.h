@@ -85,6 +85,9 @@ private:
 	/** Creates an area meant to be displayed once for any number of selected blueprints that displays helper buttons. */
 	void AddUtilityBlueprintRows( IDetailCategoryBuilder& BlueprintCategory );
 
+	/** Creates a category to display blutility functionality in a separate space from the standard blueprint details */
+	void AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<UBlueprint*, UObject*>& UniqueBlueprints );
+
 	// Creates a row for a single blueprint in the selection details view   
 	void AddSingleBlueprintRow( IDetailCategoryBuilder& BlueprintCategory, UBlueprint* InBlueprint, UObject* InExampleActor);
 
@@ -107,6 +110,25 @@ private:
 	bool ResetToBlueprintDefaults_IsEnabled( TWeakObjectPtr<UBlueprint> InBlueprint ) const;
 	FReply ResetToBlueprintDefaults_OnClicked( TWeakObjectPtr<UBlueprint> InBlueprint );
 	FText ResetToBlueprintDefaults_ToolTipText( TWeakObjectPtr<UBlueprint> InBlueprint ) const;
+
+	/** Called to determine if an actor has any valid call-in-editor utility functions */
+	bool DoesActorHaveBlutiltyFunctions() const;
+
+	/** Called to retrive the active combo button label */
+	FText GetBlutilityComboButtonLabel() const;
+
+	/** Called to generate the blutility function content */
+	TSharedRef<SWidget> BuildBlutiltyFunctionContent() const;
+
+	/** Called to determine the blutility execute button's status */
+	bool CanCallBlutilityFunction() const { return ActiveBlutilityFunction.IsValid(); }
+
+	/** Called on blutility function selection to cache the active function */
+	void SetActiveBlutilityFunction( TWeakObjectPtr<UFunction> BlutilityFunction ) { ActiveBlutilityFunction = BlutilityFunction; }
+
+	/** Call the currently active Blutility Function on the active actor selection */
+	FReply CallBlutilityFunction();
+
 private:
 
 	/** Bring up the menu for user to select the path to create blueprint at */
@@ -124,4 +146,8 @@ private:
 
 	/** The material category that displays used materials */
 	TSharedPtr< class FActorMaterialCategory > MaterialCategory;
+
+	/** The active blutility function, picked from the combo list and cached here */
+	TWeakObjectPtr<UFunction> ActiveBlutilityFunction;
+
 };

@@ -197,6 +197,9 @@ protected:
 	/** Tries to create the result node (if there are output args) */
 	bool AttemptToCreateResultNode();
 
+	/** Toggles the ability to be called in editor */
+	void OnToggleEditorCallableEvent( const ESlateCheckBoxState::Type NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
+
 protected:
 	/** Pointer to the parent */
 	TWeakPtr<SMyBlueprint> MyBlueprint;
@@ -442,6 +445,13 @@ private:
 	bool IsPureFunctionVisible() const;
 	void OnIsPureFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
 	ESlateCheckBoxState::Type GetIsPureFunction() const;
+
+	/** Determines if the selected event is identified as editor callable */
+	ESlateCheckBoxState::Type GetIsEditorCallableEvent() const;
+
+	/** Enables/Disables selected event as editor callable  */
+	void OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const;
+
 	
 	FReply OnAddNewOutputClicked();
 
@@ -673,7 +683,12 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
-	
+
+protected:
+
+	/** Returns the currently edited blueprint */
+	UBlueprint* GetBlueprintObj() const;
+
 private:
 
 	// Callbacks for uproperty details customization
