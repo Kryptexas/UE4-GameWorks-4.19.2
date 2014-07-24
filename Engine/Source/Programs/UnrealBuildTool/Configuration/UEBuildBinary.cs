@@ -580,7 +580,7 @@ namespace UnrealBuildTool
 					// Mark the link environment as cross-referenced.
 					BinaryLinkEnvironment.Config.bIsCrossReferenced = true;
 
-					if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac)
+					if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Linux)
 					{
 						// Create the import library.
 						OutputFiles.Add(BinaryLinkEnvironment.LinkExecutable(true));
