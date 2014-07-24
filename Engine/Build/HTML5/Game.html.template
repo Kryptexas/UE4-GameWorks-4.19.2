@@ -92,6 +92,20 @@ input[type=button]:hover {
 
     <script type="text/javascript">
 
+// http://stackoverflow.com/questions/4750015/regular-expression-to-find-urls-within-a-string
+function getHTMLGetParam(name){
+   if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
+      return decodeURIComponent(name[1]);
+}
+
+var filehostargument = " ' ' "; 
+
+// we are serving via a server and it is unreal file server.
+if ( location.host != "" && getHTMLGetParam("cookonthefly") == "true" )
+{
+    filehostargument = "' -filehostIp=http://" + location.host + " '"; 
+}
+
 var UE4 = {
   get resize_game() {
     var fn = Module.cwrap('resize_game', null, ['number'],['number'] );
@@ -164,7 +178,7 @@ var Module = {
   TOTAL_MEMORY: %HEAPSIZE%,
   noImageDecoding: true,
   noAudioDecoding: true,
-        arguments: [%UE4CMDLINE%],
+        arguments: [ filehostargument, %UE4CMDLINE%],
   print: (function() {
     var element = document.getElementById('output');
     element.value = ''; // clear browser cache

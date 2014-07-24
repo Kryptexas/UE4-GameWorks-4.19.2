@@ -296,21 +296,17 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				FString FilePath = FPaths::GameDir() / TEXT("Binaries/HTML5") +  FString((ANSICHAR*)In); 
 				TCHAR *Mime = NULL; 
 
-				if ( FilePath.Contains(".html") )
-				{
-					Mime = TEXT("text/html;charset=UTF-8");
-				}
-				else if ( FilePath.Contains(".js"))
+				
+				if ( FilePath.Contains(".js"))
 				{
 					Mime = TEXT("application/javascript;charset=UTF-8");
 				}
 				else
 				{
-					// bad client. bail. 
-					return -1;
+						Mime = TEXT("text/html;charset=UTF-8");
 				}
 
-				UE_LOG(LogFileServer, Log, TEXT("Serving file %s with mime %s "), *FilePath, (Mime));
+				UE_LOG(LogFileServer, Warning, TEXT("HTTP Serving file %s with mime %s "), *FilePath, (Mime));
 
 				FString AbsoluteFilePath = FPaths::ConvertRelativePathToFull(FilePath);
 				AbsoluteFilePath.ReplaceInline(TEXT("/"),TEXT("\\"));

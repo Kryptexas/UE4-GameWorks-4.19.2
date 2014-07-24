@@ -233,19 +233,48 @@ public class HTML5Platform : Platform
 		// what to do with the commandline!??
 		string HTMLPath = Path.ChangeExtension(ClientApp, "html");
 		if  ( !File.Exists(HTMLPath) )  // its probably a content only game - then it exists in the UE4 directory and not in the game directory. 
-			HTMLPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Binaries", "HTML5", Path.GetFileName(HTMLPath)); 
+			HTMLPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Binaries", "HTML5", Path.GetFileName(HTMLPath));
 
+	    // Are we running via cook on the fly server? 
+        // find our http url - This is awkward because RunClient doesn't have real information that NFS is running or not. 
+        bool IsCookOnTheFly = false; 
+        string[] Arguments = ClientCmdLine.Split(' ');
+        foreach (var Argument in Arguments)
+        {
+            string[] KeyVal = Argument.Split('=');
+            if (KeyVal[0].ToLower().Contains("filehostip"))
+            {
+                // split urls. 
+                string[] Urls =  KeyVal[1].Split('+');
+                foreach (var Url in Urls)
+                {
+                    if (Url.Contains("http"))
+                    {
+                        HTMLPath = Url + "/" + Path.GetFileName(HTMLPath);
+                        IsCookOnTheFly = true; 
+                    }
+                }
+            }
+            if (IsCookOnTheFly)
+                break; 
+        }
 
-		if (ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac) 
-		{
-			FirefoxPath = "/bin/bash"; 
-			FirefoxProfileCommand = " -c  \" open -a Firefox.app  \"" + HTMLPath + "\"   \" "; 
-		} 
-		else if (ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Win64) 
-		{
-			FirefoxProfileCommand = FirefoxProfileCommand + "\"" + HTMLPath + "\" "; 
-		}
+        if (IsCookOnTheFly)
+        {
+            HTMLPath += "?cookonthefly=true";
+        }
 
+        if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+        {
+            FirefoxPath = "/bin/bash";
+            FirefoxProfileCommand = " -c  \" open -a Firefox.app  \"" + HTMLPath + "\"   \" ";
+        }
+        else if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64)
+        {
+            FirefoxProfileCommand = FirefoxProfileCommand + "\"" + HTMLPath + "\" ";
+        }
+
+        System.Console.WriteLine("Firefox command line: " + FirefoxProfileCommand);
 		ProcessResult ClientProcess = Run(FirefoxPath, FirefoxProfileCommand, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 
 		return ClientProcess;

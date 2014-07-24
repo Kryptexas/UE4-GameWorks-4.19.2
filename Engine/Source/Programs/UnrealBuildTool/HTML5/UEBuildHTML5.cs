@@ -16,7 +16,7 @@ namespace UnrealBuildTool
 
         // Enable and link in code for serving HTTP request via NFS. 
         [XmlConfig]
-        public static bool EnableHTTPForNFS = false;
+        public static bool EnableHTTPForNFS = true;
 
         static private string TargetPlatformName = "HTML5";
 
@@ -376,7 +376,8 @@ namespace UnrealBuildTool
                 {
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                 }
-                if (EnableHTTPForNFS)
+
+                if (EnableHTTPForNFS && Target.Platform == UnrealTargetPlatform.Win64 )
                 {
                     if (InModule.ToString() == "NetworkFile") // client
                     {
