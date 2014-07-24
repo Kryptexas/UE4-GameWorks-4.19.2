@@ -453,6 +453,7 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY()
 	int32 EncodingPkgVersion;
 
+	/** Base pose to use when retargeting */
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
