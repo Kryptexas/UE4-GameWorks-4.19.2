@@ -3174,7 +3174,14 @@ void UEditorEngine::SelectLevelInLevelBrowser( bool bDeselectOthers )
 	}
 
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.SummonLevelBrowser();
+	if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
+	{
+		LevelEditorModule.SummonLevelBrowser();
+	}
+	else
+	{
+		LevelEditorModule.SummonWorldBrowserHierarchy();
+	}
 }
 
 void UEditorEngine::DeselectLevelInLevelBrowser()
@@ -3187,9 +3194,16 @@ void UEditorEngine::DeselectLevelInLevelBrowser()
 			Actor->GetWorld()->DeSelectLevel( Actor->GetLevel() );
 		}
 	}
-
+	
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.SummonLevelBrowser();
+	if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
+	{
+		LevelEditorModule.SummonLevelBrowser();
+	}
+	else
+	{
+		LevelEditorModule.SummonWorldBrowserHierarchy();
+	}
 }
 
 void UEditorEngine::SelectAllActorsControlledByMatinee()

@@ -737,6 +737,9 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 	}
 
 	FLevelCollectionModel::OnLevelsCollectionChanged();
+
+	// Sync levels selection to world
+	SetSelectedLevelsFromWorld();
 }
 
 TSharedPtr<FWorldTileModel> FWorldTileCollectionModel::AddLevelFromTile(int32 TileIdx)

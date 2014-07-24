@@ -68,8 +68,11 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 			LevelModel->SetParent(PersistentLevelModel);
 		}
 	}
-
+	
 	FLevelCollectionModel::OnLevelsCollectionChanged();
+
+	// Sync levels selection to world
+	SetSelectedLevelsFromWorld();
 }
 
 void FStreamingLevelCollectionModel::OnLevelsSelectionChanged()

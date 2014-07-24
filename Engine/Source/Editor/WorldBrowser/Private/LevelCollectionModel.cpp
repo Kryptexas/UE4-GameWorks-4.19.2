@@ -24,6 +24,7 @@ FLevelCollectionModel::FLevelCollectionModel(UEditorEngine* InEditor)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCC(false)
 	, bSelectionHasChanged(true)
+	, bUpdatingLevelsSelection(false)
 {
 }
 
@@ -37,6 +38,10 @@ FLevelCollectionModel::~FLevelCollectionModel()
 	FEditorSupportDelegates::RedrawAllViewports.RemoveAll(this);
 	Editor->OnLevelActorAdded().RemoveAll(this);
 	Editor->OnLevelActorDeleted().RemoveAll(this);
+	if (CurrentWorld.IsValid())
+	{
+		CurrentWorld->OnSelectedLevelsChanged().RemoveAll(this);
+	}
 }
 
 void FLevelCollectionModel::Initialize(UWorld* InWorld)
@@ -53,6 +58,7 @@ void FLevelCollectionModel::Initialize(UWorld* InWorld)
 	Editor->OnLevelActorDeleted().AddSP( this, &FLevelCollectionModel::OnLevelActorDeleted);
 	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionModel::OnActorSelectionChanged);
 	SelectionChanged.AddSP(this, &FLevelCollectionModel::OnActorOrLevelSelectionChanged);
+	CurrentWorld->OnSelectedLevelsChanged().AddSP(this, &FLevelCollectionModel::OnLevelsSelectionChangedOutside);
 
 	PopulateLevelsList();
 }
@@ -332,6 +338,22 @@ void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
 	}
 
 	OnLevelsSelectionChanged();
+}
+
+void FLevelCollectionModel::SetSelectedLevelsFromWorld()
+{
+	TArray<ULevel*>& SelectedLevelObjects = CurrentWorld->GetSelectedLevels();
+	FLevelModelList LevelsToSelect;
+	for (ULevel* LevelObject : SelectedLevelObjects)
+	{
+		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(LevelObject);
+		if (LevelModel.IsValid())
+		{
+			LevelsToSelect.Add(LevelModel);
+		}
+	}
+
+	SetSelectedLevels(LevelsToSelect);
 }
 
 TSharedPtr<FLevelModel> FLevelCollectionModel::FindLevelModel(ULevel* InLevel) const
@@ -1584,6 +1606,13 @@ void FLevelCollectionModel::OnLevelsCollectionChanged()
 
 void FLevelCollectionModel::OnLevelsSelectionChanged()
 {
+	if (bUpdatingLevelsSelection)
+	{
+		return;
+	}
+	
+	TGuardValue<bool> UpdateGuard(bUpdatingLevelsSelection, true);
+	
 	// Pass the list we just created to the world to set the selection
 	CurrentWorld->SetSelectedLevels(
 		GetLevelObjectList(SelectedLevelsList)
@@ -1606,6 +1635,14 @@ void FLevelCollectionModel::OnLevelsSelectionChanged()
 	}
 		
 	BroadcastSelectionChanged();
+}
+
+void FLevelCollectionModel::OnLevelsSelectionChangedOutside()
+{
+	if (!bUpdatingLevelsSelection)
+	{
+		SetSelectedLevelsFromWorld();
+	}
 }
 
 void FLevelCollectionModel::OnLevelsHierarchyChanged()

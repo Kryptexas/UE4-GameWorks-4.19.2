@@ -72,6 +72,9 @@ public:
 
 	/**	Sets selected level list */
 	void SetSelectedLevels(const FLevelModelList& InList);
+	
+	/**	Sets selection to a levels that is currently marked as selected in UWorld */
+	void SetSelectedLevelsFromWorld();
 
 	/**	@return	Found level model which represents specified level object */
 	TSharedPtr<FLevelModel> FindLevelModel(ULevel* InLevel) const;
@@ -424,6 +427,9 @@ protected:
 	
 	/** Called whenever level selection has been changed */
 	virtual void OnLevelsSelectionChanged();
+
+	/** Called whenever level selection has been changed outside of this module, usually via World->SetSelectedLevels */
+	void OnLevelsSelectionChangedOutside();
 	
 	/** Called whenever level collection hierarchy has been changed */
 	virtual void OnLevelsHierarchyChanged();
@@ -515,6 +521,9 @@ protected:
 
 	/** Flag for whether the selection of levels or actors has changed */
 	bool								bSelectionHasChanged;
+
+	/** Guard to avoid recursive level selection updates */
+	bool								bUpdatingLevelsSelection;
 };
 
 //
