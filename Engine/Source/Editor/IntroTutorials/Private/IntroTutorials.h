@@ -43,6 +43,7 @@ public:
 	static const FString InEditorGamifiedTutorialPath;
 	static const FString HomePath;
 	static const FString BlueprintHomePath;
+	static const FString TemplateOverviewPath;
 
 	static const FWelcomeTutorialProperties UE4WelcomeTutorial;
 	static const FWelcomeTutorialProperties BlueprintHomeTutorial;
@@ -52,6 +53,7 @@ public:
 	static const FWelcomeTutorialProperties LevelScriptBlueprintWelcomeTutorial;
 	static const FWelcomeTutorialProperties AddCodeToProjectWelcomeTutorial;
 	static const FWelcomeTutorialProperties MatineeEditorWelcomeTutorial;
+	static const FWelcomeTutorialProperties TemplateOverview;
 
 	// ctor
 	FIntroTutorials();
@@ -93,6 +95,7 @@ private:
 
 	/** Events to call when editor changes state in various ways */
 	void OnAddCodeToProjectDialogOpened();
+	void OnNewProjectDialogOpened();
 	void OnMatineeEditorOpened();
 	void OnEditorModeChanged(FEdMode* Mode, bool bEnteringMode);
 

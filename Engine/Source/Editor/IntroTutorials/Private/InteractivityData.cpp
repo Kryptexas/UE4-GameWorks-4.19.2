@@ -1981,6 +1981,47 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 
 	//////////////////////////////////////////////////////////////////////////
 
+	struct FTemplateOverview
+	{
+		static void BindInteractivityData(const FString& InUDNPath, const TSharedRef<class FInteractiveTutorial>& InTutorial)
+		{
+			InTutorial->SetTutorialStyle(ETutorialStyle::Default);
+		}
+	};
+
+	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/TemplateOverview"), FBindInteractivityData::CreateStatic(&FTemplateOverview::BindInteractivityData));
+	
+	//////////////////////////////////////////////////////////////////////////
+
+	struct FFirstPersonTemplateTutorial
+	{
+		static void BindInteractivityData(const FString& InUDNPath, const TSharedRef<class FInteractiveTutorial>& InTutorial)
+		{
+			InTutorial->SetTutorialStyle(ETutorialStyle::Default);
+			InTutorial->AddHighlightWidget(TEXT("StageCharOpen1"), TEXT("ContentBrowser"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharLook"), TEXT("GraphEditorPanel"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharVars"), TEXT("MyBlueprintPanel"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharComp1"), TEXT("ComponentsMode"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharComp2"), TEXT("ComponentsPanel"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharGraph1"), TEXT("ComponentsPanel"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharInput"), TEXT("EditMenu"));
+			InTutorial->AddHighlightWidget(TEXT("StageCharPropOpen"), TEXT("DefaultsMode")); 
+
+			InTutorial->AddHighlightWidget(TEXT("StageProjOpen1"), TEXT("ContentBrowser"));			
+			InTutorial->AddHighlightWidget(TEXT("StagePropVars"), TEXT("ComponentsMode"));
+			InTutorial->AddHighlightWidget(TEXT("StageProjComp1"), TEXT("ComponentsPanel"));			
+			
+			InTutorial->AddHighlightWidget(TEXT("StageHUDOpen1"), TEXT("ContentBrowser"));
+			InTutorial->AddHighlightWidget(TEXT("StageHUDGraph1"), TEXT("GraphEditorPanel"));
+
+			InTutorial->AddHighlightWidget(TEXT("StageGameOpen1"), TEXT("ContentBrowser"));
+			InTutorial->AddHighlightWidget(TEXT("StageGameProps1"), TEXT("DefaultsMode"));
+			InTutorial->AddHighlightWidget(TEXT("StageProjProp1"), TEXT("GraphEditorPanel"));
+			
+		}
+	};
+
+	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/FirstPerson"), FBindInteractivityData::CreateStatic(&FFirstPersonTemplateTutorial::BindInteractivityData));
 
 }
 

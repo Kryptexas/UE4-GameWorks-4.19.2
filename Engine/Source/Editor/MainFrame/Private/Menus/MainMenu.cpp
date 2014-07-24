@@ -263,6 +263,8 @@ TSharedRef<SWidget> FMainMenu::MakeMainMenu( const TSharedPtr<FTabManager>& TabM
 			LOCTEXT("EditMenu_ToolTip", "Open the edit menu"),
 			FNewMenuDelegate::CreateStatic(&FMainMenu::FillEditMenu, Extender, TabManager),
 			"Edit"
+			,
+			FName(TEXT("EditMenu"))
 		);
 
 		// Window

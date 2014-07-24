@@ -27,7 +27,8 @@ const FString FIntroTutorials::InEditorTutorialPath(TEXT("Shared/Tutorials/inEdi
 const FString FIntroTutorials::WelcomeTutorialPath(TEXT("Shared/Tutorials/UE4Welcome"));
 const FString FIntroTutorials::InEditorGamifiedTutorialPath(TEXT("Shared/Tutorials/inEditorGamifiedTutorial"));
 const FString FIntroTutorials::HomePath(TEXT("Shared/Tutorials"));
-const FString FIntroTutorials::BlueprintHomePath(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"));
+const FString FIntroTutorials::BlueprintHomePath(TEXT("Shared/Tutorials/TemplateTutorials/TemplateOverview"));
+const FString FIntroTutorials::TemplateOverviewPath(TEXT("Shared/Tutorials/UE4Welcome"));
 
 const FWelcomeTutorialProperties FIntroTutorials::UE4WelcomeTutorial(TEXT("Shared/Tutorials/UE4Welcome"), TEXT("SeenUE4Welcome"));	
 const FWelcomeTutorialProperties FIntroTutorials::BlueprintHomeTutorial(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), TEXT("SeenBlueprintWelcome"));
@@ -37,6 +38,7 @@ const FWelcomeTutorialProperties FIntroTutorials::InterfaceBlueprintWelcomeTutor
 const FWelcomeTutorialProperties FIntroTutorials::LevelScriptBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/LevelBlueprintInterfaceTutorial"), TEXT("SeenBlueprintWelcome_LevelScript"), FString("B061E309-517D-4916-BFCB-E8104C8F4C35"));
 const FWelcomeTutorialProperties FIntroTutorials::AddCodeToProjectWelcomeTutorial(TEXT("Shared/Tutorials/AddCodeToProjectTutorial"), TEXT("SeenAddCodeToProjectWelcome"), FString("D8D9A7E7-68B3-4CBE-80FE-4B88C47B7524"));
 const FWelcomeTutorialProperties FIntroTutorials::MatineeEditorWelcomeTutorial(TEXT("Shared/Tutorials/InMatineeEditorTutorial"), TEXT("SeenMatineeEditorWelcome"), FString("6439C991-A77B-4B52-953D-3F29B1DD1860"));
+const FWelcomeTutorialProperties FIntroTutorials::TemplateOverview(TemplateOverviewPath, TEXT("SeenTemplateOverview"));
 
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
@@ -111,6 +113,10 @@ void FIntroTutorials::StartupModule()
 
 		// Add hook for when AddToCodeProject dialog window is opened
 		FGameProjectGenerationModule::Get().OnAddCodeToProjectDialogOpened().AddRaw(this, &FIntroTutorials::OnAddCodeToProjectDialogOpened);
+
+		// Add hook for New Project dialog window is opened
+		//FGameProjectGenerationModule::Get().OnNewProjectProjectDialogOpened().AddRaw(this, &FIntroTutorials::OnNewProjectDialogOpened);
+
 
 		// Add hook for when editor changes modes (e.g. Place/Paint/Landscape/Foliage)
 		GLevelEditorModeTools().OnEditorModeChanged().AddRaw(this, &FIntroTutorials::OnEditorModeChanged);
@@ -518,11 +524,17 @@ void FIntroTutorials::ResetWelcomeTutorials() const
 	ResetTutorial(LevelScriptBlueprintWelcomeTutorial);
 	ResetTutorial(AddCodeToProjectWelcomeTutorial);
 	ResetTutorial(MatineeEditorWelcomeTutorial);
+	ResetTutorial(TemplateOverview);
 }
 
 void FIntroTutorials::OnAddCodeToProjectDialogOpened()
 {
 	MaybeOpenWelcomeTutorial(AddCodeToProjectWelcomeTutorial);
+}
+
+void FIntroTutorials::OnNewProjectDialogOpened()
+{
+	MaybeOpenWelcomeTutorial(TemplateOverview);
 }
 
 void FIntroTutorials::OnMatineeEditorOpened()
