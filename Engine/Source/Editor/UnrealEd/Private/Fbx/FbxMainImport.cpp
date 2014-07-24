@@ -40,6 +40,7 @@
 #include "SkelImport.h"
 #include "FbxImporter.h"
 #include "FbxOptionWindow.h"
+#include "FbxErrors.h"
 #include "MainFrame.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
