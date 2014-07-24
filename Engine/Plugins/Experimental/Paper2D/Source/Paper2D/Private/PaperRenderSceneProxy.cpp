@@ -280,6 +280,7 @@ void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const 
 
 	for (const FSpriteRenderSection& Batch : BatchedSections)
 	{
+		const FLinearColor EffectiveWireframeColor = (Batch.Material->GetBlendMode() != BLEND_Opaque) ? WireframeColor : FLinearColor::Green;
 		FMaterialRenderProxy* ParentMaterialProxy = Batch.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
 
 		FTexture* TextureResource = (Batch.Texture != nullptr) ? Batch.Texture->Resource : nullptr;
@@ -299,7 +300,7 @@ void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const 
 			DrawRichMesh(
 				PDI, 
 				Mesh,
-				WireframeColor,
+				EffectiveWireframeColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//LevelColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//PropertyColor,
 				this,
@@ -315,6 +316,9 @@ void FPaperRenderSceneProxy::DrawBatch(FPrimitiveDrawInterface* PDI, const FScen
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	
 	FVertexFactory* VertexFactory = GetPaperSpriteVertexFactory();
+
+	const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
+	const FLinearColor EffectiveWireframeColor = (BatchMaterial->GetBlendMode() != BLEND_Opaque) ? WireframeColor : FLinearColor::Green;
 
 	for (const FSpriteDrawCallRecord& Record : Batch)
 	{
@@ -371,12 +375,10 @@ void FPaperRenderSceneProxy::DrawBatch(FPrimitiveDrawInterface* PDI, const FScen
 			BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
 			BatchElement.NumPrimitives = Vertices.Num() / 3;
 
-			const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
-
 			DrawRichMesh(
 				PDI, 
 				Mesh,
-				WireframeColor,
+				EffectiveWireframeColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//LevelColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//PropertyColor,
 				this,
