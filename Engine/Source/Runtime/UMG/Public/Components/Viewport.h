@@ -96,6 +96,9 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector & Collector) override;
 
 	virtual void Draw(FViewport* InViewport, FCanvas* Canvas) override;
+
+	virtual void Tick(float InDeltaTime);
+
 	using FViewElementDrawer::Draw;
 
 	virtual UWorld* GetWorld() const override;
@@ -113,6 +116,7 @@ public:
 
 	bool IsAspectRatioConstrained() const;
 
+	void SetBackgroundColor(FLinearColor InBackgroundColor);
 	FLinearColor GetBackgroundColor() const;
 
 	float GetNearClipPlane() const;
@@ -233,6 +237,27 @@ UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FLinearColor BackgroundColor;
+
+	UFUNCTION(BlueprintCallable, Category="Viewport")
+	UWorld* GetViewportWorld() const;
+
+	UFUNCTION(BlueprintCallable, Category="Camera")
+	FVector GetViewLocation() const;
+
+	UFUNCTION(BlueprintCallable, Category="Camera")
+	void SetViewLocation(FVector Location);
+
+	UFUNCTION(BlueprintCallable, Category="Camera")
+	FRotator GetViewRotation() const;
+
+	UFUNCTION(BlueprintCallable, Category="Camera")
+	void SetViewRotation(FRotator Rotation);
+
+	UFUNCTION(BlueprintCallable, Category="Viewport")
+	AActor* Spawn(TSubclassOf<AActor> ActorClass);
 
 	// UWidget interface
 	virtual void SyncronizeProperties() override;

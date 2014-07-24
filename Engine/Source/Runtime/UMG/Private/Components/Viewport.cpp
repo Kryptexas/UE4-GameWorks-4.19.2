@@ -103,6 +103,25 @@ void FUMGViewportClient::AddReferencedObjects(FReferenceCollector & Collector)
 
 }
 
+void FUMGViewportClient::Tick(float InDeltaTime)
+{
+	if ( !GIntraFrameDebuggingGameThread )
+	{
+		// Begin Play
+		if ( !PreviewScene->GetWorld()->bBegunPlay )
+		{
+			for ( FActorIterator It(PreviewScene->GetWorld()); It; ++It )
+			{
+				It->BeginPlay();
+			}
+			PreviewScene->GetWorld()->bBegunPlay = true;
+		}
+
+		// Tick
+		PreviewScene->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+	}
+}
+
 void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 {
 	FViewport* ViewportBackup = Viewport;
@@ -163,7 +182,8 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		Canvas->Clear(FLinearColor::Black);
 	}
 
-	Canvas->Clear(FLinearColor::Black);
+	//Canvas->AlphaModulate = 0.5f;
+	Canvas->Clear(BackgroundColor);
 
 	GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
 
@@ -188,7 +208,7 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	Viewport = ViewportBackup;
 
-	Canvas->Clear(FLinearColor::Red);
+	//Canvas->Clear(FLinearColor::Red);
 }
 
 FSceneInterface* FUMGViewportClient::GetScene() const
@@ -235,6 +255,11 @@ bool FUMGViewportClient::IsAspectRatioConstrained() const
 ECameraProjectionMode::Type FUMGViewportClient::GetProjectionType() const
 {
 	return ViewInfo.ProjectionMode;
+}
+
+void FUMGViewportClient::SetBackgroundColor(FLinearColor InBackgroundColor)
+{
+	BackgroundColor = InBackgroundColor;
 }
 
 FLinearColor FUMGViewportClient::GetBackgroundColor() const
@@ -430,6 +455,8 @@ class SAutoRefreshViewport : public SViewport
 	void Construct(const FArguments& InArgs)
 	{
 		SViewport::FArguments ParentArgs;
+		//ParentArgs.IgnoreTextureAlpha(false);
+		ParentArgs.EnableBlending(true);
 		//ParentArgs.RenderDirectlyToWindow(true);
 		SViewport::Construct(ParentArgs);
 
@@ -446,8 +473,8 @@ class SAutoRefreshViewport : public SViewport
 		Viewport->InvalidateDisplay();
 
 		Viewport->Tick(InDeltaTime);
-		
-		//ViewportClient->Tick(InDeltaTime);
+
+		ViewportClient->Tick(InDeltaTime);
 	}
 
 public:
@@ -466,6 +493,8 @@ UViewport::UViewport(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = true;
+
+	BackgroundColor = FLinearColor::Transparent;
 }
 
 void UViewport::ReleaseNativeWidget()
@@ -490,6 +519,8 @@ TSharedRef<SWidget> UViewport::RebuildWidget()
 void UViewport::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
+
+	ViewportWidget->ViewportClient->SetBackgroundColor(BackgroundColor);
 }
 
 void UViewport::OnSlotAdded(UPanelSlot* Slot)
@@ -508,6 +539,65 @@ void UViewport::OnSlotRemoved(UPanelSlot* Slot)
 	{
 		ViewportWidget->SetContent(SNullWidget::NullWidget);
 	}
+}
+
+UWorld* UViewport::GetViewportWorld() const
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		return ViewportWidget->PreviewScene.GetWorld();
+	}
+
+	return NULL;
+}
+
+FVector UViewport::GetViewLocation() const
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		return ViewportWidget->ViewportClient->GetViewLocation();
+	}
+
+	return FVector();
+}
+
+void UViewport::SetViewLocation(FVector Vector)
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		ViewportWidget->ViewportClient->SetViewLocation(Vector);
+	}
+}
+
+FRotator UViewport::GetViewRotation() const
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		return ViewportWidget->ViewportClient->GetViewRotation();
+	}
+
+	return FRotator();
+}
+
+void UViewport::SetViewRotation(FRotator Rotator)
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		ViewportWidget->ViewportClient->SetViewRotation(Rotator);
+	}
+}
+
+AActor* UViewport::Spawn(TSubclassOf<AActor> ActorClass)
+{
+	if ( ViewportWidget.IsValid() )
+	{
+		UWorld* World = GetViewportWorld();
+		return World->SpawnActor<AActor>(ActorClass, FVector(0, 0, 0), FRotator());
+	}
+
+	// TODO UMG Report spawning actor error before the world is ready.
+
+	return NULL;
 }
 
 #if WITH_EDITOR
