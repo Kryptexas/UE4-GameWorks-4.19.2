@@ -196,6 +196,11 @@ public:
 	/** @return The number of units per pixel displayed in this viewport */
 	float GetOrthoUnitsPerPixel(const FViewport* Viewport) const;
 
+	void SetEngineShowFlags(FEngineShowFlags InEngineShowFlags)
+	{
+		EngineShowFlags = InEngineShowFlags;
+	}
+
 protected:
 
 	/** The scene used for the viewport. Owned externally */
@@ -283,4 +288,7 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+	/** Show flags for the engine for this viewport */
+	FEngineShowFlags ShowFlags;
 };
