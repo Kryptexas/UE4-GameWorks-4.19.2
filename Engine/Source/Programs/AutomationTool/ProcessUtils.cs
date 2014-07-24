@@ -508,8 +508,8 @@ namespace AutomationTool
 						}
 						catch (Exception Ex)
 						{
-							CommandUtils.Log(TraceEventType.Error, "Failed to kill descendant:");
-							CommandUtils.Log(TraceEventType.Error, Ex);
+							CommandUtils.Log(TraceEventType.Warning, "Failed to kill descendant:");
+							CommandUtils.Log(TraceEventType.Warning, Ex);
 						}
 						break;  // exit the loop as who knows what else died, so let's get processes anew
 					}
