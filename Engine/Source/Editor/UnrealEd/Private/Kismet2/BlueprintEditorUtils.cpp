@@ -51,7 +51,12 @@ struct FCompareNodePriority
 		const bool NodeAChangesStructure = A.NodeCausesStructuralBlueprintChange();
 		const bool NodeBChangesStructure = B.NodeCausesStructuralBlueprintChange();
 
-		return ((NodeAChangesStructure > NodeBChangesStructure) ? true : false);
+		if (NodeAChangesStructure != NodeBChangesStructure)
+		{
+			return NodeAChangesStructure;
+		}
+		
+		return A.GetNodeRefreshPriority() > B.GetNodeRefreshPriority();
 	}
 };
 
