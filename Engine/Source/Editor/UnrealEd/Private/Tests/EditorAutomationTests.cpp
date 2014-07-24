@@ -1558,11 +1558,11 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 
 	{
 		//Gather assets.
-		UObject* Astroid = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/Content/EditorAutomation/Astroid.Astroid"), NULL, LOAD_None, NULL);
-		//Add Astroid mesh to the world
-		AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Astroid));
+		UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
+		//Add Cube mesh to the world
+		AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
 		StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
-		StaticMesh->SetActorRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+		StaticMesh->SetActorRelativeScale3D(FVector(3.0f, 3.0f, 1.75f));
 	}
 
 	//Create the point light and set it's mobility, brightness, and light color.
