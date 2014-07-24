@@ -1778,10 +1778,6 @@ float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate
 				*GetNameSafe(MontageToPlay), *GetNameSafe(MontageToPlay->GetSkeleton()), *GetNameSafe(CurrentSkeleton));
 		}
 	}
-	else
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Trying to play invalid Montage (%s)"), *GetNameSafe(MontageToPlay));
-	}
 
 	return 0.f;
 }
