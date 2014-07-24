@@ -2520,7 +2520,7 @@ void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences
 
 void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
 {
-	FText WarningMessage = LOCTEXT("AddLoopiingInterpolation", "This will add extra frame at the end of the animation with the first frame to create a better looping interpolation. This action isn't undoable. Would you like to proceed?");
+	FText WarningMessage = LOCTEXT("AddLoopiingInterpolation", "This will add an extra first frame at the end of the animation to create a better looping interpolation. This action cannot be undone. Would you like to proceed?");
 
 	if(FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage) == EAppReturnType::Yes)
 	{
