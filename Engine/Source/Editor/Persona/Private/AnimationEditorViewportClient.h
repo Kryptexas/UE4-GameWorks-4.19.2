@@ -18,6 +18,20 @@ namespace ELocalAxesMode
 	};
 };
 
+//////////////////////////////////////////////////////////////////////////
+// ELocalAxesMode
+
+namespace EDisplayInfoMode
+{
+	enum Type
+	{
+		None,
+		Basic,	
+		Detailed,
+		NumInfoModes
+	};
+};
+
 /////////////////////////////////////////////////////////////////////////
 // FAnimationViewportClient
 
@@ -199,9 +213,13 @@ public:
 	/** Function to get gravity scale label */
 	FString GetGravityScaleLabel() const;
 	/** Function to set mesh stat drawing state */
-	void OnToggleShowMeshStats();
+	void OnSetShowMeshStats(int32 ShowMode);
 	/** Whether or not mesh stats are being displayed */
 	bool IsShowingMeshStats() const;
+	/** Whether detailed mesh stats are being displayed or basic mesh stats */
+	bool IsDetailedMeshStats() const;
+
+	int32 GetShowMeshStats() const;
 
 public:
 

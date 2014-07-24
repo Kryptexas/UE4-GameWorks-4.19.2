@@ -248,10 +248,10 @@ private:
 	void OnSetLODModel( ELODViewSelection LODSelectionType );
 
 	/** Function to show/hide mesh info*/
-	void OnShowDisplayInfo();
+	void OnShowDisplayInfo(int32 DisplayInfoMode);
 
 	/** Function to check whether mesh info is displayed or not */
-	bool IsShowingMeshInfo() const;
+	bool IsShowingMeshInfo(int32 DisplayInfoMode) const;
 
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();

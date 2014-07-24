@@ -50,6 +50,12 @@ private:
 	* Generates the Show -> Clothing sub menu content
 	*/
 	void FillShowClothingMenu(FMenuBuilder& MenuBuilder) const;
+
+	/**
+	* Generates the Show -> Display Info sub menu content
+	*/
+	void FillShowDisplayInfoMenu(FMenuBuilder& MenuBuilder) const;
+
 	/**
 	 * Generates the toolbar LOD menu content 
 	 *

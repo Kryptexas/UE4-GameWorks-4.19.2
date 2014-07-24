@@ -30,8 +30,9 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bMuteAudio:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
-	uint32 bShowMeshStats:1;
+	// currently Stats can have None, Basic and Detailed. Please refer to EDisplayInfoMode.
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	int32 ShowMeshStats;
 
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	int32 GridSize;
@@ -59,6 +60,6 @@ public:
 	void SetViewModeIndex( int32 InViewModeIndex );
 	void SetViewFOV( float InViewFOV );
 	void SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSelection );
-	void SetShowMeshStats( bool bInShowMeshStats );
+	void SetShowMeshStats( int32 InShowMeshStats );
 };
 

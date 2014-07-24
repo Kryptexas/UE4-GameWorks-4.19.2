@@ -101,9 +101,9 @@ void UPersonaOptions::SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSel
 }
 
 
-void UPersonaOptions::SetShowMeshStats( bool bInShowMeshStats )
+void UPersonaOptions::SetShowMeshStats( int32 InShowMeshStats )
 {
-	bShowMeshStats = bInShowMeshStats;
+	ShowMeshStats = InShowMeshStats;
 	SaveConfig();
 }
 

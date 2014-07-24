@@ -522,7 +522,10 @@ void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 		}
 
 		// Display info
-		DisplayInfo(&Canvas, &View, IsShowingMeshStats());
+		if (IsShowingMeshStats())
+		{
+			DisplayInfo(&Canvas, &View, IsDetailedMeshStats());
+		}
 
 		// Draw name of selected bone
 		if (PreviewSkelMeshComp->BonesOfInterest.Num() == 1)
@@ -1987,17 +1990,27 @@ bool FAnimationViewportClient::IsSetDrawUVOverlayChecked() const
 	return bDrawUVs;
 }
 
-void FAnimationViewportClient::OnToggleShowMeshStats()
+void FAnimationViewportClient::OnSetShowMeshStats(int32 ShowMode)
 {
-	ConfigOption->SetShowMeshStats(!ConfigOption->bShowMeshStats);
+	ConfigOption->SetShowMeshStats(ShowMode);
 }
 
 bool FAnimationViewportClient::IsShowingMeshStats() const
 {
-	const bool bShouldBeEnabled = ConfigOption->bShowMeshStats;
+	const bool bShouldBeEnabled = ConfigOption->ShowMeshStats != EDisplayInfoMode::None;
 	const bool bCanBeEnabled = !PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
 
 	return bShouldBeEnabled && bCanBeEnabled;
+}
+
+bool FAnimationViewportClient::IsDetailedMeshStats() const
+{
+	return ConfigOption->ShowMeshStats == EDisplayInfoMode::Detailed;
+}
+
+int32 FAnimationViewportClient::GetShowMeshStats() const
+{
+	return ConfigOption->ShowMeshStats;
 }
 
 #undef LOCTEXT_NAMESPACE

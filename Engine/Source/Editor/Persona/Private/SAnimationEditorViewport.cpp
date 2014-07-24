@@ -490,10 +490,22 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	//Display info
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowDisplayInfo,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo),
+		ViewportShowMenuCommands.ShowDisplayInfoBasic,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::Basic),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::Basic));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowDisplayInfoDetailed,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::Detailed),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::Detailed));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.HideDisplayInfo,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::None),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::None));
 
 	//Bone weight
 	CommandList.MapAction( 
@@ -825,14 +837,14 @@ bool SAnimationEditorViewportTabBody::IsShowingAdditiveBase() const
 	return PreviewComponent != NULL && PreviewComponent->bDisplayAdditiveBasePose;
 }
 
-void SAnimationEditorViewportTabBody::OnShowDisplayInfo()
+void SAnimationEditorViewportTabBody::OnShowDisplayInfo(int32 DisplayInfoMode)
 {
-	GetAnimationViewportClient()->OnToggleShowMeshStats();
+	GetAnimationViewportClient()->OnSetShowMeshStats(DisplayInfoMode);
 }
 
-bool SAnimationEditorViewportTabBody::IsShowingMeshInfo() const
+bool SAnimationEditorViewportTabBody::IsShowingMeshInfo(int32 DisplayInfoMode) const
 {
-	return GetAnimationViewportClient()->IsShowingMeshStats();
+	return GetAnimationViewportClient()->GetShowMeshStats() == DisplayInfoMode;
 }
 
 void SAnimationEditorViewportTabBody::OnShowBoneWeight()
