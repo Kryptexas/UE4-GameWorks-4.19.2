@@ -900,8 +900,10 @@ public:
 	
 	/**
 	 * Modifies the Matinee actor with the animations found in the FBX document.
+	 * 
+	 * @return	true, if sucessful
 	 */
-	UNREALED_API void ImportMatineeSequence(AMatineeActor* InMatineeActor);
+	UNREALED_API bool ImportMatineeSequence(AMatineeActor* InMatineeActor);
 
 
 	/** Create a new asset from the package and objectname and class */

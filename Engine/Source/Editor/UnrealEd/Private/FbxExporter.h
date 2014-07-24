@@ -91,8 +91,10 @@ public:
 
 	/**
 	 * Exports the given Matinee sequence information into a FBX document.
+	 * 
+	 * @return	true, if sucessful
 	 */
-	virtual void ExportMatinee(class AMatineeActor* InMatineeActor);
+	virtual bool ExportMatinee(class AMatineeActor* InMatineeActor);
 
 	/**
 	 * Exports all the animation sequences part of a single Group in a Matinee sequence

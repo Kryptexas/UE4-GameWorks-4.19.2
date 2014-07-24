@@ -36,6 +36,8 @@
 #include "MessageLog.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
@@ -1555,6 +1557,11 @@ void FMatinee::ToggleRecordInterpValues(void)
 	if (RecordingState != MatineeConstants::ERecordingState::RECORDING_COMPLETE)
 	{
 		StopRecordingInterpValues();
+
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Recorded"));
+		}
 	}
 	else
 	{

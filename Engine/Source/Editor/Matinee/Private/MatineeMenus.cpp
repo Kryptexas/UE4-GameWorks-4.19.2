@@ -42,6 +42,8 @@
 #include "IDocumentation.h"
 #include "MainFrame.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"
 
@@ -370,10 +372,13 @@ void FMatinee::NewGroupPopupTextCommitted(
 	MatineeActor->Modify();
 	IData->Modify();
 
+	TArray< FAnalyticsEventAttribute > GroupAttribs;
+	GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("ActionId"), FString::Printf(TEXT("%d"), static_cast<int32>(InActionId))));
 	if(bDirGroup)
 	{
 		UInterpGroup* NewDirector = ConstructObject<UInterpGroupDirector>( UInterpGroupDirector::StaticClass(), IData, NAME_None, RF_Transactional );
 		NewGroups.Add(NewDirector);
+		GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("Name"), NewDirector->GroupName.ToString()));
 	}
 	else if(bDuplicateGroup)
 	{
@@ -389,6 +394,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 			// which will crash again, so I'm disabling duplicating parenting. 
 			DupGroup->bIsParented = false;
 			NewGroups.Add(DupGroup);
+			GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("Name"), DupGroup->GroupName.ToString()));
 		}
 	}
 	else
@@ -396,6 +402,12 @@ void FMatinee::NewGroupPopupTextCommitted(
 		UInterpGroup* NewGroup = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), IData, NAME_None, RF_Transactional );
 		NewGroup->GroupName = NewGroupName;
 		NewGroups.Add(NewGroup);
+		GroupAttribs.Add(FAnalyticsEventAttribute(TEXT("Name"), NewGroup->GroupName.ToString()));
+	}
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.NewGroup"), GroupAttribs);
 	}
 
 	IData->InterpGroups.Append(NewGroups);
@@ -3750,7 +3762,13 @@ void FMatinee::OnMenuImport()
 					}
 
 					// Re-create the Matinee sequence.
-					FFbxImporter->ImportMatineeSequence(MatineeActor);
+					if (FFbxImporter->ImportMatineeSequence(MatineeActor))
+					{
+						if (FEngineAnalytics::IsAvailable())
+						{
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Imported"));
+						}
+					}
 
 					// We have modified the sequence, so update its UI.
 					NotifyPostChange(NULL, NULL);
@@ -3819,8 +3837,14 @@ void FMatinee::OnMenuExport()
 					}
 				}
 
-			// Export Matinee
-			Exporter->ExportMatinee( MatineeActor );
+				// Export Matinee
+				if (Exporter->ExportMatinee(MatineeActor))
+				{
+					if (FEngineAnalytics::IsAvailable())
+					{
+						FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Exported"));
+					}
+				}
 
 				// Save to disk
 				Exporter->WriteToFile( *ExportFilename );
@@ -3962,6 +3986,11 @@ void FMatinee::OnExportSoundCueInfoCommand()
 			// Close and delete archive
 			CSVFile->Close();
 			delete CSVFile;
+
+			if (FEngineAnalytics::IsAvailable())
+			{
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.ExportedSoundCue"));
+			}
 		}
 		else
 		{
@@ -4146,6 +4175,11 @@ void FMatinee::OnExportAnimationInfoCommand()
 			// Close and delete archive
 			File->Close();
 			delete File;
+
+			if (FEngineAnalytics::IsAvailable())
+			{
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.ExportedAnimationInfo"));
+			}
 		}
 	}
 }

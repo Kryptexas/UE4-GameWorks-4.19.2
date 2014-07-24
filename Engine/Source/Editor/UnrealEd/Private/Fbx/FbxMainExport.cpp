@@ -954,9 +954,9 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 /**
  * Exports the given Matinee sequence information into a FBX document.
  */
-void FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
+bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 {
-	if (InMatineeActor == NULL || Scene == NULL) return;
+	if (InMatineeActor == NULL || Scene == NULL) return false;
 
 	// If the Matinee editor is not open, we need to initialize the sequence.
 	//bool InitializeMatinee = InMatineeActor->MatineeData == NULL;
@@ -1008,6 +1008,7 @@ void FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 	//}
 
 	DefaultCamera = NULL;
+	return true;
 }
 
 

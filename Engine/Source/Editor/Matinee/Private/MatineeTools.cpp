@@ -34,6 +34,8 @@
 #include "SoundDefinitions.h"
 #include "EditorSupportDelegates.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 ///// UTILS
 
@@ -2776,6 +2778,11 @@ UInterpTrack* FMatinee::AddTrackToGroup( UInterpGroup* Group, UClass* TrackClass
 
 	check(NewTrack);
 
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.NewTrack"), TEXT("Class"), TrackClass->GetName());
+	}
+
 	OutNewTrackIndex = Group->InterpTracks.Add(NewTrack);
 
 	check( NewTrack->TrackInstClass );
@@ -2945,9 +2952,15 @@ void FMatinee::DeleteSelectedTracks()
 		// Only allow base tracks to be deleted,  Subtracks will be deleted by their parent
 		if( ActiveTrack->GetOuter()->IsA( UInterpGroup::StaticClass() ) )
 		{
+			if (FEngineAnalytics::IsAvailable())
+			{
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelTrack"), TEXT("Class"), ActiveTrack->GetClass()->GetName());
+			}
+
+			ActiveTrack->Modify();
+
 			UInterpGroup* Group = TrackIt.GetGroup();
 			Group->Modify();
-			ActiveTrack->Modify();
 
 			const int32 TrackIndex = TrackIt.GetTrackIndex();
 
@@ -3045,15 +3058,25 @@ void FMatinee::DeleteSelectedGroups()
 	for( FSelectedGroupIterator GroupIt(GetSelectedGroupIterator()); GroupIt; ++GroupIt )
 	{
 		UInterpGroup* GroupToDelete = *GroupIt;
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelGroup"), TEXT("Name"), GroupToDelete->GroupName.ToString());
+		}
 
 		// Mark InterpGroup and all InterpTracks as Modified.
 		GroupToDelete->Modify();
 		for(int32 j=0; j<GroupToDelete->InterpTracks.Num(); j++)
 		{
-			GroupToDelete->InterpTracks[j]->Modify();
+			UInterpTrack* Track = GroupToDelete->InterpTracks[j];
+			if (FEngineAnalytics::IsAvailable())
+			{
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelTrack"), TEXT("Class"), Track->GetClass()->GetName());
+			}
+
+			Track->Modify();
 
 			// Remove from the Curve editor, if its there.
-			IData->CurveEdSetup->RemoveCurve( GroupToDelete->InterpTracks[j] );
+			IData->CurveEdSetup->RemoveCurve(Track);
 		}
 		
 		// First, destroy any instances of this group.
