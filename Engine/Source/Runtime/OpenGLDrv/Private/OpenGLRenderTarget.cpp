@@ -307,8 +307,8 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 
 	VERIFY_GL_SCOPE();
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.SourceArrayIndex == 0);
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.DestArrayIndex == 0);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.SourceArrayIndex == 0);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.DestArrayIndex == 0);
 
 	FOpenGLTextureBase* SourceTexture = GetOpenGLTextureFromRHITexture(SourceTextureRHI);
 	FOpenGLTextureBase* DestTexture = GetOpenGLTextureFromRHITexture(DestTextureRHI);
@@ -710,7 +710,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 {
 	VERIFY_GL_SCOPE();
 	// Not supported on older APIs
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ArrayIndex == 0);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ArrayIndex == 0);
 
 	check( FOpenGL::SupportsFloatReadSurface() );
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
@@ -819,7 +819,7 @@ void FOpenGLDynamicRHI::BindPendingFramebuffer( FOpenGLContextState& ContextStat
 {
 	VERIFY_GL_SCOPE();
 
-	check((GRHIFeatureLevel >= ERHIFeatureLevel::SM5) || !PendingState.bFramebufferSetupInvalid);
+	check((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) || !PendingState.bFramebufferSetupInvalid);
 
 	if (ContextState.Framebuffer != PendingState.Framebuffer)
 	{

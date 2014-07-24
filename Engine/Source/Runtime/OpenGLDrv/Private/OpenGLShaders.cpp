@@ -491,13 +491,13 @@ FGeometryShaderRHIRef FOpenGLDynamicRHI::RHICreateGeometryShader(const TArray<ui
 
 FHullShaderRHIRef FOpenGLDynamicRHI::RHICreateHullShader(const TArray<uint8>& Code)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	return CompileOpenGLShader<FOpenGLHullShader>(Code);
 }
 
 FDomainShaderRHIRef FOpenGLDynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	return CompileOpenGLShader<FOpenGLDomainShader>(Code);
 }
 
@@ -1067,7 +1067,7 @@ static void VerifyUniformBufferLayouts(GLuint Program)
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER, &ReferencedByVS);
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER, &ReferencedByPS);
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER, &ReferencedByGS);
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+			if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 			{
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER, &ReferencedByHS);
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_EVALUATION_SHADER, &ReferencedByDS);
@@ -1326,7 +1326,7 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 
 FComputeShaderRHIRef FOpenGLDynamicRHI::RHICreateComputeShader(const TArray<uint8>& Code)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	
 	FOpenGLComputeShader* ComputeShader = CompileOpenGLShader<FOpenGLComputeShader>(Code);
 	const ANSICHAR* GlslCode = NULL;

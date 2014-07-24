@@ -59,6 +59,8 @@ public:
 		return bInUse;
 	}
 
+	ERHIFeatureLevel::Type GetFeatureLevel() const { check(HasValidFeatureLevel());  return FRenderResource::GetFeatureLevel(); }
+
 private:
 
 	/** The type of the vertex factory. */

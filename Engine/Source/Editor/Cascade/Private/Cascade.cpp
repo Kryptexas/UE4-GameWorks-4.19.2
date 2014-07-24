@@ -74,7 +74,7 @@ void FCascade::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 
 FCascade::~FCascade()
 {
-	UE_LOG(LogCascade,Log,TEXT("Quitting Cascade. FXSystem=0x%p"),FXSystem);
+	UE_LOG(LogCascade,Log,TEXT("Quitting Cascade. FXSystem=0x%p"),GetFXSystem());
 
 	GEditor->UnregisterForUndo(this);
 	// If the user opened the geometry properties window, we request it be destroyed.
@@ -104,9 +104,6 @@ FCascade::~FCascade()
 	}
 
 	DestroyColorPicker();
-
-	FFXSystemInterface::Destroy(FXSystem);
-	FXSystem = NULL;
 
 	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
 	{
@@ -194,9 +191,6 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			}
 		}
 	}
-
-	// Construct an FX system for this preview.
-	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 
 	ParticleSystemComponent = ConstructObject<UCascadeParticleSystemComponent>(UCascadeParticleSystemComponent::StaticClass());
 
@@ -326,7 +320,10 @@ UVectorFieldComponent* FCascade::GetLocalVectorFieldComponent() const
 
 FFXSystemInterface* FCascade::GetFXSystem() const
 {
-	return FXSystem;
+	check(PreviewViewport.IsValid());
+	auto World = PreviewViewport->GetViewportClient()->GetPreviewScene().GetWorld();
+	check(World);
+	return World->FXSystem;
 }
 
 UParticleEmitter* FCascade::GetSelectedEmitter() const
@@ -1475,7 +1472,7 @@ void FCascade::Tick(float DeltaTime)
 
 		ParticleSystemComponent->CascadeTickComponent(CurrDeltaTime, LEVELTICK_All);
 		ParticleSystemComponent->DoDeferredRenderUpdates_Concurrent();
-		FXSystem->Tick(CurrDeltaTime);
+		GetFXSystem()->Tick(CurrDeltaTime);
 		TotalTime += CurrDeltaTime;
 		ParticleSystem->UpdateTime_Delta = fSaveUpdateDelta;
 

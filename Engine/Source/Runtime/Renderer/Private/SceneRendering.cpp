@@ -468,7 +468,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
 
 	FScene* Scene = (FScene*)Family->Scene;
-	ERHIFeatureLevel::Type FeatureLevel;
+	ERHIFeatureLevel::Type FeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
 
 	if (Scene && Scene->SkyLight)
 	{
@@ -482,15 +482,11 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 			&& SkyLight->bPrecomputedLightingIsValid;
 
 		ViewUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
-
-		FeatureLevel = Scene->GetFeatureLevel();
 	}
 	else
 	{
 		ViewUniformShaderParameters.SkyLightColor = FLinearColor::Black;
 		ViewUniformShaderParameters.SkyLightParameters = 0;
-
-		FeatureLevel = GMaxRHIFeatureLevel;
 	}
 
 	// Make sure there's no padding since we're going to cast to FVector4*
@@ -632,6 +628,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	// (I apologize for the const_cast, but didn't seem worth refactoring just for the freezerendering command)
 	bHasRequestedToggleFreeze = const_cast<FRenderTarget*>(InViewFamily->RenderTarget)->HasToggleFreezeCommand();
 
+	FeatureLevel = Scene->GetFeatureLevel();
 }
 
 bool FSceneRenderer::DoOcclusionQueries() const

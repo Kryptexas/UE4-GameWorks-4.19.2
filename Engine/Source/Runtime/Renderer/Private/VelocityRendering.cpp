@@ -443,7 +443,8 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 
 void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame)
 {
-	SCOPE_CYCLE_COUNTER( STAT_RenderVelocities );
+	check(FeatureLevel >= ERHIFeatureLevel::SM4);
+	SCOPE_CYCLE_COUNTER(STAT_RenderVelocities);
 
 	bool bTemporalAA = (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA) && !View.bCameraCut;
 

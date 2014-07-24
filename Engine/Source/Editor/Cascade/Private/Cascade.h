@@ -386,7 +386,6 @@ private:
 	/** Components used for drawing the particle system in the preview viewport */
 	UCascadeParticleSystemComponent* ParticleSystemComponent;
 	UVectorFieldComponent* LocalVectorFieldPreviewComponent;
-	FFXSystemInterface* FXSystem;
 
 	/** Currently selected LOD index */
 	int32 CurrentLODIdx;

@@ -412,8 +412,6 @@ public:
 	FLinearColor LightShaftColorApply;
 	bool bLightShaftUse;
 
-	ERHIFeatureLevel::Type FeatureLevel;
-
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
 	 */
@@ -512,6 +510,9 @@ public:
 
 	/** Copy from main thread GFrameNumber to be accessible on renderthread side */
 	uint32 FrameNumber;
+
+	/** Feature level being rendered */
+	ERHIFeatureLevel::Type FeatureLevel;
 
 public:
 

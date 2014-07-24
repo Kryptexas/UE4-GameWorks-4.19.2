@@ -6,7 +6,6 @@
 #include "AnimPreviewInstance.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
-#include "Runtime/Engine/Public/FXSystem.h"
 
 #define LOCTEXT_NAMESPACE	"AnimSequenceDetails"
 
@@ -292,8 +291,6 @@ TSharedPtr<FString> FAnimSequenceDetails::GetRetargetSourceString(FName Retarget
 // based on SAnimationSegmentViewport
 SAnimationRefPoseViewport::~SAnimationRefPoseViewport()
 {
-	FFXSystemInterface::Destroy(FXSystem);
-
 	// clean up components
 	if (PreviewComponent)
 	{
@@ -337,8 +334,6 @@ SAnimationRefPoseViewport::SAnimationRefPoseViewport()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAnimationRefPoseViewport::Construct(const FArguments& InArgs)
 {
-	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
-
 	TargetSkeleton = InArgs._Skeleton;
 	AnimRefPropertyHandle = InArgs._AnimRefPropertyHandle;
 	RefPoseTypeHandle = InArgs._RefPoseTypeHandle;
@@ -378,7 +373,7 @@ void SAnimationRefPoseViewport::Construct(const FArguments& InArgs)
 
 
 	// Create a viewport client
-	LevelViewportClient	= MakeShareable(new FAnimationSegmentViewportClient(PreviewScene, FXSystem));
+	LevelViewportClient	= MakeShareable(new FAnimationSegmentViewportClient(PreviewScene));
 
 	LevelViewportClient->ViewportType = LVT_Perspective;
 	LevelViewportClient->bSetListenerPosition = false;

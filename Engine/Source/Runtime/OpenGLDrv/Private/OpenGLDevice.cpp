@@ -611,7 +611,7 @@ static void InitRHICapabilitiesForGL()
 	GRHIShaderPlatform = FOpenGL::GetShaderPlatform();
 
 	FString FeatureLevelName;
-	GetFeatureLevelName(GRHIFeatureLevel, FeatureLevelName);
+	GetFeatureLevelName(GMaxRHIFeatureLevel, FeatureLevelName);
 	FString ShaderPlatformName = LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString();
 
 	UE_LOG(LogRHI, Log, TEXT("OpenGL MajorVersion = %d, MinorVersion = %d, ShaderPlatform = %s, FeatureLevel = %s"), MajorVersion, MinorVersion, *ShaderPlatformName, *FeatureLevelName);
@@ -641,7 +641,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsVertexInstancing = true;
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
 
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GRHIShaderPlatform : SP_OPENGL_PCES2;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM3] = SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_OPENGL_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_OPENGL_SM5;
@@ -652,7 +652,7 @@ static void InitRHICapabilitiesForGL()
 	GProjectionSignY = 1.0f;
 
 	// Disable texture streaming on ES2 unless we have the GL_APPLE_copy_texture_levels extension
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels())
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels())
 	{
 		GRHISupportsTextureStreaming = false;
 	}

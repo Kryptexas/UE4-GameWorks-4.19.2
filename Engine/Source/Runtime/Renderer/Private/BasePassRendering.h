@@ -877,7 +877,7 @@ void ProcessBasePassMesh(
 				: FLightMapInteraction();
 
 			// force LQ lightmaps based on system settings
-			const bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps() && LightMapInteraction.AllowsHighQualityLightmaps();
+			const bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps(Parameters.FeatureLevel) && LightMapInteraction.AllowsHighQualityLightmaps();
 
 			switch(LightMapInteraction.GetType())
 			{

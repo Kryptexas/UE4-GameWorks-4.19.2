@@ -309,7 +309,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 void FD3D11DynamicRHI::GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels )
 {
 	//  We disable MSAA for Feature level 10
-	if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4)
 	{
 		OutBestMSAACount = 1;
 		OutMSAAQualityLevels = 0;

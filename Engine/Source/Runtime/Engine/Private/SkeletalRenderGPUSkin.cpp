@@ -1060,7 +1060,7 @@ FPreviousPerBoneMotionBlur::FPreviousPerBoneMotionBlur()
 
 void FPreviousPerBoneMotionBlur::InitResources()
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		for(uint32 i = 0; i < PER_BONE_BUFFER_COUNT; ++i)
 		{

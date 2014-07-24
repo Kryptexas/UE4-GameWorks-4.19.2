@@ -118,7 +118,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 	bool bIsLitMaterial = (Material->GetShadingModel() != MSM_Unlit);
 	/*const */FLightMapInteraction LightMapInteraction = (Mesh.LCI && bIsLitMaterial) ? Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
 	// force simple lightmaps based on system settings
-	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps() && LightMapInteraction.AllowsHighQualityLightmaps();
+	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps(View.GetFeatureLevel()) && LightMapInteraction.AllowsHighQualityLightmaps();
 	if (bIsLitMaterial && PrimitiveSceneProxy && (PrimitiveSceneProxy->GetLightMapType() == LMIT_Texture))
 	{
 		// Should this object be texture lightmapped? Ie, is lighting not built for it??

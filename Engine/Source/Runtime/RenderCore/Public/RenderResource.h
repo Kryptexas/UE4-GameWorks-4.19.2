@@ -89,7 +89,10 @@ public:
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
-	FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
+protected:
+	// This is used during mobile editor preview refactor, this will eventually be replaced with a parameter to InitRHI() etc..
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
+	FORCEINLINE bool HasValidFeatureLevel() const { return FeatureLevel < ERHIFeatureLevel::Num; }
 
 private:
 
@@ -285,6 +288,7 @@ struct FMipBiasFade
 class FTexture : public FRenderResource
 {
 public:
+
 	/** The texture's RHI resource. */
 	FTextureRHIRef		TextureRHI;
 

@@ -71,7 +71,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	{
 		// Use a depth only pass if we are using full blown HQ lightmaps
 		// Otherwise base pass pixel shaders will be cheap and there will be little benefit to rendering a depth only pass
-		if (AllowHighQualityLightmaps() || !ViewFamily.EngineShowFlags.Lighting)
+		if (AllowHighQualityLightmaps(FeatureLevel) || !ViewFamily.EngineShowFlags.Lighting)
 		{
 			EarlyZPassMode = DDM_None;
 		}
@@ -581,8 +581,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	SCOPED_DRAW_EVENT(Scene,DEC_SCENE_ITEMS);
-
-	const auto FeatureLevel = Scene->GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);

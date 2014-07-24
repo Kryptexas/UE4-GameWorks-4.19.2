@@ -96,6 +96,9 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& 
 	// Only draw opaque materials.
 	if( !IsTranslucentBlendMode(BlendMode) )
 	{
+		// following check moved from ProcessBasePassMeshForForwardShading to avoid passing feature level.
+		check(!AllowHighQualityLightmaps(Scene->GetFeatureLevel()));
+
 		ProcessBasePassMeshForForwardShading(
 			RHICmdList,
 			FProcessBasePassMeshParameters(

@@ -2999,11 +2999,16 @@ FText SLevelViewport::GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) c
 	}
 	else
 	{
-		if (GRHIFeatureLevel != GMaxRHIFeatureLevel)
+		auto* World = GetWorld();
+		if (World != nullptr)
 		{
-			FName FeatureLevelName;
-			GetFeatureLevelName(GRHIFeatureLevel, FeatureLevelName);
-			FeatureLevelText = FText::Format(LOCTEXT("FeatureLevel", "{0}"), FText::FromName(FeatureLevelName));
+			const auto FeatureLevel = World->FeatureLevel;
+			if (FeatureLevel != GMaxRHIFeatureLevel)
+			{
+				FName FeatureLevelName;
+				GetFeatureLevelName(FeatureLevel, FeatureLevelName);
+				FeatureLevelText = FText::Format(LOCTEXT("FeatureLevel", "{0}"), FText::FromName(FeatureLevelName));
+			}
 		}
 	}
 	
@@ -3065,7 +3070,14 @@ EVisibility SLevelViewport::GetCurrentLevelTextVisibility() const
 
 EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
 {
-	return (GRHIFeatureLevel != GMaxRHIFeatureLevel) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	if (GetWorld())
+	{
+		return (GetWorld()->FeatureLevel != GMaxRHIFeatureLevel) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)

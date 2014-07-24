@@ -28,20 +28,16 @@ FLightMapInteraction FLightMapInteraction::Texture(
 	const FVector4* InCoefficientAdds,
 	const FVector2D& InCoordinateScale,
 	const FVector2D& InCoordinateBias,
-	bool bAllowHighQualityLightMaps)
+	bool bUseHighQualityLightMaps)
 {
 	FLightMapInteraction Result;
 	Result.Type = LMIT_Texture;
 
-	bool bUseHighQualityLightMaps = AllowHighQualityLightmaps();
-
 #if ALLOW_LQ_LIGHTMAPS && ALLOW_HQ_LIGHTMAPS
 	// however, if simple and directional are allowed, then we must use the value passed in,
 	// and then cache the number as well
-	bUseHighQualityLightMaps = bUseHighQualityLightMaps && bAllowHighQualityLightMaps;
-
 	Result.bAllowHighQualityLightMaps = bUseHighQualityLightMaps;
-	if (bAllowHighQualityLightMaps)
+	if (bUseHighQualityLightMaps)
 	{
 		Result.NumLightmapCoefficients = NUM_HQ_LIGHTMAP_COEF;
 	}

@@ -452,12 +452,12 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
 	UWorld::ChangeAllWorldFeatureLevels(InPreviewFeatureLevel);
+//	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel); // The ultimate goal, but needs removal of the global feature level first!
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// For now, we just stay stuck on the system max feature level
-	return InPreviewFeatureLevel == GRHIFeatureLevel;
+	return InPreviewFeatureLevel == GetWorld()->FeatureLevel;
 }
 
 void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLightingBuildOptions& Options )

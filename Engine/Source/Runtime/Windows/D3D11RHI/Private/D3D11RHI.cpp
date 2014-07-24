@@ -182,7 +182,7 @@ FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FD3D11DynamicRHI::IssueLongGPUTask()
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		int32 LargestViewportIndex = INDEX_NONE;
 		int32 LargestViewportPixels = 0;

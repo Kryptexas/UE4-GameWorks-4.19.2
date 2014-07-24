@@ -465,8 +465,6 @@ void ProcessBasePassMeshForForwardShading(
 		? Parameters.Mesh.LCI->GetLightMapInteraction() 
 		: FLightMapInteraction();
 
-	check(!AllowHighQualityLightmaps());
-
 	if (LightMapInteraction.GetType() == LMIT_Texture)
 	{
 		const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 

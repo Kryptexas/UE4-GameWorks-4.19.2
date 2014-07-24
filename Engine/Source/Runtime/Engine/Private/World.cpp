@@ -5104,7 +5104,7 @@ void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& O
 	}
 }
 
-void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
@@ -5121,6 +5121,36 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			FXSystem = FFXSystemInterface::Create(InFeatureLevel);
 			Scene->SetFXSystem(FXSystem);
 		}
+	}
+}
+
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (InFeatureLevel != FeatureLevel)
+	{
+		FlushRenderingCommands();
+
+		FGlobalComponentReregisterContext RecreateComponents;
+
+		GCurrentRHIFeatureLevel = InFeatureLevel;
+		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+		GetGlobalShaderMap(GRHIShaderPlatform, false);
+		GShaderCompilingManager->ProcessAsyncResults(false, true);
+
+		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
+		{
+			BeginUpdateResourceRHI(*It);
+		}
+
+		// try iterating over all worlds here
+		ChangeWorldFeatureLevel(InFeatureLevel);
+
+		FOutputDeviceNull Ar;
+		RecompileShaders(TEXT("CHANGED"), Ar);
 	}
 }
 
@@ -5166,7 +5196,7 @@ void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
 
 			if (World->FeatureLevel != InFeatureLevel)
 			{
-				World->ChangeFeatureLevel(InFeatureLevel);
+				World->ChangeWorldFeatureLevel(InFeatureLevel);
 			}
 		}
 

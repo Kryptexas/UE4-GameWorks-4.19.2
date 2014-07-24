@@ -1265,7 +1265,7 @@ UTexture2D* FLightMap2D::GetTexture(uint32 BasisIndex)
  */
 bool FLightMap2D::IsValid(uint32 BasisIndex) const
 {
-	return bAllowHighQualityLightMaps ? BasisIndex == 0 : BasisIndex == 1;
+	return AllowHighQualityLightmaps() ? BasisIndex == 0 : BasisIndex == 1;
 }
 
 struct FLegacyLightMapTextureInfo
@@ -1421,14 +1421,14 @@ void FLightMap2D::Serialize(FArchive& Ar)
 
 FLightMapInteraction FLightMap2D::GetInteraction() const
 {
-	int32 LightmapIndex = bAllowHighQualityLightMaps ? 0 : 1;
+	int32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
 
 	bool bValidTextures = Textures[ LightmapIndex ] && Textures[ LightmapIndex ]->Resource;
 
 	// When the FLightMap2D is first created, the textures aren't set, so that case needs to be handled.
 	if(bValidTextures)
 	{
-		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, true);
+		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, AllowHighQualityLightmaps());
 	}
 
 	return FLightMapInteraction::None();

@@ -870,6 +870,7 @@ void FIndirectLightingCache::InterpolateBlock(
 		for (int32 VolumeIndex = 0; VolumeIndex < Scene->PrecomputedLightVolumes.Num(); VolumeIndex++)
 		{
 			const FPrecomputedLightVolume* PrecomputedLightVolume = Scene->PrecomputedLightVolumes[VolumeIndex];
+			check(PrecomputedLightVolume->IsUsingHighQualityLightMap() == AllowHighQualityLightmaps(Scene->GetFeatureLevel()));
 			// Interpolate from the SH volume lighting samples that Lightmass computed
 			// Query using the bounds of all the samples in this block
 			// There will be a performance cliff for large objects which end up intersecting with the entire octree

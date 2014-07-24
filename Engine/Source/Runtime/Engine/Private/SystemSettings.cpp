@@ -340,7 +340,7 @@ void FSystemSettings::Initialize( bool bSetupForEditor )
 
 	ApplyOverrides();
 
-	bInitialUseHighQualityLightmaps = AllowHighQualityLightmaps();
+	bInitialUseHighQualityLightmaps = AllowHighQualityLightmaps(GMaxRHIFeatureLevel);
 
 	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateRaw(this, &FSystemSettings::CVarSink));
 

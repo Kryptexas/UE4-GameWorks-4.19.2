@@ -33,12 +33,9 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	UParticleSystem* ParticleSystem = CascadePtr.Pin()->GetParticleSystem();
 	UCascadeParticleSystemComponent* ParticleSystemComponent = CascadePtr.Pin()->GetParticleSystemComponent();
 	UVectorFieldComponent* LocalVectorFieldPreviewComponent = CascadePtr.Pin()->GetLocalVectorFieldComponent();
-	FFXSystemInterface* FXSystem = CascadePtr.Pin()->GetFXSystem();
 	UCascadeOptions* EditorOptions = CascadePtr.Pin()->GetEditorOptions();
 
 	check(EditorOptions);
-
-	CascadePreviewScene.GetScene()->SetFXSystem(FXSystem);
 
 	// Create ParticleSystemComponent to use for preview.
 	ParticleSystemComponent->CascadePreviewViewportPtr = this;

@@ -9785,11 +9785,17 @@ static TAutoConsoleVariable<int32> CVarAllowHighQualityLightMaps(
 	TEXT("If set to 1, allow high quality lightmaps which don't bake in direct lighting of stationary lights"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
-bool AllowHighQualityLightmaps()
+
+bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return FPlatformProperties::SupportsHighQualityLightmaps()
-		&& (GRHIFeatureLevel > ERHIFeatureLevel::ES2)
+		&& (FeatureLevel > ERHIFeatureLevel::ES2)
 		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0);
+}
+
+bool AllowHighQualityLightmaps()
+{
+	return AllowHighQualityLightmaps(GRHIFeatureLevel);
 }
 
 // Helper function for changing system resolution via the r.setres console command

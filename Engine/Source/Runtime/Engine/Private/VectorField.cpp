@@ -759,7 +759,7 @@ public:
 	{
 		check(IsInRenderingThread());
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM5 && AnimatedVectorField && AnimatedVectorField->Texture && AnimatedVectorField->Texture->Resource)
+		if (GetFeatureLevel() == ERHIFeatureLevel::SM5 && AnimatedVectorField && AnimatedVectorField->Texture && AnimatedVectorField->Texture->Resource)
 		{
 			SCOPED_DRAW_EVENT(AnimateVectorField, DEC_PARTICLE);
 
