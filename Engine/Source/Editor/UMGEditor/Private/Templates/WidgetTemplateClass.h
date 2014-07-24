@@ -22,6 +22,9 @@ public:
 	/** The icon coming from the default object of the class */
 	virtual const FSlateBrush* GetIcon() const override;
 
+	/** Gets the tooltip widget for this palette item. */
+	virtual TSharedRef<IToolTip> GetToolTip() const override;
+
 protected:
 	/** The widget class that will be created by this template */
 	TSubclassOf<UWidget> WidgetClass;

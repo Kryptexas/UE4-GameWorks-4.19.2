@@ -319,6 +319,16 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 		Player->Tick( InDeltaTime );
 	}
 
+	if ( !bDesignTime )
+	{
+		UWorld* World = GetWorld();
+		if ( World )
+		{
+			// Update any latent actions we have for this actor
+			World->GetLatentActionManager().ProcessLatentActions(this, InDeltaTime);
+		}
+	}
+
 	Tick( MyGeometry, InDeltaTime );
 }
 

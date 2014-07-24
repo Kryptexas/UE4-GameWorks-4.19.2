@@ -47,6 +47,16 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetImageFromBrush(FSlateBrush Brush);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetImageFromTexture(UTexture2D* Texture);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetImageFromMaterial(UMaterialInterface* Material);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
 	UMaterialInstanceDynamic* GetDynamicMaterial();
 
 	// UWidget interface

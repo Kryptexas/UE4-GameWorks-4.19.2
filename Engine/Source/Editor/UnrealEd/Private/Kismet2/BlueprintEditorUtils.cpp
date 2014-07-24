@@ -5380,6 +5380,11 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 		Filter->DisallowedChildrenOfClasses.Add(*ClassIt);
 	}
 
+	for ( UBlueprint* Blueprint : Blueprints )
+	{
+		Blueprint->GetReparentingRules(Filter->AllowedChildrenOfClasses, Filter->DisallowedChildrenOfClasses);
+	}
+
 	if(bIsActor)
 	{
 		if(bIsLevelScriptActor)

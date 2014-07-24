@@ -98,20 +98,70 @@ void UImage::SetImage(USlateBrushAsset* InImage)
 	}
 }
 
+void UImage::SetImageFromBrush(FSlateBrush InImage)
+{
+	DynamicBrush = InImage;
+
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetImage(&DynamicBrush.GetValue());
+	}
+}
+
+void UImage::SetImageFromTexture(UTexture2D* Texture)
+{
+	FSlateBrush TextureBrush;
+	TextureBrush.SetResourceObject(Texture);
+
+	DynamicBrush = TextureBrush;
+
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetImage(&DynamicBrush.GetValue());
+	}
+}
+
+void UImage::SetImageFromMaterial(UMaterialInterface* Material)
+{
+	FSlateBrush MaterialBrush;
+	MaterialBrush.SetResourceObject(Material);
+
+	DynamicBrush = MaterialBrush;
+
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetImage(&DynamicBrush.GetValue());
+	}
+}
+
 UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 {
+	UMaterialInterface* Material = NULL;
+
 	if ( !DynamicBrush.IsSet() )
 	{
 		const FSlateBrush* Brush = GetImageBrush();
-		FSlateBrush ClonedBrush = *Brush;
-		UObject* Resource = ClonedBrush.GetResourceObject();
-		UMaterialInterface* Material = Cast<UMaterialInterface>(Resource);
+		UObject* Resource = Brush->GetResourceObject();
+		Material = Cast<UMaterialInterface>(Resource);
+	}
+	else
+	{
+		UObject* Resource = DynamicBrush.GetValue().GetResourceObject();
+		Material = Cast<UMaterialInterface>(Resource);
+	}
 
-		if ( Material )
+	if ( Material )
+	{
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if ( !DynamicMaterial )
 		{
-			UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+
+			const FSlateBrush* Brush = GetImageBrush();
+			FSlateBrush ClonedBrush = *Brush;
 			ClonedBrush.SetResourceObject(DynamicMaterial);
-			
+
 			DynamicBrush = ClonedBrush;
 
 			if ( MyImage.IsValid() )
@@ -119,16 +169,11 @@ UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 				MyImage->SetImage(&DynamicBrush.GetValue());
 			}
 		}
-		else
-		{
-			//TODO UMG Log error for debugging.
-		}
+		
+		return DynamicMaterial;
 	}
-	else
-	{
-		UObject* Resource = DynamicBrush.GetValue().GetResourceObject();
-		return Cast<UMaterialInstanceDynamic>(Resource);
-	}
+
+	//TODO UMG can we do something for textures?  General purpose dynamic material for them?
 
 	return NULL;
 }

@@ -76,6 +76,8 @@ public:
 	{
 		return false;
 	}
+
+	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
 	// End of UBlueprint interface
 
 	FWidgetAnimation* FindAnimationDataForMovieScene( UMovieScene& MovieScene );

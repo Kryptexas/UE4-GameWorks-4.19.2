@@ -41,6 +41,7 @@ public:
 		ChildSlot
 		[
 			SNew(SHorizontalBox)
+			.ToolTip(Template->GetToolTip())
 
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -297,8 +298,6 @@ void SPaletteView::BuildClassWidgetList()
 			if ( bIsValidClass && !bIsSameClass )
 			{
 				TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
-				Template->Name = WidgetClass->GetDisplayNameText();
-				Template->ToolTip = WidgetClass->GetDisplayNameText();
 
 				AddWidgetTemplate(Template);
 			}

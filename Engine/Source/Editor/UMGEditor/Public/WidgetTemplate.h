@@ -25,10 +25,10 @@ public:
 		return &NullBrush;
 	}
 
+	/** Gets tooltip widget for this palette item. */
+	virtual TSharedRef<IToolTip> GetToolTip() const = 0;
+
 public:
 	/** The name of the widget template. */
 	FText Name;
-
-	/** A tooltip to display for the template. */
-	FText ToolTip;
 };

@@ -495,6 +495,11 @@ void UBlueprint::SetWorldBeingDebugged(UWorld *NewWorld)
 	CurrentWorldBeingDebugged = NewWorld;
 }
 
+void UBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const
+{
+
+}
+
 UObject* UBlueprint::GetObjectBeingDebugged()
 {
 	UObject* DebugObj = CurrentObjectBeingDebugged.Get();

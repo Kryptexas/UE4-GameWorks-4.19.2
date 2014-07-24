@@ -475,6 +475,8 @@ public:
 
 	virtual void SetWorldBeingDebugged(UWorld* NewWorld);
 
+	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
+
 protected:
 	/** Gets asset registry tags */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;

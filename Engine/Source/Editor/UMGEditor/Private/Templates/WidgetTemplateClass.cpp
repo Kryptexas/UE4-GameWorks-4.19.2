@@ -3,12 +3,14 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "WidgetTemplateClass.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "UMGEditor"
 
 FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 	: WidgetClass(InWidgetClass)
 {
+	Name = WidgetClass->GetDisplayNameText();
 }
 
 FText FWidgetTemplateClass::GetCategory() const
@@ -44,6 +46,11 @@ const FSlateBrush* FWidgetTemplateClass::GetIcon() const
 {
 	UWidget* DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
 	return DefaultWidget->GetEditorIcon();
+}
+
+TSharedRef<IToolTip> FWidgetTemplateClass::GetToolTip() const
+{
+	return IDocumentation::Get()->CreateToolTip(WidgetClass->GetDisplayNameText(), nullptr, FString(TEXT("Shared/Types/")) + WidgetClass->GetName(), TEXT("Class"));
 }
 
 #undef LOCTEXT_NAMESPACE
