@@ -1056,10 +1056,6 @@ void FPersona::CreateDefaultCommands()
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
 		);
-
-	// Generic deletion
-	ToolkitCommands->MapAction(FGenericCommands::Get().Delete, FExecuteAction::CreateSP(this, &FPersona::OnCommandGenericDelete));
-
 }
 
 void FPersona::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)

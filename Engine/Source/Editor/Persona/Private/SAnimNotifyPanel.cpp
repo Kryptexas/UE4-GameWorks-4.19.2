@@ -2729,6 +2729,14 @@ bool SNotifyEdTrack::CanDeleteTrack()
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FAnimNotifyPanelCommands
+
+void FAnimNotifyPanelCommands::RegisterCommands()
+{
+	UI_COMMAND(DeleteNotify, "Delete", "Deletes the selected notifies.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
+}
+
+//////////////////////////////////////////////////////////////////////////
 // SAnimNotifyPanel
 
 void SAnimNotifyPanel::Construct(const FArguments& InArgs)
@@ -2745,13 +2753,16 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 	Sequence = InArgs._Sequence;
 	MarkerBars = InArgs._MarkerBars;
 
+	FAnimNotifyPanelCommands::Register();
+	BindCommands();
+
 	// @todo anim : this is kinda hack to make sure it has 1 track is alive
 	// we can do this whenever import or asset is created, but it's more places to handle than here
 	// the function name in that case will need to change
 	Sequence->InitializeNotifyTrack();
 	Sequence->RegisterOnNotifyChanged(UAnimSequenceBase::FOnNotifyChanged::CreateSP( this, &SAnimNotifyPanel::RefreshNotifyTracks )  );
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SAnimNotifyPanel::PostUndo ) );
-	PersonaPtr.Pin()->RegisterOnGenericDelete(FPersona::FOnDeleteGeneric::CreateSP(this, &SAnimNotifyPanel::OnGenericDelete));
+	PersonaPtr.Pin()->RegisterOnGenericDelete(FPersona::FOnDeleteGeneric::CreateSP(this, &SAnimNotifyPanel::OnDeletePressed));
 
 	CurrentPosition = InArgs._CurrentPosition;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
@@ -2948,7 +2959,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnNodeDragStarted(this, &SAnimNotifyPanel::OnNotifyNodeDragStarted)
 			.MarkerBars(MarkerBars)
 			.OnRequestRefreshOffsets(OnRequestRefreshOffsets)
-			.OnDeleteNotify(this, &SAnimNotifyPanel::OnGenericDelete)
+			.OnDeleteNotify(this, &SAnimNotifyPanel::OnDeletePressed)
 			.OnDeselectAllNotifies(this, &SAnimNotifyPanel::DeselectAllNotifies)
 			.OnCopyNotifies(this, &SAnimNotifyPanel::CopySelectedNotifiesToClipboard)
 			.OnPasteNotifies(this, &SAnimNotifyPanel::OnPasteNotifies)
@@ -3024,7 +3035,7 @@ void SAnimNotifyPanel::PostUndo()
 	}
 }
 
-void SAnimNotifyPanel::OnGenericDelete()
+void SAnimNotifyPanel::OnDeletePressed()
 {
 	// If there's no focus on the panel it's likely the user is not editing notifies
 	// so don't delete anything when the key is pressed.
@@ -3243,6 +3254,27 @@ void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChange
 			}
 		}
 	}
+}
+
+void SAnimNotifyPanel::BindCommands()
+{
+	check(!UICommandList.IsValid());
+
+	UICommandList = MakeShareable(new FUICommandList);
+	const FAnimNotifyPanelCommands& Commands = FAnimNotifyPanelCommands::Get();
+
+	UICommandList->MapAction(
+		Commands.DeleteNotify,
+		FExecuteAction::CreateSP(this, &SAnimNotifyPanel::OnDeletePressed));
+}
+
+FReply SAnimNotifyPanel::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+{
+	if(UICommandList->ProcessCommandBindings(InKeyboardEvent))
+	{
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 #undef LOCTEXT_NAMESPACE

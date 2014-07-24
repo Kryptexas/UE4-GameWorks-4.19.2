@@ -54,6 +54,20 @@ namespace ENotifyStateHandleHit
 //////////////////////////////////////////////////////////////////////////
 // SAnimNotifyPanel
 
+class FAnimNotifyPanelCommands : public TCommands<FAnimNotifyPanelCommands>
+{
+public:
+	FAnimNotifyPanelCommands()
+		: TCommands<FAnimNotifyPanelCommands>("AnimNotifyPanel", NSLOCTEXT("Contexts", "AnimNotifyPanel", "Anim Notify Panel"), NAME_None, FEditorStyle::GetStyleSetName())
+	{
+
+	}
+
+	TSharedPtr<FUICommandInfo> DeleteNotify;
+
+	virtual void RegisterCommands() override;
+};
+
 // @todo anim : register when it's opened for the animsequence
 // broadcast when animsequence changed, so that we refresh for multiple window
 class SAnimNotifyPanel: public SAnimTrackPanel
@@ -115,6 +129,9 @@ public:
 	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	void OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent);
 
+	/** Handler for key press events */
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent);
+
 private:
 	TSharedPtr<SBorder> PanelArea;
 	class UAnimSequenceBase* Sequence;
@@ -140,8 +157,8 @@ private:
 	void RefreshNotifyTracks();
 	void PostUndo();
 
-	/** Handler for generic editor delete command */
-	void OnGenericDelete();
+	/** Handler for delete command */
+	void OnDeletePressed();
 
 	/** We support keyboard focus to detect when we should process key commands like delete */
 	virtual bool SupportsKeyboardFocus() const override
@@ -155,9 +172,15 @@ private:
 	// Called to deselect all notifies across all tracks
 	void DeselectAllNotifies();
 
+	// Binds the UI commands for this widget to delegates
+	void BindCommands();
+
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
 
 	/** Attribute for accessing any section/branching point positions we have to draw */
 	TAttribute<TArray<FTrackMarkerBar>>	MarkerBars;
+
+	/** UI commands for this widget */
+	TSharedPtr<FUICommandList> UICommandList;
 };
