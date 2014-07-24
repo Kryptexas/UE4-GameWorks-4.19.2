@@ -99,8 +99,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *  @param ControllerId		The ID of the controller that the should control the newly created player.  A value of -1 specifies to use the next available ID
 	 *  @param bSpawnPawn		Whether a pawn should be spawned immediately. If false a pawn will not be created until transition to the next map.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", ControllerId="-1", bSpawnPawn="true", AdvancedDisplay="2"))
-	static class APlayerController* CreatePlayer(UObject* WorldContextObject, int32 ControllerId, bool bSpawnPawn = true);
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay="2"))
+	static class APlayerController* CreatePlayer(UObject* WorldContextObject, int32 ControllerId = -1, bool bSpawnPawn = true);
 
 	// --- Level Streaming functions ------------------------
 	
@@ -123,8 +123,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param	bAbsolute			if true options are reset, if false options are carried over from current level
 	 * @param	Options				a string of options to use for the travel URL
 	 */
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", bAbsolute = "true", AdvancedDisplay = "2"), Category="Game")
-	static void OpenLevel(UObject* WorldContextObject, FName LevelName, bool bAbsolute, FString Options);
+	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "2"), Category="Game")
+	static void OpenLevel(UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, FString Options = FString(TEXT("")));
 
 	// --- Global functions ------------------------------
 
@@ -218,8 +218,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Falloff - Affects falloff of effect as it nears OuterRadius
 	 * @param bOrientShakeTowardsEpicenter - Changes the rotation of shake to point towards epicenter instead of forward
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game|Feedback", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", Falloff="1.0", UnsafeDuringActorConstruction = "true"))
-	static void PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter = false);
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	static void PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff = 1.f, bool bOrientShakeTowardsEpicenter = false);
 
 	// --- Particle functions ------------------------------
 
@@ -230,7 +230,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Rotation - rotation to place the effect in world space	
 	 * @param bAutoDestroy - Whether the component will automatically be destroyed when the particle system completes playing or whether it can be reactivated
 	 */
-	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", bAutoDestroy="true", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static UParticleSystemComponent* SpawnEmitterAtLocation(UObject* WorldContextObject, class UParticleSystem* EmitterTemplate, FVector Location, FRotator Rotation = FRotator::ZeroRotator, bool bAutoDestroy = true);
 
 	/** Plays the specified effect attached to and following the specified component. The system will go away when the effect is complete. Does not replicate.
@@ -242,7 +242,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param LocationType - Specifies whether Location is a relative offset or an absolute world position
 	 * @param bAutoDestroy - Whether the component will automatically be destroyed when the particle system completes playing or whether it can be reactivated
 	 */
-	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", bAutoDestroy="true", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", UnsafeDuringActorConstruction = "true"))
 	static UParticleSystemComponent* SpawnEmitterAttached(class UParticleSystem* EmitterTemplate, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), FRotator Rotation = FRotator::ZeroRotator, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bAutoDestroy = true);
 
 	// --- Sound functions ------------------------------
@@ -264,7 +264,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", VolumeMultiplier="1.0", PitchMultiplier="1.0", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
 	static void PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a dialogue at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
@@ -275,7 +275,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", VolumeMultiplier="1.0", PitchMultiplier="1.0", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
 	static void PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a sound attached to and following the specified component. This is a fire and forget sound. Replication is also not handled at this point.
@@ -289,7 +289,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier	 
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(VolumeMultiplier="1.0", PitchMultiplier="1.0", AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
 	static class UAudioComponent* PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a dialogue attached to and following the specified component. This is a fire and forget sound. Replication is also not handled at this point.
@@ -303,7 +303,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier	 
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(VolumeMultiplier="1.0", PitchMultiplier="1.0", AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
 	static class UAudioComponent* PlayDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** DEPRECATED - Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead. */

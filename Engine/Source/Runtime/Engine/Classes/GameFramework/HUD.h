@@ -295,7 +295,7 @@ public:
 	 * @param Font				Font to draw text.  If NULL, default font is chosen.
 	 * @param Scale				Scale multiplier to control size of the text.
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(Scale = "1"))
+	UFUNCTION(BlueprintCallable, Category=HUD)
 	void GetTextSize(const FString& Text, float& OutWidth, float& OutHeight, class UFont* Font=NULL, float Scale=1.f) const;
 
 	/**
@@ -308,7 +308,7 @@ public:
 	 * @param Scale				Scale multiplier to control size of the text.
 	 * @param bScalePosition	Whether the "Scale" parameter should also scale the position of this draw call.
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=( Scale = "1", bScalePosition = "false"))
+	UFUNCTION(BlueprintCallable, Category=HUD)
 	void DrawText(const FString& Text, FLinearColor TextColor, float ScreenX, float ScreenY, class UFont* Font=NULL, float Scale=1.f, bool bScalePosition=false);
 
 	/**
@@ -351,7 +351,7 @@ public:
 	 * @param Rotation			Amount to rotate this quad
 	 * @param RotPivot			Location (as proportion of quad, 0-1) to rotate about
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(Scale = "1", bScalePosition = "false", AdvancedDisplay = "9"))
+	UFUNCTION(BlueprintCallable, Category=HUD, meta=(AdvancedDisplay = "9"))
 	void DrawTexture(UTexture* Texture, float ScreenX, float ScreenY, float ScreenW, float ScreenH, float TextureU, float TextureV, float TextureUWidth, float TextureVHeight, FLinearColor TintColor=FLinearColor::White, EBlendMode BlendMode=BLEND_Translucent, float Scale=1.f, bool bScalePosition=false, float Rotation=0.f, FVector2D RotPivot=FVector2D::ZeroVector);
 
 	/**
@@ -362,7 +362,7 @@ public:
 	 * @param Scale				Scale multiplier to control size of the text.
 	 * @param bScalePosition	Whether the "Scale" parameter should also scale the position of this draw call.
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(Scale = "1", bScalePosition = "false"))
+	UFUNCTION(BlueprintCallable, Category=HUD)
 	void DrawTextureSimple(UTexture* Texture, float ScreenX, float ScreenY, float Scale=1.f, bool bScalePosition=false);
 
 	/**
@@ -381,7 +381,7 @@ public:
 	 * @param Rotation			Amount to rotate this quad
 	 * @param RotPivot			Location (as proportion of quad, 0-1) to rotate about
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(Scale = "1", bScalePosition = "false", AdvancedDisplay = "9"))
+	UFUNCTION(BlueprintCallable, Category=HUD, meta=(AdvancedDisplay = "9"))
 	void DrawMaterial(UMaterialInterface* Material, float ScreenX, float ScreenY, float ScreenW, float ScreenH, float MaterialU, float MaterialV, float MaterialUWidth, float MaterialVHeight, float Scale=1.f, bool bScalePosition=false, float Rotation=0.f, FVector2D RotPivot=FVector2D::ZeroVector);
 
 	/**
@@ -394,7 +394,7 @@ public:
 	 * @param Scale				Amount to scale the entire texture (horizontally and vertically)
 	 * @param bScalePosition	Whether the "Scale" parameter should also scale the position of this draw call.
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(Scale = "1", bScalePosition = "false"))
+	UFUNCTION(BlueprintCallable, Category=HUD)
 	void DrawMaterialSimple(UMaterialInterface* Material, float ScreenX, float ScreenY, float ScreenW, float ScreenH, float Scale=1.f, bool bScalePosition=false);
 
 	/** Transforms a 3D world-space vector into 2D screen coordinates */
@@ -471,7 +471,7 @@ public:
 	 * @param bConsumesInput	Whether click processing should continue if this hit box is clicked.
 	 * @param Priority			The priority of the box used for layering. Larger values are considered first.  Equal values are considered in the order they were added.
 	 */
-	UFUNCTION(BlueprintCallable, Category=HUD, meta=(InPriority="0"))
+	UFUNCTION(BlueprintCallable, Category=HUD)
 	void AddHitBox(FVector2D Position, FVector2D Size, FName Name, bool bConsumesInput, int32 Priority = 0);
 
 protected:

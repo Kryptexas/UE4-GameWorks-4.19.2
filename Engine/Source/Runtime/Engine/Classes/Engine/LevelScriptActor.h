@@ -24,7 +24,7 @@ class ENGINE_API ALevelScriptActor : public AActor
 	 * @param	bAffectsMovement	specify true to disable movement in cinematic mode, enable it when leaving
 	 * @param	bAffectsTurning		specify true to disable turning in cinematic mode or enable it when leaving
 	 */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true", bHidePlayer = "true", bAffectsHUD = "true"), Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game|Cinematic")
 	virtual void SetCinematicMode(bool bCinematicMode, bool bHidePlayer = true, bool bAffectsHUD = true, bool bAffectsMovement = false, bool bAffectsTurning = false);
 
 	// --- Level State Functions ------------------------

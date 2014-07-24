@@ -143,7 +143,8 @@ private:
 	virtual bool IsCrouched() const;
 
 public:
-	UFUNCTION(BlueprintPure, Category="Pawn", meta=(ToolTip="Gets the owning actor of the Movement Base Component on which the pawn is standing."))
+	/** Gets the owning actor of the Movement Base Component on which the pawn is standing. */
+	UFUNCTION(BlueprintPure, Category="Pawn")
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
 	virtual bool IsBasedOnActor(const AActor * Other) const override;

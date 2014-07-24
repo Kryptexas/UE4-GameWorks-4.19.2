@@ -229,8 +229,8 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return The requested substring
 	 */
-	UFUNCTION(BlueprintPure, meta=(StartIndex="0", Length="1"), Category="Utilities|String")
-	static FString GetSubstring(const FString& SourceString, int32 StartIndex, int32 Length);
+	UFUNCTION(BlueprintPure, Category="Utilities|String")
+	static FString GetSubstring(const FString& SourceString, int32 StartIndex = 0, int32 Length = 1);
 
 	/**
 	 * Finds the starting index of a substring in the a specified string
@@ -250,8 +250,8 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 * @param Index - Location of the character whose value is required
 	 * @return The integer value of the character or 0 if index is out of range
 	 */
-	UFUNCTION(BlueprintPure, meta=(Index="0"), Category="Utilities|String")
-	static int32 GetCharacterAsNumber(const FString& SourceString, int32 Index);
+	UFUNCTION(BlueprintPure, Category="Utilities|String")
+	static int32 GetCharacterAsNumber(const FString& SourceString, int32 Index = 0);
 
 	/** 
 	 * Gets an array of strings from a source string divided up by a separator and empty strings can optionally be culled.
@@ -260,8 +260,8 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 * @param CullEmptyStrings = true - Cull (true) empty strings or add them to the array (false)
 	 * @return The array of string that have been separated
 	 */
-	UFUNCTION(BlueprintPure, meta=(Delimiter=" "), Category="Utilities|String")
-	static TArray<FString> ParseIntoArray(const FString& SourceString, const FString& Delimiter, const bool CullEmptyStrings = true);
+	UFUNCTION(BlueprintPure, Category="Utilities|String")
+	static TArray<FString> ParseIntoArray(const FString& SourceString, const FString& Delimiter = FString(TEXT(" ")), const bool CullEmptyStrings = true);
 
 	/**
 	 * Returns an array that contains one entry for each character in SourceString

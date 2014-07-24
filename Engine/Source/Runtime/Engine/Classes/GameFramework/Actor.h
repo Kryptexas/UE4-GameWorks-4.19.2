@@ -520,13 +520,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DisableInput(class APlayerController* PlayerController);
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName", ToolTip="Gets the value of the input axis if input is enabled for this actor"))
+	/** Gets the value of the input axis if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName"))
 	float GetInputAxisValue(const FName InputAxisName) const;
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	/** Gets the value of the input axis key if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
 	float GetInputAxisKeyValue(const FKey InputAxisKey) const;
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	/** Gets the value of the input axis key if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
 	FVector GetInputVectorAxisValue(const FKey InputAxisKey) const;
 
 	/** Returns the instigator for this actor, or NULL if there is none. */
@@ -819,11 +822,11 @@ public:
 	// Sound functions.
 	
 	/* DEPRECATED - Use UGameplayStatics::PlaySoundAttached */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction, VolumeMultiplier="1.0", PitchMultiplier="1.0"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	/* DEPRECATED - Use UGameplayStatics::PlaySoundAtLocation */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction, VolumeMultiplier="1.0", PitchMultiplier="1.0"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	//=============================================================================

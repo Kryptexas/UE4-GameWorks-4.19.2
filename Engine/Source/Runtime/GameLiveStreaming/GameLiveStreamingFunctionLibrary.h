@@ -29,17 +29,17 @@ class UGameLiveStreamingFunctionLibrary : public UBlueprintFunctionLibrary
 	 * @param	bCaptureAudioFromMicrophone	Enables broadcast of audio from your default microphone recording device
 	 * @param	bDrawSimpleWebCamVideo		If enabled, the engine will draw a simple web cam image on top of the game viewport.  If you turn this off, it's up to you to draw the web cam image yourself.  You can access the web cam texture by calling IGameLiveStreaming::Get().GetWebCamTexture(). 
 	 */
-	UFUNCTION( BlueprintCallable, Category="LiveStreaming", meta=(FrameRate="30", ScreenScaling="1.0", bEnableWebCam="true", DesiredWebCamWidth="320", DesiredWebCamHeight="240", bMirrorWebCamImage="false", bCaptureAudioFromComputer="true", bCaptureAudioFromMicrophone="true", bDrawSimpleWebCamVideo="true") )
+	UFUNCTION( BlueprintCallable, Category="LiveStreaming")
 	static void StartBroadcastingGame(
-		int32 FrameRate,
-		float ScreenScaling,
-		bool bEnableWebCam,
-		int32 DesiredWebCamWidth,
-		int32 DesiredWebCamHeight,
-		bool bMirrorWebCamImage,
-		bool bCaptureAudioFromComputer,
-		bool bCaptureAudioFromMicrophone,
-		bool bDrawSimpleWebCamVideo );
+		int32 FrameRate = 30,
+		float ScreenScaling = 1.f,
+		bool bEnableWebCam = true,
+		int32 DesiredWebCamWidth = 320,
+		int32 DesiredWebCamHeight = 240,
+		bool bMirrorWebCamImage = false,
+		bool bCaptureAudioFromComputer = true,
+		bool bCaptureAudioFromMicrophone = true,
+		bool bDrawSimpleWebCamVideo = true);
 
 	/** Stops broadcasting the game */
 	UFUNCTION( BlueprintCallable, Category="LiveStreaming" )

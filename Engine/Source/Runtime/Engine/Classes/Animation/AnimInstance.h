@@ -336,12 +336,12 @@ public:
 public:
 
 	/** Play normal animation asset on the slot node. You can only play one asset (whether montage or animsequence) at a time. */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(BlendInTime="0.25", BlendOutTime="0.25", InPlayRate="1.0"))
-	float PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	float PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime = 0.25f, float BlendOutTime = 0.25f, float InPlayRate = 1.f);
 
 	/** Stops currently playing slot animation */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(InBlendOutTime="0.25"))
-	void StopSlotAnimation(float InBlendOutTime);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void StopSlotAnimation(float InBlendOutTime = 0.25f);
 
 	/** Return true if it's playing the slot animation */
 	UFUNCTION(BlueprintCallable, Category="Animation")
@@ -368,16 +368,16 @@ public:
 	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection);
 
 	/** Change AnimMontage play rate. NewPlayRate = 1.0 is the default playback rate. */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(NewPlayRate="1.0"))
-	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate = 1.f);
 
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(InPlayRate="1.0"))
-	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f);
 
 	/** Stops the animation montage. */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(InBlendOutTime="0.25"))
-	void Montage_Stop(float InBlendOutTime);
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void Montage_Stop(float InBlendOutTime = 0.25f);
 
 	/** Returns true if the animation montage is active. */
 	UFUNCTION(BlueprintCallable, Category="Animation")

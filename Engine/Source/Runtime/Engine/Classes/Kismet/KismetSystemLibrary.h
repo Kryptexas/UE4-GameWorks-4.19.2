@@ -176,8 +176,8 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param	bPrintToConsole	Whether or not to print the output to the console
 	 * @param	TextColor		Whether or not to print the output to the console
 	 */
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", InString = "Hello", bPrintToScreen = "true", bPrintToLog = "true", Keywords = "log", AdvancedDisplay = "2"), Category="Utilities|String")
-	static void PrintString(UObject* WorldContextObject, const FString& InString, bool bPrintToScreen, bool bPrintToLog, FLinearColor TextColor = FLinearColor(0.0,0.66,1.0));
+	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", Keywords = "log", AdvancedDisplay = "2"), Category="Utilities|String")
+	static void PrintString(UObject* WorldContextObject, const FString& InString = FString(TEXT("Hello")), bool bPrintToScreen = true, bool bPrintToLog = true, FLinearColor TextColor = FLinearColor(0.0,0.66,1.0));
 
 	/**
 	 * Prints a warning string to the log and the screen. Meant to be used as a way to inform the user that they misused the node.
