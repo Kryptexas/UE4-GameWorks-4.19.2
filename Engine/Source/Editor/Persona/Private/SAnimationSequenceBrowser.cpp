@@ -815,7 +815,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 		}
 
 		PreviewComponent->EnablePreview(true, Asset, NULL);
-		PreviewComponent->PreviewInstance->SetLooping(true);
+		PreviewComponent->PreviewInstance->PlayAnim(true);
 
 		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
 		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
