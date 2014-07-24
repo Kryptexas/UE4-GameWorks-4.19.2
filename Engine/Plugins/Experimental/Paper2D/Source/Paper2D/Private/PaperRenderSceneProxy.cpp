@@ -159,6 +159,7 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	: FPrimitiveSceneProxy(InComponent)
 	, Material(NULL)
 	, Owner(InComponent->GetOwner())
+	, bCastShadow(InComponent->CastShadow)
 	, WireframeColor(FLinearColor::White)
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
@@ -263,7 +264,7 @@ void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const 
 	Mesh.VertexFactory = VertexFactory;
 	Mesh.LCI = NULL;
 	Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
-	Mesh.CastShadow = false;
+	Mesh.CastShadow = bCastShadow;
 	Mesh.DepthPriorityGroup = DPG;
 	Mesh.Type = PT_TriangleList;
 	Mesh.bDisableBackfaceCulling = true;
@@ -354,7 +355,7 @@ void FPaperRenderSceneProxy::DrawBatch(FPrimitiveDrawInterface* PDI, const FScen
 			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
 			Mesh.LCI = NULL;
 			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
-			Mesh.CastShadow = false;
+			Mesh.CastShadow = bCastShadow;
 			Mesh.DepthPriorityGroup = DPG;
 			Mesh.Type = PT_TriangleList;
 			Mesh.bDisableBackfaceCulling = true;

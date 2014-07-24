@@ -125,6 +125,8 @@ protected:
 	FVector Origin;
 	AActor* Owner;
 
+	bool bCastShadow;
+
 	// The color to draw as in wireframe mode
 	FLinearColor WireframeColor;
 
