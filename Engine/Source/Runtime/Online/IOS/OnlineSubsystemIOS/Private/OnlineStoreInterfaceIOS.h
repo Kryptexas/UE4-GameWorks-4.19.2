@@ -4,6 +4,7 @@
 
 #include "OnlineStoreInterface.h"
 
+// SK includes
 #include <StoreKit/SKRequest.h>
 #include <StoreKit/SKError.h>
 #include <StoreKit/SKProduct.h>
@@ -13,15 +14,21 @@
 #include <StoreKit/SKPaymentQueue.h>
 
 
+/** Helper class, which allows us to manage IAP product information requests, AND transactions */
 @interface FStoreKitHelper : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
 {
 };
-
+/** Store kit request object, holds information about the products we are purchasing, or querying. */
 @property (nonatomic, strong) SKRequest *Request;
+/** collection of available products attaced through a store kit request */
 @property (nonatomic, strong) NSArray *AvailableProducts;
 
-- (void) makePurchase:(NSMutableSet*) productIDs;
+/** Helper fn to start a store kit purchase request */
+-(void)makePurchase:(NSMutableSet*)productIDs;
+/** Helper fn to start a store kit purchase information query request */
 - (void) requestProductData:(NSMutableSet*) productIDs;
+
+/** Helper fn to direct a product request response back to our store interface */
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response;
 
 @end
@@ -30,72 +37,44 @@
 /**
  *	FOnlineStoreInterfaceIOS - Implementation of the online store for IOS
  */
-class FOnlineStoreInterfaceIOS : public IOnlineStore, public FSelfRegisteringExec
+class FOnlineStoreInterfaceIOS : public IOnlineStore
 {
-private:
-	bool bIsPurchasing, bIsProductRequestInFlight;
-
 public:
+	/** C-tor */
 	FOnlineStoreInterfaceIOS();
+	/** Destructor */
 	virtual ~FOnlineStoreInterfaceIOS();
 
 	// Begin IOnlineStore interface
-	virtual bool QueryForAvailablePurchases() override;
-
+	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
+	virtual bool BeginPurchase(const FString& ProductId, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
-
-	virtual bool BeginPurchase(int Index) override;
 	// End IOnlineStore interface
-
-	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
-	// End FExec Interface
 
 	/**
 	 * Process a response from the StoreKit
 	 */
 	void ProcessProductsResponse( SKProductsResponse* Response );
-
-
-	/**
-	 * Micro-transaction purchase information
-	 */
-	struct FMicrotransactionPurchaseInfo
-	{
-		FMicrotransactionPurchaseInfo(FString InProductIdentifier)
-		{
-			Identifier = InProductIdentifier;
-			bWasUpdatedByServer = false;
-		}
-
-		// The product identifier that matches the one in iTunesConnect
-		FString Identifier;
-
-		// Display name, gathered from querying the Apple Store
-		FString DisplayName;
-
-		// Display description, gathered from querying the Apple Store
-		FString DisplayDescription;
-
-		// Product price, gathered from querying the Apple Store
-		FString DisplayPrice;
-
-		// The currency type for this MT, gathered from querying the Apple Store
-		FString CurrencyType;
-
-		// flag that lets the user know if the data has been completed from the server
-		bool bWasUpdatedByServer;
-	};
+    
+	/** Cached in-app purchase query object, used to provide the user with product information attained from the server */
+	FOnlineProductInformationReadPtr CachedReadObject;
+    
+	/** Cached in-app purchase transaction object, used to provide details to the user, of the product that has just been purchased. */
+	FOnlineInAppPurchaseTransactionPtr CachedPurchaseStateObject;
 
 
 private:
-	FStoreKitHelper* StoreHelper;
-	
-	TArray< FMicrotransactionPurchaseInfo > AvailableProducts;
+	/** Flags which determine the state of our transaction buffer, only one action at a time */
+	bool bIsPurchasing, bIsProductRequestInFlight;
 
+	/** Access to the IOS Store kit interface */
+	FStoreKitHelper* StoreHelper;
+
+	/** Delegate fired when a query for purchases has completed, whether successful or unsuccessful */
 	FOnQueryForAvailablePurchasesComplete OnQueryForAvailablePurchasesCompleteDelegate;
 
-	FOnPurchaseComplete OnPurchaseCompleteDelegate;
+	/** Delegate fired when a purchase transaction has completed, whether successful or unsuccessful */
+	FOnInAppPurchaseComplete OnPurchaseCompleteDelegate;
 };
 
 typedef TSharedPtr<FOnlineStoreInterfaceIOS, ESPMode::ThreadSafe> FOnlineStoreInterfaceIOSPtr;
