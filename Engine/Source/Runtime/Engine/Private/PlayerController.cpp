@@ -24,7 +24,7 @@
 #include "ContentStreaming.h"
 #include "GameFramework/PawnMovementComponent.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
+DEFINE_LOG_CATEGORY(LogPlayerController);
 
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;

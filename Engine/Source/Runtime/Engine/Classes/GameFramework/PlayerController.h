@@ -17,6 +17,8 @@ class FPrimitiveComponentId;
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
 
+DECLARE_LOG_CATEGORY_EXTERN(LogPlayerController, Log, All);
+
 UENUM()
 namespace EDynamicForceFeedbackAction
 {
