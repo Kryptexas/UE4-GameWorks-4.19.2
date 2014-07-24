@@ -58,7 +58,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 				.Text( TextContent )
 				.TextStyle( &StyleInfo )
 				.ColorAndOpacity( ColorAndOpacity )
-				.WrapTextAt( 400 )
+				.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth )
 			]
 		];
 	}
@@ -74,7 +74,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 				.Text( TextContent )
 				.TextStyle( &StyleInfo )
 				.ColorAndOpacity( ColorAndOpacity )
-				.WrapTextAt( 400 )
+				.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth )
 			]
 		];
 	}

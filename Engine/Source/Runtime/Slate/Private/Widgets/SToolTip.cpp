@@ -9,9 +9,13 @@
 
 static TAutoConsoleVariable<float> StaticToolTipWrapWidth(
 	TEXT( "Slate.ToolTipWrapWidth" ),
-	400.0f,
+	1000.0f,
 	TEXT( "Width of Slate tool-tips before we wrap the tool-tip text" ) );
 
+float SToolTip::GetToolTipWrapWidth()
+{
+	return StaticToolTipWrapWidth.GetValueOnGameThread();
+}
 
 /**
  * Construct this widget
@@ -29,21 +33,13 @@ void SToolTip::Construct( const FArguments& InArgs )
 		WidgetContent = InArgs._Content.Widget;
 	}
 
-	struct Local
-	{
-		static float GetToolTipWrapWidth()
-		{
-			return StaticToolTipWrapWidth.GetValueOnGameThread();
-		}
-	};
-
 	TSharedRef<SWidget> ToolTipContent = ( !WidgetContent.IsValid() )
 		? StaticCastSharedRef<SWidget>(
 			SNew( STextBlock )
 			.Text( TextContent )
 			.Font( InArgs._Font )
 			.ColorAndOpacity( InArgs._ColorAndOpacity )
-			.WrapTextAt_Static( &Local::GetToolTipWrapWidth )
+			.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth )
 		)
 		: InArgs._Content.Widget;
 
