@@ -708,8 +708,6 @@ public:
 		return Ret;
 	}
 
-	virtual void ApplyWorldOffset(FVector InOffset) override;
-
 	// FDeferredCleanupInterface
 	virtual void FinishCleanup()
 	{

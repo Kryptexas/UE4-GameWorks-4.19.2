@@ -271,14 +271,6 @@ public:
 	bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData);
 
 	/**
-	 * Called on world origin changes
-	 *
-	 * @param InOffset		Offset applied to current world origin
-	 */
-	void ApplyWorldOffset(FVector InOffset);
-
-
-	/**
 	 * Determines whether this player is the first and primary player on their machine.
 	 * @return	true if this player is not using splitscreen, or is the first player in the split-screen layout.
 	 */

@@ -3904,20 +3904,6 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 
 	FVector Offset(GlobalOriginOffset - InNewOrigin, 0);
 
-	// Local players
-	for (auto It = GetPlayerControllerIterator(); It; ++It)
-	{
-		APlayerController* PlayerController = *It;
-		if (PlayerController)
-		{
-			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
-			if (LocalPlayer)
-			{
-				LocalPlayer->ApplyWorldOffset(Offset);
-			}
-		}
-	}
-	
 	// Send offset command to rendering thread
 	Scene->ApplyWorldOffset(Offset);
 

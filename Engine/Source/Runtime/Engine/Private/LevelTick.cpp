@@ -1064,6 +1064,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (GlobalOriginOffset != RequestedGlobalOriginOffset)
 	{
 		SetNewWorldOrigin(RequestedGlobalOriginOffset);
+		bOriginOffsetThisFrame = true;
+	}
+	else
+	{
+		bOriginOffsetThisFrame = false;
 	}
 	
 	// update world's subsystems (NavigationSystem for now)

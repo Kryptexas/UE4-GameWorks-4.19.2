@@ -116,9 +116,6 @@ public:
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
 	/** Allows MIDs being created and released during view rendering without the overhead of creating and relasing objects */
 	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) = 0;
-	/** Called on world origin chnages */
-	virtual void ApplyWorldOffset(FVector InOffset) = 0;
-
 protected:
 	// Don't allow direct deletion of the view state, Destroy should be called instead.
 	virtual ~FSceneViewStateInterface() {}

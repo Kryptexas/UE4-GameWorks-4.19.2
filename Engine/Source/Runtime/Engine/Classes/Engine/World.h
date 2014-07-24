@@ -860,7 +860,10 @@ public:
 
 	/** Requested new world origin offset */
 	FIntPoint RequestedGlobalOriginOffset;
-	
+
+	/** Whether world origin was rebased this frame */
+	bool bOriginOffsetThisFrame;
+		
 	/** All levels information from which our world is composed */
 	UPROPERTY()
 	class UWorldComposition* WorldComposition;
