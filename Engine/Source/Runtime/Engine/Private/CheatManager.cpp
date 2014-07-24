@@ -561,7 +561,7 @@ void UCheatManager::InitCheatManager()
 void UCheatManager::BeginDestroy()
 {
 #if ENABLE_VISUAL_LOG
-	if (FVisualLog::Get().IsRecording() && bToggleAILogging)
+	if (bToggleAILogging && FVisualLog::Get().IsRecording())
 	{
 		UWorld *World = GetWorld();
 		if (World)

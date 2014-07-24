@@ -348,18 +348,14 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 // FVisualLog
 //----------------------------------------------------------------------//
 FVisualLog::FVisualLog()
+	: FileAr(NULL)
+	, StartRecordingTime(0.0f)
+	, bIsRecording(GEngine ? GEngine->bEnableVisualLogRecordingOnStart : false)
+	, bIsRecordingOnServer(false)
+	, bIsRecordingToFile(false)
+	, bIsAllBlocked(false)
 {
-	// just in case someone tries to VLog something when the engine is being destroyed
-	if (GEngine)
-	{
-		bIsRecording = GEngine->bEnableVisualLogRecordingOnStart;
-		bIsRecordingOnServer = false;
-
-		FileAr = NULL;
-		bIsRecordingToFile = false;
-		bIsAllBlocked = false;
-		Whitelist.Reserve(10);
-	}
+	Whitelist.Reserve(10);
 }
 
 FVisualLog::~FVisualLog()
@@ -472,7 +468,7 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 	if (bIsRecording)
 	{
 		bIsRecordingToFile = bRecordToFile;
-		StartRecordingTime = GWorld ? GWorld->TimeSeconds : 0;
+		StartRecordingTime = GWorld ? GWorld->TimeSeconds : 0.0f;
 	}
 }
 
