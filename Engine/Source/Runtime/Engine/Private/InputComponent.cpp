@@ -40,14 +40,21 @@ UInputComponent::UInputComponent(const class FPostConstructInitializeProperties&
 float UInputComponent::GetAxisValue(const FName AxisName) const
 {
 	float AxisValue = 0.f;
+	bool bFound = false;
 
 	for (const FInputAxisBinding& AxisBinding : AxisBindings)
 	{
 		if (AxisBinding.AxisName == AxisName)
 		{
+			bFound = true;
 			AxisValue = AxisBinding.AxisValue;
 			break;
 		}
+	}
+
+	if (!bFound)
+	{
+		UE_LOG(LogPlayerController, Warning, TEXT("Request for value of axis '%s' returning 0 as it is not bound on this input component."), *AxisName.ToString());
 	}
 
 	return AxisValue;
@@ -56,14 +63,21 @@ float UInputComponent::GetAxisValue(const FName AxisName) const
 float UInputComponent::GetAxisKeyValue(const FKey AxisKey) const
 {
 	float AxisValue = 0.f;
+	bool bFound = false;
 
 	for (const FInputAxisKeyBinding& AxisBinding : AxisKeyBindings)
 	{
 		if (AxisBinding.AxisKey == AxisKey)
 		{
+			bFound = true;
 			AxisValue = AxisBinding.AxisValue;
 			break;
 		}
+	}
+
+	if (!bFound)
+	{
+		UE_LOG(LogPlayerController, Warning, TEXT("Request for value of axis key '%s' returning 0 as it is not bound on this input component."), *AxisKey.ToString());
 	}
 
 	return AxisValue;
@@ -72,13 +86,21 @@ float UInputComponent::GetAxisKeyValue(const FKey AxisKey) const
 FVector UInputComponent::GetVectorAxisValue(const FKey AxisKey) const
 {
 	FVector AxisValue;
+	bool bFound = false;
+
 	for (const FInputVectorAxisBinding& AxisBinding : VectorAxisBindings)
 	{
 		if (AxisBinding.AxisKey == AxisKey)
 		{
 			AxisValue = AxisBinding.AxisValue;
+			bFound = true;
 			break;
 		}
+	}
+
+	if (!bFound)
+	{
+		UE_LOG(LogPlayerController, Warning, TEXT("Request for value of vector axis key '%s' returning 0 as it is not bound on this input component."), *AxisKey.ToString());
 	}
 
 	return AxisValue;
