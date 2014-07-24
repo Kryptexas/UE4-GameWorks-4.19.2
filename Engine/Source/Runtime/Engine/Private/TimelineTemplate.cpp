@@ -183,9 +183,8 @@ void UTimelineTemplate::RemoveMetaData(const FName& Key)
 FString UTimelineTemplate::MakeUniqueCurveName(UObject* Obj, UObject* InOuter)
 {
 	FString OriginalName = Obj->GetName();
-	UClass* Class = Obj->GetClass();
 	FName TestName(*OriginalName);
-	while(StaticFindObjectFast(Class, InOuter, TestName))
+	while(StaticFindObjectFast(NULL, InOuter, TestName))
 	{
 		TestName = FName(*OriginalName, TestName.GetNumber()+1);
 	}
