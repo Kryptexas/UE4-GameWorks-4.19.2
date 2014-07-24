@@ -23,7 +23,16 @@ namespace UnrealBuildTool
 
         protected override SDKStatus HasRequiredManualSDKInternal()
         {
-            return SDKStatus.Valid;
+			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				// check to see if iTunes is installed
+				string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string;
+				if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+				{
+					return SDKStatus.Invalid;
+				}
+			}
+			return SDKStatus.Valid;
         }
 
         /**
