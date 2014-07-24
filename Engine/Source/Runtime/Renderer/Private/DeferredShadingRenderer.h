@@ -87,8 +87,11 @@ public:
 	/** Renders the basepass for the dynamic data of a given View, in parallel. */
 	FGraphEventRef RenderBasePassDynamicDataParallel(FViewInfo& View, FGraphEventRef SubmitChain, bool& bOutDirty);
 
-    /** Renders the basepass for a given View. */
-	bool RenderBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+    /** Renders the basepass for a given View, in parallel */
+	FGraphEventRef RenderBasePassViewParallel(FRHICommandListImmediate& RHICmdList, FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+
+	/** Renders the basepass for a given View. */
+	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
 	
 	/** 
 	* Renders the scene's base pass 
