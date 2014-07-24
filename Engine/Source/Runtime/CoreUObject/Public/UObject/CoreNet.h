@@ -230,6 +230,7 @@ public:
 
 	FArchive& operator<<( FName& Name );
 	FArchive& operator<<( UObject*& Object );
+	FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
 /**
@@ -247,6 +248,7 @@ public:
 
 	FArchive& operator<<( FName& Name );
 	FArchive& operator<<( UObject*& Object );
+	FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
 

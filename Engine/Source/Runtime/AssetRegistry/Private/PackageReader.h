@@ -23,6 +23,7 @@ public:
 	/** Serializers for different package maps */
 	void SerializeNameMap();
 	void SerializeImportMap(TArray<FObjectImport>& OutImportMap);
+	void SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap);
 
 	// Farchive implementation to redirect requests to the Loader
 	void Serialize( void* V, int64 Length );

@@ -16,5 +16,6 @@ public:
 	// Begin FArchive Interface
 	virtual FArchive& operator<< (class FLazyObjectPtr& Value) override;
 	virtual FArchive& operator<< (class FAssetPtr& Value) override;
+	virtual FArchive& operator<< (struct FStringAssetReference& Value) override;
 	// End FArchive Interface
 };

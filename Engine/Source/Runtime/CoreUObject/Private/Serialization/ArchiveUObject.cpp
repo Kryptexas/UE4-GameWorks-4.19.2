@@ -65,6 +65,12 @@ FArchive& FArchiveUObject::operator<<( class FAssetPtr& AssetPtr )
 	return Ar;
 }
 
+FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
+{
+	*this << Value.AssetLongPathname;
+	return *this;
+}
+
 /*----------------------------------------------------------------------------
 	FObjectAndNameAsStringProxyArchive.
 ----------------------------------------------------------------------------*/

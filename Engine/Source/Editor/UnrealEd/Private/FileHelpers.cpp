@@ -2365,28 +2365,9 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 	// A list of all packages that need to be saved
 	TArray<UPackage*> PackagesToSave;
 
-	// Need to track the number of packages we're not ignoring for save.
-	int32 NumPackagesNotIgnored = 0;
-
 	if( bSaveMapPackages )
 	{
-		// If we are saving map packages, collect all valid worlds and see if their package is dirty
-		TArray<UWorld*> Worlds;
-		EditorLevelUtils::GetWorlds( GWorld, Worlds, true );
-
-		for( int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx  )
-		{
-			UPackage* WorldPackage = Worlds[ WorldIdx ]->GetOutermost();
-			if( WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0 
-				&& !WorldPackage->HasAnyFlags(RF_Transient))
-			{
-				// Count the number of packages to not ignore.
-				NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(WorldPackage->GetName())==NULL) ? 1 : 0;
-
-				// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
-				PackagesToSave.Add( WorldPackage );
-			}
-		}
+		GetDirtyWorldPackages(PackagesToSave);
 	}
 
 	// Don't iterate through content packages if we dont plan on saving them
@@ -2394,41 +2375,16 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 	{
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
-		// Make a list of all content packages that we should save
-		for ( TObjectIterator<UPackage> It; It; ++It )
-		{
-			UPackage*	Package					= *It;
-			bool		bShouldIgnorePackage	= false;
+		GetDirtyContentPackages(PackagesToSave);
+	}
 
-			// Only look at root packages.
-			bShouldIgnorePackage |= Package->GetOuter() != NULL;
-			// Don't try to save "Transient" package.
-			bShouldIgnorePackage |= Package == GetTransientPackage();
-			// Ignore PIE packages.
-			bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
-			// Ignore packages that haven't been modified.
-			bShouldIgnorePackage |= !Package->IsDirty();
+	// Need to track the number of packages we're not ignoring for save.
+	int32 NumPackagesNotIgnored = 0;
 
-			if ( !bShouldIgnorePackage )
-			{
-				UWorld*		AssociatedWorld			= UWorld::FindWorldInPackage(Package);
-				const bool	bIsMapPackage			= AssociatedWorld != NULL;
-
-				// Ignore map packages, they are caught above.
-				bShouldIgnorePackage |= bIsMapPackage; 
-
-				// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
-				bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
-			}
-
-			if( !bShouldIgnorePackage )
-			{
-				// Count the number of packages to not ignore.
-				NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(Package->GetName())==NULL) ? 1 : 0;
-
-				PackagesToSave.Add( Package );
-			}
-		}
+	for (auto* Package : PackagesToSave)
+	{
+		// Count the number of packages to not ignore.
+		NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(Package->GetName()) == NULL) ? 1 : 0;
 	}
 
 	return InternalSavePackages(PackagesToSave, NumPackagesNotIgnored, bPromptUserToSave, bFastSave, bNotifyNoPackagesSaved, bOutPackagesNeededSaving);
@@ -3013,6 +2969,60 @@ FString FEditorFileUtils::ExtractPackageName(const FString& ObjectPath)
 	}
 
 	return ObjectPath;
+}
+
+void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	// If we are saving map packages, collect all valid worlds and see if their package is dirty
+	TArray<UWorld*> Worlds;
+	EditorLevelUtils::GetWorlds(GWorld, Worlds, true);
+
+	for (int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx)
+	{
+		UPackage* WorldPackage = Worlds[WorldIdx]->GetOutermost();
+		if (WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0
+			&& !WorldPackage->HasAnyFlags(RF_Transient))
+		{
+			// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
+			OutDirtyPackages.Add(WorldPackage);
+		}
+	}
+}
+
+void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	// Make a list of all content packages that we should save
+	for (TObjectIterator<UPackage> It; It; ++It)
+	{
+		UPackage*	Package = *It;
+		bool		bShouldIgnorePackage = false;
+
+		// Only look at root packages.
+		bShouldIgnorePackage |= Package->GetOuter() != NULL;
+		// Don't try to save "Transient" package.
+		bShouldIgnorePackage |= Package == GetTransientPackage();
+		// Ignore PIE packages.
+		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		// Ignore packages that haven't been modified.
+		bShouldIgnorePackage |= !Package->IsDirty();
+
+		if (!bShouldIgnorePackage)
+		{
+			UWorld*		AssociatedWorld = UWorld::FindWorldInPackage(Package);
+			const bool	bIsMapPackage = AssociatedWorld != NULL;
+
+			// Ignore map packages, they are caught above.
+			bShouldIgnorePackage |= bIsMapPackage;
+
+			// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
+			bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
+		}
+
+		if (!bShouldIgnorePackage)
+		{
+			OutDirtyPackages.Add(Package);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

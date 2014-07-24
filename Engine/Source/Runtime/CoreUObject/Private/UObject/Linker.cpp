@@ -141,6 +141,11 @@ void ULinker::Serialize( FArchive& Ar )
 		Ar << ImportMap;
 		Ar << ExportMap;
 		Ar << DependsMap;
+
+		if (Ar.IsSaving() || Ar.UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
+		{
+			Ar << StringAssetReferencesMap;
+		}
 	}
 
 	// Prevent garbage collecting of linker's names and package.

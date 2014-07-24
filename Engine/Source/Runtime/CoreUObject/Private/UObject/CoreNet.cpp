@@ -174,6 +174,11 @@ FArchive& FNetBitWriter::operator<<( UObject*& Object )
 	return *this;
 }
 
+FArchive& FNetBitWriter::operator<<(FStringAssetReference& Value)
+{
+	return *this << Value.AssetLongPathname;
+}
+
 
 // ----------------------------------------------------------------
 //	FNetBitReader
@@ -194,6 +199,11 @@ FArchive& FNetBitReader::operator<<( class FName& N )
 {
 	PackageMap->SerializeName( *this, N );
 	return *this;
+}
+
+FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
+{
+	return *this << Value.AssetLongPathname;
 }
 
 static const TCHAR * GLastRPCFailedReason = NULL;

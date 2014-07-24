@@ -99,6 +99,7 @@ public:
 	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr );
+	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	// End of FArchive interface
 
@@ -131,6 +132,7 @@ public:
 	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr );
+	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	// End of FArchive interface
 

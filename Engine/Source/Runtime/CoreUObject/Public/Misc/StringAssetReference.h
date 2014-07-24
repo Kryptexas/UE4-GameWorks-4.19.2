@@ -85,12 +85,6 @@ struct COREUOBJECT_API FStringAssetReference
 		return GetTypeHash(This.AssetLongPathname);
 	}
 
-	friend FArchive& operator<<(FArchive& Ar,FStringAssetReference& P)
-	{
-		P.Serialize(Ar);
-		return Ar;
-	}
-
 	/** Code needed by AssetPtr to track rather object references should be rechecked */
 
 	static int32 GetCurrentTag()

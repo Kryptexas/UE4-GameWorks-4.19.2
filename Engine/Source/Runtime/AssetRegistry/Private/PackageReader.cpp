@@ -260,6 +260,7 @@ bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyDa
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);
+	SerializeStringAssetReferencesMap(OutDependencyData.StringAssetReferencesMap);
 
 	return true;
 }
@@ -294,6 +295,21 @@ void FPackageReader::SerializeImportMap(TArray<FObjectImport>& OutImportMap)
 		{
 			FObjectImport* Import = new(OutImportMap)FObjectImport;
 			*this << *Import;
+		}
+	}
+}
+
+void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap)
+{
+	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.StringAssetReferencesCount > 0)
+	{
+		Seek(PackageFileSummary.StringAssetReferencesOffset);
+
+		for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+		{
+			FString Buf;
+			*this << Buf;
+			OutStringAssetReferencesMap.Add(MoveTemp(Buf));
 		}
 	}
 }

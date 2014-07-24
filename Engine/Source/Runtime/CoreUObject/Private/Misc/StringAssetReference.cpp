@@ -21,7 +21,7 @@ bool FStringAssetReference::Serialize(FArchive& Ar)
 		AssetLongPathname = FCoreDelegates::StringAssetReferenceSaving.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
-	Ar << AssetLongPathname;
+	Ar << *this;
 #if WITH_EDITOR
 	if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
 	{

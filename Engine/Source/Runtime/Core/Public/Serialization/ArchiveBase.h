@@ -92,6 +92,15 @@ public:
 	 */
 	virtual FArchive& operator<<(class FAssetPtr& Value);
 
+	/**
+	 * Serializes string asset reference from or into this archive.
+	 *
+	 * @param Value String asset reference to serialize.
+	 *
+	 * @return This instance.
+	 */
+	virtual FArchive& operator<<(struct FStringAssetReference& Value);
+
 
 public:
 
@@ -1057,6 +1066,11 @@ public:
 	}
 
 	virtual FArchive& operator<<(class UObject*& Value)
+	{
+		return InnerArchive << Value;
+	}
+
+	virtual FArchive& operator<<(struct FStringAssetReference& Value) override
 	{
 		return InnerArchive << Value;
 	}

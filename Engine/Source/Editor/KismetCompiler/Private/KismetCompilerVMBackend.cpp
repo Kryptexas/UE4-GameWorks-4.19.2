@@ -65,6 +65,11 @@ public:
 		return FArchive::operator<<(AssetPtr);
 	}
 
+	FArchive& operator<<(FStringAssetReference& Value) override
+	{
+		return FArchiveUObject::operator<<(Value);
+	}
+
 	FArchive& operator<<(TCHAR* S)
 	{
 		Serialize(S, FCString::Strlen(S) + 1); 

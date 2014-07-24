@@ -1418,6 +1418,13 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 		{
 			PackageDependencies.Add( Result.GetImportPackageName(ImportIdx) );
 		}
+		for (int32 StringAssetRefIdx = 0; StringAssetRefIdx < Result.StringAssetReferencesMap.Num(); ++StringAssetRefIdx)
+		{
+			FString PackageName, ObjName;
+			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName);
+			PackageDependencies.Add(*PackageName);
+		}
+
 
 		// Doubly-link all new dependencies for this package
 		for (auto NewDependsIt = PackageDependencies.CreateConstIterator(); NewDependsIt; ++NewDependsIt)

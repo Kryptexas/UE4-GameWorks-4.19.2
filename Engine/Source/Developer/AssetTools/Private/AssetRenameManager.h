@@ -19,6 +19,15 @@ public:
 	/** Renames assets using the specified names. */
 	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
 
+	/**
+	 * Function that renames all FStringAssetReference object with the old asset path to the new one.
+	 *
+	 * @param PackagesToCheck Packages to check for referencing FStringAssetReference.
+	 * @param OldAssetPath Old path.
+	 * @param NewAssetPath New path.
+	 */
+	static void RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const FString& OldAssetPath, const FString& NewAssetPath);
+
 private:
 	/** Attempts to load and fix redirector references for the supplied assets */
 	void FixReferencesAndRename(TArray<FAssetRenameDataWithReferencers> AssetsToRename) const;

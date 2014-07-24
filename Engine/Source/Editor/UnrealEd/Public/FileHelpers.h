@@ -157,6 +157,20 @@ public:
 	UNREALED_API static bool SaveDirtyContentPackages(TArray<UClass*>& SaveContentClasses, const bool bPromptUserToSave, const bool bFastSave = false, const bool bNotifyNoPackagesSaved = false);
 
 	/**
+	 * Appends array with all currently dirty world packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UNREALED_API static void GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages);
+
+	/**
+	 * Appends array with all currently dirty content packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UNREALED_API static void GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages);
+
+	/**
 	 * Saves the active level, prompting the use for checkout if necessary.
 	 *
 	 * @return	true on success, False on fail

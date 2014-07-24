@@ -29,7 +29,13 @@ FArchive& FObjectWriter::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 FArchive& FObjectWriter::operator<<( class FAssetPtr& AssetPtr )
 {
 	FStringAssetReference ID = AssetPtr.GetUniqueID();
-	return *this << ID;
+	ID.Serialize(*this);
+	return *this;
+}
+
+FArchive& FObjectWriter::operator<<(FStringAssetReference& Value)
+{
+	return *this << Value.AssetLongPathname;
 }
 
 FString FObjectWriter::GetArchiveName() const

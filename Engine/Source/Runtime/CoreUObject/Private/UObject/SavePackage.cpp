@@ -518,9 +518,10 @@ class FArchiveSaveTagImports : public FArchiveUObject
 public:
 	ULinkerSave* Linker;
 	TArray<UObject*> Dependencies;
+	TArray<FString>& StringAssetReferencesMap;
 
-	FArchiveSaveTagImports( ULinkerSave* InLinker)
-	: Linker( InLinker )
+	FArchiveSaveTagImports(ULinkerSave* InLinker, TArray<FString>& StringAssetReferencesMap)
+		: Linker(InLinker), StringAssetReferencesMap(StringAssetReferencesMap)
 	{
 		ArIsSaving				= true;
 		ArIsPersistent			= true;
@@ -532,10 +533,15 @@ public:
 			SetCookingTarget(Linker->CookingTarget());
 		}
 	}
-	FArchive& operator<<( UObject*& Obj );
-	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr);
-	FArchive& operator<<( FAssetPtr& AssetPtr);
-	FArchive& operator<<( FName& Name )
+	FArchive& operator<<(UObject*& Obj) override;
+	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
+	FArchive& operator<<(FAssetPtr& AssetPtr) override;
+	FArchive& operator<<(FStringAssetReference& Value) override
+	{
+		StringAssetReferencesMap.Add(Value.ToString());
+		return *this;
+	}
+	FArchive& operator<<(FName& Name) override
 	{
 		SavePackageState->MarkNameAsReferenced(Name);
 		return *this;
@@ -2464,7 +2470,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		TempFilename = FPaths::CreateTempFilename(*FPaths::GameSavedDir(), *BaseFilename);
 
 		// Init.
-		const int32 SimpleSaveSteps = 28;
+		const int32 SimpleSaveSteps = 29;
 		const int32 ExportSaveSteps = 101;
 		const int32 TotalSaveSteps = SimpleSaveSteps + ExportSaveSteps;
 		int32 CurSaveStep = 0;
@@ -2638,6 +2644,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 				// Import objects & names.
+				TArray<FString> StringAssetReferencesMap;
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -2646,7 +2653,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UObject* Obj = TagExpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
 						// Build list.
-						FArchiveSaveTagImports ImportTagger( Linker );
+						FArchiveSaveTagImports ImportTagger(Linker, StringAssetReferencesMap);
 						ImportTagger.SetPortFlags(ComparisonFlags);
 						ImportTagger.SetFilterEditorOnly(FilterEditorOnly);
 
@@ -3221,6 +3228,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 				UE_LOG_COOK_TIME(TEXT("Serialize Dependency Map"));
+
+				if (EndSavingIfCancelled(Linker, TempFilename)) { return false; }
+				GWarn->UpdateProgress(++CurSaveStep, TotalSaveSteps);
+
+				// Save string asset reference map
+				Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
+				Linker->Summary.StringAssetReferencesCount = StringAssetReferencesMap.Num();
+				for (int32 i = 0; i < StringAssetReferencesMap.Num(); i++)
+				{
+					*Linker << StringAssetReferencesMap[i];
+				}
+
+				UE_LOG_COOK_TIME(TEXT("Serialize StringAssetReference Map"));
 	
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );

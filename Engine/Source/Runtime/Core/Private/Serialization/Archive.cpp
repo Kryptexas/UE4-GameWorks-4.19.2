@@ -154,6 +154,13 @@ FArchive& FArchive::operator<<( class FAssetPtr& AssetPtr )
 	return *this;
 }
 
+FArchive& FArchive::operator<<(struct FStringAssetReference& Value)
+{
+	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
+	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));
+	return *this;
+}
+
 const FCustomVersionContainer& FArchive::GetCustomVersions() const
 {
 	if (bCustomVersionsAreReset)

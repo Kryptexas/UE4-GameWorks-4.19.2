@@ -65,7 +65,7 @@ FArchive& FDuplicateDataReader::operator<<( FAssetPtr& AssetPtr)
 {
 	FArchive& Ar = *this;
 	FStringAssetReference ID;
-	Ar << ID;
+	ID.Serialize(Ar);
 
 	AssetPtr = ID;
 	return Ar;
