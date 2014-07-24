@@ -1137,7 +1137,6 @@ protected:
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedback(const float DeltaTime, const bool bGamePaused);
 
-
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();
 
@@ -1283,6 +1282,18 @@ public:
 	 * @param TransitionParams - parameters to use for controlling the transition
 	 */
 	virtual void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
+
+	/**
+	 * If bAutoManageActiveCameraTarget is true, then automatically manage the active camera target.
+	 * If there a CameraActor placed in the level with an auto-activate player assigned to it, that will be preferred, otherwise SuggestedTarget will be used.
+	 */
+	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget);
+
+protected:
+
+	virtual ACameraActor* GetAutoActivateCameraForPlayer() const;
+
+public:
 
 	virtual bool ShouldShowMouseCursor() const;
 	virtual EMouseCursor::Type GetMouseCursor() const;

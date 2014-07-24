@@ -26,6 +26,7 @@ class UTexture2D;
 class APlayerController;
 class AMatineeActor;
 class AWorldSettings;
+class ACameraActor;
 
 template<typename,typename> class TOctree;
 
@@ -36,6 +37,7 @@ template<typename,typename> class TOctree;
 typedef TArray<TAutoWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
+typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
@@ -647,6 +649,9 @@ private:
 
 	/** List of all the pawns in the world. */
 	TArray<TAutoWeakObjectPtr<class APawn> >			PawnList;	
+
+	/** List of all the cameras in the world that auto-activate for players. */
+	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -1431,6 +1436,12 @@ public:
 	 *  @return Pointer to the first valid ULocalPlayer, or NULL if there is not one.
 	 */	
 	ULocalPlayer* GetFirstLocalPlayerFromController() const;
+
+	/** Register a CameraActor that auto-activates for a PlayerController. */
+	void RegisterAutoActivateCamera(ACameraActor* CameraActor, int32 PlayerIndex);
+
+	/** Get an iterator for the list of CameraActors that auto-activate for PlayerControllers. */
+	FConstCameraActorIterator GetAutoActivateCameraIterator() const;
 	
 	UGameViewportClient* GetGameViewport() const;
 

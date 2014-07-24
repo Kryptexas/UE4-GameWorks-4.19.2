@@ -1931,9 +1931,15 @@ bool AActor::CanBeBaseForCharacter(APawn* APawn) const
 	return true;
 }
 
-void AActor::BecomeViewTarget( APlayerController* PC ) {}
+void AActor::BecomeViewTarget( APlayerController* PC )
+{
+	K2_OnBecomeViewTarget(PC);
+}
 
-void AActor::EndViewTarget( APlayerController* PC ) {}
+void AActor::EndViewTarget( APlayerController* PC )
+{
+	K2_OnEndViewTarget(PC);
+}
 
 APawn* AActor::GetInstigator() const
 {

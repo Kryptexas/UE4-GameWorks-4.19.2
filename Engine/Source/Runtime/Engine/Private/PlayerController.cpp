@@ -393,6 +393,94 @@ void APlayerController::SetViewTarget(class AActor* NewViewTarget, struct FViewT
 }
 
 
+void APlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
+{
+	if (bAutoManageActiveCameraTarget)
+	{
+		// See if there is a CameraActor with an auto-activate index that matches us.
+		if (GetNetMode() == NM_Client)
+		{
+			// Clients don't know their own index on the server, so they have to trust that if they use a camera with an auto-activate index, that's their own index.
+			ACameraActor* CurrentCameraActor = Cast<ACameraActor>(GetViewTarget());
+			if (CurrentCameraActor)
+			{
+				const int32 CameraAutoIndex = CurrentCameraActor->GetAutoActivatePlayerIndex();
+				if (CameraAutoIndex != INDEX_NONE)
+				{					
+					return;
+				}
+			}
+		}
+		else
+		{
+			// See if there is a CameraActor in the level that auto-activates for this PC.
+			ACameraActor* AutoCameraTarget = GetAutoActivateCameraForPlayer();
+			if (AutoCameraTarget)
+			{
+				SetViewTarget(AutoCameraTarget);
+				return;
+			}
+		}
+
+		// No auto-activate CameraActor, so use the suggested target.
+		SetViewTarget(SuggestedTarget);
+	}
+}
+
+
+
+ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
+{
+	if (GetNetMode() == NM_Client)
+	{
+		// Clients get their view target replicated, they don't use placed cameras because they don't know their own index.
+		return NULL;
+	}
+
+	UWorld* CurWorld = GetWorld();
+	if (!CurWorld)
+	{
+		return NULL;
+	}
+
+	// Only bother if there are any registered cameras.
+	FConstCameraActorIterator CameraIterator = CurWorld->GetAutoActivateCameraIterator();
+	if (!CameraIterator)
+	{
+		return NULL;
+	}
+
+	// Find our player index
+	int32 IterIndex = 0;
+	int32 PlayerIndex = INDEX_NONE;
+	for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator, ++IterIndex )
+	{
+		const APlayerController* PlayerController = *Iterator;
+		if (PlayerController == this)
+		{
+			PlayerIndex = IterIndex;
+			break;
+		}
+	}
+
+	if (PlayerIndex != INDEX_NONE)
+	{
+		// Find the matching camera
+		for( /*CameraIterater initialized above*/; CameraIterator; ++CameraIterator)
+		{
+			ACameraActor* CameraActor = *CameraIterator;
+			if (CameraActor && CameraActor->GetAutoActivatePlayerIndex() == PlayerIndex)
+			{
+				return CameraActor;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
+
 void APlayerController::SetControllingDirector(UInterpTrackInstDirector* NewControllingDirector, bool bClientSimulatingViewTarget)
 {
 	ControllingDirTrackInst = NewControllingDirector;
@@ -636,7 +724,7 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 	{
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(GetPawn());
+			AutoManageActiveCameraTarget(GetPawn());
 			ResetCameraMode();
 		}
 		
@@ -679,9 +767,10 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		ChangeState( NAME_Playing );
 		AcknowledgedPawn = NULL;
 		ClientRestart(GetPawn());
+		
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(GetPawn());
+			AutoManageActiveCameraTarget(GetPawn());
 			ResetCameraMode();
 		}
 		UpdateNavigationComponents();
@@ -2285,9 +2374,6 @@ bool APlayerController::IsLookInputIgnored() const
 }
 
 
-/** returns whether this Controller is a locally controlled PlayerController
- * @note not valid until the Controller is completely spawned (i.e, unusable in Pre/PostInitializeComponents())
- */
 void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float BlendTime, EViewTargetBlendFunction BlendFunc, float BlendExp, bool bLockOutgoing)
 {
 	FViewTargetTransitionParams TransitionParams;
@@ -2791,11 +2877,11 @@ void APlayerController::ClientCommitMapChange_Implementation()
 		{
 			if (GetPawnOrSpectator() != NULL)
 			{
-				SetViewTarget(GetPawnOrSpectator());
+				AutoManageActiveCameraTarget(GetPawnOrSpectator());
 			}
 			else
 			{
-				SetViewTarget(this);
+				AutoManageActiveCameraTarget(this);
 			}
 		}
 		GetWorld()->CommitMapChange();
@@ -3447,7 +3533,7 @@ void APlayerController::SetPawn(APawn* InPawn)
 
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(this);
+			AutoManageActiveCameraTarget(this);
 		}
 	}
 

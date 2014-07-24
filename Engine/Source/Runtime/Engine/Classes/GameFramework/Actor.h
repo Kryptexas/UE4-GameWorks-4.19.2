@@ -1861,11 +1861,19 @@ protected:
 	virtual float InternalTakePointDamage(float Damage, struct FPointDamageEvent const& RadialDamageEvent, class AController* EventInstigator, class AActor* DamageCauser);
 public:
 
-	/* Called by Camera when this actor becomes its ViewTarget */
+	/* Called when this actor becomes the given PlayerController's ViewTarget. Triggers the Blueprint event K2_OnBecomeViewTarget. */
 	virtual void BecomeViewTarget( class APlayerController* PC );
 
-	/* Called by Camera when this actor is no longer its ViewTarget */
+	/* Called when this actor is no longer the given PlayerController's ViewTarget. Also triggers the Blueprint event K2_OnEndViewTarget. */
 	virtual void EndViewTarget( class APlayerController* PC );
+
+	/** Event called when this Actor becomes the view target for the given PlayerController. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnBecomeViewTarget", Keywords="Activate Camera"), Category=Actor)
+	virtual void K2_OnBecomeViewTarget( class APlayerController* PC );
+
+	/** Event called when this Actor is no longer the view target for the given PlayerController. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnEndViewTarget", Keywords="Deactivate Camera"), Category=Actor)
+	virtual void K2_OnEndViewTarget( class APlayerController* PC );
 
 	/**
 	 *	Calculate camera view point, when viewing this actor.

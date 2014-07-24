@@ -3046,6 +3046,20 @@ void UWorld::RemovePawn( APawn* Pawn )
 	PawnList.Remove( Pawn );	
 }
 
+
+void UWorld::RegisterAutoActivateCamera(ACameraActor* CameraActor, int32 PlayerIndex)
+{
+	check(CameraActor);
+	check(PlayerIndex >= 0);
+	AutoCameraActorList.AddUnique(CameraActor);
+}
+
+FConstCameraActorIterator UWorld::GetAutoActivateCameraIterator() const
+{
+	return AutoCameraActorList.CreateConstIterator();
+}
+
+
 void UWorld::AddNetworkActor( AActor * Actor )
 {
 	if ( Actor == NULL )

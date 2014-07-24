@@ -12,6 +12,12 @@ class ACameraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
+
+	/* Specifies which player controller, if any, should automatically use this Camera when the controller is active. */
+	UPROPERTY(Category="AutoPlayerActivation", EditAnywhere)
+	TEnumAsByte<EAutoReceiveInput::Type> AutoActivateForPlayer;
+
 public:
 	// The camera component for this camera
 	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
@@ -20,7 +26,12 @@ public:
 	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
 	TWeakObjectPtr<class UCameraAnim> PreviewedCameraAnim;
 
+	/** Returns index of the player for whom we auto-activate, or INDEX_NONE (-1) if disabled. */
+	UFUNCTION(BlueprintCallable, Category="AutoPlayerActivation")
+	ENGINE_API int32 GetAutoActivatePlayerIndex() const;
+
 private:
+
 	UPROPERTY()
 	uint32 bConstrainAspectRatio_DEPRECATED:1;
 
@@ -46,4 +57,7 @@ public:
 #endif
 	// End UObject interface
 	
+	// Begin AActor interface
+	ENGINE_API virtual void BeginPlay() override;
+	// End AActor interface
 };

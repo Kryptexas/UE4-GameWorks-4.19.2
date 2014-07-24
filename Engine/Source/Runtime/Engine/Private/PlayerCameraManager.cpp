@@ -134,12 +134,12 @@ void APlayerCameraManager::AssignViewTarget(AActor* NewTarget, FTViewTarget& VT,
 	VT.POV.AspectRatio = DefaultAspectRatio;
 	VT.POV.FOV = DefaultFOV;
 
-	VT.Target->BecomeViewTarget(PCOwner);
-	
 	if (OldViewTarget)
 	{
 		OldViewTarget->EndViewTarget(PCOwner);
 	}
+
+	VT.Target->BecomeViewTarget(PCOwner);
 
 	if (!PCOwner->IsLocalPlayerController() && (GetNetMode() != NM_Client))
 	{

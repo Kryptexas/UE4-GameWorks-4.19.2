@@ -321,6 +321,8 @@ void APawn::TurnOff()
 
 void APawn::BecomeViewTarget(APlayerController* PC)
 {
+	Super::BecomeViewTarget(PC);
+
 	if (GetNetMode() != NM_Client)
 	{
 		PC->ForceSingleNetUpdateFor(this);
@@ -337,7 +339,7 @@ void APawn::PawnClientRestart()
 		// Handle camera possession
 		if (PC->bAutoManageActiveCameraTarget)
 		{
-			PC->SetViewTarget(this);
+			PC->AutoManageActiveCameraTarget(this);
 		}
 
 		// Set up player input component, if there isn't one already.
@@ -431,7 +433,7 @@ void APawn::OnRep_Controller()
 		APlayerController* const PC = Cast<APlayerController>(Controller);
 		if ( (PC != NULL) && PC->bAutoManageActiveCameraTarget && (PC->PlayerCameraManager->ViewTarget.Target == Controller) )
 		{
-			PC->SetViewTarget(this);
+			PC->AutoManageActiveCameraTarget(this);
 		}
 	}
 }

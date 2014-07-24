@@ -80,4 +80,36 @@ void ACameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 }
 #endif
 
+
+int32 ACameraActor::GetAutoActivatePlayerIndex() const
+{
+	if (AutoActivateForPlayer != EAutoReceiveInput::Disabled)
+	{
+		const int32 PlayerIndex = int32(AutoActivateForPlayer.GetValue()) - 1;
+		return PlayerIndex;
+	}
+	else
+	{
+		return INDEX_NONE;
+	}
+}
+
+void ACameraActor::BeginPlay()
+{
+	if (AutoActivateForPlayer != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client)
+	{
+		const int32 PlayerIndex = GetAutoActivatePlayerIndex();
+		
+		// Always put it in the pool of available auto-activate cameras.
+		GetWorld()->RegisterAutoActivateCamera(this, PlayerIndex);
+
+		// If we find a matching PC, bind to it immediately.
+		APlayerController* PC = UGameplayStatics::GetPlayerController(this, PlayerIndex);
+		if (PC)
+		{
+			PC->SetViewTarget(this);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
