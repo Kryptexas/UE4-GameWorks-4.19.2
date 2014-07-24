@@ -2423,10 +2423,13 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 	}
 
 	// Expand the item if needed.
-	bool* bIsExpanded = ExpansionStateMap.Find( *(Item->GetClassName()) );
-	if( bIsExpanded && *bIsExpanded )
+	if (!bPendingSetExpansionStates)
 	{
-		bPendingSetExpansionStates = true;
+		bool* bIsExpanded = ExpansionStateMap.Find(*(Item->GetClassName()));
+		if (bIsExpanded && *bIsExpanded)
+		{
+			bPendingSetExpansionStates = true;
+		}
 	}
 
 	return ReturnRow;
@@ -2747,6 +2750,8 @@ void SClassViewer::SetExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem
 
 void SClassViewer::Populate()
 {
+	bPendingSetExpansionStates = false;
+
 	// If showing a class tree, we may need to save expansion states.
 	if( ClassTree->GetVisibility() == EVisibility::Visible )
 	{
@@ -2933,8 +2938,9 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 
 	if (bPendingSetExpansionStates)
 	{
-		bPendingSetExpansionStates = false;
+		check(RootTreeItems.Num() > 0);
 		SetExpansionStatesInTree(RootTreeItems[0]);
+		bPendingSetExpansionStates = false;
 	}
 }
 
