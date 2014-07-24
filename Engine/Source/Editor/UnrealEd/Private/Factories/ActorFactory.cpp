@@ -1430,6 +1430,7 @@ UActorFactoryDestructible::UActorFactoryDestructible(const class FPostConstructI
 {
 	DisplayName = LOCTEXT("DestructibleDisplayName", "Destructible");
 	NewActorClass = ADestructibleActor::StaticClass();
+	bUseSurfaceOrientation = true;
 }
 
 bool UActorFactoryDestructible::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -1478,6 +1479,12 @@ void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO
 
 		DestructibleActor->DestructibleComponent->SetSkeletalMesh(DestructibleMesh);
 	}
+}
+
+FQuat UActorFactoryDestructible::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
+{
+	// Meshes align the Z (up) axis with the surface normal
+	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
 
