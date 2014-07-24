@@ -381,6 +381,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
 	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
+	/** Convert a World Space 3D position into a 2D Screen Space position. **/
+	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertWorldLocationToScreenLocation"))
+	void ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const;
+	
 	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
 	  * This may then be modified by the PlayerCamera, and is passed to Pawn->FaceRotation().

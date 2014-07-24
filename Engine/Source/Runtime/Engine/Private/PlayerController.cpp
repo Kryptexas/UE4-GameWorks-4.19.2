@@ -1841,6 +1841,31 @@ void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 }
 
 
+void APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
+	{
+		// Create a view family for the game viewport
+		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
+			LocalPlayer->ViewportClient->Viewport,
+			GetWorld()->Scene,
+			LocalPlayer->ViewportClient->EngineShowFlags )
+			.SetRealtimeUpdate(true) );
+
+		// Calculate a view where the player is to update the streaming from the players start location
+		FVector ViewLocation;
+		FRotator ViewRotation;
+		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
+
+		if (SceneView) 
+		{
+			SceneView->WorldToPixel(WorldLocation, ScreenLocation);
+		}
+	} 
+}
+
+
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
