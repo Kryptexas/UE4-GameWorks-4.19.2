@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static public void Initialize(string InMacName)
+		static public int Initialize(string InMacName)
 		{
 			MacName = InMacName;
 
@@ -105,8 +105,13 @@ namespace UnrealBuildTool
 				{
 					if (!RemoteToolChain.bUseRPCUtil)
 					{
+						// make sure we have SSH setup
+						if (RemoteToolChain.ResolvedSSHAuthentication == null)
+						{
+							Log.TraceError("SSH authentication required a key, but one was not found. Use Editor to setup remote authentication!");
+							return 100;
+						}
 						// ask for current time, free memory and num CPUs
-
 						string[] Commands = new string[] 
 						{
 							"+\"%s\"",
@@ -115,6 +120,12 @@ namespace UnrealBuildTool
 							"sysctl -a | grep hw.logicalcpu: | awk '{print $2}'",
 						};
 						Hashtable Results = Command("/", "date", string.Join(" && ", Commands), null);
+						if ((Int64)Results["ExitCode"] != 0)
+						{
+							Log.TraceError("Failed to run init commands on {0}. Output = {1}", MacName, Results["CommandOutput"]);
+							return 101;
+						}
+
 						string[] Lines = ((string)Results["CommandOutput"]).Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
 						// convert it to a time, with TimeDifferenceFromRemote as 0
@@ -146,14 +157,18 @@ namespace UnrealBuildTool
 				}
 				catch(Exception Ex)
 				{
-					Console.WriteLine("Ex {0}", Ex.ToString());
-					throw new BuildException("Failed to run init commands on " + MacName);
+					Log.TraceVerbose("SSH Initialize exception {0}", Ex.ToString());
+					Log.TraceError("Failed to run init commands on {0}", MacName);
+					return 101;
 				}
 			}
  			else
  			{
- 				throw new BuildException("Failed to ping Mac named " + MacName);
+				Log.TraceError("Failed to ping Mac named {0}", MacName);
+				return 102;
  			}
+
+			return 0;
 		}
 
 		/**
@@ -520,7 +535,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return RemoteToolChain.SSHCommand(WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
+				return RemoteToolChain.SSHCommand(WorkingDirectory, Command + " " + CommandArgs, RemoteOutputPath);
 			}
 		}
 	}
