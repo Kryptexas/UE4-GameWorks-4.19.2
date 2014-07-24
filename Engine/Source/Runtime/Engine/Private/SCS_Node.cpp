@@ -55,8 +55,7 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
 			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
-				// Note: We use the scale vector from the component template rather than the passed in scale in this case (to match what happens with a native root)
-				NewSceneComp->SetWorldTransform(FTransform(RootTransform->GetRotation(), RootTransform->GetLocation(), NewSceneComp->RelativeScale3D));
+				NewSceneComp->SetWorldTransform(*RootTransform);
 				Actor->SetRootComponent(NewSceneComp);
 			}
 			// Otherwise, attach to parent component passed in
