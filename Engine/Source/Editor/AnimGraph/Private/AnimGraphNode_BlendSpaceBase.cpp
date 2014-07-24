@@ -110,3 +110,29 @@ void UAnimGraphNode_BlendSpaceBase::PreloadRequiredAssets()
 
 	Super::PreloadRequiredAssets();
 }
+
+void UAnimGraphNode_BlendSpaceBase::PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const
+{
+	if(Pin->Direction == EGPD_Input)
+	{
+		UBlendSpaceBase * BlendSpace = GetBlendSpace();
+
+		if(BlendSpace != NULL)
+		{
+			if(Pin->PinName == TEXT("X"))
+			{
+				DisplayName = BlendSpace->GetBlendParameter(0).DisplayName;
+			}
+			else if(Pin->PinName == TEXT("Y"))
+			{
+				DisplayName = BlendSpace->GetBlendParameter(1).DisplayName;
+			}
+			else if(Pin->PinName == TEXT("Z"))
+			{
+				DisplayName = BlendSpace->GetBlendParameter(2).DisplayName;
+			}
+		}
+	}
+
+	Super::PostProcessPinName(Pin, DisplayName);
+}
