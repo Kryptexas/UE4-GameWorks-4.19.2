@@ -13,6 +13,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Crc.h"
+#include "MessageLog.h"
+#include "Editor/UnrealEd/Classes/Settings/EditorLoadingSavingSettings.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
@@ -1032,6 +1034,19 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 
 		if (bMigratedOwner)
 		{
+			// alert the user that blueprints gave been migrated and require re-saving to enable them to locate and fix them without nagging them.
+			FMessageLog("BlueprintLog").Warning( FText::Format( NSLOCTEXT( "Blueprint", "MigrationWarning", "Blueprint {0} has been migrated and requires re-saving to avoid import errors" ), FText::FromString( *GetName() )));
+
+			if( GetDefault<UEditorLoadingSavingSettings>()->bDirtyMigratedBlueprints )
+			{
+				UPackage* BPPackage = GetOutermost();
+
+				if( BPPackage )
+				{
+					BPPackage->SetDirtyFlag( true );
+				}
+			}
+
 			BPGClass->ComponentTemplates = ComponentTemplates;
 			BPGClass->Timelines = Timelines;
 			BPGClass->SimpleConstructionScript = SimpleConstructionScript;
