@@ -92,6 +92,7 @@ FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjec
 	, bPreserveScaleRatio( false )
 	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
 	, bEditingRotationInUI( false )
+	, HiddenFieldMask( 0 )
 {
 	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 
@@ -394,8 +395,14 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		
 	FSlateFontInfo FontInfo = IDetailLayoutBuilder::GetDetailFont();
 
+	const bool bHideLocationField = ( HiddenFieldMask & ( 1 << ETransformField::Location ) ) != 0;
+	const bool bHideRotationField = ( HiddenFieldMask & ( 1 << ETransformField::Rotation ) ) != 0;
+	const bool bHideScaleField = ( HiddenFieldMask & ( 1 << ETransformField::Scale ) ) != 0;
+
 	// Location
-	ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
+	if(!bHideLocationField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
 		.CopyAction( CreateCopyAction( ETransformField::Location ) )
 		.PasteAction( CreatePasteAction( ETransformField::Location ) )
 		.NameContent()
@@ -409,7 +416,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.FillWidth(1)
 			.VAlign( VAlign_Center )
 			[
@@ -424,14 +431,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnZCommitted( this, &FComponentTransformDetails::OnSetLocation, 2 )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				// Just take up space for alignment
 				SNew( SBox )
 				.WidthOverride( 18.0f )
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -449,10 +455,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
-
+	}
 	
 	// Rotation
-	ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
+	if(!bHideRotationField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
 		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
 		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
 		.NameContent()
@@ -466,7 +474,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.FillWidth(1)
 			.VAlign( VAlign_Center )
 			[
@@ -487,14 +495,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnYawCommitted( this, &FComponentTransformDetails::OnRotationCommitted, 2 )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				// Just take up space for alignment
 				SNew( SBox )
 				.WidthOverride( 18.0f )
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -512,9 +519,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
-
-			
-	ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
+	}
+	
+	// Scale
+	if(!bHideScaleField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
 		.CopyAction( CreateCopyAction(ETransformField::Scale) )
 		.PasteAction( CreatePasteAction(ETransformField::Scale) )
 		.NameContent()
@@ -528,7 +538,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.VAlign( VAlign_Center )
 			.FillWidth(1.0f)
 			[
@@ -546,7 +556,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.ContextMenuExtenderZ( this, &FComponentTransformDetails::ExtendZScaleContextMenu )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.MaxWidth( 18.0f )
 			[
@@ -563,7 +573,6 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 					.ColorAndOpacity( FSlateColor::UseForeground() )
 				]
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -581,6 +590,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -589,7 +599,7 @@ void FComponentTransformDetails::Tick( float DeltaTime )
 	CacheTransform();
 }
 
-bool FComponentTransformDetails::GetIsEnabled( ) const
+bool FComponentTransformDetails::GetIsEnabled() const
 {
 	return !GEditor->HasLockedActors() || SelectedActorInfo.NumSelected == 0;
 }
