@@ -31,7 +31,7 @@ public:
 
 		SImage::Construct(
 			SImage::FArguments()
-			.Image(FEditorStyle::GetBrush("FlipbookEditor.RegionGrabHandle")));
+			.Image(FPaperStyle::Get()->GetBrush("FlipbookEditor.RegionGrabHandle")));
 	}
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
