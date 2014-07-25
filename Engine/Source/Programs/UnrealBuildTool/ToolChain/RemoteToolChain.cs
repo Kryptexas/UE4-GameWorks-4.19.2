@@ -19,13 +19,9 @@ namespace UnrealBuildTool
 		{
 			RemoteToolChainPlatform = InPlatform;
 
-			// make sure no error happened during init time
-			if (InitializeRemoteExecution() == 0)
-			{
-				// Register this tool chain for IOS
-				Log.TraceVerbose("        Registered for {0}", CPPPlatform.ToString());
-				UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
-			}
+			// Register this tool chain for IOS
+			Log.TraceVerbose("        Registered for {0}", CPPPlatform.ToString());
+			UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
 		}
 
 		/** These two variables will be loaded from XML config file in XmlConfigLoader.Init() */
@@ -263,47 +259,50 @@ namespace UnrealBuildTool
 					InitializationErrorCode = 99;
 				}
 
-				// we need the RemoteServerName and the Username to find the private key
-				ResolvedRSyncUsername = ResolveString(RSyncUsername, false);
-
-				// if the override path is set, just use it directly
-				if (!string.IsNullOrEmpty(SSHPrivateKeyOverridePath))
+				if (!bUseRPCUtil)
 				{
-					ResolvedSSHPrivateKey = ResolveString(SSHPrivateKeyOverridePath, true);
-					// make sure it exists
-					if (!File.Exists(ResolvedSSHPrivateKey))
-					{
-						throw new BuildException("An SSHKey override was specified [" + SSHPrivateKeyOverridePath + "] but it doesn't exist. Can't continue...");
-					}
-				}
-				else
-				{
-					// all the places to look for a key
-					string[] Locations = new string[] {
-						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
-						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"),
-						Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"),
-						Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"),
-						Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"),
-					};
+					// we need the RemoteServerName and the Username to find the private key
+					ResolvedRSyncUsername = ResolveString(RSyncUsername, false);
 
-					// look for a key file
-					foreach (string Location in Locations)
+					// if the override path is set, just use it directly
+					if (!string.IsNullOrEmpty(SSHPrivateKeyOverridePath))
 					{
-						string KeyPath = Path.Combine(Location, "SSHKeys", RemoteServerName, ResolvedRSyncUsername, "RemoteToolChainPrivate.key");
-						if (File.Exists(KeyPath))
+						ResolvedSSHPrivateKey = ResolveString(SSHPrivateKeyOverridePath, true);
+						// make sure it exists
+						if (!File.Exists(ResolvedSSHPrivateKey))
 						{
-							ResolvedSSHPrivateKey = KeyPath;
-							break;
+							throw new BuildException("An SSHKey override was specified [" + SSHPrivateKeyOverridePath + "] but it doesn't exist. Can't continue...");
 						}
 					}
-				}
+					else
+					{
+						// all the places to look for a key
+						string[] Locations = new string[] {
+							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
+							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"),
+						};
 
-				// resolve the rest of the strings
-				ResolvedRSyncExe = ResolveString(RSyncExe, true);
-				ResolvedSSHExe = ResolveString(SSHExe, true);
-				ResolvedRsyncAuthentication = ResolveString(RsyncAuthentication, false);
-				ResolvedSSHAuthentication = ResolveString(SSHAuthentication, false);
+						// look for a key file
+						foreach (string Location in Locations)
+						{
+							string KeyPath = Path.Combine(Location, "SSHKeys", RemoteServerName, ResolvedRSyncUsername, "RemoteToolChainPrivate.key");
+							if (File.Exists(KeyPath))
+							{
+								ResolvedSSHPrivateKey = KeyPath;
+								break;
+							}
+						}
+					}
+
+					// resolve the rest of the strings
+					ResolvedRSyncExe = ResolveString(RSyncExe, true);
+					ResolvedSSHExe = ResolveString(SSHExe, true);
+					ResolvedRsyncAuthentication = ResolveString(RsyncAuthentication, false);
+					ResolvedSSHAuthentication = ResolveString(SSHAuthentication, false);
+				}
 
 				// start up remote communication and record if it succeeds
 				InitializationErrorCode = RPCUtilHelper.Initialize(RemoteServerName);
@@ -344,6 +343,13 @@ namespace UnrealBuildTool
 			return InitializationErrorCode;
         }
 
+		public override void SetUpGlobalEnvironment()
+		{
+			base.SetUpGlobalEnvironment();
+
+			// connect to server
+			InitializeRemoteExecution();
+		}
 
         /** Converts the passed in path from UBT host to compiler native format. */
         public override String ConvertPath(String OriginalPath)
