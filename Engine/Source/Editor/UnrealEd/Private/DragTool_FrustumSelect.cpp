@@ -69,7 +69,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 	FScopedTransaction Transaction( NSLOCTEXT("ActorFrustumSelect", "MarqueeSelectTransation", "Marquee Select" ) );
 
 	bool bShouldSelect = true;
-
+	GEditor->GetSelectedActors()->Modify();
 
 	if( !bShiftDown )
 	{
