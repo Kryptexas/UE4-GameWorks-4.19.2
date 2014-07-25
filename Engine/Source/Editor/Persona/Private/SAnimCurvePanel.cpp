@@ -113,6 +113,7 @@ public:
 protected:
 	// SWidget interface
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	// SWidget interface
 
 	// SCurveEditor interface
@@ -187,6 +188,26 @@ int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 	// now draw scrub with new layer ID + 1;
 	return NewLayerId;
+}
+
+FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
+
+	const FVector2D WidgetSpace = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const float ZoomRatio = FMath::Clamp((WidgetSpace.X / MyGeometry.Size.X), 0.f, 1.f);
+
+	{
+		const float InputViewSize = ViewMaxInput.Get() - ViewMinInput.Get();
+		const float InputChange = InputViewSize * ZoomDelta;
+
+		float NewViewMinInput = ViewMinInput.Get() - (InputChange * ZoomRatio);
+		float NewViewMaxInput = ViewMaxInput.Get() + (InputChange * (1.f - ZoomRatio));
+
+		SetInputMinMax(NewViewMinInput, NewViewMaxInput);
+	}
+
+	return FReply::Handled();
 }
 
 void SAnimCurveEd::Construct(const FArguments& InArgs)

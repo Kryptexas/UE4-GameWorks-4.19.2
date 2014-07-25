@@ -77,12 +77,15 @@ FReply SAnimTrackPanel::OnMouseWheel( const FGeometry& MyGeometry, const FPointe
 {
 	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
 
+	const FVector2D MouseWidgetPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const float ZoomRatio = FMath::Clamp((MouseWidgetPos.X / (MyGeometry.Size.X - WidgetWidth)), 0.f, 1.f);
+
 	{
 		const float InputViewSize = ViewInputMax.Get() - ViewInputMin.Get();
 		const float InputChange = InputViewSize * ZoomDelta;
 
-		float ViewMinInput = ViewInputMin.Get() - (InputChange * 0.5f);
-		float ViewMaxInput = ViewInputMax.Get() + (InputChange * 0.5f);
+		float ViewMinInput = ViewInputMin.Get() - (InputChange * ZoomRatio);
+		float ViewMaxInput = ViewInputMax.Get() + (InputChange * (1.f - ZoomRatio));
 		
 		OnSetInputViewRange.Execute(ViewMinInput, ViewMaxInput);
 	}
