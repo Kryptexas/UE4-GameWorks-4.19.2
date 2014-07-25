@@ -80,6 +80,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	void GetLocalLocationAndTangentAtSplinePoint(int32 PointIndex, FVector& LocalLocation, FVector& LocalTangent) const;
 
+	/** Get the distance along the spline at the spline point */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	float GetDistanceAlongSplineAtSplinePoint(int32 PointIndex) const;
+
 	/** Returns total length along this spline */
 	UFUNCTION(BlueprintCallable, Category=Spline) 
 	float GetSplineLength() const;

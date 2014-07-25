@@ -266,6 +266,16 @@ void USplineComponent::GetLocalLocationAndTangentAtSplinePoint(int32 PointIndex,
 	}
 }
 
+float USplineComponent::GetDistanceAlongSplineAtSplinePoint(int32 PointIndex) const
+{
+	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		return SplineReparamTable.Points[PointIndex * ReparamStepsPerSegment].InVal;
+	}
+
+	return 0.0f;
+}
+
 float USplineComponent::GetSplineLength() const
 {
 	const int32 NumPoints = SplineReparamTable.Points.Num();
@@ -320,9 +330,8 @@ FVector USplineComponent::GetWorldDirectionAtDistanceAlongSpline(float Distance)
 
 FRotator USplineComponent::GetWorldRotationAtDistanceAlongSpline(float Distance) const
 {
-	const float Param = SplineReparamTable.Eval(Distance, 0.f);
-	const FVector Forward = SplineInfo.EvalDerivative(Param, FVector(1.0f, 0.0f, 0.0f));
-	return Forward.Rotation() + ComponentToWorld.Rotator();
+	const FVector Dir = GetWorldDirectionAtDistanceAlongSpline(Distance);
+	return Dir.Rotation();
 }
 
 
@@ -364,19 +373,8 @@ FVector USplineComponent::GetWorldDirectionAtTime(float Time, bool bUseConstantV
 
 FRotator USplineComponent::GetWorldRotationAtTime(float Time, bool bUseConstantVelocity) const
 {
-	if (Duration == 0.0f)
-	{
-		return FRotator::ZeroRotator;
-	}
-
-	if (bUseConstantVelocity)
-	{
-		return GetWorldRotationAtDistanceAlongSpline(Time / Duration * GetSplineLength());
-	}
-
-	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
-	const FVector Forward = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector(1.0f, 0.0f, 0.0f));
-	return Forward.Rotation() + ComponentToWorld.Rotator();
+	FVector WorldDir = GetWorldDirectionAtTime(Time, bUseConstantVelocity);
+	return WorldDir.Rotation();
 }
 
 
