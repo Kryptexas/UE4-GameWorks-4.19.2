@@ -66,7 +66,7 @@ void SimpleLightInjectMainPS(
 	float3 WorldPositionForLighting = WorldPosition + 1 * GetBoxPushout(NormalizedLightVector, .5f * VoxelSize);
 
 	float Attenuation = CalcSimpleLightAttenuation(WorldPositionForLighting);
-	float3 Lighting = SimpleLightColorAndExponent.rgb / PI * Attenuation;
+	float3 Lighting = SimpleLightColorAndExponent.rgb * Attenuation;
 
 	FTwoBandSHVectorRGB SHLighting = MulSH(SHBasisFunction(NormalizedLightVector), Lighting);
 	OutColor0 = float4(SHLighting.R.V.x, SHLighting.G.V.x, SHLighting.B.V.x, 0);
@@ -305,7 +305,7 @@ void InjectMainPS(
 		// Apply light function after edge fading, so that a light function which is modifying the light's brightness still works
 		ShadowFactor *= GetLightFunctionShadowFactor(WorldPositionForLighting);
 
-		float3 Lighting = DeferredLightUniforms.LightColor / PI * Attenuation * ShadowFactor;
+		float3 Lighting = DeferredLightUniforms.LightColor * Attenuation * ShadowFactor;
 
 		FTwoBandSHVectorRGB SHLighting = MulSH(SHBasisFunction(NormalizedLightVector), Lighting);
 
