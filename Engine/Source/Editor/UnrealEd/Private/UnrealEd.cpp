@@ -168,6 +168,7 @@ void EditorExit()
 	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
 		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
+		GLevelEditorModeTools().SetDefaultMode(FBuiltinEditorModes::EM_Default);
 		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
