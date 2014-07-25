@@ -305,7 +305,7 @@ void USCS_Node::SetParent(USceneComponent* InParentComponent)
 	const FName NewParentComponentOwnerClassName = NAME_None;
 
 	// Only modify if it differs from current
-	if(bIsParentComponentNative
+	if(!bIsParentComponentNative
 		|| ParentComponentOrVariableName != NewParentComponentOrVariableName
 		|| ParentComponentOwnerClassName != NewParentComponentOwnerClassName)
 	{
