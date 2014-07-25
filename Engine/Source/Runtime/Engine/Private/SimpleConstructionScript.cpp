@@ -38,10 +38,10 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 
 	if(Ar.IsLoading())
 	{
+		int32 NodeIndex;
+
 		if(Ar.UE4Ver() < VER_UE4_REMOVE_NATIVE_COMPONENTS_FROM_BLUEPRINT_SCS)
 		{
-			int32 NodeIndex;
-
 			// If we previously had a root node, we need to move it into the new RootNodes array. This is done in Serialize() in order to support SCS preloading (which relies on a valid RootNodes array).
 			if(RootNode_DEPRECATED != NULL)
 			{
@@ -158,6 +158,27 @@ void USimpleConstructionScript::PostLoad()
 
 	// Ensure that we have a valid scene root
 	ValidateSceneRootNodes();
+
+	// Reset non-native "root" scene component scale values, prior to the change in which
+	// we began applying custom scale values to root components at construction time. This
+	// way older, existing Blueprint actor instances won't start unexpectedly getting scaled.
+	if(GetLinkerUE4Version() < VER_UE4_BLUEPRINT_USE_SCS_ROOTCOMPONENT_SCALE)
+	{
+		for(NodeIndex = 0; NodeIndex < RootNodes.Num(); ++NodeIndex)
+		{
+			USCS_Node* Node = RootNodes[NodeIndex];
+			if(Node->ParentComponentOrVariableName == NAME_None)
+			{
+				USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(Node->ComponentTemplate);
+				if(SceneComponentTemplate != nullptr
+					&& SceneComponentTemplate->RelativeScale3D != FVector(1.0f, 1.0f, 1.0f))
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("Found custom SceneComponent scale for %s (%s) saved prior to being usable; reset to default."), *SceneComponentTemplate->GetName(), *SceneComponentTemplate->RelativeScale3D.ToString());
+					SceneComponentTemplate->RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
+				}
+			}
+		}
+	}
 }
 
 void USimpleConstructionScript::FixupRootNodeParentReferences()

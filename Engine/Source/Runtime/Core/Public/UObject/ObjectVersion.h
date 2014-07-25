@@ -582,6 +582,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_LINEAR_COLOR_SAMPLER,
 	// Added StringAssetReferencesMap to support renames of FStringAssetReference properties.
 	VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP,
+	// Apply scale from SCS RootComponent details in the Blueprint Editor to new actor instances at construction time
+	VER_UE4_BLUEPRINT_USE_SCS_ROOTCOMPONENT_SCALE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
