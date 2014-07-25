@@ -315,3 +315,8 @@ void UMaterialGraphNode_Base::ModifyAndCopyPersistentPinData(UEdGraphPin& Target
 
 	TargetPin.CopyPersistentDataFromOldPin(SourcePin);
 }
+
+FString UMaterialGraphNode_Base::GetDocumentationLink() const
+{
+	return TEXT("Shared/GraphNodes/Material");
+}
