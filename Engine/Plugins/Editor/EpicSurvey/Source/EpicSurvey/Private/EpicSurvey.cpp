@@ -339,7 +339,7 @@ void FEpicSurvey::OnReadFileComplete( bool bSuccess, const FString& DLName )
 					}
 					else
 					{
-						UE_LOG(LogEpicSurvey, Warning, TEXT("Parsing JSON survey failed. Filename: %s Message: %s"), *FileHeader.FileName, *Reader->GetErrorMessage());
+						UE_LOG(LogEpicSurvey, Verbose, TEXT("Parsing JSON survey failed. Filename: %s Message: %s"), *FileHeader.FileName, *Reader->GetErrorMessage());
 					}
 				}
 				else if ( FileExtension == TEXT("png") )
