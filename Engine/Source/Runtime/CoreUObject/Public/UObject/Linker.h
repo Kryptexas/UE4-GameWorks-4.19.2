@@ -1189,6 +1189,17 @@ class ULinkerLoad : public ULinker, public FArchiveUObject
 		LINKER_TimedOut = 2
 	};
 
+	/** Verify result. */
+	enum EVerifyResult
+	{
+		/** Error occured when verifying import (can be fatal). */
+		VERIFY_Failed = 0,
+		/** Verify completed successfully. */
+		VERIFY_Success = 1,
+		/** Verify completed successfully and followed a redirector. */
+		VERIFY_Redirected = 2
+	};
+
 	// Variables.
 public:
 	/** Flags determining loading behavior.																					*/
@@ -1420,9 +1431,10 @@ public:
 	 * not currently open. (Rename fixes up references of all loaded objects, but naturally not for ones that aren't
 	 * loaded).
 	 *
-	 * @param	i	The index into this package's ImportMap to verify
+	 * @param	ImportIndex	The index into this package's ImportMap to verify
+	 * @return Verify import result
 	 */
-	void VerifyImport( int32 i );
+	EVerifyResult VerifyImport(int32 ImportIndex);
 	
 	/**
 	 * Loads all objects in package.
