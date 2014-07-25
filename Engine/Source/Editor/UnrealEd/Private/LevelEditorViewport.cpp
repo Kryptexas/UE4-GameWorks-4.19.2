@@ -2532,7 +2532,10 @@ void FLevelEditorViewportClient::TrackingStopped()
 			GEditor->BroadcastEndObjectMovement( *Actor );
 		}
 
-		GUnrealEd->UpdatePivotLocationForSelection();
+		if (!bPivotMovedIndependantly)
+		{
+			GUnrealEd->UpdatePivotLocationForSelection();
+		}
 	}
 
 	// End the transaction here if one was started in StartTransaction()
