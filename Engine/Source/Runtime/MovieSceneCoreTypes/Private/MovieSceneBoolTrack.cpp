@@ -14,7 +14,7 @@ UMovieSceneBoolTrack::UMovieSceneBoolTrack( const FPostConstructInitializeProper
 
 UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()
 {
-	return ConstructObject<UMovieSceneSection>( UMovieSceneBoolSection::StaticClass(), this );
+	return ConstructObject<UMovieSceneSection>( UMovieSceneBoolSection::StaticClass(), this, NAME_None, RF_Transactional );
 }
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneBoolTrack::CreateInstance()
@@ -27,8 +27,10 @@ bool UMovieSceneBoolTrack::AddKeyToSection( float Time, bool Value )
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
 	if (!NearestSection || CastChecked<UMovieSceneBoolSection>(NearestSection)->NewKeyIsNewData(Time, Value))
 	{
-		UMovieSceneBoolSection* NewSection = CastChecked<UMovieSceneBoolSection>(FindOrAddSection(  Time ));
+		Modify();
 
+		UMovieSceneBoolSection* NewSection = CastChecked<UMovieSceneBoolSection>(FindOrAddSection(  Time ));
+	
 		NewSection->AddKey( Time, Value );
 
 		return true;

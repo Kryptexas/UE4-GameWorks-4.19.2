@@ -24,6 +24,10 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 
+	// Create a handler for keyframing via the details panel
+	TSharedRef<IDetailKeyframeHandler> KeyframeHandler = MakeShareable( new FUMGDetailKeyframeHandler( InBlueprintEditor ) );
+	PropertyView->SetKeyframeHandler( KeyframeHandler );
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -303,15 +307,19 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 
 void SWidgetDetailsView::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
 {
-	TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+	// During auto-key do not migrate values
+	if( !BlueprintEditor.Pin()->GetSequencer()->IsAutoKeyEnabled() )
+	{
+		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 
-	const bool bIsModify = true;
-	Editor->MigrateFromChain(PropertyAboutToChange, bIsModify);
+		const bool bIsModify = true;
+		Editor->MigrateFromChain(PropertyAboutToChange, bIsModify);
+	}
 }
 
 void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
 {
-	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
+	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && !BlueprintEditor.Pin()->GetSequencer()->IsAutoKeyEnabled() )
 	{
 		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 

@@ -64,7 +64,7 @@ UMovieSceneTransformTrack::UMovieSceneTransformTrack( const FPostConstructInitia
 
 UMovieSceneSection* UMovieSceneTransformTrack::CreateNewSection()
 {
-	return ConstructObject<UMovieSceneSection>( UMovieSceneTransformSection::StaticClass(), this );
+	return ConstructObject<UMovieSceneSection>( UMovieSceneTransformSection::StaticClass(), this, NAME_None, RF_Transactional );
 }
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneTransformTrack::CreateInstance()
@@ -77,6 +77,8 @@ bool UMovieSceneTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, cons
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime(Sections, InKey.GetKeyTime());
 	if (!NearestSection || CastChecked<UMovieSceneTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
 	{
+		Modify();
+
 		UMovieSceneTransformSection* NewSection = Cast<UMovieSceneTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
 
 		// key each component of the transform

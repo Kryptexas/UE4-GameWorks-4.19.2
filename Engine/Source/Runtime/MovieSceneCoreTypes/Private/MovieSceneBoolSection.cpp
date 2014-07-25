@@ -23,13 +23,15 @@ void UMovieSceneBoolSection::MoveSection( float DeltaPosition )
 
 void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin )
 {
+	Super::DilateSection(DilationFactor, Origin);
+	
 	BoolCurve.ScaleCurve(Origin, DilationFactor);
 
-	Super::DilateSection(DilationFactor, Origin);
 }
 
 void UMovieSceneBoolSection::AddKey( float Time, bool Value )
 {
+	Modify();
 	BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
 }
 

@@ -1636,7 +1636,7 @@ uint32 FPropertyHandleBase::GetNumOuterObjects() const
 	return NumObjects;
 }
 
-void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects )
+void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) const
 {
 	FObjectPropertyNode* ObjectNode = Implementation->GetPropertyNode()->FindObjectItemParent();
 	if( ObjectNode )

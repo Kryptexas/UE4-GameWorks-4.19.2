@@ -19,13 +19,22 @@ FVector4 UMovieSceneVectorSection::Eval( float Position ) const
 		Curves[3].Eval( Position ) );
 }
 
-void UMovieSceneVectorSection::AddKey( float Time, const FVector4& Value )
+void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVector4& Value )
 {
-	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
+	Modify();
 
-	for (int32 i = 0; i < ChannelsUsed; ++i)
+	if( CurveName == NAME_None )
 	{
-		Curves[i].UpdateOrAddKey(Time, Value[i]);
+		check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
+
+		for (int32 i = 0; i < ChannelsUsed; ++i)
+		{
+			Curves[i].UpdateOrAddKey(Time, Value[i]);
+		}
+	}
+	else
+	{
+		AddKeyToNamedCurve( Time, CurveName, Value );
 	}
 }
 
@@ -47,6 +56,31 @@ bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value
 	return bNewData;
 }
 
+void UMovieSceneVectorSection::AddKeyToNamedCurve(float Time, FName CurveName, const FVector4& Value)
+{
+	static FName X("X");
+	static FName Y("Y");
+	static FName Z("Z");
+	static FName W("W");
+
+	if (CurveName == X)
+	{
+		Curves[0].UpdateOrAddKey(Time, Value.X);
+	}
+	else if (CurveName == Y)
+	{
+		Curves[1].UpdateOrAddKey(Time, Value.Y);
+	}
+	else if (CurveName == Z)
+	{
+		Curves[2].UpdateOrAddKey(Time, Value.Z);
+	}
+	else if (CurveName == W)
+	{
+		Curves[3].UpdateOrAddKey(Time, Value.W);
+	}
+}
+
 void UMovieSceneVectorSection::MoveSection( float DeltaTime )
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
@@ -62,11 +96,10 @@ void UMovieSceneVectorSection::MoveSection( float DeltaTime )
 void UMovieSceneVectorSection::DilateSection( float DilationFactor, float Origin )
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
+	Super::DilateSection(DilationFactor, Origin);
 
 	for (int32 i = 0; i < ChannelsUsed; ++i)
 	{
 		Curves[i].ScaleCurve(Origin, DilationFactor);
 	}
-
-	Super::DilateSection(DilationFactor, Origin);
 }

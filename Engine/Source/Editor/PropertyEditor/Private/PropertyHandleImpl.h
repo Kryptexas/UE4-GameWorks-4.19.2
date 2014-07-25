@@ -389,7 +389,7 @@ public:
 	virtual void AccessRawData( TArray<void*>& RawData ) override;
 	virtual void AccessRawData( TArray<const void*>& RawData ) const override;
 	virtual uint32 GetNumOuterObjects() const override;
-	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) override;
+	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const override;
 	virtual FPropertyAccess::Result GetNumChildren( uint32& OutNumChildren ) const override;
 	virtual TSharedPtr<IPropertyHandleArray> AsArray() override { return NULL; }
 	virtual const UClass* GetPropertyClass() const override;

@@ -1324,7 +1324,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		FLinearColor EditorOrange = FLinearColor(0.728f, 0.364f, 0.003f);
 
 		FTextBlockStyle CreditsNormal = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Normal", 16))
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 16))
 			.SetShadowOffset(FVector2D::UnitVector);
 
 		Set("Credits.Normal", CreditsNormal);
@@ -1403,6 +1403,16 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.AnimationOutliner.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 11 ) );
 		Set( "Sequencer.AnimationOutliner.RegularFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "Sequencer.ShotFilter", new IMAGE_BRUSH( "Sequencer/FilteredArea", FVector2D(74,74), FLinearColor::White, ESlateBrushTileType::Both ) );
+		Set( "Sequencer.KeyMark", new IMAGE_BRUSH("Sequencer/KeyMark", FVector2D(3,21), FLinearColor::White, ESlateBrushTileType::NoTile ) );
+
+		const FButtonStyle DetailsKeyButton = FButtonStyle(NoBorder)
+			.SetNormal( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11) )  )
+			.SetHovered( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11), SelectionColor ) )
+			.SetPressed( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11), SelectionColor_Pressed ) )
+			.SetNormalPadding(FMargin(0, 1))
+			.SetPressedPadding(FMargin(0, 2, 0, 0));
+
+		Set( "Sequencer.AddKey.Details", DetailsKeyButton );
 	}
 
 	// Foliage Edit Mode

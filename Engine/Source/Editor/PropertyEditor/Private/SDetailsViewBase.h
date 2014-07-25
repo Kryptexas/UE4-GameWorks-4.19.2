@@ -131,6 +131,9 @@ public:
 	 */
 	virtual bool IsPropertyEditingEnabled() const override;
 
+	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) override;
+	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() override;
+
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
 	 *
@@ -200,7 +203,7 @@ public:
 	/**
 	 * @return True if the property is visible
 	 */
-	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
+	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
 
 	/**
 	* Sets a delegate which is regardless of the objects being viewed to lay out generic details not specific to any object
@@ -402,6 +405,8 @@ protected:
 
 	/** Root tree node that needs to be destroyed when safe */
 	TSharedPtr<FComplexPropertyNode> RootNodePendingKill;
+
+	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler;
 
 	/** External property nodes which need to validated each tick */
 	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;

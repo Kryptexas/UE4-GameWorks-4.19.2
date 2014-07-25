@@ -56,6 +56,8 @@ public:
 	{
 		check(NewRange.HasLowerBound() && NewRange.HasUpperBound());
 
+		Modify();
+
 		StartTime = NewRange.GetLowerBoundValue();
 		EndTime = NewRange.GetUpperBoundValue();
 	}
@@ -78,6 +80,8 @@ public:
 	 */
 	virtual void MoveSection( float DeltaTime )
 	{
+		Modify();
+
 		StartTime += DeltaTime;
 		EndTime += DeltaTime;
 	}
@@ -90,6 +94,8 @@ public:
 	 */
 	virtual void DilateSection( float DilationFactor, float Origin )
 	{
+		Modify();
+
 		StartTime = (StartTime - Origin) * DilationFactor + Origin;
 		EndTime = (EndTime - Origin) * DilationFactor + Origin;
 	}

@@ -310,8 +310,10 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 
 		if( ObjectBinding.GetObjectGuid() == ObjectGuid ) 
 		{
-			CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
 			Modify();
+
+			CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
+			
 			ObjectBinding.AddTrack( *CreatedType );
 		}
 	}
@@ -356,8 +358,10 @@ UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> Tr
 
 class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
-	UMovieSceneTrack* CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
 	Modify();
+
+	UMovieSceneTrack* CreatedType = ConstructObject<UMovieSceneTrack>( TrackClass, this, NAME_None, RF_Transactional );
+
 	MasterTracks.Add( CreatedType );
 	
 	return CreatedType;

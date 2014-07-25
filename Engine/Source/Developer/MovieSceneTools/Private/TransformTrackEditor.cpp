@@ -188,7 +188,7 @@ void FTransformTrackEditor::OnTransformChanged( UObject& InObject )
 
 	}
 
-	if( SceneComponentThatChanged && ensure( ObjectHandle.IsValid() ) )
+	if( SceneComponentThatChanged && ObjectHandle.IsValid() )
 	{
 		// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
 		FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );

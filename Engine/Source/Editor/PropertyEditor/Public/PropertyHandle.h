@@ -274,7 +274,7 @@ public:
 	 *
 	 * @param OuterObjects	An array that will be populated with the outer objects 
 	 */
-	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) = 0;
+	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const = 0;
 
 	/**
 	 * Accesses the raw data of this property.  (Each pointer can be cast to the property data type)

@@ -23,14 +23,15 @@ void UMovieSceneFloatSection::MoveSection( float DeltaPosition )
 }
 
 void UMovieSceneFloatSection::DilateSection( float DilationFactor, float Origin )
-{
-	FloatCurve.ScaleCurve(Origin, DilationFactor);
-
+{	
 	Super::DilateSection(DilationFactor, Origin);
+	
+	FloatCurve.ScaleCurve(Origin, DilationFactor);
 }
 
 void UMovieSceneFloatSection::AddKey( float Time, float Value )
 {
+	Modify();
 	FloatCurve.UpdateOrAddKey(Time, Value);
 }
 

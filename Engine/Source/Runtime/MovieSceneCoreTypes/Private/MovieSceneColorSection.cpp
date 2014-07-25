@@ -22,12 +22,13 @@ void UMovieSceneColorSection::MoveSection( float DeltaTime )
 
 void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin )
 {
+	Super::DilateSection(DilationFactor, Origin);
+
 	RedCurve.ScaleCurve(Origin, DilationFactor);
 	GreenCurve.ScaleCurve(Origin, DilationFactor);
 	BlueCurve.ScaleCurve(Origin, DilationFactor);
 	AlphaCurve.ScaleCurve(Origin, DilationFactor);
 
-	Super::DilateSection(DilationFactor, Origin);
 }
 
 FLinearColor UMovieSceneColorSection::Eval( float Position ) const
@@ -38,12 +39,21 @@ FLinearColor UMovieSceneColorSection::Eval( float Position ) const
 						AlphaCurve.Eval(Position));
 }
 
-void UMovieSceneColorSection::AddKey( float Time, FLinearColor Value )
+void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key )
 {
-	AddKeyToCurve(RedCurve, Time, Value.R);
-	AddKeyToCurve(GreenCurve, Time, Value.G);
-	AddKeyToCurve(BlueCurve, Time, Value.B);
-	AddKeyToCurve(AlphaCurve, Time, Value.A);
+	Modify();
+
+	if( Key.CurveName == NAME_None )
+	{
+		AddKeyToCurve(RedCurve, Time, Key.Value.R);
+		AddKeyToCurve(GreenCurve, Time, Key.Value.G);
+		AddKeyToCurve(BlueCurve, Time, Key.Value.B);
+		AddKeyToCurve(AlphaCurve, Time, Key.Value.A);
+	}
+	else
+	{
+		AddKeyToNamedCurve( Time, Key );
+	}
 }
 
 bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value) const
@@ -55,12 +65,38 @@ bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value) co
 		!Eval(Time).Equals(Value);
 }
 
+void UMovieSceneColorSection::AddKeyToNamedCurve(float Time, const FColorKey& Key)
+{
+	static FName R("R");
+	static FName G("G");
+	static FName B("B");
+	static FName A("A");
 
+	FName CurveName = Key.CurveName;
+	if (CurveName == R)
+	{
+		AddKeyToCurve(RedCurve, Time, Key.Value.R);
+	}
+	else if (CurveName == G)
+	{
+		AddKeyToCurve(GreenCurve, Time, Key.Value.G);
+	}
+	else if (CurveName == B)
+	{
+		AddKeyToCurve(BlueCurve, Time, Key.Value.B);
+	}
+	else if (CurveName == A)
+	{
+		AddKeyToCurve(AlphaCurve, Time, Key.Value.A);
+	}
+}
 
 void UMovieSceneColorSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value )
 {
 	if( IsTimeWithinSection(Time) )
 	{
+		Modify();
+
 		InCurve.UpdateOrAddKey(Time, Value);
 	}
 }

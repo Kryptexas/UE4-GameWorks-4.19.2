@@ -2,7 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "MovieSceneMarginSection.h"
-
+#include "MovieSceneMarginTrack.h"
 
 UMovieSceneMarginSection::UMovieSceneMarginSection( const FPostConstructInitializeProperties& PCIP )
 	: Super( PCIP )
@@ -22,12 +22,12 @@ void UMovieSceneMarginSection::MoveSection( float DeltaTime )
 
 void UMovieSceneMarginSection::DilateSection( float DilationFactor, float Origin )
 {
+	Super::DilateSection(DilationFactor, Origin);
+
 	LeftCurve.ScaleCurve(Origin, DilationFactor);
 	TopCurve.ScaleCurve(Origin, DilationFactor);
 	RightCurve.ScaleCurve(Origin, DilationFactor);
 	BottomCurve.ScaleCurve(Origin, DilationFactor);
-
-	Super::DilateSection(DilationFactor, Origin);
 }
 
 FMargin UMovieSceneMarginSection::Eval( float Position ) const
@@ -38,12 +38,21 @@ FMargin UMovieSceneMarginSection::Eval( float Position ) const
 					BottomCurve.Eval(Position));
 }
 
-void UMovieSceneMarginSection::AddKey( float Time, const FMargin& Value )
+void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey )
 {
-	AddKeyToCurve(LeftCurve, Time, Value.Left);
-	AddKeyToCurve(TopCurve, Time, Value.Top);
-	AddKeyToCurve(RightCurve, Time, Value.Right);
-	AddKeyToCurve(BottomCurve, Time, Value.Bottom);
+	Modify();
+
+	if( MarginKey.CurveName == NAME_None )
+	{
+		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left);
+		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top);
+		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right);
+		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom);
+	}
+	else
+	{
+		AddKeyToNamedCurve( Time, MarginKey );
+	}
 }
 
 bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value) const
@@ -55,7 +64,32 @@ bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value)
 		(Eval(Time) != Value);
 }
 
+void UMovieSceneMarginSection::AddKeyToNamedCurve( float Time, const FMarginKey& MarginKey )
+{
+	static FName Left("Left");
+	static FName Top("Top");
+	static FName Right("Right");
+	static FName Bottom("Bottom");
 
+	FName CurveName = MarginKey.CurveName;
+
+	if( CurveName == Left )
+	{
+		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left);
+	}
+	else if( CurveName == Top )
+	{
+		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top);
+	}
+	else if( CurveName == Right )
+	{
+		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right);
+	}
+	else if( CurveName == Bottom )
+	{
+		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom);
+	}
+}
 
 void UMovieSceneMarginSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value )
 {

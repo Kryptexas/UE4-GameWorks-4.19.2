@@ -6,7 +6,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
-#include "UMGSequencerObjectBindingManager.h"
+#include "Animation/UMGSequencerObjectBindingManager.h"
 
 #include "WidgetBlueprintApplicationModes.h"
 //#include "WidgetDefafaultsApplicationMode.h"

@@ -50,6 +50,9 @@ private:
 
 	FReply HandleGotoBindingClicked(TSharedRef<IPropertyHandle> PropertyHandle);
 
+	void CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property );
+
+	void CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property );
 private:
 
 	TWeakPtr<FWidgetBlueprintEditor> Editor;

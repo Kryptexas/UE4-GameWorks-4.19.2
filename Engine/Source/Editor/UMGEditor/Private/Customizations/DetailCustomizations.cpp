@@ -12,6 +12,176 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+void FBlueprintWidgetCustomization::CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property )
+{
+	FString ConstPropertyName = Property->GetName();
+	ConstPropertyName.RemoveFromEnd(TEXT("Delegate"));
+
+	//TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), PropertyClass);
+	TSharedRef<IPropertyHandle> ConstPropertyHandle = DetailLayout.GetProperty(FName(*ConstPropertyName), CastChecked<UClass>(Property->GetOuter()));
+
+	const bool bHasValidHandle = ConstPropertyHandle->IsValidHandle();
+	if(!bHasValidHandle)
+	{
+		return;
+	}
+
+	UProperty* ConstProperty = ConstPropertyHandle->GetProperty();
+
+	const bool bIsEditable = ConstProperty->HasAnyPropertyFlags(CPF_Edit | CPF_EditConst);
+	const bool bDoSignaturesMatch = Property->SignatureFunction->GetReturnProperty()->SameType(ConstProperty);
+
+	if(!(bIsEditable && bDoSignaturesMatch))
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(ConstProperty));
+
+	IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(ConstPropertyHandle);
+
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
+		.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle, Property->SignatureFunction)
+		.ContentPadding(0)
+		.ButtonContent()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SImage)
+				.Image(this, &FBlueprintWidgetCustomization::GetCurrentBindingImage, ConstPropertyHandle)
+				.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(4, 1, 0, 0)
+			[
+				SNew(STextBlock)
+				.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		];
+
+	const bool bShowChildren = true;
+	PropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+		.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth * 2)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth * 2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			.Padding(FMargin(0, 0, 4, 0))
+			[
+				ValueWidget.ToSharedRef()
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				DelegateButton
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.Visibility(this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, ConstPropertyHandle)
+				.OnClicked(this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, ConstPropertyHandle)
+				.VAlign(VAlign_Center)
+				.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+				]
+			]
+		];
+}
+
+void FBlueprintWidgetCustomization::CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property )
+{
+	if(!Property->GetName().EndsWith(TEXT("Event")))
+	{
+		return;
+	}
+
+	TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), CastChecked<UClass>(Property->GetOuter()));
+
+	const bool bHasValidHandle = DelegatePropertyHandle->IsValidHandle();
+	if(!bHasValidHandle)
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property));
+
+	IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
+
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
+		.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, DelegatePropertyHandle, Property->SignatureFunction)
+		.ContentPadding(0)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, DelegatePropertyHandle)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
+
+	const bool bShowChildren = true;
+	PropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+	.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			[
+				DelegateButton
+			]
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.Visibility(this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, DelegatePropertyHandle)
+					.OnClicked(this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, DelegatePropertyHandle)
+					.VAlign(VAlign_Center)
+					.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+					]
+				]
+		];
+}
+
 void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	TArray< TWeakObjectPtr<UObject> > OutObjects;
@@ -23,194 +193,19 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 
 		for ( TFieldIterator<UProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
 		{
-			if ( UDelegateProperty* Property = Cast<UDelegateProperty>(*PropertyIt) )
+			UProperty* Property = *PropertyIt;
+			if ( UDelegateProperty* DelegateProperty = Cast<UDelegateProperty>(*PropertyIt) )
 			{
-				if ( !Property->GetName().EndsWith(TEXT("Delegate")) )
+				if( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
 				{
-					continue;
+					CreateDelegateCustomization( DetailLayout, DelegateProperty );
 				}
-
-				FString ConstPropertyName = Property->GetName();
-				ConstPropertyName.RemoveFromEnd(TEXT("Delegate"));
-
-				//TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), PropertyClass);
-				TSharedRef<IPropertyHandle> ConstPropertyHandle = DetailLayout.GetProperty(FName(*ConstPropertyName), CastChecked<UClass>(Property->GetOuter()));
-
-				const bool bHasValidHandle = ConstPropertyHandle->IsValidHandle();
-
-				if ( !bHasValidHandle )
+				else if( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
 				{
-					continue;
+					CreateEventCustomization( DetailLayout, DelegateProperty );
 				}
-
-				UProperty* ConstProperty = ConstPropertyHandle->GetProperty();
-
-				const bool bIsEditable = ConstProperty->HasAnyPropertyFlags(CPF_Edit | CPF_EditConst);
-				const bool bDoSignaturesMatch = Property->SignatureFunction->GetReturnProperty()->SameType(ConstProperty);
-
-				if ( !(bIsEditable && bDoSignaturesMatch) )
-				{
-					continue;
-				}
-
-				IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(ConstProperty));
-
-				IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(ConstPropertyHandle);
-
-				TSharedPtr<SWidget> NameWidget;
-				TSharedPtr<SWidget> ValueWidget;
-				FDetailWidgetRow Row;
-				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
-
-				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
-				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle, Property->SignatureFunction)
-				.ContentPadding(0)
-				.ButtonContent()
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(SImage)
-						.Image(this, &FBlueprintWidgetCustomization::GetCurrentBindingImage, ConstPropertyHandle)
-						.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(4,1,0,0)
-					[
-						SNew(STextBlock)
-						.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-				];
-
-				const bool bShowChildren = true;
-				PropertyRow.CustomWidget(bShowChildren)
-				.NameContent()
-				.MinDesiredWidth(Row.NameWidget.MinWidth)
-				.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-				[
-					NameWidget.ToSharedRef()
-				]
-				.ValueContent()
-				.MinDesiredWidth(Row.ValueWidget.MinWidth * 2)
-				.MaxDesiredWidth(Row.ValueWidget.MaxWidth * 2)
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					.Padding(FMargin(0, 0, 4, 0))
-					[
-						ValueWidget.ToSharedRef()
-					]
-					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						DelegateButton
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-						.Visibility( this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, ConstPropertyHandle )
-						.OnClicked( this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, ConstPropertyHandle )
-						.VAlign(VAlign_Center)
-						.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Browse") )
-						]
-					]
-				];
 			}
 		}
-
-		//--------------------------------------------
-
-		for ( TFieldIterator<UProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
-		{
-			if ( UDelegateProperty* Property = Cast<UDelegateProperty>(*PropertyIt) )
-			{
-				if ( !Property->GetName().EndsWith(TEXT("Event")) )
-				{
-					continue;
-				}
-
-				TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), CastChecked<UClass>(Property->GetOuter()));
-
-				const bool bHasValidHandle = DelegatePropertyHandle->IsValidHandle();
-
-				if ( !bHasValidHandle )
-				{
-					continue;
-				}
-
-				IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property));
-
-				IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
-
-				TSharedPtr<SWidget> NameWidget;
-				TSharedPtr<SWidget> ValueWidget;
-				FDetailWidgetRow Row;
-				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
-
-				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
-				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, DelegatePropertyHandle, Property->SignatureFunction)
-				.ContentPadding(0)
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, DelegatePropertyHandle)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				];
-
-				const bool bShowChildren = true;
-				PropertyRow.CustomWidget(bShowChildren)
-				.NameContent()
-				.MinDesiredWidth(Row.NameWidget.MinWidth)
-				.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-				[
-					NameWidget.ToSharedRef()
-				]
-				.ValueContent()
-				.MinDesiredWidth(Row.ValueWidget.MinWidth)
-				.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
-				[
-					SNew(SHorizontalBox)
-					
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					[
-						DelegateButton
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-						.Visibility( this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, DelegatePropertyHandle )
-						.OnClicked( this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, DelegatePropertyHandle )
-						.VAlign(VAlign_Center)
-						.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Browse") )
-						]
-					]
-				];
-			}
-		}
-
 	}
 }
 

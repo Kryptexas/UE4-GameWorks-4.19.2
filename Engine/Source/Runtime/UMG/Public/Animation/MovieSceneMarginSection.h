@@ -6,6 +6,8 @@
 
 #include "MovieSceneMarginSection.generated.h"
 
+struct FMarginKey;
+
 /**
  * A section in a Margin track
  */
@@ -31,7 +33,7 @@ public:
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
 	 */
-	void AddKey( float Time, const FMargin& Value );
+	void AddKey( float Time, const FMarginKey& MarginKey );
 	
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
@@ -74,6 +76,7 @@ public:
 	const FRichCurve& GetBottomCurve() const { return BottomCurve; }
 
 private:
+	void AddKeyToNamedCurve( float Time, const FMarginKey& MarginKey );
 	/**
 	 * Adds a key to a rich curve, finding an existing key to modify or adding a new one
 	 *

@@ -14,7 +14,7 @@ UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FPostConstructInitializeProp
 
 UMovieSceneSection* UMovieSceneFloatTrack::CreateNewSection()
 {
-	return ConstructObject<UMovieSceneSection>( UMovieSceneFloatSection::StaticClass(), this );
+	return ConstructObject<UMovieSceneSection>( UMovieSceneFloatSection::StaticClass(), this, NAME_None, RF_Transactional );
 }
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFloatTrack::CreateInstance()
@@ -28,6 +28,8 @@ bool UMovieSceneFloatTrack::AddKeyToSection( float Time, float Value )
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
 	if (!NearestSection || CastChecked<UMovieSceneFloatSection>(NearestSection)->NewKeyIsNewData(Time, Value))
 	{
+		Modify();
+
 		UMovieSceneFloatSection* NewSection = Cast<UMovieSceneFloatSection>( FindOrAddSection( Time ) );
 
 		NewSection->AddKey( Time, Value );

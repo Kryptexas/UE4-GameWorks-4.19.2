@@ -16,6 +16,8 @@ public:
 	/** ISequencerObjectChangeListener interface */
 	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) override;
 	virtual FOnPropagateObjectChanges& GetOnPropagateObjectChanges() override;
+	virtual bool IsTypeKeyable(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const override;
+	virtual void KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) const override;
 	virtual void TriggerAllPropertiesChanged(UObject* Object) override;
 
 private:
@@ -46,7 +48,7 @@ private:
 	 *
 	 * @param Object	The object that PostEditChange was called on
 	 */
-	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey );
+	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const IPropertyHandle& PropertyValue, bool bRequireAutoKey ) const;
 
 	/**
 	 * @return True if an object is valid for listening to property changes 

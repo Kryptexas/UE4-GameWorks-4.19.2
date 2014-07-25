@@ -13,7 +13,7 @@ UMovieSceneColorTrack::UMovieSceneColorTrack( const FPostConstructInitializeProp
 
 UMovieSceneSection* UMovieSceneColorTrack::CreateNewSection()
 {
-	return ConstructObject<UMovieSceneSection>( UMovieSceneColorSection::StaticClass(), this );
+	return ConstructObject<UMovieSceneSection>( UMovieSceneColorSection::StaticClass(), this, NAME_None, RF_Transactional );
 }
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
@@ -22,14 +22,15 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 }
 
 
-bool UMovieSceneColorTrack::AddKeyToSection( float Time, FLinearColor Value )
+bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
-	if (!NearestSection || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Value))
+	if (!NearestSection || Key.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value))
 	{
+		Modify();
 		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
 
-		NewSection->AddKey( Time, Value );
+		NewSection->AddKey( Time, Key );
 
 		return true;
 	}

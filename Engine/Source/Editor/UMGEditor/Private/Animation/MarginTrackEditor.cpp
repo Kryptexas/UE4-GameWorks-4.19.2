@@ -67,42 +67,37 @@ TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSc
 
 	return NewSection;
 }
-/*
 
-void FMarginTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
+
+void FMarginTrackEditor::OnMarginChanged(  const FKeyPropertyParams& PropertyKeyParams )
 {
-	ISequencerObjectChangeListener& ObjectChangeListener = GetSequencer()->GetObjectChangeListener();
-
-	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
-	for (int32 i = 0; i < OutObjects.Num(); ++i)
-	{
-		ObjectChangeListener.TriggerAllPropertiesChanged(OutObjects[i]);
-	}
-}*/
-
-void FMarginTrackEditor::OnMarginChanged( const TArray<UObject*>& InObjectsThatChanged, const IPropertyHandle& PropertyValue, bool bRequireAutoKey )
-{
-	FName PropertyName = PropertyValue.GetProperty()->GetFName();
+	FName PropertyName = PropertyKeyParams.PropertyHandle->GetProperty()->GetFName();
 
 	AnimatablePropertyChanged
 	(
 		UMovieSceneMarginTrack::StaticClass(), 
-		bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &FMarginTrackEditor::OnKeyMargin, &InObjectsThatChanged, &PropertyValue, PropertyName ) 
+		PropertyKeyParams.bRequireAutoKey,
+		FOnKeyProperty::CreateRaw(this, &FMarginTrackEditor::OnKeyMargin, &PropertyKeyParams ) 
 	);
 }
 
 
-void FMarginTrackEditor::OnKeyMargin( float KeyTime, const TArray<UObject*>* InObjectsThatChanged, const IPropertyHandle* PropertyValue, FName PropertyName )
+void FMarginTrackEditor::OnKeyMargin( float KeyTime, const FKeyPropertyParams* PropertyKeyParams )
 {
 	TArray<const void*> MarginValues;
-	PropertyValue->AccessRawData( MarginValues );
+	PropertyKeyParams->PropertyHandle->AccessRawData( MarginValues );
 
-	for( int32 ObjectIndex = 0; ObjectIndex < InObjectsThatChanged->Num(); ++ObjectIndex )
+	FName PropertyName = PropertyKeyParams->PropertyHandle->GetProperty()->GetFName();
+
+	for( int32 ObjectIndex = 0; ObjectIndex < PropertyKeyParams->ObjectsThatChanged.Num(); ++ObjectIndex )
 	{
-		UObject* Object = (*InObjectsThatChanged)[ObjectIndex];
+		UObject* Object = PropertyKeyParams->ObjectsThatChanged[ObjectIndex];
 		FMargin MarginValue = *(const FMargin*)MarginValues[ObjectIndex];
+
+		FMarginKey Key;
+		Key.bAddKeyEvenIfUnchanged = !PropertyKeyParams->bRequireAutoKey;
+		Key.CurveName = PropertyKeyParams->InnerStructPropertyName;
+		Key.Value = MarginValue;
 
 		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 		if (ObjectHandle.IsValid())
@@ -114,7 +109,7 @@ void FMarginTrackEditor::OnKeyMargin( float KeyTime, const TArray<UObject*>* InO
 				MarginTrack->SetPropertyName( PropertyName );
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-				bool bSuccessfulAdd = MarginTrack->AddKeyToSection( KeyTime, MarginValue );
+				bool bSuccessfulAdd = MarginTrack->AddKeyToSection( KeyTime, Key );
 				if (bSuccessfulAdd)
 				{
 					MarginTrack->SetAsShowable();

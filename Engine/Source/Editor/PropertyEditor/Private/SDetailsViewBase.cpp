@@ -218,6 +218,17 @@ bool SDetailsViewBase::IsPropertyEditingEnabled() const
 	return !IsPropertyEditingEnabledDelegate.IsBound() || IsPropertyEditingEnabledDelegate.Execute();
 }
 
+
+void SDetailsViewBase::SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler )
+{
+	KeyframeHandler = InKeyframeHandler;
+}
+
+TSharedPtr<IDetailKeyframeHandler> SDetailsViewBase::GetKeyframeHandler() 
+{
+	return KeyframeHandler;
+}
+
 void SDetailsViewBase::SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance OnGetGenericDetails)
 {
 	GenericLayoutDelegate = OnGetGenericDetails;

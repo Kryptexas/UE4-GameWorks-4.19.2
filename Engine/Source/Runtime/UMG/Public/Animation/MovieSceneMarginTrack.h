@@ -5,6 +5,13 @@
 #include "MovieScenePropertyTrack.h"
 #include "MovieSceneMarginTrack.generated.h"
 
+struct FMarginKey
+{
+	FMargin Value;
+	FName CurveName;
+	bool bAddKeyEvenIfUnchanged;
+};
+
 /**
  * Handles manipulation of FMargins in a movie scene
  */
@@ -25,7 +32,7 @@ public:
 	 * @param Value				The value of the key
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, FMargin Value );
+	virtual bool AddKeyToSection( float Time, const FMarginKey& MarginKey );
 	
 	/**
 	 * Evaluates the track at the playback position

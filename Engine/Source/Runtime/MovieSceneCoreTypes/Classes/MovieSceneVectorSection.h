@@ -32,7 +32,7 @@ public:
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
 	 */
-	void AddKey( float Time, const FVector4& Value );
+	void AddKey( float Time, FName CurveName, const FVector4& Value );
 	
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
@@ -51,6 +51,9 @@ public:
 	
 	/** Gets the number of channels in use */
 	int32 GetChannelsUsed() const {return ChannelsUsed;}
+
+private:
+	void AddKeyToNamedCurve(float Time, FName CurveName, const FVector4& Value);
 
 private:
 	/** Vector t */

@@ -1253,6 +1253,16 @@ void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
 	FilterToShotSections(SelectedShotSections, bZoomToShotBounds);
 }
 
+bool FSequencer::CanKeyProperty(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const
+{
+	return ObjectChangeListener->IsTypeKeyable( ObjectClass, PropertyHandle );
+} 
+
+void FSequencer::KeyProperty(const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle) 
+{
+	ObjectChangeListener->KeyProperty( ObjectsToKey, PropertyHandle );
+}
+
 TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetFilteringShotSections() const
 {
 	return FilteringShots;
