@@ -413,6 +413,9 @@ void SCollectionView::RemoveCollectionItems( const TArray<TSharedPtr<FCollection
 		}
 	}
 
+	FScopedPreventSelectionChangedDelegate DelegatePrevention(SharedThis(this));
+	CollectionListPtr->ClearSelection();
+
 	// If we removed all the selected items and there is at least one other item, select it
 	if ( LastSelectedItemIdx > INDEX_NONE && NumSelectedItemsRemoved > 0 && NumSelectedItemsRemoved >= SelectedItems.Num() && CollectionItems.Num() > 1 )
 	{

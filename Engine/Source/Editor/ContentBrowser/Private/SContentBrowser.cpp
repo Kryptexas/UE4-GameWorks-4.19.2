@@ -8,6 +8,8 @@
 #include "ContentBrowserModule.h"
 #include "STutorialWrapper.h"
 #include "ContentBrowserCommands.h"
+#include "CollectionManagerModule.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -17,6 +19,20 @@ SContentBrowser::~SContentBrowser()
 {
 	// Remove the listener for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().RemoveAll( this );
+
+	// Remove listeners for when collections/paths are renamed/deleted
+	FCollectionManagerModule* CollectionManagerModule = FModuleManager::GetModulePtr<FCollectionManagerModule>(TEXT("CollectionManager"));
+	if (CollectionManagerModule != nullptr)
+	{
+		CollectionManagerModule->Get().OnCollectionRenamed().RemoveAll(this);
+		CollectionManagerModule->Get().OnCollectionDestroyed().RemoveAll(this);
+	}
+
+	FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if (AssetRegistryModule != nullptr)
+	{
+		AssetRegistryModule->Get().OnPathRemoved().RemoveAll(this);
+	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -573,6 +589,14 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	this->InstanceName = InInstanceName;
 	LoadSettings(InInstanceName);
 
+	// Bindings to manage history when items are deleted
+	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	CollectionManagerModule.Get().OnCollectionRenamed().AddSP(this, &SContentBrowser::HandleCollectionRenamed);
+	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP(this, &SContentBrowser::HandleCollectionRemoved);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnPathRemoved().AddSP(this, &SContentBrowser::HandlePathRemoved);
+
 	// Update the breadcrumb trail path
 	UpdatePath();
 }
@@ -920,8 +944,11 @@ void SContentBrowser::SourcesChanged(const TArray<FString>& SelectedPaths, const
 	
 	SourcesData.Collections = SelectedCollections;
 
-	// Update the current history data to preserve selection
-	HistoryManager.UpdateHistoryData();
+	if (!AssetViewPtr->GetSourcesData().IsEmpty())
+	{
+		// Update the current history data to preserve selection if there is a valid SourcesData
+		HistoryManager.UpdateHistoryData();
+	}
 
 	// Change the filter for the asset view
 	AssetViewPtr->SetSourcesData(SourcesData);
@@ -1774,6 +1801,41 @@ void SContentBrowser::HandleSettingChanged(FName PropertyName)
 			}
 		}
 	}
+}
+
+void SContentBrowser::HandleCollectionRemoved(const FCollectionNameType& Collection)
+{
+	AssetViewPtr->SetSourcesData(FSourcesData());
+
+	auto RemoveHistoryDelegate = [&](const FHistoryData& HistoryData)
+	{
+		return (HistoryData.SourcesData.Collections.Num() == 1 &&
+				HistoryData.SourcesData.PackagePaths.Num() == 0 &&
+				HistoryData.SourcesData.Collections.Contains(Collection));
+	};
+
+	HistoryManager.RemoveHistoryData(RemoveHistoryDelegate);
+}
+
+void SContentBrowser::HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection)
+{
+	return HandleCollectionRemoved(OriginalCollection);
+}
+
+void SContentBrowser::HandlePathRemoved(const FString& Path)
+{
+	const FName PathName(*Path);
+
+	AssetViewPtr->SetSourcesData(FSourcesData());
+
+	auto RemoveHistoryDelegate = [&](const FHistoryData& HistoryData)
+	{
+		return (HistoryData.SourcesData.PackagePaths.Num() == 1 &&
+				HistoryData.SourcesData.Collections.Num() == 0 &&
+				HistoryData.SourcesData.PackagePaths.Contains(PathName));
+	};
+
+	HistoryManager.RemoveHistoryData(RemoveHistoryDelegate);
 }
 
 FText SContentBrowser::GetSearchAssetsHintText() const
