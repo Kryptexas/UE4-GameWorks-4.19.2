@@ -474,7 +474,6 @@ void FSlateApplication::SetCursorPos( const FVector2D& MouseCoordinate )
 	}
 }
 
-
 FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray< TSharedRef< SWindow > >& Windows, bool bIgnoreEnabledStatus )
 {
 	bool bPrevWindowWasModal = false;
@@ -494,9 +493,8 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 		// If none of the children were hit, hittest the parent.
 
 		// Only accept input if the current window accepts input and the current window is not under a modal window or an interactive tooltip
-		const TSharedPtr<IToolTip> ActiveToolTipPtr = ActiveToolTip.Pin();
-		const TSharedPtr<SWindow> ToolTipWindowPtr = ToolTipWindow.Pin();
-		const bool AcceptsInput = Window->AcceptsInput() || ( Window == ToolTipWindowPtr && ActiveToolTipPtr.IsValid() && ActiveToolTipPtr->IsInteractive() );
+		
+		const bool AcceptsInput = Window->AcceptsInput() || IsWindowHousingInteractiveTooltip(Window);
 
 		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
 		{
@@ -517,6 +515,18 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 	}
 
 	return FWidgetPath();
+}
+
+bool FSlateApplication::IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const
+{
+	const TSharedPtr<IToolTip> ActiveToolTipPtr = ActiveToolTip.Pin();
+	const TSharedPtr<SWindow> ToolTipWindowPtr = ToolTipWindow.Pin();
+	const bool bIsHousingInteractiveTooltip =
+		WindowToTest == ToolTipWindowPtr &&
+		ActiveToolTipPtr.IsValid() &&
+		ActiveToolTipPtr->IsInteractive();
+
+	return bIsHousingInteractiveTooltip;
 }
 
 /** 

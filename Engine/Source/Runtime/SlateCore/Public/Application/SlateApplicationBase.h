@@ -181,6 +181,9 @@ public:
 	 */
 	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray< TSharedRef<SWindow > >& Windows, bool bIgnoreEnabledStatus = false ) = 0;
 
+	/** @return true if 'WindowToTest' is being used to display the current tooltip and the tooltip is interactive. */
+	virtual bool IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const = 0;
+
 	/**
 	 * Creates an image widget.
 	 *

@@ -780,7 +780,7 @@ FSlateColor SWindow::GetWindowOutlineColor() const
 
 EVisibility SWindow::GetWindowVisibility() const
 {
-	return ( AcceptsInput() )
+	return ( AcceptsInput() || FSlateApplicationBase::Get().IsWindowHousingInteractiveTooltip(SharedThis(this)) )
 		? EVisibility::Visible
 		: EVisibility::HitTestInvisible;
 }
