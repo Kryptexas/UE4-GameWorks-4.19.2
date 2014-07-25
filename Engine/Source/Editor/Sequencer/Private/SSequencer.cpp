@@ -190,7 +190,6 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 					[
 						// @todo Sequencer - Temp auto-key button
 						SNew( SCheckBox )
-						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
 						.IsChecked( this, &SSequencer::OnGetAutoKeyCheckState )
 						.OnCheckStateChanged( this, &SSequencer::OnAutoKeyChecked )
 						[
