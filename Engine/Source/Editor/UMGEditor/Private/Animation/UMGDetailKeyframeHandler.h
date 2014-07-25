@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/IDetailKeyFrameHandler.h"
+#include "Editor/PropertyEditor/Public/IDetailKeyframeHandler.h"
 
 class FUMGDetailKeyframeHandler : public IDetailKeyframeHandler
 {

@@ -4,7 +4,7 @@
 #include "SDetailSingleItemRow.h"
 #include "DetailItemNode.h"
 #include "PropertyEditorHelpers.h"
-#include "IDetailKeyFrameHandler.h"
+#include "IDetailKeyframeHandler.h"
 
 namespace DetailWidgetConstants
 {
