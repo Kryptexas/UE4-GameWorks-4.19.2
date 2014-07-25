@@ -6,6 +6,8 @@
 #include "BlueprintEditor.h"
 #include "IDetailsView.h"
 #include "Kismet2NameValidators.h"
+#include "ISequencer.h"
+#include "Animation/UMGDetailKeyframeHandler.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

@@ -2,7 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "UMGDetailKeyframeHandler.h"
-
+#include "ISequencer.h"
+#include "PropertyHandle.h"
 
 FUMGDetailKeyframeHandler::FUMGDetailKeyframeHandler(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 	: BlueprintEditor( InBlueprintEditor )
