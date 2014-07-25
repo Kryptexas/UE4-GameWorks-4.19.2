@@ -406,6 +406,25 @@ void FEdModeLandscape::Enter()
 	// Load UI settings from config file
 	UISettings->Load();
 
+	// Initialize current tool prior to creating the landscape toolkit in case it has a dependency on it
+	if (LandscapeList.Num() == 0)
+	{
+		SetCurrentToolMode("ToolMode_Manage", false);
+		SetCurrentTool("NewLandscape");
+	}
+	else
+	{
+		if (CurrentToolMode == NULL)
+		{
+			SetCurrentToolMode("ToolMode_Sculpt", false);
+			SetCurrentTool("Sculpt");
+		}
+		else
+		{
+			SetCurrentTool(CurrentToolMode->CurrentToolName);
+		}
+	}
+
 	// Create the landscape editor window
 	if (!Toolkit.IsValid())
 	{
@@ -425,24 +444,6 @@ void FEdModeLandscape::Enter()
 	if (GizmoBrush)
 	{
 		GizmoBrush->EnterBrush();
-	}
-
-	if (LandscapeList.Num() == 0)
-	{
-		SetCurrentToolMode("ToolMode_Manage", false);
-		SetCurrentTool("NewLandscape");
-	}
-	else
-	{
-		if (CurrentToolMode == NULL)
-		{
-			SetCurrentToolMode("ToolMode_Sculpt", false);
-			SetCurrentTool("Sculpt");
-		}
-		else
-		{
-			SetCurrentTool(CurrentToolMode->CurrentToolName);
-		}
 	}
 }
 
