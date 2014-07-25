@@ -11,8 +11,8 @@ class ENGINE_API UGameUserSettings : public UObject
 
 public:
 
-	/** Applies all current user settings to the game and saves to permanent storage (e.g. file), optionally checking for command line overrides */
-	virtual void ApplySettings( bool bCheckCommandLineOverrides=false );
+	/** Applies all current user settings to the game and saves to permanent storage (e.g. file). */
+	virtual void ApplySettings();
 
 	/** Returns the user setting for game screen resolution, in pixels. */
 	FIntPoint GetScreenResolution() const;
@@ -93,7 +93,7 @@ public:
 	static void LoadConfigIni( bool bForceReload=false );
 
 	/** Apply any runtime overrides to the settings */
-	static void RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bConditionallyOverride);
+	static void RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode);
 
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)
