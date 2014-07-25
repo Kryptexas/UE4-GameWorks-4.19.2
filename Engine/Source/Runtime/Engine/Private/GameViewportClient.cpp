@@ -217,7 +217,7 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 	if (!bResult)
 	{
 		ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-		if (TargetPlayer && TargetPlayer->PlayerController && InViewport->HasMouseCapture())
+		if (TargetPlayer && TargetPlayer->PlayerController)
 		{
 			bResult = TargetPlayer->PlayerController->InputKey(Key, EventType, AmountDepressed, bGamepad);
 		}
