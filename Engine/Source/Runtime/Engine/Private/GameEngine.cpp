@@ -422,7 +422,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
-	GetGameUserSettings()->ApplySettings();
+	GetGameUserSettings()->ApplySettings(true);
 
 	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
 	{
