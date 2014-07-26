@@ -265,6 +265,9 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 	CollisionThickness = 10.0f;
 
 	PixelsPerUnrealUnit = 2.56f;
+
+	bTrimmed = false;
+	bRotated = false;
 #endif
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial"));
@@ -1043,19 +1046,47 @@ void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset
 	InitializeSprite(Texture, Offset, Dimension, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 }
 
+void UPaperSprite::SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension)
+{
+	this->bTrimmed = bTrimmed;
+	this->OriginInSourceImage = OriginInSourceImage;
+	this->SourceImageDimension = SourceImageDimension;
+	RebuildRenderData();
+	RebuildCollisionData();
+}
+
+void UPaperSprite::SetRotated(bool bRotated)
+{
+	this->bRotated = bRotated;
+	RebuildRenderData();
+	RebuildCollisionData();
+}
+
+void UPaperSprite::SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot)
+{
+	this->PivotMode = PivotMode;
+	this->CustomPivotPoint = CustomTextureSpacePivot;
+}
+
 FVector2D UPaperSprite::ConvertTextureSpaceToPivotSpace(FVector2D Input) const
 {
 	const FVector2D Pivot = GetPivotPosition();
 
 	const float X = Input.X - Pivot.X;
 	const float Y = -Input.Y + Pivot.Y;
-	
-	return FVector2D(X, Y);
+
+	return bRotated ? FVector2D(-Y, X) : FVector2D(X, Y);
 }
 
 FVector2D UPaperSprite::ConvertPivotSpaceToTextureSpace(FVector2D Input) const
 {
 	const FVector2D Pivot = GetPivotPosition();
+
+	if (bRotated)
+	{
+		Swap(Input.X, Input.Y);
+		Input.Y = -Input.Y;
+	}
 
 	const float X = Input.X + Pivot.X;
 	const float Y = -Input.Y + Pivot.Y;
@@ -1087,63 +1118,113 @@ FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoi
 {
 	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
-	const FVector2D SourcePointInUU = SourcePoint * UnitsPerPixel;
-
-	const FVector2D SourceDimsInPixels = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-	const FVector2D SourceDimsInUU = SourceDimsInPixels * UnitsPerPixel;
-
-	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * (SourceDimsInUU.Y - SourcePointInUU.Y));
+	const FVector2D SourcePointInUU = ConvertTextureSpaceToPivotSpace(SourcePoint) * UnitsPerPixel;
+	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * SourcePointInUU.Y);
 }
 
 FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const
 {
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 	const FVector ProjectionX = WorldPoint.ProjectOnTo(PaperAxisX);
 	const FVector ProjectionY = WorldPoint.ProjectOnTo(PaperAxisY);
 
 	const float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size() * PixelsPerUnrealUnit;
 	const float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size() * PixelsPerUnrealUnit;
 
-	return FVector2D(XValue, SourceDims.Y - YValue);
+	return ConvertPivotSpaceToTextureSpace(FVector2D(XValue, YValue));
+}
+
+FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldSpaceDelta) const
+{
+	const FVector ProjectionX = WorldSpaceDelta.ProjectOnTo(PaperAxisX);
+	const FVector ProjectionY = WorldSpaceDelta.ProjectOnTo(PaperAxisY);
+
+	float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size() * PixelsPerUnrealUnit;
+	float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size() * PixelsPerUnrealUnit;
+
+	// Undo pivot space rotation, ignoring pivot position
+	if (bRotated)
+	{
+		Swap(XValue, YValue);
+		XValue = -XValue;
+	}
+
+	return FVector2D(XValue, YValue);
 }
 
 FTransform UPaperSprite::GetPivotToWorld() const
 {
-	const FVector2D Pivot = GetPivotPosition();
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-
-	const FVector Translation(((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY)) * GetUnrealUnitsPerPixel());
+	const FVector Translation(0, 0, 0);
 	return FTransform(Translation);
 }
 
 FVector2D UPaperSprite::GetRawPivotPosition() const
 {
-	switch (PivotMode)
+	FVector2D TopLeftUV = SourceUV;
+	FVector2D Dimension = SourceDimension;
+	
+	if (bTrimmed)
 	{
-	case ESpritePivotMode::Top_Left:
-		return SourceUV;
-	case ESpritePivotMode::Top_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y);
-	case ESpritePivotMode::Top_Right:
-		return FVector2D(SourceUV.X + SourceDimension.X, SourceUV.Y);
-	case ESpritePivotMode::Center_Left:
-		return FVector2D(SourceUV.X, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Center_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Center_Right:
-		return FVector2D(SourceUV.X + SourceDimension.X, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Bottom_Left:
-		return FVector2D(SourceUV.X, SourceUV.Y + SourceDimension.Y);
-	case ESpritePivotMode::Bottom_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y + SourceDimension.Y);
-	case ESpritePivotMode::Bottom_Right:
-		return SourceUV + SourceDimension;
+		TopLeftUV = SourceUV - OriginInSourceImage;
+		Dimension = SourceImageDimension;
+	}
 
-	default:
-	case ESpritePivotMode::Custom:
-		return CustomPivotPoint;
-		break;
-	};
+	if (bRotated)
+	{
+		switch (PivotMode)
+		{
+		case ESpritePivotMode::Top_Left:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y);
+		case ESpritePivotMode::Top_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Top_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Center_Left:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y);
+		case ESpritePivotMode::Center_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Left:
+			return TopLeftUV;
+		case ESpritePivotMode::Bottom_Center:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Bottom_Right:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y);
+		default:
+		case ESpritePivotMode::Custom:
+			return CustomPivotPoint;
+			break;
+		};
+	}
+	else
+	{
+		switch (PivotMode)
+		{
+		case ESpritePivotMode::Top_Left:
+			return TopLeftUV;
+		case ESpritePivotMode::Top_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y);
+		case ESpritePivotMode::Top_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y);
+		case ESpritePivotMode::Center_Left:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Bottom_Left:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Right:
+			return TopLeftUV + Dimension;
+
+		default:
+		case ESpritePivotMode::Custom:
+			return CustomPivotPoint;
+			break;
+		};
+	}
 }
 
 FVector2D UPaperSprite::GetPivotPosition() const
