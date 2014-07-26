@@ -873,12 +873,13 @@ namespace UnrealBuildTool
         }
 
         /**
-        * Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be 1.0.  If you need to force a rebuild for a given platform, override this for the given platform.
+        * Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be the master revision from the last refactor.  
+        * If you need to force a rebuild for a given platform, override this for the given platform.
         * @return Setup script version
         */
         protected virtual String GetRequiredScriptVersionString()
         {
-            return "1.0";
+            return "3.0";
         }
 
         /** 
@@ -1401,7 +1402,7 @@ namespace UnrealBuildTool
         // platforms can choose if they prefer a correct the the AutoSDK install over the manual install.
         protected virtual bool PreferAutoSDK()
         {
-            return false;
+            return true;
         }
 
         // some platforms don't support parallel SDK installs.  AutoSDK on these platforms will
