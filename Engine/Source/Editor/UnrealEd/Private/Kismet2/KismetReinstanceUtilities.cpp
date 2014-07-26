@@ -369,6 +369,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 				NewActor->RegisterAllComponents(); // Register native components
 
+				// Because this is an editor context it's important to use this execution guard:
+				FEditorScriptExecutionGuard ScriptGuard;
+
 				// Run the construction script, which will use the properties we just copied over
 				NewActor->ExecuteConstruction(WorldTransform, &InstanceDataCache);
 

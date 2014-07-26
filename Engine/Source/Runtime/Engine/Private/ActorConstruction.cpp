@@ -107,6 +107,7 @@ void AActor::DestroyConstructedComponents()
 
 void AActor::RerunConstructionScripts()
 {
+	FEditorScriptExecutionGuard ScriptGuard;
 	// don't allow (re)running construction scripts on dying actors
 	bool bAllowReconstruction = !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
 #if WITH_EDITOR
@@ -329,7 +330,6 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	{
 		if( bErrorFree )
 		{
-			FEditorScriptExecutionGuard ScriptGuard;
 			// Prevent user from spawning actors in User Construction Script
 			TGuardValue<bool> AutoRestoreISCS(GetWorld()->bIsRunningConstructionScript, true);
 			for( int32 i = ParentBPClassStack.Num() - 1; i >= 0; i-- )
