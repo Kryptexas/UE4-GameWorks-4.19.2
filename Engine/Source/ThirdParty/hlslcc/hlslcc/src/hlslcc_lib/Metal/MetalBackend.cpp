@@ -2506,8 +2506,9 @@ protected:
 			bool bFirst = true;
 			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
 			{
-				auto* Var = Buffers.Buffers[i]->as_variable();
-				if (!Var->semantic && !Var->type->is_sampler())
+				ir_instruction* ir = Buffers.Buffers[i];
+				ir_variable* Var = ir ? ir->as_variable() : 0;
+				if (Var && !Var->semantic && !Var->type->is_sampler())
 				{
 					ralloc_asprintf_append(buffer, "%s%s(%d)",
 						bFirst ? "// @UniformBlocks: " : ",",
