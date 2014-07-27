@@ -2767,7 +2767,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 				loc.first_column = IR->SourceLocation.Column;
 				loc.first_line = IR->SourceLocation.Line;
 				loc.source_file = IR->SourceLocation.SourceFile.c_str();
-				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on GLSL ES\n");
+				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on Metal\n");
 			}
 			else
 			{
@@ -2787,7 +2787,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 			loc.first_column = IR->SourceLocation.Column;
 			loc.first_line = IR->SourceLocation.Line;
 			loc.source_file = IR->SourceLocation.SourceFile.c_str();
-			_mesa_glsl_error(&loc, ParseState, "Texture offset not supported on GLSL ES\n");
+			_mesa_glsl_error(&loc, ParseState, "Texture offset not supported on Metal\n");
 		}
 
 		return visit_continue;
