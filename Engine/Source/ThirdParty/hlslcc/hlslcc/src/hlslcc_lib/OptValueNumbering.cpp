@@ -550,7 +550,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 			if (Expr->operation == IR->operation)
 			{
 				auto& ExprOperands = it->second;
-				check(ExprOperands.size() == NumOperands);
+				check(ExprOperands.Num() == NumOperands);
 				if (AreEqual(ExprOperands, Operands))
 				{
 					auto ExprNumber = LVN[Expr];
