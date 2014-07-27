@@ -1965,6 +1965,14 @@ protected:
 						{
 							ralloc_asprintf_append(buffer, " [[ position ]]");
 						}
+						else if (strcmp(s->fields.structure[j].semantic, "gl_VertexID") == 0)
+						{
+							ralloc_asprintf_append(buffer, " [[ vertex_id ]]");
+						}
+						else if (strcmp(s->fields.structure[j].semantic, "gl_InstanceID") == 0)
+						{
+							ralloc_asprintf_append(buffer, " [[ instance_id ]]");
+						}
 						else if (!strncmp(s->fields.structure[j].semantic, "var_", 4))
 						{
 							ralloc_asprintf_append(buffer, " [[ user(%s) ]]", s->fields.structure[j].semantic + 4);
@@ -2732,7 +2740,8 @@ bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructio
 {
 	bool bIsVertexShader = (Frequency == HSF_VertexShader);
 
-	// Handle SampleLevel
+	const bool bAllowVertexTextureFetch = true;
+	if (!bAllowVertexTextureFetch)
 	{
 		FMetalUnsupportedSamplerVisitor Visitor(ParseState, bIsVertexShader);
 		Visitor.run(Instructions);

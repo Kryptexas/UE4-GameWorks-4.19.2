@@ -560,16 +560,22 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 					OutStageInMembers.Add(OutMember);
 				}
 			}
-			/*
-			else if (!strcmp(Variable->name, "gl_Position"))
+			else if (!strcmp(Variable->name, "gl_VertexID"))
 			{
-			glsl_struct_field OutMember;
-			OutMember.type = Variable->type;
-			OutMember.semantic = ralloc_asprintf(ParseState, "gl_Position");
-			OutMember.name = ralloc_asprintf(ParseState, "gl_Position");
-			OutStageInMembers.push_back(OutMember);
+				glsl_struct_field OutMember;
+				OutMember.type = Variable->type;
+				OutMember.semantic = ralloc_asprintf(ParseState, "gl_VertexID");
+				OutMember.name = ralloc_asprintf(ParseState, "gl_VertexID");
+				OutStageInMembers.Add(OutMember);
 			}
-			*/
+			else if (!strcmp(Variable->name, "gl_InstanceID"))
+			{
+				glsl_struct_field OutMember;
+				OutMember.type = Variable->type;
+				OutMember.semantic = ralloc_asprintf(ParseState, "gl_InstanceID");
+				OutMember.name = ralloc_asprintf(ParseState, "gl_InstanceID");
+				OutStageInMembers.Add(OutMember);
+			}
 			else
 			{
 				_mesa_glsl_error(ParseState, "Unknown semantic for input attribute %s!\n", Variable->name);
@@ -1454,9 +1460,10 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			for (auto& Member : VSStageInMembers)
 			{
 				int Index = GetAttributeIndex(Member.semantic);
-				check(Index >= 0 && Index < 16);
-				AttributesUsedMask |= (1 << Index);
-
+				if (Index >= 0 && Index < 16)
+				{
+					AttributesUsedMask |= (1 << Index);
+				}
 				InputVars.push_tail(new(ParseState)extern_var(new(ParseState)ir_variable(Member.type, ralloc_strdup(ParseState, Member.name), ir_var_in)));
 			}
 
@@ -1476,8 +1483,11 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				}
 			}
 
-			std::sort(VSStageInMembers.begin(), VSStageInMembers.end(), [](glsl_struct_field& A, glsl_struct_field& B)
-			{ return GetAttributeIndex(A.semantic) < GetAttributeIndex(B.semantic); });
+			std::sort(VSStageInMembers.begin(), VSStageInMembers.end(),
+				[](glsl_struct_field& A, glsl_struct_field& B)
+				{
+					return GetAttributeIndex(A.semantic) < GetAttributeIndex(B.semantic);
+				});
 
 			// Convert all members to float4
 			if (bExpandVSInputsToFloat4)
