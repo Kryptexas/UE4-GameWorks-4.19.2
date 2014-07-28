@@ -282,7 +282,7 @@ namespace ENiagaraVectorAttr
 
 /**
  * A niagara particle simulation.
- */n
+ */
 class FNiagaraSimulation
 {
 public:
