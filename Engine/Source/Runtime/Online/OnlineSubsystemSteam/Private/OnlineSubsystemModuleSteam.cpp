@@ -85,7 +85,7 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 {
 #if PLATFORM_WINDOWS
 	#if PLATFORM_64BITS
-		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win64/"), STEAM_SDK_VER); 
+		FString RootSteamPath = FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER / TEXT("Win64/");
 		FPlatformProcess::PushDllDirectory(*RootSteamPath);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api64.dll"));
 #if 0 //64 bit not supported well at present, use Steam Client dlls
@@ -97,7 +97,7 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 #endif 
 		FPlatformProcess::PopDllDirectory(*RootSteamPath);
 	#else	//PLATFORM_64BITS
-		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win32/"), STEAM_SDK_VER); 
+		FString RootSteamPath = FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER / TEXT("Win32/");
 		FPlatformProcess::PushDllDirectory(*RootSteamPath);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api.dll"));
 		if (IsRunningDedicatedServer())
@@ -145,7 +145,7 @@ void FOnlineSubsystemSteamModule::StartupModule()
 	}
 	else
 	{
-		UE_LOG_ONLINE(Warning, TEXT("Steam DLLs not present or failed to load!"));
+		UE_LOG_ONLINE(Warning, TEXT("Steam DLLs not present at %s/%s or failed to load!"), STEAM_SDK_ROOT_PATH, STEAM_SDK_VER);
 	}
 
 	if (!bSuccess)
