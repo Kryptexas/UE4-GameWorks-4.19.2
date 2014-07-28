@@ -374,12 +374,7 @@ public:
 
 	FBox GetBounds() const { return CachedBounds; }
 
-	void AddConstant(FVector4 Value)
-	{
-		ConstantTable.Add(Value);
-	}
-
-	void SetConstant(int Idx, FVector4 Value)
+	void SetConstant(int Idx, const FVector4 &Value)
 	{
 		check(Idx < ConstantTable.Num());
 		ConstantTable[Idx] = Value;
@@ -421,7 +416,9 @@ private:
 		for (int i = NiagaraConstants::NumBuiltinConstants + 1; i < Script->ConstantTable.Num(); i++)
 		{
 			if (ConstantTable.Num() <= i)
+			{
 				ConstantTable.Add(FVector4());
+			}
 			ConstantTable[i] = Script->ConstantTable[i];
 		}
 	}
