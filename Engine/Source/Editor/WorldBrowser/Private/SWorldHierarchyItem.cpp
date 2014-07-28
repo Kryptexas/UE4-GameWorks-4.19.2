@@ -275,12 +275,12 @@ FReply SWorldHierarchyItem::OnOpenKismet()
 
 void SWorldHierarchyItem::OnSetColorFromColorPicker(FLinearColor NewColor)
 {
-	LevelModel->SetLevelColor(NewColor.ToFColor(true));
+	LevelModel->SetLevelColor(NewColor);
 }
 
 void SWorldHierarchyItem::OnColorPickerCancelled(FLinearColor OriginalColor)
 {
-	LevelModel->SetLevelColor(OriginalColor.ToFColor(true));
+	LevelModel->SetLevelColor(OriginalColor);
 }
 
 void SWorldHierarchyItem::OnColorPickerInteractiveBegin()
@@ -297,14 +297,9 @@ FReply SWorldHierarchyItem::OnChangeColor()
 {
 	if (LevelModel.IsValid())
 	{
-		// Initialize the color data for the picker window.
-		FColor NewColor = LevelModel->GetLevelColor();
-		TArray<FColor*> ColorArray;
-		ColorArray.Add(&NewColor);
-
 		FColorPickerArgs PickerArgs;
 		PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
-		PickerArgs.ColorArray = &ColorArray;
+		PickerArgs.InitialColorOverride = LevelModel->GetLevelColor();
 		PickerArgs.bOnlyRefreshOnMouseUp = false;
 		PickerArgs.bOnlyRefreshOnOk = false;
 		PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &SWorldHierarchyItem::OnSetColorFromColorPicker);

@@ -586,7 +586,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 
 		//
 		AssociatedStreamingLevel->PackageName		= PackageName;
-		AssociatedStreamingLevel->DrawColor			= FColor::MakeRandomColor();
+		AssociatedStreamingLevel->LevelColor		= FLinearColor::MakeRandomColor();
 		AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
 		AssociatedStreamingLevel->PackageNameToLoad	= PackageName;
 		//

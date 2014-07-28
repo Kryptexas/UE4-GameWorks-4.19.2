@@ -3779,7 +3779,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	SkelMeshResource(InSkelMeshResource)
 		,	SkeletalMeshForDebug(Component->SkeletalMesh)
 		,	PhysicsAssetForDebug(Component->GetPhysicsAsset())
-		,	LevelColor(255,255,255)
+		,	LevelColor(FLinearColor::White)
 		,	PropertyColor(255,255,255)
 		,	bForceWireframe(Component->bForceWireframe)
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
@@ -3893,7 +3893,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 		if ( LevelStreaming )
 		{
-			LevelColor = LevelStreaming->DrawColor;
+			LevelColor = LevelStreaming->LevelColor;
 		}
 	}
 

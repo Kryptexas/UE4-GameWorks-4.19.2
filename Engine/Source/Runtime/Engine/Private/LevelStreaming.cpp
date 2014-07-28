@@ -217,6 +217,11 @@ void ULevelStreaming::PostLoad()
 			UE_LOG(LogLevelStreaming, Display, TEXT("Invalid streaming level package name (%s). Only long package names are supported. This streaming level may not load or save properly."), *PackageName.ToString());
 		}
 	}
+
+	if (GetLinkerUE4Version() < VER_UE4_LEVEL_STREAMING_DRAW_COLOR_TYPE_CHANGE)
+	{
+		LevelColor = DrawColor_DEPRECATED;
+	}
 }
 
 UWorld* ULevelStreaming::GetWorld() const
@@ -776,9 +781,9 @@ void ULevelStreaming::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			}
 		}
 
-		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, DrawColor))
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, LevelColor))
 		{
-			// Make sure the level's DrawColor change is applied immediately by reregistering the
+			// Make sure the level's Level Color change is applied immediately by reregistering the
 			// components of the actor's in the level
 			if( LoadedLevel != NULL )
 			{
@@ -824,7 +829,7 @@ ULevelStreaming::ULevelStreaming(const class FPostConstructInitializeProperties&
 	: Super(PCIP)
 {
 	bShouldBeVisibleInEditor = true;
-	DrawColor = FColor(255, 255, 255, 255);
+	LevelColor = FLinearColor::White;
 	LevelTransform = FTransform::Identity;
 	MinTimeBetweenVolumeUnloadRequests = 2.0f;
 	bDrawOnLevelStatusMap = true;

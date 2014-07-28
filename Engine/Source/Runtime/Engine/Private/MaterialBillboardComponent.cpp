@@ -83,7 +83,7 @@ public:
 	: FPrimitiveSceneProxy(InComponent)
 	, Elements(InComponent->Elements)
 	, BaseColor(FLinearColor::White)
-	, LevelColor(255,255,255)
+	, LevelColor(FLinearColor::White)
 	, PropertyColor(255,255,255)
 	{
 		AActor* Owner = InComponent->GetOwner();
@@ -95,7 +95,7 @@ public:
 			if ( LevelStreaming )
 			{
 				// Selection takes priority over level coloration.
-				LevelColor = LevelStreaming->DrawColor;
+				LevelColor = LevelStreaming->LevelColor;
 			}
 		}
 
@@ -236,7 +236,7 @@ private:
 	TArray<FMaterialSpriteElement> Elements;
 	FMaterialRelevance MaterialRelevance;
 	FColor BaseColor;
-	FColor LevelColor;
+	FLinearColor LevelColor;
 	FColor PropertyColor;
 };
 

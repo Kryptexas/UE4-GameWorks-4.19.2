@@ -197,7 +197,7 @@ namespace EditorLevelUtils
 			StreamingLevel->PackageName = LevelPackageName;
 
 			// Seed the level's draw color.
-			StreamingLevel->DrawColor = FColor::MakeRandomColor();
+			StreamingLevel->LevelColor = FLinearColor::MakeRandomColor();
 
 			// Add the new level to world.
 			InWorld->StreamingLevels.Add( StreamingLevel );
@@ -265,7 +265,7 @@ namespace EditorLevelUtils
 			NewStreamingLevel->LevelTransform = InLevel->LevelTransform;
 			NewStreamingLevel->EditorStreamingVolumes = InLevel->EditorStreamingVolumes;
 			NewStreamingLevel->MinTimeBetweenVolumeUnloadRequests = InLevel->MinTimeBetweenVolumeUnloadRequests;
-			NewStreamingLevel->DrawColor = InLevel->DrawColor;
+			NewStreamingLevel->LevelColor = InLevel->LevelColor;
 			NewStreamingLevel->Keywords = InLevel->Keywords;
 		}
 

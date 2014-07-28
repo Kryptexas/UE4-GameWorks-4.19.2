@@ -190,6 +190,11 @@ struct FLinearColor
 	static CORE_API FLinearColor FGetHSV(uint8 H,uint8 S,uint8 V);
 
 	/**
+	* Makes a random but quite nice color.
+	*/
+	static CORE_API FLinearColor MakeRandomColor();
+
+	/**
 	 * Euclidean distance between two points.
 	 */
 	static inline float Dist( const FLinearColor &V1, const FLinearColor &V2 )

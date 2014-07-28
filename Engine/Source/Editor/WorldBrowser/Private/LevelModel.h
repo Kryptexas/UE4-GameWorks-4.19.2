@@ -143,10 +143,10 @@ public:
 	virtual bool SupportsLevelColor() const;
 
 	/** @return level color, used for visualization. (Show -> Advanced -> Level Coloration) */
-	virtual FColor GetLevelColor() const;
+	virtual FLinearColor GetLevelColor() const;
 
 	/** Sets level color, used for visualization. (Show -> Advanced -> Level Coloration) */
-	virtual void SetLevelColor(FColor InColor);
+	virtual void SetLevelColor(FLinearColor InColor);
 	
 	/**	@return Whether level has associated blueprint script */
 	bool HasKismet() const;

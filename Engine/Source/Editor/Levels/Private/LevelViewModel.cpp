@@ -451,11 +451,11 @@ FSlateColor FLevelViewModel::GetColor() const
 		ULevelStreaming* StreamingLevel = FLevelUtils::FindStreamingLevel( Level.Get() );
 		if ( StreamingLevel )
 		{
-			return StreamingLevel->DrawColor.ReinterpretAsLinear();
+			return StreamingLevel->LevelColor;
 		}
 	}
 
-	return FLinearColor( 1.0f, 1.0f, 1.0f, 1.0f );
+	return FLinearColor::White;
 }
 
 void FLevelViewModel::OnColorPickerCancelled(FLinearColor Color)
@@ -476,14 +476,14 @@ void FLevelViewModel::ChangeColor(const TSharedRef<SWidget>& InPickerParentWidge
 		ULevelStreaming* StreamingLevel = FLevelUtils::FindStreamingLevel( Level.Get() );
 		check( StreamingLevel );
 
-		FColor NewColor = StreamingLevel->DrawColor;
-		TArray<FColor*> ColorArray;
+		FLinearColor NewColor = StreamingLevel->LevelColor;
+		TArray<FLinearColor*> ColorArray;
 		ColorArray.Add(&NewColor);
 
 		FColorPickerArgs PickerArgs;
 		PickerArgs.bIsModal = true;
 		PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
-		PickerArgs.ColorArray = &ColorArray;
+		PickerArgs.LinearColorArray = &ColorArray;
 		PickerArgs.OnColorPickerCancelled = FOnColorPickerCancelled::CreateSP(this, &FLevelViewModel::OnColorPickerCancelled);
 		PickerArgs.ParentWidget = InPickerParentWidget;
 
@@ -493,7 +493,7 @@ void FLevelViewModel::ChangeColor(const TSharedRef<SWidget>& InPickerParentWidge
 		{
 			if ( bColorPickerOK )
 			{
-				StreamingLevel->DrawColor = NewColor;
+				StreamingLevel->LevelColor = NewColor;
 				StreamingLevel->Modify();
 
 				// Update the loaded level's components so the change in color will apply immediately

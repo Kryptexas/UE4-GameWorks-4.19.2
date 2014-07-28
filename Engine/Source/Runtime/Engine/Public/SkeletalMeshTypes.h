@@ -1844,7 +1844,7 @@ protected:
 	class UPhysicsAsset* PhysicsAssetForDebug;
 
 	/** data copied for rendering */
-	FColor LevelColor;
+	FLinearColor LevelColor;
 	FColor PropertyColor;
 	uint32 bForceWireframe : 1;
 	uint32 bIsCPUSkinned : 1;

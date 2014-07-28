@@ -470,31 +470,6 @@ bool AEmitter::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 }
 #endif
 
-
-
-//----------------------------------------------------------------------------
-
-/**
- * Try to find a level color for the specified particle system component.
- */
-static FColor* GetLevelColor(UParticleSystemComponent* Component)
-{
-	FColor* LevelColor = NULL;
-
-	AActor* Owner = Component->GetOwner();
-	if ( Owner )
-	{
-		ULevel* Level = Owner->GetLevel();
-		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-		if ( LevelStreaming )
-		{
-			LevelColor = &LevelStreaming->DrawColor;
-		}
-	}
-
-	return LevelColor;
-}
-
 /*-----------------------------------------------------------------------------
 	UParticleLODLevel implementation.
 -----------------------------------------------------------------------------*/

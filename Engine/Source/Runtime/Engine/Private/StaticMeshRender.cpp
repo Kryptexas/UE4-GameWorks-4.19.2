@@ -106,7 +106,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 			ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 			if ( LevelStreaming )
 			{
-				LevelColor = LevelStreaming->DrawColor;
+				LevelColor = LevelStreaming->LevelColor;
 			}
 		}
 

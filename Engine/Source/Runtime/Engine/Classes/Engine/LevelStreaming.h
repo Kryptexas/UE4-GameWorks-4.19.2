@@ -125,9 +125,13 @@ class ULevelStreaming : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=LevelStreaming)
 	uint32 bDrawOnLevelStatusMap:1;
 
+	/** Deprecated level color used for visualization. */
+	UPROPERTY()
+	FColor DrawColor_DEPRECATED;
+
 	/** The level color used for visualization. (Show -> Advanced -> Level Coloration) */
-	UPROPERTY(EditAnywhere, Category = LevelStreaming, meta=(InterpretAsLinear))
-	FColor DrawColor;
+	UPROPERTY(EditAnywhere, Category = LevelStreaming)
+	FLinearColor LevelColor;
 
 	/** The level streaming volumes bound to this level.																		*/
 	UPROPERTY(EditAnywhere, Category=LevelStreaming, meta=(DisplayName = "Streaming Volumes", NoElementDuplicate))

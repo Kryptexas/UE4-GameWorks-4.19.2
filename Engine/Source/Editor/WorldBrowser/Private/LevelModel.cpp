@@ -339,14 +339,14 @@ bool FLevelModel::SupportsLevelColor() const
 	return false;
 }
 
-FColor FLevelModel::GetLevelColor() const
+FLinearColor FLevelModel::GetLevelColor() const
 {
 	// Returns Constant color, base classes will override this
 	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
-	return FColor::White;
+	return FLinearColor::White;
 }
 
-void FLevelModel::SetLevelColor(FColor InColor)
+void FLevelModel::SetLevelColor(FLinearColor InColor)
 {
 	// Does nothing, base classes will override this
 	// Currently not all base classes have the requisite support, so I've not made it pure virtual.

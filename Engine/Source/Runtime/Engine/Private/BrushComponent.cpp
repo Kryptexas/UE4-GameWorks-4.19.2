@@ -135,7 +135,7 @@ public:
 		bSolidWhenSelected(false),
 		bInManipulation(false),
 		BrushColor(GEngine->C_BrushWire),
-		LevelColor(255,255,255),
+		LevelColor(FLinearColor::White),
 		PropertyColor(255,255,255),
 		BodySetup(Component->BrushBodySetup),
 		CollisionResponse(Component->GetCollisionResponseToChannels())
@@ -170,7 +170,7 @@ public:
 				ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 				if ( LevelStreaming )
 				{
-					LevelColor = LevelStreaming->DrawColor;
+					LevelColor = LevelStreaming->LevelColor;
 				}
 			}
 		}
@@ -427,7 +427,7 @@ private:
 	uint32 bInManipulation : 1;
 
 	FColor BrushColor;
-	FColor LevelColor;
+	FLinearColor LevelColor;
 	FColor PropertyColor;
 
 	/** Collision Response of this component**/

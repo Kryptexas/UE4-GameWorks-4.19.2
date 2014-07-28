@@ -22,8 +22,8 @@ public:
 		, ScreenSize(InComponent->ScreenSize)
 		, U(InComponent->U)
 		, V(InComponent->V)
-		, Color(255,255,255)
-		, LevelColor(255,255,255)
+		, Color(FLinearColor::White)
+		, LevelColor(FLinearColor::White)
 		, PropertyColor(255,255,255)
 		, bIsScreenSizeScaled(InComponent->bIsScreenSizeScaled)
 #if WITH_EDITORONLY_DATA
@@ -74,11 +74,7 @@ public:
 #if WITH_EDITORONLY_DATA
 			else if (GIsEditor)
 			{
-				Color.R = 255;
-				Color.G = 255;
-				Color.B = 255;
-				// Ensure sprite is not transparent.
-				Color.A = 255;
+				Color = FLinearColor::White;
 			}
 #endif // WITH_EDITORONLY_DATA
 
@@ -94,7 +90,7 @@ public:
 			if (ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel(Level))
 			{
 				// Selection takes priority over level coloration.
-				LevelColor = LevelStreaming->DrawColor;
+				LevelColor = LevelStreaming->LevelColor;
 			}
 		}
 
@@ -158,7 +154,7 @@ public:
 			{
 				ColorToUse = FColor(255,0,0);
 			}
-			FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
+			FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : LevelColor;
 			FLinearColor PropertyColorToUse = PropertyColor;
 
 			const FLinearColor& SpriteColor = View->Family->EngineShowFlags.LevelColoration ? LevelColorToUse :
@@ -211,8 +207,8 @@ private:
 	float UL;
 	const float V;
 	float VL;
-	FColor Color;
-	FColor LevelColor;
+	FLinearColor Color;
+	FLinearColor LevelColor;
 	FColor PropertyColor;
 	const uint32 bIsScreenSizeScaled : 1;
 	uint32 bIsActorLocked : 1;

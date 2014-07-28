@@ -150,7 +150,7 @@ public:
 	FModelSceneProxy(UModelComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),
 		Component(InComponent),
-		LevelColor(255,255,255),
+		LevelColor(FLinearColor::White),
 		PropertyColor(255,255,255),
 		CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITOR
@@ -176,7 +176,7 @@ public:
 			ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 			if ( LevelStreaming )
 			{
-				LevelColor = LevelStreaming->DrawColor;
+				LevelColor = LevelStreaming->LevelColor;
 			}
 		}
 
@@ -663,7 +663,7 @@ private:
 	TArray<FElementInfo> Elements;
 	TArray<FVector2D> ElementLightMapResolutions;
 
-	FColor LevelColor;
+	FLinearColor LevelColor;
 	FColor PropertyColor;
 
 	FMaterialRelevance MaterialRelevance;

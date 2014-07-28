@@ -548,7 +548,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 ,	EditToolRenderData(InEditToolRenderData)
 ,	ComponentLightInfo(NULL)
 ,	LandscapeComponent(InComponent)
-,	LevelColor(1.f, 1.f, 1.f)
+,	LevelColor(FLinearColor::White)
 ,	ForcedLOD(InComponent->ForcedLOD)
 ,	LODBias(InComponent->LODBias)
 ,	LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
@@ -647,7 +647,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 			ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 			if ( LevelStreaming )
 			{
-				LevelColor = LevelStreaming->DrawColor;
+				LevelColor = LevelStreaming->LevelColor;
 			}
 		}
 	}

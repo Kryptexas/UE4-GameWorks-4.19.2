@@ -356,7 +356,6 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
-	const bool bInterpretAsLinear = StructPropertyHandle->HasMetaData("InterpretAsLinear");
 
 	FSlateFontInfo NormalText = IDetailLayoutBuilder::GetDetailFont();
 
@@ -380,7 +379,6 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 				.Color( this, &FColorStructCustomization::OnGetColorForColorBlock )
 				.ShowBackgroundForAlpha(true)
 				.IgnoreAlpha( bIgnoreAlpha )
-				.UseSRGB(!bInterpretAsLinear)
 				.OnMouseButtonDown( this, &FColorStructCustomization::OnMouseButtonDownColorBlock )
 				.Size( FVector2D( 35.0f, 12.0f ) )
 			]
@@ -403,7 +401,6 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 			.Color( this, &FColorStructCustomization::OnGetColorForColorBlock )
 			.ShowBackgroundForAlpha(false)
 			.IgnoreAlpha(true)
-			.UseSRGB(!bInterpretAsLinear)
 			.OnMouseButtonDown( this, &FColorStructCustomization::OnMouseButtonDownColorBlock )
 			.Size( FVector2D( 35.0f, 12.0f ) )
 		]
