@@ -991,43 +991,50 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Draw a debug line */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugLine(UObject* WorldContextObject, const FVector& LineStart, const FVector& LineEnd, FLinearColor LineColor, float Duration=-1.f, float Thickness = 0.f);
+	static ENGINE_API void DrawDebugLine(UObject* WorldContextObject, const FVector LineStart, const FVector LineEnd, FLinearColor LineColor, float Duration=0.f, float Thickness = 0.f);
 
 	/** Draw a debug point */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugPoint(UObject* WorldContextObject, const FVector& Position, float Size, FLinearColor PointColor, float Duration=0.f);
+	static ENGINE_API void DrawDebugPoint(UObject* WorldContextObject, const FVector Position, float Size, FLinearColor PointColor, float Duration=0.f);
 
 	/** Draw directional arrow, pointing from LineStart to LineEnd. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugArrow(UObject* WorldContextObject, const FVector& LineStart, const FVector& LineEnd, float ArrowSize, FLinearColor LineColor, float Duration=-1.f);
+	static ENGINE_API void DrawDebugArrow(UObject* WorldContextObject, const FVector LineStart, const FVector LineEnd, float ArrowSize, FLinearColor LineColor, float Duration=0.f);
 
 	/** Draw a debug box */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugBox(UObject* WorldContextObject, const FVector& Center, FVector Extent, FLinearColor LineColor, const FRotator Rotation=FRotator::ZeroRotator, float Duration=-1.f);
+	static ENGINE_API void DrawDebugBox(UObject* WorldContextObject, const FVector Center, FVector Extent, FLinearColor LineColor, const FRotator Rotation=FRotator::ZeroRotator, float Duration=0.f);
 
 	/** Draw a debug coordinate system. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugCoordinateSystem(UObject* WorldContextObject, const FVector& AxisLoc, const FRotator& AxisRot, float Scale);
+	static ENGINE_API void DrawDebugCoordinateSystem(UObject* WorldContextObject, const FVector AxisLoc, const FRotator AxisRot, float Scale=1.f, float Duration=0.f);
 
 	/** Draw a debug sphere */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(Segments="12",Radius="100",HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugSphere(UObject* WorldContextObject, const FVector& Center, float Radius, int32 Segments, FLinearColor LineColor, float Duration=-1.f);
+	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	static ENGINE_API void DrawDebugSphere(UObject* WorldContextObject, const FVector Center, float Radius=100.f, int32 Segments=12, FLinearColor LineColor = FLinearColor::White, float Duration=0.f);
 
 	/** Draw a debug cylinder */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(Segments="12",Radius="100",HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugCylinder(UObject* WorldContextObject, const FVector& Start, const FVector& End, float Radius, int32 Segments, FLinearColor LineColor);
+	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	static ENGINE_API void DrawDebugCylinder(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius=100.f, int32 Segments=12, FLinearColor LineColor = FLinearColor::White, float Duration=0.f);
 	
 	/** Draw a debug cone */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugCone(UObject* WorldContextObject, const FVector& Origin, const FVector& Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor LineColor);
+	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", DeprecatedFunction, DeprecationMessage="DrawDebugCone has been changed to use degrees for angles instead of radians. Place a new DrawDebugCone node and pass your angles as degrees."))
+	static ENGINE_API void DrawDebugCone(UObject* WorldContextObject, const FVector Origin, const FVector Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor LineColor);
+
+	/** 
+	 * Draw a debug cone 
+	 * Angles are specified in degrees
+	 */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", FriendlyName="DrawDebugCone"))
+	static ENGINE_API void DrawDebugConeInDegrees(UObject* WorldContextObject, const FVector Origin, const FVector Direction, float Length=100.f, float AngleWidth=45.f, float AngleHeight=45.f, int32 NumSides = 12, FLinearColor LineColor = FLinearColor::White, float Duration=0.f);
 
 	/** Draw a debug capsule */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugCapsule(UObject* WorldContextObject, const FVector& Center, float HalfHeight, float Radius, const FRotator& Rotation, FLinearColor LineColor, float Duration=-1.f);
+	static ENGINE_API void DrawDebugCapsule(UObject* WorldContextObject, const FVector Center, float HalfHeight, float Radius, const FRotator Rotation, FLinearColor LineColor = FLinearColor::White, float Duration=0.f);
 
 	/** Draw a debug string at a 3d world location. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugString(UObject* WorldContextObject, const FVector& TextLocation, const FString& Text, class AActor* TestBaseActor = NULL, FLinearColor TextColor = FLinearColor::White, float Duration=-1.f);
+	static ENGINE_API void DrawDebugString(UObject* WorldContextObject, const FVector TextLocation, const FString& Text, class AActor* TestBaseActor = NULL, FLinearColor TextColor = FLinearColor::White, float Duration=0.f);
 	/** 
 	 * Removes all debug strings. 
 	 *
@@ -1038,7 +1045,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Draws a debug plane. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugPlane(UObject* WorldContextObject, const FPlane& P, const FVector& Loc, float Size, FLinearColor PlaneColor, float Duration=-1.f);
+	static ENGINE_API void DrawDebugPlane(UObject* WorldContextObject, const FPlane PlaneCoordinates, const FVector Location, float Size, FLinearColor PlaneColor = FLinearColor::White, float Duration=0.f);
 
 	/** 
 	 * Flush all persistent debug lines and shapes.
@@ -1050,19 +1057,19 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Draws a debug frustum. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor);
+	static ENGINE_API void DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor = FLinearColor::White, float Duration=0.f);
 
 	/** Draw a debug camera shape. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug")
-	static ENGINE_API void DrawDebugCamera(const ACameraActor* CameraActor, FLinearColor CameraColor = FLinearColor::White, float Duration=-1.f);
+	static ENGINE_API void DrawDebugCamera(const ACameraActor* CameraActor, FLinearColor CameraColor = FLinearColor::White, float Duration=0.f);
 
 	/* Draws a 2D Histogram of size 'DrawSize' based FDebugFloatHistory struct, using DrawTransform for the position in the world. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Debug")
-	static ENGINE_API void DrawDebugFloatHistoryTransform(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, const FTransform & DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float Duration = -1.f);
+	static ENGINE_API void DrawDebugFloatHistoryTransform(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, const FTransform & DrawTransform, FVector2D DrawSize, FLinearColor DrawColor = FLinearColor::White, float Duration = 0.f);
 
 	/* Draws a 2D Histogram of size 'DrawSize' based FDebugFloatHistory struct, using DrawLocation for the location in the world, rotation will face camera of first player. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Debug")
-	static ENGINE_API void DrawDebugFloatHistoryLocation(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float Duration = -1.f);
+	static ENGINE_API void DrawDebugFloatHistoryLocation(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor = FLinearColor::White, float Duration = 0.f);
 
 	UFUNCTION(BlueprintPure, Category = "Rendering|Debug")
 	static ENGINE_API FDebugFloatHistory AddFloatHistorySample(float Value, const FDebugFloatHistory & FloatHistory);

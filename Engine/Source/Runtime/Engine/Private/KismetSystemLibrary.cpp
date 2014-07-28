@@ -2289,25 +2289,25 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 }
 
 /** Draw a debug line */
-void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const& LineStart, FVector const& LineEnd, FLinearColor Color, float LifeTime, float Thickness)
+void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, FLinearColor Color, float LifeTime, float Thickness)
 {
 	::DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, Color, false, LifeTime, SDPG_World, Thickness);
 }
 
 /** Draw a debug point */
-void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const& Position, float Size, FLinearColor PointColor, float LifeTime)
+void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const Position, float Size, FLinearColor PointColor, float LifeTime)
 {
 	::DrawDebugPoint(GEngine->GetWorldFromContextObject(WorldContextObject), Position, Size, PointColor, false, LifeTime, SDPG_World);
 }
 
 /** Draw directional arrow, pointing from LineStart to LineEnd. */
-void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const& LineStart, FVector const& LineEnd, float ArrowSize, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, float ArrowSize, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugDirectionalArrow(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, ArrowSize, Color, false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug box */
-void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const& Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime)
+void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (Rotation == FRotator::ZeroRotator)
@@ -2321,37 +2321,42 @@ void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector con
 }
 
 /** Draw a debug coordinate system. */
-void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const& AxisLoc, FRotator const& AxisRot, float Scale)
+void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const AxisLoc, FRotator const AxisRot, float Scale, float LifeTime)
 {
-	::DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), AxisLoc, AxisRot, Scale, false, SDPG_World);
+	::DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), AxisLoc, AxisRot, Scale, false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug sphere */
-void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const& Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugSphere(GEngine->GetWorldFromContextObject(WorldContextObject), Center, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug cylinder */
-void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const& Start, FVector const& End, float Radius, int32 Segments, FLinearColor Color)
+void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const Start, FVector const End, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugCylinder(GEngine->GetWorldFromContextObject(WorldContextObject), Start, End, Radius, Segments, Color.ToFColor(true), false, SDPG_World);
+	::DrawDebugCylinder(GEngine->GetWorldFromContextObject(WorldContextObject), Start, End, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug cone */
-void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const& Origin, FVector const& Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color)
+void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color)
 {
-	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, SDPG_World);
+	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, -1.f, SDPG_World);
+}
+
+void UKismetSystemLibrary::DrawDebugConeInDegrees(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color, float LifeTime)
+{
+	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, FMath::DegreesToRadians(AngleWidth), FMath::DegreesToRadians(AngleHeight), NumSides, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug capsule */
-void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const& Center, float HalfHeight, float Radius, const FRotator& Rotation, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const Center, float HalfHeight, float Radius, const FRotator Rotation, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugCapsule(GEngine->GetWorldFromContextObject(WorldContextObject), Center, HalfHeight, Radius, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug string at a 3d world location. */
-void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const& TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
+void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
 {
 	::DrawDebugString(GEngine->GetWorldFromContextObject( WorldContextObject ), TextLocation, Text, TestBaseActor, TextColor.ToFColor(true), Duration);
 }
@@ -2364,7 +2369,7 @@ void UKismetSystemLibrary::FlushDebugStrings( UObject* WorldContextObject )
 }
 
 /** Draws a debug plane. */
-void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const& P, FVector const& Loc, float Size, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const P, FVector const Loc, float Size, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugSolidPlane(GEngine->GetWorldFromContextObject( WorldContextObject ), P, Loc, Size, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
@@ -2377,12 +2382,12 @@ void UKismetSystemLibrary::FlushPersistentDebugLines(UObject* WorldContextObject
 }
 
 /** Draws a debug frustum. */
-void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor)
+void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor, float Duration)
 {
 	if( FrustumTransform.IsRotationNormalized() )
 	{
 		FMatrix FrustumToWorld =  FrustumTransform.ToMatrixWithScale();
-		::DrawDebugFrustum(GEngine->GetWorldFromContextObject(WorldContextObject), FrustumToWorld, FrustumColor, false, SDPG_World);
+		::DrawDebugFrustum(GEngine->GetWorldFromContextObject(WorldContextObject), FrustumToWorld, FrustumColor, false, Duration, SDPG_World);
 	}
 }
 
