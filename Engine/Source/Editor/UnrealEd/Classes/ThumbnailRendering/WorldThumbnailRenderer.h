@@ -22,6 +22,10 @@ private:
 	void GetView(UWorld* World, FSceneViewFamily* ViewFamily, int32 X, int32 Y, uint32 SizeX, uint32 SizeY) const; 
 
 private:
+	/** Offset used to orient all worlds to show a more vertical camera, if necessary. Individual thumbnail infos can provide additional offset. */
+	UPROPERTY(config)
+	float GlobalOrbitPitchOffset;
+
 	/** Offset used to orient all worlds to face the camera in degrees when using a perspective camera. Individual thumbnail infos can provide additional offset. */
 	UPROPERTY(config)
 	float GlobalOrbitYawOffset;

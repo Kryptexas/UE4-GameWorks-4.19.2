@@ -7,6 +7,7 @@
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	GlobalOrbitPitchOffset = 0.f;
 	GlobalOrbitYawOffset = 0.f;
 	bUseUnlitScene = false;
 	bAllowWorldThumbnails = false;
@@ -135,7 +136,7 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 				}
 			}
 
-			float OrbitPitch = ThumbnailInfo->OrbitPitch;
+			float OrbitPitch = GlobalOrbitPitchOffset + ThumbnailInfo->OrbitPitch;
 			float OrbitYaw = GlobalOrbitYawOffset + ThumbnailInfo->OrbitYaw;
 			float OrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
 
