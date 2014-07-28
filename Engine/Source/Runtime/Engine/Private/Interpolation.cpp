@@ -9655,7 +9655,7 @@ UInterpGroupInstDirector::UInterpGroupInstDirector(const class FPostConstructIni
 void UInterpGroupCamera::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 #if WITH_EDITORONLY_DATA
-	if (PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
 	{
 		UCameraAnim * CameraAnim = CastChecked<UCameraAnim>(GetOuter());
 		UInterpGroup* Group = CameraAnim->PreviewInterpGroup;
