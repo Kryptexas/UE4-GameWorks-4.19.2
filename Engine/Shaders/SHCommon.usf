@@ -5,6 +5,20 @@
 =============================================================================*/
 
 /** The SH coefficients for the projection of a function that maps directions to scalar values. */
+struct FOneBandSHVector
+{
+	half V;
+};
+
+/** The SH coefficients for the projection of a function that maps directions to RGB values. */
+struct FOneBandSHVectorRGB
+{
+	FOneBandSHVector R;
+	FOneBandSHVector G;
+	FOneBandSHVector B;
+};
+
+/** The SH coefficients for the projection of a function that maps directions to scalar values. */
 struct FTwoBandSHVector
 {
 	half4 V;
@@ -81,6 +95,21 @@ half3 DotSH(FTwoBandSHVectorRGB A,FTwoBandSHVector B)
 	return Result;
 }
 
+half DotSH1(FOneBandSHVector A,FOneBandSHVector B)
+{
+	half Result = A.V * B.V;
+	return Result;
+}
+
+half3 DotSH1(FOneBandSHVectorRGB A,FOneBandSHVector B)
+{
+	half3 Result = 0;
+	Result.r = DotSH1(A.R,B);
+	Result.g = DotSH1(A.G,B);
+	Result.b = DotSH1(A.B,B);
+	return Result;
+}
+
 half DotSH3(FThreeBandSHVector A,FThreeBandSHVector B)
 {
 	half Result = dot(A.V0, B.V0);
@@ -99,6 +128,14 @@ half3 DotSH3(FThreeBandSHVectorRGB A,FThreeBandSHVector B)
 }
 
 /** Computes the value of the SH basis functions for a given direction. */
+FOneBandSHVector SHBasisFunction1(half3 InputVector)
+{
+	FOneBandSHVector Result;
+	// These are derived from simplifying SHBasisFunction in C++
+	Result.V = 0.282095f; 
+	return Result;
+}
+
 FTwoBandSHVector SHBasisFunction(half3 InputVector)
 {
 	FTwoBandSHVector Result;
@@ -139,6 +176,20 @@ half SHAmbientFunction()
  * Computes the diffuse transfer function for a surface with the given normal and DiffusePower,
  * and projects it into the SH basis.
  */
+FOneBandSHVector CalcDiffuseTransferSH1(half3 Normal,half Exponent)
+{
+	FOneBandSHVector Result = SHBasisFunction1(Normal);
+
+	// These formula are scaling factors for each SH band that convolve a SH with the circularly symmetric function
+	// max(0,cos(theta))^Exponent
+	half L0 =					2 * PI / (1 + 1 * Exponent							);
+
+	// Multiply the coefficients in each band with the appropriate band scaling factor.
+	Result.V *= L0;
+
+	return Result;
+}
+
 FTwoBandSHVector CalcDiffuseTransferSH(half3 Normal,half Exponent)
 {
 	FTwoBandSHVector Result = SHBasisFunction(Normal);

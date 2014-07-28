@@ -156,11 +156,16 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		float4 OuterLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
 
 		// Lerp between cascades
+		float4 Vector0 = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+		
 		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
-		float4 TranslucentLighting = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+		FOneBandSHVectorRGB TranslucentLighting;
+		TranslucentLighting.R.V.x = Vector0.r;
+		TranslucentLighting.G.V.x = Vector0.g;
+		TranslucentLighting.B.V.x = Vector0.b;
 
-		float DiffuseTransfer = PI * 0.282095f;
-		float4 VolumeLighting = float4( TranslucentLighting.rgb * DiffuseTransfer, TranslucentLighting.a );
+		FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
+		float4 VolumeLighting = float4( DotSH1(TranslucentLighting, DiffuseTransferSH), Vector0.a );
 
 		// Determine lighting if no self shadowing is applied
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
@@ -239,8 +244,12 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
-			float3 PointIndirectLighting = float3(IndirectLightingSHCoefficients[0].x, IndirectLightingSHCoefficients[1].x, IndirectLightingSHCoefficients[2].x);
-			float3 DiffuseGI = PointIndirectLighting * DiffuseTransfer;
+			FOneBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0].x;
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
+
+			float3 DiffuseGI = DotSH1(PointIndirectLighting, DiffuseTransferSH);
 			IndirectIrradiance += Luminance(DiffuseGI);
 
 			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
