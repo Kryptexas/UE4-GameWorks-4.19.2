@@ -139,7 +139,7 @@ public:
 
 	hash_table *var_ht;
 
-	int if_statement_depth;
+	uintptr_t if_statement_depth;
 
 	ir_assignment *current_assignment;
 	ir_atomic *current_atomic;

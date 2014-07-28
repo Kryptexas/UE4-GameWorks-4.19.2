@@ -5,7 +5,7 @@
 #include <string.h>
 #if WIN32
 #include <Windows.h>
-#elif __APPLE__
+#else
 #include <stdarg.h>
 #include <syslog.h>
 #endif
@@ -37,7 +37,7 @@ static void dprintf(const char* Format, ...)
 	va_start(Args, Format);
 #if WIN32
 	Count = vsnprintf_s(Buf, BufSize, _TRUNCATE, Format, Args);
-#elif __APPLE__
+#else
 	Count = vsnprintf(Buf, BufSize, Format, Args);
 #endif
 	va_end(Args);

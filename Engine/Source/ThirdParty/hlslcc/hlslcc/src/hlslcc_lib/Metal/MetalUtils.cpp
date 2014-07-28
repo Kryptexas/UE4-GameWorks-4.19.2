@@ -1484,7 +1484,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			}
 
 			std::sort(VSStageInMembers.begin(), VSStageInMembers.end(),
-				[](glsl_struct_field& A, glsl_struct_field& B)
+				[](glsl_struct_field const& A, glsl_struct_field const& B)
 				{
 					return GetAttributeIndex(A.semantic) < GetAttributeIndex(B.semantic);
 				});

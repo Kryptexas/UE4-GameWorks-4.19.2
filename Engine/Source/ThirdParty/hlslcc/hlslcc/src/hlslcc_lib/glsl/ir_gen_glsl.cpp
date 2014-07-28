@@ -50,7 +50,7 @@ static bool GDefaultPrecisionIsHalf = true;
 
 static inline std::string FixHlslName(const glsl_type* Type)
 {
-	check(Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
+	check(Type->is_image() || Type->is_vector() || Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
 	std::string Name = Type->name;
 	if (Type == glsl_type::half_type)
 	{

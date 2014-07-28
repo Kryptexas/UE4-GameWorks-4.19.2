@@ -12,7 +12,8 @@ MAIN_SRCS = $(ROOT_DIR)/hlslcc_exe/main.cpp
 LIB_SRCS = $(wildcard $(ROOT_DIR)/hlslcc_lib/*.cpp) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.c) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.cpp) \
-	$(wildcard $(ROOT_DIR)/hlslcc_lib/glsl/*.cpp)
+	$(wildcard $(ROOT_DIR)/hlslcc_lib/glsl/*.cpp) \
+	$(wildcard $(ROOT_DIR)/hlslcc_lib/Metal/*.cpp)
 
 LIB_OBJS := $(LIB_SRCS:.cpp=.o)
 LIB_OBJS := $(LIB_OBJS:.c=.o)
