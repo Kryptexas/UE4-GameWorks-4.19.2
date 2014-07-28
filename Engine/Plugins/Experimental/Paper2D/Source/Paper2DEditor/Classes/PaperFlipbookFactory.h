@@ -11,6 +11,8 @@ class UPaperFlipbookFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
+	TArray<FPaperFlipbookKeyFrame> KeyFrames;
+
 	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 	// End of UFactory interface
