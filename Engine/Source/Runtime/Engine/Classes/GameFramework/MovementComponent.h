@@ -6,7 +6,6 @@
 
 #pragma once
 #include "Components/ActorComponent.h"
-#include "Components/PrimitiveComponent.h"
 #include "MovementComponent.generated.h"
 
 struct FCollisionQueryParams;

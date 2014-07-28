@@ -6,6 +6,7 @@
 #include "AI/Navigation/PImplRecastNavMesh.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "DetourCrowd/DetourCrowd.h"
+#include "Detour/DetourCommon.h"
 #endif
 
 #include "Navigation/CrowdManager.h"

@@ -10,10 +10,8 @@
 
 #if WITH_RECAST
 
-#include "DetourCommon.h"
-#include "DetourNavMesh.h"
-#include "DetourNavMeshQuery.h"
-#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "Detour/DetourNavMeshQuery.h"
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 

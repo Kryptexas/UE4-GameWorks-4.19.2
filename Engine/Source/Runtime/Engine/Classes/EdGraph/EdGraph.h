@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "BlueprintUtilities.h"
-#include "EdGraphSchema.h"
-#include "EdGraphNode.h"
-
 #include "EdGraph.generated.h"
+
+struct FEdGraphEditAction;
 
 USTRUCT()
 struct ENGINE_API FGraphReference
