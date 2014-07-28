@@ -691,11 +691,11 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 		// show settings widget
 		if (CustomWidget.IsValid())
 		{
-			CustomWidgetSlot->Widget = CustomWidget.ToSharedRef();
+			CustomWidgetSlot->AttachWidget( CustomWidget.ToSharedRef() );
 		}
 		else
 		{
-			CustomWidgetSlot->Widget = SNullWidget::NullWidget;
+			CustomWidgetSlot->AttachWidget( SNullWidget::NullWidget );
 		}
 
 		SettingsView->SetObject(SelectedSection->GetSettingsObject().Get());
@@ -721,7 +721,7 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 	}
 	else
 	{
-		CustomWidgetSlot->Widget = SNullWidget::NullWidget;
+		CustomWidgetSlot->AttachWidget( SNullWidget::NullWidget );
 		SettingsView->SetObject(nullptr);
 	}
 

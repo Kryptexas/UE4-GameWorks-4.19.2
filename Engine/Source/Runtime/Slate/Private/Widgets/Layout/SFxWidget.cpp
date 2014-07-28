@@ -103,7 +103,7 @@ int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 FVector2D SFxWidget::ComputeDesiredSize() const
 {
 	// Layout scale affects out desired size.
-	return LayoutScale.Get() * ChildSlot.Widget->GetDesiredSize();
+	return LayoutScale.Get() * ChildSlot.GetWidget()->GetDesiredSize();
 }
 
 
@@ -116,7 +116,7 @@ void SFxWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 
 		// Only layout scale affects the arranged geometry. This part is identical to DPI scaling.
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
-			this->ChildSlot.Widget,
+			this->ChildSlot.GetWidget(),
 			FVector2D::ZeroVector,
 			AllottedGeometry.Size / MyDPIScale,
 			MyDPIScale

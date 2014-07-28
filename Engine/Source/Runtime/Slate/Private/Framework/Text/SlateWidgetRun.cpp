@@ -57,9 +57,9 @@ int32 FSlateWidgetRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLine
 	return Info.Widget->Paint( Args, WidgetGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
-FChildren* FSlateWidgetRun::GetChildren()
+const TArray< TSharedRef<SWidget> >& FSlateWidgetRun::GetChildren()
 {
-	return &Children;
+	return Children;
 }
 
 void FSlateWidgetRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
@@ -123,7 +123,7 @@ FSlateWidgetRun::FSlateWidgetRun( const FSlateWidgetRun& Run )
 	: Text( Run.Text )
 	, Range( Run.Range )
 	, Info( Run.Info )
-	, Children( Run.Children )
+	, Children()
 {
 
 }

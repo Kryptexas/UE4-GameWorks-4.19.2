@@ -18,12 +18,13 @@ public:
 		int TheLayer;
 	};
 
-	class FSlot : public TSupportsOneChildMixin<SWidget, FSlot>, public TSupportsContentAlignmentMixin<FSlot>, public TSupportsContentPaddingMixin<FSlot>
+	class FSlot : public TSlotBase<FSlot>, public TSupportsContentAlignmentMixin<FSlot>, public TSupportsContentPaddingMixin<FSlot>
 	{
 		public:
 			/** Default values for a slot. */
 			FSlot( int32 Column, int32 Row, int32 InLayer )
-				: TSupportsContentAlignmentMixin<FSlot>(HAlign_Fill, VAlign_Fill)
+				: TSlotBase<FSlot>()
+				, TSupportsContentAlignmentMixin<FSlot>(HAlign_Fill, VAlign_Fill)
 				, ColumnParam( Column )
 				, ColumnSpanParam( 1 )
 				, RowParam( Row )
@@ -140,6 +141,8 @@ public:
 		TArray<float> RowFillCoefficients;
 		
 	SLATE_END_ARGS()
+
+	SGridPanel();
 
 	/** Removes all slots from the panel */
 	void ClearChildren();

@@ -17,18 +17,29 @@ class SLATE_API SWidgetSwitcher
 {
 public:
 
+	class FSlot : public TSlotBase<FSlot>, public TSupportsContentAlignmentMixin<FSlot>, public TSupportsContentPaddingMixin<FSlot>
+	{
+	public:
+		FSlot()
+			: TSlotBase<FSlot>()
+			,TSupportsContentAlignmentMixin<FSlot>( HAlign_Fill, VAlign_Fill )
+		{}
+	};
+
 	SLATE_BEGIN_ARGS(SWidgetSwitcher)
 		: _WidgetIndex(0)
 		{
 			_Visibility = EVisibility::SelfHitTestInvisible;
 		}
 
-		SLATE_SUPPORTS_SLOT(FSimpleSlot)
+		SLATE_SUPPORTS_SLOT(FSlot)
 
 		/** Holds the index of the initial widget to be displayed (INDEX_NONE = default). */
 		SLATE_ATTRIBUTE(int32, WidgetIndex)
 
 	SLATE_END_ARGS()
+
+	SWidgetSwitcher();
 
 public:
 
@@ -37,7 +48,7 @@ public:
 	 *
 	 * @param SlotIndex - The index at which to insert the slot, or INDEX_NONE to append.
 	 */
-	FSimpleSlot& AddSlot( int32 SlotIndex = INDEX_NONE );
+	FSlot& AddSlot( int32 SlotIndex = INDEX_NONE );
 
 	/**
 	 * Removes a slot with the corresponding widget in it.  Returns the index where the widget was found, otherwise -1.
@@ -118,9 +129,9 @@ public:
 	 *
 	 * @return A new slot.
 	 */
-	static FSimpleSlot& Slot( )
+	static FSlot& Slot( )
 	{
-		return *(new FSimpleSlot());
+		return *(new FSlot());
 	}
 
 protected:
@@ -143,20 +154,20 @@ private:
 	{
 	public:
 
-		FOneDynamicChild( TPanelChildren<FSimpleSlot>* InAllChildren = NULL, const TAttribute<int32>* InWidgetIndex = NULL )
+		FOneDynamicChild( TPanelChildren<FSlot>* InAllChildren = NULL, const TAttribute<int32>* InWidgetIndex = NULL )
 			: AllChildren( InAllChildren )
 			, WidgetIndex( InWidgetIndex )
 		{ }
 		
 		virtual int32 Num() const override { return AllChildren->Num() > 0 ? 1 : 0; }
 		
-		virtual TSharedRef<SWidget> GetChildAt( int32 Index ) override { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
+		virtual TSharedRef<SWidget> GetChildAt( int32 Index ) override { check(Index == 0); return AllChildren->GetChildAt(WidgetIndex->Get()); }
 		
-		virtual TSharedRef<const SWidget> GetChildAt( int32 Index ) const override { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
+		virtual TSharedRef<const SWidget> GetChildAt( int32 Index ) const override { check(Index == 0); return AllChildren->GetChildAt(WidgetIndex->Get()); }
 		
 	private:
 
-		TPanelChildren<FSimpleSlot>* AllChildren;
+		TPanelChildren<FSlot>* AllChildren;
 		const TAttribute<int32>* WidgetIndex;
 
 	} OneDynamicChild;
@@ -165,5 +176,5 @@ private:
 	TAttribute<int32> WidgetIndex;
 
 	// Holds the collection of widgets.
-	TPanelChildren<FSimpleSlot> AllChildren;
+	TPanelChildren<FSlot> AllChildren;
 };

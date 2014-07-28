@@ -50,7 +50,7 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 		{
 			const SBoxPanel::FSlot& CurChild = Children[ChildIndex];
 
-			if ( CurChild.Widget->GetVisibility() != EVisibility::Collapsed )
+			if ( CurChild.GetWidget()->GetVisibility() != EVisibility::Collapsed )
 			{
 				// All widgets contribute their margin to the fixed space requirement
 				FixedTotal += CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orientation>();
@@ -77,8 +77,8 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 				{
 					// Auto-sized children contribute their desired size to the fixed space requirement
 					float ChildSize = (Orientation == Orient_Vertical)
-					? CurChild.Widget->GetDesiredSize().Y
-					: CurChild.Widget->GetDesiredSize().X;
+					? CurChild.GetWidget()->GetDesiredSize().Y
+					: CurChild.GetWidget()->GetDesiredSize().X;
 
 					// Clamp to the max size if it was specified
 					float MaxSize = CurChild.MaxSize.Get();
@@ -100,9 +100,9 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 		for( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
 			const SBoxPanel::FSlot& CurChild = Children[ChildIndex];
-			const EVisibility ChildVisibility = CurChild.Widget->GetVisibility();
+			const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
 
-			FVector2D ChildDesiredSize = CurChild.Widget->GetDesiredSize();
+			FVector2D ChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
 			
 			// Figure out the area allocated to the child in the direction of BoxPanel
 			// The area allocated to the slot is ChildSize + the associated margin.
@@ -152,7 +152,7 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
 				// The child widget being arranged
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				// Child's local position (i.e. position within parent)
 				(Orientation == Orient_Vertical)
 					? FVector2D( XAlignmentResult.Offset, PositionSoFar + YAlignmentResult.Offset )
@@ -208,8 +208,8 @@ static FVector2D ComputeDesiredSizeForBox( const TPanelChildren<SBoxPanel::FSlot
 	for( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
 		const SBoxPanel::FSlot& CurChild = Children[ChildIndex];
-		const FVector2D& CurChildDesiredSize = CurChild.Widget->GetDesiredSize();
-		if ( CurChild.Widget->GetVisibility() != EVisibility::Collapsed )
+		const FVector2D& CurChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+		if ( CurChild.GetWidget()->GetVisibility() != EVisibility::Collapsed )
 		{
 			if (Orientation == Orient_Vertical)
 			{
@@ -300,7 +300,7 @@ int32 SBoxPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if ( SlotWidget == Children[SlotIdx].Widget )
+		if ( SlotWidget == Children[SlotIdx].GetWidget() )
 		{
 			Children.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -322,6 +322,7 @@ void SBoxPanel::ClearChildren()
  */
 SBoxPanel::SBoxPanel( EOrientation InOrientation )
 : Orientation(InOrientation)
+, Children()
 {
 
 }

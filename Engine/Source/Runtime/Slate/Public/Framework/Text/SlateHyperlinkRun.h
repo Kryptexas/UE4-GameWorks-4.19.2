@@ -54,7 +54,7 @@ public:
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
-	virtual FChildren* GetChildren() override;
+	virtual const TArray< TSharedRef<SWidget> >& GetChildren() override;
 
 	virtual void ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
@@ -92,7 +92,7 @@ private:
 	FOnClick NavigateDelegate;
 
 	TSharedRef< FWidgetViewModel > ViewModel;
-	TSlotlessChildren< SWidget > Children;
+	TArray< TSharedRef<SWidget> > Children;
 };
 
 #endif //WITH_FANCY_TEXT

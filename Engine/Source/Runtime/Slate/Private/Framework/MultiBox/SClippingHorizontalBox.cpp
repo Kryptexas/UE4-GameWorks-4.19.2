@@ -117,7 +117,7 @@ FVector2D SClippingHorizontalBox::ComputeDesiredSize() const
 	{
 		// If the wrap button isn't being shown, subtract it's size from the total desired size
 		const SBoxPanel::FSlot& Child = Children[Children.Num() - 1];
-		const FVector2D& ChildDesiredSize = Child.Widget->GetDesiredSize();
+		const FVector2D& ChildDesiredSize = Child.GetWidget()->GetDesiredSize();
 		Size.X -= ChildDesiredSize.X;
 	}
 	return Size;

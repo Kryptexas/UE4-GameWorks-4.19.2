@@ -233,6 +233,8 @@ public:
 		SLATE_ARGUMENT( const FSlateBrush*, StyleInfo )
 	SLATE_END_ARGS()
 
+	STrack();
+
 	void			Construct( const FArguments& InArgs );
 
 	virtual void	OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;

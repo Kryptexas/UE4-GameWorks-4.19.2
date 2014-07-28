@@ -33,7 +33,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsE
 		.OnGenerateRow( this, &SPluginList::PluginListView_OnGenerateRow )
 		;
 
-	ChildSlot.Widget = PluginListView.ToSharedRef();
+	ChildSlot.AttachWidget( PluginListView.ToSharedRef() );
 }
 
 

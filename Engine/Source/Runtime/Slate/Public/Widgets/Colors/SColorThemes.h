@@ -238,6 +238,8 @@ public:
 
 	SLATE_END_ARGS()
 
+	SThemeColorBlocksBar();
+
 	/**
 	 * Most panels do not create widgets as part of their implementation, so
 	 * they do not need to implement a Construct()

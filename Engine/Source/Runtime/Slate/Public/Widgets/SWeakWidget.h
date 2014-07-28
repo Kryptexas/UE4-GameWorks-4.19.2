@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWeakWidget.h: Declares the SWeakWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,8 +11,7 @@
  *      by a floating window. That window cannot own the tooltip
  *      and must therefore use an SWeakWidget.
  */
-class SLATE_API SWeakWidget
-	: public SWidget
+class SLATE_API SWeakWidget : public SWidget
 {
 public:
 
@@ -28,10 +23,11 @@ public:
 	SLATE_END_ARGS()
 
 public:
+	SWeakWidget();
 
 	void Construct(const FArguments& InArgs);
 
-	void SetContent(TWeakPtr<SWidget> InWidget);
+	void SetContent(const TSharedRef<SWidget>& InWidget);
 
 	bool ChildWidgetIsValid() const;
 

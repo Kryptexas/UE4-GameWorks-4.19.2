@@ -6,6 +6,11 @@
 
 FNoChildren SListPanel::NoChildren = FNoChildren();
 
+SListPanel::SListPanel()
+: Children()
+{
+}
+
 /**
  * Construct the widget
  *
@@ -63,7 +68,7 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 		{
 			ArrangedChildren.AddWidget(
-				AllottedGeometry.MakeChild( Children[ItemIndex].Widget, FVector2D(WidthSoFar + HalfItemPadding, HeightSoFar), FVector2D(LocalItemWidth, LocalItemHeight) )
+				AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(WidthSoFar + HalfItemPadding, HeightSoFar), FVector2D(LocalItemWidth, LocalItemHeight) )
 				);
 
 			WidthSoFar += LocalItemWidth + ItemPadding;
@@ -80,16 +85,16 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		if (Children.Num() > 0)
 		{
 			// This is a normal list, arrange items vertically
-			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].Widget->GetDesiredSize().Y)-OverscrollAmount;
+			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].GetWidget()->GetDesiredSize().Y)-OverscrollAmount;
 			for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 			{
-					const FVector2D ItemDesiredSize = Children[ItemIndex].Widget->GetDesiredSize();
+					const FVector2D ItemDesiredSize = Children[ItemIndex].GetWidget()->GetDesiredSize();
 					const float LocalItemHeight = ItemDesiredSize.Y;
 
 				// Note that ListPanel does not respect child Visibility.
 				// It is simply not useful for ListPanels.
 				ArrangedChildren.AddWidget(
-					AllottedGeometry.MakeChild( Children[ItemIndex].Widget, FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.Size.X, LocalItemHeight) )
+					AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.Size.X, LocalItemHeight) )
 					);
 
 				HeightSoFar += LocalItemHeight;
@@ -136,7 +141,7 @@ FVector2D SListPanel::ComputeDesiredSize() const
 	{
 		// Notice that we do not respect child Visibility.
 		// It is simply not useful for ListPanels.
-		FVector2D ChildDesiredSize = Children[ItemIndex].Widget->GetDesiredSize();
+		FVector2D ChildDesiredSize = Children[ItemIndex].GetWidget()->GetDesiredSize();
 		MaxWidth = FMath::Max( ChildDesiredSize.X, MaxWidth );
 		TotalHeight += ChildDesiredSize.Y;
 	}

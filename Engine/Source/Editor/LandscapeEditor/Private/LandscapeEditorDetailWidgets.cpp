@@ -191,7 +191,8 @@ void SToolSelector::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNa
 	EMultiBlockLocation::Type BlockLocation = GetMultiBlockLocation();
 	FName BlockStyle = EMultiBlockLocation::ToName(FEditorStyle::Join( StyleName, ".Button" ), BlockLocation);
 
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew(SComboButton)
 			.ContentPadding(0)
 			.ButtonStyle( FEditorStyle::Get(), BlockStyle )
@@ -202,7 +203,7 @@ void SToolSelector::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNa
 				ButtonContent
 			]
 			.OnGetMenuContent(this, &SToolSelector::OnGetMenuContent)
-		;
+	];
 
 	ChildSlot.Padding(FEditorStyle::GetMargin(FEditorStyle::Join(StyleName, ".SToolBarComboButtonBlock.Padding")));
 

@@ -18,7 +18,7 @@ public:
 	/**
 	 * Canvas slots allow child widgets to be positioned and sized
 	 */
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:		
 		FSlot& Position( const TAttribute<FVector2D>& InPosition )
@@ -33,18 +33,6 @@ public:
 			return *this;
 		}
 
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
-		}
-
-		FSlot& Expose( FSlot*& OutVarToInit )
-		{
-			OutVarToInit = this;
-			return *this;
-		}
-
 		FSlot& HAlign( EHorizontalAlignment InHAlignment )
 		{
 			HAlignment = InHAlignment;
@@ -56,9 +44,6 @@ public:
 			VAlignment = InVAlignment;
 			return *this;
 		}
-
-		/** The child widget contained in this slot. */
-		TSharedRef<SWidget> Widget;
 
 		/** Position */
 		TAttribute<FVector2D> PositionAttr;
@@ -96,7 +81,7 @@ public:
 
 		/** Default values for a slot. */
 		FSlot()
-			: Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>()
 			, PositionAttr( FVector2D::ZeroVector )
 			, SizeAttr( FVector2D( 1.0f, 1.0f ) )
 			, HAlignment(HAlign_Left)
@@ -112,6 +97,8 @@ public:
 		SLATE_SUPPORTS_SLOT( SCanvas::FSlot )
 
 	SLATE_END_ARGS()
+
+	SCanvas();
 
 	/**
 	 * Construct this widget
@@ -132,7 +119,7 @@ public:
 	 */
 	FSlot& AddSlot()
 	{
-		SCanvas::FSlot& NewSlot = SCanvas::Slot();
+		SCanvas::FSlot& NewSlot = *new FSlot();
 		this->Children.Add( &NewSlot );
 		return NewSlot;
 	}

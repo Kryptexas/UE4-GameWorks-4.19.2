@@ -8,13 +8,10 @@
 
 
 /**
- * Implements a compound widget.
- *
  * A CompoundWidget is the base from which most non-primitive widgets should be built.
  * CompoundWidgets have a protected member named ChildSlot.
  */
-class SLATECORE_API SCompoundWidget
-	: public SWidget
+class SLATECORE_API SCompoundWidget : public SWidget
 {
 public:
 
@@ -84,16 +81,8 @@ public:
 
 protected:
 
-	/**
-	 * Hidden constructor.
-	 */
-	FORCENOINLINE SCompoundWidget()
-		: ContentScale(FVector2D(1.0f, 1.0f))
-		, ColorAndOpacity(FLinearColor::White)
-		, ForegroundColor(FSlateColor::UseForeground())
-	{ }
-
-protected:
+	/** Disallow public construction */
+	SCompoundWidget();
 
 	/** The slot that contains this widget's descendants.*/
 	FSimpleSlot ChildSlot;

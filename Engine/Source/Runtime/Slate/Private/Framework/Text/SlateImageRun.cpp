@@ -6,8 +6,6 @@
 
 #include "SlateImageRun.h"
 
-FNoChildren FSlateImageRun::NoChildrenInstance;
-
 TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline )
 {
 	if ( InImage == NULL )
@@ -46,9 +44,10 @@ FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const
 	check( Image != NULL );
 }
 
-FChildren* FSlateImageRun::GetChildren() 
+const TArray< TSharedRef<SWidget> >& FSlateImageRun::GetChildren() 
 {
-	return &NoChildrenInstance;
+	static TArray< TSharedRef<SWidget> > NoChildren;
+	return NoChildren;
 }
 
 void FSlateImageRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 

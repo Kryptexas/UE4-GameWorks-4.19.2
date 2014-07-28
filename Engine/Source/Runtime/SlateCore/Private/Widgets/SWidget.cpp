@@ -61,6 +61,13 @@ FReply SWidget::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 	return FReply::Unhandled();
 }
 
+void SWidget::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+{
+}
+
+void SWidget::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+{
+}
 
 FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
@@ -231,6 +238,9 @@ EWindowZone::Type SWidget::GetWindowZoneOverride() const
 	return EWindowZone::Unspecified;
 }
 
+void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+}
 
 bool SWidget::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
 {
@@ -249,7 +259,7 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
-	// Recurse!
+	// Recur!
 	for(int32 ChildIndex=0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
@@ -472,6 +482,9 @@ TSharedPtr<IToolTip> SWidget::GetToolTip()
 	return ToolTip;
 }
 
+void SWidget::OnToolTipClosing()
+{
+}
 
 void SWidget::EnableToolTipForceField( const bool bEnableForceField )
 {

@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateApplication.cpp: Implements the FSlateApplication class.
-=============================================================================*/
 
 #include "SlatePrivatePCH.h"
 #include "SWindowTitleBar.h"

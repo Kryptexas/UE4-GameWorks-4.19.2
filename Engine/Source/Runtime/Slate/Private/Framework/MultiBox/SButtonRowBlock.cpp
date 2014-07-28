@@ -137,8 +137,8 @@ void SButtonRowBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 	const EUserInterfaceActionType::Type UserInterfaceType = ButtonRowBlock->GetAction().IsValid() ? ButtonRowBlock->GetAction()->GetUserInterfaceType() : ButtonRowBlock->UserInterfaceActionTypeOverride;
 	if( UserInterfaceType == EUserInterfaceActionType::Button )
 	{
-		ChildSlot.Widget =
-
+		ChildSlot
+		[
 			// Create a button
 			SNew( SButton )
 
@@ -158,12 +158,12 @@ void SButtonRowBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 
 				// Bind the button's "on clicked" event to our object's method for this
 				.OnClicked( this, &SButtonRowBlock::OnClicked )
-			;
+		];
 	}
 	else if( ensure( UserInterfaceType == EUserInterfaceActionType::ToggleButton ) )
 	{
-		ChildSlot.Widget =
-
+		ChildSlot
+		[
 			// Create a check box
  			SAssignNew( ToggleButton, SCheckBox )
  
@@ -184,8 +184,8 @@ void SButtonRowBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 				.OnCheckStateChanged( this, &SButtonRowBlock::OnCheckStateChanged )
 
 				// Bind the check box's "checked" state to our user interface action
-				.IsChecked( this, &SButtonRowBlock::OnIsChecked );
-			;
+				.IsChecked( this, &SButtonRowBlock::OnIsChecked )
+		];
 	}
 
 

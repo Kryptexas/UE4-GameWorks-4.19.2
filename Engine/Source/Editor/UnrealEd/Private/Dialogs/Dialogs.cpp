@@ -777,27 +777,30 @@ void SGenericDialogWidget::Construct( const FArguments& InArgs )
 	TSharedPtr< SScrollBox > ScrollBox;
 
 	this->ChildSlot
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.MaxHeight(300.0f)
 		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			SAssignNew(ScrollBox, SScrollBox)
+		]
+
+		+SVerticalBox::Slot()
+			.HAlign(HAlign_Right)
 			.AutoHeight()
-			.MaxHeight(300.0f)
+			.Padding(0.0f, 2.0f, 0.0f, 0.0f)
 			[
-				SAssignNew(ScrollBox, SScrollBox)
+				SNew(SButton)
+					.Text( NSLOCTEXT("UnrealEd", "OK", "OK") )
+					.OnClicked(this, &SGenericDialogWidget::OnOK_Clicked)
 			]
+	];
 
-			+SVerticalBox::Slot()
-				.HAlign(HAlign_Right)
-				.AutoHeight()
-				.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-				[
-					SNew(SButton)
-						.Text( NSLOCTEXT("UnrealEd", "OK", "OK") )
-						.OnClicked(this, &SGenericDialogWidget::OnOK_Clicked)
-				]
-		];
-
-	ScrollBox->AddSlot().Widget = InArgs._Content.Widget;
+	ScrollBox->AddSlot()
+	[
+		InArgs._Content.Widget
+	];
 }
 
 void SGenericDialogWidget::OpenDialog (const FText& InDialogTitle, const TSharedRef< SWidget >& DisplayContent)

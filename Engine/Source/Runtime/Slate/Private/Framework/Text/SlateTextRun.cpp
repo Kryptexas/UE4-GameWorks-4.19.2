@@ -6,8 +6,6 @@
 
 #include "SlateTextRun.h"
 
-FNoChildren FSlateTextRun::NoChildrenInstance;
-
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
 	return MakeShareable( new FSlateTextRun( InText, Style ) );
@@ -111,9 +109,10 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	return LayerId;
 }
 
-FChildren* FSlateTextRun::GetChildren()
+const TArray< TSharedRef<SWidget> >& FSlateTextRun::GetChildren()
 {
-	return &NoChildrenInstance;
+	static TArray< TSharedRef<SWidget> > NoChildren;
+	return NoChildren;
 }
 
 void FSlateTextRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 

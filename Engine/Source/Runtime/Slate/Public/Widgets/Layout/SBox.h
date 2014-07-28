@@ -9,11 +9,12 @@
 class SLATE_API SBox : public SPanel
 {
 	public:
-		class FBoxSlot : public TSupportsContentAlignmentMixin<FBoxSlot>, public TSupportsContentPaddingMixin<FBoxSlot>, public TSupportsOneChildMixin<SWidget, FBoxSlot>
+		class FBoxSlot : public TSupportsOneChildMixin<FBoxSlot>, public TSupportsContentAlignmentMixin<FBoxSlot>, public TSupportsContentPaddingMixin<FBoxSlot>
 		{
 			public:
 				FBoxSlot()
-				: TSupportsContentAlignmentMixin<FBoxSlot>(HAlign_Fill, VAlign_Fill)
+				: TSupportsOneChildMixin<FBoxSlot>()
+				, TSupportsContentAlignmentMixin<FBoxSlot>(HAlign_Fill, VAlign_Fill)
 				{
 				}
 		};
@@ -49,6 +50,8 @@ class SLATE_API SBox : public SPanel
 
 		SLATE_END_ARGS()
 
+		SBox();
+
 		void Construct( const FArguments& InArgs );
 
 
@@ -58,6 +61,7 @@ class SLATE_API SBox : public SPanel
 		virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 private:
+
 		FBoxSlot ChildSlot;
 
 		/** When specified, ignore the content's desired size and report the.WidthOverride as the Box's desired width. */

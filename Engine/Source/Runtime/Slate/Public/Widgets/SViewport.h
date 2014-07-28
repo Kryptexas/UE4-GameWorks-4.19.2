@@ -102,7 +102,7 @@ public:
 		];
 	}
 
-	const TSharedPtr<SWidget> GetContent() const { return ChildSlot.Widget; }
+	const TSharedPtr<SWidget> GetContent() const { return ChildSlot.GetWidget(); }
 
 	/**
 	 * A delegate called when the viewports top level window is being closed

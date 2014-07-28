@@ -34,20 +34,14 @@ public:
 		float );
 
 public:
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:		
 		FSlot()
-		: SizingRule( FractionOfParent )
-		, SizeValue( 1 )
-		, Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>()
+			, SizingRule( FractionOfParent )
+			, SizeValue( 1 )
 		{
-		}
-
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
 		}
 
 		FSlot& Value( const TAttribute<float>& InValue )
@@ -68,15 +62,8 @@ public:
 			return *this;
 		}
 
-		FSlot& Expose( FSlot*& OutVarToInit )
-		{
-			OutVarToInit = this;
-			return *this;
-		}
-
 		TAttribute<ESizeRule> SizingRule;
 		TAttribute<float> SizeValue;
-		TSharedRef<SWidget> Widget;
 		FOnSlotResized OnSlotResized_Handler;
 	};
 
@@ -290,28 +277,21 @@ protected:
 class SLATE_API SSplitter2x2 : public SPanel
 {
 public:
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:	
 		/** Default Constructor.  Initially each slot takes up a quarter of the entire space */
 		FSlot()
-			: PercentageAttribute( FVector2D(0.5, 0.5) )
-			, Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>( SNullWidget::NullWidget )
+			, PercentageAttribute( FVector2D(0.5, 0.5) )
 		{
 		}
 
 		/** Copy Constructor */
 		FSlot( const TSharedRef<SWidget>& InWidget )
-			: PercentageAttribute( FVector2D(0.5, 0.5) )
-			, Widget( InWidget )
+			: TSlotBase<FSlot>( InWidget )
+			, PercentageAttribute( FVector2D(0.5, 0.5) )
 		{
-		}
-
-		/** Declarative syntax support */
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
 		}
 
 		/**
@@ -327,8 +307,6 @@ public:
 	public:
 		/** The percentage of the alloted space of the splitter that this slot requires */
 		TAttribute<FVector2D> PercentageAttribute;
-		/** The widget in this slot */
-		TSharedRef<SWidget> Widget;
 	};
 
 	SLATE_BEGIN_ARGS( SSplitter2x2 ){}
@@ -338,6 +316,7 @@ public:
 		SLATE_NAMED_SLOT( FArguments, BottomRight )
 	SLATE_END_ARGS()
 
+	SSplitter2x2();
 
 	void Construct( const FArguments& InArgs );
 

@@ -23,51 +23,53 @@ void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRe
 	// Figure out which font size to use
 	const auto bIsRootItem = !Item->GetParentCategory().IsValid();
 
-	ChildSlot.Widget = 
-	SNew( SBorder )
-	.BorderImage( FPluginStyle::Get()->GetBrush(bIsRootItem ? "CategoryTreeItem.Root.BackgroundBrush" : "CategoryTreeItem.BackgroundBrush") )
-	.Padding(FPluginStyle::Get()->GetMargin(bIsRootItem ? "CategoryTreeItem.Root.BackgroundPadding" : "CategoryTreeItem.BackgroundPadding") )
-	[
-		SNew( SHorizontalBox )
-
-		// Icon image
-		+SHorizontalBox::Slot()
-		.Padding( PaddingAmount )
-		.AutoWidth()
-		.VAlign(VAlign_Center)
+	ChildSlot
+	[ 
+		SNew( SBorder )
+		.BorderImage( FPluginStyle::Get()->GetBrush(bIsRootItem ? "CategoryTreeItem.Root.BackgroundBrush" : "CategoryTreeItem.BackgroundBrush") )
+		.Padding(FPluginStyle::Get()->GetMargin(bIsRootItem ? "CategoryTreeItem.Root.BackgroundPadding" : "CategoryTreeItem.BackgroundPadding") )
 		[
-			SNew( SBox )
-			.WidthOverride( CategoryIconSize )
-			.HeightOverride( CategoryIconSize )
+			SNew( SHorizontalBox )
+
+			// Icon image
+			+SHorizontalBox::Slot()
+			.Padding( PaddingAmount )
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
-				SNew( SImage )
-				.Image( this, &SPluginCategoryTreeItem::GetIconBrush )
+				SNew( SBox )
+				.WidthOverride( CategoryIconSize )
+				.HeightOverride( CategoryIconSize )
+				[
+					SNew( SImage )
+					.Image( this, &SPluginCategoryTreeItem::GetIconBrush )
+				]
 			]
-		]
 
-		// Category name
-		+SHorizontalBox::Slot()
-		.Padding( PaddingAmount )
-		.VAlign(VAlign_Center)
-		[
-			SNew( STextBlock )
-			.Text( Item->GetCategoryDisplayName() )
-			.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.Text" : "CategoryTreeItem.Text" )
-		]
+			// Category name
+			+SHorizontalBox::Slot()
+			.Padding( PaddingAmount )
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
+				.Text( Item->GetCategoryDisplayName() )
+				.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.Text" : "CategoryTreeItem.Text" )
+			]
 			
-		// Plugin count
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding( PaddingAmount )
-		.VAlign(VAlign_Center)
-		[
-			SNew( STextBlock )
+			// Plugin count
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( PaddingAmount )
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
 
-			// Only display if at there is least one plugin is in this category
-			.Visibility( Item->GetPlugins().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed )
+				// Only display if at there is least one plugin is in this category
+				.Visibility( Item->GetPlugins().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed )
 
-			.Text( FText::Format( LOCTEXT( "NumberOfPluginsWrapper", "({0})" ), FText::AsNumber( Item->GetPlugins().Num() ) ) )
-			.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.PluginCountText" : "CategoryTreeItem.PluginCountText" )
+				.Text( FText::Format( LOCTEXT( "NumberOfPluginsWrapper", "({0})" ), FText::AsNumber( Item->GetPlugins().Num() ) ) )
+				.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.PluginCountText" : "CategoryTreeItem.PluginCountText" )
+			]
 		]
 	];
 }

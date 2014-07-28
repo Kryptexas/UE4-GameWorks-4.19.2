@@ -141,7 +141,8 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 	FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".Button" ), BlockLocation);
 	FName ColorStyle = ISlateStyle::Join( StyleName, ".SToolBarComboButtonBlock.ComboButton.Color" );
 
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew( SComboButton )
 			.ContentPadding(0)
 
@@ -160,7 +161,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 
 			// Route the content generator event
 			.OnGetMenuContent( this, &SToolBarComboButtonBlock::OnGetMenuContent )
-		;
+	];
 
 	ChildSlot.Padding(StyleSet->GetMargin(ISlateStyle::Join( StyleName, ".SToolBarComboButtonBlock.Padding" )));
 	// Bind our widget's enabled state to whether or not our action can execute

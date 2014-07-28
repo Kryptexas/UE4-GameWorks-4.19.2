@@ -12,21 +12,12 @@ class SListPanel : public SPanel
 {
 public:
 	/** A ListPanel slot is very simple - it just stores a widget. */
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
-	public:		
+	public:
 		FSlot()
-		: Widget( SNullWidget::NullWidget )
-		{
-		}
-
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
-		}
-
-		TSharedRef<SWidget> Widget;
+		: TSlotBase<FSlot>()
+		{}
 	};
 	
 	/** Make a new ListPanel::Slot  */
@@ -49,6 +40,8 @@ public:
 
 	SLATE_END_ARGS()
 	
+	SListPanel();
+
 	/**
 	 * Construct the widget
 	 *

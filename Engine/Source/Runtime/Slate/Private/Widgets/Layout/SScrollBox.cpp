@@ -20,6 +20,11 @@ public:
 		}
 	SLATE_END_ARGS()
 
+	SScrollPanel()
+	: Children()
+	{
+	}
+
 	void Construct( const FArguments& InArgs, const TArray<SScrollBox::FSlot*>& InSlots )
 	{
 		PhysicalOffset = 0;
@@ -39,19 +44,19 @@ public:
 		for( int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
 		{
 			const SScrollBox::FSlot& ThisSlot = Children[SlotIndex];
-			const EVisibility ChildVisibility = ThisSlot.Widget->GetVisibility();
+			const EVisibility ChildVisibility = ThisSlot.GetWidget()->GetVisibility();
 
 			if ( ChildVisibility != EVisibility::Collapsed )
 			{
 				const FMargin& ThisPadding = ThisSlot.SlotPadding.Get();
-				const FVector2D& WidgetDesiredSize = ThisSlot.Widget->GetDesiredSize();
+				const FVector2D& WidgetDesiredSize = ThisSlot.GetWidget()->GetDesiredSize();
 				const float ThisSlotDesiredHeight = WidgetDesiredSize.Y + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
 
 				// Figure out the size and local position of the child within the slot
 				// There is no vertical alignment, because it does not make sense in a panel where items are stacked end-to-end
 				AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.Size.X, ThisSlot, ThisPadding );
 
-				ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( ThisSlot.Widget, FVector2D(XAlignmentResult.Offset, CurChildOffset + ThisPadding.Top), FVector2D(XAlignmentResult.Size, WidgetDesiredSize.Y) ) );
+				ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( ThisSlot.GetWidget(), FVector2D(XAlignmentResult.Offset, CurChildOffset + ThisPadding.Top), FVector2D(XAlignmentResult.Size, WidgetDesiredSize.Y) ) );
 				CurChildOffset += ThisSlotDesiredHeight;
 			}
 		}
@@ -63,7 +68,7 @@ public:
 		for(int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
 		{
 			const SScrollBox::FSlot& ThisSlot = Children[SlotIndex];
-			const FVector2D ChildDesiredSize = ThisSlot.Widget->GetDesiredSize();
+			const FVector2D ChildDesiredSize = ThisSlot.GetWidget()->GetDesiredSize();
 			ThisDesiredSize.X  = FMath::Max(ChildDesiredSize.X, ThisDesiredSize.X);
 			ThisDesiredSize.Y += ChildDesiredSize.Y + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
 		}
@@ -167,7 +172,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 /** Adds a slot to SScrollBox */
 SScrollBox::FSlot& SScrollBox::AddSlot()
 {
-	SScrollBox::FSlot& NewSlot = SScrollBox::Slot();
+	SScrollBox::FSlot& NewSlot = *new SScrollBox::FSlot();
 	ScrollPanel->Children.Add( &NewSlot );
 
 	return NewSlot;
@@ -179,7 +184,7 @@ void SScrollBox::RemoveSlot( const TSharedRef<SWidget>& WidgetToRemove )
 	TPanelChildren<SScrollBox::FSlot>& Children = ScrollPanel->Children;
 	for( int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
 	{
-		if ( Children[SlotIndex].Widget == WidgetToRemove )
+		if ( Children[SlotIndex].GetWidget() == WidgetToRemove )
 		{
 			Children.RemoveAt(SlotIndex);
 			return;

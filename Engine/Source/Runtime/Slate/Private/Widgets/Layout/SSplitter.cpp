@@ -14,7 +14,7 @@ SSplitter::FSlot& SSplitter::Slot()
 
 SSplitter::FSlot& SSplitter::AddSlot( int32 AtIndex )
 {
-	FSlot& NewSlot = SSplitter::Slot();
+	FSlot& NewSlot = *new FSlot();
 	if ( AtIndex == INDEX_NONE )
 	{
 		// No index was specified; just add to the end of the list.
@@ -94,13 +94,13 @@ void SSplitter::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	{
 		for (int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex)	
 		{
-			if (Children[ChildIndex].Widget->GetVisibility() != EVisibility::Collapsed)
+			if (Children[ChildIndex].GetWidget()->GetVisibility() != EVisibility::Collapsed)
 			{
 				++NumNonCollapsedChildren;
 
 				if ( Children[ChildIndex].SizingRule == SSplitter::SizeToContent )
 				{
-					NonResizeableSpace += Children[ChildIndex].Widget->GetDesiredSize()[AxisIndex];
+					NonResizeableSpace += Children[ChildIndex].GetWidget()->GetDesiredSize()[AxisIndex];
 				}
 				else // SizingRule == SSplitter::FractionOfParent
 				{
@@ -123,21 +123,21 @@ void SSplitter::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 		const FSlot& CurSlot = Children[ChildIndex];
 
 		const float ChildSpace = ( CurSlot.SizingRule == SSplitter::SizeToContent )
-			? CurSlot.Widget->GetDesiredSize()[AxisIndex]
+			? CurSlot.GetWidget()->GetDesiredSize()[AxisIndex]
 		: ResizeableSpace * CurSlot.SizeValue.Get() / CoefficientTotal;
 
-		const EVisibility ChildVisibility = CurSlot.Widget->GetVisibility();
+		const EVisibility ChildVisibility = CurSlot.GetWidget()->GetVisibility();
 
 		// If the output array wants arranged children
 		if ( ArrangedChildren.Accepts(ChildVisibility) )
 		{
 			if (Orientation == Orient_Horizontal)
 			{
-				ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.Widget, FVector2D(XOffset, 0), FVector2D( ChildSpace, AllottedGeometry.Size.Y ) ) );
+				ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.GetWidget(), FVector2D(XOffset, 0), FVector2D( ChildSpace, AllottedGeometry.Size.Y ) ) );
 			}
 			else
 			{
-				ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.Widget, FVector2D(0, XOffset), FVector2D( AllottedGeometry.Size.X, ChildSpace ) ) );
+				ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.GetWidget(), FVector2D(0, XOffset), FVector2D( AllottedGeometry.Size.X, ChildSpace ) ) );
 			}
 		}
 
@@ -220,12 +220,12 @@ static FVector2D ComputeDesiredSizeForSplitter( const float PhysicalSplitterHand
 	for (int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex)
 	{
 		const SSplitter::FSlot& CurSlot = Children[ChildIndex];
-		const EVisibility ChildVisibility = CurSlot.Widget->GetVisibility();
+		const EVisibility ChildVisibility = CurSlot.GetWidget()->GetVisibility();
 		if ( ChildVisibility != EVisibility::Collapsed )
 		{
 			++NumNonCollapsed;
 
-			FVector2D ChildDesiredSize( CurSlot.Widget->GetDesiredSize() );
+			FVector2D ChildDesiredSize( CurSlot.GetWidget()->GetDesiredSize() );
 			if ( Orientation == Orient_Horizontal )
 			{
 				MyDesiredSize.X += ChildDesiredSize.X;
@@ -426,7 +426,8 @@ EOrientation SSplitter::GetOrientation() const
 
 
 SSplitter::SSplitter()
-	: HoveredHandleIndex( INDEX_NONE )
+	: Children()
+	, HoveredHandleIndex( INDEX_NONE )
 	, bIsResizing( false )
 	, Orientation( Orient_Horizontal )
 	, Style( nullptr )
@@ -439,7 +440,7 @@ int32 SSplitter::FindResizeableSlotBeforeHandle( int32 DraggedHandle, const TPan
 	// Resizing collapsed or autosizing slots does not make sense (their size is predetermined).
 	// Search out from the DraggedHandle to find the first non-collapsed, non-autosizing slot we can resize.
 	int32 SlotBeforeDragHandle = DraggedHandle;
-	while ( SlotBeforeDragHandle >= 0 && (Children[SlotBeforeDragHandle].Widget->GetVisibility() == EVisibility::Collapsed || Children[SlotBeforeDragHandle].SizingRule.Get() == SSplitter::SizeToContent ) )
+	while ( SlotBeforeDragHandle >= 0 && (Children[SlotBeforeDragHandle].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[SlotBeforeDragHandle].SizingRule.Get() == SSplitter::SizeToContent ) )
 	{
 		--SlotBeforeDragHandle;
 	}
@@ -456,7 +457,7 @@ int32 SSplitter::FindResizeableSlotAfterHandle( int32 DraggedHandle, const TPane
 	// We also cannot resize auto-sizing slots.
 	int32 SlotAfterDragHandle = DraggedHandle+1;
 	{
-		while( SlotAfterDragHandle < NumChildren && (Children[SlotAfterDragHandle].Widget->GetVisibility() == EVisibility::Collapsed || Children[SlotAfterDragHandle].SizingRule.Get() == SSplitter::SizeToContent) )
+		while( SlotAfterDragHandle < NumChildren && (Children[SlotAfterDragHandle].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[SlotAfterDragHandle].SizingRule.Get() == SSplitter::SizeToContent) )
 		{
 			++SlotAfterDragHandle;
 		}
@@ -472,7 +473,7 @@ void SSplitter::FindAllResizeableSlotsAfterHandle( int32 DraggedHandle, const TP
 
 	for (int SlotIndex = DraggedHandle+1; SlotIndex < NumChildren; SlotIndex++)
 	{
-		if (Children[ SlotIndex ].Widget->GetVisibility() == EVisibility::Collapsed || Children[ SlotIndex ].SizingRule.Get() == SSplitter::SizeToContent)
+		if (Children[ SlotIndex ].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[ SlotIndex ].SizingRule.Get() == SSplitter::SizeToContent)
 		{
 			continue;
 		}
@@ -652,6 +653,11 @@ int32 SSplitter::GetHandleBeingResizedFromMousePosition( float PhysicalSplitterH
 * by dragging the center of the splitter.							*
 ********************************************************************/
 
+SSplitter2x2::SSplitter2x2()
+: Children()
+{
+}
+
 void SSplitter2x2::Construct( const FArguments& InArgs )
 {
 	Children.Add( new FSlot(InArgs._TopLeft.Widget) );
@@ -686,12 +692,12 @@ void SSplitter2x2::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrang
 		// It is based on the current percentage of space it should take up which is defined by a user moving the splitters
 		FVector2D ChildSpace = SpaceAllottedForChildren * CurSlot.PercentageAttribute.Get();
 
-		const EVisibility ChildVisibility = CurSlot.Widget->GetVisibility();
+		const EVisibility ChildVisibility = CurSlot.GetWidget()->GetVisibility();
 
 		// If the child is visible, put them in their spot
 		if ( ArrangedChildren.Accepts( ChildVisibility ) )
 		{
-			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.Widget, Offset, ChildSpace ) );
+			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( CurSlot.GetWidget(), Offset, ChildSpace ) );
 		}
 
 		// Advance to the next slot. If the child is collapsed, it takes up no room and does not need a splitter
@@ -918,49 +924,49 @@ int32 SSplitter2x2::CalculateResizingAxis( const FGeometry& MyGeometry, const FV
 
 TSharedRef< SWidget > SSplitter2x2::GetTopLeftContent()
 {
-	return Children[ 0 ].Widget;
+	return Children[ 0 ].GetWidget();
 }
 
 
 TSharedRef< SWidget > SSplitter2x2::GetBottomLeftContent()
 {
-	return Children[ 1 ].Widget;
+	return Children[ 1 ].GetWidget();
 }
 
 
 TSharedRef< SWidget > SSplitter2x2::GetTopRightContent()
 {
-	return Children[ 2 ].Widget;
+	return Children[ 2 ].GetWidget();
 }
 
 
 TSharedRef< SWidget > SSplitter2x2::GetBottomRightContent()
 {
-	return Children[ 3 ].Widget;
+	return Children[ 3 ].GetWidget();
 }
 
 
 void SSplitter2x2::SetTopLeftContent( TSharedRef< SWidget > TopLeftContent )
 {
-	Children[ 0 ].Widget = TopLeftContent;
+	Children[ 0 ][ TopLeftContent ];
 }
 
 
 void SSplitter2x2::SetBottomLeftContent( TSharedRef< SWidget > BottomLeftContent )
 {
-	Children[ 1 ].Widget = BottomLeftContent;
+	Children[ 1 ][ BottomLeftContent ];
 }
 
 
 void SSplitter2x2::SetTopRightContent( TSharedRef< SWidget > TopRightContent )
 {
-	Children[ 2 ].Widget = TopRightContent;
+	Children[ 2 ][ TopRightContent ];
 }
 
 
 void SSplitter2x2::SetBottomRightContent( TSharedRef< SWidget > BottomRightContent )
 {
-	Children[ 3 ].Widget = BottomRightContent;
+	Children[ 3 ][ BottomRightContent ];
 }
 
 void SSplitter2x2::GetSplitterPercentages( TArray< FVector2D >& OutPercentages ) const

@@ -56,13 +56,13 @@ void SBorder::SetContent( const TSharedRef< SWidget >& InContent )
 
 const TSharedRef< SWidget >& SBorder::GetContent() const
 {
-	return ChildSlot.Widget;
+	return ChildSlot.GetWidget();
 }
 
 /** Clears out the content for the border */
 void SBorder::ClearContent()
 {
-	ChildSlot = FSimpleSlot();
+	ChildSlot.DetachWidget();
 }
 
 int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

@@ -280,7 +280,7 @@ void SDockingTabStack::AddTabWidget( const TSharedRef<SDockTab>& InTab, int32 At
 
 }
 
-const TArray< TSharedRef<SDockTab> >& SDockingTabStack::GetTabs() const
+const TSlotlessChildren<SDockTab>& SDockingTabStack::GetTabs() const
 {
 	return TabWell->GetTabs();
 }
@@ -435,7 +435,7 @@ FReply SDockingTabStack::OnUserAttemptingDock( SDockingNode::RelativeDirection D
 
 TArray< TSharedRef<SDockTab> > SDockingTabStack::GetAllChildTabs() const
 {
-	return GetTabs();
+	return GetTabs().AsArrayCopy();
 }
 
 void SDockingTabStack::CloseForegroundTab()
@@ -455,7 +455,7 @@ void SDockingTabStack::CloseAllButForegroundTab(ETabsToClose TabsToClose)
 		int32 DestroyIndex = 0;
 		while ((TabWell->GetNumTabs() > 1) && (DestroyIndex < TabWell->GetNumTabs()))
 		{
-			auto Tab = TabWell->GetTabs()[DestroyIndex];
+			const TSharedRef<SDockTab>& Tab = TabWell->GetTabs()[DestroyIndex];
 
 			const bool bCanClose = (TabsToClose == CloseDocumentsAndTools) || (Tab->GetTabRole() == ETabRole::DocumentTab);
 
@@ -537,7 +537,7 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 			);
 
 			// If the active tab is a document tab, and there is more than one open in this tab well, offer to close the others
-			auto ForegroundTabPtr = TabWell->GetForegroundTab();
+			TSharedPtr<SDockTab> ForegroundTabPtr = TabWell->GetForegroundTab();
 			if (ForegroundTabPtr.IsValid() && (ForegroundTabPtr->GetTabRole() == ETabRole::DocumentTab) && (TabWell->GetNumTabs() > 1))
 			{
 				const ETabsToClose TabsToClose = CloseDocumentTabs;
@@ -661,7 +661,7 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingTabStack::GatherPersistentLayout() 
 	{
 		// Each live tab might want to save custom visual state.
 		{
-			const TArray< TSharedRef<SDockTab> >& MyTabs = this->GetTabs();
+			const TArray< TSharedRef<SDockTab> > MyTabs = this->GetTabs().AsArrayCopy();
 			for (int32 TabIndex=0; TabIndex < MyTabs.Num(); ++TabIndex)
 			{
 				MyTabs[TabIndex]->PersistVisualState();

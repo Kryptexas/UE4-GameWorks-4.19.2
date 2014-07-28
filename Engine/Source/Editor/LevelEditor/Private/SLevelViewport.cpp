@@ -2424,7 +2424,8 @@ void SActorPreview::Construct( const FArguments& InArgs )
 	// widgets that are added to the viewport overlay.
 	this->SetVisibility(EVisibility::SelfHitTestInvisible);
 
-	this->ChildSlot.Widget =
+	this->ChildSlot
+	[
 		SNew(SBorder)
 		.Padding(0)
 
@@ -2502,7 +2503,8 @@ void SActorPreview::Construct( const FArguments& InArgs )
 					// Pass along the block's tool-tip string
 					.ToolTipText( this, &SActorPreview::GetPinButtonToolTipText )
 			]
-		];
+		]
+	];
 
 	// Setup animation curve for fading in and out.  Note that we add a bit of lead-in time on the fade-in
 	// to avoid hysteresis as the user moves the mouse over the view
@@ -2891,8 +2893,11 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			// Add our new widget to our viewport's overlay
 			// @todo camerapip: Consider using a canvas instead of an overlay widget -- our viewports get SQUASHED when the view shrinks!
-			auto& HorizontalBoxSlot = ActorPreviewHorizontalBox->AddSlot().AutoWidth();
-			HorizontalBoxSlot.Widget = ActorPreviewWidget.ToSharedRef();
+			ActorPreviewHorizontalBox->AddSlot()
+			.AutoWidth()
+			[
+				ActorPreviewWidget.ToSharedRef()
+			];
 		}
 
 		// OK, at least one new preview viewport was added, so update settings for all views immediately.

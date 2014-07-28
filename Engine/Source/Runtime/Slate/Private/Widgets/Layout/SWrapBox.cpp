@@ -3,6 +3,10 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+SWrapBox::SWrapBox()
+: Slots()
+{
+}
 
 FWrapSlot& SWrapBox::Slot()
 {
@@ -11,7 +15,7 @@ FWrapSlot& SWrapBox::Slot()
 
 FWrapSlot& SWrapBox::AddSlot()
 {
-	FWrapSlot* NewSlot = &Slot();
+	FWrapSlot* NewSlot = new FWrapSlot();
 	Slots.Add(NewSlot);
 	return *NewSlot;
 }
@@ -20,7 +24,7 @@ int32 SWrapBox::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
 	{
-		if ( SlotWidget == Slots[SlotIdx].Widget )
+		if ( SlotWidget == Slots[SlotIdx].GetWidget() )
 		{
 			Slots.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -64,7 +68,7 @@ void SWrapBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 		float LineHeightSoFar = 0;
 		for ( int32 ChildIndex=0; ChildIndex < Slots.Num(); ++ChildIndex )
 		{
-			const TSharedRef<SWidget>& ThisChild = Slots[ChildIndex].Widget;
+			const TSharedRef<SWidget>& ThisChild = Slots[ChildIndex].GetWidget();
 
 			// If slot isn't the first one on the line, we need to add the inner slot padding.
 			const float ConditionPaddingX = ( WidthSoFar == 0 ) ? 0 : InnerSlotPadding.X;
@@ -129,7 +133,7 @@ void SWrapBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 		const float CurrentLineHeight = LineHeights[ CurrentLineIndex ];
 		const FMargin& SlotPadding( Slots[ChildIndex].SlotPadding.Get() );
 
-		const TSharedRef<SWidget>& ThisChild = Slots[ChildIndex].Widget;
+		const TSharedRef<SWidget>& ThisChild = Slots[ChildIndex].GetWidget();
 		float ThisSlotSizeX = ThisChild->GetDesiredSize().X + SlotPadding.GetTotalSpaceAlong<Orient_Horizontal>();
 
 		// If the width is smaller than this slots fill limit, we need to account for it filling the line
@@ -183,7 +187,7 @@ FVector2D SWrapBox::ComputeDesiredSize() const
 		// If slot isn't the first one on the line, we need to add the inner slot padding.
 		const float ConditionPaddingX = ( RowDesiredSize.X == 0 ) ? 0 : InnerSlotPadding.X;
 
-		FVector2D ThisChildDesiredSize = Slots[ChildIndex].Widget->GetDesiredSize() + Slots[ChildIndex].SlotPadding.Get().GetDesiredSize() + ConditionPaddingX;
+		FVector2D ThisChildDesiredSize = Slots[ChildIndex].GetWidget()->GetDesiredSize() + Slots[ChildIndex].SlotPadding.Get().GetDesiredSize() + ConditionPaddingX;
 
 		// If the width is smaller than this slots fill limit, we need to account for it filling the line
 		// and forcing all controls that follow it to wrap.

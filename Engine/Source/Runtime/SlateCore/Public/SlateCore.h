@@ -70,6 +70,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "PaintArgs.h"
 
 // Layout
+#include "SlotBase.h"
 #include "Margin.h"
 #include "SlateRect.h"
 #include "PaintGeometry.h"

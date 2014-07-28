@@ -153,7 +153,7 @@ public:
 	TSharedPtr<SWindow> GetParentWindow() const;
 
 	/** The width that this tab will overlap with side-by-side tabs. */
-	float GetOverlapWidth();
+	float GetOverlapWidth() const;
 
 	/** The label on the tab */
 	FText GetTabLabel() const;

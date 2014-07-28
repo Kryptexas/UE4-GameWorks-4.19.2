@@ -3,11 +3,12 @@
 #pragma once
 
 /** A slot that support alignment of content and padding */
-class SLATE_API FWrapSlot : public TSupportsOneChildMixin<SWidget, FWrapSlot>, public TSupportsContentAlignmentMixin<FWrapSlot>, public TSupportsContentPaddingMixin<FWrapSlot>
+class SLATE_API FWrapSlot : public TSlotBase<FWrapSlot>, public TSupportsContentAlignmentMixin<FWrapSlot>, public TSupportsContentPaddingMixin<FWrapSlot>
 {
 public:
 	FWrapSlot()
-		: TSupportsContentAlignmentMixin<FWrapSlot>( HAlign_Fill, VAlign_Fill )
+		: TSlotBase<FWrapSlot>()
+		, TSupportsContentAlignmentMixin<FWrapSlot>( HAlign_Fill, VAlign_Fill )
 		, bSlotFillEmptySpace( false )
 	{
 	}
@@ -68,6 +69,8 @@ public:
 		/** if true, the PreferredWidth will always match the room available to the SWrapBox  */
 		SLATE_ARGUMENT( bool, UseAllottedWidth )
 	SLATE_END_ARGS()
+
+	SWrapBox();
 
 	static FWrapSlot& Slot();
 

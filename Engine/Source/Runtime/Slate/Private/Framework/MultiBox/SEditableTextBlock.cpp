@@ -58,7 +58,8 @@ void SEditableTextBlock::BuildMultiBlockWidget( const ISlateStyle* StyleSet, con
 		}
 	}
 
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew( SHorizontalBox )
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -116,7 +117,8 @@ void SEditableTextBlock::BuildMultiBlockWidget( const ISlateStyle* StyleSet, con
 			.OnTextChanged( EditableTextBlock->OnTextChanged )
 			.OnTextCommitted( EditableTextBlock->OnTextCommitted )
 			.ToolTipText( ToolTip )
-		];
+		]
+	];
 
 	// Bind our widget's enabled state to whether or not our action can execute
 	SetEnabled( TAttribute<bool>( this, &SEditableTextBlock::IsEnabled ) );

@@ -134,10 +134,10 @@ void FSlateTextLayout::AggregateChildren()
 			const FRunModel& LineRun = LineModel.Runs[ RunIndex ];
 			const TSharedRef< ISlateRun > SlateRun = StaticCastSharedRef< ISlateRun >( LineRun.GetRun() );
 
-			FChildren* RunChildren = SlateRun->GetChildren();
-			for (int ChildIndex = 0; ChildIndex < RunChildren->Num(); ChildIndex++)
+			const TArray< TSharedRef<SWidget> >& RunChildren = SlateRun->GetChildren();
+			for (int ChildIndex = 0; ChildIndex < RunChildren.Num(); ChildIndex++)
 			{
-				const TSharedRef< SWidget >& Child = RunChildren->GetChildAt( ChildIndex );
+				const TSharedRef< SWidget >& Child = RunChildren[ ChildIndex ];
 				Children.Add( Child );
 			}
 		}

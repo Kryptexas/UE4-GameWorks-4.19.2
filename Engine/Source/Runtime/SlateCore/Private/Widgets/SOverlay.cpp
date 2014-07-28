@@ -2,6 +2,12 @@
 
  #include "SlateCorePrivatePCH.h"
 
+#include "LayoutUtils.h"
+
+SOverlay::SOverlay()
+: Children()
+{
+}
 
 /**
  * Construct this widget
@@ -23,7 +29,7 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 	for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
 		const FOverlaySlot& CurChild = Children[ChildIndex];
-		const EVisibility ChildVisibility = CurChild.Widget->GetVisibility();
+		const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
 		if ( ArrangedChildren.Accepts(ChildVisibility) )
 		{
 			const FMargin SlotPadding(CurChild.SlotPadding.Get());
@@ -31,7 +37,7 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 			AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, CurChild, SlotPadding);
 
 			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				FVector2D(XResult.Offset,YResult.Offset),
 				FVector2D(XResult.Size, YResult.Size)
 			) );
@@ -52,10 +58,10 @@ FVector2D SOverlay::ComputeDesiredSize() const
 	for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
 		const FOverlaySlot& CurSlot = Children[ChildIndex];
-		const EVisibility ChildVisibilty = CurSlot.Widget->GetVisibility();
+		const EVisibility ChildVisibilty = CurSlot.GetWidget()->GetVisibility();
 		if ( ChildVisibilty != EVisibility::Collapsed )
 		{
-			FVector2D ChildDesiredSize = CurSlot.Widget->GetDesiredSize() + CurSlot.SlotPadding.Get().GetDesiredSize();
+			FVector2D ChildDesiredSize = CurSlot.GetWidget()->GetDesiredSize() + CurSlot.SlotPadding.Get().GetDesiredSize();
 			MaxSize.X = FMath::Max( MaxSize.X, ChildDesiredSize.X );
 			MaxSize.Y = FMath::Max( MaxSize.Y, ChildDesiredSize.Y );
 		}
@@ -99,7 +105,7 @@ int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 
 SOverlay::FOverlaySlot& SOverlay::AddSlot( int32 ZOrder )
 {
-	FOverlaySlot& NewSlot = SOverlay::Slot();
+	FOverlaySlot& NewSlot = *new FOverlaySlot();
 	if ( ZOrder == INDEX_NONE )
 	{
 		// No ZOrder was specified; just add to the end of the list.
@@ -177,7 +183,7 @@ void SOverlay::RemoveSlot( TSharedRef< SWidget > Widget )
 	for( int32 CurSlotIndex = 0; CurSlotIndex < Children.Num(); ++CurSlotIndex )
 	{
 		const FOverlaySlot& CurSlot = Children[ CurSlotIndex ];
-		if( CurSlot.Widget == Widget )
+		if( CurSlot.GetWidget() == Widget )
 		{
 			Children.RemoveAt( CurSlotIndex );
 			break;

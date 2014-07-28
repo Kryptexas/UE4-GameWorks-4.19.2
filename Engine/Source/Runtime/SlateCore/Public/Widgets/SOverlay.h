@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SOverlay.h: Declares the SOverlay class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,12 +24,12 @@ class SLATECORE_API SOverlay
 public:	
 
 	/** A slot that support alignment of content and padding and z-order */
-	class SLATECORE_API FOverlaySlot
-		: public TSupportsOneChildMixin<SWidget, FOverlaySlot>
+	class SLATECORE_API FOverlaySlot : public TSlotBase<FOverlaySlot>
 	{
 	public:
 		FOverlaySlot()
-			: HAlignment(HAlign_Fill)
+			: TSlotBase<FOverlaySlot>()
+			, HAlignment(HAlign_Fill)
 			, VAlignment(VAlign_Fill)
 			, SlotPadding(0.0f)
  			, ZOrder(0)
@@ -71,20 +67,19 @@ public:
 
 
 	SLATE_BEGIN_ARGS( SOverlay )
-		{
-			_Visibility = EVisibility::SelfHitTestInvisible;
-		}
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
 
 		SLATE_SUPPORTS_SLOT( SOverlay::FOverlaySlot )
 
 	SLATE_END_ARGS()
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~SOverlay( ) { }
+	SOverlay();
 
-public:
+	virtual ~SOverlay()
+	{
+	}
 
 	/**
 	 * Construct this widget.

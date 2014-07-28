@@ -22,7 +22,7 @@ void SZoomPan::Construct(const FArguments& InArgs)
 
 void SZoomPan::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
-	const EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	const EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ArrangedChildren.Accepts(ChildVisibility) )
 	{
 		const FMargin SlotPadding(ChildSlot.SlotPadding.Get());
@@ -30,7 +30,7 @@ void SZoomPan::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChi
 		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding, 1);
 
 		ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
-				ChildSlot.Widget,
+				ChildSlot.GetWidget(),
 				FVector2D(XResult.Offset, YResult.Offset) - ViewOffset.Get(),
 				FVector2D(XResult.Size, YResult.Size),
 				ZoomAmount.Get()

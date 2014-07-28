@@ -1,30 +1,25 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SBoxPanel.h: Declares the SBoxPanel, SHorizontalBox and SVerticalBox classes.
-=============================================================================*/
-
 #pragma once
 
 
 /**
- * Implements a box panel widget.
- *
- * A BoxPanel contains one BoxPanel child and describes how that child should be arranged on the screen.
+ * A BoxPanel contains one child and describes how that child should be arranged on the screen.
  */
 class SLATECORE_API SBoxPanel
 	: public SPanel
 {
 public:
 
-	class FSlot
+	/**
+	 * A BoxPanel contains one BoxPanel child and describes how that
+	 * child should be arranged on the screen.
+	 */
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:		
 		/** Horizontal and Vertical Boxes inherit from FSlot */
-		virtual ~FSlot() { }
-
-		/** The child widget contained in this slot. */
-		TSharedRef<SWidget> Widget;
+		virtual ~FSlot(){}
 		/**
 		 * How much space this slot should occupy along panel's direction.
 		 *   When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
@@ -48,12 +43,9 @@ public:
 		TAttribute<float> MaxSize;
 			
 	protected:
-
-		/**
-		 * Hidden default constructor.
-		 */
+		/** Default values for a slot. */
 		FSlot()
-			: Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>()
 			, SizeParam( FStretch(1) )
 			, HAlignment( HAlign_Fill )
 			, VAlignment( VAlign_Fill )
@@ -110,6 +102,11 @@ public:
 	class FSlot : public SBoxPanel::FSlot
 	{
 		public:
+		FSlot()
+		: SBoxPanel::FSlot()
+		{
+		}
+
 		FSlot& AutoWidth()
 		{
 			SizeParam = FAuto();
@@ -172,7 +169,7 @@ public:
 
 		FSlot& operator[]( TSharedRef<SWidget> InWidget )
 		{
-			Widget = InWidget;
+			SBoxPanel::FSlot::operator[](InWidget);
 			return *this;
 		}
 
@@ -199,7 +196,7 @@ public:
 
 	FSlot& AddSlot()
 	{
-		SHorizontalBox::FSlot& NewSlot = SHorizontalBox::Slot();
+		SHorizontalBox::FSlot& NewSlot = *new SHorizontalBox::FSlot();
 		this->Children.Add( &NewSlot );
 		return NewSlot;
 	}
@@ -224,7 +221,12 @@ public:
 	class FSlot : public SBoxPanel::FSlot
 	{
 		public:
-		
+
+		FSlot()
+		: SBoxPanel::FSlot()
+		{
+		}
+
 		FSlot& AutoHeight()
 		{
 			SizeParam = FAuto();
@@ -293,7 +295,7 @@ public:
 
 		FSlot& operator[]( TSharedRef<SWidget> InWidget )
 		{
-			Widget = InWidget;
+			SBoxPanel::FSlot::operator[](InWidget);
 			return *this;
 		}
 
@@ -321,7 +323,7 @@ public:
 
 	FSlot& AddSlot()
 	{
-		SVerticalBox::FSlot& NewSlot = SVerticalBox::Slot();
+		SVerticalBox::FSlot& NewSlot = *new SVerticalBox::FSlot();
 		this->Children.Add( &NewSlot );
 		return NewSlot;
 	}

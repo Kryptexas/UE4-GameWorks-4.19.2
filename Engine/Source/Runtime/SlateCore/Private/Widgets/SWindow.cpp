@@ -40,6 +40,10 @@ public:
 
 	SLATE_END_ARGS()
 
+	SPopupLayer()
+	: Children()
+	{}
+
 	void Construct( const FArguments& InArgs, const TSharedRef<SWindow>& InWindow )
 	{
 		OwnerWindow = InWindow;
@@ -60,7 +64,7 @@ public:
 	/** Add a slot to the ListPanel */
 	FPopupLayerSlot& AddSlot(int32 InsertAtIndex = INDEX_NONE)
 	{
-		FPopupLayerSlot& NewSlot = SPopupLayer::Slot();
+		FPopupLayerSlot& NewSlot = *new FPopupLayerSlot();
 		if (InsertAtIndex == INDEX_NONE)
 		{
 			this->Children.Add( &NewSlot );
@@ -78,7 +82,7 @@ public:
 		for( int32 CurSlotIndex = 0; CurSlotIndex < Children.Num(); ++CurSlotIndex )
 		{
 			const FPopupLayerSlot& CurSlot = Children[ CurSlotIndex ];
-			if( CurSlot.Widget == WidgetToRemove )
+			if( CurSlot.GetWidget() == WidgetToRemove )
 			{
 				Children.RemoveAt( CurSlotIndex );
 				return;
@@ -101,10 +105,10 @@ private:
 		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
 			const FPopupLayerSlot& CurChild = Children[ChildIndex];
-			const EVisibility ChildVisibility = CurChild.Widget->GetVisibility();
+			const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
 			if ( ArrangedChildren.Accepts(ChildVisibility) )
 			{
-				const FVector2D WidgetDesiredSize = CurChild.Widget->GetDesiredSize();
+				const FVector2D WidgetDesiredSize = CurChild.GetWidget()->GetDesiredSize();
 				const float ChildScale = CurChild.Scale_Attribute.Get();
 				const bool bClampToWindow = CurChild.Clamp_Attribute.Get();
 				const FVector2D ChildSize = WidgetDesiredSize * ChildScale;
@@ -120,7 +124,7 @@ private:
 				// The position is explicitly in desktop pixels.
 				// The size and DPI scale come from the widget that is using
 				// this overlay to "punch" through the UI.
-				ArrangedChildren.AddWidget( ChildVisibility, FArrangedWidget( CurChild.Widget,
+				ArrangedChildren.AddWidget( ChildVisibility, FArrangedWidget( CurChild.GetWidget(),
 					FGeometry(
 						ChildLocalPosition / ChildScale,
 						AllottedGeometry.AbsolutePosition,
@@ -887,7 +891,7 @@ TSharedRef<const SWidget> SWindow::GetContent() const
 	}
 	else
 	{
-		return this->ContentSlot->Widget;
+		return this->ContentSlot->GetWidget();
 	}
 }
 

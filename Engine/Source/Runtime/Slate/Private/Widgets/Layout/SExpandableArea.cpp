@@ -175,10 +175,10 @@ FVector2D SExpandableArea::GetSectionScale() const
 
 FVector2D SExpandableArea::ComputeDesiredSize() const
 {
-	EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
-		FVector2D DesiredSize = ChildSlot.Widget->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
+		FVector2D DesiredSize = ChildSlot.GetWidget()->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
 		
 		// Only clamp if the user specified a max height
 		if( MaxHeight > 0.0f )

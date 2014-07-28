@@ -17,61 +17,63 @@ void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyl
 	CurrentStyle = InStyle;
 
 	check( OutputLogModule != NULL );
-	ChildSlot.Widget = 
+	ChildSlot
+	[ 
 		SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew( SVerticalBox )
-					.Visibility( this, &SDebugConsole::MakeVisibleIfLogIsShown )
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( SVerticalBox )
+				.Visibility( this, &SDebugConsole::MakeVisibleIfLogIsShown )
 					
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding( 10.0f )
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding( 10.0f )
+				[
+					SNew(SBox)
+					.HeightOverride( 200.0f )
 					[
-						SNew(SBox)
-						.HeightOverride( 200.0f )
-						[
-							SNew( SBorder )
-								.BorderImage( FEditorStyle::GetBrush( "DebugConsole.Background" ) )
-								.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
-								.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
-								[
-									SNew( SSpacer )
-								]
-						]
+						SNew( SBorder )
+							.BorderImage( FEditorStyle::GetBrush( "DebugConsole.Background" ) )
+							.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
+							.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
+							[
+								SNew( SSpacer )
+							]
+					]
+				]
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding( 10.0f )
+		[
+			SNew(SBox)
+			.HeightOverride( 26.0f )
+			[
+				SNew( SBorder )
+					.BorderImage( FEditorStyle::GetBrush( "Console.Background" ) )
+					.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
+					.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
+					[
+						SNew( SHorizontalBox )
+							+SHorizontalBox::Slot()
+								.AutoWidth()
+								.Padding( 3.0f )
+							[
+								SNew( STextBlock )
+									.Text( NSLOCTEXT("Console", "ConsoleLabel", "Console >").ToString() )
+							]
+							+SHorizontalBox::Slot()
+								.Padding( 3.0f )
+								.FillWidth( 1.0f )
+							[
+								OutputLogModule->MakeConsoleInputBox( EditableTextBox )
+							]
 					]
 			]
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding( 10.0f )
-			[
-				SNew(SBox)
-				.HeightOverride( 26.0f )
-				[
-					SNew( SBorder )
-						.BorderImage( FEditorStyle::GetBrush( "Console.Background" ) )
-						.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
-						.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
-						[
-							SNew( SHorizontalBox )
-								+SHorizontalBox::Slot()
-									.AutoWidth()
-									.Padding( 3.0f )
-								[
-									SNew( STextBlock )
-										.Text( NSLOCTEXT("Console", "ConsoleLabel", "Console >").ToString() )
-								]
-								+SHorizontalBox::Slot()
-									.Padding( 3.0f )
-									.FillWidth( 1.0f )
-								[
-									OutputLogModule->MakeConsoleInputBox( EditableTextBox )
-								]
-						]
-				]
-			];
+		]
+	];
 
 	// Kick off intro animation
 	AnimCurve = FCurveSequence();

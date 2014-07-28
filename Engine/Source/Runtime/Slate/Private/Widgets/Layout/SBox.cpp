@@ -3,6 +3,11 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+SBox::SBox()
+: ChildSlot()
+{
+}
+
 void SBox::Construct( const FArguments& InArgs )
 {
 	WidthOverride = InArgs._WidthOverride;
@@ -21,12 +26,12 @@ void SBox::Construct( const FArguments& InArgs )
 
 FVector2D SBox::ComputeDesiredSize() const
 {
-	EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
 		// If the user specified a fixed width or height, those values override the Box's content.
-		const FVector2D& UnmodifiedChildDesiredSize = ChildSlot.Widget->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
+		const FVector2D& UnmodifiedChildDesiredSize = ChildSlot.GetWidget()->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
 		const FOptionalSize CurrentWidthOverride = WidthOverride.Get();
 		const FOptionalSize CurrentHeightOverride = HeightOverride.Get();
 		return FVector2D(
@@ -49,7 +54,7 @@ void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildr
 
 		ArrangedChildren.AddWidget(
 			AllottedGeometry.MakeChild(
-				ChildSlot.Widget,
+				ChildSlot.GetWidget(),
 				FVector2D(XAlignmentResult.Offset, YAlignmentResult.Offset),
 				FVector2D(XAlignmentResult.Size, YAlignmentResult.Size)
 			)
@@ -85,5 +90,3 @@ int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 	return LayerId;
 }
-
-

@@ -36,7 +36,7 @@ public:
 	void AddTabWidget( const TSharedRef<SDockTab>& InTab, int32 AtLocation = INDEX_NONE);
 
 	/** @return All child tabs in this node */
-	const TArray< TSharedRef<SDockTab> >& GetTabs() const;
+	const TSlotlessChildren<SDockTab>& GetTabs() const;
 	
 	/** @return How many tabs are in this node */
 	int32 GetNumTabs() const;

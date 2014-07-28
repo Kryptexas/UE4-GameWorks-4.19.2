@@ -7,11 +7,12 @@ class SLATE_API SScrollBox : public SCompoundWidget
 {
 public:
 	/** A Slot that provides layout options for the contents of a scrollable box. */
-	class SLATE_API FSlot : public TSupportsOneChildMixin<SWidget, FSlot>, public TSupportsContentPaddingMixin<FSlot>
+	class SLATE_API FSlot : public TSlotBase<FSlot>, public TSupportsContentPaddingMixin<FSlot>
 	{
 	public:
 		FSlot()
-			: HAlignment(HAlign_Fill)
+			: TSlotBase<FSlot>()
+			, HAlignment(HAlign_Fill)
 		{
 
 		}

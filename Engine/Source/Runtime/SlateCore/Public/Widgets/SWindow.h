@@ -844,25 +844,18 @@ private:
  * Popups, tooltips, drag and drop decorators all can be executed without creating a new window.
  * This slot along with the SWindow::AddPopupLayerSlot() API enabled it.
  */
-struct FPopupLayerSlot
+struct FPopupLayerSlot : public TSlotBase<FPopupLayerSlot>
 {
 public:
 	FPopupLayerSlot()
-	: DesktopPosition_Attribute(FVector2D::ZeroVector)
+	: TSlotBase<FPopupLayerSlot>()
+	, DesktopPosition_Attribute(FVector2D::ZeroVector)
 	, WidthOverride_Attribute()
 	, HeightOverride_Attribute()
 	, Scale_Attribute(1.0f)
 	, Clamp_Attribute(false)
 	, ClampBuffer_Attribute(FVector2D::ZeroVector)
-	, Widget(SNullWidget::NullWidget)
 	{}
-
-	/** Support for using brackets in slate declarative syntax */
-	FPopupLayerSlot& operator[]( TSharedRef<SWidget> InWidget )
-	{
-		Widget = InWidget;
-		return *this;
-	}
 
 	/** Pixel position in desktop space */
 	FPopupLayerSlot& DesktopPosition( const TAttribute<FVector2D>& InDesktopPosition )
@@ -906,12 +899,6 @@ public:
 		return *this;
 	}
 
-	/** @return the widget present in this slot */
-	const TSharedRef<SWidget>& GetWidget()
-	{
-		return Widget;
-	}
-
 private:
 	/** SPopupLayer arranges FPopupLayerSlots, so it needs to know all about */
 	friend class SPopupLayer;
@@ -924,7 +911,6 @@ private:
 	TAttribute<float> Scale_Attribute;
 	TAttribute<bool> Clamp_Attribute;
 	TAttribute<FVector2D> ClampBuffer_Attribute;
-	TSharedRef<SWidget> Widget;
 };
 
 

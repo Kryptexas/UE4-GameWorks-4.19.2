@@ -14,7 +14,7 @@ public:
 	/**
 	 * ConstraintCanvas slots allow child widgets to be positioned and sized
 	 */
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:		
 		FSlot& Offset( const TAttribute<FMargin>& InOffset )
@@ -41,20 +41,11 @@ public:
 			return *this;
 		}
 
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
-		}
-
 		FSlot& Expose( FSlot*& OutVarToInit )
 		{
 			OutVarToInit = this;
 			return *this;
 		}
-
-		/** The child widget contained in this slot. */
-		TSharedRef<SWidget> Widget;
 
 		/** Offset */
 		TAttribute<FMargin> OffsetAttr;
@@ -70,7 +61,7 @@ public:
 
 		/** Default values for a slot. */
 		FSlot()
-			: Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>()
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
 			, AnchorsAttr( FAnchors( 0.5f, 0.5f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
@@ -86,6 +77,8 @@ public:
 		SLATE_SUPPORTS_SLOT( SConstraintCanvas::FSlot )
 
 	SLATE_END_ARGS()
+
+	SConstraintCanvas();
 
 	/**
 	 * Construct this widget
@@ -106,7 +99,7 @@ public:
 	 */
 	FSlot& AddSlot()
 	{
-		SConstraintCanvas::FSlot& NewSlot = SConstraintCanvas::Slot();
+		SConstraintCanvas::FSlot& NewSlot = *(new FSlot());
 		this->Children.Add( &NewSlot );
 		return NewSlot;
 	}

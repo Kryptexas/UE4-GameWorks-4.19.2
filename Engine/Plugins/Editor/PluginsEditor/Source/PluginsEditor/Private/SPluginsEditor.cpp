@@ -36,7 +36,8 @@ void SPluginsEditor::Construct( const FArguments& Args )
 	PluginCategories = SNew( SPluginCategories, SharedThis( this ) );
 
 
-	ChildSlot.Widget = 
+	ChildSlot
+	[ 
 		SNew( SHorizontalBox )
 
 		+SHorizontalBox::Slot()
@@ -118,7 +119,8 @@ void SPluginsEditor::Construct( const FArguments& Args )
 					]
 				]
 			]
-		];
+		]
+	];
 }
 
 

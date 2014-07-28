@@ -11,20 +11,25 @@
 /* SWidgetSwitcher interface
  *****************************************************************************/
 
-FSimpleSlot& SWidgetSwitcher::AddSlot( int32 SlotIndex )
+ SWidgetSwitcher::SWidgetSwitcher()
+ : AllChildren()
+ {
+ }
+
+SWidgetSwitcher::FSlot& SWidgetSwitcher::AddSlot( int32 SlotIndex )
 {
-	FSimpleSlot& NewSlot = SWidgetSwitcher::Slot();
+	FSlot* NewSlot = new FSlot();
 
 	if (!AllChildren.IsValidIndex(SlotIndex))
 	{
-		AllChildren.Add(&NewSlot);
+		AllChildren.Add(NewSlot);
 	}
 	else
 	{
-		AllChildren.Insert(&NewSlot, SlotIndex);
+		AllChildren.Insert(NewSlot, SlotIndex);
 	}
 
-	return NewSlot;
+	return *NewSlot;
 }
 
 
@@ -32,7 +37,7 @@ int32 SWidgetSwitcher::RemoveSlot(TSharedRef<SWidget> WidgetToRemove)
 {
 	for( int32 SlotIndex=0; SlotIndex < AllChildren.Num(); ++SlotIndex )
 	{
-		if ( AllChildren[SlotIndex].Widget == WidgetToRemove )
+		if ( AllChildren[SlotIndex].GetWidget() == WidgetToRemove )
 		{
 			AllChildren.RemoveAt(SlotIndex);
 			return SlotIndex;
@@ -61,7 +66,7 @@ TSharedPtr<SWidget> SWidgetSwitcher::GetActiveWidget( ) const
 	const int32 ActiveWidgetIndex = WidgetIndex.Get();
 	if (ActiveWidgetIndex >= 0)
 	{
-		return AllChildren[ActiveWidgetIndex].Widget;
+		return AllChildren[ActiveWidgetIndex].GetWidget();
 	}
 
 	return NULL;
@@ -72,7 +77,7 @@ TSharedPtr<SWidget> SWidgetSwitcher::GetWidget( int32 SlotIndex ) const
 {
 	if (AllChildren.IsValidIndex(SlotIndex))
 	{
-		return AllChildren[SlotIndex].Widget;
+		return AllChildren[SlotIndex].GetWidget();
 	}
 
 	return NULL;
@@ -83,9 +88,9 @@ int32 SWidgetSwitcher::GetWidgetIndex( TSharedRef<SWidget> Widget ) const
 {
 	for (int32 Index = 0; Index < AllChildren.Num(); ++Index)
 	{
-		const FSimpleSlot& Slot = AllChildren[Index];
+		const FSlot& Slot = AllChildren[Index];
 
-		if (Slot.Widget == Widget)
+		if (Slot.GetWidget() == Widget)
 		{
 			return Index;
 		}
@@ -116,7 +121,7 @@ void SWidgetSwitcher::OnArrangeChildren( const FGeometry& AllottedGeometry, FArr
 FVector2D SWidgetSwitcher::ComputeDesiredSize( ) const
 {
 	return AllChildren.Num() > 0
-		? AllChildren[WidgetIndex.Get()].Widget->GetDesiredSize()
+		? AllChildren[WidgetIndex.Get()].GetWidget()->GetDesiredSize()
 		: FVector2D::ZeroVector;
 }
 

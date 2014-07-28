@@ -6,17 +6,21 @@
 
 #include "SlatePrivatePCH.h"
 
+SWeakWidget::SWeakWidget()
+: WeakChild()
+{
+}
 
 void SWeakWidget::Construct(const FArguments& InArgs)
 {
-	WeakChild.Widget = InArgs._PossiblyNullContent;
+	WeakChild.AttachWidget( InArgs._PossiblyNullContent );
 }
 
 FVector2D SWeakWidget::ComputeDesiredSize() const
 {	
-	TSharedPtr<SWidget> ReferencedWidget = WeakChild.Widget.Pin();
+	TSharedRef<SWidget> ReferencedWidget = WeakChild.GetWidget();
 
-	if (ReferencedWidget.IsValid() && ReferencedWidget->GetVisibility() != EVisibility::Collapsed)
+	if ( ReferencedWidget != SNullWidget::NullWidget && ReferencedWidget->GetVisibility() != EVisibility::Collapsed )
 	{
 		return ReferencedWidget->GetDesiredSize();
 	}
@@ -27,12 +31,12 @@ FVector2D SWeakWidget::ComputeDesiredSize() const
 void SWeakWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// We just want to show the child that we are presenting. Always stretch it to occupy all of the space.
-	TSharedPtr<SWidget> MyContent = WeakChild.Widget.Pin();
+	TSharedRef<SWidget> MyContent = WeakChild.GetWidget();
 
-	if( MyContent.IsValid() && ArrangedChildren.Accepts(MyContent->GetVisibility()))
+	if( MyContent!=SNullWidget::NullWidget && ArrangedChildren.Accepts(MyContent->GetVisibility()) )
 	{
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
-			MyContent.ToSharedRef(),
+			MyContent,
 			FVector2D(0,0),
 			AllottedGeometry.Size
 			) );
@@ -68,17 +72,12 @@ int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	return LayerId;
 }
 
-void SWeakWidget::SetContent(TWeakPtr<SWidget> InWidget)
+void SWeakWidget::SetContent(const TSharedRef<SWidget>& InWidget)
 {
-	WeakChild.Widget = InWidget;
+	WeakChild.AttachWidget( InWidget );
 }
 
 bool SWeakWidget::ChildWidgetIsValid() const
 {
-	return WeakChild.Widget.IsValid();
-}
-
-TWeakPtr<SWidget> SWeakWidget::GetChildWidget() const
-{
-	return WeakChild.Widget;
+	return WeakChild.GetWidget() != SNullWidget::NullWidget;
 }

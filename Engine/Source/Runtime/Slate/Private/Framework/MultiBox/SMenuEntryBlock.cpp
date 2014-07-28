@@ -740,12 +740,12 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 		if( MenuEntryBlock->bIsSubMenu )
 		{
 			// This menu entry is actually a submenu that opens a new menu to the right
-			ChildSlot.Widget = BuildSubMenuWidget( BuildParams );
+			ChildSlot.AttachWidget( BuildSubMenuWidget( BuildParams ) );
 		}
 		else
 		{
 			// Standard menu entry 
-			ChildSlot.Widget = BuildMenuEntryWidget( BuildParams );
+			ChildSlot.AttachWidget( BuildMenuEntryWidget( BuildParams ) );
 		}
 	}
 	else if( ensure( MultiBox->GetType() == EMultiBoxType::MenuBar ) )
@@ -753,19 +753,21 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 		// Menu bar items cannot be submenus
 		check( !MenuEntryBlock->bIsSubMenu );
 		
-		ChildSlot.Widget = BuildMenuBarWidget( BuildParams );
+		ChildSlot[ BuildMenuBarWidget( BuildParams ) ];
 	}
 
 	// Insert named STutorialWrapper if desired
 	FName TutorialName = MenuEntryBlock->GetTutorialHighlightName();
 	if(TutorialName != NAME_None)
 	{
-		TSharedRef<SWidget> ChildWidget = ChildSlot.Widget;
-		ChildSlot.Widget = 
+		TSharedRef<SWidget> ChildWidget = ChildSlot.GetWidget();
+		ChildSlot
+		[
 			SNew( STutorialWrapper, TutorialName )
 			[
 				ChildWidget
-			];
+			]
+		];
 	}
 
 	// Bind our widget's enabled state to whether or not our action can execute

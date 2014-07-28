@@ -7,6 +7,12 @@
 /* SConstraintCanvas interface
  *****************************************************************************/
 
+SConstraintCanvas::SConstraintCanvas()
+: Children()
+{
+
+}
+
 void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
 {
 	const int32 NumSlots = InArgs.Slots.Num();
@@ -27,7 +33,7 @@ int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if (SlotWidget == Children[SlotIdx].Widget)
+		if (SlotWidget == Children[SlotIdx].GetWidget())
 		{
 			Children.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -126,7 +132,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 				// The child widget being arranged
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				// Child's local position (i.e. position within parent)
 				LocalPosition,
 				// Child's size

@@ -43,10 +43,10 @@ FChildren* SCompoundWidget::GetChildren()
 
 FVector2D SCompoundWidget::ComputeDesiredSize() const
 {
-	EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
-		return ChildSlot.Widget->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
+		return ChildSlot.GetWidget()->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
 	}
 	
 	return FVector2D::ZeroVector;
@@ -60,4 +60,12 @@ void SCompoundWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArr
 FSlateColor SCompoundWidget::GetForegroundColor() const
 {
 	return ForegroundColor.Get();
+}
+
+SCompoundWidget::SCompoundWidget()
+	: ChildSlot()
+	, ContentScale( FVector2D(1.0f,1.0f) )
+	, ColorAndOpacity( FLinearColor::White )
+	, ForegroundColor( FSlateColor::UseForeground() )
+{
 }

@@ -3,7 +3,9 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
-
+SGridPanel::SGridPanel()
+: Slots()
+{}
 SGridPanel::FSlot& SGridPanel::AddSlot( int32 Column, int32 Row, SGridPanel::Layer InLayer )
 {
 	return InsertSlot( new FSlot( Column, Row, InLayer.TheLayer ) );
@@ -170,7 +172,7 @@ void SGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 	for( int32 SlotIndex=0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
 		const FSlot& CurSlot = Slots[SlotIndex];
-		const EVisibility ChildVisibility = CurSlot.Widget->GetVisibility();
+		const EVisibility ChildVisibility = CurSlot.GetWidget()->GetVisibility();
 		if ( ArrangedChildren.Accepts(ChildVisibility) )
 		{
 			// Figure out the position of this cell.
@@ -189,7 +191,7 @@ void SGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 
 			// Output the result
 			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild( 
-				CurSlot.Widget,
+				CurSlot.GetWidget(),
 				ThisCellOffset + FVector2D( XAxisResult.Offset, YAxisResult.Offset ) + CurSlot.NudgeParam,
 				FVector2D(XAxisResult.Size, YAxisResult.Size)
 			));
@@ -349,10 +351,10 @@ void SGridPanel::ComputeDesiredCellSizes( TArray<float>& OutColumns, TArray<floa
 	for (int32 SlotIndex=0; SlotIndex<Slots.Num(); ++SlotIndex)
 	{
 		const FSlot& CurSlot = Slots[SlotIndex];
-		if (CurSlot.Widget->GetVisibility() != EVisibility::Collapsed)
+		if (CurSlot.GetWidget()->GetVisibility() != EVisibility::Collapsed)
 		{
 			// The slots wants to be as big as its content along with the required padding.
-			const FVector2D SlotDesiredSize = CurSlot.Widget->GetDesiredSize() + CurSlot.SlotPadding.Get().GetDesiredSize();
+			const FVector2D SlotDesiredSize = CurSlot.GetWidget()->GetDesiredSize() + CurSlot.SlotPadding.Get().GetDesiredSize();
 
 			// If the slot has a (colspan,rowspan) of (1,1) it will only affect that slot.
 			// For larger spans, the slots size will be evenly distributed across all the affected slots.

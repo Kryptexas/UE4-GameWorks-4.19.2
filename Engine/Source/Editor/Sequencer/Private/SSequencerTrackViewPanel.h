@@ -12,6 +12,11 @@ public:
 	SLATE_BEGIN_ARGS( TSequencerTrackViewPanel<WidgetType> ) {}
 	SLATE_END_ARGS()
 
+	TSequencerTrackViewPanel()
+	: Children()
+	{
+	}
+
 	/** Construct this widget.  Called by the SNew() Slate macro. */
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode )
 	{

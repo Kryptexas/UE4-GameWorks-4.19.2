@@ -198,6 +198,12 @@ namespace NodePanelDefs
 	static const float MouseZoomScaling = 0.05f;
 };
 
+SNodePanel::SNodePanel()
+: Children()
+, VisibleChildren()
+{
+}
+
 void SNodePanel::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);

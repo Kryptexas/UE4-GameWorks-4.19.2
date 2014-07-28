@@ -2307,6 +2307,10 @@ public:
 		}
 		Array.RemoveAtSwap( Index, Count, AllowShrinking );
 	}
+	void Swap( int32 A, int32 B )
+	{
+		Array.Swap(A,B);
+	}
 	void Empty( int32 Slack=0 )
 	{
 		DestructAndFreeItems();

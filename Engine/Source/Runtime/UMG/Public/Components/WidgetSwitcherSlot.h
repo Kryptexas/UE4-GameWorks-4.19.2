@@ -46,5 +46,5 @@ private:
 	//TODO UMG Slots should hold weak or shared refs to slots.
 
 	/** A raw pointer to the slot to allow us to adjust the size, padding...etc at runtime. */
-	FSimpleSlot* Slot;
+	SWidgetSwitcher::FSlot* Slot;
 };

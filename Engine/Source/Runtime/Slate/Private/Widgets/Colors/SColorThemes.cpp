@@ -372,6 +372,12 @@ EVisibility SThemeColorBlock::OnGetAlphaVisibility() const
 	return bUseAlpha.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+SThemeColorBlocksBar::SThemeColorBlocksBar()
+: ColorBlocks()
+{
+}
+
+
 /**
 * Panels arrange their children in a space described by the AllottedGeometry parameter. The results of the arrangement
 * should be returned by appending a FArrangedWidget pair for every child widget.

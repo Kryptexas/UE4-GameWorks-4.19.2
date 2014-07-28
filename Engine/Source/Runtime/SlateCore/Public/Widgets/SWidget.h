@@ -119,7 +119,7 @@ public:
 	 * @param  InCurrentTime  Current absolute real time
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) { }
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
 	/**
 	 * Called when a widget is being hit tested and has passed the bounding box test to determine
@@ -151,10 +151,10 @@ public:
 	 *
 	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
 	 */
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) { }
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent );
 
 	/** Called whenever a focus path is changing on all the widgets within the old and new focus paths */
-	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) { }
+	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath );
 
 	/**
 	 * Called after a character is entered while this widget has keyboard focus
@@ -549,7 +549,7 @@ public:
 	virtual TSharedPtr<IToolTip> GetToolTip();
 
 	/** Called when a tooltip displayed from this widget is being closed */
-	virtual void OnToolTipClosing() { }
+	virtual void OnToolTipClosing();
 
 	/**
 	 * Sets whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area

@@ -79,9 +79,9 @@ int32 FSlateHyperlinkRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FL
 	return WidgetBlock->GetWidget()->Paint( Args, WidgetGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
-FChildren* FSlateHyperlinkRun::GetChildren()
+const TArray< TSharedRef<SWidget> >& FSlateHyperlinkRun::GetChildren()
 {
-	return &Children;
+	return Children;
 }
 
 void FSlateHyperlinkRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 

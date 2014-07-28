@@ -42,7 +42,8 @@ void SMenuSeparatorBlock::Construct( const FArguments& InArgs )
  */
 void SMenuSeparatorBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName)
 {
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew( SVerticalBox )
 			+SVerticalBox::Slot()
 				.AutoHeight()
@@ -57,7 +58,8 @@ void SMenuSeparatorBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 
 						// Separator graphic
 						.BorderImage( StyleSet->GetBrush( StyleName, ".Separator" ) )
-				];
+				]
+	];
 }
 
 

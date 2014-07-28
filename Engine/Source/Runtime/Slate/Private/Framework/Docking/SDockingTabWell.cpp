@@ -14,6 +14,10 @@ const FVector2D FDockingConstants::GetMaxTabSizeFor( ETabRole::Type TabRole )
 		: MaxMinorTabSize;
 }
 
+SDockingTabWell::SDockingTabWell()
+: Tabs()
+{
+}
 
 void SDockingTabWell::Construct( const FArguments& InArgs )
 {
@@ -27,7 +31,7 @@ void SDockingTabWell::Construct( const FArguments& InArgs )
 	ParentTabStackPtr = InArgs._ParentStackNode.Get();
 }
 
-const TArray< TSharedRef<SDockTab> >& SDockingTabWell::GetTabs() const
+const TSlotlessChildren<SDockTab>& SDockingTabWell::GetTabs() const
 {
 	return Tabs;
 }

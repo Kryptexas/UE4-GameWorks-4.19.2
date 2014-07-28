@@ -71,8 +71,8 @@ public:
 		PopulateContextNames(InArgs._Context);
 
 		const FMargin DefaultPadding(5, 5, 5, 5);
-		ChildSlot.Widget =
-
+		ChildSlot
+		[
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
@@ -175,9 +175,9 @@ public:
 					]
 				]
 			]
-			;
+		];
 
-			TextBox->SetError( FText::GetEmpty() );
+		TextBox->SetError( FText::GetEmpty() );
 	}
 
 	/** Called when a key is pressed on the widget */
@@ -484,7 +484,7 @@ public:
 		}
 		else
 		{
-			FVector2D ChildSize = ChildSlot.Widget->GetDesiredSize();
+			FVector2D ChildSize = ChildSlot.GetWidget()->GetDesiredSize();
 			return FVector2D(FMath::Max(MinWidthVal, ChildSize.X), ChildSize.Y );
 		}
 	}

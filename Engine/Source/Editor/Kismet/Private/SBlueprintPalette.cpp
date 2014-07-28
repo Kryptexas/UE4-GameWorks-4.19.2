@@ -1551,11 +1551,11 @@ void SBlueprintPalette::OnSplitterResized() const
 	{
 		SSplitter::FSlot const& SplitterSlot = PaletteSplitter->SlotAt(SlotIndex);
 
-		if (SplitterSlot.Widget == FavoritesWrapper)
+		if (SplitterSlot.GetWidget() == FavoritesWrapper)
 		{
 			GConfig->SetFloat(*BlueprintPalette::ConfigSection, *BlueprintPalette::FavoritesHeightConfigKey, SplitterSlot.SizeValue.Get(), GEditorUserSettingsIni);
 		}
-		else if (SplitterSlot.Widget == LibraryWrapper)
+		else if (SplitterSlot.GetWidget() == LibraryWrapper)
 		{
 			GConfig->SetFloat(*BlueprintPalette::ConfigSection, *BlueprintPalette::LibraryHeightConfigKey, SplitterSlot.SizeValue.Get(), GEditorUserSettingsIni);
 		}

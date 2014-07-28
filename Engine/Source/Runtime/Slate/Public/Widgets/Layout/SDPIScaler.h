@@ -26,6 +26,8 @@ public:
 
 	SLATE_END_ARGS()
 
+	SDPIScaler();
+
 	void Construct( const FArguments& InArgs );
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;

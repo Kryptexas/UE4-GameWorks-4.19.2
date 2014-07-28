@@ -11,7 +11,10 @@ void SThrobber::Construct(const FArguments& InArgs)
 
 	HBox = SNew(SHorizontalBox);
 
-	this->ChildSlot.Widget = HBox.ToSharedRef();
+	this->ChildSlot
+	[
+		HBox.ToSharedRef()
+	];
 
 	ConstructPieces();
 }

@@ -7,6 +7,10 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+SCanvas::SCanvas()
+: Children()
+{
+}
 
 /* SCanvas interface
  *****************************************************************************/
@@ -31,7 +35,7 @@ int32 SCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if (SlotWidget == Children[SlotIdx].Widget)
+		if (SlotWidget == Children[SlotIdx].GetWidget())
 		{
 			Children.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -81,7 +85,7 @@ void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChi
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 				// The child widget being arranged
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				// Child's local position (i.e. position within parent)
 				CurChild.PositionAttr.Get() + Offset,
 				// Child's size

@@ -2,10 +2,17 @@
 
 #include "SlatePrivatePCH.h"
 
+SDPIScaler::SDPIScaler()
+: ChildSlot()
+{
+}
 
 void SDPIScaler::Construct( const FArguments& InArgs )
 {
-	this->ChildSlot.Widget = InArgs._Content.Widget;
+	this->ChildSlot
+	[
+		InArgs._Content.Widget
+	];
 	this->DPIScale = InArgs._DPIScale;
 }
 
@@ -17,7 +24,7 @@ void SDPIScaler::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		const float MyDPIScale = DPIScale.Get();
 
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
-			this->ChildSlot.Widget,
+			this->ChildSlot.GetWidget(),
 			FVector2D::ZeroVector,
 			AllottedGeometry.Size / MyDPIScale,
 			MyDPIScale
@@ -28,11 +35,10 @@ void SDPIScaler::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 	
 FVector2D SDPIScaler::ComputeDesiredSize() const
 {
-	return DPIScale.Get() * ChildSlot.Widget->GetDesiredSize();
+	return DPIScale.Get() * ChildSlot.GetWidget()->GetDesiredSize();
 }
 
 FChildren* SDPIScaler::GetChildren()
 {
 	return &ChildSlot;
 }
-

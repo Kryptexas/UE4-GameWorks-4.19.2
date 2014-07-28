@@ -3,6 +3,10 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+SUniformGridPanel::SUniformGridPanel()
+: Children()
+{
+}
 
 void SUniformGridPanel::Construct( const FArguments& InArgs )
 {
@@ -29,7 +33,7 @@ void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 		for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
 			const FSlot& Child = Children[ChildIndex];
-			const EVisibility ChildVisibility = Child.Widget->GetVisibility();
+			const EVisibility ChildVisibility = Child.GetWidget()->GetVisibility();
 			if ( ArrangedChildren.Accepts(ChildVisibility) )
 			{
 				// Do the standard arrangement of elements within a slot
@@ -38,7 +42,7 @@ void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 				AlignmentArrangeResult YAxisResult = AlignChild<Orient_Vertical>(CellSize.Y, Child, CurrentSlotPadding);
 
 				ArrangedChildren.AddWidget(ChildVisibility,
-					AllottedGeometry.MakeChild(Child.Widget,
+					AllottedGeometry.MakeChild(Child.GetWidget(),
 					FVector2D(CellSize.X*Child.Column + XAxisResult.Offset, CellSize.Y*Child.Row + YAxisResult.Offset),
 					FVector2D(XAxisResult.Size, YAxisResult.Size)
 					));
@@ -67,9 +71,9 @@ FVector2D SUniformGridPanel::ComputeDesiredSize() const
 		NumColumns = FMath::Max(Child.Column + 1, NumColumns);
 		NumRows = FMath::Max(Child.Row + 1, NumRows);
 
-		if (Child.Widget->GetVisibility() != EVisibility::Collapsed)
+		if (Child.GetWidget()->GetVisibility() != EVisibility::Collapsed)
 		{
-			FVector2D ChildDesiredSize = Child.Widget->GetDesiredSize() + SlotPaddingDesiredSize;
+			FVector2D ChildDesiredSize = Child.GetWidget()->GetDesiredSize() + SlotPaddingDesiredSize;
 
 			ChildDesiredSize.X = FMath::Max( ChildDesiredSize.X, CachedMinDesiredSlotWidth);
 			ChildDesiredSize.Y = FMath::Max( ChildDesiredSize.Y, CachedMinDesiredSlotHeight);
@@ -94,7 +98,7 @@ void SUniformGridPanel::SetSlotPadding(TAttribute<FMargin> InSlotPadding)
 
 SUniformGridPanel::FSlot& SUniformGridPanel::AddSlot( int32 Column, int32 Row )
 {
-	FSlot& NewSlot = SUniformGridPanel::Slot(Column, Row);
+	FSlot& NewSlot = *(new FSlot( Column, Row ));
 
 	Children.Add( &NewSlot );
 
@@ -105,7 +109,7 @@ bool SUniformGridPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if ( SlotWidget == Children[SlotIdx].Widget )
+		if ( SlotWidget == Children[SlotIdx].GetWidget() )
 		{
 			Children.RemoveAt(SlotIdx);
 			return true;

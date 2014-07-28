@@ -25,13 +25,15 @@ public:
 		SLATE_ATTRIBUTE( TSharedPtr<SDockingTabStack>, ParentStackNode )
 	SLATE_END_ARGS()
 
+	SDockingTabWell();
+
 	void Construct( const FArguments& InArgs );
 
 	/** @return How many tabs there are. */
 	int32 GetNumTabs() const;
 
 	/** @return All child tabs in this node */
-	const TArray< TSharedRef<SDockTab> >& GetTabs() const;
+	const TSlotlessChildren<SDockTab>& GetTabs() const;
 
 	/**
 	 * Add a new tab (InTab) to the TabWell at location (AtIndex).

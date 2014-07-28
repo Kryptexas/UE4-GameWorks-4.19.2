@@ -255,7 +255,7 @@ FVector2D SButton::ComputeDesiredSize() const
 {
 	// When there is no widget in the button, it sizes itself based on
 	// the border image specified by the style.
-	if (ChildSlot.Widget == SNullWidget::NullWidget)
+	if (ChildSlot.GetWidget() == SNullWidget::NullWidget)
 	{
 		return GetBorder()->ImageSize;
 	}
