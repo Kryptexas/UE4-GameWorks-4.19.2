@@ -9,6 +9,7 @@
 
 #include "AnimationAsset.h"
 #include "Curves/CurveBase.h"
+#include "Kismet2NameValidators.h"
 #include "AnimSequenceBase.generated.h"
 
 #define DEFAULT_SAMPLERATE			30.f
@@ -256,6 +257,27 @@ struct FRawCurveTracks
 	 * Delete curve data 
 	 */
 	ENGINE_API bool DeleteCurveData(FName InCurveName);
+	/**
+	 * Duplicate curve data
+	 * Duplicates a curve, creating a new name using a validator (FCurveNameValidator)
+	 */
+	ENGINE_API bool DuplicateCurveData(FName InCurveName);
+};
+
+/**
+ * Name validator for anim curves
+ */
+class FCurveNameValidator : public FStringSetNameValidator
+{
+public:
+	FCurveNameValidator(FRawCurveTracks& Tracks, const FString& ExistingName)
+		: FStringSetNameValidator(ExistingName)
+	{
+		for(FFloatCurve& Curve : Tracks.FloatCurves)
+		{
+			Names.Add(Curve.CurveName.ToString());
+		}
+	}
 };
 
 UENUM()

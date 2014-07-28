@@ -68,6 +68,11 @@ public:
 	void AddTrack(const FText & CurveNameToAdd, ETextCommit::Type CommitInfo);
 	
 	/**
+	 * Duplicate Track
+	 */
+	FReply DuplicateTrack(const FString& CurveNameToDuplicate);
+
+	/**
 	 * Delete Track
 	 *
 	 */

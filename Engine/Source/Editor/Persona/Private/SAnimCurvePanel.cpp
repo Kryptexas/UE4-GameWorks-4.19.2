@@ -284,6 +284,9 @@ public:
 	// input handling for curve name
 	void NewCurveNameEntered( const FText& NewText, ETextCommit::Type CommitInfo );
 
+	// Duplicate the current track
+	void DuplicateTrack();
+
 	// Delete current track
 	void DeleteTrack();
 
@@ -436,6 +439,15 @@ SCurveEdTrack::~SCurveEdTrack()
 	delete CurveInterface;
 }
 
+void SCurveEdTrack::DuplicateTrack()
+{
+	TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+	if(SharedPanel.IsValid())
+	{
+		SharedPanel->DuplicateTrack(CurveInterface->CurveData->CurveName.ToString());
+	}
+}
+
 void SCurveEdTrack::DeleteTrack()
 {
 	if ( PanelPtr.IsValid() )
@@ -525,6 +537,13 @@ FReply SCurveEdTrack::OnContextMenu()
 
 	MenuBuilder.BeginSection("AnimCurvePanelTrackOptions", LOCTEXT("TrackOptionsHeading", "Track Options") );
 	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("DuplicateTrack", "Duplicate Track"),
+			LOCTEXT("DuplicateTrackTooltip", "Duplicate this track"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SCurveEdTrack::DuplicateTrack))
+		);
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("RemoveTrack", "Remove Track"),
 			LOCTEXT("RemoveTrackTooltip", "Remove this track"),
@@ -682,6 +701,20 @@ void SAnimCurvePanel::AddTrack(const FText & CurveNameToAdd, ETextCommit::Type C
 
 		FSlateApplication::Get().DismissAllMenus();
 	}
+}
+
+FReply SAnimCurvePanel::DuplicateTrack(const FString& CurveNameToDuplicate)
+{
+	const FScopedTransaction Transaction( LOCTEXT("AnimCurve_DuplicateTrack", "Duplicate Curve") );
+	
+	if(Sequence->RawCurveData.DuplicateCurveData(*CurveNameToDuplicate))
+	{
+		Sequence->Modify();
+		UpdatePanel(true);
+
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 FReply SAnimCurvePanel::DeleteTrack(const FString & CurveNameToDelete)

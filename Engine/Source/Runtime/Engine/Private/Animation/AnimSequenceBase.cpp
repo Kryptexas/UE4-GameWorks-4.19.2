@@ -148,6 +148,25 @@ bool FRawCurveTracks::AddCurveData(FName InCurveName, int32 CurveFlags /*= ACF_D
 	return false;
 }
 
+ENGINE_API bool FRawCurveTracks::DuplicateCurveData(FName InCurveName)
+{
+	if(FFloatCurve* ExistingCurve = GetCurveData(InCurveName))
+	{
+		TSharedPtr<INameValidatorInterface> Validator = MakeShareable(new FCurveNameValidator(*this, FString(TEXT(""))));
+
+		// Use the validator to pick a reasonable name for the duplicated curve.
+		FString NewCurveName = InCurveName.ToString();
+		Validator->FindValidString(NewCurveName);
+
+		// Add the curve to the track and set its data to the existing curve
+		FloatCurves.Add(FFloatCurve(*NewCurveName, ExistingCurve->GetCurveTypeFlags()));
+		FloatCurves.Last().FloatCurve = ExistingCurve->FloatCurve;
+		
+		return true;
+	}
+	return false;
+}
+
 /////////////////////////////////////////////////////
 
 UAnimSequenceBase::UAnimSequenceBase(const class FPostConstructInitializeProperties& PCIP)
