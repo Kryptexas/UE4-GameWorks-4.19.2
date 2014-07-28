@@ -101,6 +101,12 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
 
+	//TODO UMG Store as a setting
+	//PreviewWidth = 1920;
+	//PreviewHeight = 1080;
+	PreviewWidth = 1280;
+	PreviewHeight = 720;
+
 	HoverTime = 0;
 
 	bMouseDown = false;
@@ -118,6 +124,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	DragDirections[DH_BOTTOM_CENTER] = FVector2D(0, 1);
 	DragDirections[DH_BOTTOM_RIGHT] = FVector2D(1, 1);
 
+	// TODO UMG - Register these with the module through some public interface to allow for new extensions to be registered.
 	Register(MakeShareable(new FVerticalSlotExtension()));
 	Register(MakeShareable(new FHorizontalSlotExtension()));
 	Register(MakeShareable(new FCanvasSlotExtension()));
@@ -137,10 +144,18 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
 			[
-				SAssignNew(PreviewSurface, SZoomPan)
+				SAssignNew(PreviewHitTestRoot, SZoomPan)
 				.Visibility(EVisibility::HitTestInvisible)
 				.ZoomAmount(this, &SDesignerView::GetZoomAmount)
 				.ViewOffset(this, &SDesignerView::GetViewOffset)
+				[
+					SAssignNew(PreviewSurface, SBox)
+					.WidthOverride(this, &SDesignerView::GetPreviewWidth)
+					.HeightOverride(this, &SDesignerView::GetPreviewHeight)
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.Visibility(EVisibility::SelfHitTestInvisible)
+				]
 			]
 
 			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
@@ -150,6 +165,29 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 			[
 				SAssignNew(ExtensionWidgetCanvas, SCanvas)
 				.Visibility(EVisibility::SelfHitTestInvisible)
+			]
+
+			// Top bar with buttons for changing the designer
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SHorizontalBox)
+				
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SComboButton)
+					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
+					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+					.OnGetMenuContent(this, &SDesignerView::GetAspectMenu)
+					.ContentPadding(2.0f)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("AspectRatio", "Aspect Ratio"))
+					]
+				]
 			]
 
 			// Bottom-right corner text indicating the experimental nature of umg
@@ -181,6 +219,16 @@ SDesignerView::~SDesignerView()
 	{
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
 	}
+}
+
+FOptionalSize SDesignerView::GetPreviewWidth() const
+{
+	return (float)PreviewWidth;
+}
+
+FOptionalSize SDesignerView::GetPreviewHeight() const
+{
+	return (float)PreviewHeight;
 }
 
 void SDesignerView::OnEditorSelectionChanged()
@@ -228,41 +276,84 @@ void SDesignerView::CreateExtensionWidgetsForSelection()
 	// Remove all the current extension widgets
 	ExtensionWidgetCanvas->ClearChildren();
 
-	ExtensionWidgets.Reset();
-
 	TArray<FWidgetReference> Selected;
 	if ( SelectedWidget.IsValid() )
 	{
 		Selected.Add(SelectedWidget);
 	}
 
+	TArray< TSharedRef<FDesignerSurfaceElement> > ExtensionElements;
+
 	// Build extension widgets for new selection
 	for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
 	{
-		Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
+		if ( Ext->CanExtendSelection(Selected) )
+		{
+			Ext->ExtendSelection(Selected, ExtensionElements);
+		}
 	}
-
-	//TODO UMG We need to have a better layout system for extensions.
-	//         currently everything is just laid out across the top.
-
-	TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
 
 	// Add Widgets to designer surface
-	for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
+	for ( TSharedRef<FDesignerSurfaceElement>& ExtElement : ExtensionElements )
 	{
-		ExtensionBox->AddSlot()
-			.AutoWidth()
+		ExtensionWidgetCanvas->AddSlot()
+			.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(this, &SDesignerView::GetExtensionPosition, ExtElement)))
+			.Size(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(this, &SDesignerView::GetExtensionSize, ExtElement)))
 			[
-				ExWidget
+				ExtElement->GetWidget()
 			];
 	}
+}
 
-	ExtensionWidgetCanvas->AddSlot()
-		.Position(TAttribute<FVector2D>(this, &SDesignerView::GetCachedSelectionDesignerWidgetsLocation))
-		.Size(FVector2D(100, 25))
-		[
-			ExtensionBox
-		];
+FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const
+{
+	const FVector2D TopLeft = CachedDesignerWidgetLocation;
+	const FVector2D Size = CachedDesignerWidgetSize * GetZoomAmount();
+
+	FVector2D FinalPosition(0, 0);
+
+	switch ( ExtensionElement->GetLocation() )
+	{
+	case EExtensionLayoutLocation::Absolute:
+		break;
+
+	case EExtensionLayoutLocation::TopLeft:
+		FinalPosition = TopLeft;
+		break;
+	case EExtensionLayoutLocation::TopCenter:
+		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, 0);
+		break;
+	case EExtensionLayoutLocation::TopRight:
+		FinalPosition = TopLeft + FVector2D(Size.X, 0);
+		break;
+
+	case EExtensionLayoutLocation::CenterLeft:
+		FinalPosition = TopLeft + FVector2D(0, Size.Y * 0.5f);
+		break;
+	case EExtensionLayoutLocation::CenterCenter:
+		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, Size.Y * 0.5f);
+		break;
+	case EExtensionLayoutLocation::CenterRight:
+		FinalPosition = TopLeft + FVector2D(Size.X, Size.Y * 0.5f);
+		break;
+
+	case EExtensionLayoutLocation::BottomLeft:
+		FinalPosition = TopLeft + FVector2D(0, Size.Y);
+		break;
+	case EExtensionLayoutLocation::BottomCenter:
+		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, Size.Y);
+		break;
+	case EExtensionLayoutLocation::BottomRight:
+		FinalPosition = TopLeft + Size;
+		break;
+	}
+
+	return FinalPosition + ExtensionElement->GetOffset();
+}
+
+FVector2D SDesignerView::GetExtensionSize(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const
+{
+	return ExtensionElement->GetWidget()->GetDesiredSize();
 }
 
 UWidgetBlueprint* SDesignerView::GetBlueprint() const
@@ -306,11 +397,11 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 
 	FArrangedChildren Children(EVisibility::All);
 
-	PreviewSurface->SetVisibility(EVisibility::Visible);
-	FArrangedWidget WindowWidgetGeometry(PreviewSurface.ToSharedRef(), MyGeometry);
+	PreviewHitTestRoot->SetVisibility(EVisibility::Visible);
+	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), MyGeometry);
 	LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, MouseEvent.GetScreenSpacePosition(), Children, true);
 
-	PreviewSurface->SetVisibility(EVisibility::HitTestInvisible);
+	PreviewHitTestRoot->SetVisibility(EVisibility::HitTestInvisible);
 
 	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
 	if ( WidgetActor )
@@ -514,108 +605,19 @@ void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerE
 	}
 }
 
-bool SDesignerView::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
-{
-	// We can't screenshot the widget unless there's a valid window handle to draw it in.
-	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
-	if ( !WidgetWindow.IsValid() )
-	{
-		return false;
-	}
-
-	TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
-
-	FWidgetPath WidgetPath;
-	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
-	{
-		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-		return true;
-	}
-
-	return false;
-}
-
-bool SDesignerView::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
-{
-	// We can't screenshot the widget unless there's a valid window handle to draw it in.
-	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
-	if ( !WidgetWindow.IsValid() )
-	{
-		return false;
-	}
-
-	TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
-
-	FWidgetPath WidgetPath;
-	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
-	{
-		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-		ArrangedWidget.Geometry.AbsolutePosition -= CurrentWindowRef->GetPositionInScreen();
-		return true;
-	}
-
-	return false;
-}
-
-bool SDesignerView::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
-{
-	FWidgetPath WidgetPath;
-	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
-	{
-		FArrangedWidget ArrangedDesigner = WidgetPath.FindArrangedWidget(this->AsShared());
-
-		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-		ArrangedWidget.Geometry.AbsolutePosition -= ArrangedDesigner.Geometry.AbsolutePosition;
-		return true;
-	}
-
-	return false;
-}
-
-FVector2D SDesignerView::GetCachedSelectionDesignerWidgetsLocation() const
-{
-	return CachedDesignerWidgetLocation;
-}
-
-FVector2D SDesignerView::GetSelectionDesignerWidgetsLocation() const
+void SDesignerView::CacheSelectedWidgetGeometry()
 {
 	if ( SelectedSlateWidget.IsValid() )
 	{
 		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		GetArrangedWidgetRelativeToDesigner(Widget, ArrangedWidget);
+		FDesignTimeUtils::GetArrangedWidgetRelativeToParent(Widget, AsShared(), ArrangedWidget);
 
-		return ArrangedWidget.Geometry.AbsolutePosition - FVector2D(0, 25);
+		CachedDesignerWidgetLocation = ArrangedWidget.Geometry.AbsolutePosition;
+		CachedDesignerWidgetSize = ArrangedWidget.Geometry.Size;
 	}
-
-	return FVector2D(0, 0);
 }
-
-//void SDesignerView::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
-//{
-//	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
-//	// First pass nodes
-//	for ( int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex )
-//	{
-//		const TSharedRef<SNode>& SomeChild = ChildrenToArrange[ChildIndex];
-//		if ( !SomeChild->RequiresSecondPassLayout() )
-//		{
-//			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
-//		}
-//	}
-//
-//	// Second pass nodes
-//	for ( int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex )
-//	{
-//		const TSharedRef<SNode>& SomeChild = ChildrenToArrange[ChildIndex];
-//		if ( SomeChild->RequiresSecondPassLayout() )
-//		{
-//			SomeChild->PerformSecondPassLayout(NodeToWidgetLookup);
-//			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(SomeChild, SomeChild->GetPosition() - ViewOffset, SomeChild->GetDesiredSize(), GetZoomAmount()));
-//		}
-//	}
-//}
 
 int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -638,7 +640,7 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		TSharedRef<SWidget> Widget = HoveredSlateWidget.Pin().ToSharedRef();
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
+		FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
 		// Draw hovered effect
 		// Azure = 0x007FFF
@@ -665,7 +667,7 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
+		FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
 		const FLinearColor Tint(0, 1, 0);
 
@@ -708,12 +710,11 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 			const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
 			FLinearColor KeyColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.f);
 
+			// Normalized offset of the handle, 0, no offset, 1 move the handle completely out by its own size.
+			//const float HandleOffset = 1.0f;
+
 			if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(SelectedWidget.GetTemplate()->Slot) )
 			{
-				//Set("UMGEditor.AnchorCenter", new IMAGE_BRUSH("Icons/umg_anchor_center", Icon16x16));
-				//Set("UMGEditor.AnchorTopBottom", new IMAGE_BRUSH("Icons/umg_anchor_top_bottom", FVector2D(16, 32)));
-				//Set("UMGEditor.AnchorLeftRight", new IMAGE_BRUSH("Icons/umg_anchor_left_right", FVector2D(32, 16)));
-
 				// Left
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
@@ -824,7 +825,7 @@ SDesignerView::DragHandle SDesignerView::HitTestDragHandles(const FGeometry& All
 		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		GetArrangedWidget(Widget, ArrangedWidget);
+		FDesignTimeUtils::GetArrangedWidget(Widget, ArrangedWidget);
 
 		FVector2D WidgetLocalPosition = AllottedGeometry.AbsoluteToLocal(ArrangedWidget.Geometry.AbsolutePosition);
 		float X = WidgetLocalPosition.X;
@@ -889,10 +890,8 @@ FCursorReply SDesignerView::OnCursorQuery(const FGeometry& MyGeometry, const FPo
 	return FCursorReply::Unhandled();
 }
 
-void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SDesignerView::UpdatePreviewWidget()
 {
-	HoverTime += InDeltaTime;
-
 	UUserWidget* LatestPreviewWidget = BlueprintEditor.Pin()->GetPreview();
 
 	if ( LatestPreviewWidget != PreviewWidget )
@@ -935,14 +934,21 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 			];
 		}
 	}
+}
+
+void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	HoverTime += InDeltaTime;
+
+	UpdatePreviewWidget();
 
 	// Update the selected widget to match the selected template.
-	if ( LatestPreviewWidget )
+	if ( PreviewWidget )
 	{
 		if ( SelectedWidget.IsValid() )
 		{
 			// Set the selected widget so that we can draw the highlight
-			SelectedSlateWidget = LatestPreviewWidget->GetWidgetFromName(SelectedWidget.GetTemplate()->GetName());
+			SelectedSlateWidget = PreviewWidget->GetWidgetFromName(SelectedWidget.GetTemplate()->GetName());
 		}
 		else
 		{
@@ -951,7 +957,7 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 
 		if ( HoveredWidget.IsValid() )
 		{
-			HoveredSlateWidget = LatestPreviewWidget->GetWidgetFromName(HoveredWidget.GetTemplate()->GetName());
+			HoveredSlateWidget = PreviewWidget->GetWidgetFromName(HoveredWidget.GetTemplate()->GetName());
 		}
 		else
 		{
@@ -959,7 +965,13 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		}
 	}
 
-	CachedDesignerWidgetLocation = GetSelectionDesignerWidgetsLocation();
+	CacheSelectedWidgetGeometry();
+
+	// Tick all designer extensions in case they need to update widgets
+	for ( const TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
+	{
+		Ext->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
 
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
@@ -1257,6 +1269,47 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	}
 	
 	return FReply::Unhandled();
+}
+
+void SDesignerView::HandleCommonResolutionSelected(int32 Width, int32 Height)
+{
+	PreviewWidth = Width;
+	PreviewHeight = Height;
+}
+
+void SDesignerView::AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName)
+{
+	MenuBuilder.BeginSection(NAME_None, SectionName);
+	{
+		for ( auto Iter = Resolutions.CreateConstIterator(); Iter; ++Iter )
+		{
+			FUIAction Action(FExecuteAction::CreateRaw(this, &SDesignerView::HandleCommonResolutionSelected, Iter->Width, Iter->Height));
+
+			FInternationalization& I18N = FInternationalization::Get();
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Width"), FText::AsNumber(Iter->Width, NULL, I18N.GetInvariantCulture()));
+			Args.Add(TEXT("Height"), FText::AsNumber(Iter->Height, NULL, I18N.GetInvariantCulture()));
+			Args.Add(TEXT("AspectRatio"), FText::FromString(Iter->AspectRatio));
+
+			MenuBuilder.AddMenuEntry(FText::FromString(Iter->Description), FText::Format(LOCTEXT("CommonResolutionFormat", "{Width} x {Height} (AspectRatio)"), Args), FSlateIcon(), Action);
+		}
+	}
+	MenuBuilder.EndSection();
+}
+
+TSharedRef<SWidget> SDesignerView::GetAspectMenu()
+{
+	const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	AddScreenResolutionSection(MenuBuilder, PlaySettings->PhoneScreenResolutions, LOCTEXT("CommonPhonesSectionHeader", "Phones"));
+	AddScreenResolutionSection(MenuBuilder, PlaySettings->TabletScreenResolutions, LOCTEXT("CommonTabletsSectionHeader", "Tablets"));
+	AddScreenResolutionSection(MenuBuilder, PlaySettings->LaptopScreenResolutions, LOCTEXT("CommonLaptopsSectionHeader", "Laptops"));
+	AddScreenResolutionSection(MenuBuilder, PlaySettings->MonitorScreenResolutions, LOCTEXT("CommoMonitorsSectionHeader", "Monitors"));
+	AddScreenResolutionSection(MenuBuilder, PlaySettings->TelevisionScreenResolutions, LOCTEXT("CommonTelevesionsSectionHeader", "Televisions"));
+
+	return MenuBuilder.MakeWidget();
 }
 
 void SDesignerView::BeginTransaction(const FText& SessionName)

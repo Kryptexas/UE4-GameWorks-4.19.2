@@ -22,7 +22,13 @@ void SBox::Construct( const FArguments& InArgs )
 	];
 }
 
-
+void SBox::SetContent(const TSharedRef< SWidget >& InContent)
+{
+	ChildSlot
+	[
+		InContent
+	];
+}
 
 FVector2D SBox::ComputeDesiredSize() const
 {

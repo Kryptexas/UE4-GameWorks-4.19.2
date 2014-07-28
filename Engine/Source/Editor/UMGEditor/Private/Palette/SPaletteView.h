@@ -59,6 +59,9 @@ private:
 	void LoadItemExpanssion();
 	void SaveItemExpansion();
 
+	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
+
 	void AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template);
 
 	/** Transforms the widget view model into a searchable string. */
@@ -88,4 +91,7 @@ private:
 
 	bool bRefreshRequested;
 	FText SearchText;
+
+	/** Controls rebuilding the list of spawnable widgets */
+	bool bRebuildRquested;
 };

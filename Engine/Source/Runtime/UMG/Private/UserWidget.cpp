@@ -256,24 +256,24 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 	TSharedPtr<SWidget> UserRootWidget;
 
 	// Add the first component to the root of the widget surface.
-	if ( Components.Num() > 0 )
+	if ( Components.Num() > 0 && Components[0] != NULL )
 	{
 		UserRootWidget = Components[0]->TakeWidget();
+
+		// Place all of our top-level children Slate wrapped components into the overlay
+		for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
+		{
+			UWidget* Handle = Components[ComponentIndex];
+			TSharedPtr<SWidget> Widget = Handle->GetCachedWidget();
+			if ( Widget.IsValid() )
+			{
+				WidgetToComponent.Add(Widget, Handle);
+			}
+		}
 	}
 	else
 	{
 		UserRootWidget = SNew(SSpacer);
-	}
-
-	// Place all of our top-level children Slate wrapped components into the overlay
-	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
-	{
-		UWidget* Handle = Components[ComponentIndex];
-		TSharedPtr<SWidget> Widget = Handle->GetCachedWidget();
-		if ( Widget.IsValid() )
-		{
-			WidgetToComponent.Add(Widget, Handle);
-		}
 	}
 
 	if ( !IsDesignTime() )

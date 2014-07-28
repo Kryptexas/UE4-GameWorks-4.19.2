@@ -319,14 +319,16 @@ public:
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	UPROPERTY()
+	/** The components contained in this user widget. */
+	UPROPERTY(Transient)
 	TArray<UWidget*> Components;
 
-	UPROPERTY()
+	/** The widget tree contained inside this user widget initialized by the blueprint */
+	UPROPERTY(Transient)
 	class UWidgetTree* WidgetTree;
 
 	/** All the sequence players currently playing */
-	UPROPERTY(transient)
+	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
 
 protected:

@@ -49,12 +49,17 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
+	FOptionalSize GetPreviewWidth() const;
+
+	FOptionalSize GetPreviewHeight() const;
+
+	/** Updates the designer to display the latest preview widget */
+	void UpdatePreviewWidget();
+
 	void CreateExtensionWidgetsForSelection();
 
 	/** Displays the context menu when you right click */
 	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	FVector2D GetZoomVector() const;
 
 	void OnEditorSelectionChanged();
 
@@ -68,12 +73,12 @@ private:
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
-	bool GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
-	bool GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
-	bool GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+	void CacheSelectedWidgetGeometry();
 
-	FVector2D GetSelectionDesignerWidgetsLocation() const;
-	FVector2D GetCachedSelectionDesignerWidgetsLocation() const;
+	// Handles selecting a common screen resolution.
+	void HandleCommonResolutionSelected(int32 Width, int32 Height);
+	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
+	TSharedRef<SWidget> GetAspectMenu();
 
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();
@@ -102,14 +107,17 @@ private:
 	/** Extensions for the designer to allow for custom widgets to be inserted onto the design surface as selection changes. */
 	TArray< TSharedRef<FDesignerExtension> > DesignerExtensions;
 
-	/** Temporary widgets that are destroyed every time selection changes and are built from the current selection by extensions. */
-	TArray< TSharedRef<SWidget> > ExtensionWidgets;
-
 private:
 	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
 
 	UWidget* ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview);
+
+private:
+
+	FVector2D GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
+
+	FVector2D GetExtensionSize(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
 	
 private:
 	/** A reference to the BP Editor that owns this designer */
@@ -127,12 +135,14 @@ private:
 	UWidget* DropPreviewWidget;
 	UPanelWidget* DropPreviewParent;
 
-	TSharedPtr<class SZoomPan> PreviewSurface;
+	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
+	TSharedPtr<SBox> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 
 	DragHandle CurrentHandle;
 
 	FVector2D CachedDesignerWidgetLocation;
+	FVector2D CachedDesignerWidgetSize;
 
 	/** The currently selected set of widgets */
 	TSet< FWidgetReference > SelectedWidgets;
@@ -161,4 +171,7 @@ private:
 
 	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
 	TWeakPtr<SWidget> HoveredSlateWidget;
+
+	int32 PreviewWidth;
+	int32 PreviewHeight;
 };

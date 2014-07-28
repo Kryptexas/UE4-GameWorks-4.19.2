@@ -57,6 +57,9 @@ private:
 	/** Rebuilds the tree structure based on the current filter options */
 	void RefreshTree();
 
+	/** Completely regenerates the treeview */
+	void RebuildTreeView();
+
 	/** Handles the menu clicking to delete the selected widgets. */
 	FReply HandleDeleteSelected();
 
@@ -75,6 +78,9 @@ private:
 	/** Transforms the widget into a searchable string */
 	void TransformWidgetToString(UWidget* Widget, OUT TArray< FString >& Array);
 
+	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
+
 private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */
@@ -89,6 +95,12 @@ private:
 	/** The root widgets which are actually displayed by the TreeView which will be managed by the TreeFilterHandler. */
 	TArray< UWidget* > TreeRootWidgets;
 
+	/** Gets the visible items displayed in the tree view. */
+	TSet< UWidget* > VisibleItems;
+
+	/** The widget containing the treeview */
+	TSharedPtr<SBorder> TreeViewArea;
+
 	/** The widget hierarchy slate treeview widget */
 	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
 
@@ -97,4 +109,7 @@ private:
 
 	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;
+
+	/** Is the tree in such a changed state that the whole widget needs rebuilding? */
+	bool bRebuildTreeRequested;
 };

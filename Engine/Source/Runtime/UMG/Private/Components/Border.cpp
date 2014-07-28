@@ -13,9 +13,6 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
-	HorizontalAlignment = HAlign_Fill;
-	VerticalAlignment = VAlign_Fill;
-
 	ContentScale = FVector2D(1.0f, 1.0f);
 	ContentColorAndOpacity = FLinearColor::White;
 
@@ -24,8 +21,6 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	ForegroundColor = FLinearColor::Black;
 
 	SBorder::FArguments BorderDefaults;
-
-	ContentPadding = BorderDefaults._Padding.Get();
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
 }
 
@@ -42,7 +37,7 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 	
 	if ( GetChildrenCount() > 0 )
 	{
-		MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
+		Cast<UBorderSlot>(GetContentSlot())->BuildSlot(MyBorder.ToSharedRef());
 	}
 
 	return MyBorder.ToSharedRef();
@@ -51,10 +46,6 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 void UBorder::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
-
-	MyBorder->SetHAlign(HorizontalAlignment);
-	MyBorder->SetVAlign(VerticalAlignment);
-	MyBorder->SetPadding(ContentPadding);
 	
 	MyBorder->SetBorderBackgroundColor(BrushColor);
 	MyBorder->SetColorAndOpacity(ContentColorAndOpacity);
@@ -73,12 +64,17 @@ void UBorder::SyncronizeProperties()
 	MyBorder->SetOnMouseDoubleClick(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseDoubleClick));
 }
 
+UClass* UBorder::GetSlotClass() const
+{
+	return UBorderSlot::StaticClass();
+}
+
 void UBorder::OnSlotAdded(UPanelSlot* Slot)
 {
-	// Add the child to the live canvas if it already exists
+	// Add the child to the live slot if it already exists
 	if ( MyBorder.IsValid() )
 	{
-		MyBorder->SetContent(Slot->Content ? Slot->Content->TakeWidget() : SNullWidget::NullWidget);
+		Cast<UBorderSlot>(Slot)->BuildSlot(MyBorder.ToSharedRef());
 	}
 }
 
@@ -106,15 +102,6 @@ void UBorder::SetForegroundColor(FLinearColor InForegroundColor)
 	if ( MyBorder.IsValid() )
 	{
 		MyBorder->SetForegroundColor(InForegroundColor);
-	}
-}
-
-void UBorder::SetContentPadding(FMargin InContentPadding)
-{
-	ContentPadding = InContentPadding;
-	if ( MyBorder.IsValid() )
-	{
-		MyBorder->SetPadding(InContentPadding);
 	}
 }
 
@@ -167,6 +154,27 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 	}
 
 	return FReply::Unhandled();
+}
+
+void UBorder::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetChildrenCount() > 0 )
+	{
+		//TODO UMG Pre-Release Upgrade, now have slots of their own.  Convert existing slot to new slot.
+		if ( UPanelSlot* PanelSlot = GetContentSlot() )
+		{
+			UBorderSlot* BorderSlot = Cast<UBorderSlot>(PanelSlot);
+			if ( BorderSlot == NULL )
+			{
+				BorderSlot = ConstructObject<UBorderSlot>(UBorderSlot::StaticClass(), this);
+				BorderSlot->Content = GetContentSlot()->Content;
+				BorderSlot->Content->Slot = BorderSlot;
+				Slots[0] = BorderSlot;
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR

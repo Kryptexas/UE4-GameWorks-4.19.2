@@ -30,6 +30,8 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	{
 		Blueprint->OnChanged().RemoveAll(this);
 	}
+
+	GEditor->OnObjectsReplaced().RemoveAll(this);
 }
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
@@ -38,6 +40,9 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
 
 	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
+
+	// register for any objects replaced
+	GEditor->OnObjectsReplaced().AddSP(this, &FWidgetBlueprintEditor::OnObjectsReplaced);
 
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
@@ -174,6 +179,34 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 		// Fire the selection updated event to ensure everyone is watching the same widgets.
 		OnSelectedWidgetsChanged.Broadcast();
 	}
+}
+
+void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	// Objects being replaced could force a selection change
+	OnSelectedWidgetsChanging.Broadcast();
+
+	TSet<FWidgetReference> TempSelection;
+	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		UWidget* OldTemplate = WidgetRef.GetTemplate();
+
+		UObject* const* NewObject = ReplacementMap.Find(OldTemplate);
+		if ( NewObject )
+		{
+			UWidget* NewTemplate = Cast<UWidget>(*NewObject);
+			TempSelection.Add(FWidgetReference::FromTemplate(SharedThis(this), NewTemplate));
+		}
+		else
+		{
+			TempSelection.Add(WidgetRef);
+		}
+	}
+
+	SelectedWidgets = TempSelection;
+
+	// Fire the selection updated event to ensure everyone is watching the same widgets.
+	OnSelectedWidgetsChanged.Broadcast();
 }
 
 bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()

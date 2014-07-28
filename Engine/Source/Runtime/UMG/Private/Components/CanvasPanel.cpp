@@ -3,47 +3,12 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// SFixedSizeConstraintCanvas
-
-class SFixedSizeConstraintCanvas : public SConstraintCanvas
-{
-	SLATE_BEGIN_ARGS(SFixedSizeConstraintCanvas)
-		{
-			_Visibility = EVisibility::SelfHitTestInvisible;
-		}
-	SLATE_END_ARGS()
-
-	FVector2D CanvasSize;
-
-	void Construct(const FArguments& InArgs, FVector2D InSize)
-	{
-		SConstraintCanvas::FArguments ParentArgs;
-		SConstraintCanvas::Construct(ParentArgs);
-
-		CanvasSize = InSize;
-	}
-
-	void SetDesiredSize(FVector2D InSize)
-	{
-		CanvasSize = InSize;
-	}
-
-	// SWidget interface
-	virtual FVector2D ComputeDesiredSize() const override
-	{
-		return CanvasSize;
-	}
-	// End of SWidget interface
-};
-
-/////////////////////////////////////////////////////
 // UCanvasPanel
 
 UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
-	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
 
 	SConstraintCanvas::FArguments Defaults;
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
@@ -85,7 +50,7 @@ void UCanvasPanel::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
-	MyCanvas = SNew(SFixedSizeConstraintCanvas, DesiredCanvasSize);
+	MyCanvas = SNew(SConstraintCanvas);
 
 	for ( UPanelSlot* Slot : Slots )
 	{
@@ -102,8 +67,6 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 void UCanvasPanel::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
-
-	MyCanvas->SetDesiredSize(DesiredCanvasSize);
 }
 
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
