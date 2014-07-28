@@ -49,7 +49,7 @@ public:
 	/**
 	 * Optimized refresh of nodes that depend on external blueprints.  Refreshes the nodes, but does not recompile the skeleton class
 	 */
-	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint);
+	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild = NULL);
 
 	/**
 	 * Refresh the nodes of an individual graph.
@@ -314,8 +314,8 @@ public:
 		return nullptr;
 	}
 
-	/** @return true if this Blueprint is dependent on the given blueprint, false otherwise */
-	static bool IsBlueprintDependentOn(UBlueprint const* Blueprint, UBlueprint const* TestBlueprint);
+	/** Gather all bps that Blueprint depends on */
+	static void GatherDependencies(const UBlueprint* Blueprint, TSet<TWeakObjectPtr<UBlueprint>>& OutDependencies);
 
 	/** Returns a list of loaded Blueprints that are dependent on the given Blueprint. */
 	static void GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints);

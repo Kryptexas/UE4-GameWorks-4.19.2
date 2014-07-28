@@ -164,6 +164,7 @@ void UBlueprintCore::GenerateDeterministicGuid()
 
 UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bCachedDependenciesUpTpDate(false)
 {
 
 #if WITH_EDITOR
@@ -1064,6 +1065,12 @@ void UBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 	ChangeOwnerOfTemplates();
+}
+
+bool UBlueprint::Modify(bool bAlwaysMarkDirty)
+{
+	bCachedDependenciesUpTpDate = false;
+	return Super::Modify(bAlwaysMarkDirty);
 }
 
 #endif

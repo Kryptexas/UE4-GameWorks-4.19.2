@@ -92,16 +92,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		check(GeneratingBP || GIsAutomationTesting);
 		if(GeneratingBP)
 		{
-			TArray<UObject*> AllBlueprints;
-			GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
-			for( auto BPIt = AllBlueprints.CreateIterator(); BPIt; ++BPIt )
-			{
-				UBlueprint* CurrentBP = Cast<UBlueprint>(*BPIt);
-				if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, GeneratingBP) )
-				{
-					Dependencies.Add(CurrentBP);
-				}
-			}
+			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 		}
 	}
 }

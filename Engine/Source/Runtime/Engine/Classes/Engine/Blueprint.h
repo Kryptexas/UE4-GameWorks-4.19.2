@@ -413,6 +413,9 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
+	bool bCachedDependenciesUpTpDate;
+	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
+
 	bool IsUpToDate() const
 	{
 		return BS_UpToDate == Status || BS_UpToDateWithWarnings == Status;
@@ -498,6 +501,7 @@ public:
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	// End of UObject interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */

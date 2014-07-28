@@ -3414,20 +3414,13 @@ void FKismetCompilerContext::Compile()
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
 	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
 	{
-		TArray<UObject*> AllBlueprints;
-		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
-  
-		// Mark any blueprints that implement this interface as dirty
-		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
+		TArray<UBlueprint*> DependentBlueprints;
+		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
+		for (auto CurrentBP : DependentBlueprints)
 		{
-			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
-  
-			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
-			{
-				CurrentBP->Status = BS_Dirty;
-				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
-				CurrentBP->BroadcastChanged();
-			}
+			CurrentBP->Status = BS_Dirty;
+			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, NewClass);
+			CurrentBP->BroadcastChanged();
 		}
 	}
 
