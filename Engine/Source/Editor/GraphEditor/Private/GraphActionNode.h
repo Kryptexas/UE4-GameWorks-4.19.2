@@ -361,6 +361,19 @@ public:
 		}
 	}
 
+	/** Returns the node's string used for display purposes */
+	FString GetNodeString() const
+	{
+		if( IsCategoryNode() )
+		{
+			return Category;
+		}
+		else if(Actions.Num() > 0 && Actions[0].IsValid())
+		{
+			return Actions[0]->MenuDescription.ToString();
+		}
+		return FString();
+	}
 protected:
 
 	FGraphActionNode( FString InCategory, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )

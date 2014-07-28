@@ -354,6 +354,7 @@ void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::
 		}
 		Refresh();
 		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+		BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName(*CategoryName.ToString()), ESelectInfo::OnMouseClick, InAction.Pin()->SectionID, true);
 	}
 }
 
@@ -1066,7 +1067,7 @@ FReply SMyBlueprint::OnCategoryDragged(const FString& InCategory, const FPointer
 void SMyBlueprint::OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions)
 {
 	// If an action is being selected, clear the LocalGraphActionMenu of any selection it has, this keeps it so that only one menu will ever have selection at a time
-	if(InActions.Num() && LocalGraphActionMenu.IsValid())
+	if(InActions.Num() && LocalGraphActionMenu.IsValid() && InActions.Num())
 	{
 		LocalGraphActionMenu->SelectItemByName(NAME_None);
 	}
@@ -1076,7 +1077,7 @@ void SMyBlueprint::OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchem
 void SMyBlueprint::OnLocalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions)
 {
 	// If an action is being selected, clear the GraphActionMenu of any selection it has, this keeps it so that only one menu will ever have selection at a time
-	if(InActions.Num())
+	if(InActions.Num() && InActions.Num())
 	{
 		GraphActionMenu->SelectItemByName(NAME_None);
 	}
@@ -1993,7 +1994,7 @@ bool SMyBlueprint::CanRequestRenameOnActionNode() const
 	return false;
 }
 
-void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo)
+void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo, int32 SectionId/* = INDEX_NONE*/, bool bIsCategory/* = false*/)
 {
 	// Check if the graph action menu is being told to clear
 	if(ItemName == NAME_None)
@@ -2001,9 +2002,9 @@ void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type Sel
 		ClearGraphActionMenuSelection();
 	}
 	// Attempt to select the item in the main graph action menu, if that fails, attempt the same in LocalGraphActionMenu
-	else if( !GraphActionMenu->SelectItemByName(ItemName, SelectInfo) && LocalGraphActionMenu.IsValid() )
+	else if( !GraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory) && LocalGraphActionMenu.IsValid() )
 	{
-		LocalGraphActionMenu->SelectItemByName(ItemName, SelectInfo);
+		LocalGraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
 	}
 }
 

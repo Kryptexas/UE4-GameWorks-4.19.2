@@ -235,7 +235,7 @@ void SGraphActionMenu::RefreshAllActions(bool bPreserveExpansion, bool bHandleOn
 {
 	// Save Selection (of only the first selected thing)
 	TArray< TSharedPtr<FGraphActionNode> > SelectedNodes = TreeView->GetSelectedItems();
-	TSharedPtr<FEdGraphSchemaAction> SelectedAction = SelectedNodes.Num() > 0 ? SelectedNodes[0]->Actions[0] : NULL;
+	TSharedPtr<FGraphActionNode> SelectedAction = SelectedNodes.Num() > 0 ? SelectedNodes[0] : NULL;
 
 	AllActions.Empty();
 	OnCollectAllActions.ExecuteIfBound(AllActions);
@@ -244,28 +244,17 @@ void SGraphActionMenu::RefreshAllActions(bool bPreserveExpansion, bool bHandleOn
 	// Re-apply selection #0 if possible
 	if (SelectedAction.IsValid())
 	{
-		TArray<TSharedPtr<FGraphActionNode>> GraphNodes;
-		FilteredRootAction->GetAllNodes(GraphNodes, false);
-		for (int32 i = 0; i < GraphNodes.Num(); ++i)
+		// Clear the selection, we will be re-selecting the previous action
+		TreeView->ClearSelection();
+
+		if(bHandleOnSelectionEvent)
 		{
-			TSharedPtr<FEdGraphSchemaAction> GraphAction = GraphNodes[i]->Actions[0];
-			if (GraphAction.IsValid() && GraphAction->MenuDescription.ToString() == SelectedAction->MenuDescription.ToString())
-			{
-				// Clear the selection (if this node is already selected then setting it will have no effect)
-				TreeView->ClearSelection();
-				// Now set the selection
-				if(bHandleOnSelectionEvent)
-				{
-					TreeView->SetSelection(GraphNodes[i], ESelectInfo::OnMouseClick);
-				}
-				else
-				{
-					// If we do not want to handle the selection, set it directly so it will reselect the item but not handle the event.
-					TreeView->SetSelection(GraphNodes[i], ESelectInfo::Direct);
-				}
-				
-				break;
-			}
+			SelectItemByName(*SelectedAction->GetNodeString(), ESelectInfo::OnMouseClick, SelectedAction->SectionID, SelectedNodes[0]->IsCategoryNode());
+		}
+		else
+		{
+			// If we do not want to handle the selection, set it directly so it will reselect the item but not handle the event.
+			SelectItemByName(*SelectedAction->GetNodeString(), ESelectInfo::Direct, SelectedAction->SectionID, SelectedNodes[0]->IsCategoryNode());
 		}
 	}
 }
@@ -358,7 +347,7 @@ void SGraphActionMenu::GetCategorySubActions(TWeakPtr<FGraphActionNode> InAction
 	}
 }
 
-bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo )
+bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo, int32 SectionId/* = INDEX_NONE */, bool bIsCategory/* = false*/)
 {
 	if (ItemName != NAME_None)
 	{
@@ -369,15 +358,28 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 		for (int32 i = 0; i < GraphNodes.Num() && !SelectionNode.IsValid(); ++i)
 		{
 			TSharedPtr<FGraphActionNode> CurrentGraphNode = GraphNodes[i];
-
 			FEdGraphSchemaAction* GraphAction = CurrentGraphNode->Actions[0].Get();
-			if (GraphAction)
-			{
-				if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
-				{
-					SelectionNode = GraphNodes[i];
 
-					break;
+			// If the user is attempting to select a category, make sure it's a category
+			if( CurrentGraphNode->IsCategoryNode() == bIsCategory )
+			{
+				if(SectionId == INDEX_NONE || CurrentGraphNode->SectionID == SectionId)
+				{
+					if (GraphAction)
+					{
+						if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
+						{
+							SelectionNode = GraphNodes[i];
+
+							break;
+						}
+					}
+					else if( CurrentGraphNode->Category == FName::NameToDisplayString(ItemName.ToString(), false) )
+					{
+						SelectionNode = CurrentGraphNode;
+
+						break;
+					}
 				}
 			}
 
@@ -390,13 +392,26 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 				{
 					FEdGraphSchemaAction* ChildGraphAction = CurrentChildNode->Actions[ActionIndex].Get();
 
-					if(ChildGraphAction)
+					// If the user is attempting to select a category, make sure it's a category
+					if( CurrentChildNode->IsCategoryNode() == bIsCategory )
 					{
-						if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
+						if(SectionId == INDEX_NONE || CurrentChildNode->SectionID == SectionId)
 						{
-							SelectionNode = GraphNodes[i]->Children[ChildIdx];
+							if(ChildGraphAction)
+							{
+								if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
+								{
+									SelectionNode = GraphNodes[i]->Children[ChildIdx];
 
-							break;
+									break;
+								}
+							}
+							else if( CurrentChildNode->Category == FName::NameToDisplayString(ItemName.ToString(), false) )
+							{
+								SelectionNode = CurrentChildNode;
+
+								break;
+							}
 						}
 					}
 				}

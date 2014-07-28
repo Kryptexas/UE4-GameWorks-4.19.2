@@ -109,7 +109,7 @@ public:
 	void OnResetItemFilter();
 
 	/** Selects an item by name in either the main graph action menu or the local one */
-	void SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct);
+	void SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
 	/** Clears the selection in the graph action menus */
 	void ClearGraphActionMenuSelection();

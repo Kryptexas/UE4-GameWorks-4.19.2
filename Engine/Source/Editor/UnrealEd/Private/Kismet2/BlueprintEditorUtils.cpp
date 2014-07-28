@@ -2870,24 +2870,36 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 		UClass* OuterClass = CastChecked<UClass>(TargetProperty->GetOuter());
 		const bool bIsNativeVar = (OuterClass->ClassGeneratedBy == NULL);
 
+		// If the category does not change, we will not recompile the Blueprint
+		bool bIsCategoryChanged = false;
 		if (!bIsNativeVar)
 		{
 			TargetProperty->SetMetaData(TEXT("Category"), *SetCategory.ToString());
 			const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
 			if (VarIndex != INDEX_NONE)
 			{
-				Blueprint->NewVariables[VarIndex].Category = SetCategory;
+				bIsCategoryChanged = Blueprint->NewVariables[VarIndex].Category != SetCategory;
+				
+				if(bIsCategoryChanged)
+				{
+					Blueprint->NewVariables[VarIndex].Category = SetCategory;
+				}
 			}
 			else
 			{
 				const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint, VarName);
 				if (SCS_NodeIndex != INDEX_NONE)
 				{
-					Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName = SetCategory;
+					bIsCategoryChanged = Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName != SetCategory;
+					
+					if(bIsCategoryChanged)
+					{
+						Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName = SetCategory;
+					}
 				}
 			}
 
-			if (bDontRecompile == false)
+			if (bDontRecompile == false && bIsCategoryChanged)
 			{
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
@@ -2897,10 +2909,16 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 	{
 		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
-			LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
-			LocalVariable->Category = SetCategory;
+			// If the category does not change, we will not recompile the Blueprint
+			bool bIsCategoryChanged = LocalVariable->Category != SetCategory;
 
-			if (bDontRecompile == false)
+			if(bIsCategoryChanged)
+			{
+				LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
+				LocalVariable->Category = SetCategory;
+			}
+
+			if (bDontRecompile == false && bIsCategoryChanged)
 			{
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}

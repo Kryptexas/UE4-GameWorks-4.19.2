@@ -210,9 +210,11 @@ public:
 	 *
 	 * @param	ItemName		The name of the item to select
 	 * @param	SelectInfo		The selection type
+	 * @param	SectionId		If known, the section Id to restrict the selection to, useful in the case of categories where they can exist multiple times
+	 * @param	bIsCategory		TRUE if the selection is a category, categories obey different rules and it's hard to re-select properly without this knowledge
 	 * @return					TRUE if the item was successfully selected or the tree cleared, FALSE if unsuccessful
 	 */
-	bool SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct );
+	bool SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false );
 
 	/** Expands any category with the associated name */
 	void ExpandCategory(const FString& CategoryName);
