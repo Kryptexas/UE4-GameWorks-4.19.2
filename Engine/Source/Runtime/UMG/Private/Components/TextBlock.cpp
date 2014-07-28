@@ -107,6 +107,15 @@ void UTextBlock::SyncronizeProperties()
 
 #if WITH_EDITOR
 
+void UTextBlock::SetText(FText InText)
+{
+	Text = InText;
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetText(Text);
+	}
+}
+
 FString UTextBlock::GetLabelMetadata() const
 {
 	const int32 MaxSampleLength = 15;

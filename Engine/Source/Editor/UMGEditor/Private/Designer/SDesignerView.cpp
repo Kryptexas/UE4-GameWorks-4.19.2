@@ -899,7 +899,10 @@ void SDesignerView::UpdatePreviewWidget()
 		PreviewWidget = LatestPreviewWidget;
 		if ( PreviewWidget )
 		{
-			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeFullScreenWidget();
+			const bool bAbsoluteLayout = false;
+			const bool bModal = false;
+			const bool bShowCursor = false;
+			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor);
 			CurrentWidget->SlatePrepass();
 
 			if ( CurrentWidget != PreviewSlateWidget.Pin() )

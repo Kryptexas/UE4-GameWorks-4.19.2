@@ -63,7 +63,7 @@ public:
 		FSlot()
 			: TSlotBase<FSlot>()
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
-			, AnchorsAttr( FAnchors( 0.5f, 0.5f ) )
+			, AnchorsAttr( FAnchors( 0.0f, 0.0f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
 			, ZOrderAttr( 0 )
 		{ }
