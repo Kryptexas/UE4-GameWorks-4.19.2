@@ -150,6 +150,7 @@ namespace UnrealBuildTool
 		protected readonly List<string> PublicWeakFrameworks;
 		protected readonly List<UEBuildFramework> PublicAdditionalFrameworks;
 		protected readonly List<string> PublicAdditionalShadowFiles;
+		protected readonly List<UEBuildBundleResource> PublicAdditionalBundleResources;
 
 		/** Names of modules with header files that this module's public interface needs access to. */
 		protected List<string> PublicIncludePathModuleNames;
@@ -195,6 +196,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicWeakFrameworks = null,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources = null,
 			IEnumerable<string> InPublicIncludePathModuleNames = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
 			IEnumerable<string> InPublicDelayLoadDLLs = null,
@@ -220,6 +222,7 @@ namespace UnrealBuildTool
 			PublicWeakFrameworks = ListFromOptionalEnumerableStringParameter(InPublicWeakFrameworks);
 			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new List<UEBuildFramework>() : new List<UEBuildFramework>(InPublicAdditionalFrameworks);
 			PublicAdditionalShadowFiles = ListFromOptionalEnumerableStringParameter(InPublicAdditionalShadowFiles);
+			PublicAdditionalBundleResources = InPublicAdditionalBundleResources == null ? new List<UEBuildBundleResource>() : new List<UEBuildBundleResource>(InPublicAdditionalBundleResources);
 			PublicIncludePathModuleNames = ListFromOptionalEnumerableStringParameter( InPublicIncludePathModuleNames );
 			PublicDependencyModuleNames = ListFromOptionalEnumerableStringParameter(InPublicDependencyModuleNames);
 			PublicDelayLoadDLLs = ListFromOptionalEnumerableStringParameter(InPublicDelayLoadDLLs);
@@ -322,6 +325,19 @@ namespace UnrealBuildTool
 		public virtual void AddPublicAdditionalShadowFile(string FileName)
 		{
 			PublicAdditionalShadowFiles.Add(FileName);
+		}
+
+		/** Adds a file or folder that will be copied to Mac or iOS app bundle */
+		public virtual void AddAdditionalBundleResource(UEBuildBundleResource Resource, bool bCheckForDuplicates = true)
+		{
+			if (bCheckForDuplicates == true)
+			{
+				if ( PublicAdditionalBundleResources.Contains( Resource ) )
+				{
+					return;
+				}
+			}
+			PublicAdditionalBundleResources.Add( Resource );
 		}
 
 		/** Adds a public include path module. */
@@ -638,6 +654,7 @@ namespace UnrealBuildTool
 			ref List<string> WeakFrameworks,
 			ref List<UEBuildFramework> AdditionalFrameworks,
 			ref List<string> AdditionalShadowFiles,
+			ref List<UEBuildBundleResource> AdditionalBundleResources,
 			ref List<string> DelayLoadDLLs,
 			ref List<UEBuildBinary> BinaryDependencies,
 			ref Dictionary<UEBuildModule, bool> VisitedModules
@@ -678,7 +695,7 @@ namespace UnrealBuildTool
 							if (bIsExternalModule || bIsInStaticLibrary)
 							{
 								DependencyModule.SetupPublicLinkEnvironment(SourceBinary, ref LibraryPaths, ref AdditionalLibraries, ref Frameworks, ref WeakFrameworks,
-									ref AdditionalFrameworks, ref AdditionalShadowFiles, ref DelayLoadDLLs, ref BinaryDependencies, ref VisitedModules);
+									ref AdditionalFrameworks, ref AdditionalShadowFiles, ref AdditionalBundleResources, ref DelayLoadDLLs, ref BinaryDependencies, ref VisitedModules);
 							}
 						}
 					}
@@ -688,6 +705,7 @@ namespace UnrealBuildTool
 					AdditionalLibraries.AddRange(PublicAdditionalLibraries);
 					Frameworks.AddRange(PublicFrameworks);
 					WeakFrameworks.AddRange(PublicWeakFrameworks);
+					AdditionalBundleResources.AddRange(PublicAdditionalBundleResources);
 					// Remember the module so we can refer to it when needed
 					foreach ( var Framework in PublicAdditionalFrameworks )
 					{
@@ -709,7 +727,7 @@ namespace UnrealBuildTool
 		{
 			// Allow the module's public dependencies to add library paths and additional libraries to the link environment.
 			SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,ref LinkEnvironment.Config.WeakFrameworks,
-				ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
+				ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles, ref LinkEnvironment.Config.AdditionalBundleResources,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
 
 			// Also allow the module's public and private dependencies to modify the link environment.
 			List<string> AllDependencyModuleNames = new List<string>(PrivateDependencyModuleNames);
@@ -719,7 +737,7 @@ namespace UnrealBuildTool
 			{
 				var DependencyModule = Target.GetModuleByName(DependencyName);
 				DependencyModule.SetupPublicLinkEnvironment(Binary,ref LinkEnvironment.Config.LibraryPaths,ref LinkEnvironment.Config.AdditionalLibraries,ref LinkEnvironment.Config.Frameworks,ref LinkEnvironment.Config.WeakFrameworks,
-					ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
+					ref LinkEnvironment.Config.AdditionalFrameworks,ref LinkEnvironment.Config.AdditionalShadowFiles, ref LinkEnvironment.Config.AdditionalBundleResources,ref LinkEnvironment.Config.DelayLoadDLLs,ref BinaryDependencies,ref VisitedModules);
 			}
 		}
 
@@ -791,6 +809,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicWeakFrameworks = null,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
 			IEnumerable<string> InPublicDelayLoadDLLs = null		// Delay loaded DLLs that should be setup when including this module
 			)
@@ -800,7 +819,7 @@ namespace UnrealBuildTool
 			InName:							InName,
 			InModuleDirectory:				InModuleDirectory,
 			InOutputDirectory:				InOutputDirectory,
-			InIsRedistributableOverride:		InIsRedistributableOverride,
+			InIsRedistributableOverride:	InIsRedistributableOverride,
 			InPublicDefinitions:			InPublicDefinitions,
 			InPublicIncludePaths:			InPublicIncludePaths,
 			InPublicSystemIncludePaths:		InPublicSystemIncludePaths,
@@ -810,6 +829,7 @@ namespace UnrealBuildTool
 			InPublicWeakFrameworks:			InPublicWeakFrameworks,
 			InPublicAdditionalFrameworks: 	InPublicAdditionalFrameworks,
 			InPublicAdditionalShadowFiles:  InPublicAdditionalShadowFiles,
+			InPublicAdditionalBundleResources: InPublicAdditionalBundleResources,
 			InPublicDependencyModuleNames:	InPublicDependencyModuleNames,
 			InPublicDelayLoadDLLs:			InPublicDelayLoadDLLs
 			)
@@ -987,6 +1007,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicWeakFrameworks,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources,
 			IEnumerable<string> InPrivateIncludePaths,
 			IEnumerable<string> InPrivateIncludePathModuleNames,
 			IEnumerable<string> InPrivateDependencyModuleNames,
@@ -1018,6 +1039,7 @@ namespace UnrealBuildTool
 					InPublicWeakFrameworks,
 					InPublicAdditionalFrameworks,
 					InPublicAdditionalShadowFiles,
+					InPublicAdditionalBundleResources,
 					InPublicIncludePathModuleNames,
 					InPublicDependencyModuleNames,
 					InPublicDelayLoadDLLs,
@@ -2035,6 +2057,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicWeakFrameworks,
 			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources,
 			IEnumerable<string> InPrivateIncludePaths,
 			IEnumerable<string> InPrivateIncludePathModuleNames,
 			IEnumerable<string> InPrivateDependencyModuleNames,
@@ -2053,7 +2076,7 @@ namespace UnrealBuildTool
 			)
 			: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,InDefinitions,
-			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,
+			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
@@ -2117,5 +2140,17 @@ namespace UnrealBuildTool
 		public string			FrameworkName		= null;
 		public string			FrameworkZipPath	= null;
 		public string			CopyBundledAssets	= null;
+	}
+
+	public class UEBuildBundleResource
+	{
+		public UEBuildBundleResource(string InResourcePath, string InBundleContentsSubdir = "Resources")
+		{
+			ResourcePath = InResourcePath;
+			BundleContentsSubdir = InBundleContentsSubdir;
+		}
+
+		public string ResourcePath			= null;
+		public string BundleContentsSubdir	= null;
 	}
 }

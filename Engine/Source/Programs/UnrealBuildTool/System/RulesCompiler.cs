@@ -201,6 +201,9 @@ namespace UnrealBuildTool
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
 		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
 
+		/// List of addition resources that should be copied to the app bundle for Mac or iOS
+		public List<UEBuildBundleResource> AdditionalBundleResources = new List<UEBuildBundleResource>();
+
 		/// For builds that execute on a remote machine (e.g. iOS), this list contains additional files that
 		/// need to be copied over in order for the app to link successfully.  Source/header files and PCHs are
 		/// automatically copied.  Usually this is simply a list of precompiled third party library dependencies.

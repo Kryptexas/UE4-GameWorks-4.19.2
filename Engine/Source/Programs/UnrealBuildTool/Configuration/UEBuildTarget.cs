@@ -1777,6 +1777,7 @@ namespace UnrealBuildTool
 					InPublicFrameworks: new List<string>(),
 					InPublicWeakFrameworks: new List<string>(),
 					InPublicAdditionalShadowFiles: new List<string>(),
+					InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
 					InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
 					InPrivateIncludePaths: new List<string>(),
 					InPrivateIncludePathModuleNames: new List<string>(),
@@ -2729,6 +2730,7 @@ namespace UnrealBuildTool
 							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
 							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
 							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
 							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
 							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
 							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
@@ -2767,6 +2769,7 @@ namespace UnrealBuildTool
 							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
 							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
 							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
 							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
 							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
 							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
@@ -2802,6 +2805,7 @@ namespace UnrealBuildTool
 							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
 							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
 							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
 							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
 							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs
 						);

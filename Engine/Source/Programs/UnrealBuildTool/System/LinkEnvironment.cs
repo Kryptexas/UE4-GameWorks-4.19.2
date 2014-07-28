@@ -44,6 +44,9 @@ namespace UnrealBuildTool
 		public List<string> Frameworks = new List<string>();
 		public List<string> WeakFrameworks = new List<string>();
 
+		/** iOS/Mac resources that should be copied to the app bundle */
+		public List<UEBuildBundleResource> AdditionalBundleResources = new List<UEBuildBundleResource>();
+
 		/**
 		 * A list of the dynamically linked libraries that shouldn't be loaded until they are first called
 		 * into.
@@ -109,6 +112,7 @@ namespace UnrealBuildTool
 			AdditionalShadowFiles.AddRange( InCopyEnvironment.AdditionalShadowFiles );
 			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
 			WeakFrameworks.AddRange(InCopyEnvironment.WeakFrameworks);
+			AdditionalBundleResources.AddRange(InCopyEnvironment.AdditionalBundleResources);
 			DelayLoadDLLs.AddRange(InCopyEnvironment.DelayLoadDLLs);
 			AdditionalArguments = InCopyEnvironment.AdditionalArguments;
 			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
