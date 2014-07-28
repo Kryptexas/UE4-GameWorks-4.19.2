@@ -5,6 +5,7 @@
 #include "HUD.generated.h"
 
 class FCanvasTextItem;
+class UTexture;
 
 /** List of actors and debug text to draw, @see AddDebugText(), RemoveDebugText(), and DrawDebugTextList() */
 USTRUCT()
