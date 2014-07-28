@@ -10,13 +10,13 @@ UMovieSceneVectorSection::UMovieSceneVectorSection( const FPostConstructInitiali
 
 }
 
-FVector4 UMovieSceneVectorSection::Eval( float Position ) const
+FVector4 UMovieSceneVectorSection::Eval( float Position, const FVector4& DefaultVector ) const
 {
 	return FVector4(
-		Curves[0].Eval( Position ),
-		Curves[1].Eval( Position ),
-		Curves[2].Eval( Position ),
-		Curves[3].Eval( Position ) );
+		Curves[0].Eval( Position, DefaultVector.X ),
+		Curves[1].Eval( Position, DefaultVector.Y ),
+		Curves[2].Eval( Position, DefaultVector.Z ),
+		Curves[3].Eval( Position, DefaultVector.W ) );
 }
 
 void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVector4& Value )

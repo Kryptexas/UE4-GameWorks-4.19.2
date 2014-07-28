@@ -52,7 +52,7 @@ public:
 	 * @param OutVector 	The value at the playback position
 	 * @return true if anything was evaluated. Note: if false is returned OutVector remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPostion, FVector4& OutVector ) const;
+	virtual bool Eval( float Position, float LastPostion, FVector4& InOutVector ) const;
 
 	/** @return Get the number of channels used by the vector */
 	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }

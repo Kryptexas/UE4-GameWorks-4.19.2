@@ -7,7 +7,7 @@ FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVecto
 {
 	VectorTrack = &InVectorTrack;
 
-	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( VectorTrack->GetPropertyName() ) );
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( VectorTrack->GetPropertyName(), VectorTrack->GetPropertyPath() ) );
 }
 
 void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
@@ -21,18 +21,27 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 			case 2:
 			{
 				FVector2D Value(Vector.X, Vector.Y);
-				PropertyBindings->CallFunction(RuntimeObjects, &Value);
+				for(UObject* Object : RuntimeObjects)
+				{
+					PropertyBindings->CallFunction(Object, &Value);
+				}
 				break;
 			}
 			case 3:
 			{
 				FVector Value(Vector.X, Vector.Y, Vector.Z);
-				PropertyBindings->CallFunction(RuntimeObjects, &Value);
+				for(UObject* Object : RuntimeObjects)
+				{
+					PropertyBindings->CallFunction(Object, &Value);
+				}
 				break;
 			}
 			case 4:
 			{
-				PropertyBindings->CallFunction(RuntimeObjects, &Vector);
+				for(UObject* Object : RuntimeObjects)
+				{
+					PropertyBindings->CallFunction(Object, &Vector);
+				}
 				break;
 			}
 			default:

@@ -99,9 +99,10 @@ protected:
 	/** FPropertyNode interface */
 	virtual void InitChildNodes() override;
 
-	virtual void GetQualifiedName(FString& PathPlusIndex, const bool bWithArrayIndex) const override
+	virtual bool GetQualifiedName(FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false) const override
 	{
 		PathPlusIndex += TEXT("Struct");
+		return true;
 	}
 
 private:

@@ -31,12 +31,12 @@ void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin 
 
 }
 
-FLinearColor UMovieSceneColorSection::Eval( float Position ) const
+FLinearColor UMovieSceneColorSection::Eval( float Position, const FLinearColor& DefaultColor ) const
 {
-	return FLinearColor(RedCurve.Eval(Position),
-						GreenCurve.Eval(Position),
-						BlueCurve.Eval(Position),
-						AlphaCurve.Eval(Position));
+	return FLinearColor(RedCurve.Eval(Position, DefaultColor.R),
+						GreenCurve.Eval(Position, DefaultColor.G),
+						BlueCurve.Eval(Position, DefaultColor.B),
+						AlphaCurve.Eval(Position, DefaultColor.A));
 }
 
 void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key )
@@ -62,7 +62,7 @@ bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value) co
 		GreenCurve.GetNumKeys() == 0 ||
 		BlueCurve.GetNumKeys() == 0 ||
 		AlphaCurve.GetNumKeys() == 0 ||
-		!Eval(Time).Equals(Value);
+		!Eval(Time,Value).Equals(Value);
 }
 
 void UMovieSceneColorSection::AddKeyToNamedCurve(float Time, const FColorKey& Key)

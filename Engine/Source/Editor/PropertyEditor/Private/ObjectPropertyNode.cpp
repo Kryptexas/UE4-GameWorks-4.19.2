@@ -511,14 +511,22 @@ TSharedPtr<FPropertyNode> FObjectPropertyNode::GenerateSingleChild( FName ChildP
 /**
  * Appends my path, including an array index (where appropriate)
  */
-void FObjectPropertyNode::GetQualifiedName(FString& PathPlusIndex, const bool bWithArrayIndex) const
+bool FObjectPropertyNode::GetQualifiedName(FString& PathPlusIndex, bool bWithArrayIndex, const FPropertyNode* StopParent, bool bIgnoreCategories ) const
 {
-	if( ParentNode )
+	bool bAddedAnything = false;
+	if( ParentNode && ParentNode != StopParent )
 	{
-		ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex);
-		PathPlusIndex += TEXT(".");
+		bAddedAnything = ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex, StopParent, bIgnoreCategories);
+		if( bAddedAnything )
+		{
+			PathPlusIndex += TEXT(".");
+		}
 	}
+
+	bAddedAnything = true;
 	PathPlusIndex += TEXT("Object");
+
+	return bAddedAnything;
 }
 
 // Looks at the Objects array and returns the best base class.  Called by

@@ -9,15 +9,18 @@ FMovieSceneMarginTrackInstance::FMovieSceneMarginTrackInstance( UMovieSceneMargi
 {
 	MarginTrack = &InMarginTrack;
 
-	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( MarginTrack->GetPropertyName() ) );
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( MarginTrack->GetPropertyName(), MarginTrack->GetPropertyPath() ) );
 }
 
 void FMovieSceneMarginTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
-	FMargin MarginValue;
-	if( MarginTrack->Eval( Position, LastPosition, MarginValue ) )
+	for( UObject* Object : RuntimeObjects )
 	{
-		PropertyBindings->CallFunction( RuntimeObjects, &MarginValue );
+		FMargin MarginValue = PropertyBindings->GetCurrentValue<FMargin>( Object );
+		if(MarginTrack->Eval(Position, LastPosition, MarginValue))
+		{
+			PropertyBindings->CallFunction(Object, &MarginValue);
+		}
 	}
 }
 

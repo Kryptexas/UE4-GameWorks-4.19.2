@@ -256,7 +256,8 @@ void FTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* 
 	{
 		UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneTransformTrack::StaticClass(), Transform );
 		UMovieSceneTransformTrack* TransformTrack = CastChecked<UMovieSceneTransformTrack>( Track );
-		TransformTrack->SetPropertyName( Transform );
+		// Transform name and path are the same
+		TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 	
 		if (!TransformPair.LastTransformData.IsValid())
 		{

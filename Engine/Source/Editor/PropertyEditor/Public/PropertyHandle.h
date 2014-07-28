@@ -327,6 +327,13 @@ public:
 	virtual bool IsCustomized() const = 0;
 
 	/**
+	 * Generates a path from the parent UObject class to this property
+	 *
+	 * @return The path to this property
+	 */
+	virtual FString GeneratePathToProperty() const = 0;
+
+	/**
 	 * Creates a name widget for this property
 	 * @param NameOverride			The name override to use instead of the property name
 	 * @param bDisplayResetToDefault	Whether or not to display the reset to default button

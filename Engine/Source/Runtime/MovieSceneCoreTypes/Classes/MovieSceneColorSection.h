@@ -23,7 +23,7 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	virtual FLinearColor Eval( float Position ) const;
+	virtual FLinearColor Eval( float Position, const FLinearColor& DefaultColor ) const;
 
 	/** 
 	 * Adds a key to the section

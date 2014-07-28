@@ -9,15 +9,18 @@ FMovieSceneColorTrackInstance::FMovieSceneColorTrackInstance( UMovieSceneColorTr
 {
 	ColorTrack = &InColorTrack;
 
-	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( ColorTrack->GetPropertyName() ) );
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( ColorTrack->GetPropertyName(), ColorTrack->GetPropertyPath() ) );
 }
 
 void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
-	FLinearColor ColorValue;
-	if( ColorTrack->Eval( Position, LastPosition, ColorValue ) )
+	for(UObject* Object : RuntimeObjects)
 	{
-		PropertyBindings->CallFunction( RuntimeObjects, &ColorValue );
+		FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
+		if(ColorTrack->Eval(Position, LastPosition, ColorValue))
+		{
+			PropertyBindings->CallFunction(Object, &ColorValue);
+		}
 	}
 }
 
