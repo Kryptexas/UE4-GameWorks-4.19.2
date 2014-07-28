@@ -243,6 +243,13 @@ void FMetalDepthStencilState::Set()
 	[FMetalManager::GetContext() setDepthStencilState:State];
 }
 
+
+
+// statics
+TMap<uint32, uint8> FMetalBlendState::BlendSettingsToUniqueKeyMap;
+uint8 FMetalBlendState::NextKey = 0;
+
+
 FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 {
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
@@ -269,7 +276,24 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 		BlendState.alphaBlendOperation = TranslateBlendOp(Init.AlphaBlendOp);
 		BlendState.writeMask = TranslateWriteMask(Init.ColorWriteMask);
 		
-		RenderTargetStates[RenderTargetIndex] = BlendState;
+		RenderTargetStates[RenderTargetIndex].BlendState = BlendState;
+
+		// get the unique key
+		uint32 BlendBitMask =
+			(BlendState.sourceRGBBlendFactor << 0) | (BlendState.destinationRGBBlendFactor << 4) | (BlendState.rgbBlendOperation << 8) |
+			(BlendState.sourceAlphaBlendFactor << 11) | (BlendState.destinationAlphaBlendFactor << 15) | (BlendState.alphaBlendOperation << 19) |
+			(BlendState.writeMask << 22);
+		uint8* Key = BlendSettingsToUniqueKeyMap.Find(BlendBitMask);
+		if (Key == NULL)
+		{
+			NSLog(@"Making a new key [BlendBitMask: %x, Key: %d]", BlendBitMask, NextKey);
+			Key = &BlendSettingsToUniqueKeyMap.Add(BlendBitMask, NextKey++);
+
+			// only giving 5 bits to the key, we need 4 of them
+			checkf(NextKey < 32, TEXT("Too many unique blend states to fit into the PipelineStateHash"));
+		}
+		// set the key
+		RenderTargetStates[RenderTargetIndex].BlendStateKey = *Key;
 	}
 }
 
@@ -278,7 +302,7 @@ FMetalBlendState::~FMetalBlendState()
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
 	{
 		UNTRACK_OBJECT(RenderTargetStates[RenderTargetIndex]);
-		[RenderTargetStates[RenderTargetIndex] release];
+		[RenderTargetStates[RenderTargetIndex].BlendState release];
 	}
 }
 

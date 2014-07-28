@@ -12,6 +12,17 @@
 
 DEFINE_LOG_CATEGORY(LogMetal)
 
+DEFINE_STAT(STAT_MetalMakeDrawableTime);
+DEFINE_STAT(STAT_MetalDrawCallTime);
+DEFINE_STAT(STAT_MetalPrepareDrawTime);
+DEFINE_STAT(STAT_MetalUniformBufferCleanupTime);
+DEFINE_STAT(STAT_MetalFreeUniformBufferMemory);
+DEFINE_STAT(STAT_MetalNumFreeUniformBuffers);
+DEFINE_STAT(STAT_MetalPipelineStateTime);
+DEFINE_STAT(STAT_MetalBoundShaderStateTime);
+DEFINE_STAT(STAT_MetalVertexDeclarationTime);
+
+
 bool FMetalDynamicRHIModule::IsSupported()
 {
 	return true;

@@ -302,18 +302,19 @@ void FMetalDynamicRHI::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, 
 {
 	FMetalManager* Manager = FMetalManager::Get();
 	
-	// only support 1 for now!!!
-	check(NumSimultaneousRenderTargets <= 1);
-	
-	// update the current RTs
-	if (NumSimultaneousRenderTargets && NewRenderTargets[0].Texture != NULL)
+
+	for (int32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
 	{
-		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewRenderTargets[0].Texture);
-		Manager->SetCurrentRenderTarget(&Surface);
-	}
-	else
-	{
-		Manager->SetCurrentRenderTarget(NULL);
+		// update the current RTs
+		if (RenderTargetIndex < NumSimultaneousRenderTargets && NewRenderTargets[RenderTargetIndex].Texture != NULL)
+		{
+			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewRenderTargets[0].Texture);
+			Manager->SetCurrentRenderTarget(&Surface, RenderTargetIndex, NumSimultaneousRenderTargets);
+		}
+		else
+		{
+			Manager->SetCurrentRenderTarget(NULL, RenderTargetIndex, NumSimultaneousRenderTargets);
+		}
 	}
 	
 	if (NewDepthStencilTargetRHI)

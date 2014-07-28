@@ -75,5 +75,16 @@ public:
 	 */
 	void Set();
 	
-	TStaticArray<MTLRenderPipelineColorAttachmentDescriptor*, MaxSimultaneousRenderTargets> RenderTargetStates;
+
+	struct FBlendPerMRT
+	{
+		MTLRenderPipelineColorAttachmentDescriptor* BlendState;
+		uint8 BlendStateKey;
+	};
+	FBlendPerMRT RenderTargetStates[MaxMetalRenderTargets];
+
+private:
+	// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
+	static TMap<uint32, uint8> BlendSettingsToUniqueKeyMap;
+	static uint8 NextKey;
 };

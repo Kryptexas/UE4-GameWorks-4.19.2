@@ -29,10 +29,10 @@ struct FPipelineShadow
 		return Hash;
 	}
 
-	/**
-	 * FOrce a pipeline state for a known hash
-	 */
-	void SetHash(uint64 InHash);
+// 	/**
+// 	 * FOrce a pipeline state for a known hash
+// 	 */
+// 	void SetHash(uint64 InHash);
 	
 	/**
 	 * @return an pipeline state object that matches the current state and the BSS
@@ -99,7 +99,7 @@ public:
 	 */
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
-	void SetCurrentRenderTarget(FMetalSurface* RenderSurface);
+	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, int32 TotalNumRenderTargets);
 	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface);
 	
 	/**
@@ -164,7 +164,8 @@ protected:
 
 	id<MTLRenderCommandEncoder> CurrentContext;
 	
-	id<MTLTexture> CurrentColorRenderTexture, PreviousColorRenderTexture;
+	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
+	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];
 	id<MTLTexture> CurrentDepthRenderTexture, PreviousDepthRenderTexture;
 	id<MTLTexture> CurrentMSAARenderTexture;
 	
