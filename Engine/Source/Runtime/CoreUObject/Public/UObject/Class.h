@@ -471,6 +471,10 @@ struct TStructOpsTypeTraitsBase
 template<class CPPSTRUCT>
 struct TStructOpsTypeTraits : public TStructOpsTypeTraitsBase
 {
+	enum
+	{
+		WithCopy = !TIsPODType<CPPSTRUCT>::Value
+	};
 };
 
 
