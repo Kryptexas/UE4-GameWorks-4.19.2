@@ -7,10 +7,6 @@ class SWidget;
 class SLATECORE_API FSlotBase
 {
 public:
-	FSlotBase& operator=( const FSlotBase& ) = delete;
-	FSlotBase( const FSlotBase& ) = delete;
-
-public:
 
 	FSlotBase();
 
@@ -33,6 +29,11 @@ public:
 	 * If the null widget was being stored, an invalid shared ptr is returned instead.
 	 */
 	const TSharedPtr<SWidget> DetachWidget();
+
+private:
+	// non-copyable
+	FSlotBase& operator=(const FSlotBase&);
+	FSlotBase(const FSlotBase&);
 
 private:
 	/**
