@@ -83,7 +83,7 @@ public:
 	void ClearSelected();
 
 	// helper method to check whether the slot name is empty or not. If empty, shows an error message to provide a valid name
-	void CheckSlotName(const FText& SlotName, int32 SlotNodeIndex) const;
+	void CheckSlotName(const FText& SlotName, int32 SlotNodeIndex, bool bShouldCheckCollapsed = false) const;
 
 	// check the slot name whether valid or not while the user is typing
 	void OnSlotNameChanged(const FText& NewText, int32 SlotNodeIndex);
