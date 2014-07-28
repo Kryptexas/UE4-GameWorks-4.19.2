@@ -28,6 +28,7 @@
 #include "Runtime/Engine/Classes/Engine/BrushShape.h"
 #include "ActorDetailsDelegates.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/DocumentationActor.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 

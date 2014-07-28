@@ -52,6 +52,7 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "ComponentReregisterContext.h"
+#include "Engine/DocumentationActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -4134,7 +4135,17 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 	{
 		return;
 	}
-	
+
+	// If the first actor is a documentation actor open his document link
+	if (Actors.Num() == 1)
+	{
+		ADocumentationActor* DocActor = Cast<ADocumentationActor>(Actors[0]);
+		if (DocActor != nullptr)
+		{
+			DocActor->OpenDocumentLink();
+		}
+	}
+
 	TArray<AActor*> InvisLevelActors;
 
 	TArray<UClass*> PrimitiveComponentTypesToIgnore;
