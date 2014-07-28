@@ -544,12 +544,12 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		}
 		printf("\n");
 
-		for (auto it = Expressions.begin(); it != Expressions.end(); ++it)
+		for (auto& Pair : Expressions)
 		{
-			auto* Expr = it->first;
+			auto* Expr = Pair.first;
 			if (Expr->operation == IR->operation)
 			{
-				auto& ExprOperands = it->second;
+				auto& ExprOperands = Pair.second;
 				check(ExprOperands.Num() == NumOperands);
 				if (AreEqual(ExprOperands, Operands))
 				{

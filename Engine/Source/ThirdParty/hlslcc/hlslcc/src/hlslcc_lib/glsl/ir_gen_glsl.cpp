@@ -389,9 +389,9 @@ static void InsertRange( TCBDMARangeMap& CBAllRanges, unsigned SourceCB, unsigne
 static TDMARangeList SortRanges( TCBDMARangeMap& CBRanges ) 
 {
 	TDMARangeList Sorted;
-	for (auto Iter = CBRanges.begin(); Iter != CBRanges.end(); ++Iter)
+	for (auto& Pair : CBRanges)
 	{
-		Sorted.insert(Sorted.end(), Iter->second.begin(), Iter->second.end());
+		Sorted.insert(Sorted.end(), Pair.second.begin(), Pair.second.end());
 	}
 
 	Sorted.sort();
@@ -402,9 +402,8 @@ static TDMARangeList SortRanges( TCBDMARangeMap& CBRanges )
 static void DumpSortedRanges(TDMARangeList& SortedRanges)
 {
 	printf("**********************************\n");
-	for (auto i = SortedRanges.begin(); i != SortedRanges.end(); ++i )
+	for (auto& o : SortedRanges)
 	{
-		auto o = *i;
 		printf("\t%d:%d - %d:%c:%d:%d\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
 	}
 }
@@ -2223,11 +2222,10 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 
 	bool PrintPackedUniforms(bool bPrintArrayType, char ArrayType, _mesa_glsl_parse_state::TUniformList& Uniforms, bool bFlattenUniformBuffers, bool NeedsComma)
-		{
+	{
 		bool bPrintHeader = true;
-		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Uniforms.begin(); Iter != Uniforms.end(); ++Iter)
+		for (glsl_packed_uniform& Uniform : Uniforms)
 		{
-			glsl_packed_uniform& Uniform = *Iter;
 			if (!bFlattenUniformBuffers || Uniform.CB_PackedSampler.empty())
 			{
 				if (bPrintArrayType && bPrintHeader)
@@ -2247,28 +2245,28 @@ class ir_gen_glsl_visitor : public ir_visitor
 					Uniform.num_components
 					);
 				NeedsComma = true;
-				}
 			}
+		}
 
 		if (bPrintArrayType && !bPrintHeader)
-			{
+		{
 			ralloc_asprintf_append(buffer, "]");
-			}
+		}
 
 		return NeedsComma;
-		}
+	}
 
 	void PrintPackedGlobals(_mesa_glsl_parse_state* State)
 	{
 		//	@PackedGlobals: Global0(DestArrayType, DestOffset, SizeInFloats), Global1(DestArrayType, DestOffset, SizeInFloats), ...
 		bool bNeedsHeader = true;
 		bool bNeedsComma = false;
-		for (auto ArrayIter = State->GlobalPackedArraysMap.begin(); ArrayIter != State->GlobalPackedArraysMap.end(); ++ArrayIter)
+		for (auto& Pair : State->GlobalPackedArraysMap)
 		{
-			char ArrayType = ArrayIter->first;
+			char ArrayType = Pair.first;
 			if (ArrayType != EArrayType_Image && ArrayType != EArrayType_Sampler)
 			{
-				_mesa_glsl_parse_state::TUniformList& Uniforms = ArrayIter->second;
+				_mesa_glsl_parse_state::TUniformList& Uniforms = Pair.second;
 				check(!Uniforms.empty());
 
 				for (auto Iter = Uniforms.begin(); Iter != Uniforms.end(); ++Iter)
@@ -2293,15 +2291,15 @@ class ir_gen_glsl_visitor : public ir_visitor
 							);
 						bNeedsComma = true;
 					}
-					}
-				}
-		}
-
-				if (!bNeedsHeader)
-				{
-					ralloc_asprintf_append(buffer, "\n");
 				}
 			}
+		}
+
+		if (!bNeedsHeader)
+		{
+			ralloc_asprintf_append(buffer, "\n");
+		}
+	}
 
 	void PrintPackedUniformBuffers(_mesa_glsl_parse_state* State, bool bGroupFlattenedUBs)
 	{

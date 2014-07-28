@@ -2603,10 +2603,6 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	// Fix any special language extensions (FrameBufferFetchES2() intrinsic)
 	FixIntrinsics(ir, state);
 
-	//@todo-rco: Temp workaround for Seed 2 & 3
-	ExpandMatricesIntoArrays(ir, state);
-	//do_mat_op_to_vec(ir);
-
 	// Remove half->float->half or float->half->float
 	FixRedundantCasts(ir);
 
