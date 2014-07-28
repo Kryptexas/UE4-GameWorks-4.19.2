@@ -313,7 +313,7 @@ private:
 	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const override
 	{
 		bool bHasChildren = false;
-		if (ItemIndexInList < DenseItemInfos.Num())
+		if (DenseItemInfos.IsValidIndex(ItemIndexInList))
 		{
 			bHasChildren = DenseItemInfos[ItemIndexInList].bHasChildren;
 		}
@@ -323,7 +323,7 @@ private:
 	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const override
 	{
 		int32 NextingLevel = 0;
-		if (ItemIndexInList < DenseItemInfos.Num())
+		if (DenseItemInfos.IsValidIndex(ItemIndexInList))
 		{
 			NextingLevel = DenseItemInfos[ItemIndexInList].NestingLevel;
 		}
