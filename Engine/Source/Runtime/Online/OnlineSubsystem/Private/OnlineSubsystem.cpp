@@ -3,7 +3,10 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSessionInterface.h"
 #include "OnlineIdentityInterface.h"
+#include "OnlineAchievementsInterface.h"
 #include "NboSerializer.h"
+#include "Online.h"
+#include "IConsoleManager.h"
 
 DEFINE_LOG_CATEGORY(LogOnline);
 DEFINE_LOG_CATEGORY(LogOnlineGame);
@@ -86,3 +89,25 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 	return bFound;
 }
 
+
+#if !UE_BUILD_SHIPPING
+
+static void ResetAchievements()
+{
+	auto AchievementsInterface = Online::GetAchievementsInterface();
+	if (!AchievementsInterface.IsValid())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("ResetAchievements command: couldn't get the achievements interface"));
+		return;
+	}
+
+	AchievementsInterface->ResetAchievements(FUniqueNetIdString());
+}
+
+FAutoConsoleCommand CmdResetAchievements(
+	TEXT("online.ResetAchievements"),
+	TEXT("Reset achievements for the currently logged in user."),
+	FConsoleCommandDelegate::CreateStatic(ResetAchievements)
+	);
+
+#endif
