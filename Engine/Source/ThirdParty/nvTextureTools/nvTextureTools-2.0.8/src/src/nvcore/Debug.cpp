@@ -23,6 +23,10 @@
 #	endif
 #endif
 
+#if NV_OS_LINUX
+#       include <unistd.h>      // getpid
+#endif
+
 #if !NV_OS_WIN32 && defined(HAVE_SIGNAL_H)
 #	include <signal.h>
 #endif
