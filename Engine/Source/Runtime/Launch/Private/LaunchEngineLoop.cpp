@@ -1011,7 +1011,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// after SystemSettings.ini file loading so we get the right state,
 	// before ConsoleVariables.ini so the local developer can always override.
 	// before InitializeCVarsForActiveDeviceProfile() so the platform can override user settings
-	Scalability::LoadState(bHasEditorToken ? GEditorUserSettingsIni : GGameUserSettingsIni);
+	Scalability::LoadState((bHasEditorToken && !GEditorGameAgnosticIni.IsEmpty()) ? GEditorGameAgnosticIni : GGameUserSettingsIni);
 
 	// Set all CVars which have been setup in the device profiles.
 	UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile();
