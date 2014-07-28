@@ -12,7 +12,7 @@
 	Type::CreateUObject( this, &ThisClass::Function )
 
 /** Is an entity visible? */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateVisibility
 {
 	enum Type
