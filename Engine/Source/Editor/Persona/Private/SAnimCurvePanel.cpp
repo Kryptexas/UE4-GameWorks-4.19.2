@@ -8,6 +8,7 @@
 #include "SCurveEditor.h"
 #include "Editor/KismetWidgets/Public/SScrubWidget.h"
 #include "AssetRegistryModule.h"
+#include "Kismet2NameValidators.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
 
@@ -588,6 +589,22 @@ FVector2D SCurveEdTrack::GetDesiredSize() const
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurvePanel
 
+/**
+ * Name validator for anim curves
+ */
+class FCurveNameValidator : public FStringSetNameValidator
+{
+public:
+	FCurveNameValidator(FRawCurveTracks& Tracks, const FString& ExistingName)
+		: FStringSetNameValidator(ExistingName)
+	{
+		for(FFloatCurve& Curve : Tracks.FloatCurves)
+		{
+			Names.Add(Curve.CurveName.ToString());
+		}
+	}
+};
+
 void SAnimCurvePanel::Construct(const FArguments& InArgs)
 {
 	SAnimTrackPanel::Construct( SAnimTrackPanel::FArguments()
@@ -707,7 +724,13 @@ FReply SAnimCurvePanel::DuplicateTrack(const FString& CurveNameToDuplicate)
 {
 	const FScopedTransaction Transaction( LOCTEXT("AnimCurve_DuplicateTrack", "Duplicate Curve") );
 	
-	if(Sequence->RawCurveData.DuplicateCurveData(*CurveNameToDuplicate))
+	TSharedPtr<INameValidatorInterface> Validator = MakeShareable(new FCurveNameValidator(Sequence->RawCurveData, FString(TEXT(""))));
+
+	// Use the validator to pick a reasonable name for the duplicated curve.
+	FString NewCurveName = CurveNameToDuplicate;
+	Validator->FindValidString(NewCurveName);
+
+	if(Sequence->RawCurveData.DuplicateCurveData(*CurveNameToDuplicate, *NewCurveName))
 	{
 		Sequence->Modify();
 		UpdatePanel(true);
