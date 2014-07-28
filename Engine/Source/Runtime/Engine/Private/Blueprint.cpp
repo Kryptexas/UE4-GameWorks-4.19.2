@@ -164,13 +164,14 @@ void UBlueprintCore::GenerateDeterministicGuid()
 
 UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+#if WITH_EDITORONLY_DATA
 	, bCachedDependenciesUpTpDate(false)
-{
-
-#if WITH_EDITOR
-	bRunConstructionScriptOnDrag = true;
-	bGenerateConstClass = false;
 #endif
+#if WITH_EDITOR
+	, bRunConstructionScriptOnDrag(true)
+	, bGenerateConstClass(false)
+#endif
+{
 }
 
 void UBlueprint::Serialize(FArchive& Ar)
