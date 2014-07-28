@@ -33,14 +33,15 @@ public:
 	 * @return True if the key was successfully added.
 	 */
 	virtual bool AddKeyToSection( float Time, const FMarginKey& MarginKey );
-	
+
 	/**
 	 * Evaluates the track at the playback position
 	 *
 	 * @param Position	The current playback position
-	 * @param LastPosition	The last plackback position
-	 * @param The color at the playback position
+	 * @param LastPosition	The last playback position
+	 * @param InOutMargin 	The margin at the playback position
 	 * @return true if anything was evaluated. Note: if false is returned OutMargin remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPostion, FMargin& OutMargin ) const;
+	bool Eval( float Position, float LastPostion, FMargin& InOutMargin ) const;
+
 };
