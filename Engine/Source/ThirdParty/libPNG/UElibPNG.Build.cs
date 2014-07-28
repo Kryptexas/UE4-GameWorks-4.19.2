@@ -76,15 +76,7 @@ public class UElibPNG : ModuleRules
                 throw new BuildException(Err);
             }
 
-            if (Target.IsMonolithic)
-            {
-                PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
-            }
-            else
-            {
-                PublicLibraryPaths.Add(libPNGPath + "/lib/Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("png15");
-            }
+            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
