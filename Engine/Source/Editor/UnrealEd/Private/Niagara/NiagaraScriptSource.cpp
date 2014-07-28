@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Engine/NiagaraScript.h"
+#include "Engine/NiagaraConstants.h"
 #include "NiagaraEditorModule.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -40,30 +41,23 @@ void UNiagaraScriptSource::PostLoad()
 	}
 }
 
-void UNiagaraScriptSource::GetUpdateOutputs(TArray<FName>& ScalarOutputs)
+
+void UNiagaraScriptSource::GetParticleAttributes(TArray<FName>& VectorOutputs)
 {
-	ScalarOutputs.Empty();
+	VectorOutputs.Empty();
 
-	ScalarOutputs.Add(FName(TEXT("Position.X")));
-	ScalarOutputs.Add(FName(TEXT("Position.Y")));
-	ScalarOutputs.Add(FName(TEXT("Position.Z")));
-
-	ScalarOutputs.Add(FName(TEXT("Velocity.X")));
-	ScalarOutputs.Add(FName(TEXT("Velocity.Y")));
-	ScalarOutputs.Add(FName(TEXT("Velocity.Z")));
-
-	ScalarOutputs.Add(FName(TEXT("Color.R")));
-	ScalarOutputs.Add(FName(TEXT("Color.G")));
-	ScalarOutputs.Add(FName(TEXT("Color.B")));
-	ScalarOutputs.Add(FName(TEXT("Color.A")));
-
-	ScalarOutputs.Add(FName(TEXT("Rotation")));
-
-	ScalarOutputs.Add(FName(TEXT("RelativeTime")));
+	VectorOutputs.Add(FName(TEXT("Particle Position")));
+	VectorOutputs.Add(FName(TEXT("Particle Velocity")));
+	VectorOutputs.Add(FName(TEXT("Particle Color")));
+	VectorOutputs.Add(FName(TEXT("Particle Rotation")));
+	VectorOutputs.Add(FName(TEXT("Particle Age")));
 }
 
-void UNiagaraScriptSource::GetUpdateInputs(TArray<FName>& ScalarInputs)
+void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs)
 {
-	GetUpdateOutputs(ScalarInputs);
-	ScalarInputs.Add(FName(TEXT("DeltaTime")));
+	for (uint32 i=0; i < NiagaraConstants::NumBuiltinConstants; i++)
+	{
+		VectorInputs.Add(NiagaraConstants::ConstantNames[i]);
+	}
 }
+

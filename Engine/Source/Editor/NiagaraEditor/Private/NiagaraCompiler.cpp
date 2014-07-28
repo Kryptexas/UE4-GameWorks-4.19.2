@@ -2,6 +2,7 @@
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "Engine/NiagaraScript.h"
+#include "Engine/NiagaraConstants.h"
 #include "Components/NiagaraComponent.h"
 #include "CompilerResultsLog.h"
 #include "EdGraphUtilities.h"
@@ -17,11 +18,14 @@ struct FNiagaraExpr
 	uint8 OpIndex;
 	/** Source operands. */
 	int32 Src[3];
+	/* Source operand type vector (bit 0-2, 1=constant)*/
+	uint8 SrcOperandTypeVector;
 
 	/** Default constructor. */
 	FNiagaraExpr()
 	{
 		OpIndex = 0;
+		SrcOperandTypeVector = 0;
 		for (int32 i = 0; i < 3; i++)
 		{
 			Src[i] = INDEX_NONE;
@@ -35,7 +39,7 @@ struct FNiagaraCompilerContext
 	/** Expression. */
 	TArray<FNiagaraExpr> Expressions;
 	/** Constant table. */
-	TArray<float> Constants;
+	TArray<FVector4> Constants;
 	/** Constant names. */
 	TArray<FName> ConstantNames;
 	/** Map from pin to expression to prevent executing subtrees multiple times. */
@@ -49,11 +53,15 @@ struct FNiagaraCompilerContext
 	explicit FNiagaraCompilerContext(FCompilerResultsLog& InLog)
 		: Log(InLog)
 	{
-		// Setup built-in constants.
 		ConstantNames.Add(TEXT("__zero__"));
-		Constants.Add(0.0f);
-		ConstantNames.Add(TEXT("DeltaTime"));
-		Constants.Add(0.0f);
+		Constants.Add(FVector4(0.0f, 0.0f, 0.0f, 0.0f));
+
+		// Setup built-in constants.
+		for (uint32 i = 0; i < NiagaraConstants::NumBuiltinConstants; i++)
+		{
+			ConstantNames.Add(NiagaraConstants::ConstantNames[i]);
+			Constants.Add(FVector4(0.0f, 0.0f, 0.0f, 0.0f));
+		}
 	}
 };
 
@@ -146,6 +154,8 @@ static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
 
 					FNiagaraExpr NewOp;
 					NewOp.OpIndex = OpNode->OpIndex;
+					NewOp.SrcOperandTypeVector = 0;
+
 					for (int32 SrcIndex = 0; SrcIndex < 3; ++SrcIndex)
 					{
 						if (OpInfo.SrcTypes[SrcIndex] != VectorVM::EOpSrc::Invalid)
@@ -160,6 +170,7 @@ static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
 						NewOp.OpIndex++;
 					}
 
+
 					if (OpInfo.IsCommutative() && !IsValidOp(Context, NewOp))
 					{
 						int32 Temp = NewOp.Src[0];
@@ -171,6 +182,8 @@ static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
 							NewOp.OpIndex++;
 						}
 					}
+					check(NewOp.OpIndex < VectorVM::EOp::NumOpcodes);
+
 
 					if (IsValidOp(Context, NewOp))
 					{
@@ -200,14 +213,14 @@ static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
 			int32 ConstIndex = Context.ConstantNames.Find(ConstName);
 			if (ConstIndex == INDEX_NONE)
 			{
-				float ConstValue = FCString::Atof(*ConstString);
-				if (FMath::Abs(ConstValue) < SMALL_NUMBER)
+				TArray<FString> ResultString;
+				ConstString.Trim();
+				ConstString.TrimTrailing();
+				ConstString.ParseIntoArray(&ResultString, TEXT(","), true);
+				ConstIndex = 0;
+				if (ResultString.Num() == 4)
 				{
-					ConstIndex = 0;
-				}
-				else
-				{
-					ConstIndex = Context.Constants.Add(ConstValue);
+					ConstIndex = Context.Constants.Add(FVector4(FCString::Atof(*ResultString[0]), FCString::Atof(*ResultString[1]), FCString::Atof(*ResultString[2]), FCString::Atof(*ResultString[3])));
 					check(Context.ConstantNames.Num() == ConstIndex);
 					Context.ConstantNames.Add(ConstName);
 				}
@@ -259,7 +272,7 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 
 	// Traverse the node graph for each output and generate expressions as we go.
 	FNiagaraCompilerContext Context(MessageLog);
-	Source->GetUpdateOutputs(Context.Attributes);
+	Source->GetParticleAttributes(Context.Attributes);
 	TArray<int32> OutputExpressions;
 	OutputExpressions.AddUninitialized(Context.Attributes.Num());
 	FMemory::Memset(OutputExpressions.GetData(), 0xff, Context.Attributes.Num() * sizeof(int32));
@@ -337,8 +350,15 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 			{
 				// VectorVM::EOpSrc::Const.
 				Expr.Src[j] = ConstIndexFromExpressionIndex(Expr.Src[j]);
+				Expr.SrcOperandTypeVector |= 1<<j;
 			}
 		}
+
+		// now that we've figured out register/constant assignments, we revert back to the base opcode; the kernel Exec function will handle passing 
+		// the data in correctly based on the SrcOperandTypeVector. It would be good to change the compiler so we don't need the permutation
+		// opcodes at all, i.e. figure out source operand types without needing them in the OpInfo.
+		Expr.OpIndex = OpInfo.BaseOpcode;
+
 
 		int32 AttrIndex = INDEX_NONE;
 		if (OutputExpressions.Find(i, AttrIndex))
@@ -376,8 +396,12 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 		int32 DestRegister = RegisterAssignments[i];
 		check(DestRegister < VectorVM::MaxRegisters);
 
+		check(Expr.OpIndex < VectorVM::EOp::NumOpcodes);
+		check(Expr.OpIndex == OpInfo.BaseOpcode);
+
 		Code.Add(Expr.OpIndex);
 		Code.Add(DestRegister);
+		Code.Add(Expr.SrcOperandTypeVector);
 		for (int32 j = 0; j < 3; ++j)
 		{
 			if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Invalid)
@@ -395,6 +419,7 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 				{
 					Code.Add(VectorVM::EOp::addi);
 					Code.Add(VectorVM::FirstOutputRegister + j);
+					Code.Add(0x0);	// all inputs are registers
 					Code.Add(DestRegister);
 					Code.Add(0);
 				}

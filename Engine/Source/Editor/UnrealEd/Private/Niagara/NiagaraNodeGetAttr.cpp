@@ -11,7 +11,8 @@ void UNiagaraNodeGetAttr::AllocateDefaultPins()
 {
 	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
 
-	CreatePin(EGPD_Output, Schema->PC_Float, TEXT(""), NULL, false, false, AttrName.ToString());
+	UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), VectorStruct, false, false, AttrName.ToString());
 }
 
 FText UNiagaraNodeGetAttr::GetNodeTitle(ENodeTitleType::Type TitleType) const

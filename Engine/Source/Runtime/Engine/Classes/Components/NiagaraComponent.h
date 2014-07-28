@@ -15,6 +15,8 @@ class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 	/** Script to run for these particles */
 	UPROPERTY(EditAnywhere, Category=NiagaraComponent)
 	class UNiagaraScript* UpdateScript;
+	UPROPERTY(EditAnywhere, Category = NiagaraComponent)
+	class UNiagaraScript* SpawnScript;
 
 	/** Material with which to render particles. */
 	UPROPERTY(EditAnywhere, Category=Rendering)
@@ -23,6 +25,9 @@ class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 	/** TEMP Spawn rate */
 	UPROPERTY(EditAnywhere, Category=NiagaraComponent)
 	float SpawnRate;
+
+	/** age of the emitter in seconds */
+	float EmitterAge;
 
 	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;

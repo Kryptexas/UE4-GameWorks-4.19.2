@@ -17,10 +17,12 @@ void UNiagaraNodeOutputUpdate::AllocateDefaultPins()
 	UNiagaraScriptSource* Source = GetSource();
 
 	TArray<FName> OutputNames;
-	Source->GetUpdateOutputs(OutputNames);
-	for(int32 i=0; i<OutputNames.Num(); i++)
+	Source->GetParticleAttributes(OutputNames);
+
+	UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+	for (int32 i = 0; i < OutputNames.Num(); i++)
 	{
-		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->PC_Float, TEXT(""), NULL, false, false, OutputNames[i].ToString());
+		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), VectorStruct, false, false, OutputNames[i].ToString());
 		Pin->bDefaultValueIsIgnored = true;
 	}
 }

@@ -7,19 +7,23 @@
 #pragma once
 #include "Core.h"
 
+
+
 namespace VectorVM
 {
 	/** Constants. */
 	enum
 	{
-		NumTempRegisters = 8,
-		MaxInputRegisters = 32,
+		NumTempRegisters = 64,
+		MaxInputRegisters = 64,
 		MaxOutputRegisters = MaxInputRegisters,
+		MaxConstants = 256,
 		FirstInputRegister = NumTempRegisters,
 		FirstOutputRegister = FirstInputRegister + MaxInputRegisters,
-		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters,
-		MaxConstants = 256,
+		FirstConstantRegister = FirstOutputRegister + MaxOutputRegisters,
+		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters + MaxConstants
 	};
+
 
 	/** List of opcodes supported by the VM. */
 	namespace EOp
@@ -43,7 +47,7 @@ namespace VectorVM
 			lerpirr, 
 			lerprir, 
 			lerprri,
-			lerprii,
+			lerpiir,
 			rcp,
 			rsq,
 			sqrt,
@@ -54,6 +58,7 @@ namespace VectorVM
 			log,
 			log2,
 			sin,
+			sini,
 			cos,
 			tan,
 			asin,
@@ -79,6 +84,13 @@ namespace VectorVM
 			step,
 			stepi,
 			tex1d,
+			dot,
+			cross,
+			crossi,
+			normalize,
+			random,
+			length,
+			lengthi,
 			NumOpcodes
 		};
 	} // namespace EOp
@@ -152,7 +164,7 @@ namespace VectorVM
 		int32 NumInputRegisters,
 		VectorRegister** OutputRegisters,
 		int32 NumOutputRegisters,
-		float const* ConstantTable,
+		FVector4 const* ConstantTable,
 		int32 NumVectors
 		);
 

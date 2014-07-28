@@ -4,6 +4,8 @@
 #include "Engine/NiagaraScript.h"
 #include "Engine/NiagaraScriptSourceBase.h"
 
+
+
 UNiagaraScript::UNiagaraScript(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

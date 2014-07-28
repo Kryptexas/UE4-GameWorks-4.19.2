@@ -59,6 +59,7 @@
 #include "KismetPins/SGraphPinNameList.h"
 #include "KismetPins/SGraphPinVector.h"
 #include "KismetPins/SGraphPinVector2D.h"
+#include "NiagaraPins/SGraphPinVector4.h"
 #include "KismetPins/SGraphPinIndex.h"
 
 #include "SoundNodes/SGraphNodeSoundBase.h"
@@ -359,6 +360,16 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 			return SNew(SGraphPin, InPin);
 		}
 	}
+
+	if (const UEdGraphSchema_Niagara* NSchema = Cast<const UEdGraphSchema_Niagara>(InPin->GetSchema()))
+	{
+		UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+		if (InPin->PinType.PinSubCategoryObject == VectorStruct)
+		{
+			return SNew(SGraphPinVector4, InPin);
+		}
+	}
+
 
 	// If we didn't pick a custom pin widget, use an uncustomized basic pin
 	return SNew(SGraphPin, InPin);
