@@ -2646,6 +2646,35 @@ void FBlueprintEditorUtils::SetVariableSaveGameFlag(UBlueprint* InBlueprint, con
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 }
 
+struct FMetaDataDependencyHelper
+{
+	static void OnChange(UBlueprint* Blueprint, FName MetaDataKey)
+	{
+		if (Blueprint && (FBlueprintMetadata::MD_ExposeOnSpawn == MetaDataKey))
+		{
+			TArray<UEdGraph*> AllGraphs;
+			Blueprint->GetAllGraphs(AllGraphs);
+			for (UEdGraph* Graph : AllGraphs)
+			{
+				if (Graph)
+				{
+					const UEdGraphSchema* Schema = Graph->GetSchema();
+					TArray<UK2Node_SpawnActorFromClass*> LocalSpawnNodes;
+					Graph->GetNodesOfClass(LocalSpawnNodes);
+					for (UK2Node_SpawnActorFromClass* Node : LocalSpawnNodes)
+					{
+						UClass* ClassToSpawn = Node ? Node->GetClassToSpawn() : NULL;
+						if (ClassToSpawn && ClassToSpawn->IsChildOf(Blueprint->GeneratedClass))
+						{
+							Schema->ReconstructNode(*Node, true);
+						}
+					}
+				}
+			}
+		}
+	}
+};
+
 void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey, const FString& MetaDataValue)
 {
 	// If there is a local var scope, we know we are looking at a local variable
@@ -2684,8 +2713,10 @@ void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 		{
 			Blueprint->NewVariables[VarIndex].SetMetaData(MetaDataKey, MetaDataValue);
 			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, VarName);
-			Property->SetMetaData(MetaDataKey, *MetaDataValue);
-
+			if (Property)
+			{
+				Property->SetMetaData(MetaDataKey, *MetaDataValue);
+			}
 			Property = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
 			if (Property)
 			{
@@ -2693,6 +2724,9 @@ void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 			}
 		}
 	}
+
+	FMetaDataDependencyHelper::OnChange(Blueprint, MetaDataKey);
+
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
@@ -2802,8 +2836,20 @@ void FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(UBlueprint* Blueprin
 		else
 		{
 			Blueprint->NewVariables[VarIndex].RemoveMetaData(MetaDataKey);
+			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, VarName);
+			if (Property)
+			{
+				Property->RemoveMetaData(MetaDataKey);
+			}
+			Property = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+			if (Property)
+			{
+				Property->RemoveMetaData(MetaDataKey);
+			}
 		}
 	}
+
+	FMetaDataDependencyHelper::OnChange(Blueprint, MetaDataKey);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }

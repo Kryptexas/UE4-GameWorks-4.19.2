@@ -135,7 +135,7 @@ FNodeHandlingFunctor* UK2Node_CastByteToEnum::CreateNodeHandler(FKismetCompilerC
 	{
 		return new FKCHandler_CastByteToEnum(CompilerContext);
 	}
-	return NULL;
+	return new FNodeHandlingFunctor(CompilerContext);;
 }
 
 void UK2Node_CastByteToEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
