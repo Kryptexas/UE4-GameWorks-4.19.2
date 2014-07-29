@@ -73,6 +73,11 @@
 	FSlateMacMenu::UpdateMenu(self);
 }
 
+- (BOOL)menuHasKeyEquivalent:(NSMenu*)menu forEvent:(NSEvent*)event target:(id*)target action:(SEL*)action
+{
+	return NO;
+}
+
 - ( TSharedPtr< const FMenuEntryBlock >& )GetMenuEntryBlock
 {
 	return MenuEntryBlock;
