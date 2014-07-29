@@ -105,8 +105,6 @@ void UTextBlock::SyncronizeProperties()
 #endif
 }
 
-#if WITH_EDITOR
-
 void UTextBlock::SetText(FText InText)
 {
 	Text = InText;
@@ -115,6 +113,8 @@ void UTextBlock::SetText(FText InText)
 		MyTextBlock->SetText(Text);
 	}
 }
+
+#if WITH_EDITOR
 
 FString UTextBlock::GetLabelMetadata() const
 {
