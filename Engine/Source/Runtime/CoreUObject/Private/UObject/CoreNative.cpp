@@ -22,7 +22,7 @@ IMPLEMENT_MODULE( FCoreUObjectModule, CoreUObject );
 
 // if we are not using compiled in natives, we still need this as a base class for intrinsics
 #if !USE_COMPILED_IN_NATIVES
-IMPLEMENT_CLASS(UObject);
+IMPLEMENT_CLASS(UObject, 0);
 COREUOBJECT_API class UClass* Z_Construct_UClass_UObject();
 UClass* Z_Construct_UClass_UObject()
 {

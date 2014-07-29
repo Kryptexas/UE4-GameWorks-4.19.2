@@ -23,7 +23,10 @@ void UEnum::Serialize( FArchive& Ar )
 	Ar << Names;
 	Ar << bIsNamespace;
 
-	AddNamesToMasterList();
+	if (Ar.IsLoading() || Ar.IsSaving())
+	{	
+		AddNamesToMasterList();
+	}
 }
 
 int32 UEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const

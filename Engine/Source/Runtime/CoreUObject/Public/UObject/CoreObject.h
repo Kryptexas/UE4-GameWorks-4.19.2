@@ -394,12 +394,6 @@ public:
 
 };
 
-/** Delegate type for saving check */
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
-
-/** Delegate used by SavePackage() to check whether a package should be saved */
-extern COREUOBJECT_API FIsPackageOKToSaveDelegate GIsPackageOKToSaveDelegate;
-
 /*-----------------------------------------------------------------------------
 	UMetaData.
 -----------------------------------------------------------------------------*/

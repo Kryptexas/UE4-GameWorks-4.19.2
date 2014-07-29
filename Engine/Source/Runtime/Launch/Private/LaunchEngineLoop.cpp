@@ -618,6 +618,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Switch into executable's directory.
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
+#if WITH_COREUOBJECT
+	// Register all classes that have been loaded so far. This is required for CVars to work.
+	UClassRegisterAllCompiledInClasses();
+#endif
 
 #if WITH_ENGINE
 	extern ENGINE_API void InitializeRenderingCVarsCaching();

@@ -10,6 +10,42 @@
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
 
+FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InNewClass, UClass* InOldClass)
+: ClassToReinstance(InNewClass)
+, DuplicatedClass(InOldClass)
+, OriginalCDO(InOldClass->GetDefaultObject())
+, bHasReinstanced(false)
+, bSkipGarbageCollection(false)
+{
+	SaveClassFieldMapping(InOldClass);
+
+	TArray<UClass*> ChildrenOfClass;
+	GetDerivedClasses(InOldClass, ChildrenOfClass);
+	for (auto ClassIt = ChildrenOfClass.CreateConstIterator(); ClassIt; ++ClassIt)
+	{
+		UClass* ChildClass = *ClassIt;
+		UBlueprint* ChildBP = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
+		if (ChildBP && !ChildBP->HasAnyFlags(RF_BeingRegenerated))
+		{
+			// If this is a direct child, change the parent and relink so the property chain is valid for reinstancing
+			if (!ChildBP->HasAnyFlags(RF_NeedLoad))
+			{
+				if (ChildClass->GetSuperClass() == InOldClass)
+				{
+					ReparentChild(ChildBP);
+				}
+
+				Children.AddUnique(ChildBP);
+			}
+			else
+			{
+				// If this is a child that caused the load of their parent, relink to the REINST class so that we can still serialize in the CDO, but do not add to later processing
+				ReparentChild(ChildClass);
+			}
+		}
+	}
+}
+
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
 	: ClassToReinstance(InClassToReinstance)
 	, DuplicatedClass(NULL)
@@ -19,7 +55,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 {
 	if( InClassToReinstance != NULL )
 	{
-		SaveClassFieldMapping();
+		SaveClassFieldMapping(InClassToReinstance);
 
 		// Remember the initial CDO for the class being resinstanced
 		OriginalCDO = ClassToReinstance->GetDefaultObject();
@@ -97,16 +133,16 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	}
 }
 
-void FBlueprintCompileReinstancer::SaveClassFieldMapping()
+void FBlueprintCompileReinstancer::SaveClassFieldMapping(UClass* InClassToReinstance)
 {
-	check(ClassToReinstance);
+	check(InClassToReinstance);
 
-	for(UProperty* Prop = ClassToReinstance->PropertyLink; Prop && (Prop->GetOuter() == ClassToReinstance); Prop = Prop->PropertyLinkNext)
+	for (UProperty* Prop = InClassToReinstance->PropertyLink; Prop && (Prop->GetOuter() == InClassToReinstance); Prop = Prop->PropertyLinkNext)
 	{
 		PropertyMap.Add(Prop->GetFName(), Prop);
 	}
 
-	for(auto Function : TFieldRange<UFunction>(ClassToReinstance, EFieldIteratorFlags::ExcludeSuper))
+	for (auto Function : TFieldRange<UFunction>(InClassToReinstance, EFieldIteratorFlags::ExcludeSuper))
 	{
 		FunctionMap.Add(Function->GetFName(),Function);
 	}

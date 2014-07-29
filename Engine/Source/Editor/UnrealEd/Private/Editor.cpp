@@ -422,8 +422,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	FBSPOps::GFastRebuild = 0;
 
 	// Setup delegate callbacks for SavePackage()
-	GIsPackageOKToSaveDelegate.BindUObject( this, &UEditorEngine::IsPackageOKToSave );
-	GAutoPackageBackupDelegate.BindStatic( &FAutoPackageBackup::BackupPackage );
+	FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindUObject(this, &UEditorEngine::IsPackageOKToSave);
+	FCoreUObjectDelegates::AutoPackageBackupDelegate.BindStatic(&FAutoPackageBackup::BackupPackage);
 
 	// Update recents
 	UpdateRecentlyLoadedProjectFiles();

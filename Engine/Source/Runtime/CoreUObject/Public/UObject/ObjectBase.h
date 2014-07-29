@@ -1173,8 +1173,8 @@ public: \
 	TWithinClass* GetOuter##TWithinClass() const { return (TWithinClass*)GetOuter(); }
 
 // Register a class at startup time.
-#define IMPLEMENT_CLASS(TClass) \
-	static UClass* AutoInitialize##TClass = TClass::StaticClass(); \
+#define IMPLEMENT_CLASS(TClass, TClassCrc) \
+	static TClassCompiledInDefer<TClass> AutoInitialize##TClass(TEXT(#TClass), sizeof(TClass), TClassCrc); \
 	UClass* TClass::GetPrivateStaticClass(const TCHAR* Package) \
 	{ \
 		static UClass* PrivateStaticClass = NULL; \
@@ -1193,7 +1193,7 @@ public: \
 
 // Used for intrinsics, this sets up the boiler plate, plus an initialization singleton, which can create properties and GC tokens
 #define IMPLEMENT_INTRINSIC_CLASS(TClass, TRequiredAPI, TSuperClass, TSuperRequiredAPI, InitCode) \
-	IMPLEMENT_CLASS(TClass) \
+	IMPLEMENT_CLASS(TClass, 0) \
 	TRequiredAPI UClass* Z_Construct_UClass_##TClass(); \
 	UClass* Z_Construct_UClass_##TClass() \
 	{ \
@@ -1211,7 +1211,7 @@ public: \
 		check(Class->GetClass()); \
 		return Class; \
 	} \
-	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass);
+	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, TEXT(#TClass));
 
 #define IMPLEMENT_CORE_INTRINSIC_CLASS(TClass, TSuperClass, InitCode) \
 	IMPLEMENT_INTRINSIC_CLASS(TClass, COREUOBJECT_API, TSuperClass, COREUOBJECT_API, InitCode)

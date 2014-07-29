@@ -1302,12 +1302,15 @@ protected:
 	COREUOBJECT_API static TMap<FName, UEnum*> AllEnumNames;
 
 protected: 
+	
 	/** adds the Names in this enum to the master AllEnumNames list */
 	void AddNamesToMasterList();
+
+public:
+
 	/** removes the Names in this enum from the master AllEnumNames list */
 	void RemoveNamesFromMasterList();
 
-public:
 	// UObject interface.
 	COREUOBJECT_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface.
@@ -1805,7 +1808,7 @@ public:
 	// Constructors
 	UClass(const class FPostConstructInitializeProperties& PCIP);
 	explicit UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InSuperClass);
-	UClass( EStaticConstructor, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
+	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const class FPostConstructInitializeProperties&),
 		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
 
@@ -2185,7 +2188,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."),PackageName);
 			return;
 		}
-		ReturnClass = FindObjectChecked<UClass>((UObject *)Package, Name);
+		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
 		if (ReturnClass)
 		{
 			if (ReturnClass->HotReloadPrivateStaticClass(
@@ -2215,6 +2218,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		UClass
 		(
 		EC_StaticConstructor,
+		Name,
 		sizeof(TClass),
 		TClass::StaticClassFlags,
 		TClass::StaticClassCastFlags(),

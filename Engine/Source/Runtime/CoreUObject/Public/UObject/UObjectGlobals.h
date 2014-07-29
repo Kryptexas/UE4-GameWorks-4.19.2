@@ -1532,11 +1532,27 @@ protected:
 DECLARE_DELEGATE_RetVal_TwoParams( bool, FCheckForAutoAddDelegate, UPackage*, const FString& );
 DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* );
 
-/** Delegate type for making auto backup of package */
-DECLARE_DELEGATE_RetVal_OneParam( bool, FAutoPackageBackupDelegate, const UPackage& );
+/**
+ * Global CoreUObject delegates
+ */
+struct COREUOBJECT_API FCoreUObjectDelegates
+{
+	/** Delegate type for making auto backup of package */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
 
-/** Delegate used by SavePackage() to create the package backup */
-extern COREUOBJECT_API FAutoPackageBackupDelegate GAutoPackageBackupDelegate;
+	/** Delegate used by SavePackage() to create the package backup */
+	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
+
+	/** Delegate type for saving check */
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
+
+	/** Delegate used by SavePackage() to check whether a package should be saved */
+	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
+
+	DECLARE_DELEGATE_TwoParams(FReplaceHotReloadClassDelegate, UClass*, UClass*);
+
+	static FReplaceHotReloadClassDelegate ReplaceHotReloadClassDelegate;
+};
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */
 extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;

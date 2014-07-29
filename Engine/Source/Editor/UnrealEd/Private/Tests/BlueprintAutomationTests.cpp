@@ -261,7 +261,7 @@ public:
 	{
 		if (DontSavePackagesList.Num() == 0)
 		{
-			GIsPackageOKToSaveDelegate.BindStatic(&IsPackageOKToSave);
+			FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindStatic(&IsPackageOKToSave);
 		}
 		DontSavePackagesList.AddUnique(Package->GetFName());
 	}

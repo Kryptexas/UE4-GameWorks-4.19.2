@@ -3228,6 +3228,7 @@ UClass::UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InB
 UClass::UClass
 (
 	EStaticConstructor,
+	FName			InName,
 	uint32			InSize,
 	uint32			InClassFlags,
 	EClassCastFlags	InClassCastFlags,
@@ -3250,7 +3251,6 @@ UClass::UClass
 ,	bCooked( false )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
-
 	*(const TCHAR**)&ClassConfigName = InConfigName;
 }
 

@@ -249,15 +249,68 @@ FORCEINLINE bool UObjectInitialized() { return Internal::GObjInitialized; }
 COREUOBJECT_API void UObjectForceRegistration(UObjectBase* Object);
 
 /**
+ * Registers all recently loaded native classes
+ */
+COREUOBJECT_API void UClassRegisterAllCompiledInClasses();
+
+/** 
+ * Base class for deferred native class registration
+ */
+struct FFieldCompiledInInfo
+{
+	FFieldCompiledInInfo(SIZE_T InClassSize, uint32 InCrc)
+		: Size(InClassSize)
+		, Crc(InCrc)
+		, bHasChanged(false)
+		, OldField(NULL)
+	{
+	}
+
+	/** Registers the native class (constructs a UClass object) */
+	virtual UField* Register() const = 0;
+
+	/** Size of the class */
+	SIZE_T Size;
+	/** CRC of the generated code for this class */
+	uint32 Crc;
+	/** Old UClass object */
+	UField* OldField;
+	/** True if this class has changed after hot-reload (or new class) */
+	bool bHasChanged;
+};
+
+/**
+* Adds a class to deferred registration queue.
+*/
+COREUOBJECT_API void UClassCompiledInDefer(FFieldCompiledInInfo* Class, const TCHAR* Name, SIZE_T ClassSize, uint32 Crc);
+
+/**
+ * Specialized version of the deferred class registration structure.
+ */
+template <typename TClass>
+struct TClassCompiledInDefer : public FFieldCompiledInInfo
+{
+	TClassCompiledInDefer(const TCHAR* InName, SIZE_T InClassSize, uint32 InCrc)
+	: FFieldCompiledInInfo(InClassSize, InCrc)
+	{
+		UClassCompiledInDefer(this, InName, InClassSize, InCrc);
+	}
+	virtual UField* Register() const override
+	{
+		return TClass::StaticClass();
+	}
+};
+
+/**
  * Stashes the singleton function that builds a compiled in class. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)());
+COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name);
 
 struct FCompiledInDefer
 {
-	FCompiledInDefer(class UClass *(*InRegister)())
+	FCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name)
 	{
-		UObjectCompiledInDefer(InRegister);
+		UObjectCompiledInDefer(InRegister, Name);
 	}
 };
 
@@ -277,7 +330,7 @@ struct FCompiledInDeferStruct
 /**
  * Either call the passed in singleton, or if this is hot reload, find the existing struct
  */
-COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObject* StructOuter, const TCHAR* StructName);
+COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObject* StructOuter, const TCHAR* StructName, SIZE_T Size, uint32 Crc);
 
 /**
  * Stashes the singleton function that builds a compiled in enum. Later, this is executed.

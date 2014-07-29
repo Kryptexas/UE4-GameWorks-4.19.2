@@ -42,9 +42,11 @@ public:
 
 	/** Sets the reinstancer up to work on every object of the specified class */
 	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false);
+	/** Sets the reinstancer up to reinstance native classes */
+	FBlueprintCompileReinstancer(UClass* InNewClass, UClass* InOldClass);
 
 	/** Saves a mapping of field names to their UField equivalents, so we can remap any bytecode that references them later */
-	void SaveClassFieldMapping();
+	void SaveClassFieldMapping(UClass* InClassToReinstance);
 
 	/** Helper to gather mappings from the old class's fields to the new class's version */
 	void GenerateFieldMappings(TMap<UObject*, UObject*>& FieldMapping);

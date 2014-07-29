@@ -49,6 +49,12 @@ DEFINE_STAT(STAT_NameTableWideEntries);
 DEFINE_STAT(STAT_NameTableMemorySize);
 DEFINE_STAT(STAT_DestroyObject);
 
+/** CoreUObject delegates */
+FCoreUObjectDelegates::FReplaceHotReloadClassDelegate FCoreUObjectDelegates::ReplaceHotReloadClassDelegate;
+// Delegates used by SavePackage()
+FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPackageOKToSaveDelegate;
+FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
+
 /**
  * Fast version of StaticFindObject that relies on the passed in FName being the object name
  * without any group/ package qualifiers.

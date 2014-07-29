@@ -6329,10 +6329,6 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 		if (DependsOnClass->HasAnyClassFlags(CLASS_Parsed))
 			continue;
 
-		// Treat manual dependency on a base class as an error to detect bad habits early on.
-		if (Class->IsChildOf(DependsOnClass))
-			FError::Throwf(TEXT("%s is derived from %s - please remove the DependsOn"),*Class->GetName(),*DependsOnClass->GetName() );
-
 		// Check for circular dependency. If the DependsOnClass is dependent on the SubClass, there is one.
 		if (DependsOnClass != Class && AllClasses.IsDependentOn(DependsOnClass, Class))
 		{

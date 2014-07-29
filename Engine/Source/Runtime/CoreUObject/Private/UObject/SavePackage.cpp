@@ -13,9 +13,6 @@ static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
 
 static const FName WorldClassName = FName("World");
 
-// Delegates used by SavePackage()
-FIsPackageOKToSaveDelegate GIsPackageOKToSaveDelegate;
-FAutoPackageBackupDelegate GAutoPackageBackupDelegate;
 
 static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPackage)
 {
@@ -2351,9 +2348,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 	#if WITH_EDITOR
 		// Attempt to create a backup of this package before it is saved, if applicable
-		if (GAutoPackageBackupDelegate.IsBound())
+		if (FCoreUObjectDelegates::AutoPackageBackupDelegate.IsBound())
 		{
-			GAutoPackageBackupDelegate.Execute(*InOuter);
+			FCoreUObjectDelegates::AutoPackageBackupDelegate.Execute(*InOuter);
 		}
 	#endif	// #if WITH_EDITOR
 
@@ -2402,9 +2399,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		}
 
 		// Make sure package is allowed to be saved.
-		if( !TargetPlatform && GIsPackageOKToSaveDelegate.IsBound() )
+		if( !TargetPlatform && FCoreUObjectDelegates::IsPackageOKToSaveDelegate.IsBound() )
 		{
-			bool bIsOKToSave = GIsPackageOKToSaveDelegate.Execute( InOuter, Filename, Error );
+			bool bIsOKToSave = FCoreUObjectDelegates::IsPackageOKToSaveDelegate.Execute(InOuter, Filename, Error);
 			if (!bIsOKToSave)
 			{
 				if (!(SaveFlags & SAVE_NoError))
