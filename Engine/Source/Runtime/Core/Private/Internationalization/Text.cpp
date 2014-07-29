@@ -780,4 +780,11 @@ TSharedPtr< FString, ESPMode::ThreadSafe > FText::GetSourceString() const
 	return DisplayString;
 }
 
+bool FText::IdenticalTo( const FText& Other ) const
+{
+	// If both instances point to the same string, then both instances are considered identical
+	// This is fast as it skips a lexical compare, however it can also return true for two instances that have identical strings, but in different pointers
+	return DisplayString == Other.DisplayString;
+}
+
 #undef LOCTEXT_NAMESPACE

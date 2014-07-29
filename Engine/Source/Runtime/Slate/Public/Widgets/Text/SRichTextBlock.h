@@ -24,7 +24,7 @@ public:
 		, _Parser()
 	{}
 		/** The text displayed in this text block */
-		SLATE_ARGUMENT( FText, Text )
+		SLATE_ATTRIBUTE( FText, Text )
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
@@ -116,25 +116,28 @@ public:
 	 */
 	const FText& GetText() const
 	{
-		return Text;
+		return BoundText.Get(FText::GetEmpty());
 	}
 
 	/**
 	 * Sets the text for this text block
 	 */
-	void SetText( const FText& InText );
+	void SetText( const TAttribute<FText>& InTextAttr );
 
 	void SetHighlightText( const FText& InHighlightText );
 
 
 private:
-	
+
 	TSharedPtr< ITextDecorator > TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& Decorators, const FString& Line, const FTextRunParseResults& TextRun ) const;
 
 private:
 
 	/** The text displayed in this text block */
-	FText Text;
+	TAttribute< FText > BoundText;
+
+	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
+	FText BoundTextLastTick;
 
 	TSharedPtr< FSlateTextLayout > TextLayout;
 

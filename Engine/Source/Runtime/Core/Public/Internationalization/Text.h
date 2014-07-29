@@ -211,6 +211,14 @@ public:
 	bool EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default ) const;
 	bool EqualToCaseIgnored( const FText& Other ) const;
 
+	/**
+	 * Check to see if this FText is identical to the other FText
+	 * 
+	 * Note:	This doesn't compare the text, but only checks that the internal string pointers have the same target (which makes it very fast!)
+	 *			If you actually want to perform a lexical comparison, then you need to use EqualTo instead
+	 */
+	bool IdenticalTo( const FText& Other ) const;
+
 	class CORE_API FSortPredicate
 	{
 	public:

@@ -48,6 +48,23 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	TextLayout->SetScale( AllottedGeometry.Scale );
+
+	if (BoundText.IsBound())
+	{
+		const FText& TextToSet = GetText();
+		if (!BoundTextLastTick.IdenticalTo(TextToSet))
+		{
+			// The pointer used by the bound text has changed, however the text may still be the same - check that now
+			if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+			{
+				// The source text has changed, so update the internal editable text
+				SetText(TextToSet);
+			}
+
+			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
+			BoundTextLastTick = TextToSet;
+		}
+	}
 }
 
 int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -154,9 +171,17 @@ TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSha
 	return NULL;
 }
 
-void SRichTextBlock::SetText( const FText& InText )
+void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 {
-	Text = InText;
+	BoundText = InTextAttr;
+
+	const FText& InText = GetText();
+
+	// Update the cached BoundText value to prevent it triggering another SetText update again next Tick
+	if (BoundText.IsBound())
+	{
+		BoundTextLastTick = InText;
+	}
 
 	const FString& InString = InText.ToString();
 	TArray<FTextLineParseResults> LineParseResultsArray;

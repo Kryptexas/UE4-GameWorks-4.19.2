@@ -1702,10 +1702,16 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 	if (!bShouldAppearFocused && BoundText.IsBound())
 	{
 		const FText& TextToSet = BoundText.Get(FText::GetEmpty());
-		if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+		if (!BoundTextLastTick.IdenticalTo(TextToSet))
 		{
-			// The source text has changed, so update the internal editable text
-			SetEditableText(TextToSet);
+			// The pointer used by the bound text has changed, however the text may still be the same - check that now
+			if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+			{
+				// The source text has changed, so update the internal editable text
+				SetEditableText(TextToSet);
+			}
+
+			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
 			BoundTextLastTick = TextToSet;
 		}
 	}
