@@ -1128,7 +1128,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Generates a public manifest file for writing out */
-        public void GenerateManifest(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, List<string> SpecialRocketLibFilesThatAreBuildProducts)
+        public void GenerateManifest(IUEToolChain ToolChain, List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, List<string> SpecialRocketLibFilesThatAreBuildProducts)
 		{
 			string ManifestPath;
 			if (UnrealBuildTool.RunningRocket())
@@ -1177,24 +1177,7 @@ namespace UnrealBuildTool
 					Manifest.AddBinaryNames(UEBuildBinary.GetAdditionalConsoleAppPath(Binary.Config.OutputFilePath), DebugInfoExtension);
 				}
 
-				if (TargetPlatform == UnrealTargetPlatform.Mac)
-				{
-					// Add all the resources and third party dylibs stored in app bundle
-					MacToolChain.AddAppBundleContentsToManifest(ref Manifest, Binary);
-				}
-				else if (TargetPlatform == UnrealTargetPlatform.IOS)
-				{
-					IOSToolChain.AddStubToManifest(ref Manifest, Binary);
-				}
-				// ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-				else if (UnrealBuildTool.BuildingRocket() &&
-					Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
-					Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) &&
-					Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
-				{
-					// ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-					Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
-				}
+                ToolChain.AddFilesToManifest(ref Manifest,Binary);
 			}
 			{
 				string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
@@ -1309,7 +1292,7 @@ namespace UnrealBuildTool
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)
 			{
-                GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.Target.Platform, SpecialRocketLibFilesThatAreBuildProducts);
+                GenerateManifest(TargetToolChain, AppBinaries, GlobalLinkEnvironment.Config.Target.Platform, SpecialRocketLibFilesThatAreBuildProducts);
                 if (!BuildConfiguration.bXGEExport)
                 {
                     return ECompilationResult.Succeeded;

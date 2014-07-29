@@ -1187,7 +1187,7 @@ namespace UnrealBuildTool
 
 		static private string BundleContentsDirectory = "";
 
-		static public void AddAppBundleContentsToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{

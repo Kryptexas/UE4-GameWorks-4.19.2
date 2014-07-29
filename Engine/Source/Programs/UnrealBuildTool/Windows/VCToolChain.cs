@@ -1517,5 +1517,18 @@ namespace UnrealBuildTool
 
 			return BaseVSToolPath;
 		}
+
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        {
+            // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+            if (UnrealBuildTool.BuildingRocket() &&
+                Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
+                Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) &&
+                Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
+            {
+                // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+                Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
+            }
+        }
 	};
 }

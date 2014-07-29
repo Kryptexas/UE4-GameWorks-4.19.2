@@ -170,7 +170,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static public void AddStubToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+		public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
 			if (BuildConfiguration.bCreateStubIPA)
 			{
