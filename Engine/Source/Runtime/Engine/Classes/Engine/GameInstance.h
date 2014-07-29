@@ -118,6 +118,7 @@ public:
 	APlayerController*		GetFirstLocalPlayerController() const;
 	ULocalPlayer*			FindLocalPlayerFromControllerId(int32 ControllerId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr< FUniqueNetId > UniqueNetId) const;
+	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;
 
 	void					CleanupGameViewport();

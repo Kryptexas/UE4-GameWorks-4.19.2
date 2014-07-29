@@ -515,13 +515,8 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(int32 ControllerId)
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
-	if (!UniqueNetId.IsValid())
-	{
-		return NULL;
-	}
-
 	for (ULocalPlayer* Player : LocalPlayers)
 	{
 		if (Player == NULL)
@@ -536,7 +531,7 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNe
 			continue;
 		}
 
-		if (*OtherUniqueNetId == *UniqueNetId)
+		if (*OtherUniqueNetId == UniqueNetId)
 		{
 			// Match
 			return Player;
@@ -545,6 +540,16 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNe
 
 	// didn't find one
 	return nullptr;
+}
+
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+{
+	if (!UniqueNetId.IsValid())
+	{
+		return nullptr;
+	}
+
+	return FindLocalPlayerFromUniqueNetId(*UniqueNetId);
 }
 
 ULocalPlayer* UGameInstance::GetFirstGamePlayer() const

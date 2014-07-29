@@ -65,6 +65,16 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnLoginStatusChanged, int32, ELoginStatu
 typedef FOnLoginStatusChanged::FDelegate FOnLoginStatusChangedDelegate;
 
 /**
+ * Delegate called when a controller-user pairing changes
+ *
+ * @param LocalUserNum the controller number of the controller whose pairing changed
+ * @param PreviousUser the user that used to be paired with this controller
+ * @param NewUser the user that is currently paired with this controller
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnControllerPairingChanged, int, const FUniqueNetId&, const FUniqueNetId&);
+typedef FOnControllerPairingChanged::FDelegate FOnControllerPairingChangedDelegate;
+
+/**
  * Called when user account login has completed after calling Login() or AutoLogin()
  *
  * @param LocalUserNum the controller number of the associated user
@@ -112,6 +122,15 @@ public:
 	 * @param NewId the new id to associate with the user
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnLoginStatusChanged, ELoginStatus::Type, const FUniqueNetId&);
+
+	/**
+	 * Delegate called when a controller-user pairing changes
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param PreviousUser the new login status for the user
+	 * @param NewUser the new id to associate with the user
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnControllerPairingChanged, int, const FUniqueNetId&, const FUniqueNetId&);
 
 	/**
 	 * Login/Authenticate with user credentials.
