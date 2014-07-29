@@ -2361,7 +2361,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 			UserSettings->SetScreenResolution(*Dimensions);
 		}
 
-		UserSettings->ApplySettings();
+		UserSettings->ApplySettings(false);
 	}
 	else
 	{

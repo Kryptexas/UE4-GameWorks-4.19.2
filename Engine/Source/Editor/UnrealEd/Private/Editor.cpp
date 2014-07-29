@@ -676,7 +676,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	if (GameUserSettings)
 	{
 		GameUserSettings->LoadSettings();
-		GameUserSettings->ApplySettings();
+		GameUserSettings->ApplySettings(true);
 	}
 
 	UEditorStyleSettings* Settings = GetMutableDefault<UEditorStyleSettings>();
