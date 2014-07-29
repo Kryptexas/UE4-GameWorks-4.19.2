@@ -284,7 +284,7 @@ public:
 		// This is only necessary if the TSet allows duplicate keys; otherwise TSet::Add replaces the existing key-value pair.
 		if(KeyFuncs::bAllowDuplicateKeys)
 		{
-			for(typename PairSetType::TKeyIterator It(Pairs,InKey);It;++It)
+			for(typename PairSetType::TKeyIterator It(Pairs,KeyType(InKey));It;++It)
 			{
 				It.RemoveCurrent();
 			}
