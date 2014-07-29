@@ -422,7 +422,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
-	GetGameUserSettings()->ApplySettings();
+	GetGameUserSettings()->ApplySettings(true);
 
 	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
 	{
@@ -695,7 +695,7 @@ bool UGameEngine::HandleCancelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 #if !UE_BUILD_SHIPPING
 bool UGameEngine::HandleApplyUserSettingsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	GetGameUserSettings()->ApplySettings();
+	GetGameUserSettings()->ApplySettings(false);
 	return true;
 }
 #endif // !UE_BUILD_SHIPPING
