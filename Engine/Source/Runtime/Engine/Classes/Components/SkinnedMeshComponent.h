@@ -527,11 +527,6 @@ public:
 
 	/** Vertex anim */
 
-	/** 
-	 * Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
-	 */
-	TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const;
-
 	/**
 	 * Checks/updates material usage on proxy based on current morph target usage
 	 */
@@ -539,6 +534,11 @@ public:
 
 
 protected:
+	/**
+	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
+	*/
+	static TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& InMorphCurveAnims, const TArray<FActiveVertexAnim>& InActiveAnims);
+
 	/** 
 	 * Should update transform in Tick
 	 * 

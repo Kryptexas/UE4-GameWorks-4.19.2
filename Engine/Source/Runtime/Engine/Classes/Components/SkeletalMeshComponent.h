@@ -7,6 +7,44 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshComponent.generated.h"
 
+class UAnimInstance;
+
+struct FAnimationEvaluationContext
+{
+	// The anim instance we are evaluating
+	UAnimInstance* AnimInstance;
+
+	// The SkeletalMesh we are evaluating for
+	USkeletalMesh* SkeletalMesh;
+
+	// Double buffer evaluation data
+	TArray<FTransform> SpaceBases;
+	TArray<FTransform> LocalAtoms;
+	TArray<FActiveVertexAnim> VertexAnims;
+	FVector RootBoneTranslation;
+
+	// Are we performing interpolation this tick
+	bool bDoInterpolation;
+
+	// Are we evaluating this tick
+	bool bDoEvaluation;
+
+	// Are we storing data in cache bones this tick
+	bool bDuplicateToCacheBones;
+
+	FAnimationEvaluationContext()
+	{
+		Clear();
+	}
+
+	void Clear()
+	{
+		AnimInstance = NULL;
+		SkeletalMesh = NULL;
+	}
+
+};
+
 //#if WITH_APEX
 namespace physx
 { 
@@ -672,16 +710,6 @@ public:
 	/** freezing clothing actor now */
 	void FreezeClothSection(bool bFreeze);
 
-	/** Evaluate Anim System **/
-	void EvaluateAnimation( TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
-
-	/**
-	 * Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
-	 * It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
-	 * This code also applies any per-bone rotators etc. as part of the composition process
-	 */
-	void FillSpaceBases( const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases ) const;
-
 	/** 
 	 * Recalculates the RequiredBones array in this SkeletalMeshComponent based on current SkeletalMesh, LOD and PhysicsAsset.
 	 * Is called when bRequiredBonesUpToDate = false
@@ -794,13 +822,15 @@ public:
 	/**
 	* Runs the animation evaluation for the current pose into the supplied variables
 	*
+	* @param	InSkeletalMesh			The skeletal mesh we are animating
+	* @param	InAnimInstance			The anim instance we are evaluating
 	* @param	OutSpaceBases			Component space bone transforms
 	* @param	OutLocalAtoms			Local space bone transforms
 	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
 	*/
-	void PerformAnimationEvaluation( TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
-	void PostAnimEvaluation( bool bDoInterpolation, bool bDuplicateToCacheBones );
+	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
 
 	/**
 	 * Blend of Physics Bones with PhysicsWeight and Animated Bones with (1-PhysicsWeight)
@@ -1046,30 +1076,42 @@ protected:
 	bool NeedToSpawnAnimScriptInstance(bool bForceInit) const;
 	
 private:
+	/** Evaluate Anim System **/
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+
+	/**
+	* Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
+	* It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
+	* This code also applies any per-bone rotators etc. as part of the composition process
+	*/
+	void FillSpaceBases(const USkeletalMesh* InSkeletalMesh, const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases) const;
+
 	void RenderAxisGizmo(const FTransform& Transform, class UCanvas* Canvas) const;
 
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
 
-	//Handle parallel evaluation of animation
-	TArray<FTransform> PTSpaceBases;
-	TArray<FTransform> PTLocalAtoms;
-	TArray<FActiveVertexAnim> PTVertexAnims;
-	FVector PTRootBoneTranslation;
-	bool bPTDoInterpolation;
-	bool bPTDuplicateToCacheBones;
+	//Data for parallel evaluation of animation
+	FAnimationEvaluationContext AnimEvaluationContext;
 
 public:
 	// Parallel evaluation wrappers
-	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(PTSpaceBases, PTLocalAtoms, PTVertexAnims, PTRootBoneTranslation); }
+	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()
 	{
-		Exchange(PTSpaceBases, bPTDoInterpolation ? CachedSpaceBases : SpaceBases);
-		Exchange(PTLocalAtoms, bPTDoInterpolation ? CachedLocalAtoms : LocalAtoms);
-		Exchange(PTVertexAnims, ActiveVertexAnims);
-		Exchange(PTRootBoneTranslation, RootBoneTranslation);
+		if (AnimEvaluationContext.AnimInstance == AnimScriptInstance && AnimEvaluationContext.SkeletalMesh == SkeletalMesh)
+		{
+			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : SpaceBases);
+			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
+			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
+			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
 
-		PostAnimEvaluation(bPTDoInterpolation, bPTDuplicateToCacheBones);
+			PostAnimEvaluation(AnimEvaluationContext);
+		}
+		else
+		{
+			AnimEvaluationContext.Clear();
+		}
 	}
 
 	friend class FSkeletalMeshComponentDetails;

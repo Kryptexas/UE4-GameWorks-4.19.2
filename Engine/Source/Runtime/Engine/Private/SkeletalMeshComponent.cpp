@@ -577,18 +577,18 @@ static void IntersectBoneIndexArrays(TArray<FBoneIndexType>& Output, const TArra
 }
 
 
-void USkeletalMeshComponent::FillSpaceBases(const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases) const
+void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh, const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SkelComposeTime);
 
-	if( !SkeletalMesh )
+	if( !InSkeletalMesh )
 	{
 		return;
 	}
 
 	// right now all this does is populate DestSpaceBases
-	check(SkeletalMesh->RefSkeleton.GetNum() == SourceAtoms.Num());
-	check( SkeletalMesh->RefSkeleton.GetNum() == DestSpaceBases.Num() );
+	check( InSkeletalMesh->RefSkeleton.GetNum() == SourceAtoms.Num());
+	check( InSkeletalMesh->RefSkeleton.GetNum() == DestSpaceBases.Num());
 
 	const int32 NumBones = SourceAtoms.Num();
 
@@ -622,7 +622,7 @@ void USkeletalMeshComponent::FillSpaceBases(const TArray<FTransform>& SourceAtom
 		BoneProcessed[BoneIndex] = 1;
 #endif
 		// For all bones below the root, final component-space transform is relative transform * component-space transform of parent.
-		const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+		const int32 ParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 		FPlatformMisc::Prefetch(SpaceBasesData + ParentIndex);
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
@@ -802,29 +802,29 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	CachedSpaceBases.Empty();
 }
 
-void USkeletalMeshComponent::EvaluateAnimation(TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
+void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimBlendTime);
 
-	if( !SkeletalMesh )
+	if( !InSkeletalMesh )
 	{
 		return;
 	}
 
 	// We can only evaluate animation if RequiredBones is properly setup for the right mesh!
-	if( SkeletalMesh->Skeleton && AnimScriptInstance 
+	if( InSkeletalMesh->Skeleton && InAnimInstance
 		&& ensure(bRequiredBonesUpToDate)
-		&& AnimScriptInstance->RequiredBones.IsValid() 
-		&& (AnimScriptInstance->RequiredBones.GetAsset() == SkeletalMesh) )
+		&& InAnimInstance->RequiredBones.IsValid()
+		&& (InAnimInstance->RequiredBones.GetAsset() == InSkeletalMesh) )
 	{
 		if( !bForceRefpose )
 		{
 			// Create an evaluation context
-			FPoseContext EvaluationContext(AnimScriptInstance);
+			FPoseContext EvaluationContext(InAnimInstance);
 			EvaluationContext.ResetToRefPose();
 			
 			// Run the anim blueprint
-			AnimScriptInstance->EvaluateAnimation(EvaluationContext);
+			InAnimInstance->EvaluateAnimation(EvaluationContext);
 
 			// can we avoid that copy?
 			if( EvaluationContext.Pose.Bones.Num() > 0 )
@@ -836,30 +836,30 @@ void USkeletalMeshComponent::EvaluateAnimation(TArray<FTransform>& OutLocalAtoms
 			}
 			else
 			{
-				FAnimationRuntime::FillWithRefPose(OutLocalAtoms, AnimScriptInstance->RequiredBones);
+				FAnimationRuntime::FillWithRefPose(OutLocalAtoms, InAnimInstance->RequiredBones);
 			}
 		}
 		else
 		{
-			FAnimationRuntime::FillWithRefPose(OutLocalAtoms, AnimScriptInstance->RequiredBones);
+			FAnimationRuntime::FillWithRefPose(OutLocalAtoms, InAnimInstance->RequiredBones);
 		}
 
-		OutVertexAnims = UpdateActiveVertexAnims(AnimScriptInstance->MorphTargetCurves, AnimScriptInstance->VertexAnims);
+		OutVertexAnims = UpdateActiveVertexAnims(InSkeletalMesh, InAnimInstance->MorphTargetCurves, InAnimInstance->VertexAnims);
 	}
 	else
 	{
-		OutLocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+		OutLocalAtoms = InSkeletalMesh->RefSkeleton.GetRefBonePose();
 
 		// if it's only morph, there is no reason to blend
 		if ( MorphTargetCurves.Num() > 0 )
 		{
 			TArray<struct FActiveVertexAnim> EmptyVertexAnims;
-			OutVertexAnims = UpdateActiveVertexAnims(MorphTargetCurves, EmptyVertexAnims);
+			OutVertexAnims = UpdateActiveVertexAnims(InSkeletalMesh, MorphTargetCurves, EmptyVertexAnims);
 		}
 	}
 
 	// Remember the root bone's translation so we can move the bounds.
-	OutRootBoneTranslation = OutLocalAtoms[0].GetTranslation() - SkeletalMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
+	OutRootBoneTranslation = OutLocalAtoms[0].GetTranslation() - InSkeletalMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
 }
 
 void USkeletalMeshComponent::UpdateSlaveComponent()
@@ -872,30 +872,27 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 
 		if ( MasterSMC->AnimScriptInstance )
 		{
-			ActiveVertexAnims = UpdateActiveVertexAnims(MasterSMC->AnimScriptInstance->MorphTargetCurves, MasterSMC->AnimScriptInstance->VertexAnims);
+			ActiveVertexAnims = UpdateActiveVertexAnims(SkeletalMesh, MasterSMC->AnimScriptInstance->MorphTargetCurves, MasterSMC->AnimScriptInstance->VertexAnims);
 		}
 	}
 
 	Super::UpdateSlaveComponent();
 }
 
-void USkeletalMeshComponent::PerformAnimationEvaluation(TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
+void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_PerformAnimEvaluation);
 	// Can't do anything without a SkeletalMesh
 	// Do nothing more if no bones in skeleton.
-	if (!SkeletalMesh || OutSpaceBases.Num() == 0)
+	if (!InSkeletalMesh || OutSpaceBases.Num() == 0)
 	{
 		return;
 	}
-	AActor * Owner = GetOwner();
-	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
-	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
 	// evaluate pure animations, and fill up LocalAtoms
-	EvaluateAnimation(OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation);
+	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation);
 	// Fill SpaceBases from LocalAtoms
-	FillSpaceBases(OutLocalAtoms, OutSpaceBases);
+	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
 
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
@@ -916,6 +913,9 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		RecalcRequiredBones(PredictedLODLevel);
 	}
 
+	AnimEvaluationContext.SkeletalMesh = SkeletalMesh;
+	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
+
 	//Handle update rate optimization setup
 	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
 	
@@ -926,10 +926,10 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
 									  || (SpaceBases.Num() != CachedSpaceBases.Num()) );
 
-	const bool bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !UpdateRateParams.ShouldSkipEvaluation();
+	AnimEvaluationContext.bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !UpdateRateParams.ShouldSkipEvaluation();
 	
-	bPTDoInterpolation = bDoUpdateRateOptimization && !bInvalidCachedBones && UpdateRateParams.ShouldInterpolateSkippedFrames();
-	bPTDuplicateToCacheBones = bInvalidCachedBones || (bDoUpdateRateOptimization && bDoEvaluation && !bPTDoInterpolation);
+	AnimEvaluationContext.bDoInterpolation = bDoUpdateRateOptimization && !bInvalidCachedBones && UpdateRateParams.ShouldInterpolateSkippedFrames();
+	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoUpdateRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
 
 	if (!bDoUpdateRateOptimization)
 	{
@@ -939,14 +939,14 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 
 	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread();
-	if (bDoEvaluation && TickFunction && bDoPAE)
+	if (AnimEvaluationContext.bDoEvaluation && TickFunction && bDoPAE)
 	{
-		if (SkeletalMesh->RefSkeleton.GetNum() != PTLocalAtoms.Num())
+		if (SkeletalMesh->RefSkeleton.GetNum() != AnimEvaluationContext.LocalAtoms.Num())
 		{
 			// Initialize Parallel Task arrays
-			PTLocalAtoms = LocalAtoms;
-			PTSpaceBases = SpaceBases;
-			PTVertexAnims = ActiveVertexAnims;
+			AnimEvaluationContext.LocalAtoms = LocalAtoms;
+			AnimEvaluationContext.SpaceBases = SpaceBases;
+			AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 		}
 
 		// start parallel work
@@ -961,38 +961,40 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 	else
 	{
-		if (bDoEvaluation)
+		if (AnimEvaluationContext.bDoEvaluation)
 		{
-			if (bPTDoInterpolation)
+			if (AnimEvaluationContext.bDoInterpolation)
 			{
-				PerformAnimationEvaluation(CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 			else
 			{
-				PerformAnimationEvaluation(SpaceBases, LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, SpaceBases, LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 		}
-		else if (!bPTDoInterpolation)
+		else if (!AnimEvaluationContext.bDoInterpolation)
 		{
 			LocalAtoms = CachedLocalAtoms;
 			SpaceBases = CachedSpaceBases;
 		}
 
-		PostAnimEvaluation(bPTDoInterpolation, bPTDuplicateToCacheBones);
+		PostAnimEvaluation(AnimEvaluationContext);
 	}
 
 }
 
-void USkeletalMeshComponent::PostAnimEvaluation(bool bDoInterpolation, bool bDuplicateToCacheBones)
+void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
+	AnimEvaluationContext.Clear();
+
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
-	if( bDuplicateToCacheBones )
+	if (EvaluationContext.bDuplicateToCacheBones)
 	{
 		CachedSpaceBases = SpaceBases;
 		CachedLocalAtoms = LocalAtoms;
 	}
 
-	if( bDoInterpolation )
+	if (EvaluationContext.bDoInterpolation)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_InterpolateSkippedFrames);
 		AActor * Owner = GetOwner();

@@ -1668,7 +1668,7 @@ int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVertexAnimBa
 	return INDEX_NONE;
 }
 
-TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const
+TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims)
 {
 	TArray<struct FActiveVertexAnim> OutVertexAnims;
 
@@ -1679,7 +1679,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const T
 		// Check it has valid weight, and works on this SkeletalMesh
 		if(	ActiveAnim.Weight > MinVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.VertAnim->BaseSkelMesh == SkeletalMesh )
+			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
 		{
 			OutVertexAnims.Add(ActiveAnim);
 		}
@@ -1696,7 +1696,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const T
 		if(Weight > MinVertexAnimBlendWeight)
 		{
 			// Find morph reference
-			UMorphTarget* Target = FindMorphTarget(CurveName);
+			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;
 			if(Target != NULL)				
 			{
 				// See if this morph target already has an entry
