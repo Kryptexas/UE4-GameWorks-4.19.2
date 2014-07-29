@@ -359,7 +359,7 @@ const FAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() con
 	return NULL;
 }
 
-void UAudioComponent::CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	const FAttenuationSettings *AttenuationSettingsToApply = GetAttenuationSettingsToApply();
 

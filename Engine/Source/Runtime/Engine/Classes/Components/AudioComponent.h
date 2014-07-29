@@ -309,7 +309,7 @@ public:
 	// End ActorComponent interface.
 
 	const FAttenuationSettings* GetAttenuationSettingsToApply() const;
-	void CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
 private:
 	

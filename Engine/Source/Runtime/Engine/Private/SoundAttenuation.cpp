@@ -235,7 +235,7 @@ void FAttenuationSettings::ApplyAttenuation( const FTransform& SoundTransform, c
 	}
 }
 
-void FAttenuationSettings::CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const
+void FAttenuationSettings::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	if (bAttenuate)
 	{

@@ -558,7 +558,7 @@ void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
 	}
 }
 
-void FActiveSound::CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	bool bFoundAttenuationSettings = false;
 
