@@ -6,8 +6,8 @@
 
 // APaperCharacter behaves like ACharacter, but uses a UPaperFlipbookComponent instead of a USkeletalMeshComponent as a visual representation
 // Note: The variable named Mesh will not be set up on this actor!
-UCLASS(MinimalAPI, EarlyAccessPreview)
-class APaperCharacter : public ACharacter
+UCLASS(EarlyAccessPreview)
+class PAPER2D_API APaperCharacter : public ACharacter
 {
 	GENERATED_UCLASS_BODY()
 	
