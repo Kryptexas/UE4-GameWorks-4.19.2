@@ -12,7 +12,7 @@
 **/
 struct FIOSPlatformSurvey : public FGenericPlatformSurvey
 {
-	// default implementation for now
+	static bool GetSurveyResults(FHardwareSurveyResults& OutResults, bool bWait = false);
 };
 
 typedef FIOSPlatformSurvey FPlatformSurvey;
