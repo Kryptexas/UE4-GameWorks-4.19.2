@@ -1244,6 +1244,24 @@ struct SLATECORE_API FScrollBoxStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush BottomShadowBrush;
 	FScrollBoxStyle& SetBottomShadowBrush( const FSlateBrush& InBottomShadowBrush ){ BottomShadowBrush = InBottomShadowBrush; return *this; }
+
+	/** Brush used to draw the left shadow of a scrollbox */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush LeftShadowBrush;
+	FScrollBoxStyle& SetLeftShadowBrush(const FSlateBrush& InLeftShadowBrush)
+	{
+		LeftShadowBrush = InLeftShadowBrush;
+		return *this;
+	}
+
+	/** Brush used to draw the right shadow of a scrollbox */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush RightShadowBrush;
+	FScrollBoxStyle& SetRightShadowBrush(const FSlateBrush& InRightShadowBrush)
+	{
+		RightShadowBrush = InRightShadowBrush;
+		return *this;
+	}
 };
 
 

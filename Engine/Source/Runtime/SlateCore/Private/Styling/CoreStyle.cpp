@@ -982,6 +982,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ScrollBox", FScrollBoxStyle()
 			.SetTopShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowTop", FVector2D(64,8) ) )
 			.SetBottomShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowBottom", FVector2D(64,8) ) )
+			.SetLeftShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowLeft", FVector2D(8, 64) ) )
+			.SetRightShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowRight", FVector2D(8, 64) ) )
 			);
 	}
 

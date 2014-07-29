@@ -568,6 +568,8 @@ void FScrollBoxStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) c
 {
 	OutBrushes.Add( &TopShadowBrush );
 	OutBrushes.Add( &BottomShadowBrush );
+	OutBrushes.Add( &LeftShadowBrush );
+	OutBrushes.Add( &RightShadowBrush );
 }
 
 const FName FScrollBoxStyle::TypeName( TEXT("FScrollBoxStyle") );

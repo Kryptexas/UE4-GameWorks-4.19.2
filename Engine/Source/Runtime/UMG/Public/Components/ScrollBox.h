@@ -20,6 +20,10 @@ class UMG_API UScrollBox : public UPanelWidget
 
 	virtual void ReleaseNativeWidget() override;
 
+	/** The orientation of the scrolling and stacking in the box. */
+	UPROPERTY(EditDefaultsOnly, Category = "Behavior")
+	TEnumAsByte<EOrientation> Orientation;
+
 	/** Removes all child widget from the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ClearChildren();

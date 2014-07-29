@@ -14,6 +14,7 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 
 	SScrollBox::FArguments Defaults;
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Orientation = Defaults._Orientation;
 }
 
 void UScrollBox::ReleaseNativeWidget()
@@ -68,7 +69,8 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 
 	MyScrollBox = SNew(SScrollBox)
 		.Style(StylePtr)
-		.ScrollBarStyle(BarStylePtr);
+		.ScrollBarStyle(BarStylePtr)
+		.Orientation(Orientation);
 
 	for ( UPanelSlot* Slot : Slots )
 	{
@@ -85,6 +87,7 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 void UScrollBox::SyncronizeProperties()
 {
 	MyScrollBox->SetScrollOffset(DesiredScrollOffset);
+	MyScrollBox->SetOrientation(Orientation);
 }
 
 void UScrollBox::ClearChildren()
