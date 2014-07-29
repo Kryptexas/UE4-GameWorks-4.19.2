@@ -26,6 +26,7 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
     libmono-system-web-extensions4.0-cil
     libmono-system-management4.0-cil
     libmono-system-xml-linq4.0-cil
+    libmono-corlib4.0-cil
     libogg-dev"
 
   for DEP in $DEPS; do
@@ -38,24 +39,37 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
   done
 fi
 
-# Fixes for case sensitive filesystem.
-for BASE in Content/Editor/Slate Content/Slate Documentation/Source/Shared/Icons; do
-  find $BASE -name "*.PNG" | while read PNG_UPPER; do
-    png_lower="$(echo "$PNG_UPPER" | sed 's/.PNG$/.png/')"
-    if [ ! -f $png_lower ]; then
-      PNG_UPPER=$(basename $PNG_UPPER)
-      echo "$png_lower -> $PNG_UPPER"
-      # link, and not move, to make it usable with Perforce workspaces
-      ln -sf `basename "$PNG_UPPER"` "$png_lower"
-    fi
-  done
-done
-
 set -x
 xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool_Mono.csproj \
   /verbosity:quiet /nologo \
   /p:TargetFrameworkVersion=v4.0 \
   /p:Configuration="Development"
 
+xbuild Source/Programs/AutomationTool/AutomationTool_Mono.csproj \
+  /verbosity:quiet /nologo \
+  /p:TargetFrameworkVersion=v4.0 \
+  /p:Configuration="Development"
+
+xbuild Source/Programs/AutomationTool/Scripts/AutomationScripts.Automation.csproj \
+  /verbosity:quiet /nologo \
+  /p:TargetFrameworkVersion=v4.0 \
+  /p:Configuration="Development"
+
+xbuild Source/Programs/AutomationTool/Linux/Linux.Automation.csproj \
+  /verbosity:quiet /nologo \
+  /p:TargetFrameworkVersion=v4.0 \
+  /p:Configuration="Development"
+
+xbuild Source/Programs/AutomationTool/Android/Android.Automation.csproj \
+  /verbosity:quiet /nologo \
+  /p:TargetFrameworkVersion=v4.0 \
+  /p:Configuration="Development"
+
+xbuild Source/Programs/AutomationTool/HTML5/HTML5.Automation.csproj \
+  /verbosity:quiet /nologo \
+  /p:TargetFrameworkVersion=v4.0 \
+  /p:Configuration="Development"
+
 # pass all parameters to UBT
 mono Binaries/DotNET/UnrealBuildTool.exe -makefile "$@"
+set +x
