@@ -139,14 +139,14 @@ public:
 
 private:
 	FMessageLogListingViewModel( TSharedPtr< FMessageLogListingModel > InMessageLogListingModel, const FText& InLogLabel, const FMessageLogInitializationOptions& InitializationOptions )
-		: MessageLogListingModel( InMessageLogListingModel )
-		, bShowFilters( InitializationOptions.bShowFilters )
+		: bShowFilters( InitializationOptions.bShowFilters )
 		, bShowPages( InitializationOptions.bShowPages )
 		, bDiscardDuplicates( InitializationOptions.bDiscardDuplicates )
 		, MaxPageCount( InitializationOptions.MaxPageCount )
 		, CurrentPageIndex( 0 )
 		, bIsRefreshing( false )
 		, LogLabel( InLogLabel )
+		, MessageLogListingModel( InMessageLogListingModel )
 	{}
 
 	/** Rebuilds the list of filtered messages */

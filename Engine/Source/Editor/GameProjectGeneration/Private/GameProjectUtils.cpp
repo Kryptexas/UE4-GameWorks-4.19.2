@@ -475,6 +475,8 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".sln");
 #elif PLATFORM_MAC
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcodeproj");
+#elif PLATFORM_LINUX
+	STUBBED("Linux solution filename");
 #else
 	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." );
 	return false;
@@ -482,7 +484,7 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 
 	// Open the solution with the default application
 	const FString FullPath = FPaths::Combine(*SolutionFolder, *CodeSolutionFile);
-#if PLATFORM_MAC || PLATFORM_LINUX
+#if PLATFORM_MAC
 	if ( IFileManager::Get().DirectoryExists(*FullPath) )
 #else
 	if ( FPaths::FileExists(FullPath) )

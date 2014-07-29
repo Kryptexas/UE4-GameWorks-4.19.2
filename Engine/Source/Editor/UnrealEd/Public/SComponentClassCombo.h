@@ -13,13 +13,13 @@ class FComponentClassComboEntry: public TSharedFromThis<FComponentClassComboEntr
 {
 public:
 	FComponentClassComboEntry( const FString& InHeadingText, TSubclassOf<UActorComponent> InComponentClass )
-		: HeadingText(InHeadingText)
-		, ComponentClass(InComponentClass)
+		: ComponentClass(InComponentClass)
+		, HeadingText(InHeadingText)
 	{}
 
 	FComponentClassComboEntry( const FString& InHeadingText )
-		: HeadingText(InHeadingText)
-		, ComponentClass(NULL)
+		: ComponentClass(NULL)
+		, HeadingText(InHeadingText)
 	{}
 
 	FComponentClassComboEntry()

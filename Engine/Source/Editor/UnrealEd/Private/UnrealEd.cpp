@@ -160,7 +160,8 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 		}
 	}
 
-	return 1;
+	// this will be ultimately returned from main(), so no error should be 0.
+	return 0;
 }
 
 void EditorExit()

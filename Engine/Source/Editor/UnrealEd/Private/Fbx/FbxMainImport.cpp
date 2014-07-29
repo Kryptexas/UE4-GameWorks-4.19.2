@@ -234,12 +234,12 @@ void FImportedMaterialData::Clear()
 }
 
 FFbxImporter::FFbxImporter()
-	: bFirstMesh(true)
-	, Importer( NULL )
+	: Scene(NULL)
 	, ImportOptions(NULL)
 	, GeometryConverter(NULL)
-	, Scene(NULL)
 	, SdkManager(NULL)
+	, Importer( NULL )
+	, bFirstMesh(true)
 	, Logger(NULL)
 {
 	// Create the SdkManager

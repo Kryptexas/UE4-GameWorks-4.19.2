@@ -7,13 +7,13 @@ struct FMovingAverage
 {
 	/** Constructor from a sample size, and sample rate */
 	FMovingAverage(const int32 InSampleSize = 0, const float InSampleRateSeconds = 1.f)
-		: SampleRateSeconds(InSampleRateSeconds)
+		: CurrentSampleCount(0)
 		, CurrentSampleAccumulator(0)
 		, CurrentSampleStartTime(0)
+		, SampleRateSeconds(InSampleRateSeconds)
 		, SampleSize(InSampleSize)
-		, CurrentSampleCount(0)
-		, NextSampleIndex(0)
 		, SampleAverage(0)
+		, NextSampleIndex(0)
 	{
 		Samples.Reserve(SampleSize);
 	}

@@ -238,8 +238,8 @@ protected:
 
 
 SMessageLogListing::SMessageLogListing()
-	: bUpdatingSelection( false )
-	, UICommandList( MakeShareable( new FUICommandList ) )
+	: UICommandList( MakeShareable( new FUICommandList ) )
+	, bUpdatingSelection( false )
 {
 
 }

@@ -134,8 +134,8 @@ public:
 	DECLARE_DELEGATE( FOnPropertyValueChanged );
 
 	SLATE_BEGIN_ARGS( SProperty )
-		: _DisplayResetToDefault( true )
-		, _ShouldDisplayName( true )
+		: _ShouldDisplayName( true )
+		, _DisplayResetToDefault( true )
 		{}
 		/** The display name to use in the default property widget */
 		SLATE_ATTRIBUTE( FString, DisplayName )

@@ -182,9 +182,14 @@ FFindAssetsArchive::FFindAssetsArchive(
 	bool bIncludeClasses/*=true*/, 
 	bool bIncludeDefaults/*=false*/,
 	bool bReverseReferenceGraph/*=false*/ ) 
-: StartObject(Search), AssetList(OutAssetList), CurrentReferenceGraph(ReferenceGraph)
-, bIncludeScriptRefs(bIncludeClasses), bIncludeDefaultRefs(bIncludeDefaults), MaxRecursionDepth(MaxRecursion), bUseReverseReferenceGraph(bReverseReferenceGraph)
+: StartObject(Search)
+, AssetList(OutAssetList)
+, CurrentReferenceGraph(ReferenceGraph)
+, bIncludeScriptRefs(bIncludeClasses)
+, bIncludeDefaultRefs(bIncludeDefaults)
+, MaxRecursionDepth(MaxRecursion)
 , CurrentDepth(0)
+, bUseReverseReferenceGraph(bReverseReferenceGraph)
 {
 	ArIsObjectReferenceCollector = true;
 	ArIsModifyingWeakAndStrongReferences = true; // While we are not modifying them, we want to follow weak references as well
