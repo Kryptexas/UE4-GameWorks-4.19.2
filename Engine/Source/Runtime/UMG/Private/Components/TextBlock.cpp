@@ -73,7 +73,12 @@ void UTextBlock::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 
 	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
 	if ( StylePtr == NULL )

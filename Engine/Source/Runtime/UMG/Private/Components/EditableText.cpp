@@ -36,7 +36,12 @@ void UEditableText::ReleaseNativeWidget()
 
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 	
 	SEditableText::FArguments Defaults;
 	

@@ -20,7 +20,12 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FPostConstructInitial
 
 TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 		.Font(FSlateFontInfo(FontPath, Font.Size))

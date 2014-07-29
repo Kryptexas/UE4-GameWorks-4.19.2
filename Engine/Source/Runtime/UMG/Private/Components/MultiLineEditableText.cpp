@@ -16,7 +16,12 @@ UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializePro
 
 TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 	
 	SMultiLineEditableText::FArguments Defaults;
 	
