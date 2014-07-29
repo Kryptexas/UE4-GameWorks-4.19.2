@@ -328,7 +328,9 @@ protected:
 
 	FORCEINLINE void WriteNumberValue( const double Value)
 	{
-		PrintPolicy::WriteString(Stream, FString::Printf(TEXT("%g"), Value));
+		// Specify 17 significant digits, the most that can ever be useful from a double
+		// In particular, this ensures large integers are written correctly
+		PrintPolicy::WriteString(Stream, FString::Printf(TEXT("%.17g"), Value));
 	}
 
 	FORCEINLINE void WriteIntegerValue( const int64 Value)
