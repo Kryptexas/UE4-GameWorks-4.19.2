@@ -54,11 +54,13 @@
 #include "WidgetSwitcherSlot.h"
 #include "WidgetSwitcher.h"
 
+#include "BorderSlot.h"
+#include "Border.h"
+
 #include "ButtonSlot.h"
 #include "Button.h"
 
 #include "TextBlock.h"
-#include "Border.h"
 #include "CheckBox.h"
 #include "Image.h"
 

@@ -26,6 +26,9 @@ public:
 	/** Constructor for the null widget reference.  Not intended for normal use. */
 	FWidgetReference();
 
+	/** Destructor */
+	~FWidgetReference();
+
 	/** @returns true if both the template and the preview pointers are valid. */
 	bool IsValid() const;
 
@@ -43,6 +46,8 @@ public:
 
 private:
 	FWidgetReference(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
 private:
 

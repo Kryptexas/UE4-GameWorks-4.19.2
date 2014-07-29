@@ -20,28 +20,21 @@
 void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
-	bRefreshRequested = false;
+	bRebuildTreeRequested = false;
 
+	// register for any objects replaced
+	GEditor->OnObjectsReplaced().AddRaw(this, &SHierarchyView::OnObjectsReplaced);
+
+	// Create the filter for searching in the tree
 	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SHierarchyView::TransformWidgetToString)));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	Blueprint->OnChanged().AddSP(this, &SHierarchyView::OnBlueprintChanged);
+	Blueprint->OnChanged().AddRaw(this, &SHierarchyView::OnBlueprintChanged);
 
 	FilterHandler = MakeShareable(new TreeFilterHandler<UWidget*>());
 	FilterHandler->SetFilter(SearchBoxWidgetFilter.Get());
 	FilterHandler->SetRootItems(&RootWidgets, &TreeRootWidgets);
 	FilterHandler->SetGetChildrenDelegate(TreeFilterHandler<UWidget*>::FOnGetChildren::CreateRaw(this, &SHierarchyView::WidgetHierarchy_OnGetChildren));
-
-	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
-	.ItemHeight(20.0f)
-	.SelectionMode(ESelectionMode::Single)
-	.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler<UWidget*>::OnGetFilteredChildren)
-	.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
-	.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
-	.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
-	.TreeItemsSource(&TreeRootWidgets);
-
-	FilterHandler->SetTreeView(WidgetTreeView.Get());
 
 	ChildSlot
 	[
@@ -62,13 +55,14 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 			+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
-				SNew(SScrollBorder, WidgetTreeView.ToSharedRef())
-				[
-					WidgetTreeView.ToSharedRef()
-				]
+				SAssignNew(TreeViewArea, SBorder)
+				.Padding(0)
+				.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
 			]
 		]
 	];
+
+	RebuildTreeView();
 
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SHierarchyView::OnEditorSelectionChanged);
 
@@ -87,10 +81,18 @@ SHierarchyView::~SHierarchyView()
 	{
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
 	}
+
+	GEditor->OnObjectsReplaced().RemoveAll(this);
 }
 
 void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	if ( bRebuildTreeRequested )
+	{
+		bRebuildTreeRequested = false;
+		RebuildTreeView();
+	}
+
 	if ( bRefreshRequested )
 	{
 		bRefreshRequested = false;
@@ -182,7 +184,7 @@ void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
-		RefreshTree();
+		bRefreshRequested = true;
 	}
 }
 
@@ -209,6 +211,8 @@ TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 
 void SHierarchyView::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
 {
+	VisibleItems.Add(InParent);
+
 	UPanelWidget* Widget = Cast<UPanelWidget>(InParent);
 	if ( Widget )
 	{
@@ -258,6 +262,8 @@ FReply SHierarchyView::HandleDeleteSelected()
 
 void SHierarchyView::RefreshTree()
 {
+	VisibleItems.Empty();
+
 	RootWidgets.Empty();
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	if (Blueprint->WidgetTree->RootWidget)
@@ -265,6 +271,41 @@ void SHierarchyView::RefreshTree()
 		RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
 	}
 	FilterHandler->RefreshAndFilterTree();
+}
+
+void SHierarchyView::RebuildTreeView()
+{
+	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
+		.ItemHeight(20.0f)
+		.SelectionMode(ESelectionMode::Single)
+		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler<UWidget*>::OnGetFilteredChildren)
+		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
+		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
+		.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
+		.TreeItemsSource(&TreeRootWidgets);
+
+	FilterHandler->SetTreeView(WidgetTreeView.Get());
+
+	TreeViewArea->SetContent(
+		SNew(SScrollBorder, WidgetTreeView.ToSharedRef())
+		[
+			WidgetTreeView.ToSharedRef()
+		]);
+}
+
+void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	if ( !bRebuildTreeRequested )
+	{
+		for ( UWidget* Widget : VisibleItems )
+		{
+			if ( ReplacementMap.Contains(Widget) )
+			{
+				bRefreshRequested = true;
+				bRebuildTreeRequested = true;
+			}
+		}
+	}
 }
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?

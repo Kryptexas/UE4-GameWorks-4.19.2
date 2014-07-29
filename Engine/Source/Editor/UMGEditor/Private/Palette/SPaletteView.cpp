@@ -144,14 +144,13 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 {
 	BlueprintEditor = InBlueprintEditor;
 
+	// register for any objects replaced
+	GEditor->OnObjectsReplaced().AddRaw(this, &SPaletteView::OnObjectsReplaced);
+
 	UBlueprint* BP = InBlueprintEditor->GetBlueprintObj();
 
 	WidgetFilter = MakeShareable(new WidgetViewModelTextFilter(
 		WidgetViewModelTextFilter::FItemToStringArray::CreateSP(this, &SPaletteView::TransformWidgetViewModelToString)));
-
-	BuildWidgetList();
-
-	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SPaletteView::OnObjectPropertyChanged);
 
 	FilterHandler = MakeShareable(new PaletteFilterHandler());
 	FilterHandler->SetFilter(WidgetFilter.Get());
@@ -189,14 +188,16 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 		]
 	];
 
-	LoadItemExpanssion();
 	bRefreshRequested = true;
+
+	BuildWidgetList();
+	LoadItemExpanssion();
+
+	bRebuildRquested = false;
 }
 
 SPaletteView::~SPaletteView()
 {
-	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
-
 	// If the filter is enabled, disable it before saving the expanded items since
 	// filtering expands all items by default.
 	if (FilterHandler->GetIsEnabled())
@@ -332,6 +333,27 @@ TSharedRef<ITableRow> SPaletteView::OnGenerateWidgetTemplateItem(TSharedPtr<FWid
 
 void SPaletteView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	if ( bRebuildRquested )
+	{
+		// Save the old expanded items temporarily
+		TSet<TSharedPtr<FWidgetViewModel>> ExpandedItems;
+		WidgetTemplatesView->GetExpandedItems(ExpandedItems);
+
+		BuildWidgetList();
+
+		// Restore the expansion state
+		for ( TSharedPtr<FWidgetViewModel>& ExpandedItem : ExpandedItems )
+		{
+			for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
+			{
+				if ( ViewModel->GetName().EqualTo(ExpandedItem->GetName()) )
+				{
+					WidgetTemplatesView->SetItemExpansion(ViewModel, true);
+				}
+			}
+		}
+	}
+
 	if (bRefreshRequested)
 	{
 		bRefreshRequested = false;
@@ -342,6 +364,12 @@ void SPaletteView::Tick(const FGeometry& AllottedGeometry, const double InCurren
 void SPaletteView::TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array)
 {
 	Array.Add(WidgetViewModel->GetFilterString());
+}
+
+void SPaletteView::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	//bRefreshRequested = true;
+	//bRebuildRquested = true;
 }
 
 #undef LOCTEXT_NAMESPACE

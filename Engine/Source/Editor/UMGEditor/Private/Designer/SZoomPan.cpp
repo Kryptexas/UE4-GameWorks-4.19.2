@@ -32,7 +32,7 @@ void SZoomPan::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChi
 		ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
 				ChildSlot.Widget,
 				FVector2D(XResult.Offset, YResult.Offset) - ViewOffset.Get(),
-				FVector2D(XResult.Size, YResult.Size),
+				ChildSlot.Widget->GetDesiredSize(),
 				ZoomAmount.Get()
 		) );
 	}

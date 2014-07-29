@@ -21,7 +21,7 @@ FCanvasSlotExtension::FCanvasSlotExtension()
 	ExtensionId = FName(TEXT("CanvasSlot"));
 }
 
-bool FCanvasSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
+bool FCanvasSlotExtension::CanExtendSelection(const TArray< FWidgetReference >& Selection) const
 {
 	for ( const FWidgetReference& Widget : Selection )
 	{
@@ -34,14 +34,9 @@ bool FCanvasSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
 	return Selection.Num() == 1;
 }
 
-void FCanvasSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FCanvasSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements)
 {
 	SelectionCache = Selection;
-
-	if ( !IsActive(Selection) )
-	{
-		return;
-	}
 
 	MoveHandle =
 		SNew(SBorder)
@@ -56,7 +51,9 @@ void FCanvasSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReferen
 			.Image(FCoreStyle::Get().GetBrush("SoftwareCursor_CardinalCross"))
 		];
 
-	Widgets.Add(MoveHandle.ToSharedRef());
+	MoveHandle->SlatePrepass();
+
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(MoveHandle.ToSharedRef(), EExtensionLayoutLocation::TopLeft, FVector2D(0, -(MoveHandle->GetDesiredSize().Y + 10)))));
 }
 
 bool FCanvasSlotExtension::GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments)
@@ -102,7 +99,91 @@ void FCanvasSlotExtension::GetCollisionSegmentsFromGeometry(FGeometry ArrangedGe
 	Segments[7] = ArrangedGeometry.Position + ArrangedGeometry.Size;
 }
 
+void FCanvasSlotExtension::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+
+}
+
 void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	PaintCollisionLines(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+}
+
+FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	bDragging = true;
+
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
+	return FReply::Handled().CaptureMouse(MoveHandle.ToSharedRef());
+}
+
+FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	bDragging = false;
+
+	EndTransaction();
+
+	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+	return FReply::Handled().ReleaseMouseCapture();
+}
+
+FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	if ( bDragging )
+	{
+		for ( FWidgetReference& Selection : SelectionCache )
+		{
+			MoveByAmount(Selection, Event.GetCursorDelta());
+		}
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void FCanvasSlotExtension::MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta)
+{
+	if ( Delta.IsZero() )
+	{
+		return;
+	}
+
+	UWidget* Widget = WidgetRef.GetPreview();
+
+	UCanvasPanelSlot* CanvasSlot = CastChecked<UCanvasPanelSlot>(Widget->Slot);
+	UCanvasPanel* Parent = CastChecked<UCanvasPanel>(CanvasSlot->Parent);
+
+	FMargin Offsets = CanvasSlot->LayoutData.Offsets;
+	Offsets.Left += Delta.X;
+	Offsets.Top += Delta.Y;
+
+	// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
+	// now represents margin from the right stretched side.
+	if ( CanvasSlot->LayoutData.Anchors.IsStretchedHorizontal() )
+	{
+		Offsets.Right -= Delta.X;
+	}
+
+	// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
+	// now represents margin from the bottom stretched side.
+	if ( CanvasSlot->LayoutData.Anchors.IsStretchedVertical() )
+	{
+		Offsets.Bottom -= Delta.Y;
+	}
+
+	CanvasSlot->SetOffsets(Offsets);
+
+	// Update the Template widget to match
+	UWidget* TemplateWidget = WidgetRef.GetTemplate();
+	UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
+
+	TemplateSlot->SetOffsets(Offsets);
+}
+
+void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	for ( const FWidgetReference& WidgetRef : Selection )
 	{
@@ -194,80 +275,6 @@ void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, cons
 			}
 		}
 	}
-}
-
-FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	bDragging = true;
-
-	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
-
-	return FReply::Handled().CaptureMouse(MoveHandle.ToSharedRef());
-}
-
-FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	bDragging = false;
-
-	EndTransaction();
-
-	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
-
-	return FReply::Handled().ReleaseMouseCapture();
-}
-
-FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	if ( bDragging )
-	{
-		for ( FWidgetReference& Selection : SelectionCache )
-		{
-			MoveByAmount(Selection, Event.GetCursorDelta());
-		}
-
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
-void FCanvasSlotExtension::MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta)
-{
-	if ( Delta.IsZero() )
-	{
-		return;
-	}
-
-	UWidget* Widget = WidgetRef.GetPreview();
-
-	UCanvasPanelSlot* CanvasSlot = CastChecked<UCanvasPanelSlot>(Widget->Slot);
-	UCanvasPanel* Parent = CastChecked<UCanvasPanel>(CanvasSlot->Parent);
-
-	FMargin Offsets = CanvasSlot->LayoutData.Offsets;
-	Offsets.Left += Delta.X;
-	Offsets.Top += Delta.Y;
-
-	// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
-	// now represents margin from the right stretched side.
-	if ( CanvasSlot->LayoutData.Anchors.IsStretchedHorizontal() )
-	{
-		Offsets.Right -= Delta.X;
-	}
-
-	// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
-	// now represents margin from the bottom stretched side.
-	if ( CanvasSlot->LayoutData.Anchors.IsStretchedVertical() )
-	{
-		Offsets.Bottom -= Delta.Y;
-	}
-
-	CanvasSlot->SetOffsets(Offsets);
-
-	// Update the Template widget to match
-	UWidget* TemplateWidget = WidgetRef.GetTemplate();
-	UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
-
-	TemplateSlot->SetOffsets(Offsets);
 }
 
 #undef LOCTEXT_NAMESPACE

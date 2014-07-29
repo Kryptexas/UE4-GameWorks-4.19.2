@@ -29,6 +29,8 @@
 
 #include "AssetTypeActions_Base.h"
 
+#include "DesignTimeUtils.h"
+
 #include "DesignerExtension.h"
 #include "VerticalSlotExtension.h"
 #include "HorizontalSlotExtension.h"

@@ -15,18 +15,6 @@ class UMG_API UBorder : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Horizontal positioning of the content within the border */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/** Vertical positioning of the content within the border */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
-
-	/** The padding to add around the inner content. */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	FMargin ContentPadding;
-
 	/** Color and opacity multiplier of content in the border */
 	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FLinearColor ContentColorAndOpacity;
@@ -83,13 +71,13 @@ class UMG_API UBorder : public UContentWidget
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetForegroundColor(FLinearColor InForegroundColor);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetContentPadding(FMargin InContentPadding);
-
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 	virtual void ReleaseNativeWidget() override;
 
@@ -100,6 +88,7 @@ class UMG_API UBorder : public UContentWidget
 protected:
 
 	// UPanelWidget
+	virtual UClass* GetSlotClass() const override;
 	virtual void OnSlotAdded(UPanelSlot* Slot) override;
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget

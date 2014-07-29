@@ -10,7 +10,7 @@ FHorizontalSlotExtension::FHorizontalSlotExtension()
 	ExtensionId = FName(TEXT("HorizontalSlot"));
 }
 
-bool FHorizontalSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
+bool FHorizontalSlotExtension::CanExtendSelection(const TArray< FWidgetReference >& Selection) const
 {
 	for ( const FWidgetReference& Widget : Selection )
 	{
@@ -23,27 +23,33 @@ bool FHorizontalSlotExtension::IsActive(const TArray< FWidgetReference >& Select
 	return Selection.Num() == 1;
 }
 
-void FHorizontalSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FHorizontalSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements)
 {
 	SelectionCache = Selection;
 
-	if ( !IsActive(Selection) )
-	{
-		return;
-	}
-
-	TSharedRef<SButton> LeftButton =
-		SNew(SButton)
+	TSharedRef<SButton> LeftArrow = SNew(SButton)
 		.Text(LOCTEXT("LeftArrow", "←"))
+		.ContentPadding(FMargin(2, 6))
+		.IsEnabled(this, &FHorizontalSlotExtension::CanShift, -1)
 		.OnClicked(this, &FHorizontalSlotExtension::HandleShift, -1);
 
-	TSharedRef<SButton> RightButton =
-		SNew(SButton)
+	TSharedRef<SButton> RightArrow = SNew(SButton)
 		.Text(LOCTEXT("RightArrow", "→"))
+		.ContentPadding(FMargin(2, 6))
+		.IsEnabled(this, &FHorizontalSlotExtension::CanShift, 1)
 		.OnClicked(this, &FHorizontalSlotExtension::HandleShift, 1);
 
-	Widgets.Add(LeftButton);
-	Widgets.Add(RightButton);
+	LeftArrow->SlatePrepass();
+	RightArrow->SlatePrepass();
+
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(LeftArrow, EExtensionLayoutLocation::CenterLeft, FVector2D(-LeftArrow->GetDesiredSize().X, LeftArrow->GetDesiredSize().Y * -0.5f))));
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(RightArrow, EExtensionLayoutLocation::CenterRight, FVector2D(0, RightArrow->GetDesiredSize().Y * -0.5f))));
+}
+
+bool FHorizontalSlotExtension::CanShift(int32 ShiftAmount) const
+{
+	//TODO UMG Provide feedback if shifting is possible.  Tricky with multiple items selected, if we ever support that.
+	return true;
 }
 
 FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)

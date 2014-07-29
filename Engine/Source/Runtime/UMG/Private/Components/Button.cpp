@@ -151,13 +151,16 @@ void UButton::PostLoad()
 	if ( GetChildrenCount() > 0 )
 	{
 		//TODO UMG Pre-Release Upgrade, now buttons have slots of their own.  Convert existing slot to new slot.
-		UButtonSlot* ButtonSlot = Cast<UButtonSlot>(GetContentSlot());
-		if ( ButtonSlot == NULL )
+		if ( UPanelSlot* PanelSlot = GetContentSlot() )
 		{
-			ButtonSlot = ConstructObject<UButtonSlot>(UButtonSlot::StaticClass(), this);
-			ButtonSlot->Content = GetContentSlot()->Content;
-			ButtonSlot->Content->Slot = ButtonSlot;
-			Slots[0] = ButtonSlot;
+			UButtonSlot* ButtonSlot = Cast<UButtonSlot>(PanelSlot);
+			if ( ButtonSlot == NULL )
+			{
+				ButtonSlot = ConstructObject<UButtonSlot>(UButtonSlot::StaticClass(), this);
+				ButtonSlot->Content = GetContentSlot()->Content;
+				ButtonSlot->Content->Slot = ButtonSlot;
+				Slots[0] = ButtonSlot;
+			}
 		}
 	}
 }

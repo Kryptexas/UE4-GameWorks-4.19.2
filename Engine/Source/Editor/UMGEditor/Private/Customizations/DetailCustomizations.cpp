@@ -91,6 +91,7 @@ void FBlueprintWidgetCustomization::CreateDelegateCustomization( IDetailLayoutBu
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
 				DelegateButton
 			]
@@ -161,6 +162,7 @@ void FBlueprintWidgetCustomization::CreateEventCustomization( IDetailLayoutBuild
 
 			+ SHorizontalBox::Slot()
 			.FillWidth(1)
+			.VAlign(VAlign_Center)
 			[
 				DelegateButton
 			]
