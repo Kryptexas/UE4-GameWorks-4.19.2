@@ -579,6 +579,8 @@ public:
 
 	virtual void Render(FRHICommandListImmediate& RHICmdList) override;
 
+	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
+
 protected:
 
 	void InitViews(FRHICommandListImmediate& RHICmdList);

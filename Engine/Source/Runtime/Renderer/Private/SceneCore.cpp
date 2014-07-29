@@ -277,52 +277,55 @@ void FStaticMesh::UnlinkDrawList(FStaticMesh::FDrawListElementLink* Link)
 void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene)
 {
 	const auto FeatureLevel = Scene->GetFeatureLevel();
-	if (FeatureLevel >= ERHIFeatureLevel::SM3)
+
+	if (CastShadow && FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
-		if (CastShadow)
+		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	}
+
+	if (!bShadowOnly && PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass())
+	{
+		const bool bRequiresHitProxies = Scene->RequiresHitProxies();
+		if (bRequiresHitProxies && PrimitiveSceneInfo->Proxy->IsSelectable())
 		{
-			FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
-		}
-
-		if (!bShadowOnly && PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass())
-		{
-			// not all platforms need this
-			const bool bRequiresHitProxies = Scene->RequiresHitProxies();
-			if ( bRequiresHitProxies && PrimitiveSceneInfo->Proxy->IsSelectable() )
-			{
-				// Add the static mesh to the DPG's hit proxy draw list.
-				FHitProxyDrawingPolicyFactory::AddStaticMesh(Scene,this);
-			}
-
-			if (!IsTranslucent(FeatureLevel))
-			{
-				extern TAutoConsoleVariable<int32> CVarEarlyZPass;
-				int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();
-
-				extern int32 GEarlyZPassMovable;
-
-				// Render non-masked materials in the depth only pass
-				if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
-					&& (!IsMasked(FeatureLevel) || EarlyZPass == 2)
-					&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable))
-				{
-					FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
-				}
-
-				// Add the static mesh to the DPG's base pass draw list.
-				FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
-
-				FVelocityDrawingPolicyFactory::AddStaticMesh(Scene, this);
-			}
+			// Add the static mesh to the DPG's hit proxy draw list.
+			FHitProxyDrawingPolicyFactory::AddStaticMesh(Scene, this);
 		}
 	}
 	else
 	{
-		if (!bShadowOnly && !IsTranslucent(FeatureLevel))
+		return;
+	}
+
+	if (IsTranslucent(FeatureLevel))
+	{
+		return;
+	}
+
+	if (FeatureLevel >= ERHIFeatureLevel::SM3)
+	{
+		extern TAutoConsoleVariable<int32> CVarEarlyZPass;
+		int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();
+
+		extern int32 GEarlyZPassMovable;
+
+		// Render non-masked materials in the depth only pass
+		if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
+			&& (!IsMasked(FeatureLevel) || EarlyZPass == 2)
+			&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable))
 		{
-			// Add the static mesh to the DPG's base pass draw list.
-			FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
+			FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
 		}
+
+		// Add the static mesh to the DPG's base pass draw list.
+		FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
+
+		FVelocityDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	}
+	else
+	{
+		// Add the static mesh to the DPG's base pass draw list.
+		FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(RHICmdList, Scene, this);
 	}
 }
 
