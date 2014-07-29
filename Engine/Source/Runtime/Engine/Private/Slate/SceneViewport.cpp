@@ -309,12 +309,8 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 	// Start a new reply state
 	// Prevent throttling when interacting with the viewport so we can move around in it
 	CurrentReplyState = FReply::Handled().PreventThrottling();
-	
-	if (!IsPlayInEditorViewport() || HasMouseCapture())
-	{
-		KeyStateMap.Add(InMouseEvent.GetEffectingButton(), true);
-	}
 
+	KeyStateMap.Add(InMouseEvent.GetEffectingButton(), true);
 	UpdateModifierKeys( InMouseEvent );
 	UpdateCachedMousePos( InGeometry, InMouseEvent );
 	UpdateCachedGeometry(InGeometry);
