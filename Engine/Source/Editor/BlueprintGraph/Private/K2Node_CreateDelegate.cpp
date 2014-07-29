@@ -286,6 +286,13 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 		if(UEdGraphPin* ResultPin = Pin->LinkedTo[0])
 		{
 			ensure(K2Schema->PC_Object == ResultPin->PinType.PinCategory);
+			if (K2Schema->PN_Self == ResultPin->PinType.PinSubCategory)
+			{
+				if (UBlueprint* ScopeClassBlueprint = GetBlueprint())
+				{
+					return bDontUseSkeletalClassForSelf ? ScopeClassBlueprint->GeneratedClass : ScopeClassBlueprint->SkeletonGeneratedClass;
+				}
+			}
 			if(UClass* TrueScopeClass = Cast<UClass>(ResultPin->PinType.PinSubCategoryObject.Get()))
 			{
 				if(UBlueprint* ScopeClassBlueprint = Cast<UBlueprint>(TrueScopeClass->ClassGeneratedBy))
@@ -296,13 +303,6 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 					}
 				}
 				return TrueScopeClass;
-			}
-			if (K2Schema->PN_Self == ResultPin->PinType.PinSubCategory)
-			{
-				if (UBlueprint* ScopeClassBlueprint = GetBlueprint())
-				{
-					return bDontUseSkeletalClassForSelf ? ScopeClassBlueprint->GeneratedClass : ScopeClassBlueprint->SkeletonGeneratedClass;
-				}
 			}
 		}
 	}
