@@ -16,7 +16,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SScrollBar )
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("Scrollbar") )
-		, _OnUserScrolled()
+        , _OnUserScrolled()
 		, _AlwaysShowScrollbar(false)
 		, _Orientation( Orient_Vertical )
 		, _Thickness( FVector2D(12.0f, 12.0f) )
