@@ -144,7 +144,7 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 //----------------------------------------------------------------------//
 void FBlackboardKeySelector::CacheSelectedKey(class UBlackboardData* BlackboardAsset)
 {
-	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey))
+	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyName == NAME_None))
 	{
 		if (SelectedKeyName == NAME_None)
 		{
