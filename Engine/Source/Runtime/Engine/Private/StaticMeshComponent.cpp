@@ -518,7 +518,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				// Enumerate the textures used by the material.
 				TArray<UTexture*> Textures;
 
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 				// Add each texture to the output with the appropriate parameters.
 				// TODO: Take into account which UVIndex is being used.

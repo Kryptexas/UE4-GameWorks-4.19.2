@@ -2503,7 +2503,7 @@ void FEdModeMeshPaint::ClearStaticMeshTextureOverrides(UStaticMeshComponent* InS
 		if( Material != NULL )
 		{
 			TArray<UTexture*> UsedTextures;
-			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false );
+			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
 
 			for( int32 UsedIndex = 0; UsedIndex < UsedTextures.Num(); UsedIndex++ )
 			{
@@ -2553,7 +2553,7 @@ void FEdModeMeshPaint::SetAllTextureOverrides(UStaticMeshComponent* InStaticMesh
 		if( Material != NULL )
 		{
 			TArray<UTexture*> UsedTextures;
-			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false );
+			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
 
 			for( int32 UsedIndex = 0; UsedIndex < UsedTextures.Num(); UsedIndex++ )
 			{
@@ -2832,7 +2832,7 @@ void FEdModeMeshPaint::SaveSettingsForActor( AActor* InActor )
 				}
 
 				TArray<UTexture*> UsedTextures;
-				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false );
+				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
 
 				for( int32 TexIndex = 0; TexIndex < UsedTextures.Num(); TexIndex++ )
 				{
@@ -2882,7 +2882,7 @@ void FEdModeMeshPaint::UpdateSettingsForStaticMeshComponent( UStaticMeshComponen
 			}
 
 			TArray<UTexture*> UsedTextures;
-			UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false );
+			UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 			for( int32 TexIndex = 0; TexIndex < UsedTextures.Num(); TexIndex++ )
 			{

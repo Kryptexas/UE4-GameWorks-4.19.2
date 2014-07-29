@@ -673,7 +673,7 @@ void UMaterialInstance::GetTextureExpressionValues(const FMaterialResource* Mate
 	}
 }
 
-void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const
+void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const
 {
 	OutTextures.Empty();
 
@@ -698,12 +698,17 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 		{
 			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
-				const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][GRHIFeatureLevel];
-
-				//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
-				if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 				{
-					GetTextureExpressionValues(CurrentResource, OutTextures);
+					const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
+					if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
+						continue;
+
+					//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
+					if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+					{
+						GetTextureExpressionValues(CurrentResource, OutTextures);
+					}
 				}
 			}
 		}
@@ -714,13 +719,13 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 			if (Material)
 			{
-				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
+				const FMaterialResource* MaterialResource = Material->GetMaterialResource(FeatureLevel, QualityLevel);
 				GetTextureExpressionValues(MaterialResource, OutTextures);
 			}
 			else
 			{
 				// If the material instance has no material, use the default material.
-				UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels);
+				UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels, FeatureLevel, bAllFeatureLevels);
 			}
 		}
 	}
@@ -2025,7 +2030,7 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 #if WITH_EDITORONLY_DATA
 	TArray<UTexture*> UsedTextures;
 	
-	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true);
+	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
 	if (UsedTextures.Num() != ReferencedTextureGuids.Num())
 	{
 		bTexturesHaveChanged = true;

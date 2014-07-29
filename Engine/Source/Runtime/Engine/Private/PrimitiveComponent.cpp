@@ -167,7 +167,7 @@ void UPrimitiveComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMater
 		if( UsedMaterials[ MatIndex ] )
 		{
 			UsedTextures.Reset();
-			UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, QualityLevel, false );
+			UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, QualityLevel, false, GRHIFeatureLevel, false );
 
 			for( int32 TextureIndex=0; TextureIndex<UsedTextures.Num(); TextureIndex++ )
 			{

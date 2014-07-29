@@ -89,7 +89,7 @@ void UMaterialInterface::SetForceMipLevelsToBeResident( bool OverrideForceMiplev
 {
 	TArray<UTexture*> Textures;
 	
-	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 	for ( int32 TextureIndex=0; TextureIndex < Textures.Num(); ++TextureIndex )
 	{
 		UTexture2D* Texture = Cast<UTexture2D>(Textures[TextureIndex]);
@@ -217,7 +217,7 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	}
 
 	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
 	for (int32 i = 0; i < Textures.Num(); i++)
 	{
 		if (Textures[i] == CheckTexture)

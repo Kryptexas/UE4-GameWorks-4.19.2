@@ -45,6 +45,7 @@ public class PropertyEditor : ModuleRules
 				"SlateCore",
 				"EditorWidgets",
 				"Documentation",
+                "RHI",
 			}
 		);
 

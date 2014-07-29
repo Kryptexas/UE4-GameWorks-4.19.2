@@ -218,7 +218,7 @@ public:
 	virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const override;
 	virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const override;
 	virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const override;
-	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const override;
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
 	virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) override;
 	virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;

@@ -689,7 +689,7 @@ private:
 			UMaterialInterface* Material = MaterialItem.Material.Get();
 
 			TArray< UTexture* > Textures;
-			Material->GetUsedTextures( Textures, EMaterialQualityLevel::Num, false );
+			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 			// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
 			for( int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex )
