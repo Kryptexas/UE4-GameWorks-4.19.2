@@ -860,6 +860,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			{
 				urlConnection.disconnect();
 			}
+
+			// Kick off a update to the native side achievements
+			AndroidThunkJava_QueryAchievements();
         }
         catch(Exception e)
         {
