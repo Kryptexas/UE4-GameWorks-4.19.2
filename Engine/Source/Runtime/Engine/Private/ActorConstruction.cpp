@@ -382,7 +382,13 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 #if WITH_EDITOR
 				BillboardComponent->Sprite = (UTexture2D*)(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorResources/BadBlueprintSprite.BadBlueprintSprite"), NULL, LOAD_None, NULL));
 #endif
-				BillboardComponent->SetRelativeTransform(Transform);
+				FTransform RelativeTransform = Transform;
+				if(RelativeTransform.GetScale3D().IsZero())
+				{
+					RelativeTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+				}
+
+				BillboardComponent->SetRelativeTransform(RelativeTransform);
 
 				SetRootComponent(BillboardComponent);
 				FinishAndRegisterComponent(BillboardComponent);

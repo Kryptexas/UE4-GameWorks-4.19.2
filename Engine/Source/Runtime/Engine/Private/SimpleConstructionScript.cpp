@@ -164,17 +164,38 @@ void USimpleConstructionScript::PostLoad()
 	// way older, existing Blueprint actor instances won't start unexpectedly getting scaled.
 	if(GetLinkerUE4Version() < VER_UE4_BLUEPRINT_USE_SCS_ROOTCOMPONENT_SCALE)
 	{
-		for(NodeIndex = 0; NodeIndex < RootNodes.Num(); ++NodeIndex)
+		// Get the BlueprintGeneratedClass that owns the SCS
+		UClass* BPGeneratedClass = GetOwnerClass();
+		if(BPGeneratedClass != nullptr)
 		{
-			USCS_Node* Node = RootNodes[NodeIndex];
-			if(Node->ParentComponentOrVariableName == NAME_None)
+			// Get the Blueprint class default object
+			AActor* CDO = Cast<AActor>(BPGeneratedClass->GetDefaultObject(false));
+			if(CDO != NULL)
 			{
-				USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(Node->ComponentTemplate);
-				if(SceneComponentTemplate != nullptr
-					&& SceneComponentTemplate->RelativeScale3D != FVector(1.0f, 1.0f, 1.0f))
+				// Check for a native root component
+				USceneComponent* NativeRootComponent = CDO->GetRootComponent();
+				if(NativeRootComponent == nullptr)
 				{
-					UE_LOG(LogBlueprint, Warning, TEXT("Found custom SceneComponent scale for %s (%s) saved prior to being usable; reset to default."), *SceneComponentTemplate->GetName(), *SceneComponentTemplate->RelativeScale3D.ToString());
-					SceneComponentTemplate->RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
+					// If no native root component exists, find the first non-native, non-parented SCS node with a
+					// scene component template. This will be designated as the root component at construction time.
+					for(NodeIndex = 0; NodeIndex < RootNodes.Num(); ++NodeIndex)
+					{
+						USCS_Node* Node = RootNodes[NodeIndex];
+						if(Node->ParentComponentOrVariableName == NAME_None)
+						{
+							// Note that we have to check for nullptr here, because it may be an ActorComponent type
+							USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(Node->ComponentTemplate);
+							if(SceneComponentTemplate != nullptr
+								&& SceneComponentTemplate->RelativeScale3D != FVector(1.0f, 1.0f, 1.0f))
+							{
+								UE_LOG(LogBlueprint, Warning, TEXT("%s: Found non-native root component custom scale for %s (%s) saved prior to being usable; reverting to default scale."), *BPGeneratedClass->GetName(), *Node->GetVariableName().ToString(), *SceneComponentTemplate->RelativeScale3D.ToString());
+								SceneComponentTemplate->RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
+							}
+
+							// Done - no need to fix up any other nodes.
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -318,10 +339,16 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 	}
 	else if(Actor->GetRootComponent() == NULL) // Must have a root component at the end of SCS, so if we don't have one already (from base class), create a SceneComponent now
 	{
+		FTransform SpawnTransform = RootTransform;
+		if(SpawnTransform.GetScale3D().IsZero())
+		{
+			SpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+		}
+
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
 		SceneComp->bCreatedByConstructionScript = true;
-		SceneComp->SetWorldTransform(RootTransform);
+		SceneComp->SetWorldTransform(SpawnTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();
 	}

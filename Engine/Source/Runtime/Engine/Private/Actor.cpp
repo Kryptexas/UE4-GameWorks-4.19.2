@@ -2254,7 +2254,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector::ZeroVector;
 		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation, SpawnScale), NULL );
 		PostActorConstruction();
 	}
