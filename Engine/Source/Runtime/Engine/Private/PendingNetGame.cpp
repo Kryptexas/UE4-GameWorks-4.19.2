@@ -188,7 +188,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			}
 			
 			// Send the player unique Id at login
-			FUniqueNetIdRepl UniqueIdRepl(LocalPlayer->GetUniqueNetId());
+			FUniqueNetIdRepl UniqueIdRepl(LocalPlayer->GetPreferredUniqueNetId());
 
 			Connection->ClientResponse = TEXT("0");
 			FString URLString(PartialURL.ToString());

@@ -137,8 +137,8 @@ void ULocalPlayer::PostInitProperties()
 
 void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InControllerID)
 {
-	ViewportClient = InViewportClient;
-	ControllerId = InControllerID;
+	ViewportClient		= InViewportClient;
+	ControllerId		= InControllerID;
 }
 
 void ULocalPlayer::InitOnlineSession()
@@ -201,7 +201,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		}
 
 		// Get player unique id
-		TSharedPtr<FUniqueNetId> UniqueId = GetUniqueNetId();
+		TSharedPtr<FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
 
 		PlayerController = InWorld->SpawnPlayActor(this, ROLE_SimulatedProxy, PlayerURL, UniqueId, OutError, GEngine->GetGamePlayers(InWorld).Find(this));
 	}
@@ -273,7 +273,7 @@ void ULocalPlayer::SendSplitJoin()
 			}
 
 			// Send the player unique Id at login
-			FUniqueNetIdRepl UniqueIdRepl(GetUniqueNetId());
+			FUniqueNetIdRepl UniqueIdRepl(GetPreferredUniqueNetId());
 
 			FString URLString = URL.ToString();
 			FNetControlMessage<NMT_JoinSplit>::Send(NetDriver->ServerConnection, URLString, UniqueIdRepl);
@@ -1556,7 +1556,7 @@ FString ULocalPlayer::GetNickname() const
 	return TEXT("");
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
 {
 	UWorld* World = GetWorld();
 	if (World != NULL)
@@ -1573,6 +1573,51 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 	}
 
 	return NULL;
+}
+
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
+{
+	return CachedUniqueNetId;
+}
+
+void ULocalPlayer::SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId )
+{
+	CachedUniqueNetId = NewUniqueNetId;
+}
+
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
+{
+	// Prefer the cached unique net id (only if it's valid)
+	// This is for backwards compatibility for games that don't yet cache the unique id properly
+	if (GetCachedUniqueNetId().IsValid() && GetCachedUniqueNetId()->IsValid())
+	{
+		return GetCachedUniqueNetId();
+	}
+
+	// If the cached unique net id is not valid, then get the one paired with the controller
+	return GetUniqueNetIdFromCachedControllerId();
+}
+
+bool ULocalPlayer::IsCachedUniqueNetIdPairedWithControllerId() const
+{
+	// Get the UniqueNetId that is paired with the controller
+	TSharedPtr<FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
+
+	if (CachedUniqueNetId.IsValid() != UniqueIdFromController.IsValid())
+	{
+		// Definitely can't match if one is valid and not the other
+		return false;
+	}
+
+	if (!CachedUniqueNetId.IsValid())
+	{
+		// Both are invalid, technically they match
+		check(!UniqueIdFromController.IsValid());
+		return true;
+	}
+
+	// Both are valid, ask them if they match
+	return *CachedUniqueNetId == *UniqueIdFromController;
 }
 
 UWorld* ULocalPlayer::GetWorld() const

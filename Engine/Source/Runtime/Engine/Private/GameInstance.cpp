@@ -529,7 +529,7 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNe
 			continue;
 		}
 
-		TSharedPtr<FUniqueNetId> OtherUniqueNetId = Player->GetUniqueNetId();
+		TSharedPtr<FUniqueNetId> OtherUniqueNetId = Player->GetPreferredUniqueNetId();
 
 		if (!OtherUniqueNetId.IsValid())
 		{
