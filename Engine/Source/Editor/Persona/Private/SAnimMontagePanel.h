@@ -78,15 +78,15 @@ public:
 	void ShowBranchPointInDetailsView(int32 BranchPointIndex);
 	void ShowSectionInDetailsView(int32 SectionIndex);
 
-	void OnSlotNodeNameChangeCommit( const FText& NewText, ETextCommit::Type CommitInfo, int32 SlodeNodeIndex );
+	void OnSlotNodeNameChangeCommit(const FText& NewText, ETextCommit::Type CommitInfo, int32 SlotNodeIndex);
 
 	void ClearSelected();
 
 	// helper method to check whether the slot name is empty or not. If empty, shows an error message to provide a valid name
-	void CheckSlotName(const FText& SlotName) const;
+	void CheckSlotName(const FText& SlotName, int32 SlotNodeIndex) const;
 
 	// check the slot name whether valid or not while the user is typing
-	void OnSlotNameChanged(const FText& NewText);
+	void OnSlotNameChanged(const FText& NewText, int32 SlotNodeIndex);
 
 	// get slot name from a montage editor and check the slot name whether valid or not
 	FText GetMontageSlotName(int32 SlotIndex) const;
@@ -105,7 +105,8 @@ private:
 
 	STrackNodeSelectionSet SelectionSet;
 
-	TSharedPtr<SEditableTextBox> SlotNameTextBox;
+	// text box array for multiple slot names
+	TArray<TSharedPtr<SEditableTextBox>> SlotNameTextBoxes;
 	
 	void CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo);
 	void CreateNewSection(const FText& NewSectionName, ETextCommit::Type CommitInfo, float StartTime);
