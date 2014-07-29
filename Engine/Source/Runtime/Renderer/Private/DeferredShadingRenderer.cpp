@@ -643,6 +643,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	bool bRequiresRHIClear = true;
 	bool bRequiresFarZQuadClear = false;
 
+	static const auto GBufferCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
+	bool bGBuffer = GBufferCVar ? (GBufferCVar->GetValueOnRenderThread() != 0) : true;
+	if(ViewFamily.EngineShowFlags.ForceGBuffer)
+	{
+		bGBuffer = true;
+	}
+
 	if (ClearMethodCVar)
 	{
 		switch (ClearMethodCVar->GetValueOnRenderThread())
@@ -812,6 +819,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (ViewFamily.EngineShowFlags.Lighting
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewFamily.EngineShowFlags.DeferredLighting
+		&& bGBuffer
 		)
 	{
 		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));

@@ -339,6 +339,14 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	}
 
 	{
+		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
+		if(ICVar->GetValueOnGameThread() == 0)
+		{
+			EngineShowFlags.DynamicShadows = 0;
+		}
+	}
+	
+	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RefractionQuality"));
 		if(ICVar->GetValueOnGameThread() <= 0)
 		{

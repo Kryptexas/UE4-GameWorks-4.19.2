@@ -1859,3 +1859,10 @@ static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
 	0,
 	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
 	ECVF_RenderThreadSafe);
+
+
+static TAutoConsoleVariable<int32> CVarGBuffer(
+	TEXT("r.GBuffer"),
+	1,
+	TEXT("0=Do not use GBuffer (fast minimal rendering path), 1=Use GBuffer [default]."),
+	ECVF_RenderThreadSafe);

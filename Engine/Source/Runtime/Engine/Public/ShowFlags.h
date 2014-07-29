@@ -210,6 +210,7 @@ struct FEngineShowFlags
 		SetSnap(false);
 		SetVisualizeDistanceFieldAO(false);
 		SetVisualizeSSR(false);
+		SetForceGBuffer(false);
 	}
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)
@@ -250,6 +251,8 @@ struct FEngineShowFlags
 		SetHMDDistortion(false);
 		SetStereoRendering(false);
 		SetDistanceFieldAO(false);
+
+		SetForceGBuffer(true);
 	}
 
 	// ---------------------------------------------------------

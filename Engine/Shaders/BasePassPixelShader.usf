@@ -496,7 +496,7 @@ void Main(
 #endif
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 	,out float4 OutGBufferA : SV_Target1 
 	,out float4 OutGBufferB : SV_Target2
 	,out float4 OutGBufferC : SV_Target3
@@ -704,7 +704,7 @@ void Main(
 
 	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
 
-	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 
 		FGBufferData GBuffer = (FGBufferData)0;
 
