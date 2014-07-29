@@ -183,6 +183,11 @@ public:
 		TokenMap.Empty();
 	}
 
+	FORCEINLINE int32 GetTokenMapSize() const
+	{
+		return TokenMap.Num();
+	}
+
 private:
 	/* Token map. */
 	TArray<FTokenInfo> TokenMap;

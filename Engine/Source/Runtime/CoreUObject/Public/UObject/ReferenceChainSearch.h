@@ -27,6 +27,8 @@ public:
 	/** Entry in the reference chain */
 	struct FReferenceChainLink
 	{
+		/** Index of ReferencedObj token in ReferencedBy->ReferenceTokenStream **/
+		int32 ReferencedObjectIndex;
 		/** Describes in which way an object is referenced */
 		EReferenceType::Type ReferenceType;
 		/** The object that is referencing */
@@ -40,10 +42,16 @@ public:
 		int32 ArrayIndex;
 
 		FReferenceChainLink()
-			:ReferenceType(EReferenceType::Invalid), ReferencedBy(NULL), ReferencedThrough(NULL), ArrayIndex(-1) {}
+			:ReferencedObjectIndex(INDEX_NONE), ReferenceType(EReferenceType::Invalid), ReferencedBy(NULL), ReferencedThrough(NULL), ArrayIndex(INDEX_NONE) {}
 
-		FReferenceChainLink(EReferenceType::Type RefType, UObject* InReferencedBy, void* InReferencedThrough, UObject* InReferencedObj, int32 InArrayIndex = -1)
-			:ReferenceType(RefType), ReferencedBy(InReferencedBy), ReferencedThrough(InReferencedThrough), ReferencedObj(InReferencedObj), ArrayIndex(InArrayIndex) {}
+		FReferenceChainLink(int32 InReferencedObjectIndex, EReferenceType::Type RefType, UObject* InReferencedBy, void* InReferencedThrough, UObject* InReferencedObj, int32 InArrayIndex = INDEX_NONE)
+			:ReferencedObjectIndex(InReferencedObjectIndex), ReferenceType(RefType), ReferencedBy(InReferencedBy), ReferencedThrough(InReferencedThrough), ReferencedObj(InReferencedObj), ArrayIndex(InArrayIndex)
+		{ }
+
+		FORCEINLINE FString GetReferencedByName() const
+		{
+			return ReferencedBy->GetClass()->DebugTokenMap.GetTokenInfo(ReferencedObjectIndex).Name.ToString();
+		}
 
 		/** Returns whether this link is a property reference or not */
 		FORCEINLINE bool IsProperty() const { return ReferenceType == EReferenceType::Property || ReferenceType == EReferenceType::ArrayProperty; }
@@ -73,6 +81,8 @@ public:
 		void* AROFuncPtr;
 		/** Referencing object being AROed*/
 		UObject* ReferencingObject;
+		/** Finds index of ReferencedObject in ReferencedBy.ReferenceTokenStream */
+		int32 FindReferencedObjectIndex(const UObject& ReferencedBy, const UObject& ReferencedObject);
 
 	public:
 
