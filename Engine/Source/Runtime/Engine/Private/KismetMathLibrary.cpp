@@ -689,9 +689,11 @@ FVector UKismetMathLibrary::RandomUnitVector()
 	return FMath::VRand();
 }
 
-FVector UKismetMathLibrary::RandomPointInBoundingBox(FBox BoundingBox)
+FVector UKismetMathLibrary::RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent)
 {
-	return FMath::RandPointInBox(BoundingBox);
+	const FVector BoxMin = Origin - BoxExtent;
+	const FVector BoxMax = Origin + BoxExtent;
+	return FMath::RandPointInBox(FBox(BoxMin, BoxMax));
 }
 
 FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
