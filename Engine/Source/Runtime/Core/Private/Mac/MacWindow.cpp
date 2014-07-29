@@ -284,13 +284,20 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 	}
 }
 
-// keyDown and keyUp are empty, but having them lets Cocoa know we handle the keys ourselves
 - (void)keyDown:(NSEvent *)Event
 {
+	if(self.bForwardEvents)
+	{
+		MacApplication->ProcessEvent( Event );
+	}
 }
 
 - (void)keyUp:(NSEvent *)Event
 {
+	if(self.bForwardEvents)
+	{
+		MacApplication->ProcessEvent( Event );
+	}
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification *)notification
