@@ -514,6 +514,10 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 
 		VisibilityLayer = ConstructorStatics.DataLayer.Get();
 		check(VisibilityLayer);
+#if WITH_EDITORONLY_DATA
+		// This layer should be no weight blending
+		VisibilityLayer->bNoWeightBlend = true;
+#endif
 		VisibilityLayer->AddToRoot();
 	}
 }
