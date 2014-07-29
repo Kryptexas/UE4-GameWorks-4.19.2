@@ -373,6 +373,7 @@ public:
 	virtual FText GetResetToDefaultLabel() const override;
 	virtual void MarkHiddenByCustomization() override;
 	virtual bool IsCustomized() const override;
+	virtual FString GeneratePathToProperty() const override;
 	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FString& NameOverride = TEXT(""), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const override;
 	virtual TSharedRef<SWidget> CreatePropertyValueWidget() const override;
 	virtual bool IsEditConst() const override;

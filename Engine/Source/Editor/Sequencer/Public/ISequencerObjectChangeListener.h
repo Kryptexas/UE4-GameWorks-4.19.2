@@ -7,8 +7,9 @@ class IPropertyHandle;
 struct FKeyPropertyParams
 {
 	const IPropertyHandle* PropertyHandle;
-	FName InnerStructPropertyName;
 	TArray<UObject*> ObjectsThatChanged;
+	FString PropertyPath;
+	FName InnerStructPropertyName;
 	bool bRequireAutoKey;
 };
 

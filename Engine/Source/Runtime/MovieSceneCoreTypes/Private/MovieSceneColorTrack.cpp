@@ -44,7 +44,7 @@ bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearCol
 
 	if( Section )
 	{
-		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position );
+		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
 	}
 
 	return Section != NULL;

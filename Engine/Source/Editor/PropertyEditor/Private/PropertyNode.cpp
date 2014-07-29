@@ -567,25 +567,33 @@ bool FPropertyNode::IsEditConst() const
 /**
  * Appends my path, including an array index (where appropriate)
  */
-void FPropertyNode::GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const
+bool FPropertyNode::GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent, bool bIgnoreCategories ) const
 {
-	if( ParentNodeWeakPtr.IsValid() )
+	bool bAddedAnything = false;
+	if( ParentNodeWeakPtr.IsValid() && StopParent != ParentNode )
 	{
-		ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex);
-		PathPlusIndex += TEXT(".");
+		bAddedAnything = ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex, StopParent, bIgnoreCategories);
+		if( bAddedAnything )
+		{
+			PathPlusIndex += TEXT(".");
+		}
 	}
 
 	if( Property.IsValid() )
 	{
+		bAddedAnything = true;
 		Property->AppendName(PathPlusIndex);
 	}
 
 	if ( bWithArrayIndex && (ArrayIndex != INDEX_NONE) )
 	{
+		bAddedAnything = true;
 		PathPlusIndex += TEXT("[");
 		PathPlusIndex.AppendInt(ArrayIndex);
 		PathPlusIndex += TEXT("]");
 	}
+
+	return bAddedAnything;
 }
 
 bool FPropertyNode::GetReadAddressUncached( FPropertyNode& InPropertyNode,

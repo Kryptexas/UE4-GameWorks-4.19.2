@@ -58,13 +58,13 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey<FVect
 	return AddKeyToSection(Time, FVector4(Key.Value.X, Key.Value.Y, 0.f, 0.f), 2, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
 }
 
-bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& OutVector ) const
+bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& InOutVector ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
-		OutVector = CastChecked<UMovieSceneVectorSection>( Section )->Eval( Position );
+		InOutVector = CastChecked<UMovieSceneVectorSection>( Section )->Eval( Position, InOutVector );
 	}
 
 	return Section != NULL;

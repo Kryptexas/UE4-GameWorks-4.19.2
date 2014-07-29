@@ -5,7 +5,6 @@
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.generated.h"
 
-
 /**
  * Base class for tracks that animate an object property
  */
@@ -30,11 +29,14 @@ public:
 	 *
 	 * @param InPropertyName	The property being animated
 	 */
-	virtual void SetPropertyName( FName InPropertyName );
+	virtual void SetPropertyNameAndPath( FName InPropertyName, const FString& InPropertyPath );
 
 	/** @return the name of the property being animataed by this track */
 	FName GetPropertyName() const { return PropertyName; }
 	
+	/** @return The property path for this track */
+	const FString& GetPropertyPath() const { return PropertyPath; }
+
 	/** Sets this track as showable permanently */
 	void SetAsShowable() {bSectionsAreShowable = true;}
 
@@ -52,6 +54,10 @@ protected:
 	/** Name of the property being changed */
 	UPROPERTY()
 	FName PropertyName;
+
+	/** Path to the property from the source object being changed */
+	UPROPERTY()
+	FString PropertyPath;
 
 	/** All the sections in this list */
 	UPROPERTY()

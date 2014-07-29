@@ -106,7 +106,7 @@ void FMarginTrackEditor::OnKeyMargin( float KeyTime, const FKeyPropertyParams* P
 			if( ensure( Track ) )
 			{
 				UMovieSceneMarginTrack* MarginTrack = CastChecked<UMovieSceneMarginTrack>(Track);
-				MarginTrack->SetPropertyName( PropertyName );
+				MarginTrack->SetPropertyNameAndPath( PropertyName, PropertyKeyParams->PropertyPath );
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = MarginTrack->AddKeyToSection( KeyTime, Key );

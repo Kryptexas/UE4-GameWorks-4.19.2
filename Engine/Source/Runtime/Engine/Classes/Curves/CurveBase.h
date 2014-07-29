@@ -352,7 +352,7 @@ public:
 	void Reset();
 
 	/** Evaluate this rich curve at the specified time */
-	float Eval(float InTime) const;
+	float Eval(float InTime, float DefaultValue = 0.0f) const;
 
 	/** Auto set tangents for any 'auto' keys in curve */
 	void AutoSetTangents(float Tension = 0.f);

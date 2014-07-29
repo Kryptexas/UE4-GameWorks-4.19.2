@@ -25,7 +25,7 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	virtual FMargin Eval( float Position ) const;
+	FMargin Eval( float Position, const FMargin& DefaultValue ) const;
 
 	/** 
 	 * Adds a key to the section
@@ -74,7 +74,6 @@ public:
 	 */
 	FRichCurve& GetBottomCurve() { return BottomCurve; }
 	const FRichCurve& GetBottomCurve() const { return BottomCurve; }
-
 private:
 	void AddKeyToNamedCurve( float Time, const FMarginKey& MarginKey );
 	/**

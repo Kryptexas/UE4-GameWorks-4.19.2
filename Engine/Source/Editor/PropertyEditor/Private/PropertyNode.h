@@ -359,8 +359,10 @@ public:
 	 * Gets the full name of this node
 	 * @param PathPlusIndex - return value with full path of node
 	 * @param bWithArrayIndex - If True, adds an array index (where appropriate)
+	 * @param StopParent	- Stop at this parent (if any). Does NOT include it in the path
+	 * @param bIgnoreCategories - Skip over categories
 	 */
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const;
+	virtual bool GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false ) const;
 
 	// The bArrayPropertiesCanDifferInSize flag is an override for array properties which want to display
 	// e.g. the "Clear" and "Empty" buttons, even though the array properties may differ in the number of elements.

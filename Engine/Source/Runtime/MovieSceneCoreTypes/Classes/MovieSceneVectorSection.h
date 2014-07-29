@@ -20,7 +20,7 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	FVector4 Eval( float Position ) const;
+	FVector4 Eval( float Position, const FVector4& DefaultVector ) const;
 
 	/** MovieSceneSection interface */
 	virtual void MoveSection( float DeltaPosition ) override;

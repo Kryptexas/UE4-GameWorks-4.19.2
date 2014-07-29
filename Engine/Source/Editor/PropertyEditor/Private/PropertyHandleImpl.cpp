@@ -1518,6 +1518,20 @@ bool FPropertyHandleBase::IsCustomized() const
 	return Implementation->GetPropertyNode()->HasNodeFlags( EPropertyNodeFlags::IsCustomized ) != 0;
 }
 
+FString FPropertyHandleBase::GeneratePathToProperty() const
+{
+	FString OutPath;
+	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
+	{
+		const bool bArrayIndex = true;
+		const bool bIgnoreCategories = true;
+		FPropertyNode* StopParent = Implementation->GetPropertyNode()->FindObjectItemParent();
+		Implementation->GetPropertyNode()->GetQualifiedName( OutPath, bArrayIndex, StopParent, bIgnoreCategories );
+	}
+
+	return OutPath;
+
+}
 
 TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
 {

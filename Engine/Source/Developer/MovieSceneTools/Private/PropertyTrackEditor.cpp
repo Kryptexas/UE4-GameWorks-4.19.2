@@ -134,7 +134,10 @@ private:
 					}
 				}
 
-				if (InsertKeyIndex == INDEX_NONE && bShouldAddKey) {InsertKeyIndex = TimesWithKeys.Num();}
+				if (InsertKeyIndex == INDEX_NONE && bShouldAddKey)
+				{
+					InsertKeyIndex = TimesWithKeys.Num();
+				}
 
 				if (bShouldAddKey)
 				{
@@ -146,7 +149,7 @@ private:
 		// @todo Sequencer Optimize - This another O(n^2) loop, since Eval is O(n)!
 		for (int32 i = 0; i < TimesWithKeys.Num(); ++i)
 		{
-			OutColorKeys.Add(TKeyValuePair<float, FLinearColor>(TimesWithKeys[i], Section->Eval(TimesWithKeys[i])));
+			OutColorKeys.Add( TKeyValuePair<float, FLinearColor>(TimesWithKeys[i], Section->Eval(TimesWithKeys[i], FLinearColor(0,0,0,0) ) ) );
 		}
 	}
 };
@@ -496,7 +499,7 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FKeyPropertyParams KeyP
 			{
 				TrackType* TypedTrack = CastChecked<TrackType>(Track);
 
-				TypedTrack->SetPropertyName( PropertyName );
+				TypedTrack->SetPropertyNameAndPath( PropertyName, KeyPropertyParams.PropertyPath );
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, Value );

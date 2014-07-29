@@ -74,8 +74,11 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 }
 
 
-FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName PropertyName )
+FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath )
+	: PropertyName( InPropertyName )
+	, PropertyPath( InPropertyPath )
 {
+	
 	static const FString Set(TEXT("Set"));
 
 	const FString FunctionString = Set + PropertyName.ToString();
@@ -83,26 +86,76 @@ FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName PropertyNa
 	FunctionName = FName(*FunctionString);
 }
 
-void FTrackInstancePropertyBindings::CallFunction( const TArray<UObject*>& InRuntimeObjects, void* FunctionParams )
+void FTrackInstancePropertyBindings::CallFunction( UObject* InRuntimeObject, void* FunctionParams )
 {
-	for( UObject* Object : InRuntimeObjects )
+	FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(InRuntimeObject);
+	if(PropAndFunction.Function)
 	{
-		UFunction* Function = RuntimeObjectToFunctionMap.FindRef(Object);
-		if(Function)
+		InRuntimeObject->ProcessEvent(PropAndFunction.Function, FunctionParams);
+	}
+}
+
+
+FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindPropertyRecursive( UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index ) const
+{
+	UProperty* Property = FindField<UProperty>(InStruct, *InPropertyNames[Index]);
+	
+	FTrackInstancePropertyBindings::FPropertyAddress NewAddress;
+
+	UStructProperty* StructProp = Cast<UStructProperty>( Property );
+	if( StructProp )
+	{
+		NewAddress.Property = StructProp;
+		NewAddress.Address = BasePointer;
+
+		if( InPropertyNames.IsValidIndex(Index+1) )
 		{
-			Object->ProcessEvent(Function, FunctionParams);
+			void* StructContainer = StructProp->ContainerPtrToValuePtr<void>(BasePointer);
+			return FindPropertyRecursive( Object, StructContainer, StructProp->Struct, InPropertyNames, Index+1 );
+		}
+		else
+		{
+			check( StructProp->GetName() == InPropertyNames[Index] );
 		}
 	}
+	else if( Property )
+	{
+		NewAddress.Property = Property;
+		NewAddress.Address = BasePointer;
+	}
+
+	return NewAddress;
+
+}
+
+FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindProperty( UObject* InObject, const FString& InPropertyPath ) const
+{
+	TArray<FString> PropertyNames;
+
+	InPropertyPath.ParseIntoArray(&PropertyNames, TEXT("."), true);
+
+	if( PropertyNames.Num() > 0 )
+	{
+		return FindPropertyRecursive( InObject, (void*)InObject, InObject->GetClass(), PropertyNames, 0 );
+	}
+	else
+	{
+		return FTrackInstancePropertyBindings::FPropertyAddress();
+	}
+
 }
 
 void FTrackInstancePropertyBindings::UpdateBindings( const TArray<UObject*>& InRuntimeObjects )
 {
 	for(UObject* Object : InRuntimeObjects)
 	{
-		UFunction* Function = Object->FindFunction(FunctionName);
-		if(Function)
+		FPropertyAndFunction PropAndFunction;
+
+		PropAndFunction.Function = Object->FindFunction(FunctionName);
+		if(PropAndFunction.Function)
 		{
-			RuntimeObjectToFunctionMap.Add(Object, Function);
+			PropAndFunction.PropertyAddress = FindProperty( Object, PropertyPath );
+			RuntimeObjectToFunctionMap.Add(Object, PropAndFunction);
 		}
 		else
 		{
