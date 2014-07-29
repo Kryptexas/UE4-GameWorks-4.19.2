@@ -165,7 +165,7 @@ void UBlueprintCore::GenerateDeterministicGuid()
 UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 #if WITH_EDITORONLY_DATA
-	, bCachedDependenciesUpTpDate(false)
+	, bCachedDependenciesUpToDate(false)
 #endif
 #if WITH_EDITOR
 	, bRunConstructionScriptOnDrag(true)
@@ -1070,7 +1070,7 @@ void UBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 bool UBlueprint::Modify(bool bAlwaysMarkDirty)
 {
-	bCachedDependenciesUpTpDate = false;
+	bCachedDependenciesUpToDate = false;
 	return Super::Modify(bAlwaysMarkDirty);
 }
 

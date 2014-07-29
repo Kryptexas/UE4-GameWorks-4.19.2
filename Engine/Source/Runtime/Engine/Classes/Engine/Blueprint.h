@@ -413,7 +413,7 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
-	bool bCachedDependenciesUpTpDate;
+	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
 
 	bool IsUpToDate() const

@@ -1484,7 +1484,7 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 // Blueprint has materially changed.  Recompile the skeleton, notify observers, and mark the package as dirty.
 void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint)
 {
-	Blueprint->bCachedDependenciesUpTpDate = false;
+	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated && !Blueprint->bBeingCompiled)
 	{
 		{
@@ -1511,7 +1511,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 // Blueprint has changed in some manner that invalidates the compiled data (link made/broken, default value changed, etc...)
 void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 {
-	Blueprint->bCachedDependenciesUpTpDate = false;
+	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated)
 	{
 		Blueprint->Status = BS_Dirty;
@@ -2123,10 +2123,10 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 		UBlueprint* TestBP = (UBlueprint*) *ObjIt;
 		if (TestBP && !TestBP->HasAnyFlags(RF_PendingKill))
 		{
-			if (!TestBP->bCachedDependenciesUpTpDate)
+			if (!TestBP->bCachedDependenciesUpToDate)
 			{
 				GatherDependencies(TestBP, TestBP->CachedDependencies);
-				TestBP->bCachedDependenciesUpTpDate = true;
+				TestBP->bCachedDependenciesUpToDate = true;
 			}
 
 			if (TestBP->CachedDependencies.Contains(Blueprint))
