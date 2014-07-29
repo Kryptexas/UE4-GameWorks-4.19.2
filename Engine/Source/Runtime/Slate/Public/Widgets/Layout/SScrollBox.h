@@ -40,8 +40,8 @@ public:
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBoxStyle>("ScrollBox") )
 		, _ScrollBarStyle( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("ScrollBar") )
 		, _ExternalScrollbar()
-		, _OnUserScrolled()
 		, _Orientation(Orient_Vertical)
+		, _OnUserScrolled()
 		{}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
