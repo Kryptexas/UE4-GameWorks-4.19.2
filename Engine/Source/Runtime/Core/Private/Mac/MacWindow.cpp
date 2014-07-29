@@ -448,7 +448,7 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-	if(self.bForwardEvents)
+	if(self.bForwardEvents && MacApplication)
 	{
 		MacApplication->OnWindowDidClose( self );
 	}
