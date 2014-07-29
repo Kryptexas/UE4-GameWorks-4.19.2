@@ -184,7 +184,7 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(DuplicateTransient)
 	uint8 NetPlayerIndex;
 
-    /** List of muted players in various categories */
+	/** List of muted players in various categories */
 	FPlayerMuteList MuteList;
 
 	/** this is set on the OLD PlayerController when performing a swap over a network connection
@@ -195,7 +195,7 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(DuplicateTransient)
 	class UNetConnection* PendingSwapConnection;
 
-    /** The net connection this controller is communicating on, NULL for local players on server */
+	/** The net connection this controller is communicating on, NULL for local players on server */
 	UPROPERTY(DuplicateTransient)
 	class UNetConnection* NetConnection;
 
@@ -381,9 +381,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
 	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
-	/** Convert a World Space 3D position into a 2D Screen Space position. **/
-	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertWorldLocationToScreenLocation"))
-	void ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const;
+	/**
+	 * Convert a World Space 3D position into a 2D Screen Space position.
+	 * @return true if the world coordinate was successfully projected to the screen.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = ( FriendlyName = "ConvertWorldLocationToScreenLocation" ))
+	bool ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const;
 	
 	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
@@ -436,22 +439,22 @@ public:
 	 */
 	virtual void SeamlessTravelFrom(class APlayerController* OldPC);
 
-   	/** 
+	/** 
 	 * Tell the client to enable or disable voice chat (not muting)
-     * @param bEnable enable or disable voice chat
+	 * @param bEnable enable or disable voice chat
 	 */
 	UFUNCTION(client, reliable)
 	virtual void ClientEnableNetworkVoice(bool bEnable);
 
-   	/** Enable voice chat transmission	 */
+	/** Enable voice chat transmission	 */
 	void StartTalking();
 
-   	/** Disable voice chat transmission	 */
+	/** Disable voice chat transmission	 */
 	void StopTalking();
 
-   	/** 
+	/** 
 	 * Toggle voice chat on and off
-     * @param bSpeaking enable or disable voice chat
+	 * @param bSpeaking enable or disable voice chat
 	 */
 	UFUNCTION(exec)
 	virtual void ToggleSpeaking(bool bSpeaking);

@@ -80,7 +80,7 @@ UPlayer* APlayerController::GetNetOwningPlayer()
 
 bool APlayerController::HasNetOwner() const
 {
-    // Player controllers are their own net owners
+	// Player controllers are their own net owners
 	return true;
 }
 
@@ -1448,11 +1448,11 @@ void APlayerController::ClientSetCameraFade_Implementation(bool bEnableFading, F
 			PlayerCameraManager->FadeTimeRemaining = FadeTime;
 			PlayerCameraManager->bFadeAudio = bFadeAudio;
 		}
- 		else
- 		{
- 			// Make sure FadeAmount finishes at the correct value
- 			PlayerCameraManager->FadeAmount = PlayerCameraManager->FadeAlpha.Y;
- 		}
+		else
+		{
+			// Make sure FadeAmount finishes at the correct value
+			PlayerCameraManager->FadeAmount = PlayerCameraManager->FadeAlpha.Y;
+		}
 	}
 }
 
@@ -1841,7 +1841,7 @@ void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 }
 
 
-void APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
@@ -1860,9 +1860,11 @@ void APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVec
 
 		if (SceneView) 
 		{
-			SceneView->WorldToPixel(WorldLocation, ScreenLocation);
+			return SceneView->WorldToPixel(WorldLocation, ScreenLocation);
 		}
-	} 
+	}
+
+	return false;
 }
 
 
