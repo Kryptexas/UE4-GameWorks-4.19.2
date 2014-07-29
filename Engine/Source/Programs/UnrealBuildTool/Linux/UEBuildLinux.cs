@@ -66,7 +66,7 @@ namespace UnrealBuildTool
 
         protected override String GetRequiredScriptVersionString()
         {
-            return "2.0";
+            return "3.0";
         }
 
         protected override bool PreferAutoSDK()

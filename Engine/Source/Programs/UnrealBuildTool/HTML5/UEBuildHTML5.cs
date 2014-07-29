@@ -53,7 +53,7 @@ namespace UnrealBuildTool
 
 		protected override String GetRequiredScriptVersionString()
 		{
-			return "1.0";
+			return "3.0";
 		}
 		
 		// The current architecture - affects everything about how UBT operates on HTML5
