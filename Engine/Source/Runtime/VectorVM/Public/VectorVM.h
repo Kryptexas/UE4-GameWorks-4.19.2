@@ -91,6 +91,8 @@ namespace VectorVM
 			random,
 			length,
 			lengthi,
+			sin4, 
+			sin4i,
 			NumOpcodes
 		};
 	} // namespace EOp
