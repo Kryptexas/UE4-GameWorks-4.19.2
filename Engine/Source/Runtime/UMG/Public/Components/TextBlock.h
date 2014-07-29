@@ -85,6 +85,10 @@ public:
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetText(FText InText);
+
 	// UWidget interface
 	void SyncronizeProperties() override;
 	// End of UWidget interface

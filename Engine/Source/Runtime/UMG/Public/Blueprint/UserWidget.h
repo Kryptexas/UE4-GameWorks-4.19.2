@@ -110,11 +110,11 @@ public:
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void Show();
+	void AddToViewport(bool bAbsoluteLayout = false, bool bModal = false, bool bShowCursor = false);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void Hide();
+	void RemoveFromViewport();
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	bool GetIsVisible();
@@ -237,7 +237,7 @@ public:
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeFullScreenWidget();
+	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
@@ -262,31 +262,28 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnVisibilityChangedEvent OnVisibilityChanged;
 
-	/** Controls whether the cursor is automatically visible when this widget is visible. */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
-	uint32 bShowCursorWhenVisible : 1;
-
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
-	uint32 bModal : 1;
-
-	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	bool bAbsoluteLayout;
-
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=( EditCondition="!bAbsoluteLayout" ))
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=( EditCondition="!bAbsoluteLayout" ))
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateChildSize Size;
 
-	/** Position. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( EditCondition="bAbsoluteLayout" ))
-	FVector2D AbsolutePosition;
+	/** The position on the screen to place the UI. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenPosition;
 
-	/** Size. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( EditCondition="bAbsoluteLayout" ))
-	FVector2D AbsoluteSize;
+	/** The size on the screen the UI should be. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenSize;
+
+	/** The normalized UI alignment on the screen, 0..1.  Think of this as the pivot point. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenAlignment;
+
+	/** The Z-Order when the UI is fullscreen. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	int32 FullScreenZOrder;
 
 	/**
 	* Horizontal pivot position
@@ -333,6 +330,10 @@ public:
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+
+	FMargin GetFullScreenOffset() const;
+	FVector2D GetFullScreenAlignment() const;
+	int32 GetFullScreenZOrder() const;
 
 private:
 	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;

@@ -49,14 +49,9 @@ class SViewportWidgetHost : public SCompoundWidget
 			];
 	}
 
-	//virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override
-	//{
-	//	return false;
-	//}
-
 	virtual bool SupportsKeyboardFocus() const override
 	{
-		return true;
+		return bModal ? true : false;
 	}
 
 	FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
@@ -85,46 +80,6 @@ class SViewportWidgetHost : public SCompoundWidget
 		}
 	}
 
-	//FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
-	//{
-	//	return FReply::Handled();
-	//}
-
-	//FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
-	//{
-	//	return FReply::Handled();
-	//}
-
-	//FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	//{
-	//	if ( bModal )
-	//	{
-	//		return FReply::Handled();
-	//	}
-
-	//	return FReply::Unhandled();
-	//}
-
-	//FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	//{
-	//	if ( bModal )
-	//	{
-	//		return FReply::Handled();
-	//	}
-
-	//	return FReply::Unhandled();
-	//}
-
-	//FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	//{
-	//	if ( bModal )
-	//	{
-	//		return FReply::Handled();
-	//	}
-
-	//	return FReply::Unhandled();
-	//}
-
 protected:
 	bool bModal;
 };
@@ -136,12 +91,6 @@ protected:
 UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	/*PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bTickEvenWhenPaused = true;*/
-	bShowCursorWhenVisible = false;
-	bAbsoluteLayout = false;
-	bModal = false;
-	AbsoluteSize = FVector2D(100, 100);
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
 
@@ -181,11 +130,6 @@ UWorld* UUserWidget::GetWorld() const
 	{
 		return PlayerContext.GetWorld();
 	}
-
-	//if ( ULevel* Level = Cast<ULevel>(Outer) )
-	//{
-	//	return Level->OwningWorld;
-	//}
 
 	return NULL;
 }
@@ -332,17 +276,18 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 	Tick( MyGeometry, InDeltaTime );
 }
 
-TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
+TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
 {
 	if ( bAbsoluteLayout )
 	{
-		return SNew(SCanvas)
+		//BIND_UOBJECT_ATTRIBUTE
 
-			+ SCanvas::Slot()
-			.Position(AbsolutePosition)
-			.Size(AbsoluteSize)
-			.VAlign(VerticalAlignment)
-			.HAlign(HorizontalAlignment)
+		return SNew(SConstraintCanvas)
+
+			+ SConstraintCanvas::Slot()
+			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
+			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
+			.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 			[
 				TakeWidget()
 			];
@@ -375,11 +320,11 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 	return NULL;
 }
 
-void UUserWidget::Show()
+void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
-		TSharedRef<SWidget> RootWidget = MakeFullScreenWidget();
+		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor);
 
 		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, (bool)bModal)
 			[
@@ -387,9 +332,6 @@ void UUserWidget::Show()
 			];
 
 		FullScreenWidget = WidgetHost;
-
-		//WidgetHost->SetVisibility(EVisibility::Visible);
-		//OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -408,14 +350,11 @@ void UUserWidget::Show()
 	}
 }
 
-void UUserWidget::Hide()
+void UUserWidget::RemoveFromViewport()
 {
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
-
-		//RootWidget->SetVisibility(EVisibility::Hidden);
-		//OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -472,6 +411,31 @@ ULocalPlayer* UUserWidget::GetLocalPlayer() const
 APlayerController* UUserWidget::GetPlayerController() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
+}
+
+FMargin UUserWidget::GetFullScreenOffset() const
+{
+	FVector2D FinalSize = FullScreenSize;
+	if ( FinalSize.IsZero() )
+	{
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			FinalSize = CachedWidget->GetDesiredSize();
+		}
+	}
+
+	return FMargin(FullScreenPosition.X, FullScreenPosition.Y, FinalSize.X, FinalSize.Y);
+}
+
+FVector2D UUserWidget::GetFullScreenAlignment() const
+{
+	return FullScreenAlignment;
+}
+
+int32 UUserWidget::GetFullScreenZOrder() const
+{
+	return FullScreenZOrder;
 }
 
 #if WITH_EDITOR
