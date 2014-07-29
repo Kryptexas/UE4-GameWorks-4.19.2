@@ -2210,6 +2210,9 @@ struct FRepAttachment
 	FVector_NetQuantize100 LocationOffset;
 
 	UPROPERTY()
+	FVector_NetQuantize100 RelativeScale3D;
+
+	UPROPERTY()
 	FRotator RotationOffset;
 
 	UPROPERTY()
@@ -2221,6 +2224,7 @@ struct FRepAttachment
 	FRepAttachment()
 		: AttachParent(NULL)
 		, LocationOffset(ForceInit)
+		, RelativeScale3D(ForceInit)
 		, RotationOffset(ForceInit)
 		, AttachSocket(NAME_None)
 		, AttachComponent(NULL)

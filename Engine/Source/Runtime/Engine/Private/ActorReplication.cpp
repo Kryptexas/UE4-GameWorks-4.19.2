@@ -180,6 +180,7 @@ void AActor::GatherCurrentMovement()
 			{
 				AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 				AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+				AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 			}
 		}
 		else

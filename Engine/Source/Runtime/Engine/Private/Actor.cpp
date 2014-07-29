@@ -1187,6 +1187,7 @@ void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName
 		AttachmentReplication.AttachParent = InParent->GetAttachmentRootActor();
 		AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 		AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+		AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 		AttachmentReplication.AttachSocket = InSocketName;
 		AttachmentReplication.AttachComponent = InParent;
 	}
@@ -1207,19 +1208,10 @@ void AActor::OnRep_AttachmentReplication()
 
 			if (ParentComponent)
 			{
-				// Calculate scale before attachment as ComponentToWorld will be modified after AttachTo()
-				FVector NewRelativeScale3D = RootComponent->RelativeScale3D;
-				if (!RootComponent->bAbsoluteScale)
-				{
-				FTransform ParentToWorld = ParentComponent->GetSocketTransform(AttachmentReplication.AttachSocket);
-				FTransform RelativeTM = RootComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
-					NewRelativeScale3D = RelativeTM.GetScale3D();
-				}
-
 				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
-				RootComponent->RelativeScale3D = NewRelativeScale3D;
+				RootComponent->RelativeScale3D = AttachmentReplication.RelativeScale3D;
 
 				RootComponent->UpdateComponentToWorld();
 			}
@@ -1243,6 +1235,7 @@ void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketNam
 			AttachmentReplication.AttachParent = InParentActor;
 			AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 			AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+			AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 			AttachmentReplication.AttachSocket = InSocketName;
 			AttachmentReplication.AttachComponent = NULL;
 		}
