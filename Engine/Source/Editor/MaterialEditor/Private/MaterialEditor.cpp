@@ -245,7 +245,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 	// Create a temporary material to preview the material function
 	Material = (UMaterial*)StaticConstructObject(UMaterial::StaticClass()); 
 	{
-		FArchive DummyArchive;
+		FArchiveUObject DummyArchive;
 		// Hack: serialize the new material with an archive that does nothing so that its material resources are created
 		Material->Serialize(DummyArchive);
 	}
