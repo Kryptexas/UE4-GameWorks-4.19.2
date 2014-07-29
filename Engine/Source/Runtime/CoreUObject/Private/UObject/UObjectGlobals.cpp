@@ -837,7 +837,7 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 #endif
 
 		// Set package-requires-localization flags from archive after loading. This reinforces flagging of packages that haven't yet been resaved.
-		Linker->LinkerRoot->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
+		Result->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
 
 #if WITH_ENGINE
 		// Cancel all texture allocations that haven't been claimed yet.

@@ -838,7 +838,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	{
 		// Move persistent level into world so the world object won't get garbage collected in the multi- level
 		// case as it is still referenced via the level's outer. This is required for multi- level editing to work.
-		PersistentLevel->Rename( *PersistentLevel->GetName(), this );
+		PersistentLevel->Rename( *PersistentLevel->GetName(), this, REN_ForceNoResetLoaders );
 	}
 
 	Levels.Empty(1);
@@ -856,7 +856,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		// Rename invalid WorldSettings to avoid name collisions
 		if (bNeedsDestroy)
 		{
-			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel);
+			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
 		}
 		
 		FActorSpawnParameters SpawnInfo;
