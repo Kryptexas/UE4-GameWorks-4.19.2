@@ -38,10 +38,8 @@ UK2Node_Self::UK2Node_Self(const class FPostConstructInitializeProperties& PCIP)
 
 void UK2Node_Self::AllocateDefaultPins()
 {
-	SelfClass = GetBlueprint()->GeneratedClass;
-
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, SelfClass, false, false, K2Schema->PN_Self);
+	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
 
 	Super::AllocateDefaultPins();
 }
@@ -75,7 +73,7 @@ void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mess
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 	const UBlueprint* Blueprint = GetBlueprint();
-	const UClass* MyClass = SelfClass ? SelfClass : (Blueprint ? Blueprint->GeneratedClass : NULL);
+	const UClass* MyClass = Blueprint ? Blueprint->GeneratedClass : NULL;
 	const bool bValidClass = !MyClass || !MyClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
 	if (!bValidClass)
 	{

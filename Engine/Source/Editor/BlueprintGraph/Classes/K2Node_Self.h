@@ -10,10 +10,6 @@ class UK2Node_Self : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Class that this variable is defined in.  */
-	UPROPERTY(transient)
-	TSubclassOf<class UObject>  SelfClass;
-
 	// Begin UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetTooltip() const override;
