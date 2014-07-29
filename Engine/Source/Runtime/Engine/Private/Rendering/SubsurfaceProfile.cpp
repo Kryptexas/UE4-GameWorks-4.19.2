@@ -97,7 +97,7 @@ void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurf
 	GSSProfiles.SafeRelease();
 }
 
-const FSceneRenderTargetItem* FSubsurfaceProfileTexture::GetTexture(FRHICommandListImmediate& RHICmdList)
+const IPooledRenderTarget* FSubsurfaceProfileTexture::GetTexture(FRHICommandListImmediate& RHICmdList)
 {
 	// call SetRendererModule() is missing
 	check(RendererModule);
@@ -107,7 +107,7 @@ const FSceneRenderTargetItem* FSubsurfaceProfileTexture::GetTexture(FRHICommandL
 		CreateTexture(RHICmdList);
 	}
 
-	return &GSSProfiles->GetRenderTargetItem();
+	return GSSProfiles;
 }
 
 void FSubsurfaceProfileTexture::ReleaseDynamicRHI()
@@ -224,7 +224,7 @@ void FSubsurfaceProfileTexture::Dump()
 
 
 
-ENGINE_API const FSceneRenderTargetItem* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList)
+ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
 

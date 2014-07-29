@@ -104,7 +104,7 @@ public:
 	// @param InRendererModule first call needs to have it != 0
 	void UpdateProfile(int32 AllocationId, const FSubsurfaceProfileStruct Settings);
 
-	const struct FSceneRenderTargetItem* GetTexture(FRHICommandListImmediate& RHICmdList);
+	const struct IPooledRenderTarget* GetTexture(FRHICommandListImmediate& RHICmdList);
 
 
 	// FRenderResource interface.

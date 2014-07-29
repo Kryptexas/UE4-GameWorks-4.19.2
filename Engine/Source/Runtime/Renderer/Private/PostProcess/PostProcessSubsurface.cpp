@@ -10,7 +10,7 @@
 #include "PostProcessSubsurface.h"
 #include "PostProcessing.h"
 
-
+ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
 
 /** Encapsulates the post processing ambient occlusion pixel shader. */
 template <uint32 SpecularCorrection>
@@ -266,17 +266,13 @@ public:
 		}
 
 		{
-			ENGINE_API const FSceneRenderTargetItem* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
+			const IPooledRenderTarget* PooledRT = GetSubsufaceProfileTexture_RT(Context.RHICmdList);
 
-			const FSceneRenderTargetItem* Item = GetSubsufaceProfileTexture_RT(Context.RHICmdList);
+			check(PooledRT);
 
-			if (!Item)
-			{
-				// should never happen
-				Item = &GSystemTextures.BlackDummy->GetRenderTargetItem();
-			}
+			const FSceneRenderTargetItem& Item = PooledRT->GetRenderTargetItem();
 
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, SSProfilesTexture, SSProfilesTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), Item->ShaderResourceTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, SSProfilesTexture, SSProfilesTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), Item.ShaderResourceTexture);
 		}
 	}
 
@@ -325,10 +321,15 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 {
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
 
-	if(!InputDesc)
+	check(InputDesc);
+
 	{
-		// input is not hooked up correctly
-		return;
+		const IPooledRenderTarget* PooledRT = GetSubsufaceProfileTexture_RT(Context.RHICmdList);
+
+		check(PooledRT);
+
+		// for debugging
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, PooledRT);
 	}
 
 	const FSceneView& View = Context.View;
