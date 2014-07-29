@@ -329,6 +329,11 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		return;
 	}
 
+	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource))
+	{
+		return;
+	}
+
 	// Search definitions for a custom D3D compiler path.
 	for(TMap<FString,FString>::TConstIterator DefinitionIt(Input.Environment.GetDefinitions());DefinitionIt;++DefinitionIt)
 	{
