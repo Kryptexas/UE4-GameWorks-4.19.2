@@ -39,7 +39,12 @@ void UEditableTextBox::ReleaseNativeWidget()
 
 TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 
 	MyEditableTextBlock = SNew(SEditableTextBox)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
