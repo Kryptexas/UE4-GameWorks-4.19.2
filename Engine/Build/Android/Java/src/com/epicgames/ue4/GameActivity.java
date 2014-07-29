@@ -37,6 +37,7 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
@@ -49,6 +50,11 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdListener;
+
+import com.google.android.gms.plus.Plus;
+
+import java.net.URL;
+import java.net.HttpURLConnection;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
@@ -413,6 +419,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		googleClient = new GoogleApiClient.Builder(this)
 		 .addApi(Games.API)
 		 .addScope(Games.SCOPE_GAMES)
+		 .addApi(Plus.API, null)
+		 .addScope(Plus.SCOPE_PLUS_PROFILE)
 		 .addConnectionCallbacks(this)
 		 .addOnConnectionFailedListener(this)
 		 .build();
@@ -825,6 +833,38 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		{
 			nativeFailedUpdateAchievements();
 		}
+	}
+
+	public void AndroidThunkJava_ResetAchievements()
+	{
+		try
+        {
+			String email = Plus.AccountApi.getAccountName(googleClient);
+			Log.debug("AndroidThunkJava_ResetAchievements: using email " + email);
+
+            String accesstoken = GoogleAuthUtil.getToken(this, email, "oauth2:https://www.googleapis.com/auth/games");
+
+			String ResetURL = "https://www.googleapis.com/games/v1management/achievements/reset?access_token=" + accesstoken;
+			Log.debug("AndroidThunkJava_ResetAchievements: using URL " + ResetURL);
+
+			URL url = new URL(ResetURL);
+			HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+
+			try
+			{
+				urlConnection.setRequestMethod("POST");
+				int status = urlConnection.getResponseCode();
+				Log.debug("AndroidThunkJava_ResetAchievements: HTTP response is " + status);
+			}
+			finally
+			{
+				urlConnection.disconnect();
+			}
+        }
+        catch(Exception e)
+        {
+            Log.debug("AndroidThunkJava_ResetAchievements failed: " + e.getMessage());
+        }
 	}
 
 	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)

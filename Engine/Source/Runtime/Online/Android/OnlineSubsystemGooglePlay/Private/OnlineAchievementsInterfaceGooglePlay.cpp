@@ -198,7 +198,11 @@ EOnlineCachedResult::Type FOnlineAchievementsGooglePlay::GetCachedAchievementDes
 #if !UE_BUILD_SHIPPING
 bool FOnlineAchievementsGooglePlay::ResetAchievements( const FUniqueNetId& PlayerId )
 {
-	check(!TEXT("ResetAchievements has not been implemented"));
+	UE_LOG(LogOnline, Log, TEXT("Resetting Google Play achievements."));
+
+	extern void AndroidThunkCpp_ResetAchievements();
+	AndroidThunkCpp_ResetAchievements();
+
 	return false;
 };
 #endif // !UE_BUILD_SHIPPING
