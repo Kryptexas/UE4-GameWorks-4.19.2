@@ -82,9 +82,10 @@ public:
 		void* AROFuncPtr;
 		/** Referencing object being AROed*/
 		UObject* ReferencingObject;
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 		/** Finds index of ReferencedObject in ReferencedBy.ReferenceTokenStream */
 		int32 FindReferencedObjectIndex(const UObject& ReferencedBy, const UObject& ReferencedObject);
-
+#endif // !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 	public:
 
 		FFindReferencerCollector( FReferenceChainSearch* InRefSearchArc, EReferenceType::Type InRefType, void* InAROFuncPtr, UObject* InReferencingObject = NULL)
