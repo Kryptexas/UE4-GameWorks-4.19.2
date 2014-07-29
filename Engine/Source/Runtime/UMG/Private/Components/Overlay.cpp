@@ -63,3 +63,12 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 
 	return BuildDesignTimeWidget( MyOverlay.ToSharedRef() );
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UOverlay::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Overlay");
+}
+
+#endif

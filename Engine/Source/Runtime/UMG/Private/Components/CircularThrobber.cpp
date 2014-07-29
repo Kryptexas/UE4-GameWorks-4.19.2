@@ -94,6 +94,14 @@ void UCircularThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
 	}
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UCircularThrobber::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.CircularThrobber");
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 

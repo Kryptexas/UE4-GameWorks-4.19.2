@@ -43,6 +43,15 @@ TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 	return SNew(STextBlock).Text(Item ? FText::FromString(Item->GetName()) : LOCTEXT("null", "null"));
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UComboBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

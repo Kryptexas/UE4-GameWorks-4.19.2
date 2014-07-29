@@ -28,6 +28,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateRowEvent;
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 	TSharedPtr< SListView<UObject*> > MyListView;
 

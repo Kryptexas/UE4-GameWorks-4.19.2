@@ -105,6 +105,15 @@ void UThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
 	}
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UThrobber::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Throbber");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

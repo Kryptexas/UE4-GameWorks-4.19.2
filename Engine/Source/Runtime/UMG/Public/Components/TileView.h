@@ -42,6 +42,10 @@ class UMG_API UTileView : public UTableViewBase
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void RequestListRefresh();
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 	TSharedRef<ITableRow> HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const;
 

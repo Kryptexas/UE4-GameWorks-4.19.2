@@ -22,6 +22,10 @@ public:
 
 	virtual void ReleaseNativeWidget() override;
 	
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 	TSharedRef<SWidget> HandleGenerateWidget(UObject* Item) const;
 

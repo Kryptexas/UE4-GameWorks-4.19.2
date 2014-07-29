@@ -76,6 +76,15 @@ void UTileView::RequestListRefresh()
 	MyTileView->RequestListRefresh();
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UTileView::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.TileView");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

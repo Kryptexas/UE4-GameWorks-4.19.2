@@ -18,11 +18,11 @@ class UMG_API UScrollBox : public UPanelWidget
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* BarStyle;
 
-	virtual void ReleaseNativeWidget() override;
-
 	/** The orientation of the scrolling and stacking in the box. */
 	UPROPERTY(EditDefaultsOnly, Category = "Behavior")
 	TEnumAsByte<EOrientation> Orientation;
+
+	virtual void ReleaseNativeWidget() override;
 
 	/** Removes all child widget from the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")

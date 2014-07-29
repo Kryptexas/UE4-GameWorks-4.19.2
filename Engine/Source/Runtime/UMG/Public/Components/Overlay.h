@@ -11,6 +11,10 @@ class UMG_API UOverlay : public UPanelWidget
 
 	virtual void ReleaseNativeWidget() override;
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 
 	// UPanelWidget
