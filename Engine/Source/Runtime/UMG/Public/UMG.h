@@ -87,6 +87,8 @@
 
 #include "Viewport.h"
 
+#include "NativeWidgetHost.h"
+
 // Slate
 #include "SObjectWidget.h"
 

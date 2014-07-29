@@ -1,0 +1,31 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "NativeWidgetHost.generated.h"
+
+/**
+ * A NativeWidgetHost is a container widget that can contain one child slate widget.  This should
+ * be used when all you need is to nest a native widget inside a UMG widget.
+ */
+UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface)
+class UMG_API UNativeWidgetHost : public UWidget
+{
+	GENERATED_UCLASS_BODY()
+
+	void SetContent(TSharedRef<SWidget> InContent);
+
+	virtual void ReleaseNativeWidget() override;
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
+protected:
+	TSharedPtr<SWidget> MyWidget;
+
+protected:
+	// UWidget interface
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+	// End of UWidget interface
+};

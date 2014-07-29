@@ -5,7 +5,7 @@
 #include "ScrollBar.generated.h"
 
 /** */
-UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
+UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
 class UMG_API UScrollBar : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
