@@ -23,6 +23,7 @@
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Engine/SubsurfaceProfile.h"
 #include "EditorSupportDelegates.h"
 #include "MaterialShaderType.h"
 #include "MaterialInstanceSupport.h"
@@ -205,6 +206,24 @@ public:
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(Context.Material.GetFeatureLevel());
 		if(MaterialResource && MaterialResource->GetRenderingThreadShaderMap())
 		{
+			static FName SubsurfaceProfile(TEXT("SubsurfaceProfile"));
+			if (ParameterName == SubsurfaceProfile)
+			{
+				const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfile();
+
+				if(SubsurfaceProfileRT)
+				{
+					// can be optimized (cached)
+					*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(*SubsurfaceProfileRT) / 255.0f;
+				}
+				else
+				{
+					// no profile specified means we use the default one stored at [0] which is human skin
+					*OutValue = 0.0f;
+				}
+				return true;
+			}
+
 			return false;
 		}
 		else
@@ -258,6 +277,8 @@ private:
 	}
 
 	UMaterial* Material;
+
+	// maintained by the render thread
 	float DistanceFieldPenumbraScale;
 };
 
@@ -1989,6 +2010,8 @@ void UMaterial::PostLoad()
 	}
 #endif // #if WITH_EDITOR
 
+	PropagateDataToMaterialProxy();
+
 	STAT(double MaterialLoadTime = 0);
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
@@ -2031,13 +2054,6 @@ void UMaterial::PostLoad()
 		UpdateLightmassTextureTracking();
 	}
 
-	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
-	{
-		if (DefaultMaterialInstances[i])
-		{
-			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
 
 #if WITH_EDITOR
 	if (GMaterialsThatNeedExpressionsFlipped.Get(this))
@@ -2060,6 +2076,19 @@ void UMaterial::PostLoad()
 		FixCommentPositions(EditorComments);
 	}
 #endif // #if WITH_EDITOR
+}
+
+void UMaterial::PropagateDataToMaterialProxy()
+{
+	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
+	{
+		if (DefaultMaterialInstances[i])
+		{
+			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
+
+			UpdateMaterialRenderProxy(*DefaultMaterialInstances[i]);
+		}
+	}
 }
 
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
@@ -2191,6 +2220,11 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		{
 			return IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, SubsurfaceProfile))
+		{
+			return MaterialDomain == MD_Surface && ShadingModel == MSM_SubsurfaceProfile && (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked);
+		}
 	}
 
 	return true;
@@ -2269,14 +2303,8 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 			FGlobalComponentReregisterContext RecreateComponents;
 		}
 	}
-	
-	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
-	{
-		if (DefaultMaterialInstances[i])
-		{
-			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
+
+	PropagateDataToMaterialProxy();
 
 	// many property changes can require rebuild of graph so always mark as changed
 	// not interested in PostEditChange calls though as the graph may have instigated it
@@ -3524,7 +3552,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 		break;
 	case MP_Opacity:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
-		if(ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin)
+		if (ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile)
 		{
 			Active = true;
 		}

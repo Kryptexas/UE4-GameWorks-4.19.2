@@ -180,9 +180,10 @@ float3 EncodeSubsurfaceColor(float3 SubsurfaceColor)
 	return sqrt(saturate(SubsurfaceColor));
 }
 
-float3 DecodeSubsurfaceColor(float3 SubsurfaceColor)
+// @param SubsurfaceProfile 0..1, SubsurfaceProfileId = int(x * 255)
+float3 EncodeSubsurfaceProfile(float SubsurfaceProfile)
 {
-	return Square(SubsurfaceColor);
+	return float3(SubsurfaceProfile, 0, 0);
 }
 
 float EncodeIndirectIrradiance(float IndirectIrradiance)
@@ -260,7 +261,8 @@ uint DecodeShadingModelId(float InPackedChannel)
 #define SHADINGMODELID_SUBSURFACE			2
 #define SHADINGMODELID_PREINTEGRATED_SKIN	3
 #define SHADINGMODELID_CLEAR_COAT			4
-#define SHADINGMODELID_NUM					5
+#define SHADINGMODELID_SUBSURFACE_PROFILE	5
+#define SHADINGMODELID_NUM					6
 
 // all values that are output by the forward rendering pass
 struct FGBufferData
@@ -356,7 +358,7 @@ void EncodeGBuffer(
 	}
 	else
 	{
-		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 #if DIFFUSE_SPEC_INPUTS
 		OutGBufferB.rgb = EncodeSpecularColor(GBuffer.SpecularColor);
@@ -406,7 +408,7 @@ FGBufferData DecodeGBufferData(
 	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
-	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 #if DIFFUSE_SPEC_INPUTS
 	GBuffer.BaseColor = 0;
@@ -489,6 +491,17 @@ void EncodeDBufferData(FGBufferData GBufferData, float3 MultiOpacity,
 
 	// UNORM 2 channel
 	DBufferC = float4(GBufferData.Roughness, 0, 0, MultiOpacity.z);
+}
+
+float3 ExtractSubsurfaceColor(FGBufferData BufferData)
+{
+	return Square(BufferData.CustomData);
+}
+
+uint ExtractSubsurfaceProfileInt(FGBufferData BufferData)
+{
+	// can be optimized
+	return uint(BufferData.CustomData.r * 255.0f + 0.5f);
 }
 
 /** Populates DBufferA, DBufferB, DBufferC as float4 and puts opacity in alpha for frame buffer blending */

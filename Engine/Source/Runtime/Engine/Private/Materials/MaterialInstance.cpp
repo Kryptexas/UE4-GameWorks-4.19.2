@@ -280,6 +280,19 @@ void FMaterialInstanceResource::GameThread_UpdateDistanceFieldPenumbraScale(floa
 	});
 }
 
+void UMaterialInstance::UpdateMaterialInstanceData()
+{
+	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
+	{
+		if (Resources[i])
+		{
+			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
+
+			UpdateMaterialRenderProxy(*Resources[i]);
+		}
+	}
+}
+
 void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* InParent)
 {
 	check(IsInGameThread());
@@ -1690,13 +1703,7 @@ void UMaterialInstance::PostLoad()
 		UpdateLightmassTextureTracking();
 	}
 
-	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
-	{
-		if (Resources[i])
-		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
+	UpdateMaterialInstanceData();
 
 	// Fixup for legacy instances which didn't recreate the lighting guid properly on duplication
 	if (GetLinker() && GetLinker()->UE4Ver() < VER_UE4_BUMPED_MATERIAL_EXPORT_GUIDS)
@@ -2003,13 +2010,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		UpdateLightmassTextureTracking();
 	}
 
-	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
-	{
-		if (Resources[i])
-		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
+	UpdateMaterialInstanceData();
 
 	InitResources();
 

@@ -38,6 +38,7 @@
 #include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "GameFramework/ForceFeedbackEffect.h"
+#include "Engine/SubSurfaceProfile.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/DebugCameraController.h"
 #include "Engine/DecalActor.h"

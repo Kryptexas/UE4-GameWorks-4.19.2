@@ -40,7 +40,6 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTestImage.h"
-#include "PostProcessSubsurface.h"
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
 
@@ -77,14 +76,6 @@ static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
 	TEXT("Smaller values are better for performance and provide more accurate motion vectors but the blurring outside the object is reduced.\n")
 	TEXT("If needed this can be exposed like the other motionblur settings.\n")
 	TEXT(" 0:off (not free and does never completely disable), >0, 1.0 (default)"),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<float> CVarSSSSS(
-	TEXT("r.SSSSS"),
-	0.0f,
-	TEXT("Very experimental screen space subsurface scattering on non unlit/lit materials\n")
-	TEXT("0: off\n")
-	TEXT("x: SSS radius in world space e.g. 10"),
 	ECVF_RenderThreadSafe);
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
@@ -754,8 +745,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 	check(IsInRenderingThread());
 
-	bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
-
 	const auto FeatureLevel = View.GetFeatureLevel();
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("PostProcessing"));
@@ -806,28 +795,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 		if (View.Family->EngineShowFlags.PostProcessing && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			// Screen Space Subsurface Scattering
-			{
-				float Radius = CVarSSSSS.GetValueOnRenderThread();
-
-				if(Radius > 0 && !bSimpleDynamicLighting)
-				{
-					// matching AdjustGBufferRefCount(-1) call is in FRCPassPostProcessSubsurface::Process()
-					GSceneRenderTargets.AdjustGBufferRefCount(1);
-
-					FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup());
-					PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
-
-					FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius));
-					Pass0->SetInput(ePId_Input0, PassSetup);
-
-					FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
-					Pass1->SetInput(ePId_Input0, Pass0);
-					Pass1->SetInput(ePId_Input1, Context.FinalOutput);
-					Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
-				}
-			}
-
 			FRenderingCompositeOutputRef VelocityInput;
 			if(VelocityRT)
 			{

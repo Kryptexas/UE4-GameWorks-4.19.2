@@ -713,6 +713,11 @@ static void ComputeRelevanceForView(
 			}
 		}
 		
+		if (ViewRelevance.bSubsurfaceProfileRelevance)
+		{
+			View.bScreenSpaceSubsurfacePassNeeded = true;
+		}
+		
 		if (ViewRelevance.bRenderCustomDepth)
 		{
 			// Add to set of dynamic distortion primitives

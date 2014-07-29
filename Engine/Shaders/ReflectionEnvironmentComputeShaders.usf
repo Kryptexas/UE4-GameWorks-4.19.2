@@ -658,11 +658,12 @@ void ReflectionEnvironmentTiledDeferredMain(
 		case SHADINGMODELID_DEFAULT_LIT:
 		case SHADINGMODELID_SUBSURFACE:
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
+		case SHADINGMODELID_SUBSURFACE_PROFILE:
 		{
 			BRANCH
 			if( GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE )
 			{
-				GBuffer.DiffuseColor += DecodeSubsurfaceColor(GBuffer.CustomData);
+				GBuffer.DiffuseColor += ExtractSubsurfaceColor(GBuffer);
 			}
 
 		#if USE_LIGHTMAPS

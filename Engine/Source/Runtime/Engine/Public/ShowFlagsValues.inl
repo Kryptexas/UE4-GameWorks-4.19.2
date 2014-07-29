@@ -108,6 +108,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(Specular, SFG_LightingComponents, LOCTEXT("SpecularSF
 SHOWFLAG_ALWAYS_ACCESSIBLE(SelectionOutline, SFG_Hidden, LOCTEXT("SelectionOutlineSF", "Selection Outline"))
 /** If screen space reflections are enabled */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceReflections, SFG_LightingFeatures, LOCTEXT("ScreenSpaceReflectionsSF", "Screen Space Reflections"))
+/** If Screen Space Subsurface Scattering enabled */
+SHOWFLAG_ALWAYS_ACCESSIBLE(SubsurfaceScattering, SFG_LightingFeatures, LOCTEXT("SubsurfaceScatteringSF", "Screen Space Subsurface Scattering"))
 /** If the indirect lighting cache is enabled */
 SHOWFLAG_ALWAYS_ACCESSIBLE(IndirectLightingCache, SFG_LightingFeatures, LOCTEXT("IndirectLightingCacheSF", "Indirect Lighting Cache"))
 /** calls debug drawing for AIs */

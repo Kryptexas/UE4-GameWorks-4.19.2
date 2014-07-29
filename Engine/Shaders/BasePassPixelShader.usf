@@ -206,8 +206,11 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 				// Setup a pow lobe to approximate anisotropic in-scattering near to the light direction
 				float InScattering = pow(saturate(dot(View.DirectionalLightDirection, MaterialParameters.CameraVector)), InScatterPower);
 
+				float4 SSData = GetMaterialSubsurfaceData(MaterialParameters);
+				float3 SubsurfaceColor = SSData.rgb;
+
 				BackscatteredLighting = 
-					GetMaterialSubsurfaceColor(MaterialParameters) 
+					SubsurfaceColor
 					* InScattering 
 					* View.DirectionalLightColor.rgb
 					// Energy normalization, tighter lobes should be brighter
@@ -573,10 +576,20 @@ void Main(
 	float MaterialAO = GetMaterialAmbientOcclusion(MaterialParameters);
 	float Roughness = GetMaterialRoughness(MaterialParameters);
 
+	// 0..1, SubsurfaceProfileId = int(x * 255)
+	float SubsurfaceProfile = 0;
+
 	// If we don't use this shading model the color should be black (don't generate shader code for unused data, don't do indirectlighting cache lighting with this color).
 	float3 SubsurfaceColor = 0;
+#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+	{
+		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
+
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
-	SubsurfaceColor = GetMaterialSubsurfaceColor(MaterialParameters);
+		SubsurfaceColor = SubsurfaceData.rgb;
+#endif
+		SubsurfaceProfile = SubsurfaceData.a;
+	}
 #endif
 
 #if MATERIAL_FULLY_ROUGH
@@ -731,10 +744,13 @@ void Main(
 			GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 		#elif MATERIAL_SHADINGMODEL_SUBSURFACE
 			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE;
-			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
+			GBuffer.CustomData = EncodeSubsurfaceColor(SubsurfaceColor);
 		#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
 			GBuffer.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
-			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
+			GBuffer.CustomData = EncodeSubsurfaceColor(SubsurfaceColor);
+		#elif MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE_PROFILE;
+			GBuffer.CustomData = EncodeSubsurfaceProfile(SubsurfaceProfile);
 		#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
 			GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
 

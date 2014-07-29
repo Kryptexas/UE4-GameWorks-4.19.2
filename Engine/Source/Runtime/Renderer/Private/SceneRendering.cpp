@@ -77,12 +77,6 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
  */
 FViewInfo::FViewInfo(const FSceneViewInitOptions& InitOptions)
 	:	FSceneView(InitOptions)
-	,	bPrevTransformsReset( false )
-	,	bIgnoreExistingQueries( false )
-	,	bDisableQuerySubmissions( false )
-	,	bDisableDistanceBasedFadeTransitions( false )
-	,	NumVisibleStaticMeshElements(0)
-	,	PrecomputedVisibilityData(NULL)
 	,	IndividualOcclusionQueries((FSceneViewState*)InitOptions.SceneViewStateInterface, 1)
 	,	GroupedOcclusionQueries((FSceneViewState*)InitOptions.SceneViewStateInterface, FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize)
 {
@@ -95,13 +89,6 @@ FViewInfo::FViewInfo(const FSceneViewInitOptions& InitOptions)
  */
 FViewInfo::FViewInfo(const FSceneView* InView)
 	:	FSceneView(*InView)
-	,	bHasTranslucentViewMeshElements( 0 )
-	,	bPrevTransformsReset( false )
-	,	bIgnoreExistingQueries( false )
-	,	bDisableQuerySubmissions( false )
-	,	bDisableDistanceBasedFadeTransitions( false )
-	,	NumVisibleStaticMeshElements(0)
-	,	PrecomputedVisibilityData(NULL)
 	,	IndividualOcclusionQueries((FSceneViewState*)InView->State,1)
 	,	GroupedOcclusionQueries((FSceneViewState*)InView->State,FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize)
 {
@@ -110,6 +97,15 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 
 void FViewInfo::Init()
 {
+	bHasTranslucentViewMeshElements = 0;
+	bPrevTransformsReset = false;
+	bIgnoreExistingQueries = false;
+	bDisableQuerySubmissions = false;
+	bDisableDistanceBasedFadeTransitions = false;
+	bScreenSpaceSubsurfacePassNeeded = false;
+	NumVisibleStaticMeshElements = false;
+	PrecomputedVisibilityData = 0;
+
 	bIsViewInfo = true;
 	PrevViewProjMatrix.SetIdentity();
 	PrevViewRotationProjMatrix.SetIdentity();

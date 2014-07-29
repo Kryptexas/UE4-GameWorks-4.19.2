@@ -231,7 +231,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 
 float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
-	float3 SubsurfaceColor = DecodeSubsurfaceColor( GBuffer.CustomData );
+	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 
 	float3 H = normalize(V + L);
 
@@ -253,7 +253,7 @@ SamplerState	PreIntegratedBRDFSampler;
 
 float3 SubsurfaceShadingPreintegratedSkin( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
-	float3 SubsurfaceColor = DecodeSubsurfaceColor( GBuffer.CustomData );
+	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 
 	float OpacityFactor = GBuffer.Opacity;
 	float3 PreintegratedBRDF = Texture2DSampleLevel(PreIntegratedBRDF, PreIntegratedBRDFSampler, float2(saturate(dot(N, L) * .5 + .5), 1 - OpacityFactor), 0).rgb;
@@ -269,6 +269,7 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 		case SHADINGMODELID_DEFAULT_LIT:
 		case SHADINGMODELID_SUBSURFACE:
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
+		case SHADINGMODELID_SUBSURFACE_PROFILE:
 			return StandardShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N, DiffSpecMask);
 		case SHADINGMODELID_CLEAR_COAT:
 			// this path does not support DiffSpecMask yet

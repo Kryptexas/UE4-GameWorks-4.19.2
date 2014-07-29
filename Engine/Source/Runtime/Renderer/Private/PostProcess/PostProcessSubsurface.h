@@ -24,8 +24,8 @@ public:
 
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-// ePId_Input0: SceneColor (horizontal blur) or the pass before (vertical blur)
-// ePId_Input1: optional SubsurfaceTemp input
+// ePId_Input0: optional SubsurfaceTemp input
+// ePId_Input1: SceneColor (horizontal blur) or the pass before (vertical blur)
 // modifies SceneColor, uses some GBuffer attributes
 class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<2, 1>
 {

@@ -965,6 +965,29 @@ struct FMath : public FPlatformMath
 	 * @param Dst in and out
 	 */
 	static CORE_API void ApplyScaleToFloat(float& Dst, const FVector& DeltaScale, float Magnitude = 1.0f);
+
+	// @param x assumed to be in this range: 0..1
+	// @return 0..255
+	static uint8 Quantize8UnsignedByte(float x)
+	{
+		// 0..1 -> 0..255
+		int32 Ret = (int32)(x * 255.999f);
+
+		check(Ret >= 0);
+		check(Ret <= 255);
+
+		return Ret;
+	}
+	
+	// @param x assumed to be in this range: -1..1
+	// @return 0..255
+	static uint8 Quantize8SignedByte(float x)
+	{
+		// -1..1 -> 0..1
+		float y = x * 0.5f + 0.5f;
+
+		return Quantize8UnsignedByte(y);
+	}
 };
 
 // Platform specific vector intrinsics include.

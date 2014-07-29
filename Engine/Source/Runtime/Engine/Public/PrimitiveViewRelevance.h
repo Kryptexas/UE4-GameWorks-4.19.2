@@ -39,6 +39,8 @@ struct FPrimitiveViewRelevance
 	uint32 bSeparateTranslucencyRelevance : 1;
 	/** The primitive has one or more elements that have normal translucency. */
 	uint32 bNormalTranslucencyRelevance : 1;
+	/** The primitive has one or more elements that have the SubsurfaceProfile shading model. */
+	uint32 bSubsurfaceProfileRelevance : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  
@@ -69,6 +71,7 @@ struct FPrimitiveViewRelevance
 		bDistortionRelevance(false),
 		bSeparateTranslucencyRelevance(false),
 		bNormalTranslucencyRelevance(false),
+		bSubsurfaceProfileRelevance(false),
 		bInitializedThisFrame(false)
 	{}
 
@@ -91,6 +94,7 @@ struct FPrimitiveViewRelevance
 		bSeparateTranslucencyRelevance |= B.bSeparateTranslucencyRelevance != 0;
 		bNormalTranslucencyRelevance |= B.bNormalTranslucencyRelevance != 0;
 		bInitializedThisFrame |= B.bInitializedThisFrame;
+		bSubsurfaceProfileRelevance |= B.bSubsurfaceProfileRelevance != 0;
 		return *this;
 	}
 

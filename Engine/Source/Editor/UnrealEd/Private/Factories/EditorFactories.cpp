@@ -7126,6 +7126,24 @@ UObject* UForceFeedbackEffectFactory::FactoryCreateNew( UClass* InClass, UObject
 }
 
 /*-----------------------------------------------------------------------------
+USubsurfaceProfileFactory implementation.
+-----------------------------------------------------------------------------*/
+USubsurfaceProfileFactory::USubsurfaceProfileFactory(const class FPostConstructInitializeProperties& PCIP)
+: Super(PCIP)
+{
+
+	SupportedClass = USubsurfaceProfile::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return ConstructObject<USubsurfaceProfile>(USubsurfaceProfile::StaticClass(), InParent, InName, Flags);
+}
+
+/*-----------------------------------------------------------------------------
 	UTouchInterfaceFactory implementation.
 -----------------------------------------------------------------------------*/
 UTouchInterfaceFactory::UTouchInterfaceFactory(const class FPostConstructInitializeProperties& PCIP)

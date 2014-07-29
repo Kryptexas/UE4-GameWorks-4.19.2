@@ -14,8 +14,6 @@ SystemTextures
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSystemTextures> GSystemTextures;
 
-uint8 Quantize8SignedByte(float x);
-
 void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
@@ -229,7 +227,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			float s = FMath::Sin(ww) * lenm;
 			float c = FMath::Cos(ww) * lenm;
 
-			Bases[Pos] = FColor(Quantize8SignedByte(c), Quantize8SignedByte(s), Quantize8SignedByte(-s), Quantize8SignedByte(c));
+			Bases[Pos] = FColor(FMath::Quantize8SignedByte(c), FMath::Quantize8SignedByte(s), FMath::Quantize8SignedByte(-s), FMath::Quantize8SignedByte(c));
 		}
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(64, 64), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_None, false));

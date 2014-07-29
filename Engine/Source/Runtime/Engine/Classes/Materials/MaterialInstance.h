@@ -375,6 +375,9 @@ protected:
 	/** Copies over parameters given a material interface */
 	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface);
 
+	// to share code between PostLoad() and PostEditChangeProperty()
+	void UpdateMaterialInstanceData();
+
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;
 	/** Editor-only access to private members. */

@@ -35,8 +35,6 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() = 0;
 
-	virtual float GetRefractionDepthBiasValue() = 0;
-
 	/** 
 	 * Casts the passed in code to DestType, or generates a compile error if the cast is not valid. 
 	 * This will truncate a type (float4 -> float3) but not add components (float2 -> float3), however a float1 can be cast to any float type by replication. 
@@ -204,7 +202,6 @@ public:
 	virtual EMaterialValueType GetType(int32 Code) override { return Compiler->GetType(Code); }
 	virtual EMaterialQualityLevel::Type GetQualityLevel() override { return Compiler->GetQualityLevel(); }
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() override { return Compiler->GetFeatureLevel(); }
-	virtual float GetRefractionDepthBiasValue() override { return Compiler->GetRefractionDepthBiasValue(); }
 	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) override { return Compiler->ValidCast(Code, DestType); }
 	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
 	{ return Compiler->ForceCast(Code,DestType,bExactMatch,bReplicateValue); }

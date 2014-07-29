@@ -841,7 +841,8 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
  	if ((ShadingModel != MSM_DefaultLit) &&
 		(ShadingModel != MSM_Unlit) &&
 		(ShadingModel != MSM_Subsurface) &&
-		(ShadingModel != MSM_PreintegratedSkin))
+		(ShadingModel != MSM_PreintegratedSkin) &&
+		(ShadingModel != MSM_SubsurfaceProfile))
 	{
 		UE_LOG(LogLightmassRender, Warning, TEXT("LIGHTMASS: Material has an unsupported shading model: %d on %s"), 
 			(int32)ShadingModel,

@@ -966,20 +966,6 @@ void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY
 	BufferSize.Y = InBufferSizeY;
 }
 
-uint8 Quantize8SignedByte(float x)
-{
-	// -1..1 -> 0..1
-	float y = x * 0.5f + 0.5f;
-
-	// 0..1 -> 0..255
-	int32 Ret = (int32)(y * 255.999f);
-
-	check(Ret >= 0);
-	check(Ret <= 255);
-
-	return Ret;
-}
-
 void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 {
 	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())

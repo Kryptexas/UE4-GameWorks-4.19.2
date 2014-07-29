@@ -53,6 +53,9 @@ struct ENGINE_API FMaterialRelevance
 	UPROPERTY()
 		uint32 bDisableDepthTest : 1;
 
+	UPROPERTY()
+		uint32 bSubsurfaceProfile : 1;
+
 	/** Default constructor. */
 	FMaterialRelevance()
 		: bOpaque(false)
@@ -61,6 +64,7 @@ struct ENGINE_API FMaterialRelevance
 		, bSeparateTranslucency(false)
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)
+		, bSubsurfaceProfile(false)
 	{}
 
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
@@ -72,6 +76,7 @@ struct ENGINE_API FMaterialRelevance
 		bSeparateTranslucency |= B.bSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;
+		bSubsurfaceProfile |= B.bSubsurfaceProfile;
 		return *this;
 	}
 
@@ -161,6 +166,12 @@ UCLASS(abstract, BlueprintType,MinimalAPI)
 class UMaterialInterface : public UObject, public IBlendableInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	/** SubsurfaceProfile, for Screen Space Subsurface Scattering */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material, meta = (DisplayName = "Subsurface Profile"))
+	class USubsurfaceProfile* SubsurfaceProfile;
+
+	/* -------------------------- */
 
 	/** A fence to track when the primitive is no longer used as a parent */
 	FRenderCommandFence ParentRefFence;
@@ -568,6 +579,8 @@ public:
 protected:
 	/** Returns a bitfield indicating which feature levels should be compiled for rendering. */
 	ENGINE_API uint32 GetFeatureLevelsToCompileForRendering() const;
+
+	void UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy);
 
 private:
 	/**

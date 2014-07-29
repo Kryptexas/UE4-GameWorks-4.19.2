@@ -336,14 +336,28 @@ public:
 				Chunk[MP_WorldDisplacement]			= Constant3(0.0f, 0.0f, 0.0f);
 			}
 			Chunk[MP_TessellationMultiplier]		= Material->CompilePropertyAndSetMaterialProperty(MP_TessellationMultiplier,this);
-			Chunk[MP_SubsurfaceColor]				= Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor       ,this);
+
+			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
+
+			if (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile)
+			{
+				int32 SubsurfaceColor = Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this);
+
+				static FName SubsurfaceProfileName(TEXT("SubsurfaceProfile"));
+
+				// 1.0f is is a not used profile - later this gets replaced with the actual profile
+				int32 SubsurfaceProfile = ForceCast(ScalarParameter(SubsurfaceProfileName, 1.0f), MCT_Float1);
+
+				Chunk[MP_SubsurfaceColor] = AppendVector(SubsurfaceColor, SubsurfaceProfile);		
+			}
+
 			Chunk[MP_ClearCoat]						= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoat			   ,this);
 			Chunk[MP_ClearCoatRoughness]			= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoatRoughness    ,this);
 			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion      ,this);
 
 			{
 				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float2);
-				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), GetRefractionDepthBiasValue()), MCT_Float1);
+				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), Material->GetRefractionDepthBiasValue()), MCT_Float1);
 
 				Chunk[MP_Refraction] = AppendVector(ForceCast(UserRefraction, MCT_Float1), RefractionDepthBias);
 			}
@@ -361,10 +375,6 @@ public:
 				if (CustomUVIndex - MP_CustomizedUVs0 < NumUserTexCoords)
 				{
 					Chunk[CustomUVIndex] = Material->CompilePropertyAndSetMaterialProperty((EMaterialProperty)CustomUVIndex, this);
-				}
-				else
-				{
-					Chunk[CustomUVIndex] = INDEX_NONE;
 				}
 			}
 
@@ -395,7 +405,7 @@ public:
 			}
 
 
-			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetShadingModel() != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
+			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
 			}
@@ -431,12 +441,12 @@ public:
 				Errorf(TEXT("Light function materials must be opaque."));
 			}
 
-			if (Material->IsLightFunction() && Material->GetShadingModel() != MSM_Unlit)
+			if (Material->IsLightFunction() && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Light function materials must use unlit."));
 			}
 
-			if (Material->GetMaterialDomain() == MD_PostProcess && Material->GetShadingModel() != MSM_Unlit)
+			if (Material->GetMaterialDomain() == MD_PostProcess && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Post process materials must use unlit."));
 			}
@@ -510,6 +520,13 @@ public:
 			MaterialTemplateLineNumber += 3;
 
 			MaterialCompilationOutput.UniformExpressionSet.SetParameterCollections(ParameterCollections);
+
+/* test
+			if(MaterialShadingModel == MSM_SubsurfaceProfile)
+			{
+				MaterialCompilationOutput.UniformExpressionSet.SetCompileInSubsurfaceProfile();
+			}
+*/
 
 			// Create the material uniform buffer struct.
 			MaterialCompilationOutput.UniformExpressionSet.CreateBufferStruct();
@@ -1290,11 +1307,6 @@ protected:
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() override
 	{
 		return FeatureLevel;
-	}
-
-	virtual float GetRefractionDepthBiasValue() override
-	{
-		return Material->GetRefractionDepthBiasValue();
 	}
 
 	/** 

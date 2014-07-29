@@ -95,9 +95,9 @@
 /**
  * SSSS_FOV must be set to the value used to render the scene.
  */
-#ifndef SSSS_FOVY
-#define SSSS_FOVY 20.0
-#endif
+//#ifndef SSSS_FOVY
+//#define SSSS_FOVY 20.0
+//#endif
 
 /**
  * Light diffusion should occur on the surface of the object, not in a screen 
@@ -147,7 +147,7 @@ float4 kernel[SSSS_N_KERNELWEIGHTCOUNT];
 
 #if SSSS_QUALITY == 2
 #define SSSS_N_KERNELWEIGHTCOUNT 13
-const static float4 kernel[] = {
+/*const static float4 kernel[] = {
     float4(0.530605, 0.613514, 0.739601, 0),
     float4(0.0211412, 0.0459286, 0.0378196, 0.0208333),
     float4(0.0402784, 0.0657244, 0.04631, 0.0833333),
@@ -161,6 +161,21 @@ const static float4 kernel[] = {
     float4(0.00500364, 0.00020094, 5.28848e-005, 2.08333),
     float4(0.00333804, 7.85443e-005, 1.2945e-005, 2.52083),
     float4(0.000973794, 1.11862e-005, 9.43437e-007, 3),
+};*/
+const static float4 kernel[] = {
+	float4(0.540384, 0.622941, 0.739601, 0),
+	float4(0.0207007, 0.0448084, 0.0378196, 0.0208333),
+	float4(0.0394393, 0.0641214, 0.04631, 0.0833333),
+	float4(0.0483305, 0.0358757, 0.0219485, 0.1875),
+	float4(0.0401626, 0.0195023, 0.0118481, 0.333333),
+	float4(0.0258149, 0.0116795, 0.00684598, 0.520833),
+	float4(0.0175505, 0.00694333, 0.00347194, 0.75),
+	float4(0.0125819, 0.00347638, 0.00132016, 1.02083),
+	float4(0.00924226, 0.00135726, 0.000416598, 1.33333),
+	float4(0.00686372, 0.000481619, 0.000151938, 1.6875),
+	float4(0.0048994, 0.000196039, 5.28848e-005, 2.08333),
+	float4(0.0032685, 7.66286e-005, 1.2945e-005, 2.52083),
+	float4(0.000953506, 1.09134e-005, 9.43437e-007, 3),
 };
 #elif SSSS_QUALITY == 1
 #define SSSS_N_KERNELWEIGHTCOUNT 9
@@ -195,18 +210,18 @@ float4 Quantize8Bit(float4 In)
 	return floor(In * 255.999f) / 255.0f;
 }
 
-float4 GetKernel(uint Index)
+float4 GetKernel(uint SampleIndex, uint SubsurfaceProfileInt)
 {
-	const float4 TableMax = float4(0.784728f, 0.784728f, 0.784728f, 3.0f);
-	
-	// profiled on NV670 fullscreen, one pass (total: 2 pass), samples: 13+1+13, large head on screen, r.SSSS 200
+	const float4 TableMax = float4(1, 1, 1, 3.0f);
+
+	// profiled on NV670 fullscreen, one pass (total: 2 pass), samples: 13+1+13, large object filling the screen
 
 	// texture lookup
-//	float4 Value = SSProfilesTexture.Load(int3(Index, 0, 0)) * TableMax;		// 0.88ms
+	float4 Value = SSProfilesTexture.Load(int3(SampleIndex, SubsurfaceProfileInt, 0)) * TableMax;		// 0.88ms for 8bit
 	// simulated  8 bit lookup
-//	float4 Value = Quantize8Bit(kernel[Index] / TableMax) * TableMax;			// 1.33ms
+//	float4 Value = Quantize8Bit(kernel[SampleIndex] / TableMax) * TableMax;			// 1.33ms same look as texture
 	// float reference
-	float4 Value = kernel[Index];												// 0.85ms
+//	float4 Value = kernel[SampleIndex];												// 0.85ms, quite a bit different in look, need to use more than 8 bit?
 
 	return Value;
 }
@@ -237,9 +252,9 @@ float4 GetKernel(uint Index)
 
 // EPIC changed start
 #define SSSSSampleShadowmap(coord)	float4(0,0,0,0)	// todo: not used yet
-#define SSSSSampleMasking(texcoord)	(GetScreenSpaceData(texcoord).GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE)	// todo: masking doesn't work with filtering ideally put in alpa to get it filtered
-#define SSSSSampleSceneColor(coord) (SSSSSampleMasking(coord) * Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))
-#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))		// todo: could be made point
+#define SSSSSampleMasking(texcoord)	(GetScreenSpaceData(texcoord).GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)	// todo: masking doesn't work with filtering ideally put in alpha to get it filtered
+#define SSSSSampleSceneColor(coord) (SSSSSampleMasking(coord) * Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))
+#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))		// todo: could be made point
 #define SSSSSampleSceneDepth(coord) CalcSceneDepth(coord)		// todo: could be made linear
 #define SSSSSampleSceneDepthPoint(coord) CalcSceneDepth(coord)
 // EPIC changed end
@@ -442,26 +457,32 @@ float4 SSSSBlurPS(
 
     // Calculate the sssWidth scale (1.0 for a unit plane sitting on the
     // projection window):
-    float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(SSSS_FOVY));
-    float scale = distanceToProjectionWindow / depthM;
+//    float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(SSSS_FOVY));
+	float distanceToProjectionWindow = SSSParams.y;
+//	float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(90.0f));
+
+	float scale = distanceToProjectionWindow / depthM;
 
     // Calculate the final step to fetch the surrounding pixels:
-    float2 finalStep = sssWidth * scale * dir;
-    finalStep *= SSSS_STREGTH_SOURCE; // Modulate it using the alpha channel.
+    float2 finalStep = sssWidth * scale * dir * 0.5f;										// hacked in 0.5 - -1..1 to 0..1 but why this isn't in demo code?
+	finalStep *= SSSS_STREGTH_SOURCE; // Modulate it using the alpha channel.
     finalStep *= 1.0 / 3.0; // Divide by 3 as the kernels range from -3 to 3.
+
+	FGBufferData GBufferData = GetGBufferData(texcoord);
+
+	// 0..255, which SubSurface profile to pick
+	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(GBufferData);
 
     // Accumulate the center sample:
     float4 colorBlurred = colorM;
-	colorBlurred.rgb *= GetKernel(0).rgb;
-
-	// hack
-   // colorBlurred.rgb = 0;
+	colorBlurred.rgb *= GetKernel(0, SubsurfaceProfileInt).rgb;
 
 	// Accumulate the other samples:
     SSSS_UNROLL
 	for (int i = 1; i < SSSS_N_KERNELWEIGHTCOUNT; i++) 
 	{
-		half4 Kernel = GetKernel(i);
+		// Kernel.a = 0..3
+		half4 Kernel = GetKernel(i, SubsurfaceProfileInt);
 
 		float3 LocalAccum = 0;
 

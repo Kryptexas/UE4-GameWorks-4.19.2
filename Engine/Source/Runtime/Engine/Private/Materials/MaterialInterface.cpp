@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/SubsurfaceProfile.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -16,6 +17,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bDistortionRelevance = bDistortion;
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
+	OutViewRelevance.bSubsurfaceProfileRelevance = bSubsurfaceProfile;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -51,6 +53,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
+		MaterialRelevance.bSubsurfaceProfile = (Material->MaterialDomain == MD_Surface) && !bIsTranslucent && (Material->GetShadingModel() == MSM_SubsurfaceProfile);
 		return MaterialRelevance;
 	}
 	else
@@ -324,4 +327,61 @@ void UMaterialInterface::SetFeatureLevelToCompile(ERHIFeatureLevel::Type Feature
 uint32 UMaterialInterface::GetFeatureLevelsToCompileForRendering() const
 {
 	return FeatureLevelsToForceCompile | (1 << GRHIFeatureLevel);
+}
+
+
+void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
+{
+	// no 0 pointer
+	check(&Proxy);
+
+	FSubsurfaceProfileStruct Settings;
+
+	if (SubsurfaceProfile)
+	{
+		Settings = SubsurfaceProfile->Settings;
+	}
+
+	// this can be improved, it doesn't support Renderer hot reload
+	{
+		static bool bFirst = true;
+
+		if(bFirst)
+		{
+			bFirst = false;
+
+			static const FName RendererModuleName("Renderer");
+			IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				UpdateMaterialRenderProxySubsurfaceSetup,
+				IRendererModule&, RendererModule, RendererModule,
+			{
+				GSubsufaceProfileTextureObject.SetRendererModule(&RendererModule);
+			});
+		}
+	}
+
+	EMaterialShadingModel MaterialShadingModel = GetShadingModel_Internal();
+
+	// for better performance we only update SubsurfaceProfileRT if the feature is used
+	if (MaterialShadingModel == MSM_SubsurfaceProfile)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			UpdateMaterialRenderProxySubsurface,
+			const FSubsurfaceProfileStruct, Settings, Settings,
+			const USubsurfaceProfile*, SubsurfaceProfile, SubsurfaceProfile,
+			FMaterialRenderProxy&, Proxy, Proxy,
+		{
+			uint32 AllocationId = 0;
+
+			if(SubsurfaceProfile)
+			{
+				AllocationId = GSubsufaceProfileTextureObject.AddOrUpdateProfile(Settings, *SubsurfaceProfile);
+
+				check(AllocationId >= 0 && AllocationId <= 255);
+			}
+			Proxy.SetSubsurfaceProfile(SubsurfaceProfile);
+		});
+	}
 }

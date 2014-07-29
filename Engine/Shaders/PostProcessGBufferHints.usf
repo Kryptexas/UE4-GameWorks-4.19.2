@@ -19,7 +19,7 @@ uint ComputeAdvice(FGBufferData BufferData, float3 OriginalSceneColor)
 	{
 		FLATTEN if(BufferData.ShadingModelID == SHADINGMODELID_SUBSURFACE)
 		{
-			SubsurfaceLum = dot(OneThird.xxx, DecodeSubsurfaceColor(BufferData.CustomData));
+			SubsurfaceLum = dot(OneThird.xxx, ExtractSubsurfaceColor(BufferData));
 		}
 
 		float DiffuseLum = dot(OneThird.xxx, BufferData.DiffuseColor);

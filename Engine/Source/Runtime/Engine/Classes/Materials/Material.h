@@ -846,6 +846,9 @@ private:
 	/** Sets up transient properties in MaterialResources. */
 	void UpdateResourceAllocations();
 
+	/** to share code for PostLoad() and PostEditChangeProperty() */
+	void PropagateDataToMaterialProxy();
+
 public:
 
 	/** @return the name of the given usage flag. */

@@ -47,6 +47,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InterpData) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeLayer) );

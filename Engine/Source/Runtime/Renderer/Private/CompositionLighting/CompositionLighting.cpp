@@ -19,11 +19,24 @@
 #include "ScreenSpaceReflections.h"
 #include "PostProcessWeightedSampleSum.h"
 #include "PostProcessTemporalAA.h"
+#include "PostProcessSubsurface.h"
 
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
 
 // -------------------------------------------------------
+
+static TAutoConsoleVariable<float> CVarSSSSS(
+	TEXT("r.SSSSS"),
+	1.0f,
+	TEXT("Experimental screen space subsurface scattering pass")
+	TEXT("(use shadingmodel SubsurfaceProfile, get near to the object as the default)\n")
+	TEXT("is human skin which only scatters about 1.2cm)\n")
+	TEXT(" 0: off (if there is no object on the screen using this pass it should automatically disable the post process pass)\n")
+	TEXT("<1: scale scatter radius down (for testing)\n")
+	TEXT(" 1: use given radius form the Subsurface scattering asset (default)\n")
+	TEXT(">1: scale scatter radius up (for testing)"),
+	ECVF_RenderThreadSafe);
 
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {
@@ -326,6 +339,33 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 			FRenderingCompositePass* SSAO = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSceneRenderTargets.ScreenSpaceAO));
 			AddPostProcessingLpvIndirect( Context, SSAO );
 		}
+
+		// Screen Space Subsurface Scattering
+		{
+			float Radius = CVarSSSSS.GetValueOnRenderThread();
+
+			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
+
+			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			{
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup());
+				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
+
+				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius));
+				Pass0->SetInput(ePId_Input1, PassSetup);
+
+				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
+				Pass1->SetInput(ePId_Input0, Context.FinalOutput);
+				Pass1->SetInput(ePId_Input1, Pass0);
+				Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
+
+				// waste of performance?
+				FRenderingCompositePass* NullPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessPassThrough(0));
+				NullPass->SetInput(ePId_Input0, Context.FinalOutput);
+				Context.FinalOutput = FRenderingCompositeOutputRef(NullPass);
+			}
+		}
+
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(CompositionLighting, DEC_SCENE_ITEMS);

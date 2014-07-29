@@ -118,6 +118,7 @@ enum EMaterialShadingModel
 	MSM_Subsurface			UMETA(DisplayName="Subsurface"),
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
 	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
+	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
 	MSM_MAX,
 };
 

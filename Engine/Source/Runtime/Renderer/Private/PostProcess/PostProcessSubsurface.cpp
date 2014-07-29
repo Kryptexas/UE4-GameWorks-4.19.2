@@ -193,8 +193,8 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");
-
-	// alpha is unsed, todo: consider 32bit format
+	// we don't need alpha any more
+	Ret.Format = PF_FloatRGB;
 
 	return Ret;
 }
@@ -224,6 +224,8 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter SSSParams;
+	FShaderResourceParameter SSProfilesTexture;
+	FShaderResourceParameter SSProfilesTextureSampler;
 
 	/** Initialization constructor. */
 	FPostProcessSubsurfacePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -232,13 +234,15 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		SSSParams.Bind(Initializer.ParameterMap, TEXT("SSSParams"));
+		SSProfilesTexture.Bind(Initializer.ParameterMap, TEXT("SSProfilesTexture"));
+		SSProfilesTextureSampler.Bind(Initializer.ParameterMap, TEXT("SSProfilesTextureSampler"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SSSParams;
+		Ar << PostprocessParameter << DeferredParameters << SSSParams << SSProfilesTexture << SSProfilesTextureSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -251,8 +255,28 @@ public:
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
 
 		{
-			FVector4 ColorScale(InRadius, 0, 0, 0);
+			// from Separabale.usf: float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(SSSS_FOVY))
+			// can be extracted out of projection matrix
+
+			float ScaleCorrectionX = Context.View.ViewRect.Width() / (float)GSceneRenderTargets.GetBufferSizeXY().X;
+			float ScaleCorrectionY = Context.View.ViewRect.Height() / (float)GSceneRenderTargets.GetBufferSizeXY().Y;
+
+			FVector4 ColorScale(InRadius, Context.View.ViewMatrices.ProjMatrix.M[0][0], ScaleCorrectionX, ScaleCorrectionY);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, SSSParams, ColorScale);
+		}
+
+		{
+			ENGINE_API const FSceneRenderTargetItem* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
+
+			const FSceneRenderTargetItem* Item = GetSubsufaceProfileTexture_RT(Context.RHICmdList);
+
+			if (!Item)
+			{
+				// should never happen
+				Item = &GSystemTextures.BlackDummy->GetRenderTargetItem();
+			}
+
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, SSProfilesTexture, SSProfilesTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), Item->ShaderResourceTexture);
 		}
 	}
 
@@ -289,7 +313,6 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float In
 	TShaderMapRef<FPostProcessSubsurfacePS<Method> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -300,7 +323,7 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float In
 
 void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Context)
 {
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
 
 	if(!InputDesc)
 	{
@@ -330,37 +353,21 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
-	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
-	if(Pass == 0)
+	SCOPED_DRAW_EVENT(SubsurfacePass, DEC_SCENE_ITEMS);
+
+	if (Pass == 0)
 	{
-		SCOPED_DRAW_EVENT(SubsurfacePass0, DEC_SCENE_ITEMS);
-	
 		SetSubsurfaceShader<0>(Context, Radius);
-
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle(
-			Context.RHICmdList,
-			DestRect.Min.X, DestRect.Min.Y,
-			DestRect.Width(), DestRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y,
-			SrcRect.Width(), SrcRect.Height(),
-			DestSize,
-			SrcSize,
-			*VertexShader,
-			EDRF_UseTriangleOptimization);
-
-		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	}
-	
-	if(Pass == 1)
+	else
 	{
-		SCOPED_DRAW_EVENT(SubsurfacePass1, DEC_SCENE_ITEMS);
+		check(Pass == 1);
 
 		if(DoSpecularCorrection())
 		{
@@ -371,33 +378,31 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 		{
 			SetSubsurfaceShader<1>(Context, Radius);
 		}
-
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle(
-			Context.RHICmdList,
-			DestRect.Min.X, DestRect.Min.Y,
-			DestRect.Width(), DestRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y,
-			SrcRect.Width(), SrcRect.Height(),
-			DestSize,
-			SrcSize,
-			*VertexShader,
-			EDRF_UseTriangleOptimization);
-
-		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-
-		// matching AdjustGBufferRefCount(1) call is PostProcessing.cpp
-		GSceneRenderTargets.AdjustGBufferRefCount(-1);
 	}
+
+	DrawRectangle(
+		Context.RHICmdList,
+		DestRect.Min.X, DestRect.Min.Y,
+		DestRect.Width(), DestRect.Height(),
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
+		DestSize,
+		SrcSize,
+		*VertexShader,
+		EDRF_UseTriangleOptimization);
+
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret;
+
+	Ret = PassInputs[1].GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
-	Ret.DebugName = (Pass == 0) ? TEXT("SubsurfaceTemp") : TEXT("SubsurfaceSceneColor");
+	Ret.DebugName = (Pass == 0) ? TEXT("SubsurfaceTemp") : TEXT("SceneColor");
 
 	return Ret;
 }
