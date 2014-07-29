@@ -86,6 +86,10 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
+#if WITH_COREUOBJECT
+	#include "CoreUObject.h"
+#endif
+
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
 class FOutputDeviceStdOutput : public FOutputDevice
