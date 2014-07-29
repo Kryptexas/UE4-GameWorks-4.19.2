@@ -106,8 +106,9 @@ public:
 					{
 						TSharedPtr<FEdGraphSchemaAction> CurrentAction = NodeToAdd->Actions[0];
 
+						// Make the action's name into a display name, all categories are set as such
 						bFoundMatch = CurrentAction->IsParentable()
-							&& NextCategory == CurrentChild->Actions[0]->MenuDescription.ToString();
+							&& NextCategory == FName::NameToDisplayString(CurrentChild->Actions[0]->MenuDescription.ToString(), false);
 					}
 				}
 				

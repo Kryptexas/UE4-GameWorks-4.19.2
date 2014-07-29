@@ -2042,58 +2042,62 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			];
 
-			FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
-			TSharedPtr<SComboButton> NewComboButton;
-			TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
+			// Composite graphs are auto-categorized into their parent graph
+			if(!GetGraph()->GetOuter()->GetClass()->IsChildOf(UK2Node_Composite::StaticClass()))
+			{
+				FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
+				TSharedPtr<SComboButton> NewComboButton;
+				TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-			const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
-			TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
+				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-			Category.AddCustomRow( TEXT("Category") )
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Text( LOCTEXT("CategoryLabel", "Category") )
-					.ToolTip(CategoryTooltip)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-				]
-			.ValueContent()
-				[
-					SAssignNew(NewComboButton, SComboButton)
-					.ContentPadding(FMargin(0,0,5,0))
-					.ToolTip(CategoryTooltip)
-					.ButtonContent()
+				Category.AddCustomRow( TEXT("Category") )
+					.NameContent()
 					[
-						SNew(SBorder)
-						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-						.Padding(FMargin(0, 0, 5, 0))
-						[
-							SNew(SEditableTextBox)
-							.Text(this, &FBlueprintGraphActionDetails::OnGetCategoryText)
-							.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
-							.ToolTip(CategoryTooltip)
-							.SelectAllTextWhenFocused(true)
-							.RevertTextOnEscape(true)
-							.Font( IDetailLayoutBuilder::GetDetailFont() )
-						]
+						SNew(STextBlock)
+						.Text( LOCTEXT("CategoryLabel", "Category") )
+						.ToolTip(CategoryTooltip)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
 					]
-					.MenuContent()
+				.ValueContent()
+					[
+						SAssignNew(NewComboButton, SComboButton)
+						.ContentPadding(FMargin(0,0,5,0))
+						.ToolTip(CategoryTooltip)
+						.ButtonContent()
 						[
-							SNew(SVerticalBox)
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							.MaxHeight(400.0f)
+							SNew(SBorder)
+							.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+							.Padding(FMargin(0, 0, 5, 0))
 							[
-								SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
-								.ListItemsSource(&CategorySource)
-								.OnGenerateRow(this, &FBlueprintGraphActionDetails::MakeCategoryViewWidget)
-								.OnSelectionChanged(this, &FBlueprintGraphActionDetails::OnCategorySelectionChanged)
+								SNew(SEditableTextBox)
+								.Text(this, &FBlueprintGraphActionDetails::OnGetCategoryText)
+								.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
+								.ToolTip(CategoryTooltip)
+								.SelectAllTextWhenFocused(true)
+								.RevertTextOnEscape(true)
+								.Font( IDetailLayoutBuilder::GetDetailFont() )
 							]
 						]
-				];
+						.MenuContent()
+							[
+								SNew(SVerticalBox)
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.MaxHeight(400.0f)
+								[
+									SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
+									.ListItemsSource(&CategorySource)
+									.OnGenerateRow(this, &FBlueprintGraphActionDetails::MakeCategoryViewWidget)
+									.OnSelectionChanged(this, &FBlueprintGraphActionDetails::OnCategorySelectionChanged)
+								]
+							]
+					];
 
-			CategoryComboButton = NewComboButton;
-			CategoryListView = NewListView;
+				CategoryComboButton = NewComboButton;
+				CategoryListView = NewListView;
+			}
 
 			if (IsAccessSpecifierVisible())
 			{
