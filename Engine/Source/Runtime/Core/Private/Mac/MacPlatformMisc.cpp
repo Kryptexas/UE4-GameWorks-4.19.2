@@ -470,13 +470,14 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 
 		while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
 		{
-			const bool bIsMouseClickEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
+			const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
 										 || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-										 || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
+										 || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
+										 || [Event type] == NSKeyDown || [Event type] == NSKeyUp;
 
 			if( MacApplication )
 			{
-				if( !bIsMouseClickEvent || [Event window] == NULL )
+				if( !bIsMouseClickOrKeyEvent || [Event window] == NULL )
 				{
 					MacApplication->ProcessEvent( Event );
 				}
