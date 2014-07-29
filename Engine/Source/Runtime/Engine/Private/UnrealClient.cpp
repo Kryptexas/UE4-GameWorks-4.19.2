@@ -1583,12 +1583,12 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 
 
 
-ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap)
+ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect /*= FIntRect()*/)
 {
 	// Read the contents of the viewport into an array.
-	if(Viewport->ReadPixels(Bitmap))
+	if (Viewport->ReadPixels(Bitmap, FReadSurfaceDataFlags(), ViewRect))
 	{
-		check(Bitmap.Num() == Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y);
+		check(Bitmap.Num() == ViewRect.Area() || (Bitmap.Num() == Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y));
 		return true;
 	}
 

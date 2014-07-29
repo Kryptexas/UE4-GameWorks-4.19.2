@@ -3844,12 +3844,44 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 {
 	if (GIsDumpingMovie || FScreenshotRequest::IsScreenshotRequested() || GIsHighResScreenshot)
 	{
+		// Default capture region is the entire viewport
+		FIntRect CaptureRect(0, 0, 0, 0);
+
+		bool bCaptureAreaValid = GetHighResScreenshotConfig().CaptureRegion.Area() > 0;
+
+		// If capture region isn't valid, we need to determine which rectangle to capture from.
+		// We need to calculate a proper view rectangle so that we can take into account camera
+		// properties, such as it being aspect ratio constrainted
+		if (GIsHighResScreenshot && !bCaptureAreaValid)
+		{
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				InViewport,
+				GetScene(),
+				EngineShowFlags)
+				.SetRealtimeUpdate(IsRealtime()));
+			auto* ViewportBak = Viewport;
+			Viewport = InViewport;
+			FSceneView* View = CalcSceneView(&ViewFamily);
+			Viewport = ViewportBak;
+			CaptureRect = View->ViewRect;
+		}
+
 		FString ScreenShotName = FScreenshotRequest::GetFilename();
 		TArray<FColor> Bitmap;
-		if( GetViewportScreenShot(InViewport, Bitmap) )
+		if (GetViewportScreenShot(InViewport, Bitmap, CaptureRect))
 		{
-			FIntPoint BitmapSize = InViewport->GetSizeXY();
-			FIntRect SourceRect = GIsHighResScreenshot ? GetHighResScreenshotConfig().CaptureRegion : FIntRect(0, 0, GScreenshotResolutionX, GScreenshotResolutionY);
+			// Determine the size of the captured viewport data.
+			FIntPoint BitmapSize = CaptureRect.Area() > 0 ? CaptureRect.Size() : InViewport->GetSizeXY();
+			
+			// Determine which region of the captured data we want to save out. If the highres screenshot capture region 
+			// is not valid, we want to save out everything in the viewrect that we just grabbed.
+			FIntRect SourceRect = FIntRect(0, 0, 0, 0);
+			if (GIsHighResScreenshot && bCaptureAreaValid)
+			{
+				// Highres screenshot capture region is valid, so use that
+				SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+			}
+
 			bool bWriteAlpha = false;
 
 			// If this is a high resolution screenshot and we are using the masking feature,
@@ -3859,6 +3891,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
 			}
 
+			// Save the bitmap to disc
 			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetTypedData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 		}
 		

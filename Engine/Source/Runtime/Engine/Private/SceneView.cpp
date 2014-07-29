@@ -1046,7 +1046,7 @@ void FSceneView::EndFinalPostprocessSettings()
 	if (Config.bDisplayCaptureRegion && !GIsHighResScreenshot)
 	{
 		// Only enable the capture region effect if the capture region is different from the view rectangle...
-		if (Config.UnscaledCaptureRegion != ViewRect && Config.UnscaledCaptureRegion.Width() != -1 && Config.UnscaledCaptureRegion.Height() != -1 && State != NULL)
+		if ((Config.UnscaledCaptureRegion != ViewRect) && (Config.UnscaledCaptureRegion.Area() > 0) && (State != NULL))
 		{
 			// ...and if this is the viewport associated with the highres screenshot UI
 			auto ConfigViewport = Config.TargetViewport.Pin();

@@ -269,8 +269,16 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	if (GIsHighResScreenshot)
 	{
 		SourceRect = GetHighResScreenshotConfig().CaptureRegion;
-		SourceRect.Min.X *= CaptureRegionScaleX;
-		SourceRect.Max.X *= CaptureRegionScaleX;
+
+		if (SourceRect.Area() > 0)
+		{
+			SourceRect = Context.View.ViewRect;
+		}
+		else
+		{
+			SourceRect.Min.X *= CaptureRegionScaleX;
+			SourceRect.Max.X *= CaptureRegionScaleX;
+		}
 	}
 	
 	FFileHelper::CreateBitmap(File, ExtendXWithMSAA, Extent.Y, Bitmap.GetTypedData(), GIsHighResScreenshot ? &SourceRect : NULL);	
@@ -554,7 +562,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 	}
 #endif
 
-	// iterate through all inputs of this pass and decrement the references for it's inputs
+	// iterate through all inputs of tghis pass and decrement the references for it's inputs
 	// this can release some intermediate RT so they can be reused
 	{
 		uint32 InputId = 0;

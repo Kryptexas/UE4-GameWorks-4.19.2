@@ -29,7 +29,7 @@ void FHighResScreenshotConfig::ChangeViewport(TWeakPtr<FSceneViewport> InViewpor
 		Viewport->Invalidate();
 	}
 
-	UnscaledCaptureRegion = FIntRect(0, 0, -1, -1);
+	UnscaledCaptureRegion = FIntRect(0, 0, 0, 0);
 	CaptureRegion = UnscaledCaptureRegion;
 	bMaskEnabled = false;
 	bDumpBufferVisualizationTargets = false;
