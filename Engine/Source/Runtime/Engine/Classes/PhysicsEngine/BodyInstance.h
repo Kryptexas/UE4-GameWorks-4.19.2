@@ -10,6 +10,7 @@
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
 struct FCollisionShape;
+struct FConstraintInstance;
 class UPhysicsConstraintComponent;
 
 #if WITH_PHYSX
