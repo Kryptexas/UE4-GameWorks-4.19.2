@@ -40,6 +40,9 @@ private:
 	/** Adds asset reference menu options to a menu builder. Returns true if any options were added. */
 	bool AddReferenceMenuOptions(FMenuBuilder& MenuBuilder);
 
+	/** Adds asset documentation menu options to a menu builder. Returns true if any options were added. */
+	bool AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder);
+
 	/** Adds asset type-specific menu options to a menu builder. Returns true if any options were added. */
 	bool AddAssetTypeMenuOptions(FMenuBuilder& MenuBuilder);
 
@@ -99,6 +102,12 @@ private:
 
 	/** Handler for ShowReferenceViewer */
 	void ExecuteShowReferenceViewer();
+
+	/** Handler for GoToAssetCode */
+	void ExecuteGoToCodeForAsset(UClass* SelectedClass);
+
+	/** Handler for GoToAssetDocs */
+	void ExecuteGoToDocsForAsset(UClass* SelectedClass);
 
 	/** Handler for CopyReference */
 	void ExecuteCopyReference();
