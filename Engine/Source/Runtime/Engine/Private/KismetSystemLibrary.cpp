@@ -7,6 +7,7 @@
 #include "InterpolateComponentToAction.h"
 #include "Advertising.h"
 #include "Online.h"
+#include "Camera/CameraActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary

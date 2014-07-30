@@ -4,6 +4,7 @@
 #include "Engine/Console.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/WorldComposition.h"
+#include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/NetworkPredictionInterface.h"

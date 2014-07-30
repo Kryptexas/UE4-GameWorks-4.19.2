@@ -9,6 +9,7 @@
 #include "StaticMeshResources.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Engine/StaticMeshActor.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"
 

@@ -6,6 +6,7 @@ Level.cpp: Level-related functions
 
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"
 #include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
@@ -16,6 +17,7 @@ Level.cpp: Level-related functions
 #include "TickTaskManagerInterface.h"
 #include "BlueprintUtilities.h"
 #include "DynamicMeshBuilder.h"
+#include "Engine/LevelBounds.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

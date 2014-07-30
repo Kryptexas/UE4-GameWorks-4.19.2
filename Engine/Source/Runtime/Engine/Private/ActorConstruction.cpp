@@ -5,6 +5,7 @@
 #include "LatentActions.h"
 #include "DeferRegisterComponents.h"
 #include "ComponentInstanceDataCache.h"
+#include "Engine/LevelScriptActor.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

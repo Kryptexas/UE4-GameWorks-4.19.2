@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ActorComponent.h"
+#include "Components/ActorComponent.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */

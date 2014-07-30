@@ -47,6 +47,7 @@
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"

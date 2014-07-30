@@ -18,24 +18,6 @@
 class FPrimitiveSceneProxy;
 class AController; 
 
-/** Information about a vertex of a primitive's triangle. */
-struct FPrimitiveTriangleVertex
-{
-	FVector WorldPosition;
-	FVector WorldTangentX;
-	FVector WorldTangentY;
-	FVector WorldTangentZ;
-};
-
-/** An interface to some consumer of the primitive's triangles. */
-class FPrimitiveTriangleDefinitionInterface
-{
-public:
-
-	/** Defines a triangle by its vertices. */
-	virtual void DefineTriangle(const TStaticArray<FPrimitiveTriangleVertex,3>& InVertices,const UMaterialInterface* Material) = 0;
-};
-
 /** Information about a streaming texture that a primitive uses for rendering. */
 struct FStreamingTexturePrimitiveInfo
 {
@@ -43,8 +25,6 @@ struct FStreamingTexturePrimitiveInfo
 	FSphere Bounds;
 	float TexelFactor;
 };
-
-
 
 UENUM()
 enum ECanBeCharacterBase
@@ -73,8 +53,6 @@ namespace EHasCustomNavigableGeometry
 		EvenIfNotCollidable,
 	};
 };
-
-
 
 /** Information about the sprite category */
 USTRUCT()

@@ -7,7 +7,7 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
-
+#include "PhysicsEngine/DestructibleActor.h"
 
 ADestructibleActor::ADestructibleActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

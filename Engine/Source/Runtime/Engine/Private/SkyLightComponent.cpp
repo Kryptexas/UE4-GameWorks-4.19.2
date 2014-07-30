@@ -8,6 +8,7 @@
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
+#include "Engine/SkyLight.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Net/UnrealNetwork.h"

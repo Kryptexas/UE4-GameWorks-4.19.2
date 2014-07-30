@@ -5,7 +5,6 @@
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_AssetUserData.h"
-
 #include "ActorComponent.generated.h"
 
 UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))

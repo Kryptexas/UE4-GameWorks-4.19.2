@@ -5,7 +5,7 @@
 /**
  * GeneratedMeshAreaLight - A light type that is created after a lighting build with Lightmass and handles mesh area light influence on dynamic objects.
  */
-
+#include "Engine/SpotLight.h"
 #include "GeneratedMeshAreaLight.generated.h"
 
 UCLASS(notplaceable, MinimalAPI)

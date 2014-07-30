@@ -13,19 +13,6 @@ struct FHitResult;
 class AActor;
 class FTimerManager; 
 
-UENUM(BlueprintType)
-namespace EEndPlayReason
-{
-	enum Type
-	{
-		ActorDestroyed,		// When the Actor is explicitly destroyed
-		LevelTransition,	// When the world is being unloaded for a level transition
-		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
-		RemovedFromWorld,	// When the level it is a member of is streamed out
-	};
-
-}
-
 #include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
@@ -56,15 +43,15 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATG
 
 /**
  * Base class for an object that can be placed or spawned in a level. Actors may contain a collection of Components, and support network replication.
-*
-* The functions of interest to initialization order for an Actor is roughly as follows:
-* PostLoad/PostActorCreated - Do any setup of the actor required for construction. PostLoad for serialized actors, PostActorCreated for spawned.  
-* AActor::OnConstruction - The construction of the actor, this is where Blueprint actors have their components created and blueprint variables are initialized
-* AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components
-* UActorComponent::InitializeComponent - Each component in the actor's components array gets an initialize call (if bWantsInitializeComponent is true for that component)
-* AActor::PostInitializeComponents - Called after the actor's components have been initialized
-* AActor::BeginPlay - Called when the level is started
-*/
+ *
+ * The functions of interest to initialization order for an Actor is roughly as follners:
+ * PostLoad/PostActorCreated - Do any setup of the actor required for construction. PostLoad for serialized actors, PostActorCreated for spawned.  
+ * AActor::OnConstruction - The construction of the actor, this is where Blueprint actors have their components created and blueprint variables are initialized
+ * AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components
+ * UActorComponent::InitializeComponent - Each component in the actor's components array gets an initialize call (if bWantsInitializeComponent is true for that component)
+ * AActor::PostInitializeComponents - Called after the actor's components have been initialized
+ * AActor::BeginPlay - Called when the level is started
+ */
 UCLASS(abstract, BlueprintType, Blueprintable, config=Engine)
 class ENGINE_API AActor : public UObject
 {
@@ -363,13 +350,6 @@ public:
 	/** Prevent the actor from being moved in the editor. */
 	UPROPERTY()
 	uint32 bLockLocation:1;
-
-	// Actor's layer name.
-	UPROPERTY()
-	FName Layer_DEPRECATED;
-
-	UPROPERTY()
-	FName Group_DEPRECATED;
 
 	/** The group this actor is a part of. */
 	UPROPERTY(transient)

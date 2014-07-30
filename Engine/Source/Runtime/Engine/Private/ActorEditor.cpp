@@ -10,6 +10,7 @@
 #include "Foliage/InstancedFoliageActor.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeComponent.h"
+#include "Engine/LevelBounds.h"
 
 #if WITH_EDITOR
 

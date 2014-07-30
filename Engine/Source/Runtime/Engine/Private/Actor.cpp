@@ -441,21 +441,6 @@ void AActor::PostLoad()
 		{
 			UE_LOG(LogActor, Log,  TEXT("Loaded Actor (%s) with IsPendingKill() == true"), *GetName() );
 		}
-
-		// Move the old layers information into the new layers system
-		TArray< FString > OldLayerNames; 
-		Layer_DEPRECATED.ToString().ParseIntoArray( &OldLayerNames, TEXT(","), 0 );
-
-		for( int NameIndex = 0; NameIndex < OldLayerNames.Num(); ++NameIndex )
-		{
-			const FString& Name = OldLayerNames[ NameIndex ];
-			if( Name != TEXT( "None" ) )
-			{
-				Layers.AddUnique( FName( *Name ) );
-			}
-		}
-
-		Layer_DEPRECATED = FName( NAME_None ); 
 #endif // WITH_EDITORONLY_DATA
 	}
 }

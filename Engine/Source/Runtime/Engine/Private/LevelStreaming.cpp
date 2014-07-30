@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelBounds.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
 	#include "Slate.h"

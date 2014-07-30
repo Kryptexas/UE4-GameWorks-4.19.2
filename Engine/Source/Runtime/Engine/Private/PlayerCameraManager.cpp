@@ -6,6 +6,8 @@
 #include "Particles/EmitterCameraLensEffectBase.h"
 #include "IHeadMountedDisplay.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
+#include "Camera/CameraActor.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
 

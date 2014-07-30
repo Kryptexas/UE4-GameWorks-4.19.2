@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/Console.h"
@@ -32,6 +33,7 @@
 #include "PhysicsPublic.h"
 #include "AI/AISystemBase.h"
 #include "SceneInterface.h"
+#include "Camera/CameraActor.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"

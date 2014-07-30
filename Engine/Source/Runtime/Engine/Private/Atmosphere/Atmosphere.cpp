@@ -4,6 +4,7 @@
 #include "../../../Renderer/Private/ScenePrivate.h"
 #include "Atmosphere.h"
 #include "ComponentInstanceDataCache.h"
+#include "Atmosphere/AtmosphericFog.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
