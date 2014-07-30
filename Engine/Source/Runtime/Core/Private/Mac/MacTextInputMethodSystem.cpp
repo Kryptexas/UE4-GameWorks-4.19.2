@@ -405,12 +405,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 		const float PrimaryScreenHeight = [PrimaryScreen visibleFrame].size.height;
 		Position.Y = -(Position.Y - PrimaryScreenHeight + 1);
 		
-		NSRect GlyphBox = {Position.X,Position.Y,Size.X,Size.Y};
+		NSRect GlyphBox = {{Position.X,Position.Y},{Size.X,Size.Y}};
 		return GlyphBox;
 	}
 	else
 	{
-		NSRect GlyphBox = {0,0,0,0};
+		NSRect GlyphBox = {{0,0},{0,0}};
 		return GlyphBox;
 	}
 }

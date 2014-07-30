@@ -20,10 +20,11 @@ public:
 
 	// Constructor.
 	FFeedbackContextMac()
-	: FFeedbackContext()
-	, SlowTaskCount( 0 )
-	, Context( NULL )
+		: FFeedbackContext()
+		, Context( NULL )
+		, SlowTaskCount( 0 )
 	{}
+
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 	{
 		// if we set the color for warnings or errors, then reset at the end of the function
@@ -73,30 +74,10 @@ public:
 			Serialize(COLOR_NONE, ELogVerbosity::SetColor, Category);
 		}
 	}
-	VARARG_BODY( bool, YesNof, const TCHAR*, VARARG_NONE )
+
+	bool YesNof( const FText& Question )
 	{
-		TCHAR TempStr[4096];
-		GET_VARARGS( TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr)-1, Fmt, Fmt );
-		if( ( GIsClient || GIsEditor ) && ( ( GIsSilent != true ) && ( FApp::IsUnattended() != true ) ) )
-		{
-			CFStringRef Message = FPlatformString::TCHARToCFString( TempStr );
-			CFStringRef Caption = FPlatformString::TCHARToCFString( *NSLOCTEXT( "UnrealEd", "Question", "Question" ).ToString() );
-			CFStringRef Yes     = FPlatformString::TCHARToCFString( *NSLOCTEXT( "UnrealEd", "Yes",      "Yes"      ).ToString() );
-			CFStringRef No      = FPlatformString::TCHARToCFString( *NSLOCTEXT( "UnrealEd", "No",       "No"       ).ToString() );
-
-			int32 Result = NSRunInformationalAlertPanel( (NSString*)Caption, (NSString*)Message, (NSString*)Yes, (NSString*)No, NULL );
-
-			CFRelease( No );
-			CFRelease( Yes );
-			CFRelease( Caption );
-			CFRelease( Message );
-
-			return Result != 0;
-		}
-		else
-		{
-			return false;
-		}
+		return FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *Question.ToString(), TEXT("")) == EAppReturnType::Yes;
 	}
 
 	void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )

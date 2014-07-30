@@ -112,40 +112,35 @@ void FOutputDeviceMacError::HandleError()
 	// Trigger the OnSystemFailure hook if it exists
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
-	try
-	{
-		GIsGuarded				= 0;
-		GIsRunning				= 0;
-		GIsCriticalError		= 1;
-		GLogConsole				= NULL;
-		GErrorHist[ARRAY_COUNT(GErrorHist)-1]=0;
+	GIsGuarded				= 0;
+	GIsRunning				= 0;
+	GIsCriticalError		= 1;
+	GLogConsole				= NULL;
+	GErrorHist[ARRAY_COUNT(GErrorHist)-1]=0;
 
-		// Dump the error and flush the log.
-		UE_LOG(LogMac, Log, TEXT("=== Critical error: ===") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR, GErrorExceptionDescription);
-		UE_LOG(LogMac, Log, GErrorHist);
+	// Dump the error and flush the log.
+	UE_LOG(LogMac, Log, TEXT("=== Critical error: ===") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR, GErrorExceptionDescription);
+	UE_LOG(LogMac, Log, GErrorHist);
 
-		GLog->Flush();
+	GLog->Flush();
 
-		// Unhide the mouse.
-		// @TODO: Remove usage of deprecated CGCursorIsVisible function
+	// Unhide the mouse.
+	// @TODO: Remove usage of deprecated CGCursorIsVisible function
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		while (!CGCursorIsVisible())
-		{
-			CGDisplayShowCursor(kCGDirectMainDisplay);
-		}
-#pragma clang diagnostic pop
-		// Release capture and allow mouse to freely roam around.
-		CGAssociateMouseAndMouseCursorPosition(true);
-
-		FPlatformMisc::ClipboardCopy(GErrorHist);
-
-		FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
-
-		FCoreDelegates::OnShutdownAfterError.Broadcast();
+	while (!CGCursorIsVisible())
+	{
+		CGDisplayShowCursor(kCGDirectMainDisplay);
 	}
-	catch( ... )
-	{}
+#pragma clang diagnostic pop
+	// Release capture and allow mouse to freely roam around.
+	CGAssociateMouseAndMouseCursorPosition(true);
+
+	FPlatformMisc::ClipboardCopy(GErrorHist);
+
+	FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
+
+	FCoreDelegates::OnShutdownAfterError.Broadcast();
 }
 
 ////////////////////////////////////////

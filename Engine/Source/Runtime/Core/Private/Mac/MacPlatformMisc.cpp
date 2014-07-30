@@ -960,7 +960,7 @@ int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
 	NSArray* AllScreens = [NSScreen screens];
 	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
 	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect WholeWorkspace = {0};
+	NSRect WholeWorkspace = {{0,0},{0,0}};
 	for(NSScreen* Screen in AllScreens)
 	{
 		if(Screen)

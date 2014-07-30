@@ -892,7 +892,7 @@ void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) co
 	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
 
 	// Virtual desktop area
-	NSRect WholeWorkspace = {0};
+	NSRect WholeWorkspace = {{0,0},{0,0}};
 	for (NSScreen* Screen in AllScreens)
 	{
 		if (Screen)

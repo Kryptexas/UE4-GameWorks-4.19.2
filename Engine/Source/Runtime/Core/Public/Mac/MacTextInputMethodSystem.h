@@ -96,6 +96,7 @@ class FSlateTextView;
 class FMacTextInputMethodSystem : public ITextInputMethodSystem
 {
 public:
+	virtual ~FMacTextInputMethodSystem() {}
 	bool Initialize();
 	void Terminate();
 	

@@ -29,7 +29,10 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	{
 		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
 		struct kinfo_proc Info = { 0 };
+#pragma clang diagnostic pop
 		int32 Mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
 		SIZE_T Size = sizeof(Info);
 

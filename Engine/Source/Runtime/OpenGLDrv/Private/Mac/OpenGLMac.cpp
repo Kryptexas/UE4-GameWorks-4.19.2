@@ -1498,13 +1498,13 @@ void FMacOpenGLTimer::CacheResult(void)
 }
 
 FMacOpenGLQuery::FMacOpenGLQuery(FPlatformOpenGLContext* InContext)
-: Context(InContext)
-, Name(0)
-, Target(0)
-, Result(0)
-, Available(0)
-, Running(0)
-, Cached(false)
+	: Name(0)
+	, Target(0)
+	, Context(InContext)
+	, Result(0)
+	, Available(0)
+	, Running(0)
+	, Cached(false)
 {
 	check(Context);
 }

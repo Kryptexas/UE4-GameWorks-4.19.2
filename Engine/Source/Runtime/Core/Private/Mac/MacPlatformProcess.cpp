@@ -210,10 +210,6 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 			NSBundle* Bundle = [NSBundle bundleWithPath:LaunchPath];
 			LaunchPath = Bundle ? [Bundle executablePath] : NULL;
 		}
-		else
-		{
-			LaunchPath = LaunchPath;
-		}
 	}
 	else
 	{
@@ -339,10 +335,6 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 		{
 			NSBundle* Bundle = [NSBundle bundleWithPath:LaunchPath];
 			LaunchPath = Bundle ? [Bundle executablePath] : NULL;
-		}
-		else
-		{
-			LaunchPath = LaunchPath;
 		}
 	}
 	else

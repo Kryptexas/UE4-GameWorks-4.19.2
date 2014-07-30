@@ -223,7 +223,7 @@ struct FGraphNodeCreator
 {
 public:
 	FGraphNodeCreator(UEdGraph& InGraph)
-		: bPlaced(false), Graph(InGraph), Node(NULL)
+		: Node(NULL), Graph(InGraph), bPlaced(false)
 	{
 	}
 

@@ -786,8 +786,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 FMacWindow::FMacWindow()
 	: WindowHandle(NULL)
+	, WindowMode(EWindowMode::Windowed)
 	, bIsVisible(false)
-	, WindowMode( EWindowMode::Windowed )
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
 }

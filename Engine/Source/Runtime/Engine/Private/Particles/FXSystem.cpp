@@ -141,10 +141,10 @@ namespace FXConsoleVariables
 
 FFXSystem::FFXSystem(ERHIFeatureLevel::Type InFeatureLevel)
 	: ParticleSimulationResources(NULL)
+	, FeatureLevel(InFeatureLevel)
 #if WITH_EDITOR
 	, bSuspended(false)
 #endif // #if WITH_EDITOR
-	, FeatureLevel(InFeatureLevel)
 {
 	InitGPUSimulation();
 }
