@@ -42,14 +42,14 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 	void FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor);
 
 
-
 protected:
 
 	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 
 	void Cleanup();
 
-	TWeakObjectPtr<AActor>	MySpawnedTargetActor;
+	/** The TargetActor that we spawned, or the class CDO if this is a static targeting task */
+	TWeakObjectPtr<AGameplayAbilityTargetActor>	MyTargetActor;
 };
 
 

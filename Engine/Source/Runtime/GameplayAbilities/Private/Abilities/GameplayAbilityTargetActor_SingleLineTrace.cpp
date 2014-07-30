@@ -30,42 +30,43 @@ void AGameplayAbilityTargetActor_SingleLineTrace::GetLifetimeReplicatedProps(TAr
 }
 
 
-FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *SourceActor)
+FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InSourceActor) const
 {
 	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_SingleLineTrace"));
 	bool bTraceComplex = false;
 	TArray<AActor*> ActorsToIgnore;
 
-	ActorsToIgnore.Add(SourceActor);
+	ActorsToIgnore.Add(InSourceActor);
 
 	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
-	FVector TraceStart = SourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (SourceActor->GetActorForwardVector() * 3000.f);
+	FVector TraceStart = InSourceActor->GetActorLocation();
+	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * 3000.f);
 
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
-	SourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
+	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
 	return ReturnHitResult;
 }
 
-FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo)
+FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	SourceActor = ActorInfo->Actor.Get();
-	check(SourceActor.Get());
+	AActor* StaticSourceActor = ActorInfo->Actor.Get();
+	check(StaticSourceActor);
 
 	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-	ReturnData->HitResult = PerformTrace(SourceActor.Get());
+	ReturnData->HitResult = PerformTrace(StaticSourceActor);
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbility* InAbility)
 {
 	Ability = InAbility;
+	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
 
 	// We can bind directly to our ASC's confirm/cancel events, or wait to be told from an outside source to confirm or cancel
 	if (bBindToConfirmCancelInputs)
@@ -105,26 +106,17 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 	FGameplayAbilityTargetDataHandle Handle;
 	FHitResult HitResult;
 
-	/** Temp: Do a trace wiuth bDebug=true to draw a cheap "preview" */
-	if (Ability.IsValid())
-	{
-		Handle = StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
-		HitResult = *Handle.Data->GetHitResult();
-	}
-
 	// very temp - do a mostly hardcoded trace from the source actor
-	if (SourceActor.Get())
+	if (SourceActor)
 	{
-		if (!Ability.IsValid())
-		{
-			HitResult = PerformTrace(SourceActor.Get());
-		}
+		HitResult = PerformTrace(SourceActor);
+		
 		if (bDebug)
 		{
 			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), HitResult.ImpactPoint, FLinearColor::Green, false);
 			DrawDebugSphere(GetWorld(), HitResult.Location, 16, 10, FLinearColor::Green, false);
 		}
-		SetActorLocationAndRotation(HitResult.Location, SourceActor.Get()->GetActorRotation());
+		SetActorLocationAndRotation(HitResult.Location, SourceActor->GetActorRotation());
 	}
 }
 

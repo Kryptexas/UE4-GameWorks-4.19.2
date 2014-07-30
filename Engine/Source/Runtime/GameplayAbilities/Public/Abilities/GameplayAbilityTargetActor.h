@@ -4,6 +4,7 @@
 #include "GameplayAbility.h"
 #include "GameplayAbilityTargetActor.generated.h"
 
+
 UCLASS(Blueprintable, abstract)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor : public AActor
 {
@@ -11,17 +12,13 @@ class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor : public AActor
 
 public:
 
-	/** Native classes can set this to call the non-blueprintable  */
+	/** Native classes can set this to call StaticGetTargetData to instantly get TargetData, instead of instantiating the GameplayTargetActor and calling StartTargeting. */
 	UPROPERTY()
-	bool	StaticTargetFunction;
+	bool StaticTargetFunction;
 
-	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) { return FGameplayAbilityTargetDataHandle(); }
-
-	/** Otherwise, the actor will be instantiated and call the blueprintable function GetTargetData */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Targeting")
-	FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, FGameplayAbilityActorInfo ActorInfo, FGameplayAbilityActivationInfo ActivationInfo);
-
+	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const;
 	
+	/** Initialize and begin targeting logic  */
 	virtual void StartTargeting(UGameplayAbility* Ability);
 
 	/** Outside code is saying 'stop and just give me what you have' */
@@ -30,13 +27,19 @@ public:
 	/** Outside code is saying 'stop everything and just forget about it' */
 	virtual void CancelTargeting();
 
+	/** Replicated target data was received from a client. Possibly sanitize/verify. return true if data is good and we should broadcast it as valid data. */
+	virtual bool OnReplicatedTargetDataReceived(FGameplayAbilityTargetDataHandle& Data) const;
+
+	/** Accessor for checking, before instantiating, if this TargetActor will replicate. */
+	bool GetReplicates() const;
+
 	// ------------------------------
 	
 	FAbilityTargetData	TargetDataReadyDelegate;
 	FAbilityTargetData	CanceledDelegate;
 
-	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation);
+	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
 
-	UPROPERTY(BlueprintReadOnly, Category = Ability)
-	TWeakObjectPtr<APlayerController> MasterPC;
+	UPROPERTY(BlueprintReadOnly, Category="Targeting")
+	APlayerController* MasterPC;
 };

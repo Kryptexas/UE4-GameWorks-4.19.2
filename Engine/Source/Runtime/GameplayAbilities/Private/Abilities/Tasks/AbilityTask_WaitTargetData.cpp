@@ -25,21 +25,28 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 {
 	SpawnedActor = nullptr;
 
-	if (Ability.IsValid())
+	UGameplayAbility* MyAbility = Ability.Get();
+	if (MyAbility)
 	{
-		bool bSpawnLocalVersion = false;
+		const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
+		MyTargetActor = CDO;
 
-		bSpawnLocalVersion |= (Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled() && (Ability.Get()->GetNetExecutionPolicy() != EGameplayAbilityNetExecutionPolicy::Server));
-		bSpawnLocalVersion |= (Ability.Get()->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive);
+		bool Replicates = CDO->GetReplicates();
+		bool StaticFunc = CDO->StaticTargetFunction;
 
-		if (bSpawnLocalVersion)
+		if (Replicates && StaticFunc)
 		{
-			// Locally controlled - spawn the targeting actor.
-			AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
-			if (CDO->StaticTargetFunction)
+			ABILITY_LOG(Fatal, TEXT("AbilityTargetActor class %s can't be Replicating and Static"), *TargetClass->GetName());
+			Replicates = false;
+		}
+
+		// Spawn the actor if this is a locally controlled ability (always) or if this is a replicated targeting mode.
+		if (Replicates || MyAbility->GetCurrentActorInfo()->IsLocallyControlled())
+		{
+			if (StaticFunc)
 			{
 				// This is just a static function that should instantly give us back target data
-				FGameplayAbilityTargetDataHandle Data = CDO->StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
+				FGameplayAbilityTargetDataHandle Data = CDO->StaticGetTargetData(MyAbility->GetWorld(), MyAbility->GetCurrentActorInfo(), MyAbility->GetCurrentActivationInfo());
 				OnTargetDataReadyCallback(Data);
 			}
 			else
@@ -54,12 +61,12 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 				SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
 				SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
 
-				MySpawnedTargetActor = SpawnedActor;
+				MyTargetActor = SpawnedActor;
 
 				AGameplayAbilityTargetActor* TargetActor = CastChecked<AGameplayAbilityTargetActor>(SpawnedActor);
 				if (TargetActor)
 				{
-					TargetActor->MasterPC = Ability.Get()->GetCurrentActorInfo()->PlayerController.Get();
+					TargetActor->MasterPC = MyAbility->GetCurrentActorInfo()->PlayerController.Get();
 				}
 			}
 		}
@@ -87,7 +94,7 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 {
 	if (SpawnedActor)
 	{
-		check(MySpawnedTargetActor == SpawnedActor);
+		check(MyTargetActor == SpawnedActor);
 
 		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
 
@@ -109,7 +116,23 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 {
 	check(AbilitySystemComponent.IsValid());
 
-	ValidData.Broadcast(Data);
+	/** 
+	 *  Call into the TargetActor to sanitize/verify the data. If this returns false, we are rejecting
+	 *	the replicated target data and will treat this as a cancel.
+	 *	
+	 *	This can also be used for bandwidth optimizations. OnReplicatedTargetDataReceived could do an actual
+	 *	trace/check/whatever server side and use that data. So rather than having the client send that data
+	 *	explicitly, the client is basically just sending a 'confirm' and the server is now going to do the work
+	 *	in OnReplicatedTargetDataReceived.
+	 */
+	if (MyTargetActor.IsValid() && !MyTargetActor->OnReplicatedTargetDataReceived(Data))
+	{
+		Cancelled.Broadcast(Data);
+	}
+	else
+	{
+		ValidData.Broadcast(Data);
+	}
 
 	Cleanup();
 }
@@ -154,9 +177,9 @@ void UAbilityTask_WaitTargetData::Cleanup()
 	AbilitySystemComponent->ReplicatedTargetDataDelegate.RemoveUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
 	AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.RemoveDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 
-	if (MySpawnedTargetActor.IsValid())
+	if (MyTargetActor.IsValid() && !MyTargetActor->HasAnyFlags(RF_ClassDefaultObject))
 	{
-		MySpawnedTargetActor->Destroy();
+		MyTargetActor->Destroy();
 	}
 
 	MarkPendingKill();

@@ -33,5 +33,25 @@ void AGameplayAbilityTargetActor::CancelTargeting()
 bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
 {
 	//The player who created the ability doesn't need to be updated about it - there should be local prediction in place.
-	return (RealViewer == MasterPC) ? false : Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+	if (RealViewer == MasterPC)
+	{
+		return false;
+	}
+
+	return Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+}
+
+bool AGameplayAbilityTargetActor::GetReplicates() const
+{
+	return bReplicates;
+}
+
+FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	return FGameplayAbilityTargetDataHandle();
+}
+
+bool AGameplayAbilityTargetActor::OnReplicatedTargetDataReceived(FGameplayAbilityTargetDataHandle& Data) const
+{
+	return true;
 }
