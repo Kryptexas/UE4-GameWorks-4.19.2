@@ -124,6 +124,23 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 	}
 }
 
+
+FString FIOSPlatformMisc::GetDefaultLocale()
+{
+	CFLocaleRef loc = CFLocaleCopyCurrent();
+    
+	TCHAR langCode[20];
+	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
+	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
+	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
+    
+	TCHAR countryCode[20];
+	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
+	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
+    
+	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+}
+
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
 	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);

@@ -87,6 +87,7 @@ public class ICU : ModuleRules
             }
 		}
 		else if ((Target.Platform == UnrealTargetPlatform.Mac) ||
+            (Target.Platform == UnrealTargetPlatform.IOS) ||
 			(Target.Platform == UnrealTargetPlatform.Linux))
 		{
             string StaticLibraryExtension = "a";
@@ -138,7 +139,7 @@ public class ICU : ModuleRules
                             PublicDelayLoadDLLs.Add(LibraryPath);
                             PublicAdditionalShadowFiles.Add(LibraryPath);
                         }
-                        else
+                        else if (Target.Platform == UnrealTargetPlatform.Linux)
                         {
                             string LibraryName = "icu" + Stem + LibraryNamePostfix;
                             string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
