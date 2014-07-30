@@ -841,4 +841,28 @@ private:
 	 */
 	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
 	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
+
+	// Animation update rate control.
+public:
+	/** Animation Update Rate optimization parameters. */
+	UPROPERTY(Transient)
+	struct FAnimUpdateRateParameters AnimUpdateRateParams;
+
+	/** Unique Tag assigned to spread updates of SkinnedMeshes over time. */
+	UPROPERTY(Transient)
+	uint32 AnimUpdateRateShiftTag;
+
+	/** Frame counter to call AnimUpdateRateTick() just once per frame. */
+	UPROPERTY(Transient)
+	uint32 AnimUpdateRateFrameCount;
+
+	/** Aimation Update Rate Tick. */
+	void AnimUpdateRateTick();
+
+	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
+	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
+	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
+	void AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion);
+
+	virtual bool IsPlayingRootMotion(){ return false; }
 };

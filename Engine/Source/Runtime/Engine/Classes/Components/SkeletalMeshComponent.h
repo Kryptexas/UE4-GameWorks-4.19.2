@@ -812,6 +812,9 @@ public:
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset,bool bForceReInit = false) override;
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) override;
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
+
+	virtual bool IsPlayingRootMotion() override;
+
 	// End USkinnedMeshComponent interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
