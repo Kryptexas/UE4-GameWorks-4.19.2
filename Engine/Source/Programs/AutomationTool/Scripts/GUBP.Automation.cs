@@ -1510,7 +1510,7 @@ public class GUBP : BuildCommand
 				var PlatformDir = TargetPlatform.ToString();
 				if (TargetPlatform == UnrealTargetPlatform.Android)
 				{
-					PlatformDir = "Android-armv7";
+					PlatformDir = "Android/-armv7";
 				}
 				foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir, "Inc")))
 				{
