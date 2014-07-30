@@ -363,17 +363,28 @@ void EncodeGBuffer(
 #if DIFFUSE_SPEC_INPUTS
 		OutGBufferB.rgb = EncodeSpecularColor(GBuffer.SpecularColor);
 		OutGBufferC.rgb = EncodeDiffuseColor(GBuffer.DiffuseColor);
+
+		if (bSubsurface)
+		{
+			// Only Fortnite uses DIFFUSE_SPEC_INPUTS which doesn't have IndirectIrradiance, GBufferAO is lost
+			OutGBufferC.a = GBuffer.Opacity;
+		}
+		else
+		{
+			// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
+			OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
+		}
 #else
 		// NOTE OutGBufferB.b is currently unused!
 		OutGBufferB.r = bSubsurface ? GBuffer.Opacity : GBuffer.Metallic;
 		OutGBufferB.g = GBuffer.Specular;
 		OutGBufferB.b = 0;
 		OutGBufferC.rgb = EncodeBaseColor(GBuffer.BaseColor);
-#endif
-		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
 
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
-		OutGBufferC.a = EncodeIndirectIrradiance( GBuffer.IndirectIrradiance * GBuffer.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
+		OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
+#endif
+		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
 
 		// Roughness in OutGBufferD.r instead of OutGBufferB.a so that deferred decals can blend in roughness while using MRT
 		OutGBufferD.r = GBuffer.Roughness;
@@ -417,6 +428,7 @@ FGBufferData DecodeGBufferData(
 
 	GBuffer.DiffuseColor = DecodeDiffuseColor(InGBufferC.rgb);
 	GBuffer.SpecularColor = DecodeSpecularColor(InGBufferB.rgb);
+	GBuffer.Opacity = bSubsurface ? InGBufferC.a : 0;
 #else
 	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
 	GBuffer.Metallic = bSubsurface ? 0 : InGBufferB.r;
@@ -433,10 +445,9 @@ FGBufferData DecodeGBufferData(
 		GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 	#endif //COMPILE_SHADERS_FOR_DEVELOPMENT == 1
-
+	GBuffer.Opacity = bSubsurface ? InGBufferB.r : 0;
 #endif
 
-	GBuffer.Opacity = bSubsurface ? InGBufferB.r : 0;
 	
 	GBuffer.Roughness = InGBufferD.r;
 	GBuffer.CustomData = InGBufferD.gba;
