@@ -1391,10 +1391,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				GPlayInEditorID = -1;
 			}
 		}
-
-		// Update resource streaming after both regular Editor viewports and PIE had a chance to add viewers.
-		IStreamingManager::Get().Tick( DeltaSeconds );
 	}
+
+	// Update resource streaming after both regular Editor viewports and PIE had a chance to add viewers.
+	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
 	if (GetAudioDevice())
