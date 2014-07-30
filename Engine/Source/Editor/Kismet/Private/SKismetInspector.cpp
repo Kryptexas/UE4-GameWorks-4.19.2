@@ -36,7 +36,6 @@ public:
 TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
 	TSharedRef< SVerticalBox > ContextualEditingWidget = SNew( SVerticalBox );
-	TSharedPtr<SMyBlueprint> MyBlueprintWidget = Kismet2Ptr.Pin()->GetMyBlueprintWidget();
 
 	if(bShowTitleArea)
 	{
@@ -210,7 +209,7 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	PropertyView->SetIsPropertyEditingEnabledDelegate(InArgs._IsPropertyEditingEnabledDelegate);
 	PropertyView->OnFinishedChangingProperties().Add( InArgs._OnFinishedChangingProperties );
 	
-	if (Kismet2->IsEditingSingleBlueprint())
+	if (Kismet2.IsValid() && Kismet2->IsEditingSingleBlueprint())
 	{
 		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDelegateActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
 		PropertyView->RegisterInstancedCustomPropertyLayout(UMulticastDelegateProperty::StaticClass(), LayoutDelegateDetails);

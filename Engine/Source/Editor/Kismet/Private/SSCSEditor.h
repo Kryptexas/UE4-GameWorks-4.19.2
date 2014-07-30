@@ -376,7 +376,7 @@ public:
 	SLATE_BEGIN_ARGS( SSCSEditor ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint );
+	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint, TSharedPtr<class SKismetInspector> Inspector = TSharedPtr<class SKismetInspector>() );
 
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -564,6 +564,9 @@ public:
 
 	/** Pointer back to owning Kismet 2 tool */
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
+
+	/** Pointer back to companion inspector tool */
+	TWeakPtr<class SKismetInspector> KismetInspectorPtr;
 
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;

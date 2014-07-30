@@ -7,6 +7,7 @@
 #include "BlueprintEditorModes.h"
 #include "BlueprintUtilities.h"
 #include "Editor/Kismet/Public/SBlueprintEditorToolbar.h"
+#include "Editor/Kismet/Public/SKismetInspector.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
@@ -463,7 +464,21 @@ static TSharedRef<SWidget> GenerateCDODiff( UBlueprint const* BaseBlueprint, UBl
 
 static TSharedRef<SWidget> GenerateComponentsDiff( UBlueprint const* BaseBlueprint, UBlueprint const* DisplayedBlueprint )
 {
-	return SNew(SSCSEditor, TSharedPtr<FBlueprintEditor>(), DisplayedBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(DisplayedBlueprint) );
+	TSharedRef<SKismetInspector> Inspector = SNew(SKismetInspector)
+		.HideNameArea(true)
+		.ViewIdentifier(FName("BlueprintInspector"))
+		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
+
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SSCSEditor, TSharedPtr<FBlueprintEditor>(), DisplayedBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(DisplayedBlueprint), Inspector )
+		]
+		+ SVerticalBox::Slot()
+		[
+			Inspector
+		];
 }
 
 //////////////////////////////////////////////////////////////////////////

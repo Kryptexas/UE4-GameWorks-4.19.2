@@ -1903,9 +1903,10 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 // SSCSEditor
 
 
-void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint )
+void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint, TSharedPtr<SKismetInspector> Inspector )
 {
 	Kismet2Ptr = InKismet2;
+	KismetInspectorPtr = Inspector.IsValid() ? Inspector : InKismet2->GetInspector();
 	SCS = InSCS;
 	Blueprint = InBlueprint;
 
@@ -2589,9 +2590,9 @@ void SSCSEditor::ClearSelection()
 	check(SCSTreeWidget.IsValid());
 	SCSTreeWidget->ClearSelection();
 	
-	if( Kismet2Ptr.IsValid() )
+	if( KismetInspectorPtr.IsValid() )
 	{
-		Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(TArray<UObject*>());
+		KismetInspectorPtr.Pin()->ShowDetailsForObjects(TArray<UObject*>());
 	}
 }
 
@@ -2988,10 +2989,10 @@ void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType
 	}
 
 	// Update the details panel
-	if( Kismet2Ptr.IsValid() )
+	if (KismetInspectorPtr.IsValid())
 	{
 		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-		Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+		KismetInspectorPtr.Pin()->ShowDetailsForObjects(InspectorObjects, Options);
 	}
 }
 
