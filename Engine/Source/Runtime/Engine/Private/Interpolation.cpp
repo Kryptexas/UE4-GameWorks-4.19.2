@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelScriptActor.h"
 #include "Matinee/MatineeActorCameraAnim.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackInstProperty.h"

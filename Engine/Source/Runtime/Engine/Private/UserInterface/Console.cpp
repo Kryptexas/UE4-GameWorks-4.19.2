@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
+#include "Engine/LevelScriptActor.h"
 #include "Slate.h"
 #include "DefaultValueHelper.h"
 

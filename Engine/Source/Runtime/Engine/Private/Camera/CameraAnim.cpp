@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "Camera/CameraActor.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroup.h"
