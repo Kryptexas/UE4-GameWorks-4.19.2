@@ -24,6 +24,7 @@ Level.cpp: Level-related functions
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 DEFINE_LOG_CATEGORY(LogLevel);
 

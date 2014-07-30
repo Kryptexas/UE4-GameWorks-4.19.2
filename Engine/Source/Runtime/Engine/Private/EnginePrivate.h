@@ -316,7 +316,6 @@
 #include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "InstancedFoliage.h"				// Instanced foliage.
-#include "Foliage/InstancedFoliageActor.h"	// Instanced foliage.
 #include "UnrealExporter.h"					// Exporter definition.
 #include "TimerManager.h"					// Game play timers
 #include "EngineService.h"
