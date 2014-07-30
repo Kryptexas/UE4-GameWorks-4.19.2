@@ -376,7 +376,7 @@ public:
 	SLATE_BEGIN_ARGS( SSCSEditor ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS);
+	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint );
 
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -559,6 +559,9 @@ public:
 	/** Pointer to the script that we are editing */
 	USimpleConstructionScript* SCS;
 
+	/** Pointer to blueprint we were created with */
+	UBlueprint* Blueprint;
+
 	/** Pointer back to owning Kismet 2 tool */
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
 
@@ -579,11 +582,7 @@ public:
 
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
-
 private:
-
-	/** Pointer to combo box used for choosing component class */
-	TSharedPtr<class SComponentClassCombo> ComponentClassCombo;
 
 	/** Flag to enable/disable component editing */
 	bool	bEnableComponentEditing;

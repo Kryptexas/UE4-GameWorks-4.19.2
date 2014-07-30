@@ -2356,6 +2356,12 @@ bool FBlueprintEditorUtils::DoesSupportComponents(UBlueprint const* Blueprint)
 		&& (Blueprint->BlueprintType != BPTYPE_FunctionLibrary); // Must not be a function library
 }
 
+bool FBlueprintEditorUtils::DoesSupportDefaults(UBlueprint const* Blueprint)
+{
+	return Blueprint->BlueprintType != BPTYPE_MacroLibrary
+		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
+}
+
 // Returns a descriptive name of the type of blueprint passed in
 FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blueprint)
 {

@@ -834,7 +834,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 				.OnVerifyTextChanged( this, &SSCS_RowWidget::OnNameTextVerifyChanged )
 				.OnTextCommitted( this, &SSCS_RowWidget::OnNameTextCommit )
 				.IsSelected( this, &SSCS_RowWidget::IsSelectedExclusively )
-				.IsReadOnly( !NodePtr->CanRename() || !SCSEditor.Pin()->InEditingMode() );
+				.IsReadOnly( !NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->InEditingMode()) );
 
 		NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
 
@@ -1825,7 +1825,7 @@ FString SSCS_RowWidget::GetDocumentationLink() const
 {
 	check(SCSEditor.IsValid());
 
-	if(NodePtr == SCSEditor.Pin()->SceneRootNodePtr
+	if( NodePtr == SCSEditor.Pin()->SceneRootNodePtr
 		|| NodePtr->IsNative() || NodePtr->IsInherited())
 	{
 		return TEXT("Shared/Editors/BlueprintEditor/ComponentsMode");
@@ -1838,7 +1838,7 @@ FString SSCS_RowWidget::GetDocumentationExcerptName() const
 {
 	check(SCSEditor.IsValid());
 
-	if(NodePtr == SCSEditor.Pin()->SceneRootNodePtr)
+	if( NodePtr == SCSEditor.Pin()->SceneRootNodePtr)
 	{
 		return TEXT("RootComponent");
 	}
@@ -1856,7 +1856,7 @@ FString SSCS_RowWidget::GetDocumentationExcerptName() const
 
 UBlueprint* SSCS_RowWidget::GetBlueprint() const
 {
-	return SCSEditor.Pin()->Kismet2Ptr.Pin()->GetBlueprintObj();
+	return SCSEditor.Pin()->Blueprint;
 }
 
 bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage)
@@ -1901,10 +1901,11 @@ void SSCS_RowWidget::OnNameTextCommit(const FText& InNewName, ETextCommit::Type 
 // SSCSEditor
 
 
-void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS )
+void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint )
 {
 	Kismet2Ptr = InKismet2;
 	SCS = InSCS;
+	Blueprint = InBlueprint;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -1936,69 +1937,78 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 
 	FSlateBrush const* MobilityHeaderBrush = FEditorStyle::GetBrush(TEXT("ClassIcon.ComponentMobilityHeaderIcon"));
 
+	SAssignNew(SCSTreeWidget, SSCSTreeType)
+		.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component."))
+		.SCSEditor(this)
+		.TreeItemsSource(&RootNodes)
+		.SelectionMode(ESelectionMode::Multi)
+		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
+		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
+		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
+		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
+		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
+		.ItemHeight(24)
+		.HeaderRow
+		(
+		SNew(SHeaderRow)
+
+		+ SHeaderRow::Column(SCS_ColumnName_Mobility)
+		.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
+		.FixedWidth(16.0f) // mobility icons are 16px (16 slate-units = 16px, when application scale == 1)
+		.HeaderContent()
+		[
+			SNew(SHorizontalBox)
+			.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility")))
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SImage).Image(MobilityHeaderBrush)
+			]
+		]
+
+	+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
+		.DefaultLabel(LOCTEXT("Class", "Class"))
+		.FillWidth(4)
+
+		+ SHeaderRow::Column(SCS_ColumnName_Asset)
+		.DefaultLabel(LOCTEXT("Asset", "Asset"))
+		.FillWidth(3)
+		);
+
+	TSharedPtr<SWidget> Contents;
+	if( InKismet2.IsValid() )
+	{
+		Contents = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SComponentClassCombo)
+			.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SSpacer)
+			.Size(FVector2D(0.0f, 2.0f))
+		]
+		+ SVerticalBox::Slot()
+		.FillHeight(.8f)
+		[
+			SCSTreeWidget.ToSharedRef()
+		];
+	}
+	else
+	{
+		Contents = SCSTreeWidget;
+	}
+
 	this->ChildSlot
 	[
 		SNew( STutorialWrapper, TEXT("ComponentsPanel") )
 		[
-			SNew(SVerticalBox)
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SAssignNew(ComponentClassCombo, SComponentClassCombo)
-				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
-			]
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SSpacer)
-				.Size(FVector2D(0.0f,2.0f))
-			]
-
-			+SVerticalBox::Slot()
-			.FillHeight(.8f)
-			[
-				SAssignNew(SCSTreeWidget, SSCSTreeType)
-				.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component."))
-				.SCSEditor( this )
-				.TreeItemsSource( &RootNodes )
-				.SelectionMode(ESelectionMode::Multi)
-				.OnGenerateRow( this, &SSCSEditor::MakeTableRowWidget )
-				.OnGetChildren( this, &SSCSEditor::OnGetChildrenForTree )
-				.OnSelectionChanged( this, &SSCSEditor::OnTreeSelectionChanged )
-				.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu )
-				.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView )
-				.ItemHeight( 24 )
-				.HeaderRow
-				(
-					SNew(SHeaderRow)
-
-					+SHeaderRow::Column(SCS_ColumnName_Mobility)
-						.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
-						.FixedWidth(16.0f) // mobility icons are 16px (16 slate-units = 16px, when application scale == 1)
-						.HeaderContent()
-						[
-							SNew(SHorizontalBox)
-								.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility")))
-							+SHorizontalBox::Slot()
-								.FillWidth(1.0f)
-								.VAlign(VAlign_Center)
-								.HAlign(HAlign_Center)
-								[
-									SNew(SImage).Image(MobilityHeaderBrush)
-								]
-						]
-				
-					+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
-					.DefaultLabel( LOCTEXT("Class", "Class") )
-					.FillWidth(4)
-					
-					+ SHeaderRow::Column(SCS_ColumnName_Asset)
-					.DefaultLabel( LOCTEXT("Asset", "Asset") )
-					.FillWidth(3)
-				)
-			]
+			Contents.ToSharedRef()
 		]
 	];
 
@@ -2228,15 +2238,7 @@ bool SSCSEditor::CanDuplicateComponent() const
 		return false;
 	}
 
-	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
-	for (int32 i = 0; i < SelectedNodes.Num(); ++i)
-	{
-		if(SelectedNodes[i]->GetComponentTemplate() == NULL || SelectedNodes[i]->IsDefaultSceneRoot())
-		{
-			return false;
-		}
-	}
-	return SelectedNodes.Num() > 0;
+	return CanCopyNodes();
 }
 
 void SSCSEditor::OnDuplicateComponent()
@@ -2477,9 +2479,6 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		// Reset the scene root node
 		SceneRootNodePtr.Reset();
 
-		// Get the Blueprint that's being edited
-		UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
-
 		// Get the Blueprint class default object as well as the inheritance stack
 		AActor* CDO = NULL;
 		TArray<UBlueprint*> ParentBPStack;
@@ -2588,7 +2587,10 @@ void SSCSEditor::ClearSelection()
 	check(SCSTreeWidget.IsValid());
 	SCSTreeWidget->ClearSelection();
 	
-	Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(TArray<UObject*>());
+	if( Kismet2Ptr.IsValid() )
+	{
+		Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(TArray<UObject*>());
+	}
 }
 
 
@@ -2622,7 +2624,7 @@ void SSCSEditor::SaveSCSNode( USCS_Node* Node )
 
 bool SSCSEditor::InEditingMode() const
 {
-	return NULL == GEditor->PlayWorld;
+	return Kismet2Ptr.IsValid() && NULL == GEditor->PlayWorld;
 }
 
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
@@ -2630,7 +2632,6 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 	const FScopedTransaction Transaction( LOCTEXT("AddComponent", "Add Component") );
 
 	// Create a new template and add it to the blueprint
-	UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
 	Blueprint->Modify();
 
 	SaveSCSCurrentState( Blueprint->SimpleConstructionScript );
@@ -2641,7 +2642,6 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 
 UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode,  UObject* Asset, bool bMarkBlueprintModified, bool bSetFocusToNewItem)
 {
-	UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
 	if(Asset)
 	{
 		FComponentAssetBrokerage::AssignAssetToComponent(NewNode->ComponentTemplate, Asset);
@@ -2719,7 +2719,16 @@ void SSCSEditor::CutSelectedNodes()
 
 bool SSCSEditor::CanCopyNodes() const
 {
-	return CanDuplicateComponent();
+	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
+	for (int32 i = 0; i < SelectedNodes.Num(); ++i)
+	{
+		if (SelectedNodes[i]->GetComponentTemplate() == NULL || SelectedNodes[i]->IsDefaultSceneRoot())
+		{
+			return false;
+		}
+	}
+
+	return SelectedNodes.Num() > 0;
 }
 
 void SSCSEditor::CopySelectedNodes()
@@ -2816,7 +2825,6 @@ void SSCSEditor::PasteNodes()
 	const FScopedTransaction Transaction(LOCTEXT("PasteComponents", "Paste Component(s)"));
 
 	// Mark the Blueprint as about to be modified
-	UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
 	Blueprint->Modify();
 
 	// Mark the SCS and all SCS nodes as about to be modified
@@ -2902,8 +2910,6 @@ void SSCSEditor::OnDeleteNodes()
 {
 	const FScopedTransaction Transaction( LOCTEXT("RemoveComponent", "Remove Component") );
 
-	UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
-
 	// Get the current render info for the blueprint. If this is NULL then the blueprint is not currently visualizable (no visible primitive components)
 	FThumbnailRenderingInfo* RenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo( Blueprint );
 
@@ -2941,8 +2947,6 @@ void SSCSEditor::OnDeleteNodes()
 void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 {
 	check(InNodePtr.IsValid());
-
-	UBlueprint* Blueprint = Kismet2Ptr.Pin()->GetBlueprintObj();
 
 	// Remove any instances of variable accessors from the blueprint graphs
 	FBlueprintEditorUtils::RemoveVariableNodes(Blueprint, InNodePtr->GetVariableName());
@@ -2982,8 +2986,11 @@ void SSCSEditor::UpdateSelectionFromNodes(const TArray<FSCSEditorTreeNodePtrType
 	}
 
 	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+	if( Kismet2Ptr.IsValid() )
+	{
+		SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+		Kismet2Ptr.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+	}
 }
 
 void SSCSEditor::RefreshSelectionDetails()
@@ -2995,10 +3002,13 @@ void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::
 {
 	UpdateSelectionFromNodes(SCSTreeWidget->GetSelectedItems());
 
-	TSharedPtr<class SSCSEditorViewport> ViewportPtr = Kismet2Ptr.Pin()->GetSCSViewport();
-	if (ViewportPtr.IsValid())
+	if( Kismet2Ptr.IsValid() )
 	{
-		ViewportPtr->OnComponentSelectionChanged();
+		TSharedPtr<class SSCSEditorViewport> ViewportPtr = Kismet2Ptr.Pin()->GetSCSViewport();
+		if (ViewportPtr.IsValid())
+		{
+			ViewportPtr->OnComponentSelectionChanged();
+		}
 	}
 
 	// Update the selection visualization
@@ -3047,7 +3057,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	
 	// Determine whether or not the given node is inherited from a parent Blueprint
 	USimpleConstructionScript* NodeSCS = InSCSNode->GetSCS();
-	const bool bIsInherited = NodeSCS != Kismet2Ptr.Pin()->GetBlueprintObj()->SimpleConstructionScript;
+	const bool bIsInherited = NodeSCS != Blueprint->SimpleConstructionScript;
 
 	if(InSCSNode->ComponentTemplate->IsA(USceneComponent::StaticClass()))
 	{
@@ -3281,7 +3291,7 @@ void SSCSEditor::OnRenameComponent(bool bTransactional)
 
 bool SSCSEditor::CanRenameComponent() const
 {
-	return SCSTreeWidget->GetSelectedItems().Num() == 1 && SCSTreeWidget->GetSelectedItems()[0]->CanRename();
+	return InEditingMode() && SCSTreeWidget->GetSelectedItems().Num() == 1 && SCSTreeWidget->GetSelectedItems()[0]->CanRename();
 }
 
 void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const

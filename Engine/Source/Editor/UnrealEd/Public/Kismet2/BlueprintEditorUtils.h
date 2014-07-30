@@ -380,6 +380,9 @@ public:
 	/** Returns whether or not the blueprint supports components */
 	static bool DoesSupportComponents(UBlueprint const* Blueprint);
 
+	/** Returns whether or not the blueprint supports default values (IE has a CDO) */
+	static bool DoesSupportDefaults(UBlueprint const* Blueprint);
+
 	// Returns a descriptive name of the type of blueprint passed in
 	static FString GetBlueprintTypeDescription(const UBlueprint* Blueprint);
 

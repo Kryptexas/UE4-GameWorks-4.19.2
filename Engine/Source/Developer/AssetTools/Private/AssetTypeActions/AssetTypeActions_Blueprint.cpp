@@ -222,8 +222,7 @@ void FAssetTypeActions_Blueprint::PerformAssetDiff(UObject* OldAsset, UObject* N
 					  .BlueprintNew(NewBlueprint)
 					  .OldRevision(OldRevision)
 					  .NewRevision(NewRevision)
-					  .ShowAssetNames(!bIsSingleAsset)
-					  .OpenInDefaults(const_cast<FAssetTypeActions_Blueprint*>(this), &FAssetTypeActions_Blueprint::OpenInDefaults) );
+					  .ShowAssetNames(!bIsSingleAsset) );
 
 	// Make this window a child of the modal window if we've been spawned while one is active.
 	TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
@@ -249,21 +248,6 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 	}
 
 	return ThumbnailInfo;
-}
-
-void FAssetTypeActions_Blueprint::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
-{
-	const bool bComparedBlueprintsHaveGeneratedClasses = *(OldBlueprint->GeneratedClass) && *(NewBlueprint->GeneratedClass);
-	ensure(bComparedBlueprintsHaveGeneratedClasses);
-	if (bComparedBlueprintsHaveGeneratedClasses)
-	{
-		const FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
-		const FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
-		const FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
-
-		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-     	AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
-	}
 }
 
 FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetData) const

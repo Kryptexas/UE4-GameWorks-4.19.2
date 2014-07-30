@@ -1,16 +1,82 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
-#include "BlueprintUtilities.h"
-#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
-#include "BlueprintEditorCommands.h"
+
 #include "BlueprintEditor.h"
-#include "SBlueprintDiff.h"
-#include "GraphEditor.h"
-#include "SGraphTitleBar.h"
+#include "BlueprintEditorCommands.h"
+#include "BlueprintEditorModes.h"
+#include "BlueprintUtilities.h"
+#include "Editor/Kismet/Public/SBlueprintEditorToolbar.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "GraphDiffControl.h"
+#include "GraphEditor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "SBlueprintDiff.h"
+#include "SGraphTitleBar.h"
+#include "SSCSEditor.h"
+#include "WorkflowOrientedApp/SModeWidget.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
+
+struct FPropertyFilter : public TSharedFromThis<FPropertyFilter>
+{
+	FPropertyFilter( TSet< const UProperty*> InHiddenProperties )
+		: HiddenProperties( InHiddenProperties )
+	{
+	}
+
+	~FPropertyFilter()
+	{
+		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT(" Nuking property filter.."));
+	}
+
+	bool IsVisible(const FPropertyAndParent& Property)
+	{
+		return !HiddenProperties.Contains(&Property.Property);
+	}
+
+	TSet< const UProperty*> HiddenProperties;
+};
+
+typedef TMap< FString, const UProperty* > FNamePropertyMap;
+
+static FNamePropertyMap GetCDOProperties( const UBlueprint* ForBlueprint )
+{
+	FNamePropertyMap Ret;
+
+	if( ForBlueprint )
+	{
+		if( const UClass* GeneratedClass = ForBlueprint->GeneratedClass )
+		{
+			if( const UObject* CDO = GeneratedClass->ClassDefaultObject )
+			{
+				if( const UClass* CDOClass = CDO->GetClass() )
+				{
+					check( CDOClass == GeneratedClass );
+					for (TFieldIterator<UProperty> PropertyIt(CDOClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+					{
+						Ret.Add(PropertyIt->GetName(), *PropertyIt);
+					}
+				}
+			}
+		}
+	}
+
+	return Ret;
+}
+
+const UObject* GetCDO( const UBlueprint* ForBlueprint )
+{
+	if( !ForBlueprint 
+		|| !ForBlueprint->GeneratedClass )
+	{
+		return NULL;
+	}
+
+	return ForBlueprint->GeneratedClass->ClassDefaultObject;
+}
 
 /** Individual Diff item shown in the list of diffs */
 struct FDiffResultItem: public TSharedFromThis<FDiffResultItem>
@@ -102,7 +168,6 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 			.ColorAndOpacity(Color)
 			.Image(GetIconForGraph(GraphNew))
 		];
-
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -333,6 +398,74 @@ FDiffPanel::FDiffPanel()
 	Blueprint = NULL;
 }
 
+// Generates a widget showing CDO values. NewBlueprint's CDO values will be displayed by the widget (Base just used for determining what to hide):
+static TSharedRef<SWidget> GenerateCDODiff( UBlueprint const* BaseBlueprint, UBlueprint const* NewBlueprint )
+{
+	const auto GenerateEmptyPanel = []( const FText& Message) { return SNew(STextBlock).Text(Message); };
+
+	// filter out properties that have not changed from the GraphToDiff's blueprint:	
+	FNamePropertyMap BaseProperties = GetCDOProperties(BaseBlueprint);
+	FNamePropertyMap BlueprintProperties = GetCDOProperties(NewBlueprint);
+
+	if( BlueprintProperties.Num() == 0 )
+	{
+		if( NewBlueprint )
+		{
+			return GenerateEmptyPanel( FText::Format( LOCTEXT("BPNoCDO", "Blueprint {0} has no Defaults"), FText::FromString( NewBlueprint->GetName() ) ) );
+		}
+		else
+		{
+			return GenerateEmptyPanel( LOCTEXT("BPMissingBP", "Missing Blueprint" ) );
+		}
+	}
+
+	const UObject* BaseBlueprintCDO = GetCDO(BaseBlueprint);
+	const UObject* NewBlueprintCDO = GetCDO(NewBlueprint);
+
+	TSet< const UProperty*> HiddenProperties;
+	for (const auto& Property : BlueprintProperties)
+	{
+		const FString& PropertyName = Property.Key;
+		const UProperty* PropertyValue = Property.Value;
+
+		const UProperty** BaseProperty = BaseProperties.Find(PropertyName);
+		if (BaseProperty && (*BaseProperty)->SameType(PropertyValue))
+		{
+			const void* MyValue = PropertyValue->ContainerPtrToValuePtr<void>(NewBlueprintCDO);
+			const void* BaseValue = (*BaseProperty)->ContainerPtrToValuePtr<void>(BaseBlueprintCDO);
+
+			if ((*BaseProperty)->Identical(MyValue, BaseValue, 0))
+			{
+				HiddenProperties.Add(PropertyValue);
+			}
+		}
+	}
+
+	if( HiddenProperties.Num() == BlueprintProperties.Num() )
+	{
+		return GenerateEmptyPanel(LOCTEXT("BPNoCDODifference", "No differences found in Defaults"));
+	}
+
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bShowOptions = false;
+	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	auto DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
+	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([]{return false; }));
+	// This filter goes out of scope and is destroyed when this function returns (the control just keeps a weak ptr)
+	// but that seems to be long enough to hide the properties that we want to hide:
+	auto Filter = TSharedPtr<FPropertyFilter>(new FPropertyFilter(HiddenProperties));
+	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateSP(Filter.ToSharedRef(), &FPropertyFilter::IsVisible));
+	// This is a read only details view (see the property editing delegate), but it is not const correct:
+	DetailsView->SetObject(const_cast<UObject*>(NewBlueprintCDO) );
+
+	return DetailsView;
+}
+
+static TSharedRef<SWidget> GenerateComponentsDiff( UBlueprint const* BaseBlueprint, UBlueprint const* DisplayedBlueprint )
+{
+	return SNew(SSCSEditor, TSharedPtr<FBlueprintEditor>(), DisplayedBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(DisplayedBlueprint) );
+}
+
 //////////////////////////////////////////////////////////////////////////
 // SBlueprintDiff
 
@@ -353,8 +486,6 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 	// not the same asset in each panel)
 	PanelOld.bShowAssetName = InArgs._ShowAssetNames;
 	PanelNew.bShowAssetName = InArgs._ShowAssetNames;
-
-	OpenInDefaults = InArgs._OpenInDefaults;
 
 	bLockViews = true;
 
@@ -390,100 +521,64 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 		}
 	}
 
-	this->ChildSlot
-		[	
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			.Content()
+	TAttribute<FName> GetActiveMode(this, &SBlueprintDiff::GetCurrentMode);
+	FOnModeChangeRequested SetActiveMode = FOnModeChangeRequested::CreateRaw(this, &SBlueprintDiff::SetCurrentMode);
+
+	auto Widgets = FBlueprintEditorToolbar::GenerateToolbarWidgets( InArgs._BlueprintNew, GetActiveMode, SetActiveMode );
+
+	TSharedRef<SHorizontalBox> MiscWidgets = SNew(SHorizontalBox);
+
+	for (int32 WidgetIdx = 0; WidgetIdx < Widgets.Num(); ++WidgetIdx)
+	{
+		MiscWidgets->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SBorder)
+				Widgets[WidgetIdx].ToSharedRef()
+			];
+	}
+
+	this->ChildSlot
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush( "Docking.Tab", ".ContentAreaBrush" ))
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0.0f, 2.0f, 0.0f, 2.0f)
 				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.FillHeight(1.f)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
 					[
-						SNew(SSplitter)
-						+SSplitter::Slot()
-						.Value(0.2f)
-						[
-							SNew(SBorder)
-							[
-								SNew(SSplitter)
-								.Orientation(Orient_Vertical)
-								+SSplitter::Slot()
-								.Value(0.3f)
-								[
-									SNew(SVerticalBox)
-									+SVerticalBox::Slot()
-									.AutoHeight()
-									.HAlign(HAlign_Left)
-									[
-										//toggle lock button
-										SNew(SButton)
-										.OnClicked(this, &SBlueprintDiff::OnToggleLockView)
-										.Content()
-										[
-											SNew(SImage)
-											.Image(this, &SBlueprintDiff::GetLockViewImage)
-											.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?"))
-										]
-									]
-									+SVerticalBox::Slot()
-									.FillHeight(1.f)
-									[
-										//graph selection 
-										SNew(SBorder)
-										[
-											SNew(SVerticalBox)
-											+SVerticalBox::Slot()
-											.AutoHeight()
-											[
-												SNew(SBorder)
-												.BorderImage(FEditorStyle::GetBrush("PropertyWindow.CategoryBackground"))
-												.Padding(FMargin(2.0f))
-												.ForegroundColor(FEditorStyle::GetColor("PropertyWindow.CategoryForeground"))
-												.ToolTipText(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
-												.HAlign(HAlign_Center)
-												[
-													SNew(STextBlock)
-													.Text(LOCTEXT("BlueprintDifGraphs", "Graphs"))
-												]
-											]
-											+SVerticalBox::Slot()
-											.FillHeight(1.f)
-											[
-												SAssignNew(GraphsToDiff, SListViewType)
-												.ItemHeight(24)
-												.ListItemsSource( &Graphs )
-												.OnGenerateRow( this, &SBlueprintDiff::OnGenerateRow )
-												.SelectionMode( ESelectionMode::Single )
-												.OnSelectionChanged(this, &SBlueprintDiff::OnSelectionChanged)
-											]
-										]
-									]
-								]
-								+SSplitter::Slot()
-								.Value(0.7f)
-								[
-									GenerateToolbar()
-								]
-							]
-						]
-						+SSplitter::Slot()
-						.Value(0.8f)
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.FillWidth(1.f)
-							[
-								//diff window
-								GenerateDiffWindow()
-							]
-						]
+						SNew(SSpacer)
 					]
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							// Nested box just give us padding similar to the main blueprint editor,
+							// one border has the dark grey "Toolbar.Background" style:
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.Padding(0.0f, 4.f, 0.0f, 12.f)
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush(TEXT("Toolbar.Background")))
+								[
+									MiscWidgets
+								]
+							]
+						]
+				]
+				+ SVerticalBox::Slot()
+				[
+					SAssignNew(ModeContents, SBorder)
 				]
 			]
+			
 		];
+
+	SetCurrentMode( FBlueprintEditorApplicationModes::StandardBlueprintEditorMode );
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -524,7 +619,7 @@ void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
 	DisablePinDiffFocus();
-	HandleGraphChanged( GraphOld->GetName() );
+	HandleGraphChanged( GraphOld ? GraphOld->GetName() : GraphNew->GetName() );
 
 	ResetGraphEditors();
 
@@ -714,12 +809,6 @@ bool FDiffPanel::CanCopyNodes() const
 	return false;
 }
 
-FReply SBlueprintDiff::OnOpenInDefaults()
-{
-	OpenInDefaults.ExecuteIfBound(PanelOld.Blueprint, PanelNew.Blueprint);
-	return FReply::Handled();
-}
-
 SGraphEditor* SBlueprintDiff::GetGraphEditorForGraph( UEdGraph* Graph ) const
 {
 	if(PanelOld.GraphEditor.Pin()->GetCurrentGraph() == Graph)
@@ -775,18 +864,6 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateToolbar()
 {
 	return SNew(SVerticalBox)
 		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			//open in p4dif tool
-			SNew(SButton)
-			.OnClicked(this, &SBlueprintDiff::OnOpenInDefaults)
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("DifBlueprintDefaultsToolTip", "Diff Blueprint Defaults"))
-			]
-		]
-		+SVerticalBox::Slot()
 		.FillHeight(1.f)
 		[
 			SAssignNew(DiffListBorder, SBorder)
@@ -812,6 +889,171 @@ void SBlueprintDiff::HandleGraphChanged( const FString& GraphName )
 
 	PanelOld.GeneratePanel(GraphOld, GraphNew);
 	PanelNew.GeneratePanel(GraphNew, GraphOld);
+}
+
+TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
+{
+	return SNew(SBorder)
+	.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+	.Content()
+	[
+		SNew(SBorder)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.f)
+			[
+				SNew(SSplitter)
+				+ SSplitter::Slot()
+				.Value(0.2f)
+				[
+					SNew(SBorder)
+					[
+						SNew(SSplitter)
+						.Orientation(Orient_Vertical)
+						+ SSplitter::Slot()
+						.Value(0.3f)
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							.HAlign(HAlign_Left)
+							[
+								//toggle lock button
+								SNew(SButton)
+								.OnClicked(this, &SBlueprintDiff::OnToggleLockView)
+								.Content()
+								[
+									SNew(SImage)
+									.Image(this, &SBlueprintDiff::GetLockViewImage)
+									.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?"))
+								]
+							]
+							+ SVerticalBox::Slot()
+								.FillHeight(1.f)
+								[
+									//graph selection 
+									SNew(SBorder)
+									[
+										SNew(SVerticalBox)
+										+ SVerticalBox::Slot()
+										.AutoHeight()
+										[
+											SNew(SBorder)
+											.BorderImage(FEditorStyle::GetBrush("PropertyWindow.CategoryBackground"))
+											.Padding(FMargin(2.0f))
+											.ForegroundColor(FEditorStyle::GetColor("PropertyWindow.CategoryForeground"))
+											.ToolTipText(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
+											.HAlign(HAlign_Center)
+											[
+												SNew(STextBlock)
+												.Text(LOCTEXT("BlueprintDifGraphs", "Graphs"))
+											]
+										]
+										+ SVerticalBox::Slot()
+											.FillHeight(1.f)
+											[
+												SAssignNew(GraphsToDiff, SListViewType)
+												.ItemHeight(24)
+												.ListItemsSource(&Graphs)
+												.OnGenerateRow(this, &SBlueprintDiff::OnGenerateRow)
+												.SelectionMode(ESelectionMode::Single)
+												.OnSelectionChanged(this, &SBlueprintDiff::OnSelectionChanged)
+											]
+									]
+								]
+						]
+						+ SSplitter::Slot()
+							.Value(0.7f)
+							[
+								GenerateToolbar()
+							]
+					]
+				]
+				+ SSplitter::Slot()
+					.Value(0.8f)
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.f)
+						[
+							//diff window
+							GenerateDiffWindow()
+						]
+					]
+			]
+		]
+	];
+}
+
+TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
+{
+	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
+	return SNew(SSplitter)
+		+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			SNew(SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				GenerateCDODiff(PanelNew.Blueprint, PanelOld.Blueprint)
+			]
+		]
+	+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			SNew(SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				GenerateCDODiff(PanelOld.Blueprint, PanelNew.Blueprint)
+			]
+		];
+}
+
+TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
+{
+	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
+	return SNew(SSplitter)
+		+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			SNew(SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				GenerateComponentsDiff(PanelNew.Blueprint, PanelOld.Blueprint)
+			]
+		]
+	+ SSplitter::Slot()
+		.Value(0.5f)
+		[
+			SNew(SBorder)
+			.VAlign(VAlign_Fill)
+			[
+				GenerateComponentsDiff(PanelOld.Blueprint, PanelNew.Blueprint)
+			]
+		];
+}
+
+void SBlueprintDiff::SetCurrentMode(FName NewMode)
+{
+	CurrentMode = NewMode;
+
+	if( NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+	{
+		ModeContents->SetContent( GenerateGraphPanel() );
+	}
+	else if( NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode )
+	{
+		ModeContents->SetContent( GenerateDefaultsPanel() );
+	}
+	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+	{
+		ModeContents->SetContent( GenerateComponentsPanel() );
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("Diff panel does not support mode %s"), *NewMode.ToString() );
+	}
 }
 
 FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) 

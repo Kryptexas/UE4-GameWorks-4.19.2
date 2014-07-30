@@ -211,8 +211,7 @@ void FAssetTypeActions_BlueprintGeneratedClass::PerformAssetDiff(UObject* OldAss
 					  .BlueprintOld(OldBlueprint)
 					  .BlueprintNew(NewBlueprint)
 					  .OldRevision(OldRevision)
-					  .NewRevision(NewRevision)
-					  .OpenInDefaults(const_cast<FAssetTypeActions_BlueprintGeneratedClass*>(this), &FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults) );
+					  .NewRevision(NewRevision) );
 
 	FSlateApplication::Get().AddWindow( Window.ToSharedRef(), true );
 }

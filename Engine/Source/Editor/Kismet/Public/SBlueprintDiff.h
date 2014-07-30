@@ -155,7 +155,6 @@ public:
 			SLATE_ARGUMENT( struct FRevisionInfo, OldRevision )
 			SLATE_ARGUMENT( struct FRevisionInfo, NewRevision )
 			SLATE_ARGUMENT( bool, ShowAssetNames )
-			SLATE_EVENT(FOpenInDefaults, OpenInDefaults)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -191,9 +190,6 @@ protected:
 	/*User toggles the option to lock the views between the two blueprints */
 	FReply	OnToggleLockView();
 
-	/*User clicks defaults view button to display defaults in remote diff tool */
-	FReply  OnOpenInDefaults();
-
 	/*Reset the graph editor, called when user switches graphs to display*/
 	virtual void ResetGraphEditors();
 
@@ -218,17 +214,27 @@ protected:
 	/** Event handler that updates the graph view when user selects a new graph */
 	virtual void HandleGraphChanged( const FString& GraphName );
 
+	TSharedRef<SWidget> GenerateGraphPanel();
+	TSharedRef<SWidget> GenerateDefaultsPanel();
+	TSharedRef<SWidget> GenerateComponentsPanel();
+
+	/** Accessor and event handler for toggling between diff view modes (defaults, components, graph view, interface, macro): */
+	void SetCurrentMode(FName NewMode);
+	FName GetCurrentMode() const { return CurrentMode; }
+
+	FName CurrentMode;
+
 	/*The two panels used to show the old & new revision*/ 
 	FDiffPanel				PanelOld, PanelNew;
 	
 	/** If the two views should be locked */
 	bool	bLockViews;
 
-	/*Delegate to call when user wishes to view the defaults*/
-	FOpenInDefaults	 OpenInDefaults;
-
 	/** Border Widget, inside is the current graphs being diffed, we can replace content to change the graph*/
 	TSharedPtr<SBorder>	DiffListBorder;
+
+	/** Contents widget that we swap when mode changes (defaults, components, etc) */
+	TSharedPtr<SBorder> ModeContents;
 
 	/** The ListView containing the graphs the user can select */
 	TSharedPtr<SListViewType>	GraphsToDiff;
