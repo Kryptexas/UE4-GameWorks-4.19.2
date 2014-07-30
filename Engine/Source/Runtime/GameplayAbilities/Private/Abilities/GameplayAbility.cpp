@@ -553,7 +553,7 @@ void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 
 void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
-	// Improve relationship between InstigatorContext and 
+	// TODO: Improve relationship between InstigatorContext and FGameplayAbilityTargetData/FHitResult (or use something different between HitResult)
 	
 
 	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset

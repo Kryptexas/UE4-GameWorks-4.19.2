@@ -25,14 +25,17 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	//		TargetData
 	// -------------------------------------------------------------------------------
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
+	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
 	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FVector GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData);
 
 	// -------------------------------------------------------------------------------
 	//		GameplayCue

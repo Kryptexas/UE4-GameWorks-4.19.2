@@ -35,7 +35,7 @@ void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAb
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
 {
 	// Construct TargetData
-	FGameplayAbilityTargetData_SingleTargetHit * TargetData = new FGameplayAbilityTargetData_SingleTargetHit(HitResult);
+	FGameplayAbilityTargetData_SingleTargetHit* TargetData = new FGameplayAbilityTargetData_SingleTargetHit(HitResult);
 
 	// Give it a handle and return
 	FGameplayAbilityTargetDataHandle	Handle;
@@ -46,10 +46,10 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
 {
-	FGameplayAbilityTargetData * Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
 	if (Data)
 	{
-		const FHitResult * HitResultPtr = Data->GetHitResult();
+		const FHitResult* HitResultPtr = Data->GetHitResult();
 		if (HitResultPtr)
 		{
 			return *HitResultPtr;
@@ -57,6 +57,28 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 	}
 
 	return FHitResult();
+}
+
+FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData)
+{
+	FGameplayAbilityTargetData * Data = TargetData.Data.Get();
+	if (Data)
+	{
+		const FHitResult* HitResultPtr = Data->GetHitResult();
+		if (HitResultPtr)
+		{
+			if (HitResultPtr->Component.IsValid())
+			{
+				return HitResultPtr->ImpactPoint;
+			}
+			else
+			{
+				return HitResultPtr->TraceEnd;
+			}
+		}
+	}
+
+	return FVector();
 }
 
 // -------------------------------------------------------------------------------------

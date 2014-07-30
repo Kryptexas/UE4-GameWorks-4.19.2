@@ -88,13 +88,15 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 	if (SourceActor)
 	{
 		FHitResult HitResult = PerformTrace(SourceActor);
+
+		FVector EndPoint = HitResult.Component.IsValid() ? HitResult.ImpactPoint : HitResult.TraceEnd;
 		
 		if (bDebug)
 		{
-			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), HitResult.ImpactPoint, FLinearColor::Green, false);
-			DrawDebugSphere(GetWorld(), HitResult.Location, 16, 10, FLinearColor::Green, false);
+			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), EndPoint, FLinearColor::Green, false);
+			DrawDebugSphere(GetWorld(), EndPoint, 16, 10, FLinearColor::Green, false);
 		}
-		SetActorLocationAndRotation(HitResult.Location, SourceActor->GetActorRotation());
+		SetActorLocationAndRotation(EndPoint, SourceActor->GetActorRotation());
 	}
 }
 
