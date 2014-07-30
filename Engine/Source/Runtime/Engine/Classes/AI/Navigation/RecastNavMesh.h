@@ -1,11 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "AI/Navigation/NavigationTypes.h"
-#include "NavAreas/NavArea.h"
-#include "Tickable.h"
 #include "AI/Navigation/NavigationData.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Tickable.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */

@@ -3,9 +3,6 @@
 #pragma once
 #include "GameFramework/Actor.h"
 #include "CameraTypes.h"
-#include "Engine/Scene.h"
-#include "Engine/EngineBaseTypes.h"
-
 #include "PlayerCameraManager.generated.h"
 
 class APawn;

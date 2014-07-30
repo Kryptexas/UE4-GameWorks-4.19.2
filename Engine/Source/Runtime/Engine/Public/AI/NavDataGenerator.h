@@ -2,6 +2,8 @@
 
 #pragma once 
 
+struct FNavigationDirtyArea;
+
 class FNavDataGenerator : public TSharedFromThis<FNavDataGenerator, ESPMode::ThreadSafe>
 {
 public:

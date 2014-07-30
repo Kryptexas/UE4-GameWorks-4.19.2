@@ -5,10 +5,11 @@
  */
 
 #pragma once
-
-#include "EngineBaseTypes.h"
-
+#include "GameFramework/Actor.h"
 #include "TriggerBase.generated.h"
+
+class UShapeComponent;
+class UBillboardComponent;
 
 UCLASS(ClassGroup=Common, abstract, ConversionRoot, MinimalAPI)
 class ATriggerBase : public AActor
@@ -17,7 +18,7 @@ class ATriggerBase : public AActor
 
 	/** Base collision component */
 	UPROPERTY(Category=TriggerBase, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UShapeComponent> CollisionComponent;
+	TSubobjectPtr<UShapeComponent> CollisionComponent;
 
 	// Reference to the billboard component
 	UPROPERTY()

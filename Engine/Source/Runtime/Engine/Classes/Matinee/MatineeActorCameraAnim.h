@@ -1,11 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "Matinee/MatineeActor.h"
-#include "Engine/EngineBaseTypes.h"
-
 #include "MatineeActorCameraAnim.generated.h"
+
+class UCameraAnim;
 
 /**
  * Actor used to control temporary matinees for camera anims that only exist in the editor
@@ -17,7 +16,7 @@ class AMatineeActorCameraAnim : public AMatineeActor
 
 	/** The camera anim we are editing */
 	UPROPERTY(Transient)
-	class UCameraAnim* CameraAnim;
+	UCameraAnim* CameraAnim;
 
 	// Begin UObject interface
 	virtual bool NeedsLoadForClient() const override

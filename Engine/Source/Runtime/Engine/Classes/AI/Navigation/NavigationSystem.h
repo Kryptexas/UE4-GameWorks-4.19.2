@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
-#include "AI/Navigation/NavigationTypes.h"
+#include "AI/Navigation/NavigationData.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GenericOctreePublic.h"
-#include "AI/Navigation/NavigationData.h"
 #include "NavigationSystem.generated.h"
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)
@@ -23,6 +21,8 @@ class ANavigationData;
 class UNavigationQueryFilter;
 class UWorld;
 class UCrowdManager;
+struct FNavDataConfig;
+struct FPathFindingResult;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
