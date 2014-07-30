@@ -69,7 +69,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbilit
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
 
 	// We can bind directly to our ASC's confirm/cancel events, or wait to be told from an outside source to confirm or cancel
-	if (bBindToConfirmCancelInputs)
+	if (bBindToConfirmCancelInputs && (MasterPC && MasterPC->IsLocalController()))
 	{
 		UAbilitySystemComponent* ASC = Ability->GetCurrentActorInfo()->AbilitySystemComponent.Get();
 		if (ASC)
