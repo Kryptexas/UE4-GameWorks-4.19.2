@@ -383,6 +383,17 @@ namespace UnrealBuildTool
 			return ExitCode;
 		}
 
+		/**
+		 * Runs a local process and pipes the output to the log
+		 */
+		public static int RunLocalProcessAndLogOutput(ProcessStartInfo StartInfo)
+		{
+			Process LocalProcess = new Process();
+			LocalProcess.StartInfo = StartInfo;
+			LocalProcess.OutputDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceInformation(Line.Data); };
+			LocalProcess.ErrorDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceError(Line.Data); };
+			return RunLocalProcess(LocalProcess);
+		}
 
 		/// <summary>
 		/// Given a list of supported platforms, returns a list of names of platforms that should not be supported

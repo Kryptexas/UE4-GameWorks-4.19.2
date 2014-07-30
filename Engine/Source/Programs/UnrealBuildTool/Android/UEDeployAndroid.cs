@@ -466,13 +466,10 @@ namespace UnrealBuildTool.Android
 				NDKBuildInfo.UseShellExecute = true;
 				NDKBuildInfo.WindowStyle = ProcessWindowStyle.Minimized;
 				Console.WriteLine("\nRunning: " + NDKBuildInfo.FileName + " " + NDKBuildInfo.Arguments);
-				Process NDKBuild = new Process();
-				NDKBuild.StartInfo = NDKBuildInfo;
-				NDKBuild.Start();
-				NDKBuild.WaitForExit();
+				int NDKBuildExitCode = Utils.RunLocalProcessAndLogOutput(NDKBuildInfo);
 
 				// ndk build failure
-				if (NDKBuild.ExitCode != 0)
+				if (NDKBuildExitCode != 0)
 				{
 					throw new BuildException("ndk-build failed [{0}]", NDKBuildInfo.Arguments);
 				}
@@ -497,13 +494,10 @@ namespace UnrealBuildTool.Android
 			CallAntStartInfo.Arguments = "/c \"" + AntBuildPath + "\"  " + (bForDistribution ? "release" : "debug");
 			CallAntStartInfo.UseShellExecute = false;
 			Console.WriteLine("\nRunning: " + CallAntStartInfo.Arguments);
-			Process CallAnt = new Process();
-			CallAnt.StartInfo = CallAntStartInfo;
-			CallAnt.Start();
-			CallAnt.WaitForExit();
+			int CallAntExitCode = Utils.RunLocalProcessAndLogOutput(CallAntStartInfo);
 
 			// ant failure
-			if (CallAnt.ExitCode != 0)
+			if (CallAntExitCode != 0)
 			{
 				throw new BuildException("ant.bat failed [{0}]", CallAntStartInfo.Arguments);
 			}
