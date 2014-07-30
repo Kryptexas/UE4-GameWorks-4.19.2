@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
 
@@ -38,6 +38,38 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
     fi
   done
 fi
+
+# args: wrong filename, correct filename
+# expects to be in Engine folder
+CreateLinkIfNoneExists()
+{
+    WrongName=$1
+    CorrectName=$2
+
+    pushd `dirname $CorrectName`
+    if [ ! -f `basename $CorrectName` ]; then
+      echo "$WrongName -> $CorrectName"
+      ln -sf $WrongName `basename $CorrectName`
+    fi
+    popd
+}
+
+
+
+# Fixes for case sensitive filesystem.
+for BASE in Content/Editor/Slate Content/Slate Documentation/Source/Shared/Icons; do
+  find $BASE -name "*.PNG" | while read PNG_UPPER; do
+    png_lower="$(echo "$PNG_UPPER" | sed 's/.PNG$/.png/')"
+    if [ ! -f $png_lower ]; then
+      PNG_UPPER=$(basename $PNG_UPPER)
+      echo "$png_lower -> $PNG_UPPER"
+      # link, and not move, to make it usable with Perforce workspaces
+      ln -sf `basename "$PNG_UPPER"` "$png_lower"
+    fi
+  done
+done
+
+CreateLinkIfNoneExists ../../engine/shaders/Fxaa3_11.usf  ../Engine/Shaders/Fxaa3_11.usf
 
 set -x
 xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool_Mono.csproj \

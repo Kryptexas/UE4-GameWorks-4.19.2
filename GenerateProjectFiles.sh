@@ -16,6 +16,7 @@ if [ "$(uname)" = "Darwin" ]; then
 	sh ./GenerateLLDBInit.sh
 	sh ./GenerateProjectFiles.sh $@
 else
+    # assume (GNU/)Linux
 	cd Engine/Build/BatchFiles/Linux
-	sh ./GenerateProjectFiles.sh $@
+	bash ./GenerateProjectFiles.sh $@
 fi
