@@ -131,7 +131,7 @@ private:
 private:
 	/**
 	 * Update Panel 
-	 * @todo this has to be more efficient. Right now it does refresh whole things if it has to
+	 * @todo this has to be more efficient. Right now it refreshes the entire panel
 	 */
-	void UpdatePanel(bool bClearAll=false);
+	void UpdatePanel();
 };
