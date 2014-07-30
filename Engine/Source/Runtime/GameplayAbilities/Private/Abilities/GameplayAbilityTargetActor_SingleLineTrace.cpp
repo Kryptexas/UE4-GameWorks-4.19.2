@@ -74,30 +74,12 @@ void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbilit
 		UAbilitySystemComponent* ASC = Ability->GetCurrentActorInfo()->AbilitySystemComponent.Get();
 		if (ASC)
 		{
-			ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Confirm);
-			ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Cancel);
+			ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting);
+			ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::CancelTargeting);
 		}
 	}
 	
 	bDebug = true;
-}
-
-void AGameplayAbilityTargetActor_SingleLineTrace::Confirm()
-{
-	if (Ability.IsValid())
-	{
-		bDebug = false;
-		FGameplayAbilityTargetDataHandle Handle = StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
-		TargetDataReadyDelegate.Broadcast(Handle);
-	}
-
-	Destroy();
-}
-
-void AGameplayAbilityTargetActor_SingleLineTrace::Cancel()
-{
-	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
-	Destroy();
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
@@ -131,4 +113,5 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 
 	Destroy();
 }
+
 

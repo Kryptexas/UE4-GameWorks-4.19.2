@@ -22,12 +22,14 @@ void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
 	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	Destroy();
 }
 
 /** Outside code is saying 'stop everything and just forget about it' */
 void AGameplayAbilityTargetActor::CancelTargeting()
 {
 	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	Destroy();
 }
 
 bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)

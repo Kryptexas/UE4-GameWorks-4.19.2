@@ -14,14 +14,8 @@ public:
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const override;
 
 	virtual void StartTargeting(UGameplayAbility* Ability);
-
-	UFUNCTION()
-	void Confirm();
-
-	UFUNCTION()
-	void Cancel();
-
-	virtual void ConfirmTargeting();	
+	
+	virtual void ConfirmTargeting() override;	
 
 	virtual void Tick(float DeltaSeconds) override;
 	

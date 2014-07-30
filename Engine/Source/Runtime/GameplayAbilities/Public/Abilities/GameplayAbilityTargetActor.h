@@ -22,9 +22,11 @@ public:
 	virtual void StartTargeting(UGameplayAbility* Ability);
 
 	/** Outside code is saying 'stop and just give me what you have' */
+	UFUNCTION()
 	virtual void ConfirmTargeting();
 
 	/** Outside code is saying 'stop everything and just forget about it' */
+	UFUNCTION()
 	virtual void CancelTargeting();
 
 	/** Replicated target data was received from a client. Possibly sanitize/verify. return true if data is good and we should broadcast it as valid data. */
