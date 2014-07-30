@@ -1752,9 +1752,9 @@ void USkeletalMeshComponent::ValidateAnimation()
 	}
 }
 
+#endif
+
 bool USkeletalMeshComponent::IsPlayingRootMotion()
 {
 	return (AnimScriptInstance ? (AnimScriptInstance->GetRootMotionMontageInstance() != NULL) : false);
 }
-
-#endif
