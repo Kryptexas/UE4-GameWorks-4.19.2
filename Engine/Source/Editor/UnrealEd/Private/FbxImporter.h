@@ -125,7 +125,6 @@ struct FBXImportOptions
 	bool bPreserveSmoothingGroups;
 	bool bKeepOverlappingVertices;
 	bool bImportMeshesInBoneHierarchy;
-	bool bImportGroupNodeAsRoot;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
 	// Animation option
@@ -134,6 +133,7 @@ struct FBXImportOptions
 	struct FIntPoint AnimationRange;
 	FString AnimationName;
 	bool	bPreserveLocalTransform;
+	bool	bImportCustomAttribute;
 
 	bool ShouldImportNormals()
 	{
@@ -395,11 +395,6 @@ public:
 	FbxTimeSpan GetAnimationTimeSpan(FbxNode* RootNode, FbxAnimStack* AnimStack);
 
 	/**
-	 * Import FbxCurve to Curve
-	 */
-	bool ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan) const;
-
-	/**
 	 * Import one animation from CurAnimStack
 	 *
 	 * @param Skeleton	Skeleton that the animation belong to
@@ -550,6 +545,8 @@ public:
 	 */
 	UNREALED_API FBXImportOptions* GetImportOptions() const;
 
+	/** helper function **/
+	UNREALED_API static void DumpFBXNode(FbxNode* Node);
 private:
 	/**
 	 * ActorX plug-in can export mesh and dummy as skeleton.
@@ -996,6 +993,18 @@ private:
 	void ClearLogger();
 
 	FImportedMaterialData ImportedMaterialData;
+
+private:
+	/**
+	 * Import FbxCurve to Curve
+	 */
+	bool ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
+
+
+	/*
+	 * Import FbxCurve to anim sequence
+	 */
+	bool ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString & CurveName, const FbxAnimCurve * FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale = 1.f) const;
 };
 
 

@@ -83,7 +83,8 @@ void FWheeledVehicleMovementComponent4WDetails::CustomizeDetails(IDetailLayoutBu
 				.ViewMaxOutput(1.f)
 				.TimelineLength(150)
 				.HideUI(false)
-				.ZoomToFit(false)
+				.ZoomToFitVertical(false)
+				.ZoomToFitHorizontal(false)
 				.DesiredSize(FVector2D(512, 128))
 			];
 

@@ -239,7 +239,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 		}
 
 		//Inform track widget about the curve and whether it is editable or not.
-		TrackWidget->SetZoomToFit(bZoomToFit);
+		TrackWidget->SetZoomToFit(bZoomToFit, bZoomToFit);
 		TrackWidget->SetCurveOwner(CurveBasePtr, !TrackBase->bIsExternalCurve);
 	}
 

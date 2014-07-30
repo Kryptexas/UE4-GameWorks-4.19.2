@@ -110,7 +110,6 @@ private:
 	void SetSkeletalMesh_ReserveSmoothingGroups(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_KeepOverlappingVertices(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_ImportMeshesInBoneHierarchy(ESlateCheckBoxState::Type NewType);
-	void SetSkeletalMesh_ImportGroupNodeAsRoot(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_CreatePhysicsAsset(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_ImportMeshLODs(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_LODGroup(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
@@ -130,6 +129,7 @@ private:
 	void SetAnimationRangeStart(const FText& Name, ETextCommit::Type CommitInfo);
 	void SetAnimationRangeEnd(const FText& Name, ETextCommit::Type CommitInfo);
 	void SetAnimation_ReserveLocalTransform(ESlateCheckBoxState::Type NewType);
+	void SetAnimation_ImportCustomAttribute(ESlateCheckBoxState::Type NewType);
 
 	TSharedRef<SWidget> MakeSkeletonPickerMenu();
 	void OnAssetSelectedFromSkeletonPicker(const FAssetData& AssetData);

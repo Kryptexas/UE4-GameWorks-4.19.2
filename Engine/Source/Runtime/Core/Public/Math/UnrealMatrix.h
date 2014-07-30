@@ -166,7 +166,7 @@ FORCEINLINE FVector4 FMatrix::TransformPosition(const FVector &V) const
 /** Inverts the matrix and then transforms V - correctly handles scaling in this matrix. */
 FORCEINLINE FVector FMatrix::InverseTransformPosition(const FVector &V) const
 {
-	FMatrix InvSelf = this->Inverse();
+	FMatrix InvSelf = this->InverseSafe();
 	return InvSelf.TransformPosition(V);
 }
 

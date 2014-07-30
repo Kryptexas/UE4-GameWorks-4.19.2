@@ -36,7 +36,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	ViewMinOutput = InArgs._ViewMinOutput;
 	ViewMaxOutput = InArgs._ViewMaxOutput;
 
-	bZoomToFit = InArgs._ZoomToFit;
+	bZoomToFitVertical = InArgs._ZoomToFitVertical;
+	bZoomToFitHorizontal = InArgs._ZoomToFitHorizontal;
 	DesiredSize = InArgs._DesiredSize;
 
 	bIsUsingSlider = false;
@@ -833,18 +834,23 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 
 	SelectedKeys.Empty();
 
-	if( bZoomToFit )
+	if( bZoomToFitVertical )
 	{
 		ZoomToFitVertical();
+	}
+
+	if ( bZoomToFitHorizontal )
+	{
 		ZoomToFitHorizontal();
 	}
 
 	CurveSelectionWidget.Pin()->SetContent(CreateCurveSelectionWidget());
 }
 
-void SCurveEditor::SetZoomToFit(bool bNewZoomToFit)
+void SCurveEditor::SetZoomToFit(bool bNewZoomToFitVertical, bool bNewZoomToFitHorizontal)
 {
-	bZoomToFit = bNewZoomToFit;
+	bZoomToFitVertical = bNewZoomToFitVertical;
+	bZoomToFitHorizontal = bNewZoomToFitHorizontal;
 }
 
 FCurveOwnerInterface* SCurveEditor::GetCurveOwner() const

@@ -4,6 +4,7 @@
 
 UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bImportCustomAttribute(true)
 {
 	
 }

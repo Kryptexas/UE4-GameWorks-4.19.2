@@ -5,7 +5,6 @@
 UFbxSkeletalMeshImportData::UFbxSkeletalMeshImportData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, bImportMeshesInBoneHierarchy(true)
-	, bImportGroupNodeAsRoot(true)
 {
 }
 

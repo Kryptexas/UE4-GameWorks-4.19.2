@@ -91,7 +91,8 @@ public:
 		, _HideUI(true)
 		, _AllowZoomOutput(true)
 		, _AlwaysDisplayColorCurves(false)
-		, _ZoomToFit(true)
+		, _ZoomToFitVertical(true)
+		, _ZoomToFitHorizontal(true)
 		{}
 
 		SLATE_ATTRIBUTE( float, ViewMinInput )
@@ -106,7 +107,8 @@ public:
 		SLATE_ARGUMENT( bool, HideUI )
 		SLATE_ARGUMENT( bool, AllowZoomOutput )
 		SLATE_ARGUMENT( bool, AlwaysDisplayColorCurves )
-		SLATE_ARGUMENT( bool, ZoomToFit )
+		SLATE_ARGUMENT( bool, ZoomToFitVertical )
+		SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
 		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 		SLATE_EVENT( FSimpleDelegate, OnCreateAsset )
 	SLATE_END_ARGS()
@@ -120,7 +122,7 @@ public:
 	UNREALED_API void SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEdit = true);
 
 	/** Set new zoom to fit **/
-	UNREALED_API void SetZoomToFit(bool bNewZoomToFit);
+	UNREALED_API void SetZoomToFit(bool bNewZoomToFitVertical, bool bNewZoomToFitHorizontal);
 
 	/** Get the currently edited curve */
 	FCurveOwnerInterface* GetCurveOwner() const;
@@ -485,7 +487,10 @@ protected:
 	float				ViewMaxOutput;
 
 	/** True if you want the curve editor to fit to zoom **/
-	bool				bZoomToFit;
+	bool				bZoomToFitVertical;
+
+	/** True if you want the curve editor to fit to zoom **/
+	bool				bZoomToFitHorizontal;
 
 	/** True if the sliders are being used to adjust point values **/
 	bool bIsUsingSlider;

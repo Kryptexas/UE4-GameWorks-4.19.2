@@ -34,7 +34,7 @@ class UFbxAnimSequenceImportData : public UFbxAssetImportData
 
 	/** Type of asset to import from the FBX file */
 	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "Start Frame"))
-	int32 StartFrame;
+	int32	StartFrame;
 	/** Type of asset to import from the FBX file */
 	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "End Frame"))
 	int32	EndFrame;
@@ -42,6 +42,10 @@ class UFbxAnimSequenceImportData : public UFbxAssetImportData
 	/** Name of source animation that was imported, used to reimport correct animation from the FBX file*/
 	UPROPERTY(EditAnywhere, Category = ImportSettings, meta = (DisplayName = "Source Animation Name"))
 	FString SourceAnimationName;
+
+	/** Import if custom attribute as a curve within the animation **/
+	UPROPERTY(EditAnywhere, config, Category = ImportSettings, meta = (DisplayName = "Import Custom Attribute"))
+	bool bImportCustomAttribute;
 
 	/** Gets or creates fbx import data for the specified anim sequence */
 	static UFbxAnimSequenceImportData* GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation);
