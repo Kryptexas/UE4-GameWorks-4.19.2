@@ -157,6 +157,8 @@ Scalability::FQualityLevels FPerformanceMonitor::GetAutoScalabilityQualityLevels
 
 void FPerformanceMonitor::AutoApplyScalability()
 {
+	GEditor->AccessGameAgnosticSettings().AutoApplyScalabilityBenchmark();
+
 	Scalability::FQualityLevels NewLevels = FPerformanceMonitor::GetAutoScalabilityQualityLevels();
 
 	Scalability::SetQualityLevels(NewLevels);
@@ -224,7 +226,7 @@ void FPerformanceMonitor::HidePerformanceWarning()
 
 void FPerformanceMonitor::Tick(float DeltaTime)
 {
-	if (GEngine->ShouldThrottleCPUUsage())
+	if (GEngine->ShouldThrottleCPUUsage() && (!GShaderCompilingManager || !GShaderCompilingManager->IsCompiling() ) )
 	{
 		return;
 	}
@@ -290,9 +292,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	}
 	else
 	{
-		// Before we warn the user lets check if we already have auto-scalability enabled, no sense in warning them
-		// if we can't do anything about it.
-		if ( !WillAutoScalabilityHelp() )
+		if( GEditor->GetGameAgnosticSettings().IsScalabilityBenchmarkValid() )
 		{
 			return;
 		}
