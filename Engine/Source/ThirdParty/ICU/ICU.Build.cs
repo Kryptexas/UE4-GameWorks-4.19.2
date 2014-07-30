@@ -126,6 +126,10 @@ public class ICU : ModuleRules
                     {
                         string LibraryName = "libicu" + Stem + LibraryNamePostfix + "." + StaticLibraryExtension;
                         PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + LibraryName);
+						if (Target.Platform == UnrealTargetPlatform.IOS)
+						{
+							PublicAdditionalShadowFiles.Add(TargetSpecificPath + "lib/" + LibraryName);
+						}
                     }
                     break;
                 case EICULinkType.Dynamic:
@@ -183,8 +187,9 @@ public class ICU : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
             (Target.Platform == UnrealTargetPlatform.Win32) ||
             (Target.Platform == UnrealTargetPlatform.Linux) ||
-            (Target.Platform == UnrealTargetPlatform.Mac ||
-			(Target.Platform == UnrealTargetPlatform.PS4)))
+            (Target.Platform == UnrealTargetPlatform.Mac) ||
+			(Target.Platform == UnrealTargetPlatform.IOS) ||
+			(Target.Platform == UnrealTargetPlatform.PS4))
 		{
 			// Definitions
 			Definitions.Add("U_USING_ICU_NAMESPACE=0"); // Disables a using declaration for namespace "icu".
