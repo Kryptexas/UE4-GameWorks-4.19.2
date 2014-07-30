@@ -26,14 +26,14 @@
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
-	: bAtLeastOneNonRedirectorSelected(false)
+	: AssetView(InAssetView)
+	, bAtLeastOneNonRedirectorSelected(false)
 	, bCanExecuteSCCCheckOut(false)
 	, bCanExecuteSCCOpenForAdd(false)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCCHistory(false)
 	, bCanExecuteSCCRevert(false)
 	, bCanExecuteSCCSync(false)
-	, AssetView(InAssetView)
 {
 
 }

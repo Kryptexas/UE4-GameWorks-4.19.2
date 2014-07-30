@@ -50,23 +50,6 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, bUseSelectedRegion(true)
 	, bUseNegativeMask(true)
 
-	// Brush Settings:
-	, BrushRadius(2048.0f)
-	, BrushFalloff(0.5f)
-	, bUseClayBrush(false)
-
-	, AlphaBrushScale(0.5f)
-	, bAlphaBrushAutoRotate(true)
-	, AlphaBrushRotation(0.0f)
-	, AlphaBrushPanU(0.5f)
-	, AlphaBrushPanV(0.5f)
-	, AlphaTexture(NULL)
-	, AlphaTextureChannel(EColorChannel::Red)
-	, AlphaTextureSizeX(1)
-	, AlphaTextureSizeY(1)
-
-	, BrushComponentSize(1)
-
 	, PasteMode(ELandscapeToolNoiseMode::Both)
 	, bApplyToAllTargets(true)
 	, bSnapGizmo(false)
@@ -86,6 +69,23 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, NewLandscape_Scale(100, 100, 100)
 	, ImportLandscape_Width(0)
 	, ImportLandscape_Height(0)
+
+	// Brush Settings:
+	, BrushRadius(2048.0f)
+	, BrushFalloff(0.5f)
+	, bUseClayBrush(false)
+
+	, AlphaBrushScale(0.5f)
+	, bAlphaBrushAutoRotate(true)
+	, AlphaBrushRotation(0.0f)
+	, AlphaBrushPanU(0.5f)
+	, AlphaBrushPanV(0.5f)
+	, AlphaTexture(NULL)
+	, AlphaTextureChannel(EColorChannel::Red)
+	, AlphaTextureSizeX(1)
+	, AlphaTextureSizeY(1)
+
+	, BrushComponentSize(1)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

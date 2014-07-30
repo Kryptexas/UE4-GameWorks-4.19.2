@@ -57,8 +57,8 @@ class FLandscapeToolStrokePaintBase
 {
 public:
 	FLandscapeToolStrokePaintBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: LandscapeInfo(InTarget.LandscapeInfo.Get())
-		, Cache(InTarget)
+		: Cache(InTarget)
+		, LandscapeInfo(InTarget.LandscapeInfo.Get())
 	{
 	}
 
@@ -329,6 +329,8 @@ public:
 	FLandscapeToolStrokeSmooth(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
 	{}
+
+	virtual ~FLandscapeToolStrokeSmooth() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{

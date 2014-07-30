@@ -16,8 +16,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogPropertyView, Log, All);
 
 FPropertyValueImpl::FPropertyValueImpl( TSharedPtr<FPropertyNode> InPropertyNode, FNotifyHook* InNotifyHook, TSharedPtr<IPropertyUtilities> InPropertyUtilities )
 	: PropertyNode( InPropertyNode )
-	, NotifyHook( InNotifyHook )
 	, PropertyUtilities( InPropertyUtilities )
+	, NotifyHook( InNotifyHook )
 	, bInteractiveChangeInProgress( false )
 {
 

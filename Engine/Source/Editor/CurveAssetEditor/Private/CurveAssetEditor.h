@@ -9,9 +9,9 @@ class FCurveAssetEditor :  public ICurveAssetEditor
 public:
 
 	FCurveAssetEditor()
-		: ViewMinInput( 0.f )
+		: TrackWidget( NULL )
+		, ViewMinInput( 0.f )
 		, ViewMaxInput( 0.f )
-		, TrackWidget( NULL )
 	{}
 
 	virtual ~FCurveAssetEditor() {}

@@ -8,9 +8,9 @@ public:
 
 	SLATE_BEGIN_ARGS( SDocumentationToolTip )
 		: _Text()
-		, _Content()
 		, _Style( TEXT("Documentation.SDocumentationTooltip") )
 		, _ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 1.0f ) )
+		, _Content()
 		{}
 
 		/** The text displayed in this tool tip */

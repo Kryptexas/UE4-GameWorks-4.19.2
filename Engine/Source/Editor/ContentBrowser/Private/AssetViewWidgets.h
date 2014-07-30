@@ -376,12 +376,12 @@ class SAssetTileItem : public SAssetViewItem
 public:
 	SLATE_BEGIN_ARGS( SAssetTileItem )
 		: _ThumbnailPadding(0)
-		, _ItemWidth(16)
-		, _ShouldAllowToolTip(true)
-		, _ThumbnailEditMode(false)
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _ThumbnailHintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
 		, _AllowThumbnailHintLabel(true)
+		, _ItemWidth(16)
+		, _ShouldAllowToolTip(true)
+		, _ThumbnailEditMode(false)
 	{}
 
 		/** The handle to the thumbnail this item should render */

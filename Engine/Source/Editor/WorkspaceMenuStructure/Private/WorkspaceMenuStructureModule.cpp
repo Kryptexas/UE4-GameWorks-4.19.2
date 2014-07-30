@@ -93,6 +93,8 @@ public:
 		ResetToolsCategory();
 	}
 
+	virtual ~FWorkspaceMenuStructure() {}
+
 private:
 	TSharedPtr<FWorkspaceItem> MenuRoot;
 	TSharedPtr<FWorkspaceItem> AssetEditorCategory;

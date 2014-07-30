@@ -422,7 +422,6 @@ void UParticleSystemAuditCommandlet::CheckPSysForDuplicateModules(UParticleSyste
 									ModuleCount = ModuleList->Find(Module);
 								}
 								check(ModuleCount);
-								*ModuleCount++;
 							}
 						}
 					}

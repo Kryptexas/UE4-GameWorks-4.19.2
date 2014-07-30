@@ -14,6 +14,8 @@ class FWorkspaceMenuStructureModule : public IModuleInterface
 
 public:
 
+	virtual ~FWorkspaceMenuStructureModule() {}
+
 	virtual void StartupModule();
 
 	virtual void ShutdownModule();

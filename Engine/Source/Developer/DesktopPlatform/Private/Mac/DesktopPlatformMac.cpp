@@ -559,7 +559,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	}
 	else
 	{
-		NSRunAlertPanel(@"Error", UProjectPath.GetNSString(), @"OK", NULL, NULL);
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *UProjectPath, TEXT("Error"));
 	}
 
 	FConfigFile ConfigFile;

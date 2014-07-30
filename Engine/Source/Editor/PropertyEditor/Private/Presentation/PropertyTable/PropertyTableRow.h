@@ -15,6 +15,8 @@ public:
 
 	FPropertyTableRow( const TSharedRef< class IPropertyTable >& InTable, const TSharedRef< FPropertyPath >& InPropertyPath, const TSharedRef< FPropertyPath >& InPartialPropertyPath );
 
+	virtual ~FPropertyTableRow() {}
+
 	virtual TSharedRef< class IDataSource > GetDataSource() const override { return DataSource; }
 
 	virtual bool HasChildren() const override;

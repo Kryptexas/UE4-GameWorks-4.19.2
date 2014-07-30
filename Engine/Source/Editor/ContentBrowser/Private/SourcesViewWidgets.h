@@ -141,8 +141,8 @@ public:
 	DECLARE_DELEGATE_ThreeParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TSharedPtr<FCollectionItem>& /*CollectionItem*/, FText& /*OutMessage*/);
 
 	SLATE_BEGIN_ARGS( SCollectionListItem )
-		: _ParentWidget()
-		, _CollectionItem( TSharedPtr<FCollectionItem>() )
+		: _CollectionItem( TSharedPtr<FCollectionItem>() )
+		, _ParentWidget()
 	{}
 
 	/** Data for the collection this item represents */

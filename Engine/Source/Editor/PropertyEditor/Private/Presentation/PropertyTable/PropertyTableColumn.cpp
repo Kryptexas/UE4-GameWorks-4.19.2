@@ -165,8 +165,8 @@ struct FCompareRowByColumnAscending
 {
 public:
 	FCompareRowByColumnAscending( const TSharedRef< IPropertyTableColumn >& InColumn, const TWeakObjectPtr< UPropertyType >& InUProperty )
-		: Column( InColumn )
-		, Property( InUProperty )
+		: Property( InUProperty )
+		, Column( InColumn )
 	{
 
 	}
@@ -323,14 +323,14 @@ FORCEINLINE bool FCompareRowByColumnAscending<UObjectProperty>::ComparePropertyV
 
 
 FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& InTable, const TWeakObjectPtr< UObject >& InObject )
-	: DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
+	: Cells()
+	, DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
 	, Table( InTable )
-	, Cells()
-	, bIsHidden( false )
-	, bIsFrozen( false )
-	, Width( 1.0f )
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
+	, Width( 1.0f )
+	, bIsHidden( false )
+	, bIsFrozen( false )
 	, PartialPath( FPropertyPath::CreateEmpty() )
 	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {
@@ -339,14 +339,14 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 }
 
 FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& InTable, const TSharedRef< FPropertyPath >& InPropertyPath )
-	: DataSource( MakeShareable( new PropertyPathDataSource( InPropertyPath ) ) )
+	: Cells()
+	, DataSource( MakeShareable( new PropertyPathDataSource( InPropertyPath ) ) )
 	, Table( InTable )
-	, Cells()
-	, bIsHidden( false )
-	, bIsFrozen( false )
-	, Width( 1.0f )
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
+	, Width( 1.0f )
+	, bIsHidden( false )
+	, bIsFrozen( false )
 	, PartialPath( FPropertyPath::CreateEmpty() )
 	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {
@@ -355,14 +355,14 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 }
 
 FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< class IPropertyTable >& InTable, const TWeakObjectPtr< UObject >& InObject, const TSharedRef< FPropertyPath >& InPartialPropertyPath )
-	: DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
+	: Cells()
+	, DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
 	, Table( InTable )
-	, Cells()
-	, bIsHidden( false )
-	, bIsFrozen( false )
-	, Width( 1.0f )
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
+	, Width( 1.0f )
+	, bIsHidden( false )
+	, bIsFrozen( false )
 	, PartialPath( InPartialPropertyPath )
 	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {

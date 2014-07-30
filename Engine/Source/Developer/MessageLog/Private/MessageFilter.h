@@ -14,6 +14,8 @@ public:
 		, Display(true)
 	{}
 
+	virtual ~FMessageFilter() {}
+
 	/** Fires a callback when the mouse is released on an option (not linked to states) */
 	FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 

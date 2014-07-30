@@ -4238,8 +4238,8 @@ struct FUpdatePastedNodes
 
 	FUpdatePastedNodes(UClass* InCurrentClass, TSet<UEdGraphNode*>& InPastedNodes, UEdGraph* InDestinationGraph)
 		: CurrentClass(InCurrentClass)
-		, PastedNodes(InPastedNodes)
 		, Graph(InDestinationGraph)
+		, PastedNodes(InPastedNodes)
 		, K2Schema(GetDefault<UEdGraphSchema_K2>())
 	{
 		check(InCurrentClass && InDestinationGraph && K2Schema);

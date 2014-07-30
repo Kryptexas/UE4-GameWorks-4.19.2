@@ -94,9 +94,9 @@ FReply SDetailCategoryTableRow::OnMouseButtonDoubleClick( const FGeometry& InMyG
 
 FDetailCategoryGroupNode::FDetailCategoryGroupNode( const FDetailNodeList& InChildNodes, FName InGroupName, FDetailCategoryImpl& InParentCategory )
 	: ChildNodes( InChildNodes )
+	, ParentCategory( InParentCategory )
 	, GroupName( InGroupName )
 	, bShouldBeVisible( false )
-	, ParentCategory( InParentCategory )
 {
 }
 

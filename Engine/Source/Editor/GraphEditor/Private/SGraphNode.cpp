@@ -1032,8 +1032,8 @@ FLinearColor SGraphNode::GetPinLabelColorAndOpacity() const
 
 SGraphNode::SGraphNode()
 	: bProvidedComplexTooltip(false)
-	, ErrorColor( FLinearColor::White )
 	, bRenameIsPending( false )
+	, ErrorColor( FLinearColor::White )
 	, CachedUnscaledPosition( FVector2D::ZeroVector )
 {
 	// Set up animation

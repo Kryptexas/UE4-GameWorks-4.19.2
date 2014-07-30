@@ -10,6 +10,7 @@ class FPropertyTableObjectNameCell : public TSharedFromThis< FPropertyTableObjec
 public:
 
 	FPropertyTableObjectNameCell( const TSharedRef< class FPropertyTableObjectNameColumn >& InColumn, const TSharedRef< class IPropertyTableRow >& InRow );
+	virtual ~FPropertyTableObjectNameCell() {}
 
 	virtual void Refresh() override;
 

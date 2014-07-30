@@ -48,10 +48,10 @@ DEFINE_STAT(EKismetCompilerStats_UpdateBlueprintGeneratedClass);
 FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: FGraphCompilerContext(InMessageLog)
 	, Schema(NULL)
+	, CompileOptions(InCompilerOptions)
 	, ObjLoaded(InObjLoaded)
 	, Blueprint(SourceSketch)
 	, NewClass(NULL)
-	, CompileOptions(InCompilerOptions)
 	, ConsolidatedEventGraph(NULL)
 	, UbergraphContext(NULL)
 {

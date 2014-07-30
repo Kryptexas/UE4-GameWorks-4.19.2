@@ -264,8 +264,8 @@ struct FLandscapeTargetListInfo
 		, LandscapeInfo(InLandscapeInfo)
 		, LayerInfoObj(NULL)
 		, LayerName(NAME_None)
-		, ThumbnailMIC(NULL)
 		, Owner(NULL)
+		, ThumbnailMIC(NULL)
 		, bValid(true)
 	{
 	}

@@ -37,7 +37,7 @@ public:
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FStructureDefaultValueView::OnFinishedChangingProperties);
 	}
 
-	~FStructureDefaultValueView()
+	virtual ~FStructureDefaultValueView()
 	{
 		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 	}
@@ -430,9 +430,9 @@ class FUserDefinedStructureFieldLayout : public IDetailCustomNodeBuilder, public
 {
 public:
 	FUserDefinedStructureFieldLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails, TWeakPtr<class FUserDefinedStructureLayout> InStructureLayout, FGuid InFieldGuid)
-		: FieldGuid(InFieldGuid)
+		: StructureDetails(InStructureDetails)
 		, StructureLayout(InStructureLayout)
-		, StructureDetails(InStructureDetails) {}
+		, FieldGuid(InFieldGuid) {}
 
 	void OnChanged()
 	{

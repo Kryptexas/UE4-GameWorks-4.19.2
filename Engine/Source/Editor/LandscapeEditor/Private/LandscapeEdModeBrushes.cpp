@@ -499,8 +499,8 @@ public:
 	FEdModeLandscape* EdMode;
 
 	FLandscapeBrushGizmo(FEdModeLandscape* InEdMode)
-		: EdMode(InEdMode),
-		BrushMaterial(NULL)
+		: BrushMaterial(NULL)
+		, EdMode(InEdMode)
 	{
 		UMaterialInstanceConstant* GizmoMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_Gizmo.MaskBrushMaterial_Gizmo"), NULL, LOAD_None, NULL);
 		BrushMaterial = UMaterialInstanceDynamic::Create(GizmoMaterial, NULL);

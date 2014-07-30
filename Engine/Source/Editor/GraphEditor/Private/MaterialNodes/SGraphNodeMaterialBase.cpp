@@ -118,8 +118,8 @@ FIntPoint FPreviewViewport::GetSize() const
 // FPreviewElement
 
 FPreviewElement::FPreviewElement()
-	: ExpressionPreview(NULL)
-	, RenderTarget(new FSlateMaterialPreviewRenderTarget)
+	: RenderTarget(new FSlateMaterialPreviewRenderTarget)
+	, ExpressionPreview(NULL)
 	, bIsRealtime(false)
 {
 }

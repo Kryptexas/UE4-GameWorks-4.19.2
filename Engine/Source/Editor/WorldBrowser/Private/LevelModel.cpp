@@ -16,9 +16,9 @@ FLevelModel::FLevelModel(FLevelCollectionModel& InLevelCollectionModel,
 	, bSelected(false)
 	, bExpanded(false)
 	, bLoadingLevel(false)
+	, bFilteredOut(false)
 	, LevelTranslationDelta(0,0)
 	, LevelActorsCount(0)
-	, bFilteredOut(false)
 {
 	SimulationStatus = FSimulationLevelStatus();
 }

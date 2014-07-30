@@ -89,8 +89,8 @@ static void PropagateTransformPropertyChange(UObject* InObject, UProperty* InPro
 FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, IDetailLayoutBuilder& DetailBuilder )
 	: SelectedActorInfo( InSelectedActorInfo )
 	, SelectedObjects( InSelectedObjects )
-	, bPreserveScaleRatio( false )
 	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
+	, bPreserveScaleRatio( false )
 	, bEditingRotationInUI( false )
 	, HiddenFieldMask( 0 )
 {

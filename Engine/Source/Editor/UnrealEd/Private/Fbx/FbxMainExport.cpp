@@ -267,7 +267,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
 	{
 		AActor* Actor = World->GetCurrentLevel()->Actors[ActorIndex];
-		if ( Actor != NULL && ( !bSelectedOnly || bSelectedOnly && Actor->IsSelected() ) )
+		if ( Actor != NULL && ( !bSelectedOnly || ( bSelectedOnly && Actor->IsSelected() ) ) )
 		{
 			if (Actor->IsA(ALight::StaticClass()))
 			{

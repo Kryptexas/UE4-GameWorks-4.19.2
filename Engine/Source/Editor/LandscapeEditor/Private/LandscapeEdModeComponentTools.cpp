@@ -25,11 +25,13 @@ class FLandscapeToolStrokeSelect : FLandscapeStrokeBase<const FLandscapeToolTarg
 public:
 	FLandscapeToolStrokeSelect(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeStrokeBase<const FLandscapeToolTarget>(InTarget)
+		, bInitializedComponentInvert(false)
 		, LandscapeInfo(InTarget.LandscapeInfo.Get())
 		, Cache(InTarget)
-		, bInitializedComponentInvert(false)
 	{
 	}
+
+	virtual ~FLandscapeToolStrokeSelect() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
@@ -197,6 +199,8 @@ public:
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 		, Cache(InTarget)
 	{}
+
+	virtual ~FLandscapeToolStrokeVisibility() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
@@ -1124,6 +1128,8 @@ public:
 		, WeightCache(InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokeCopy() {}
+
 	struct FGizmoPreData
 	{
 		float Ratio;
@@ -1486,6 +1492,8 @@ public:
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
 	{}
+
+	virtual ~FLandscapeToolStrokePaste() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{

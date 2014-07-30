@@ -135,14 +135,14 @@ FSequencer::FSequencer()
 	: SequencerCommandBindings( new FUICommandList )
 	, TargetViewRange(0.f, 5.f)
 	, LastViewRange(0.f, 5.f)
+	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
 	, bCleanViewEnabled( false )
-	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, bLoopingEnabled( false )
 	, bAllowAutoKey( false )
 	, bPerspectiveViewportPossessionEnabled( true )
-	, bNeedTreeRefresh( false )
 	, bIsEditingWithinLevelEditor( false )
+	, bNeedTreeRefresh( false )
 {
 
 }

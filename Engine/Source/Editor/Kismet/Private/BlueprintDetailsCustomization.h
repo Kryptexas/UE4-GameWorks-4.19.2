@@ -275,8 +275,8 @@ class FBlueprintGraphArgumentGroupLayout : public IDetailCustomNodeBuilder, publ
 {
 public:
 	FBlueprintGraphArgumentGroupLayout(TWeakPtr<class FBaseBlueprintGraphActionDetails> InGraphActionDetails, UK2Node_EditablePinBase* InTargetNode)
-		: TargetNode(InTargetNode)
-		, GraphActionDetailsPtr(InGraphActionDetails) {}
+		: GraphActionDetailsPtr(InGraphActionDetails)
+		, TargetNode(InTargetNode) {}
 
 private:
 	/** IDetailCustomNodeBuilder Interface*/
@@ -301,12 +301,12 @@ class FBlueprintGraphArgumentLayout : public IDetailCustomNodeBuilder, public TS
 {
 public:
 	FBlueprintGraphArgumentLayout(TWeakPtr<FUserPinInfo> PinInfo, UK2Node_EditablePinBase* InTargetNode, TWeakPtr<class FBaseBlueprintGraphActionDetails> InGraphActionDetails, FName InArgName, bool bInHasDefaultValue)
-		: ParamItemPtr(PinInfo)
+		: GraphActionDetailsPtr(InGraphActionDetails)
+		, ParamItemPtr(PinInfo)
 		, TargetNode(InTargetNode)
-		, GraphActionDetailsPtr(InGraphActionDetails)
-		, ArgumentName(InArgName)
-		, bHasDefaultValue(bInHasDefaultValue) {}
-	
+		, bHasDefaultValue(bInHasDefaultValue)
+		, ArgumentName(InArgName) {}
+
 private:
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {}
@@ -434,7 +434,7 @@ private:
 		uint32 SpecifierFlag;
 
 		FReplicationSpecifierLabel( FText InLocalizedName, uint32 InSpecifierFlag, FText InLocalizedToolTip ) :
-			LocalizedName( InLocalizedName ), SpecifierFlag( InSpecifierFlag ), LocalizedToolTip( InLocalizedToolTip )
+			LocalizedName( InLocalizedName ), LocalizedToolTip( InLocalizedToolTip ), SpecifierFlag( InSpecifierFlag )
 		{}
 	};
 
@@ -669,8 +669,8 @@ class FBlueprintGraphNodeDetails : public IDetailCustomization
 public:
 	/** Constructor */
 	FBlueprintGraphNodeDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
-		: BlueprintEditorPtr(InBlueprintEditorPtr)
-		, GraphNodePtr(NULL)
+		: GraphNodePtr(NULL)
+		, BlueprintEditorPtr(InBlueprintEditorPtr)
 	{
 
 	}

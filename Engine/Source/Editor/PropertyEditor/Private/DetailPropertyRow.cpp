@@ -10,8 +10,8 @@
 #include "CustomChildBuilder.h"
 
 FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode )
-	: PropertyNode( InPropertyNode )
-	, CustomIsEnabledAttrib( true )
+	: CustomIsEnabledAttrib( true )
+	, PropertyNode( InPropertyNode )
 	, ParentCategory( InParentCategory )
 	, ExternalRootNode( InExternalRootNode )
 	, bShowPropertyButtons( true )

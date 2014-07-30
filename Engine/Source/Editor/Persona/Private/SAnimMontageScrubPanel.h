@@ -9,9 +9,9 @@ class SAnimMontageScrubPanel : public SAnimationScrubPanel
 public:
 
 	SLATE_BEGIN_ARGS(SAnimMontageScrubPanel)
-		: _Persona()
+		: _MontageEditor()
+		, _Persona()
 		, _LockedSequence()
-		, _MontageEditor()
 	{}
 		SLATE_ARGUMENT( TWeakPtr<class SMontageEditor>, MontageEditor)
 		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona )

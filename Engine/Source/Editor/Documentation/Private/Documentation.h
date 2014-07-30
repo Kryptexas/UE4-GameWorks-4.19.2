@@ -11,7 +11,7 @@ public:
 
 public:
 
-	~FDocumentation();
+	virtual ~FDocumentation();
 
 	virtual bool OpenHome() const override;
 

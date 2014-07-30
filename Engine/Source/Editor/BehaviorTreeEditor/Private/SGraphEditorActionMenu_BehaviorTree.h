@@ -13,10 +13,10 @@ class SGraphEditorActionMenu_BehaviorTree : public SBorder
 public:
 	SLATE_BEGIN_ARGS( SGraphEditorActionMenu_BehaviorTree )
 		: _GraphObj( static_cast<UEdGraph*>(NULL) )
-		,_GraphNode(NULL)
-		,_SubNodeType(ESubNode::Decorator)
+		, _GraphNode(NULL)
 		, _NewNodePosition( FVector2D::ZeroVector )
 		, _AutoExpandActionMenu( false )
+		, _SubNodeType(ESubNode::Decorator)
 		{}
 
 		SLATE_ARGUMENT( UEdGraph*, GraphObj )

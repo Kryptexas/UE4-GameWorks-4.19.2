@@ -185,13 +185,13 @@ namespace
 // FEdMode
 
 FEdMode::FEdMode()
-	: CurrentTool( NULL )
+	/** Deprecated members */
+	: Name(Info.Name), ID(Info.ID), IconBrush(Info.IconBrush), bVisible(Info.bVisible), PriorityOrder(Info.PriorityOrder)
+	, bPendingDeletion( false )
+	, CurrentTool( NULL )
 	, EditedPropertyName(TEXT(""))
 	, EditedPropertyIndex( INDEX_NONE )
 	, bEditedPropertyIsTransform( false )
-	, bPendingDeletion( false )
-	/** Deprecated members */
-	, Name(Info.Name), ID(Info.ID), IconBrush(Info.IconBrush), bVisible(Info.bVisible), PriorityOrder(Info.PriorityOrder)
 {
 	bDrawKillZ = true;
 }
@@ -1161,13 +1161,13 @@ FEditorModeTools::FEditorModeTools()
 	,	Snapping( 0 )
 	,	SnappedActor( 0 )
 	,	TranslateRotateXAxisAngle(0)
+	,	DefaultID(FBuiltinEditorModes::EM_Default)
 	,	WidgetMode( FWidget::WM_Translate )
 	,	OverrideWidgetMode( FWidget::WM_None )
 	,	bShowWidget( 1 )
 	,	bHideViewportUI(false)
 	,	CoordSystem(COORD_World)
 	,	bIsTracking(false)
-	,	DefaultID(FBuiltinEditorModes::EM_Default)
 {
 	// Load the last used settings
 	LoadConfig();

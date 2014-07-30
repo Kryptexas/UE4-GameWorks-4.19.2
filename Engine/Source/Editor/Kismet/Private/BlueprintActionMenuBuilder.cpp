@@ -165,9 +165,9 @@ protected:
 
 //------------------------------------------------------------------------------
 FBlueprintActionMenuItemFactory::FBlueprintActionMenuItemFactory(FBlueprintActionContext const& ContextIn)
-	: Context(ContextIn)
-	, RootCategory(FText::GetEmpty())
+	: RootCategory(FText::GetEmpty())
 	, MenuGrouping(0)
+	, Context(ContextIn)
 {
 }
 

@@ -121,8 +121,8 @@ public:
 	 */
 	FGraphTabHistory(TSharedPtr<FDocumentTabFactory> InFactory, TSharedPtr<FTabPayload> InPayload)
 		: FGenericTabHistory(InFactory, InPayload)
-		, SavedZoomAmount(INDEX_NONE)
 		, SavedLocation(FVector2D::ZeroVector)
+		, SavedZoomAmount(INDEX_NONE)
 	{
 
 	}

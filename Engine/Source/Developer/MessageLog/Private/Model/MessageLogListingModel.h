@@ -27,6 +27,8 @@ protected:
 
 public:
 
+	virtual ~FMessageLogListingModel() {}
+
 	/**  
 	 *	Factory method which creates a new FMessageLogListingModel object
 	 *

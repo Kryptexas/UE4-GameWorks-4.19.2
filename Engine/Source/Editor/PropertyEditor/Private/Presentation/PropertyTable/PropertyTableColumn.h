@@ -13,6 +13,8 @@ public:
 
 	FPropertyTableColumn( const TSharedRef< IPropertyTable >& InTable, const TWeakObjectPtr< UObject >& InObject, const TSharedRef< FPropertyPath >& InPartialPropertyPath );
 
+	virtual ~FPropertyTableColumn() {}
+
 	// Begin IPropertyTable Interface
 
 	virtual FName GetId() const override;

@@ -14,9 +14,9 @@
 FLevelViewModel::FLevelViewModel( const TWeakObjectPtr< class ULevel >& InLevel, 
 								  const TWeakObjectPtr< class ULevelStreaming >& InLevelStreaming, 
 								  const TWeakObjectPtr< UEditorEngine >& InEditor )
-	: Level( InLevel )
+	: Editor( InEditor )
+	, Level( InLevel )
 	, LevelStreaming( InLevelStreaming )
-	, Editor( InEditor )
 	, LevelActorsCount(0)
 {
 }

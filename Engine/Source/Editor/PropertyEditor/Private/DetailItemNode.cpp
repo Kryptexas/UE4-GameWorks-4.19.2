@@ -15,10 +15,10 @@
 FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled )
 	: Customization( InCustomization )
 	, ParentCategory( InParentCategory )
+	, IsParentEnabled( InIsParentEnabled )
+	, CachedItemVisibility( EVisibility::Visible )
 	, bShouldBeVisibleDueToFiltering( false )
 	, bShouldBeVisibleDueToChildFiltering( false )
-	, CachedItemVisibility( EVisibility::Visible )
-	, IsParentEnabled( InIsParentEnabled )
 	, bTickable( false )
 	, bIsExpanded( InCustomization.HasCustomBuilder() ? !InCustomization.CustomBuilderRow->IsInitiallyCollapsed() : false )
 {

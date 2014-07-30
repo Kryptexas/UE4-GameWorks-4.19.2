@@ -22,7 +22,7 @@ public:
 	FMessageLogViewModel( const TSharedPtr< class FMessageLogModel >& InMessageLogModel );
 
 	/** Destructor */ 
-	~FMessageLogViewModel();
+	virtual ~FMessageLogViewModel();
 
 	/** Initializes the FMessageLogViewModel for use */
 	virtual void Initialize();

@@ -13,7 +13,7 @@ public:
 
 public:
 
-	~FDocumentationPage();
+	virtual ~FDocumentationPage();
 	virtual bool HasExcerpt( const FString& ExcerptName ) override;
 	virtual int32 GetNumExcerpts() const override;
 	virtual bool GetExcerpt( const FString& ExcerptName, FExcerpt& Excerpt) override;

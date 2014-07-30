@@ -26,8 +26,8 @@ public:
 		, _OnValueChanged()
 		, _OnBeginSliderMovement()
 		, _OnEndSliderMovement()
-		, _ViewInputMax()
 		, _ViewInputMin()
+		, _ViewInputMax()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
 		{}

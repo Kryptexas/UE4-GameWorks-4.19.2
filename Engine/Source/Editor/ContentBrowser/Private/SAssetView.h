@@ -26,11 +26,11 @@ public:
 		, _CanShowOnlyAssetsInSelectedFolders(false)
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
+		, _PreloadAssetsForContextMenu(true)
 		, _SelectionMode( ESelectionMode::Multi )
 		, _AllowDragging(true)
 		, _AllowFocusOnSync(true)
 		, _FillEmptySpaceInTileView(true)
-		, _PreloadAssetsForContextMenu(true)
 		{}
 
 		/** Called to check if an asset should be filtered out by external code */

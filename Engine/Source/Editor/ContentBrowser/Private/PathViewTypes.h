@@ -36,8 +36,8 @@ struct FTreeItem : public TSharedFromThis<FTreeItem>
 	FTreeItem(const FString& InFolderName, const FString& InFolderPath, TSharedPtr<FTreeItem> InParent, bool InNewFolder = false)
 		: FolderName(InFolderName)
 		, FolderPath(InFolderPath)
-		, Parent(InParent)
 		, bNewFolder(InNewFolder)
+		, Parent(InParent)
 	{}
 
 	/** Returns true if this item is a child of the specified item */

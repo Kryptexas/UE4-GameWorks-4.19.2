@@ -11,6 +11,8 @@ public:
 
 	FPropertyTableCell( const TSharedRef< class IPropertyTableColumn >& InColumn, const TSharedRef< class IPropertyTableRow >& InRow );
 
+	virtual ~FPropertyTableCell() {}
+
 	virtual void Refresh() override;
 
 	virtual bool IsReadOnly() const override;

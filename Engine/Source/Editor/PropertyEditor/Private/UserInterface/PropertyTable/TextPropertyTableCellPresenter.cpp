@@ -23,9 +23,9 @@
 
 
 FTextPropertyTableCellPresenter::FTextPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor, const TSharedRef< class IPropertyTableUtilities >& InPropertyUtilities, FSlateFontInfo InFont /*= FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ) */ )
-	: PropertyEditor( InPropertyEditor )
+	: PropertyWidget( NULL )
+	, PropertyEditor( InPropertyEditor )
 	, PropertyUtilities( InPropertyUtilities )
-	, PropertyWidget( NULL )
 	, HasReadOnlyEditingWidget( false )
 	, Font(InFont)
 {

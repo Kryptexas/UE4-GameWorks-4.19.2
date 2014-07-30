@@ -72,9 +72,9 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	, bManipulating(false)
 	, bInTransaction(false)
 	, AnimationPlaybackScale(1.0f)
-	, SelectedWindActor(NULL)
-	, PrevWindStrength(0.0f)
 	, GravityScaleSliderValue(0.25f)
+	, PrevWindStrength(0.0f)
+	, SelectedWindActor(NULL)
 	, BodyTraceDistance(100000.0f)
 {
 	// load config

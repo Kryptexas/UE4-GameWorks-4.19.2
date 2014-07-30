@@ -148,16 +148,16 @@ void FLandscapeTool::SetEditRenderType()
 /** Constructor */
 FEdModeLandscape::FEdModeLandscape()
 	: FEdMode()
-	, CurrentGizmoActor(nullptr)
-	, LandscapeRenderAddCollision(nullptr)
-	, bToolActive(false)
-	, GizmoMaterial(nullptr)
-	, CopyPasteTool(nullptr)
-	, SplinesTool(nullptr)
 	, NewLandscapePreviewMode(ENewLandscapePreviewMode::None)
 	, DraggingEdge(ELandscapeEdge::None)
 	, DraggingEdge_Remainder(0)
+	, CurrentGizmoActor(nullptr)
+	, CopyPasteTool(nullptr)
+	, SplinesTool(nullptr)
+	, LandscapeRenderAddCollision(nullptr)
 	, CachedLandscapeMaterial(nullptr)
+	, bToolActive(false)
+	, GizmoMaterial(nullptr)
 {
 	GizmoMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/GizmoMaterial.GizmoMaterial"), NULL, LOAD_None, NULL);
 

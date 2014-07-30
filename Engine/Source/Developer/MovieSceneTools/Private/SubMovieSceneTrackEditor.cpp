@@ -12,9 +12,9 @@ class FSubMovieSceneSection : public ISequencerSection
 {
 public:
 	FSubMovieSceneSection( TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSectionObject, FName SectionName )
-		: Sequencer( InSequencer )
+		: DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes") )
 		, SectionObject( *CastChecked<USubMovieSceneSection>( &InSectionObject ) )
-		, DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes") )
+		, Sequencer( InSequencer )
 	{
 		MovieSceneInstance = InSequencer->GetInstanceForSubMovieSceneSection( InSectionObject );
 	}

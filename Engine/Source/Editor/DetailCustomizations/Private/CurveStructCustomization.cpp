@@ -22,10 +22,10 @@ FCurveStructCustomization::~FCurveStructCustomization()
 }
 
 FCurveStructCustomization::FCurveStructCustomization()
-	: ViewMinInput(0.0f)
-	, ViewMaxInput(5.0f)
-	, RuntimeCurve(NULL)
+	: RuntimeCurve(NULL)
 	, Owner(NULL)
+	, ViewMinInput(0.0f)
+	, ViewMaxInput(5.0f)
 {
 }
 

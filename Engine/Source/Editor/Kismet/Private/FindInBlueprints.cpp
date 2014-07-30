@@ -193,7 +193,7 @@ FFindInBlueprintsResult::FFindInBlueprintsResult(const FText& InDisplayText )
 }
 
 FFindInBlueprintsResult::FFindInBlueprintsResult( const FText& InDisplayText, TSharedPtr<FFindInBlueprintsResult> InParent) 
-	: DisplayText(InDisplayText), Parent(InParent)
+	: Parent(InParent), DisplayText(InDisplayText)
 {
 }
 

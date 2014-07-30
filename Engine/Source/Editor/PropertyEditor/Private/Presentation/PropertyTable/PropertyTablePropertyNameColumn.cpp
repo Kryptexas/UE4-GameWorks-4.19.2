@@ -9,11 +9,11 @@
 
 
 FPropertyTablePropertyNameColumn::FPropertyTablePropertyNameColumn( const TSharedRef< IPropertyTable >& InTable )
-	: Table( InTable )
+	: bIsHidden( false )
 	, Cells()
-	, bIsHidden( false )
-	, Width( 2.0f )
 	, DataSource( MakeShareable( new NoDataSource() ) )
+	, Table( InTable )
+	, Width( 2.0f )
 {
 
 }

@@ -751,6 +751,8 @@ struct FSCSEditorComponentObjectTextFactory : public FCustomizableTextObjectFact
 		return FactoryPtr.ToSharedRef();
 	}
 
+	virtual ~FSCSEditorComponentObjectTextFactory() {}
+
 protected:	
 	// Constructor; protected to only allow this class to instance itself
 	FSCSEditorComponentObjectTextFactory()
