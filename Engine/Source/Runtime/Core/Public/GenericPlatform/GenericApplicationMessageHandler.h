@@ -71,6 +71,8 @@ namespace EControllerButtons
 		GlobalPlay,
 		GlobalBack,
 
+		AndroidBack,
+
 		Invalid,
 	};
 }
