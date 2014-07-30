@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "InvariantCulture.h"
@@ -566,7 +566,7 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 	}
 }
 
-void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures) const
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bAllowFallback) const
 {
 	OutAvailableCultures.Reset();
 
@@ -610,7 +610,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 		for(const FString& LocalizationFolder : AllLocalizationFolders)
 		{
 			// Check the full name, but if it doesn't match, see if the base language is present
-			if(LocalizationFolder == Culture->GetName() || LocalizationFolder == Culture->GetTwoLetterISOLanguageName())
+			if(LocalizationFolder == Culture->GetName() || (bAllowFallback && LocalizationFolder == Culture->GetTwoLetterISOLanguageName()))
 			{
 				OutAvailableCultures.AddUnique(Culture);
 			}
