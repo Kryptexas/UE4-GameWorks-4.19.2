@@ -487,7 +487,7 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded)
 {
 	check(BlueprintObj);
-	check(BlueprintObj->GeneratedClass);
+	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
