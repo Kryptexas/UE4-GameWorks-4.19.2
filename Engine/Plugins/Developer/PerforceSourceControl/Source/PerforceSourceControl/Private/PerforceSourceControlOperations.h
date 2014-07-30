@@ -8,6 +8,7 @@
 class FPerforceConnectWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceConnectWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -17,6 +18,7 @@ public:
 class FPerforceCheckOutWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceCheckOutWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -30,6 +32,7 @@ public:
 class FPerforceCheckInWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceCheckInWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -46,6 +49,7 @@ public:
 class FPerforceMarkForAddWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceMarkForAddWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -59,6 +63,7 @@ public:
 class FPerforceDeleteWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceDeleteWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -72,6 +77,7 @@ public:
 class FPerforceRevertWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceRevertWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -85,6 +91,7 @@ public:
 class FPerforceSyncWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceSyncWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -98,6 +105,7 @@ public:
 class FPerforceUpdateStatusWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceUpdateStatusWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -121,6 +129,7 @@ public:
 class FPerforceGetWorkspacesWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceGetWorkspacesWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -130,6 +139,7 @@ public:
 class FPerforceCopyWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceCopyWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
@@ -143,6 +153,7 @@ public:
 class FPerforceResolveWorker : public IPerforceSourceControlWorker
 {
 public:
+	virtual ~FPerforceResolveWorker() {}
 	// IPerforceSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;

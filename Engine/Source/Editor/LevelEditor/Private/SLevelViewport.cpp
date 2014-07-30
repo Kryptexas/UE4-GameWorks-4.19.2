@@ -2107,6 +2107,10 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 		{
 		}
 
+		virtual ~FCustomColumn()
+		{
+		}
+
 		//////////////////////////////////////////////////////////////////////////
 		// Begin ISceneOutlinerColumn Implementation
 

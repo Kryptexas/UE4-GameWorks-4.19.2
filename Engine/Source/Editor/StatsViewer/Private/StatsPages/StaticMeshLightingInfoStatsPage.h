@@ -38,6 +38,8 @@ public:
 	virtual void OnHide() override;
 	/** End IStatsPage interface */
 
+	virtual ~FStaticMeshLightingInfoStatsPage() {}
+
 private:
 
 	/** 

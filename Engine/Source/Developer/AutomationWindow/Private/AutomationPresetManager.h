@@ -33,7 +33,7 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~FAutomationTestPreset( ) { }
+	virtual ~FAutomationTestPreset( ) { }
 
 	/**
 	 * Gets the GUid for this preset
@@ -114,6 +114,8 @@ public:
 	 * Constructor.
 	 */
 	FAutomationTestPresetManager();
+
+	virtual ~FAutomationTestPresetManager() {}
 
 	/**
 	 * Creates a new empty preset

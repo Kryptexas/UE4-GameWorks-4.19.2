@@ -37,6 +37,8 @@ struct FPuppetActorInfo : public FBasePuppetInfo
 
 public:
 
+	virtual ~FPuppetActorInfo() {}
+
 	/** @return Gets the type of puppet */
 	virtual EPuppetObjectType::Type GetType() const override
 	{

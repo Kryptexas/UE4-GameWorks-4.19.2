@@ -58,6 +58,8 @@ public:
 		, Cache(InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokeRetopologize() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!LandscapeInfo)

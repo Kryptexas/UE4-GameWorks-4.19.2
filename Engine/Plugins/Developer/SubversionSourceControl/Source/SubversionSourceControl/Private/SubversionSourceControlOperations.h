@@ -8,6 +8,7 @@
 class FSubversionConnectWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionConnectWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -24,6 +25,7 @@ private:
 class FSubversionCheckOutWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionCheckOutWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -37,6 +39,7 @@ public:
 class FSubversionCheckInWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionCheckInWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -50,6 +53,7 @@ public:
 class FSubversionMarkForAddWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionMarkForAddWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -63,6 +67,7 @@ public:
 class FSubversionDeleteWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionDeleteWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -76,6 +81,7 @@ public:
 class FSubversionRevertWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionRevertWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -89,6 +95,7 @@ public:
 class FSubversionSyncWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionSyncWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -102,6 +109,7 @@ public:
 class FSubversionUpdateStatusWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionUpdateStatusWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -118,6 +126,7 @@ public:
 class FSubversionCopyWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionCopyWorker() {}
 	// ISubversionSourceControlWorker interface
 	virtual FName GetName() const override;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
@@ -131,6 +140,7 @@ public:
 class FSubversionResolveWorker : public ISubversionSourceControlWorker
 {
 public:
+	virtual ~FSubversionResolveWorker() {}
 	virtual FName GetName() const override;
 	virtual bool Execute( class FSubversionSourceControlCommand& InCommand ) override;
 	virtual bool UpdateStates() const override;

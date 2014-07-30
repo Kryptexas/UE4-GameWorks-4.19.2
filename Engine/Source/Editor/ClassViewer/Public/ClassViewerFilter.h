@@ -33,6 +33,9 @@ namespace EFilterReturn
 class FClassViewerFilterFuncs
 {
 public:
+
+	virtual ~FClassViewerFilterFuncs() {}
+
 	/** 
 	 * Checks if the given Class is a child-of any of the classes in a set.
 	 *

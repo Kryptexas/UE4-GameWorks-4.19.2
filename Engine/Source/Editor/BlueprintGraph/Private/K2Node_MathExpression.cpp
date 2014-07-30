@@ -209,6 +209,8 @@ public:
 	{
 	}
 
+	virtual ~FTokenWrapperNode() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node (lets it "visit" this, 
 	 * in tree traversal terms).
@@ -261,6 +263,8 @@ public:
 	{
 	}
 
+	virtual ~FBinaryOperator() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
 	 * traverse the children.
@@ -309,6 +313,8 @@ public:
 	{
 	}
 
+	virtual ~FUnaryOperator() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
 	 * traverse its child.
@@ -356,6 +362,8 @@ public:
 		, FalsePart(InFalsePart)
 	{
 	}
+
+	virtual ~FConditionalOperator() {}
 
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
@@ -439,7 +447,9 @@ public:
 		}
 		return AsString;
 	}
-    
+
+	virtual ~FExpressionList() {}
+
 public:
 	TArray< TSharedRef<IFExpressionNode> > Children;
 };
@@ -457,6 +467,8 @@ public:
 		, ParamList(InParamList)
 	{
 	}
+
+	virtual ~FFunctionExpression() {}
 
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
@@ -1011,6 +1023,8 @@ public:
 		check(GeneratedNode != nullptr);
 	}
 
+	virtual ~FCodeGenFragment_VariableGet() {}
+
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
@@ -1048,6 +1062,8 @@ public:
 		check(GeneratedNode != nullptr);
 	}
 
+	virtual ~FCodeGenFragment_FuntionCall() {}
+
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
@@ -1081,6 +1097,8 @@ public:
 		: FCodeGenFragment(ResultType) 
 		, DefaultValue(LiteralVal)
 	{}
+
+	virtual ~FCodeGenFragment_Literal() {}
 
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
@@ -1118,6 +1136,8 @@ public:
 		, TunnelInputPin(InTunnelInputPin)
 	{
 	}
+
+	virtual ~FCodeGenFragment_InputPin() {}
 
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override

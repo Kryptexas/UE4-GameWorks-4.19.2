@@ -13,6 +13,9 @@ public:
 	/** Constructor */
 	FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass);
 
+	/** Destructor */
+	virtual ~FWidgetTemplateClass() {}
+
 	/** Gets the category for the widget */
 	virtual FText GetCategory() const override;
 

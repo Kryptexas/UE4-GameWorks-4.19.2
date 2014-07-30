@@ -11,7 +11,7 @@ class FSequencerObjectChangeListener : public ISequencerObjectChangeListener
 {
 public:
 	FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer, bool bInListenForActorsOnly );
-	~FSequencerObjectChangeListener();
+	virtual ~FSequencerObjectChangeListener();
 
 	/** ISequencerObjectChangeListener interface */
 	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) override;

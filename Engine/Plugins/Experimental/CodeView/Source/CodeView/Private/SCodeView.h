@@ -56,6 +56,8 @@ namespace CodeView
 			return ClassName;
 		}
 
+		virtual ~FClassTreeItem() {}
+
 		/** Class name */
 		FString ClassName;		
 
@@ -81,6 +83,8 @@ namespace CodeView
 		{
 			return FunctionName;
 		}
+
+		virtual ~FFunctionTreeItem() {}
 
 		/** Only the function name (sanitized) */
 		FString FunctionName;

@@ -19,6 +19,8 @@ public:
 	 */
 	FSceneOutlinerActorInfoColumn( const TWeakPtr< ISceneOutliner >& InSceneOutlinerWeak, ECustomColumnMode::Type InDefaultCustomColumnMode );
 
+	virtual ~FSceneOutlinerActorInfoColumn() {}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Begin ISceneOutlinerColumn Implementation
 

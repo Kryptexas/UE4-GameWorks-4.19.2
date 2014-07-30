@@ -48,6 +48,8 @@ public:
 		}
 	}
 
+	virtual ~FActorArrayHyperlinkCellPresenter() {}
+
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override
 	{
 		return SNew( SHorizontalBox )

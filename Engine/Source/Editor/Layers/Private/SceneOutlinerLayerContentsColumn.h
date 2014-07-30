@@ -18,6 +18,8 @@ public:
 	 */
 	FSceneOutlinerLayerContentsColumn( const TSharedRef< class FLayerViewModel >& InViewModel );
 
+	virtual ~FSceneOutlinerLayerContentsColumn() {}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Begin ISceneOutlinerColumn Implementation
 

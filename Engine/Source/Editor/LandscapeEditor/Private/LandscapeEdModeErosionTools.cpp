@@ -59,6 +59,8 @@ public:
 		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokeErosion() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
 		if (!LandscapeInfo)
@@ -274,6 +276,8 @@ public:
 	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
+
+	virtual ~FLandscapeToolStrokeHydraErosion() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{

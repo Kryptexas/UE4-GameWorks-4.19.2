@@ -71,6 +71,10 @@ private:
 class FWidgetTemplateViewModel : public FWidgetViewModel
 {
 public:
+	virtual ~FWidgetTemplateViewModel()
+	{
+	}
+
 	virtual FText GetName() const
 	{
 		return Template->Name;
@@ -104,6 +108,10 @@ public:
 class FWidgetHeaderViewModel : public FWidgetViewModel
 {
 public:
+	virtual ~FWidgetHeaderViewModel()
+	{
+	}
+
 	virtual FText GetName() const
 	{
 		return GroupName;

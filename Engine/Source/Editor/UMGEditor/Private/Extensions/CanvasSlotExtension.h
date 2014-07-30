@@ -12,6 +12,8 @@ class FCanvasSlotExtension : public FDesignerExtension
 public:
 	FCanvasSlotExtension();
 
+	virtual ~FCanvasSlotExtension() {}
+
 	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
 	virtual void ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements) override;

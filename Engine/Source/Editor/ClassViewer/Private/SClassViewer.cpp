@@ -2761,7 +2761,7 @@ void SClassViewer::Populate()
 			{
 				// Check if the item is actually expanded or if it's only expanded because it is root level.
 				bool* bIsExpanded = ExpansionStateMap.Find( *(RootTreeItems[ChildIdx]->GetClassName()) );
-				if(bIsExpanded && !*bIsExpanded || !bIsExpanded)
+				if((bIsExpanded && !*bIsExpanded) || !bIsExpanded)
 				{
 					ClassTree->SetItemExpansion( RootTreeItems[ChildIdx], false );
 				}
