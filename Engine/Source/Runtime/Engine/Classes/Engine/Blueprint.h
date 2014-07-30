@@ -364,6 +364,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	TArray<struct FBPVariableDescription> NewVariables;
 
+	/** Array of user sorted categories */
+	UPROPERTY()
+	TArray<FName> CategorySorting;
+
 	/** Array of info about the interfaces we implement in this blueprint */
 	UPROPERTY(AssetRegistrySearchable)
 	TArray<struct FBPInterfaceDescription> ImplementedInterfaces;

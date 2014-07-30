@@ -36,6 +36,7 @@
 #include "Editor/GraphEditor/Private/GraphActionNode.h"
 #include "IDocumentation.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 
@@ -95,18 +96,12 @@ public:
 	
 	virtual FReply DroppedOnCategory(FString OnCategory) override
 	{
-		// Get the Blueprint via BlueprintEditor
+		// Get MyBlueprint via MyBlueprintPtr
 		TSharedPtr<SMyBlueprint> MyBlueprint = MyBlueprintPtr.Pin();
 		if(MyBlueprint.IsValid())
 		{
-			TSharedPtr<FBlueprintEditor> BPEditor = MyBlueprint->GetBlueprintEditor().Pin();
-			if(BPEditor.IsValid())
-			{
-				UBlueprint* BP = BPEditor->GetBlueprintObj();
-				check(BP);
-				// Move the category
-				FBlueprintEditorUtils::MoveCategoryBeforeCategory(BP, FName(*DraggedCategory), FName(*OnCategory));
-			}
+			// Move the category in the blueprint category sort list
+			MyBlueprint->MoveCategoryBeforeCategory( DraggedCategory, OnCategory );
 		}
 
 		return FReply::Handled();
@@ -363,9 +358,12 @@ FText SMyBlueprint::OnGetSectionTitle( int32 InSectionID )
 	FText SeperatorTitle;
 	/* Setup an appropriate name for the section for this node */
 	switch( InSectionID )
-	{		
+	{
 	case NodeSectionID::VARIABLE:
 		SeperatorTitle = NSLOCTEXT("GraphActionNode", "Variables", "Variables");
+		break;
+	case NodeSectionID::COMPONENT:
+		SeperatorTitle = NSLOCTEXT("GraphActionNode", "Components", "Components");
 		break;
 	case NodeSectionID::FUNCTION:
 		SeperatorTitle = NSLOCTEXT("GraphActionNode", "Functions", "Functions");
@@ -680,11 +678,93 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FieldIteratorSuperFlag = EFieldIteratorFlags::ExcludeSuper;
 	}
 
+	// Helper structure to aid category sorting
+	struct FGraphActionSort
+	{
+		public:
+			FGraphActionSort( TArray<FName>& BlueprintCategorySorting )
+				: bCategoriesModified( false )
+				, CategorySortIndices( BlueprintCategorySorting )
+			{
+				CategoryUsage.Init( 0, CategorySortIndices.Num() );
+			}
+
+			void AddAction( const FString& Category, TSharedPtr<FEdGraphSchemaAction> Action )
+			{
+				// Find root category
+				int32 RootCategoryDelim = Category.Find( TEXT( "|" ));
+				FName RootCategory = RootCategoryDelim == INDEX_NONE ?	*Category : *Category.Left( RootCategoryDelim );
+				// Get root sort index
+				const int32 SortIndex = GetSortIndex( RootCategory ) + Action->SectionID;
+
+				static const FName DefaultCategory( TEXT( "Default" ));
+				if( RootCategory != DefaultCategory )
+				{
+					// Strip sections out of non default categories to enable them to be grouped together
+					Action->SectionID = NodeSectionID::USER_SORTED;
+				}
+				SortedActions.Add( SortIndex, Action );
+			}
+
+			void GetAllActions( FGraphActionListBuilderBase& OutAllActions )
+			{
+				SortedActions.KeySort( TLess<int32>() );
+
+				for( auto Iter : SortedActions )
+				{
+					OutAllActions.AddAction( Iter.Value );
+				}
+			}
+
+			void CleanupCategories()
+			{
+				// Scrub unused categories from the blueprint
+				if( bCategoriesModified )
+				{
+					for( int32 CategoryIdx = CategoryUsage.Num() - 1; CategoryIdx >= 0; CategoryIdx-- )
+					{
+						if( CategoryUsage[ CategoryIdx ] == 0 )
+						{
+							CategorySortIndices.RemoveAt( CategoryIdx );
+						}
+					}
+					bCategoriesModified = false;
+				}
+			}
+
+		private:
+			const int32 GetSortIndex( FName Category )
+			{
+				int32 SortIndex = CategorySortIndices.Find( Category );
+
+				if( SortIndex == INDEX_NONE )
+				{
+					bCategoriesModified = true;
+					SortIndex = CategorySortIndices.Add( Category );
+					CategoryUsage.Add( 0 );
+				}
+				CategoryUsage[ SortIndex ]++;
+				// Spread the sort values so we can fine tune sorting
+				SortIndex *= 1000;
+
+				return SortIndex + SortedActions.Num();
+			}
+
+		private:
+			/** Signals if the blueprint categories have been modified and require cleanup */
+			bool bCategoriesModified;
+			/** Tracks category usage to aid removal of unused categories */
+			TArray<int32> CategoryUsage;
+			/** Reference to the category sorting in the blueprint */
+			TArray<FName>& CategorySortIndices;
+			/** Map used to sort Graph actions */
+			TMultiMap<int32,TSharedPtr<FEdGraphSchemaAction>> SortedActions;
+	}; 
+
+	// Initialise action sorting instance
+	FGraphActionSort SortList( Blueprint->CategorySorting );
 	// List of names of functions we implement
 	TArray<FName> ImplementedFunctions;
-	TArray<TSharedPtr<FEdGraphSchemaAction>> VariableActions;
-	TArray<TSharedPtr<FEdGraphSchemaAction>> ComponentPropertyActions;
-
 	// Grab Variables
 	for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, FieldIteratorSuperFlag); PropertyIt; ++PropertyIt)
 	{
@@ -698,9 +778,6 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		const bool bShouldShowAsDelegate = !Property->HasAnyPropertyFlags(CPF_Parm) && bMulticastDelegateProp 
 			&& Property->HasAnyPropertyFlags(CPF_BlueprintAssignable | CPF_BlueprintCallable);
 		UObjectPropertyBase* Obj = Cast<UObjectPropertyBase>(Property);
-		const bool bComponentProperty = Obj && Obj->PropertyClass ? Obj->PropertyClass->IsChildOf<UActorComponent>() : false;
-		TArray<TSharedPtr<FEdGraphSchemaAction>>& ActionList = bComponentProperty ? ComponentPropertyActions : VariableActions;
-		
 		if(!bShouldShowAsVar && !bShouldShowAsDelegate)
 		{
 			continue;
@@ -712,6 +789,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 		FName CategoryName = FObjectEditorUtils::GetCategoryFName(Property);
 		FString PropertyCategory = FObjectEditorUtils::GetCategory(Property);
+		const FString UserCategoryName = FEditorCategoryUtils::GetCategoryDisplayString( PropertyCategory );
+
 		if ((CategoryName == Blueprint->GetFName()) || (CategoryName == K2Schema->VR_DefaultCategory))
 		{
 			CategoryName = NAME_None;		// default, so place in 'non' category
@@ -722,8 +801,9 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		{
 			TSharedPtr<FEdGraphSchemaAction_K2Var> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2Var(PropertyCategory, PropertyDesc, PropertyTooltip.ToString(), 0));
 			NewVarAction->SetVariableInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
-			NewVarAction->SectionID = NodeSectionID::VARIABLE;
-			ActionList.Add(NewVarAction);
+			const bool bComponentProperty = Obj && Obj->PropertyClass ? Obj->PropertyClass->IsChildOf<UActorComponent>() : false;
+			NewVarAction->SectionID = bComponentProperty ? NodeSectionID::COMPONENT : NodeSectionID::VARIABLE;
+			SortList.AddAction( UserCategoryName, NewVarAction );
 		}
 		else if (bShouldShowAsDelegate)
 		{
@@ -735,7 +815,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 				NewFuncAction->SetDelegateInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
 				NewFuncAction->EdGraph = NULL;
 				NewFuncAction->SectionID = NodeSectionID::DELEGATE;
-				ActionList.Add(NewFuncAction);
+				SortList.AddAction( UserCategoryName, NewFuncAction );
 			}
 
 			UClass* OwnerClass = CastChecked<UClass>(Property->GetOuter());
@@ -751,15 +831,9 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		}
 	}
 
-	// Add all variable actions first so their order can control the categories
-	for( int32 i = 0; i < VariableActions.Num(); ++i)
-	{
-		OutAllActions.AddAction( VariableActions[ i ] );
-	}
-	for( int32 i = 0; i < ComponentPropertyActions.Num(); ++i)
-	{
-		OutAllActions.AddAction( ComponentPropertyActions[ i ] );
-	}
+	// Add all the sorted variables and components
+	SortList.CleanupCategories();
+	SortList.GetAllActions( OutAllActions );
 
 	// Grab functions implemented by the blueprint
 	for (int32 i = 0; i < Blueprint->FunctionGraphs.Num(); i++)
@@ -2024,6 +2098,39 @@ void SMyBlueprint::ExpandCategory(const FString& CategoryName)
 	{
 		LocalGraphActionMenu->ExpandCategory(CategoryName);
 	}
+}
+
+bool SMyBlueprint::MoveCategoryBeforeCategory( const FString& InCategoryToMove, const FString& InTargetCategory )
+{
+	bool bResult = false;
+	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+
+	if( Blueprint )
+	{
+		// Find root categories
+		int32 RootCategoryDelim = InCategoryToMove.Find( TEXT( "|" ));
+		FName CategoryToMove = RootCategoryDelim == INDEX_NONE ? *InCategoryToMove : *InCategoryToMove.Left( RootCategoryDelim );
+		RootCategoryDelim = InTargetCategory.Find( TEXT( "|" ));
+		FName TargetCategory = RootCategoryDelim == INDEX_NONE ? *InTargetCategory : *InTargetCategory.Left( RootCategoryDelim );
+
+		TArray<FName>& CategorySort = Blueprint->CategorySorting;
+		const int32 RemovalIndex = CategorySort.Find( CategoryToMove );
+		// Remove existing sort index
+		if( RemovalIndex != INDEX_NONE )
+		{
+			CategorySort.RemoveAt( RemovalIndex );
+		}
+		// Update the Category sort order and refresh ( if the target category has an entry )
+		const int32 InsertIndex = CategorySort.Find( TargetCategory );
+		if( InsertIndex != INDEX_NONE )
+		{
+			CategorySort.Insert( CategoryToMove, InsertIndex );
+			Refresh();
+			bResult = true;
+		}
+	}
+
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

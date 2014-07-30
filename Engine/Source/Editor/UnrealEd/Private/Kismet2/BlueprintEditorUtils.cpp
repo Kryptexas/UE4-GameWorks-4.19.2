@@ -2445,51 +2445,6 @@ int32 FBlueprintEditorUtils::FindFirstNewVarOfCategory(const UBlueprint* Bluepri
 }
 
 
-bool FBlueprintEditorUtils::MoveCategoryBeforeCategory(UBlueprint* Blueprint, FName CategoryToMove, FName TargetCategory)
-{
-	// Do nothing if moving to yourself, or no category
-	if(CategoryToMove == TargetCategory || CategoryToMove == NAME_None)
-	{
-		return false;
-	}
-
-	// Before we do anything, check that there is a variable of the target category
-	if(FindFirstNewVarOfCategory(Blueprint, TargetCategory) == INDEX_NONE)
-	{
-		return false;
-	}
-
-	// Move all vars of the category to move into temp array
-	TArray<FBPVariableDescription> VarsToMove;
-	for(int32 VarIdx = Blueprint->NewVariables.Num()-1; VarIdx >= 0; VarIdx--)
-	{
-		if(Blueprint->NewVariables[VarIdx].Category == CategoryToMove)
-		{
-			VarsToMove.Insert(Blueprint->NewVariables[VarIdx], 0);
-			Blueprint->NewVariables.RemoveAt(VarIdx);
-		}
-	}
-
-	// Bail if nothing to move
-	if(VarsToMove.Num() == 0)
-	{
-		return false;
-	}
-
-	// Find insertion point
-	int32 InsertionIndex = FindFirstNewVarOfCategory(Blueprint, TargetCategory);
-
-	// Now insert the nodes we want to move at that point
-	check(InsertionIndex != INDEX_NONE);
-	for(int32 VarIdx=0; VarIdx<VarsToMove.Num(); VarIdx++)
-	{
-		Blueprint->NewVariables.Insert(VarsToMove[VarIdx], InsertionIndex + VarIdx);
-	}
-
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-	return true;
-}
 
 int32 FBlueprintEditorUtils::FindTimelineIndex(const UBlueprint* Blueprint, const FName& InName) 
 {

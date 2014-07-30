@@ -702,9 +702,6 @@ public:
 	/** Change the order of variables in the Blueprint */
 	static bool MoveVariableBeforeVariable(UBlueprint* Blueprint, FName VarNameToMove, FName TargetVarName, bool bDontRecompile);
 
-	/** Move all vars of the supplied category */
-	static bool MoveCategoryBeforeCategory(UBlueprint* Blueprint, FName CategoryToMove, FName TargetCategory);
-
 	/** Find first variable of the supplied category */
 	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FName Category);
 

@@ -115,7 +115,7 @@ public:
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
-			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->Category );
+			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->CategoryChain );
 			return FReply::Handled();
 		}
 		return FReply::Unhandled();
@@ -174,7 +174,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 	this->OnCategoryTextCommitted = InArgs._OnCategoryTextCommitted;
 	this->OnCanRenameSelectedAction = InArgs._OnCanRenameSelectedAction;
 	this->OnGetSectionTitle = InArgs._OnGetSectionTitle;
-	this->FilteredRootAction = FGraphActionNode::NewCategory(TEXT("FILTEREDROOT"));
+	this->FilteredRootAction = FGraphActionNode::NewCategory(TEXT("FILTEREDROOT"), TEXT( "" ));
 	this->OnActionMatchesName = InArgs._OnActionMatchesName;
 	
 	// If a delegate for filtering text is passed in, assign it so that it will be used instead of the built-in filter box
@@ -568,7 +568,8 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 			CurrentAction.GetCategoryChain(CategoryChain);
 			
 			TSharedPtr<FGraphActionNode> NewNode = FGraphActionNode::NewAction(CurrentAction.Actions);
-			FilteredRootAction->AddChild(NewNode, CategoryChain, bAlphaSortItems);
+			FString EmptyCategoryChain;
+			FilteredRootAction->AddChild(NewNode, CategoryChain, bAlphaSortItems, EmptyCategoryChain);
 		}
 	}
 
@@ -1022,7 +1023,7 @@ FReply SGraphActionMenu::OnItemDragDetected( const FGeometry& MyGeometry, const 
 			{
 				if(OnCategoryDragged.IsBound())
 				{
-					return OnCategoryDragged.Execute(Node->Category, MouseEvent);
+					return OnCategoryDragged.Execute(Node->CategoryChain, MouseEvent);
 				}
 			}
 			// Dragging an action

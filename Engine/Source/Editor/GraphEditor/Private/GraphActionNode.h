@@ -12,6 +12,8 @@ struct FGraphActionNode : TSharedFromThis<FGraphActionNode>
 
 	/** The category this node belongs in. */
 	FString Category;
+	/** The category chain, separated using '|' */
+	FString CategoryChain;
 
 	int32 Grouping;
 	TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;
@@ -54,9 +56,9 @@ public:
 		return MakeShareable( new FGraphActionNode( TEXT(""), Grouping, InActionList, SectionID ) );
 	}
 
-	static TSharedPtr<FGraphActionNode> NewCategory( const FString& InCategory, int32 InGrouping = 0 )
+	static TSharedPtr<FGraphActionNode> NewCategory( const FString& InCategory, const FString& InCategoryChain, int32 InGrouping = 0 )
 	{
-		return MakeShareable( new FGraphActionNode(InCategory, InGrouping, NULL) );
+		return MakeShareable( new FGraphActionNode(InCategory, InCategoryChain, InGrouping, NULL) );
 	}
 
 	static TSharedPtr<FGraphActionNode> NewSeparator( int32 InGrouping = 0 )
@@ -84,7 +86,7 @@ public:
 		return (Actions.Num()==0 || !Actions[0].IsValid()) && Category.IsEmpty();
 	}
 
-	void AddChild(TSharedPtr<FGraphActionNode> NodeToAdd, TArray<FString>& CategoryStack, bool bAlphaSort)
+	void AddChild(TSharedPtr<FGraphActionNode> NodeToAdd, TArray<FString>& CategoryStack, bool bAlphaSort, FString& CategoryChain)
 	{
 		// If we still have some categories in the chain to process...
 		if( CategoryStack.Num() )
@@ -114,18 +116,20 @@ public:
 				
 				if( bFoundMatch )
 				{
-					CurrentChild->AddChild(NodeToAdd, CategoryStack, bAlphaSort);
+					CategoryChain = CategoryChain.IsEmpty() ? NextCategory : FString::Printf( TEXT( "%s|%s" ), *CategoryChain, *NextCategory );
+					CurrentChild->AddChild(NodeToAdd, CategoryStack, bAlphaSort, CategoryChain);
 					break;
 				}
 			}
 
 			if( !bFoundMatch )
 			{
-				TSharedPtr<FGraphActionNode> NewCategoryNode = NewCategory(NextCategory, NodeToAdd->Grouping);
+				CategoryChain = CategoryChain.IsEmpty() ? NextCategory : FString::Printf( TEXT( "%s|%s" ), *CategoryChain, *NextCategory );
+				TSharedPtr<FGraphActionNode> NewCategoryNode = NewCategory(NextCategory, CategoryChain, NodeToAdd->Grouping);
 				// Copy the section ID also 
 				NewCategoryNode->SectionID = NodeToAdd->SectionID;
 				AddToChildrenSorted(NewCategoryNode, bAlphaSort);
-				NewCategoryNode->AddChild(NodeToAdd, CategoryStack, bAlphaSort);
+				NewCategoryNode->AddChild(NodeToAdd, CategoryStack, bAlphaSort, CategoryChain);
 			}
 		}
 		else
@@ -379,6 +383,16 @@ protected:
 
 	FGraphActionNode( FString InCategory, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
 		: Category( InCategory )
+		, Grouping( InGrouping )
+		, bIsRenameRequestBeforeReady( false )
+		, SectionID ( 0 )
+	{
+		Actions.Add( InAction );
+	}
+
+	FGraphActionNode( FString InCategory, FString InCategoryChain, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
+		: Category( InCategory )
+		, CategoryChain( InCategoryChain )
 		, Grouping( InGrouping )
 		, bIsRenameRequestBeforeReady( false )
 		, SectionID ( 0 )
