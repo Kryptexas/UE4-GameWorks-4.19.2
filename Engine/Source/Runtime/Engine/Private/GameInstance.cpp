@@ -186,6 +186,10 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		{
 			PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 		}
+		else
+		{
+			PlayWorld->FlushLevelStreaming();
+		}
 
 		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 		PlayWorld->CreateAISystem();
