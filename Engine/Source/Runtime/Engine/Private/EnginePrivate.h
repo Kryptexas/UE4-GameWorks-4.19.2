@@ -34,7 +34,7 @@
 #include "GameFramework/GameMode.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/ForceFeedbackEffect.h"
-#include "Engine/SubSurfaceProfile.h"
+#include "Engine/SubsurfaceProfile.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/DebugCameraController.h"
 #include "Engine/Canvas.h"
