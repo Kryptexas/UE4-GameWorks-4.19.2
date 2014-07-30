@@ -132,17 +132,6 @@ void AEQSTestingPawn::PostLoad()
 	{
 		SpriteComponent->bHiddenInGame = !bShouldBeVisibleInGame;
 	}
-
-	UEnvQueryManager* EQS = GetWorld() ? UAISystem::GetCurrentEQSManager(GetWorld()) : NULL;
-	if (EQS)
-	{
-		RunEQSQuery();
-	}
-	else
-	{
-		QueryTemplate = NULL;
-		QueryParams.Reset();
-	}
 }
 
 void AEQSTestingPawn::RunEQSQuery()
