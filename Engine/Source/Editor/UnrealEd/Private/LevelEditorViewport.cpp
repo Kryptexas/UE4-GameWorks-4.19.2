@@ -1282,8 +1282,8 @@ bool FLevelEditorViewportClient::CanApplyMaterialToHitProxy( const HHitProxy* Hi
 }
 
 FTrackingTransaction::FTrackingTransaction()
-	: ScopedTransaction(NULL)
-	, TransCount(0)
+	: TransCount(0)
+	, ScopedTransaction(NULL)
 	, TrackingTransactionState(ETransactionState::Inactive)
 {}
 
@@ -1366,8 +1366,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	: FEditorViewportClient(GLevelEditorModeTools(), NULL)
 	, ViewHiddenLayers()
 	, VolumeActorVisibility()
-	, ActorLockedToCamera(NULL)
-	, ActorLockedByMatinee(NULL)
 	, LastEditorViewLocation( FVector::ZeroVector )
 	, LastEditorViewRotation( FRotator::ZeroRotator )
 	, ColorScale( FVector(1,1,1) )
@@ -1380,13 +1378,15 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, bDuplicateActorsOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
+	, bLockedCameraView(true)
 	, SpriteCategoryVisibility()
 	, World(NULL)
 	, TrackingTransaction()
 	, DropPreviewMouseX(0)
 	, DropPreviewMouseY(0)
-	, bLockedCameraView(true)
 	, bWasControlledByOtherViewport(false)
+	, ActorLockedByMatinee(NULL)
+	, ActorLockedToCamera(NULL)
 {
 	// By default a level editor viewport is pointed to the editor world
 	SetReferenceToWorldContext(GEditor->GetEditorWorldContext());
@@ -2182,6 +2182,7 @@ static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKe
 	return (!Gesture.bCtrl	|| ViewportClient.IsCtrlPressed() ) 
 		&& (!Gesture.bAlt	|| ViewportClient.IsAltPressed() ) 
 		&& (!Gesture.bShift || ViewportClient.IsShiftPressed() ) 
+		&& (!Gesture.bCmd	|| ViewportClient.IsCmdPressed() )
 		&& Gesture.Key == Key;
 }
 

@@ -207,6 +207,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bDrawAxes(true)
 	, bSetListenerPosition(false)
 	, LandscapeLODOverride(-1)
+	, ModeTools(&InModeTools)
 	, Widget(new FWidget)
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
@@ -229,7 +230,6 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bForceAudioRealtime(false)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
-	, ModeTools(&InModeTools)
 	, bStoredShowStats(false)
 	, bShowStats(false)
 	, bHasAudioFocus(false)
@@ -1990,6 +1990,11 @@ bool FEditorViewportClient::IsCtrlPressed() const
 bool FEditorViewportClient::IsShiftPressed() const
 {
 	return Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
+}
+
+bool FEditorViewportClient::IsCmdPressed() const
+{
+	return Viewport->KeyState(EKeys::LeftCommand) || Viewport->KeyState(EKeys::RightCommand);
 }
 
 

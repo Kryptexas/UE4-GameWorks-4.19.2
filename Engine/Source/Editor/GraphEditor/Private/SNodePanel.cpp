@@ -844,6 +844,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 				LastKeyGestureDetected.bAlt = false;
 				LastKeyGestureDetected.bCtrl = false;
 				LastKeyGestureDetected.bShift = false;
+				LastKeyGestureDetected.bCmd = false;
 			}
 		}
 		else if ( Marquee.IsValid() )
@@ -912,6 +913,7 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 		LastKeyGestureDetected.bAlt = InKeyboardEvent.IsAltDown();
 		LastKeyGestureDetected.bCtrl = InKeyboardEvent.IsControlDown();
 		LastKeyGestureDetected.bShift = InKeyboardEvent.IsShiftDown();
+		LastKeyGestureDetected.bCmd = InKeyboardEvent.IsCommandDown();
 	}
 
 	return FReply::Unhandled();
@@ -925,6 +927,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& I
 		LastKeyGestureDetected.bAlt = false;
 		LastKeyGestureDetected.bCtrl = false;
 		LastKeyGestureDetected.bShift = false;
+		LastKeyGestureDetected.bCmd = false;
 	}
 
 	return FReply::Unhandled();
@@ -936,6 +939,7 @@ void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocus
 	LastKeyGestureDetected.bAlt = false;
 	LastKeyGestureDetected.bCtrl = false;
 	LastKeyGestureDetected.bShift = false;
+	LastKeyGestureDetected.bCmd = false;
 }
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )

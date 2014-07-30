@@ -855,6 +855,7 @@ public:
 	bool IsAltPressed() const;
 	bool IsCtrlPressed() const;
 	bool IsShiftPressed() const;
+	bool IsCmdPressed() const;
 
 	/** @return True if the window is in an immersive viewport */
 	bool IsInImmersiveViewport() const;

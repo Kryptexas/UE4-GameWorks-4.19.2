@@ -314,6 +314,7 @@ void UK2Node_InputKey::CreateInputKeyEvent(FKismetCompilerContext& CompilerConte
 		InputKeyEvent->InputChord.bCtrl = bControl;
 		InputKeyEvent->InputChord.bAlt = bAlt;
 		InputKeyEvent->InputChord.bShift = bShift;
+		InputKeyEvent->InputChord.bCmd = bCommand;
 		InputKeyEvent->bConsumeInput = bConsumeInput;
 		InputKeyEvent->bExecuteWhenPaused = bExecuteWhenPaused;
 		InputKeyEvent->bOverrideParentBinding = bOverrideParentBinding;

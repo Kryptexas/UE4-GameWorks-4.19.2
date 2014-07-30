@@ -10,19 +10,22 @@ FInputChord::RelationshipType FInputChord::GetRelationship(const FInputChord& Ot
 	{
 		if (    bAlt == OtherChord.bAlt
 			 && bCtrl == OtherChord.bCtrl
-			 && bShift == OtherChord.bShift)
+			 && bShift == OtherChord.bShift
+			 && bCmd == OtherChord.bCmd)
 		{
 			Relationship = Same;
 		}
 		else if (    (bAlt || !OtherChord.bAlt)
 				  && (bCtrl || !OtherChord.bCtrl)
-				  && (bShift || !OtherChord.bShift))
+				  && (bShift || !OtherChord.bShift)
+				  && (bCmd || !OtherChord.bCmd))
 		{
 			Relationship = Masks;
 		}
 		else if (    (!bAlt || OtherChord.bAlt)
 				  && (!bCtrl || OtherChord.bCtrl)
-				  && (!bShift || OtherChord.bShift))
+				  && (!bShift || OtherChord.bShift)
+				  && (!bCmd || OtherChord.bCmd))
 		{
 			Relationship = Masked;
 		}
