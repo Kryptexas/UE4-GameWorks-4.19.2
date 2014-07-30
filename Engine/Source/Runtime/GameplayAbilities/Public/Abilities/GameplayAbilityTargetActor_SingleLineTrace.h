@@ -33,4 +33,6 @@ public:
 
 protected:
 	FHitResult PerformTrace(AActor *SourceActor) const;
+
+	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
 };
