@@ -226,6 +226,10 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 	{
 		OutFormats.Add(AndroidTexFormat::NameG8);
 	}
+	else if (InTexture->CompressionSettings == TC_DistanceFieldFont)
+	{
+		OutFormats.Add(AndroidTexFormat::NameG8);
+	}
 	else if (InTexture->bForcePVRTC4)
 	{
 		AddTextureFormatIfSupports(AndroidTexFormat::NamePVRTC4, OutFormats);
