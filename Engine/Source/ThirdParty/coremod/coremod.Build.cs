@@ -32,5 +32,9 @@ public class coremod: ModuleRules
 			PublicLibraryPaths.Add(LibraryPath + "/lib/IOS");
 			PublicAdditionalShadowFiles.Add(LibraryPath + "/lib/IOS/libcoremod.a");
 		}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            PublicAdditionalLibraries.Add(LibraryPath + "/lib/Linux/" + Target.Architecture + "/" + "libcoremodLinux.a");
+        }
 	}
 }
