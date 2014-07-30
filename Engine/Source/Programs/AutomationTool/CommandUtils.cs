@@ -739,11 +739,12 @@ namespace AutomationTool
 		public static bool PushDir_NoExceptions(string WorkingDirectory)
 		{
 			bool Result = true;
+			string OrigCurrentDirectory = Environment.CurrentDirectory;
 			WorkingDirectory = ConvertSeparators(PathSeparator.Default, WorkingDirectory);
 			try
 			{
 				Environment.CurrentDirectory = WorkingDirectory;
-				WorkingDirectoryStack.Push(Environment.CurrentDirectory);
+				WorkingDirectoryStack.Push(OrigCurrentDirectory);
 			}
 			catch
 			{
