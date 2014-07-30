@@ -37,7 +37,7 @@ FHittestGrid::FHittestGrid()
 {
 }
 
-TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate )
+TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus )
 {
 	if (WidgetsCachedThisFrame->Num() > 0)
 	{
@@ -92,6 +92,18 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 				BubblePath = TArray<FArrangedWidget>();
 			}
 
+			// Disabling a widget disables all of its logical children
+			// This effect is achieved by truncating the path to the
+			// root-most enabled widget.
+			if ( !bIgnoreEnabledStatus )
+			{
+				const int32 DisabledWidgetIndex = BubblePath.IndexOfByPredicate( []( const FArrangedWidget& SomeWidget ){ return !SomeWidget.Widget->IsEnabled( ); } );
+				if (DisabledWidgetIndex != INDEX_NONE)
+				{
+					BubblePath.RemoveAt( DisabledWidgetIndex, BubblePath.Num() - DisabledWidgetIndex );
+				}
+			}
+			
 			return BubblePath;
 		}
 		else
