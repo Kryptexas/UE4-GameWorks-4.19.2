@@ -145,6 +145,9 @@ bool FPluginReferenceDescriptor::Read(const FJsonObject& Object, FText& OutFailR
 		return false;
 	}
 
+	// Read the description
+	Object.TryGetStringField(TEXT("Description"), Description);
+
 	// Get the platform lists
 	Object.TryGetStringArrayField(TEXT("WhitelistPlatforms"), WhitelistPlatforms);
 	Object.TryGetStringArrayField(TEXT("BlacklistPlatforms"), BlacklistPlatforms);
@@ -178,6 +181,10 @@ void FPluginReferenceDescriptor::Write(TJsonWriter<>& Writer) const
 	Writer.WriteObjectStart();
 	Writer.WriteValue(TEXT("Name"), Name);
 	Writer.WriteValue(TEXT("Enabled"), bEnabled);
+	if (Description.Len() > 0)
+	{
+		Writer.WriteValue(TEXT("Description"), Description);
+	}
 	if (WhitelistPlatforms.Num() > 0)
 	{
 		Writer.WriteArrayStart(TEXT("WhitelistPlatforms"));

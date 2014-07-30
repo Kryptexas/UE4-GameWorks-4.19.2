@@ -59,8 +59,9 @@ public:
 	~FPluginManager();
 
 	/** IPluginManager interface */
-	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
+	virtual bool LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
+	virtual bool AreRequiredPluginsAvailable() override;
 	virtual bool AreEnabledPluginModulesUpToDate() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
@@ -72,7 +73,10 @@ private:
 	void DiscoverAllPlugins();
 
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
-	void ConfigureEnabledPlugins();
+	bool ConfigureEnabledPlugins();
+
+	/** Gets the instance of a given plugin */
+	TSharedPtr<FPluginInstance> FindPluginInstance(const FString& Name);
 
 private:
 	/** All of the plugins that we know about */
@@ -87,6 +91,9 @@ private:
 
 	/** Set when all the appropriate plugins have been marked as enabled */
 	bool bHaveConfiguredEnabledPlugins;
+
+	/** Set if all the required plugins are available */
+	bool bHaveAllRequiredPlugins;
 };
 
 

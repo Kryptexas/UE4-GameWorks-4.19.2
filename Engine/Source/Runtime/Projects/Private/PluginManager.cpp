@@ -35,6 +35,7 @@ FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescrip
 
 FPluginManager::FPluginManager()
 	: bHaveConfiguredEnabledPlugins(false)
+	, bHaveAllRequiredPlugins(false)
 {
 	DiscoverAllPlugins();
 }
@@ -250,10 +251,33 @@ void FPluginManager::DiscoverAllPlugins()
 	}
 }
 
-void FPluginManager::ConfigureEnabledPlugins()
+bool FPluginManager::ConfigureEnabledPlugins()
 {
 	if(!bHaveConfiguredEnabledPlugins)
 	{
+		// Don't need to run this again
+		bHaveConfiguredEnabledPlugins = true;
+
+		// If a current project is set, check that we know about any plugin that's explicitly enabled
+		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
+		if(Project != nullptr)
+		{
+			for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+			{
+				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
+				{
+					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
+					FString Description = (Plugin.Description.Len() > 0)? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
+					FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
+					return false;
+				}
+			}
+		}
+
+		// If we made it here, we have all the required plugins
+		bHaveAllRequiredPlugins = true;
+
+		// Get all the enabled plugin names
 		TArray< FString > EnabledPluginNames;
 		#if IS_PROGRAM
 			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
@@ -296,16 +320,31 @@ void FPluginManager::ConfigureEnabledPlugins()
 				RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
 			}
 		}
-
-		// Don't need to run this again
-		bHaveConfiguredEnabledPlugins = true;
 	}
+	return bHaveAllRequiredPlugins;
 }
 
-void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
+TSharedPtr<FPluginInstance> FPluginManager::FindPluginInstance(const FString& Name)
+{
+	TSharedPtr<FPluginInstance> Result;
+	for(const TSharedRef<FPluginInstance>& Instance : AllPlugins)
+	{
+		if(Instance->Name == Name)
+		{
+			Result = Instance;
+			break;
+		}
+	}
+	return Result;
+}
+
+bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
 {
 	// Figure out which plugins are enabled
-	ConfigureEnabledPlugins();
+	if(!ConfigureEnabledPlugins())
+	{
+		return false;
+	}
 
 	// Load plugins!
 	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
@@ -328,19 +367,19 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 
 					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  This plugin's functionality will not be available.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  This plugin's functionality will not be available.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  This plugin's functionality will not be available.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded.  This plugin's functionality will not be available."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
 					}
 					else 
 					{
@@ -356,9 +395,11 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 			if( !FailureMessage.IsEmpty() )
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+				return false;
 			}
 		}
 	}
+	return true;
 }
 
 void FPluginManager::SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate )
@@ -366,9 +407,17 @@ void FPluginManager::SetRegisterMountPointDelegate( const FRegisterMountPointDel
 	RegisterMountPointDelegate = Delegate;
 }
 
+bool FPluginManager::AreRequiredPluginsAvailable()
+{
+	return ConfigureEnabledPlugins();
+}
+
 bool FPluginManager::AreEnabledPluginModulesUpToDate()
 {
-	ConfigureEnabledPlugins();
+	if(!ConfigureEnabledPlugins())
+	{
+		return false;
+	}
 
 	for (TArray< TSharedRef< FPluginInstance > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
