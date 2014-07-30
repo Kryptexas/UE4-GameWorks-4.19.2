@@ -512,11 +512,6 @@ bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutTe
 
 CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 {
-	if( Value.ShouldGatherForLocalization() )
-	{
-		Ar.ThisRequiresLocalizationGather();
-	}
-
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 	//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
@@ -650,6 +645,11 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 	//{
 	//	UE_LOG( LogText, Error, TEXT("Loaded an FText from a persistent archive but lacking a key (Namespace:%s, Source:%s)."), Value.Namespace.Get() ? **Value.Namespace : TEXT(""), Value.SourceString.Get() ? **Value.SourceString : TEXT("") );
 	//}
+
+	if( Value.ShouldGatherForLocalization() )
+	{
+		Ar.ThisRequiresLocalizationGather();
+	}
 
 	return Ar;
 }
