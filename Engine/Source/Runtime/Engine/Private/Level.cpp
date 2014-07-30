@@ -1328,7 +1328,8 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 				const AActor* const Owner				= Primitive->GetOwner();
 				const bool bIsStaticMeshComponent		= Primitive->IsA(UStaticMeshComponent::StaticClass());
 				const bool bIsSkeletalMeshComponent		= Primitive->IsA(USkeletalMeshComponent::StaticClass());
-				const bool bIsStatic					= Owner == NULL || Primitive->Mobility == EComponentMobility::Static;
+				const bool bIsFoliage					= Owner && Owner->IsA(AInstancedFoliageActor::StaticClass()) && Primitive->IsA(UInstancedStaticMeshComponent::StaticClass());
+				const bool bIsStatic					= Owner == NULL || Primitive->Mobility == EComponentMobility::Static || bIsFoliage;
 
 				TArray<FStreamingTexturePrimitiveInfo> PrimitiveStreamingTextures;
 
@@ -1380,7 +1381,11 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 						const bool bIsWorldTexture			= 
 							Texture2D->LODGroup == TEXTUREGROUP_World ||
 							Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap ||
-							Texture2D->LODGroup == TEXTUREGROUP_WorldSpecular;
+							Texture2D->LODGroup == TEXTUREGROUP_WorldSpecular ||
+							Texture2D->LODGroup == TEXTUREGROUP_Terrain_Heightmap ||
+							Texture2D->LODGroup == TEXTUREGROUP_Terrain_Weightmap ||
+							Texture2D->LODGroup == TEXTUREGROUP_Shadowmap ||
+							Texture2D->LODGroup == TEXTUREGROUP_Lightmap;
 
 						// Check if we should consider this a static mesh texture instance.
 						bool bIsStaticMeshTextureInstance = bIsWorldTexture && !bIsSkeletalMeshComponent;

@@ -1265,6 +1265,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 			if(!StreamingLevel || Level->bIsVisible)
 			{
 				Level->UpdateLevelComponents(bRerunConstructionScripts);
+				IStreamingManager::Get().AddLevel(Level);
 			}
 		}
 	}
