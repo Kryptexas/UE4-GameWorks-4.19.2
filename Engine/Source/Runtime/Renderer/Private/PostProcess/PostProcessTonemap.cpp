@@ -11,7 +11,7 @@
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
 #include "PostProcessEyeAdaptation.h"
-
+#include "PostProcessCombineLUTs.h"
 
 
 //
