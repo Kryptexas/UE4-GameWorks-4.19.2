@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
 #include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"

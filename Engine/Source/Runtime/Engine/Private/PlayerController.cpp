@@ -24,6 +24,7 @@
 #include "GameFramework/HUD.h"
 #include "ContentStreaming.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Camera/CameraActor.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 

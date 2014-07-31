@@ -13,6 +13,7 @@
 #include "ParticleDefinitions.h"
 #include "ObjectEditorUtils.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicsEngine/DestructibleActor.h"
 
 UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
