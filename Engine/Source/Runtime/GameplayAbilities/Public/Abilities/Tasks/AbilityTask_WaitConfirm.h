@@ -18,7 +18,7 @@ class UAbilityTask_WaitConfirm : public UAbilityTask
 	virtual void Activate() override;
 
 	/** Wait until the server confirms the use of this ability. This is used to gate predictive portions of the ability */
-	UFUNCTION(BlueprintCallable, Category=Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitConfirm* WaitConfirm(UObject* WorldContextObject);
 
 public:
