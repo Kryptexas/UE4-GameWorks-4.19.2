@@ -18,15 +18,19 @@ public:
 	virtual bool RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier) override;
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) override;
 
+	virtual bool IsSourceDistribution(const FString &RootDir) override;
+
 	virtual bool VerifyFileAssociations() override;
 	virtual bool UpdateFileAssociations() override;
+
+	virtual bool OpenProject(const FString &ProjectFileName) override;
 
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) override;
 
 	virtual FFeedbackContext* GetNativeFeedbackContext() override;
 
 private:
-	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames);
+	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex);
 };
 
 typedef FDesktopPlatformLinux FDesktopPlatform;

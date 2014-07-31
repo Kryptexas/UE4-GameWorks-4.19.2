@@ -380,6 +380,8 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 {
 #if PLATFORM_MAC
 	FString Arguments = TEXT("-xcodeprojectfile");
+#elif PLATFORM_LINUX
+	FString Arguments = TEXT("-makefile");
 #else
 	FString Arguments = TEXT("-projectfiles");
 #endif
