@@ -452,3 +452,52 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 
 	return Ret;
 }
+
+bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FRenderingCompositePassContext* RESTRICT Context)
+{
+	FColorTransform ColorTransform;
+	ColorTransform.MinValue = FMath::Clamp(CVarColorMin.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MidValue = FMath::Clamp(CVarColorMid.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MaxValue = FMath::Clamp(CVarColorMax.GetValueOnRenderThread(), -10.0f, 10.0f);
+
+	if(ColorTransform.MinValue != 0.0f)
+	{
+		return true;
+	}
+	if(ColorTransform.MidValue != 0.5f)
+	{
+		return true;
+	}
+	if(ColorTransform.MaxValue != 1.0f)
+	{
+		return true;
+	}
+
+	if(Context->View.ColorScale.R != 1.0f || Context->View.ColorScale.G != 1.0f || Context->View.ColorScale.B != 1.0f)
+	{
+		return true;
+	}
+
+	if(Context->View.OverlayColor.A > (1.0f/512.0f))
+	{
+		return true;
+	}
+
+	if(Context->View.GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	{
+		const FFinalPostProcessSettings Settings = Context->View.FinalPostProcessSettings;
+		for(uint32 i = 0; i < (uint32)Settings.ContributingLUTs.Num(); ++i)
+		{
+			UTexture* LUTTexture = Settings.ContributingLUTs[i].LUTTexture;
+			if(LUTTexture == NULL) 
+			{
+				continue;
+			}
+			if(Settings.ContributingLUTs[i].Weight > 1.0f / 512.0f)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}

@@ -22,6 +22,8 @@ public:
 	uint32 GenerateFinalTable(const FFinalPostProcessSettings& Settings, FTexture* OutTextures[], float OutWeights[], uint32 MaxCount) const;
 	/** @return 0xffffffff if not found */
 	uint32 FindIndex(const FFinalPostProcessSettings& Settings, UTexture* Tex) const;
+
+	static bool IsColorGradingLUTNeeded(const FRenderingCompositePassContext* RESTRICT Context);
 };
 
 

@@ -294,8 +294,10 @@ void MainPS(
 			TonemappedColor.rgb += GrainAdd;
 		#endif
 
-		// apply color grading
-		TonemappedColor = ColorLookupTable(TonemappedColor);
+		#if USE_COLOR_GRADING
+			// apply color grading
+			TonemappedColor = ColorLookupTable(TonemappedColor);
+		#endif
 
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(TonemappedColor, LuminanceForPostProcessAA);

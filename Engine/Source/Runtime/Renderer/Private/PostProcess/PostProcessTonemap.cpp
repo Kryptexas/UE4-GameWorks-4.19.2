@@ -35,6 +35,7 @@ typedef enum {
 	TonemapperLightShafts       = (1<<11),
 	TonemapperMosaic            = (1<<12),
 	TonemapperColorFringe       = (1<<13),
+	TonemapperColorGrading      = (1<<14),
 
 } TonemapperOption;
 
@@ -56,6 +57,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperLightShafts
 	1, //TonemapperMosaic
 	1, //TonemapperColorFringe
+	1, //TonemapperColorGrading
 };
 
 // Edit the following to add and remove configurations.
@@ -63,7 +65,100 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[11] = { 
+static uint32 TonemapperConfBitmaskPC[22] = { 
+
+	TonemapperBloom +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperGrainQuantization +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix + 
+	TonemapperShadowTint +
+	TonemapperGrainQuantization +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix +
+	TonemapperGrainQuantization +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom	+ 
+	TonemapperContrast +
+	TonemapperGrainQuantization +
+	TonemapperColorGrading +
+	0,
+
+	// same without TonemapperGrainQuantization
+
+	TonemapperBloom +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix + 
+	TonemapperShadowTint +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix +
+	TonemapperColorGrading +
+	0,
+
+	TonemapperBloom	+ 
+	TonemapperContrast +
+	TonemapperColorGrading +
+	0,
+	
+	//
+
+	TonemapperGammaOnly +
+	TonemapperColorGrading +
+	0,
+
+// SAME WITHOUT COLORGRADING
 
 	TonemapperBloom +
 	TonemapperContrast +
@@ -144,6 +239,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 
 	TonemapperGammaOnly +
 	0,
+
 
 };
 
@@ -521,6 +617,11 @@ static uint32 TonemapperGenerateBitmaskPC(const FRenderingCompositePassContext* 
 		Bitmask |= TonemapperColorFringe;
 	}
 
+	if(FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(Context))
+	{
+		Bitmask |= TonemapperColorGrading;
+	}
+
 	return Bitmask + TonemapperGenerateBitmaskPost(Context);
 }
 
@@ -775,6 +876,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && !PLATFORM_MAC));
+		OutEnvironment.SetDefine(TEXT("USE_COLOR_GRADING"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading));
 
 		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
 		{
@@ -978,6 +1080,10 @@ public:
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5)
 	VARIATION1(6)  VARIATION1(7)  VARIATION1(8)  VARIATION1(9)  VARIATION1(10)
 
+	VARIATION1(11)  VARIATION1(12)  VARIATION1(13)  VARIATION1(14)  VARIATION1(15)  VARIATION1(16)
+	VARIATION1(17)  VARIATION1(18)  VARIATION1(19)  VARIATION1(20)  VARIATION1(21)
+
+
 #undef VARIATION1
 
 
@@ -1058,6 +1164,17 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		case 8: SetShaderTempl<8>(Context); break;
 		case 9: SetShaderTempl<9>(Context); break;
 		case 10: SetShaderTempl<10>(Context); break;
+		case 11: SetShaderTempl<11>(Context); break;
+		case 12: SetShaderTempl<12>(Context); break;
+		case 13: SetShaderTempl<13>(Context); break;
+		case 14: SetShaderTempl<14>(Context); break;
+		case 15: SetShaderTempl<15>(Context); break;
+		case 16: SetShaderTempl<16>(Context); break;
+		case 17: SetShaderTempl<17>(Context); break;
+		case 18: SetShaderTempl<18>(Context); break;
+		case 19: SetShaderTempl<19>(Context); break;
+		case 20: SetShaderTempl<20>(Context); break;
+		case 21: SetShaderTempl<21>(Context); break;
 		default:
 			check(0);
 	}
