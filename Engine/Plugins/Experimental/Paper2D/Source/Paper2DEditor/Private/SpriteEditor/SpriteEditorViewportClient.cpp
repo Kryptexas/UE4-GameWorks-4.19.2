@@ -822,13 +822,16 @@ bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisLis
 
 		if (SelectionSet.Num() > 0)
 		{
-			UPaperSprite* Sprite = GetSpriteBeingEdited();
-			// Sprite->RebuildCollisionData();
-			// Sprite->RebuildRenderData();
-			Sprite->PostEditChange();
-			bManipulationDirtiedSomething = true;
+			if (!IsInSourceRegionEditMode())
+			{
+				UPaperSprite* Sprite = GetSpriteBeingEdited();
+				// Sprite->RebuildCollisionData();
+				// Sprite->RebuildRenderData();
+				Sprite->PostEditChange();
+				Invalidate();
+			}
 
-			Invalidate();
+			bManipulationDirtiedSomething = true;
 		}
 	}
 
