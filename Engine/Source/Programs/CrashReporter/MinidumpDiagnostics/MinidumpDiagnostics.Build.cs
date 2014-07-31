@@ -13,7 +13,6 @@ public class MinidumpDiagnostics : ModuleRules
 			new string[] 
 			{ 
 				"Core",
-				"CoreUObject",
 				"CrashDebugHelper",
 				"PerforceSourceControl",
 				"Projects"
