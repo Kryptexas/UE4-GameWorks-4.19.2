@@ -167,7 +167,7 @@ public:
 	static void PackageProject( const FName InPlatformInfoName );
 
 	/** Checks whether a menu action for packaging the project can execute. */
-	static bool PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented );
+	static bool PackageProjectCanExecute( const FName PlatformInfoName );
 
 	/** Refresh the project in the current IDE */
 	static void RefreshCodeProject();

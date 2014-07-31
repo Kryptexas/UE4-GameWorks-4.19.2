@@ -77,6 +77,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
 				"OnlineSubsystem",
 				"OnlineBlueprintSupport",
+				"DesktopPlatform",
 				"DirectoryWatcher",
 				"EditorSettingsViewer",
 				"EditorStyle",

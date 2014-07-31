@@ -123,7 +123,7 @@ int FIOSTargetPlatform::IsReadyToBuild(const FString& ProjectPath, bool bProject
 	// shell to IPP and get the status of the provision and cert
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
 	FString CommandLine = FString::Printf(TEXT("Validate Engine -project %s"), *ProjectPath);
-	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, false));
+	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 	IPPProcess->Launch();
 	while(IPPProcess->IsRunning())
 	{
