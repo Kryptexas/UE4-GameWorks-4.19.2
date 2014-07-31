@@ -192,7 +192,7 @@ void ALevelBounds::BroadcastLevelBoundsUpdated()
 
 void ALevelBounds::SubscribeToUpdateEvents()
 {
-	if (bSubscribedToEvents == false)
+	if (bSubscribedToEvents == false && !GetWorld()->IsPlayInEditor())
 	{
 		GetWorldTimerManager().SetTimer(this, &ALevelBounds::OnTimerTick, 1, true);
 		GEngine->OnActorMoved().AddUObject(this, &ALevelBounds::OnLevelActorMoved);
