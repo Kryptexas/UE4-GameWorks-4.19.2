@@ -290,7 +290,7 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
 	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if ( PreviewWidgetActorPtr.IsStale(true) )
+	if ( PreviewWidgetPtr.IsStale(true) )
 	{
 		UpdatePreview(GetWidgetBlueprintObj(), true);
 	}
@@ -405,7 +405,12 @@ UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 
 UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 {
-	return PreviewWidgetActorPtr.Get();
+	if ( PreviewWidgetPtr.IsStale(true) )
+	{
+		return NULL;
+	}
+
+	return PreviewWidgetPtr.Get();
 }
 
 TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
@@ -505,7 +510,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		}
 
 		// Store a reference to the preview actor.
-		PreviewWidgetActorPtr = PreviewActor;
+		PreviewWidgetPtr = PreviewActor;
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();

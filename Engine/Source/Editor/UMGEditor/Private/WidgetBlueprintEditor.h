@@ -122,7 +122,7 @@ private:
 	TSet<FWidgetReference> SelectedWidgets;
 
 	/** The preview GUI object */
-	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
+	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetPtr;
 
 	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
