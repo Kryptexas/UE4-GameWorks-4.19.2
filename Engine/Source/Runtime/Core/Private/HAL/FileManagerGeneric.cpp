@@ -386,6 +386,16 @@ void FFileManagerGeneric::FindFiles( TArray<FString>& Result, const TCHAR* InFil
 	GetLowLevel().IterateDirectory( *FPaths::GetPath(Filename), FileMatch );
 }
 
+bool FFileManagerGeneric::IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
+{
+	return GetLowLevel().IterateDirectory( Directory, Visitor );
+}
+
+bool FFileManagerGeneric::IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
+{
+	return GetLowLevel().IterateDirectoryRecursively( Directory, Visitor );
+}
+
 double FFileManagerGeneric::GetFileAgeSeconds( const TCHAR* Filename )
 {
 	// make sure it exists

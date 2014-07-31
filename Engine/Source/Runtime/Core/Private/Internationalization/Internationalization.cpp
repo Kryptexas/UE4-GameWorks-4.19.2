@@ -571,7 +571,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 	OutAvailableCultures.Reset();
 
 	TArray<FString> AllLocalizationFolders;
-	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
+	IFileManager& FileManager = IFileManager::Get();
 	for(const auto& LocalizationPath : InLocalizationPaths)
 	{
 		/* Visitor class used to enumerate directories of culture */
@@ -601,7 +601,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 		};
 
 		FCultureEnumeratorVistor CultureEnumeratorVistor(AllLocalizationFolders);
-		PlatformFile.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);	
+		FileManager.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);
 	}
 
 	// Find any cultures that are a complete or partial match for the languages we have translations for
