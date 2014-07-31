@@ -5321,12 +5321,30 @@ void UEngine::TickHardwareSurvey()
 
 bool UEngine::IsHardwareSurveyRequired()
 {
-#if PLATFORM_DESKTOP
 	// Analytics must have been initialized FIRST.
 	if (!FEngineAnalytics::IsAvailable())
 	{
 		return false;
 	}
+
+#if PLATFORM_IOS
+	// look up to see if how long ago the last survey was, if ever
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+	NSDate* SurveyDateTime = [UserSettings objectForKey:@"HardwareSurveyDateTime"];
+
+	// if we never did one, do it now
+	if (SurveyDateTime == nil)
+	{
+		return true;
+	}
+
+	// how long has it been (negate since the past is negative)
+	NSTimeInterval SecondsBeforeNow = -[SurveyDateTime timeIntervalSinceNow];
+	
+	// survey again after a 30 days (TimeDiff is in seconds)
+	return SecondsBeforeNow > (30.0 * 24.0 * 60.0 * 60.0);
+
+#elif PLATFORM_DESKTOP
 
 	bool bSurveyDone = false;
 	GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), bSurveyDone, GEditorGameAgnosticIni);
@@ -5467,7 +5485,30 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_DESKTOP
+#if PLATFORM_IOS
+	if (FEngineAnalytics::IsAvailable())
+	{
+		// mark now as last survey time
+		NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+		[UserSettings setObject:[NSDate date] forKey:@"HardwareSurveyDateTime"];
+
+		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
+		// copy from what IOSPlatformSurvey has filled out
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("Model"), SurveyResults.Platform));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Version"), SurveyResults.OSVersion));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Bits"), FString::Printf(TEXT("%d-bit"), SurveyResults.OSBits)));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Language"), SurveyResults.OSLanguage));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("RenderingAPI"), SurveyResults.MultimediaAPI));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("CPU.Count"), FString::Printf(TEXT("%d"), SurveyResults.CPUCount)));
+		FString DisplayResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
+		FString ViewResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
+	
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("IOSHardwareStats"), HardwareStatsAttribs);
+	}
+
+#elif PLATFORM_DESKTOP
 	if (GConfig)
 	{
 		GConfig->SetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), true, GEditorGameAgnosticIni);
