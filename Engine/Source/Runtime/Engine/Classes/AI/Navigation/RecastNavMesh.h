@@ -37,6 +37,7 @@ class FRecastQueryFilter;
 class INavLinkCustomInterface;
 class UNavArea;
 class UNavigationSystem;
+struct FAreaNavModifier;
 
 UENUM()
 namespace ERecastPartitioning

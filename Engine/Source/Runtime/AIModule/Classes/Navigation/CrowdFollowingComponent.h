@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "Navigation/CrowdAgentInterface.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "CrowdFollowingComponent.generated.h"

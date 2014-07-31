@@ -2,15 +2,15 @@
 
 
 #pragma once
-
-#include "UniqueObj.h"
-#include "InstancedFoliage.h"
+#include "GameFramework/Actor.h"
+#include "Templates/UniqueObj.h"
 #include "InstancedFoliageActor.generated.h"
 
 // Forward declarations
 class UFoliageType;
 class ULandscapeHeightfieldCollisionComponent;
 struct FFoliageInstancePlacementInfo;
+struct FFoliageMeshInfo;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor

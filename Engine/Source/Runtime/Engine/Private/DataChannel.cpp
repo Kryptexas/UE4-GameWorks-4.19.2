@@ -5,10 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-
-#include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "Net/DataReplication.h"
+#include "Net/NetworkProfiler.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/ControlChannel.h"
 

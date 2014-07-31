@@ -1,10 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "NavLinkDefinition.h"
-#include "NavigationModifier.h"
-#include "NavigationAvoidanceTypes.h"
 #include "NavigationTypes.generated.h"
 
 #define INVALID_NAVNODEREF (0)

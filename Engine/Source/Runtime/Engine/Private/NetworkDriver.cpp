@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Net/DataReplication.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Engine/ActorChannel.h"
