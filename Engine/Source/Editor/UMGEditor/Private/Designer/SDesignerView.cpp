@@ -173,6 +173,19 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 			.VAlign(VAlign_Top)
 			[
 				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "ZoomToFit"))
+					.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
+					[
+						//TODO UMG Replace with image.
+						SNew(STextBlock)
+						.Text(LOCTEXT("ZoomToFit", "Zoom To Fit"))
+					]
+				]
 				
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -205,6 +218,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	);
 
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SDesignerView::OnEditorSelectionChanged);
+
+	ZoomToFit(/*bInstantZoom*/ true);
 }
 
 SDesignerView::~SDesignerView()
@@ -229,6 +244,11 @@ FOptionalSize SDesignerView::GetPreviewWidth() const
 FOptionalSize SDesignerView::GetPreviewHeight() const
 {
 	return (float)PreviewHeight;
+}
+
+FSlateRect SDesignerView::ComputeAreaBounds() const
+{
+	return FSlateRect(0, 0, PreviewWidth, PreviewHeight);
 }
 
 void SDesignerView::OnEditorSelectionChanged()
@@ -976,7 +996,7 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		Ext->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SDesignSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -1336,6 +1356,12 @@ void SDesignerView::EndTransaction()
 		delete ScopedTransaction;
 		ScopedTransaction = NULL;
 	}
+}
+
+FReply SDesignerView::HandleZoomToFitClicked()
+{
+	ZoomToFit(/*bInstantZoom*/ false);
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

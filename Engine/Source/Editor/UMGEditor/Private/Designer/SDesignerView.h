@@ -53,6 +53,8 @@ private:
 
 	FOptionalSize GetPreviewHeight() const;
 
+	virtual FSlateRect ComputeAreaBounds() const override;
+
 	/** Updates the designer to display the latest preview widget */
 	void UpdatePreviewWidget();
 
@@ -82,6 +84,9 @@ private:
 
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();
+
+private:
+	FReply HandleZoomToFitClicked();
 
 private:
 	enum DragHandle

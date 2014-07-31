@@ -22,6 +22,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	// SWidget interface
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -39,12 +40,20 @@ protected:
 	float GetZoomAmount() const;
 
 	void ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& WidgetSpaceZoomOrigin, bool bOverrideZoomLimiting);
-
+	
 	void PostChangedZoom();
+
+	bool ScrollToLocation(const FGeometry& MyGeometry, FVector2D DesiredCenterPosition, const float InDeltaTime);
+
+	bool ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const FVector2D& DesiredSize, bool bDoneScrolling);
+
+	void ZoomToFit(bool bInstantZoom);
 
 	FVector2D GetViewOffset() const;
 
-	FSlateRect ComputeSensibleGraphBounds() const;
+	virtual FSlateRect ComputeAreaBounds() const;
+
+	FSlateRect ComputeSensibleBounds() const;
 
 	FVector2D GraphCoordToPanelCoord(const FVector2D& GraphSpaceCoordinate) const;
 	FVector2D PanelCoordToGraphCoord(const FVector2D& PanelSpaceCoordinate) const;
@@ -75,4 +84,17 @@ protected:
 
 	// The interface for mapping ZoomLevel values to actual node scaling values
 	TScopedPointer<FZoomLevelsContainer> ZoomLevels;
+
+	// A flag noting if we have a pending zoom to fit operation to perform next tick.
+	bool bDeferredZoomingToFit;
+
+	// A flag noting if we have a pending zoom to extents operation to perform next tick.
+	bool bDeferredZoomToExtents;
+
+	bool bAllowContinousZoomInterpolation;
+
+	bool bTeleportInsteadOfScrollingWhenZoomingToFit;
+
+	FVector2D ZoomTargetTopLeft;
+	FVector2D ZoomTargetBottomRight;
 };
