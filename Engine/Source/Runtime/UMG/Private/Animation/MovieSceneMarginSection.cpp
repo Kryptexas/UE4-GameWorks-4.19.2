@@ -30,12 +30,12 @@ void UMovieSceneMarginSection::DilateSection( float DilationFactor, float Origin
 	BottomCurve.ScaleCurve(Origin, DilationFactor);
 }
 
-FMargin UMovieSceneMarginSection::Eval( float Position ) const
+FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultValue ) const
 {
-	return FMargin(	LeftCurve.Eval(Position),
-					TopCurve.Eval(Position),
-					RightCurve.Eval(Position),
-					BottomCurve.Eval(Position));
+	return FMargin(	LeftCurve.Eval(Position, DefaultValue.Left),
+					TopCurve.Eval(Position, DefaultValue.Top),
+					RightCurve.Eval(Position, DefaultValue.Right),
+					BottomCurve.Eval(Position, DefaultValue.Bottom));
 }
 
 void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey )
@@ -61,7 +61,7 @@ bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value)
 		LeftCurve.GetNumKeys() == 0 ||
 		RightCurve.GetNumKeys() == 0 ||
 		BottomCurve.GetNumKeys() == 0 ||
-		(Eval(Time) != Value);
+		(Eval(Time,Value) != Value);
 }
 
 void UMovieSceneMarginSection::AddKeyToNamedCurve( float Time, const FMarginKey& MarginKey )

@@ -40,13 +40,15 @@ bool UMovieSceneMarginTrack::AddKeyToSection( float Time, const FMarginKey& Marg
 }
 
 
-bool UMovieSceneMarginTrack::Eval( float Position, float LastPosition, FMargin& OutMargin ) const
+bool UMovieSceneMarginTrack::Eval( float Position, float LastPosition, FMargin& InOutMargin ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
-		OutMargin = CastChecked<UMovieSceneMarginSection>( Section )->Eval( Position );
+		const UMovieSceneMarginSection* MarginSection = CastChecked<UMovieSceneMarginSection>( Section );
+
+		InOutMargin = MarginSection->Eval( Position, InOutMargin );
 	}
 
 	return Section != NULL;
