@@ -69,7 +69,7 @@ namespace Scalability
 	ENGINE_API void RecordQualityLevelsAnalytics(bool bAutoApplied);
 
 	/** Run synthbenchmark and configure scalability based on results **/
-	ENGINE_API FQualityLevels BenchmarkQualityLevels();
+	ENGINE_API FQualityLevels BenchmarkQualityLevels(uint32 WorkScale=10);
 
 	/** Process a console command line **/
 	ENGINE_API void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar);

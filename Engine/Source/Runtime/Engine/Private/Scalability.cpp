@@ -231,14 +231,14 @@ static int32 GetRenderScaleLevelFromQualityLevel(int32 InQualityLevel)
 	return ScalesForQuality[InQualityLevel];
 }
 
-FQualityLevels BenchmarkQualityLevels()
+FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
 {
 	// benchmark the system
 
 	FQualityLevels Results;
 
 	FSynthBenchmarkResults SynthBenchmark;
-	ISynthBenchmark::Get().Run(SynthBenchmark, true);
+	ISynthBenchmark::Get().Run(SynthBenchmark, true, WorkScale );
 
 	float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
 	float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
