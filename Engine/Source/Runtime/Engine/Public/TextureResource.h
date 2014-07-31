@@ -395,7 +395,7 @@ class FTexture2DDynamicResource : public FTextureResource
 {
 public:
 	/** Initialization constructor. */
-	FTexture2DDynamicResource(class UTexture2DDynamic* InOwner);
+	ENGINE_API FTexture2DDynamicResource(class UTexture2DDynamic* InOwner);
 
 	/** Returns the width of the texture in pixels. */
 	virtual uint32 GetSizeX() const;
@@ -404,10 +404,10 @@ public:
 	virtual uint32 GetSizeY() const;
 
 	/** Called when the resource is initialized. This is only called by the rendering thread. */
-	virtual void InitRHI() override;
+	ENGINE_API virtual void InitRHI() override;
 
 	/** Called when the resource is released. This is only called by the rendering thread. */
-	virtual void ReleaseRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
 
 	/** Returns the Texture2DRHI, which can be used for locking/unlocking the mips. */
 	ENGINE_API FTexture2DRHIRef GetTexture2DRHI();
