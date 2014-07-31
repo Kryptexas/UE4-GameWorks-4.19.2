@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "KeyStructCustomization.h"
 #include "ScopedTransaction.h"
+#include "SKeySelector.h"
 
 #define LOCTEXT_NAMESPACE "FKeyStructCustomization"
 
@@ -26,32 +27,18 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 	TArray<void*> StructPtrs;
 	StructPropertyHandle->AccessRawData(StructPtrs);
 	check(StructPtrs.Num() != 0);
-	const FKey& SelectedKey = *(FKey*)StructPtrs[0];
+	SelectedKey = (FKey*)StructPtrs[0];
 
 	bool bMultipleValues = false;
 	for (int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
 	{
-		if (*(FKey*)StructPtrs[StructPtrIndex] != SelectedKey)
+		if (*(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
 		{
 			bMultipleValues = true;
 			break;
 		}
 	}
 
-	TSharedPtr<FKey> InitialSelectedItem;
-	TArray<FKey> AllKeys;
-	EKeys::GetAllKeys(AllKeys);
-
-	for (FKey Key : AllKeys)
-	{
-		TSharedPtr<FKey> InputKey = MakeShareable(new FKey(Key));
-		InputKeys.Add(InputKey);
-		if (Key == SelectedKey)
-		{
-			InitialSelectedItem = InputKey;
-		}
-	}
-	
 	// create struct header
 	HeaderRow.NameContent()
 	[
@@ -61,39 +48,22 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 	.MinDesiredWidth(125.0f)
 	.MaxDesiredWidth(325.0f)
 	[
-		SNew(SHorizontalBox)
-
-		+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			[
-				// text box
-				SNew(SComboBox< TSharedPtr<FKey> >)
-				.OptionsSource(&InputKeys)
-				.InitiallySelectedItem(InitialSelectedItem)
-				.OnGenerateWidget(this, &FKeyStructCustomization::OnGenerateComboWidget)			
-				.OnSelectionChanged(this, &FKeyStructCustomization::OnSelectionChanged)
-				.Content()
-				[
-					SAssignNew(TextBlock, STextBlock)
-					.Text(bMultipleValues ? LOCTEXT("MultipleValues", "Multiple Values") : SelectedKey.GetDisplayName())
-					.Font(StructCustomizationUtils.GetRegularFont())
-				]
-			]
+		SNew(SKeySelector)
+		.CurrentKey(this, &FKeyStructCustomization::GetCurrentKey)
+		.OnKeyChanged(this, &FKeyStructCustomization::OnKeyChanged)
+		.Font(StructCustomizationUtils.GetRegularFont())
+		.HasMultipleValues(bMultipleValues)
 	];
 }
 
-
-TSharedRef<SWidget> FKeyStructCustomization::OnGenerateComboWidget(TSharedPtr<FKey> Key)
+FKey FKeyStructCustomization::GetCurrentKey() const
 {
-	return
-		SNew(STextBlock)
-		.Text(Key->GetDisplayName());
+	return *SelectedKey;
 }
 
-void FKeyStructCustomization::OnSelectionChanged(TSharedPtr<FKey> SelectedItem, ESelectInfo::Type SelectInfo)
+void FKeyStructCustomization::OnKeyChanged(TSharedPtr<FKey> SelectedKey)
 {
-	PropertyHandle->SetValueFromFormattedString(SelectedItem->ToString());
-	TextBlock->SetText(SelectedItem->GetDisplayName());
+	PropertyHandle->SetValueFromFormattedString(SelectedKey->ToString());
 }
 
 #undef LOCTEXT_NAMESPACE
