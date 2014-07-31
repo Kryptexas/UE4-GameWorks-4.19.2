@@ -12,7 +12,7 @@ UAnimNotifyState_TimedParticleEffect::UAnimNotifyState_TimedParticleEffect(const
 	RotationOffset = FRotator(0.0f, 0.0f, 0.0f);
 }
 
-void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
+void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration)
 {
 	// Only spawn if we've got valid params
 	if(ValidateParameters(MeshComp))
@@ -20,7 +20,7 @@ void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * 
 		UParticleSystemComponent* NewComponent = UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset);
 	}
 
-	Received_NotifyBegin(MeshComp, Animation);
+	Received_NotifyBegin(MeshComp, Animation, TotalDuration);
 }
 
 void UAnimNotifyState_TimedParticleEffect::NotifyTick(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime)
