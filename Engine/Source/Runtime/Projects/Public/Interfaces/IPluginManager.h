@@ -98,7 +98,7 @@ public:
 	 * @param	LoadingPhase	Which loading phase we're loading plugin modules from.  Only modules that are configured to be
 	 *							loaded at the specified loading phase will be loaded during this call.
 	 */
-	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) = 0;
+	virtual bool LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) = 0;
 
 	/** Delegate type for mounting content paths.  Used internally by FPackageName code. */
 	DECLARE_DELEGATE_TwoParams( FRegisterMountPointDelegate, const FString& /* Root content path */, const FString& /* Directory name */ );
@@ -110,6 +110,13 @@ public:
 	 * @param	Delegate	The delegate to that will be called when plugin manager needs to register a mount point
 	 */
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) = 0;
+
+	/**
+	 * Checks if all the required plugins are available. If not, will present an error dialog the first time a plugin is loaded or this function is called.
+	 *
+	 * @returns true if all the required plugins are available.
+	 */
+	virtual bool AreRequiredPluginsAvailable( ) = 0;
 
 	/** 
 	 * Checks whether modules for the enabled plugins are up to date

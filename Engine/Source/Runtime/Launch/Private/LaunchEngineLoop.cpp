@@ -1287,14 +1287,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// Load up all modules that need to hook into the loading screen
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
 		return 1;
 	}
 
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen);
-	
-	
 #if !UE_SERVER
 	if ( !IsRunningDedicatedServer() )
 	{
@@ -1765,28 +1762,22 @@ bool FEngineLoop::LoadStartupCoreModules()
 bool FEngineLoop::LoadStartupModules()
 {
 	// Load any modules that want to be loaded before default modules are loaded up.
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault);
 
 	// Load modules that are configured to load in the default phase
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default);
 
 	// Load any modules that want to be loaded after default modules are loaded up.
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault);
 
 	return true;
 }
@@ -1876,12 +1867,11 @@ int32 FEngineLoop::Init()
 	GEngine->Init(this);
 
 	// Load all the post-engine init modules
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit))
 	{
 		GIsRequestingExit = true;
 		return 1;
 	}
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit);
 
 	GetMoviePlayer()->WaitForMovieToFinish();
 
@@ -2334,7 +2324,7 @@ bool FEngineLoop::AppInit( )
 
 	// Check whether the project or any of its plugins are missing or are out of date
 #if UE_EDITOR
-	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet())
+	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
 		if(!IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
 		{
@@ -2366,9 +2356,9 @@ bool FEngineLoop::AppInit( )
 #endif
 
 	// Load "pre-init" plugin modules
-	if (IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
 	{
-		IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit);
+		return false;
 	}
 
 	// Put the command line and config info into the suppression system
