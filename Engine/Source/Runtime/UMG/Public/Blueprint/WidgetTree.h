@@ -12,14 +12,22 @@ class UMG_API UWidgetTree : public UObject
 
 public:
 
+	/** Finds the widget in the tree by name. */
 	UWidget* FindWidget(const FString& Name) const;
 
+	/** Finds a widget in the tree using the native widget as the key. */
+	UWidget* FindWidget(TSharedRef<SWidget> InWidget) const;
+
+	/** Removes the widget from the hierarchy and all sub widgets. */
 	bool RemoveWidget(UWidget* Widget);
 
+	/** Gets the parent widget of a given widget, and potentially the child index. */
 	class UPanelWidget* FindWidgetParent(UWidget* Widget, int32& OutChildIndex);
 
+	/** Gathers all the widgets in the tree recursively */
 	void GetAllWidgets(TArray<UWidget*>& Widgets) const;
 
+	/** Gathers only the immediate child widgets of a parent widget. */
 	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
 
 	/** Constructs the widget, and adds it to the tree. */

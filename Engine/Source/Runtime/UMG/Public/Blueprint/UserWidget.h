@@ -336,8 +336,6 @@ protected:
 	int32 GetFullScreenZOrder() const;
 
 private:
-	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;
-
 	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;

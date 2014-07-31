@@ -189,31 +189,17 @@ void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	TWeakObjectPtr<UWidget> VisualWidget = WidgetToComponent.FindRef(InWidget);
-	return VisualWidget.Get();
+	return WidgetTree->FindWidget(InWidget);
 }
 
 TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
-	WidgetToComponent.Reset();
-	
 	TSharedPtr<SWidget> UserRootWidget;
 
 	// Add the first component to the root of the widget surface.
 	if ( Components.Num() > 0 && Components[0] != NULL )
 	{
 		UserRootWidget = Components[0]->TakeWidget();
-
-		// Place all of our top-level children Slate wrapped components into the overlay
-		for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
-		{
-			UWidget* Handle = Components[ComponentIndex];
-			TSharedPtr<SWidget> Widget = Handle->GetCachedWidget();
-			if ( Widget.IsValid() )
-			{
-				WidgetToComponent.Add(Widget, Handle);
-			}
-		}
 	}
 	else
 	{
@@ -231,12 +217,10 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
-	for ( auto& Entry : WidgetToComponent )
+	UWidget* WidgetObject = WidgetTree->FindWidget(Name);
+	if ( WidgetObject )
 	{
-		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
-		{
-			return Entry.Key.Pin();
-		}
+		return WidgetObject->GetCachedWidget();
 	}
 
 	return TSharedPtr<SWidget>();
