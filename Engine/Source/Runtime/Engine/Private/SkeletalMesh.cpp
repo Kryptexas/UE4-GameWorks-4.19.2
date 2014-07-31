@@ -4465,9 +4465,6 @@ USkinnedMeshComponent::USkinnedMeshComponent(const class FPostConstructInitializ
 	SectionIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
-
-	AnimUpdateRateShiftTag = 0;
-	AnimUpdateRateFrameCount = 0;
 }
 
 

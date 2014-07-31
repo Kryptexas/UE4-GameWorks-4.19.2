@@ -588,7 +588,7 @@ protected:
 
 	// Update Rate
 public:
-	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AActor::AnimUpdateRateTick() 
+	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AnimUpdateRateTick() 
 	 * This allows to skip frames for performance. (For example based on visibility and size on screen). */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
 	bool bEnableUpdateRateOptimizations;
@@ -847,14 +847,6 @@ public:
 	/** Animation Update Rate optimization parameters. */
 	UPROPERTY(Transient)
 	struct FAnimUpdateRateParameters AnimUpdateRateParams;
-
-	/** Unique Tag assigned to spread updates of SkinnedMeshes over time. */
-	UPROPERTY(Transient)
-	uint32 AnimUpdateRateShiftTag;
-
-	/** Frame counter to call AnimUpdateRateTick() just once per frame. */
-	UPROPERTY(Transient)
-	uint32 AnimUpdateRateFrameCount;
 
 	/** Aimation Update Rate Tick. */
 	void AnimUpdateRateTick();

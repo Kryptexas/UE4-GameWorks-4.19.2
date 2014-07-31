@@ -237,28 +237,32 @@ void USkinnedMeshComponent::TickUpdateRate()
 	SCOPE_CYCLE_COUNTER(STAT_TickUpdateRate);
 	if( bEnableUpdateRateOptimizations )
 	{
-		// Convert current frame counter from 64 to 32 bits.
-		const uint32 CurrentFrame32 = uint32(GFrameCounter % MAX_uint32);
-
-		// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
-		if( AnimUpdateRateFrameCount != CurrentFrame32 )
+		AActor* Owner = GetOwner();
+		if (Owner)
 		{
-			AnimUpdateRateFrameCount = CurrentFrame32;
-			AnimUpdateRateTick();
-		}
+			// Convert current frame counter from 64 to 32 bits.
+			const uint32 CurrentFrame32 = uint32(GFrameCounter % MAX_uint32);
 
-		// debug -- @todo: hook this up to a console command.
-		if( bDisplayDebugUpdateRateOptimizations )
-		{
-			FColor DrawColor;
-			switch( AnimUpdateRateParams.GetUpdateRate() )
+			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
+			if (Owner->AnimUpdateRateFrameCount != CurrentFrame32)
 			{
-			case 1 : DrawColor = FColor::Red; break;
-			case 2 : DrawColor = FColor::Green; break;
-			case 3 : DrawColor = FColor::Blue; break;
-			default: DrawColor = FColor::Black; break;
+				Owner->AnimUpdateRateFrameCount = CurrentFrame32;
+				AnimUpdateRateTick();
 			}
-			DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
+
+			// debug -- @todo: hook this up to a console command.
+			if (bDisplayDebugUpdateRateOptimizations)
+			{
+				FColor DrawColor;
+				switch (AnimUpdateRateParams.GetUpdateRate())
+				{
+				case 1: DrawColor = FColor::Red; break;
+				case 2: DrawColor = FColor::Green; break;
+				case 3: DrawColor = FColor::Blue; break;
+				default: DrawColor = FColor::Black; break;
+				}
+				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
+			}
 		}
 	}
 }
@@ -1712,16 +1716,13 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	return OutVertexAnims;
 }
 
-
-// Global counter to spread SkinnedMeshComponent tick updates.
-static uint32 SkinnedMeshUpdateRateGroupCount = 0;
-
 void USkinnedMeshComponent::AnimUpdateRateTick()
 {
-	// If hasn't been initialized yet, pick a unique ID, to spread population over frames.
-	if (AnimUpdateRateShiftTag == 0)
+	AActor* Owner = GetOwner();
+
+	if (!Owner)
 	{
-		AnimUpdateRateShiftTag = ++SkinnedMeshUpdateRateGroupCount;
+		return;
 	}
 
 	// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
@@ -1731,7 +1732,7 @@ void USkinnedMeshComponent::AnimUpdateRateTick()
 
 	// Gather Actor's components
 	TArray<USceneComponent *> ComponentStack;
-	USceneComponent* CurrentComponent = this;
+	USceneComponent* CurrentComponent = Owner->GetRootComponent();
 
 	while (CurrentComponent)
 	{
@@ -1762,18 +1763,23 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 
 	// Human controlled characters should be ticked always fully to minimize latency w/ game play events triggered by animation.
 	AActor* Owner = GetOwner();
-	AController * Controller = Owner ? Owner->GetInstigatorController() : NULL;
+	if (!Owner)
+	{
+		return;
+	}
+
+	AController * Controller = Owner->GetInstigatorController();
 	const bool bHumanControlled = Controller && (Cast<APlayerController>(Controller) != NULL);
 
 	// Not rendered, including dedicated servers. we can skip the Evaluation part.
 	if (!bRecentlyRendered)
 	{
-		AnimUpdateRateParams.Set(*this, (bHumanControlled ? 1 : 4), 4, false);
+		AnimUpdateRateParams.Set(*Owner, (bHumanControlled ? 1 : 4), 4, false);
 	}
 	// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
 	else  if (bHumanControlled || bPlayingRootMotion)
 	{
-		AnimUpdateRateParams.Set(*this, 1, 1, false);
+		AnimUpdateRateParams.Set(*Owner, 1, 1, false);
 	}
 	else
 	{
@@ -1793,11 +1799,11 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 			DesiredEvaluationRate = 3;
 		}
 
-		AnimUpdateRateParams.Set(*this, DesiredEvaluationRate, DesiredEvaluationRate, true);
+		AnimUpdateRateParams.Set(*Owner, DesiredEvaluationRate, DesiredEvaluationRate, true);
 	}
 }
 
-void FAnimUpdateRateParameters::Set(const class USkinnedMeshComponent& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
+void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
 {
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
@@ -1805,7 +1811,7 @@ void FAnimUpdateRateParameters::Set(const class USkinnedMeshComponent& Owner, co
 	bInterpolateSkippedFrames = bNewInterpSkippedFrames;
 
 	// Make sure we don't overflow. we don't need very large numbers.
-	const uint32 Counter = (GFrameCounter % MAX_uint8) + (Owner.AnimUpdateRateShiftTag % MAX_uint8);
+	const uint32 Counter = (GFrameCounter % MAX_uint8) + (Owner.GetAnimUpdateRateShiftTag() % MAX_uint8);
 
 	bSkipUpdate = ((Counter % UpdateRate) > 0);
 	bSkipEvaluation = ((Counter % EvaluationRate) > 0);
