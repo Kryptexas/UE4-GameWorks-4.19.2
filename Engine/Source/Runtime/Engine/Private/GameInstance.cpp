@@ -43,10 +43,18 @@ bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 
-	WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
-	WorldContext->OwningGameInstance = this;
-	WorldContext->PIEInstance = PIEInstance;
+	// Look for an existing pie world context, may have been created before
+	WorldContext = EditorEngine->GetWorldContextFromPIEInstance(PIEInstance);
 
+	if (!WorldContext)
+	{
+		// If not, create a new one
+		WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
+		WorldContext->PIEInstance = PIEInstance;
+	}
+
+	WorldContext->OwningGameInstance = this;
+	
 	const FString WorldPackageName = EditorEngine->EditorWorld->GetOutermost()->GetName();
 
 	// Establish World Context for PIE World

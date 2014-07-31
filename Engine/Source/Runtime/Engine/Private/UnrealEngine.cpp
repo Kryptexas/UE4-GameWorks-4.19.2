@@ -9009,6 +9009,18 @@ FWorldContext& UEngine::GetWorldContextFromPendingNetGameNetDriverChecked(const 
 	return HandleInvalidWorldContext();
 }
 
+FWorldContext* UEngine::GetWorldContextFromPIEInstance(int32 PIEInstance)
+{
+	for (FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.WorldType == EWorldType::PIE && WorldContext.PIEInstance == PIEInstance)
+		{
+			return &WorldContext;
+		}
+	}
+	return NULL;
+}
+
 UPendingNetGame* UEngine::PendingNetGameFromWorld( UWorld* InWorld )
 {
 	return GetWorldContextFromWorldChecked(InWorld).PendingNetGame;

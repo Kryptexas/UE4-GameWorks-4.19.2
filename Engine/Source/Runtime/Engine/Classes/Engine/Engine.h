@@ -2370,6 +2370,7 @@ public:
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
+	FWorldContext* GetWorldContextFromPIEInstance(int32 PIEInstance);
 
 	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);

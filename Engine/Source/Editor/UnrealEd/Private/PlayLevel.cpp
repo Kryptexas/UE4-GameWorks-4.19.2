@@ -2045,7 +2045,7 @@ void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	// Set window position
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
-	UGameInstance* const GameInstance = CreatePIEGameInstance(0, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
+	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings

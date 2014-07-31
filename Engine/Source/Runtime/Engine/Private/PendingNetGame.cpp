@@ -169,6 +169,8 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				}
 			}
 
+			FUniqueNetIdRepl UniqueIdRepl;
+
 			ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(this);
 			if (LocalPlayer)
 			{
@@ -185,11 +187,11 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				{
 					PartialURL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
 				}
+
+				// Send the player unique Id at login
+				UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
 			}
 			
-			// Send the player unique Id at login
-			FUniqueNetIdRepl UniqueIdRepl(LocalPlayer->GetPreferredUniqueNetId());
-
 			Connection->ClientResponse = TEXT("0");
 			FString URLString(PartialURL.ToString());
 			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, URLString, UniqueIdRepl);
