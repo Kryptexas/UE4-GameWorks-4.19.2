@@ -4195,6 +4195,14 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 	CurrentTouchInterface = NewTouchInterface;
 }
 
+void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
+{
+	if (VirtualJoystick.IsValid())
+	{
+		VirtualJoystick->SetVisibility(bVisible, false);
+	}
+}
+
 void APlayerController::UpdateCameraManager(float DeltaSeconds)
 {
 	if (PlayerCameraManager != NULL)

@@ -963,6 +963,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	virtual void ActivateTouchInterface(class UTouchInterface* NewTouchInterface);
 
+	/** Set the virtual joystick visibility. */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	virtual void SetVirtualJoystickVisibility(bool bVisible);
+
 public:
 	/**
 	 * Change Camera mode
