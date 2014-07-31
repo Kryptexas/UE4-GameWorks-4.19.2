@@ -158,12 +158,8 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 
 void EditorExit()
 {
-	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
-		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
-	{
-		GLevelEditorModeTools().SetDefaultMode(FBuiltinEditorModes::EM_Default);
-		GLevelEditorModeTools().ActivateDefaultMode();
-	}
+	GLevelEditorModeTools().SetDefaultMode(FBuiltinEditorModes::EM_Default);
+	GLevelEditorModeTools().DeactivateAllModes(); // this also activates the default mode
 
 	// Save out any config settings for the editor so they don't get lost
 	GEditor->SaveConfig();

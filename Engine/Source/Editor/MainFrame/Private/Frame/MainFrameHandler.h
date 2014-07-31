@@ -176,7 +176,8 @@ public:
 			if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Level ) || 
 				GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_StreamingLevel) )
 			{
-				GLevelEditorModeTools().ActivateDefaultMode();
+				GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_Level);
+				GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_StreamingLevel);
 				bOkToExit = false;
 			}
 

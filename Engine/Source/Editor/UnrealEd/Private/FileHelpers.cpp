@@ -1744,23 +1744,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
-	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
-	{
-		GLevelEditorModeTools().ActivateDefaultMode();
-	}
-
-	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
-	{
-		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
-	}
-
-	// Change out of mesh paint mode when loading a map
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
-	{
-		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
-	}
+	// Deactivate any editor modes when loading a new map
+	GLevelEditorModeTools().DeactivateAllModes();
 
 	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );

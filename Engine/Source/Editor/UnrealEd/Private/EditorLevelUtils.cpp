@@ -549,7 +549,7 @@ namespace EditorLevelUtils
 	ULevel* CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, UClass* LevelStreamingClass, const FString& DefaultFilename )
 	{
 		// Editor modes cannot be active when any level saving occurs.
-		GLevelEditorModeTools().ActivateDefaultMode();
+		GLevelEditorModeTools().DeactivateAllModes();
 
 		UWorld* NewWorld = nullptr;
 		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
