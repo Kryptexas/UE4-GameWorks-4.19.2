@@ -29,7 +29,7 @@ public class UnrealHeaderToolTarget : TargetRules
 
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 	{
-		if (UnrealBuildTool.UnrealBuildTool.CommandLineContains("-monolithic") == true || InPlatform == UnrealTargetPlatform.Linux)
+		if (UnrealBuildTool.UnrealBuildTool.CommandLineContains("-monolithic") == true)
 		{
 			return true;
 		}
