@@ -25,6 +25,7 @@
 #include "ContentStreaming.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Camera/CameraActor.h"
+#include "GenericPlatform/IForceFeedbackSystem.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -4257,4 +4258,24 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 void APlayerController::ClientRepObjRef_Implementation(UObject *Object)
 {
 	UE_LOG(LogPlayerController, Warning, TEXT("APlayerController::ClientRepObjRef repped: %s"), Object ? *Object->GetName() : TEXT("NULL") );
+}
+
+void FDynamicForceFeedbackDetails::Update(FForceFeedbackValues& Values) const
+{
+	if (bAffectsLeftLarge)
+	{
+		Values.LeftLarge = FMath::Clamp(Intensity, Values.LeftLarge, 1.f);
+	}
+	if (bAffectsLeftSmall)
+	{
+		Values.LeftSmall = FMath::Clamp(Intensity, Values.LeftSmall, 1.f);
+	}
+	if (bAffectsRightLarge)
+	{
+		Values.RightLarge = FMath::Clamp(Intensity, Values.RightLarge, 1.f);
+	}
+	if (bAffectsRightSmall)
+	{
+		Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
+	}
 }

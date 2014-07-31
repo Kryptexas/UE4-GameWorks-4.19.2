@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "../Engine/DataTable.h"
-#include "../Engine/CurveTable.h"
-#include "KismetSystemLibrary.h"
+#include "Engine/DataTable.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "DataTableFunctionLibrary.generated.h"
 
 /** Enum used to indicate success or failure of EvaluateCurveTableRow */

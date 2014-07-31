@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
-
-#include "../Curves/CurveFloat.h"
-#include "IForceFeedbackSystem.h"
+#include "Curves/CurveFloat.h"
 #include "ForceFeedbackEffect.generated.h"
 
 USTRUCT()
@@ -65,7 +63,6 @@ struct FActiveForceFeedbackEffect
 	// Updates the final force feedback values based on this effect.  Returns true if the effect should continue playing, false if it is finished.
 	bool Update(const float DeltaTime, struct FForceFeedbackValues& Values);
 };
-
 
 /**
  * A predefined force-feedback effect to be played on a controller

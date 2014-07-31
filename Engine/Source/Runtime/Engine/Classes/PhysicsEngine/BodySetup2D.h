@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "AggregateGeometry2D.h"
-#include "Engine/EngineTypes.h"
-
+#include "PhysicsEngine/AggregateGeometry2D.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "BodySetup2D.generated.h"
 
 UCLASS()

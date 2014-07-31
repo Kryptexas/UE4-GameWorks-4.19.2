@@ -11,6 +11,7 @@
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
+#include "GenericPlatform/IForceFeedbackSystem.h"
 #include "PlayerController.generated.h"
 
 class FPrimitiveComponentId;
@@ -51,25 +52,7 @@ struct FDynamicForceFeedbackDetails
 		, Intensity(0.f)
 	{}
 
-	void Update(FForceFeedbackValues& Values) const
-	{
-		if (bAffectsLeftLarge)
-		{
-			Values.LeftLarge = FMath::Clamp(Intensity, Values.LeftLarge, 1.f);
-		}
-		if (bAffectsLeftSmall)
-		{
-			Values.LeftSmall = FMath::Clamp(Intensity, Values.LeftSmall, 1.f);
-		}
-		if (bAffectsRightLarge)
-		{
-			Values.RightLarge = FMath::Clamp(Intensity, Values.RightLarge, 1.f);
-		}
-		if (bAffectsRightSmall)
-		{
-			Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
-		}
-	}
+	void Update(FForceFeedbackValues& Values) const;
 };
 
 //=============================================================================
