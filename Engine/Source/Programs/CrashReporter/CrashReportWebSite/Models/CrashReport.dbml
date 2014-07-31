@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><Database Name="CrashReport" Class="CrashReportDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
-  <Connection Mode="WebSettings" ConnectionString="Data Source=db-09;Initial Catalog=CrashReport;Database=CrashReport;Integrated Security=true;" SettingsObjectName="System.Configuration.ConfigurationManager.ConnectionStrings" SettingsPropertyName="CrashReportConnectionString" Provider="System.Data.SqlClient" />
+  <Connection Mode="WebSettings" ConnectionString="Data Source=db-09;Initial Catalog=CrashReport;Integrated Security=True" SettingsObjectName="System.Configuration.ConfigurationManager.ConnectionStrings" SettingsPropertyName="CrashReportConnectionString" Provider="System.Data.SqlClient" />
   <Table Name="dbo.Buggs" Member="Buggs">
     <Type Name="Bugg">
       <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
@@ -18,6 +18,7 @@
       <Column Name="Description" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
       <Column Name="ReproSteps" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
       <Column Name="Game" Type="System.String" DbType="VarChar(120)" CanBeNull="true" />
+      <Column Name="BuildVersion" Type="System.String" DbType="VarChar(128)" CanBeNull="true" />
       <Association Name="Bugg_Buggs_Crash" Member="Buggs_Crashes" ThisKey="Id" OtherKey="BuggId" Type="Buggs_Crash" />
     </Type>
   </Table>
@@ -27,9 +28,9 @@
       <Column Name="UserName" Type="System.String" DbType="VarChar(64) NOT NULL" CanBeNull="false" />
       <Column Name="UserGroupId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Association Name="User_Buggs_User" Member="Buggs_Users" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
+      <Association Name="User_Buggs_User1" Member="Buggs_Users1" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
       <Association Name="User_Crash" Member="CrashesFromUserId" Storage="_Crashes" ThisKey="Id" OtherKey="UserNameId" Type="Crash" />
       <Association Name="User_Crash1" Member="CrashesFromName" ThisKey="UserName" OtherKey="UserName" Type="Crash" />
-      <Association Name="User_Buggs_User1" Member="Buggs_Users1" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
       <Association Name="UserGroup_User" Member="UserGroup" ThisKey="UserGroupId" OtherKey="Id" Type="UserGroup" IsForeignKey="true" />
     </Type>
   </Table>

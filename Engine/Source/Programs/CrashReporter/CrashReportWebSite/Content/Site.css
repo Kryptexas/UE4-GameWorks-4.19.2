@@ -455,7 +455,8 @@ div#utils
 
 input.date,
 #BranchName,
-#GameName
+#GameName,
+#BuildVersion
 {
 	width: 67px;
 	height: 23px;

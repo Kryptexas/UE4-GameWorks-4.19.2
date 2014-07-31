@@ -17,26 +17,74 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>A container of sorted Buggs.</summary>
 		public IEnumerable<Bugg> Results { get; set; }
-		/// <summary>Information to paginate the list of Buggs.</summary>
+
+		/// <summary>Information to paginate the list of Buggs.</summary>	
 		public PagingInfo PagingInfo { get; set; }
+		
 		/// <summary>The criterion to sort by e.g. Game.</summary>
-		public string Term { get; set; }
+		public string SortTerm { get; set; }
+		
 		/// <summary>Either ascending or descending.</summary>
-		public string Order { get; set; }
+		public string SortOrder { get; set; }
+		
 		/// <summary>The current user group name.</summary>
 		public string UserGroup { get; set; }
+		
 		/// <summary>The query that filtered the results.</summary>
-		public string Query { get; set; }
+		public string SearchQuery { get; set; }
+		
 		/// <summary>The date of the earliest crash in a Bugg.</summary>
 		public long DateFrom { get; set; }
+		
 		/// <summary>The date of the most recent crash in a Bugg.</summary>
 		public long DateTo { get; set; }
+
+		/// <summary>The build version of the most recent crash in a Bugg.</summary>
+		public string BuildVersion { get; set; }
+
 		/// <summary>A dictionary of the number of Buggs per user group.</summary>
 		public Dictionary<string, int> GroupCounts { get; set; }
 
 		/// <summary>The set of statuses a Bugg could have its status set to.</summary>
-		public IEnumerable<string> SetStatus { get { return new List<string>( new string[] { "Unset", "Reviewed", "New", "Coder", "EngineQA", "GameQA" } ); } }
+		public IEnumerable<string> SetStatus
+		{
+			get
+			{
+				return new List<string>
+				(
+					new string[] 
+					{ 
+						"Unset", 
+						"Reviewed", 
+						"New", 
+						"Coder",
+						"Tester" 
+					}
+				);
+			}
+		}
+		
 		/// <summary>User input from the client.</summary>
 		public FormCollection FormCollection { get; set; }
+
+		/// <summary> Build versions. </summary>
+		public IEnumerable<string> BuildVersions
+		{
+			get 
+			{
+				return new List<string>(
+					new string[] 
+					{ 
+						"",
+						"4.1.0", 
+						"4.2.0", 
+						"4.2.1", 
+						"4.3.0", 
+						"4.3.1", 
+						"4.4.0" 
+					} );
+			}
+		}
+		/// // @TODO yrx 2014-07-28 Grab build versions from the database?
 	}
 }

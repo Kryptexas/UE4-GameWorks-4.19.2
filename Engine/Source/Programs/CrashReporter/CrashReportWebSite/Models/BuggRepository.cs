@@ -149,6 +149,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			DateTime? TimeOfFirstCrash = null;
 			DateTime? TimeOfLastCrash = null;
+			string BuildVersion = null;
 			List<int> UserNameIds = new List<int>();
 			int CrashCount = 0;
 
@@ -167,6 +168,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					if( TimeOfLastCrash == null || CurrentCrash.TimeOfCrash > TimeOfLastCrash )
 					{
 						TimeOfLastCrash = CurrentCrash.TimeOfCrash;
+					}
+
+					if( BuildVersion == null || CurrentCrash.BuildVersion.CompareTo( BuildVersion ) > 0 )
+					{
+						BuildVersion = CurrentCrash.BuildVersion;
 					}
 
 					// Handle user count
@@ -195,6 +201,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					Bugg.TimeOfFirstCrash = TimeOfFirstCrash;
 					Bugg.NumberOfUsers = UserNameIds.Count();
 					Bugg.NumberOfCrashes = CrashCount;
+					Bugg.BuildVersion = BuildVersion;
 
 					foreach( int UserNameId in UserNameIds )
 					{
@@ -351,6 +358,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			// Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
 			Results = FilterByDate( Results, FormData.DateFrom, FormData.DateTo );
 
+			// Filter results by build version.
+			Results = FilterByBuildVersion( Results, FormData.BuildVersion );
+
 			// Run at the end
 			if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
 			{
@@ -373,13 +383,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				Results = SortedResults,
 				PagingInfo = new PagingInfo { CurrentPage = FormData.Page, PageSize = FormData.PageSize, TotalResults = Results.Count() },
-				Term = FormData.SortTerm,
-				Order = FormData.SortOrder,
+				SortTerm = FormData.SortTerm,
+				SortOrder = FormData.SortOrder,
 				UserGroup = FormData.UserGroup,
-				Query = FormData.SearchQuery,
+				SearchQuery = FormData.SearchQuery,
 				DateFrom = (long)(FormData.DateFrom - CrashesViewModel.Epoch).TotalMilliseconds,
 				DateTo = (long)(FormData.DateTo - CrashesViewModel.Epoch).TotalMilliseconds,
-				GroupCounts = GroupCounts
+				BuildVersion = FormData.BuildVersion,
+				GroupCounts = GroupCounts,
 			};
 		}
 
@@ -430,9 +441,51 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs between the earliest and latest date.</returns>
 		public IQueryable<Bugg> FilterByDate( IQueryable<Bugg> Results, DateTime DateFrom, DateTime DateTo )
 		{
-			IQueryable<Bugg> BuggsInTimeFrame = Results.Where( Bugg => Bugg.TimeOfLastCrash >= DateFrom && Bugg.TimeOfLastCrash <= DateTo );
+			var LocalDateFrom = DateFrom.ToLocalTime();
+			var LocalDateTo = DateTo.ToLocalTime();
+
+			IQueryable<Bugg> BuggsInTimeFrame = Results.Where( Bugg => Bugg.TimeOfLastCrash >= LocalDateFrom && Bugg.TimeOfLastCrash <= LocalDateTo.AddDays( 1 ) );
+
+#if DEBUG
+			foreach( var MyBugg in BuggsInTimeFrame )
+			{
+				Debug.WriteLine( "MyBugg=" + MyBugg.ToString() );
+			}
+#endif
+
 			return BuggsInTimeFrame;
 		}
+
+		/// <summary>
+		/// Filter a set of Buggs by build version.
+		/// </summary>
+		/// <param name="Results">The unfiltered set of Buggs.</param>
+		/// <param name="BuildVersion">The build version to filter by.</param>
+		/// <returns>The set of Buggs that matches specified build version</returns>
+		public IQueryable<Bugg> FilterByBuildVersion( IQueryable<Bugg> Results, string BuildVersion )
+		{
+			IQueryable<Bugg> BuggsForBuildVersion = Results;
+
+			// Filter by BuildVersion
+			if( !string.IsNullOrEmpty( BuildVersion ) )
+			{
+				BuggsForBuildVersion =
+				(
+					from MyBugg in Results
+					where MyBugg.BuildVersion.Contains( BuildVersion )
+					select MyBugg
+				);
+
+#if DEBUG
+				foreach( var MyBugg in BuggsForBuildVersion )
+				{
+					Debug.WriteLine( "MyBugg=" + MyBugg.ToString() );
+				}			
+#endif
+			}
+
+			return BuggsForBuildVersion;
+		} 
 
 		/// <summary>
 		/// Filter a set of Buggs by user group name.
@@ -498,6 +551,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 					case "Id":
 						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Id, bSortDescending);
+						break;
+
+					case "BuildVersion":
+						IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.BuildVersion, bSortDescending );
 						break;
 
 					case "LatestCrash":

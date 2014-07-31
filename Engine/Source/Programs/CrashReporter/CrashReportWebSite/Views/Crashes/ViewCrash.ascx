@@ -11,16 +11,16 @@
 			<span class="SelectorLink" id="CheckNone">None</span>
 
 			<div class="PaginationBox">
-				<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", new { page = i, SearchQuery = Model.Query, SortTerm = Model.Term, SortOrder = Model.Order, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo, CrashType = Model.CrashType } ) )%>
+				<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", new { page = i, SearchQuery = Model.SearchQuery, SortTerm = Model.SortTerm, SortOrder = Model.SortOrder, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo, CrashType = Model.CrashType } ) )%>
 			</div>
 			<!-- form starts and ends in site.master-->
 			<div id='SetStatusForm'>
 				<%=Html.HiddenFor( u => u.UserGroup )%>
-				<%=Html.Hidden( "SortTerm", Model.Term )%>
-				<%=Html.Hidden( "SortOrder", Model.Order )%>
+				<%=Html.Hidden( "SortTerm", Model.SortTerm )%>
+				<%=Html.Hidden( "SortOrder", Model.SortOrder )%>
 				<%=Html.Hidden( "Page", Model.PagingInfo.CurrentPage )%>
 				<%=Html.Hidden( "PageSize", Model.PagingInfo.PageSize )%>
-				<%=Html.Hidden( "SearchQuery", Model.Query )%>
+				<%=Html.Hidden( "SearchQuery", Model.SearchQuery )%>
 				<%=Html.HiddenFor( m => m.DateFrom )%>
 				<%=Html.HiddenFor( m => m.DateTo )%>
 				<div id="SetStatusInput">

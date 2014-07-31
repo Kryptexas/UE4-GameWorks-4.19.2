@@ -200,6 +200,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _Game;
 		
+		private string _BuildVersion;
+		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
     #region Extensibility Method Definitions
@@ -238,6 +240,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnReproStepsChanged();
     partial void OnGameChanging(string value);
     partial void OnGameChanged();
+    partial void OnBuildVersionChanging(string value);
+    partial void OnBuildVersionChanged();
     #endregion
 		
 		public Bugg()
@@ -562,6 +566,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._Game = value;
 					this.SendPropertyChanged("Game");
 					this.OnGameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_BuildVersion", DbType="VarChar(128)")]
+		public string BuildVersion
+		{
+			get
+			{
+				return this._BuildVersion;
+			}
+			set
+			{
+				if ((this._BuildVersion != value))
+				{
+					this.OnBuildVersionChanging(value);
+					this.SendPropertyChanging();
+					this._BuildVersion = value;
+					this.SendPropertyChanged("BuildVersion");
+					this.OnBuildVersionChanged();
 				}
 			}
 		}

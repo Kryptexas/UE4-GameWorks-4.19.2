@@ -15,7 +15,8 @@ Crash Reports
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 
 	<script type="text/javascript">
-		$(function () {
+		$(function ()
+		{
 			$("#dateFromVisible")
 				.datepicker({ maxDate: '+0D' })
 				.datepicker('setDate', new Date(parseInt($('#dateFrom').val())));
@@ -26,16 +27,19 @@ Crash Reports
 		});
 
 		$.datepicker.setDefaults({
-			onSelect: function () {
+			onSelect: function ()
+			{
 				$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 				$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
 				$("#FilterCrashesForm").submit();
 			}
 		});
 
-		$(document).ready(function () {
+		$(document).ready(function ()
+		{
 			// Select All
-			$("#CheckAll").click(function () {	
+			$("#CheckAll").click(function ()
+			{
 				$("#CrashesForm input:checkbox").attr('checked', true);
 				$("#CheckAll").css("color", "Black");
 				$("#CheckNone").css("color", "Blue");
@@ -43,7 +47,8 @@ Crash Reports
 			});
 
 			// Select None
-			$("#CheckNone").click(function () {
+			$("#CheckNone").click(function ()
+			{
 				$("#CrashesForm input:checkbox").attr('checked', false);
 				$("#CheckAll").css("color", "Blue");
 				$("#CheckNone").css("color", "Black");
@@ -67,18 +72,22 @@ Crash Reports
 				message: null
 			});
 
-			$("#CrashesForm input:checkbox").click(function () {
+			$("#CrashesForm input:checkbox").click(function ()
+			{
 				var n = $("#CrashesForm input:checked").length;
-				if (n > 0) {
+				if (n > 0)
+				{
 					$("#SetStatusInput").unblock();
-				} else {
+				} else
+				{
 					$("#SetStatusInput").block({
 						message: null
 					});
 				}
 			});
 
-			$(".CrashType").click(function () {
+			$(".CrashType").click(function ()
+			{
 				$("#FilterCrashesForm").submit();
 			});
 		});
@@ -92,8 +101,8 @@ Crash Reports
 	<% using( Html.BeginForm( "", "Crashes", FormMethod.Get, new { id = "FilterCrashesForm" } ) )
 	{ %>
 		<%=Html.HiddenFor( u => u.UserGroup )%>
-		<%=Html.Hidden( "SortTerm", Model.Term )%>
-		<%=Html.Hidden( "SortOrder", Model.Order )%>
+		<%=Html.Hidden( "SortTerm", Model.SortTerm )%>
+		<%=Html.Hidden( "SortOrder", Model.SortOrder )%>
 		<span style="float:left;">
 			<input type="radio" name="CrashType" class="CrashType" value="CrashesAsserts" <%=( Model.CrashType == "CrashesAsserts" ) ? "checked='checked'" : "" %> /> <span title='All Crashes Except Ensures'>Crashes+Asserts</span>
 			<input type="radio" name="CrashType" class="CrashType" value="Ensure" <%=( Model.CrashType == "Ensure" ) ? "checked='checked'" : "" %>/> <span title='Only Ensures'>Ensures</span>
@@ -102,7 +111,7 @@ Crash Reports
 			<input type="radio" name="CrashType" class="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %>/> <span title='All Crashes'>All</span>
 		</span>
 
-		<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.Query, new { width = "1000" } )%><input type="submit" value="Search" class='SearchButton' /></div>
+		<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.SearchQuery, new { width = "1000" } )%><input type="submit" value="Search" class='SearchButton' /></div>
 	
 		<script>$.datepicker.setDefaults($.datepicker.regional['']);</script>
 
@@ -141,9 +150,9 @@ Crash Reports
 				<span style="background-color: #E8EEF4; font-size: medium; padding-left: 1em;"><%=Html.ActionLink(
 					"Crashes", "Index", "Crashes",
 					new {
-						SearchQuery = Model.Query, 
-						SortTerm = Model.Term, 
-						SortOrder = Model.Order, 
+						SearchQuery = Model.SearchQuery, 
+						SortTerm = Model.SortTerm, 
+						SortOrder = Model.SortOrder, 
 						UserGroup = Model.UserGroup, 
 						DateFrom = Model.DateFrom, 
 						DateTo = Model.DateTo, 
@@ -151,7 +160,7 @@ Crash Reports
 					}, new { style = "color:black; text-decoration:none;" }
 				)%></span>
 				<span style="background-color: #C3CAD0; font-size: medium; margin-left: 1em; padding:0 1em;"
-				      title="<%= BuggsViewModel.Tooltip %>"><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", new { SearchQuery = Model.Query, SortTerm = Model.Term, SortOrder = Model.Order, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo }, new { style = "color:black; text-decoration:none;" } )%></span>
+					  title="<%= BuggsViewModel.Tooltip %>"><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", new { SearchQuery = Model.SearchQuery, SortTerm = Model.SortTerm, SortOrder = Model.SortOrder, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo }, new { style = "color:black; text-decoration:none;" } )%></span>
 			</div>
 			<%Html.RenderPartial( "/Views/Crashes/ViewCrash.ascx" );%>
 		</form>
@@ -159,7 +168,7 @@ Crash Reports
 </div>
 
 <div class="PaginationBox">
-	<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", new { page = i, SearchQuery = Model.Query, SortTerm = Model.Term, SortOrder = Model.Order, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo, CrashType = Model.CrashType } ) )%>
+	<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", new { page = i, SearchQuery = Model.SearchQuery, SortTerm = Model.SortTerm, SortOrder = Model.SortOrder, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo, CrashType = Model.CrashType } ) )%>
 	<div id="clear"></div>
 </div>
 

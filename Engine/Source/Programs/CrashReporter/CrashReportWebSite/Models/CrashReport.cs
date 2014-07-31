@@ -18,6 +18,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public string SourceContext { get; set; }
 
+		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "Id={0} NOC={1} NOU={2} TLC={3} BV={4} Game={5}", Id, NumberOfCrashes, NumberOfUsers, TimeOfLastCrash, BuildVersion, Game );
+		}
+
 		/// <summary>
 		/// 
 		/// </summary>

@@ -29,11 +29,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														controller = "Crashes",
 														Page = Model.PagingInfo.CurrentPage,
 														SortTerm = SortTerm,
-														PreviousOrder = Model.Order,
-														PreviousTerm = Model.Term,
+														PreviousOrder = Model.SortOrder,
+														PreviousTerm = Model.SortTerm,
 														CrashType = Model.CrashType,
 														UserGroup = Model.UserGroup,
-														SearchQuery = Model.Query,
+														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
 														BranchName = Model.BranchName,
@@ -42,9 +42,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 
 			Tag.MergeAttribute( "href", URL );
 			string SortArrow = "";
-			if( Model.Term == SortTerm )
+			if( Model.SortTerm == SortTerm )
 			{
-				if( Model.Order == "Descending" )
+				if( Model.SortOrder == "Descending" )
 				{
 					SortArrow = "<img border=0 src='../../Content/Images/SortDescending.png' />";
 				}
@@ -78,8 +78,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 
 			string URL = Helper.Action( "Index", new { 
 														controller = "Crashes",
-														SortTerm = Model.Term,
-														SortOrder = Model.Order,
+														SortTerm = Model.SortTerm,
+														SortOrder = Model.SortOrder,
 														CrashType = Model.CrashType,
 														UserGroup = Model.UserGroup,
 														SearchQuery = CallStack,
@@ -110,11 +110,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 
 			string URL = Helper.Action( "Index", new { 
 														controller = "Crashes",
-														SortTerm = Model.Term,
-														SortOrder = Model.Order,
+														SortTerm = Model.SortTerm,
+														SortOrder = Model.SortOrder,
 														CrashType = Model.CrashType,
 														UserGroup = UserGroup,
-														SearchQuery = Model.Query,
+														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
 														BranchName = Model.BranchName,
@@ -145,19 +145,20 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														controller = "Buggs",
 														Page = Model.PagingInfo.CurrentPage,
 														SortTerm = SortTerm,
-														PreviousOrder = Model.Order,
-														PreviousTerm = Model.Term,
+														PreviousOrder = Model.SortOrder,
+														PreviousTerm = Model.SortTerm,
 														UserGroup = Model.UserGroup,
-														SearchQuery = Model.Query,
+														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
-														DateTo = Model.DateTo
+														DateTo = Model.DateTo,
+														BuildVersion = Model.BuildVersion
 													} );
 
 			Tag.MergeAttribute( "href", URL );
 			string SortArrow = "";
-			if( Model.Term == SortTerm )
+			if( Model.SortTerm == SortTerm )
 			{
-				if( Model.Order == "Descending" )
+				if( Model.SortOrder == "Descending" )
 				{
 					SortArrow = "<img border=0 src='../../Content/Images/SortDescending.png' />";
 				}
@@ -191,12 +192,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 
 			string URL = Helper.Action( "Index", new { 
 														controller = "Buggs",
-														SortTerm = Model.Term,
-														SortOrder = Model.Order,
+														SortTerm = Model.SortTerm,
+														SortOrder = Model.SortOrder,
 														UserGroup = Model.UserGroup,
 														SearchQuery = CallStack,
 														DateFrom = Model.DateFrom,
-														DateTo = Model.DateTo
+														DateTo = Model.DateTo,
+														BuildVersion = Model.BuildVersion
 													} );
 
 			Tag.MergeAttribute( "href", URL );
@@ -220,12 +222,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 
 			string URL = Helper.Action( "Index", new { 
 														controller = "Buggs",
-														SortTerm = Model.Term,
-														SortOrder = Model.Order,
+														SortTerm = Model.SortTerm,
+														SortOrder = Model.SortOrder,
 														UserGroup = UserGroup,
-														SearchQuery = Model.Query,
+														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
-														DateTo = Model.DateTo
+														DateTo = Model.DateTo,
+														BuildVersion = Model.BuildVersion
 													} );
 
 			Tag.MergeAttribute( "href", URL );
