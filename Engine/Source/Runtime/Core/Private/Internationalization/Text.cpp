@@ -235,7 +235,6 @@ const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailu
 FText::FText()
 	: DisplayString( new FString() )
 	, Flags(0)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 }
 
@@ -249,7 +248,6 @@ FText::FText(const FText& Source)
 	: DisplayString(Source.DisplayString)
 	, History(Source.History)
 	, Flags(Source.Flags)
-	, Revision(Source.Revision)
 {
 }
 
@@ -257,7 +255,6 @@ FText::FText(FText&& Source)
 	: DisplayString(MoveTemp(Source.DisplayString))
 	, History(MoveTemp(Source.History))
 	, Flags(MoveTemp(Source.Flags))
-	, Revision(MoveTemp(Source.Revision))
 {
 }
 
@@ -266,7 +263,6 @@ FText& FText::operator=(const FText& Source)
 	DisplayString = Source.DisplayString;
 	History = Source.History;
 	Flags = Source.Flags;
-	Revision = Source.Revision;
 
 	return *this;
 }
@@ -276,7 +272,6 @@ FText& FText::operator=(FText&& Source)
 	DisplayString = MoveTemp(Source.DisplayString);
 	History = MoveTemp(Source.History);
 	Flags = MoveTemp(Source.Flags);
-	Revision = MoveTemp(Source.Revision);
 
 	return *this;
 }
@@ -285,7 +280,6 @@ FText& FText::operator=(FText&& Source)
 FText::FText( FString InSourceString )
 	: DisplayString( new FString( MoveTemp(InSourceString) ))
 	, Flags(0)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 	History = MakeShareable(new FTextHistory_Base(DisplayString));
 }
@@ -293,7 +287,6 @@ FText::FText( FString InSourceString )
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
 	: DisplayString( FTextLocalizationManager::Get().GetString(InNamespace, InKey, &InSourceString) )
 	, Flags(InFlags)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 	History = MakeShareable(new FTextHistory_Base(InSourceString));
 }
@@ -635,8 +628,6 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 
 	if(Ar.IsLoading())
 	{
-		// Keeps the revision up-to-date
-		Value.Revision = INDEX_NONE;
 		Value.Rebuild();
 	}
 
@@ -739,11 +730,9 @@ FString FText::BuildSourceString() const
 
 void FText::Rebuild() const
 {
-	if(History.IsValid() && History->IsOutOfDate(Revision))
+	if(History.IsValid())
 	{
-		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
-		
-		DisplayString.Get() = History->ToText(false).DisplayString.Get();
+		History->Rebuild(DisplayString);
 	}
 }
 

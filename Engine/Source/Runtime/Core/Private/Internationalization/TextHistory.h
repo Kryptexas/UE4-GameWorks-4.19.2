@@ -21,6 +21,8 @@ enum class ETextHistoryType
 class CORE_API FTextHistory
 {
 public:
+	FTextHistory();
+
 	virtual ~FTextHistory() {};
 
 	/** Rebuilds the FText from the hierarchical history, the result should be in the current locale */
@@ -33,10 +35,17 @@ public:
 	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString);
 
 	/** Returns TRUE if the Revision is out of date */
-	virtual bool IsOutOfDate(int32 InRevision);
+	virtual bool IsOutOfDate();
 
 	/** Returns the source string managed by the history (if any). */
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;
+
+	/** Will rebuild the display string if out of date. */
+	void Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString);
+
+protected:
+	/** Revision index of this history, rebuilds when it is out of sync with the FTextLocalizationManager */
+	int32 Revision;
 };
 
 /** No complexity to it, just holds the source string. */
@@ -52,7 +61,7 @@ public:
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString) override;
-	virtual bool IsOutOfDate(int32 InRevision) override { return false; }
+	virtual bool IsOutOfDate() override { return false; }
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const override;
 	// End FTextHistory interface
 

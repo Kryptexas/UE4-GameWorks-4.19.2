@@ -8,9 +8,16 @@
 // FTextHistory
 
 /** Base class for all FText history types */
-bool FTextHistory::IsOutOfDate(int32 InRevision)
+
+FTextHistory::FTextHistory()
+	: Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
-	return InRevision < FTextLocalizationManager::Get().GetHeadCultureRevision();
+
+}
+
+bool FTextHistory::IsOutOfDate()
+{
+	return Revision < FTextLocalizationManager::Get().GetHeadCultureRevision();
 }
 
 TSharedPtr< FString, ESPMode::ThreadSafe > FTextHistory::GetSourceString() const
@@ -22,6 +29,9 @@ void FTextHistory::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, E
 {
 	if(Ar.IsLoading())
 	{
+		// We will definitely need to do a rebuild later
+		Revision = INDEX_NONE;
+
 		//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 		//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 		//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
@@ -29,8 +39,18 @@ void FTextHistory::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, E
 	}
 }
 
+void FTextHistory::Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString)
+{
+	if(IsOutOfDate())
+	{
+		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
+
+		InDisplayString.Get() = FTextInspector::GetDisplayString(ToText(false));
+	}
+}
+
 ///////////////////////////////////////
-// FTextHistory_NamedFormat
+// FTextHistory_Base
 
 FTextHistory_Base::FTextHistory_Base(FString InSourceString)
 	: SourceString(new FString( MoveTemp( InSourceString ) ))
@@ -80,6 +100,9 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, TSharedRef<FStri
 {
 	if(Ar.IsLoading())
 	{
+		// We will definitely need to do a rebuild later
+		Revision = INDEX_NONE;
+
 		FString Namespace;
 		FString Key;
 		FString SourceStringRaw;

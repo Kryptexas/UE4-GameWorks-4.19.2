@@ -333,9 +333,6 @@ private:
 	/** Flags with various information on what sort of FText this is */
 	int32 Flags;
 
-	/** Revision index of this FText, rebuilds when it is out of sync with the FTextLocalizationManager */
-	mutable int32 Revision;
-
 	static bool bEnableErrorCheckingResults;
 	static bool bSuppressWarnings;
 
