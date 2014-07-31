@@ -418,7 +418,7 @@ void InitDebugContext()
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
 #if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug
-	if(glDebugMessageControlARB)
+	if(glDebugMessageControlARB && bDebugOutputInitialized)
 	{
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
