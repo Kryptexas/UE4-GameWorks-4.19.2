@@ -835,9 +835,9 @@ public:
 		InNumMips,
 		InAttachment
 		)
+	, TextureRange(InTextureRange)
 	, BaseLevel(0)
 	, bCubemap(bInCubemap)
-	, TextureRange(InTextureRange)
 	{
 		PixelBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
 		bAllocatedStorage.Init(bInAllocatedStorage, this->GetNumMips() * (bCubemap ? 6 : 1));
