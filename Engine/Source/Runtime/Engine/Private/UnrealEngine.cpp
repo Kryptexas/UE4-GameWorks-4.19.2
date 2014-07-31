@@ -10982,7 +10982,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 					float SphereRadius = 0.f;
 					float SphereInnerRadius = 0.f;
 
-					TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
+					TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 					ActiveSound.CollectAttenuationShapesForVisualization(ShapeDetailsMap);
 
 					if (ShapeDetailsMap.Num() > 0)
