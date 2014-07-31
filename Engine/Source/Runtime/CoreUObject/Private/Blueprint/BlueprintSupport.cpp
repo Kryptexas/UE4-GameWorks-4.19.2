@@ -79,16 +79,22 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 	}
  	for( auto Class : ClassChainOrdered )
 	{
-		if (Class->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
+		UObject* BlueprintObject = Class->ClassGeneratedBy;
+		if (BlueprintObject && BlueprintObject->HasAnyFlags(RF_BeingRegenerated))
 		{
 			// Always load the parent blueprint here in case there is a circular dependency. This will
 			// ensure that the blueprint is fully serialized before attempting to regenerate the class.
-			FPreloadMembersHelper::PreloadMembers(Class->ClassGeneratedBy);
+			if (!BlueprintObject->HasAnyFlags(RF_LoadCompleted))
+			{
+				BlueprintObject->SetFlags(RF_NeedLoad);
+				if (auto Linker = BlueprintObject->GetLinker())
+				{
+					Linker->Preload(BlueprintObject);
+				}
+			}
 
-			Class->ClassGeneratedBy->SetFlags(RF_NeedLoad);
-			Class->ClassGeneratedBy->GetLinker()->Preload(Class->ClassGeneratedBy);
-
-			Class->ClassGeneratedBy->RegenerateClass(Class, NULL, GObjLoaded);
+			FPreloadMembersHelper::PreloadMembers(BlueprintObject);
+			BlueprintObject->RegenerateClass(Class, NULL, GObjLoaded);
 		}
 	}
 

@@ -2878,6 +2878,24 @@ void UEdGraphSchema_K2::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* 
 
 void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchRequest/*=false*/) const
 {
+	{
+		TArray<UObject *> NodeChildren;
+		GetObjectsWithOuter(&TargetNode, NodeChildren, false);
+		for (int32 Iter = 0; Iter < NodeChildren.Num(); ++Iter)
+		{
+			UEdGraphPin* Pin = Cast<UEdGraphPin>(NodeChildren[Iter]);
+			const bool bIsValidPin = !Pin 
+				|| (Pin->HasAllFlags(RF_PendingKill) && !Pin->LinkedTo.Num()) 
+				|| TargetNode.Pins.Contains(Pin);
+			if (!bIsValidPin)
+			{
+				UE_LOG(LogBlueprint, Error, 
+					TEXT("Broken Node: %s keeps removed/invalid pin: %s. Try refresh all nodes."),
+					*TargetNode.GetFullName(), *Pin->GetFullName());
+			}
+		}
+	}
+
 	Super::ReconstructNode(TargetNode, bIsBatchRequest);
 
 	// If the reconstruction is being handled by something doing a batch (i.e. the blueprint autoregenerating itself), defer marking the blueprint as modified to prevent multiple recompiles
