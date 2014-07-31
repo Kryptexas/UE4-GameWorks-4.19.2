@@ -74,6 +74,10 @@
 #include "ProgressBar.h"
 #include "ComboBox.h"
 
+#include "SScaleBox.h"
+#include "ScaleBoxSlot.h"
+#include "ScaleBox.h"
+
 #include "Spacer.h"
 #include "MenuAnchor.h"
 #include "ScrollBar.h"
