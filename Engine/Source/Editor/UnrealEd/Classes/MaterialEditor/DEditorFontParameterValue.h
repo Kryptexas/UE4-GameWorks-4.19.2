@@ -6,16 +6,25 @@
 
 #include "DEditorFontParameterValue.generated.h"
 
-UCLASS(hidecategories=Object, collapsecategories)
+
+USTRUCT()
+struct UNREALED_API FDFontParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = DFontParameter)
+	class UFont* FontValue;
+
+	UPROPERTY(EditAnywhere, Category = DFontParameter)
+	int32 FontPage;
+};
+
+UCLASS(hidecategories = Object, collapsecategories)
 class UNREALED_API UDEditorFontParameterValue : public UDEditorParameterValue
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=DEditorFontParameterValue)
-	class UFont* FontValue;
-
-	UPROPERTY(EditAnywhere, Category=DEditorFontParameterValue)
-	int32 FontPage;
-
+	UPROPERTY(EditAnywhere, Category = DEditorFontParameterValue)
+	struct FDFontParameters ParameterValue;
 };
 
