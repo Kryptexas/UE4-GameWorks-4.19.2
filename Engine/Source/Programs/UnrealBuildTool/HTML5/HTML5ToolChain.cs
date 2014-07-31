@@ -516,5 +516,13 @@ namespace UnrealBuildTool
 		{
 			throw new BuildException("HTML5 cannot compile C# files");
 		}
+
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        {
+            // we need to include the generated .mem file.  
+            string MemFile = Binary.Config.OutputFilePath + ".mem";
+            // make sure we don't add mem files more than once. 
+            Manifest.AddBinaryNames(MemFile, null);
+        }
 	};
 }

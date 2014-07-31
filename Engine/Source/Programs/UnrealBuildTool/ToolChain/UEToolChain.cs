@@ -37,6 +37,8 @@ namespace UnrealBuildTool
 		ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment);
 
 		void SetUpGlobalEnvironment();
+
+        void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary );
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -152,5 +154,10 @@ namespace UnrealBuildTool
 		{
 
 		}
+
+        public virtual void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary )
+        {
+
+        }
 	};
 }
