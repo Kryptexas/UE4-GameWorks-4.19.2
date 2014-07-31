@@ -48,7 +48,7 @@ public:
 	// End of UObject interface.
 #endif	// WITH_EDITOR
 
-	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const override;
+	virtual void SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad=NULL) const override;
 
 	// UScriptStruct interface.
 	virtual void RecursivelyPreload() override;

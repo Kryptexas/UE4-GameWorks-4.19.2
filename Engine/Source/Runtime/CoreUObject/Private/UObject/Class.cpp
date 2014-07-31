@@ -691,7 +691,7 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 	}
 }
 
-void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults) const
+void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 	FName PropertyName(NAME_None);
 
@@ -712,7 +712,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		int32		RemainingArrayDim	= Property ? Property->ArrayDim : 0;
 
 		// Load all stored properties, potentially skipping unknown ones.
-		while( 1 )
+		while (1)
 		{
 			FPropertyTag Tag;
 			Ar << Tag;
@@ -827,18 +827,20 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 			}
 
-			bool bSkipSkipWarning = false;
-
 			const int64 StartOfProperty = Ar.Tell();
 			if( !Property )
 			{
 				//UE_LOG(LogClass, Warning, TEXT("Property %s of %s not found for package:  %s"), *Tag.Name.ToString(), *GetFullName(), *Ar.GetArchiveName() );
 			}
+#if WITH_EDITOR
+			else if (BreakRecursionIfFullyLoad && BreakRecursionIfFullyLoad->HasAllFlags(RF_LoadCompleted))
+			{
+			}
+#endif // WITH_EDITOR
 			// editoronly properties should be skipped if we are NOT the editor, or we are 
 			// the editor but are cooking for console (editoronly implies notforconsole)
 			else if ((Property->PropertyFlags & CPF_EditorOnly) && !FPlatformProperties::HasEditorOnlyData() && !GForceLoadEditorOnly)
 			{
-				bSkipSkipWarning = true;
 			}
 			// check for valid array index
 			else if( Tag.ArrayIndex >= Property->ArrayDim || Tag.ArrayIndex < 0 )
