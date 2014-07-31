@@ -4041,6 +4041,10 @@ void FSeamlessTravelHandler::SetHandlerLoadedData(UObject* InLevelPackage, UWorl
 /** callback sent to async loading code to inform us when the level package is complete */
 void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FString& PackageName, UPackage* LevelPackage)
 {
+	// make sure we remove the name, even if travel was cancelled.
+	const FName URLMapFName = FName(*PendingTravelURL.Map);
+	UWorld::WorldTypePreLoadMap.Remove(URLMapFName);
+
 	// defer until tick when it's safe to perform the transition
 	if (IsInTransition())
 	{
@@ -4206,6 +4210,10 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 				LoadPackageAsync(*LocalizedPackageName);
 			}
 		}
+
+		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
+		const FName URLMapFName = FName(*PendingTravelURL.Map);
+		UWorld::WorldTypePreLoadMap.FindOrAdd(URLMapFName) = CurrentWorld->WorldType;
 
 		LoadPackageAsync(PendingTravelURL.Map, 
 			FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback), 
