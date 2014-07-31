@@ -50,7 +50,7 @@ const FSlateBrush* FWidgetTemplateClass::GetIcon() const
 
 TSharedRef<IToolTip> FWidgetTemplateClass::GetToolTip() const
 {
-	return IDocumentation::Get()->CreateToolTip(WidgetClass->GetDisplayNameText(), nullptr, FString(TEXT("Shared/Types/")) + WidgetClass->GetName(), TEXT("Class"));
+	return IDocumentation::Get()->CreateToolTip(FText::FromString(WidgetClass->GetDescription()), nullptr, FString(TEXT("Shared/Types/")) + WidgetClass->GetName(), TEXT("Class"));
 }
 
 #undef LOCTEXT_NAMESPACE

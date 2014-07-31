@@ -178,12 +178,12 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "ZoomToFit"))
+					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+					.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "Zoom To Fit"))
 					.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
 					[
-						//TODO UMG Replace with image.
-						SNew(STextBlock)
-						.Text(LOCTEXT("ZoomToFit", "Zoom To Fit"))
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("UMGEditor.ZoomToFit"))
 					]
 				]
 				
