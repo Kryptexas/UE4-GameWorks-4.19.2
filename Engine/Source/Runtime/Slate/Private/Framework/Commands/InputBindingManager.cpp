@@ -94,7 +94,7 @@ void FUserDefinedGestures::LoadGestures()
 					UserDefinedGesture.bCtrl = CtrlObj->AsBool();
 					UserDefinedGesture.bAlt = AltObj->AsBool();
 					UserDefinedGesture.bShift = ShiftObj->AsBool();
-					UserDefinedGesture.bCmd = CmdObj->AsBool();
+					UserDefinedGesture.bCmd = CmdObj.IsValid() ? CmdObj->AsBool() : false; // Old config files may not have this
 					UserDefinedGesture.Key = *KeyObj->AsString();
 				}
 			}
@@ -147,7 +147,7 @@ void FUserDefinedGestures::LoadGestures()
 						UserDefinedGesture.bCtrl = CtrlObj->AsBool();
 						UserDefinedGesture.bAlt = AltObj->AsBool();
 						UserDefinedGesture.bShift = ShiftObj->AsBool();
-						UserDefinedGesture.bCmd = CmdObj->AsBool();
+						UserDefinedGesture.bCmd = CmdObj.IsValid() ? CmdObj->AsBool() : false; // Old config files may not have this
 						UserDefinedGesture.Key = *KeyObj->AsString();
 					}
 				}
