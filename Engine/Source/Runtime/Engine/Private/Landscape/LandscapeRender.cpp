@@ -2401,6 +2401,39 @@ void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimit
 				}
 			}
 		}
+
+		// Lightmap
+		FLightMap2D* Lightmap = LightMap ? LightMap->GetLightMap2D() : nullptr;
+		uint32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+		if (Lightmap && Lightmap->IsValid(LightmapIndex))
+		{
+			const FVector2D& Scale = Lightmap->GetCoordinateScale();
+			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
+			{
+				float LightmapFactorX = TexelFactor / Scale.X;
+				float LightmapFactorY = TexelFactor / Scale.Y;
+				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
+				StreamingTexture.Bounds		 = BoundingSphere;
+				StreamingTexture.TexelFactor = FMath::Max(LightmapFactorX, LightmapFactorY);
+				StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
+			}
+		}
+		
+		// Shadowmap
+		FShadowMap2D* Shadowmap = ShadowMap ? ShadowMap->GetShadowMap2D() : nullptr;
+		if (Shadowmap && Shadowmap->IsValid())
+		{
+			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
+			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
+			{
+				float ShadowmapFactorX		 = TexelFactor / Scale.X;
+				float ShadowmapFactorY		 = TexelFactor / Scale.Y;
+				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
+				StreamingTexture.Bounds		 = BoundingSphere;
+				StreamingTexture.TexelFactor = FMath::Max(ShadowmapFactorX, ShadowmapFactorY);
+				StreamingTexture.Texture	 = Shadowmap->GetTexture();
+			}
+		}
 	}
 
 	// Weightmap
