@@ -47,10 +47,11 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy,
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
-void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount)
+void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bOutSkyLightIsDynamic)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
+	bOutSkyLightIsDynamic = false;
 
 	if (Scene
 		&& Scene->SkyLight 
@@ -59,6 +60,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 	{
 		OutSkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
 		OutApplySkyLightMask = 1;
+		bOutSkyLightIsDynamic = !Scene->SkyLight->bHasStaticLighting && !Scene->SkyLight->bWantsStaticShadowing;
 	}
 
 	OutSkyMipCount = 1;

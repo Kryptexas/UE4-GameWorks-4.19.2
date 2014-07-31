@@ -302,7 +302,7 @@ void ComputeAverageBrightness(FRHICommandList& RHICmdList)
 }
 
 /** Generates mips for glossiness and filters the cubemap for a given reflection. */
-void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, FSHVectorRGB3* OutIrradianceEnvironmentMap)
+void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, FSHVectorRGB3* OutIrradianceEnvironmentMap, bool bNormalize)
 {
 	const int32 EffectiveTopMipSize = GReflectionCaptureSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
@@ -311,7 +311,7 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, FSHVector
 	FSceneRenderTargetItem* DiffuseConvolutionSource = NULL;
 
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
-	const bool bNormalize = CVar->GetInt() == 0;
+	bNormalize = bNormalize && CVar->GetInt() == 0;
 
 	{	
 		SCOPED_DRAW_EVENT(DownsampleCubeMips, DEC_SCENE_ITEMS);
@@ -1490,7 +1490,8 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 			ENQUEUE_UNIQUE_RENDER_COMMAND( 
 				FilterCommand,
 			{
-				FilterReflectionEnvironment(RHICmdList, NULL);
+				bool bNormalize = true;
+				FilterReflectionEnvironment(RHICmdList, NULL, bNormalize);
 			});
 
 			// Create a proxy to represent the reflection capture to the rendering thread
@@ -1574,7 +1575,9 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			FilterCommand,
 			FSHVectorRGB3*, IrradianceEnvironmentMap, &OutIrradianceEnvironmentMap,
 		{
-			FilterReflectionEnvironment(RHICmdList, IrradianceEnvironmentMap);
+			// Skylight is normalized manually in the shader
+			bool bNormalize = false;
+			FilterReflectionEnvironment(RHICmdList, IrradianceEnvironmentMap, bNormalize);
 		});
 
 		// Wait until the SH coefficients have been written out by the RT before returning

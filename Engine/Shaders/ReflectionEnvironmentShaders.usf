@@ -505,15 +505,10 @@ void ReflectionApplyPS(
 		float4 SpecularLighting = float4(0, 0, 0, 1);
 		
 #if APPLY_REFLECTION_ENV
+		// Alpha of the reflection environment texture contains coverage, where 0 the sky reflection should be applied
 		SpecularLighting = Texture2DSample( ReflectionEnvTexture, ReflectionEnvSampler, UV );
-#endif
 
-#if APPLY_SKYLIGHT
-		float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
-		SpecularLighting.rgb += SpecularLighting.a * GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, true);
-#endif
-		
-		BRANCH
+		FLATTEN
 		if( View.UseLightmaps > 0 )
 		{
 			// We have high frequency directional data but low frequency spatial data in the envmap.
@@ -523,6 +518,22 @@ void ReflectionApplyPS(
 			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
 			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
 		}
+#endif
+
+#if APPLY_SKYLIGHT
+		float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
+		// Normalize for static skylight types which mix with lightmaps
+		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0;
+		float3 SkyLighting = GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, bNormalize);
+
+		FLATTEN
+		if (bNormalize)
+		{
+			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
+		}
+		
+		SpecularLighting.rgb += SpecularLighting.a * SkyLighting;
+#endif
 
 #if APPLY_SSR
 		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );

@@ -209,11 +209,12 @@ public:
 		FTexture* SkyLightTextureResource = GBlackTextureCube;
 		float ApplySkyLightMask = 0;
 		float SkyMipCount = 1;
+		bool bSkyLightIsDynamic = false;
 
-		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount);
+		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
-		const FVector2D SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask);
+		const FVector SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f);
 		SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
 	}
 
@@ -229,7 +230,7 @@ private:
 	FShaderResourceParameter SkyLightCubemapSampler;
 	FShaderParameter SkyLightParameters;
 
-	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount);
+	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bSkyLightIsDynamic);
 };
 
 /** Parameters needed for lighting translucency, shared by multiple shaders. */

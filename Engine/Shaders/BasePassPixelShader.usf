@@ -73,22 +73,31 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
 	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
 
-#if ENABLE_SKY_LIGHT
-	BRANCH
-	if (SkyLightParameters.y > 0 && SpecularIBL.a < .001f)
-	{
-		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, View.UseLightmaps);
-		// Add in sky wherever reflection captures don't have coverage
-		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
-	}
-#endif
-	
-	BRANCH
-	if( View.UseLightmaps > 0 )
+	FLATTEN
+	if (View.UseLightmaps > 0)
 	{
 		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
 		SpecularIBL.rgb *= IndirectIrradiance;
 	}
+
+#if ENABLE_SKY_LIGHT
+	BRANCH
+	if (SkyLightParameters.y > 0 && SpecularIBL.a < .001f)
+	{
+		// Normalize for static skylight types which mix with lightmaps
+		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
+		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, bNormalize);
+
+		FLATTEN
+		if (bNormalize)
+		{
+			SkyLighting *= IndirectIrradiance;
+		}
+
+		// Add in sky wherever reflection captures don't have coverage
+		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
+	}
+#endif
 	
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);

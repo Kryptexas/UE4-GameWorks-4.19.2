@@ -32,15 +32,15 @@ float ComputeReflectionCaptureRoughnessFromMip( float Mip )
 TextureCube SkyLightCubemap;
 SamplerState SkyLightCubemapSampler;
 
-/** X = max mip, Y = 1 if sky light should be rendered, 0 otherwise. */
-float2 SkyLightParameters;
+/** X = max mip, Y = 1 if sky light should be rendered, 0 otherwise, Z = 1 if sky light is dynamic, 0 otherwise. */
+float3 SkyLightParameters;
 
 float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, bool Normalized)
 {
 	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
 	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
-	FLATTEN
+	BRANCH
 	if (Normalized)
 	{
 		// Sample the lowest resolution mip to get the average color
