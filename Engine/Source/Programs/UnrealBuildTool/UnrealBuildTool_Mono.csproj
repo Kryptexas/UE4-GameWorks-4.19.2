@@ -124,6 +124,7 @@
     <Compile Include="System\DirectoryLookupCache.cs" />
     <Compile Include="System\CPPEnvironment.cs" />
     <Compile Include="System\CPPHeaders.cs" />
+    <Compile Include="System\CPPIncludeDepencencyCache.cs" />
     <Compile Include="System\DependencyCache.cs" />
     <Compile Include="System\DynamicCompilation.cs" />
     <Compile Include="System\ExternalExecution.cs" />

@@ -395,7 +395,7 @@ namespace UnrealBuildTool
 		static string ArPathx86;
 
 		static private bool bHasPrintedApiLevel = false;
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			if (!bHasPrintedApiLevel)
 			{
@@ -441,6 +441,8 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D \"{0}\"", Definition);
 			}
 
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+
 			// Create a compile action for each source file.
 			CPPOutput Result = new CPPOutput();
 			foreach (FileItem SourceFile in SourceFiles)
@@ -478,9 +480,9 @@ namespace UnrealBuildTool
 
 				// Add the C++ source file and its included files to the prerequisite item list.
 				CompileAction.PrerequisiteItems.Add(SourceFile);
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
 				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
+					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
 				}
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)

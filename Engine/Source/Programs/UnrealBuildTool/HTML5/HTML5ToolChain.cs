@@ -305,11 +305,11 @@ namespace UnrealBuildTool
 			Log.TraceInformation(Output);				// To preserve readable output log
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			if (CompileEnvironment.Config.Target.Architecture == "-win32")
 			{
-				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName);
+				return base.CompileCPPFiles(Target, CompileEnvironment, SourceFiles, ModuleName);
 			}
 
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
@@ -340,6 +340,8 @@ namespace UnrealBuildTool
             if (ModuleName == "Launch")
                 SourceFiles.Add(FileItem.GetItemByPath(BaseSDKPath + "/system/lib/libcxxabi/src/cxa_demangle.cpp")); 
         
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+
 			foreach (FileItem SourceFile in SourceFiles)
 			{
 				Action CompileAction = new Action(ActionType.Compile);
@@ -347,9 +349,9 @@ namespace UnrealBuildTool
                 
 				// Add the C++ source file and its included files to the prerequisite item list.
 				CompileAction.PrerequisiteItems.Add(SourceFile);
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
 				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
+					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
 				}
 
 				// Add the source file path to the command-line.
@@ -403,13 +405,13 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
+		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
 			CPPOutput Result = new CPPOutput();
 
 			if (Environment.Config.Target.Architecture == "-win32")
 			{
-				return base.CompileRCFiles(Environment, RCFiles);
+				return base.CompileRCFiles(Target, Environment, RCFiles);
 			}
 
 			return Result;

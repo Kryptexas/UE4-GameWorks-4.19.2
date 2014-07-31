@@ -13,9 +13,9 @@ namespace UnrealBuildTool
 	{
 		void RegisterToolChain();
 		
-		CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
 		
-		CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles);
+		CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles);
 		
 		FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
 		
@@ -75,9 +75,9 @@ namespace UnrealBuildTool
 
 		public abstract void RegisterToolChain();
 
-		public abstract CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		public abstract CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
 
-		public virtual CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
+		public virtual CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
 			CPPOutput Result = new CPPOutput();
 			return Result;

@@ -371,7 +371,8 @@ namespace UnrealBuildTool
 					var Module = Target.GetModuleByName( ModuleName );
 					ReferencedModules[ ModuleName ] = Module;
 
-					Module.GetAllDependencyModules(ref ReferencedModules, ref OrderedModules, bIncludeDynamicallyLoaded, bForceCircular);
+					bool bOnlyDirectDependencies = false;
+					Module.GetAllDependencyModules(ref ReferencedModules, ref OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
 
 					OrderedModules.Add( Module );
 				}

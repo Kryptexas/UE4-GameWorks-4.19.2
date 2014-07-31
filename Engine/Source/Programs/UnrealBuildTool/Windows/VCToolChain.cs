@@ -24,7 +24,12 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			//Result += " /showIncludes";
+			// @todo fastubt: Use should be using StringBuilder instead of concatenation in all of these toolchain files.  On Mono, string builder is dramatically faster.
+
+
+			// @todo fastubt: We can use '/showIncludes' to accelerate outdatedness checking, as the compiler will discover all indirect includes itself.  But, the spew is pretty noisy!
+			//		-> If no files in source file chain have changed, even if the build product is outdated, we can skip using /showIncludes (relies on cache surviving)
+			// Result += " /showIncludes";
 
 			if( WindowsPlatform.bCompileWithClang )
 			{ 
@@ -639,7 +644,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
 
@@ -699,6 +704,8 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" /D \"{0}\"", DefinitionArgument);
 			}
 
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+
 			// Create a compile action for each source file.
 			CPPOutput Result = new CPPOutput();
 			foreach (FileItem SourceFile in SourceFiles)
@@ -709,10 +716,13 @@ namespace UnrealBuildTool
 
 				// Add the C++ source file and its included files to the prerequisite item list.
 				CompileAction.PrerequisiteItems.Add(SourceFile);
-				var IncludeDependencies = CompileEnvironment.GetIncludeDependencies( SourceFile );
-				foreach (FileItem IncludedFile in IncludeDependencies)
 				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
+					// @todo fastubt: What if one of the prerequisite files has become missing since it was updated in our cache? (usually, because a coder eliminated the source file)
+					//		-> Two CASES:
+					//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
+					//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
+					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
 				}
 
 				// If this is a CLR file then make sure our dependent assemblies are added as prerequisites
@@ -951,9 +961,11 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
+		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
 			CPPOutput Result = new CPPOutput();
+
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Environment.Config.Target.Platform);
 
 			foreach (FileItem RCFile in RCFiles)
 			{
@@ -1023,9 +1035,9 @@ namespace UnrealBuildTool
 				CompileAction.CommandArguments += string.Format(" \"{0}\"", RCFile.AbsolutePath);
 
 				// Add the files included by the RC file as prerequisites of the action.
-				foreach (FileItem IncludedFile in Environment.GetIncludeDependencies(RCFile))
 				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
+					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, RCFile, BuildPlatform, Environment.GetIncludesPathsToSearch( RCFile ), Environment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
 				}
 			}
 

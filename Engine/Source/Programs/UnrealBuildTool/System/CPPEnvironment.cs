@@ -346,9 +346,9 @@ namespace UnrealBuildTool
 		 * @param ModuleName - Name of the module these files are associated with
 		 * @return The object files produced by the actions.
 		 */
-		public CPPOutput CompileFiles(List<FileItem> CPPFiles, string ModuleName)
+		public CPPOutput CompileFiles(UEBuildTarget Target, List<FileItem> CPPFiles, string ModuleName)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(this, CPPFiles, ModuleName);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(Target, this, CPPFiles, ModuleName);
 		}
 
 		/**
@@ -356,9 +356,9 @@ namespace UnrealBuildTool
 		 * @param RCFiles - The resource script files to compile.
 		 * @return The compiled resource (.res) files produced by the actions.
 		 */
-		public CPPOutput CompileRCFiles(List<FileItem> RCFiles)
+		public CPPOutput CompileRCFiles(UEBuildTarget Target, List<FileItem> RCFiles)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(this, RCFiles);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(Target, this, RCFiles);
 		}
 
 		/**
@@ -386,5 +386,27 @@ namespace UnrealBuildTool
 		{
 			return new CPPEnvironment(this);
 		}
+
+
+		/// <summary>
+		/// Give a C++ source file, returns a list of include paths we should search to resolve #includes for this path
+		/// </summary>
+		/// <param name="SourceFile">C++ source file we're going to check #includes for.</param>
+		/// <returns>Ordered list of paths to search</returns>
+		public List<string> GetIncludesPathsToSearch( FileItem SourceFile )
+		{
+			// Build a single list of include paths to search.
+			var IncludePathsToSearch = new List<string>();
+			string SourceFilesDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath);
+			IncludePathsToSearch.Add( SourceFilesDirectory );
+			IncludePathsToSearch.AddRange( Config.IncludePaths );
+			if( BuildConfiguration.bCheckSystemHeadersForModification )
+			{
+				IncludePathsToSearch.AddRange( Config.SystemIncludePaths );
+			}
+			
+			return IncludePathsToSearch;
+		}
+
 	};
 }

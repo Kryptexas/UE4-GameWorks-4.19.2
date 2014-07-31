@@ -476,7 +476,7 @@ namespace UnrealBuildTool
 						// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
 						var DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName( UHTModuleInfo.ModuleName );
 						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
-						DependencyModuleCPP.ProcessAllCppDependencies(ModuleCompileEnvironment);
+						DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
 						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
 						{
 							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;

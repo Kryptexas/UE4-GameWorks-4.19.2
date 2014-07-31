@@ -42,6 +42,10 @@ namespace UnrealBuildTool
 		/** List of files this file includes.  These are direct include paths and cannot be resolved to an actual file on 
 		    disk without using the proper list of include directories for this file's module */
 		public List<DependencyInclude> Includes;
+
+		/** True if this file was found to contain UObject class or type definitions, and the file needs to be preprocessed
+		    by UnrealHeaderTool to generate reflection code */
+		public bool HasUObjects;
 	}
 
 
@@ -201,6 +205,35 @@ namespace UnrealBuildTool
 			}
 		}
 
+
+		/// <summary>
+		/// Gets information about this file from our dependency cache.  Only returns information if the file has already been 
+		/// cached, and the file has not been changed since the last time we updated our cache
+		/// </summary>
+		/// <param name="File">The file to check</param>
+		/// <returns>Information about this dependency, or null if we have nothing cached</returns>
+		DependencyInfo? GetCachedDependencyInfo( FileItem File )
+		{
+			// Check whether File is in cache.
+			DependencyInfo DependencyInfo;
+			if (DependencyMap.TryGetValue(File.AbsolutePath, out DependencyInfo))
+			{
+				// File is in cache, now check whether last write time is prior to cache creation time.
+				if (File.LastWriteTime < CacheCreateDate)
+				{
+					return DependencyInfo;					
+				}
+				else
+				{
+					// Remove entry from cache as it's stale.
+					RemoveFileFromCache(File.AbsolutePath);
+					return null;
+				}
+			}
+
+			return null;
+		}
+
 		/**
 		 * Returns the direct dependencies of the specified FileItem if it exists in the cache and if the
 		 * file has a last write time before the creation time of the cache. 
@@ -210,50 +243,42 @@ namespace UnrealBuildTool
 		 * 
 		 * @param	File				File to try to find dependencies in cache
 		 * @param	Result	[out]		List of dependencies if successful, null otherwise
+		 * @param	HasUObjects			True if the file was found to have UObject classes, otherwise false
 		 */
-		public bool GetDirectDependencies(FileItem File, out List<DependencyInclude> Result)
+		public bool GetCachedDirectDependencies(FileItem File, out List<DependencyInclude> Result, out bool HasUObjects)
 		{
 			Result = null;
+			HasUObjects = false;
 
 			// Check whether File is in cache.
-			DependencyInfo DependencyInfo;
-			if (DependencyMap.TryGetValue(File.AbsolutePath, out DependencyInfo))
+			DependencyInfo? DependencyInfo = GetCachedDependencyInfo(File);
+			if( DependencyInfo != null )
 			{
-				// File is in cache, now check whether last write time is prior to cache creation time.
-				if (File.LastWriteTime < CacheCreateDate)
+				// Check if any of the resolved includes is missing
+				foreach (var Include in DependencyInfo.Value.Includes)
 				{
-					// Check if any of the resolved includes is missing
-					foreach (var Include in DependencyInfo.Includes)
+					if (!String.IsNullOrEmpty(Include.IncludeResolvedName))
 					{
-						if (!String.IsNullOrEmpty(Include.IncludeResolvedName))
+						bool bIncludeExists = false;
+						string FileExistsKey = Include.IncludeResolvedName.ToLowerInvariant();
+						if (FileExistsInfo.TryGetValue(FileExistsKey, out bIncludeExists) == false)
 						{
-							bool bIncludeExists = false;
-							string FileExistsKey = Include.IncludeResolvedName.ToLowerInvariant();
-							if (FileExistsInfo.TryGetValue(FileExistsKey, out bIncludeExists) == false)
-							{
-								bIncludeExists = System.IO.File.Exists(Include.IncludeResolvedName);
-								FileExistsInfo.Add(FileExistsKey, bIncludeExists);
-							}
-							if (!bIncludeExists)
-							{
-								// Remove entry from cache as it's stale, as well as the include which no longer exists
-								RemoveFileFromCache(Include.IncludeResolvedName);
-								RemoveFileFromCache(File.AbsolutePath);							
-								return false;
-							}
-						}						
-					}
-					// Cached version is up to date, return it.
-					Result = DependencyInfo.Includes;
-					return true;
+							bIncludeExists = System.IO.File.Exists(Include.IncludeResolvedName);
+							FileExistsInfo.Add(FileExistsKey, bIncludeExists);
+						}
+						if (!bIncludeExists)
+						{
+							// Remove entry from cache as it's stale, as well as the include which no longer exists
+							RemoveFileFromCache(Include.IncludeResolvedName);
+							RemoveFileFromCache(File.AbsolutePath);							
+							return false;
+						}
+					}						
 				}
-				// File has been modified since the last time it was cached.
-				else
-				{
-					// Remove entry from cache as it's stale.
-					RemoveFileFromCache(File.AbsolutePath);
-					return false;
-				}
+				// Cached version is up to date, return it.
+				Result = DependencyInfo.Value.Includes;
+				HasUObjects = DependencyInfo.Value.HasUObjects;
+				return true;
 			}
 			// Not in cache.
 			else
@@ -277,10 +302,11 @@ namespace UnrealBuildTool
 		 * 
 		 * @param	File			File to update dependencies for
 		 * @param	Dependencies	List of dependencies to cache for passed in file
+		 * @param	HasUObjects		True if this file was found to contain UObject classes or types
 		 */
-		public void SetDependencyInfo(FileItem File, List<DependencyInclude> DirectDependencies)
+		public void SetDependencyInfo(FileItem File, List<DependencyInclude> DirectDependencies, bool HasUObjects)
 		{
-			DependencyMap[File.AbsolutePath] = new DependencyInfo() { Includes = DirectDependencies };
+			DependencyMap[File.AbsolutePath] = new DependencyInfo() { Includes = DirectDependencies, HasUObjects = HasUObjects };
 			bIsDirty = true;
 		}
 
@@ -352,7 +378,7 @@ namespace UnrealBuildTool
 			string PlatformIntermediatePath = BuildConfiguration.PlatformIntermediatePath;
 			if (UnrealBuildTool.HasUProjectFile())
 			{
-				PlatformIntermediatePath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder);
+				PlatformIntermediatePath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.PlatformIntermediateFolder);
 			}
 			string CachePath = Path.Combine(PlatformIntermediatePath, Target.GetTargetName(), "DependencyCache.bin");
 			return CachePath;

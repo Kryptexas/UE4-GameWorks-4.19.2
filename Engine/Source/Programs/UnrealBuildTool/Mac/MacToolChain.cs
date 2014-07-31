@@ -218,7 +218,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			var Arguments = new StringBuilder();
 			var PCHArguments = new StringBuilder();
@@ -284,6 +284,8 @@ namespace UnrealBuildTool
 				Arguments.Append("\"");
 			}
 
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+
 			CPPOutput Result = new CPPOutput();
 			// Create a compile action for each source file.
 			foreach (FileItem SourceFile in SourceFiles)
@@ -334,14 +336,18 @@ namespace UnrealBuildTool
 					QueueFileForBatchUpload(SourceFile);
 				}
 
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
 				{
-					if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+					foreach (FileItem IncludedFile in IncludedFileList)
 					{
-						QueueFileForBatchUpload(IncludedFile);
-					}
+						CompileAction.PrerequisiteItems.Add(IncludedFile);
 
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
+						if (!BuildConfiguration.bUseExperimentalFastDependencyScan &&	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
+							 ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+						{
+							QueueFileForBatchUpload(IncludedFile);
+						}
+					}
 				}
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)

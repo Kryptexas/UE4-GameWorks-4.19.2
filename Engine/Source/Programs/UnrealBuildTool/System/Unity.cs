@@ -102,11 +102,13 @@ namespace UnrealBuildTool
 		/// files, the goal being to compile the same code in fewer translation units.
 		/// The "unity" files are written to the CompileEnvironment's OutputDirectory.
 		/// </summary>
+		/// <param name="Target">The target we're building</param>
 		/// <param name="CPPFiles">The C++ files to #include.</param>
 		/// <param name="CompileEnvironment">The environment that is used to compile the C++ files.</param>
 		/// <param name="BaseName">Base name to use for the Unity files</param>
 		/// <returns>The "unity" C++ files.</returns>
 		public static List<FileItem> GenerateUnityCPPs(
+			UEBuildTarget Target,
 			List<FileItem> CPPFiles, 
 			CPPEnvironment CompileEnvironment,
 			string BaseName
@@ -142,6 +144,12 @@ namespace UnrealBuildTool
 					{
 						CPPUnityFileBuilder.AddFile(CPPFile);
 					}
+
+					// Now that the CPPFile is part of this unity file, we will no longer need to treat it like a root level prerequisite for our
+					// dependency cache, as it is now an "indirect include" from the unity file.  We'll clear out the compile environment
+					// attached to this file.  This prevents us from having to cache all of the indirect includes from these files inside our
+					// dependency cache, which speeds up iterative builds a lot!
+					CPPFile.CachedCPPEnvironment = null;
 				}
 				AllUnityFiles = CPPUnityFileBuilder.GetUnityFiles();
 			}
@@ -220,6 +228,9 @@ namespace UnrealBuildTool
 				UnityCPPFile.Description         = string.Join(" + ", UnityFile.Files.Select(F => Path.GetFileName(F.AbsolutePath)));
 				UnityCPPFile.PCHHeaderNameInCode = PCHHeaderNameInCode;
                 UnityCPPFiles.Add(UnityCPPFile);
+
+				// Cache information about the unity .cpp dependencies
+				UEBuildModuleCPP.CachePCHUsageForModuleSourceFile( Target, CompileEnvironment, UnityCPPFile );
 			}
 
 			return UnityCPPFiles;

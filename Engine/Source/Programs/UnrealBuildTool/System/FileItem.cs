@@ -56,6 +56,60 @@ namespace UnrealBuildTool
 		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
 		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
 
+		/** The compile environment for this file.  This is only set on C++ source file file items, or C++-related files that have include paths.  It's part of UBT's dependency caching optimizations. */
+		public CPPEnvironment CachedCPPEnvironment
+		{
+			get
+			{
+				return _CachedCPPEnvironment;
+			}
+			set
+			{
+				if( value != null && _CachedCPPEnvironment != null && _CachedCPPEnvironment != value )
+				{
+					// Uh oh.  We're clobbering our cached CompileEnvironment for this file with a different CompileEnvironment.  This means
+					// that the same source file is being compiled into more than one module. (e.g. PCLaunch.rc)
+
+					// @todo fastubt: The only expected offender here is PCLaunch.rc and friends, which are injected by UBT into every module when not compiling monolithic.
+					// PCLaunch.rc and ModuleVersionResource.rc.inl are "safe" because they do not include any headers that would be affected by include path order.
+					// ==> Ideally we would use a different "shared" CompileEnvironment for these injected .rc files, so their include paths would not change
+					// ==> OR, we can make an Intermediate copy of the .rc file for each module (easier)
+					if( !AbsolutePath.EndsWith( "PCLaunch.rc", StringComparison.InvariantCultureIgnoreCase ) &&
+						!AbsolutePath.EndsWith( "ModuleVersionResource.rc.inl", StringComparison.InvariantCultureIgnoreCase ) )
+					{ 					
+						// Let's make sure the include paths are the same
+						// @todo fastubt: We have not seen examples of this actually firing off, so we could probably remove the check for matching includes and simply always make this an error case
+						var CachedIncludePathsToSearch = _CachedCPPEnvironment.GetIncludesPathsToSearch( this );
+						var NewIncludePathsToSearch = value.GetIncludesPathsToSearch( this );
+
+						bool bIncludesAreDifferent = false;
+						if( CachedIncludePathsToSearch.Count != NewIncludePathsToSearch.Count )
+						{
+							bIncludesAreDifferent = true;
+						}
+						else
+						{
+							for( var IncludeIndex = 0; IncludeIndex < CachedIncludePathsToSearch.Count; ++IncludeIndex )
+							{
+								if( !CachedIncludePathsToSearch[ IncludeIndex ].Equals( NewIncludePathsToSearch[ IncludeIndex ], StringComparison.InvariantCultureIgnoreCase ) )
+								{
+									bIncludesAreDifferent = true;
+									break;
+								}
+							}
+						}
+
+						if( bIncludesAreDifferent )
+						{ 
+							throw new BuildException( "File '{0}' was included by multiple modules, but with different include paths", this.Info.FullName );
+						}
+					}
+				}
+				_CachedCPPEnvironment = value;
+			}
+		}
+		public CPPEnvironment _CachedCPPEnvironment;
+
 		/** The last write time of the file. */
 		public DateTimeOffset _LastWriteTime;
 		public DateTimeOffset LastWriteTime

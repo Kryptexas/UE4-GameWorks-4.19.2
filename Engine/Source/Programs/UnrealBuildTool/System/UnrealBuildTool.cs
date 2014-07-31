@@ -39,6 +39,9 @@ namespace UnrealBuildTool
         /** Total time spent on other actions. */
         static public double TotalOtherActionsTime = 0;
 
+		/// How much time was spent scanning for include dependencies for outdated C++ files
+		public static double TotalDeepIncludeScanTime = 0.0;
+
         /** The command line */
         static public List<string> CmdLine = new List<string>();
 
@@ -975,7 +978,9 @@ namespace UnrealBuildTool
                         Log.TraceInformation("GetIncludes time: " + CPPEnvironment.TotalTimeSpentGettingIncludes + "s (" + CPPEnvironment.TotalIncludesRequested + " includes)" );
                         Log.TraceInformation("DirectIncludes cache miss time: " + CPPEnvironment.DirectIncludeCacheMissesTotalTime + "s (" + CPPEnvironment.TotalDirectIncludeCacheMisses + " misses)" );
                         Log.TraceInformation("FindIncludePaths calls: " + CPPEnvironment.TotalFindIncludedFileCalls + " (" + CPPEnvironment.IncludePathSearchAttempts + " searches)" );
-                        Log.TraceInformation("PCH time: " + UEBuildModuleCPP.TotalPCHTime + "s (Shared PCH time: " + UEBuildModuleCPP.TotalSharedPCHTime + "s)" );
+                        Log.TraceInformation("PCH gen time: " + UEBuildModuleCPP.TotalPCHGenTime + "s" );
+                        Log.TraceInformation("PCH cache time: " + UEBuildModuleCPP.TotalPCHCacheTime + "s" );
+                        Log.TraceInformation("Deep C++ include scan time: " + UnrealBuildTool.TotalDeepIncludeScanTime + "s" );
                         Log.TraceInformation("Include Resolves: {0} ({1} misses, {2:0.00}%)", CPPEnvironment.TotalDirectIncludeResolves, CPPEnvironment.TotalDirectIncludeResolveCacheMisses, (float)CPPEnvironment.TotalDirectIncludeResolveCacheMisses / (float)CPPEnvironment.TotalDirectIncludeResolves * 100);
                         Log.TraceInformation("Total FileItems: {0} ({1} missing)", FileItem.TotalFileItemCount, FileItem.MissingFileItemCount);
 
@@ -1189,13 +1194,21 @@ namespace UnrealBuildTool
                     }
                     Targets.Add(Target);
 
-                    // Load the include dependency cache.
-                    if (CPPEnvironment.IncludeDependencyCache == null)
-                    {
-                        CPPEnvironment.IncludeDependencyCache = DependencyCache.Create(
-                            DependencyCache.GetDependencyCachePathForTarget(Target)
-                            );
-                    }
+					// Load the include dependency cache.
+					// @todo fastubt: Ideally load this asynchronously at startup and only block when it is first needed and not finished loading
+					{	
+						if (!CPPEnvironment.IncludeDependencyCache.ContainsKey(Target))
+						{
+							CPPEnvironment.IncludeDependencyCache.Add( Target, DependencyCache.Create( DependencyCache.GetDependencyCachePathForTarget(Target) ) );
+						}
+					}
+					if( BuildConfiguration.bUseExperimentalFastDependencyScan )
+					{ 
+						if (!CPPEnvironment.FlatCPPIncludeDependencyCache.ContainsKey(Target))
+						{
+							CPPEnvironment.FlatCPPIncludeDependencyCache.Add( Target, FlatCPPIncludeDependencyCache.Create( Target ) );
+						}
+					}
 
                     var TargetOutputItems = new List<FileItem>();
                     BuildResult = Target.Build(ToolChain, TargetOutputItems, out EULAViolationWarning);
@@ -1230,33 +1243,26 @@ namespace UnrealBuildTool
                             LinkActionsAndItems();
                             var ActionsToExecute = AllActions;
 
-                            var VisualizationType = ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
-                            SaveActionGraphVisualization( Path.Combine( BuildConfiguration.BaseIntermediatePath, Target.GetTargetName() + ".gexf" ), Target.GetTargetName(), VisualizationType, ActionsToExecute );
-                        }
-
-                        // Save the include dependency cache.
-                        if (CPPEnvironment.IncludeDependencyCache != null)
-                        {
-                            CPPEnvironment.IncludeDependencyCache.Save();
-                            CPPEnvironment.IncludeDependencyCache = null;
-                        }
-                    }
+							var VisualizationType = ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
+							SaveActionGraphVisualization( Target, Path.Combine( BuildConfiguration.BaseIntermediatePath, Target.GetTargetName() + ".gexf" ), Target.GetTargetName(), VisualizationType, ActionsToExecute );
+						}
+					}
 
                     var TargetBuildTime = (DateTime.UtcNow - TargetStartTime).TotalSeconds;
 
-                    // Send out telemetry for this target
-                    Telemetry.SendEvent("TargetBuildStats.2",
-                        "AppName", Target.AppName,
-                        "GameName", Target.GameName,
-                        "Platform", Target.Platform.ToString(),
-                        "Configuration", Target.Configuration.ToString(),
-                        "CleanTarget", UEBuildConfiguration.bCleanProject.ToString(),
-                        "Monolithic", Target.ShouldCompileMonolithic().ToString(),
-                        "CreateDebugInfo", Target.IsCreatingDebugInfo().ToString(),
-                        "TargetType", Target.Rules.Type.ToString(),
-                        "TargetCreateTimeSec", TargetBuildTime.ToString("0.00")
-                        );
-                }
+					// Send out telemetry for this target
+					Telemetry.SendEvent("TargetBuildStats.2",
+						"AppName", Target.AppName,
+						"GameName", Target.GameName,
+						"Platform", Target.Platform.ToString(),
+						"Configuration", Target.Configuration.ToString(),
+						"CleanTarget", UEBuildConfiguration.bCleanProject.ToString(),
+						"Monolithic", Target.ShouldCompileMonolithic().ToString(),
+						"CreateDebugInfo", Target.IsCreatingDebugInfo().ToString(),
+						"TargetType", Target.Rules.Type.ToString(),
+						"TargetCreateTimeSec", TargetBuildTime.ToString("0.00")
+						);
+				}
 
                 if (BuildResult == ECompilationResult.Succeeded &&
                     (
@@ -1265,7 +1271,8 @@ namespace UnrealBuildTool
                     ))
                 {
                     // Plan the actions to execute for the build.
-                    List<Action> ActionsToExecute = GetActionsToExecute(OutputItemsForAllTargets, Targets);
+					Dictionary<UEBuildTarget,List<FileItem>> TargetToOutdatedPrerequisitesMap;
+                    List<Action> ActionsToExecute = GetActionsToExecute(OutputItemsForAllTargets, Targets, out TargetToOutdatedPrerequisitesMap);
 
                     // Display some stats to the user.
                     Log.TraceVerbose(
@@ -1276,34 +1283,70 @@ namespace UnrealBuildTool
 
                     ToolChain.PreBuildSync();
 
+					
+					// Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can
+					// perform the scan while we're compilng.  It usually only takes up to a few seconds, but we don't want to hurt
+					// our best case UBT iteration times for this task which can easily be performed asynchronously
+					Thread CPPIncludesThread = null;
+					if( BuildConfiguration.bUseExperimentalFastDependencyScan )
+					{
+						CPPIncludesThread = CreateThreadForCachingCPPIncludes( TargetToOutdatedPrerequisitesMap );
+						CPPIncludesThread.Start();
+					}
+
                     // Execute the actions.
                     bSuccess = ExecuteActions(ActionsToExecute, out ExecutorName);
 
-                    // if the build succeeded, do any needed syncing
-                    if (bSuccess)
-                    {
-                        foreach (UEBuildTarget Target in Targets)
-                        {
-                            ToolChain.PostBuildSync(Target);
-                        }
-                    }
-                    else
-                    {
-                        BuildResult = ECompilationResult.OtherCompilationError;
-                    }
-                }
-            }
-            catch (BuildException Exception)
-            {
-                // Output the message only, without the call stack
-                Log.TraceInformation(Exception.Message);
-                BuildResult = ECompilationResult.OtherCompilationError;
-            }
-            catch (Exception Exception)
-            {
-                Log.TraceInformation("ERROR: {0}", Exception);
-                BuildResult = ECompilationResult.OtherCompilationError;
-            }
+					// if the build succeeded, do any needed syncing
+					if (bSuccess)
+					{
+						foreach (UEBuildTarget Target in Targets)
+						{
+							ToolChain.PostBuildSync(Target);
+						}
+					}
+					else
+					{
+						BuildResult = ECompilationResult.OtherCompilationError;
+					}
+
+					if( CPPIncludesThread != null )
+					{ 
+						// Wait until our CPPIncludes dependency scanner thread has finished
+						CPPIncludesThread.Join();
+					}
+				}
+
+				// Save the include dependency cache.
+				{ 
+					// @todo fastubt urgent: If we update the cache and actually compile files, but DON'T SAVE the stream, we will be in big trouble on the next run -- the files could be out of date due to an indirect include, but we won't know how to check because we didn't cache the includes off!
+					//			-> Link errors shouldn't prevent the cache from saving, but UBT exceptions could.  
+					//			-> In any case, we need to:  A) Wipe cache file on exception	B) force SLOW intermediate checking on restart if not fully clean and cache file is missing (or force a clean first)
+					//			
+					foreach( var DependencyCache in CPPEnvironment.IncludeDependencyCache.Values )
+					{ 
+						DependencyCache.Save();
+					}
+					CPPEnvironment.IncludeDependencyCache.Clear();
+
+					foreach( var FlatCPPIncludeDependencyCache in CPPEnvironment.FlatCPPIncludeDependencyCache.Values )
+					{ 
+						FlatCPPIncludeDependencyCache.Save();
+					}
+					CPPEnvironment.FlatCPPIncludeDependencyCache.Clear();
+				}
+			}
+			catch (BuildException Exception)
+			{
+				// Output the message only, without the call stack
+				Log.TraceInformation(Exception.Message);
+				BuildResult = ECompilationResult.OtherCompilationError;
+			}
+			catch (Exception Exception)
+			{
+				Log.TraceInformation("ERROR: {0}", Exception);
+				BuildResult = ECompilationResult.OtherCompilationError;
+			}
 
             if(EULAViolationWarning != null)
             {
@@ -1512,5 +1555,34 @@ namespace UnrealBuildTool
 
             return TargetSettings;
         }
+
+
+		/// <summary>
+		/// Returns a Thread object that can be kicked off to update C++ include dependency cache
+		/// </summary>
+		/// <param name="TargetToOutdatedPrerequisitesMap">Maps each target to a list of outdated C++ files that need indirect dependencies cached</param>
+		/// <returns>The thread object</returns>
+		private static Thread CreateThreadForCachingCPPIncludes( Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
+		{
+			return new Thread( new ThreadStart( () =>
+				{
+					// @todo fastubt: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
+					// is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
+
+					foreach( var TargetAndOutdatedPrerequisites in TargetToOutdatedPrerequisitesMap )
+					{
+						var Target = TargetAndOutdatedPrerequisites.Key;
+						var OutdatedPrerequisites = TargetAndOutdatedPrerequisites.Value;
+
+						foreach( var PrerequisiteItem in OutdatedPrerequisites )
+						{
+							// Invoke our deep include scanner to figure out whether any of the files included by this source file have
+							// changed since the build product was built
+							var FileBuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform( PrerequisiteItem.CachedCPPEnvironment.Config.Target.Platform );
+							CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, FileBuildPlatform, PrerequisiteItem.CachedCPPEnvironment.GetIncludesPathsToSearch( PrerequisiteItem ), PrerequisiteItem.CachedCPPEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:false );
+						}
+					}
+				} ) );
+		}
     }
 }

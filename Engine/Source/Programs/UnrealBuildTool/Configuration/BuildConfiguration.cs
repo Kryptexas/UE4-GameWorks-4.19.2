@@ -349,6 +349,15 @@ namespace UnrealBuildTool
 		public static bool bBreakBuildOnLicenseViolation;
 
 		/// <summary>
+		/// True if we should use the new 'experimental' C++ header dependency scanning and caching system that allows Unreal Build Tool to
+		/// detect out of date dependencies very quickly.  When enabled, a deep C++ include graph does not have to be generated, and instead
+		/// we only scan and cache indirect includes for after a dependent build product was already found to be out of date.  During the
+		/// next build, we'll load those cached indirect includes and check for outdatedness.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseExperimentalFastDependencyScan;
+	
+		/// <summary>
 		/// Whether DMUCS/Distcc may be used.
 		/// </summary>
 		[XmlConfig]
@@ -472,6 +481,9 @@ namespace UnrealBuildTool
 			// By default check and stop the build on EULA violation
 			bCheckLicenseViolations = false;
 			bBreakBuildOnLicenseViolation = true;
+
+			// The new experimental fast dependency scanning is still being tested, so we disable it by default
+			bUseExperimentalFastDependencyScan = false;
 
 			// Distcc requires some setup - so by default disable it so we don't break local or remote building
 			bAllowDistcc = false;

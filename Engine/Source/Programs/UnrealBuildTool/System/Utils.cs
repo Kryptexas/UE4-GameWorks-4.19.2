@@ -57,7 +57,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">Name of the module this PCH is being generated for</param>
 		/// <param name="bAllowDLLExports">True if we should allow DLLEXPORT definitions for this PCH</param>
 		/// <returns>the compilation output result of the created pch.</returns>
-		public static CPPOutput GeneratePCHCreationAction(string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, string OutputDirectory, string ModuleName, bool bAllowDLLExports )
+		public static CPPOutput GeneratePCHCreationAction(UEBuildTarget Target, string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, string OutputDirectory, string ModuleName, bool bAllowDLLExports )
 		{
 			// Find the header file to be precompiled. Don't skip external headers
 			if (PrecompiledHeaderIncludeFilename.bExists)
@@ -92,10 +92,13 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Cache our CPP environment so that we can check for outdatedness quickly.  Only files that have includes need this.
+				DummyPCH.CachedCPPEnvironment = ProjectPCHEnvironment;
+
 				Log.TraceVerbose( "Found PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
 
 				// Create the action to compile the PCH file.
-				return ProjectPCHEnvironment.CompileFiles(new List<FileItem>() { DummyPCH }, ModuleName);
+				return ProjectPCHEnvironment.CompileFiles(Target, new List<FileItem>() { DummyPCH }, ModuleName);
 			}
 			throw new BuildException( "Couldn't find PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
 		}
@@ -257,6 +260,7 @@ namespace UnrealBuildTool
 		 */
 		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName)
 		{
+			// @todo fastubt: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
 			if( File.Exists( BatchFileName ) )
 			{
 				// Create a wrapper batch file that echoes environment variables to a text file
@@ -475,7 +479,7 @@ namespace UnrealBuildTool
 		/// <returns>File path with consistent separators</returns>
 		public static string CleanDirectorySeparators( string FilePath, char UseDirectorySeparatorChar = '\0' )
 		{
-			StringBuilder CleanPath = new StringBuilder(FilePath.Length);
+			StringBuilder CleanPath = null;
 			if (UseDirectorySeparatorChar == '\0')
 			{
 				UseDirectorySeparatorChar = Environment.OSVersion.Platform == PlatformID.Unix ? '/' : '\\';
@@ -488,9 +492,21 @@ namespace UnrealBuildTool
 				char C = FilePath[Index];				
 				if (C == '/' || C == '\\')
 				{
-					C = UseDirectorySeparatorChar;
+					if( C != UseDirectorySeparatorChar )
+					{ 
+						C = UseDirectorySeparatorChar;
+						if( CleanPath == null )
+						{ 
+							CleanPath = new StringBuilder( FilePath.Substring( 0, Index ), FilePath.Length );
+						}
+					}
+
 					if (bCanCheckDoubleSeparators && C == PrevC)
 					{
+						if( CleanPath == null )
+						{ 
+							CleanPath = new StringBuilder( FilePath.Substring( 0, Index ), FilePath.Length );
+						}
 						continue;
 					}
 				}
@@ -499,10 +515,14 @@ namespace UnrealBuildTool
 					// First non-separator character, safe to check double separators
 					bCanCheckDoubleSeparators = true;
 				}
-				CleanPath.Append(C);
+
+				if( CleanPath != null )
+				{ 
+					CleanPath.Append(C);
+				}
 				PrevC = C;
 			}
-			return CleanPath.ToString();
+			return CleanPath != null ? CleanPath.ToString() : FilePath;
 		}
 
 	

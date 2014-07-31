@@ -155,8 +155,19 @@ namespace UnrealBuildTool
 		}
 
 		/** Builds a list of actions that need to be executed to produce the specified output items. */
-		static List<Action> GetActionsToExecute(List<FileItem> OutputItems, List<UEBuildTarget> Targets)
+		static List<Action> GetActionsToExecute(List<FileItem> OutputItems, List<UEBuildTarget> Targets, out Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
+			// @todo fastubt: We really want to be able to generate actions in a separate phase from actually building.  For example, we could generate
+			// actions at GPF-time, then save them out to be reloaded quickly later when building.  It means we would separate C++ include dependencies
+			// out from the normal action graph and check outdatedness at build time.  The module relationships and link dependencies would all still
+			// be in the static part of the action graph that was loaded from disk.	 You would probably need to re-run GPF after adding or removing source files,
+			// but ideally not after changing which headers are included in an existing source file!  Maybe we could make adding/removing source files work
+			// too, but it affects the Unity/PCH/Linker input, so it would be easier to not deal with this.  Still need to run UHT during build phase
+			// as well, which means we need to know which files have UObjects for the manifest.  This could be cached up front, and kept up to date as
+			// we rescan modified source files looking for changed includes.  UHT does not require spidering includes.
+
+			// @todo fastubt: Can we use directory changed notifications or directory timestamps to accelerate C++ file outdatedness checking?
+			
 			// Link producing actions to the items they produce.
 			LinkActionsAndItems();
 
@@ -181,6 +192,7 @@ namespace UnrealBuildTool
 			var OutdatedActionDictionary = new Dictionary<Action, bool>();
 			var HistoryList = new List<ActionHistory>();
 			var OpenHistoryFiles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+			TargetToOutdatedPrerequisitesMap = new Dictionary<UEBuildTarget,List<FileItem>>();
 			foreach (var BuildTarget in Targets)
 			{
 				var HistoryFilename = ActionHistory.GeneratePathForTarget(BuildTarget);
@@ -189,11 +201,7 @@ namespace UnrealBuildTool
 					var History = new ActionHistory(HistoryFilename);
 					HistoryList.Add(History);
 					OpenHistoryFiles.Add(HistoryFilename);
-					var OutdatedActionsForTarget = GatherAllOutdatedActions(History);
-					foreach (var OutdatedAction in OutdatedActionsForTarget)
-					{
-						OutdatedActionDictionary.Add(OutdatedAction.Key, OutdatedAction.Value);
-					}
+					GatherAllOutdatedActions(BuildTarget, History, ref OutdatedActionDictionary, TargetToOutdatedPrerequisitesMap);
 				}
 			}
 			
@@ -629,7 +637,7 @@ namespace UnrealBuildTool
 		 * @param OutdatedActionDictionary - 
 		 * @return true if outdated
 		 */
-		static public bool IsActionOutdated(Action RootAction, ref Dictionary<Action, bool> OutdatedActionDictionary,ActionHistory ActionHistory)
+		static public bool IsActionOutdated(UEBuildTarget Target, Action RootAction, ref Dictionary<Action, bool> OutdatedActionDictionary,ActionHistory ActionHistory, Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap )
 		{
 			// Only compute the outdated-ness for actions that don't aren't cached in the outdated action dictionary.
 			bool bIsOutdated = false;
@@ -722,7 +730,7 @@ namespace UnrealBuildTool
 							// If the prerequisite is produced by an outdated action, then this action is outdated too.
 							if( PrerequisiteItem.ProducingAction != null )
 							{
-								if(IsActionOutdated(PrerequisiteItem.ProducingAction,ref OutdatedActionDictionary,ActionHistory))
+								if(IsActionOutdated(Target, PrerequisiteItem.ProducingAction,ref OutdatedActionDictionary,ActionHistory, TargetToOutdatedPrerequisitesMap))
 								{
 									Log.TraceVerbose(
 										"{0}: Prerequisite {1} is produced by outdated action.",
@@ -761,6 +769,54 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// For compile actions, we have C++ files that are actually dependent on header files that could have been changed.  We only need to
+				// know about the set of header files that are included for files that are already determined to be out of date (such as if the file
+				// is missing or was modified.)  In the case that the file is out of date, we'll perform a deep scan to update our cached set of
+				// includes for this file, so that we'll be able to determine whether it is out of date next time very quickly.
+				if( BuildConfiguration.bUseExperimentalFastDependencyScan )
+				{ 
+					var DeepIncludeScanStartTime = DateTime.UtcNow;
+
+					// @todo fastubt: we may be scanning more files than we need to here -- indirectly outdated files are bIsOutdated=true by this point (for example basemost includes when deeper includes are dirty)
+					if( bIsOutdated && RootAction.ActionType == ActionType.Compile )
+					{
+						Log.TraceVerbose( "Outdated action: {0}", RootAction.StatusDescription );
+						foreach (FileItem PrerequisiteItem in RootAction.PrerequisiteItems)
+						{
+							if( PrerequisiteItem.CachedCPPEnvironment != null )
+							{
+								if( !IsCPPFile( PrerequisiteItem ) )
+								{
+									throw new BuildException( "Was only expecting C++ files to have CachedCPPEnvironments!" );
+								}
+								Log.TraceVerbose( "  -> DEEP include scan: {0}", PrerequisiteItem.AbsolutePath );
+
+								List<FileItem> OutdatedPrerequisites;
+								if( !TargetToOutdatedPrerequisitesMap.TryGetValue( Target, out OutdatedPrerequisites ) )
+								{
+									OutdatedPrerequisites = new List<FileItem>();
+									TargetToOutdatedPrerequisitesMap.Add( Target, OutdatedPrerequisites );
+								}
+
+								OutdatedPrerequisites.Add( PrerequisiteItem );
+							}
+							else if( IsCPPImplementationFile( PrerequisiteItem ) || IsCPPResourceFile( PrerequisiteItem ) )
+							{
+								if( PrerequisiteItem.CachedCPPEnvironment == null )
+								{
+									Log.TraceVerbose( "  -> WARNING: No CachedCPPEnvironment: {0}", PrerequisiteItem.AbsolutePath );
+								}
+							}
+						}
+					}
+
+					if( BuildConfiguration.bPrintPerformanceInfo )
+					{
+						double DeepIncludeScanTime = ( DateTime.UtcNow - DeepIncludeScanStartTime ).TotalSeconds;
+						TotalDeepIncludeScanTime += DeepIncludeScanTime;
+					}
+				}
+
 				// Cache the outdated-ness of this action.
 				OutdatedActionDictionary.Add(RootAction, bIsOutdated);
 			}
@@ -768,19 +824,17 @@ namespace UnrealBuildTool
 			return bIsOutdated;
 		}
 
+
 		/**
 		 * Builds a dictionary containing the actions from AllActions that are outdated by calling
 		 * IsActionOutdated.
 		 */
-		static Dictionary<Action,bool> GatherAllOutdatedActions(ActionHistory ActionHistory)
+		static void GatherAllOutdatedActions(UEBuildTarget Target, ActionHistory ActionHistory, ref Dictionary<Action,bool> OutdatedActions, Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap )
 		{
-			var OutdatedActionDictionary = new Dictionary<Action, bool>();
 			foreach (var Action in AllActions)
 			{
-				IsActionOutdated(Action, ref OutdatedActionDictionary,ActionHistory);
+				IsActionOutdated(Target, Action, ref OutdatedActions, ActionHistory, TargetToOutdatedPrerequisitesMap);
 			}
-
-			return OutdatedActionDictionary;
 		}
 
 		/**
@@ -856,33 +910,49 @@ namespace UnrealBuildTool
 
 	
 		/// <summary>
+		/// Checks if the specified file is a C++ source implementation file (e.g., .cpp)
+		/// </summary>
+		/// <param name="FileItem">The file to check</param>
+		/// <returns>True if this is a C++ source file</returns>
+		private static bool IsCPPImplementationFile( FileItem FileItem )
+		{
+			return( FileItem.AbsolutePath.EndsWith( ".cpp", StringComparison.InvariantCultureIgnoreCase ) ||
+					FileItem.AbsolutePath.EndsWith( ".c", StringComparison.InvariantCultureIgnoreCase ) ||
+					FileItem.AbsolutePath.EndsWith( ".mm", StringComparison.InvariantCultureIgnoreCase ) );
+		}
+
+
+		/// <summary>
+		/// Checks if the specified file is a C++ source header file (e.g., .h or .inl)
+		/// </summary>
+		/// <param name="FileItem">The file to check</param>
+		/// <returns>True if this is a C++ source file</returns>
+		private static bool IsCPPIncludeFile( FileItem FileItem )
+		{
+			return( FileItem.AbsolutePath.EndsWith( ".h", StringComparison.InvariantCultureIgnoreCase ) ||
+					FileItem.AbsolutePath.EndsWith( ".inl", StringComparison.InvariantCultureIgnoreCase ) );
+		}
+
+	
+		/// <summary>
+		/// Checks if the specified file is a C++ resource file (e.g., .rc)
+		/// </summary>
+		/// <param name="FileItem">The file to check</param>
+		/// <returns>True if this is a C++ source file</returns>
+		private static bool IsCPPResourceFile( FileItem FileItem )
+		{
+			return( FileItem.AbsolutePath.EndsWith( ".rc", StringComparison.InvariantCultureIgnoreCase ) );
+		}
+
+
+		/// <summary>
 		/// Checks if the specified file is a C++ source file
 		/// </summary>
 		/// <param name="FileItem">The file to check</param>
 		/// <returns>True if this is a C++ source file</returns>
 		private static bool IsCPPFile( FileItem FileItem )
 		{
-			if( FileItem.AbsolutePath.EndsWith( ".h", StringComparison.InvariantCultureIgnoreCase ) ||
-				FileItem.AbsolutePath.EndsWith( ".inl", StringComparison.InvariantCultureIgnoreCase ) )
-			{
-				// Header file
-				return true;
-			}
-			else if( FileItem.AbsolutePath.EndsWith( ".cpp", StringComparison.InvariantCultureIgnoreCase ) ||
-						FileItem.AbsolutePath.EndsWith( ".c", StringComparison.InvariantCultureIgnoreCase ) ||
-						FileItem.AbsolutePath.EndsWith( ".mm", StringComparison.InvariantCultureIgnoreCase ) )
-			{
-				// C++ file
-				return true;
-			}
-
-			else if( FileItem.AbsolutePath.EndsWith( ".rc", StringComparison.InvariantCultureIgnoreCase ) )
-			{
-				// .rc file
-				return true;
-			}
-
-			return false;
+			return IsCPPImplementationFile( FileItem ) || IsCPPIncludeFile( FileItem ) || IsCPPResourceFile( FileItem );
 		}
 
 
@@ -909,7 +979,7 @@ namespace UnrealBuildTool
 		/// <param name="VisualizationType">Type of graph to create</param>
 		/// <param name="Actions">All actions</param>
 		/// <param name="IncludeCompileActions">True if we should include compile actions.  If disabled, only the static link actions will be shown, which is useful to see module relationships</param>
-		public static void SaveActionGraphVisualization( string Filename, string Description, ActionGraphVisualizationType VisualizationType, List<Action> Actions, bool IncludeCompileActions = true )
+		public static void SaveActionGraphVisualization( UEBuildTarget Target, string Filename, string Description, ActionGraphVisualizationType VisualizationType, List<Action> Actions, bool IncludeCompileActions = true )
 		{
 			// True if we should include individual files in the graph network, or false to include only the build actions
 			var IncludeFiles = VisualizationType != ActionGraphVisualizationType.OnlyActions;
@@ -1024,6 +1094,7 @@ namespace UnrealBuildTool
 				}
 			}
 
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform( UnrealTargetPlatform.Win64 );
 
 			foreach( var FileItem in FilesToCreateNodesFor )
 			{
@@ -1076,7 +1147,8 @@ namespace UnrealBuildTool
 
 				if( ExpandCPPHeaderDependencies && bIsCPPFile )
 				{
-					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( FileItem, CPPTargetPlatform.Win64 );
+					bool HasUObjects;
+					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( Target, FileItem, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects );
 
 					// Resolve the included file name to an actual file.
 					var DirectlyIncludedFiles =
