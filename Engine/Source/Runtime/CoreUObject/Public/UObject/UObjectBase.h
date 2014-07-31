@@ -248,11 +248,6 @@ FORCEINLINE bool UObjectInitialized() { return Internal::GObjInitialized; }
  */
 COREUOBJECT_API void UObjectForceRegistration(UObjectBase* Object);
 
-/**
- * Registers all recently loaded native classes
- */
-COREUOBJECT_API void UClassRegisterAllCompiledInClasses();
-
 /** 
  * Base class for deferred native class registration
  */

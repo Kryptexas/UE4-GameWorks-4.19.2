@@ -86,10 +86,6 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#if WITH_COREUOBJECT
-	#include "CoreUObject.h"
-#endif
-
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
 class FOutputDeviceStdOutput : public FOutputDevice
@@ -622,35 +618,28 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Switch into executable's directory.
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
-#if WITH_COREUOBJECT
-	// Register all classes that have been loaded so far. This is required for CVars to work.
-	UClassRegisterAllCompiledInClasses();
-#endif
 
-#if WITH_ENGINE
-	extern ENGINE_API void InitializeRenderingCVarsCaching();
-	InitializeRenderingCVarsCaching();
-#endif
+	// this is set later with shorter command lines, but we want to make sure it is set ASAP as some subsystems will do the tests themselves...
+	// also realize that command lines can be pulled from the network at a slightly later time.
+	if (!FCommandLine::Set(CmdLine))
+	{
+		// Fail, shipping builds will crash if setting command line fails
+		return -1;
+	}
+
+	// Set GGameName, based on the command line
+	if (LaunchSetGameName(CmdLine) == false)
+	{
+		// If it failed, do not continue
+		return 1;
+	}
 
 	// Initialize log console here to avoid statics initialization issues when launched from the command line.
 	GScopedLogConsole = FPlatformOutputDevices::GetLogConsole();
 
-#if !UE_BUILD_SHIPPING
-	// Check for the '-' that normal ones get converted to in Outlook
-	if (StringHasBadDashes(CmdLine))
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, FText::Format( NSLOCTEXT("Engine", "ComdLineHasInvalidChar", "Error: Command-line contains an invalid '-' character, likely pasted from an email.\nCmdline = {0}"), FText::FromString( CmdLine ) ) );
-		return -1;
-	}
-#endif
-
 	// Always enable the backlog so we get all messages, we will disable and clear it in the game
 	// as soon as we determine whether GIsEditor == false
 	GLog->EnableBacklog(true);
-
-	// this is set later with shorter command lines, but we want to make sure it is set ASAP as some subsystems will do the tests themselves...
-	// also realize that command lines can be pulled from the network at a slightly later time.
-	FCommandLine::Set(CmdLine); 
 
 	// Initialize std out device as early as possible if requested in the command line
 	if (FParse::Param(FCommandLine::Get(), TEXT("stdout")))
@@ -673,13 +662,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 #endif // !UE_BUILD_SHIPPING
-
-	// Set GGameName, based on the command line
-	if (LaunchSetGameName(CmdLine) == false)
-	{
-		// If it failed, do not continue
-		return 1;
-	}
 
 	// Switch into executable's directory (may be required by some of the platform file overrides)
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
@@ -728,6 +710,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			return 1;
 		}
 	}
+
+	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
+	LoadCoreModules();
+
+#if WITH_ENGINE
+	extern ENGINE_API void InitializeRenderingCVarsCaching();
+	InitializeRenderingCVarsCaching();
+#endif
 
 	// remember thread id of the main thread
 	GGameThreadId = FPlatformTLS::GetCurrentThreadId();
@@ -1630,18 +1620,19 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	return 0;
 }
 
+void FEngineLoop::LoadCoreModules()
+{
+	// Always attempt to load CoreUObject. It requires additional pre-init which is called from its module's StartupModule method.
+#if WITH_COREUOBJECT
+	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+#endif
+}
 
 void FEngineLoop::LoadPreInitModules()
 {	
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading PreInit Modules"), STAT_PreInitModules, STATGROUP_LoadTime);
 
 	// GGetMapNameDelegate is initialized here
-
-	// Always attempt to load CoreUObject. It requires additional pre init which is called from its module's StartupModule method.
-#if WITH_COREUOBJECT
-	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
-#endif
-
 #if WITH_ENGINE
 	FModuleManager::Get().LoadModule(TEXT("Engine"));
 

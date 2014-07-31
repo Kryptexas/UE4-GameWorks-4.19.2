@@ -82,7 +82,7 @@ struct CORE_API FCommandLine
 	/**
 	 * Sets CmdLine to the string given
 	 */
-	static void Set(const TCHAR* NewCommandLine);
+	static bool Set(const TCHAR* NewCommandLine);
 
 	/**
 	 * Appends the passed string to the command line as it is (no space is added).

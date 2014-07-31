@@ -11,6 +11,10 @@ class FCoreUObjectModule : public FDefaultModuleImpl
 public:
 	virtual void StartupModule() override
 	{
+		// Register all classes that have been loaded so far. This is required for CVars to work.
+		void UClassRegisterAllCompiledInClasses();
+		UClassRegisterAllCompiledInClasses();
+
 		void InitUObject();
 		FCoreDelegates::OnInit.AddStatic(InitUObject);
 

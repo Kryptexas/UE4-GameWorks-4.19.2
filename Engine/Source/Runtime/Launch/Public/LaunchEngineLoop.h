@@ -53,6 +53,11 @@ public:
 	 */ 
 	void LoadPreInitModules();
 
+	/**
+	* Load core modules.
+	*/
+	void LoadCoreModules();
+
 #if WITH_ENGINE
 	
 	/**
