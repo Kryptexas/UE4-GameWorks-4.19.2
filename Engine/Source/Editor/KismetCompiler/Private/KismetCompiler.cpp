@@ -1152,15 +1152,15 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		// Add the function to it's owner class function name -> function map
 		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
 
+		// Create any user defined variables, this must occur before registering nets so that the properties are in place
+		UField** PropertyStorageLocation = &(Context.Function->Children);
+		CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
+
 		//@TODO: Prune pure functions that don't have any consumers
 		if (bIsFullCompile)
 		{
 			// Find the execution path (and make sure it has no cycles)
 			CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
-
-			// Create any user defined variables, this must occur before registering nets so that the properties are in place
-			UField** PropertyStorageLocation = &(Context.Function->Children);
-			CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
 
 			for (int32 NodeIndex = 0; NodeIndex < Context.LinearExecutionList.Num(); ++NodeIndex)
 			{
