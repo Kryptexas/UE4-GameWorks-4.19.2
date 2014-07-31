@@ -30,6 +30,25 @@ UWidget* UWidgetTree::FindWidget(const FString& Name) const
 	return NULL;
 }
 
+UWidget* UWidgetTree::FindWidget(TSharedRef<SWidget> InWidget) const
+{
+	FString ExistingName;
+
+	// TODO UMG Hacky, remove this find widget function, or make it faster.
+	TArray<UWidget*> Widgets;
+	GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
+	{
+		if ( Widget->GetCachedWidget() == InWidget )
+		{
+			return Widget;
+		}
+	}
+
+	return NULL;
+}
+
 UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
 	UPanelWidget* Parent = Widget->GetParent();
