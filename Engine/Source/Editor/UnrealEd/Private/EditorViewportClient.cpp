@@ -238,7 +238,6 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
 	, PreviewScene(InPreviewScene)
-	, ModeTools(&InModeTools)
 	, PerspViewModeIndex(VMI_Lit)
 	, OrthoViewModeIndex(VMI_BrushWireframe)
 	, NearPlane(-1.0f)
