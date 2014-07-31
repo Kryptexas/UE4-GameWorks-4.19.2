@@ -105,17 +105,13 @@ void FMaterialInstanceParameterDetails::CreateSingleGroupWidget(FEditorParameter
 		UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
 		UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
 
-		if (ScalarParam || SwitchParam || TextureParam || VectorParam)
+		if (ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
 		{
 			CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
 		}
 		else if (CompMaskParam)
 		{
 			CreateMaskParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
-		}
-		else if (FontParam)
-		{
-			CreateFontParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
 		}
 		else
 		{
@@ -237,50 +233,6 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 			]
 		];
 	}
-
-	
-}
-
-void FMaterialInstanceParameterDetails::CreateFontParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup )
-{
-	TSharedPtr<IPropertyHandle> FontPageProperty = ParameterProperty->GetChildHandle("FontPage");
-	TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("FontValue");
-
-	TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FMaterialInstanceParameterDetails::IsOverriddenExpression, Parameter ) ) ;
-
-	IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow( ParameterProperty.ToSharedRef() );
-	PropertyRow.IsEnabled( IsParamEnabled );
-	// Handle reset to default manually
-	PropertyRow.OverrideResetToDefault( true, FSimpleDelegate::CreateSP( this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter ) );
-	PropertyRow.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) );
-
-	FDetailWidgetRow& CustomWidget = PropertyRow.CustomWidget();
-
-	CustomWidget
-	.FilterString( Parameter->ParameterName.ToString() )
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text( NSLOCTEXT("FMaterialInstanceParameterDetails", "FontPageLabel", "Page") )
-		.ToolTipText( GetParameterExpressionDescription(Parameter) )
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-	]
-	.ValueContent()
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-		[
-			FontPageProperty->CreatePropertyValueWidget()
-		]
-		+SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		[
-			ParameterValueProperty->CreatePropertyNameWidget()
-		]
-	];
-
 }
 
 bool FMaterialInstanceParameterDetails::IsVisibleExpression(UDEditorParameterValue* Parameter)
@@ -369,8 +321,8 @@ void FMaterialInstanceParameterDetails::ResetToDefault( class UDEditorParameterV
 		int32 OutFontPage;
 		if (MaterialEditorInstance->Parent->GetFontParameterValue(ParameterName, OutFontValue,OutFontPage))
 		{
-			FontParam->FontValue = OutFontValue;
-			FontParam->FontPage = OutFontPage;
+			FontParam->ParameterValue.FontValue = OutFontValue;
+			FontParam->ParameterValue.FontPage = OutFontPage;
 			MaterialEditorInstance->CopyToSourceInstance();
 		}
 	}
