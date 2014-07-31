@@ -255,10 +255,17 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 		UPanelWidget* CurrentParent = BP->WidgetTree->FindWidgetParent(Item.GetTemplate(), OutIndex);
 		if ( CurrentParent )
 		{
+			CurrentParent->Modify();
 			CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
-
-			NewWrapperWidget->AddChild(Item.GetTemplate());
 		}
+		else
+		{
+			BP->WidgetTree->Modify();
+
+			BP->WidgetTree->RootWidget = NewWrapperWidget;
+		}
+
+		NewWrapperWidget->AddChild(Item.GetTemplate());
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
