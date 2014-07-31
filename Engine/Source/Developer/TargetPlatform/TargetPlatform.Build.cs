@@ -39,18 +39,6 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
 					DynamicallyLoadedModuleNames.Add("AudioFormatOpus"); 
 				}
-
-                if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
-                {
-                    DynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
-                }
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -66,18 +54,6 @@ public class TargetPlatform : ModuleRules
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
 				}
-
-                if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
-                {
-                    DynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-                    DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
-                }
 			}
             else if (Target.Platform == UnrealTargetPlatform.Linux)
             {

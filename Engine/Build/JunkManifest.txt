@@ -13,7 +13,10 @@ Platform=XboxOne:Engine\Binaries\Win64\RocketEditor-*XboxOne*.*
 Platform=XboxOne:Engine\Binaries\Win32\RocketEditor-*XboxOne*.*
 Platform=XboxOne:Engine\Binaries\Win64\ShaderCompileWorker-*XboxOne*.*
 Platform=XboxOne:Engine\Binaries\Win32\ShaderCompileWorker-*XboxOne*.*
+Platform=IOS:Engine\Binaries\Win64\IOS\*.*
 Platform=Linux:Engine\Binaries\Win64\Linux\*.*
+Platform=Android:Engine\Binaries\Win64\Android\*.*
+Platform=HTML5:Engine\Binaries\Win64\HTML5\*.*
 Engine\Binaries\Win64\UE4Editor-LinuxTarget*.*
 Engine\Binaries\Win64\UE4Editor-AndroidTarget*.*
 Engine\Binaries\Win64\UE4Editor-IOSPlatformEditor*.*
