@@ -41,9 +41,10 @@ enum EShaderPlatform
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
 	SP_METAL			= 11,
+	SP_OPENGL_SM4_MAC	= 12,
 
-	SP_NumPlatforms		= 12,
-	SP_NumBits			= 4,
+	SP_NumPlatforms		= 13,
+	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
 
@@ -518,7 +519,7 @@ enum ETextureReallocationStatus
 
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -529,7 +530,7 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS;
+	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -548,6 +549,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 		return ERHIFeatureLevel::SM5;
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
+	case SP_OPENGL_SM4_MAC:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:
@@ -582,6 +584,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	case SP_OPENGL_ES2_IOS: 
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_SM4:
+		return InFeatureLevel <= ERHIFeatureLevel::SM4;
+	case SP_OPENGL_SM4_MAC:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_SM5:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;

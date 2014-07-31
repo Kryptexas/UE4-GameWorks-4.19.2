@@ -212,6 +212,26 @@ struct FMacOpenGL : public FOpenGL3
 	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
 	
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		if (bForceFeatureLevelES2)
+		{
+			return SP_OPENGL_PCES2;
+		}
+		
+		// Shader platform
+		switch(GetMajorVersion())
+		{
+			case 3:
+				return SP_OPENGL_SM4_MAC;
+			case 4:
+				return GetMinorVersion() > 2 ? SP_OPENGL_SM5 : SP_OPENGL_SM4_MAC;
+			default:
+				return SP_OPENGL_SM4_MAC;
+		}
+	}
+	
 	static uint64 GetVideoMemorySize();
 	
 	static void ProcessQueryGLInt();

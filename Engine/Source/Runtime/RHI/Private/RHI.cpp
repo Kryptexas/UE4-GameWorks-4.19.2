@@ -292,11 +292,9 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_PCD3D_ES2:
 		return NAME_PCD3D_ES2;
 	case SP_OPENGL_SM4:
-#if PLATFORM_MAC
-		return NAME_GLSL_150_MAC;
-#else
 		return NAME_GLSL_150;
-#endif
+	case SP_OPENGL_SM4_MAC:
+		return NAME_GLSL_150_MAC;
 	case SP_PS4:
 		return NAME_SF_PS4;
 	case SP_XBOXONE:
@@ -325,7 +323,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_SM4)			return SP_PCD3D_SM4;
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
-	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4;
+	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)		return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
