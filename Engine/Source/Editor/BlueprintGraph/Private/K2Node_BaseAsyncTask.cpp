@@ -31,6 +31,17 @@ FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(FunctionToolTipText);
 }
 
+bool UK2Node_BaseAsyncTask::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+{
+	// Can only place events in ubergraphs, and basicasync task creates an event node:
+	if (Schema->GetGraphType(TargetGraph) != EGraphType::GT_Ubergraph)
+	{
+		UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) in this graph because it is not an ubergraph."), *GetFName().ToString());
+		return false;
+	}
+	return UK2Node::CanPasteHere(TargetGraph, Schema);
+}
+
 void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
