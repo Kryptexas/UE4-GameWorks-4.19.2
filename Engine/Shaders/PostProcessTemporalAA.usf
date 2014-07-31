@@ -242,6 +242,7 @@ void MainTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScale
 		#define AA_LOWPASS 1
 		#define AA_ONE_DYNAMIC_SAMPLE 1
 		#define AA_DEBUG 0
+		#define AA_VELOCITY_WEIGHTING 1
 	#else
 		#define AA_NEW 0
 		#define AA_BORDER 1
@@ -267,6 +268,7 @@ void MainFastTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureS
 		#define AA_LOWPASS 0
 		#define AA_ONE_DYNAMIC_SAMPLE 1
 		#define AA_DEBUG 0
+		#define AA_VELOCITY_WEIGHTING 0
 	#else
 		#define AA_NEW 0
 		#define AA_BORDER 1

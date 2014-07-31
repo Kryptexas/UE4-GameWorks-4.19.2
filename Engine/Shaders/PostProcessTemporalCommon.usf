@@ -120,6 +120,12 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_NEW 0
 #endif
 
+// Use velocity weighting.
+#ifndef AA_VELOCITY_WEIGHTING
+	#define AA_VELOCITY_WEIGHTING 0
+#endif
+
+
 
 
 #if AA_NEW
@@ -401,6 +407,8 @@ which can be configured via defines for various temporal AA passes.
 		
 	// COMPUTE BLEND AMOUNT 
     // --------------------
+	// Replace history with minimum difference of history from min or max neighborhood.
+	LumaHistory = min(abs(LumaMin-LumaHistory), abs(LumaMax-LumaHistory));
 	float HistoryAmount = (1.0/8.0) + HistoryBlur * (1.0/8.0);
 	float HistoryFactor = LumaHistory * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 4.0);
 	float BlendFinal = saturate(HistoryFactor * rcp(LumaHistory + LumaContrast));
@@ -409,7 +417,7 @@ which can be configured via defines for various temporal AA passes.
 		BlendFinal = 1.0/4.0;
 	#endif
 
-   	#if (AA_ALPHA == 1)
+   	#if (AA_ALPHA == 1) && (AA_VELOCITY_WEIGHTING == 1)
 		// Velocity weighting.
 		// Decay prior value.
 		float PriorVelocity = OutColor.a;
@@ -977,3 +985,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_ONE_DYNAMIC_SAMPLE
 #undef AA_GREEN_AS_LUMA
 #undef AA_NEW
+#undef AA_VELOCITY_WEIGHTING
