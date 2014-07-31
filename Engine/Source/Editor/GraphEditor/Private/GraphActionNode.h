@@ -382,37 +382,37 @@ public:
 protected:
 
 	FGraphActionNode( FString InCategory, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
-		: Category( InCategory )
+		: SectionID ( 0 )
+		, Category( InCategory )
 		, Grouping( InGrouping )
 		, bIsRenameRequestBeforeReady( false )
-		, SectionID ( 0 )
 	{
 		Actions.Add( InAction );
 	}
 
 	FGraphActionNode( FString InCategory, FString InCategoryChain, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
-		: Category( InCategory )
+		: SectionID ( 0 )
+		, Category( InCategory )
 		, CategoryChain( InCategoryChain )
 		, Grouping( InGrouping )
 		, bIsRenameRequestBeforeReady( false )
-		, SectionID ( 0 )
 	{
 		Actions.Add( InAction );
 	}
 
 	FGraphActionNode( FString InCategory, int32 InGrouping, TArray< TSharedPtr<FEdGraphSchemaAction> >& InActionList, int32 InSectionID = 0 )
-	: Category( InCategory )
-	, Grouping( InGrouping )
-	, bIsRenameRequestBeforeReady( false )
-	, SectionID ( InSectionID )
+		: SectionID ( InSectionID )
+		, Category( InCategory )
+		, Grouping( InGrouping )
+		, bIsRenameRequestBeforeReady( false )
 	{
 		Actions.Append( InActionList );
 	}
 
 	FGraphActionNode( int32 InGrouping, int32 InNodeSection )		
-		: Grouping( InGrouping )
+		: SectionID ( InNodeSection )
+		, Grouping( InGrouping )
 		, bIsRenameRequestBeforeReady( false )
-		, SectionID ( InNodeSection )
 	{
 		Actions.Add( NULL );		
 	}

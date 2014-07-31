@@ -14,10 +14,10 @@
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 
 FPlacementMode::FPlacementMode()
-	: PlacementsChanged( false )
-	, CreatedPreviewActors( false )
-	, AssetsToPlace()
+	: AssetsToPlace()
 	, ActiveTransactionIndex( INDEX_NONE )
+	, PlacementsChanged( false )
+	, CreatedPreviewActors( false )
 {
 }
 

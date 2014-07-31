@@ -21,9 +21,9 @@ public:
 	FLauncherTask( const FString& InName, const FString& InDesc, void* InReadPipe, void* InWritePipe)
 		: Name(InName)
 		, Desc(InDesc)
+		, Status(ELauncherTaskStatus::Pending)
 		, ReadPipe(InReadPipe)
 		, WritePipe(InWritePipe)
-		, Status(ELauncherTaskStatus::Pending)
 	{ }
 
 public:

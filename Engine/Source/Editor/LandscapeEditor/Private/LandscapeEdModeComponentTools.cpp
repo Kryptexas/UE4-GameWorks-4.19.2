@@ -290,6 +290,8 @@ public:
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 	{}
 
+	virtual ~FLandscapeToolStrokeMoveToLevel() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : NULL;
@@ -753,6 +755,8 @@ public:
 		,	XYOffsetCache(InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokeAddComponent() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : NULL;
@@ -920,6 +924,8 @@ public:
 	FLandscapeToolStrokeDeleteComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 	{}
+
+	virtual ~FLandscapeToolStrokeDeleteComponent() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{

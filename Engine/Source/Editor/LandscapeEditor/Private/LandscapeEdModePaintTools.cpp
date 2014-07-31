@@ -85,6 +85,8 @@ public:
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokePaint() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
 		// Get list of verts to update
@@ -447,6 +449,8 @@ public:
 		}
 	}
 
+	virtual ~FLandscapeToolStrokeFlatten() {}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
 		if (!this->LandscapeInfo) return;
@@ -649,6 +653,8 @@ public:
 	FLandscapeToolStrokeNoise(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
 	{}
+
+	virtual ~FLandscapeToolStrokeNoise() {}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{

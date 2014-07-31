@@ -6,9 +6,9 @@
 #define LOCTEXT_NAMESPACE "LayersView"
 
 FActorLayerCollectionViewModel::FActorLayerCollectionViewModel( const TSharedRef< ILayers >& InWorldLayers, const TWeakObjectPtr< UEditorEngine >& InEditor )
-	: WorldLayers( InWorldLayers )
+	: bIsRefreshing( false )
+	, WorldLayers( InWorldLayers )
 	, Editor( InEditor )
-	, bIsRefreshing( false )
 {
 
 }

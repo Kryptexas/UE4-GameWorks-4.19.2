@@ -13,8 +13,8 @@ const FString FeedFilename(TEXT("newsfeed.json"));
  *****************************************************************************/
 
 FNewsFeedCache::FNewsFeedCache( )
-	: CurrentCultureSpec(ENewsFeedCultureSpec::Full)
-	, LoaderState(ENewsFeedState::NotStarted)
+	: LoaderState(ENewsFeedState::NotStarted)
+	, CurrentCultureSpec(ENewsFeedCultureSpec::Full)
 {
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FNewsFeedCache::HandleTicker);
 }

@@ -5,8 +5,8 @@
 
 UEnvironmentQueryGraphNode::UEnvironmentQueryGraphNode(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, EnvQueryNodeClass(NULL)
 	, NodeInstance(NULL)
+	, EnvQueryNodeClass(NULL)
 {
 }
 

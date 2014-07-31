@@ -12,12 +12,12 @@
 #define LOCTEXT_NAMESPACE "PhATShared"
 
 FPhATSharedData::FPhATSharedData()
-	: COMRenderColor(255,255,100)
-	, PreviewScene( FPreviewScene::ConstructionValues().ShouldSimulatePhysics(true) )
-	, WidgetModeBeforeSimulation(FWidget::WM_None)
+	: PreviewScene( FPreviewScene::ConstructionValues().ShouldSimulatePhysics(true) )
+	, COMRenderColor(255,255,100)
 	, CopiedBodySetup(NULL)
 	, CopiedConstraintTemplate(NULL)
 	, bInsideSelChange(false)
+	, WidgetModeBeforeSimulation(FWidget::WM_None)
 {
 	// Editor variables
 	BodyEdit_MeshViewMode = PRM_Solid;

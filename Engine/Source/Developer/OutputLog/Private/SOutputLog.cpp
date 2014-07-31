@@ -6,8 +6,8 @@
 #include "SScrollBorder.h"
 
 SConsoleInputBox::SConsoleInputBox()
-	: bIgnoreUIUpdate(false)
-	, SelectedSuggestion(-1)
+	: SelectedSuggestion(-1)
+	, bIgnoreUIUpdate(false)
 {
 }
 

@@ -9,14 +9,14 @@ struct FTimeSliderArgs
 {
 	FTimeSliderArgs()
 		: ScrubPosition(0)
-		, AllowZoom(true)
-		, OnScrubPositionChanged()
-		, OnBeginScrubberMovement()
-		, OnEndScrubberMovement()
 		, ViewRange( TRange<float>(0.0f, 5.0f) )
 		, ClampMin(-70000.0f)
 		, ClampMax(70000.0f)
+		, OnScrubPositionChanged()
+		, OnBeginScrubberMovement()
+		, OnEndScrubberMovement()
 		, OnViewRangeChanged()
+		, AllowZoom(true)
 	{}
 
 	/** The scrub position */

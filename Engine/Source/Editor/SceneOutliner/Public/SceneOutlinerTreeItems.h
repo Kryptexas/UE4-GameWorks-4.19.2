@@ -62,8 +62,8 @@ struct SCENEOUTLINER_API TOutlinerActorTreeItem : TOutlinerTreeItem
 
 	TOutlinerActorTreeItem(const AActor* InActor)
 		: TOutlinerTreeItem(TOutlinerTreeItem::Actor)
-		, bExistsInCurrentWorldAndPIE(false)
 		, Actor(InActor)
+		, bExistsInCurrentWorldAndPIE(false)
 	{
 	}
 

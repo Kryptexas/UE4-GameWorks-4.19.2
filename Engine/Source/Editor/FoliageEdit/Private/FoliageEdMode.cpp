@@ -39,8 +39,8 @@
 FEdModeFoliage::FEdModeFoliage()
 	: FEdMode()
 	, bToolActive(false)
-	, SelectionIFA(nullptr)
 	, bCanAltDrag(false)
+	, SelectionIFA(nullptr)
 {
 	// Load resources and construct brush component
 	UMaterial* BrushMaterial = nullptr;

@@ -43,9 +43,9 @@ struct FConfigurationState : public FLiveEditorDeviceSetupWizard::FState
 {
 	FConfigurationState( FLiveEditorDeviceSetupWizard *_Owner, int32 _NextState )
 	:	FLiveEditorDeviceSetupWizard::FState(_NextState),
-		Owner(_Owner),
 		bHasButtons(false),
-		bHasEndlessEncoders(false)
+		bHasEndlessEncoders(false),
+		Owner(_Owner)
 	{
 	}
 

@@ -15,17 +15,17 @@ FFindInMaterialResult::FFindInMaterialResult(const FString& InValue)
 }
 
 FFindInMaterialResult::FFindInMaterialResult(const FString& InValue, TSharedPtr<FFindInMaterialResult>& InParent, UClass* InClass, int InDuplicationIndex)
-: Value(InValue), DuplicationIndex(InDuplicationIndex), Parent(InParent), Class(InClass), Pin(NULL), GraphNode(NULL)
+: Parent(InParent), Value(InValue), DuplicationIndex(InDuplicationIndex), Class(InClass), Pin(NULL), GraphNode(NULL)
 {
 }
 
 FFindInMaterialResult::FFindInMaterialResult(const FString& InValue, TSharedPtr<FFindInMaterialResult>& InParent, UEdGraphPin* InPin)
-: Value(InValue), DuplicationIndex(0), Parent(InParent), Class(InPin->GetClass()), Pin(InPin), GraphNode(NULL)
+: Parent(InParent), Value(InValue), DuplicationIndex(0), Class(InPin->GetClass()), Pin(InPin), GraphNode(NULL)
 {
 }
 
 FFindInMaterialResult::FFindInMaterialResult(const FString& InValue, TSharedPtr<FFindInMaterialResult>& InParent, UEdGraphNode* InNode)
-: Value(InValue), DuplicationIndex(0), Parent(InParent), Class(InNode->GetClass()), Pin(NULL), GraphNode(InNode)
+: Parent(InParent), Value(InValue), DuplicationIndex(0), Class(InNode->GetClass()), Pin(NULL), GraphNode(InNode)
 {
 	if (GraphNode.IsValid())
 	{

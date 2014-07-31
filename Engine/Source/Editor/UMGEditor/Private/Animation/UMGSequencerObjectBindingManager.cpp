@@ -7,8 +7,8 @@
 #include "MovieScene.h"
 
 FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene )
-	: WidgetBlueprintEditor( InWidgetBlueprintEditor )
-	, MovieScene( &InMovieScene )
+	: MovieScene( &InMovieScene )
+	, WidgetBlueprintEditor( InWidgetBlueprintEditor )
 {
 	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().AddRaw( this, &FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated );
 

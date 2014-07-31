@@ -657,11 +657,18 @@ struct FLandscapeHeightCache : public TLandscapeEditCache < FHeightmapAccessor<t
 
 	FHeightmapAccessor<true> HeightmapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeHeightCache(const FLandscapeToolTarget& InTarget)
 		: HeightmapAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(HeightmapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 //
@@ -915,11 +922,18 @@ struct FLandscapeAlphaCache : public TLandscapeEditCache < FAlphamapAccessor<tru
 
 	FAlphamapAccessor<true, false> AlphamapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeAlphaCache(const FLandscapeToolTarget& InTarget)
 		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), InTarget.LayerInfo.Get())
 		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 struct FLandscapeVisCache : public TLandscapeEditCache < FAlphamapAccessor<false, false>, uint8 >
@@ -929,11 +943,18 @@ struct FLandscapeVisCache : public TLandscapeEditCache < FAlphamapAccessor<false
 
 	FAlphamapAccessor<false, false> AlphamapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeVisCache(const FLandscapeToolTarget& InTarget)
 		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), ALandscapeProxy::VisibilityLayer)
 		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 //
@@ -984,11 +1005,18 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAc
 
 	FFullWeightmapAccessor<false> WeightmapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeFullWeightCache(const FLandscapeToolTarget& InTarget)
 		: WeightmapAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(WeightmapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 
 	// Only for all weight case... the accessor type should be TArray<uint8>
 	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& OutData, int32 ArraySize)
@@ -1088,11 +1116,18 @@ struct FLandscapeDataCache : public TLandscapeEditCache < FDatamapAccessor<false
 
 	FDatamapAccessor<false> DataAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeDataCache(const FLandscapeToolTarget& InTarget)
 		: DataAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(DataAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 

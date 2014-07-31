@@ -9,8 +9,8 @@
 
 FActorLayerViewModel::FActorLayerViewModel( const TWeakObjectPtr< ULayer >& InLayer, const TArray< TWeakObjectPtr< AActor > >& InActors, const TSharedRef< ILayers >& InWorldLayers, const TWeakObjectPtr< UEditorEngine >& InEditor )
 	: WorldLayers( InWorldLayers )
-	, Layer( InLayer )
 	, Editor( InEditor )
+	, Layer( InLayer )
 {
 	Actors.Append( InActors );
 }

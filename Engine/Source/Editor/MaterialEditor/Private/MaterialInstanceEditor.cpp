@@ -32,8 +32,8 @@ class SMaterialTreeWidgetItem : public SMultiColumnTableRow< TWeakObjectPtr<UMat
 {
 public:
 	SLATE_BEGIN_ARGS(SMaterialTreeWidgetItem)
-		: _WidgetInfoToVisualize()
-		, _ParentIndex( -1 )
+		: _ParentIndex( -1 )
+		, _WidgetInfoToVisualize()
 		{}
 		SLATE_ARGUMENT( int32, ParentIndex )
 		SLATE_ARGUMENT( TWeakObjectPtr<UMaterialInterface>, WidgetInfoToVisualize )

@@ -12,7 +12,7 @@ class FPListNodeDictionary : public IPListNode
 {
 public:
 	FPListNodeDictionary(SPListEditorPanel* InEditorWidget)
-		: IPListNode(InEditorWidget), bArrayMember(false), TableRow(nullptr), ArrayIndex(-1), bFiltered(false)
+		: IPListNode(InEditorWidget), TableRow(nullptr), ArrayIndex(-1), bArrayMember(false), bFiltered(false)
 	{}
 
 public:

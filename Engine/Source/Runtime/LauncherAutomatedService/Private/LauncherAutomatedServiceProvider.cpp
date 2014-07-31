@@ -10,13 +10,13 @@ DEFINE_LOG_CATEGORY_STATIC(LauncherAutomatedService, Log, All);
  *****************************************************************************/
 
 FLauncherAutomatedServiceProvider::FLauncherAutomatedServiceProvider()
-	: LastDevicePingTime( 0.0 )
-	, TimeSinceLastShutdownRequest( 0.0 )
+	: bHasErrors( false )
 	, bHasLaunchedAllInstances( false )
 	, bIsReadyToShutdown( false )
 	, bShouldDeleteProfileWhenComplete( false )
+	, LastDevicePingTime( 0.0 )
 	, SessionID( FGuid::NewGuid() )
-	, bHasErrors( false )
+	, TimeSinceLastShutdownRequest( 0.0 )
 { }
 
 

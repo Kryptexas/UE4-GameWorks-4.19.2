@@ -10,8 +10,8 @@
 TArray< TSharedPtr< ECustomColumnMode::Type > > FSceneOutlinerActorInfoColumn::ModeOptions;
 
 FSceneOutlinerActorInfoColumn::FSceneOutlinerActorInfoColumn( const TWeakPtr< ISceneOutliner >& InSceneOutlinerWeak, ECustomColumnMode::Type InDefaultCustomColumnMode )
-	: SceneOutlinerWeak( InSceneOutlinerWeak )
-	, CurrentMode( InDefaultCustomColumnMode )
+	: CurrentMode( InDefaultCustomColumnMode )
+	, SceneOutlinerWeak( InSceneOutlinerWeak )
 {
 
 }

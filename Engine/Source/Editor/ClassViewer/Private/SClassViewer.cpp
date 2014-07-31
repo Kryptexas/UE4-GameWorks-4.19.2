@@ -1274,10 +1274,10 @@ public:
 	SLATE_BEGIN_ARGS( SClassItem )
 		: _ClassName()
 		, _bIsPlaceable(false)
-		, _HighlightText(NULL)
-		, _TextColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
 		, _bIsInClassViewer( true )
 		, _bDynamicClassLoading( true )
+		, _HighlightText(NULL)
+		, _TextColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
 		{}
 
 		/** The classname this item contains. */

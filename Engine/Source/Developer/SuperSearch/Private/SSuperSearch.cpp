@@ -5,8 +5,8 @@
 #include "SScrollBorder.h"
 
 SSuperSearchBox::SSuperSearchBox()
-	: bIgnoreUIUpdate(false)
-	, SelectedSuggestion(-1)
+	: SelectedSuggestion(-1)
+	, bIgnoreUIUpdate(false)
 {
 }
 

@@ -16,8 +16,8 @@ public:
 	FCreateMovieOptions()
 	:	CloseEditor(false),
 	    CaptureResolutionIndex(0),
-		CaptureTypeIndex(EMatineeCaptureType::AVI),
 		CaptureResolutionFPS(30),
+		CaptureTypeIndex(EMatineeCaptureType::AVI),
 		Compress(false),
 		CinematicMode(true),
 		DisableMovement(true),
