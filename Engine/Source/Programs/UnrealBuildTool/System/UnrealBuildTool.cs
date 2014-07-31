@@ -580,8 +580,10 @@ namespace UnrealBuildTool
                     EngineSourceDirectory += "Source";
                 }
             }
-//			if (Directory.Exists(EngineSourceDirectory))
+			if (Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
+			{
 				Directory.SetCurrentDirectory(EngineSourceDirectory);
+			}
 
             // Build the list of game projects that we know about. When building from the editor (for hot-reload) or for Rocket projects, we require the 
             // project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
