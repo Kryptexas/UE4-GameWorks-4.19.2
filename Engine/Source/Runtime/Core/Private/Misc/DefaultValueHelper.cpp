@@ -86,6 +86,17 @@ bool FDefaultValueHelper::Trim(const TCHAR* & Start, const TCHAR* End )
 	return Start < End;
 }
 
+FString FDefaultValueHelper::GetUnqualifiedEnumValue(const FString& Source)
+{
+	auto SeparatorPosition = Source.Find(FString("::"));
+	if (SeparatorPosition == INDEX_NONE)
+	{
+		return Source;
+	}
+
+	return Source.RightChop(SeparatorPosition + 2);
+}
+
 bool FDefaultValueHelper::HasWhitespaces(const FString& Source)
 {
 	for(int Pos = 0; Pos < Source.Len(); ++Pos)

@@ -7128,7 +7128,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			const UEnum* Enum = CastChecked<UByteProperty>(Property)->Enum;
 			if( NULL != Enum )
 			{
-				OutForm = FDefaultValueHelper::RemoveWhitespaces( CppForm );
+				OutForm = FDefaultValueHelper::GetUnqualifiedEnumValue(FDefaultValueHelper::RemoveWhitespaces(CppForm));
 				return ( INDEX_NONE != Enum->FindEnumIndex( *OutForm ) );
 			}
 			int32 Value;
