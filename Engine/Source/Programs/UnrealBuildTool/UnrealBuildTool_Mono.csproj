@@ -169,6 +169,7 @@
     <Compile Include="IOS\UEDeployIOS.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
+    <Compile Include="System\Distcc.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

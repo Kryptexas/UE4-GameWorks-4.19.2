@@ -16,6 +16,11 @@ namespace UnrealBuildTool
             return false;
         }
 
+		public override bool CanUseDistcc()
+		{
+			return true;
+		}
+
 		protected override SDKStatus HasRequiredManualSDKInternal()
 		{
 			return SDKStatus.Valid;

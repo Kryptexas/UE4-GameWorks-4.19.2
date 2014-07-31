@@ -370,16 +370,6 @@ namespace UnrealBuildTool
 				int MaxActionsAffordedByMemory = (int)(Math.Max(1, (PhysicalRAMAvailableMB) / MinMemoryPerActionMB));
 
 				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);
-
-                if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-			    {
-				    string NumUBTBuildTasks = Environment.GetEnvironmentVariable("NumUBTBuildTasks");
-				    Int32 MaxUBTBuildTasks = MaxActionsToExecuteInParallel;
-				    if(Int32.TryParse(NumUBTBuildTasks, out MaxUBTBuildTasks))
-				    {
-					    MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
-				    }
-                }
             }
 
             Log.TraceInformation("Performing {0} actions (max {1} parallel jobs)", Actions.Count, MaxActionsToExecuteInParallel);

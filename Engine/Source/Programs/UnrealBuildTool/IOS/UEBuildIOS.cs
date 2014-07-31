@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -107,6 +107,11 @@ namespace UnrealBuildTool
         {
             return false;
         }
+
+		public override bool CanUseDistcc()
+		{
+			return true;
+		}
 
         /**
          *	Setup the target environment for building

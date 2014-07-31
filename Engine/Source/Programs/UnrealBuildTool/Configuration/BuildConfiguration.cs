@@ -349,6 +349,24 @@ namespace UnrealBuildTool
 		public static bool bBreakBuildOnLicenseViolation;
 
 		/// <summary>
+		/// Whether DMUCS/Distcc may be used.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowDistcc;
+
+		/// <summary>
+		/// When enabled allows DMUCS/Distcc to fallback to local compilation when remote compiling fails. Defaults to true as separation of pre-process and compile stages can introduce non-fatal errors.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowDistccLocalFallback;
+
+		/// <summary>
+		/// Path to the Distcc & DMUCS executables.
+		/// </summary>
+		[XmlConfig]
+		public static string DistccExecutablesPath;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -454,6 +472,26 @@ namespace UnrealBuildTool
 			// By default check and stop the build on EULA violation
 			bCheckLicenseViolations = false;
 			bBreakBuildOnLicenseViolation = true;
+
+			// Distcc requires some setup - so by default disable it so we don't break local or remote building
+			bAllowDistcc = false;
+			bAllowDistccLocalFallback = true;
+
+			// The normal Posix place to install distcc/dmucs would be /usr/local so start there
+			DistccExecutablesPath = "/usr/local/bin";
+
+			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
+			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			{
+				string UserDir = Environment.GetEnvironmentVariable("HOME");
+				string MacDistccExecutablesPath = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/Distcc 3.2.xcplugin/Contents/usr/bin";
+
+				// But we should use the standard Posix directory when not installed - a build farm would use a static .dmucs hosts file not DistCode.
+				if (System.IO.Directory.Exists (MacDistccExecutablesPath)) 
+				{
+					DistccExecutablesPath = MacDistccExecutablesPath;
+				}
+			}
 		}
 
 		/// <summary>
@@ -514,6 +552,11 @@ namespace UnrealBuildTool
             {
                 bAllowXGE = false;
             }
+
+			if (!BuildPlatform.CanUseDistcc()) 
+			{
+				bAllowDistcc = false;
+			}
 		}
 	}
 }

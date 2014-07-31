@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -1312,7 +1312,7 @@ namespace UnrealBuildTool
 
             // Figure out how long we took to execute.
             double BuildDuration = (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds;
-            if (ExecutorName == "Local")
+			if (ExecutorName == "Local" || ExecutorName == "Distcc")
             {
                 Log.TraceInformation("Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
                     System.Environment.ProcessorCount,

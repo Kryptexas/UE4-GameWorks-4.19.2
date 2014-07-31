@@ -27,6 +27,11 @@ namespace UnrealBuildTool
         bool CanUseXGE();
 
         /**
+         * If this platform can be compiled with DMUCS/Distcc
+         */
+		bool CanUseDistcc();
+
+        /**
          * Register the platform with the UEBuildPlatform class
          */
         void RegisterBuildPlatform();
@@ -422,6 +427,14 @@ namespace UnrealBuildTool
         {
             return true;
         }
+
+		/**
+         *	If this platform can be compiled with DMUCS/Distcc
+         */
+		public virtual bool CanUseDistcc()
+		{
+			return false;
+		}
 
         /**
          *	Register the platform with the UEBuildPlatform class

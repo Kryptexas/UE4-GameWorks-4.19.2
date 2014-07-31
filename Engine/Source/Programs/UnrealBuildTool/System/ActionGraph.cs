@@ -268,6 +268,14 @@ namespace UnrealBuildTool
 					}
 				}
 
+				if (!bUsedXGE && BuildConfiguration.bAllowDistcc) 
+				{
+					ExecutorName = "Distcc";
+					Result = Distcc.ExecuteActions (ActionsToExecute);
+					// don't do local compilation
+					bUsedXGE = true;
+				}
+
 				// If XGE is disallowed or unavailable, execute the commands locally.
 				if (!bUsedXGE)
 				{
