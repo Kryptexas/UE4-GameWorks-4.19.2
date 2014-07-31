@@ -446,7 +446,7 @@ public:
 		CookConfiguration = FApp::GetBuildConfiguration();
 		CookMode = ELauncherProfileCookModes::DoNotCook;
 		CookOptions = FString();
-		CookIncremental = true;
+		CookIncremental = false;
 		CookUnversioned = false;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
