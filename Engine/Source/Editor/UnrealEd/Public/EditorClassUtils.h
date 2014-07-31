@@ -9,6 +9,23 @@ namespace FEditorClassUtils
 {
 
 	/**
+	 * Gets the page that documentation for this class is contained on
+	 *
+	 * @param	InClass		Class we want to find the documentation page of
+	 * @return				Path to the documentation page
+	 */
+	UNREALED_API FString GetDocumentationPage(const UClass* Class);
+
+	/**
+	 * Gets the excerpt to use for this class
+	 * Excerpt will be contained on the page returned by GetDocumentationPage
+	 *
+	 * @param	InClass		Class we want to find the documentation excerpt of
+	 * @return				Name of the to the documentation excerpt
+	 */
+	UNREALED_API FString GetDocumentationExcerpt(const UClass* Class);
+
+	/**
 	 * Gets the tooltip to display for a given class
 	 *
 	 * @param	InClass		Class we want to build a tooltip for

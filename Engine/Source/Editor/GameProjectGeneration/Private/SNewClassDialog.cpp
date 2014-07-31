@@ -621,13 +621,14 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 	const FString ClassName = ParentClassItem->ParentClassInfo.GetClassName();
 	const FString ClassDescription = ParentClassItem->ParentClassInfo.GetClassDescription();
 	const FSlateBrush* const ClassBrush = ParentClassItem->ParentClassInfo.GetClassIcon();
+	const UClass* Class = ParentClassItem->ParentClassInfo.BaseClass;
 
 	const int32 ItemHeight = 64;
 	const int32 DescriptionIndent = 32;
 	return
 		SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable )
 		.Style(FEditorStyle::Get(), "NewClassDialog.ParentClassListView.TableRow")
-		.ToolTip(IDocumentation::Get()->CreateToolTip(FText::FromString(ClassDescription), nullptr, "Shared/Classes", ClassName))
+		.ToolTip(IDocumentation::Get()->CreateToolTip(FText::FromString(ClassDescription), nullptr, FEditorClassUtils::GetDocumentationPage(Class), FEditorClassUtils::GetDocumentationExcerpt(Class)))
 		[
 			SNew(SBox).HeightOverride(ItemHeight)
 			[

@@ -6,19 +6,19 @@
 #include "IDocumentation.h"
 #include "SourceCodeNavigation.h"
 
-FString GetDocumentationPage(const UClass* Class)
+FString FEditorClassUtils::GetDocumentationPage(const UClass* Class)
 {
-	return FString::Printf( TEXT("Shared/Types/%s%s"), Class->GetPrefixCPP(), *Class->GetName() );
+	return (Class ? FString::Printf( TEXT("Shared/Types/%s%s"), Class->GetPrefixCPP(), *Class->GetName() ) : FString());
 }
 
-FString GetDocumentationExcerpt(const UClass* Class)
+FString FEditorClassUtils::GetDocumentationExcerpt(const UClass* Class)
 {
-	return FString::Printf( TEXT("%s%s"), Class->GetPrefixCPP(), *Class->GetName() );
+	return (Class ? FString::Printf( TEXT("%s%s"), Class->GetPrefixCPP(), *Class->GetName() ) : FString());
 }
 
 TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class)
 {
-	return IDocumentation::Get()->CreateToolTip(Class->GetToolTipText(), nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class));
+	return (Class ? IDocumentation::Get()->CreateToolTip(Class->GetToolTipText(), nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
 }
 
 FString FEditorClassUtils::GetDocumentationLink(const UClass* Class)
@@ -61,8 +61,9 @@ TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* 
 TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr)
 {
 	TSharedRef<SWidget> SourceHyperlink = SNullWidget::NullWidget;
+	UBlueprint* Blueprint = (Class ? Cast<UBlueprint>(Class->ClassGeneratedBy) : nullptr);
 
-	if (UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy))
+	if (Blueprint)
 	{
 		struct Local
 		{
