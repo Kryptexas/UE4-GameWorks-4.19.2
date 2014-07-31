@@ -210,7 +210,14 @@ struct FMacOpenGL : public FOpenGL3
 		}
 	}
 	
+	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer)
+	{
+		glTextureRangeAPPLE(Target, Length, Pointer);
+	}
+	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
+	static FORCEINLINE bool SupportsClientStorage()						{ return true; }
+	static FORCEINLINE bool SupportsTextureRange()						{ return true; }
 	
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{

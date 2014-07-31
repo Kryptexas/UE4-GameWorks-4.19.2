@@ -803,14 +803,6 @@ private:
 	uint32 bIsPowerOfTwo	: 1;
 };
 
-// Temporary Android GL4 WAR
-// Use host pointers instead of PBOs for texture uploads
-#if PLATFORM_ANDROIDGL4
-#define USE_PBO 0
-#else
-#define USE_PBO 1
-#endif
-
 // Textures.
 template<typename BaseType>
 class TOpenGLTexture : public BaseType, public FOpenGLTextureBase
@@ -832,7 +824,8 @@ public:
 		EPixelFormat InFormat,
 		bool bInCubemap,
 		bool bInAllocatedStorage,
-		uint32 InFlags
+		uint32 InFlags,
+		uint8* InTextureRange
 		)
 	: BaseType(InSizeX,InSizeY,InSizeZ,InNumMips,InNumSamples, InArraySize, InFormat,InFlags)
 	, FOpenGLTextureBase(
@@ -844,12 +837,11 @@ public:
 		)
 	, BaseLevel(0)
 	, bCubemap(bInCubemap)
+	, TextureRange(InTextureRange)
 	{
 		PixelBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
 		bAllocatedStorage.Init(bInAllocatedStorage, this->GetNumMips() * (bCubemap ? 6 : 1));
-#if !USE_PBO
-		TempBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
-#endif
+		ClientStorageBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
 	}
 
 	virtual ~TOpenGLTexture();
@@ -912,18 +904,17 @@ private:
 
 	TArray< TRefCountPtr<FOpenGLPixelBuffer> > PixelBuffers;
 
-#if !USE_PBO
-	struct FTempBuffer
+	/** Backing store for all client storage buffers for platforms and textures types where this is faster than PBOs */
+	uint8* TextureRange;
+
+	/** Client storage buffers for platforms and textures types where this is faster than PBOs */
+	struct FOpenGLClientStore
 	{
-		void* Data;
+		uint8* Data;
 		uint32 Size;
 		bool bReadOnly;
-
-		FTempBuffer() : Data(0), Size(0), bReadOnly(false)
-		{}
 	};
-	TArray< FTempBuffer> TempBuffers;
-#endif
+	TArray<FOpenGLClientStore> ClientStorageBuffers;
 
 	uint32 GetEffectiveSizeZ( void ) { return this->GetSizeZ() ? this->GetSizeZ() : 1; }
 
