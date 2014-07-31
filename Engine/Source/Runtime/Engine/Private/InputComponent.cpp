@@ -2,30 +2,34 @@
 
 #include "EnginePrivate.h"
 
-FInputChord::RelationshipType FInputChord::GetRelationship(const FInputChord& OtherChord) const
+
+/* FInputChord interface
+ *****************************************************************************/
+
+FInputChord::RelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
 {
 	RelationshipType Relationship = None;
 
 	if (Key == OtherChord.Key)
 	{
-		if (    bAlt == OtherChord.bAlt
-			 && bCtrl == OtherChord.bCtrl
-			 && bShift == OtherChord.bShift
-			 && bCmd == OtherChord.bCmd)
+		if ((bAlt == OtherChord.bAlt) &&
+			(bCtrl == OtherChord.bCtrl) &&
+			(bShift == OtherChord.bShift) &&
+			(bCmd == OtherChord.bCmd))
 		{
 			Relationship = Same;
 		}
-		else if (    (bAlt || !OtherChord.bAlt)
-				  && (bCtrl || !OtherChord.bCtrl)
-				  && (bShift || !OtherChord.bShift)
-				  && (bCmd || !OtherChord.bCmd))
+		else if ((bAlt || !OtherChord.bAlt) &&
+				(bCtrl || !OtherChord.bCtrl) &&
+				(bShift || !OtherChord.bShift) &&
+				(bCmd || !OtherChord.bCmd))
 		{
 			Relationship = Masks;
 		}
-		else if (    (!bAlt || OtherChord.bAlt)
-				  && (!bCtrl || OtherChord.bCtrl)
-				  && (!bShift || OtherChord.bShift)
-				  && (!bCmd || OtherChord.bCmd))
+		else if ((!bAlt || OtherChord.bAlt) &&
+				(!bCtrl || OtherChord.bCtrl) &&
+				(!bShift || OtherChord.bShift) &&
+				(!bCmd || OtherChord.bCmd))
 		{
 			Relationship = Masked;
 		}
@@ -34,13 +38,18 @@ FInputChord::RelationshipType FInputChord::GetRelationship(const FInputChord& Ot
 	return Relationship;
 }
 
-UInputComponent::UInputComponent(const class FPostConstructInitializeProperties& PCIP)
+
+/* UInputComponent interface
+ *****************************************************************************/
+
+UInputComponent::UInputComponent( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 {
 	bBlockInput = false;
 }
 
-float UInputComponent::GetAxisValue(const FName AxisName) const
+
+float UInputComponent::GetAxisValue( const FName AxisName ) const
 {
 	float AxisValue = 0.f;
 	bool bFound = false;
@@ -63,7 +72,8 @@ float UInputComponent::GetAxisValue(const FName AxisName) const
 	return AxisValue;
 }
 
-float UInputComponent::GetAxisKeyValue(const FKey AxisKey) const
+
+float UInputComponent::GetAxisKeyValue( const FKey AxisKey ) const
 {
 	float AxisValue = 0.f;
 	bool bFound = false;
@@ -86,7 +96,8 @@ float UInputComponent::GetAxisKeyValue(const FKey AxisKey) const
 	return AxisValue;
 }
 
-FVector UInputComponent::GetVectorAxisValue(const FKey AxisKey) const
+
+FVector UInputComponent::GetVectorAxisValue( const FKey AxisKey ) const
 {
 	FVector AxisValue;
 	bool bFound = false;
@@ -109,18 +120,20 @@ FVector UInputComponent::GetVectorAxisValue(const FKey AxisKey) const
 	return AxisValue;
 }
 
-bool UInputComponent::HasBindings() const
+
+bool UInputComponent::HasBindings( ) const
 {
-	return (   (ActionBindings.Num() > 0) 
-			|| (AxisBindings.Num() > 0) 
-			|| (AxisKeyBindings.Num() > 0) 
-			|| (KeyBindings.Num() > 0) 
-			|| (TouchBindings.Num() > 0) 
-			|| (GestureBindings.Num() > 0)
-			|| (VectorAxisBindings.Num() > 0));
+	return ((ActionBindings.Num() > 0) ||
+			(AxisBindings.Num() > 0) ||
+			(AxisKeyBindings.Num() > 0) ||
+			(KeyBindings.Num() > 0) ||
+			(TouchBindings.Num() > 0) ||
+			(GestureBindings.Num() > 0) ||
+			(VectorAxisBindings.Num() > 0));
 }
 
-FInputActionBinding& UInputComponent::AddActionBinding(const FInputActionBinding& Binding)
+
+FInputActionBinding& UInputComponent::AddActionBinding( const FInputActionBinding& Binding )
 {
 	ActionBindings.Add(Binding);
 	if (Binding.KeyEvent == IE_Pressed || Binding.KeyEvent == IE_Released)
@@ -151,7 +164,26 @@ FInputActionBinding& UInputComponent::AddActionBinding(const FInputActionBinding
 	return ActionBindings.Last();
 }
 
-void UInputComponent::RemoveActionBinding(const int32 BindingIndex)
+
+void UInputComponent::ClearActionBindings( )
+{
+	ActionBindings.Reset();
+}
+
+
+FInputActionBinding& UInputComponent::GetActionBinding( const int32 BindingIndex )
+{
+	return ActionBindings[BindingIndex];
+}
+
+
+int32 UInputComponent::GetNumActionBindings( ) const
+{
+	return ActionBindings.Num();
+}
+
+
+void UInputComponent::RemoveActionBinding( const int32 BindingIndex )
 {
 	if (BindingIndex >= 0 && BindingIndex < ActionBindings.Num())
 	{
@@ -184,6 +216,7 @@ void UInputComponent::RemoveActionBinding(const int32 BindingIndex)
 					}
 				}
 			}
+
 			for (int32 ClearIndex = 0; ClearIndex < IndicesToClear.Num(); ++ClearIndex)
 			{
 				ActionBindings[IndicesToClear[ClearIndex]].bPaired = false;
@@ -194,18 +227,10 @@ void UInputComponent::RemoveActionBinding(const int32 BindingIndex)
 	}
 }
 
-int32 UInputComponent::GetNumActionBindings() const
-{
-	return ActionBindings.Num();
-}
 
-FInputActionBinding& UInputComponent::GetActionBinding(const int32 BindingIndex)
-{
-	return ActionBindings[BindingIndex];
-}
+/* Deprecated functions (needed for Blueprints)
+ *****************************************************************************/
 
-
-// Deprecated UFUNCTIONS needed for blueprint purposes
 bool UInputComponent::IsControllerKeyDown(FKey Key) const { return false; }
 bool UInputComponent::WasControllerKeyJustPressed(FKey Key) const { return false; }
 bool UInputComponent::WasControllerKeyJustReleased(FKey Key) const { return false; }
