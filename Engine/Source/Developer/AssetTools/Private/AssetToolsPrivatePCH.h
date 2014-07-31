@@ -74,7 +74,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 #include "AssetTypeActions/AssetTypeActions_StaticMesh.h"
 #include "AssetTypeActions/AssetTypeActions_Texture2D.h"
 #include "AssetTypeActions/AssetTypeActions_TextureCube.h"
-#include "AssetTypeActions/AssetTypeActions_TextureMovie.h"
 #include "AssetTypeActions/AssetTypeActions_TextureRenderTarget2D.h"
 #include "AssetTypeActions/AssetTypeActions_TextureRenderTargetCube.h"
 #include "AssetTypeActions/AssetTypeActions_TextureLightProfile.h"

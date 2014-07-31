@@ -104,7 +104,6 @@ public:
 	 */
 
 	bool HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleMovieCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleGetMaxTickRateCommand( const TCHAR* Cmd, FOutputDevice& Ar );

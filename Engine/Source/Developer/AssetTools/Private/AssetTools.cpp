@@ -77,7 +77,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureCube) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureMovie) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTargetCube) );

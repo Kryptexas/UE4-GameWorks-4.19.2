@@ -546,10 +546,6 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return HandleReattachComponentsCommand( Cmd, Ar );
 	}
 	// exec to 
-	else if( FParse::Command( &Cmd,TEXT("MOVIE")) )
-	{
-		return HandleMovieCommand( Cmd, Ar );
-	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
 		if ( FPlatformProperties::SupportsQuit() )
@@ -632,35 +628,6 @@ bool UGameEngine::HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevi
 	return true;
 }
 
-bool UGameEngine::HandleMovieCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FString MovieCmd = FParse::Token(Cmd,0);
-	if( MovieCmd.Contains(TEXT("PLAY")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Play();
-		}
-	}
-	else if( MovieCmd.Contains(TEXT("PAUSE")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Pause();
-		}
-	}
-	else if( MovieCmd.Contains(TEXT("STOP")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Stop();
-		}
-	}
-	return true;
-}
 
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {

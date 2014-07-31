@@ -122,7 +122,6 @@
 #include "Materials/MaterialExpressionAntialiasedTextureMask.h"
 #include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
 #include "Materials/MaterialExpressionTextureSampleParameterCube.h"
-#include "Materials/MaterialExpressionTextureSampleParameterMovie.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionTransform.h"
@@ -1819,48 +1818,6 @@ const TCHAR* UMaterialExpressionTextureSampleParameterCube::GetRequirements()
 void UMaterialExpressionTextureSampleParameterCube::SetDefaultTexture()
 {
 	Texture = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EngineResources/DefaultTextureCube.DefaultTextureCube"), NULL, LOAD_None, NULL);
-}
-
-UMaterialExpressionTextureSampleParameterMovie::UMaterialExpressionTextureSampleParameterMovie(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FString NAME_Texture;
-		FString NAME_Parameters;
-		FConstructorStatics()
-			: NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-	MenuCategories.Empty();
-	MenuCategories.Add(ConstructorStatics.NAME_Texture);
-	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
-}
-
-void UMaterialExpressionTextureSampleParameterMovie::GetCaption(TArray<FString>& OutCaptions) const
-{
-	OutCaptions.Add(TEXT("ParamMovie")); 
-	OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString()));
-}
-
-bool UMaterialExpressionTextureSampleParameterMovie::TextureIsValid( UTexture* InTexture )
-{
-	bool Result=false;
-	if (InTexture)
-	{
-		Result = (InTexture->GetClass() == UTextureMovie::StaticClass());
-	}
-	return Result;
-}
-
-const TCHAR* UMaterialExpressionTextureSampleParameterMovie::GetRequirements()
-{
-	return TEXT("Requires TextureMovie");
 }
 
 /** 
