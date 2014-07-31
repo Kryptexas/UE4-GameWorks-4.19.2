@@ -23,6 +23,7 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
+                "Media",
                 "MoviePlayer",
 				"Networking",
 				"PakFile",
