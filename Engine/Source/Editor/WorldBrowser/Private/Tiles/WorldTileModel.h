@@ -75,7 +75,6 @@ public:
 	virtual void Update() override;
 	virtual void LoadLevel() override;
 	virtual void SetVisible(bool bVisible) override;
-	virtual bool HitTest2D(const FVector2D& Point) const override;
 	virtual FVector2D GetLevelPosition2D() const override;
 	virtual FVector2D GetLevelSize2D() const override;
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;

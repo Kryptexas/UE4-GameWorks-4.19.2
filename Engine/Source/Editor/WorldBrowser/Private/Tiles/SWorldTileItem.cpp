@@ -439,21 +439,8 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 
 FReply SWorldTileItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (OnHitTest(InMyGeometry, InMouseEvent.GetScreenSpacePosition()))
-	{
-		TileModel->MakeLevelCurrent();
-		return FReply::Handled();
-	}
-	
-	return FReply::Unhandled();
-}
-
-bool SWorldTileItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
-{
-	FVector2D CursorOffset = (InAbsoluteCursorPosition - MyGeometry.AbsolutePosition)/MyGeometry.Scale;
-	FVector2D LevelPos = TileModel->GetLevelPosition2D();
-	FVector2D CursorWorldPos = LevelPos + CursorOffset;
-	return TileModel->HitTest2D(CursorWorldPos);
+	TileModel->MakeLevelCurrent();
+	return FReply::Handled();
 }
 
 FString SWorldTileItem::GetLevelNameText() const

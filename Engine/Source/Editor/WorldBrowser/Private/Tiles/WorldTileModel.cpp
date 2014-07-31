@@ -120,32 +120,6 @@ FName FWorldTileModel::GetLongPackageName() const
 	return TileDetails->PackageName;
 }
 
-bool FWorldTileModel::HitTest2D(const FVector2D& Point) const
-{
-	if (0 && IsLandscapeBased())
-	{
-		FVector2D LandscapePos = GetLevelCurrentPosition() - FVector2D(TileDetails->Bounds.GetExtent());
-
-		for (int32 CompIndex = 0; CompIndex < LandscapeComponentsXY.Num(); ++CompIndex)
-		{
-			const FIntPoint& CompCoords = LandscapeComponentsXY[CompIndex];
-			FVector2D Min = LandscapePos + LandscapeComponentSize*FVector2D(CompCoords);
-			FVector2D Max = Min + LandscapeComponentSize;
-
-			if ((Point.X > Min.X) && (Point.X < Max.X) && (Point.Y > Min.Y) && (Point.Y < Max.Y))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
 FVector2D FWorldTileModel::GetLevelPosition2D() const
 {
 	if (TileDetails->Bounds.IsValid)
