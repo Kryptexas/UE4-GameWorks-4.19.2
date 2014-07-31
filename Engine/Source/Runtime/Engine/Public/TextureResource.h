@@ -546,19 +546,22 @@ private:
 class FDeferredUpdateResource
 {
 public:
+
 	/**
 	 * Constructor, initializing UpdateListLink.
 	 */
 	FDeferredUpdateResource()
 		:	UpdateListLink(NULL)
 		,	bOnlyUpdateOnce(false)
-	{}
+	{ }
+
+public:
 
 	/**
 	 * Iterate over the global list of resources that need to
 	 * be updated and call UpdateResource on each one.
 	 */
-	ENGINE_API static void UpdateResources(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API static void UpdateResources( FRHICommandListImmediate& RHICmdList );
 
 	/** 
 	 * This is reset after all viewports have been rendered
@@ -568,27 +571,26 @@ public:
 		bNeedsUpdate = true;
 	}
 
-	// FDeferredUpdateResource interface
-
 protected:
 
 	/**
 	* Updates the resource
 	*/
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) = 0;
+	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList ) = 0;
 
 	/**
 	 * Add this resource to deferred update list
 	 * @param OnlyUpdateOnce - flag this resource for a single update if true
 	 */
-	void AddToDeferredUpdateList( bool OnlyUpdateOnce );
+	ENGINE_API void AddToDeferredUpdateList( bool OnlyUpdateOnce );
 
 	/**
 	 * Remove this resource from deferred update list
 	 */
-	void RemoveFromDeferredUpdateList();
+	ENGINE_API void RemoveFromDeferredUpdateList();
 
 private:
+
 	/** 
 	 * Resources can be added to this list if they need a deferred update during scene rendering.
 	 * @return global list of resource that need to be updated. 
