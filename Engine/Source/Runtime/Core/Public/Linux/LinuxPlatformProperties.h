@@ -97,7 +97,6 @@ struct FLinuxPlatformProperties
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
 		return !IS_DEDICATED_SERVER;
-		return true;
 	}
 
 	static FORCEINLINE bool AllowsFramerateSmoothing()

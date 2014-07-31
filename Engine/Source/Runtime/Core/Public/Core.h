@@ -27,6 +27,17 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 #include "UnrealTemplate.h"						// Common template definitions.
 #include "MemoryOps.h"							// Functions for efficient handling of object arrays.
 
+#ifndef STUBBED
+#define STUBBED(x)   \
+    do {                                                                  \
+        static bool AlreadySeenThisStubbedSection = false;                 \
+        if (!AlreadySeenThisStubbedSection)                               \
+        {                                                                 \
+            AlreadySeenThisStubbedSection = true;                         \
+            fprintf(stderr, "STUBBED: %s at %s:%d (%s)\n", x, __FILE__, __LINE__, __FUNCTION__); \
+        }                                                                 \
+    } while (0)
+#endif
 
 /*----------------------------------------------------------------------------
 	Forward declarations.

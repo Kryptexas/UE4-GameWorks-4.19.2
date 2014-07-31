@@ -95,8 +95,10 @@ public:
 			else
 			{
 				char InputText[256];
-				fgets( InputText, sizeof(InputText), stdin );
-				return (InputText[0]=='Y' || InputText[0]=='y');
+				if (fgets( InputText, sizeof(InputText), stdin ) != NULL)
+				{
+					return (InputText[0]=='Y' || InputText[0]=='y');
+				}
 			}
 		}
 		return true;
