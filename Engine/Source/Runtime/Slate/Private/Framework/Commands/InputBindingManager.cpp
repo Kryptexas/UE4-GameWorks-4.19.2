@@ -82,6 +82,7 @@ void FUserDefinedGestures::LoadGestures()
 					const TSharedPtr<FJsonValue> CtrlObj = GestureInfoObj->Values.FindRef( TEXT("Control") );
 					const TSharedPtr<FJsonValue> AltObj = GestureInfoObj->Values.FindRef( TEXT("Alt") );
 					const TSharedPtr<FJsonValue> ShiftObj = GestureInfoObj->Values.FindRef( TEXT("Shift") );
+					const TSharedPtr<FJsonValue> CmdObj = GestureInfoObj->Values.FindRef( TEXT("Command") );
 					const TSharedPtr<FJsonValue> KeyObj = GestureInfoObj->Values.FindRef( TEXT("Key") );
 
 					const FName BindingContext = *BindingContextObj->AsString();
@@ -93,6 +94,7 @@ void FUserDefinedGestures::LoadGestures()
 					UserDefinedGesture.bCtrl = CtrlObj->AsBool();
 					UserDefinedGesture.bAlt = AltObj->AsBool();
 					UserDefinedGesture.bShift = ShiftObj->AsBool();
+					UserDefinedGesture.bCmd = CmdObj->AsBool();
 					UserDefinedGesture.Key = *KeyObj->AsString();
 				}
 			}
@@ -136,6 +138,7 @@ void FUserDefinedGestures::LoadGestures()
 						const TSharedPtr<FJsonValue> CtrlObj = CommandObj->Values.FindRef( TEXT("Control") );
 						const TSharedPtr<FJsonValue> AltObj = CommandObj->Values.FindRef( TEXT("Alt") );
 						const TSharedPtr<FJsonValue> ShiftObj = CommandObj->Values.FindRef( TEXT("Shift") );
+						const TSharedPtr<FJsonValue> CmdObj = CommandObj->Values.FindRef( TEXT("Command") );
 						const TSharedPtr<FJsonValue> KeyObj = CommandObj->Values.FindRef( TEXT("Key") );
 
 						const FUserDefinedGestureKey GestureKey(BindingContext, CommandName);
@@ -144,6 +147,7 @@ void FUserDefinedGestures::LoadGestures()
 						UserDefinedGesture.bCtrl = CtrlObj->AsBool();
 						UserDefinedGesture.bAlt = AltObj->AsBool();
 						UserDefinedGesture.bShift = ShiftObj->AsBool();
+						UserDefinedGesture.bCmd = CmdObj->AsBool();
 						UserDefinedGesture.Key = *KeyObj->AsString();
 					}
 				}
@@ -169,6 +173,7 @@ void FUserDefinedGestures::SaveGestures() const
 			GestureInfoObj->Values.Add( TEXT("Control"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bCtrl ) ) );
 			GestureInfoObj->Values.Add( TEXT("Alt"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bAlt ) ) );
 			GestureInfoObj->Values.Add( TEXT("Shift"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bShift ) ) );
+			GestureInfoObj->Values.Add( TEXT("Command"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bCmd ) ) );
 			GestureInfoObj->Values.Add( TEXT("Key"), MakeShareable( new FJsonValueString( GestureInfo.Value.Key.ToString() ) ) );
 
 			auto JsonWriter = TJsonWriterFactory< TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create( &GestureRawJsonContent );

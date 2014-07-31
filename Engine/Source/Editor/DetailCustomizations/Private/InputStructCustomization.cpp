@@ -59,6 +59,7 @@ void FInputActionMappingCustomization::CustomizeChildren( TSharedRef<class IProp
 	TSharedPtr<IPropertyHandle> ShiftHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, bShift));
 	TSharedPtr<IPropertyHandle> CtrlHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, bCtrl));
 	TSharedPtr<IPropertyHandle> AltHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, bAlt));
+	TSharedPtr<IPropertyHandle> CmdHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, bCmd));
 
 	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FInputActionMappingCustomization::RemoveActionMappingButton_OnClick),
 		LOCTEXT("RemoveActionMappingToolTip", "Removes Action Mapping"));
@@ -123,6 +124,22 @@ void FInputActionMappingCustomization::CustomizeChildren( TSharedRef<class IProp
 		.AutoWidth()
 		[
 			AltHandle->CreatePropertyValueWidget()
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(InputConstants::PropertyPadding)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			CmdHandle->CreatePropertyNameWidget()
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(InputConstants::PropertyPadding)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			CmdHandle->CreatePropertyValueWidget()
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(InputConstants::PropertyPadding)

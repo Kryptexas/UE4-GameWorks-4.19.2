@@ -186,7 +186,7 @@ bool FUICommandList::IsChecked( const TSharedRef< const FUICommandInfo > InUICom
  */
 bool FUICommandList::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const 
 {
-	return ConditionalProcessCommandBindings( InKeyboardEvent.GetKey(), InKeyboardEvent.IsControlDown(), InKeyboardEvent.IsAltDown(), InKeyboardEvent.IsShiftDown(), InKeyboardEvent.IsRepeat() );
+	return ConditionalProcessCommandBindings( InKeyboardEvent.GetKey(), InKeyboardEvent.IsControlDown(), InKeyboardEvent.IsAltDown(), InKeyboardEvent.IsShiftDown(), InKeyboardEvent.IsCommandDown(), InKeyboardEvent.IsRepeat() );
 }
 
 
@@ -200,7 +200,7 @@ bool FUICommandList::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEve
  */
 bool FUICommandList::ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const
 {
-	return ConditionalProcessCommandBindings( InMouseEvent.GetEffectingButton(), InMouseEvent.IsControlDown(), InMouseEvent.IsAltDown(), InMouseEvent.IsShiftDown(), InMouseEvent.IsRepeat() );
+	return ConditionalProcessCommandBindings( InMouseEvent.GetEffectingButton(), InMouseEvent.IsControlDown(), InMouseEvent.IsAltDown(), InMouseEvent.IsShiftDown(), InMouseEvent.IsCommandDown(), InMouseEvent.IsRepeat() );
 }
 
 
@@ -220,6 +220,7 @@ bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeys
 		ModifierKeysState.IsControlDown(),
 		ModifierKeysState.IsAltDown(),
 		ModifierKeysState.IsShiftDown(),
+		ModifierKeysState.IsCommandDown(),
 		bRepeat );
 }
 
@@ -238,7 +239,7 @@ bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeys
  * @param bRepeat	True if command is repeating (held)
  * @return True if a command was executed, False otherwise
  */
-bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCtrl, bool bAlt, bool bShift, bool bRepeat ) const
+bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCtrl, bool bAlt, bool bShift, bool bCmd, bool bRepeat ) const
 {
 	if ( !bRepeat && !FSlateApplication::Get().IsDragDropping() )
 	{
@@ -246,6 +247,7 @@ bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCt
 		CheckGesture.bCtrl = bCtrl;
 		CheckGesture.bAlt = bAlt;
 		CheckGesture.bShift = bShift;
+		CheckGesture.bCmd = bCmd;
 
 		if( CheckGesture.IsValidGesture() )
 		{
