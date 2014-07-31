@@ -143,7 +143,7 @@ public:
 		VERIFY_GL_SCOPE();
 		if (Resource != 0 && BaseType::OnDelete(Resource,RealSize,bStreamDraw,0))
 		{
-			glDeleteBuffers(1, &Resource);
+			FOpenGL::DeleteBuffers(1, &Resource);
 			DecrementBufferMemory(Type, BaseType::IsStructuredBuffer(), RealSize);
 		}
 		if (LockBuffer != NULL)

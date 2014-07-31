@@ -333,6 +333,16 @@ struct FOpenGLES2 : public FOpenGLBase
 	{
 		glGenTextures( n, textures);
 	}
+	
+	static FORCEINLINE void DeleteBuffers(GLsizei Number, const GLuint* Buffers)
+	{
+		glDeleteBuffers(Number, Buffers);
+	}
+	
+	static FORCEINLINE void DeleteTextures(GLsizei Number, const GLuint* Textures)
+	{
+		glDeleteTextures(Number, Textures);
+	}
 
 protected:
 	/** GL_OES_vertex_array_object */

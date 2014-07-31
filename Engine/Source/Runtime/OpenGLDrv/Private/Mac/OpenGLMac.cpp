@@ -34,6 +34,26 @@ static FAutoConsoleVariableRef CVarMacUseMTGL(
 	ECVF_RenderThreadSafe
 	);
 
+static int32 GMacMinTexturesToDeletePerFrame = 8;
+static FAutoConsoleVariableRef CVarMacMinTexturesToDeletePerFrame(
+	TEXT("r.Mac.MinTexturesToDeletePerFrame"),
+	GMacMinTexturesToDeletePerFrame,
+	TEXT("Specifies how many textures are required to be waiting before a call to glDeleteTextures is made in order to amortize the cost. (Default: 8)"),
+	ECVF_RenderThreadSafe
+	);
+
+static int32 GMacMaxTexturesToDeletePerFrame = INT_MAX;
+static FAutoConsoleVariableRef CVarMacMaxTexturesToDeletePerFrame(
+	TEXT("r.Mac.MaxTexturesToDeletePerFrame"),
+	GMacMaxTexturesToDeletePerFrame,
+	TEXT("Specifies the maximum number of textures that can be deleted in the single call to glDeleteTextures each frame. (Default: INT_MAX)"),
+	ECVF_RenderThreadSafe
+	);
+
+static const uint32 GMacTexturePoolNum = 3;
+static TArray<GLuint> GMacTexturesToDelete[GMacTexturePoolNum];
+static TArray<GLuint> GMacBuffers;
+
 bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
 static bool GIsEmulatingTimestamp = false; // @todo: Now crashing on Nvidia cards, but not on AMD...
 
@@ -464,6 +484,18 @@ struct FPlatformOpenGLDevice
 			
 			glDeleteTextures(1, &SharedContextCompositeTexture);
 			
+			for(uint32 i = 0; i < GMacTexturePoolNum; i++)
+			{
+				if(GMacTexturesToDelete[i].Num())
+				{
+					glDeleteTextures(GMacTexturesToDelete[i].Num(), GMacTexturesToDelete[i].GetData());
+					GMacTexturesToDelete[i].Reset();
+				}
+			}
+			
+			glDeleteBuffers(GMacBuffers.Num(), GMacBuffers.GetData());
+			GMacBuffers.Reset();
+			
 			if(GIsEmulatingTimestamp)
 			{
 				SharedContext.RunningQueries.Empty();
@@ -809,7 +841,14 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 				}
 				
 				[Context->OpenGLContext flushBuffer];
-
+				
+				TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[(GFrameNumberRenderThread - (GMacTexturePoolNum - 1)) % GMacTexturePoolNum];
+				if(TexturesToDelete.Num() && TexturesToDelete.Num() > GMacMinTexturesToDeletePerFrame)
+				{
+					uint32 Num = FMath::Min(TexturesToDelete.Num(), GMacMaxTexturesToDeletePerFrame);
+					glDeleteTextures(Num, TexturesToDelete.GetData());
+					TexturesToDelete.RemoveAt(0, Num, false);
+				}
 				
 				glEnable(GL_FRAMEBUFFER_SRGB);
 				
@@ -1814,3 +1853,58 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 	// @todo There is a bug in Apple's GL with TexStorage calls, on Nvidia and when using MTGL that can see the texture never be created, which then subsequently causes crashes
 	return GMacMustFlushTexStorage || GMacUseMTGL;
 }
+
+void FMacOpenGL::GenBuffers( GLsizei n, GLuint *buffers)
+{
+#if USE_OPENGL_NAME_CACHE
+	if( n < GMacBuffers.Num() )
+	{
+		FMemory::Memcpy( buffers, GMacBuffers.GetData(), sizeof(GLuint)*n);
+		GMacBuffers.RemoveAt(0, n, false);
+	}
+	else if(n < OPENGL_NAME_CACHE_SIZE)
+	{
+		GLsizei Leftover = GMacBuffers.Num();
+		if(Leftover)
+		{
+			FMemory::Memcpy( buffers, GMacBuffers.GetData(), sizeof(GLuint)*Leftover);
+			GMacBuffers.RemoveAt(0, Leftover, false);
+		}
+		
+		GMacBuffers.Reserve(OPENGL_NAME_CACHE_SIZE);
+		GLuint Buffer[OPENGL_NAME_CACHE_SIZE] = {0};
+		glGenBuffers( OPENGL_NAME_CACHE_SIZE, Buffer);
+		GMacBuffers.Append(Buffer, OPENGL_NAME_CACHE_SIZE);
+		
+		n -= Leftover;
+		buffers += Leftover;
+		
+		FMemory::Memcpy( buffers, GMacBuffers.GetData(), sizeof(GLuint)*n);
+		GMacBuffers.RemoveAt(0, n, false);
+	}
+	else
+	{
+		glGenBuffers(n, buffers);
+	}
+#else
+	glGenBuffers( n, buffers);
+#endif
+}
+
+void FMacOpenGL::DeleteBuffers(GLsizei Number, const GLuint* Buffers)
+{
+	for(uint32 i = 0; i < Number; i++)
+	{
+		glBindBuffer(GL_COPY_WRITE_BUFFER, Buffers[i]);
+		glBufferData(GL_COPY_WRITE_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+		GMacBuffers.Add(Buffers[i]);
+	}
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
+{
+	TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[GFrameNumberRenderThread % GMacTexturePoolNum];
+	TexturesToDelete.Append(Textures, Number);
+}
+

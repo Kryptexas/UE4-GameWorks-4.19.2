@@ -811,7 +811,7 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 	glBindTexture(GL_TEXTURE_3D, (TextureState.Target == GL_TEXTURE_3D) ? TextureState.Resource : 0);
 	glActiveTexture( GL_TEXTURE0 + ContextState.ActiveTexture );
 	glDeleteFramebuffers( 1, &SourceFramebuffer);
-	glDeleteTextures( 1, &TempTexture );
+	FOpenGL::DeleteTextures( 1, &TempTexture );
 	ContextState.Framebuffer = (GLuint)-1;
 }
 

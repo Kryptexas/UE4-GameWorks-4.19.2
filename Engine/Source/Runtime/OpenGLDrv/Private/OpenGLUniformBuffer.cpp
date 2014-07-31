@@ -228,7 +228,7 @@ void BeginFrame_UniformBufferPoolCleanup()
 					}
 					else
 					{
-						glDeleteBuffers( 1, &PoolEntry.Buffer );
+						FOpenGL::DeleteBuffers( 1, &PoolEntry.Buffer );
 					}
 					GLUniformBufferPool[BucketIndex][StreamedIndex].RemoveAtSwap(EntryIndex);
 
@@ -381,7 +381,7 @@ FOpenGLUniformBuffer::~FOpenGLUniformBuffer()
 		}
 		else
 		{
-			glDeleteBuffers(1, &Resource);
+			FOpenGL::DeleteBuffers(1, &Resource);
 			DecrementBufferMemory(GL_UNIFORM_BUFFER, /*bIsStructuredBuffer=*/ false, AllocatedSize);
 		}
 	}

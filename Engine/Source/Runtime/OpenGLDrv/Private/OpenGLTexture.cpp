@@ -1385,7 +1385,7 @@ TOpenGLTexture<RHIResourceType>::~TOpenGLTexture()
 	if( Resource != 0 )
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
-		glDeleteTextures( 1, &Resource );
+		FOpenGL::DeleteTextures( 1, &Resource );
 	}
 	
 	if(TextureRange)

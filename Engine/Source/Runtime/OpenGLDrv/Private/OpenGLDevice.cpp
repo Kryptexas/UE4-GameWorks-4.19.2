@@ -1092,7 +1092,7 @@ void FOpenGLDynamicRHI::Cleanup()
 	// Release zero-filled dummy uniform buffer, if it exists.
 	if (PendingState.ZeroFilledDummyUniformBuffer)
 	{
-		glDeleteBuffers(1, &PendingState.ZeroFilledDummyUniformBuffer);
+		FOpenGL::DeleteBuffers(1, &PendingState.ZeroFilledDummyUniformBuffer);
 		PendingState.ZeroFilledDummyUniformBuffer = 0;
 		DecrementBufferMemory(GL_UNIFORM_BUFFER, false, ZERO_FILLED_DUMMY_UNIFORM_BUFFER_SIZE);
 	}
