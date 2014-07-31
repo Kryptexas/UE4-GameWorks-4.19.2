@@ -6,7 +6,7 @@
 #pragma once
 #include "DocumentationActor.generated.h"
 
-UCLASS(hidecategories = (Actor, Transform, Tags, Materials, StaticMesh, Rendering, Components, Blueprint, StaticMeshActor, Object, Collision, Display, Rendering, Physics, Input, Lighting, Layers))
+UCLASS(hidecategories = (Sprite, MaterialSprite, Actor, Transform, Tags, Materials, Rendering, Components, Blueprint, bject, Collision, Display, Rendering, Physics, Input, Lighting, Layers))
 class ENGINE_API ADocumentationActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -22,8 +22,9 @@ class ENGINE_API ADocumentationActor : public AActor
 	UPROPERTY(Category = HelpDocumentation, EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	FString DocumentLink; 
 	
-	UPROPERTY(Category = StaticMeshActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UStaticMeshComponent> StaticMeshComponent;
+ 	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly)
+	TSubobjectPtr<class UMaterialBillboardComponent> Billboard;
+
 #endif
 
 };

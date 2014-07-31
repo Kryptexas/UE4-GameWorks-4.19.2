@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "Engine/DocumentationActor.h"
-
 #if WITH_EDITORONLY_DATA
+#include "Components/MaterialBillboardComponent.h"
 #include "IDocumentation.h"
 #endif
 
@@ -16,14 +16,11 @@ ADocumentationActor::ADocumentationActor(const class FPostConstructInitializePro
 	RootComponent = SceneComponent;	
 
 #if WITH_EDITORONLY_DATA
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> DocuemtMesh(TEXT("/Engine/EditorMeshes/EditorHelp"));
-	
-	// Create a mesh to represent our actor
-	StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("MeshComponent"));
-	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	StaticMeshComponent->bGenerateOverlapEvents = false;
-	StaticMeshComponent->AttachParent = RootComponent;		
-	StaticMeshComponent->SetStaticMesh(DocuemtMesh.Object);
+ 	static ConstructorHelpers::FObjectFinder<UMaterial> MaterialAsset(TEXT("/Engine/EditorMaterials/HelpActorMaterial.HelpActorMaterial"));
+ 	// Create a Material billboard to represent our actor
+	Billboard = PCIP.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
+	Billboard->AddElement(MaterialAsset.Object, nullptr, false, 32.0f, 32.0f, nullptr);
+	Billboard->AttachParent = RootComponent;
 #endif //WITH_EDITORONLY_DATA
 }
 
@@ -47,5 +44,5 @@ bool ADocumentationActor::HasValidDocumentLink() const
 #endif // WITH_EDITORONLY_DATA
 
 	return bDocumentValid;
-	
 }
+
