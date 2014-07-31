@@ -172,6 +172,10 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	{
 		TextureFormatName = NameDXT5;
 	}
+	else if (Texture->CompressionSettings == TC_DistanceFieldFont)
+	{
+		TextureFormatName = NameG8;
+	}
 	else if (Texture->CompressionNoAlpha)
 	{
 		TextureFormatName = NameDXT1;
