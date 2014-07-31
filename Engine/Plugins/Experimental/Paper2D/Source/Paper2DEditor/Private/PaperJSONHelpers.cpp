@@ -126,6 +126,28 @@ bool FPaperJSONHelpers::ReadSize(const TSharedPtr<class FJsonObject> Item, const
 	}
 }
 
+bool FPaperJSONHelpers::ReadXY(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_XY)
+{
+	const TSharedPtr<FJsonObject> Struct = ReadObject(Item, Key);
+	if (Struct.IsValid())
+	{
+		if (ReadFloatNoDefault(Struct, TEXT("x"), /*out*/ Out_XY.X) &&
+			ReadFloatNoDefault(Struct, TEXT("y"), /*out*/ Out_XY.Y))
+		{
+			return true;
+		}
+		else
+		{
+			Out_XY = FVector2D::ZeroVector;
+			return false;
+		}
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool FPaperJSONHelpers::ReadIntPoint(const TSharedPtr<class FJsonObject> Item, const FString& Key, FIntPoint& Out_XY)
 {
 	const TSharedPtr<FJsonObject> Struct = ReadObject(Item, Key);

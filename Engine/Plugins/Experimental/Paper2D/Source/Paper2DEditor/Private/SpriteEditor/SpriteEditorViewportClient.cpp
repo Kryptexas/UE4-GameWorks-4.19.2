@@ -126,6 +126,21 @@ FVector FSpriteEditorViewportClient::TextureSpaceToWorldSpace(const FVector2D& S
 	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
 }
 
+FVector2D FSpriteEditorViewportClient::SourceTextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const
+{
+	const FVector WorldSpacePoint = SourceTextureSpaceToWorldSpace(SourcePoint);
+
+	FVector2D PixelLocation;
+	View.WorldToPixel(WorldSpacePoint, /*out*/ PixelLocation);
+	return PixelLocation;
+}
+
+FVector FSpriteEditorViewportClient::SourceTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
+{
+	UPaperSprite* Sprite = SourceTextureViewComponent->GetSprite();
+	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
+}
+
 void FSpriteEditorViewportClient::DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles)
 {
 	// Draw the collision data (non-interactive)
@@ -174,10 +189,10 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
     const bool bDrawCornerHitProxies = true;
 
 	FVector2D BoundsVertices[4];
-	BoundsVertices[0] = TextureSpaceToScreenSpace(View, Sprite->SourceUV);
-	BoundsVertices[1] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, 0));
-	BoundsVertices[2] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, Sprite->SourceDimension.Y));
-	BoundsVertices[3] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(0, Sprite->SourceDimension.Y));
+	BoundsVertices[0] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV);
+	BoundsVertices[1] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, 0));
+	BoundsVertices[2] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, Sprite->SourceDimension.Y));
+	BoundsVertices[3] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(0, Sprite->SourceDimension.Y));
 	for (int32 VertexIndex = 0; VertexIndex < 4; ++VertexIndex)
 	{
 		const int32 NextVertexIndex = (VertexIndex + 1) % 4;
@@ -644,7 +659,9 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 {
 	FEditorViewportClient::Draw(View, PDI);
 
-	if (bShowPivot)
+	// We don't draw the pivot when showing the source region
+	// The pivot may be outside the actual texture bounds there
+	if (bShowPivot && !bShowSourceTexture && CurrentMode != ESpriteEditorMode::EditSourceRegionMode)
 	{
 		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate);
 	}
@@ -679,6 +696,13 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		{
 			bDeferZoomToSprite = true;
 			SourceTextureViewComponent->SetVisibility(bSourceTextureViewComponentVisibility);
+		}
+
+		bool bRenderTextureViewComponentVisibility = !bSourceTextureViewComponentVisibility;
+		if (bRenderTextureViewComponentVisibility != RenderSpriteComponent->IsVisible())
+		{
+			bDeferZoomToSprite = true;
+			RenderSpriteComponent->SetVisibility(bRenderTextureViewComponentVisibility);
 		}
 
 		// Zoom in on the sprite
@@ -757,7 +781,7 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 		{
 			FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
 			UPaperSprite* Sprite = GetSpriteBeingEdited();
-			FVector2D TexturePoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
+			FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
 			Sprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
 		}
 

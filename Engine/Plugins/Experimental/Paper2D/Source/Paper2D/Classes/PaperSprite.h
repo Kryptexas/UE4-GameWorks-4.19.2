@@ -58,6 +58,23 @@ protected:
 	// Position within BakedSourceTexture
 	UPROPERTY()
 	FVector2D BakedSourceUV;
+
+
+	// Origin within SourceImage, prior to atlasing
+	UPROPERTY()
+	FVector2D OriginInSourceImage;
+
+	// Dimensions of SourceImage
+	UPROPERTY()
+	FVector2D SourceImageDimension;
+
+	// This texture is trimmed, consider the values above
+	UPROPERTY()
+	bool bTrimmed;
+
+	// This texture is rotated in the atlas
+	UPROPERTY()
+	bool bRotated;
 #endif
 
 	// The source texture that the sprite comes from
@@ -152,6 +169,7 @@ public:
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
 	FVector ConvertPivotSpaceToTextureSpace(FVector Input) const;
 	FVector2D ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const;
+	FVector2D ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldDelta) const;
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
@@ -186,6 +204,10 @@ public:
 	void InitializeSprite(UTexture2D* Texture);
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension);
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnit);
+
+	void SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension);
+	void SetRotated(bool bRotated);
+	void SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot);
 
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }

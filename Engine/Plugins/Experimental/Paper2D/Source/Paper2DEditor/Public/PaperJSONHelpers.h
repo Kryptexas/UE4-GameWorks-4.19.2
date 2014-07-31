@@ -32,6 +32,9 @@ public:
 	// Returns true if the object named Key is a struct containing two floats (w,h), populating WH with the values)
 	static bool ReadSize(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_WH);
 
+	// Returns true if the object named Key is a struct containing two floats (x,y), populating WH with the values)
+	static bool ReadXY(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_WH);
+
 	// Returns true if the object named Key is a struct containing two floats (x,y), populating XY with the values)
 	static bool ReadIntPoint(const TSharedPtr<class FJsonObject> Item, const FString& Key, FIntPoint& Out_XY);
 

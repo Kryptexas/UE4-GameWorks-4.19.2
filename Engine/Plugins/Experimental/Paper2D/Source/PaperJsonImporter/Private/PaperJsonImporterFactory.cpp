@@ -24,6 +24,8 @@ struct FSpriteFrame
 
 	FVector2D ImageSourceSize;
 
+	FVector2D Pivot;
+
 	bool bTrimmed;
 	bool bRotated;
 };
@@ -42,6 +44,7 @@ UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FPostConstructInitial
 	bText = true;
 
 	Formats.Add(TEXT("json;Spritesheet JSON file"));
+	Formats.Add(TEXT("paper2dsprites;Spritesheet JSON file"));
 }
 
 FText UPaperJsonImporterFactory::GetToolTip() const
@@ -57,17 +60,11 @@ static bool ParseFrame(TSharedPtr<FJsonObject> &FrameData, FSpriteFrame &OutFram
 	//   "rotated": false,
 	//   "trimmed": true,
 	//   "spriteSourceSize": {"x":0,"y":11,"w":216,"h":240},
-	//   "sourceSize": {"w":216,"h":240}
+	//   "sourceSize": {"w":216,"h":240},	
+	//   "pivot": {"x":0.5,"y":0.5}			[optional]
 
 	OutFrame.bRotated = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("rotated"), false);
 	OutFrame.bTrimmed = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("trimmed"), false);
-
-	// Put this warning back in until rotation / trim support is implemented
-	if (OutFrame.bRotated || !OutFrame.bTrimmed)
-	{
-		//@TODO: Should learn how to support this combo
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is either rotated or not trimmed, which may not be handled correctly"), *OutFrame.FrameName.ToString());
-	}
 
 	bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadRectangle(FrameData, "frame", /*out*/ OutFrame.SpritePosInSheet, /*out*/ OutFrame.SpriteSizeInSheet);
 
@@ -83,12 +80,26 @@ static bool ParseFrame(TSharedPtr<FJsonObject> &FrameData, FSpriteFrame &OutFram
 		OutFrame.ImageSourceSize = OutFrame.SpriteSizeInSheet;
 	}
 
+	if (!FPaperJSONHelpers::ReadXY(FrameData, "pivot", /*out*/ OutFrame.Pivot))
+	{
+		OutFrame.Pivot.X = 0.5f;
+		OutFrame.Pivot.Y = 0.5f;
+	}
+
 	// A few more prerequisites to sort out before rotation can be enabled
-	//if (OutFrame.bRotated)
-	//{
-	//	// We rotate the sprite 90 deg CCW
-	//	Swap(OutFrame.SpriteSizeInSheet.X, OutFrame.SpriteSizeInSheet.Y);
-	//}
+	if (OutFrame.bRotated)
+	{
+		// Sprite Source Pos is from top left, our pivot when rotated is bottom left
+		OutFrame.SpriteSourcePos.Y = OutFrame.ImageSourceSize.Y - OutFrame.SpriteSourcePos.Y - OutFrame.SpriteSizeInSheet.Y;
+
+		// We rotate final sprite geometry 90 deg CCW to fixup
+		// These need to be swapped to be valid in texture space.
+		Swap(OutFrame.SpriteSizeInSheet.X, OutFrame.SpriteSizeInSheet.Y);
+		Swap(OutFrame.ImageSourceSize.X, OutFrame.ImageSourceSize.Y);
+		
+		Swap(OutFrame.SpriteSourcePos.X, OutFrame.SpriteSourcePos.Y);
+		Swap(OutFrame.SpriteSourceSize.X, OutFrame.SpriteSourceSize.Y);
+	}
 
 	return bReadFrameSuccessfully;
 }
@@ -204,6 +215,51 @@ static bool ParseFramesFromSpriteArray(const TArray<TSharedPtr<FJsonValue>>& Arr
 
 	GWarn->EndSlowTask();
 	return bLoadedSuccessfully;
+}
+
+static ESpritePivotMode::Type GetBestPivotType(FVector2D JsonPivot)
+{
+	// Not assuming layout of ESpritePivotMode
+	if (JsonPivot.X == 0 && JsonPivot.Y == 0)
+	{
+		return ESpritePivotMode::Top_Left;
+	}
+	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 0)
+	{
+		return ESpritePivotMode::Top_Center;
+	}
+	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 0)
+	{
+		return ESpritePivotMode::Top_Right;
+	}
+	else if (JsonPivot.X == 0 && JsonPivot.Y == 0.5f)
+	{
+		return ESpritePivotMode::Center_Left;
+	}
+	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 0.5f)
+	{
+		return ESpritePivotMode::Center_Center;
+	}
+	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 0.5f)
+	{
+		return ESpritePivotMode::Center_Right;
+	}
+	else if (JsonPivot.X == 0 && JsonPivot.Y == 1.0f)
+	{
+		return ESpritePivotMode::Bottom_Left;
+	}
+	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 1.0f)
+	{
+		return ESpritePivotMode::Bottom_Center;
+	}
+	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 1.0f)
+	{
+		return ESpritePivotMode::Bottom_Right;
+	}
+	else
+	{
+		return ESpritePivotMode::Custom;
+	}
 }
 
 UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
@@ -388,12 +444,27 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 
 					TargetSprite->Modify();
 
-					// TargetSprite->InitializeSprite(ImportedTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit, Frame.bRotated);
 					TargetSprite->InitializeSprite(ImportedTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 
-					//@TODO: Need to support pivot behavior - Total guess at pivot behavior
-					//const FVector2D SizeDifference = Frame.SpriteSourceSize - Frame.SpriteSizeInSheet;
-					//TargetSprite->SpriteData.Destination = FVector(SizeDifference.X * -0.5f, 0.0f, SizeDifference.Y * -0.5f);
+					if (Frame.bRotated)
+					{
+						TargetSprite->SetRotated(true);
+					}
+
+					if (Frame.bTrimmed)
+					{
+						TargetSprite->SetTrim(Frame.bTrimmed, Frame.SpriteSourcePos, Frame.ImageSourceSize);
+					}
+
+					// Set up pivot on object based on Texture Packer json
+					ESpritePivotMode::Type PivotType = GetBestPivotType(Frame.Pivot);
+					FVector2D TextureSpacePivotPoint = FVector2D::ZeroVector;
+					if (PivotType == ESpritePivotMode::Custom)
+					{
+						TextureSpacePivotPoint.X = Frame.SpritePosInSheet.X - Frame.SpriteSourcePos.X + Frame.ImageSourceSize.X * Frame.Pivot.X;
+						TextureSpacePivotPoint.Y = Frame.SpritePosInSheet.Y - Frame.SpriteSourcePos.Y + Frame.ImageSourceSize.Y * Frame.Pivot.Y;
+					}
+					TargetSprite->SetPivot(PivotType, TextureSpacePivotPoint);
 
 					// Create the entry in the animation
 					FPaperFlipbookKeyFrame* DestFrame = new (EditLock.KeyFrames) FPaperFlipbookKeyFrame();
