@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorCommands.h: Declares the FTextureEditorCommands class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,7 +20,8 @@ public:
 
 public:
 
-	/** Initialize commands */
+	// TCommands interface
+
 	virtual void RegisterCommands() override;
 	
 public:

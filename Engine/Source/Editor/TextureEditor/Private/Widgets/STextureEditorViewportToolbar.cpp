@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	STextureEditorViewportToolbar.cpp: Implements the STextureEditorViewportToolbar class.
-=============================================================================*/
-
 #include "TextureEditorPrivatePCH.h"
+
 
 #define LOCTEXT_NAMESPACE "STextureEditorViewportToolbar"
 
@@ -24,6 +21,7 @@ void STextureEditorViewportToolbar::Construct( const FArguments& InArgs, const T
 			.AutoWidth()
 			[
 				SAssignNew(ViewOptionsMenuAnchor, SMenuAnchor)
+					.OnGetMenuContent(this, &STextureEditorViewportToolbar::GenerateViewOptionsMenu)
 					.Placement(MenuPlacement_ComboBox)
 					[
 						SNew(SButton)
@@ -51,7 +49,6 @@ void STextureEditorViewportToolbar::Construct( const FArguments& InArgs, const T
 									]
 							]
 					]
-					.OnGetMenuContent(this, &STextureEditorViewportToolbar::GenerateViewOptionsMenu)
 			]
 	];
 }
@@ -71,14 +68,13 @@ TSharedRef<SWidget> STextureEditorViewportToolbar::GenerateViewOptionsMenu( ) co
 
 FReply STextureEditorViewportToolbar::HandleViewOptionsMenuButtonClicked( )
 {
-	// If the menu button is clicked toggle the state of the menu anchor which will open or close the menu
 	if (ViewOptionsMenuAnchor->ShouldOpenDueToClick())
 	{
-		ViewOptionsMenuAnchor->SetIsOpen( true );
+		ViewOptionsMenuAnchor->SetIsOpen(true);
 	}
 	else
 	{
-		ViewOptionsMenuAnchor->SetIsOpen( false );
+		ViewOptionsMenuAnchor->SetIsOpen(false);
 	}
 
 	return FReply::Handled();

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	STextureEditorViewportToolbar.h: Declares the STextureEditorViewportToolbar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,10 +19,9 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
+	 * @param InArgs The construction arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<FUICommandList>& InToolkitCommands );
-
 
 protected:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorToolkit.h: Declares the FTextureEditorToolkit class.
-=============================================================================*/
-
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
@@ -29,156 +25,204 @@ public:
 	/**
 	 * Edits the specified Texture object.
 	 *
-	 * @param Mode -
-	 * @param InitToolkitHost -
-	 * @param ObjectToEdit -
+	 * @param Mode The tool kit mode.
+	 * @param InitToolkitHost 
+	 * @param ObjectToEdit The texture object to edit.
 	 */
-	void InitTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit );
+	void InitTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost, UObject* ObjectToEdit );
 
 public:
 
-	// Begin FAssetEditorToolkit interface
+	// FAssetEditorToolkit interface
 
+	virtual FString GetDocumentationLink( ) const override;
 	virtual void RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) override;
 	virtual void UnregisterTabSpawners( const TSharedRef<class FTabManager>& TabManager ) override;
 
-	virtual FString GetDocumentationLink() const override
-	{
-		return FString(TEXT("Engine/Content/Types/Textures/Properties/Interface"));
-	}
-
-	// End FAssetEditorToolkit interface
-
 public:
 
-	// Begin ITextureEditorToolkit interface
+	// ITextureEditorToolkit interface
 
 	virtual void CalculateTextureDimensions( uint32& Width, uint32& Height ) const override;
-
 	virtual ESimpleElementBlendMode GetColourChannelBlendMode( ) const override;
-
-	virtual int32 GetMipLevel( ) const override
-	{
-		return GetUseSpecifiedMip() ? SpecifiedMipLevel : 0;
-	}
-
-	virtual UTexture* GetTexture( ) const override
-	{
-		return Texture;
-	}
-
-	virtual void PopulateQuickInfo( ) override;
-	
-	// End ITextureEditorToolkit interface
-
-public:
-
-	// Begin IToolkit interface
-
-	virtual FText GetBaseToolkitName( ) const override;
-
-	virtual FName GetToolkitFName( ) const override
-	{
-		return FName("TextureEditor");
-	}
-
-	virtual FLinearColor GetWorldCentricTabColorScale( ) const override
-	{
-		return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
-	}
-
+	virtual bool GetFitToViewport( ) const override;
+	virtual int32 GetMipLevel( ) const override;
+	virtual UTexture* GetTexture( ) const override;
 	virtual bool GetUseSpecifiedMip( ) const override;
-
-	virtual FString GetWorldCentricTabPrefix( ) const override;
-
 	virtual double GetZoom( ) const override;
+	virtual void PopulateQuickInfo( ) override;
+	virtual void SetFitToViewport( const bool bFitToViewport ) override;
 	virtual void SetZoom( double ZoomValue ) override;
 	virtual void ZoomIn( ) override;
 	virtual void ZoomOut( ) override;
-	virtual bool GetFitToViewport( ) const override;
-	virtual void SetFitToViewport( const bool bFitToViewport ) override;
-
-	// End IToolkit interface
 
 public:
 
-	// Begin FGCObject interface
+	// IToolkit interface
+
+	virtual FText GetBaseToolkitName( ) const override;
+	virtual FName GetToolkitFName( ) const override;
+	virtual FLinearColor GetWorldCentricTabColorScale( ) const override;
+	virtual FString GetWorldCentricTabPrefix( ) const override;
+
+public:
+
+	// FGCObject interface
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-
-	// End FGCObject interface
 	
 protected:
 
-	// Begin FEditorUndoClient interface
+	// FEditorUndoClient interface
 
-	virtual void PostUndo(bool bSuccess) override { }
+	virtual void PostUndo( bool bSuccess ) override;
+	virtual void PostRedo( bool bSuccess ) override;
 
-	virtual void PostRedo(bool bSuccess) override
-	{
-		PostUndo(bSuccess);
-	}
-	
-	// End FEditorUndoClient interface
+protected:
+
+	/**
+     * Binds the UI commands to delegates.
+	 */
+	void BindCommands( );
+
+	/**
+	 * Creates the texture properties details widget.
+	 *
+	 * @return The widget.
+	 */
+	TSharedRef<SWidget> BuildTexturePropertiesWidget( );
+
+	/**
+	 * Calculates the effective in-game resolution of the texture.
+	 *
+	 * @param LODBias 
+	 * @param EffectiveTextureWidth 
+	 * @param EffectiveTextureHeight 
+	 */
+	void CalculateEffectiveTextureDimensions( int32 LODBias, uint32& EffectiveTextureWidth, uint32& EffectiveTextureHeight );
+
+	/**
+	 * Creates all internal widgets for the tabs to point at.
+	 */
+	void CreateInternalWidgets( );
+
+	/**
+	 * Builds the toolbar widget for the Texture editor.
+	 */
+	void ExtendToolBar( );
+
+	/**
+	 * Gets the highest mip map level that this texture supports.
+	 *
+	 * @return Mip map level.
+	 */
+	TOptional<int32> GetMaxMipLevel( ) const;
+
+	/**
+	 * Checks whether the texture being edited is a cube map texture.
+	 */
+	bool IsCubeTexture( ) const;
 
 private:
 
-	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
+	// Callback for toggling the Alpha channel action.
+	void HandleAlphaChannelActionExecute( );
 
-	/** Creates the texture properties details widget */
-	TSharedRef<SWidget> BuildTexturePropertiesWidget();
+	// Callback for getting the checked state of the Alpha channel action.
+	bool HandleAlphaChannelActionIsChecked( ) const;
 
-	/** Creates all internal widgets for the tabs to point at */
-	void CreateInternalWidgets();
+	// Callback for getting the enabled state of the Alpha channel action.
+	bool HandleAlphaChannelActionCanExecute( ) const;
 
-	/** Builds the toolbar widget for the Texture editor */
-	void ExtendToolBar();
+	// Callback for toggling the Blue channel action.
+	void HandleBlueChannelActionExecute( );
+
+	// Callback for getting the checked state of the Blue channel action.
+	bool HandleBlueChannelActionIsChecked( ) const;
+
+	// Callback for toggling the Checkered Background action.
+	void HandleCheckeredBackgroundActionExecute( ETextureEditorBackgrounds Background );
+
+	// Callback for getting the checked state of the Checkered Background action.
+	bool HandleCheckeredBackgroundActionIsChecked( ETextureEditorBackgrounds Background );
+
+	// Callback for toggling the Compress Now action.
+	void HandleCompressNowActionExecute( );
+
+	// Callback for getting the checked state of the Compress Now action.
+	bool HandleCompressNowActionCanExecute( ) const;
+
+	// Callback for toggling the Fit To Viewport action.
+	void HandleFitToViewportActionExecute( );
+
+	// Callback for getting the checked state of the Fit To Viewport action.
+	bool HandleFitToViewportActionIsChecked( ) const;
+
+	// Callback for toggling the Green channel action.
+	void HandleGreenChannelActionExecute( );
+
+	// Callback for getting the checked state of the Green Channel action.
+	bool HandleGreenChannelActionIsChecked( ) const;
+
+	// Callback for changing the checked state of the MipMap check box.
+	void HandleMipLevelCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type InNewState );
+
+	// Callback for getting the checked state of the MipMap check box.
+	ESlateCheckBoxState::Type HandleMipLevelCheckBoxIsChecked( ) const;
+
+	// Callback for determining whether the MipMap check box is enabled.
+	bool HandleMipLevelCheckBoxIsEnabled( ) const;
+
+	// Callback for changing the value of the mip map level entry box.
+	void HandleMipLevelEntryBoxChanged( int32 NewMipLevel );
+
+	// Callback for getting the value of the mip map level entry box.
+	TOptional<int32> HandleMipLevelEntryBoxValue( ) const;
+
+	// Callback for clicking the MipMinus button.
+	FReply HandleMipMapMinusButtonClicked( );
+
+	// Callback for clicking the MipPlus button.
+	FReply HandleMipMapPlusButtonClicked( );
+
+	// Callback for toggling the Red channel action.
+	void HandleRedChannelActionExecute( );
+
+	// Callback for getting the checked state of the Red Channel action.
+	bool HandleRedChannelActionIsChecked( ) const;
+
+	// Callback for determining whether the Reimport action can execute.
+	bool HandleReimportActionCanExecute( ) const;
+
+	// Callback for executing the Reimport action.
+	void HandleReimportActionExecute( );
+
+	// Callback that is executed after the reimport manager reimported an asset.
+	void HandleReimportManagerPostReimport( UObject* InObject, bool bSuccess );
 	
-	/**	Binds our UI commands to delegates */
-	void BindCommands();
+	// Callback that is executed before the reimport manager reimported an asset.
+	void HandleReimportManagerPreReimport( UObject* InObject );
 
-	/**	Finds the effective in-game resolution of the texture */
-	void CalculateEffectiveTextureDimensions(int32 LODBias, uint32& EffectiveTextureWidth, uint32& EffectiveTextureHeight);
-	
-	/** Toolbar command methods */
-	void OnRedChannel();
-	bool IsRedChannelChecked() const;
-	void OnGreenChannel();
-	bool IsGreenChannelChecked() const;
-	void OnBlueChannel();
-	bool IsBlueChannelChecked() const;
-	void OnAlphaChannel();
-	bool OnAlphaChannelCanExecute() const;
-	bool IsAlphaChannelChecked() const;
-	void OnSaturation();
-	bool IsSaturationChecked() const;
-	void OnFitToViewport();
-	bool IsFitToViewportChecked() const;
-	void HandleBackgroundActionExecute( ETextureEditorBackgrounds Background );
-	bool HandleBackgroundActionIsChecked( ETextureEditorBackgrounds Background );
-	void OnShowBorder();
-	bool IsShowBorderChecked() const;
-	void OnPreReimport(UObject* InObject);
-	void OnPostReimport(UObject* InObject, bool bSuccess);
-	void OnCompressNow();
-	bool OnCompressNowEnabled() const;
-	void OnReimport();
-	bool OnReimportEnabled() const;
-	void HandleSettingsActionExecute();
-	bool IsCubeTexture() const;
+	// Callback for toggling the Saturation channel action.
+	void HandleSaturationChannelActionExecute( );
 
-	/** Methods for the mip level UI control */
-	TOptional<int32> GetWidgetMipLevel() const;
-	void OnMipLevelChanged(int32 NewMipLevel);
-	FReply OnMipLevelDown();
-	FReply OnMipLevelUp();
+	// Callback for getting the checked state of the Saturation channel action.
+	bool HandleSaturationChannelActionIsChecked( ) const;
 
-	TOptional<int32> GetMaxMipLevel()const;
+	// Callback for determining whether the Settings action can execute.
+	void HandleSettingsActionExecute( );
 
-	ESlateCheckBoxState::Type OnGetUseSpecifiedMip()const;
-	bool OnGetUseSpecifiedMipEnabled()const;
-	void OnUseSpecifiedMipChanged(ESlateCheckBoxState::Type InNewState);
+	// Callback for spawning the Properties tab.
+	TSharedRef<SDockTab> HandleTabSpawnerSpawnProperties( const FSpawnTabArgs& Args );
+
+	// Callback for spawning the Viewport tab.
+	TSharedRef<SDockTab> HandleTabSpawnerSpawnViewport( const FSpawnTabArgs& Args );
+
+	// Callback for toggling the Texture Border action.
+	void HandleTextureBorderActionExecute( );
+
+	// Callback for getting the checked state of the Texture Border action.
+	bool HandleTextureBorderActionIsChecked( ) const;
 
 private:
 
@@ -186,7 +230,7 @@ private:
 	UTexture* Texture;
 
 	/** List of open tool panels; used to ensure only one exists at any one time */
-	TMap< FName, TWeakPtr<SDockableTab> > SpawnedToolPanels;
+	TMap<FName, TWeakPtr<SDockableTab>> SpawnedToolPanels;
 
 	/** Viewport */
 	TSharedPtr<STextureEditorViewport> TextureViewport;
@@ -237,7 +281,9 @@ private:
 
 private:
 
-	/**	The tab ids for all the tabs used */
+	// The name of the Viewport tab.
 	static const FName ViewportTabId;
+
+	// The name of the Properties tab.
 	static const FName PropertiesTabId;
 };
