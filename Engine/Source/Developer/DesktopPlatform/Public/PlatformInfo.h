@@ -63,6 +63,18 @@ namespace PlatformInfo
 		};
 	}
 
+	enum class EPlatformSDKStatus : uint8
+	{
+		/** SDK status is unknown */
+		Unknown,
+
+		/** SDK is installed */
+		Installed,
+
+		/** SDK is not installed */
+		NotInstalled,
+	};
+
 	/** Information about where to find the platform icons (for use by FEditorStyle) */
 	struct FPlatformIconPaths
 	{
@@ -133,6 +145,18 @@ namespace PlatformInfo
 
 		/** Path under CarefullyRedist for the SDK.  FString so case sensitive platforms don't get messed up by a pre-existing FName of a different casing. */
 		FString AutoSDKPath;
+
+		/** Whether or not this platform SDK has been properly installed */
+		EPlatformSDKStatus SDKStatus;
+
+		/** Tutorial path for tutorial to install SDK */
+		FString SDKTutorial;
+
+		/** Enabled for use */
+		bool bEnabledForUse;
+
+		/** Enabled in binary distribution */
+		bool bEnabledInBinary;
 
 		/** Returns true if this platform is vanilla */
 		FORCEINLINE bool IsVanilla() const
@@ -285,4 +309,12 @@ namespace PlatformInfo
 	 * @return An array of vanilla platforms, potentially containing flavors
 	 */
 	DESKTOPPLATFORM_API TArray<FVanillaPlatformEntry> BuildPlatformHierarchy(const EPlatformFilter InFilter);
+
+	/**
+	 * Get an array of all the platforms we know about
+	 * @param OutNumPlatforms - The number of platforms in the array
+	 * @return The pointer to the start of the platform array
+	 */
+	DESKTOPPLATFORM_API void UpdatePlatformSDKStatus(FString InPlatformName, EPlatformSDKStatus InStatus);
+
 }

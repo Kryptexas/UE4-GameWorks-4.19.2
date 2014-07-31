@@ -62,7 +62,11 @@ public:
 	static bool HandleLaunchOnDeviceActionCanExecute(FString DevicedId);
 	static bool HandleLaunchOnDeviceActionIsChecked(FString DeviceId);
 
-	static void HandleShowSDKTutorial(ITargetPlatform* Platform);
+	// No Device
+	static void HandleNoDeviceFoundActionExecute() {}
+	static bool HandleNoDeviceFoundActionCanExecute() { return false; }
+
+	static void HandleShowSDKTutorial(FString PlatformName, FString NotInstalledDocLink);
 
 	static void RepeatLastLaunch_Clicked();
 	static bool RepeatLastLaunch_CanExecute();
@@ -558,13 +562,13 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
 
-	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
+/*	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
 	// Sort the platforms by display name so that they appear in the same order as the other menus (like "Package Project" and "Cook Project")
 	Platforms.Sort([](ITargetPlatform& One, ITargetPlatform& Two) -> bool
 	{
 		return One.DisplayName().CompareTo(Two.DisplayName()) < 0;
-	});
+	});*/
 
 	// shared devices section
 	TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
@@ -572,88 +576,127 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 
 	TArray<FString> PlatformsToMaybeInstallLinksFor;
 	PlatformsToMaybeInstallLinksFor.Add(TEXT("Android"));
-	TArray<ITargetPlatform*> PlatformsToAddInstallLinksFor;
+	PlatformsToMaybeInstallLinksFor.Add(TEXT("IOS"));
+	PlatformsToMaybeInstallLinksFor.Add(TEXT("Linux"));
+	TArray<FString> PlatformsWithNoDevices;
+	TArray<PlatformInfo::FPlatformInfo> PlatformsToAddInstallLinksFor;
 
 	MenuBuilder.BeginSection("LevelEditorLaunchDevices", LOCTEXT("LaunchButtonDevicesSection", "Devices"));
 	{
-		for(ITargetPlatform* Platform : Platforms)
+		for(const PlatformInfo::FPlatformInfo& PlatformInfo : PlatformInfo::EnumeratePlatformInfoArray())
 		{
-			const PlatformInfo::FPlatformInfo& PlatformInfo = Platform->GetPlatformInfo();
-
 			// for the Editor we are only interested in launching standalone games
-			if (PlatformInfo.PlatformType != PlatformInfo::EPlatformType::Game)
+			if (PlatformInfo.PlatformType != PlatformInfo::EPlatformType::Game || !PlatformInfo.bEnabledForUse || (!PlatformInfo.bEnabledInBinary && FRocketSupport::IsRocket()))
 			{
 				continue;
 			}
 
-			// for each platform...
-			TArray<ITargetDeviceProxyPtr> DeviceProxies;
-			TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(Platform->PlatformName(), false, DeviceProxies);
-
-			// if this platform had no devices, but we want to show an extra option if not installed right
-			if (DeviceProxies.Num() == 0)
+			if (PlatformInfo.SDKStatus == PlatformInfo::EPlatformSDKStatus::Installed)
 			{
-				FString NotInstalledDocLink;
-				// if the platform wasn't installed, we'll add a menu item later (we never care about code in this case, since we don't compile)
-				if (!Platform->IsSdkInstalled(false, NotInstalledDocLink) && PlatformsToMaybeInstallLinksFor.Find(PlatformInfo.DisplayName.ToString()) != INDEX_NONE)
+				ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo.VanillaPlatformName.ToString());
+
+				// for each platform...
+				TArray<ITargetDeviceProxyPtr> DeviceProxies;
+				TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(Platform->PlatformName(), false, DeviceProxies);
+
+				// if this platform had no devices, but we want to show an extra option if not installed right
+				if (DeviceProxies.Num() == 0)
 				{
-					PlatformsToAddInstallLinksFor.Add(Platform);
+					if (PlatformsToMaybeInstallLinksFor.Find(PlatformInfo.VanillaPlatformName.ToString()) != INDEX_NONE && PlatformsWithNoDevices.Find(PlatformInfo.VanillaPlatformName.ToString()) == INDEX_NONE)
+					{
+						// add an entry with a no devices found
+						PlatformsWithNoDevices.Add(PlatformInfo.VanillaPlatformName.ToString());
+
+						// ... generate display label...
+						FFormatNamedArguments LabelArguments;
+						LabelArguments.Add(TEXT("DisplayName"), PlatformInfo.DisplayName);
+
+						FText Label = FText::Format(LOCTEXT("NoDeviceLabel", "{DisplayName} - No Devices Found"), LabelArguments);
+
+						// ... create an action...
+						FUIAction NoDeviceAction(
+							FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleNoDeviceFoundActionExecute),
+							FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleNoDeviceFoundActionCanExecute)
+							);
+
+						// ... generate tooltip text
+						FFormatNamedArguments TooltipArguments;
+						TooltipArguments.Add(TEXT("DisplayName"), PlatformInfo.DisplayName);
+						FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Found no connected devices for {DisplayName}"), TooltipArguments);
+
+						// ... and add a menu entry
+						MenuBuilder.AddMenuEntry(
+							NoDeviceAction, 
+							ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(PlatformInfo, true, Label), 
+							NAME_None, 
+							Tooltip, 
+							EUserInterfaceActionType::Check
+							);
+					}
+				}
+				else
+				{
+					// for each proxy...
+					for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
+					{
+						ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+
+						// ... create an action...
+						FUIAction LaunchDeviceAction(
+							FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute, DeviceProxy->GetDeviceId(), DeviceProxy->GetName()),
+							FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionCanExecute, DeviceProxy->GetDeviceId()),
+							FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionIsChecked, DeviceProxy->GetDeviceId())
+							);
+
+						// ... generate display label...
+						FFormatNamedArguments LabelArguments;
+						LabelArguments.Add(TEXT("DeviceName"), FText::FromString(DeviceProxy->GetName()));
+
+						if (!DeviceProxy->IsConnected())
+						{
+							LabelArguments.Add(TEXT("HostUser"), LOCTEXT("DisconnectedHint", " [Disconnected]"));
+						}
+						else if (DeviceProxy->GetHostUser() != FPlatformProcess::UserName(false))
+						{
+							LabelArguments.Add(TEXT("HostUser"), FText::FromString(DeviceProxy->GetHostUser()));
+						}
+						else
+						{
+							LabelArguments.Add(TEXT("HostUser"), FText::GetEmpty());
+						}
+
+						FText Label = FText::Format(LOCTEXT("LaunchDeviceLabel", "{DeviceName}{HostUser}"), LabelArguments);
+
+						// ... generate tooltip text
+						FFormatNamedArguments TooltipArguments;
+						TooltipArguments.Add(TEXT("DeviceID"), FText::FromString(DeviceProxy->GetName()));
+						TooltipArguments.Add(TEXT("DisplayName"), PlatformInfo.DisplayName);
+						FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Launch the game on this {DisplayName} device ({DeviceID})"), TooltipArguments);
+
+						FProjectStatus ProjectStatus;
+						if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(PlatformInfo.VanillaPlatformName)) 
+						{
+							FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
+							Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
+						}
+
+						// ... and add a menu entry
+						MenuBuilder.AddMenuEntry(
+							LaunchDeviceAction, 
+							ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(PlatformInfo, true, Label), 
+							NAME_None, 
+							Tooltip, 
+							EUserInterfaceActionType::Check
+							);
+					}
 				}
 			}
 			else
 			{
-				// for each proxy...
-				for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
+				// if the platform wasn't installed, we'll add a menu item later (we never care about code in this case, since we don't compile)
+				if (PlatformsToMaybeInstallLinksFor.Find(PlatformInfo.VanillaPlatformName.ToString()) != INDEX_NONE)
 				{
-					ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
-
-					// ... create an action...
-					FUIAction LaunchDeviceAction(
-						FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute, DeviceProxy->GetDeviceId(), DeviceProxy->GetName()),
-						FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionCanExecute, DeviceProxy->GetDeviceId()),
-						FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionIsChecked, DeviceProxy->GetDeviceId())
-					);
-
-					// ... generate display label...
-					FFormatNamedArguments LabelArguments;
-					LabelArguments.Add(TEXT("DeviceName"), FText::FromString(DeviceProxy->GetName()));
-
-					if (!DeviceProxy->IsConnected())
-					{
-						LabelArguments.Add(TEXT("HostUser"), LOCTEXT("DisconnectedHint", " [Disconnected]"));
-					}
-					else if (DeviceProxy->GetHostUser() != FPlatformProcess::UserName(false))
-					{
-						LabelArguments.Add(TEXT("HostUser"), FText::FromString(DeviceProxy->GetHostUser()));
-					}
-					else
-					{
-						LabelArguments.Add(TEXT("HostUser"), FText::GetEmpty());
-					}
-
-					FText Label = FText::Format(LOCTEXT("LaunchDeviceLabel", "{DeviceName}{HostUser}"), LabelArguments);
-
-					// ... generate tooltip text
-					FFormatNamedArguments TooltipArguments;
-					TooltipArguments.Add(TEXT("DeviceID"), FText::FromString(DeviceProxy->GetName()));
-					TooltipArguments.Add(TEXT("DisplayName"), PlatformInfo.DisplayName);
-					FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Launch the game on this {DisplayName} device ({DeviceID})"), TooltipArguments);
-
-					FProjectStatus ProjectStatus;
-					if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(PlatformInfo.VanillaPlatformName)) 
-					{
-						FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
-						Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
-					}
-
-					// ... and add a menu entry
-					MenuBuilder.AddMenuEntry(
-						LaunchDeviceAction, 
-						ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(PlatformInfo, true, Label), 
-						NAME_None, 
-						Tooltip, 
-						EUserInterfaceActionType::Check
-						);
+					PlatformsToAddInstallLinksFor.Add(PlatformInfo);
 				}
 			}
 		}
@@ -679,12 +722,12 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 		{
 			for (int32 PlatformIndex = 0; PlatformIndex < PlatformsToAddInstallLinksFor.Num(); PlatformIndex++)
 			{
-				ITargetPlatform* Platform = PlatformsToAddInstallLinksFor[PlatformIndex];
+				const PlatformInfo::FPlatformInfo& Platform = PlatformsToAddInstallLinksFor[PlatformIndex];
 
-				FUIAction Action(FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleShowSDKTutorial, Platform));
+				FUIAction Action(FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::HandleShowSDKTutorial, Platform.DisplayName.ToString(), Platform.SDKTutorial));
 
 				FFormatNamedArguments LabelArguments;
-				LabelArguments.Add(TEXT("PlatformName"), Platform->DisplayName());
+				LabelArguments.Add(TEXT("PlatformName"), Platform.DisplayName);
 				FText Label = FText::Format(LOCTEXT("LaunchPlatformLabel", "{PlatformName} Support"), LabelArguments);
 
 
@@ -1336,6 +1379,15 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			break;
 		}
 	}
+	else
+	{
+		const PlatformInfo::FPlatformInfo* PlatformInfo = PlatformInfo::FindPlatformInfo(FName(*PlatformName));
+		check(PlatformInfo);
+
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		return false;
+	}
 
 	return true;
 }
@@ -1369,15 +1421,11 @@ bool FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionIsChecked(FSt
 }
 
 
-void FInternalPlayWorldCommandCallbacks::HandleShowSDKTutorial( ITargetPlatform* Platform )
+void FInternalPlayWorldCommandCallbacks::HandleShowSDKTutorial( FString PlatformName, FString NotInstalledDocLink )
 {
-	// we know it's not installed, so just get the link
-	FString NotInstalledDocLink;
-	Platform->IsSdkInstalled(false, NotInstalledDocLink);
-
 	// broadcast this, and assume someone will pick it up
 	IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	MainFrameModule.BroadcastMainFrameSDKNotInstalled(Platform->DisplayName().ToString(), NotInstalledDocLink);
+	MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformName, NotInstalledDocLink);
 }
 
 FSlateIcon FInternalPlayWorldCommandCallbacks::GetResumePlaySessionImage()

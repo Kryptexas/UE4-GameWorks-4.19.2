@@ -413,6 +413,13 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		return;
 	}
 
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		return;
+	}
+
 	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
@@ -473,6 +480,13 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
 	check(PlatformInfo);
+
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		return;
+	}
 
 	{
 		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo->TargetPlatformName.ToString());
@@ -624,10 +638,10 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("PackagingProjectTaskName", "Packaging project"), LOCTEXT("PackagingTaskName", "Packaging"), FEditorStyle::GetBrush(TEXT("MainFrame.PackageProject")));
 }
 
-bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented )
+bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName )
 {
 	// For a binary Rocket build, Development is ALWAYS Win64, and Shipping is ALWAYS Win32.
-	if(IsImplemented && FRocketSupport::IsRocket())
+	if(FRocketSupport::IsRocket())
 	{
 		const EProjectPackagingBuildConfigurations BuildConfiguration = GetDefault<UProjectPackagingSettings>()->BuildConfiguration;
 		switch(BuildConfiguration)
@@ -644,7 +658,7 @@ bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformIn
 		}
 	}
 
-	return IsImplemented;
+	return true;
 }
 
 void FMainFrameActionCallbacks::RefreshCodeProject()

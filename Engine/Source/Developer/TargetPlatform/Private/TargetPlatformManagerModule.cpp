@@ -55,6 +55,7 @@ public:
 		}
 #endif
 
+		SetupSDKStatus();
 		GetTargetPlatforms();
 		GetActiveTargetPlatforms();
 		GetAudioFormats();
@@ -80,6 +81,7 @@ public:
 	{
 		bForceCacheUpdate = true;
 
+		SetupSDKStatus();
 		GetTargetPlatforms();
 		GetActiveTargetPlatforms();
 		GetAudioFormats();
@@ -782,6 +784,69 @@ protected:
 #endif
 	}
 
+	bool SetupSDKStatus()
+	{
+		// run UBT with -validate -allplatforms and read the output
+		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/UnrealBuildTool.exe"));
+		FString CommandLine = TEXT("-validateplatform -allplatforms");
+		TSharedPtr<FMonitoredProcess> UBTProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		UBTProcess->OnOutput().BindStatic(&FTargetPlatformManagerModule::OnStatusOutput);
+		SDKStatusMessage = TEXT("");
+		UBTProcess->Launch();
+		while(UBTProcess->IsRunning())
+		{
+			FPlatformProcess::Sleep(0.01f);
+		}
+
+		TArray<FString> LineArray;
+		SDKStatusMessage.ParseIntoArrayLines(&LineArray);
+		for (int Index = 0; Index < LineArray.Num(); ++Index)
+		{
+			TArray<FString> PlatArray;
+			LineArray[Index].ParseIntoArrayWS(&PlatArray);
+			if (PlatArray.Num() == 3)
+			{
+				PlatformInfo::EPlatformSDKStatus Status = PlatArray[2] == TEXT("VALID") ? PlatformInfo::EPlatformSDKStatus::Installed : PlatformInfo::EPlatformSDKStatus::NotInstalled;
+				FString PlatformName = PlatArray[1];
+				if (PlatformName == TEXT("Win32") || PlatformName == TEXT("Win64"))
+				{
+					PlatformName = TEXT("Windows");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("WindowsNoEditor");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("WindowsClient");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("WindowsServer");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+				}
+				else if (PlatformName == TEXT("Mac"))
+				{
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("MacNoEditor");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("MacClient");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("MacServer");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+				}
+				else if (PlatformName == TEXT("Linux"))
+				{
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("LinuxNoEditor");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("LinuxClient");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+					PlatformName = TEXT("LinuxServer");
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+				}
+				else
+				{
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
+				}
+			}
+		}
+		return true;
+	}
 
 private:
 
@@ -793,6 +858,12 @@ private:
 		}
 	}
 	
+	static FString SDKStatusMessage;
+	static void OnStatusOutput(FString Message)
+	{
+		SDKStatusMessage += Message;
+	}
+
 	// If true we should build formats that are actually required for use by the runtime. 
 	// This happens for an ordinary editor run and more specifically whenever there is no
 	// TargetPlatform= on the command line.
@@ -811,5 +882,6 @@ private:
 #endif
 };
 
+FString FTargetPlatformManagerModule::SDKStatusMessage = TEXT("");
 
 IMPLEMENT_MODULE(FTargetPlatformManagerModule, TargetPlatform);
