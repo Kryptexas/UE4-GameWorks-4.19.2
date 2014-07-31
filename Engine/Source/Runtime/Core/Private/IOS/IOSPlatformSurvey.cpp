@@ -5,7 +5,7 @@
 =============================================================================*/
 #include "Core.h"
 #include "IOSAppDelegate.h"
-
+#include "IOSWindow.h"
 
 bool FIOSPlatformSurvey::GetSurveyResults(FHardwareSurveyResults& OutResults, bool bWait)
 {
