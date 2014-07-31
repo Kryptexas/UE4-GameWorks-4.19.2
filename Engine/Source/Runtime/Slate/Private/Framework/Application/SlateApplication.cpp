@@ -500,7 +500,7 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 		{
 			if ( !SWidget::UseLegacyHittest() )
 			{
-				const TArray<FArrangedWidget> ArrangedWidgets = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate );
+				const TArray<FArrangedWidget> ArrangedWidgets = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate, bIgnoreEnabledStatus );
 				return FWidgetPath( ArrangedWidgets );
 			}
 			else
