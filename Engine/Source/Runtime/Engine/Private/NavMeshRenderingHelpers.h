@@ -198,145 +198,126 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
 
-		if (!bRequestedData && ProxyData.IsValid() && ProxyData->bNeedsNewData)
-		{
-			if ((RenderingComponent.IsValid() && !RenderingComponent->IsPendingKill()) || TaskDeletegate.IsBound())
-			{
-				FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					TaskDeletegate.IsBound() ? TaskDeletegate : FSimpleDelegateGraphTask::FDelegate::CreateUObject(RenderingComponent.Get(), &UNavMeshRenderingComponent::GatherDataForProxy)
-					, TEXT("Requesting navmesh data")
-					, NULL
-					, ENamedThreads::GameThread
-					);
-				bRequestedData = true;
-			}
-			return;
-		}
-
-		if (ProxyData.IsValid() == false || !ProxyData->bEnableDrawing)
+		if (ProxyData.IsValid() == false || !ProxyData->bEnableDrawing) //check if we have any data to render
 		{
 			return;
 		}
 
-		// scope to lock access to rendering data (it can be changed on game thread)
+		ProxyData->bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
+
+		FVector const PosX(1.f,0,0);
+		FVector const PosY(0,1.f,0);
+		FVector const PosZ(0,0,1.f);
+
+		const TArray<FVector>& MeshVerts = ProxyData->NavMeshGeometry.MeshVerts;
+
+		// Draw Mesh
+		for (int32 Index = 0; Index < ProxyData->MeshBuilders.Num(); ++Index)
 		{
-			FScopeLock ScopeLock(&ProxyData->CriticalSection);
-			ProxyData->bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
+			const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), ProxyData->MeshBuilders[Index].ClusterColor);						
+			FDynamicMeshBuilder	MeshBuilder;
+			MeshBuilder.AddVertices( ProxyData->MeshBuilders[Index].Vertices );
+			MeshBuilder.AddTriangles( ProxyData->MeshBuilders[Index].Indices );
+			MeshBuilder.Draw(PDI, FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View));
+		}
 
-			FVector const PosX(1.f,0,0);
-			FVector const PosY(0,1.f,0);
-			FVector const PosZ(0,0,1.f);
-
-			const TArray<FVector>& MeshVerts = ProxyData->NavMeshGeometry.MeshVerts;
-
-			// Draw Mesh
-			for (int32 Index = 0; Index < ProxyData->MeshBuilders.Num(); ++Index)
+		FHitProxyId HitProxyId;
+		FBatchedElements BatchedElements;
+		int32 Num = ProxyData->NavMeshEdgeLines.Num();
+		for (int32 Index = 0; Index < Num; ++Index)
+		{
+			const FDebugLine &Line = ProxyData->NavMeshEdgeLines[Index];
+			if( LineInView(Line.Start,Line.End,View,false) )
 			{
-				const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), ProxyData->MeshBuilders[Index].ClusterColor);						
-				FDynamicMeshBuilder	MeshBuilder;
-				MeshBuilder.AddVertices( ProxyData->MeshBuilders[Index].Vertices );
-				MeshBuilder.AddTriangles( ProxyData->MeshBuilders[Index].Indices );
-				MeshBuilder.Draw(PDI, FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View));
-			}
-
-			FHitProxyId HitProxyId;
-			FBatchedElements BatchedElements;
-			int32 Num = ProxyData->NavMeshEdgeLines.Num();
-			for (int32 Index = 0; Index < Num; ++Index)
-			{
-				const FDebugLine &Line = ProxyData->NavMeshEdgeLines[Index];
-				if( LineInView(Line.Start,Line.End,View,false) )
+				if (LineInCorrectDistance(Line.Start,Line.End,View))
 				{
-					if (LineInCorrectDistance(Line.Start,Line.End,View))
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,NavMeshEdges_LineThickness, 0, true);
-					}
-					else if (GIsEditor)
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,DefaultEdges_LineThickness, 0, true);
-					}
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,NavMeshEdges_LineThickness, 0, true);
+				}
+				else if (GIsEditor)
+				{
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,DefaultEdges_LineThickness, 0, true);
 				}
 			}
+		}
 
-			Num = ProxyData->ClusterLinkLines.Num();
-			for (int32 Index = 0; Index < Num; ++Index)
+		Num = ProxyData->ClusterLinkLines.Num();
+		for (int32 Index = 0; Index < Num; ++Index)
+		{
+			const FDebugLine &Line = ProxyData->ClusterLinkLines[Index];
+			if( LineInView(Line.Start,Line.End,View,false) )
 			{
-				const FDebugLine &Line = ProxyData->ClusterLinkLines[Index];
-				if( LineInView(Line.Start,Line.End,View,false) )
+				if (LineInCorrectDistance(Line.Start,Line.End,View))
 				{
-					if (LineInCorrectDistance(Line.Start,Line.End,View))
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,ClusterLinkLines_LineThickness, 0, true);
-					}
-					else if (GIsEditor)
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-					}
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,ClusterLinkLines_LineThickness, 0, true);
+				}
+				else if (GIsEditor)
+				{
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
 				}
 			}
+		}
 
-			Num = ProxyData->TileEdgeLines.Num();
-			for (int32 Index = 0; Index < Num; ++Index)
+		Num = ProxyData->TileEdgeLines.Num();
+		for (int32 Index = 0; Index < Num; ++Index)
+		{
+			const FDebugLine &Line = ProxyData->TileEdgeLines[Index];
+			if( LineInView(Line.Start,Line.End,View,false) )
 			{
-				const FDebugLine &Line = ProxyData->TileEdgeLines[Index];
-				if( LineInView(Line.Start,Line.End,View,false) )
+				if (LineInCorrectDistance(Line.Start,Line.End,View))
 				{
-					if (LineInCorrectDistance(Line.Start,Line.End,View))
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,PolyEdges_LineThickness, 0, true);
-					}
-					else if (GIsEditor)
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-					}
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,PolyEdges_LineThickness, 0, true);
+				}
+				else if (GIsEditor)
+				{
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
 				}
 			}
+		}
 
-			Num = ProxyData->NavLinkLines.Num();
-			for (int32 Index = 0; Index < Num; ++Index)
+		Num = ProxyData->NavLinkLines.Num();
+		for (int32 Index = 0; Index < Num; ++Index)
+		{
+			const FDebugLine &Line = ProxyData->NavLinkLines[Index];
+			if( LineInView(Line.Start,Line.End,View,false) )
 			{
-				const FDebugLine &Line = ProxyData->NavLinkLines[Index];
-				if( LineInView(Line.Start,Line.End,View,false) )
+				if (LineInCorrectDistance(Line.Start,Line.End,View))
 				{
-					if (LineInCorrectDistance(Line.Start,Line.End,View))
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,LinkLines_LineThickness, 0, true);
-					}
-					else if (GIsEditor)
-					{
-						BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-					}
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,LinkLines_LineThickness, 0, true);
+				}
+				else if (GIsEditor)
+				{
+					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
 				}
 			}
+		}
 
-			const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-			const FTexture2DRHIRef DepthTexture;
+		const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
+		const FTexture2DRHIRef DepthTexture;
 			
-			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-			BatchedElements.Draw(
-				RHICmdList,
-				bNeedToSwitchVerticalAxis,
-				View->ViewProjectionMatrix,
-				View->ViewRect.Width(),
-				View->ViewRect.Height(),
-				View->Family->EngineShowFlags.HitProxies,
-				1.0f,
-				View,
-				DepthTexture
-				);
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		BatchedElements.Draw(
+			RHICmdList,
+			bNeedToSwitchVerticalAxis,
+			View->ViewProjectionMatrix,
+			View->ViewRect.Width(),
+			View->ViewRect.Height(),
+			View->Family->EngineShowFlags.HitProxies,
+			1.0f,
+			View,
+			DepthTexture
+			);
 
-			ProxyData->BatchedElements.Draw(
-				RHICmdList,
-				bNeedToSwitchVerticalAxis,
-				View->ViewProjectionMatrix,
-				View->ViewRect.Width(),
-				View->ViewRect.Height(),
-				View->Family->EngineShowFlags.HitProxies,
-				1.0f,
-				View,
-				DepthTexture
-				);
-		}
+		ProxyData->BatchedElements.Draw(
+			RHICmdList,
+			bNeedToSwitchVerticalAxis,
+			View->ViewProjectionMatrix,
+			View->ViewRect.Width(),
+			View->ViewRect.Height(),
+			View->Family->EngineShowFlags.HitProxies,
+			1.0f,
+			View,
+			DepthTexture
+			);
 	}
 
 	FORCEINLINE bool PointInView(const FVector& Location, const FSceneView* View)

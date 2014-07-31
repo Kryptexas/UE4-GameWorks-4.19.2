@@ -31,26 +31,15 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 		{
 			ProxyData = MakeShareable(new FNavMeshSceneProxyData());
 		}
-		ProxyData->bNeedsNewData = true;
+		GatherData(ProxyData.Get());
+		ProxyData->bNeedsNewData = false;
+
 		SceneProxy = new FRecastRenderingSceneProxy(this, ProxyData);
 	}
 	return SceneProxy;
 #else
 	return NULL;
 #endif
-}
-
-void UNavMeshRenderingComponent::GatherDataForProxy()
-{
-	if (ProxyData.IsValid())
-	{
-#if WITH_RECAST
-		FScopeLock ScopeLock(&ProxyData.Get()->CriticalSection);
-		GatherData( ProxyData.Get() );
-
-		ProxyData->bNeedsNewData = false;
-#endif
-	}
 }
 
 void UNavMeshRenderingComponent::CreateRenderState_Concurrent()
