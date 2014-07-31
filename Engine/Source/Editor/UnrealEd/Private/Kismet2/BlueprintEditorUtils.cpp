@@ -1018,8 +1018,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
 	bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
-	bool bNeedsSkelRefRemoval = false;
-
 	// Preload the blueprint and all its parts before refreshing nodes. 
 	// Otherwise, the nodes might not maintain their proper linkages... 
 	//
@@ -1036,13 +1034,11 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	// member further up the stack).
 	if (!Blueprint->bHasBeenRegenerated)
 	{
-		if (PreviousCDO)
-		{
-			FBlueprintEditorUtils::PreloadMembers(PreviousCDO);
-		}
-		FBlueprintEditorUtils::PreloadMembers(Blueprint);
+		check(PreviousCDO != nullptr);
+		FRegenerationHelper::ForcedLoadMembers(PreviousCDO);
+		FRegenerationHelper::ForcedLoadMembers(Blueprint);
 	}
-	
+
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
 	{
 		Blueprint->bIsRegeneratingOnLoad = true;
@@ -1173,111 +1169,102 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		}
 
 		bRegenerated = bHasCode;
-	}
 
-	if ( PreviousCDO != NULL )
-	{
-		if( Blueprint->bRecompileOnLoad && !GForceDisableBlueprintCompileOnLoad)
+		if (!FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToRegenerate))
 		{
-			if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
+			if (Blueprint->bRecompileOnLoad)
 			{
 				// Verify that we had a skeleton generated class if we had a previous CDO, to make sure we have something to copy into
-				check(Blueprint->SkeletonGeneratedClass);
-			}
+				check((Blueprint->BlueprintType == BPTYPE_MacroLibrary) || Blueprint->SkeletonGeneratedClass);
 
-			const bool bPreviousMatchesGenerated = (PreviousCDO == Blueprint->GeneratedClass->GetDefaultObject());
+				const bool bPreviousMatchesGenerated = (PreviousCDO == Blueprint->GeneratedClass->GetDefaultObject());
 
-			if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
-			{
-				UObject* CDOThatKickedOffCOL = PreviousCDO;
-				if (Blueprint->IsGeneratedClassAuthoritative() && !bPreviousMatchesGenerated && Blueprint->PRIVATE_InnermostPreviousCDO)
+				if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 				{
-					PreviousCDO = Blueprint->PRIVATE_InnermostPreviousCDO;
+					UObject* CDOThatKickedOffCOL = PreviousCDO;
+					if (Blueprint->IsGeneratedClassAuthoritative() && !bPreviousMatchesGenerated && Blueprint->PRIVATE_InnermostPreviousCDO)
+					{
+						PreviousCDO = Blueprint->PRIVATE_InnermostPreviousCDO;
+					}
 				}
+
+				// If this is the top of the compile-on-load stack for this object, copy the old CDO properties to the newly created one unless they are the same
+				UClass* AuthoritativeClass = (Blueprint->IsGeneratedClassAuthoritative() ? Blueprint->GeneratedClass : Blueprint->SkeletonGeneratedClass);
+				if (AuthoritativeClass != NULL && PreviousCDO != AuthoritativeClass->GetDefaultObject())
+				{
+					TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
+
+					// Make sure the previous CDO has been fully loaded before we use it
+					FBlueprintEditorUtils::PreloadMembers(PreviousCDO);
+
+					// Copy over the properties from the old CDO to the new
+					PropagateParentBlueprintDefaults(AuthoritativeClass);
+					UObject* NewCDO = AuthoritativeClass->GetDefaultObject();
+					{
+						FSaveActorFlagsHelper SaveActorFlags(AuthoritativeClass);
+						UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams CopyDetails;
+						CopyDetails.bAggressiveDefaultSubobjectReplacement = true;
+						CopyDetails.bDoDelta = false;
+						UEditorEngine::CopyPropertiesForUnrelatedObjects(PreviousCDO, NewCDO, CopyDetails);
+					}
+
+					if (bRegenerated)
+					{
+						// Collect the instanced components in both the old and new CDOs
+						TArray<UObject*> OldComponents, NewComponents;
+						PreviousCDO->CollectDefaultSubobjects(OldComponents, true);
+						NewCDO->CollectDefaultSubobjects(NewComponents, true);
+
+						// For all components common to both, patch the linker table with the new version of the component, so things that reference the default (e.g. InternalArchetypes) will have the updated version
+						for (auto OldCompIt = OldComponents.CreateIterator(); OldCompIt; ++OldCompIt)
+						{
+							UObject* OldComponent = (*OldCompIt);
+							const FName OldComponentName = OldComponent->GetFName();
+							for (auto NewCompIt = NewComponents.CreateIterator(); NewCompIt; ++NewCompIt)
+							{
+								UObject* NewComponent = *NewCompIt;
+								if (NewComponent->GetFName() == OldComponentName)
+								{
+									ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, NewComponent);
+									break;
+								}
+							}
+						}
+						NewCDO->CheckDefaultSubobjects();
+						// We purposefully do not call post load here, it happens later on in the normal flow
+					}
+				}
+
+				Blueprint->PRIVATE_InnermostPreviousCDO = NULL;
+			}
+			else
+			{
+				// If we didn't recompile, we still need to propagate flags, and instance components
+				FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(Blueprint);
 			}
 
-			// If this is the top of the compile-on-load stack for this object, copy the old CDO properties to the newly created one unless they are the same
-			UClass* AuthoritativeClass = (Blueprint->IsGeneratedClassAuthoritative() ? Blueprint->GeneratedClass : Blueprint->SkeletonGeneratedClass);
-			if (AuthoritativeClass != NULL && PreviousCDO != AuthoritativeClass->GetDefaultObject())
+			// If this is the top of the compile-on-load stack for this object, copy the old CDO properties to the newly created one
+			if (!Blueprint->IsGeneratedClassAuthoritative() && Blueprint->GeneratedClass != NULL)
 			{
 				TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 
-				// Make sure the previous CDO has been fully loaded before we use it
-				if( PreviousCDO )
-				{
-					FBlueprintEditorUtils::PreloadMembers(PreviousCDO);
-				}
+				UObject* SkeletonCDO = Blueprint->SkeletonGeneratedClass->GetDefaultObject();
+				UObject* GeneratedCDO = Blueprint->GeneratedClass->GetDefaultObject();
 
-				// Copy over the properties from the old CDO to the new
-				PropagateParentBlueprintDefaults(AuthoritativeClass);
-				UObject* NewCDO = AuthoritativeClass->GetDefaultObject();
-				{
-					FSaveActorFlagsHelper SaveActorFlags(AuthoritativeClass);
-					UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams CopyDetails;
-					CopyDetails.bAggressiveDefaultSubobjectReplacement = true;
-					CopyDetails.bDoDelta = false;
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(PreviousCDO, NewCDO, CopyDetails);
-				}
+				UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams CopyDetails;
+				CopyDetails.bAggressiveDefaultSubobjectReplacement = false;
+				CopyDetails.bDoDelta = false;
+				UEditorEngine::CopyPropertiesForUnrelatedObjects(SkeletonCDO, GeneratedCDO, CopyDetails);
 
-				if( bRegenerated )
-				{
-					// Collect the instanced components in both the old and new CDOs
-					TArray<UObject*> OldComponents, NewComponents;
-					PreviousCDO->CollectDefaultSubobjects(OldComponents,true);
-					NewCDO->CollectDefaultSubobjects(NewComponents,true);
-
-					// For all components common to both, patch the linker table with the new version of the component, so things that reference the default (e.g. InternalArchetypes) will have the updated version
-					for( auto OldCompIt = OldComponents.CreateIterator(); OldCompIt; ++OldCompIt )
-					{
-						UObject* OldComponent = (*OldCompIt);
-						const FName OldComponentName = OldComponent->GetFName();
-						for( auto NewCompIt = NewComponents.CreateIterator(); NewCompIt; ++NewCompIt )
-						{
-							UObject* NewComponent = *NewCompIt;
-							if( NewComponent->GetFName() == OldComponentName )
-							{
-								ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, NewComponent);
-								break;
-							}
-						}
-					}
-					NewCDO->CheckDefaultSubobjects();
-					// We purposefully do not call post load here, it happens later on in the normal flow
-				}
+				Blueprint->SetLegacyGeneratedClassIsAuthoritative();
 			}
 
-			Blueprint->PRIVATE_InnermostPreviousCDO = NULL;
+			// Now that the CDO is valid, update the OwnedComponents, in case we've added or removed native components
+			if (AActor* MyActor = Cast<AActor>(Blueprint->GeneratedClass->GetDefaultObject()))
+			{
+				MyActor->ResetOwnedComponents();
+			}
 		}
-		else
-		{
-			// If we didn't recompile, we still need to propagate flags, and instance components
-			FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(Blueprint);
-		}
-
-		// If this is the top of the compile-on-load stack for this object, copy the old CDO properties to the newly created one
-		if (!Blueprint->IsGeneratedClassAuthoritative() && Blueprint->GeneratedClass != NULL)
-		{
-			TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
-
-			UObject* SkeletonCDO = Blueprint->SkeletonGeneratedClass->GetDefaultObject();
-			UObject* GeneratedCDO = Blueprint->GeneratedClass->GetDefaultObject();
-
-			UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams CopyDetails;
-			CopyDetails.bAggressiveDefaultSubobjectReplacement = false;
-			CopyDetails.bDoDelta = false;
-			UEditorEngine::CopyPropertiesForUnrelatedObjects(SkeletonCDO, GeneratedCDO, CopyDetails);
-
-			Blueprint->SetLegacyGeneratedClassIsAuthoritative();
-		}
-
-		// Now that the CDO is valid, update the OwnedComponents, in case we've added or removed native components
-		if (AActor* MyActor = Cast<AActor>(Blueprint->GeneratedClass->GetDefaultObject()))
-		{
-			MyActor->ResetOwnedComponents();
-		}
-
-		Blueprint->ClearFlags(RF_BeingRegenerated);
-		bNeedsSkelRefRemoval = true;
 	}
 
 	if ( bRegenerated )
@@ -1287,7 +1274,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		GeneratedClassPackage->GetMetaData()->RemoveMetaDataOutsidePackage();
 	}
 
-	if ( bNeedsSkelRefRemoval && Blueprint->bLegacyNeedToPurgeSkelRefs)
+	bool const bNeedsSkelRefRemoval = !FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToRegenerate) && (Blueprint->SkeletonGeneratedClass != nullptr);
+	if (bNeedsSkelRefRemoval && Blueprint->bLegacyNeedToPurgeSkelRefs)
 	{
 		// Remove any references to the skeleton class, replacing them with refs to the generated class instead
 		FArchiveMoveSkeletalRefs SkelRefArchiver(Blueprint);

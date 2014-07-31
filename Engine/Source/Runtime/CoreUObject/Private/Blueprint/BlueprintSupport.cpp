@@ -37,15 +37,19 @@ struct FPreloadMembersHelper
  */
 bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
 {
-	UObject* PreviousCDO = NULL;
-	if( !LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated) )
-	{
-		// If this is the first time we're attempting to recompile this class on load, save off the original CDO here, so we can copy its properties after the class has been recompiled
-		PreviousCDO = ExportObject;
+	// determine if somewhere further down the callstack, we're already in this
+	// function for this class
+	bool const bAlreadyRegenerating = LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated);
+	// Flag the class source object, so we know we're already in the process of compiling this class
+	LoadClass->ClassGeneratedBy->SetFlags(RF_BeingRegenerated);
 
-		// Flag the class source object, so we know we're already in the process of compiling this class
-		LoadClass->ClassGeneratedBy->SetFlags(RF_BeingRegenerated);
-	}
+	// Cache off the current CDO, and specify the CDO for the load class 
+	// manually... do this before we Preload() any children members so that if 
+	// one of those preloads subsequently ends up back here for this class, 
+	// then the ExportObject is carried along and used in the eventual RegenerateClass() call
+	UObject* CurrentCDO = ExportObject;
+	check(!bAlreadyRegenerating || (LoadClass->ClassDefaultObject == ExportObject));
+	LoadClass->ClassDefaultObject = CurrentCDO;
 
 	// Finish loading the class here, so we have all the appropriate data to copy over to the new CDO
 	TArray<UObject*> AllChildMembers;
@@ -55,63 +59,81 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 		UObject* Member = AllChildMembers[Index];
 		Preload(Member);
 	}
-	Preload(LoadClass);
 
-	LoadClass->StaticLink(true);
-	Preload(ExportObject);
-
-
-	// Cache off the current CDO, and specify the CDO for the load class manually
-	UObject* CurrentCDO = ExportObject;
-	LoadClass->ClassDefaultObject = CurrentCDO;
-
-	// Make sure that we regenerate any parent classes first before attempting to build a child
-	TArray<UClass*> ClassChainOrdered;
+	// if this was subsequently regenerated from one of the above preloads, then 
+	// we don't have to finish this off, it was already done
+	bool const bWasSubsequentlyRegenerated = !LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated);
+	// @TODO: find some other condition to block this if we've already  
+	//        regenerated the class (not just if we've regenerated the class 
+	//        from an above Preload(Member))... UBlueprint::RegenerateClass() 
+	//        has an internal conditional to block getting into it again, but we
+	//        can't check UBlueprint members from this module
+	if (!bWasSubsequentlyRegenerated)
 	{
-		// Just ordering the class hierarchy from root to leafs:
-		UClass* ClassChain = LoadClass->GetSuperClass();
-		while (ClassChain && ClassChain->ClassGeneratedBy)
+		Preload(LoadClass);
+
+		LoadClass->StaticLink(true);
+		Preload(CurrentCDO);
+
+		// Make sure that we regenerate any parent classes first before attempting to build a child
+		TArray<UClass*> ClassChainOrdered;
 		{
-			// O(n) insert, but n is tiny because this is a class hierarchy...
-			ClassChainOrdered.Insert(ClassChain, 0);
-			ClassChain = ClassChain->GetSuperClass();
-		}
-	}
- 	for( auto Class : ClassChainOrdered )
-	{
-		UObject* BlueprintObject = Class->ClassGeneratedBy;
-		if (BlueprintObject && BlueprintObject->HasAnyFlags(RF_BeingRegenerated))
-		{
-			// Always load the parent blueprint here in case there is a circular dependency. This will
-			// ensure that the blueprint is fully serialized before attempting to regenerate the class.
-			if (!BlueprintObject->HasAnyFlags(RF_LoadCompleted))
+			// Just ordering the class hierarchy from root to leafs:
+			UClass* ClassChain = LoadClass->GetSuperClass();
+			while (ClassChain && ClassChain->ClassGeneratedBy)
 			{
-				BlueprintObject->SetFlags(RF_NeedLoad);
-				if (auto Linker = BlueprintObject->GetLinker())
-				{
-					Linker->Preload(BlueprintObject);
-				}
+				// O(n) insert, but n is tiny because this is a class hierarchy...
+				ClassChainOrdered.Insert(ClassChain, 0);
+				ClassChain = ClassChain->GetSuperClass();
 			}
+		}
+		for (auto Class : ClassChainOrdered)
+		{
+			UObject* BlueprintObject = Class->ClassGeneratedBy;
+			if (BlueprintObject && BlueprintObject->HasAnyFlags(RF_BeingRegenerated))
+			{
+				// Always load the parent blueprint here in case there is a circular dependency. This will
+				// ensure that the blueprint is fully serialized before attempting to regenerate the class.
+				if (!BlueprintObject->HasAnyFlags(RF_LoadCompleted))
+				{
+					BlueprintObject->SetFlags(RF_NeedLoad);
+					if (ULinkerLoad* Linker = BlueprintObject->GetLinker())
+					{
+						Linker->Preload(BlueprintObject);
+					}
+				}
+			
+				FPreloadMembersHelper::PreloadMembers(BlueprintObject);
+				// recurse into this function for this parent class; 
+				// 'ClassDefaultObject' should be the class's original ExportObject
+				RegenerateBlueprintClass(Class, BlueprintObject);
+			}
+		}
 
-			FPreloadMembersHelper::PreloadMembers(BlueprintObject);
-			BlueprintObject->RegenerateClass(Class, NULL, GObjLoaded);
+		// Preload the blueprint to make sure it has all the data the class needs for regeneration
+		if (LoadClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad))
+		{
+			LoadClass->ClassGeneratedBy->GetLinker()->Preload(LoadClass->ClassGeneratedBy);
+		}
+
+		UClass* RegeneratedClass = LoadClass->ClassGeneratedBy->RegenerateClass(LoadClass, CurrentCDO, GObjLoaded);
+		if (RegeneratedClass)
+		{
+			LoadClass->ClassGeneratedBy->ClearFlags(RF_BeingRegenerated);
+			// Fix up the linker so that the RegeneratedClass is used
+			LoadClass->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
 		}
 	}
 
-	// Preload the blueprint to make sure it has all the data the class needs for regeneration
-	if( LoadClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad) )
+	bool const bSuccessfulRegeneration = !LoadClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated);
+	// if this wasn't already flagged as regenerating when we first entered this 
+	// function, the clear it ourselves.
+	if (!bAlreadyRegenerating)
 	{
-		LoadClass->ClassGeneratedBy->GetLinker()->Preload(LoadClass->ClassGeneratedBy);
+		LoadClass->ClassGeneratedBy->ClearFlags(RF_BeingRegenerated);
 	}
 
-	UClass* RegeneratedClass = LoadClass->ClassGeneratedBy->RegenerateClass(LoadClass, PreviousCDO, GObjLoaded);
-	if( RegeneratedClass )
-	{
-		// Fix up the linker so that the RegeneratedClass is used
- 		LoadClass->ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
-		return true;
-	}
-	return false;
+	return bSuccessfulRegeneration;
 }
 
 /** 
