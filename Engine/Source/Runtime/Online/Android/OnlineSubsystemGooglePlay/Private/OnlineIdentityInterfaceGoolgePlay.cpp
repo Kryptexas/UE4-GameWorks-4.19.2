@@ -2,6 +2,32 @@
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 
+#include "Android/AndroidJNI.h"
+FOnlineIdentityGooglePlay::FPendingConnection FOnlineIdentityGooglePlay::PendingConnectRequest;
+
+// Java interface to deal with callbacks
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode)
+{
+	auto ConnectionInterface = FOnlineIdentityGooglePlay::PendingConnectRequest.ConnectionInterface;
+
+	if (!ConnectionInterface ||
+		!ConnectionInterface->MainSubsystem ||
+		!ConnectionInterface->MainSubsystem->GetAsyncTaskManager())
+	{
+		// We should call the delegate with a false parameter here, but if we don't have
+		// the async task manager we're not going to call it on the game thread.
+		return;
+	}
+
+	ConnectionInterface->MainSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([errorCode, userID]()
+	{
+		auto& PendingConnection = FOnlineIdentityGooglePlay::PendingConnectRequest;		
+
+		PendingConnection.ConnectionInterface->OnLoginCompleted(userID, errorCode);
+	});
+
+}
+
 FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
 	: bPrevLoggedIn(false)
 	, bLoggedIn(false)
@@ -12,6 +38,7 @@ FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay*
 
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::FOnlineIdentityAndroid()"));
+	PendingConnectRequest.ConnectionInterface = this;
 }
 
 TSharedPtr<FUserOnlineAccount> FOnlineIdentityGooglePlay::GetUserAccount(const FUniqueNetId& UserId) const
@@ -30,8 +57,33 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityGooglePlay::GetAllUserAcc
 
 bool FOnlineIdentityGooglePlay::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) 
 {
-	TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdString(TEXT("")), FString("Login not supported"));
-	return false;
+	bool bStartedLogin = false;
+	if (bLoggedIn)
+	{
+		// already logged in so just report all is ok!
+		// Now logged in
+		bStartedLogin = true;
+
+		static const int32 MAX_TEXT_LINE_LEN = 32;
+		TCHAR Line[MAX_TEXT_LINE_LEN + 1] = { 0 };
+		int32 Len = FCString::Snprintf(Line, MAX_TEXT_LINE_LEN, TEXT("%d"), LocalUserNum);
+
+		const FString PlayerId(Line);
+		UniqueNetId = MakeShareable(new FUniqueNetIdString(PlayerId));
+		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UniqueNetId, TEXT(""));
+	}
+	else if (!PendingConnectRequest.IsConnectionPending)
+	{
+		// Kick the login sequence...
+		bStartedLogin = true;
+		PendingConnectRequest.IsConnectionPending = true;
+	}
+	else
+	{
+		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdString(TEXT("")), FString("Already trying to login"));
+	}
+	
+	return bStartedLogin;
 }
 
 
@@ -44,7 +96,7 @@ bool FOnlineIdentityGooglePlay::Logout(int32 LocalUserNum)
 
 bool FOnlineIdentityGooglePlay::AutoLogin(int32 LocalUserNum)
 {
-	return false;
+	return Login(LocalUserNum, FOnlineAccountCredentials());
 }
 
 
@@ -110,4 +162,17 @@ FString FOnlineIdentityGooglePlay::GetAuthToken(int32 LocalUserNum) const
 
 void FOnlineIdentityGooglePlay::Tick(float DeltaTime)
 {
+}
+
+void FOnlineIdentityGooglePlay::OnLoginCompleted(const int playerID, const int errorCode)
+{
+	static const int32 MAX_TEXT_LINE_LEN = 32;
+	TCHAR Line[MAX_TEXT_LINE_LEN + 1] = { 0 };
+	int32 Len = FCString::Snprintf(Line, MAX_TEXT_LINE_LEN, TEXT("%d"), playerID);
+
+	UniqueNetId = MakeShareable(new FUniqueNetIdString(Line));
+	bLoggedIn = errorCode == 0;
+	TriggerOnLoginCompleteDelegates(playerID, errorCode == 0, *UniqueNetId, TEXT(""));
+
+	PendingConnectRequest.IsConnectionPending = false;
 }

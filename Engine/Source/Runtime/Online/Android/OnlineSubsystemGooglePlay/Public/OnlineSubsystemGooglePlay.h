@@ -7,7 +7,6 @@
 #include "OnlineAchievementsInterfaceGooglePlay.h"
 #include "OnlineLeaderboardInterfaceGooglePlay.h"
 #include "OnlineExternalUIInterfaceGooglePlay.h"
-#include "OnlineConnectionInterfaceGooglePlay.h"
 #include "UniquePtr.h"
 
 /**
@@ -41,7 +40,6 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const override { return NULL; }
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual IOnlinePresencePtr GetPresenceInterface() const override { return NULL; }
-	virtual IOnlineConnectionPtr GetConnectionInterface() const override { return ConnectionInterface;  }
 
 	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return NULL; }
 	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override {}
@@ -85,9 +83,6 @@ private:
 
 	/** Interface to the external UI services */
 	FOnlineExternalUIGooglePlayPtr ExternalUIInterface;
-
-	/** Interface to the connection system */
-	FOnlineConnectionGooglePlayPtr ConnectionInterface;
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe> FOnlineSubsystemGooglePlayPtr;

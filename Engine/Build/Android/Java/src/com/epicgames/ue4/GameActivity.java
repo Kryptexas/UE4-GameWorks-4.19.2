@@ -532,7 +532,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// Set the flag that we successfully connected. Checked in onStart to re-establish the connection.
 		bHaveConnectedToGooglePlay = true;
 
-		nativeCompletedConnection(RESULT_OK);
+		nativeCompletedConnection(0, RESULT_OK);
 
 		// Load achievements. Since games are expected to pass in achievement progress as a percentage,
 		// we need to know what the maximum steps are in order to convert the percentage to an integer
@@ -618,7 +618,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			{
 				// translate result code? 
 				// 0 if we cancel out the attempt to error recover...
-				nativeCompletedConnection(resultCode);
+				nativeCompletedConnection(0, resultCode);
 			}
 		}
 	}
@@ -741,7 +741,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// check if google play services is available on this device, or is available with an update
 		if ((status != ConnectionResult.SUCCESS) && (status != ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED))
 		{
-			nativeCompletedConnection(status);
+			nativeCompletedConnection(0, status);
 			return;
 		}
 
@@ -1051,7 +1051,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public native void nativeResumeMainInit();
 	
-	public native void nativeCompletedConnection(int errorCode);
+	public native void nativeCompletedConnection(int playerID, int errorCode);
 
 	static
 	{
