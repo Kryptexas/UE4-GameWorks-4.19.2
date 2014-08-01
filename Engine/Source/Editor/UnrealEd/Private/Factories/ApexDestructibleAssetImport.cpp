@@ -527,7 +527,7 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		bHaveAllNormals = bHaveAllNormals && bHaveNormals;
 		bHaveAllTangents = bHaveAllTangents && bHaveTangents;
 
-		// Binromals
+		// Binormomals
 		const PxI32 BinormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::BINORMAL));
 		TArray<FVector> Binormals;
 		Binormals.AddUninitialized(SubmeshVertexCount);
@@ -600,8 +600,8 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 				for (uint32 V = 0; V < 3; ++V)
 				{
 					// Tangent basis
-					Triangle.TangentX[V] = Binormals[SubmeshVertexIndex[V]];
-					Triangle.TangentY[V] = Tangents[SubmeshVertexIndex[V]];
+					Triangle.TangentX[V] = Tangents[SubmeshVertexIndex[V]];
+					Triangle.TangentY[V] = Binormals[SubmeshVertexIndex[V]];
 					Triangle.TangentZ[V] = Normals[SubmeshVertexIndex[V]];
 #if INVERT_Y_AND_V
 					Triangle.TangentX[V].Y *= -1.0f;
