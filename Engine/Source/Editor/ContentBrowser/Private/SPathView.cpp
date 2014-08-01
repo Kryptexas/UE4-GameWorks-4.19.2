@@ -333,7 +333,7 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 			}
 			else
 			{
-				CurrentItem->bNewFolder = false;
+				CurrentItem->bNamingFolder = false;
 			}
 		}
 
@@ -383,6 +383,26 @@ bool SPathView::RemovePath(const FString& Path)
 	{
 		// Did not find the folder to remove
 		return false;
+	}
+}
+
+void SPathView::RenameFolder(const FString& FolderToRename)
+{
+	TArray<TSharedPtr<FTreeItem>> Items = TreeViewPtr->GetSelectedItems();
+	for (int32 ItemIdx = 0; ItemIdx < Items.Num(); ++ItemIdx)
+	{
+		TSharedPtr<FTreeItem>& Item = Items[ItemIdx];
+		if (Item.IsValid())
+		{
+			if (Item->FolderPath == FolderToRename)
+			{
+				Item->bNamingFolder = true;
+
+				TreeViewPtr->SetSelection(Item);
+				TreeViewPtr->RequestScrollIntoView(Item);
+				break;
+			}
+		}
 	}
 }
 
@@ -747,7 +767,7 @@ TSharedRef<ITableRow> SPathView::GenerateTreeRow( TSharedPtr<FTreeItem> TreeItem
 
 void SPathView::TreeItemScrolledIntoView( TSharedPtr<FTreeItem> TreeItem, const TSharedPtr<ITableRow>& Widget )
 {
-	if ( TreeItem->bNewFolder && Widget.IsValid() && Widget->GetContent().IsValid() )
+	if ( TreeItem->bNamingFolder && Widget.IsValid() && Widget->GetContent().IsValid() )
 	{
 		TreeItem->OnRenamedRequestEvent.Broadcast();
 	}
@@ -976,7 +996,9 @@ bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMess
 	{
 		return false;
 	}
-	else if( ContentBrowserUtils::DoesFolderExist(InFolderPath) )
+
+	const FString NewPath = FPaths::GetPath(InFolderPath) / InName.ToString();
+	if (ContentBrowserUtils::DoesFolderExist(NewPath))
 	{
 		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
 		return false;
@@ -985,7 +1007,7 @@ bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMess
 	return true;
 }
 
-void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FVector2D& MessageLocation )
+void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation )
 {
 	// Verify the name of the folder
 	FText Reason;
@@ -1026,7 +1048,25 @@ void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, cons
 
 		// Update the asset registry so this folder will persist
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().AddPath(TreeItem->FolderPath);
+		if (AssetRegistryModule.Get().AddPath(TreeItem->FolderPath) && TreeItem->FolderPath != OldPath)
+		{
+			// move any assets in our folder
+			TArray<FAssetData> AssetsInFolder;
+			AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInFolder, true);
+			TArray<UObject*> ObjectsInFolder;
+			ContentBrowserUtils::GetObjectsInAssetData(AssetsInFolder, ObjectsInFolder);
+			ContentBrowserUtils::MoveAssets(ObjectsInFolder, TreeItem->FolderPath, OldPath);
+
+			// Now check to see if the original folder is empty, if so we can delete it
+			TArray<FAssetData> AssetsInOriginalFolder;
+			AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInOriginalFolder, true);
+			if (AssetsInOriginalFolder.Num() == 0)
+			{
+				TArray<FString> FoldersToDelete;
+				FoldersToDelete.Add(OldPath);
+				ContentBrowserUtils::DeleteFolders(FoldersToDelete);
+			}
+		}
 	}
 	else
 	{

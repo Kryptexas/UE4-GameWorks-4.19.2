@@ -42,19 +42,6 @@ FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
 
 }
 
-void FAssetContextMenu::BindCommands(TSharedPtr< FUICommandList > InCommandList)
-{
-	InCommandList->MapAction( FGenericCommands::Get().Rename, FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteRename ),
-		FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteRename )
-		));
-
-	InCommandList->MapAction( FGenericCommands::Get().Delete, FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteDelete ),
-		FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteDelete )
-		));
-}
-
 TSharedRef<SWidget> FAssetContextMenu::MakeContextMenu(const TArray<FAssetData>& InSelectedAssets, const FSourcesData& InSourcesData, TSharedPtr< FUICommandList > InCommandList)
 {
 	SelectedAssets = InSelectedAssets;
@@ -184,13 +171,10 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			)
 		);
 
-	if ( SelectedAssets.Num() == 1 )
-	{
-		MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, 
-			LOCTEXT("Rename", "Rename"),
-			LOCTEXT("RenameTooltip", "Rename the selected asset.")
-			);
-	}
+	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, 
+		LOCTEXT("Rename", "Rename"),
+		LOCTEXT("RenameTooltip", "Rename the selected asset.")
+		);
 
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete, NAME_None, 
 		LOCTEXT("Delete", "Delete"),
@@ -852,7 +836,7 @@ void FAssetContextMenu::ExecuteDuplicate()
 	}
 }
 
-void FAssetContextMenu::ExecuteRename() 
+void FAssetContextMenu::ExecuteRename()
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
@@ -872,7 +856,7 @@ void FAssetContextMenu::ExecuteRename()
 	}
 }
 
-void FAssetContextMenu::ExecuteDelete() 
+void FAssetContextMenu::ExecuteDelete()
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)

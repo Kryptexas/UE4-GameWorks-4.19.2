@@ -13,6 +13,10 @@ public:
 	/** Sets the handler for when new assets are requested */
 	void SetOnNewAssetRequested(const FNewAssetContextMenu::FOnNewAssetRequested& InOnNewAssetRequested);
 
+	/** Delegate for when the context menu requests a rename of a folder */
+	DECLARE_DELEGATE_OneParam(FOnRenameFolderRequested, const FString& /*FolderToRename*/);
+	void SetOnRenameFolderRequested(const FOnRenameFolderRequested& InOnRenameFolderRequested);
+
 	/** Makes the asset tree context menu extender */
 	TSharedRef<FExtender> MakePathViewContextMenuExtender(const TArray<FString>& InSelectedPaths);
 
@@ -31,6 +35,18 @@ public:
 	/** Handler for when "Explore" is selected */
 	void ExecuteExplore();
 
+	/** Handler to check to see if a rename command is allowed */
+	bool CanExecuteRename() const;
+
+	/** Handler for Rename */
+	void ExecuteRename();
+
+	/** Handler to check to see if a delete command is allowed */
+	bool CanExecuteDelete() const;
+
+	/** Handler for Delete */
+	void ExecuteDelete();
+
 	/** Handler for when reset color is selected */
 	void ExecuteResetColor();
 
@@ -39,9 +55,6 @@ public:
 
 	/** Handler for when "Save" is selected */
 	void ExecuteSaveFolder();
-
-	/** Handler for when "Delete" is selected */
-	void ExecuteDeleteFolder();
 
 	/** Handler for when "ReferenceViewer" is selected */
 	void ExecuteReferenceViewer();
@@ -105,6 +118,7 @@ private:
 	TArray<FString> SelectedPaths;
 	TWeakPtr<SWidget> ParentContent;
 	FNewAssetContextMenu::FOnNewAssetRequested OnNewAssetRequested;
+	FOnRenameFolderRequested OnRenameFolderRequested;
 
 	/** Cached SCC CanExecute vars */
 	bool bCanExecuteSCCCheckOut;

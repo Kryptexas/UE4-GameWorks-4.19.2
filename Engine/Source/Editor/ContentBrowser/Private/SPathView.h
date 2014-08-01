@@ -85,6 +85,9 @@ public:
 	/** Attempts to removed the folder at the end of the specified path from the tree. Returns true when successful. */
 	bool RemovePath(const FString& Path);
 
+	/** Sets up an inline rename for the specified folder */
+	void RenameFolder(const FString& FolderToRename);
+
 	/** Selects the paths containing the specified assets.
 	 *
 	 *	@param AssetDataList		- A list of assets to sync the view to
@@ -169,7 +172,7 @@ private:
 	bool VerifyFolderNameChanged(const FText& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
 
 	/** Handler for when a name was given to a new folder */
-	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FVector2D& MessageLocation );
+	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation );
 
 	/** Returns true if the supplied folder item already exists in the tree. If so, ExistingItem will be set to the found item. */
 	bool FolderAlreadyExists(const TSharedPtr< FTreeItem >& TreeItem, TSharedPtr< FTreeItem >& ExistingItem);

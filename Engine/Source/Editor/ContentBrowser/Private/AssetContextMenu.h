@@ -8,9 +8,6 @@ public:
 	/** Constructor */
 	FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView);
 
-	/** Bind menu selection commands to the command list */
-	void BindCommands(TSharedPtr< FUICommandList > InCommandList);
-
 	/** Makes the context menu widget */
 	TSharedRef<SWidget> MakeContextMenu(const TArray<FAssetData>& SelectedAssets, const FSourcesData& InSourcesData, TSharedPtr< FUICommandList > InCommandList);
 
@@ -32,6 +29,18 @@ public:
 	/** Delegate for when the context menu requests an asset view refresh */
 	DECLARE_DELEGATE(FOnAssetViewRefreshRequested);
 	void SetOnAssetViewRefreshRequested(const FOnAssetViewRefreshRequested& InOnAssetViewRefreshRequested);
+
+	/** Handler to check to see if a rename command is allowed */
+	bool CanExecuteRename() const;
+
+	/** Handler for Rename */
+	void ExecuteRename();
+
+	/** Handler to check to see if a delete command is allowed */
+	bool CanExecuteDelete() const;
+
+	/** Handler for Delete */
+	void ExecuteDelete();
 
 private:
 	/** Adds common menu options to a menu builder. Returns true if any options were added. */
@@ -78,12 +87,6 @@ private:
 
 	/** Handler for Duplicate */
 	void ExecuteDuplicate();
-
-	/** Handler for Rename */
-	void ExecuteRename();
-
-	/** Handler for Delete */
-	void ExecuteDelete();
 
 	/** Handler for confirmation of folder deletion */
 	FReply ExecuteDeleteFolderConfirmed();
@@ -168,12 +171,6 @@ private:
 
 	/** Handler to check to see if a duplicate command is allowed */
 	bool CanExecuteDuplicate() const;
-
-	/** Handler to check to see if a rename command is allowed */
-	bool CanExecuteRename() const;
-
-	/** Handler to check to see if a delete command is allowed */
-	bool CanExecuteDelete() const;
 
 	/** Handler to check to see if a "Remove from collection" command is allowed */
 	bool CanExecuteRemoveFromCollection() const;

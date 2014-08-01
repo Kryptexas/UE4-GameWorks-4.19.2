@@ -57,6 +57,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 	PathContextMenu = MakeShareable(new FPathContextMenu( AsShared() ));
 	PathContextMenu->SetOnNewAssetRequested( FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested) );
+	PathContextMenu->SetOnRenameFolderRequested(FPathContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested));
 
 	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
 	TextFilter = MakeShareable( new FFrontendFilter_Text() );
@@ -384,7 +385,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							[
 								SAssignNew( PathViewPtr, SPathView )
 								.OnPathSelected( this, &SContentBrowser::PathSelected )
-								.OnGetFolderContextMenu( this, &SContentBrowser::GetFolderContextMenu )
+								.OnGetFolderContextMenu( this, &SContentBrowser::GetFolderContextMenu, true )
 								.OnGetPathContextMenuExtender( this, &SContentBrowser::GetPathContextMenuExtender )
 								.FocusSearchBoxWhenOpened( false )
 								.ShowTreeTitle( false )
@@ -546,7 +547,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnAssetSelected(this, &SContentBrowser::OnAssetSelectionChanged)
 							.OnAssetsActivated(this, &SContentBrowser::OnAssetsActivated)
 							.OnGetAssetContextMenu(this, &SContentBrowser::OnGetAssetContextMenu)
-							.OnGetFolderContextMenu(this, &SContentBrowser::GetFolderContextMenu)
+							.OnGetFolderContextMenu(this, &SContentBrowser::GetFolderContextMenu, false)
 							.OnGetPathContextMenuExtender(this, &SContentBrowser::GetPathContextMenuExtender)
 							.OnFindInAssetTreeRequested(this, &SContentBrowser::OnFindInAssetTreeRequested)
 							.OnAssetRenameCommitted(this, &SContentBrowser::OnAssetRenameCommitted)
@@ -567,7 +568,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	];
 
 	AssetContextMenu = MakeShareable(new FAssetContextMenu(AssetViewPtr));
-	AssetContextMenu->BindCommands(Commands);
 	AssetContextMenu->SetOnFindInAssetTreeRequested( FOnFindInAssetTreeRequested::CreateSP(this, &SContentBrowser::OnFindInAssetTreeRequested) );
 	AssetContextMenu->SetOnRenameRequested( FAssetContextMenu::FOnRenameRequested::CreateSP(this, &SContentBrowser::OnRenameRequested) );
 	AssetContextMenu->SetOnRenameFolderRequested( FAssetContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested) );
@@ -605,6 +605,16 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SContentBrowser::BindCommands()
 {
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
+
+	Commands->MapAction(FGenericCommands::Get().Rename, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::OnRename),
+		FCanExecuteAction::CreateSP(this, &SContentBrowser::CanRename)
+		));
+
+	Commands->MapAction(FGenericCommands::Get().Delete, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::OnDelete),
+		FCanExecuteAction::CreateSP(this, &SContentBrowser::CanDelete)
+		));
 
 	Commands->MapAction(FContentBrowserCommands::Get().OpenAssetsOrFolders, FUIAction(
 		FExecuteAction::CreateSP(this, &SContentBrowser::OnOpenAssetsOrFolders)
@@ -1494,6 +1504,76 @@ FReply SContentBrowser::ForwardClicked()
 	return FReply::Handled();
 }
 
+bool SContentBrowser::CanRename() const
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		return AssetContextMenu->CanExecuteRename();
+	}
+	else
+	{
+		const TArray<FString>& SelectedPaths = PathViewPtr->GetSelectedPaths();
+		if (SelectedPaths.Num() > 0)
+		{
+			return PathContextMenu->CanExecuteRename();
+		}
+	}
+	return false;
+}
+
+void SContentBrowser::OnRename()
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		AssetContextMenu->ExecuteRename();
+	}
+	else
+	{
+		const TArray<FString>& SelectedPaths = PathViewPtr->GetSelectedPaths();
+		if (SelectedPaths.Num() > 0)
+		{
+			PathContextMenu->ExecuteRename();
+		}
+	}
+}
+
+bool SContentBrowser::CanDelete() const
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		return AssetContextMenu->CanExecuteDelete();
+	}
+	else
+	{
+		const TArray<FString>& SelectedPaths = PathViewPtr->GetSelectedPaths();
+		if (SelectedPaths.Num() > 0)
+		{
+			return PathContextMenu->CanExecuteDelete();
+		}
+	}
+	return false;
+}
+
+void SContentBrowser::OnDelete()
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		AssetContextMenu->ExecuteDelete();
+	}
+	else
+	{
+		const TArray<FString>& SelectedPaths = PathViewPtr->GetSelectedPaths();
+		if (SelectedPaths.Num() > 0)
+		{
+			PathContextMenu->ExecuteDelete();
+		}
+	}
+}
+
 void SContentBrowser::OnOpenAssetsOrFolders()
 {
 	AssetViewPtr->OnOpenAssetsOrFolders();
@@ -1743,7 +1823,19 @@ void SContentBrowser::OnRenameRequested(const FAssetData& AssetData)
 
 void SContentBrowser::OnRenameFolderRequested(const FString& FolderToRename)
 {
-	AssetViewPtr->RenameFolder(FolderToRename);
+	const TArray<FString>& SelectedFolders = AssetViewPtr->GetSelectedFolders();
+	if (SelectedFolders.Num() > 0)
+	{
+		AssetViewPtr->RenameFolder(FolderToRename);
+	}
+	else
+	{
+		const TArray<FString>& SelectedPaths = PathViewPtr->GetSelectedPaths();
+		if (SelectedPaths.Num() > 0)
+		{
+			PathViewPtr->RenameFolder(FolderToRename);
+		}
+	}
 }
 
 void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& OriginalObject)
@@ -1880,8 +1972,15 @@ TArray<FString> SContentBrowser::GetAssetSearchSuggestions() const
 	return AllSuggestions;
 }
 
-TSharedPtr<SWidget> SContentBrowser::GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder)
+TSharedPtr<SWidget> SContentBrowser::GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder, bool bPathView)
 {
+	// Clear any selection in the asset view, as it'll conflict with other view info
+	// This is important for determining which context menu may be open based on the asset selection for rename/delete operations
+	if (bPathView)
+	{
+		AssetViewPtr->ClearSelection();
+	}
+	
 	TSharedPtr<FExtender> Extender;
 	if(InMenuExtender.IsBound())
 	{
@@ -1890,7 +1989,7 @@ TSharedPtr<SWidget> SContentBrowser::GetFolderContextMenu(const TArray<FString>&
 
 	const bool bInShouldCloseWindowAfterSelection = true;
 	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterSelection, Commands, Extender, true);
-
+	
 	// New Folder
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("NewFolder", "New Folder"),

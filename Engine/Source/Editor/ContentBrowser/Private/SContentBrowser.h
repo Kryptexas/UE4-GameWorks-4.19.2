@@ -200,6 +200,18 @@ private:
 	/** Handler for clicking the history forward button */
 	FReply ForwardClicked();
 
+	/** Handler to check to see if a rename command is allowed */
+	bool CanRename() const;
+
+	/** Handler for Rename */
+	void OnRename();
+
+	/** Handler to check to see if a delete command is allowed */
+	bool CanDelete() const;
+
+	/** Handler for Delete */
+	void OnDelete();
+
 	/** Handler for opening assets or folders */
 	void OnOpenAssetsOrFolders();
 
@@ -288,7 +300,7 @@ private:
 	FText GetSearchAssetsHintText() const;
 
 	/** Delegate called when generating the context menu for a folder */
-	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder OnCreateNewFolder);
+	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder OnCreateNewFolder, bool bPathView);
 
 	/** Sets up an inline-name for the creation of a default-named folder the specified path */
 	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder OnCreateNewFolder);

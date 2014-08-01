@@ -26,6 +26,11 @@ void FPathContextMenu::SetOnNewAssetRequested(const FNewAssetContextMenu::FOnNew
 	OnNewAssetRequested = InOnNewAssetRequested;
 }
 
+void FPathContextMenu::SetOnRenameFolderRequested(const FOnRenameFolderRequested& InOnRenameFolderRequested)
+{
+	OnRenameFolderRequested = InOnRenameFolderRequested;
+}
+
 TSharedRef<FExtender> FPathContextMenu::MakePathViewContextMenuExtender(const TArray<FString>& InSelectedPaths)
 {
 	SelectedPaths = InSelectedPaths;
@@ -78,13 +83,10 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteExplore ) )
 				);
 
-			if ( SelectedPaths.Num() == 1 )
-			{
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None,
-					LOCTEXT("RenameFolder", "Rename"),
-					LOCTEXT("RenameFolderTooltip", "Rename the selected folder.")
-					);
-			}
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None,
+				LOCTEXT("RenameFolder", "Rename"),
+				LOCTEXT("RenameFolderTooltip", "Rename the selected folder.")
+				);
 
 			// If any colors have already been set, display color options as a sub menu
 			if ( ContentBrowserUtils::HasCustomColors() )
@@ -121,11 +123,9 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 			    );
     
 		    // Delete
-		    MenuBuilder.AddMenuEntry(
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 			    LOCTEXT("DeleteFolder", "Delete"),
-			    LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
-			    FSlateIcon(),
-			    FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteDeleteFolder ) )
+			    LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains.")
 			    );
 
 			// Reference Viewer
@@ -329,6 +329,24 @@ void FPathContextMenu::ExecuteExplore()
 	}
 }
 
+bool FPathContextMenu::CanExecuteRename() const
+{
+	if (SelectedPaths.Num() == 1 && !ContentBrowserUtils::IsAssetRootDir(SelectedPaths[0]))
+	{
+		return true;
+	}
+	return false;
+}
+
+void FPathContextMenu::ExecuteRename()
+{
+	check(SelectedPaths.Num() == 1);
+	if (OnRenameFolderRequested.IsBound())
+	{
+		OnRenameFolderRequested.Execute(SelectedPaths[0]);
+	}
+}
+
 void FPathContextMenu::ExecuteResetColor()
 {
 	ResetColors();
@@ -437,9 +455,15 @@ void FPathContextMenu::ExecuteSaveFolder()
 	}
 }
 
-void FPathContextMenu::ExecuteDeleteFolder()
+bool FPathContextMenu::CanExecuteDelete() const
 {
-	if ( ParentContent.IsValid() )
+	return SelectedPaths.Num() > 0;
+}
+
+void FPathContextMenu::ExecuteDelete()
+{
+	check(SelectedPaths.Num() > 0);
+	if (ParentContent.IsValid())
 	{
 		FText Prompt;
 		if ( SelectedPaths.Num() == 1 )
@@ -450,7 +474,7 @@ void FPathContextMenu::ExecuteDeleteFolder()
 		{
 			Prompt = FText::Format(LOCTEXT("FolderDeleteConfirm_Multiple", "Delete {0} folders?"), FText::AsNumber(SelectedPaths.Num()));
 		}
-
+		
 		// Spawn a confirmation dialog since this is potentially a highly destructive operation
 		FOnClicked OnYesClicked = FOnClicked::CreateSP( this, &FPathContextMenu::ExecuteDeleteFolderConfirmed );
  		ContentBrowserUtils::DisplayConfirmationPopup(

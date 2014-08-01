@@ -17,8 +17,8 @@ struct FTreeItem : public TSharedFromThis<FTreeItem>
 	FString FolderName;
 	/** The path of the tree item including the name */
 	FString FolderPath;
-	/** If true, this folder is in the process of being created */
-	bool bNewFolder;
+	/** If true, this folder is in the process of being named */
+	bool bNamingFolder;
 
 	/** The children of this tree item */
 	TArray< TSharedPtr<FTreeItem> > Children;
@@ -33,10 +33,10 @@ struct FTreeItem : public TSharedFromThis<FTreeItem>
 	FRenamedRequestEvent OnRenamedRequestEvent;
 
 	/** Constructor */
-	FTreeItem(const FString& InFolderName, const FString& InFolderPath, TSharedPtr<FTreeItem> InParent, bool InNewFolder = false)
+	FTreeItem(const FString& InFolderName, const FString& InFolderPath, TSharedPtr<FTreeItem> InParent, bool InNamingFolder = false)
 		: FolderName(InFolderName)
 		, FolderPath(InFolderPath)
-		, bNewFolder(InNewFolder)
+		, bNamingFolder(InNamingFolder)
 		, Parent(InParent)
 	{}
 
