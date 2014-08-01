@@ -19,8 +19,8 @@ UScrollBar::UScrollBar(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UScrollBar::RebuildWidget()
 {
-	const FScrollBarStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FScrollBarStyle>() : NULL;
-	if ( StylePtr == NULL )
+	const FScrollBarStyle* StylePtr = ( Style != nullptr ) ? Style->GetStyle<FScrollBarStyle>() : nullptr;
+	if ( StylePtr == nullptr )
 	{
 		SScrollBar::FArguments Defaults;
 		StylePtr = Defaults._Style;

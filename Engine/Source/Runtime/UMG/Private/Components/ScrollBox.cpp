@@ -53,15 +53,15 @@ void UScrollBox::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
-	const FScrollBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FScrollBoxStyle>() : NULL;
-	if ( StylePtr == NULL )
+	const FScrollBoxStyle* StylePtr = ( Style != nullptr ) ? Style->GetStyle<FScrollBoxStyle>() : nullptr;
+	if ( StylePtr == nullptr )
 	{
 		SScrollBox::FArguments Defaults;
 		StylePtr = Defaults._Style;
 	}
 
-	const FScrollBarStyle* BarStylePtr = ( BarStyle != NULL ) ? BarStyle->GetStyle<FScrollBarStyle>() : NULL;
-	if ( BarStylePtr == NULL )
+	const FScrollBarStyle* BarStylePtr = ( BarStyle != nullptr ) ? BarStyle->GetStyle<FScrollBarStyle>() : nullptr;
+	if ( BarStylePtr == nullptr )
 	{
 		SScrollBox::FArguments Defaults;
 		BarStylePtr = Defaults._ScrollBarStyle;
