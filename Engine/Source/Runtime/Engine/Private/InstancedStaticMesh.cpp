@@ -35,6 +35,7 @@
 #include "ComponentInstanceDataCache.h"
 #include "InstancedFoliage.h"
 #include "VertexFactory.h"
+#include "LocalVertexFactory.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
@@ -535,11 +536,13 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 	InitDeclaration(Elements,Data);
 }
 
-class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFactoryShaderParameters
 {
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		InstancingFadeOutParamsParameter.Bind(ParameterMap,TEXT("InstancingFadeOutParams"));
+		FLocalVertexFactoryShaderParameters::Bind(ParameterMap);
+
+		InstancingFadeOutParamsParameter.Bind(ParameterMap, TEXT("InstancingFadeOutParams"));
 		CPUInstanceShadowMapBias.Bind(ParameterMap, TEXT("CPUInstanceShadowMapBias"));
 		CPUInstanceTransform.Bind(ParameterMap, TEXT("CPUInstanceTransform"));
 		CPUInstanceInverseTransform.Bind(ParameterMap, TEXT("CPUInstanceInverseTransform"));
@@ -549,6 +552,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 
 	void Serialize(FArchive& Ar)
 	{
+		FLocalVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << InstancingFadeOutParamsParameter;
 		Ar << CPUInstanceShadowMapBias;
 		Ar << CPUInstanceTransform;
@@ -862,7 +866,7 @@ public:
 #if WITH_EDITOR
 		if( bHasSelectedInstances )
 		{
-			// if we have selected indices, we must be in Foliage edit mode, so we mark the selection
+			// if we have selected indices, mark scene proxy as selected.
 			SetSelection_GameThread(true);
 		}
 #endif
@@ -1749,6 +1753,8 @@ void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InIns
 
 void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags ) const 
 {
+	FLocalVertexFactoryShaderParameters::SetMesh(RHICmdList, VertexShader, VertexFactory, View, BatchElement, DataFlags);
+
 	FRHIVertexShader* VS = VertexShader->GetVertexShader();
 	if( InstancingFadeOutParamsParameter.IsBound() )
 	{
@@ -1790,16 +1796,6 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			SetShaderValue(RHICmdList, VS, CPUInstanceShadowMapBias, InstanceStream->InstanceShadowmapUVBias);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceTransform, InstanceStream->InstanceTransform, 3);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceInverseTransform, InstanceStream->InstanceInverseTransform, 3);
-		}
-	}
-
-	// upload SpeedTree buffer, if available
-	if (View.Family != NULL && View.Family->Scene != NULL)
-	{
-		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
-		if (SpeedTreeUniformBuffer != NULL)
-		{
-			SetUniformBufferParameter(RHICmdList, VS, VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
 		}
 	}
 }

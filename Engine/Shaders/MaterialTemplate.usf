@@ -132,7 +132,7 @@ struct FMaterialPixelParameters
 #endif
 
 #if USE_INSTANCING
-	half2 PerInstanceParams;
+	half3 PerInstanceParams;
 #endif
 
 	/** Per-particle properties. Only valid for particle vertex factories. */
@@ -229,7 +229,7 @@ struct FMaterialVertexParameters
 	float4x4 InstanceLocalToWorld;
 	float3x3 InstanceWorldToLocal;
 	float3 InstanceLocalPosition;
-	float2 PerInstanceParams;
+	float3 PerInstanceParams;
 #elif PARTICLE_MESH_FACTORY
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
@@ -679,6 +679,12 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 		float3x3 LocalToWorld = (float3x3)Parameters.InstanceLocalToWorld;
 		float3x3 WorldToLocal = Parameters.InstanceWorldToLocal;
 		float3 LocalPosition = Parameters.InstanceLocalPosition;
+
+		// skip if this instance is hidden
+		if (Parameters.PerInstanceParams.z < 1.f)
+		{
+			return float4(0,0,0,0);
+		}
 	#else
 		float3x3 LocalToWorld = (float3x3)Primitive.LocalToWorld;
 		float3x3 WorldToLocal = (float3x3)Primitive.WorldToLocal;
