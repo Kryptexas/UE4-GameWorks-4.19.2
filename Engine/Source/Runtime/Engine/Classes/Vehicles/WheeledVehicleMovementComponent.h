@@ -2,9 +2,9 @@
 
 #pragma once
 #include "GameFramework/PawnMovementComponent.h"
-#include "VehicleWheel.h"
-#include "Curves/CurveBase.h"
 #include "WheeledVehicleMovementComponent.generated.h"
+
+class UVehicleWheel;
 
 #if WITH_VEHICLE
 namespace physx
@@ -98,12 +98,7 @@ struct FWheelSetup
 	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FVector AdditionalOffset;
 
-	FWheelSetup()
-		: WheelClass(UVehicleWheel::StaticClass())
-		, BoneName(NAME_None)
-		, AdditionalOffset(0.0f)
-	{
-	}
+	FWheelSetup();
 };
 
 USTRUCT()

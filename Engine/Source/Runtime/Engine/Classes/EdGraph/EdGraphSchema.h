@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "EdGraphPin.h"
-
 #include "EdGraphSchema.generated.h"
 
 class FSlateRect;
 class UEdGraphNode;
+class UEdGraphPin;
+struct FEdGraphPinType;
 
 /** Distinguishes between different graph types. Graphs can have different properties; for example: functions have one entry point, ubergraphs can have multiples. */
 UENUM()
@@ -509,10 +508,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 *	Determine whether the current pin default values are valid
 	 *	@see IsPinDefaultValid
 	 */
-	FString IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const
-	{
-		return IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
-	}
+	FString IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const;
 
 	/**
 	 * An easy way to check to see if the current graph system supports pin watching.
