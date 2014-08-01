@@ -259,7 +259,13 @@ public partial class Project : CommandUtils
 
 				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Content/Localization/ICU" ) );
 				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU" ) );
-				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL" ) );
+
+				// SSL libraries are only available for Win64 builds.
+				// @see FPerforceSourceControlProvider::LoadSSLLibraries
+				if( SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 )
+				{
+					SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL" ) );
+				}
 			}
 		}
 	}
