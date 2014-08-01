@@ -56,6 +56,7 @@
 			this.CertificatePresentCheck2 = new System.Windows.Forms.PictureBox();
 			this.MobileProvisionCheck2 = new System.Windows.Forms.PictureBox();
 			this.ReadyToPackageButton = new System.Windows.Forms.Button();
+			this.InstallIPA = new System.Windows.Forms.Button();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.CertificatePresentCheck)).BeginInit();
@@ -378,7 +379,7 @@
 			// 
 			this.ReadyToPackageButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.ReadyToPackageButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.ReadyToPackageButton.Location = new System.Drawing.Point(436, 483);
+			this.ReadyToPackageButton.Location = new System.Drawing.Point(20, 483);
 			this.ReadyToPackageButton.Name = "ReadyToPackageButton";
 			this.ReadyToPackageButton.Size = new System.Drawing.Size(109, 29);
 			this.ReadyToPackageButton.TabIndex = 5;
@@ -386,11 +387,24 @@
 			this.ReadyToPackageButton.UseVisualStyleBackColor = true;
 			this.ReadyToPackageButton.Click += new System.EventHandler(this.ReadyToPackageButton_Click);
 			// 
+			// InstallIPA
+			// 
+			this.InstallIPA.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+			this.InstallIPA.DialogResult = System.Windows.Forms.DialogResult.OK;
+			this.InstallIPA.Location = new System.Drawing.Point(433, 483);
+			this.InstallIPA.Name = "InstallIPA";
+			this.InstallIPA.Size = new System.Drawing.Size(109, 29);
+			this.InstallIPA.TabIndex = 19;
+			this.InstallIPA.Text = "Install IPA...";
+			this.InstallIPA.UseVisualStyleBackColor = true;
+			this.InstallIPA.Click += new System.EventHandler(this.InstallIPA_Click);
+			// 
 			// ToolsHub
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(562, 524);
+			this.Controls.Add(this.InstallIPA);
 			this.Controls.Add(this.tabControl1);
 			this.Controls.Add(this.ReadyToPackageButton);
 			this.HelpButton = true;
@@ -443,5 +457,6 @@
         private System.Windows.Forms.LinkLabel linkLabel1;
 		private System.Windows.Forms.LinkLabel linkLabel3;
 		private System.Windows.Forms.Button ReadyToPackageButton;
+		private System.Windows.Forms.Button InstallIPA;
     }
 }

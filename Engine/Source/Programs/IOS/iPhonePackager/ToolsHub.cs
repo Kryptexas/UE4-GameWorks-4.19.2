@@ -95,6 +95,13 @@ namespace iPhonePackager
 		{
 			// Check the status of the various steps
 			UpdateStatus();
+
+			CreateCSRButton.Enabled =
+			ImportMobileProvisionButton.Enabled =
+			ImportProvisionButton2.Enabled =
+			ImportCertificateButton.Enabled =
+			ImportCertificateButton2.Enabled =
+				!string.IsNullOrEmpty(Config.ProjectFile);
 		}
 
 		void UpdateStatus()
@@ -337,6 +344,11 @@ namespace iPhonePackager
 			string Target = (sender as LinkLabel).Tag as string;
 			ProcessStartInfo PSI = new ProcessStartInfo(Target);
 			Process.Start(PSI);
+		}
+
+		private void InstallIPA_Click(object sender, EventArgs e)
+		{
+			InstallIPAButton_Click(sender, e);
 		}
 
 	}
