@@ -71,7 +71,7 @@ void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp,
 
 void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
 {
-	const FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
+	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
 	{
 		const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
@@ -83,6 +83,8 @@ void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
 			OwnerComp->NodeInstances[Idx]->OnInstanceDestroyed(OwnerComp);
 		}
 	}
+
+	Info.InstanceMemory = InstanceMemory;
 }
 
 //----------------------------------------------------------------------//

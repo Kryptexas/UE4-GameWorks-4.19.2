@@ -209,6 +209,9 @@ struct FBehaviorTreeInstanceId
 	/** execution index path from root */
 	TArray<uint16> Path;
 
+	/** persistent instance memory */
+	TArray<uint8> InstanceMemory;
+
 	/** index of first node instance (BehaviorTreeComponent.NodeInstances) */
 	int32 FirstNodeInstance;
 
