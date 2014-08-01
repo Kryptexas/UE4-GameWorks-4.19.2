@@ -178,12 +178,17 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 
 	MenuBuilder.PushCommandList(BlueprintEditor->WidgetCommandList.ToSharedRef());
 
-	MenuBuilder.BeginSection("Actions");
+	MenuBuilder.BeginSection("Edit", LOCTEXT("Edit", "Edit"));
 	{
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
+	}
+	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection("Actions");
+	{
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
 			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
@@ -206,7 +211,30 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 		bool bRemoved = false;
 		for ( FWidgetReference& Item : Widgets )
 		{
-			bRemoved = BP->WidgetTree->RemoveWidget(Item.GetTemplate());
+			UWidget* WidgetTemplate = Item.GetTemplate();
+
+			// Modify the widget's parent
+			UPanelWidget* Parent = WidgetTemplate->GetParent();
+			if ( Parent )
+			{
+				Parent->Modify();
+			}
+			
+			// Modify the widget being removed.
+			WidgetTemplate->Modify();
+
+			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
+
+			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
+			WidgetTemplate->Rename(NULL, NULL);
+
+			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
+			TArray<UWidget*> ChildWidgets;
+			BP->WidgetTree->GetChildWidgets(WidgetTemplate, ChildWidgets);
+			for ( UWidget* Widget : ChildWidgets )
+			{
+				Widget->Rename(NULL, NULL);
+			}
 		}
 
 		//TODO UMG There needs to be an event for widget removal so that caches can be updated, and selection
@@ -269,6 +297,12 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+}
+
+void FWidgetBlueprintEditorUtils::CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
+{
+	CopyWidgets(BP, Widgets);
+	DeleteWidgets(BP, Widgets);
 }
 
 void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
@@ -430,7 +464,16 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 		ImportedWidgetSet.Add(Widget);
 
 		Widget->SetFlags(RF_Transactional);
-		Widget->Rename(nullptr, BP->WidgetTree);
+
+		// If there is an existing widget with the same name, rename the newly placed widget.
+		if ( FindObject<UObject>(BP->WidgetTree, *Widget->GetName()) )
+		{
+			Widget->Rename(nullptr, BP->WidgetTree);
+		}
+		else
+		{
+			Widget->Rename(*Widget->GetName(), BP->WidgetTree);
+		}
 	}
 
 	// Remove the temp package from the root now that it has served its purpose.

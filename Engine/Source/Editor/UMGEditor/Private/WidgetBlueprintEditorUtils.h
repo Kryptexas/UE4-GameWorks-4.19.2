@@ -18,6 +18,8 @@ public:
 
 	static void DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 
+	static void CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
+
 public:
 	static void ExportWidgetsToText(TSet<UWidget*> WidgetsToExport, /*out*/ FString& ExportedText);
 

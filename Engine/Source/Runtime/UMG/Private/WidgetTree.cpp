@@ -66,22 +66,18 @@ UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildInde
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
-	InRemovedWidget->Modify();
-
 	bool bRemoved = false;
 
 	UPanelWidget* InRemovedWidgetParent = InRemovedWidget->GetParent();
 	if ( InRemovedWidgetParent )
 	{
-		InRemovedWidgetParent->Modify();
-
 		if ( InRemovedWidgetParent->RemoveChild(InRemovedWidget) )
 		{
 			bRemoved = true;
 		}
 	}
-
-	if ( InRemovedWidget == RootWidget )
+	// If the widget being removed is the root, null it out.
+	else if ( InRemovedWidget == RootWidget )
 	{
 		RootWidget = NULL;
 		bRemoved = true;

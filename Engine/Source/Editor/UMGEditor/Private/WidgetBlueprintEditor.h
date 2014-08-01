@@ -86,6 +86,9 @@ private:
 	bool CanPasteWidgets();
 	void PasteWidgets();
 
+	bool CanCutSelectedWidgets();
+	void CutSelectedWidgets();
+
 private:
 	/** Called whenever the blueprint is structurally changed. */
 	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
