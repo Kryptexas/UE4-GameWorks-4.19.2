@@ -76,6 +76,10 @@
 #include "SourceCodeAccessSettingsDetails.h"
 #include "ParticleSystemComponentDetails.h"
 #include "DocumentationActorDetails.h"
+#include "MediaAssetCustomization.h"
+#include "MediaSoundWaveCustomization.h"
+#include "MediaTextureCustomization.h"
+
 
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
 
@@ -94,21 +98,21 @@ void FDetailCustomizationsModule::StartupModule()
 
 void FDetailCustomizationsModule::ShutdownModule()
 {
-	if( FModuleManager::Get().IsModuleLoaded( "PropertyEditor" ) )
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 		// Unregister all classes customized by name
-		for( auto It = RegisteredClassNames.CreateConstIterator(); It; ++It )
+		for (auto It = RegisteredClassNames.CreateConstIterator(); It; ++It)
 		{
-			if( It->IsValid() )
+			if (It->IsValid())
 			{
-				PropertyModule.UnregisterCustomClassLayout( *It );
+				PropertyModule.UnregisterCustomClassLayout(*It);
 			}
 		}
 
-		// Unregister all structs
-		for(auto It = RegisteredPropertyTypes.CreateConstIterator(); It; ++It)
+		// Unregister all structures
+		for (auto It = RegisteredPropertyTypes.CreateConstIterator(); It; ++It)
 		{
 			if(It->IsValid())
 			{
@@ -123,7 +127,6 @@ void FDetailCustomizationsModule::ShutdownModule()
 
 void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 {
-	// Structs
 	RegisterCustomPropertyTypeLayout("StringAssetReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringAssetReferenceCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("StringClassReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringClassReferenceCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("DataTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCustomizationLayout::MakeInstance));
@@ -166,6 +169,7 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout("InputActionKeyMapping", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInputActionMappingCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("InputAxisKeyMapping", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInputAxisMappingCustomization::MakeInstance));
 }
+
 
 void FDetailCustomizationsModule::RegisterObjectCustomizations()
 {
@@ -238,19 +242,21 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 
 	RegisterCustomClassLayout("SourceCodeAccessSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FSourceCodeAccessSettingsDetails::MakeInstance));
 	RegisterCustomClassLayout("ParticleSystemComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FParticleSystemComponentDetails::MakeInstance));
+
+	RegisterCustomClassLayout("MediaAsset", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaAssetCustomization::MakeInstance));
+	RegisterCustomClassLayout("MediaSoundWave", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaSoundWaveCustomization::MakeInstance));
+	RegisterCustomClassLayout("MediaTexture", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaTextureCustomization::MakeInstance));
 }
+
 
 void FDetailCustomizationsModule::RegisterCustomClassLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
-	check( ClassName != NAME_None );
+	check(ClassName != NAME_None);
+
+	RegisteredClassNames.Add(ClassName);
 
 	static FName PropertyEditor("PropertyEditor");
-
-	// Add the class to the list of classes we should unregister later
-	RegisteredClassNames.Add( ClassName );
-
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-
 	PropertyModule.RegisterCustomClassLayout( ClassName, DetailLayoutDelegate );
 }
 
@@ -259,11 +265,9 @@ void FDetailCustomizationsModule::RegisterCustomPropertyTypeLayout(FName Propert
 {
 	check(PropertyTypeName != NAME_None);
 
-	static FName PropertyEditor("PropertyEditor");
-
 	RegisteredPropertyTypes.Add(PropertyTypeName);
 
+	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-
 	PropertyModule.RegisterCustomPropertyTypeLayout(PropertyTypeName, PropertyTypeLayoutDelegate);
 }

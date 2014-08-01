@@ -35,7 +35,9 @@ public class DetailCustomizations : ModuleRules
 				"SourceControl",
                 "InternationalizationSettings",
 				"SourceCodeAccess",
-				"RHI"
+				"RHI",
+                "Media",
+                "MediaAssets",
 			}
 		);
 
