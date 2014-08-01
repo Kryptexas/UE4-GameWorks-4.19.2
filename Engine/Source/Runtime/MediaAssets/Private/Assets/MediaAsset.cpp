@@ -12,7 +12,7 @@ UMediaAsset::UMediaAsset( const class FPostConstructInitializeProperties& PCIP )
 	, Looping(true)
 	, PlaybackRate(1.0f)
 	, ResetOnLastFrame(false)
-	, StreamMode(MASM_FromMemory)
+	, StreamMode(MASM_FromUrl)
 	, MediaPlayer(nullptr)
 { }
 
