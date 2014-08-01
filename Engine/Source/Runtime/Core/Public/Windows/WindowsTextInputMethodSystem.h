@@ -82,16 +82,16 @@ private:
 	} CurrentAPI;
 
 	// TSF Implementation
-	FCOMPtr<ITfInputProcessorProfiles> TSFInputProcessorProfiles;
-	FCOMPtr<ITfInputProcessorProfileMgr> TSFInputProcessorProfileManager;
-	FCOMPtr<ITfThreadMgr> TSFThreadManager;
+	TComPtr<ITfInputProcessorProfiles> TSFInputProcessorProfiles;
+	TComPtr<ITfInputProcessorProfileMgr> TSFInputProcessorProfileManager;
+	TComPtr<ITfThreadMgr> TSFThreadManager;
 	TfClientId TSFClientId;
-	FCOMPtr<ITfDocumentMgr> TSFDisabledDocumentManager;
-	FCOMPtr<FTSFActivationProxy> TSFActivationProxy;
+	TComPtr<ITfDocumentMgr> TSFDisabledDocumentManager;
+	TComPtr<FTSFActivationProxy> TSFActivationProxy;
 
 	struct FInternalContext
 	{
-		FCOMPtr<FTextStoreACP> TSFContext;
+		TComPtr<FTextStoreACP> TSFContext;
 		struct
 		{
 			bool IsComposing;

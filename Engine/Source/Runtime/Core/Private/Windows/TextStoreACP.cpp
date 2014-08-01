@@ -102,14 +102,14 @@ STDAPI FTextStoreACP::AdviseSink(__RPC__in REFIID riid, __RPC__in_opt IUnknown *
 	}
 	else
 	{
-		FCOMPtr<IUnknown> OurSinkId(nullptr);
+		TComPtr<IUnknown> OurSinkId(nullptr);
 		if( FAILED( OurSinkId.FromQueryInterface(IID_IUnknown, punk) ) )
 		{
 			
 			return E_UNEXPECTED;
 		}
 
-		FCOMPtr<IUnknown> TheirSinkId(nullptr);
+		TComPtr<IUnknown> TheirSinkId(nullptr);
 		if( FAILED( TheirSinkId.FromQueryInterface(IID_IUnknown, punk) ) )
 		{
 			return E_UNEXPECTED;
@@ -144,13 +144,13 @@ STDAPI FTextStoreACP::UnadviseSink(__RPC__in_opt IUnknown *punk)
 		return CONNECT_E_NOCONNECTION;
 	}
 
-	FCOMPtr<IUnknown> OurSinkId(nullptr);
+	TComPtr<IUnknown> OurSinkId(nullptr);
 	if( FAILED( OurSinkId.FromQueryInterface(IID_IUnknown, punk) ) )
 	{
 		return E_UNEXPECTED;
 	}
 
-	FCOMPtr<IUnknown> TheirSinkId(nullptr);
+	TComPtr<IUnknown> TheirSinkId(nullptr);
 	if( FAILED( TheirSinkId.FromQueryInterface(IID_IUnknown, punk) ) )
 	{
 		return E_UNEXPECTED;
@@ -782,7 +782,7 @@ STDAPI FTextStoreACP::OnUpdateComposition(__RPC__in_opt ITfCompositionView *pCom
 
 	if(pRangeNew)
 	{
-		FCOMPtr<ITfRangeACP> RangeACP;
+		TComPtr<ITfRangeACP> RangeACP;
 		RangeACP.FromQueryInterface(IID_ITfRangeACP, pRangeNew);
 
 		LONG BeginIndex;

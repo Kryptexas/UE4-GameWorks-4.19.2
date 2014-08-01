@@ -6,25 +6,17 @@
 * Smart COM object pointer.
 */
 template<typename T>
-class FCOMPtr
+class TComPtr
 {
 public:
 	typedef T PointerType;
 
 public:
-	FCOMPtr() :	RawPointer(nullptr)
+	TComPtr() :	RawPointer(nullptr)
 	{
 	}
 
-	FCOMPtr(PointerType* const Source) : RawPointer(Source)
-	{
-		if(RawPointer)
-		{
-			RawPointer->AddRef();
-		}
-	}
-
-	FCOMPtr(const FCOMPtr<PointerType>& Source) : RawPointer(Source.RawPointer)
+	TComPtr(PointerType* const Source) : RawPointer(Source)
 	{
 		if(RawPointer)
 		{
@@ -32,12 +24,20 @@ public:
 		}
 	}
 
-	FCOMPtr(FCOMPtr<PointerType>&& Source) : RawPointer(Source.RawPointer)
+	TComPtr(const TComPtr<PointerType>& Source) : RawPointer(Source.RawPointer)
+	{
+		if(RawPointer)
+		{
+			RawPointer->AddRef();
+		}
+	}
+
+	TComPtr(TComPtr<PointerType>&& Source) : RawPointer(Source.RawPointer)
 	{	
 		Source.RawPointer = nullptr;
 	}	
 
-	FCOMPtr<PointerType>& operator=(PointerType* const Source) 
+	TComPtr<PointerType>& operator=(PointerType* const Source) 
 	{
 		if(RawPointer != Source)
 		{
@@ -54,7 +54,7 @@ public:
 		return *this;
 	}
 
-	FCOMPtr<PointerType>& operator=(const FCOMPtr<PointerType>& Source) 
+	TComPtr<PointerType>& operator=(const TComPtr<PointerType>& Source) 
 	{
 		if(RawPointer != Source.RawPointer)
 		{
@@ -71,7 +71,7 @@ public:
 		return *this;
 	}
 
-	FCOMPtr<PointerType>& operator=(FCOMPtr<PointerType>&& Source) 
+	TComPtr<PointerType>& operator=(TComPtr<PointerType>&& Source) 
 	{			
 		if(RawPointer != Source.RawPointer)
 		{
@@ -85,7 +85,7 @@ public:
 		return *this;
 	}
 
-	~FCOMPtr() 
+	~TComPtr() 
 	{
 		if(RawPointer)
 		{

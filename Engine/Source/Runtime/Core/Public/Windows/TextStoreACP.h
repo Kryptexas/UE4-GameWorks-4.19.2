@@ -103,9 +103,9 @@ public:
 		FAdviseSinkObject() : TextStoreACPSink(nullptr), SinkFlags(0) {}
 
 		// Sink object for ITextStoreACP Implementation
-		FCOMPtr<ITextStoreACPSink> TextStoreACPSink;
+		TComPtr<ITextStoreACPSink> TextStoreACPSink;
 
-		FCOMPtr<ITextStoreACPServices> TextStoreACPServices;
+		TComPtr<ITextStoreACPServices> TextStoreACPServices;
 
 		// Flags defining what events the sink object should be notified of.
 		DWORD SinkFlags;
@@ -117,19 +117,19 @@ public:
 		{}
 
 		// Composition view object for managing compositions.
-		FCOMPtr<ITfCompositionView> TSFCompositionView;
+		TComPtr<ITfCompositionView> TSFCompositionView;
 
 	} Composition;
 
 public:
 	// Document manager object for managing contexts.
-	FCOMPtr<ITfDocumentMgr> TSFDocumentManager;
+	TComPtr<ITfDocumentMgr> TSFDocumentManager;
 
 	// Context object for pushing context on to document manager.
-	FCOMPtr<ITfContext> TSFContext;
+	TComPtr<ITfContext> TSFContext;
 
 	// Context owner composition services object for terminating compositions.
-	FCOMPtr<ITfContextOwnerCompositionServices> TSFContextOwnerCompositionServices;
+	TComPtr<ITfContextOwnerCompositionServices> TSFContextOwnerCompositionServices;
 
 	TfEditCookie TSFEditCookie;
 };

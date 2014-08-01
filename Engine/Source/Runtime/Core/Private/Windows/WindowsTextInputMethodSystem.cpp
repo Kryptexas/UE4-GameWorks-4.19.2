@@ -8,6 +8,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogWindowsTextInputMethodSystem, Log, All);
 
 #include "AllowWindowsPlatformTypes.h"
 
+
 namespace
 {
 	FString GetIMMStringAsFString(HIMC IMMContext, const DWORD StringType)
@@ -28,10 +29,11 @@ namespace
 		return OutString;
 	}
 
-	class FTextInputMethodChangeNotifier : public ITextInputMethodChangeNotifier
+	class FTextInputMethodChangeNotifier
+		: public ITextInputMethodChangeNotifier
 	{
 	public:
-		FTextInputMethodChangeNotifier(const FCOMPtr<FTextStoreACP>& InTextStoreACP)
+		FTextInputMethodChangeNotifier(const TComPtr<FTextStoreACP>& InTextStoreACP)
 			:	TextStoreACP(InTextStoreACP)
 		{}
 
@@ -43,7 +45,7 @@ namespace
 		virtual void CancelComposition() override;
 
 	private:
-		const FCOMPtr<FTextStoreACP> TextStoreACP;
+		const TComPtr<FTextStoreACP> TextStoreACP;
 	};
 
 	void FTextInputMethodChangeNotifier::NotifyLayoutChanged(const ELayoutChangeType ChangeType)
@@ -321,7 +323,7 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 		}
 
 		// Get source from thread manager, needed to install profile processor related sinks.
-		FCOMPtr<ITfSource> TSFSource;
+		TComPtr<ITfSource> TSFSource;
 		Result = TSFSource.FromQueryInterface(IID_ITfSource, TSFThreadManager);
 		if(FAILED(Result))
 		{
@@ -410,7 +412,7 @@ void FWindowsTextInputMethodSystem::Terminate()
 	HRESULT Result;
 
 	// Get source from thread manager, needed to uninstall profile processor related sinks.
-	FCOMPtr<ITfSource> TSFSource;
+	TComPtr<ITfSource> TSFSource;
 	Result = TSFSource.FromQueryInterface(IID_ITfSource, TSFThreadManager);
 	if(FAILED(Result) || !TSFSource)
 	{
@@ -459,7 +461,7 @@ TSharedPtr<ITextInputMethodChangeNotifier> FWindowsTextInputMethodSystem::Regist
 	FInternalContext& InternalContext = ContextToInternalContextMap.Add(Context);
 
 	// TSF Implementation
-	FCOMPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
+	TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
 	TextStore.Attach(new FTextStoreACP(Context));
 
 	Result = TSFThreadManager->CreateDocumentMgr(&(TextStore->TSFDocumentManager));
@@ -514,7 +516,7 @@ void FWindowsTextInputMethodSystem::UnregisterContext(const TSharedRef<ITextInpu
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
 	// TSF Implementation
-	FCOMPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
+	TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
 
 	Result = TextStore->TSFDocumentManager->Pop(TF_POPF_ALL);
 	if(FAILED(Result))
@@ -542,7 +544,7 @@ void FWindowsTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputM
 	InternalContext.IMMContext.IsDeactivating = false;
 
 	// TSF Implementation
-	FCOMPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
+	TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
 	Result = TSFThreadManager->SetFocus(TextStore->TSFDocumentManager);
 	if(FAILED(Result))
 	{
@@ -560,7 +562,7 @@ void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInpu
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
 	// TSF Implementation
-	FCOMPtr<FTextStoreACP> TextStore = InternalContext.TSFContext;
+	TComPtr<FTextStoreACP> TextStore = InternalContext.TSFContext;
 
 	ITfDocumentMgr* FocusedDocumentManger = nullptr;
 	Result = TSFThreadManager->GetFocus(&(FocusedDocumentManger));
