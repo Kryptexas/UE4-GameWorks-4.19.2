@@ -6,13 +6,13 @@
  */
 
 #pragma once
-
-#include "WorldCollision.h"
-#include "GameFramework/PawnMovementComponent.h"
-#include "Interfaces/NetworkPredictionInterface.h"
-#include "Engine/EngineTypes.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "Animation/AnimationAsset.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/PawnMovementComponent.h"
+#include "Interfaces/NetworkPredictionInterface.h"
+#include "WorldCollision.h"
 #include "CharacterMovementComponent.generated.h"
 
 struct FVector_NetQuantize100;

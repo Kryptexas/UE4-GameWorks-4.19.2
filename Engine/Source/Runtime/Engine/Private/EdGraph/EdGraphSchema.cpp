@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphPin.h"
 #include "EdGraph/EdGraphSchema.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
@@ -639,6 +640,11 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 		}
 	}
 #endif
+}
+
+FString UEdGraphSchema::IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const
+{
+	return IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
 }
 
 #undef LOCTEXT_NAMESPACE

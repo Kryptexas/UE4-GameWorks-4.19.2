@@ -1376,3 +1376,11 @@ void UWheeledVehicleMovementComponent::ComputeConstants()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+FWheelSetup::FWheelSetup()
+: WheelClass(UVehicleWheel::StaticClass())
+, BoneName(NAME_None)
+, AdditionalOffset(0.0f)
+{
+
+}

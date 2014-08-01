@@ -5,6 +5,7 @@
 #include "Animation/BoneControllers/AnimNode_WheelHandler.h"
 #include "GameFramework/WheeledVehicle.h"
 #include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Vehicles/VehicleWheel.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_WheelHandler
