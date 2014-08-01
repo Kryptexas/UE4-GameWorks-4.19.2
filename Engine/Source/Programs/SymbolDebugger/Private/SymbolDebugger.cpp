@@ -22,7 +22,7 @@ void FSymbolDebugger_AsyncInspect::DoWork()
 {
 	FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 	ICrashDebugHelper* Handler = CrashHelperModule.Get();
-	check(Handler != NULL);
+	check(Handler != nullptr);
 
 	if (CrashDumpName.Len() > 0)
 	{
@@ -44,7 +44,7 @@ void FSymbolDebugger_AsyncInspect::DoWork()
 	{
 		FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 		ICrashDebugHelper* Handler = CrashHelperModule.Get();
-		check(Handler != NULL);
+		check(Handler != nullptr);
 
 		const FString FoundLabel = Handler->GetLabelFromChangelistNumber(FCString::Atoi(*ChangelistName));
 
@@ -76,7 +76,7 @@ void FSymbolDebugger_AsyncSyncFiles::DoWork()
 {
 	FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 	ICrashDebugHelper* Handler = CrashHelperModule.Get();
-	check(Handler != NULL);
+	check(Handler != nullptr);
 
 	if (Handler->SyncRequiredFilesForDebuggingFromLabel(SourceControlLabel, Platform) == true)
 	{
@@ -124,7 +124,7 @@ void FSymbolDebugger_ProcessCrashDump::DoWork()
 
 	FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 	ICrashDebugHelper* Handler = CrashHelperModule.Get();
-	check(Handler != NULL);
+	check(Handler != nullptr);
 
 	FCrashDebugInfo CrashDebugInfo;
 	if (Handler->ParseCrashDump(CrashDumpName, CrashDebugInfo) == true)
@@ -170,7 +170,7 @@ FSymbolDebugger::FSymbolDebugger()
 
 	FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 	ICrashDebugHelper* Handler = CrashHelperModule.Get();
-	check(Handler != NULL);
+	check(Handler != nullptr);
 	DepotName = Handler->GetDepotName();
 }
 
@@ -225,7 +225,7 @@ bool FSymbolDebugger::OnFileOpen(TSharedRef<SWidget> ParentWidget)
 	TArray<FString> OpenFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bOpened = false;
-	if (DesktopPlatform != NULL)
+	if (DesktopPlatform != nullptr)
 	{
 		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(ParentWidget);
 		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
@@ -311,7 +311,7 @@ bool FSymbolDebugger::SetTextField(SSymbolDebugger::ESymbolDebuggerTextFields In
 			DepotName = InNewName;
 			FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 			ICrashDebugHelper* Handler = CrashHelperModule.Get();
-			check(Handler != NULL);
+			check(Handler != nullptr);
 			Handler->SetDepotName(DepotName);
 		}
 		break;
@@ -537,7 +537,7 @@ void FSymbolDebugger::Tick()
 		// Initialize source control and show the login window
 		FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 		ICrashDebugHelper* Handler = CrashHelperModule.Get();
-		check(Handler != NULL);
+		check(Handler != nullptr);
 		Handler->InitSourceControl(true);
 
 		s_bFirstTick = false;
@@ -554,7 +554,7 @@ void FSymbolDebugger::Tick()
 				EngineVersionName = InspectionTask->GetTask().GetResults_EngineVersion();
 			}
 
-			InspectionTask = NULL;
+			InspectionTask = nullptr;
 
 			LastAction = CurrentAction;
 			CurrentAction = SSymbolDebugger::DebugAction_None;
@@ -566,7 +566,7 @@ void FSymbolDebugger::Tick()
 		{
 			bSyncSucceeded = SyncTask->GetTask().DidSucceed();
 
-			SyncTask = NULL;
+			SyncTask = nullptr;
 
 			LastAction = CurrentAction;
 			CurrentAction = SSymbolDebugger::DebugAction_None;
@@ -578,7 +578,7 @@ void FSymbolDebugger::Tick()
 		{
 			bLaunchDebugSucceeded = LaunchDebuggerTask->GetTask().DidSucceed();
 
-			LaunchDebuggerTask = NULL;
+			LaunchDebuggerTask = nullptr;
 
 			LastAction = CurrentAction;
 			CurrentAction = SSymbolDebugger::DebugAction_None;
@@ -590,7 +590,7 @@ void FSymbolDebugger::Tick()
 		{
 			bProcessCrashDumpSucceeded = ProcessCrashDumpTask->GetTask().DidSucceed();
 
-			ProcessCrashDumpTask = NULL;
+			ProcessCrashDumpTask = nullptr;
 
 			LastAction = CurrentAction;
 			CurrentAction = SSymbolDebugger::DebugAction_None;

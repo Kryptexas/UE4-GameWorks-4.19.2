@@ -39,7 +39,7 @@ const TArray<const IShaderFormat*>& GetShaderFormats()
 		for (int32 Index = 0; Index < Modules.Num(); Index++)
 		{
 			IShaderFormat* Format = FModuleManager::LoadModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
-			if (Format != NULL)
+			if (Format != nullptr)
 			{
 				Results.Add(Format);
 			}
@@ -65,7 +65,7 @@ const IShaderFormat* FindShaderFormat(FName Name)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 	
 /** Processes a compilation job. */
@@ -217,7 +217,7 @@ private:
 	/** Opens an input file, trying multiple times if necessary. */
 	FArchive* OpenInputFile()
 	{
-		FArchive* InputFile = NULL;
+		FArchive* InputFile = nullptr;
 		bool bFirstOpenTry = true;
 		while(!InputFile && !GIsRequestingExit)
 		{
@@ -305,7 +305,7 @@ private:
 
 	FArchive* CreateOutputArchive()
 	{
-		FArchive* OutputFilePtr = NULL;
+		FArchive* OutputFilePtr = nullptr;
 		if (CommunicationMode == ThroughFile)
 		{
 			const double StartTime = FPlatformTime::Seconds();
@@ -440,7 +440,7 @@ private:
 				bool bParentStillRunning = true;
 				HANDLE ParentProcessHandle = OpenProcess(SYNCHRONIZE, false, ParentProcessId);
 				// If we couldn't open the process then it is no longer running, exit
-				if (ParentProcessHandle == NULL)
+				if (ParentProcessHandle == nullptr)
 				{
 					if (!IsUsingNamedPipes())
 					{

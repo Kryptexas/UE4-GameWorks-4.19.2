@@ -215,7 +215,7 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 
 			//@todo - can this be presized more accurately?
 			VolumeLightingSamples.Empty(FMath::Max<int32>(5000, LandscapeEstimateNum));
-			FStaticLightingMappingContext MappingContext(NULL, *this);
+			FStaticLightingMappingContext MappingContext(nullptr, *this);
 			// Octree used to keep track of where existing samples have been placed
 			FVolumeLightingProximityOctree VolumeLightingOctree(VolumeBounds.Origin, VolumeBounds.BoxExtent.GetMax());
 			// Octree used for interpolating lighting for debugging
@@ -335,8 +335,8 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 								const FLightRay Ray(
 									SamplePosition,
 									SamplePosition - FVector4(0,0,VolumeBounds.BoxExtent.Z * 2.0f),
-									NULL,
-									NULL
+									nullptr,
+									nullptr
 									);
 								FLightRayIntersection Intersection;
 								// Trace a ray straight down to find which level's geometry we are over, 
@@ -501,8 +501,8 @@ FGatheredLightSample FStaticLightingSystem::InterpolatePrecomputedVolumeIncident
 			const FLightRay SampleRay
 				(Vertex.WorldPosition + Vertex.WorldTangentZ * SceneConstants.VisibilityNormalOffsetSampleRadiusScale * SampleRadius, 
 				VolumeSample.GetPosition(), 
-				NULL, 
-				NULL);
+				nullptr, 
+				nullptr);
 			AggregateMesh.IntersectLightRay(SampleRay, false, false, false, RayCache, Intersection);
 			if (!Intersection.bIntersects)
 			*/

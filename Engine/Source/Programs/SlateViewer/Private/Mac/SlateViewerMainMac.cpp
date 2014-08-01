@@ -26,7 +26,7 @@ static FString GSavedCommandLine;
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
 	FPlatformMisc::SetGracefulTerminationHandler();
-	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetCrashHandler(nullptr);
 	
 	RunSlateViewer(*GSavedCommandLine);
 
