@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Geometry.cpp: Implements the FGeometry class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
@@ -15,16 +11,19 @@ FArrangedWidget FGeometry::MakeChild( const TSharedRef<SWidget>& InWidget, const
 	return FArrangedWidget( InWidget, this->MakeChild(ChildOffset, ChildSize, InScale) );
 }
 
+
 FPaintGeometry FGeometry::ToPaintGeometry( FVector2D InOffset, FVector2D InSize, float InScale ) const
 {
 	const float CombinedScale = this->Scale*InScale;
 	return FPaintGeometry( this->AbsolutePosition + InOffset*CombinedScale, InSize * CombinedScale, CombinedScale );
 }
 
+
 FPaintGeometry FGeometry::ToInflatedPaintGeometry( const FVector2D& InflateAmount ) const
 {
 	return FPaintGeometry( this->AbsolutePosition - InflateAmount*this->Scale, (this->Size+InflateAmount*2)*this->Scale, this->Scale );
 }
+
 
 FPaintGeometry FGeometry::CenteredPaintGeometryOnLeft( const FVector2D& SizeBeingAligned, float InScale ) const
 {
@@ -37,6 +36,7 @@ FPaintGeometry FGeometry::CenteredPaintGeometryOnLeft( const FVector2D& SizeBein
 	);
 }
 
+
 FPaintGeometry FGeometry::CenteredPaintGeometryOnRight( const FVector2D& SizeBeingAligned, float InScale ) const
 {
 	const float CombinedScale = this->Scale*InScale;
@@ -47,6 +47,7 @@ FPaintGeometry FGeometry::CenteredPaintGeometryOnRight( const FVector2D& SizeBei
 		CombinedScale
 	);
 }
+
 
 FPaintGeometry FGeometry::CenteredPaintGeometryBelow( const FVector2D& SizeBeingAligned, float InScale ) const
 {

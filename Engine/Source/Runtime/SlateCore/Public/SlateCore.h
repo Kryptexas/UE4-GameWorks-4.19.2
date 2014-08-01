@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateCore.h: SlateCore module public header file.
-=============================================================================*/
-
 #pragma once
 
 
@@ -59,6 +55,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 
 // Compile all the RichText and MultiLine editable text?
 #define WITH_FANCY_TEXT 1
+
 
 /* Includes
  *****************************************************************************/

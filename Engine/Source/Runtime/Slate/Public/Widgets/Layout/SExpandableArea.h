@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SExpandableArea.h: Declares the SExpandableArea class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -51,6 +47,12 @@ public:
 
 
 public:
+
+	/**
+	 * Constructs a new widget.
+	 *
+	 * @param InArgs Construction arguments.
+	 */
 	void Construct( const FArguments& InArgs );
 
 	/**
@@ -64,6 +66,7 @@ public:
 	virtual void SetExpanded( bool bExpanded );
 
 protected:
+
 	/**
 	 * Constructs the header area widget
 	 * 
@@ -79,9 +82,7 @@ protected:
 
 	FReply OnHeaderClicked();
 
-	/**
-	 * Toggles selection visibility when the panel is clicked                   
-	 */
+	/** Toggles selection visibility when the panel is clicked. */
 	virtual void OnToggleContentVisibility();
 
 	/**
@@ -99,8 +100,8 @@ protected:
 	 */
 	virtual FVector2D ComputeDesiredSize() const override;
 
-
 protected:
+
 	/** Border widget for the header area */
 	TSharedPtr<SBorder> HeaderBorder;
 
@@ -118,6 +119,7 @@ protected:
 
 	/** Image to use when the area is collapsed */
 	const FSlateBrush* CollapsedImage;
+
 	/** Image to use when the area is expanded */
 	const FSlateBrush* ExpandedImage;
 };

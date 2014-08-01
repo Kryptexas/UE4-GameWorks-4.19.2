@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ElementBatcher.h: Declares the FSlateElementBatcher class.
-=============================================================================*/
-
 #pragma once
 
+
 class FSlateShaderResource;
+
 
 /**
  * A class which batches Slate elements for rendering

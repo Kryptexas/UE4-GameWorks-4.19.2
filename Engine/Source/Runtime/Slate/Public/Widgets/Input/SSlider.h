@@ -59,7 +59,7 @@ public:
 	/**
 	 * Construct the widget.
 	 * 
-	 * @param InDeclaration - A declaration from which to construct the widget.
+	 * @param InDeclaration A declaration from which to construct the widget.
 	 */
 	void Construct( const SSlider::FArguments& InDeclaration );
 
@@ -86,14 +86,12 @@ public:
 
 public:
 
+	// SWidget overrides
+
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
 	virtual FVector2D ComputeDesiredSize() const;
-
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 protected:
@@ -101,16 +99,15 @@ protected:
 	/**
 	 * Commits the specified slider value.
 	 *
-	 * @param NewValue - The value to commit.
+	 * @param NewValue The value to commit.
 	 */
 	void CommitValue(float NewValue);
 
 	/**
 	 * Calculates the new value based on the given absolute coordinates.
 	 *
-	 * @param MyGeometry - The slider's geometry.
-	 * @param AbsolutePosition - The absolute position of the slider.
-	 *
+	 * @param MyGeometry The slider's geometry.
+	 * @param AbsolutePosition The absolute position of the slider.
 	 * @return The new value.
 	 */
 	float PositionToValue( const FGeometry& MyGeometry, const FVector2D& AbsolutePosition );

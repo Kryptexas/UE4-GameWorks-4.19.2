@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FontCacheUtils.h: Declares the FLRUStringCache class.
-=============================================================================*/
-
 #pragma once
 
 

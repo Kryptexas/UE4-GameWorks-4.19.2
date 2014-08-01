@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RenderingPolicy.h: Declares the FRenderingPolicy class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,9 +24,7 @@ public:
 		: PixelCenterOffset( InPixelCenterOffset )
 	{ }
 
-	/**
-	 * Virtual constructor.
-	 */
+	/** Virtual constructor. */
 	virtual ~FSlateRenderingPolicy( ) { }
 
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) = 0;
@@ -45,8 +39,12 @@ public:
 	}
 
 private:
+
 	FSlateRenderingPolicy(const FSlateRenderingPolicy&);
 	FSlateRenderingPolicy& operator=(const FSlateRenderingPolicy&);
+
 private:
+
 	float PixelCenterOffset;
+
 };

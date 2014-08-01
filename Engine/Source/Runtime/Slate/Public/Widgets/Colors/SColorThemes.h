@@ -61,12 +61,12 @@ public:
 	void Construct( const FArguments& InArgs );
 
 protected:	
+
 	/**
 	 * Called during drag and drop when the drag enters a widget.
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -75,7 +75,6 @@ protected:
 	 * Called during drag and drop when the drag leaves a widget.
 	 *
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
@@ -85,7 +84,6 @@ protected:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -93,6 +91,7 @@ protected:
 	const FSlateBrush* GetBorderStyle() const;
 
 private:
+
 	/** Determines whether to draw the border to show activation */
 	bool bBorderActivated;
 };
@@ -277,7 +276,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -286,7 +284,6 @@ public:
 	 * Called during drag and drop when the drag leaves a widget.
 	 *
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
@@ -296,7 +293,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -306,7 +302,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -343,15 +338,14 @@ public:
 	void SetPlaceholderGrabOffset(FVector2D GrabOffset);
 	
 private:
+
 	/**
 	 * Destroys the placeholder block in this widget
 	 */
 	void DestroyPlaceholders();
 
-
 	/** The children blocks of this panel */
 	TSlotlessChildren<SThemeColorBlock> ColorBlocks;
-
 
 	/**
 	 * A placeholder child, which exists as a "preview" to show what would happen when dropping the current
@@ -365,10 +359,8 @@ private:
 	/** The initial grab offset when grabbing the placeholder */
 	FVector2D PlaceholderInitialGrabOffset;
 
-
 	/** A help text widget which appears when there are no children in this panel */
 	TSharedPtr<SWidget> EmptyHintTextBlock;
-
 
 	/**
 	 * The Color Theme that this SThemeColorBlockBar is displaying.
@@ -395,16 +387,15 @@ private:
 };
 
 
-
 DECLARE_DELEGATE_OneParam( FOnCurrentThemeChanged, TSharedPtr<FColorTheme> )
-
 
 
 /**
  * SColorThemeBars include a ThemeColorBlocksBar in addition to a label.
  * Clicking on one will select it and set the currently used color theme to it
  */
-class SColorThemeBar : public SCompoundWidget
+class SColorThemeBar
+	: public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SColorThemeBar)
@@ -442,7 +433,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -472,12 +462,12 @@ private:
 };
 
 
-
 /**
  * There should only ever be a single SColorThemesViewer. It is the widget which
  * manages all color themes and displays in a nice list format.
  */
-class SColorThemesViewer : public SCompoundWidget
+class SColorThemesViewer
+	: public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SColorThemesViewer)
@@ -580,9 +570,11 @@ private:
  * This operation is a color which can be dragged and dropped between widgets.
  * Represents a SThemeColorBlock that is dragged around, and can be dropped into a color trash.
  */
-class FColorDragDrop : public FDragDropOperation
+class FColorDragDrop
+	: public FDragDropOperation
 {
 public:
+
 	DRAG_DROP_OPERATOR_TYPE(FColorDragDrop, FDragDropOperation)
 
 	/**
@@ -631,11 +623,13 @@ public:
 	 * Upon dropping, this operation jumps back to it's origin if possible
 	 */
 	TWeakPtr<SThemeColorBlocksBar> OriginBar;
+
 	/** The origin position */
 	int32 OriginBarPosition;
 
 	/** Callback to show the trash when this widget is created */
 	FSimpleDelegate ShowTrash;
+
 	/** Callback to hide the trash when this widget is dropped */
 	FSimpleDelegate HideTrash;
 

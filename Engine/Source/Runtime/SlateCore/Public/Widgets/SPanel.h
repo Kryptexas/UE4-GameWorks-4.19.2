@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SPanel.h: Declares the SPanel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,6 +23,7 @@ public:
 	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 	 */
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const = 0;
+
 	/**
 	 * A Panel's desired size in the space required to arrange of its children on the screen while respecting all of
 	 * the children's desired sizes and any layout-related options specified by the user. See StackPanel for an example.
@@ -54,11 +51,9 @@ public:
 
 public:
 
-	// Begin SWidget overrides
+	// SWidget overrides
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-	// End SWidget overrides
 
 protected:
 
@@ -69,8 +64,6 @@ protected:
 	
 protected:
 
-	/**
-	 * Hidden default constructor.
-	 */
+	/** Hidden default constructor. */
 	SPanel( ) { }
 };

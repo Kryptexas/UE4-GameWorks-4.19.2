@@ -6,7 +6,8 @@
 /**
  * Slate's Buttons are clickable Widgets that can contain arbitrary widgets as its Content().
  */
-class SLATE_API SButton : public SBorder
+class SLATE_API SButton
+	: public SBorder
 {
 public:
 
@@ -79,27 +80,6 @@ public:
 
 	/** @return An image that represents this button's border*/
 	const FSlateBrush* GetBorder() const;
-	
-	/**
-	 * See SWidget::SupportsKeyboardFocus().
-	 *
-	 * @return  True if this widget can take keyboard focus
-	 */
-	virtual bool SupportsKeyboardFocus() const override;
-
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
-
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
-	
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
 	/**
 	 * Returns true if this button is currently pressed
@@ -133,7 +113,28 @@ public:
 	/** See ButtonStyle attribute */
 	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 
+public:
+
+	// SWidget overrides
+
+	virtual bool SupportsKeyboardFocus() const override;
+
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+
 protected:
+
 	/** @return combines the user-specified margin and the button's internal margin. */
 	FMargin GetCombinedPadding() const;
 
@@ -184,5 +185,6 @@ protected:
 	FSlateSound PressedSound;
 
 private:
+
 	virtual FVector2D ComputeDesiredSize() const override;
 };

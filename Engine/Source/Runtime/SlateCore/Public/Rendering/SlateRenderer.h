@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRenderer.h: Declares the FSlateRenderer class.
-=============================================================================*/
-
 #pragma once
 
 
 class SWindow;
 class FRHITexture2D;
+
 typedef FRHITexture2D* FTexture2DRHIParamRef;
+
 
 /**
  * Abstract base class for Slate renderers.
@@ -17,10 +15,11 @@ typedef FRHITexture2D* FTexture2DRHIParamRef;
 class FSlateRenderer
 {
 public:
-	FSlateRenderer(){}
-	/**
-	 * Virtual destructor.
-	 */
+
+	/** Default constructor. */
+	FSlateRenderer() { }
+
+	/** Virtual destructor. */
 	virtual ~FSlateRenderer( ) { }
 
 public:
@@ -76,7 +75,6 @@ public:
 	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
 	 * @param	ScreenScaling	How much to downscale the desktop size
 	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
-	 *
 	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
 	 */
 	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
@@ -197,9 +195,11 @@ public:
 	virtual void SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT) {}
 
 private:
+
 	// Non-copyable
 	FSlateRenderer(const FSlateRenderer&);
 	FSlateRenderer& operator=(const FSlateRenderer&);
+
 protected:
 
 	TSharedPtr<class FSlateFontCache> FontCache;

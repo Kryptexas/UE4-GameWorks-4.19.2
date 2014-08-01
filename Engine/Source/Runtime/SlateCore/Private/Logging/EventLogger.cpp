@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EventLogger.cpp: Implements various Slate event logger implementations.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

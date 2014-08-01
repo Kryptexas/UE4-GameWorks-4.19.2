@@ -1,20 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWeakWidget.cpp: Implements the SWeakWidget class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
+
 SWeakWidget::SWeakWidget()
-: WeakChild()
-{
-}
+	: WeakChild()
+{ }
+
 
 void SWeakWidget::Construct(const FArguments& InArgs)
 {
 	WeakChild.AttachWidget( InArgs._PossiblyNullContent );
 }
+
 
 FVector2D SWeakWidget::ComputeDesiredSize() const
 {	
@@ -27,6 +25,7 @@ FVector2D SWeakWidget::ComputeDesiredSize() const
 
 	return FVector2D::ZeroVector;
 }
+
 
 void SWeakWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
@@ -42,11 +41,13 @@ void SWeakWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 			) );
 	}
 }
-		
+
+
 FChildren* SWeakWidget::GetChildren()
 {
 	return &WeakChild;
 }
+
 
 int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
@@ -72,10 +73,12 @@ int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	return LayerId;
 }
 
+
 void SWeakWidget::SetContent(const TSharedRef<SWidget>& InWidget)
 {
 	WeakChild.AttachWidget( InWidget );
 }
+
 
 bool SWeakWidget::ChildWidgetIsValid() const
 {

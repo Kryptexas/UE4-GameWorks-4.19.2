@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateSound.h: Declares the FSlateSound structure.
-=============================================================================*/
-
 #pragma once
 
 #include "SlateSound.generated.h"
@@ -19,9 +15,7 @@ struct SLATECORE_API FSlateSound
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FSlateSound( )
 		: ResourceObject(nullptr)
 	{ }
@@ -31,7 +25,6 @@ public:
 	/** Get the resource object associated with this sound
 	 *
 	 * @note Ensure that you only access the resource as a USoundBase 
-	 *
 	 * @return The resource object, or null if this sound resource is empty
 	 */
 	UObject* GetResourceObject( ) const;
@@ -50,10 +43,9 @@ public:
 
 	/**
 	 * Construct a FSlateSound from a FName
+	 *
 	 * @note This functionality is deprecated and should only be used for upgrading old data
-	 *
 	 * @param SoundName The name of the sound to load, eg) SoundCue'/Game/QA_Assets/Sound/TEST_Music_Ambient.TEST_Music_Ambient'
-	 *
 	 * @return An FSlateSound object with a ResourceObject pointer that's either set the given sound, or points to null if the sound could not be found
 	 */
 	static FSlateSound FromName_DEPRECATED( const FName& SoundName );

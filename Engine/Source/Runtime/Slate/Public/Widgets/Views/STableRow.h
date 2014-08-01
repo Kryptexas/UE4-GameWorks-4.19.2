@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * Interface for table views to talk to their rows.
  */
@@ -35,13 +36,14 @@ class SLATE_API ITableRow
 		virtual void Private_OnExpanderArrowShiftClicked() = 0;
 };
 
+
 template <typename ItemType> class SListView;
 
 DECLARE_DELEGATE_OneParam(FOnTableRowDragEnter, FDragDropEvent const&);
-
 DECLARE_DELEGATE_OneParam(FOnTableRowDragLeave, FDragDropEvent const&);
-
 DECLARE_DELEGATE_RetVal_OneParam(FReply, FOnTableRowDrop, FDragDropEvent const&);
+
+
 /**
  * The ListView is populated by Selectable widgets.
  * A Selectable widget is away of the ListView containing it (OwnerWidget) and holds arbitrary Content (Content).
@@ -53,7 +55,6 @@ class STableRow : public ITableRow, public SBorder
 	static_assert(TIsValidListItem<ItemType>::Value, "Item type T must be a pointer or a TSharedPtr.");
 
 public:
-
 
 	SLATE_BEGIN_ARGS( STableRow< ItemType > )
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row") )
@@ -160,10 +161,9 @@ public:
 	/**
 	 * Called when a mouse button is double clicked.  Override this in derived classes.
 	 *
-	 * @param  InMyGeometry  Widget geometry
-	 * @param  InMouseEvent  Mouse button event
-	 *
-	 * @return  Returns whether the event was handled, along with other possible actions
+	 * @param  InMyGeometry  Widget geometry.
+	 * @param  InMouseEvent  Mouse button event.
+	 * @return  Returns whether the event was handled, along with other possible actions.
 	 */
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 	{
@@ -191,9 +191,8 @@ public:
 	/**
 	 * See SWidget::OnMouseButtonDown
 	 *
-	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param MouseEvent Information about the input event
-	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event.
+	 * @param MouseEvent Information about the input event.
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */	
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -251,7 +250,7 @@ public:
 					const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 					const bool bIsSelected = OwnerWidget->Private_IsItemSelected( *MyItem );
 
-					check(MyItem != NULL);
+					check(MyItem != nullptr);
 
 					if ( MouseEvent.IsControlDown() )
 					{
@@ -285,9 +284,8 @@ public:
 	/**
 	 * See SWidget::OnMouseButtonUp
 	 *
-	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param MouseEvent Information about the input event
-	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event.
+	 * @param MouseEvent Information about the input event.
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -333,7 +331,7 @@ public:
 							if ( !ChangedSelectionOnMouseDown && !MouseEvent.IsControlDown() && !MouseEvent.IsShiftDown() )
 							{
 								const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
-								check(MyItem != NULL);
+								check(MyItem != nullptr);
 
 								const bool bIsSelected = OwnerWidget->Private_IsItemSelected( *MyItem );
 								if ( bIsSelected && OwnerWidget->Private_GetNumSelectedItems() > 1 )
@@ -657,12 +655,12 @@ public:
 
 	/** Protected constructor; SWidgets should only be instantiated via declarative syntax. */
 	STableRow()
-	: IndexInList(0)
-	, bShowSelection(true)
-	{
-	}
+		: IndexInList(0)
+		, bShowSelection(true)
+	{ }
 
-protected:	
+protected:
+
 	/**
 	 * An internal method to construct and setup this row widget (purposely avoids child construction). 
 	 * Split out from Construct() so that sub-classes can invoke super construction without invoking 
@@ -753,9 +751,7 @@ protected:
 
 	/** Did the current a touch interaction start in this item?*/
 	bool bProcessingSelectionTouch;
-
 };
-
 
 
 template<typename ItemType>
@@ -770,7 +766,6 @@ public:
 	 * Make a widget and return it.
 	 *
 	 * @param ColumnName    A unique ID for a column in this TableView; see SHeaderRow::FColumn for more info.
-	 *
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) = 0;
@@ -831,7 +826,7 @@ protected:
 			const TSharedRef< SWidget >* const ExistingWidget = ColumnIdToSlotContents.Find( Column.ColumnId );
 
 			TSharedRef< SWidget > CellContents = SNullWidget::NullWidget;
-			if ( ExistingWidget != NULL )
+			if ( ExistingWidget != nullptr )
 			{
 				CellContents = *ExistingWidget;
 			}
@@ -879,7 +874,6 @@ protected:
 	{
 		ColumnIdToSlotContents.Empty();
 	}
-
 
 private:
 	

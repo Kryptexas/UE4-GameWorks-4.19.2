@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateDrawBuffer.h: Declares the FSlateDrawBuffer class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,18 +10,14 @@ class SLATECORE_API FSlateDrawBuffer
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	explicit FSlateDrawBuffer( )
 		: Locked(0)
 	{ }
 
 public:
 
-	/**
-	 * Removes all data from the buffer.
-	 */
+	/** Removes all data from the buffer. */
 	void ClearBuffer( )
 	{
 		WindowElementLists.Empty();
@@ -47,14 +39,17 @@ public:
 	}
 
 	/** 
-	 * Locks the draw buffer.  Indicates that the viewport is in use
+	 * Locks the draw buffer.  Indicates that the viewport is in use.
 	 *
-	 * @return true if the viewport could be locked.  False otherwise
+	 * @return true if the viewport could be locked.  False otherwise.
+	 * @see Unlock
 	 */
 	bool Lock( );
 
 	/**
-	 * Unlocks the buffer.  Indicates that the buffer is free                   
+	 * Unlocks the buffer.  Indicates that the buffer is free.
+	 *
+	 * @see Lock
 	 */
 	void Unlock( );
 

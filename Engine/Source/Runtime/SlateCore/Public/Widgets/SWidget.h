@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWidget.h: Declares the SWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -104,7 +100,6 @@ public:
 	 * @param LayerId           The Layer onto which this widget should be rendered.
 	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
 	 * @param bParentEnabled	True if the parent of this widget is enabled.
-	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
 	int32 Paint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
@@ -127,7 +122,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param InAbsoluteCursorPosition	The absolute cursor position
-	 *
 	 * @return true if this widget considers itself hit by the passed in cursor position.
 	 */
 	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition );
@@ -141,7 +135,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent );
@@ -161,7 +154,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InCharacterEvent  Character event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent );
@@ -175,7 +167,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -185,7 +176,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -195,7 +185,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -209,7 +198,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -228,7 +216,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -238,7 +225,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -262,7 +248,6 @@ public:
 	 * Called when the mouse wheel is spun. This event is bubbled.
 	 *
 	 * @param  MouseEvent  Mouse event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -279,7 +264,6 @@ public:
 	 *
 	 * @param  InMyGeometry  Widget geometry
 	 * @param  InMouseEvent  Mouse button event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
@@ -290,7 +274,6 @@ public:
 	 * If you override this event, you should probably return true.
 	 * 
 	 * @param  TooltipContent    The TooltipContent that I may want to visualize.
-	 *
 	 * @return true if this widget visualized the tooltip content; i.e., the event is handled.
 	 */
 	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent );
@@ -307,7 +290,6 @@ public:
 	 *
 	 * @param  InMyGeometry  Widget geometry
 	 * @param  InMouseEvent  MouseMove that triggered the drag
-	 * 
 	 */
 	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
@@ -346,7 +328,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
@@ -356,7 +337,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
@@ -386,7 +366,6 @@ public:
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
 	 *
 	 * @param  GestureEvent  gesture event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent );
@@ -515,9 +494,7 @@ public:
 	 */
 	bool HasMouseCapture() const;
 
-	/**
-	 * Called when this widget had captured the mouse, but that capture has been revoked for some reason.
-	 */
+	/** Called when this widget had captured the mouse, but that capture has been revoked for some reason. */
 	virtual void OnMouseCaptureLost();
 
 	/**
@@ -612,9 +589,8 @@ public:
 	void SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine );
 
 public:
-	//
+
 	// Widget Inspector and debugging methods
-	//
 
 	/** @return A String representation of the widget */
 	virtual FString ToString() const;
@@ -655,7 +631,6 @@ protected:
 	 * @param MyGeometry      The geometry of this widget.
 	 * @param WidgetsToFind   The widgets whose geometries we wish to discover.
 	 * @param OutResult       A map of widget references to their respective geometries.
-	 *
 	 * @return True if all the WidgetGeometries were found. False otherwise.
 	 */
 	bool FindChildGeometries( const FGeometry& MyGeometry, const TSet< TSharedRef<SWidget> >& WidgetsToFind, TMap<TSharedRef<SWidget>, FArrangedWidget>& OutResult ) const;
@@ -674,7 +649,6 @@ protected:
 	 *
 	 * @param MyGeometry   The geometry of this widget.
 	 * @param WidgetToFind The widget whose geometry we wish to discover.
-	 *
 	 * @return the geometry of WidgetToFind.
 	 */
 	FGeometry FindChildGeometry( const FGeometry& MyGeometry, TSharedRef<SWidget> WidgetToFind ) const;
@@ -695,33 +669,33 @@ protected:
 	}
 
 private:
+
 	/**
-	* The widget should respond by populating the OutDrawElements array with FDrawElements
-	* that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
-	* during OnPaint.
-	*
-	* @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
-	* @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	* @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
-	* @param OutDrawElements   A list of FDrawElements to populate with the output.
-	* @param LayerId           The Layer onto which this widget should be rendered.
-	* @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
-	* @param bParentEnabled	True if the parent of this widget is enabled.
-	*
-	* @return The maximum layer ID attained by this widget or any of its children.
-	*/
+	 * The widget should respond by populating the OutDrawElements array with FDrawElements
+	 * that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
+	 * during OnPaint.
+	 *
+	 * @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
+	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
+	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
+	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
+	 * @param LayerId           The Layer onto which this widget should be rendered.
+	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
+	 * @param bParentEnabled	True if the parent of this widget is enabled.
+	 * @return The maximum layer ID attained by this widget or any of its children.
+	 */
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
 
 	DEPRECATED(4.4, "OnPaint() now requires an extra FPaintArgs parameter. When calling Superclass::OnPaint() you can simply pass through the existing Args.")
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
 
 	/**
-	* Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
-	* Each type of Layout panel should arrange children based on desired behavior.
-	*
-	* @param AllottedGeometry    The geometry allotted for this widget by its parent.
-	* @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
-	*/
+	 * Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
+	 * Each type of Layout panel should arrange children based on desired behavior.
+	 *
+	 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
+	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
+	 */
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const = 0;
 
 protected:
@@ -769,7 +743,7 @@ private:
 	static FAutoConsoleVariableRef CVarUseLegacyHittest;
 
 public:
+
 	/** For perf testing. Old hittest schema does not support widgets outside their parents' bounds. */
 	static bool UseLegacyHittest();
-
 };

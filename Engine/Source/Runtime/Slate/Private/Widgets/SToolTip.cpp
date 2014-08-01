@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SToolTip.cpp: Implements the SToolTip class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 
@@ -12,10 +8,12 @@ static TAutoConsoleVariable<float> StaticToolTipWrapWidth(
 	1000.0f,
 	TEXT( "Width of Slate tool-tips before we wrap the tool-tip text" ) );
 
+
 float SToolTip::GetToolTipWrapWidth()
 {
 	return StaticToolTipWrapWidth.GetValueOnGameThread();
 }
+
 
 /**
  * Construct this widget
@@ -55,11 +53,13 @@ void SToolTip::Construct( const FArguments& InArgs )
 	
 }
 
+
 /** @return True if the tool tip has no content to display at this particular moment (remember, attribute callbacks can change this at any time!) */
 bool SToolTip::IsEmpty() const
 {
 	return !WidgetContent.IsValid() && TextContent.Get().IsEmpty();
 }
+
 
 bool SToolTip::IsInteractive() const
 {

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Margin.h: Declares the FMargin structure.
-=============================================================================*/
-
 #pragma once
 
 #include "Margin.generated.h"
@@ -77,7 +73,6 @@ public:
 	 * Multiply the margin by a scalar.
 	 *
 	 * @param Scale How much to scale the margin.
-	 *
 	 * @return An FMargin where each value is scaled by Scale.
 	 */
 	FMargin operator*( float Scale ) const
@@ -89,7 +84,6 @@ public:
 	 * Adds another margin to this margin.
 	 *
 	 * @param Other The margin to add.
-	 *
 	 * @return A margin that represents this margin plus the other margin.
 	 */
 	FMargin operator+( const FMargin& InDelta ) const
@@ -101,7 +95,6 @@ public:
 	 * Subtracts another margin from this margin.
 	 *
 	 * @param Other The margin to subtract.
-	 *
 	 * @return A margin that represents this margin minues the other margin.
 	 */
 	FMargin operator-( const FMargin& Other ) const
@@ -113,7 +106,6 @@ public:
 	 * Compares this margin with another for equality.
 	 *
 	 * @param Other The other margin.
-	 *
 	 * @return true if the two margins are equal, false otherwise.
 	 */
 	bool operator==( const FMargin& Other ) const 
@@ -125,7 +117,6 @@ public:
 	 * Compares this margin with another for inequality.
 	 *
 	 * @param Other The other margin.
-	 *
 	 * @return true if the two margins are not equal, false otherwise.
 	 */
 	bool operator!=( const FMargin& Other ) const 

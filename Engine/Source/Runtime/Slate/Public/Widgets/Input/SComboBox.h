@@ -79,7 +79,7 @@ public:
 		, _OptionsSource()
 		, _OnSelectionChanged()
 		, _OnGenerateWidget()
-		, _InitiallySelectedItem( NULL )
+		, _InitiallySelectedItem( nullptr)
 		, _Method( SMenuAnchor::CreateNewWindow )
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )

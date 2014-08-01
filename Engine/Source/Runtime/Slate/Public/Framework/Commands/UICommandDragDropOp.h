@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UICommandDragDropOp.h: Declares the FUICommandDragDropOp class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,7 +20,7 @@ public:
 		, OriginMultiBox( InOriginMultiBox )
 		, CustomDecorator( InCustomDecorator )
 		, Offset( DecoratorOffset )
-	{}
+	{ }
 
 	/**
 	 * Sets a delegate that will be called when the command is dropped

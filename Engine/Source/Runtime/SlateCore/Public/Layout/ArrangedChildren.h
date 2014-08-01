@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ArrangedChildren.h: Declares the FArrangedChildren class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -140,5 +136,4 @@ class SLATECORE_API FArrangedChildren
 	{
 		Array.Empty();
 	}
-
 };

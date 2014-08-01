@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ElementBatcher.cpp: Implements the FSlateElementBatcher class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
@@ -68,11 +64,6 @@ FSlateElementBatcher::~FSlateElementBatcher()
 }
 
 
-/** 
- * Adds a new element to be rendered 
- * 
- * @param InElement	The element to render 
- */
 void FSlateElementBatcher::AddElements( const TArray<FSlateDrawElement>& DrawElements )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildElements);
@@ -159,13 +150,7 @@ void FSlateElementBatcher::AddQuadElement( const FVector2D& Position, const FVec
 	BatchIndices.Add( IndexStart + 3 );
 }
 
-/** 
- * Creates vertices necessary to draw a box element.  
- *
- * @param Position	The top left screen space position of the element
- * @param Size		The size of the element
- * @param InPayload	The margin and texture data necessary to draw the quad
- */
+
 void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer )
 {
 	check( InPayload.BrushResource );
@@ -456,12 +441,7 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 	}
 }
 
-/** 
- * Creates vertices necessary to draw a string (one quad per character)
- *
- * @param Position	The top left screen space position of the element
- * @param InPayload	The data payload containing font,text, and size information for the string
- */
+
 void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVector2D& Size, float InScale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildText);
@@ -607,13 +587,7 @@ void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVec
 	}
 }
 
-/** 
- * Creates vertices necessary to draw a gradient box (horizontal or vertical)
- *
- * @param Position	The top left screen space position of the element
- * @param Size		The size of the element
- * @param InPayload	The data payload containing gradient stops
- */
+
 void FSlateElementBatcher::AddGradientElement( const FVector2D& Position, const FVector2D& Size, float Scale, const class FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildGradients);
@@ -729,6 +703,7 @@ void FSlateElementBatcher::AddGradientElement( const FVector2D& Position, const 
 	}
 }
 
+
 void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildSplines);
@@ -814,6 +789,7 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 		StartPos = EndPos;
 	}
 }
+
 
 /**
  * Calculates the intersection of two line segments P1->P2, P3->P4
@@ -1016,14 +992,7 @@ void FSlateElementBatcher::AddLineElement( const FVector2D& Position, const FVec
 	}
 }
 
-/** 
- * Creates vertices necessary to draw viewport
- *
- * @param Position	The top left screen space position of the element
- * @param Size		The size of the element
- * @param InPayload	The data payload containing gradient stops
- * @param InClippingRect	The clipping rect of the element
- */
+
 void FSlateElementBatcher::AddViewportElement( const FVector2D& InPosition, const FVector2D& InSize, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildViewports);
@@ -1089,14 +1058,7 @@ void FSlateElementBatcher::AddViewportElement( const FVector2D& InPosition, cons
 
 }
 
-/** 
- * Creates vertices necessary to draw a border element
- *
- * @param Position	The top left screen space position of the element
- * @param Size		The size of the element
- * @param InPayload	The data payload containing gradient stops
- * @param InClippingRect	The clipping rect of the element
- */
+
 void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, uint32 Layer )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateBuildBorders);
@@ -1301,6 +1263,7 @@ void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const 
 	BatchIndices.Add( IndexStart + 31 );
 }
 
+
 void FSlateElementBatcher::AddCustomElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer )
 {
 	if( InPayload.CustomDrawer.IsValid() )
@@ -1319,6 +1282,7 @@ void FSlateElementBatcher::AddCustomElement( const FVector2D& Position, const FV
 		ElementBatches->Add( FSlateElementBatch( InPayload.CustomDrawer ) );
 	}
 }
+
 
 FSlateElementBatch& FSlateElementBatcher::FindBatchForElement( 
 	uint32 Layer, 
@@ -1390,6 +1354,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	return *ElementBatch;
 }
 
+
 void FSlateElementBatcher::AddVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch )
 {
 	uint32 FirstIndex = OutVertices.Num();
@@ -1407,6 +1372,7 @@ void FSlateElementBatcher::AddVertices( TArray<FSlateVertex>& OutVertices, FSlat
 	ElementBatch.NumVertices = VertexBatch.Num();
 }
 
+
 void FSlateElementBatcher::AddIndices( TArray<SlateIndex>& OutIndices, FSlateElementBatch& ElementBatch, const TArray<SlateIndex>& IndexBatch )
 {
 	uint32 FirstIndex = OutIndices.Num();
@@ -1423,9 +1389,7 @@ void FSlateElementBatcher::AddIndices( TArray<SlateIndex>& OutIndices, FSlateEle
 	ElementBatch.NumIndices = IndexBatch.Num();
 }
 
-/**
- * Updates rendering buffers
- */
+
 void FSlateElementBatcher::FillBatchBuffers( FSlateWindowElementList& WindowElementList, bool& bRequiresStencilTest )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferGTTime );
@@ -1497,9 +1461,7 @@ void FSlateElementBatcher::FillBatchBuffers( FSlateWindowElementList& WindowElem
 
 }
 
-/** 
- * Resets all stored data accumulated during the batching process
- */
+
 void FSlateElementBatcher::ResetBatches()
 {
 	LayerToElementBatches.Reset();
@@ -1523,4 +1485,3 @@ void FSlateElementBatcher::ResetStats()
 	TotalVertexMemory = 0;
 	TotalIndexMemory = 0;
 }
-

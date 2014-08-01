@@ -2,7 +2,9 @@
 
 #pragma once
 
-class SLATE_API SGridPanel : public SPanel
+
+class SLATE_API SGridPanel
+	: public SPanel
 {
 public:
 	// Used by the mandatory named parameter in FSlot
@@ -88,7 +90,6 @@ public:
 				NudgeParam = Nudge;
 				return *this;
 			}
-
 	};
 
 	/**
@@ -149,15 +150,6 @@ public:
 	
 	void Construct( const FArguments& InArgs );
 
-	// SWidget interface
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	virtual void CacheDesiredSize() override;
-	virtual FVector2D ComputeDesiredSize() const override;
-	virtual FChildren* GetChildren() override;
-	// End of SWidget interface
-
-	
 	/**
 	 * GetDesiredSize of a subregion in the graph.
 	 *
@@ -174,6 +166,16 @@ public:
 	/** Specify a row to stretch instead of sizing to content. */
 	void SetRowFill( int32 RowId, float Coefficient );
 
+public:
+
+	// SWidget interface
+
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual void CacheDesiredSize() override;
+	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FChildren* GetChildren() override;
+
 private:
 
 	/**
@@ -188,11 +190,10 @@ private:
 	static void DistributeSizeContributions( float SizeContribution, TArray<float>& DistributeOverMe, int32 StartIndex, int32 UpperBound );
 
 	/**
-	 * Inser the slot InSlot into the list of Slots based on its LayerParam, such that Slots are sorter by layer.
+	 * Inserts the given slot into the list of Slots based on its LayerParam, such that Slots are sorter by layer.
 	 *
 	 * @param The newly-allocated slot to insert.
-	 *
-	 * @param A reference to the added slot
+	 * @return A reference to the added slot
 	 */
 	FSlot& InsertSlot( FSlot* InSlot );	
 
@@ -208,6 +209,8 @@ private:
 	 * @param The slot that has just changed.
 	 */
 	void NotifySlotChanged( FSlot* InSlot );
+
+private:
 
 	/** The slots that are placed into various grid locations */
 	TPanelChildren<FSlot> Slots;

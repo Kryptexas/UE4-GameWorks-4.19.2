@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 namespace ECursorMoveMethod
 {
 	enum Type
@@ -17,6 +18,7 @@ namespace ECursorMoveMethod
 	};
 }
 
+
 namespace ECursorAction
 {
 	enum Type
@@ -27,6 +29,7 @@ namespace ECursorAction
 		SelectText
 	};
 }
+
 
 namespace ETextLocation
 {
@@ -42,6 +45,7 @@ namespace ETextLocation
 		EndOfLine
 	};
 }
+
 
 class SLATE_API ITextEditorWidget 
 {
@@ -198,5 +202,4 @@ class SLATE_API ITextEditorWidget
 	virtual void SummonContextMenu( const FVector2D& InLocation ) = 0;
 
 	virtual void LoadText() = 0;
-
 };

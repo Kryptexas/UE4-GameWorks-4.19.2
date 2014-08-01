@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateDynamicImageBrush.h: Declares the FSlateDynamicImageBrush structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -61,8 +57,6 @@ struct SLATECORE_API FSlateDynamicImageBrush
 		bIsDynamicallyLoaded = true;
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	virtual ~FSlateDynamicImageBrush();
 };

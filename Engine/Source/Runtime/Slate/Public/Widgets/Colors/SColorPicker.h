@@ -45,7 +45,7 @@ struct FColorChannels
 {
 	FColorChannels()
 	{
-		Red = Green = Blue = Alpha = NULL;
+		Red = Green = Blue = Alpha = nullptr;
 	}
 
 	float* Red;
@@ -142,9 +142,7 @@ public:
 
 public:
 
-	/**
-	 *	Default Destructor
-	 */
+	/**	Destructor. */
 	~SColorPicker();
 
 public:
@@ -196,16 +194,13 @@ protected:
 	void HideSmallTrash();
 	void ShowSmallTrash();
 
-	/**
-	 * Cycles the color picker's mode.
-	 */
+	/** Cycles the color picker's mode. */
 	void CycleMode( );
 
 	/**
 	 * Creates a color slider widget for the specified channel.
 	 *
-	 * @param Channel - The color channel to create the widget for.
-	 *
+	 * @param Channel The color channel to create the widget for.
 	 * @return The new slider.
 	 */
 	TSharedRef<SWidget> MakeColorSlider( EColorPickerChannels::Type Channel ) const;
@@ -213,8 +208,7 @@ protected:
 	/**
 	 * Creates a color spin box widget for the specified channel.
 	 *
-	 * @param Channel - The color channel to create the widget for.
-	 *
+	 * @param Channel The color channel to create the widget for.
 	 * @return The new spin box.
 	 */
 	TSharedRef<SWidget> MakeColorSpinBox( EColorPickerChannels::Type Channel ) const;
@@ -495,14 +489,14 @@ struct FColorPickerArgs
 
 	FColorPickerArgs()
 		: bIsModal(false)
-		, ParentWidget(NULL)
+		, ParentWidget(nullptr)
 		, bUseAlpha(false)
 		, bOnlyRefreshOnMouseUp(false)
 		, bOnlyRefreshOnOk(false)
 		, DisplayGamma(2.2f)
-		, ColorArray(NULL)
-		, LinearColorArray(NULL)
-		, ColorChannelsArray(NULL)
+		, ColorArray(nullptr)
+		, LinearColorArray(nullptr)
+		, ColorChannelsArray(nullptr)
 		, OnColorCommitted()
 		, PreColorCommitted()
 		, OnColorPickerWindowClosed()

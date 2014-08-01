@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * A heading for a section of content.
  * Looks like this: ------- Content --------

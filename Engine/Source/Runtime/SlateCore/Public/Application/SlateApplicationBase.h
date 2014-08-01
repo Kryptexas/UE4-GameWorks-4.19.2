@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateApplicationBase.h: Declares the FSlateApplicationBase class.
-=============================================================================*/
-
 #pragma once
+
 
 class FHittestGrid;
 
@@ -67,7 +64,6 @@ public:
 	 * @param  InWidget       Widget to generate a path to
 	 * @param  OutWidgetPath  The generated widget path
 	 * @param  VisibilityFilter	Widgets must have this type of visibility to be included the path
-	 *
 	 * @return	True if the widget path was found
 	 */
 	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
@@ -159,7 +155,6 @@ public:
 	 * Checks whether the specified widget has any descendants which are currently focused.
 	 *
 	 * @param Widget The widget to check.
-	 *
 	 * @return true if any descendants are focused, false otherwise.
 	 */
 	virtual bool HasFocusedDescendants( const TSharedRef< const SWidget >& Widget ) const = 0;
@@ -195,7 +190,6 @@ public:
 	 * Creates a tool tip with the specified string.
 	 *
 	 * @param ToolTipString The string attribute to assign to the tool tip.
-	 *
 	 * @return The tool tip.
 	 */
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) = 0;
@@ -213,7 +207,6 @@ public:
 	 * Creates a tool tip with the specified text.
 	 *
 	 * @param ToolTipText The text to assign to the tool tip.
-	 *
 	 * @return The tool tip.
 	 */
 	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) = 0;
@@ -225,7 +218,6 @@ public:
 	 * @param CenterContent Optional content for the title bar's center (will override window title).
 	 * @param CenterContentAlignment The horizontal alignment of the center content.
 	 * @param OutTitleBar Will hold a pointer to the title bar's interface.
-	 *
 	 * @return The new title bar widget.
 	 */
 	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const = 0;
@@ -244,7 +236,6 @@ public:
 	 *
 	 * @param  InWidget WidgetPath to the Widget to being focused
 	 * @param InCause The reason that keyboard focus is changing
-	 *
 	 * @return true if the widget is now focused, false otherwise.
 	 */
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) = 0;

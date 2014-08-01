@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Geometry.h: Declares the FGeometry class.
-=============================================================================*/
-
 #pragma once
 
 #include "Geometry.generated.h"
@@ -29,9 +25,7 @@ struct SLATECORE_API FGeometry
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FGeometry( )
 		: Position(0.0f, 0.0f)
 		, AbsolutePosition(0.0f, 0.0f)
@@ -60,7 +54,6 @@ public:
 	 * Test geometries for strict equality (i.e. exact float equality).
 	 *
 	 * @param Other A geometry to compare to.
-	 *
 	 * @return true if this is equal to other, false otherwise.
 	 */
 	bool operator==( const FGeometry& Other ) const
@@ -76,7 +69,6 @@ public:
 	 * Test geometries for strict inequality (i.e. exact float equality negated).
 	 *
 	 * @param Other A geometry to compare to.
-	 *
 	 * @return false if this is equal to other, true otherwise.
 	 */
 	bool operator!=( const FGeometry& Other ) const
@@ -92,7 +84,6 @@ public:
 	 * @param ChildOffset  The offset of the child from this Geometry's position.
 	 * @param ChildSize    The size of the child geometry in screen units.
 	 * @param InScale      How much to scale this child with respect to its parent.
-	 *
 	 * @return A Geometry that is offset from this geometry by ChildOffset
 	 */
 	FGeometry MakeChild( const FVector2D& ChildOffset, const FVector2D& ChildSize, float InScale = 1.0f ) const
@@ -108,7 +99,6 @@ public:
 	 * @param ChildOffset  The offset of the child from this Geometry's position.
 	 * @param ChildSize    The size of the child geometry in screen units.
 	 * @param InScale      How much to scale this child with respect to its parent.
-	 *
 	 * @return A WidgetGeometry that is offset from this geometry by ChildOffset
 	 */
 	FArrangedWidget MakeChild( const TSharedRef<SWidget>& InWidget, const FVector2D& ChildOffset, const FVector2D& ChildSize, float InScale = 1.0f ) const;
@@ -119,7 +109,6 @@ public:
 	 * @param InOffset   Offset in SlateUnits from this FGeometry's origin.
 	 * @param InSize     The size of this paint element in SlateUnits.
 	 * @param InScale    Additional scaling to apply to the DrawElements.
-	 *
 	 * @return a FPaintGeometry derived this FGeometry.
 	 */
 	FPaintGeometry ToPaintGeometry( FVector2D InOffset, FVector2D InSize, float InScale ) const;

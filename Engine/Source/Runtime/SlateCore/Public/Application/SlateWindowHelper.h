@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateWindowHelper.h: Declares the FSlateWindowHelper class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,7 +33,6 @@ public:
 	 *
 	 * @param WindowsToSearch The collection of windows to check.
 	 * @param WorkAreaRect The work area to check.
-	 *
 	 * @return true if at least one window overlaps with the work area, false otherwise.
 	 */
 	static bool CheckWorkAreaForWindows( const TArray< TSharedRef<SWindow> >& WindowsToSearch, const FSlateRect& WorkAreaRect );
@@ -47,7 +42,6 @@ public:
 	 *
 	 * @param WindowsToSearch The collection of windows to search.
 	 * @param WindowToFind The window to find.
-	 *
 	 * @return true if the collection contains the window, false otherwise.
 	 */
 	static bool ContainsWindow( const TArray<TSharedRef<SWindow>>& WindowsToSearch, const TSharedRef<SWindow>& WindowToFind );
@@ -60,7 +54,6 @@ public:
 	 * @param InWidget Widget to generate a path to.
 	 * @param OutWidgetPath The generated widget path.
 	 * @param VisibilityFilter Widgets must have this type of visibility to be included the path.
-	 *
 	 * @return True if the widget path was found.
 	 */
 	static bool FindPathToWidget( const TArray<TSharedRef<SWindow>> WindowsToSearch, TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible );
@@ -70,7 +63,6 @@ public:
 	 *
 	 * @param WindowsToSearch The collection of windows to search.
 	 * @param PlatformWindow The platform window to find the Slate window for.
-	 *
 	 * @return The corresponding Slate window, or nullptr if it was not found.
 	 */
 	static TSharedPtr<SWindow> FindWindowByPlatformWindow( const TArray<TSharedRef<SWindow>>& WindowsToSearch, const TSharedRef<FGenericWindow>& PlatformWindow );

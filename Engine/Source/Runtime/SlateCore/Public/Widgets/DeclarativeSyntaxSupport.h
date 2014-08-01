@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeclarativeSyntaxSupport.h: Defines various macros and types for Slate's declarative syntax.
-=============================================================================*/
-
 #pragma once
 
 

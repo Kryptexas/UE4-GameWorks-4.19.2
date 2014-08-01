@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateBrush.h: Declares the FSlateBrush structure.
-=============================================================================*/
-
 #pragma once
 
 #include "Margin.h"
@@ -200,7 +196,6 @@ public:
 	 * Gets the brush's tint color.
 	 *
 	 * @param InWidgetStyle The widget style to get the tint for.
-	 *
 	 * @return Tint color.
 	 */
 	FLinearColor GetTint( const FWidgetStyle& InWidgetStyle ) const

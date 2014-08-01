@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InputGesture.cpp: Implements the FInputGesture class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 

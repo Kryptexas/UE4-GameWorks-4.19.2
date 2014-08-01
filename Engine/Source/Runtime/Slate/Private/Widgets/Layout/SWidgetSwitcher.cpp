@@ -1,20 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWidgetSwitcher.cpp: Implements the SWidgetSwitcher class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
+
+
+/* Local constants
+ *****************************************************************************/
+
+const TAttribute<FVector2D> ContentScale = FVector2D::UnitVector;
 
 
 /* SWidgetSwitcher interface
  *****************************************************************************/
 
- SWidgetSwitcher::SWidgetSwitcher()
- : AllChildren()
- {
- }
+SWidgetSwitcher::SWidgetSwitcher()
+	: AllChildren()
+{ }
+
 
 SWidgetSwitcher::FSlot& SWidgetSwitcher::AddSlot( int32 SlotIndex )
 {
@@ -30,21 +32,6 @@ SWidgetSwitcher::FSlot& SWidgetSwitcher::AddSlot( int32 SlotIndex )
 	}
 
 	return *NewSlot;
-}
-
-
-int32 SWidgetSwitcher::RemoveSlot(TSharedRef<SWidget> WidgetToRemove)
-{
-	for( int32 SlotIndex=0; SlotIndex < AllChildren.Num(); ++SlotIndex )
-	{
-		if ( AllChildren[SlotIndex].GetWidget() == WidgetToRemove )
-		{
-			AllChildren.RemoveAt(SlotIndex);
-			return SlotIndex;
-		}
-	}
-
-	return -1;
 }
 
 
@@ -69,7 +56,7 @@ TSharedPtr<SWidget> SWidgetSwitcher::GetActiveWidget( ) const
 		return AllChildren[ActiveWidgetIndex].GetWidget();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -80,7 +67,7 @@ TSharedPtr<SWidget> SWidgetSwitcher::GetWidget( int32 SlotIndex ) const
 		return AllChildren[SlotIndex].GetWidget();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -99,12 +86,26 @@ int32 SWidgetSwitcher::GetWidgetIndex( TSharedRef<SWidget> Widget ) const
 	return INDEX_NONE;
 }
 
+
+int32 SWidgetSwitcher::RemoveSlot( TSharedRef<SWidget> WidgetToRemove )
+{
+	for (int32 SlotIndex=0; SlotIndex < AllChildren.Num(); ++SlotIndex)
+	{
+		if (AllChildren[SlotIndex].GetWidget() == WidgetToRemove)
+		{
+			AllChildren.RemoveAt(SlotIndex);
+			return SlotIndex;
+		}
+	}
+
+	return -1;
+}
+
+
 void SWidgetSwitcher::SetActiveWidgetIndex( int32 Index )
 {
 	WidgetIndex = Index;
 }
-
-TAttribute<FVector2D> ContentScale = FVector2D::UnitVector;
 
 
 /* SCompoundWidget interface

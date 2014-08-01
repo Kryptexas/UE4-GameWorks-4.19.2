@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SColorWheel.cpp: Implements the SColorWheel class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 
@@ -28,6 +24,12 @@ void SColorWheel::Construct( const FArguments& InArgs )
 FVector2D SColorWheel::ComputeDesiredSize( ) const
 {
 	return Image->ImageSize + SelectorImage->ImageSize;
+}
+
+
+FReply SColorWheel::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+{
+	return FReply::Handled();
 }
 
 

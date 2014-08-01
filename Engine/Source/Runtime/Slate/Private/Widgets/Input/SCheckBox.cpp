@@ -10,7 +10,7 @@
  */
 void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 {
-	check(InArgs._Style != NULL);
+	check(InArgs._Style != nullptr);
 	Style = InArgs._Style;
 
 	UncheckedImage = InArgs._UncheckedImage;

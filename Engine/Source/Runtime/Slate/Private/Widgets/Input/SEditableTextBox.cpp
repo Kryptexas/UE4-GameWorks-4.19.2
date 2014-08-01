@@ -67,11 +67,12 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 
 }
 
+
 void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 {
 	Style = InStyle;
 
-	if ( Style == NULL )
+	if ( Style == nullptr )
 	{
 		FArguments Defaults;
 		Style = Defaults._Style;
@@ -83,15 +84,18 @@ void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 	BorderImageReadOnly = &Style->BackgroundImageReadOnly;
 }
 
+
 void SEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 {
 	EditableText->SetText( InNewText );
 }
 
+
 void SEditableTextBox::SetError( const FText& InError )
 {
 	SetError( InError.ToString() );
 }
+
 
 void SEditableTextBox::SetError( const FString& InError )
 {
@@ -112,6 +116,7 @@ void SEditableTextBox::SetError( const FString& InError )
 
 	ErrorReporting->SetError( InError );
 }
+
 
 /** @return Border image for the text box based on the hovered and focused state */
 const FSlateBrush* SEditableTextBox::GetBorderImage() const
@@ -137,16 +142,19 @@ const FSlateBrush* SEditableTextBox::GetBorderImage() const
 	}
 }
 
+
 bool SEditableTextBox::SupportsKeyboardFocus() const
 {
 	return StaticCastSharedPtr<SWidget>(EditableText)->SupportsKeyboardFocus();
 }
+
 
 bool SEditableTextBox::HasKeyboardFocus() const
 {
 	// Since keyboard focus is forwarded to our editable text, we will test it instead
 	return SBorder::HasKeyboardFocus() || EditableText->HasKeyboardFocus();
 }
+
 
 FReply SEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
 {
@@ -160,6 +168,7 @@ FReply SEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, c
 
 	return Reply;
 }
+
 
 FReply SEditableTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
@@ -175,15 +184,18 @@ FReply SEditableTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 	return FReply::Unhandled();
 }
 
+
 void SEditableTextBox::SetHintText(const TAttribute< FText >& InHintText)
 {
 	EditableText->SetHintText(InHintText);
 }
 
+
 void SEditableTextBox::SetIsReadOnly(TAttribute< bool > InIsReadOnly)
 {
 	EditableText->SetIsReadOnly(InIsReadOnly);
 }
+
 
 void SEditableTextBox::SetIsPassword(TAttribute< bool > InIsPassword)
 {

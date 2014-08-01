@@ -72,7 +72,7 @@ void SComboButton::Construct( const FArguments& InArgs )
 
 FReply SComboButton::OnButtonClicked()
 {
-	TSharedPtr<SWidget> Content = NULL;
+	TSharedPtr<SWidget> Content = nullptr;
 	if( OnGetMenuContent.IsBound() )
 	{
 		Content = OnGetMenuContent.Execute();

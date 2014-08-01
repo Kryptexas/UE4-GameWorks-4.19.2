@@ -8,7 +8,7 @@
 
 TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline )
 {
-	if ( InImage == NULL )
+	if ( InImage == nullptr)
 	{
 		InImage = FStyleDefaults::GetNoBrush();
 	}
@@ -18,7 +18,7 @@ TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FSt
 
 TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange )
 {
-	if ( InImage == NULL )
+	if ( InImage == nullptr)
 	{
 		InImage = FStyleDefaults::GetNoBrush();
 	}
@@ -32,7 +32,7 @@ FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const
 	, Image( InImage )
 	, Baseline( InBaseline )
 {
-	check( Image != NULL );
+	check( Image != nullptr);
 }
 
 FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline ) 
@@ -41,7 +41,7 @@ FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const
 	, Image( InImage )
 	, Baseline( InBaseline )
 {
-	check( Image != NULL );
+	check( Image != nullptr);
 }
 
 const TArray< TSharedRef<SWidget> >& FSlateImageRun::GetChildren() 

@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * A Slate SpinBox resembles traditional spin boxes in that it is a widget that provides
  * keyboard-based and mouse-based manipulation of a numeric value.
@@ -9,7 +10,8 @@
  * Keyboard-based manipulation: click on the spinbox to enter text mode.
  */
 template<typename NumericType>
-class SSpinBox : public SCompoundWidget
+class SSpinBox
+	: public SCompoundWidget
 {
 public:
 	/** Notification for numeric value change */
@@ -226,7 +228,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -249,7 +250,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -282,7 +282,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override

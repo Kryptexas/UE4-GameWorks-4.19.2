@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SViewport.h: Declares the SViewport class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -22,8 +18,10 @@ public:
 		{}
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
+
 		/** Whether or not to show the disabled effect when this viewport is disabled */
 		SLATE_ATTRIBUTE( bool, ShowEffectWhenDisabled )
+		
 		/** 
 		 * Whether or not to render directly to the window's backbuffer or an offscreen render target that is applied to the window later 
 		 * Rendering to an offscreen target is the most common option in the editor where there may be many frames which this viewport's interface may wish to not re-render but use a cached buffer instead
@@ -54,9 +52,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	SViewport( );
 
 	/**
@@ -73,6 +69,8 @@ public:
 
 	/** 
 	 * Computes the ideal size necessary to display this widget.
+	 *
+	 * @return The desired width and height.
 	 */
 	virtual FVector2D ComputeDesiredSize() const override
 	{
@@ -82,7 +80,7 @@ public:
 	/**
 	 * Sets the interface to be used by this viewport for rendering and I/O
 	 *
-	 * @param InViewportInterface	The interface to use
+	 * @param InViewportInterface The interface to use
 	 */
 	void SetViewportInterface( TSharedRef<ISlateViewport> InViewportInterface )
 	{
@@ -159,8 +157,6 @@ public:
 	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
 	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent ) override;
-
-	// End of SWidget interface
 
 private:
 

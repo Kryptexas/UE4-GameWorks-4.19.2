@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateColor.h: Declares the FSlateColor structure.
-=============================================================================*/
-
 #pragma once
 
 #include "SlateColor.generated.h"
@@ -81,9 +77,7 @@ public:
 	 * Gets the color value represented by this Slate color.
 	 *
 	 * @param InWidgetStyle The widget style to use when this color represents a foreground or subdued color.
-	 *
 	 * @return The color value.
-	 *
 	 * @see GetSpecifiedColor
 	 */
 	const FLinearColor& GetColor( const FWidgetStyle& InWidgetStyle ) const
@@ -113,9 +107,7 @@ public:
 	 * Gets the specified color value.
 	 *
 	 * @return The specified color value.
-	 *
-	 * @see GetColor
-	 * @see IsColorSpecified
+	 * @see GetColor, IsColorSpecified
 	 */
 	FLinearColor GetSpecifiedColor( ) const
 	{
@@ -131,7 +123,6 @@ public:
 	 * Checks whether the values for this color have been specified.
 	 *
 	 * @return true if specified, false otherwise.
-	 *
 	 * @see GetSpecifiedColor
 	 */
 	bool IsColorSpecified( ) const
@@ -141,8 +132,7 @@ public:
 
 public:
 
-	/**
-	 * @returns an FSlateColor that is the widget's foreground. */
+	/** @returns an FSlateColor that is the widget's foreground. */
 	static FSlateColor UseForeground( )
 	{
 		return FSlateColor( ESlateColorStylingMode::UseColor_Foreground );

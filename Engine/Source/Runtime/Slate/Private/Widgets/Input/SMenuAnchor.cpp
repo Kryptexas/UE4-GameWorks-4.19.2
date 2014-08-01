@@ -10,7 +10,7 @@
  */
 void SMenuAnchor::Construct( const FArguments& InArgs )
 {
-	PopupLayerSlot = NULL;
+	PopupLayerSlot = nullptr;
 
 	this->ChildSlot
 	.Padding(0)
@@ -107,7 +107,7 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 		{
 			// Using the PopupLayer to show this popup instead of a window.
 			// Update the Popup's position so it appears anchored to the menu anchor.
-			if (ensure(PopupLayerSlot != NULL))
+			if (ensure(PopupLayerSlot != nullptr))
 			{
 				FVector2D NewPosition = FVector2D::ZeroVector;
 				FVector2D NewSize = PopupLayerSlot->GetWidget()->GetDesiredSize();
@@ -255,10 +255,10 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				// Close the popup overlay
 				ensure(Method==UseCurrentWindow);
 				check(PopupWindowPtr.IsValid());
-				check(PopupLayerSlot != NULL);
+				check(PopupLayerSlot != nullptr);
 				PopupWindowPtr.Pin()->RemovePopupLayerSlot(PopupLayerSlot->GetWidget());
 				// We no longer have a popup open, so reset all the tracking state associated.
-				PopupLayerSlot = NULL;
+				PopupLayerSlot = nullptr;
 				PopupWindowPtr.Reset();
 			}
 
@@ -320,13 +320,13 @@ SMenuAnchor::~SMenuAnchor()
 			PopupWindow->RequestDestroyWindow();
 		}
 		// Close the popup overlay
-		else if (Method == UseCurrentWindow && PopupLayerSlot != NULL)
+		else if (Method == UseCurrentWindow && PopupLayerSlot != nullptr)
 		{
 			PopupWindow->RemovePopupLayerSlot(PopupLayerSlot->GetWidget());
 		}
 		
 		// We no longer have a popup open, so reset all the tracking state associated.
 		PopupWindowPtr.Reset();
-		PopupLayerSlot = NULL;
+		PopupLayerSlot = nullptr;
 	}
 }

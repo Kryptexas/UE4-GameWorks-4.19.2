@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 class SSplitter;
 class IGridRow; 
 
@@ -14,6 +15,7 @@ namespace EColumnSortPriority
 		Max,
 	};
 };
+
 
 namespace EColumnSortMode
 {
@@ -29,6 +31,7 @@ namespace EColumnSortMode
 		Descending = 2,
 	};
 };
+
 
 namespace EColumnSizeMode
 {
@@ -55,11 +58,13 @@ enum class EHeaderComboVisibility
 	OnHover,
 };
 
+
 /** Callback when sort mode changes */
 DECLARE_DELEGATE_ThreeParams( FOnSortModeChanged, EColumnSortPriority::Type, const FName&, EColumnSortMode::Type );
 
 /**	Callback when the width of the column changes */
 DECLARE_DELEGATE_OneParam( FOnWidthChanged, float );
+
 
 /**
  * The header that appears above lists and trees when they are showing multiple columns.
@@ -142,7 +147,6 @@ public:
 
 			DefaultWidth = Width.Get();
 		}
-
 
 	public:
 

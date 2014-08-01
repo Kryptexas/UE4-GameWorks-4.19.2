@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IEventLogger.h: Declares the IEventLogger interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -41,7 +37,6 @@ namespace EEventLog
 	 * Converts a log event to a string.
 	 *
 	 * @param Event The event to convert.
-	 *
 	 * @return The event's string representation.
 	 */
 	inline FString ToString(EEventLog::Type Event)
@@ -107,8 +102,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IEventLogger( ) { }
 };

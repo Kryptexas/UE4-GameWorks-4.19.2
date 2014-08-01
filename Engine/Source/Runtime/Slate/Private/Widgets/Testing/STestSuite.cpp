@@ -1480,9 +1480,9 @@ public:
 	{
 		const FString* url = Metadata.Find( TEXT("href") );
 
-		if ( url != NULL )
+		if ( url != nullptr )
 		{
-			FPlatformProcess::LaunchURL( **url, NULL, NULL );
+			FPlatformProcess::LaunchURL( **url, nullptr, nullptr );
 		}
 		else
 		{

@@ -1,48 +1,23 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UICommandList.cpp: Implements the FUICommandList class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 
 /* FUICommandList interface
  *****************************************************************************/
 
-/**
- * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
- *
- * @param InUICommandInfo	The command info to map
- * @param ExecuteAction		The delegate to call when the command should be executed
- */
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction )
 {
 	MapAction( InUICommandInfo, ExecuteAction, FCanExecuteAction(), FIsActionChecked(), FIsActionButtonVisible() );
 }
 
 
-/**
- * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
- *
- * @param InUICommandInfo	The command info to map
- * @param ExecuteAction		The delegate to call when the command should be executed
- * @param CanExecuteAction	The delegate to call to see if the command can be executed
- */
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction )
 {
 	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, FIsActionChecked(), FIsActionButtonVisible() );
 }
 
 
-/**
- * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
- *
- * @param InUICommandInfo	The command info to map
- * @param ExecuteAction		The delegate to call when the command should be executed
- * @param CanExecuteAction	The delegate to call to see if the command can be executed
- * @param IsCheckedDelegate	The delegate to call to see if the command should appear checked when visualized in a multibox
- */
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FIsActionChecked IsCheckedDelegate )
 {
 	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, IsCheckedDelegate, FIsActionButtonVisible() );
@@ -88,12 +63,6 @@ void FUICommandList::Append( const TSharedRef<FUICommandList>& InCommandsToAppen
 }
 
 
-/**
- * Executes the action associated with the provided command info
- * Note: It is assumed at this point that CanExecuteAction was already checked
- *
- * @param InUICommandInfo	The command info execute
- */
 bool FUICommandList::ExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
@@ -109,11 +78,6 @@ bool FUICommandList::ExecuteAction( const TSharedRef< const FUICommandInfo > InU
 }
 
 
-/**
- * Calls the CanExecuteAction associated with the provided command info to see if ExecuteAction can be called
- *
- * @param InUICommandInfo	The command info execute
- */
 bool FUICommandList::CanExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
@@ -139,11 +103,6 @@ bool FUICommandList::TryExecuteAction( const TSharedRef< const FUICommandInfo > 
 }
 
 
-/**
- * Calls the IsVisible delegate associated with the provided command info to see if the command should be visible in a toolbar
- *
- * @param InUICommandInfo	The command info execute
- */
 EVisibility FUICommandList::GetVisibility( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
@@ -158,11 +117,6 @@ EVisibility FUICommandList::GetVisibility( const TSharedRef< const FUICommandInf
 }
 
 
-/**
- * Calls the IsChecked delegate to see if the visualization of this command in a multibox should appear checked
- *
- * @param InUICommandInfo	The command info execute
- */
 bool FUICommandList::IsChecked( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
@@ -176,43 +130,18 @@ bool FUICommandList::IsChecked( const TSharedRef< const FUICommandInfo > InUICom
 }
 
 
-/**
- * Processes any user interface actions which are activated by the specified keyboard event
- *
- * @param InBindingContext	The context in which the actions are valid
- * @param InKeyboardEvent	The keyboard event to check
- *
- * @return true if an action was processed
- */
 bool FUICommandList::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const 
 {
 	return ConditionalProcessCommandBindings( InKeyboardEvent.GetKey(), InKeyboardEvent.IsControlDown(), InKeyboardEvent.IsAltDown(), InKeyboardEvent.IsShiftDown(), InKeyboardEvent.IsCommandDown(), InKeyboardEvent.IsRepeat() );
 }
 
 
-/**
- * Processes any user interface actions which are activated by the specified mouse event
- *
- * @param InBindingContext	The context in which the actions are valid
- * @param InKeyboardEvent	The mouse event to check
- *
- * @return true if an action was processed
- */
 bool FUICommandList::ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const
 {
 	return ConditionalProcessCommandBindings( InMouseEvent.GetEffectingButton(), InMouseEvent.IsControlDown(), InMouseEvent.IsAltDown(), InMouseEvent.IsShiftDown(), InMouseEvent.IsCommandDown(), InMouseEvent.IsRepeat() );
 }
 
 
-/**
- * Processes any UI commands which are activated by the specified key, modifier keys state and input event
- *
- * @param Key				The current key that is pressed
- * @param ModifierKeysState	Pressed state of keys that are commonly used as modifiers
- * @param bRepeat			True if the input is repeating (held)
- *
- * @return true if an action was processed
- */
 bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeysState& ModifierKeysState, const bool bRepeat ) const
 {
 	return ConditionalProcessCommandBindings(
@@ -228,17 +157,6 @@ bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeys
 /* FUICommandList implementation
  *****************************************************************************/
 
-/**
- * Helper function to execute an interface action delegate or exec command if valid
- *
- * @param InBindingContext The binding context where commands are currently valid
- * @param Key		The current key that is pressed
- * @param bCtrl		True if control is pressed
- * @param bAlt		True if alt is pressed
- * @param bShift	True if shift is pressed
- * @param bRepeat	True if command is repeating (held)
- * @return True if a command was executed, False otherwise
- */
 bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCtrl, bool bAlt, bool bShift, bool bCmd, bool bRepeat ) const
 {
 	if ( !bRepeat && !FSlateApplication::Get().IsDragDropping() )

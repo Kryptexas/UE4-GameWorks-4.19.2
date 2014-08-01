@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWidgetSwitcher.h: Declares the SWidgetSwitcher class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,13 +13,17 @@ class SLATE_API SWidgetSwitcher
 {
 public:
 
-	class FSlot : public TSlotBase<FSlot>, public TSupportsContentAlignmentMixin<FSlot>, public TSupportsContentPaddingMixin<FSlot>
+	class FSlot
+		: public TSlotBase<FSlot>
+		, public TSupportsContentAlignmentMixin<FSlot>
+		, public TSupportsContentPaddingMixin<FSlot>
 	{
 	public:
+
 		FSlot()
 			: TSlotBase<FSlot>()
 			,TSupportsContentAlignmentMixin<FSlot>( HAlign_Fill, VAlign_Fill )
-		{}
+		{ }
 	};
 
 	SLATE_BEGIN_ARGS(SWidgetSwitcher)
@@ -46,16 +46,9 @@ public:
 	/**
 	 * Adds a slot to the widget switcher at the specified location.
 	 *
-	 * @param SlotIndex - The index at which to insert the slot, or INDEX_NONE to append.
+	 * @param SlotIndex The index at which to insert the slot, or INDEX_NONE to append.
 	 */
 	FSlot& AddSlot( int32 SlotIndex = INDEX_NONE );
-
-	/**
-	 * Removes a slot with the corresponding widget in it.  Returns the index where the widget was found, otherwise -1.
-	 *
-	 * @param Widget - The widget to find and remove.
-	 */
-	int32 RemoveSlot( TSharedRef<SWidget> WidgetToRemove );
 
 	/**
 	 * Constructs the widget.
@@ -81,6 +74,8 @@ public:
 
 	/**
 	 * Gets the number of widgets that this switcher manages.
+	 *
+	 * @return Number of widgets.
 	 */
 	int32 GetNumWidgets( ) const
 	{
@@ -90,25 +85,30 @@ public:
 	/**
 	 * Gets the widget in the specified slot.
 	 *
-	 * @param SlotIndex - The slot index of the widget to get.
-	 *
-	 * @return The widget, or NULL if the slot does not exist.
+	 * @param SlotIndex The slot index of the widget to get.
+	 * @return The widget, or nullptr if the slot does not exist.
 	 */
 	TSharedPtr<SWidget> GetWidget( int32 SlotIndex ) const;
 
 	/**
 	 * Gets the slot index of the specified widget.
 	 *
-	 * @param Widget - The widget to get the index for.
-	 *
+	 * @param Widget The widget to get the index for.
 	 * @return The slot index, or INDEX_NONE if the widget does not exist.
 	 */
 	int32 GetWidgetIndex( TSharedRef<SWidget> Widget ) const;
 
 	/**
+	 * Removes a slot with the corresponding widget in it.  Returns the index where the widget was found, otherwise -1.
+	 *
+	 * @param Widget The widget to find and remove.
+	 */
+	int32 RemoveSlot( TSharedRef<SWidget> WidgetToRemove );
+
+	/**
 	 * Sets the active widget.
 	 *
-	 * @param Widget - The widget to activate.
+	 * @param Widget The widget to activate.
 	 */
 	void SetActiveWidget( TSharedRef<SWidget> Widget )
 	{
@@ -118,7 +118,7 @@ public:
 	/**
 	 * Activates the widget at the specified index.
 	 *
-	 * @param Index - The slot index.
+	 * @param Index The slot index.
 	 */
 	void SetActiveWidgetIndex( int32 Index );
 
@@ -136,15 +136,11 @@ public:
 
 protected:
 
-	// Begin SCompoundWidget interface
+	// SCompoundWidget interface
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	
 	virtual FVector2D ComputeDesiredSize( ) const override;
-
 	virtual FChildren* GetChildren( ) override;
-
-	// End SCompoundWidget interface
 
 private:
 
@@ -154,7 +150,7 @@ private:
 	{
 	public:
 
-		FOneDynamicChild( TPanelChildren<FSlot>* InAllChildren = NULL, const TAttribute<int32>* InWidgetIndex = NULL )
+		FOneDynamicChild( TPanelChildren<FSlot>* InAllChildren = nullptr, const TAttribute<int32>* InWidgetIndex = nullptr )
 			: AllChildren( InAllChildren )
 			, WidgetIndex( InWidgetIndex )
 		{ }

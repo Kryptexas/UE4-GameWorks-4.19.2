@@ -47,7 +47,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 
 
 FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
-	: FMultiBlock( NULL, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
+	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
 	, IconOverride( InIcon )
@@ -62,7 +62,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 
 
 FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
-	: FMultiBlock( NULL, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
+	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
 	, IconOverride( InIcon )
@@ -77,7 +77,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 
 
 FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
-	: FMultiBlock( NULL, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
+	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
 	, IconOverride( InIcon )
@@ -103,7 +103,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 
 
 FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly )
-	: FMultiBlock( NULL, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
+	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
 	, bIsSubMenu( bInSubMenu )
@@ -159,8 +159,8 @@ void SMenuEntryBlock::Construct( const FArguments& InArgs )
 	SubMenuRequestState = Idle;
 
 	// No images by default
-	CheckedImage = NULL;
-	UncheckedImage = NULL;
+	CheckedImage = nullptr;
+	UncheckedImage = nullptr;
 
 	this->SetForegroundColor( TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw( this, &SMenuEntryBlock::InvertOnHover ) ) );
 }
@@ -431,7 +431,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		.ClickMethod( ButtonClickMethod )
 
 		// Pass along the block's tool-tip string
-		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ToolTip, NULL, UICommand ) )
+		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ToolTip, nullptr, UICommand ) )
 
 		.ContentPadding(FMargin(0, 2))
 
@@ -1142,7 +1142,7 @@ TSharedRef< SWidget > SMenuEntryBlock::MakeNewMenuWidget() const
 	{
 		const bool bShouldCloseWindowAfterMenuSelection = true;
 		const bool bCloseSelfOnly = false;
-		FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, NULL, TSharedPtr<FExtender>(), bCloseSelfOnly, StyleSet );
+		FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, nullptr, TSharedPtr<FExtender>(), bCloseSelfOnly, StyleSet );
 		{
 			MenuBuilder.AddWidget( MenuEntryBlock->EntryWidget.ToSharedRef(), FText::GetEmpty() );
 		}

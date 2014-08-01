@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ArrangedWidget.h: Declares the FArrangedWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -35,7 +31,6 @@ public:
 	 * Compares this widget arrangement with another for equality.
 	 *
 	 * @param Other The other arrangement to compare with.
-	 *
 	 * @return true if the two arrangements are equal, false otherwise.
 	 */
 	bool operator==( const FArrangedWidget& Other ) const 

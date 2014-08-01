@@ -168,7 +168,7 @@ TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSha
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )

@@ -4,8 +4,10 @@
 
 #include "IScrollableWidget.h"
 
+
 class SListPanel;
 class SHeaderRow;
+
 
 enum class EAllowOverscroll
 {
@@ -13,10 +15,13 @@ enum class EAllowOverscroll
 	No
 };
 
+
 /**
  * Contains ListView functionality that does not depend on the type of data being observed by the ListView.
  */
-class SLATE_API STableViewBase : public SCompoundWidget, public IScrollableWidget
+class SLATE_API STableViewBase
+	: public SCompoundWidget
+	, public IScrollableWidget
 {
 public:
 
@@ -36,25 +41,6 @@ public:
 	 */
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );
 
-	// SWidget interface
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual void OnMouseCaptureLost() override;
-	virtual bool SupportsKeyboardFocus() const override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-	// End of SWidget interface
-
 	/** @return The number of Widgets we currently have generated. */
 	int32 GetNumGeneratedChildren() const;
 
@@ -68,24 +54,44 @@ public:
 		        either mouse button and dragging. */
 	bool IsUserScrolling() const;
 
-	/**
-	 * Mark the list as dirty, so that it will regenerate its widgets on next tick.
-	 */
+	/** Mark the list as dirty, so that it will regenerate its widgets on next tick. */
 	void RequestListRefresh();
 
 	/** Return true if there is currently a refresh pending, false otherwise */
 	bool IsPendingRefresh() const;
 
+	/** Is this list backing a tree or just a standalone list */
+	const ETableViewMode::Type TableViewMode;
+
+public:
+
+	// SWidget interface
+
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnMouseCaptureLost() override;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+
+public:
+
 	// IScrollableWidget interface
+
 	virtual FVector2D GetScrollDistance() override;
 	virtual FVector2D GetScrollDistanceRemaining() override;
 	virtual TSharedRef<class SWidget> GetScrollWidget() override;
-	// End of IScrollableWidget interface
-
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-
-	/** Is this list backing a tree or just a standalone list */
-	const ETableViewMode::Type TableViewMode;
 
 protected:
 
@@ -225,7 +231,7 @@ protected:
 	/** What the list's geometry was the last time a refresh occurred. */
 	FGeometry PanelGeometryLastTick;
 
-	/** Delegate to invoke when the context menu should be opening. If it is NULL, a context menu will not be summoned. */
+	/** Delegate to invoke when the context menu should be opening. If it is nullptr, a context menu will not be summoned. */
 	FOnContextMenuOpening OnContextMenuOpening;
 
 	/** The selection mode that this tree/list is in. Note that it is up to the generated ITableRows to respect this setting. */

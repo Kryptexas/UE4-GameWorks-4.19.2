@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWindow.cpp: Implements the SWindow class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

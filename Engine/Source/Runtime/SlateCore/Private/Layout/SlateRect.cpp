@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRect.cpp: Implements the FSlateRect structure.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

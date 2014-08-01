@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateShaderResource.h: Declares various shader resources types.
-=============================================================================*/
-
 #pragma once
 
 
@@ -53,9 +49,7 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~FSlateShaderResource() { }
 };
 
@@ -82,9 +76,7 @@ public:
 	/** The size of the texture.  Regardless of atlasing this is the size of the actual texture */
 	FIntPoint ActualSize;
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FSlateShaderResourceProxy( )
 		: StartUV(0.0f, 0.0f)
 		, SizeUV(1.0f, 1.0f)
@@ -103,9 +95,7 @@ class TSlateTexture
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	TSlateTexture( ) { }
 
 	/**
@@ -133,14 +123,12 @@ public:
 
 public:
 
-	// Begin FSlateShaderResource interface
+	// FSlateShaderResource interface
 
 	virtual ESlateShaderResource::Type GetType() const override
 	{
 		return ESlateShaderResource::Texture;
 	}
-
-	// End FSlateShaderResource interface
 
 protected:
 

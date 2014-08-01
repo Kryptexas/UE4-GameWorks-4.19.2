@@ -230,7 +230,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				.OnClicked( this, &SToolBarButtonBlock::OnClicked )
 
 				// Pass along the block's tool-tip string
-				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, NULL, Action.Pin() ) )
+				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, nullptr, Action.Pin() ) )
 		];
 	}
 	else if( ensure( UserInterfaceType == EUserInterfaceActionType::ToggleButton || UserInterfaceType == EUserInterfaceActionType::RadioButton ) )
@@ -250,7 +250,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				.IsFocusable( bIsFocusable )
 
 				// Pass along the block's tool-tip string
-				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, NULL, Action.Pin() ) )
+				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, nullptr, Action.Pin() ) )
 				[
 					ButtonContent
 				]

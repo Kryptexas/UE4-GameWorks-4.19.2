@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateStructs.h: Declares various structured types for Slate.
-=============================================================================*/
-
 #pragma once
 
 
@@ -34,7 +30,6 @@ public:
 	 * Checks whether the size is set.
 	 *
 	 * @return true if the size is set, false if it is unespecified.
-	 *
 	 * @see Get
 	 */
 	bool IsSet( ) const
@@ -104,9 +99,7 @@ protected:
 	 *
 	 * Use FAspectRatio, FAuto, FStretch to instantiate size parameters.
 	 *
-	 * @see FAspectRatio
-	 * @see FAuto
-	 * @see FStretch
+	 * @see FAspectRatio, FAuto, FStretch
 	 */
 	FSizeParam( ESizeRule InTypeOfSize, const TAttribute<float>& InValue )
 		: SizeRule(InTypeOfSize)
@@ -137,8 +130,7 @@ struct FStretch
 /**
  * Structure for size parameters with SizeRule = SizeRule_Auto.
  *
- * @see FAspectRatio
- * @see FStretch
+ * @see FAspectRatio, FStretch
  */
 struct FAuto
 	: public FSizeParam
@@ -152,8 +144,7 @@ struct FAuto
 /**
  * Structure for size parameters with SizeRule == SizeRule_AspectRatio.
  *
- * @see FAuto
- * @see FStretch
+ * @see FAuto, FStretch
  */
 struct FAspectRatio
 	: public FSizeParam

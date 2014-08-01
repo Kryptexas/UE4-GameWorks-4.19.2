@@ -2,6 +2,7 @@
  
 #pragma once
 
+
 /**
  * A TileView widget is a list which arranges its items horizontally until there is no more space then creates a new row.
  * Items are spaced evenly horizontally.
@@ -21,7 +22,7 @@ public:
 
 	SLATE_BEGIN_ARGS( STileView<ItemType> )
 		: _OnGenerateTile()
-		, _ListItemsSource( static_cast<TArray<ItemType>*>(NULL) ) //@todo Slate Syntax: Initializing from NULL without a cast
+		, _ListItemsSource( static_cast<TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(128)
 		, _ItemWidth(128)
 		, _OnContextMenuOpening()
@@ -82,7 +83,7 @@ public:
 				ErrorString += TEXT("Please specify an OnGenerateTile. \n");
 			}
 
-			if ( this->ItemsSource == NULL )
+			if ( this->ItemsSource == nullptr )
 			{
 				ErrorString += TEXT("Please specify a ListItemsSource. \n");
 			}
@@ -112,7 +113,9 @@ public:
 	}
 
 public:
-	// Inherited from SWidget
+
+	// SWidget overrides
+
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
@@ -158,7 +161,7 @@ public:
 		this->ClearWidgets();
 		
 		const TArray<ItemType>* SourceItems = this->ItemsSource;
-		if ( SourceItems != NULL )
+		if ( SourceItems != nullptr )
 		{
 			// Item width and height is constant by design.
 			const float AllottedWidth = MyGeometry.Size.X;
@@ -238,7 +241,7 @@ public:
 
 	virtual int32 GetNumItemsBeingObserved() const override
 	{
-		const int32 NumItemsBeingObserved = this->ItemsSource == NULL ? 0 : this->ItemsSource->Num();
+		const int32 NumItemsBeingObserved = this->ItemsSource == nullptr ? 0 : this->ItemsSource->Num();
 		const int32 NumItemsWide = GetNumItemsWide();
 		
 		int32 NumEmptySpacesAtEnd = 0;

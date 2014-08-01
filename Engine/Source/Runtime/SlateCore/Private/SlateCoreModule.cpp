@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateCoreModule.cpp: Implements the FSlateCoreModule class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 #include "ModuleManager.h"
 

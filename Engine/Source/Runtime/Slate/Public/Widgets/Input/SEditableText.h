@@ -454,7 +454,7 @@ private:
 
 private:
 
-	/** A pointer to the editable text currently under the mouse cursor. NULL when there isn't one. */
+	/** A pointer to the editable text currently under the mouse cursor. nullptr when there isn't one. */
 	static SEditableText* EditableTextUnderCursor;
 
 	/** The text content for this editable text widget */

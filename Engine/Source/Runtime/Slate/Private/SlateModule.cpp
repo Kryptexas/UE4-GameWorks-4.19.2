@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateModule.cpp: Implements the FSlateModule class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 #include "ModuleManager.h"
 
@@ -36,8 +32,7 @@ DEFINE_STAT(STAT_SlateMiscTime); // Useful for locally pref testing miscellaneou
  */
 class FSlateModule
 	: public IModuleInterface
-{
-};
+{ };
 
 
 IMPLEMENT_MODULE(FSlateModule, Slate);

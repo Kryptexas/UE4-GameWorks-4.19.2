@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EventLogger.h: Declares various Slate event logger implementations.
-=============================================================================*/
-
 #pragma once
 
 
@@ -29,7 +25,7 @@ public:
 
 public:
 
-	// Begin IEventLogger interface
+	// IEventLogger interface
 
 	virtual FString GetLog( ) const override
 	{
@@ -48,8 +44,6 @@ public:
 		LoggerB->SaveToFile();
 	}
 
-	// EndIEventLogger interface
-
 private:
 
 	TSharedRef<IEventLogger> LoggerA;
@@ -65,15 +59,11 @@ class SLATECORE_API FFileEventLogger
 {
 public:
 
-	// Begin IEventLogger interface
+	// IEventLogger interface
 
 	virtual FString GetLog( ) const override;
-
 	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
-	
 	virtual void SaveToFile( ) override;
-
-	// EndIEventLogger interface
 
 private:
 
@@ -87,17 +77,11 @@ class SLATECORE_API FConsoleEventLogger
 {
 public:
 
-	// Begin IEventLogger interface
+	// IEventLogger interface
 
 	virtual FString GetLog( ) const override;
-
 	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
-	
 	virtual void SaveToFile( ) override { }
-	
-	// End IEventLogger interface
-
-private:
 };
 
 
@@ -109,15 +93,11 @@ class SLATECORE_API FStabilityEventLogger
 {
 public:
 
-	// Begin IEventLogger interface
+	// IEventLogger interface
 	
 	virtual FString GetLog( ) const override;
-
 	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
-	
 	virtual void SaveToFile( ) override { }
-	
-	// End IEventLogger interface
 
 private:
 

@@ -9,7 +9,7 @@
  * Constructor
  */
 FToolBarSeparatorBlock::FToolBarSeparatorBlock(const FName& InExtensionHook)
-	: FMultiBlock( NULL, NULL, InExtensionHook, EMultiBlockType::ToolBarSeparator )
+	: FMultiBlock( nullptr, nullptr, InExtensionHook, EMultiBlockType::ToolBarSeparator )
 {
 }
 

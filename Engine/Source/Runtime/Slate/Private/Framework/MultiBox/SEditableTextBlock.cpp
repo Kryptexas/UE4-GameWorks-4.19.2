@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SEditableTextBlock.h: Implements the SEditableTextBlock class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 #include "SEditableTextBlock.h"
 

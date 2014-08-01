@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWizard.cpp: Implements the SWizard class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 
@@ -65,43 +61,45 @@ void SWizard::Construct( const FArguments& InArgs )
 			.Padding(0.0f, 10.0f, 0.0f, 0.0f)
 			[
 				SAssignNew(ButtonGrid, SUniformGridPanel)
-				.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
-				.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
-				.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
-				+SUniformGridPanel::Slot(0,0)
-				[
-					// 'Prev' button
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
-					.IsEnabled(this, &SWizard::HandlePrevButtonIsEnabled)
-					.OnClicked(this, &SWizard::HandlePrevButtonClicked)
-					.Visibility(this, &SWizard::HandlePrevButtonVisibility)
-					.ToolTipText(LOCTEXT("PrevButtonTooltip", "Go back to the previous step"))
+					.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
+					.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
+					.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
+
+				+ SUniformGridPanel::Slot(0, 0)
 					[
-						SNew(SHorizontalBox)
+						// 'Prev' button
+						SNew(SButton)
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+							.IsEnabled(this, &SWizard::HandlePrevButtonIsEnabled)
+							.OnClicked(this, &SWizard::HandlePrevButtonClicked)
+							.Visibility(this, &SWizard::HandlePrevButtonVisibility)
+							.ToolTipText(LOCTEXT("PrevButtonTooltip", "Go back to the previous step"))
+							[
+								SNew(SHorizontalBox)
 
-						+SHorizontalBox::Slot()
-						.Padding(2.0f, 0.0f)
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage)
-							.Image(FCoreStyle::Get().GetBrush("Wizard.BackIcon"))
-							.ColorAndOpacity(FLinearColor(0.05f, 0.05f, 0.05f))
-						]
+								+ SHorizontalBox::Slot()
+									.Padding(2.0f, 0.0f)
+									.AutoWidth()
+									.VAlign(VAlign_Center)
+									[
+										SNew(SImage)
+											.Image(FCoreStyle::Get().GetBrush("Wizard.BackIcon"))
+											.ColorAndOpacity(FLinearColor(0.05f, 0.05f, 0.05f))
+									]
 
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("PrevButtonLabel", "Back"))
-						]
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									.VAlign(VAlign_Center)
+									[
+										SNew(STextBlock)
+											.Text(LOCTEXT("PrevButtonLabel", "Back"))
+									]
+							]
 					]
-				]
-				+SUniformGridPanel::Slot(1,0)
+
+				+ SUniformGridPanel::Slot(1, 0)
 				[
 					// 'Next' button
 					SNew(SButton)
@@ -134,33 +132,34 @@ void SWizard::Construct( const FArguments& InArgs )
 						]
 					]
 				]
-				+SUniformGridPanel::Slot(2,0)
-				[
-					// 'Finish' button
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
-					.IsEnabled(InArgs._CanFinish)
-					.OnClicked(this, &SWizard::HandleFinishButtonClicked)
-					.ToolTipText(InArgs._FinishButtonToolTip)
-					.Text(InArgs._FinishButtonText)
-				]
+
+				+ SUniformGridPanel::Slot(2,0)
+					[
+						// 'Finish' button
+						SNew(SButton)
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+							.IsEnabled(InArgs._CanFinish)
+							.OnClicked(this, &SWizard::HandleFinishButtonClicked)
+							.ToolTipText(InArgs._FinishButtonToolTip)
+							.Text(InArgs._FinishButtonText)
+					]
 			]
 	];
 
-	if ( InArgs._ShowCancelButton )
+	if (InArgs._ShowCancelButton)
 	{
-		ButtonGrid->AddSlot( 3, 0 )
+		ButtonGrid->AddSlot(3, 0)
 		[
 			// cancel button
 			SNew(SButton)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
-			.OnClicked(this, &SWizard::HandleCancelButtonClicked)
-			.ToolTipText(LOCTEXT("CancelButtonTooltip", "Cancel this wizard"))
-			.Text(LOCTEXT("CancelButtonLabel", "Cancel"))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+				.OnClicked(this, &SWizard::HandleCancelButtonClicked)
+				.ToolTipText(LOCTEXT("CancelButtonTooltip", "Cancel this wizard"))
+				.Text(LOCTEXT("CancelButtonLabel", "Cancel"))
 		];
 	}
 
@@ -174,7 +173,7 @@ void SWizard::Construct( const FArguments& InArgs )
 		if (InArgs._ShowPageList)
 		{
 			PageListBox->AddSlot()
-			.AutoHeight()
+				.AutoHeight()
 				[
 					SNew(SCheckBox)
 						.IsChecked(this, &SWizard::HandlePageButtonIsChecked, SlotIndex)

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SEditableTextBlock.cpp: Declares the SEditableTextBlock class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Editable text block
@@ -12,7 +9,6 @@
 class FEditableTextBlock
 	: public FMultiBlock
 {
-
 public:
 
 	/**
@@ -62,7 +58,6 @@ private:
 
 	/** If true the text box is read only */
 	bool bReadOnly;
-	
 };
 
 
@@ -95,10 +90,7 @@ protected:
 	/**
 	 * Called by Slate to determine if this widget is enabled
 	 * 
-	 * @return True if the widget is enabled, false otherwise
+	 * @return true if the widget is enabled, false otherwise
 	 */
 	bool IsEnabled() const;
-
-private:
-
 };

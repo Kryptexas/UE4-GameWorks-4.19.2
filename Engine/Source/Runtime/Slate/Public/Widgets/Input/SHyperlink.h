@@ -2,19 +2,21 @@
 
 #pragma once
 
+
 /**
  * A hyperlink widget is what you would expect from a browser hyperlink.
  * When a hyperlink is clicked in invokes an OnNavigate() delegate.
  */
-class SHyperlink : public SButton
+class SHyperlink
+	: public SButton
 {
 public:
 
 	SLATE_BEGIN_ARGS(SHyperlink)
 		: _Text()
 		, _Style(&FCoreStyle::Get().GetWidgetStyle< FHyperlinkStyle >("Hyperlink"))
-		, _TextStyle(NULL)
-		, _UnderlineStyle(NULL)
+		, _TextStyle(nullptr)
+		, _UnderlineStyle(nullptr)
 		, _Padding()
 		, _OnNavigate()
 		{}
@@ -37,8 +39,8 @@ public:
 		this->OnNavigate = InArgs._OnNavigate;
 
 		check (InArgs._Style);
-		const FButtonStyle* UnderlineStyle = InArgs._UnderlineStyle != NULL ? InArgs._UnderlineStyle : &InArgs._Style->UnderlineStyle;
-		const FTextBlockStyle* TextStyle = InArgs._TextStyle != NULL ? InArgs._TextStyle : &InArgs._Style->TextStyle;
+		const FButtonStyle* UnderlineStyle = InArgs._UnderlineStyle != nullptr ? InArgs._UnderlineStyle : &InArgs._Style->UnderlineStyle;
+		const FTextBlockStyle* TextStyle = InArgs._TextStyle != nullptr ? InArgs._TextStyle : &InArgs._Style->TextStyle;
 		TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
 
 		SButton::Construct(
@@ -52,12 +54,14 @@ public:
 		);
 	}
 
-	// SWidget implementation
+public:
+
+	// SWidget overrides
+
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override
 	{
 		return FCursorReply::Cursor( EMouseCursor::Hand );
 	}
-	// End SWidget implementation
 
 protected:
 

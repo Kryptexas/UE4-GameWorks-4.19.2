@@ -2,11 +2,17 @@
 
 #pragma once
 
-/** Expander arrow and indentation component that can be placed in a TableRow of a TreeView. Intended for use by TMultiColumnRow in TreeViews. */
+
+/**
+ * Expander arrow and indentation component that can be placed in a TableRow
+ * of a TreeView. Intended for use by TMultiColumnRow in TreeViews.
+ */
 class SLATE_API SExpanderArrow : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SExpanderArrow ){}
+
+	SLATE_BEGIN_ARGS( SExpanderArrow )
+	{ }
 		SLATE_ATTRIBUTE(float, IndentAmount)
 	SLATE_END_ARGS()
 

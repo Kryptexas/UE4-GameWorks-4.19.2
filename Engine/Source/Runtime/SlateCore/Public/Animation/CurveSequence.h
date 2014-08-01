@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CurveSequence.h: Declares the FCurveSequence structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -54,7 +50,6 @@ public:
 	 * @param InStartTimeSeconds   When to start this curve.
 	 * @param InDurationSeconds    How long this curve lasts.
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
-	 *
 	 * @return A FCurveHandle that can be used to get the value of this curve after the animation starts playing.
 	 */
 	FCurveSequence( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear  );
@@ -65,7 +60,6 @@ public:
 	 * @param InStartTimeSeconds   When to start this curve.
 	 * @param InDurationSeconds    How long this curve lasts.
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
-	 *
 	 * @return A FCurveHandle that can be used to get the value of this curve after the animation starts playing.
 	 */
 	FCurveHandle AddCurve( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear );

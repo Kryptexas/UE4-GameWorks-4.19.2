@@ -1,16 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SCanvas.cpp: Implements the SCanvas class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+
+/* SCanvas structors
+ *****************************************************************************/
+
 SCanvas::SCanvas()
-: Children()
-{
-}
+	: Children()
+{ }
+
 
 /* SCanvas interface
  *****************************************************************************/

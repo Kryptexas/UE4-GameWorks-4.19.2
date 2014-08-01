@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SToolTip.h: Declares the SToolTip class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -58,7 +54,7 @@ public:
 
 public:
 
-	// Begin IToolTip interface
+	// IToolTip interface
 
 	virtual TSharedRef<class SWidget> AsWidget( ) override
 	{
@@ -71,10 +67,9 @@ public:
 	}
 
 	virtual bool IsEmpty( ) const override;
-
 	virtual bool IsInteractive( ) const override;
 
-	// End IToolTip interface
+public:
 
 	static float GetToolTipWrapWidth();
 

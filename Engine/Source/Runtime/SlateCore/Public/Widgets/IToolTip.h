@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IToolTip.h: Declares the IToolTip interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -44,8 +40,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IToolTip( ) { }
 };

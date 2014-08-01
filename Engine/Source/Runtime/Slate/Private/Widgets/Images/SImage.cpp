@@ -23,7 +23,7 @@ int32 SImage::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 #endif
 	const FSlateBrush* ImageBrush = Image.Get();
 
-	if ((ImageBrush != NULL) && (ImageBrush->DrawAs != ESlateBrushDrawType::NoDrawType))
+	if ((ImageBrush != nullptr) && (ImageBrush->DrawAs != ESlateBrushDrawType::NoDrawType))
 	{
 		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 		const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -63,7 +63,7 @@ FReply SImage::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEve
 FVector2D SImage::ComputeDesiredSize() const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
-	if (ImageBrush != NULL)
+	if (ImageBrush != nullptr)
 	{
 		return ImageBrush->ImageSize;
 	}

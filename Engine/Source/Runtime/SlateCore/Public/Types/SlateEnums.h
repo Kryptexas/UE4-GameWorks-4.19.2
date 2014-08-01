@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateEnums.h: Declares various enumeration types for Slate.
-=============================================================================*/
-
 #pragma once
 
 #include "SlateEnums.generated.h"
+
 
 UENUM()
 namespace EButtonClickMethod
@@ -35,6 +32,7 @@ namespace EButtonClickMethod
 	};
 }
 
+
 UENUM()
 namespace EButtonTouchMethod
 {
@@ -51,6 +49,7 @@ namespace EButtonTouchMethod
 		PreciseTap
 	};
 }
+
 
 UENUM()
 namespace EFocusMoveDirection
@@ -155,6 +154,7 @@ enum EScrollDirection
 	/** Scroll up. */
 	Scroll_Up UMETA(DisplayName="Up"),
 };
+
 
 /**
  * Additional information about a text committal

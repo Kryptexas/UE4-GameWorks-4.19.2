@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWindow.h: Declares the SWindow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -336,7 +332,6 @@ public:
 	 * Adds content to draw on top of the entire window
 	 *
 	 * @param	InZOrder	Z-order to use for this widget
-	 * 
 	 * @return The added overlay slot so that it can be configured and populated
 	 */
 	SOverlay::FOverlaySlot& AddOverlaySlot( const int32 ZOrder = INDEX_NONE );
@@ -609,11 +604,9 @@ public:
 
 public:
 
-	// Begin SWidget overrides
+	// SWidget overrides
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
-	// End SWidget overrides
 
 protected:
 
@@ -726,8 +719,7 @@ protected:
 			, bIsActive(false)
 			, bIsPendingPlay(false)
 			, bIsAnimatingWindowSize(false)
-		{
-		}
+		{ }
 
 		/** Initial window opacity */
 		float StartingOpacity;
@@ -769,6 +761,7 @@ protected:
 	const FSlateBrush* WindowBackground;
 
 private:
+
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
 	
@@ -798,8 +791,6 @@ private:
 
 	/** Full window overlay widget */
 	TSharedPtr<SWidget> FullWindowOverlayWidget;
-
-
 
 	/** When not null, this window will always appear on top of the parent and be closed when the parent is closed. */
 	TWeakPtr<SWindow> ParentWindowPtr;
@@ -839,6 +830,7 @@ private:
 	 */
 	EVisibility GetWindowFlashVisibility() const;
 };
+
 
 /**
  * Popups, tooltips, drag and drop decorators all can be executed without creating a new window.

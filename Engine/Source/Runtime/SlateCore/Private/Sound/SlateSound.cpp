@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateSound.cpp: Implements the FSlateSound class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

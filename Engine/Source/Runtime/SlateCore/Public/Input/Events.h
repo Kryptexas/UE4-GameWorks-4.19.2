@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Events.h: Declares various input event related types.
-=============================================================================*/
-
 #pragma once
 
 #include "Events.generated.h"
 
+
 class SWindow;
+
 
 /**
  * Context for keyboard focus change

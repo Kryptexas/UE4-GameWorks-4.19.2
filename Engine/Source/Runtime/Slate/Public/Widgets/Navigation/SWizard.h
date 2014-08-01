@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWizard.h: Declares the SWizard class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -53,13 +49,12 @@ public:
 
 		SLATE_END_ARGS()
 
-
 	public:
 
 		/**
 		 * Creates and initializes a new instance.
 		 *
-		 * @param InArgs - The arguments for the page.
+		 * @param InArgs The arguments for the page.
 		 */
 		FWizardPage( const FArguments& InArgs )
 			: ButtonContent(InArgs._ButtonContent)
@@ -69,13 +64,12 @@ public:
 			, PageContent(InArgs._PageContent)
 		{ }
 
-
 	public:
 
 		/**
 		 * Checks whether the page can be shown.
 		 *
-		 * @return bool - true if the page can be shown, false otherwise.
+		 * @return true if the page can be shown, false otherwise.
 		 */
 		bool CanShow( ) const
 		{
@@ -95,7 +89,7 @@ public:
 		/**
 		 * Gets the page content.
 		 *
-		 * @return TAlwaysValidWidget - The page contents.
+		 * @return The page contents.
 		 */
 		const TSharedRef<SWidget>& GetPageContent( ) const
 		{
@@ -105,7 +99,7 @@ public:
 		/**
 		 * Gets a delegate to be invoked when this page is being entered.
 		 *
-		 * @return FSimpleDelegate - The delegate.
+		 * @return The delegate.
 		 */
 		FSimpleDelegate& OnEnter( )
 		{
@@ -115,13 +109,12 @@ public:
 		/**
 		 * Gets a delegate to be invoked when this page is being left.
 		 *
-		 * @return FSimpleDelegate - The delegate.
+		 * @return The delegate.
 		 */
 		FSimpleDelegate& OnLeave( )
 		{
 			return OnLeaveDelegate;
 		}
-
 
 	private:
 
@@ -140,7 +133,6 @@ public:
 		// Holds the page content.
 		TAlwaysValidWidget PageContent;
 	};
-
 
 public:
 
@@ -194,22 +186,20 @@ public:
 
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Checks whether the page with the specified index can be shown.
 	 *
-	 * @param PageIndex - The index of the page to check.
-	 *
-	 * @return bool - true if the page can be shown, false otherwise.
+	 * @param PageIndex The index of the page to check.
+	 * @return true if the page can be shown, false otherwise.
 	 */
 	bool CanShowPage( int32 PageIndex ) const;
 
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
+	 * @param InArgs The declaration data for this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 
@@ -226,8 +216,7 @@ public:
 	/**
 	 * Gets the index of the specified wizard page widget.
 	 *
-	 * @param PageWidget - The page widget to get the index for.
-	 *
+	 * @param PageWidget The page widget to get the index for.
 	 * @return The index of the page, or INDEX_NONE if not found.
 	 */
 	int32 GetPageIndex( const TSharedRef<SWidget>& PageWidget ) const
@@ -238,27 +227,22 @@ public:
 	/**
 	 * Attempts to show the page with the specified index.
 	 *
-	 * @param PageIndex - The index of the page to show.
+	 * @param PageIndex The index of the page to show.
 	 */
 	void ShowPage( int32 PageIndex );
 
-
 public:
 
-	// Begin SCompoundWidget interface
+	// SCompoundWidget interface
 
 	virtual FVector2D ComputeDesiredSize( ) const override;
-
-	// End SCompoundWidget interface
-
 
 public:
 
 	/**
 	 * Returns a new slot for a page.
 	 *
-	 * @param PageName - The name of the page.
-	 *
+	 * @param PageName The name of the page.
 	 * @return A new slot.
 	 */
 	static FWizardPage::FArguments Page( )
@@ -266,7 +250,6 @@ public:
 		FWizardPage::FArguments Args;
 		return Args;
 	}
-
 
 private:
 
@@ -303,7 +286,6 @@ private:
 	// Callback for getting the visibility of the 'Previous' button.
 	EVisibility HandlePrevButtonVisibility( ) const;
 
-
 private:
 
 	// Holds the wizard's desired size.
@@ -314,7 +296,6 @@ private:
 
 	// Holds the widget switcher.
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
-
 
 private:
 

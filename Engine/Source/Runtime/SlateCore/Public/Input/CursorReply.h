@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CursorReply.h: Declares the FCursorReply class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -13,6 +9,7 @@
 class FCursorReply
 {
 public:
+
 	/** Makes a NULL response; this response will not change the previous value. */
 	static FCursorReply Unhandled()
 	{
@@ -32,19 +29,18 @@ public:
 	EMouseCursor::Type GetCursor() { return MouseCursor; }
 		
 private:
+
 	/** Internal constructor - makes a NULL result. */
 	FCursorReply()
-	: bIsHandled(false)
-	, MouseCursor( EMouseCursor::Default )
-	{
-	}
+		: bIsHandled(false)
+		, MouseCursor( EMouseCursor::Default )
+	{ }
 		
 	/** Internal constructor - makes a non-NULL result. */
 	FCursorReply( EMouseCursor::Type InCursorType )
-	: bIsHandled(true)
-	, MouseCursor( InCursorType )
-	{		
-	}
+		: bIsHandled(true)
+		, MouseCursor( InCursorType )
+	{ }
 		
 	/** Does this reply have any meaning */ 
 	bool bIsHandled;

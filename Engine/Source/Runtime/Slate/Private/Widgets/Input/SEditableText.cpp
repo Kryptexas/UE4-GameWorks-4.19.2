@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 #include "TextEditHelper.h"
 
-/** A pointer to the editable text currently under the mouse cursor. NULL when there isn't one. */
-SEditableText* SEditableText::EditableTextUnderCursor = NULL;
+/** A pointer to the editable text currently under the mouse cursor. nullptr when there isn't one. */
+SEditableText* SEditableText::EditableTextUnderCursor = nullptr;
 
 
 /** Constructor */

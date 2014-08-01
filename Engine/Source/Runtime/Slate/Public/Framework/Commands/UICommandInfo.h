@@ -1,15 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UICommandInfo.h: Declares the UICommandInfo class.
-=============================================================================*/
-
 #pragma once
 
 #include "Layout/Visibility.h"
 #include "Misc/Attribute.h"
 #include "Framework/Commands/InputGesture.h"
 #include "Textures/SlateIcon.h"
+
 
 /** Types of user interfaces that can be associated with a user interface action */
 namespace EUserInterfaceActionType
@@ -130,13 +127,18 @@ public:
 
 	/** A delegate that is called when commands are registered or unregistered with a binding context */
 	static FSimpleMulticastDelegate CommandsChanged; 
+
 private:
+
 	/** The name of the context */
 	FName ContextName;
+
 	/** The name of the parent context */
 	FName ContextParent;
+
 	/** The description of the context */
 	FText ContextDesc;
+
 	/** The style set to find the icons in */
 	FName StyleSetName;
 };
@@ -148,7 +150,12 @@ class SLATE_API FUICommandInfo
 	friend class FUICommandInfoDecl;
 
 public:
-	/** Default constructor */
+
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InBindingContext The name of the binding context to use.
+	 */
 	FUICommandInfo( const FName InBindingContext )
 		: ActiveGesture( new FInputGesture )
 		, DefaultGesture( EKeys::Invalid, EModifierKey::None )

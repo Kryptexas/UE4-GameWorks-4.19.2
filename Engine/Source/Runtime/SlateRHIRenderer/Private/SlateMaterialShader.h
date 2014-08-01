@@ -1,24 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PostProcessMaterial.h: Post processing Material
-=============================================================================*/
-
 #pragma once
 
 #include "Runtime/Renderer/Public/MaterialShader.h"
 
+
 class FSlateMaterialShaderPS : public FMaterialShader
 {
 public:
-	/**
-	  * Only compile shaders used with UI
-	  */
+
+	/** Only compile shaders used with UI. */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material);
 
-	/**
-	 * Modifies the compilation of this shader
-	 */
+	/** Modifies the compilation of this shader. */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 
 	FSlateMaterialShaderPS() {}
@@ -27,10 +21,13 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams );
 
 	virtual bool Serialize(FArchive& Ar) override;
+
 private:
+
 	FShaderParameter DisplayGamma;
 	FShaderParameter ShaderParams;
 };
+
 
 template<ESlateShader::Type ShaderType,bool bDrawDisabledEffect> 
 class TSlateMaterialShaderPS : public FSlateMaterialShaderPS
@@ -38,25 +35,19 @@ class TSlateMaterialShaderPS : public FSlateMaterialShaderPS
 public:
 	DECLARE_SHADER_TYPE(TSlateMaterialShaderPS,Material);
 
-	TSlateMaterialShaderPS() {}
+	TSlateMaterialShaderPS() { }
+
 	TSlateMaterialShaderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FSlateMaterialShaderPS( Initializer )
-	{
+	{ }
 	
-	}
-	
-	/**
-	  * Only compile shaders used with UI
-	  */
+	/** Only compile shaders used with UI. */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return FSlateMaterialShaderPS::ShouldCache(Platform,Material);
 	}
 
-
-	/**
-	 * Modifies the compilation of this shader
-	 */
+	/** Modifies the compilation of this shader. */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FSlateMaterialShaderPS::ModifyCompilationEnvironment(Platform, Material,OutEnvironment);
