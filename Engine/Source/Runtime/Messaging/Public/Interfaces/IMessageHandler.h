@@ -33,9 +33,7 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IMessageHandler( ) { }
 };
 
@@ -94,9 +92,9 @@ public:
 	
 private:
 
-	// Holds a pointer to the object handling the messages.
+	/** Holds a pointer to the object handling the messages. */
 	HandlerType* Handler;
 
-	// Holds a pointer to the actual handler function.
+	/** Holds a pointer to the actual handler function. */
 	typename TMessageHandlerFunc<MessageType, HandlerType>::Type HandlerFunc;
 };

@@ -186,12 +186,14 @@ public:
 	/**
 	 * Breaks message routing.
 	 *
-	 * @see Continue, Step
+	 * @see Continue, IsBreaking, Step
 	 */
 	virtual void Break( ) = 0;
 
 	/**
 	 * Continues message routing from the current breakpoint.
+	 *
+	 * @see Break, Step
 	 */
 	virtual void Continue( ) = 0;
 
@@ -199,6 +201,7 @@ public:
 	 * Checks whether the tracer is currently at a breakpoint.
 	 *
 	 * @return true if at breakpoint, false otherwise.
+	 * @see Break
 	 */
 	virtual bool IsBreaking( ) const = 0;
 
@@ -303,8 +306,6 @@ public:
 
 protected:
 
-	/**
-	 * Hidden destructor.
-	 */
+	/** Hidden destructor. */
 	virtual ~IMessageTracer( ) { }
 };

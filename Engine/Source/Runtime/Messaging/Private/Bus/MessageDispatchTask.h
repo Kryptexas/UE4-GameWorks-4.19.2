@@ -84,15 +84,15 @@ public:
 
 private:
 
-	// Holds the message context.
+	/** Holds the message context. */
 	IMessageContextRef Context;
 
-	// Holds a reference to the recipient.
+	/** Holds a reference to the recipient. */
 	IReceiveMessagesWeakPtr RecipientPtr;
 
-	// Holds the name of the thread that the router is running on.
+	/** Holds the name of the thread that the router is running on. */
 	ENamedThreads::Type Thread;
 
-	// Holds a pointer to the message tracer.
+	/** Holds a pointer to the message tracer. */
 	FMessageTracerWeakPtr TracerPtr;
 };

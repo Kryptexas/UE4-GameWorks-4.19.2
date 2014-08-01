@@ -19,9 +19,7 @@ class FMessageData
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageData( )
 		: FMemoryWriter(Data, true)
 		, State(EMessageDataState::Incomplete)
@@ -69,6 +67,6 @@ private:
 
 private:
 
-	// Holds a delegate that is invoked when the data's state changed.
+	/** Holds a delegate that is invoked when the data's state changed. */
 	FSimpleDelegate StateChangedDelegate;
 };

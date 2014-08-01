@@ -10,17 +10,13 @@ class FMessageAddressBook
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageAddressBook( )
 	{
 		CriticalSection = new FCriticalSection();
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageAddressBook( )
 	{
 		delete CriticalSection;
@@ -41,9 +37,7 @@ public:
 		Entries.FindOrAdd(Address) = NodeId;
 	}
 
-	/**
-	 * Clears the address book.
-	 */
+	/** Clears the address book. */
 	void Clear( )
 	{
 		FScopeLock Lock(CriticalSection);
@@ -137,9 +131,9 @@ public:
 
 private:
 
-	// Holds a critical section to serialize access to the address book entries.
+	/** Holds a critical section to serialize access to the address book entries. */
 	FCriticalSection* CriticalSection;
 
-	// Holds the collection of known addresses and their transport node identifiers.
+	/** Holds the collection of known addresses and their transport node identifiers. */
 	TMap<FMessageAddress, FGuid> Entries;
 };

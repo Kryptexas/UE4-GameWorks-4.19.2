@@ -32,9 +32,7 @@ public:
 		, Filename(InFilename)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FFileMessageAttachment( )
 	{
 		if (AutoDeleteFile)
@@ -54,9 +52,9 @@ public:
 
 private:
 
-	// Holds a flag indicating whether the file should be deleted.
+	/** Holds a flag indicating whether the file should be deleted. */
 	bool AutoDeleteFile;
 
-	// Holds the name of the file that holds the attached data.
+	/** Holds the name of the file that holds the attached data. */
 	FString Filename;
 };

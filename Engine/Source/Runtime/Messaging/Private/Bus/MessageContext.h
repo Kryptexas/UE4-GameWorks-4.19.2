@@ -14,9 +14,7 @@ class FMessageContext
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageContext( )
 		: Message(nullptr)
 		, TypeInfo(nullptr)
@@ -70,9 +68,7 @@ public:
 		, TypeInfo(nullptr)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageContext()
 	{
 		if ((Message != nullptr) && TypeInfo.IsValid())
@@ -257,42 +253,42 @@ public:
 
 private:
 
-	// Holds a pointer to attached binary data.
+	/** Holds a pointer to attached binary data. */
 	IMessageAttachmentPtr Attachment;
 
-	// Holds the expiration time.
+	/** Holds the expiration time. */
 	FDateTime Expiration;
 
-	// Holds the address of the endpoint that forwarded this message.
+	/** Holds the address of the endpoint that forwarded this message. */
 	FMessageAddress Forwarder;
 
-	// Holds the optional message headers.
+	/** Holds the optional message headers. */
 	TMap<FName, FString> Headers;
 
-	// Holds the message.
+	/** Holds the message. */
 	void* Message;
 
-	// Holds the original message context.
+	/** Holds the original message context. */
 	IMessageContextPtr OriginalContext;
 
-	// Holds the message recipients.
+	/** Holds the message recipients. */
 	TArray<FMessageAddress> Recipients;
 
-	// Holds the message's scope.
+	/** Holds the message's scope. */
 	EMessageScope::Type Scope;
 
-	// Holds the sender's identifier.
+	/** Holds the sender's identifier. */
 	FMessageAddress Sender;
 
-	// Holds the name of the thread from which the message was sent.
+	/** Holds the name of the thread from which the message was sent. */
 	ENamedThreads::Type SenderThread;
 
-	// Holds the time at which the message was forwarded.
+	/** Holds the time at which the message was forwarded. */
 	FDateTime TimeForwarded;
 
-	// Holds the time at which the message was sent.
+	/** Holds the time at which the message was sent. */
 	FDateTime TimeSent;
 
-	// Holds the message's type information.
+	/** Holds the message's type information. */
 	TWeakObjectPtr<UScriptStruct> TypeInfo;
 };

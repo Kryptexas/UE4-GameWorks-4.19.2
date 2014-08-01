@@ -78,9 +78,7 @@ public:
 		, Name(InName)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageEndpoint( )
 	{
 		IMessageBusPtr Bus = BusPtr.Pin();
@@ -311,7 +309,6 @@ public:
 	 * Checks whether the inbox is empty.
 	 *
 	 * @return true if the inbox is empty, false otherwise.
-	 *
 	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEmpty( ) const
@@ -795,38 +792,38 @@ protected:
 
 private:
 
-	// Holds the endpoint's identifier.
+	/** Holds the endpoint's identifier. */
 	const FMessageAddress Address;
 
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr BusPtr;
 
-	// Hold a flag indicating whether this endpoint is active.
+	/** Hold a flag indicating whether this endpoint is active. */
 	bool Enabled;
 
-	// Holds the registered message handlers.
+	/** Holds the registered message handlers. */
 	TArray<IMessageHandlerPtr> Handlers;
 
-	// Holds the endpoint's unique identifier (for debugging purposes).
+	/** Holds the endpoint's unique identifier (for debugging purposes). */
 	const FGuid Id;
 
-	// Holds the endpoint's message inbox.
+	/** Holds the endpoint's message inbox. */
 	TQueue<IMessageContextPtr, EQueueMode::Mpsc> Inbox;
 
-	// Holds a flag indicating whether the inbox is enabled.
+	/** Holds a flag indicating whether the inbox is enabled. */
 	bool InboxEnabled;
 
-	// Holds the endpoint's name (for debugging purposes).
+	/** Holds the endpoint's name (for debugging purposes). */
 	const FName Name;
 
-	// Holds a delegate that is invoked when a message has been received.
+	/** Holds a delegate that is invoked when a message has been received. */
 	FOnMessageEndpointReceiveMessage ReceiveDelegate;
 
-	// Holds the name of the thread on which to receive messages.
+	/** Holds the name of the thread on which to receive messages. */
 	ENamedThreads::Type RecipientThread;
 
 private:
 
-	// Holds a delegate that is invoked in case of messaging errors.
+	/** Holds a delegate that is invoked in case of messaging errors. */
 	FOnMessageEndpointError ErrorDelegate;
 };

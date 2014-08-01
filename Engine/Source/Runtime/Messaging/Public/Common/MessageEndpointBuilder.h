@@ -192,21 +192,21 @@ public:
 	
 private:
 
-	// Holds a reference to the message bus to attach to.
+	/** Holds a reference to the message bus to attach to. */
 	IMessageBusWeakPtr BusPtr;
 
-	// Holds a flag indicating whether the endpoint should be disabled.
+	/** Holds a flag indicating whether the endpoint should be disabled. */
 	bool Disabled;
 
-	// Holds the collection of message handlers to register.
+	/** Holds the collection of message handlers to register. */
 	TArray<IMessageHandlerPtr> Handlers;
 
-	// Holds a flag indicating whether the inbox should be enabled.
+	/** Holds a flag indicating whether the inbox should be enabled. */
 	bool InboxEnabled;
 
-	// Holds the endpoint's name (for debugging purposes).
+	/** Holds the endpoint's name (for debugging purposes). */
 	FName Name;
 
-	// Holds the name of the thread on which to receive messages.
+	/** Holds the name of the thread on which to receive messages. */
 	ENamedThreads::Type RecipientThread;
 };

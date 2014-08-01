@@ -10,9 +10,7 @@ class FMessageBridgeBuilder
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageBridgeBuilder( )
 		: Address(FMessageAddress::NewGuid())
 		, BusPtr(IMessagingModule::Get().GetDefaultBus())
@@ -146,18 +144,18 @@ public:
 
 private:
 
-	// Holds the bridge's address.
+	/** Holds the bridge's address. */
 	FMessageAddress Address;
 
-	// Holds a weak pointer to the message bus to attach to.
+	/** Holds a weak pointer to the message bus to attach to. */
 	IMessageBusWeakPtr BusPtr;
 
-	// Holds a flag indicating whether the bridge should be disabled.
+	/** Holds a flag indicating whether the bridge should be disabled. */
 	bool Disabled;
 
-	// Holds a reference to the message serializer.
+	/** Holds a reference to the message serializer. */
 	ISerializeMessagesPtr Serializer;
 
-	// Holds a reference to the message transport technology.
+	/** Holds a reference to the message transport technology. */
 	ITransportMessagesPtr Transport;
 };

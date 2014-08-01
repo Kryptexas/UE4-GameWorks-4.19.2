@@ -19,19 +19,19 @@ typedef TSharedRef<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerRef;
 class FMessageTracer
 	: public IMessageTracer
 {
-	// Holds debug information for message recipients.
+	/** Holds debug information for message recipients. */
 	struct FRecipientInfo
 	{
-		// Holds the recipient's unique identifier.
+		/** Holds the recipient's unique identifier. */
 		FGuid Id;
 
-		// Holds the recipient's name.
+		/** Holds the recipient's name. */
 		FName Name;
 
-		// Holds a flag indicating whether the recipient is a remote endpoint.
+		/** Holds a flag indicating whether the recipient is a remote endpoint. */
 		bool Remote;
 
-		// Creates and initializes a new instance.
+		/** Creates and initializes a new instance. */
 		FRecipientInfo( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient )
 			: Id(Recipient->GetRecipientId())
 			, Name(Recipient->GetDebugName())
@@ -41,14 +41,10 @@ class FMessageTracer
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageTracer( );
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageTracer( );
 
 public:
@@ -425,47 +421,47 @@ protected:
 
 private:
 
-	// Holds the collection of endpoints for known message addresses.
+	/** Holds the collection of endpoints for known message addresses. */
 	TMap<FMessageAddress, FMessageTracerEndpointInfoPtr> AddressesToEndpointInfos;
 
-	// Holds a flag indicating whether a breakpoint was hit.
+	/** Holds a flag indicating whether a breakpoint was hit. */
 	bool Breaking;
 
-	// Holds the collection of breakpoints.
+	/** Holds the collection of breakpoints. */
 	TArray<IMessageTracerBreakpointPtr> Breakpoints;
 
-	// Holds the collection of message senders to break on when they send a message.
+	/** Holds the collection of message senders to break on when they send a message. */
 	TArray<FMessageAddress> BreakOnSenders;
 
-	// Holds an event signaling that messaging routing can continue.
+	/** Holds an event signaling that messaging routing can continue. */
 	FEvent* ContinueEvent;
 
-	// Holds the collection of endpoints for known recipient identifiers.
+	/** Holds the collection of endpoints for known recipient identifiers. */
 	TMap<FGuid, FMessageTracerEndpointInfoPtr> RecipientsToEndpointInfos;
 
-	// Holds the collection of known messages.
+	/** Holds the collection of known messages. */
 	TMap<IMessageContextPtr, FMessageTracerMessageInfoPtr> MessageInfos;
 
-	// Holds the collection of known message types.
+	/** Holds the collection of known message types. */
 	TMap<FName, FMessageTracerTypeInfoPtr> MessageTypes;
 
-	// Holds a flag indicating whether a reset is pending.
+	/** Holds a flag indicating whether a reset is pending. */
 	bool ResetPending;
 
-	// Holds a flag indicating whether the tracer is running.
+	/** Holds a flag indicating whether the tracer is running. */
 	bool Running;
 
-	// Holds the trace actions queue.
+	/** Holds the trace actions queue. */
 	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Traces;
 
 private:
 
-	// Holds a delegate that is executed when a new message has been added to the collection of known messages.
+	/** Holds a delegate that is executed when a new message has been added to the collection of known messages. */
 	FMessageTracerMessageAdded MessagesAddedDelegate;
 
-	// Holds a delegate that is executed when the message history has been reset.
+	/** Holds a delegate that is executed when the message history has been reset. */
 	FSimpleMulticastDelegate MessagesResetDelegate;
 
-	// Holds a delegate that is executed when a new type has been added to the collection of known message types.
+	/** Holds a delegate that is executed when a new type has been added to the collection of known message types. */
 	FMessageTracerTypeAdded TypeAddedDelegate;
 };

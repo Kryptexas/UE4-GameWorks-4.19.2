@@ -60,4 +60,9 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FSimpleDelegate& OnStateChanged( ) = 0;
+
+public:
+
+	/** Virtual destructor. */
+	virtual ~IMessageData( ) { }
 };

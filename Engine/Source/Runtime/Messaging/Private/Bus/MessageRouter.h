@@ -11,14 +11,10 @@ class FMessageRouter
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FMessageRouter( );
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageRouter( );
 
 public:
@@ -161,9 +157,7 @@ protected:
 	 */
 	void DispatchMessage( const IMessageContextRef& Message );
 
-	/**
-	 * Processes all delayed messages.
-	 */
+	/** Processes all delayed messages. */
 	void ProcessDelayedMessages( );
 
 private:
@@ -203,56 +197,56 @@ private:
 
 private:
 
-	// Handles adding message interceptors.
+	/** Handles adding message interceptors. */
 	void HandleAddInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
 
-	// Handles adding message recipients.
+	/** Handles adding message recipients. */
 	void HandleAddRecipient( FMessageAddress Address, IReceiveMessagesWeakPtr RecipientPtr );
 
-	// Handles adding of subscriptions.
+	/** Handles adding of subscriptions. */
 	void HandleAddSubscriber( IMessageSubscriptionRef Subscription );
 
-	// Handles the removal of message interceptors.
+	/** Handles the removal of message interceptors. */
 	void HandleRemoveInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
 
-	// Handles the removal of message recipients.
+	/** Handles the removal of message recipients. */
 	void HandleRemoveRecipient( FMessageAddress Address );
 
-	// Handles the removal of subscribers.
+	/** Handles the removal of subscribers. */
 	void HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberPtr, FName MessageType );
 
-	// Handles the routing of messages.
+	/** Handles the routing of messages. */
 	void HandleRouteMessage( IMessageContextRef Context );
 
 private:
 
-	// Maps message types to interceptors.
+	/** Maps message types to interceptors. */
 	TMap<FName, TArray<IInterceptMessagesPtr>> ActiveInterceptors;
 
-	// Maps message addresses to recipients.
+	/** Maps message addresses to recipients. */
 	TMap<FMessageAddress, IReceiveMessagesWeakPtr> ActiveRecipients;
 
-	// Maps message types to subscriptions.
+	/** Maps message types to subscriptions. */
 	TMap<FName, TArray<IMessageSubscriptionPtr>> ActiveSubscriptions;
 
-	// Holds the router command queue.
+	/** Holds the router command queue. */
 	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Commands;
 
-	// Holds the current time.
+	/** Holds the current time. */
 	FDateTime CurrentTime;
 
-	// Holds the collection of delayed messages.
+	/** Holds the collection of delayed messages. */
 	TArray<FDelayedMessage> DelayedMessages;
 
-	// Holds a sequence number for delayed messages.
+	/** Holds a sequence number for delayed messages. */
 	int64 DelayedMessagesSequence;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the message tracer.
+	/** Holds the message tracer. */
 	FMessageTracerRef Tracer;
 
-	// Holds an event signaling that work is available.
+	/** Holds an event signaling that work is available. */
 	FEvent* WorkEvent;
 };
