@@ -209,9 +209,24 @@ bool FDesktopPlatformBase::IsPerforceBuild(const FString &EngineRootDir)
 
 bool FDesktopPlatformBase::IsValidRootDirectory(const FString &RootDir)
 {
+	// Check that there's an Engine\Binaries directory underneath the root
 	FString EngineBinariesDirName = RootDir / TEXT("Engine/Binaries");
 	FPaths::NormalizeDirectoryName(EngineBinariesDirName);
-	return IFileManager::Get().DirectoryExists(*EngineBinariesDirName);
+	if(!IFileManager::Get().DirectoryExists(*EngineBinariesDirName))
+	{
+		return false;
+	}
+
+	// Also check there's an Engine\Build directory. This will filter out anything that has an engine-like directory structure but doesn't allow building code projects - like the launcher.
+	FString EngineBuildDirName = RootDir / TEXT("Engine/Build");
+	FPaths::NormalizeDirectoryName(EngineBuildDirName);
+	if(!IFileManager::Get().DirectoryExists(*EngineBuildDirName))
+	{
+		return false;
+	}
+
+	// Otherwise it's valid
+	return true;
 }
 
 bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &InIdentifier)
