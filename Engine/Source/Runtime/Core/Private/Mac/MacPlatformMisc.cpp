@@ -888,6 +888,12 @@ void FMacPlatformMisc::NormalizePath(FString& InPath)
 	}
 }
 
+void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
+{
+	out_OSVersionLabel = GMacAppInfo.OSVersion;
+	out_OSSubVersionLabel = GMacAppInfo.OSBuild;
+}
+
 #include "ModuleManager.h"
 
 void FMacPlatformMisc::LoadPreInitModules()

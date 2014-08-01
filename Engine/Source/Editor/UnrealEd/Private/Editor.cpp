@@ -6488,15 +6488,16 @@ void UEditorEngine::UpdateAutoLoadProject()
 #if PLATFORM_MAC
 	if ( !GIsBuildMachine )
 	{
-		SCOPED_AUTORELEASE_POOL;
-		NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
-		NSString* OSVersion = (NSString*)[SystemVersion objectForKey: @"ProductVersion"];
-		NSArray* Components = [OSVersion componentsSeparatedByString:@"."];
-		NSInteger ComponentValues[3] = {0};
-		for(uint32 i = 0; i < [Components count] && i < 3; i++)
+		FString OSVersion, OSSubVersion;
+		FPlatformMisc::GetOSVersions(OSVersion, OSSubVersion);
+		
+		TArray<FString> Components;
+		OSVersion.ParseIntoArray(&Components, TEXT("."), true);
+		uint8 ComponentValues[3] = {0};
+		
+		for(uint32 i = 0; i < Components.Num() && i < 3; i++)
 		{
-			NSString* Component = [Components objectAtIndex:i];
-			ComponentValues[i] = [Component integerValue];
+			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
 		}
 		
 		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
