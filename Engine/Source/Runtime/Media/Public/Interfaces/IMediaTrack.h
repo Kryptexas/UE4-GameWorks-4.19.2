@@ -107,6 +107,17 @@ public:
 	virtual const IMediaTrackCaptionDetails& GetCaptionDetails( ) const = 0;
 
 	/**
+	 * Generates the track's display name.
+	 *
+	 * Unlike GetName(), which may return an empty string for unnamed tracks, this method always
+	 * returns a human readable display text for the track's name that will be generated, if needed.
+	 *
+	 * @return Display name text.
+	 * @see GetName
+	 */
+	virtual FText GetDisplayName( ) const = 0;
+
+	/**
 	 * Gets the track's index number.
 	 *
 	 * @return Index number.
@@ -124,6 +135,7 @@ public:
 	 * Gets the name of the track.
 	 *
 	 * @return Track name string.
+	 * @see GetDisplayName
 	 */
 	virtual FString GetName( ) const = 0;
 

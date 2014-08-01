@@ -34,6 +34,7 @@ public:
 	virtual void AddSink( const IMediaSinkRef& Sink ) override;
 	virtual bool Disable( ) override;
 	virtual bool Enable( ) override;
+	virtual FText GetDisplayName( ) const override;
 	virtual uint32 GetIndex( ) const override;
 	virtual FString GetLanguage( ) const override;
 	virtual FString GetName( ) const override;
@@ -44,25 +45,25 @@ public:
 
 private:
 
-	// The stream's language tag.
+	/** The stream's language tag. */
 	FString Language;
 
-	// The stream's name.
+	/** The stream's name. */
 	FString Name;
 
-	// Pointer to the presentation descriptor.
+	/** Pointer to the presentation descriptor. */
 	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
 
-	// Whether the stream contains protected content.
+	/** Whether the stream contains protected content. */
 	bool Protected;
 
-	// The sample grabber callback object.
+	/** The sample grabber callback object. */
 	TComPtr<FWmfMediaSampler> Sampler;
 
-	// Pointer to the stream's descriptor.
+	/** Pointer to the stream's descriptor. */
 	TComPtr<IMFStreamDescriptor> StreamDescriptor;
 
-	// The stream's index number in the presentation.
+	/** The stream's index number in the presentation. */
 	DWORD StreamIndex;
 };
 

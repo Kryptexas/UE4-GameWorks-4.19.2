@@ -6,6 +6,9 @@
 #include "AllowWindowsPlatformTypes.h"
 
 
+#define LOCTEXT_NAMESPACE "FWmfMediaTrack"
+
+
 /* FWmfMediaTrack structors
  *****************************************************************************/
 
@@ -56,6 +59,28 @@ bool FWmfMediaTrack::Enable( )
 }
 
 
+FText FWmfMediaTrack::GetDisplayName( ) const
+{
+	FText DisplayName;
+
+	if (Name.IsEmpty())
+	{
+		DisplayName = FText::Format(LOCTEXT("UnnamedTrackFormat", "Unnamed Track {0}"), FText::AsNumber((uint32)StreamIndex));
+	}
+	else
+	{
+		DisplayName = FText::FromString(Name);
+	}
+
+	if (Language.IsEmpty())
+	{
+		return DisplayName;
+	}
+
+	return FText::Format(LOCTEXT("LocalizedTrackFormat", "{0} ({1})"), DisplayName, FText::FromString(Language));
+}
+
+
 uint32 FWmfMediaTrack::GetIndex( ) const
 {
 	return StreamIndex;
@@ -99,6 +124,9 @@ void FWmfMediaTrack::RemoveSink( const IMediaSinkRef& Sink )
 {
 	Sampler->UnregisterSink(Sink);
 }
+
+
+#undef LOCTEXT_NAMESPACE
 
 
 #include "HideWindowsPlatformTypes.h"
