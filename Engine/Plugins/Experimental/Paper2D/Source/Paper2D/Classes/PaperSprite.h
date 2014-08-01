@@ -59,22 +59,21 @@ protected:
 	UPROPERTY()
 	FVector2D BakedSourceUV;
 
-
 	// Origin within SourceImage, prior to atlasing
-	UPROPERTY()
-	FVector2D OriginInSourceImage;
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay, meta=(EditCondition="bTrimmedInSourceImage"))
+	FVector2D OriginInSourceImageBeforeTrimming;
 
 	// Dimensions of SourceImage
-	UPROPERTY()
-	FVector2D SourceImageDimension;
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay, meta=(EditCondition="bTrimmedInSourceImage"))
+	FVector2D SourceImageDimensionBeforeTrimming;
 
 	// This texture is trimmed, consider the values above
-	UPROPERTY()
-	bool bTrimmed;
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bTrimmedInSourceImage;
 
 	// This texture is rotated in the atlas
-	UPROPERTY()
-	bool bRotated;
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bRotatedInSourceImage;
 #endif
 
 	// The source texture that the sprite comes from
