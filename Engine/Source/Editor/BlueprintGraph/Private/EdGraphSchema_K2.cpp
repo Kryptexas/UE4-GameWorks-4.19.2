@@ -175,10 +175,6 @@ void UEdGraphSchema_K2::FPinTypeTreeInfo::Init(const FString& InFriendlyName, co
 			if(Struct != NULL)
 			{
 				SubtypeTooltip = Struct->GetToolTipText().ToString();
-				if(SubtypeTooltip.Len() == 0)
-				{
-					SubtypeTooltip = Struct->GetName();
-				}
 			}
 
 			Children.Add( MakeShareable(new FPinTypeTreeInfo(CategoryName, *it, SubtypeTooltip)) );
