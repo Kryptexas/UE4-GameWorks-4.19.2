@@ -117,11 +117,6 @@ public:
 		return NULL;
 	}
 
-	IOnlineConnectionPtr GetConnectionInterface() const override
-	{
-		return NULL;
-	}
-
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;

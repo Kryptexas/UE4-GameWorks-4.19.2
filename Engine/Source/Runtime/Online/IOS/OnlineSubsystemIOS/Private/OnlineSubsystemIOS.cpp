@@ -117,11 +117,6 @@ IOnlinePresencePtr FOnlineSubsystemIOS::GetPresenceInterface() const
 	return NULL;
 }
 
-IOnlineConnectionPtr FOnlineSubsystemIOS::GetConnectionInterface() const
-{
-	return NULL;
-}
-
 bool FOnlineSubsystemIOS::Init() 
 {
 	bool bSuccessfullyStartedUp = true;

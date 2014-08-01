@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineConnectionInterface.h"
+#include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineIdentityInterface.h"
 #include "ConnectionCallbackProxy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnlineConnectionResult, int32, ErrorCode);
@@ -31,9 +31,12 @@ class UConnectionCallbackProxy : public UOnlineBlueprintCallProxyBase
 
 private:
 	// Internal callback when the achievement query completes, calls out to the public success/failure callbacks
-	void OnConnectCompleted(int errorCode, bool bSuccess);
+	void OnLoginCompleted(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
 private:
 	// The player controller triggering things
 	TWeakObjectPtr<APlayerController> PlayerControllerWeakPtr;
+
+	// Connection callback delegate
+	FOnLoginCompleteDelegate OnLoginCompleteDelegate;
 };

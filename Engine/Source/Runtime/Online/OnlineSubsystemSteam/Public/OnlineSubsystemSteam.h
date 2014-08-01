@@ -230,8 +230,6 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const override;
 	virtual IOnlineMessagePtr GetMessageInterface() const override;
 	virtual IOnlinePresencePtr GetPresenceInterface() const override;
-	virtual IOnlineConnectionPtr GetConnectionInterface() const override;
-
 	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
 	virtual bool Init() override;
 	virtual bool Shutdown() override;

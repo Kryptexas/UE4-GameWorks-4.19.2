@@ -8,6 +8,9 @@
 UConnectionCallbackProxy::UConnectionCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+
+	OnLoginCompleteDelegate.BindUObject(this, &ThisClass::OnLoginCompleted);
+
 }
 
 UConnectionCallbackProxy* UConnectionCallbackProxy::ConnectToService(class APlayerController* PlayerController)
@@ -24,13 +27,21 @@ void UConnectionCallbackProxy::Activate()
 
 	if (Helper.IsValid())
 	{
-		IOnlineConnectionPtr Connection = Helper.OnlineSub->GetConnectionInterface();
-		if (Connection.IsValid())
+		IOnlineIdentityPtr OnlineIdentity = Helper.OnlineSub->GetIdentityInterface();
+		if (OnlineIdentity.IsValid())
 		{
-			FOnConnectionCompleteDelegate ConnectionFinishedDelegate = FOnConnectionCompleteDelegate::CreateUObject(this, &ThisClass::OnConnectCompleted);
+			ULocalPlayer * localPlayer = CastChecked<ULocalPlayer>(PlayerControllerWeakPtr.Get()->Player);
 
-			Connection->Connect(ConnectionFinishedDelegate); // this will get called when everything is resolved
-
+			if (!OnlineIdentity->OnLoginCompleteDelegates[localPlayer->ControllerId].IsBoundToObject(this))
+			{
+				OnlineIdentity->AddOnLoginCompleteDelegate(localPlayer->ControllerId, OnLoginCompleteDelegate);
+				OnlineIdentity->Login(localPlayer->ControllerId, FOnlineAccountCredentials()); /// Probably need to supply real creds here somehow... doesn't apply for all imple however.
+			}
+			else
+			{
+				// already trying to login!
+			}
+			
 			// OnQueryCompleted will get called, nothing more to do now
 			return;
 		}
@@ -44,9 +55,21 @@ void UConnectionCallbackProxy::Activate()
 	OnFailure.Broadcast(0);
 }
 
-void UConnectionCallbackProxy::OnConnectCompleted(int errorCode, bool bSuccess)
+void UConnectionCallbackProxy::OnLoginCompleted(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	if (bSuccess)
+	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"));
+	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
+
+	if (Helper.IsValid())
+	{
+		IOnlineIdentityPtr OnlineIdentity = Helper.OnlineSub->GetIdentityInterface();
+		if (OnlineIdentity.IsValid())
+		{
+			OnlineIdentity->ClearOnLoginCompleteDelegate(LocalUserNum, OnLoginCompleteDelegate);
+		}
+	}
+
+	if (bWasSuccessful)
 	{
 		OnSuccess.Broadcast(0);
 	}

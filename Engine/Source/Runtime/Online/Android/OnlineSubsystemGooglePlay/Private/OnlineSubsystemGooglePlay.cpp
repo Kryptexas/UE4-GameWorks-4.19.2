@@ -102,7 +102,6 @@ bool FOnlineSubsystemGooglePlay::Init()
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
-	ConnectionInterface = MakeShareable(new FOnlineConnectionGooglePlay(this));
 
 	return true;
 }
@@ -134,7 +133,6 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
-	DESTRUCT_INTERFACE(ConnectionInterface);
 #undef DESTRUCT_INTERFACE
 
 	OnlineAsyncTaskThreadRunnable.Reset();

@@ -50,7 +50,6 @@ typedef TSharedPtr<class IOnlineUser, ESPMode::ThreadSafe> IOnlineUserPtr;
 typedef TSharedPtr<class IOnlineMessage, ESPMode::ThreadSafe> IOnlineMessagePtr;
 typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePtr;
 typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
-typedef TSharedPtr<class IOnlineConnection, ESPMode::ThreadSafe> IOnlineConnectionPtr;
 
 /**
  * Called when the connection state as reported by the online platform changes
@@ -246,12 +245,6 @@ public:
 	 * @param InterfaceName key to the custom data
 	 */
 	virtual class UObject* GetNamedInterface(FName InterfaceName) = 0;
-
-	/**
-	* Get the interface for managing the connection to an online service
-	* @return Interface pointer for the appropriate online service
-	*/
-	virtual IOnlineConnectionPtr GetConnectionInterface() const = 0;
 
 	/**
 	 * Set a custom UObject to be preserved by the online subsystem
