@@ -111,7 +111,7 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 				FPreloadMembersHelper::PreloadMembers(BlueprintObject);
 				// recurse into this function for this parent class; 
 				// 'ClassDefaultObject' should be the class's original ExportObject
-				RegenerateBlueprintClass(Class, BlueprintObject);
+				RegenerateBlueprintClass(Class, Class->ClassDefaultObject);
 			}
 		}
 

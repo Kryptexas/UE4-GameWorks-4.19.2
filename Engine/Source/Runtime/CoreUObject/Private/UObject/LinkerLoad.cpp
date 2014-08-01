@@ -2736,6 +2736,7 @@ void ULinkerLoad::Preload( UObject* Object )
 					if ( Object->HasAnyFlags(RF_ClassDefaultObject) )
 					{
 						Object->GetClass()->SerializeDefaultObject(Object, *this);
+						Object->SetFlags(RF_LoadCompleted);
 					}
 					else
 					{
