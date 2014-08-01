@@ -4402,6 +4402,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("UserDefinedEnum"),
 			TEXT("UserDefinedStruct"),
 			TEXT("WindDirectionalSource"),
+			TEXT("World")
 		};
 
 		const TCHAR* Path = TEXT("Icons/AssetIcons/%s_%dx");
