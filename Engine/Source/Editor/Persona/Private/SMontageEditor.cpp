@@ -174,6 +174,10 @@ void SMontageEditor::RefreshNotifyTriggerOffsets()
 			PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.DisplayTime + Notify.Duration);
 			Notify.RefreshEndTriggerOffset(PredictedOffset);
 		}
+		else
+		{
+			Notify.EndTriggerTimeOffset = 0.0f;
+		}
 	}
 
 	for(auto Iter = MontageObj->BranchingPoints.CreateIterator(); Iter; ++Iter)

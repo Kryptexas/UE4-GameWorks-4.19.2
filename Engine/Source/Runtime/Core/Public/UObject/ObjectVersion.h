@@ -586,6 +586,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_BLUEPRINT_USE_SCS_ROOTCOMPONENT_SCALE,
 	// Changed level streaming to have a linear color since the visualization doesn't gamma correct.
 	VER_UE4_LEVEL_STREAMING_DRAW_COLOR_TYPE_CHANGE,
+	// Cleared end triggers from non-state anim notifies
+	VER_UE4_CLEAR_NOTIFY_TRIGGERS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

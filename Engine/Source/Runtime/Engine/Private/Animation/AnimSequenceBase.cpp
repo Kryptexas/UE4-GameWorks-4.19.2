@@ -175,19 +175,34 @@ void UAnimSequenceBase::PostLoad()
 	Super::PostLoad();
 
 	// Convert Notifies to new data
-	if( GIsEditor && GetLinkerUE4Version() < VER_UE4_ANIMNOTIFY_NAMECHANGE && Notifies.Num() > 0 )
+	if( GIsEditor && Notifies.Num() > 0 )
 	{
-		LOG_SCOPE_VERBOSITY_OVERRIDE(LogAnimation, ELogVerbosity::Warning);
- 		// convert animnotifies
- 		for (int32 I=0; I<Notifies.Num(); ++I)
- 		{
- 			if (Notifies[I].Notify!=NULL)
- 			{
-				FString Label = Notifies[I].Notify->GetClass()->GetName();
-				Label = Label.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
-				Notifies[I].NotifyName = FName(*Label);
- 			}
- 		}
+		if(GetLinkerUE4Version() < VER_UE4_ANIMNOTIFY_NAMECHANGE)
+		{
+			LOG_SCOPE_VERBOSITY_OVERRIDE(LogAnimation, ELogVerbosity::Warning);
+			// convert animnotifies
+			for(int32 I = 0; I < Notifies.Num(); ++I)
+			{
+				if(Notifies[I].Notify != NULL)
+				{
+					FString Label = Notifies[I].Notify->GetClass()->GetName();
+					Label = Label.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
+					Notifies[I].NotifyName = FName(*Label);
+				}
+			}
+		}
+
+		if(GetLinkerUE4Version() < VER_UE4_CLEAR_NOTIFY_TRIGGERS)
+		{
+			for(FAnimNotifyEvent Notify : Notifies)
+			{
+				if(Notify.Notify)
+				{
+					// Clear end triggers for notifies that are not notify states
+					Notify.EndTriggerTimeOffset = 0.0f;
+				}
+			}
+		}
 	}
 
 	if ( GetLinkerUE4Version() < VER_UE4_MORPHTARGET_CURVE_INTEGRATION )
