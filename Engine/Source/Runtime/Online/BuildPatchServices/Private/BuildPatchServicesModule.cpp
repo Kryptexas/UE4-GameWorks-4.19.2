@@ -1,0 +1,252 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	BuildPatchServicesModule.cpp: Implements the FBuildPatchServicesModule class.
+=============================================================================*/
+
+#include "BuildPatchServicesPrivatePCH.h"
+
+IMPLEMENT_MODULE( FBuildPatchServicesModule, BuildPatchServices );
+
+/* FBuildPatchInstallationInfo implementation
+*****************************************************************************/
+
+void FBuildPatchInstallationInfo::RegisterAppInstallation(IBuildManifestRef AppManifest, const FString& AppInstallDirectory)
+{
+	FBuildPatchAppManifestRef InternalRef = StaticCastSharedRef<FBuildPatchAppManifest>(AppManifest);
+	AvailableInstallations.Add(AppInstallDirectory, InternalRef);
+}
+
+void FBuildPatchInstallationInfo::EnumerateProducibleChunks(const TArray< FGuid >& ChunksRequired, TArray< FGuid >& ChunksAvailable)
+{
+	for (auto AvailableInstallationsIt = AvailableInstallations.CreateConstIterator(); AvailableInstallationsIt; ++AvailableInstallationsIt)
+	{
+		const FBuildPatchAppManifest& AppManifest = *AvailableInstallationsIt.Value().Get();
+		const FString& AppInstallDir = AvailableInstallationsIt.Key();
+		TArray< FGuid > ChunksFromThisManifest;
+		AppManifest.EnumerateProducibleChunks(AppInstallDir, ChunksRequired, ChunksFromThisManifest);
+		for (auto ChunksFromThisManifestIt = ChunksFromThisManifest.CreateConstIterator(); ChunksFromThisManifestIt; ++ChunksFromThisManifestIt)
+		{
+			const FGuid& ChunkGuid = *ChunksFromThisManifestIt;
+			if (ChunksAvailable.Contains(ChunkGuid) == false)
+			{
+				ChunksAvailable.Add(ChunkGuid);
+				RecyclableChunks.Add(ChunkGuid, AvailableInstallationsIt.Value());
+			}
+		}
+	}
+}
+
+FBuildPatchAppManifestPtr FBuildPatchInstallationInfo::GetManifestContainingChunk(const FGuid& ChunkGuid)
+{
+	return RecyclableChunks.FindRef(ChunkGuid);
+}
+
+const FString FBuildPatchInstallationInfo::GetManifestInstallDir(FBuildPatchAppManifestPtr AppManifest)
+{
+	for (auto AvailableInstallationsIt = AvailableInstallations.CreateConstIterator(); AvailableInstallationsIt; ++AvailableInstallationsIt)
+	{
+		if (AppManifest == AvailableInstallationsIt.Value())
+		{
+			return AvailableInstallationsIt.Key();
+		}
+	}
+	return TEXT("");
+}
+
+/* FBuildPatchServicesModule implementation
+ *****************************************************************************/
+
+void FBuildPatchServicesModule::StartupModule()
+{
+	// We need to initialize the lookup for our hashing functions
+	FRollingHashConst::Init();
+
+	// Add our ticker
+	FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateRaw( this, &FBuildPatchServicesModule::Tick ) );
+
+	// Test the rolling hash algorithm
+	check( CheckRollingHashAlgorithm() );
+}
+
+void FBuildPatchServicesModule::ShutdownModule()
+{
+	GWarn->Logf( TEXT( "BuildPatchServicesModule: Shutting Down" ) );
+	// We need to stop and wait for any threads to exit.
+	FBuildPatchInstallError::SetFatalError( EBuildPatchInstallError::ApplicationClosing );
+
+	// Release our ptr to analytics
+	FBuildPatchAnalytics::SetAnalyticsProvider( NULL );
+
+	// Reset all installer ptrs (this will cause us to wait for each thread to complete)
+	for(auto InstallerIt = BuildPatchInstallers.CreateIterator(); InstallerIt; ++InstallerIt)
+	{
+		// Make sure it is not paused, this function only un-pauses when in error state
+		(*InstallerIt)->TogglePauseInstall();
+		// And reset
+		(*InstallerIt).Reset();
+	}
+
+	// Remove our ticker
+	FTicker::GetCoreTicker().RemoveTicker( FTickerDelegate::CreateRaw( this, &FBuildPatchServicesModule::Tick ) );
+
+	FBuildPatchHTTP::OnShutdown();
+}
+
+IBuildManifestPtr FBuildPatchServicesModule::LoadManifestFromFile( const FString& Filename )
+{
+	FBuildPatchAppManifestRef Manifest = MakeShareable( new FBuildPatchAppManifest() );
+	if( Manifest->LoadFromFile( Filename ) )
+	{
+		return Manifest;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+IBuildManifestPtr FBuildPatchServicesModule::MakeManifestFromJSON( const FString& ManifestJSON )
+{
+	FBuildPatchAppManifestRef Manifest = MakeShareable( new FBuildPatchAppManifest() );
+	if( Manifest->DeserializeFromJSON( ManifestJSON ) )
+	{
+		return Manifest;
+	}
+	return NULL;
+}
+
+bool FBuildPatchServicesModule::SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest )
+{
+	return StaticCastSharedRef< FBuildPatchAppManifest >( Manifest )->SaveToFile( Filename );
+}
+
+IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate )
+{
+	// Using a local bool for this check will improve the assert message that gets displayed
+	const bool bIsCalledFromMainThread = IsInGameThread();
+	check( bIsCalledFromMainThread );
+	// Cast manifest parameters
+	FBuildPatchAppManifestPtr CurrentManifestInternal = StaticCastSharedPtr< FBuildPatchAppManifest >( CurrentManifest );
+	FBuildPatchAppManifestPtr InstallManifestInternal = StaticCastSharedPtr< FBuildPatchAppManifest >( InstallManifest );
+	if( !InstallManifestInternal.IsValid() )
+	{
+		// We must have an install manifest to continue
+		return NULL;
+	}
+	// Make directory
+	IFileManager::Get().MakeDirectory( *InstallDirectory, true );
+	if( !IFileManager::Get().DirectoryExists( *InstallDirectory ) )
+	{
+		return NULL;
+	}
+	// Run the install thread
+	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo ) ) );
+	return BuildPatchInstallers.Top();
+}
+
+bool FBuildPatchServicesModule::Tick( float Delta )
+{
+	// Using a local bool for this check will improve the assert message that gets displayed
+	// This one is unlikely to assert unless the FTicker's core tick is not ticked on the main thread for some reason
+	const bool bIsCalledFromMainThread = IsInGameThread();
+	check( bIsCalledFromMainThread );
+
+	// Call complete delegate on each finished installer
+	for(auto InstallerIt = BuildPatchInstallers.CreateIterator(); InstallerIt; ++InstallerIt)
+	{
+		if( (*InstallerIt).IsValid() && (*InstallerIt)->IsComplete() )
+		{
+			(*InstallerIt)->ExecuteCompleteDelegate();
+			(*InstallerIt).Reset();
+		}
+	}
+
+	// Remove completed (invalids) from the list
+	for(int32 BuildPatchInstallersIdx = 0; BuildPatchInstallersIdx < BuildPatchInstallers.Num(); ++BuildPatchInstallersIdx )
+	{
+		const FBuildPatchInstallerPtr* Installer = &BuildPatchInstallers[ BuildPatchInstallersIdx ];
+		if( !Installer->IsValid() )
+		{
+			BuildPatchInstallers.RemoveAt( BuildPatchInstallersIdx-- );
+		}
+	}
+
+	// More ticks
+	return true;
+}
+
+#if WITH_BUILDPATCHGENERATION
+bool FBuildPatchServicesModule::GenerateChunksManifestFromDirectory( const FBuildPatchSettings& Settings )
+{
+	return FBuildDataGenerator::GenerateChunksManifestFromDirectory( Settings );
+}
+
+bool FBuildPatchServicesModule::GenerateFilesManifestFromDirectory( const FBuildPatchSettings& Settings )
+{
+	return FBuildDataGenerator::GenerateFilesManifestFromDirectory( Settings );
+}
+
+bool FBuildPatchServicesModule::CompactifyCloudDirectory(const bool bPreview)
+{
+	return FBuildDataCompactifier::CompactifyCloudDirectory(bPreview);
+}
+
+#endif //WITH_BUILDPATCHGENERATION
+
+void FBuildPatchServicesModule::SetStagingDirectory( const FString& StagingDir )
+{
+	StagingDirectory = StagingDir;
+}
+
+void FBuildPatchServicesModule::SetCloudDirectory( const FString& CloudDir )
+{
+	CloudDirectory = CloudDir;
+}
+
+void FBuildPatchServicesModule::SetBackupDirectory( const FString& BackupDir )
+{
+	BackupDirectory = BackupDir;
+}
+
+void FBuildPatchServicesModule::SetAnalyticsProvider( TSharedPtr< IAnalyticsProvider > AnalyticsProvider )
+{
+	FBuildPatchAnalytics::SetAnalyticsProvider( AnalyticsProvider );
+}
+
+void FBuildPatchServicesModule::RegisterAppInstallation(IBuildManifestRef AppManifest, const FString AppInstallDirectory)
+{
+	InstallationInfo.RegisterAppInstallation(AppManifest, AppInstallDirectory);
+}
+
+const FString& FBuildPatchServicesModule::GetStagingDirectory()
+{
+	// Default staging directory
+	if( StagingDirectory.IsEmpty() )
+	{
+		StagingDirectory = FPaths::GameDir() + TEXT( "BuildStaging/" );
+	}
+	return StagingDirectory;
+}
+
+const FString& FBuildPatchServicesModule::GetCloudDirectory()
+{
+	// Default cloud directory
+	if( CloudDirectory.IsEmpty() )
+	{
+		CloudDirectory = FPaths::CloudDir();
+	}
+	return CloudDirectory;
+}
+
+const FString& FBuildPatchServicesModule::GetBackupDirectory()
+{
+	// Default backup directory stays empty which simply doesn't backup
+	return BackupDirectory;
+}
+
+/* Static variables
+ *****************************************************************************/
+FString FBuildPatchServicesModule::CloudDirectory;
+FString FBuildPatchServicesModule::StagingDirectory;
+FString FBuildPatchServicesModule::BackupDirectory;
