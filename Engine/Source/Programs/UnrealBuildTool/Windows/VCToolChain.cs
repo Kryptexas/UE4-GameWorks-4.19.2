@@ -1237,9 +1237,6 @@ namespace UnrealBuildTool
 			// Only execute linking on the local PC.
 			LinkAction.bCanExecuteRemotely = false;
 
-			// Create a manifest for all linked build products, since they might be clobbered from P4.
-			LinkAction.OutputManifestPath = Path.Combine(LinkEnvironment.Config.IntermediateDirectory, Path.GetFileName(LinkEnvironment.Config.OutputFilePath) + ".output");
-
 			return OutputFile;
 		}
 
