@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_SetFieldsInStruct.h"
 #include "MakeStructHandler.h"
+#include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -70,6 +71,20 @@ FString UK2Node_SetFieldsInStruct::GetTooltip() const
 FName UK2Node_SetFieldsInStruct::GetPaletteIcon(FLinearColor& OutColor) const
 { 
 	return UK2Node_Variable::GetPaletteIcon(OutColor);
+}
+
+void UK2Node_SetFieldsInStruct::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	if (UEdGraphPin* FoundPin = FindPinChecked(SetFieldsInStructHelper::StructRefPinName()))
+	{
+		if (FoundPin->LinkedTo.Num() <= 0)
+		{
+			FText ErrorMessage = LOCTEXT("SetStructFields_NoStructRefError", "The @@ pin must be connected to the struct that you wish to set.");
+			MessageLog.Error(*ErrorMessage.ToString(), FoundPin);
+		}
+	}
 }
 
 FNodeHandlingFunctor* UK2Node_SetFieldsInStruct::CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const
