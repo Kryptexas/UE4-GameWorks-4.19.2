@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LevelEditorPlaySettings.h: Declares the ULevelEditorPlaySettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -86,27 +82,19 @@ struct FPlayScreenResolution
 
 public:
 
-	/**
-	 * The description text for this screen resolution.
-	 */
+	/** The description text for this screen resolution. */
 	UPROPERTY(config)
 	/*FText*/FString Description;
 
-	/**
-	 * The screen resolution's width (in pixels).
-	 */
+	/** The screen resolution's width (in pixels). */
 	UPROPERTY(config)
 	int32 Width;
 
-	/**
-	 * The screen resolution's height (in pixels).
-	 */
+	/** The screen resolution's height (in pixels). */
 	UPROPERTY(config)
 	int32 Height;
 
-	/**
-	 * The screen resolution's aspect ratio (as a string).
-	 */
+	/** The screen resolution's aspect ratio (as a string). */
 	UPROPERTY(config)
 	FString AspectRatio;
 };
@@ -123,131 +111,91 @@ class UNREALED_API ULevelEditorPlaySettings
 
 public:
 
-	/**
-	 * The PlayerStart class used when spawning the player at the current camera location.
-	 */
+	/** The PlayerStart class used when spawning the player at the current camera location. */
 	UPROPERTY(globalconfig, EditAnywhere, Category=General, meta=(ToolTip=""))
 	FString PlayFromHerePlayerStartClassName;
 
 public:
 
-	/**
-	 * Should Play-in-Editor automatically give mouse control to the game on PIE start (default = false).
-	 */
+	/** Should Play-in-Editor automatically give mouse control to the game on PIE start (default = false). */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Give the game mouse control when PIE starts or require a click in the viewport first"))
 	bool GameGetsMouseControl;
 
-	/**
-	 * Whether to show a label for mouse control gestures in the PIE view.
-	 */
+	/** Whether to show a label for mouse control gestures in the PIE view. */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
 	bool ShowMouseControlLabel;
 
-	/**
-	 * Location on screen to anchor the mouse control label when in PIE mode.
-	 */
+	/** Location on screen to anchor the mouse control label when in PIE mode. */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
 	TEnumAsByte<ELabelAnchorMode> MouseControlLabelPosition;
 
-	/**
-	 * Whether to automatically recompile blueprints on PIE
-	 */
+	/** Whether to automatically recompile blueprints on PIE */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Automatically recompile blueprints used by the current level when initiating a Play In Editor session"))
 	bool AutoRecompileBlueprints;
 
-	/**
-	 * Whether to play sounds during PIE
-	 */
+	/** Whether to play sounds during PIE */
 	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether to play sounds when in a Play In Editor session"))
 	bool EnableSound;
 
-	/**
-	 * True if Play In Editor should only load currently-visible levels in PIE.
-	 */
+	/** True if Play In Editor should only load currently-visible levels in PIE. */
 	UPROPERTY(config)
 	uint32 bOnlyLoadVisibleLevelsInPIE:1;
 
 public:
 
-	/**
-	 * The width of the new view port window in pixels (0 = use the desktop's screen resolution).
-	 */
+	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */
 	UPROPERTY(config, EditAnywhere, Category=PlayInNewWindow)
 	int32 NewWindowWidth;
 
-	/**
-	 * The height of the new view port window in pixels (0 = use the desktop's screen resolution).
-	 */
+	/** The height of the new view port window in pixels (0 = use the desktop's screen resolution). */
 	UPROPERTY(config, EditAnywhere, Category=PlayInNewWindow)
 	int32 NewWindowHeight;
 
-	/**
-	 * The position of the new view port window on the screen in pixels.
-	 */
+	/** The position of the new view port window on the screen in pixels. */
 	UPROPERTY(config, EditAnywhere, Category=PlayInNewWindow)
 	FIntPoint NewWindowPosition;
 
-	/**
-	 * Whether the new window should be centered on the screen.
-	 */
+	/** Whether the new window should be centered on the screen. */
 	UPROPERTY(config, EditAnywhere, Category=PlayInNewWindow)
 	bool CenterNewWindow;
 
 public:
 
-	/**
-	 * The width of the standalone game window in pixels (0 = use the desktop's screen resolution).
-	 */
+	/** The width of the standalone game window in pixels (0 = use the desktop's screen resolution). */
 	UPROPERTY(config, EditAnywhere, Category=PlayInStandaloneGame)
 	int32 StandaloneWindowWidth;
 
-	/**
-	 * The height of the standalone game window in pixels (0 = use the desktop's screen resolution).
-	 */
+	/** The height of the standalone game window in pixels (0 = use the desktop's screen resolution). */
 	UPROPERTY(config, EditAnywhere, Category=PlayInStandaloneGame)
 	int32 StandaloneWindowHeight;
 
-	/**
-	 * Whether sound should be disabled when playing standalone games.
-	 */
+	/** Whether sound should be disabled when playing standalone games. */
 	UPROPERTY(config , EditAnywhere, Category=PlayInStandaloneGame, AdvancedDisplay)
 	uint32 DisableStandaloneSound:1;
 
-	/**
-	 * Extra parameters to be include as part of the command line for the standalone game.
-	 */
+	/** Extra parameters to be include as part of the command line for the standalone game. */
 	UPROPERTY(config , EditAnywhere, Category=PlayInStandaloneGame, AdvancedDisplay)
 	FString AdditionalLaunchParameters;
 
 public:
 
-	/**
-	 * NetMode to use for Play In Editor.
-	 */
+	/** NetMode to use for Play In Editor. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	TEnumAsByte<EPlayNetMode> PlayNetMode;
 
-	/**
-     * Spawn multiple player windows in a single instance of UE4. This will load much faster, but has potential to have more issues. 
-     */
+	/** Spawn multiple player windows in a single instance of UE4. This will load much faster, but has potential to have more issues.  */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool RunUnderOneProcess;
 
-	/**
-	 * If checked, a separate dedicated server will be launched. Otherwise the first player window will act as a listen server that all other player windows connect to.
-	 */
+	/** If checked, a separate dedicated server will be launched. Otherwise the first player window will act as a listen server that all other player windows connect to. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool PlayNetDedicated;
 
-	/**
-	 * Number of player windows that should be opened. Listen server will count as a player, a dedicated server will not.
-	 */
+	/** Number of player windows that should be opened. Listen server will count as a player, a dedicated server will not. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions, meta=(ClampMin = "1", UIMin = "1", UIMax = "64"))
 	int32 PlayNumberOfClients;
 
-	/**
-	 * Window width to use when spawning additional clients.
-	 */
+	/** Window width to use when spawning additional clients. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	int32 ClientWindowWidth;
 
@@ -261,105 +209,73 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool RouteGamepadToSecondWindow;
 
-	/**
-	 * Window height to use when spawning additional clients.
-	 */
+	/** Window height to use when spawning additional clients. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	int32 ClientWindowHeight;
 
-	/**
-	 * Additional options that will be passed to the server as URL parameters.
-	 */
+	/** Additional options that will be passed to the server as URL parameters. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	FString AdditionalServerGameOptions;
 
-	/**
-	 * Additional command line options that will be passed to standalone game instances.
-	 */
+	/** Additional command line options that will be passed to standalone game instances. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	FString AdditionalLaunchOptions;
 
 public:
 
-	/**
-	 * The last used height for multiple instance windows (in pixels).
-	 */
+	/** The last used height for multiple instance windows (in pixels). */
 	UPROPERTY(config)
 	int32 MultipleInstanceLastHeight;
 
-	/**
-	 * The last used width for multiple instance windows (in pixels).
-	 */
+	/** The last used width for multiple instance windows (in pixels). */
 	UPROPERTY(config)
 	int32 MultipleInstanceLastWidth;
 
-	/**
-	 * The last known screen positions of multiple instance windows (in pixels).
-	 */
+	/** The last known screen positions of multiple instance windows (in pixels). */
 	UPROPERTY(config)
 	TArray<FIntPoint> MultipleInstancePositions;
 
 public:
 
-	/**
-	 * The name of the last platform that the user ran a play session on.
-	 */
+	/** The name of the last platform that the user ran a play session on. */
 	UPROPERTY(config)
 	FString LastExecutedLaunchDevice;
 
-	/**
-	 * The name of the last device that the user ran a play session on.
-	 */
+	/** The name of the last device that the user ran a play session on. */
 	UPROPERTY(config)
 	FString LastExecutedLaunchName;
 
-	/**
-	 * The last type of play-on session the user ran.
-	 */
+	/** The last type of play-on session the user ran. */
 	UPROPERTY(config)
 	TEnumAsByte<ELaunchModeType> LastExecutedLaunchModeType;
 
-	/**
-	 * The last type of play location the user ran.
-	 */
+	/** The last type of play location the user ran. */
 	UPROPERTY(config)
 	TEnumAsByte<EPlayModeLocations> LastExecutedPlayModeLocation;
 
-	/**
-	 * The last type of play session the user ran.
-	 */
+	/** The last type of play session the user ran. */
 	UPROPERTY(config)
 	TEnumAsByte<EPlayModeType> LastExecutedPlayModeType;
 
 public:
 
-	/**
-	 * Collection of common screen resolutions on mobile phones.
-	 */
+	/** Collection of common screen resolutions on mobile phones. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> LaptopScreenResolutions;
 
-	/**
-	 * Collection of common screen resolutions on desktop monitors.
-	 */
+	/** Collection of common screen resolutions on desktop monitors. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> MonitorScreenResolutions;
 
-	/**
-	 * Collection of common screen resolutions on mobile phones.
-	 */
+	/** Collection of common screen resolutions on mobile phones. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> PhoneScreenResolutions;
 
-	/**
-	 * Collection of common screen resolutions on tablet devices.
-	 */
+	/** Collection of common screen resolutions on tablet devices. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> TabletScreenResolutions;
 
-	/**
-	 * Collection of common screen resolutions on television screens.
-	 */
+	/** Collection of common screen resolutions on television screens. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> TelevisionScreenResolutions;
 };

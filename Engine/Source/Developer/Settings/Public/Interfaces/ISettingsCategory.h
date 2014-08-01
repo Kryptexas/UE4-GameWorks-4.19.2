@@ -67,8 +67,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ISettingsCategory( ) { }
 };

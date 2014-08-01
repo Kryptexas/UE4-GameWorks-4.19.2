@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GameMapsSettingsCustomization.h: Declares the FGameMapsSettingsCustomization class.
-=============================================================================*/
-
 #pragma once
 
 #include "PropertyEditing.h"
@@ -20,9 +16,13 @@ class FGameMapsSettingsCustomization
 	: public IDetailCustomization
 {
 public:
-	virtual ~FGameMapsSettingsCustomization() {}
 
-	// Begin IDetailCustomization interface
+	/** Virtual destructor. */
+	virtual ~FGameMapsSettingsCustomization( ) { }
+
+public:
+
+	// IDetailCustomization interface
 
 	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
@@ -52,8 +52,6 @@ public:
 		}
 	}
 
-	// End IDetailCustomization interface
-
 public:
 
 	/**
@@ -71,9 +69,9 @@ protected:
 	/**
 	 * Customizes the property row for a map setting.
 	 *
-	 * @param LayoutBuilder - The layout builder.
-	 * @param CategoryBuilder - The builder for the detail category that the setting belongs to.
-	 * @param PropertyName - The name of the property that holds the map setting.
+	 * @param LayoutBuilder The layout builder.
+	 * @param CategoryBuilder The builder for the detail category that the setting belongs to.
+	 * @param PropertyName The name of the property that holds the map setting.
 	 */
 	void CustomizeMapSetting( IDetailLayoutBuilder& LayoutBuilder, IDetailCategoryBuilder& CategoryBuilder, const FName& PropertyName )
 	{
@@ -123,8 +121,7 @@ protected:
 	/**
 	 * Checks whether the specified map name is valid.
 	 *
-	 * @param MapName - The map name to validate.
-	 *
+	 * @param MapName The map name to validate.
 	 * @return true if the map name is valid, false otherwise.
 	 */
 	bool IsValidMapName( const FString& MapName ) const
@@ -140,8 +137,7 @@ protected:
 	/**
 	 * Creates a widget for the map picker.
 	 *
-	 * @param PropertyRow - The property row to create the widget for.
-	 *
+	 * @param PropertyRow The property row to create the widget for.
 	 * @return The widget.
 	 */
 	TSharedRef<SWidget> MakeMapMenu( const TSharedPtr<IPropertyHandle>& PropertyHandle )

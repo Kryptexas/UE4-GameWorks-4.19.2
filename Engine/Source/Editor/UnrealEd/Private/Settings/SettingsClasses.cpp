@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Settings.cpp: Implements the constructors for the various settings classes.
-=============================================================================*/
-
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
 
@@ -22,7 +18,9 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
@@ -39,12 +37,12 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 {
-	AnimPreviewLightingDirection = FRotator(-45.0f,45.0f,0);
+	AnimPreviewLightingDirection = FRotator(-45.0f, 45.0f, 0);
 	AnimPreviewSkyColor = FColor(0, 0, 255);
 	AnimPreviewFloorColor = FColor(51, 51, 51);
-	AnimPreviewSkyBrightness = 0.2f*PI;
+	AnimPreviewSkyBrightness = 0.2f * PI;
 	AnimPreviewDirectionalColor = FColor(255, 255, 255);
-	AnimPreviewLightBrightness = 1.0f*PI;
+	AnimPreviewLightBrightness = 1.0f * PI;
 }
 
 
@@ -53,8 +51,7 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FP
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
-{
-}
+{ }
 
 
 void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
@@ -137,7 +134,9 @@ void ULevelEditorMiscSettings::PostEditChangeProperty( struct FPropertyChangedEv
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName(TEXT("bNavigationAutoUpdate")))
 	{
@@ -187,7 +186,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName(TEXT("bAllowTranslateRotateZWidget")))
 	{
@@ -202,7 +203,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	}
 	else if (Name == FName(TEXT("bHighlightWithBrackets")))
 	{
-		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets ? FLinearColor::Black : GetDefault<UEditorStyleSettings>()->SelectionColor);
+		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets
+			? FLinearColor::Black
+			: GetDefault<UEditorStyleSettings>()->SelectionColor);
 	}
 	else if (Name == FName(TEXT("HoverHighlightIntensity")))
 	{
@@ -219,14 +222,15 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	else if ((Name == FName(TEXT("UserDefinedPosGridSizes"))) || (Name == FName(TEXT("UserDefinedRotGridSizes"))) || (Name == FName(TEXT("ScalingGridSizes"))) || (Name == FName(TEXT("GridIntervals"))))
 	{
 		const float MinGridSize = (Name == FName(TEXT("GridIntervals"))) ? 4.0f : 0.0001f;
-		TArray<float>* ArrayRef = NULL;
-		int32* IndexRef = NULL;
+		TArray<float>* ArrayRef = nullptr;
+		int32* IndexRef = nullptr;
 
 		if (Name == FName(TEXT("ScalingGridSizes")))
 		{
 			ArrayRef = &(ScalingGridSizes);
 			IndexRef = &(CurrentScalingGridSize);
 		}
+
 		// Don't allow an empty array of grid sizes
 		if (ArrayRef->Num() == 0)
 		{
@@ -242,12 +246,12 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			}
 		}
 	}
-	else if( Name == FName(TEXT("bUsePowerOf2SnapSize")) )
+	else if (Name == FName(TEXT("bUsePowerOf2SnapSize")))
 	{
 		const float BSPSnapSize = bUsePowerOf2SnapSize ? 128.0f : 100.0f;
-		UModel::SetGlobalBSPTexelScale( BSPSnapSize );
+		UModel::SetGlobalBSPTexelScale(BSPSnapSize);
 	}
-	else if( Name == FName(TEXT("BillboardScale")))
+	else if (Name == FName(TEXT("BillboardScale")))
 	{
 		UBillboardComponent::SetEditorScale(BillboardScale);
 		UArrowComponent::SetEditorScale(BillboardScale);
@@ -280,7 +284,9 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName((TEXT("DirectoriesToAlwaysCook"))))
 	{

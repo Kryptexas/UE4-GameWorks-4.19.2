@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectPackagingSettingsCustomization.h: Declares the FProjectPackagingSettingsCustomization class.
-=============================================================================*/
-
 #pragma once
 
 #include "PropertyEditing.h"
@@ -22,14 +18,12 @@ class FProjectPackagingSettingsCustomization
 {
 public:
 
-	// Begin IDetailCustomization interface
+	// IDetailCustomization interface
 
 	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		CustomizeProjectCategory(LayoutBuilder);
 	}
-
-	// End IDetailCustomization interface
 
 public:
 
@@ -48,7 +42,7 @@ protected:
 	/**
 	 * Customizes the Project property category.
 	 *
-	 * @param LayoutBuilder - The layout builder.
+	 * @param LayoutBuilder The layout builder.
 	 */
 	void CustomizeProjectCategory( IDetailLayoutBuilder& LayoutBuilder )
 	{

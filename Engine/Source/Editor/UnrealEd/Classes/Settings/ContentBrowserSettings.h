@@ -44,6 +44,7 @@ public:
 	{ 
 		bOverride ? OverrideDisplayEngineFolder = bInDisplayEngineFolder : DisplayEngineFolder = bInDisplayEngineFolder;
 	}
+
 	/** Gets whether we are allowed to display the engine folder or not, optional flag ignoring the override */
 	bool GetDisplayEngineFolder( bool bExcludeOverride = false ) const
 	{ 
@@ -67,6 +68,7 @@ public:
 	{ 
 		bOverride ? OverrideDisplayPluginFolders = bInDisplayPluginFolders : DisplayPluginFolders = bInDisplayPluginFolders;
 	}
+
 	/** Gets whether we are allowed to display the plugin folders or not, optional flag ignoring the override */
 	bool GetDisplayPluginFolders( bool bExcludeOverride = false ) const
 	{ 
@@ -83,11 +85,9 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 
 private:
 

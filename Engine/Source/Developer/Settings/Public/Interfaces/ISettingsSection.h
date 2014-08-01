@@ -147,7 +147,7 @@ public:
 	 * Checks whether this section can have its settings saved.
 	 *
 	 * This method does not indicate whether saving would actually succeed.
-	 1* For example, saving may be aborted by a ModifiedDelegate handler.
+	 * For example, saving may be aborted by a ModifiedDelegate handler.
 	 *
 	 * @return true if saving is supported, false otherwise.
 	 */
@@ -255,8 +255,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ISettingsSection( ) { }
 };

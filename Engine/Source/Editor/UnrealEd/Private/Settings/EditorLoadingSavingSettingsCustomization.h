@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorLoadingSavingSettingsCustomization.h: Declares the FEditorLoadingSavingSettingsCustomization class.
-=============================================================================*/
-
 #pragma once
 
 #include "PropertyEditing.h"
@@ -20,16 +16,18 @@ class FEditorLoadingSavingSettingsCustomization
 	: public IDetailCustomization
 {
 public:
-	virtual ~FEditorLoadingSavingSettingsCustomization() {}
 
-	// Begin IDetailCustomization interface
+	/** Virtual destructor. */
+	virtual ~FEditorLoadingSavingSettingsCustomization( ) { }
+
+public:
+
+	// IDetailCustomization interface
 
 	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		CustomizeStartupCategory(LayoutBuilder);
 	}
-
-	// End IDetailCustomization interface
 
 public:
 
@@ -51,7 +49,7 @@ protected:
 	 * This customization pulls in a setting from the game agnostic Editor settings, which
 	 * are stored in a different UObject, but which we would like to show in this section.
 	 *
-	 * @param LayoutBuilder - The layout builder.
+	 * @param LayoutBuilder The layout builder.
 	 */
 	void CustomizeStartupCategory( IDetailLayoutBuilder& LayoutBuilder )
 	{

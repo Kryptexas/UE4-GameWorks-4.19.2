@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LevelEditorMiscSettings.h: Declares the ULevelEditorMiscSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "LevelEditorMiscSettings.generated.h"
@@ -63,9 +59,7 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 };

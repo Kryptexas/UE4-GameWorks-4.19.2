@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LevelEditorViewportSettings.h: Declares the ULevelEditorViewportSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "Viewports.h"
@@ -61,77 +57,57 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 		, bShowStats(false)
 	{ }
 
-	/**
-	 * The viewport type
-	 */
+	/** The viewport type */
 	UPROPERTY(config)
 	TEnumAsByte<ELevelViewportType> ViewportType;
 
-	/* 
-	 * View mode to set when this viewport is of type LVT_Perspective 
-	 */
+	/* View mode to set when this viewport is of type LVT_Perspective. */
 	UPROPERTY(config)
 	TEnumAsByte<EViewModeIndex> PerspViewModeIndex;
 
-	/* 
-	 * View mode to set when this viewport is not of type LVT_Perspective 
-	 */
+	/* View mode to set when this viewport is not of type LVT_Perspective. */
 	UPROPERTY(config)
 	TEnumAsByte<EViewModeIndex> OrthoViewModeIndex;
 
 	/**
-	 * A set of flags that determines visibility for various scene elements (FEngineShowFlags), converted to string form
-	 * These have to be saved as strings since FEngineShowFlags is too complex for UHT to parse correctly
+	 * A set of flags that determines visibility for various scene elements (FEngineShowFlags), converted to string form.
+	 * These have to be saved as strings since FEngineShowFlags is too complex for UHT to parse correctly.
 	 */
 	UPROPERTY(config)
 	FString EditorShowFlagsString;
 
 	/**
-	 * A set of flags that determines visibility for various scene elements (FEngineShowFlags), converted to string form
-	 * These have to be saved as strings since FEngineShowFlags is too complex for UHT to parse correctly
+	 * A set of flags that determines visibility for various scene elements (FEngineShowFlags), converted to string form.
+	 * These have to be saved as strings since FEngineShowFlags is too complex for UHT to parse correctly.
 	 */
 	UPROPERTY(config)
 	FString GameShowFlagsString;
 
-	/**
-	 * The buffer visualization mode for the viewport
-	 */
+	/** The buffer visualization mode for the viewport. */
 	UPROPERTY(config)
 	FName BufferVisualizationMode;
 
-	/**
-	 * Setting to allow designers to override the automatic expose
-	 */
+	/** Setting to allow designers to override the automatic expose. */
 	UPROPERTY(config)
 	FExposureSettings ExposureSettings;
 
-	/*
-	 * Field of view angle for the viewport
-	 */
+	/* Field of view angle for the viewport. */
 	UPROPERTY(config)
 	float FOVAngle;
 
-	/*
-	 * Is this viewport updating in real-time?
-	 */
+	/* Whether this viewport is updating in real-time. */
 	UPROPERTY(config)
 	bool bIsRealtime;
 
-	/*
-	 * Should this viewport show an FPS count?
-	 */
+	/* Whether the FPS counter should be shown. */
 	UPROPERTY(config)
 	bool bShowFPS_DEPRECATED;
 
-	/*
-	 * Should this viewport show statistics?
-	 */
+	/* Whether viewport statistics should be shown. */
 	UPROPERTY(config)
 	bool bShowStats;
 
-	/*
-	 * Should this viewport have any stats enabled by default?
-	 */
+	/* Whether viewport statistics should be enabled by default. */
 	UPROPERTY(config)
 	TArray<FString> EnabledStats;
 };
@@ -145,15 +121,11 @@ struct UNREALED_API FLevelEditorViewportInstanceSettingsKeyValuePair
 {
 	GENERATED_USTRUCT_BODY()
 
-	/* 
-	 * Name identifying this config
-	 */
+	/*  Name identifying this config. */
 	UPROPERTY(config)
 	FString ConfigName;
 
-	/* 
-	 * Settings for this config
-	 */
+	/* Settings for this config. */
 	UPROPERTY(config)
 	FLevelEditorViewportInstanceSettings ConfigSettings;
 };
@@ -167,8 +139,11 @@ struct UNREALED_API FSnapToSurfaceSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	FSnapToSurfaceSettings() : bEnabled(false), SnapOffsetExtent(0.f), bSnapRotation(true)
-	{}
+	FSnapToSurfaceSettings()
+		: bEnabled(false)
+		, SnapOffsetExtent(0.f)
+		, bSnapRotation(true)
+	{ }
 
 	/** Whether snapping to surfaces in the world is enabled */
 	UPROPERTY(config)
@@ -193,21 +168,15 @@ class UNREALED_API ULevelEditorViewportSettings
 {
 	GENERATED_UCLASS_BODY()
 
-	/**
-	 * Enable the use of flight camera controls under various circumstances.
-	 */
+	/** Enable the use of flight camera controls under various circumstances. */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
 	TEnumAsByte<enum EWASDType> FlightCameraControlType;
 
-	/**
-	 * If true, moves the canvas and shows the mouse.  If false, uses original camera movement.
-	 */
+	/** If true, moves the canvas and shows the mouse.  If false, uses original camera movement. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Grab and Drag to Move Orthographic Cameras"), AdvancedDisplay)
 	uint32 bPanMovesCanvas:1;
 
-	/**
-	 * If checked, in orthographic view ports zooming will center on the mouse position.  If unchecked, the zoom is around the center of the viewport.
-	 */
+	/** If checked, in orthographic view ports zooming will center on the mouse position.  If unchecked, the zoom is around the center of the viewport. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Orthographic Zoom to Cursor Position"))
 	uint32 bCenterZoomAroundCursor:1;
 
@@ -219,39 +188,27 @@ class UNREALED_API ULevelEditorViewportSettings
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=( DisplayName = "Clicking BSP Enables Brush" ))
 	uint32 bClickBSPSelectsBrush:1;
 
-	/**
-	 * How fast the perspective camera moves when flying through the world.
-	 */
+	/** How fast the perspective camera moves when flying through the world. */
 	UPROPERTY(config, meta=(UIMin = "1", UIMax = "8", ClampMin="1", ClampMax="8"))
 	int32 CameraSpeed;
 
-	/**
-	 * How fast the perspective camera moves through the world when using mouse scroll.
-	 */
+	/** How fast the perspective camera moves through the world when using mouse scroll. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(UIMin = "1", UIMax = "8", ClampMin="1", ClampMax="8"))
 	int32 MouseScrollCameraSpeed;
 
-	/**
-	 * The sensitivity of mouse movement when rotating the camera.
-	 */
+	/** The sensitivity of mouse movement when rotating the camera. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(ClampMin="0.0",ClampMax="1.0") )
 	float MouseSensitivty;
 	
-	/**
-	 * Whether or not to invert the direction of middle mouse panning in viewports
-	 */
+	/** Whether or not to invert the direction of middle mouse panning in viewports */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
 	bool bInvertMiddleMousePan;
 
-	/**
-	 * Whether to use mouse position as direct widget position.
-	 */
+	/** Whether to use mouse position as direct widget position. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, AdvancedDisplay)
 	uint32 bUseAbsoluteTranslation:1;
 
-	/**
-	 * If enabled, the viewport will stream in levels automatically when the camera is moved.
-	 */
+	/** If enabled, the viewport will stream in levels automatically when the camera is moved. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), aDvancedDisplay)
 	bool bLevelStreamingVolumePrevis;
 
@@ -365,9 +322,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Highlight Selected Objects with Brackets"))
 	uint32 bHighlightWithBrackets:1;
 
-	/**
-	 * If checked all orthographic view ports are linked to the same position and move together.
-	 */
+	/** If checked all orthographic view ports are linked to the same position and move together. */
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Link Orthographic Viewport Movement"))
 	uint32 bUseLinkedOrthographicViewports:1;
 
@@ -414,9 +369,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
 	float BillboardScale;
 
-	/**
-	 * The size adjustment to apply to the translate/rotate/scale widgets (in Unreal units).
-	 */
+	/** The size adjustment to apply to the translate/rotate/scale widgets (in Unreal units). */
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin="-10",ClampMax="150") )
 	int32 TransformWidgetSizeAdjustment;
 
@@ -501,11 +454,9 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 
 private:
 
