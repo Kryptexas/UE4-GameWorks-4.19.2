@@ -2370,13 +2370,14 @@ public:
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
-	FWorldContext* GetWorldContextFromPIEInstance(int32 PIEInstance);
+	FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance);
 
 	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
+	FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance);
 
 	const TIndirectArray<FWorldContext>& GetWorldContexts() { return WorldList;	}
 

@@ -9009,7 +9009,7 @@ FWorldContext& UEngine::GetWorldContextFromPendingNetGameNetDriverChecked(const 
 	return HandleInvalidWorldContext();
 }
 
-FWorldContext* UEngine::GetWorldContextFromPIEInstance(int32 PIEInstance)
+FWorldContext* UEngine::GetWorldContextFromPIEInstance(const int32 PIEInstance)
 {
 	for (FWorldContext& WorldContext : WorldList)
 	{
@@ -9019,6 +9019,15 @@ FWorldContext* UEngine::GetWorldContextFromPIEInstance(int32 PIEInstance)
 		}
 	}
 	return NULL;
+}
+
+FWorldContext& UEngine::GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance)
+{
+	if (FWorldContext* WorldContext = GetWorldContextFromPIEInstance(PIEInstance))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
 }
 
 UPendingNetGame* UEngine::PendingNetGameFromWorld( UWorld* InWorld )
