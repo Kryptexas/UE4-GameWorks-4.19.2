@@ -1815,7 +1815,7 @@ void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
 	}
 
 	CollisionProfile->LoadProfileConfig(true);
-	CollisionProfile->SaveConfig();
+	CollisionProfile->UpdateDefaultConfigFile();
 
 	// update profile list if the name changed, this has to be refreshed
 	RefreshProfileList();
@@ -1827,7 +1827,7 @@ void FCollisionProfileDetails::UpdateProfile()
 	RefreshProfileList();
 	ProfileListView->RequestListRefresh();
 	CollisionProfile->LoadProfileConfig(true);
-	CollisionProfile->SaveConfig();
+	CollisionProfile->UpdateDefaultConfigFile();
 }
 
 void FCollisionProfileDetails::RefreshChannelList(bool bTraceType)
