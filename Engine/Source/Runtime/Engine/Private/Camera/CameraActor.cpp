@@ -109,6 +109,8 @@ void ACameraActor::BeginPlay()
 			PC->SetViewTarget(this);
 		}
 	}
+
+	Super::BeginPlay();
 }
 
 #undef LOCTEXT_NAMESPACE
