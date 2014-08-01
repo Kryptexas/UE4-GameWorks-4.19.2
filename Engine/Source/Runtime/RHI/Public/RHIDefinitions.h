@@ -615,6 +615,12 @@ inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);// || (Platform == SP_METAL);
 }
 
+inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
+{
+	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
+	return Platform != SP_METAL;
+}
+
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
 {
 	if (FeatureLevel == ERHIFeatureLevel::ES2)
