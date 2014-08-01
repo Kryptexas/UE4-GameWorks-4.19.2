@@ -210,6 +210,7 @@ namespace AutomationTool
 			this.SkipStage = InParams.SkipStage;
 			this.StageDirectoryParam = InParams.StageDirectoryParam;
 			this.Manifests = InParams.Manifests;
+            this.CreateChunkInstall = InParams.CreateChunkInstall;
 			this.UE4Exe = InParams.UE4Exe;
 			this.NoDebugInfo = InParams.NoDebugInfo;
 			this.NoCleanStage = InParams.NoCleanStage;
@@ -321,6 +322,7 @@ namespace AutomationTool
 			bool? SkipStage = null,
 			bool? Stage = null,
 			bool? Manifests = null,
+            bool? CreateChunkInstall = null,
 			bool? Unattended = null,
 			int? NumClients = null,
 			bool? Archive = null,
@@ -409,6 +411,7 @@ namespace AutomationTool
 			}
 			this.StageDirectoryParam = ParseParamValueIfNotSpecified(Command, StageDirectoryParam, "stagingdirectory", String.Empty).Trim(new char[]{'\"'});
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
+            this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
@@ -666,6 +669,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("manifests", "generate streaming install manifests when cooking data")]
 		public bool Manifests { private set; get; }
+
+        /// <summary>
+        /// Shared: true if this build chunk install streaming install data, command line: -createchunkinstalldata !!JM
+        /// </summary>
+        [Help("createchunkinstall", "generate streaming install data from manifest when cooking data, requires -stage & -manifests")]
+        public bool CreateChunkInstall { private set; get; }
 
 		/// <summary>
 		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
@@ -1575,6 +1584,11 @@ namespace AutomationTool
             if (Compressed && !Pak)
             {
                 throw new AutomationException("-compressed can only be used with -pak");
+            }
+
+            if (CreateChunkInstall && (!Manifests || !Stage))
+            {
+                throw new AutomationException("-createchunkinstall can only be used with -pak & -stage");
             }
 		}
 

@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Reflection;
 using System.Net.NetworkInformation;
-using AutomationTool;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading;
 using UnrealBuildTool;
 
 /// <summary>
@@ -420,8 +422,70 @@ public partial class Project : CommandUtils
 
 		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed);
 
-		// add the pak file as needing deployment and convert to lower case again if needed
-		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		
+        if (Params.CreateChunkInstall)
+        {
+            var RegEx = new Regex("pakchunk(\\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            var Matches = RegEx.Matches(PakName);
+
+            if (Matches.Count == 0 || Matches[0].Groups.Count < 2)
+            {
+                throw new AutomationException(String.Format("Failed Creating Chunk Install Data, Unable to parse chunk id from {0}", PakName));
+            }
+
+            int ChunkID = Convert.ToInt32(Matches[0].Groups[1].ToString());
+            if (ChunkID != 0)
+            {
+                var BPTExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/BuildPatchTool.exe");
+
+                string P4Change = "UnknownCL";
+                string P4Branch = "UnknownBranch";
+                if (CommandUtils.P4Enabled)
+                {
+                    P4Change = CommandUtils.P4Env.ChangelistString;
+                    P4Branch = CommandUtils.P4Env.BuildRootEscaped;
+                }
+                string ChunkInstallBasePath = CombinePaths(SC.ProjectRoot, "ChunkInstall", SC.CookPlatform);
+                string RawDataPath = CombinePaths(ChunkInstallBasePath, P4Branch + "-CL-" + P4Change, PakName);
+                string RawDataPakPath = CombinePaths(RawDataPath, PakName + "-" + SC.CookPlatform + ".pak");
+                //copy the pak chunk to the raw data folder
+                if (InternalUtils.SafeFileExists(RawDataPakPath, true))
+                {
+                    InternalUtils.SafeDeleteFile(RawDataPakPath, true);
+                }
+                InternalUtils.SafeCreateDirectory(RawDataPath, true);
+                InternalUtils.SafeCopyFile(OutputLocation, RawDataPakPath);
+                if (ChunkID != 0)
+                {
+                    InternalUtils.SafeDeleteFile(OutputLocation, true);
+                }
+
+                string BuildRoot = MakePathSafeToUseWithCommandLine(RawDataPath);
+                string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
+                var AppID = 1; // !!JM todo, get valid value for this
+                string AppName = String.Format("{0}_{1}", SC.ShortProjectName, PakName);
+                string AppLaunch = ""; // !!JM todo, get real value for this...?
+                string VersionString = P4Branch + "-CL-" + P4Change;
+
+                string CmdLine = String.Format("-BuildRoot=\"{0}\" -CloudDir=\"{1}\" -AppID={2} -AppName=\"{3}\" -BuildVersion=\"{4}\" -AppLaunch=\"{5}\"", BuildRoot, CloudDir, AppID, AppName, VersionString, AppLaunch);
+                CmdLine += " -AppArgs=\"\"";
+                CmdLine += " -custom=\"bIsPatch=false\"";
+                CmdLine += String.Format(" -customint=\"ChunkID={0}\"", ChunkID);
+                CmdLine += " -customint=\"PakReadOrdering=0\"";
+                CmdLine += " -stdout";
+
+                RunAndLog(CmdEnv, BPTExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+            }
+            else
+            {
+                // add the first pak file as needing deployment and convert to lower case again if needed
+                SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);
+            }
+        }
+        else
+        {
+        // add the pak file as needing deployment and convert to lower case again if needed
+        SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		
+        }
 	}
 
 	/// <summary>
