@@ -418,32 +418,7 @@ public:
 		}
 		
 		/** Returns a succinct menu description of this type */
-		FString GetDescription() const
-		{
-			if ((PinType.PinCategory != FriendlyName) && !FriendlyName.IsEmpty())
-			{
-				return FriendlyName;
-			}
-			else if( PinType.PinSubCategoryObject.IsValid() )
-			{
-				FString DisplayName = PinType.PinSubCategoryObject->GetName();
-				//@todo:  Fix this once the XX_YYYY names in the schema are static!  This is mirrored to PC_Class
-				if( (PinType.PinCategory == TEXT("class")) && PinType.PinSubCategoryObject->IsA(UClass::StaticClass()) )
-				{
-					DisplayName = FString::Printf(TEXT("class'%s'"), *DisplayName);
-				}
-
-				return DisplayName;
-			}
-			else if( !PinType.PinCategory.IsEmpty() )
-			{
-				return PinType.PinCategory;
-			}
-			else
-			{
-				return TEXT("Error!");
-			}
-		}
+		FString GetDescription() const;
 
 		FString GetToolTip() const
 		{

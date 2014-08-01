@@ -217,6 +217,39 @@ UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FString& CategoryNam
 	bReadOnly = bInReadOnly;
 }
 
+FString UEdGraphSchema_K2::FPinTypeTreeInfo::GetDescription() const
+{
+	if ((PinType.PinCategory != FriendlyName) && !FriendlyName.IsEmpty())
+	{
+		return FriendlyName;
+	}
+	else if (PinType.PinSubCategoryObject.IsValid())
+	{
+		FString DisplayName = PinType.PinSubCategoryObject->GetName();
+		const auto SubCategoryClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
+		if (SubCategoryClass && !SubCategoryClass->HasAnyClassFlags(CLASS_Native))
+		{
+			DisplayName.RemoveFromEnd(TEXT("_C"));
+		}
+
+		//@todo:  Fix this once the XX_YYYY names in the schema are static!  This is mirrored to PC_Class
+		if ((PinType.PinCategory == TEXT("class")) && SubCategoryClass)
+		{
+			DisplayName = FString::Printf(TEXT("class'%s'"), *DisplayName);
+		}
+
+		return DisplayName;
+	}
+	else if (!PinType.PinCategory.IsEmpty())
+	{
+		return PinType.PinCategory;
+	}
+	else
+	{
+		return TEXT("Error!");
+	}
+}
+
 UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

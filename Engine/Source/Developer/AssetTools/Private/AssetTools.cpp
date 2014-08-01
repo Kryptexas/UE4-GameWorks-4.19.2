@@ -31,7 +31,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlueprintGeneratedClass) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Curve) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveFloat) );
