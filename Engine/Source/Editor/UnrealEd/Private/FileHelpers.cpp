@@ -2986,6 +2986,8 @@ void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackag
 		bShouldIgnorePackage |= Package->GetOuter() != NULL;
 		// Don't try to save "Transient" package.
 		bShouldIgnorePackage |= Package == GetTransientPackage();
+		// Don't try to save packages with the RF_Transient flag.
+		bShouldIgnorePackage |= Package->HasAnyFlags(RF_Transient);
 		// Ignore PIE packages.
 		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
 		// Ignore packages that haven't been modified.
