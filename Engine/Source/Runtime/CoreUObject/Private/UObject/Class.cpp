@@ -931,7 +931,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
-			else if ((Tag.Type == NAME_AssetObjectProperty) && (Property->GetID() == NAME_ObjectProperty))
+			else if ((Tag.Type == NAME_AssetObjectProperty || Tag.Type == NAME_AssetSubclassOfProperty) && (Property->GetID() == NAME_ObjectProperty || Property->GetID() == NAME_ClassProperty))
 			{
 				// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
 				FAssetPtr PreviousValue;
@@ -944,7 +944,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
-			else if ((Tag.Type == NAME_ObjectProperty) && (Property->GetID() == NAME_AssetObjectProperty))
+			else if ((Tag.Type == NAME_ObjectProperty || Tag.Type == NAME_ClassProperty) && (Property->GetID() == NAME_AssetObjectProperty || Property->GetID() == NAME_AssetSubclassOfProperty))
 			{
 				// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
 				UObject* PreviousValue = NULL;
@@ -1035,6 +1035,38 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						AdvanceProperty = true;
 					}
 					continue; 
+				}
+				else if ((Tag.InnerType == NAME_AssetObjectProperty || Tag.InnerType == NAME_AssetSubclassOfProperty) && (ArrayProperty->Inner->GetID() == NAME_ObjectProperty || ArrayProperty->Inner->GetID() == NAME_ClassProperty))
+				{
+					for (int32 i = 0; i < ElementCount; ++i)
+					{
+						// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
+						FAssetPtr PreviousValue;
+						Ar << PreviousValue;
+
+						// now copy the value into the object's address space
+						UObject* PreviousValueObj = PreviousValue.Get();
+						CastChecked<UObjectProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), PreviousValueObj);
+
+						AdvanceProperty = true;
+					}
+					continue;
+				}
+				else if ((Tag.InnerType == NAME_ObjectProperty || Tag.InnerType == NAME_ClassProperty) && (ArrayProperty->Inner->GetID() == NAME_AssetObjectProperty || ArrayProperty->Inner->GetID() == NAME_AssetSubclassOfProperty))
+				{
+					for (int32 i = 0; i < ElementCount; ++i)
+					{
+						// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
+						UObject* PreviousValue = NULL;
+						Ar << PreviousValue;
+
+						// now copy the value into the object's address space
+						FAssetPtr PreviousValueAssetPtr(PreviousValue);
+						CastChecked<UAssetObjectProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), PreviousValueAssetPtr);
+
+						AdvanceProperty = true;
+					}
+					continue;
 				}
 				else
 				{
