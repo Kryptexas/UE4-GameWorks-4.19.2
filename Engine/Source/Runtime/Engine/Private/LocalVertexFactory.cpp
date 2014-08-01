@@ -9,39 +9,33 @@
 #include "ShaderParameterUtils.h"
 #include "LocalVertexFactory.h"
 
-class FSpeedTreeVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+void FLocalVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
-public:
+	LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
+}
 
-	virtual void Bind(const FShaderParameterMap& ParameterMap) override
-	{
-		LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
-	}
+void FLocalVertexFactoryShaderParameters::Serialize(FArchive& Ar)
+{
+	Ar << LODParameter;
+}
 
-	virtual void Serialize(FArchive& Ar) override
+void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
+{
+	if (View.Family != NULL && View.Family->Scene != NULL)
 	{
-		Ar << LODParameter;
-	}
-
-	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
-	{
-		if (View.Family != NULL && View.Family->Scene != NULL)
+		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
+		if (SpeedTreeUniformBuffer != NULL)
 		{
-			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
-			if (SpeedTreeUniformBuffer != NULL)
-			{
-				SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+			SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
 
-				if (LODParameter.IsBound())
-				{
-					FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
-					SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
-				}
+			if (LODParameter.IsBound())
+			{
+				FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
+				SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
 			}
 		}
 	}
-	FShaderParameter LODParameter;
-};
+}
 
 /**
  * Should we cache the material's shadertype on this platform with this vertex factory? 
@@ -153,7 +147,7 @@ FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(E
 {
 	if (ShaderFrequency == SF_Vertex)
 	{
-		return new FSpeedTreeVertexFactoryShaderParameters();
+		return new FLocalVertexFactoryShaderParameters();
 	}
 
 	return NULL;

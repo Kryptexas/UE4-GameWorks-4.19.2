@@ -122,7 +122,7 @@ struct FVertexFactoryIntermediates
 
 	half4 Color;
 #if USE_INSTANCING
-	float2 PerInstanceParams;
+	float3 PerInstanceParams;
 #endif	// USE_INSTANCING
 };
 
@@ -441,6 +441,10 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.PerInstanceParams.x = CPUInstanceInverseTransform[2].w;
 	#endif // !USE_INSTANCING_EMULATED
 	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
+	// PerInstanceParams.z stores a hide/show flag for this instance
+	float SelectedValue = trunc(GetInstanceShadowMapBias(Input).z * (1.0 / 256.0));
+	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
+	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
 #endif	// USE_INSTANCING
 	return Intermediates;
 }
@@ -461,10 +465,7 @@ half3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactor
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if USE_INSTANCING
-	float SelectedValue = trunc(GetInstanceShadowMapBias(Input).z * (1.0 / 256.0));
-	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
-	float SelectionMask = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
-	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input)) * SelectionMask;
+	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input)) * Intermediates.PerInstanceParams.z;
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING
