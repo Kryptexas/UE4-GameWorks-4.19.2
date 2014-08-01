@@ -1,0 +1,25 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "Windows Media Foundation Video",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Implements a media player using the Windows Media Foundation framework.",
+	"Category" : "Media.Players",
+	"EnabledByDefault" : true,
+
+	"Modules" :
+	[
+		{
+			"Name" : "WmfMedia",
+			"Type" : "Runtime",
+			"LoadingPhase" : "PreLoadingScreen",
+			"WhitelistPlatforms" : [ "Win32", "Win64" ]
+		}
+	],
+
+	"CanContainContent" : false
+}
