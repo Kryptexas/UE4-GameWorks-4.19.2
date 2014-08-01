@@ -831,8 +831,9 @@ FModifierKeysState FMacApplication::GetModifierKeys() const
 	const bool bIsRightAltDown			= ( CurrentFlags & ( 1 << 5 ) ) != 0;
 	const bool bIsLeftCommandDown		= ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Control key is Command
 	const bool bIsRightCommandDown		= ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Control key is Command
+	const bool bAreCapsLocked           = ( CurrentFlags & ( 1 << 8 ) ) != 0; 
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown );
+	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown, bAreCapsLocked);
 }
 
 FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const

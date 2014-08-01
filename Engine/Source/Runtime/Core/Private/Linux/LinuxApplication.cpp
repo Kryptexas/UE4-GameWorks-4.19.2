@@ -862,8 +862,9 @@ FModifierKeysState FLinuxApplication::GetModifierKeys() const
 	const bool bIsRightControlDown	= (modifiers & KMOD_RCTRL) != 0;
 	const bool bIsLeftAltDown		= (modifiers & KMOD_LALT) != 0;
 	const bool bIsRightAltDown		= (modifiers & KMOD_RALT) != 0;
+	const bool bAreCapsLocked		= (modifiers & KMOD_CAPS) != 0;
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false );
+	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked );
 }
 
 
