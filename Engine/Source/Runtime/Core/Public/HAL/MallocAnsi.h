@@ -1,26 +1,25 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MallocAnsi.h: ANSI memory allocator.
-=============================================================================*/
-
 #pragma once
 
+
 #if _MSC_VER || PLATFORM_MAC
-#define USE_ALIGNED_MALLOC 1
+	#define USE_ALIGNED_MALLOC 1
 #else
-//@todo gcc: this should be implemented more elegantly on other platforms
-#define USE_ALIGNED_MALLOC 0
+	//@todo gcc: this should be implemented more elegantly on other platforms
+	#define USE_ALIGNED_MALLOC 0
 #endif
 
 #if PLATFORM_IOS
-#include "mach/mach.h"
+	#include "mach/mach.h"
 #endif
+
 
 //
 // ANSI C memory allocator.
 //
-class FMallocAnsi : public FMalloc
+class FMallocAnsi
+	: public FMalloc
 {
 	
 public:
@@ -52,7 +51,7 @@ public:
 		*((SIZE_T*)( (uint8*)Result - sizeof(void*) - sizeof(SIZE_T)	))	= Size;
 #endif
 
-		if (Result == NULL)
+		if (Result == nullptr)
 		{
 			FPlatformMemory::OnOutOfMemory(Size, Alignment);
 		}
@@ -69,14 +68,14 @@ public:
 		{
 			Result = _aligned_realloc( Ptr, NewSize, Alignment );
 		}
-		else if( Ptr == NULL )
+		else if( Ptr == nullptr )
 		{
 			Result = _aligned_malloc( NewSize, Alignment );
 		}
 		else
 		{
 			_aligned_free( Ptr );
-			Result = NULL;
+			Result = nullptr;
 		}
 #else
 		if( Ptr && NewSize )
@@ -86,17 +85,17 @@ public:
 			FMemory::Memcpy( Result, Ptr, FMath::Min(NewSize, *((SIZE_T*)( (uint8*)Ptr - sizeof(void*) - sizeof(SIZE_T))) ) );
 			Free( Ptr );
 		}
-		else if( Ptr == NULL )
+		else if( Ptr == nullptr )
 		{
 			Result = Malloc( NewSize, Alignment);
 		}
 		else
 		{
 			free( *((void**)((uint8*)Ptr-sizeof(void*))) );
-			Result = NULL;
+			Result = nullptr;
 		}
 #endif
-		if (Result == NULL && NewSize != 0)
+		if (Result == nullptr && NewSize != 0)
 		{
 			FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
 		}
@@ -188,4 +187,3 @@ public:
 
 	virtual const TCHAR * GetDescriptiveName() override { return TEXT("ANSI"); }
 };
-

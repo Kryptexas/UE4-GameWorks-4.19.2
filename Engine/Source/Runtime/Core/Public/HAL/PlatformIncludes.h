@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	PlatformIncludes.h: Setup the main includes for the platform
-==================================================================================*/
 #pragma once
 
 #include <new>
@@ -59,4 +56,3 @@
 #if !defined(TEXT) && !UE_BUILD_DOCS
 		#define TEXT(s) L##s
 #endif
-

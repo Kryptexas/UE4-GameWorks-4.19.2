@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformMisc.cpp: Windows implementations of misc functions
-=============================================================================*/
-
 #include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"

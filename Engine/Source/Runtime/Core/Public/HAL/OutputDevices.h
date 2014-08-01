@@ -1,18 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OutputDevices.h: Collection of FOutputDevice subclasses
-=============================================================================*/
-
 #pragma once
+
 #if !PLATFORM_DESKTOP
-
-// don't support colorized text on consoles
-#define SET_WARN_COLOR(Color)
-#define SET_WARN_COLOR_AND_BACKGROUND(Color, Bkgrnd)
-#define CLEAR_WARN_COLOR() 
-
+	// don't support colorized text on consoles
+	#define SET_WARN_COLOR(Color)
+	#define SET_WARN_COLOR_AND_BACKGROUND(Color, Bkgrnd)
+	#define CLEAR_WARN_COLOR() 
 #else
+
 /*-----------------------------------------------------------------------------
 	Colorized text.
 
@@ -36,32 +32,34 @@
 	
 	An empty string reverts to the normal gray on black.
 -----------------------------------------------------------------------------*/
+
 // putting them in a namespace to protect against future name conflicts
 namespace OutputDeviceColor
 {
-const TCHAR* const COLOR_BLACK			= TEXT("0000");
+	const TCHAR* const COLOR_BLACK			= TEXT("0000");
 
-const TCHAR* const COLOR_DARK_RED		= TEXT("1000");
-const TCHAR* const COLOR_DARK_GREEN		= TEXT("0100");
-const TCHAR* const COLOR_DARK_BLUE		= TEXT("0010");
-const TCHAR* const COLOR_DARK_YELLOW	= TEXT("1100");
-const TCHAR* const COLOR_DARK_CYAN		= TEXT("0110");
-const TCHAR* const COLOR_DARK_PURPLE	= TEXT("1010");
-const TCHAR* const COLOR_DARK_WHITE		= TEXT("1110");
-const TCHAR* const COLOR_GRAY			= COLOR_DARK_WHITE;
+	const TCHAR* const COLOR_DARK_RED		= TEXT("1000");
+	const TCHAR* const COLOR_DARK_GREEN		= TEXT("0100");
+	const TCHAR* const COLOR_DARK_BLUE		= TEXT("0010");
+	const TCHAR* const COLOR_DARK_YELLOW	= TEXT("1100");
+	const TCHAR* const COLOR_DARK_CYAN		= TEXT("0110");
+	const TCHAR* const COLOR_DARK_PURPLE	= TEXT("1010");
+	const TCHAR* const COLOR_DARK_WHITE		= TEXT("1110");
+	const TCHAR* const COLOR_GRAY			= COLOR_DARK_WHITE;
 
-const TCHAR* const COLOR_RED			= TEXT("1001");
-const TCHAR* const COLOR_GREEN			= TEXT("0101");
-const TCHAR* const COLOR_BLUE			= TEXT("0011");
-const TCHAR* const COLOR_YELLOW			= TEXT("1101");
-const TCHAR* const COLOR_CYAN			= TEXT("0111");
-const TCHAR* const COLOR_PURPLE			= TEXT("1011");
-const TCHAR* const COLOR_WHITE			= TEXT("1111");
+	const TCHAR* const COLOR_RED			= TEXT("1001");
+	const TCHAR* const COLOR_GREEN			= TEXT("0101");
+	const TCHAR* const COLOR_BLUE			= TEXT("0011");
+	const TCHAR* const COLOR_YELLOW			= TEXT("1101");
+	const TCHAR* const COLOR_CYAN			= TEXT("0111");
+	const TCHAR* const COLOR_PURPLE			= TEXT("1011");
+	const TCHAR* const COLOR_WHITE			= TEXT("1111");
 
-const TCHAR* const COLOR_NONE			= TEXT("");
-
+	const TCHAR* const COLOR_NONE			= TEXT("");
 }
+
 using namespace OutputDeviceColor;
+
 
 // let a console or (UE_BUILD_SHIPPING || UE_BUILD_TEST) define it to nothing
 #ifndef SET_WARN_COLOR
@@ -383,10 +381,10 @@ public:
 	/** 
 	 * Constructor, initializing member variables.
 	 *
-	 * @param InFilename	Filename to use, can be NULL
+	 * @param InFilename	Filename to use, can be nullptr
 	 * @param bDisableBackup If true, existing files will not be backed up
 	 */
-	FOutputDeviceFile( const TCHAR* InFilename = NULL, bool bDisableBackup=false );
+	FOutputDeviceFile( const TCHAR* InFilename = nullptr, bool bDisableBackup=false );
 
 	/** Sets the filename that the output device writes to.  If the output device was already writing to a file, closes that file. */
 	void SetFilename(const TCHAR* InFilename);
@@ -526,4 +524,3 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogMemory, Log, All);
 
 // Temporary log category, generally you should not check things in that use this
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogTemp, Log, All);
-

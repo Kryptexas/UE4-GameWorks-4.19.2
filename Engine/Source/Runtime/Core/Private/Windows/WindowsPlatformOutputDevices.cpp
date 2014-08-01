@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformOutputDevices.cpp: Windows implementations of OutputDevices functions
-=============================================================================*/
-
-
 #include "Core.h"
 
 #include "FeedbackContextAnsi.h"
@@ -12,12 +7,16 @@
 #include "../Private/Windows/WindowsPlatformFeedbackContextPrivate.h"
 
 #include "AllowWindowsPlatformTypes.h"
+
 namespace OutputDeviceConstants
 {
 	uint32 WIN_STD_OUTPUT_HANDLE = STD_OUTPUT_HANDLE;
 	uint32 WIN_ATTACH_PARENT_PROCESS = ATTACH_PARENT_PROCESS;
 }
+
 #include "HideWindowsPlatformTypes.h"
+
+
 //////////////////////////////////
 // FWindowsPlatformOutputDevices
 //////////////////////////////////

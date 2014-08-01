@@ -1,20 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FileManagerGeneric.h: Unreal generic file manager support code.
-
-	This base class simplifies IFileManager implementations by providing
-	simple, unoptimized implementations of functions whose implementations
-	can be derived from other functions.
-=============================================================================*/
-
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	File Manager.
------------------------------------------------------------------------------*/
 
-class CORE_API FFileManagerGeneric : public IFileManager
+/**
+ * Base class for file managers.
+ *
+ * This base class simplifies IFileManager implementations by providing
+ * simple, unoptimized implementations of functions whose implementations
+ * can be derived from other functions.
+ */
+class CORE_API FFileManagerGeneric
+	: public IFileManager
 {
 	// instead of caching the LowLevel, we call the singleton each time to never be incorrect
 	FORCEINLINE IPlatformFile& GetLowLevel() const
@@ -24,13 +21,19 @@ class CORE_API FFileManagerGeneric : public IFileManager
 
 public:
 
-	FFileManagerGeneric()
-	{
-	}
+	/**
+	 * Default constructor.
+	 */
+	FFileManagerGeneric( ) { }
 
-	virtual ~FFileManagerGeneric()
-	{
-	}
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~FFileManagerGeneric( ) { }
+
+public:
+
+	// IFileManager interface
 
 	virtual void ProcessCommandLineOptions() override;
 
@@ -89,7 +92,6 @@ public:
 	 * Converts passed in filename to use a relative path.
 	 *
 	 * @param	Filename	filename to convert to use a relative path
-	 * 
 	 * @return	filename using relative path
 	 */
 	static FString DefaultConvertToRelativePath( const TCHAR* Filename );
@@ -98,7 +100,6 @@ public:
 	 * Converts passed in filename to use a relative path.
 	 *
 	 * @param	Filename	filename to convert to use a relative path
-	 * 
 	 * @return	filename using relative path
 	 */
 	FString ConvertToRelativePath( const TCHAR* Filename ) override;
@@ -107,7 +108,6 @@ public:
 	 * Converts passed in filename to use an absolute path (for reading)
 	 *
 	 * @param	Filename	filename to convert to use an absolute path, safe to pass in already using absolute path
-	 * 
 	 * @return	filename using absolute path
 	 */
 	FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
@@ -116,7 +116,6 @@ public:
 	 * Converts passed in filename to use an absolute path (for writing)
 	 *
 	 * @param	Filename	filename to convert to use an absolute path, safe to pass in already using absolute path
-	 * 
 	 * @return	filename using absolute path
 	 */
 	FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
@@ -134,7 +133,6 @@ public:
 	 * immediately if the file manager doesn't support talking to a server.
 	 *
 	 * @param Message	The string message to send to the server
-	 *
 	 * @return			true if the message was sent to server and it returned success, or false if there is no server, or the command failed
 	 */
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override
@@ -151,6 +149,7 @@ private:
 
 	void FindFilesRecursiveInternal( TArray<FString>& FileNames, const TCHAR* StartDirectory, const TCHAR* Filename, bool Files, bool Directories);
 };
+
 
 /*-----------------------------------------------------------------------------
 	FArchiveFileReaderGeneric
@@ -250,6 +249,4 @@ protected:
 	int64            BufferCount;
 	TAutoPtr<IFileHandle>		 Handle;
 	uint8            Buffer[4096];
-	
 };
-

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=================================================================================
-	WindowsPlatformSurvey.cpp: Microsoft Windows platform hardware-survey classes
-=================================================================================*/
-
 #include "Core.h"
 
 #define USING_WINSAT_API	1

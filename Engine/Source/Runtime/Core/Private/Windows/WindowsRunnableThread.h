@@ -2,45 +2,33 @@
 
 #pragma once
 
+
 /**
  * This is the base interface for all runnable thread classes. It specifies the
  * methods used in managing its life cycle.
  */
-class FRunnableThreadWin : public FRunnableThread
+class FRunnableThreadWin
+	: public FRunnableThread
 {
-	/**
-	 * The thread handle for the thread
-	 */
+	/** The thread handle for the thread. */
 	HANDLE Thread;
 
-	/**
-	 * The runnable object to execute on this thread
-	 */
+	/** The runnable object to execute on this thread. */
 	FRunnable* Runnable;
 
-	/** 
-	 * Sync event to make sure that Init() has been completed before allowing the main thread to continue
-	 */
+	/** Sync event to make sure that Init() has been completed before allowing the main thread to continue. */
 	FEvent* ThreadInitSyncEvent;
 
-	/**
-	 * The priority to run the thread at
-	 */
+	/** The priority to run the thread at. */
 	EThreadPriority ThreadPriority;
 
-	/**
-	 * The Affinity to run the thread with
-	 */
+	/** The Affinity to run the thread with. */
 	uint64 ThreadAffintyMask;
 
-	/**
-	* ID set during thread creation
-	*/
+	/** ID set during thread creation. */
 	uint32 ThreadID;
 
-	/**
-	 * Name of the thread.
-	 */
+	/** Name of the thread. */
 	FString ThreadName;
 
 	/**
@@ -92,7 +80,7 @@ class FRunnableThreadWin : public FRunnableThread
 	 * The thread entry point. Simply forwards the call on to the right
 	 * thread main function
 	 */
-	static ::DWORD STDCALL _ThreadProc(LPVOID pThis)
+	static ::DWORD STDCALL _ThreadProc( LPVOID pThis )
 	{
 		check(pThis);
 		return ((FRunnableThreadWin*)pThis)->GuardedRun();
@@ -108,7 +96,8 @@ class FRunnableThreadWin : public FRunnableThread
 	uint32 Run();
 
 public:
-	FRunnableThreadWin()
+
+	FRunnableThreadWin( )
 		: Thread(NULL)
 		, Runnable(NULL)
 		, ThreadInitSyncEvent(NULL)
@@ -118,7 +107,7 @@ public:
 
 	}
 
-	~FRunnableThreadWin()
+	~FRunnableThreadWin( )
 	{
 		// Clean up our thread if it is still active
 		if (Thread != NULL)
@@ -128,7 +117,7 @@ public:
 		FRunnableThread::GetThreadRegistry().Remove(ThreadID);
 	}
 	
-	virtual void SetThreadPriority(EThreadPriority NewPriority) override
+	virtual void SetThreadPriority( EThreadPriority NewPriority ) override
 	{
 		// Don't bother calling the OS if there is no need
 		if (NewPriority != ThreadPriority)
@@ -142,7 +131,7 @@ public:
 		}
 	}
 
-	virtual void Suspend(bool bShouldPause = 1) override
+	virtual void Suspend( bool bShouldPause = 1 ) override
 	{
 		check(Thread);
 		if (bShouldPause == true)
@@ -155,7 +144,7 @@ public:
 		}
 	}
 
-	virtual bool Kill(bool bShouldWait = false) override
+	virtual bool Kill( bool bShouldWait = false ) override
 	{
 		check(Thread && "Did you forget to call Create()?");
 		bool bDidExitOK = true;
@@ -182,26 +171,27 @@ public:
 		return bDidExitOK;
 	}
 
-	virtual void WaitForCompletion() override
+	virtual void WaitForCompletion( ) override
 	{
 		// Block until this thread exits
 		WaitForSingleObject(Thread,INFINITE);
 	}
 
-	virtual uint32 GetThreadID() override
+	virtual uint32 GetThreadID( ) override
 	{
 		return ThreadID;
 	}
 
-	virtual FString GetThreadName() override
+	virtual FString GetThreadName( ) override
 	{
 		return ThreadName;
 	}
 
 protected:
-	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
+
+	virtual bool CreateInternal( FRunnable* InRunnable, const TCHAR* InThreadName,
 		uint32 InStackSize = 0,
-		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) override
+		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0 ) override
 	{
 		check(InRunnable);
 		Runnable = InRunnable;
@@ -212,6 +202,7 @@ protected:
 
 		// Create the new thread
 		Thread = CreateThread(NULL,InStackSize,_ThreadProc,this,STACK_SIZE_PARAM_IS_A_RESERVATION,(::DWORD *)&ThreadID);
+		
 		// If it fails, clear all the vars
 		if (Thread == NULL)
 		{

@@ -1,9 +1,7 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	Platform.h: Setup the includes for the platform
-==================================================================================*/
 #pragma once
+
 
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms

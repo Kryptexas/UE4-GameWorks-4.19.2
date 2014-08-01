@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FeedbackContextAnsi.h: Unreal Ansi user interface interaction.
-=============================================================================*/
-
 #pragma once
+
 
 /*-----------------------------------------------------------------------------
 	FFeedbackContextAnsi.
@@ -36,9 +33,9 @@ public:
 	// Constructor.
 	FFeedbackContextAnsi()
 	: FFeedbackContext()
-	, SlowTaskCount( 0 )
-	, Context( NULL )
-	, AuxOut( NULL )
+	, SlowTaskCount(0)
+	, Context(nullptr)
+	, AuxOut(nullptr)
 	{}
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 	{
@@ -95,7 +92,7 @@ public:
 			else
 			{
 				char InputText[256];
-				if (fgets( InputText, sizeof(InputText), stdin ) != NULL)
+				if (fgets( InputText, sizeof(InputText), stdin ) != nullptr)
 				{
 					return (InputText[0]=='Y' || InputText[0]=='y');
 				}

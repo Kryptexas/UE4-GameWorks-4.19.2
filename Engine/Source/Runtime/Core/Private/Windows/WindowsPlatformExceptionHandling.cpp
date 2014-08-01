@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformExceptionHandling.cpp: Exception handling for functions that want to create crash dumps.
-=============================================================================*/
-
 #include "Core.h"
 #include "ExceptionHandling.h"
 #include "../../Launch/Resources/Version.h"

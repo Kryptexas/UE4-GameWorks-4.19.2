@@ -4,11 +4,12 @@
 #include "WindowsWindow.h"
 #include "WindowsApplication.h"
 
+
 #if WINVER > 0x502	// Windows Vista or better required for DWM
-#include "AllowWindowsPlatformTypes.h"
-#include "Dwmapi.h"
-#include <ShlObj.h>
-#include "HideWindowsPlatformTypes.h"
+	#include "AllowWindowsPlatformTypes.h"
+	#include "Dwmapi.h"
+	#include <ShlObj.h>
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
 FWindowsWindow::~FWindowsWindow()
@@ -18,12 +19,14 @@ FWindowsWindow::~FWindowsWindow()
 	//       Use Destroy() instead.
 }
 
+
 const TCHAR FWindowsWindow::AppWindowClass[] = TEXT("UnrealWindow");
 
 // This is a hard-coded constant for Windows' WS_THICKFRAME
 // There does not seem to be a way to alter this
 static int32 WindowsAeroBorderSize = 8;
 static int32 WindowsStandardBorderSize = 4;
+
 
 TSharedRef< FWindowsWindow > FWindowsWindow::Make()
 {

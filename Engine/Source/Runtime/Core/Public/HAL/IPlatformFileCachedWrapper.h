@@ -217,13 +217,13 @@ public:
 	}
 
 	FCachedReadPlatformFile()
-		: LowerLevel(NULL)
+		: LowerLevel(nullptr)
 	{
 	}
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Inner is required.
-		check(Inner != NULL);
+		check(Inner != nullptr);
 		LowerLevel = Inner;
 		return !!LowerLevel;
 	}
@@ -281,7 +281,7 @@ public:
 		IFileHandle* InnerHandle=LowerLevel->OpenRead(Filename);
 		if (!InnerHandle)
 		{
-			return NULL;
+			return nullptr;
 		}
 		return new FCachedFileHandle(InnerHandle, true, false);
 	}
@@ -290,7 +290,7 @@ public:
 		IFileHandle* InnerHandle=LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 		if (!InnerHandle)
 		{
-			return NULL;
+			return nullptr;
 		}
 		return new FCachedFileHandle(InnerHandle, bAllowRead, true);
 	}

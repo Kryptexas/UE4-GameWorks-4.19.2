@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-IConsoleManager.h: console command interface
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Console variable usage guide:
@@ -359,7 +356,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that takes no arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -369,7 +366,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that takes arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -379,7 +376,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that takes arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -389,7 +386,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that takes arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -399,7 +396,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that takes arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -409,7 +406,7 @@ struct CORE_API IConsoleManager
 	/**
 	 * Register a console command that is handles by an Exec functions (for auto completion)
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Flags		Optional flags bitmask
 	 */
@@ -499,7 +496,7 @@ struct CORE_API IConsoleManager
 		if (!Singleton)
 		{
 			SetupSingleton();
-			check(Singleton != NULL);
+			check(Singleton != nullptr);
 		}
 		return *Singleton;
 	}
@@ -789,7 +786,7 @@ public:
 	/**
 	 * Register a console command that takes no arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -802,7 +799,7 @@ public:
 	/**
 	 * Register a console command that takes arguments
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -823,7 +820,7 @@ public:
 	/**
 	 * Register a console command that takes a world argument
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -845,7 +842,7 @@ public:
 	/**
 	 * Register a console command that takes arguments and a world argument
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask
@@ -865,7 +862,7 @@ public:
 	/**
 	 * Register a console command that takes an output device
 	 *
-	 * @param	Name		The name of this command (must not be NULL)
+	 * @param	Name		The name of this command (must not be nullptr)
 	 * @param	Help		Help text for this command
 	 * @param	Command		The user function to call when this command is executed
 	 * @param	Flags		Optional flags bitmask

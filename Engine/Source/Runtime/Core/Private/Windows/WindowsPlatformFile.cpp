@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformFile.cpp: Windows implementations of File functions
-=============================================================================*/
-
 #include "Core.h"
 #include <sys/utime.h>
+
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a _stat struct)
 const FDateTime WindowsEpoch(1970, 1, 1);

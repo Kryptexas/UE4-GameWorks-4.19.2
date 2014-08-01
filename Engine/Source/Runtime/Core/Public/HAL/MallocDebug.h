@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MallocDebug.h: Debug memory allocator.
-=============================================================================*/
-
 #pragma once
+
 
 // Debug memory allocator.
 class FMallocDebug : public FMalloc
@@ -47,7 +44,7 @@ private:
 public:
 	// FMalloc interface.
 	FMallocDebug()
-	:	GFirstDebug( NULL )
+	:	GFirstDebug( nullptr )
 	,	TotalAllocationSize( 0 )
 	,	TotalWasteSize( 0 )
 	{}
@@ -58,7 +55,7 @@ public:
 	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 		check(Alignment == DEFAULT_ALIGNMENT && "Alignment currently unsupported in this allocator");
-		FMemDebug* Ptr = NULL;
+		FMemDebug* Ptr = nullptr;
 		Ptr = (FMemDebug*)malloc( AllocatorOverhead + Size );
 		check(Ptr);
 		uint8* AlignedPtr = Align( (uint8*) Ptr + sizeof(FMemDebug) + sizeof(FMemDebug*) + sizeof(int32), ALLOCATION_ALIGNMENT );
@@ -98,14 +95,14 @@ public:
 			Free( InPtr );
 			return Result;
 		}
-		else if( InPtr == NULL )
+		else if( InPtr == nullptr )
 		{
 			return Malloc( NewSize, Alignment );
 		}
 		else
 		{
 			Free( InPtr );
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -218,4 +215,3 @@ public:
 	virtual const TCHAR * GetDescriptiveName() override { return TEXT("debug"); }
 
 };
-

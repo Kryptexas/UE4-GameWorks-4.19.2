@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformStackWalk.cpp: Windows implementations of stack walk functions
-=============================================================================*/
-
 #include "Core.h"
 
 #include "AllowWindowsPlatformTypes.h"
@@ -13,6 +9,7 @@
 #include "HideWindowsPlatformTypes.h"
 
 #include "ModuleManager.h"
+
 
 /*-----------------------------------------------------------------------------
 	Stack walking.

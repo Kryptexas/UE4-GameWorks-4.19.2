@@ -7,14 +7,16 @@
 
 #pragma pack (push,8)
 #include "AllowWindowsPlatformTypes.h"
-	#include <xinput.h>
+#include <xinput.h>
 #include "HideWindowsPlatformTypes.h"
 #pragma pack (pop)
+
 
 TSharedRef< XInputInterface > XInputInterface::Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {
 	return MakeShareable( new XInputInterface( InMessageHandler ) );
 }
+
 
 XInputInterface::XInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
@@ -82,6 +84,7 @@ XInputInterface::XInputInterface( const TSharedRef< FGenericApplicationMessageHa
 	Buttons[22] = EControllerButtons::RightStickLeft;
 	Buttons[23] = EControllerButtons::RightStickRight;
 }
+
 
 float ShortToNormalizedFloat(SHORT AxisVal)
 {
@@ -218,6 +221,7 @@ void XInputInterface::SendControllerEvents()
 
 	bNeedsControllerStateUpdate = false;
 }
+
 
 void XInputInterface::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {

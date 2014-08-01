@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	SplashScreen.cpp: Splash screen for game/editor startup
-================================================================================*/
-
 #include "Core.h"
 
 #include "EngineVersion.h"

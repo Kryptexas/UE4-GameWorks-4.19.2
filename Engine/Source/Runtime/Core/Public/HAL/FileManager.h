@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FileManager.h: IFileManager Interface
-=============================================================================*/
-
 #pragma once
+
 
 // Maximum length of any filename.  For now, we have no restriction. We would probably use shortening rules if we have to.
 #define MAX_UNREAL_FILENAME_LENGTH (PLATFORM_MAX_FILEPATH_LENGTH)
+
 
 enum EFileWrite
 {
@@ -17,17 +15,22 @@ enum EFileWrite
 	FILEWRITE_Append			= 0x08,
 	FILEWRITE_AllowRead			= 0x10
 };
+
+
 enum EFileRead
 {
 	FILEREAD_NoFail             = 0x01,
 	FILEREAD_Silent				= 0x02,
 };
+
+
 enum ECopyResult
 {
 	COPY_OK						= 0x00,
 	COPY_Fail					= 0x01,
 	COPY_Canceled				= 0x02,
 };
+
 
 struct FCopyProgress
 {
@@ -41,6 +44,7 @@ enum EFileOpenFlags
 	IO_WRITE		= 0x02,					// Open for writing
 	IO_APPEND		= 0x40,					// When writing, keep the existing data, set the filepointer to the end of the existing data
 };
+
 
 class CORE_API IFileManager
 {
@@ -80,7 +84,7 @@ public:
 	virtual bool Delete( const TCHAR* Filename, bool RequireExists=0, bool EvenReadOnly=0, bool Quiet=0 )=0;
 
 	/** Copies a file. */
-	virtual uint32 Copy( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, FCopyProgress* Progress=NULL )=0; // utility
+	virtual uint32 Copy( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, FCopyProgress* Progress = nullptr )=0; // utility
 
 	/** Moves/renames a file. */
 	virtual bool Move( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, bool bDoNotRetryOrError=0 )=0;
@@ -179,5 +183,3 @@ public:
 	 */
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler)=0;
 };
-
-

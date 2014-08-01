@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformAtomics.cpp: Windows implementations of atomic functions
-=============================================================================*/
-
 #include "Core.h"
+
 
 void FWindowsPlatformAtomics::HandleAtomicsFailure( const TCHAR* InFormat, ... )
 {	
