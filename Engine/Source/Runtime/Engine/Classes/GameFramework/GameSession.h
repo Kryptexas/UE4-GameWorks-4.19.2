@@ -5,7 +5,7 @@
  */
 
 #pragma once
-#include "Runtime/Online/OnlineSubsystem/Public/OnlineSubsystemTypes.h"
+#include "GameFramework/Info.h"
 #include "GameSession.generated.h"
 
 class UWorld;

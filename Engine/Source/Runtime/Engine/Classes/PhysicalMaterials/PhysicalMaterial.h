@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "PhysxUserData.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicalMaterial.generated.h"
 

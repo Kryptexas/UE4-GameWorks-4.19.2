@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "SoundClass.h"
 #include "Audio.h"
 #include "SoundMix.generated.h"
 
