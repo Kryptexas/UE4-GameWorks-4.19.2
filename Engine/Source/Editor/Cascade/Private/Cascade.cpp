@@ -213,7 +213,7 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	}
 	if (Description.Len() > 0 && FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.Init"), TEXT("Overview"), Description);
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.Init"), TEXT("Overview"), Description);
 	}
 
 	ParticleSystemComponent = ConstructObject<UCascadeParticleSystemComponent>(UCascadeParticleSystemComponent::StaticClass());
@@ -944,7 +944,7 @@ void FCascade::OnNewModule(int32 Idx)
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.NewModule"), TEXT("Class"), NewModClass->GetName());
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewModule"), TEXT("Class"), NewModClass->GetName());
 	}
 
 	ParticleSystem->MarkPackageDirty();
@@ -1111,7 +1111,7 @@ void FCascade::OnNewEmitter()
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.NewEmitter"));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewEmitter"));
 	}
 
 	// Refresh viewport
@@ -3337,7 +3337,7 @@ void FCascade::AddLOD(bool bBeforeCurrent)
 
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.NewLOD"), FAnalyticsEventAttribute(TEXT("Index"), CurrentLODIndex));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewLOD"), FAnalyticsEventAttribute(TEXT("Index"), CurrentLODIndex));
 		}
 
 		UpdateLODLevel();
@@ -4230,7 +4230,7 @@ void FCascade::OnDeleteLOD()
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.DeleteLOD"), FAnalyticsEventAttribute(TEXT("Index"), Selection));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteLOD"), FAnalyticsEventAttribute(TEXT("Index"), Selection));
 	}
 
 	ForceUpdate();
@@ -4421,7 +4421,7 @@ void FCascade::OnDeleteModule(bool bConfirm)
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.DeleteModule"), TEXT("Class"), ModuleName);
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteModule"), TEXT("Class"), ModuleName);
 	}
 
 	SetSelectedEmitter(SelectedEmitter);
@@ -4938,7 +4938,7 @@ void FCascade::OnDeleteEmitter()
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Cascade.DeleteEmitter"));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteEmitter"));
 	}
 
 	ParticleSystem->MarkPackageDirty();

@@ -998,7 +998,7 @@ void FTextureEditorToolkit::HandleReimportManagerPostReimport( UObject* InObject
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Texture.ReimportedViaEditor"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Texture.ReimportedViaEditor"));
 		}
 	}
 	else

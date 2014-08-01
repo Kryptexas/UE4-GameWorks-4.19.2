@@ -723,7 +723,7 @@ void FFontEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Font.ReimportedViaEditor"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Font.ReimportedViaEditor"));
 		}
 		FontViewport->RefreshViewport();
 		FontPreviewWidget->RefreshViewport();

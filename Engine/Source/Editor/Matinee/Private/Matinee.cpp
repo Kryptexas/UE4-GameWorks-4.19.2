@@ -1560,7 +1560,7 @@ void FMatinee::ToggleRecordInterpValues(void)
 
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Recorded"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.Recorded"));
 		}
 	}
 	else

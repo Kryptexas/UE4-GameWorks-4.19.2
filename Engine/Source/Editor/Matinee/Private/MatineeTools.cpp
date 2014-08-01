@@ -2780,7 +2780,7 @@ UInterpTrack* FMatinee::AddTrackToGroup( UInterpGroup* Group, UClass* TrackClass
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.NewTrack"), TEXT("Class"), TrackClass->GetName());
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.NewTrack"), TEXT("Class"), TrackClass->GetName());
 	}
 
 	OutNewTrackIndex = Group->InterpTracks.Add(NewTrack);
@@ -2954,7 +2954,7 @@ void FMatinee::DeleteSelectedTracks()
 		{
 			if (FEngineAnalytics::IsAvailable())
 			{
-				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelTrack"), TEXT("Class"), ActiveTrack->GetClass()->GetName());
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.DelTrack"), TEXT("Class"), ActiveTrack->GetClass()->GetName());
 			}
 
 			ActiveTrack->Modify();
@@ -3060,7 +3060,7 @@ void FMatinee::DeleteSelectedGroups()
 		UInterpGroup* GroupToDelete = *GroupIt;
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelGroup"), TEXT("Name"), GroupToDelete->GroupName.ToString());
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.DelGroup"), TEXT("Name"), GroupToDelete->GroupName.ToString());
 		}
 
 		// Mark InterpGroup and all InterpTracks as Modified.
@@ -3070,7 +3070,7 @@ void FMatinee::DeleteSelectedGroups()
 			UInterpTrack* Track = GroupToDelete->InterpTracks[j];
 			if (FEngineAnalytics::IsAvailable())
 			{
-				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.DelTrack"), TEXT("Class"), Track->GetClass()->GetName());
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.DelTrack"), TEXT("Class"), Track->GetClass()->GetName());
 			}
 
 			Track->Modify();
