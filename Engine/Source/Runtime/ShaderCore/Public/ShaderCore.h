@@ -108,7 +108,9 @@ enum ECompilerFlags
 	/** Disable shader validation */
 	CFLAG_SkipValidation,
 	/** Only allows standard optimizations, not the longest compile times. */
-	CFLAG_StandardOptimization
+	CFLAG_StandardOptimization,
+	/** Shader should use on chip memory instead of main memory ring buffer memory. */
+	CFLAG_OnChip
 };
 
 /**
