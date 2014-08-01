@@ -81,11 +81,30 @@ bool FOnlineSubsystemSteamModule::AreSteamDllsLoaded() const
 	return bLoadedClientDll && bLoadedServerDll;
 }
 
-void FOnlineSubsystemSteamModule::LoadSteamModules()
+static FString GetSteamModulePath()
 {
 #if PLATFORM_WINDOWS
+
 	#if PLATFORM_64BITS
-		FString RootSteamPath = FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER / TEXT("Win64/");
+		return FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER_PATH / TEXT("Win64/");
+	#else
+		return FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER_PATH / TEXT("Win32/");
+	#endif	//PLATFORM_64BITS
+
+#elif PLATFORM_MAC
+
+	return FString();
+
+#endif	//PLATFORM_WINDOWS
+}
+
+void FOnlineSubsystemSteamModule::LoadSteamModules()
+{
+	UE_LOG_ONLINE(Display, TEXT("Loading Steam SDK %s"), STEAM_SDK_VER);
+
+#if PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		FString RootSteamPath = GetSteamModulePath();
 		FPlatformProcess::PushDllDirectory(*RootSteamPath);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api64.dll"));
 #if 0 //64 bit not supported well at present, use Steam Client dlls
@@ -97,7 +116,7 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 #endif 
 		FPlatformProcess::PopDllDirectory(*RootSteamPath);
 	#else	//PLATFORM_64BITS
-		FString RootSteamPath = FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER / TEXT("Win32/");
+		FString RootSteamPath = GetSteamModulePath();
 		FPlatformProcess::PushDllDirectory(*RootSteamPath);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api.dll"));
 		if (IsRunningDedicatedServer())
@@ -132,7 +151,7 @@ void FOnlineSubsystemSteamModule::StartupModule()
 {
 	bool bSuccess = false;
 
-	// Load the Steam DLL before first call to API
+	// Load the Steam modules before first call to API
 	LoadSteamModules();
 	if (AreSteamDllsLoaded())
 	{
@@ -145,7 +164,7 @@ void FOnlineSubsystemSteamModule::StartupModule()
 	}
 	else
 	{
-		UE_LOG_ONLINE(Warning, TEXT("Steam DLLs not present at %s/%s or failed to load!"), STEAM_SDK_ROOT_PATH, STEAM_SDK_VER);
+		UE_LOG_ONLINE(Warning, TEXT("Steam SDK %s libraries not present at %s or failed to load!"), STEAM_SDK_VER, *GetSteamModulePath());
 	}
 
 	if (!bSuccess)
