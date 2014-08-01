@@ -1928,6 +1928,24 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	bool bAnyBlueprintErrors = ErrorBlueprintList.Num()? true : false;
 	bool bStartInSpectatorMode = false;
+	bool bSupportsOnlinePIE = false;
+
+	if (SupportsOnlinePIE())
+	{
+		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
+
+		if (bHasRequiredLogins)
+		{
+			// If we support online PIE use it even if we're standalone
+			bSupportsOnlinePIE = true;
+		}
+		else
+		{
+			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
+			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
+			FMessageLog("PIE").Warning(ErrorMsg);
+		}
+	}
 
 	FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
 	if (bInSimulateInEditor || KeysState.IsControlDown())
@@ -1936,7 +1954,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		bStartInSpectatorMode = true;
 	}
 
-	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone) || !PlayInSettings->RunUnderOneProcess)
+	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !PlayInSettings->RunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process
 		UGameInstance* const GameInstance = CreatePIEGameInstance(0, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, PIEStartTime);
@@ -1948,15 +1966,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	}
 	else
 	{
-		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
-		if (!bHasRequiredLogins)
-		{
-			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
-			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
-			FMessageLog("PIE").Warning(ErrorMsg);
-		}
-
-		if (SupportsOnlinePIE() && bHasRequiredLogins)
+		if (bSupportsOnlinePIE)
 		{
 			// Make sure all instances of PIE are logged in before creating/launching worlds
 			LoginPIEInstances(bAnyBlueprintErrors, bStartInSpectatorMode, PIEStartTime);
@@ -2115,7 +2125,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 		// Update login struct parameters
 		DataStruct.WorldContextHandle = PieWorldContext.ContextHandle;
-		DataStruct.bIsServer = true;
+		DataStruct.NetMode = PlayInSettings->PlayNetMode;
 
 		// Always get the interface (it will create the subsystem regardless)
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
@@ -2169,7 +2179,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NextX = NextX;
 		DataStruct.NextY = NextY;
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
-		DataStruct.bIsServer = false;
+		DataStruct.NetMode = EPlayNetMode::PIE_Client;
 
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
@@ -2208,12 +2218,12 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	IdentityInt->ClearOnLoginCompleteDelegate(0, Delegate);
 
 	// Create the new world
-	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
+	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.NetMode, DataStruct);
 
 	// Logging after the create so a new MessageLog Page is created
 	if (bWasSuccessful)
 	{
-		if (DataStruct.bIsServer)
+		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 		{
 			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
 		}
@@ -2224,7 +2234,7 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	}
 	else
 	{
-		if (DataStruct.bIsServer)
+		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 		{
 			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
 		}

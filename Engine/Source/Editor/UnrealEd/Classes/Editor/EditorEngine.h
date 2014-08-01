@@ -95,8 +95,8 @@ struct FPieLoginStruct
 	int32 NextX;
 	/** Y location for window positioning */
 	int32 NextY;
-	/** Will this instance run as a server */
-	bool bIsServer;
+	/** What net mode to run this instance as */
+	EPlayNetMode NetMode;
 	/** Passthrough condition of blueprint compilation*/
 	bool bAnyBlueprintErrors;
 	/** Passthrough condition of spectator mode */
@@ -109,7 +109,7 @@ struct FPieLoginStruct
 		SettingsIndex(0),
 		NextX(0),
 		NextY(0),
-		bIsServer(false),
+		NetMode(EPlayNetMode::PIE_Standalone),
 		bAnyBlueprintErrors(false),
 		bStartInSpectatorMode(false),
 		PIEStartTime(0)
