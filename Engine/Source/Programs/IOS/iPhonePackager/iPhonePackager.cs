@@ -86,13 +86,34 @@ namespace iPhonePackager
 		{
 			if (Arguments.Length == 0)
 			{
-				Program.Warning("No arguments specified, assuming GUI mode");
-				Arguments = new string[] { "gui" };
+				StartVisuals();
+
+				// we NEED a project, so show a uproject picker
+				string UProjectFile;
+				string StartingDir = "";
+				if (ToolsHub.ShowOpenFileDialog("Unreal Project Files (*.uproject)|*.uproject;", "IPhonePackager now requires a .uproject file to continue", "mobileprovision", "", ref StartingDir, out UProjectFile))
+				{
+					Arguments = new string[] { UProjectFile };
+				}
+				else
+				{
+					return false;
+				}
 			}
 
 			if (Arguments.Length == 1)
 			{
-				MainCommand = Arguments[0];
+				// if the only argument is a uproject, then assume gui mode, with the uproject as the project
+				if (Arguments[0].EndsWith(".uproject"))
+				{
+					Config.ProjectFile = GamePath = Arguments[0];
+
+					MainCommand = "gui";
+				}
+				else
+				{
+					MainCommand = Arguments[0];
+				}
 			}
 			else if (Arguments.Length == 2)
 			{
@@ -412,8 +433,15 @@ namespace iPhonePackager
 
 		delegate Form CreateFormDelegate();
 
+		static bool bVisualsStarted = false;
 		static void StartVisuals()
 		{
+			if (bVisualsStarted)
+			{
+				return;
+			}
+			bVisualsStarted = true;
+
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 
