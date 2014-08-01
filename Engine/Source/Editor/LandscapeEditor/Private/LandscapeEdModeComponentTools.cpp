@@ -830,7 +830,11 @@ public:
 				}
 			}
 
-			Landscape->RegisterAllComponents();
+			// Need to register to use general height/xyoffset data update
+			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
+			{
+				NewComponents[Idx]->RegisterComponent();
+			}
 
 			if (bHasXYOffset)
 			{
