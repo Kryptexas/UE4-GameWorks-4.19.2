@@ -43,9 +43,9 @@ struct FMaterialParticleParameters
 
 #if USE_PARTICLE_SUBUVS
 	/** SubUV texture coordinates*/
-	half2 SubUVCoords[2];
+	MaterialFloat2 SubUVCoords[2];
 	/** SubUV interpolation value*/
-	half SubUVLerp;
+	MaterialFloat SubUVLerp;
 #endif
 
 	/** The size of the particle. */
