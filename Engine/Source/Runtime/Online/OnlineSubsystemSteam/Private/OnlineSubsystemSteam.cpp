@@ -249,6 +249,12 @@ IOnlinePresencePtr FOnlineSubsystemSteam::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlineConnectionPtr FOnlineSubsystemSteam::GetConnectionInterface() const
+{
+	return NULL;
+}
+
+
 void FOnlineSubsystemSteam::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)
 {
 	check(OnlineAsyncTaskThreadRunnable);

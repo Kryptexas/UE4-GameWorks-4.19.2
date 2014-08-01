@@ -114,6 +114,11 @@ IOnlinePartyPtr FOnlineSubsystemFacebook::GetPartyInterface() const
 	return NULL;
 }
 
+IOnlineConnectionPtr FOnlineSubsystemFacebook::GetConnectionInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
 {
 	if (FacebookIdentity.IsValid())

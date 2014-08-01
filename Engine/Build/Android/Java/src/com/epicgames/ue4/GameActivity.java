@@ -417,19 +417,19 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 		// Connect to Google Play Services
 		googleClient = new GoogleApiClient.Builder(this)
+		 .addConnectionCallbacks(this)
+		 .addOnConnectionFailedListener(this)
 		 .addApi(Games.API)
 		 .addScope(Games.SCOPE_GAMES)
 		 .addApi(Plus.API, null)
 		 .addScope(Plus.SCOPE_PLUS_PROFILE)
-		 .addConnectionCallbacks(this)
-		 .addOnConnectionFailedListener(this)
 		 .build();
 
 		// Now okay for event handler to be set up on native side
 		nativeResumeMainInit();
 		
 		// Try to establish a connection to Google Play
-		AndroidThunkJava_GooglePlayConnect();
+		// AndroidThunkJava_GooglePlayConnect();
 
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
@@ -532,6 +532,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// Set the flag that we successfully connected. Checked in onStart to re-establish the connection.
 		bHaveConnectedToGooglePlay = true;
 
+		nativeCompletedConnection(RESULT_OK);
+
 		// Load achievements. Since games are expected to pass in achievement progress as a percentage,
 		// we need to know what the maximum steps are in order to convert the percentage to an integer
 		// number of steps.
@@ -556,6 +558,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		if (bResolvingGoogleServicesError)
 		{
 			// Already attempting to resolve an error.
+			Log.debug("... and already trying to resolve an error.");
 			return;
 		}
 		else if (result.hasResolution())
@@ -600,14 +603,22 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		if (requestCode == GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR)
 		{
 			Log.debug("Google Play Services connection resolution finished with resultCode " + resultCode);
-			if (resultCode == RESULT_OK)
+			
+			bResolvingGoogleServicesError = false;
+
+			if (resultCode == RESULT_OK) // -1
 			{
-				bResolvingGoogleServicesError = false;
 				// Make sure the app is not already connected or attempting to connect
 				if (!googleClient.isConnecting() &&	!googleClient.isConnected())
 				{
 					googleClient.connect();
 				}
+			}
+			else
+			{
+				// translate result code? 
+				// 0 if we cancel out the attempt to error recover...
+				nativeCompletedConnection(resultCode);
 			}
 		}
 	}
@@ -730,6 +741,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// check if google play services is available on this device, or is available with an update
 		if ((status != ConnectionResult.SUCCESS) && (status != ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED))
 		{
+			nativeCompletedConnection(status);
 			return;
 		}
 
@@ -1039,6 +1051,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public native void nativeResumeMainInit();
 	
+	public native void nativeCompletedConnection(int errorCode);
+
 	static
 	{
 		System.loadLibrary("UE4");

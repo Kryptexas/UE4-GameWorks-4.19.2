@@ -314,7 +314,6 @@ void AndroidThunkCpp_CloseAdBanner()
  	}
 }
 
-
 namespace
 {
 	jobject GJavaAssetManager = NULL;
