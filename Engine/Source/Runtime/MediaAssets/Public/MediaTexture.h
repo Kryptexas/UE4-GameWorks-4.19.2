@@ -136,18 +136,18 @@ private:
 
 private:
 
-	// The texture's cached width and height (in pixels).
+	/** The texture's cached width and height (in pixels). */
 	FIntPoint CachedDimensions;
 
-	// Holds the media asset currently being used.
+	/** Holds the media asset currently being used. */
 	UMediaAsset* CurrentMediaAsset;
 
-	// Synchronizes access to this object from the render thread.
+	/** Synchronizes access to this object from the render thread. */
 	FRenderCommandFence* ReleasePlayerFence;
 
 	/** The video sample buffer. */
 	FMediaSampleBufferRef VideoBuffer;
 
-	// Holds the selected video track.
+	/** Holds the selected video track. */
 	IMediaTrackPtr VideoTrack;
 };

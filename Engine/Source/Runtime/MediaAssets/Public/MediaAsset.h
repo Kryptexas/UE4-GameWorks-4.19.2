@@ -271,9 +271,7 @@ public:
 
 protected:
 
-	/**
-	 * Initializes the media player.
-	 */
+	/** Initializes the media player. */
 	void InitializePlayer( );
 
 private:

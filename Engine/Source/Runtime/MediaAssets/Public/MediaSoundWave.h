@@ -68,9 +68,7 @@ public:
 
 protected:
 
-	/**
-	 * Initializes the audio stream.
-	 */
+	/** Initializes the audio stream. */
 	void InitializeStream( );
 
 private:
@@ -86,12 +84,12 @@ private:
 	/** The audio sample queue. */
 	FMediaSampleQueueRef AudioQueue;
 
-	// Holds the selected audio track.
+	/** Holds the selected audio track. */
 	IMediaTrackPtr AudioTrack;
 
-	// Holds the media asset currently being used.
+	/** Holds the media asset currently being used. */
 	UMediaAsset* CurrentMediaAsset;
 
-	// Holds queued audio samples
+	/** Holds queued audio samples. */
 	TArray<uint8> QueuedAudio;
 };

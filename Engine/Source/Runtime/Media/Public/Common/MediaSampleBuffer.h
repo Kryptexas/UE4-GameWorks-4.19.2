@@ -64,9 +64,9 @@ public:
 	
 private:
 
-	// Holds the sample data of the current media sample.
+	/** Holds the sample data of the current media sample. */
 	TSharedPtr<TArray<uint8>, ESPMode::ThreadSafe> CurrentSample;
 
-	// The playback time of the currently available media sample.
+	/** The playback time of the currently available media sample. */
 	FTimespan CurrentSampleTime;
 };

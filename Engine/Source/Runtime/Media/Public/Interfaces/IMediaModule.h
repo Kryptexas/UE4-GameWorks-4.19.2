@@ -67,7 +67,6 @@ public:
 	 * Gets a reference to the messaging module instance.
 	 *
 	 * @todo gmp: better implementation using dependency injection.
-	 *
 	 * @return A reference to the Media module.
 	 */
 	static IMediaModule& Get( )
@@ -82,8 +81,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IMediaModule( ) { }
 };

@@ -176,4 +176,9 @@ public:
 	 * @param Sink The sink to remove.
 	 */
 	virtual void RemoveSink( const IMediaSinkRef& Sink ) = 0;
+
+public:
+
+	/** Virtual destructor. */
+	virtual ~IMediaTrack( ) { }
 };
