@@ -262,7 +262,7 @@ class UNREALED_API ULevelEditorViewportSettings
 public:
 
 	/** If enabled will use power of 2 grid settings (e.g, 1,2,4,8,16,...,1024) instead of decimal grid sizes */
-	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "User Power of Two Snap Size"))
+	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Use Power of Two Snap Size"))
 	bool bUsePowerOf2SnapSize;
 
 	/** Decimal grid sizes (for translation snapping and grid rendering) */
