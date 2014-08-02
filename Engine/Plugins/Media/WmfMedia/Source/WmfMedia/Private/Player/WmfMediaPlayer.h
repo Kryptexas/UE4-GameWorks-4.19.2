@@ -33,6 +33,7 @@ public:
 	virtual FTimespan GetTime( ) const override;
 	virtual const TArray<IMediaTrackRef>& GetTracks( ) const override;
 	virtual FString GetUrl( ) const override;
+	virtual bool IsLooping( ) const override;
 	virtual bool IsPaused( ) const override;
 	virtual bool IsPlaying( ) const override;
 	virtual bool IsReady( ) const override;
@@ -40,6 +41,7 @@ public:
 	virtual bool Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl ) override;
 	virtual bool Play( float Rate ) override;
 	virtual bool Seek( const FTimespan& Time ) override;
+	virtual bool SetLooping( bool Looping ) override;
 	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
 	virtual bool SupportsScrubbing( ) const override;
 	virtual bool SupportsSeeking( ) const override;

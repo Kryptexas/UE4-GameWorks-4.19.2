@@ -33,8 +33,7 @@ UMediaAssetFactory::UMediaAssetFactory( const class FPostConstructInitializeProp
 UObject* UMediaAssetFactory::FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn )
 {
 	UMediaAsset* MediaAsset = CastChecked<UMediaAsset>(StaticConstructObject(Class, InParent, Name, Flags));
-	MediaAsset->URL.FilePath = CurrentFilename;
-	MediaAsset->PostEditChange();
+	MediaAsset->OpenUrl(CurrentFilename);
 
 	return MediaAsset;
 }

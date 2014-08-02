@@ -93,6 +93,14 @@ public:
 	virtual FString GetUrl( ) const = 0;
 
 	/**
+	 * Checks whether playback is currently looping.
+	 *
+	 * @return true if playback is looping, false otherwise.
+	 * @see SetLooping
+	 */
+	virtual bool IsLooping( ) const = 0;
+
+	/**
 	 * Checks whether media playback is currently paused.
 	 *
 	 * @return true if playback is paused, false otherwise.
@@ -161,6 +169,14 @@ public:
 	 * @see GetDuration, GetTime
 	 */
 	virtual bool Seek( const FTimespan& Time ) = 0;
+
+	/**
+	 * Sets whether playback should be looping.
+	 *
+	 * @param Looping Enables or disables looping.
+	 * @see IsLooping
+	 */
+	virtual bool SetLooping( bool Looping ) = 0;
 
 	/**
 	 * Checks whether the specified playback rate is supported.

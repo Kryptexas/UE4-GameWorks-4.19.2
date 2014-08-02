@@ -76,6 +76,12 @@ FString FWmfMediaPlayer::GetUrl( ) const
 }
 
 
+bool FWmfMediaPlayer::IsLooping( ) const 
+{
+	return ((MediaSession != NULL) && MediaSession->IsLooping());
+}
+
+
 bool FWmfMediaPlayer::IsPaused( ) const
 {
 	if (MediaSession == NULL)
@@ -189,6 +195,19 @@ bool FWmfMediaPlayer::Play( float Rate )
 bool FWmfMediaPlayer::Seek( const FTimespan& Time )
 {
 	return ((MediaSession != NULL) && MediaSession->SetPosition(Time));
+}
+
+
+bool FWmfMediaPlayer::SetLooping( bool Looping )
+{
+	if (MediaSession == NULL)
+	{
+		return false;
+	}
+
+	MediaSession->SetLooping(Looping);
+
+	return true;
 }
 
 

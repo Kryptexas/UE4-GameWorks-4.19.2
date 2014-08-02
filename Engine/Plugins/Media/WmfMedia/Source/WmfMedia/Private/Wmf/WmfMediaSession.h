@@ -103,6 +103,16 @@ public:
 	}
 
 	/**
+	 * Checks whether playback is currently looping.
+	 *
+	 * @return true if looping, false otherwise.
+	 */
+	bool IsLooping( ) const
+	{
+		return Looping;
+	}
+
+	/**
 	 * Checks whether the specified playback rate is supported.
 	 *
 	 * @param Rate The rate to check (can be negative for reverse play).
@@ -110,6 +120,16 @@ public:
 	 * @return true if the rate is supported, false otherwise.
 	 */
 	bool IsRateSupported( float Rate, bool Unthinned ) const;
+
+	/**
+	 * Sets whether playback should loop back to the beginning.
+	 *
+	 * @param InLooping Whether playback should be looped.
+	 */
+	void SetLooping( bool InLooping )
+	{
+		Looping = InLooping;
+	}
 
 	/**
 	 * Changes the playback position of the media.
@@ -201,6 +221,9 @@ private:
 
 	// Caches the last error result code (0 = no error).
 	HRESULT LastError;
+
+	// Whether playback should loop to the beginning.
+	bool Looping;
 
 	// The media session's clock.
 	TComPtr<IMFPresentationClock> PresentationClock;

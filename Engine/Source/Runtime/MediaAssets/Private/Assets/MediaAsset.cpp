@@ -11,7 +11,6 @@ UMediaAsset::UMediaAsset( const class FPostConstructInitializeProperties& PCIP )
 	, AutoPlay(false)
 	, Looping(true)
 	, PlaybackRate(1.0f)
-	, ResetOnLastFrame(false)
 	, StreamMode(MASM_FromUrl)
 	, MediaPlayer(nullptr)
 { }
@@ -71,6 +70,18 @@ FTimespan UMediaAsset::GetTime( ) const
 }
 
 
+const FString& UMediaAsset::GetUrl( ) const
+{
+	return CurrentUrl;
+}
+
+
+bool UMediaAsset::IsLooping( ) const
+{
+	return MediaPlayer.IsValid() && MediaPlayer->IsLooping();
+}
+
+
 bool UMediaAsset::IsPaused( ) const
 {
 	return MediaPlayer.IsValid() && MediaPlayer->IsPaused();
@@ -89,9 +100,24 @@ bool UMediaAsset::IsStopped( ) const
 }
 
 
+bool UMediaAsset::OpenUrl( const FString& NewUrl )
+{
+	URL.FilePath = NewUrl;
+	InitializePlayer();
+
+	return (CurrentUrl == NewUrl);
+}
+
+
 bool UMediaAsset::Pause( )
 {
 	return MediaPlayer.IsValid() && MediaPlayer->Pause();
+}
+
+
+bool UMediaAsset::Play( )
+{
+	return MediaPlayer.IsValid() && MediaPlayer->Play();
 }
 
 
@@ -101,9 +127,9 @@ bool UMediaAsset::Rewind( )
 }
 
 
-bool UMediaAsset::Play( )
+bool UMediaAsset::SetLooping( bool InLooping )
 {
-	return MediaPlayer.IsValid() && MediaPlayer->Play();
+	return MediaPlayer.IsValid() && MediaPlayer->SetLooping(InLooping);
 }
 
 
@@ -279,6 +305,9 @@ void UMediaAsset::InitializePlayer( )
 	{
 		return;
 	}
+
+	// start playback, if desired
+	MediaPlayer->SetLooping(Looping);
     
 	if (AutoPlay)
 	{

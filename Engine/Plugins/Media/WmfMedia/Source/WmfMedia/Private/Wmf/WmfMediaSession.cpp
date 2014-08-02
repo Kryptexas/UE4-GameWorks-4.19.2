@@ -12,6 +12,7 @@ FWmfMediaSession::FWmfMediaSession( const TComPtr<IMFTopology>& InTopology )
 	, ChangeRequested(false)
 	, CurrentRate(0.0f)
 	, LastError(S_OK)
+	, Looping(false)
 	, RefCount(1)
 	, RequestedPosition(FTimespan::MinValue())
 	, RequestedRate(0.0f)
@@ -179,7 +180,15 @@ STDMETHODIMP FWmfMediaSession::Invoke( IMFAsyncResult* AsyncResult )
 			}
 			else
 			{
-				if (EventType == MESessionCapabilitiesChanged)
+				if (EventType == MEEndOfPresentation)
+				{
+					if (!Looping)
+					{
+						RequestedState = EMediaStates::Stopped;
+						MediaSession->Stop();
+					}
+				}
+				else if (EventType == MESessionCapabilitiesChanged)
 				{
 					Capabilities = ::MFGetAttributeUINT32(Event, MF_EVENT_SESSIONCAPS, Capabilities);
 				}

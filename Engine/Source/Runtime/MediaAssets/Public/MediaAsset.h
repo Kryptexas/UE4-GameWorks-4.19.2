@@ -40,34 +40,6 @@ class MEDIAASSETS_API UMediaAsset
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Whether this media should automatically start playing when it is loaded. */
-	UPROPERTY(EditAnywhere, Category=Playback)
-	uint32 AutoPlay:1;
-
-	/** Whether playback should loop when it reaches the end. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Playback)
-	uint32 Looping:1;
-
-	/** The media's playback rate (1.0 = real time) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Playback)
-	float PlaybackRate;
-
-	/** The current playback position. */
-	UPROPERTY(BlueprintReadOnly, Category=Playback)
-	FTimespan Position;
-
-	/** Whether the media should reset to first frame when playback reaches the end. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Playback)
-	uint32 ResetOnLastFrame:1;
-
-	/** Select where to stream the media from, i.e. file or memory. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaSource)
-	TEnumAsByte<enum EMediaAssetStreamModes> StreamMode;
-
-	/** The URL to the media file to be played. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaSource)
-	FFilePath URL;
-
 public:
 
 	/**
@@ -126,6 +98,24 @@ public:
 	FTimespan GetTime( ) const;
 
 	/**
+	 * Gets the URL of the currently loaded media, if any.
+	 *
+	 * @return Media URL, or empty string if no media was loaded.
+	 * @see OpenUrl
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
+	const FString& GetUrl( ) const;
+
+	/**
+	 * Checks whether playback is looping.
+	 *
+	 * @return true if looping, false otherwise.
+	 * @see SetLooping
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
+	bool IsLooping( ) const;
+
+	/**
 	 * Checks whether playback is currently paused.
 	 *
 	 * @return true if playback is paused, false otherwise.
@@ -151,6 +141,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool IsStopped( ) const;
+
+	/**
+	 * Opens the specified media URL.
+	 *
+	 * @param NewUrl The URL to open.
+	 * @return true on success, false otherwise.
+	 * @see GetUrl
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
+	bool OpenUrl( const FString& NewUrl );
 
 	/**
 	 * Pauses media playback.
@@ -188,6 +188,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool Seek( const FTimespan& InTime );
+
+	/**
+	 * Enables or disables playback looping.
+	 *
+	 * @param Looping Whether playback should be looped.
+	 * @return true on success, false otherwise.
+	 * @see IsLooping
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
+	bool SetLooping( bool InLooping );
 
 	/**
 	 * Changes the media's playback rate.
@@ -273,6 +283,28 @@ protected:
 
 	/** Initializes the media player. */
 	void InitializePlayer( );
+
+protected:
+
+	/** Whether this media should automatically start playing when it is loaded. */
+	UPROPERTY(EditAnywhere, Category=Playback)
+	uint32 AutoPlay:1;
+
+	/** Whether playback should loop when it reaches the end. */
+	UPROPERTY(EditAnywhere, Category=Playback)
+	uint32 Looping:1;
+
+	/** The media's playback rate (1.0 = real time) */
+	UPROPERTY(EditAnywhere, Category=Playback)
+	float PlaybackRate;
+
+	/** Select where to stream the media from, i.e. file or memory. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaSource)
+	TEnumAsByte<enum EMediaAssetStreamModes> StreamMode;
+
+	/** The URL to the media file to be played. */
+	UPROPERTY(EditAnywhere, Category=MediaSource)
+	FFilePath URL;
 
 private:
 
