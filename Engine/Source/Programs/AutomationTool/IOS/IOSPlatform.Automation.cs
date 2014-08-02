@@ -275,6 +275,7 @@ public class IOSPlatform : Platform
 			// verify the .ipa exists
 			if (!FileExists(ProjectIPA))
 			{
+				ErrorReporter.Error(String.Format("PACKAGE FAILED - {0} was not created", ProjectIPA), (int)ErrorCodes.Error_FailedToCreateIPA);
 				throw new AutomationException("PACKAGE FAILED - {0} was not created", ProjectIPA);
 			}
 
@@ -493,6 +494,7 @@ public class IOSPlatform : Platform
 		}
 		if (Result.ExitCode != 0)
 		{
+			ErrorReporter.Error("CodeSign Failed", (int)ErrorCodes.Error_FailedToCodeSign);
 			throw new AutomationException("CodeSign Failed");
 		}
 	}

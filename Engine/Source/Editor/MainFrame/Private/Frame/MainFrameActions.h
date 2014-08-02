@@ -239,6 +239,15 @@ protected:
 	 */
 	static void CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon );
 
+	/**
+	 * Translate the given error code to human readable text
+	 *
+	 * @param ErrorCode - the error code returned from UAT task
+	 *
+	 * @return the human readable error string
+	 */
+	static FString TranslateUATError(int32 ErrorCode);
+
 	/** Callback for ChoosePackagesToCheckIn(), continues to bring up UI once source control operations are complete */
 	static void ChoosePackagesToCheckInCallback(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult);
 

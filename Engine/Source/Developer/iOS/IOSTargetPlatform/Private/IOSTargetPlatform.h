@@ -84,7 +84,7 @@ public:
 	}
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
-	virtual int IsReadyToBuild(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override;
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override;
 
 
 #if WITH_ENGINE

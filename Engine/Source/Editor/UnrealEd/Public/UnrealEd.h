@@ -56,6 +56,8 @@ UNREALED_API void EditorExit();
 
 #include "UnrealEdMessages.h"
 
+#include "EditorAnalytics.h"
+
 #endif // __cplusplus
 
 #endif	// __UnrealEd_h__

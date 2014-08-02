@@ -416,6 +416,7 @@ public class DeploymentContext //: ProjectParams
 
 		if (FilesAdded == 0 && !bAllowNone)
 		{
+			AutomationTool.ErrorReporter.Error(String.Format("No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard), (int)AutomationTool.ErrorCodes.Error_StageMissingFile);
 			throw new AutomationException("No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
 		}
 

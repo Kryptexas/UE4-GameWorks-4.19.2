@@ -113,7 +113,7 @@ namespace iPhonePackager
 						if (!DeploymentHelper.Get().BackupDocumentsDirectory(ApplicationIdentifier, Config.GetRootBackedUpDocumentsDirectory()))
 						{
 							Program.Error("Failed to transfer documents directory from device to PC");
-							Program.ReturnCode = 100;
+							Program.ReturnCode = (int)ErrorCodes.Error_DeviceBackupFailed;
 						}
 					}
 					break;
@@ -128,7 +128,7 @@ namespace iPhonePackager
 						if (!DeploymentHelper.Get().UninstallIPAOnDevice(ApplicationIdentifier))
 						{
 							Program.Error("Failed to uninstall IPA on device");
-							Program.ReturnCode = 100;
+							Program.ReturnCode = (int)ErrorCodes.Error_IPAUninstallFailed;
 						}
 					}
 					break;
@@ -146,13 +146,13 @@ namespace iPhonePackager
 							if (!DeploymentHelper.Get().InstallIPAOnDevice(IPAPath))
 							{
 								Program.Error("Failed to install IPA on device");
-								Program.ReturnCode = 100;
+								Program.ReturnCode = (int)ErrorCodes.Error_IPAInstallFailed;
 							}
 						}
 						else
 						{
 							Program.Error(String.Format("Failed to find IPA file: '{0}'", IPAPath));
-							Program.ReturnCode = 100;
+							Program.ReturnCode = (int)ErrorCodes.Error_IPANotFound;
 						}
 					}
 					break;

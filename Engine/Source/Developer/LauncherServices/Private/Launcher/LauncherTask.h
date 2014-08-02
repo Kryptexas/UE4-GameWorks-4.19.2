@@ -24,6 +24,7 @@ public:
 		, Status(ELauncherTaskStatus::Pending)
 		, ReadPipe(InReadPipe)
 		, WritePipe(InWritePipe)
+		, Result(0)
 	{ }
 
 public:
@@ -111,6 +112,22 @@ public:
 		}
 
 		return Status == ELauncherTaskStatus::Completed;
+	}
+
+	int32 ReturnCode() const
+	{
+		if (IsChainFinished())
+		{
+			for (int32 ContinuationIndex = 0; ContinuationIndex < Continuations.Num(); ++ContinuationIndex)
+			{
+				if (Continuations[ContinuationIndex]->ReturnCode() != 0)
+				{
+					return Continuations[ContinuationIndex]->ReturnCode();
+				}
+			}
+		}
+
+		return Result;
 	}
 
 public:
@@ -305,4 +322,7 @@ protected:
 	// read and write pipe
 	void* ReadPipe;
 	void* WritePipe;
+
+	// result
+	int32 Result;
 };

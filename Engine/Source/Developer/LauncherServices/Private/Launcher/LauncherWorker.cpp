@@ -107,7 +107,7 @@ uint32 FLauncherWorker::Run( )
 	}
 	else
 	{
-		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime);
+		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime, TaskChain->ReturnCode());
 	}
 
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
