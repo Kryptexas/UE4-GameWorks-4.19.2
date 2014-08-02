@@ -121,7 +121,10 @@ protected:
 	/** Unregisters all asset thumbnail renderers. */
 	void UnregisterThumbnailRenderers( )
 	{
-		UThumbnailManager::Get().UnregisterCustomRenderer(UMediaTexture::StaticClass());
+		if (UObjectInitialized())
+		{
+			UThumbnailManager::Get().UnregisterCustomRenderer(UMediaTexture::StaticClass());
+		}
 	}
 
 private:
