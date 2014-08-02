@@ -859,18 +859,29 @@ namespace UnrealBuildTool
 	{
 		public class AutoGenerateCppInfoClass
 		{
-			/** The filename of the *.generated.cpp file which was generated for the module */
-			public readonly string Filename;
-
-			public AutoGenerateCppInfoClass(string InFilename)
+			public class BuildInfoClass
 			{
-				Debug.Assert(InFilename != null);
+				/** The filename of the *.generated.cpp file which was generated for the module */
+				public readonly string Filename;
 
-				Filename = InFilename;
+				public BuildInfoClass(string InFilename)
+				{
+					Debug.Assert(InFilename != null);
+
+					Filename = InFilename;
+				}
+			}
+
+			/** Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module. */
+			public BuildInfoClass BuildInfo;
+
+			public AutoGenerateCppInfoClass(BuildInfoClass InBuildInfo)
+			{
+				BuildInfo = InBuildInfo;
 			}
 		}
 
-		/** Information about the .inl file . */
+		/** Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code. */
 		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
 		public class SourceFilesClass
@@ -1436,9 +1447,9 @@ namespace UnrealBuildTool
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( Target, CPPFilesToCompile, Name ).ObjectFiles );
 			}
 
-			if (AutoGenerateCppInfo != null && !CPPCompileEnvironment.bHackHeaderGenerator)
+			if (AutoGenerateCppInfo != null && AutoGenerateCppInfo.BuildInfo != null && !CPPCompileEnvironment.bHackHeaderGenerator)
 			{
-				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.Filename );
+				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.BuildInfo.Filename );
 
 				CachePCHUsageForModuleSourceFile( this.Target, CPPCompileEnvironment, GeneratedCppFileItem );
 
