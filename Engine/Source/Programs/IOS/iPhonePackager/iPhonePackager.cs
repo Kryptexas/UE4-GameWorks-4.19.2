@@ -132,13 +132,13 @@ namespace iPhonePackager
 				// we NEED a project, so show a uproject picker
 				string UProjectFile;
 				string StartingDir = "";
-				if (ToolsHub.ShowOpenFileDialog("Unreal Project Files (*.uproject)|*.uproject;", "IPhonePackager now requires a .uproject file to continue", "mobileprovision", "", ref StartingDir, out UProjectFile))
+				if (ToolsHub.ShowOpenFileDialog("Unreal Project Files (*.uproject)|*.uproject;", "IPhonePackager now requires a .uproject file for certificate/provisioning setup", "mobileprovision", "", ref StartingDir, out UProjectFile))
 				{
 					Arguments = new string[] { UProjectFile };
 				}
 				else
 				{
-					return false;
+					Arguments = new string[] { "gui" };
 				}
 			}
 
