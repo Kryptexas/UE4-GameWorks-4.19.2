@@ -71,6 +71,12 @@ void VertexMain(
 	#define DEPTH_BUFFER_COLLISION 0
 #endif
 
+/** Position (XYZ) and squared radius (W) of the point attractor. */
+float4 PointAttractor;
+/** Position offset (XYZ) to add to particles and strength of the attractor (W). */
+float4 PositionOffsetAndAttractorStrength;
+/** Amount by which to scale bounds for collision purposes. */
+float2 LocalToWorldScale;
 /** Amount of time by which to simulate particles. */
 float DeltaSeconds;
 
@@ -194,9 +200,9 @@ float3 ComputeDrag(float3 Velocity, float DragCoefficient)
  */
 float3 ComputeAttractionForce(float3 Position)
 {
-	float3 PointLoc = SimulationPerFrame.PointAttractor.xyz;
-	float RadiusSq = SimulationPerFrame.PointAttractor.w;
-	float Strength = SimulationPerFrame.PointAttractorStrength;
+	float3 PointLoc = PointAttractor.xyz;
+	float RadiusSq = PointAttractor.w;
+	float Strength = PositionOffsetAndAttractorStrength.w;
 
 	float3 DirectionToPoint = PointLoc - Position + float3(0, 0, 0.0001f);
 	float DistSq = max(dot(DirectionToPoint,DirectionToPoint), RadiusSq);
@@ -373,7 +379,7 @@ void PixelMain(
 	// Compute the size of the sprite. Note it is (0,0) if the sprite is dead.
 	float2 InitialSize = RenderAttributeSample.xy;
 	float2 SizeScale = MiscCurve.xy;
-	float2 Size = InitialSize * SizeScale * SimulationPerFrame.LocalToWorldScale;
+	float2 Size = InitialSize * SizeScale * LocalToWorldScale;
 
 	// Compute the radius with which to perform collision checks.
 	float CollisionRadius = min(Size.x,Size.y) * Simulation.CollisionRadiusScale + Simulation.CollisionRadiusBias;
@@ -403,7 +409,7 @@ void PixelMain(
 	const float3 OrbitVelocity = ComputeOrbitVelocity(RelativeTime, OrbitRandom);
 
 	// Store the new position, time, and velocity for the particle.
-	OutPosition.xyz = NewPosition + OrbitVelocity * DeltaSeconds + SimulationPerFrame.PositionOffset;
+	OutPosition.xyz = NewPosition + OrbitVelocity * DeltaSeconds + PositionOffsetAndAttractorStrength.xyz;
 	OutPosition.w = RelativeTime;
 	OutVelocity.xyz = NewVelocity;
 	OutVelocity.w = TimeScale;
