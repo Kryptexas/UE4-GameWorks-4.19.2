@@ -102,12 +102,12 @@ void EndInitTextLocalization()
 					if(AvailableCultures.Contains(TargetCulture))
 					{
 						// Fallback to base language.
-						UE_LOG(LogTextLocalizationManager, Warning, TEXT("The selected culture '%s' has no localization data; falling back to base language '%s'"), *RequestedCultureName, *TargetCultureName);
+						UE_LOG(LogTextLocalizationManager, Log, TEXT("The selected culture '%s' has no localization data; falling back to base language '%s'"), *RequestedCultureName, *TargetCultureName);
 					}
 					else
 					{
 						// Fallback to English.
-						UE_LOG(LogTextLocalizationManager, Warning, TEXT("The selected culture '%s' has no localization data; falling back to 'en'"), *RequestedCultureName);
+						UE_LOG(LogTextLocalizationManager, Log, TEXT("The selected culture '%s' has no localization data; falling back to 'en'"), *RequestedCultureName);
 						TargetCultureName = "en";
 					}
 				}
