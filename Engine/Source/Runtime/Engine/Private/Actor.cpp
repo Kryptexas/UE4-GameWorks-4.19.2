@@ -1452,8 +1452,6 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	ReceiveEndPlay(EndPlayReason);
 	OnEndPlay.Broadcast(EndPlayReason);
 
-	RegisterAllActorTickFunctions(false, true);
-
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
 	{
