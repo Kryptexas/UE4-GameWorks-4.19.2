@@ -1040,6 +1040,10 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	// apply additional settings
 	if (bPlayUsingMobilePreview)
 	{
+		if (IsOpenGLPlatform(GRHIShaderPlatform))
+		{
+			AdditionalParameters += TEXT(" -opengl");
+		}
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
 	}
 
