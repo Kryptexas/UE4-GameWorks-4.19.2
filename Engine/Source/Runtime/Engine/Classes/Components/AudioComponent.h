@@ -4,7 +4,6 @@
 #pragma once
 #include "Audio.h"
 #include "Sound/SoundAttenuation.h"
-#include "Engine/EngineTypes.h"
 
 #include "AudioComponent.generated.h"
 

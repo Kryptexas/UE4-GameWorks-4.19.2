@@ -4,6 +4,8 @@
 #pragma once
 #include "MaterialExpression.generated.h"
 
+class FMaterialExpressionKey;
+
 //@warning: FExpressionInput is mirrored in MaterialShared.h and manually "subclassed" in Material.h (FMaterialInput)
 #if !CPP      //noexport struct
 USTRUCT(noexport)

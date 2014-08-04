@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
-
+#include "ISequencer.h"
 #include "PreviewScene.h"
 
 class ISequencer;

@@ -5,6 +5,7 @@
 #include "AnimationAsset.h"
 #include "AnimSequence.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;

@@ -10,6 +10,7 @@
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"
 #include "MaterialShared.h"
+#include "Materials/MaterialInterface.h"
 
 #define _ENABLE_PARTICLE_LOD_INGAME_
 

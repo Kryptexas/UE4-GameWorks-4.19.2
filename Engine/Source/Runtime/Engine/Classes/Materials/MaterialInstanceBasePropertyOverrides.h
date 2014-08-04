@@ -3,6 +3,8 @@
 #pragma once
 #include "MaterialInstanceBasePropertyOverrides.generated.h"
 
+class UMaterialInstance;
+
 /** Properties from the base material that can be overridden in material instances. */
 USTRUCT()
 struct ENGINE_API FMaterialInstanceBasePropertyOverrides

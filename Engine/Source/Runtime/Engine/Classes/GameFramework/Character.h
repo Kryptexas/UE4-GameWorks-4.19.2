@@ -14,7 +14,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignatur
 //
 // Forward declarations
 //
+class UAnimMontage;
+class UPrimitiveComponent;
 struct FAnimMontageInstance;
+
 /** Replicated data when playing a root motion montage. */
 USTRUCT()
 struct FRepRootMotionMontage
@@ -23,7 +26,7 @@ struct FRepRootMotionMontage
 
 	/** AnimMontage providing Root Motion */
 	UPROPERTY()
-	class UAnimMontage* AnimMontage;
+	UAnimMontage* AnimMontage;
 
 	/** Track position of Montage */
 	UPROPERTY()

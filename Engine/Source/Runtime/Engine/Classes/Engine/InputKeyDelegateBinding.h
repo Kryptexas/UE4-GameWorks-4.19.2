@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Components/InputComponent.h"
+#include "Engine/InputDelegateBinding.h"
 #include "InputKeyDelegateBinding.generated.h"
 
 USTRUCT()

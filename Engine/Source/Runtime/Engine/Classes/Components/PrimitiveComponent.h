@@ -2,21 +2,17 @@
 
 #pragma once
 
-#include "Runtime/Core/Public/Containers/StaticArray.h"
 #include "Runtime/InputCore/Classes/InputCoreTypes.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
-#include "Components/LightComponent.h"
-#include "Materials/MaterialInterface.h"
 #include "SceneTypes.h"
-#include "CollisionQueryParams.h"
-#include "Engine/Scene.h"
 #include "Engine/EngineTypes.h"
 
 #include "PrimitiveComponent.generated.h"
 
 class FPrimitiveSceneProxy;
 class AController; 
+class UTexture;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
 struct FStreamingTexturePrimitiveInfo

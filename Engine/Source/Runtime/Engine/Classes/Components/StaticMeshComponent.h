@@ -5,7 +5,6 @@
 #include "SceneTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
-#include "Lightmass/LightmassPrimitiveSettingsObject.h"
 
 #include "StaticMeshComponent.generated.h"
 

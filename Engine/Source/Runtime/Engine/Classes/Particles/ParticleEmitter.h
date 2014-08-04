@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "Components/SceneComponent.h"
 #include "ParticleEmitterInstances.h"
 #include "ParticleEmitter.generated.h"
 
@@ -145,7 +146,7 @@ class UParticleEmitter : public UObject
 
 	/** If detail mode is >= system detail mode, primitive won't be rendered. */
 	UPROPERTY(EditAnywhere, Category=Particle)
-	TEnumAsByte<enum EDetailMode> DetailMode;
+	TEnumAsByte<EDetailMode> DetailMode;
 
 #if WITH_EDITORONLY_DATA
 	/** This value indicates the emitter should be drawn 'collapsed' in Cascade */

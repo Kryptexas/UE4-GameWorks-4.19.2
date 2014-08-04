@@ -5,7 +5,6 @@
 #include "Particles/Event/ParticleModuleEventBase.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleEventGenerator.generated.h"
-
 /**
  */
 USTRUCT()

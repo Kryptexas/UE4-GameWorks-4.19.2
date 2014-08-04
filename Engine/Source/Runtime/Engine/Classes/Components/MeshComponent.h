@@ -5,6 +5,8 @@
 #include "Components/PrimitiveComponent.h"
 #include "MeshComponent.generated.h"
 
+struct FMaterialRelevance;
+
 UCLASS(abstract)
 class ENGINE_API UMeshComponent : public UPrimitiveComponent
 {

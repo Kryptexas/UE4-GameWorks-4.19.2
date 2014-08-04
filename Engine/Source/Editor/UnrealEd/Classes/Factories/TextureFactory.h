@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Engine/Texture.h"
+#include "Factories/Factory.h"
 #include "TextureFactory.generated.h"
 
 UCLASS(customconstructor, collapsecategories, hidecategories=Object)

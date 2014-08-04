@@ -4,6 +4,7 @@
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "Engine/EngineTypes.h"
 #include "NavLinkCustomComponent.generated.h"
 
 /**

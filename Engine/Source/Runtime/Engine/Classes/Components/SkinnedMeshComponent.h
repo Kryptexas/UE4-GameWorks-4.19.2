@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include "SkeletalMeshTypes.h"
 #include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
 
@@ -16,7 +15,8 @@
 // Forward declarations
 //
 class FSkeletalMeshResource;
-
+struct FSkelMeshChunk;
+class FSkeletalMeshVertexBuffer;
 //
 // Bone Visibility.
 //

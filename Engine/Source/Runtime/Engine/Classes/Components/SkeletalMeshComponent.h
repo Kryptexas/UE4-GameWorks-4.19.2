@@ -5,6 +5,7 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "SkeletalMeshTypes.h"
 #include "SkeletalMeshComponent.generated.h"
 
 class UAnimInstance;

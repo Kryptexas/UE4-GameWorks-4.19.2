@@ -5,11 +5,9 @@
  */
 
 #pragma once
-
 #include "Editor/UnrealEdTypes.h"
-
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
-
+#include "StaticParameterSet.h"
 #include "MaterialEditorInstanceConstant.generated.h"
 
 USTRUCT()

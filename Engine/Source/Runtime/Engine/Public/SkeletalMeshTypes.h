@@ -14,6 +14,7 @@
 #include "GPUSkinPublicDefs.h"
 #include "Components/PrimitiveComponent.h"
 #include "PrimitiveSceneProxy.h"
+#include "Materials/MaterialInterface.h"
 
 typedef uint16 FBoneIndexType;
 
