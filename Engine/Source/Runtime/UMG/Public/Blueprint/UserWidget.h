@@ -102,7 +102,11 @@ public:
 	//UObject interface
 	virtual void PostInitProperties() override;
 	virtual class UWorld* GetWorld() const override;
+	virtual void PostEditImport() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	// End of UObject interface
+
+	void Initialize();
 
 	//UVisual interface
 	virtual void ReleaseNativeWidget() override;
@@ -339,4 +343,43 @@ private:
 	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;
+
+	bool bInitialized;
+
+	mutable UWorld* CachedWorld;
 };
+
+template< class T >
+T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
+{
+	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	{
+		// TODO UMG Error?
+		return NULL;
+	}
+
+	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
+
+	UObject* Outer = ( Player == NULL ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+	NewWidget->Initialize();
+
+	return Cast<T>(NewWidget);
+}
+
+template< class T >
+T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
+{
+	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	{
+		// TODO UMG Error?
+		return NULL;
+	}
+
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningPlayer);
+	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
+	NewWidget->Initialize();
+
+	return Cast<T>(NewWidget);
+}

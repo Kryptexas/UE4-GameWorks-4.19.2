@@ -138,6 +138,34 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Fill;
 
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;
+
+	bInitialized = false;
+	CachedWorld = NULL;
+}
+
+void UUserWidget::Initialize()
+{
+	if ( !bInitialized )
+	{
+		bInitialized = true;
+
+		// Only do this if this widget is of a blueprint class
+		UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+		if ( BGClass != NULL )
+		{
+			BGClass->InitializeWidget(this);
+		}
+	}
+}
+
+void UUserWidget::PostEditImport()
+{
+	Initialize();
+}
+
+void UUserWidget::PostDuplicate(bool bDuplicateForPIE)
+{
+	Initialize();
 }
 
 void UUserWidget::ReleaseNativeWidget()
@@ -156,14 +184,6 @@ void UUserWidget::PostInitProperties()
 	Super::PostInitProperties();
 
 	Components.Reset();
-
-	// Only do this if this widget is of a blueprint class
-	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if ( BGClass != NULL )
-	{
-		BGClass->InitializeWidget(this);
-	}
-
 	//TODO UMG For non-BP versions how do we generate the Components list?
 }
 
@@ -174,7 +194,22 @@ UWorld* UUserWidget::GetWorld() const
 		return PlayerContext.GetWorld();
 	}
 
-	return NULL;
+	if ( CachedWorld == NULL )
+	{
+		UObject* Outer = GetOuter();
+		while ( Outer != NULL )
+		{
+			CachedWorld = Outer->GetWorld();
+			if ( CachedWorld )
+			{
+				return CachedWorld;
+			}
+
+			Outer = Outer->GetOuter();
+		}
+	}
+	
+	return CachedWorld;
 }
 
 void UUserWidget::PlayAnimation(FName AnimationName)
@@ -239,6 +274,8 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
 	TSharedPtr<SWidget> UserRootWidget;
 
+	check(bInitialized);
+
 	// Add the first component to the root of the widget surface.
 	if ( Components.Num() > 0 && Components[0] != NULL )
 	{
@@ -296,7 +333,8 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 		if ( World )
 		{
 			// Update any latent actions we have for this actor
-			World->GetLatentActionManager().ProcessLatentActions(this, InDeltaTime);
+			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+			LatentActionManager.ProcessLatentActions(this, InDeltaTime);
 		}
 	}
 

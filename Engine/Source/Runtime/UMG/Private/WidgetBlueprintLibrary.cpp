@@ -16,77 +16,16 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeP
 
 UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType, APlayerController* OwningPlayer)
 {
-	if ( WidgetType == NULL || WidgetType->HasAnyClassFlags(CLASS_Abstract) )
-	{
-		// TODO UMG script Error?
-		return NULL;
-	}
-
-	UUserWidget* NewWidget = NULL;
-
 	if ( OwningPlayer == NULL )
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		ULocalPlayer* Player = GEngine->GetGamePlayer(World, 0);
-
-		NewWidget = ConstructObject<UUserWidget>(WidgetType, Player);
-		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+		return CreateWidget<UUserWidget>(World, WidgetType);
 	}
 	else
 	{
-		NewWidget = ConstructObject<UUserWidget>(WidgetType, OwningPlayer);
-		NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
+		return CreateWidget<UUserWidget>(OwningPlayer, WidgetType);
 	}
-
-	return NewWidget;
 }
-
-//void UWidgetBlueprintLibrary::Popup(UObject* WorldContextObject, UWidget* PopupWidget, int32 ZIndex)
-//{
-//	if ( !(WorldContextObject || PopupWidget) )
-//	{
-//		return;
-//	}
-//
-//	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-//	if ( World && World->IsGameWorld() )
-//	{
-//		TSharedRef<SWidget> SlatePopupWidget = PopupWidget->GetWidget();
-//
-//		UGameViewportClient* Viewport = World->GetGameViewport();
-//		Viewport->AddViewportWidgetContent(SlatePopupWidget, ZIndex);
-//
-//		TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-//		if ( GameViewportWidget.IsValid() )
-//		{
-//			GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(SlatePopupWidget);
-//			FSlateApplication::Get().SetKeyboardFocus(SlatePopupWidget);
-//		}
-//
-//		
-//
-//		//TSharedPtr<SWeakWidget> PopupWrapperPtr;
-//		//PopupLayerSlot = &PopupWindow->AddPopupLayerSlot()
-//		//	.DesktopPosition(NewPosition)
-//		//	.WidthOverride(NewWindowSize.X)
-//		//	[
-//		//		SAssignNew(PopupWrapperPtr, SWeakWidget)
-//		//		.PossiblyNullContent
-//		//		(
-//		//		MenuContentRef
-//		//		)
-//		//	];
-//
-//		// We want to support dismissing the popup widget when the user clicks outside it.
-//		//FSlateApplication::Get().GetPopupSupport().RegisterClickNotification(PopupWrapperPtr.ToSharedRef(), FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup));
-//		//}
-//
-//		//if ( bFocusMenu )
-//		//{
-//		//	FSlateApplication::Get().SetKeyboardFocus(MenuContentRef, EKeyboardFocusCause::SetDirectly);
-//		//}
-//	}
-//}
 
 void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
 {
