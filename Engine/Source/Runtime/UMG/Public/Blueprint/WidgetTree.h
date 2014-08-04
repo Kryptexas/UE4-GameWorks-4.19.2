@@ -27,7 +27,7 @@ public:
 	/** Gathers all the widgets in the tree recursively */
 	void GetAllWidgets(TArray<UWidget*>& Widgets) const;
 
-	/** Gathers only the immediate child widgets of a parent widget. */
+	/** Gathers descendant child widgets of a parent widget. */
 	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
 
 	/** Constructs the widget, and adds it to the tree. */

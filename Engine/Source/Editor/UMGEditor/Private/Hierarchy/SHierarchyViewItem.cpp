@@ -164,21 +164,29 @@ void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Ty
 
 FSlateFontInfo SHierarchyViewItem::GetItemFont() const
 {
-	if ( !Item.GetTemplate()->IsGeneratedName() && Item.GetTemplate()->bIsVariable )
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate )
 	{
-		// TODO UMG Hacky move into style area
-		return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+		if ( !WidgetTemplate->IsGeneratedName() && WidgetTemplate->bIsVariable )
+		{
+			// TODO UMG Hacky move into style area
+			return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+		}
 	}
-	else
-	{
-		static FName NormalFont("NormalFont");
-		return FCoreStyle::Get().GetFontStyle(NormalFont);
-	}
+
+	static FName NormalFont("NormalFont");
+	return FCoreStyle::Get().GetFontStyle(NormalFont);
 }
 
 FText SHierarchyViewItem::GetItemText() const
 {
-	return FText::FromString(Item.GetTemplate()->GetLabel());
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate )
+	{
+		return FText::FromString(WidgetTemplate->GetLabel());
+	}
+
+	return FText::GetEmpty();
 }
 
 FReply SHierarchyViewItem::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

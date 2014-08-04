@@ -70,10 +70,10 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
 		);
 
-	//WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
-	//	FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedNodes),
-	//	FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutNodes)
-	//	);
+	WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutSelectedWidgets)
+		);
 
 	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
@@ -235,6 +235,18 @@ void FWidgetBlueprintEditor::CopySelectedWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetBlueprintEditorUtils::CopyWidgets(GetWidgetBlueprintObj(), Widgets);
+}
+
+bool FWidgetBlueprintEditor::CanCutSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	return Widgets.Num() > 0;
+}
+
+void FWidgetBlueprintEditor::CutSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	FWidgetBlueprintEditorUtils::CutWidgets(GetWidgetBlueprintObj(), Widgets);
 }
 
 bool FWidgetBlueprintEditor::CanPasteWidgets()
