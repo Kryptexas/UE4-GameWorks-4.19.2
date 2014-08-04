@@ -1690,7 +1690,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) {}
 
 	/**
-	 * Helper function to regoster tje specified component, and add it to the serialized components array
+	 * Helper function to register the specified component, and add it to the serialized components array
 	 * @param	Component	Component to be finalized
 	 */
 	void FinishAndRegisterComponent(UActorComponent* Component);
