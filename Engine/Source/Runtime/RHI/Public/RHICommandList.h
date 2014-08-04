@@ -61,7 +61,7 @@ public:
 	template <typename TCmd>
 	FORCEINLINE_DEBUGGABLE void* AllocCommand()
 	{
-		checkSlow(!bExecuting);
+		checkSlow(!IsExecuting());
 		TCmd* Result = (TCmd*)Alloc<TCmd>();
 		++NumCommands;
 		*CommandLink = Result;
@@ -75,6 +75,10 @@ public:
 	FORCEINLINE bool HasCommands() const
 	{
 		return (NumCommands > 0);
+	}
+	FORCEINLINE bool IsExecuting() const
+	{
+		return bExecuting;
 	}
 
 	inline bool Bypass();
@@ -1049,6 +1053,11 @@ struct FRHICommandSetLocalUniformBuffer : public FRHICommand<FRHICommandSetLocal
 class RHI_API FRHICommandList : public FRHICommandListBase
 {
 public:
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory);
+
 	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
 	{
 		return BuildLocalBoundShaderState(
@@ -1625,7 +1634,7 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void Verify()
 	{
-		check(CommandListImmediate.bExecuting || !CommandListImmediate.HasCommands());
+		check(CommandListImmediate.IsExecuting() || !CommandListImmediate.HasCommands());
 	}
 	FORCEINLINE_DEBUGGABLE bool Bypass()
 	{

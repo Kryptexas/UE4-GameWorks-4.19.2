@@ -620,10 +620,11 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 	ObservedDebugNameReusedGoal = InObservedDebugNameReusedGoal;
 }
 
-void FVisualizeTexture::SetCheckPoint(FRHICommandListImmediate& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
+void FVisualizeTexture::SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
 {
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	check(IsInRenderingThread());
 	if (!PooledRenderTarget || !bEnabled)
 	{
 		// Don't checkpoint on ES2 to avoid TMap alloc/reallocations
@@ -648,7 +649,24 @@ void FVisualizeTexture::SetCheckPoint(FRHICommandListImmediate& RHICmdList, cons
 		// if multiple times reused during the frame, is that the one we want to look at?
 		if(*UsageCountPtr == ObservedDebugNameReusedGoal || ObservedDebugNameReusedGoal == 0xffffffff)
 		{
-			GenerateContent(RHICmdList, RenderTargetItem, Desc);
+			FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
+			if (RHICmdListIm.IsExecuting())
+			{
+				UE_LOG(LogConsoleResponse, Fatal, TEXT("We can't create a checkpoint because that requires the immediate commandlist, which is currently executing. You might try disabling parallel rendering."));
+			}
+			else
+			{
+				if (&RHICmdList != &RHICmdListIm)
+				{
+					UE_LOG(LogConsoleResponse, Warning, TEXT("Attempt to checkpoint a render target from a non-immediate command list. We will flush it and hope that works. If it doesn't you might try disabling parallel rendering."));
+					RHICmdList.Flush();
+				}
+				GenerateContent(RHICmdListIm, RenderTargetItem, Desc);
+				if (&RHICmdList != &RHICmdListIm)
+				{
+					RHICmdListIm.Flush();
+				}
+			}
 		}
 	}
 	// only needed for VisualizeTexture (todo: optimize out when possible)

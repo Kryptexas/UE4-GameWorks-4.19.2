@@ -241,28 +241,29 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 }
 
 template<typename DrawingPolicyType>
-bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
+bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
-	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray
+	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray,
+	int32 FirstPolicy, int32 LastPolicy
 	)
 {
 	bool bDirty = false;
-	for(typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
+	for (int32 Index = FirstPolicy; Index <= LastPolicy; Index++)
 	{
-		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
+		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[OrderedDrawingPolicies[Index]];
 		bool bDrawnShared = false;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
 		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
-		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
+		for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+			if (StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
+				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, Element.Mesh->GetNumPrimitives());
 				// Avoid the cache miss looking up batch visibility if there is only one element.
 				uint64 BatchElementMask = Element.Mesh->Elements.Num() == 1 ? 1 : BatchVisibilityArray[Element.Mesh->Id];
 				DrawElement(RHICmdList, View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
@@ -271,6 +272,17 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 		}
 	}
 	return bDirty;
+}
+
+template<typename DrawingPolicyType>
+bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
+	FRHICommandList& RHICmdList,
+	const FViewInfo& View,
+	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
+	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray
+	)
+{
+	return DrawVisibleInner(RHICmdList, View, StaticMeshVisibilityMap, BatchVisibilityArray, 0, OrderedDrawingPolicies.Num() - 1);
 }
 
 
@@ -325,26 +337,9 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		for (int32 Index = this->FirstPolicy; Index <= this->LastPolicy; Index++)
+		if (this->Caller.DrawVisibleInner(this->RHICmdList, this->View, this->StaticMeshVisibilityMap, this->BatchVisibilityArray, this->FirstPolicy, this->LastPolicy))
 		{
-			typename TStaticMeshDrawList<DrawingPolicyType>::FDrawingPolicyLink* DrawingPolicyLink = &this->Caller.DrawingPolicySet[this->Caller.OrderedDrawingPolicies[Index]];
-			bool bDrawnShared = false;
-			FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
-			const int32 NumElements = DrawingPolicyLink->Elements.Num();
-			FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
-			const typename TStaticMeshDrawList<DrawingPolicyType>::FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
-			for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
-			{
-				if (this->StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
-				{
-					const typename TStaticMeshDrawList<DrawingPolicyType>::FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-					INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, Element.Mesh->GetNumPrimitives());
-					// Avoid the cache miss looking up batch visibility if there is only one element.
-					uint64 BatchElementMask = Element.Mesh->Elements.Num() == 1 ? 1 : this->BatchVisibilityArray[Element.Mesh->Id];
-					this->Caller.DrawElement(this->RHICmdList, this->View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
-					this->OutDirty = true;
-				}
-			}
+			this->OutDirty = true;
 		}
 	}
 };

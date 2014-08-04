@@ -268,6 +268,17 @@ public:
 	bool DrawVisible(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap);
 
 	/**
+	* Draws only the static meshes which are in the visibility map, limited to a range of policies
+	* @param View - The view of the meshes to render.
+	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
+	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
+	* @param FirstPolicy - First policy to render
+	* @param LastPolicy - Last policy to render
+	* @return True if any static meshes were drawn.
+	*/
+	bool DrawVisibleInner(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 FirstPolicy, int32 LastPolicy);
+
+	/**
 	 * Draws only the static meshes which are in the visibility map.
 	 * @param View - The view of the meshes to render.
 	 * @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.

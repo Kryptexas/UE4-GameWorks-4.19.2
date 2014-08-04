@@ -48,7 +48,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListBase& CmdList)
 {
 	check(IsInRenderingThread() && &CmdList != &GetImmediateCommandList());
 
-	if (!GetImmediateCommandList().bExecuting) // don't flush if this is a recursive call and we are already executing the immediate command list
+	if (!GetImmediateCommandList().IsExecuting()) // don't flush if this is a recursive call and we are already executing the immediate command list
 	{
 		GetImmediateCommandList().Flush();
 	}
@@ -138,5 +138,24 @@ void FRHICommandListBase::Reset()
 	CommandLink = &Root;
 	UID = GRHICommandList.UIDCounter.Increment();
 }
+
+static TLockFreeFixedSizeAllocator<sizeof(FRHICommandList), FThreadSafeCounter> RHICommandListAllocator;
+
+void* FRHICommandList::operator new(size_t Size)
+{
+	// doesn't support derived classes with a different size
+	check(Size == sizeof(FRHICommandList));
+	return RHICommandListAllocator.Allocate();
+	//return FMemory::Malloc(Size);
+}
+
+/**
+ * Custom delete
+ */
+void FRHICommandList::operator delete(void *RawMemory)
+{
+	RHICommandListAllocator.Free(RawMemory);
+	//FMemory::Free(RawMemory);
+}	
 
 

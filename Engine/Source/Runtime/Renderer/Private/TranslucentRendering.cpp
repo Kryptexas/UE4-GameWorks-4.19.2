@@ -10,7 +10,7 @@
 #include "SceneFilterRendering.h"
 #include "LightPropagationVolume.h"
 
-void SetTranslucentRenderTargetAndState(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bSeparateTranslucencyPass)
+void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, const FViewInfo& View, bool bSeparateTranslucencyPass)
 {
 	bool bSetupTranslucentState = true;
 
@@ -70,6 +70,7 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 		// Allocate and render the shadow's depth map if needed
 		if (TranslucentSelfShadow && !TranslucentSelfShadow->bAllocatedInTranslucentLayout)
 		{
+			check(IsInRenderingThread());
 			bool bPossibleToAllocate = true;
 
 			// Attempt to find space in the layout
@@ -166,7 +167,7 @@ IMPLEMENT_SHADER_TYPE(,FCopySceneColorPS,TEXT("TranslucentLightingShaders"),TEXT
 
 FGlobalBoundShaderState CopySceneColorBoundShaderState;
 
-void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
+void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
 {
 
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneProxy->GetOwnerName().ToString(), *PrimitiveSceneProxy->GetResourceName().ToString());
@@ -300,6 +301,31 @@ public:
 	}
 };
 
+static void CopySceneColorAndRestore(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
+{
+	FTranslucencyDrawingPolicyFactory::CopySceneColor(RHICmdList, View, PrimitiveSceneProxy);
+	// Restore state
+	SetTranslucentRenderTargetAndState(RHICmdList, View, false);
+}
+
+struct FRHICommandCopySceneColor : public FRHICommand<FRHICommandCopySceneColor>
+{
+	const FViewInfo& View;
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandCopySceneColor(const FViewInfo& InView, const FPrimitiveSceneProxy* InPrimitiveSceneProxy)
+		: View(InView)
+		, PrimitiveSceneProxy(InPrimitiveSceneProxy)
+	{
+	}
+	void Execute()
+	{
+		check(IsInRenderingThread());
+		FRHICommandList RHICmdList;
+		CopySceneColorAndRestore(RHICmdList, View, PrimitiveSceneProxy);
+	}
+};
+
 /**
 * Render a dynamic or static mesh using a translucent draw policy
 * @return true if the mesh rendered
@@ -331,14 +357,17 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		{
 			if (DrawingContext.bSceneColorCopyIsUpToDate == false)
 			{
-				//hack here to get the code checked in, but this needs to be fixed. It was not sensible to wind this all the way out of the callstack
 				FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
-				check(&RHICmdList == &RHICmdListIm);
-
-				CopySceneColor(RHICmdListIm, View, PrimitiveSceneProxy);
-				// Restore state
-				SetTranslucentRenderTargetAndState(RHICmdListIm, View, false);
-
+				if (&RHICmdList != &RHICmdListIm)
+				{
+					// if we are buffering commands on a non-immediate command list, we need to defer the copy until commandlist execution
+					new (RHICmdList.AllocCommand<FRHICommandCopySceneColor>()) FRHICommandCopySceneColor(View, PrimitiveSceneProxy);
+				}
+				else
+				{
+					// otherwise, just do it now. We don't want to defer in this case because that can interfere with render target visualization (a debugging tool).
+					CopySceneColorAndRestore(RHICmdList, View, PrimitiveSceneProxy);
+				}
 				// separate translucency is not updating scene color so we don't need to copy it multiple times.
 				// optimization:
 				// we should consider the same for non separate translucency (could cause artifacts but will be much faster)
