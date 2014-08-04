@@ -205,19 +205,19 @@ void UK2Node_Timeline::PostPasteNode()
 	}
 }
 
-bool UK2Node_Timeline::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UK2Node_Timeline::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
-	if(Super::CanPasteHere(TargetGraph, Schema))
+	if(Super::IsCompatibleWithGraph(TargetGraph))
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
 		if(Blueprint)
 		{
-			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(Schema);
+			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(TargetGraph->GetSchema());
 			check(K2Schema);
 
 			const bool bSupportsEventGraphs = FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint);
-			const bool bAllowEvents = K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph && bSupportsEventGraphs &&
-				Blueprint->BlueprintType != BPTYPE_MacroLibrary;
+			const bool bAllowEvents = (K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph) && bSupportsEventGraphs &&
+				(Blueprint->BlueprintType != BPTYPE_MacroLibrary);
 
 			if(bAllowEvents)
 			{
@@ -234,7 +234,7 @@ bool UK2Node_Timeline::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphS
 					{
 						if (UK2Node_Composite* Composite = Cast<UK2Node_Composite>(TargetGraph->GetOuter()))
 						{
-							TargetGraph =  Cast<UEdGraph>(Composite->GetOuter());
+							TargetGraph = Cast<UEdGraph>(Composite->GetOuter());
 						}
 						else if (K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph)
 						{

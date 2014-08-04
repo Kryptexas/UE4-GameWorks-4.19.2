@@ -23,52 +23,57 @@ bool UK2Node_LatentAbilityCall::CanCreateUnderSpecifiedSchema(const UEdGraphSche
 	return Super::CanCreateUnderSpecifiedSchema(DesiredSchema);
 }
 
-void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
+bool UK2Node_LatentAbilityCall::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bValidClass = false;
-	UBlueprint* MyBlueprint = Cast<UBlueprint>(ContextMenuBuilder.CurrentGraph->GetOuter());
-	if (MyBlueprint && MyBlueprint->GeneratedClass)
+	bool bIsCompatible = false;
+	
+	EGraphType GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+	bool const bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
+	
+	if (bAllowLatentFuncs)
 	{
-		if (MyBlueprint->GeneratedClass->IsChildOf(UGameplayAbility::StaticClass()))
+		UBlueprint* MyBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+		if (MyBlueprint && MyBlueprint->GeneratedClass)
 		{
-			bValidClass = true;
+			if (MyBlueprint->GeneratedClass->IsChildOf(UGameplayAbility::StaticClass()))
+			{
+				bIsCompatible = true;
+			}
 		}
 	}
+	
+	return bIsCompatible;
+}
 
-	if (!bValidClass)
+void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
+{
+	if (!IsCompatibleWithGraph(ContextMenuBuilder.CurrentGraph))
 	{
 		return;
 	}
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	EGraphType GraphType = K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph);
-	const bool bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
-
-	if (bAllowLatentFuncs)
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		UClass* TestClass = *ClassIt;
+		if (TestClass->IsChildOf(UAbilityTask::StaticClass()) && !TestClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated))
 		{
-			UClass* TestClass = *ClassIt;
-			if (TestClass->IsChildOf(UAbilityTask::StaticClass()) && !TestClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated))
+			for (TFieldIterator<UFunction> FuncIt(TestClass, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
 			{
-				for (TFieldIterator<UFunction> FuncIt(TestClass, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
+				// See if the function is a static factory method for online proxies
+				UFunction* CandidateFunction = *FuncIt;
+
+				UObjectProperty* ReturnProperty = Cast<UObjectProperty>(CandidateFunction->GetReturnProperty());
+				const bool bValidReturnType = (ReturnProperty != nullptr) && (ReturnProperty->PropertyClass != nullptr) && (ReturnProperty->PropertyClass->IsChildOf(UAbilityTask::StaticClass()));
+
+				if (CandidateFunction->HasAllFunctionFlags(FUNC_Static) && bValidReturnType)
 				{
-					// See if the function is a static factory method for online proxies
-					UFunction* CandidateFunction = *FuncIt;
+					// Create a node template for this factory method
+					UK2Node_LatentAbilityCall* NodeTemplate = NewObject<UK2Node_LatentAbilityCall>(ContextMenuBuilder.OwnerOfTemporaries);
+					NodeTemplate->ProxyFactoryFunctionName = CandidateFunction->GetFName();
+					NodeTemplate->ProxyFactoryClass = TestClass;
+					NodeTemplate->ProxyClass = ReturnProperty->PropertyClass;
 
-					UObjectProperty* ReturnProperty = Cast<UObjectProperty>(CandidateFunction->GetReturnProperty());
-					const bool bValidReturnType = (ReturnProperty != nullptr) && (ReturnProperty->PropertyClass != nullptr) && (ReturnProperty->PropertyClass->IsChildOf(UAbilityTask::StaticClass()));
-
-					if (CandidateFunction->HasAllFunctionFlags(FUNC_Static) && bValidReturnType)
-					{
-						// Create a node template for this factory method
-						UK2Node_LatentAbilityCall* NodeTemplate = NewObject<UK2Node_LatentAbilityCall>(ContextMenuBuilder.OwnerOfTemporaries);
-						NodeTemplate->ProxyFactoryFunctionName = CandidateFunction->GetFName();
-						NodeTemplate->ProxyFactoryClass = TestClass;
-						NodeTemplate->ProxyClass = ReturnProperty->PropertyClass;
-
-						CreateDefaultMenuEntry(NodeTemplate, ContextMenuBuilder);
-					}
+					CreateDefaultMenuEntry(NodeTemplate, ContextMenuBuilder);
 				}
 			}
 		}

@@ -87,21 +87,10 @@ void UDEPRECATED_K2Node_LocalVariable::PostPasteNode()
 	CustomVariableName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprint(), CustomVariableName.GetPlainNameString());
 }
 
-bool UDEPRECATED_K2Node_LocalVariable::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UDEPRECATED_K2Node_LocalVariable::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
-	// Local variables can only be pasted into function graphs
-	if(Super::CanPasteHere(TargetGraph, Schema))
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
-		if(Blueprint)
-		{
-			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(Schema);
-			check(K2Schema);
-			return K2Schema->GetGraphType(TargetGraph) == GT_Function;
-		}
-	}
-
-	return false;
+	bool const bIsCompatible = (TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function);
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()

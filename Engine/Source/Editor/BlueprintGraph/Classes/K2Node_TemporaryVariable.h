@@ -24,7 +24,7 @@ class UK2Node_TemporaryVariable : public UK2Node
 	virtual FString GetTooltip() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDescriptiveCompiledName() const override;
-	virtual bool CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* TargetGraph) const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.

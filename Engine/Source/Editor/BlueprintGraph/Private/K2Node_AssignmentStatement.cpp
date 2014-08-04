@@ -84,17 +84,16 @@ FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	return LOCTEXT("Assign", "Assign");
 }
 
-bool UK2Node_AssignmentStatement::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+bool UK2Node_AssignmentStatement::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bIsPastable = Super::CanPasteHere(TargetGraph, Schema);
-	if (bIsPastable)
+	bool bIsCompatible = Super::IsCompatibleWithGraph(TargetGraph);
+	if (bIsCompatible)
 	{
-		EGraphType const GraphType = Schema->GetGraphType(TargetGraph);
-
-		bIsPastable = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
+		EGraphType const GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+		bIsCompatible = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
 	}
 
-	return bIsPastable;
+	return bIsCompatible;
 }
 
 void UK2Node_AssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

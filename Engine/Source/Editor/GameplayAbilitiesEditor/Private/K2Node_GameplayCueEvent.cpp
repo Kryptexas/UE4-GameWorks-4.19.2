@@ -29,26 +29,26 @@ FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	//return LOCTEXT("HandleGameplayCueEvent", "HandleGameplaCueEvent");
 }
 
-bool UK2Node_GameplayCueEvent::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+bool UK2Node_GameplayCueEvent::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bValidClass = false;
-	UBlueprint* MyBlueprint = Cast<UBlueprint>(TargetGraph->GetOuter());
-	if (MyBlueprint && MyBlueprint->GeneratedClass)
+	bool bIsCompatible = false;
+	if (bIsCompatible)
 	{
-		if (MyBlueprint->GeneratedClass->ImplementsInterface(UGameplayCueInterface::StaticClass()))
+		if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph))
 		{
-			bValidClass = true;
+			check(Blueprint->GeneratedClass != nullptr);
+			bIsCompatible = Blueprint->GeneratedClass->ImplementsInterface(UGameplayCueInterface::StaticClass());
 		}
 	}
-
-	return bValidClass;
+	
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context) const
 {
 	Super::GetMenuEntries(Context);
 
-	if (!CanPasteHere(Context.CurrentGraph, GetDefault<UEdGraphSchema>(Context.CurrentGraph->Schema)))
+	if (!IsCompatibleWithGraph(Context.CurrentGraph))
 	{
 		return;
 	}

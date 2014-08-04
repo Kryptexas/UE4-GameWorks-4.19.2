@@ -143,46 +143,6 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action would spawn a node (and the graph wouldn't allow it).
 	 */
 	static bool IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * Rejection test that checks to see if the supplied node-spawner would 
-	 * produce a node incompatible with an ubergraph.
-	 * 
-	 * @param  Context			Holds the blueprint/graph/pin context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would spawn a node not allowed in ubergraphs.
-	 */
-	static bool IsIncompatibleWithUbergraph(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * Rejection test that checks to see if the supplied node-spawner would 
-	 * produce a node incompatible with an animation graph.
-	 * 
-	 * @param  Context			Holds the blueprint/graph/pin context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would spawn a node not allowed in animation graphs.
-	 */
-	static bool IsIncompatibleWithAnimGraph(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * Rejection test that checks to see if the supplied node-spawner would 
-	 * produce a node incompatible with a macro graph.
-	 * 
-	 * @param  Context			Holds the blueprint/graph/pin context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would spawn a node not allowed in macro graphs.
-	 */
-	static bool IsIncompatibleWithMacroGraph(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * Rejection test that checks to see if the supplied node-spawner would 
-	 * produce an node incompatible with a function graph.
-	 * 
-	 * @param  Context			Holds the blueprint/graph/pin context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would spawn a node not allowed in function graphs.
-	 */
-	static bool IsIncompatibleWithFuncGraph(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* BlueprintAction);
 	
 	/**
 	 * Rejection test that checks to see if the node-spawner has any associated
@@ -215,17 +175,6 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action is associated with a hidden field.
 	 */
 	static bool IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * Rejection test that checks to see if the node-spawner would produce a 
-	 * node that couldn't be pasted into the specified graph(s) (check against 
-	 * the node's CDO to save on perf, to keep from spawning a temp node).
-	 * 
-	 * @param  Context			Holds the graph context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would produce a node that cannot be pasted in the graph.
-	 */
-	static bool IsNodeUnpastable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner would produce a 
@@ -608,122 +557,25 @@ static bool BlueprintActionFilterImpl::IsIncompatibleImpureNode(FBlueprintAction
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleWithUbergraph(FBlueprintActionContext const& /*Context*/, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = false;
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleWithAnimGraph(FBlueprintActionContext const& /*Context*/, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = IsLatent(BlueprintAction); // latent actions are only allowed in ubergraphs
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleWithMacroGraph(FBlueprintActionContext const& /*Context*/, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = IsLatent(BlueprintAction); // latent actions are only allowed in ubergraphs
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleWithFuncGraph(FBlueprintActionContext const& /*Context*/, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = IsLatent(BlueprintAction); // latent actions are only allowed in ubergraphs
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
 static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 	
-	uint32 GraphTypesTestedMask = 0x00;
-	for (UEdGraph* Graph : FilterContext.Graphs)
+	if (UClass* NodeClass = BlueprintAction->NodeClass)
 	{
-		EGraphType GraphType = GT_MAX;
-		if (UEdGraphSchema_K2* K2Schema = Graph->Schema->GetDefaultObject<UEdGraphSchema_K2>())
-		{
-			GraphType = K2Schema->GetGraphType(Graph);
-		}
-		
-		uint32 GraphTypeBit = (1 << GraphType);
-		if (GraphTypesTestedMask & GraphTypeBit)
-		{
-			continue;
-		}
-		
-		switch (GraphType)
-		{
-		case GT_Ubergraph:
-			{
-				bIsFilteredOut = IsIncompatibleWithUbergraph(FilterContext, BlueprintAction);
-				break;
-			}
-		case GT_Animation:
-			{
-				bIsFilteredOut = IsIncompatibleWithAnimGraph(FilterContext, BlueprintAction);
-				break;
-			}
-		case GT_Macro:
-			{
-				bIsFilteredOut = IsIncompatibleWithMacroGraph(FilterContext, BlueprintAction);
-				break;
-			}
-		case GT_Function:
-			{
-				bIsFilteredOut = IsIncompatibleWithFuncGraph(FilterContext, BlueprintAction);
-				break;
-			}
-		}
-		
-		if (bIsFilteredOut)
-		{
-			break;
-		}
-		GraphTypesTestedMask |= GraphTypeBit;
-	}
-
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsNodeUnpastable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = false;
-	FBlueprintActionContext const& FilterContext = Filter.Context;
-	
-	for (UEdGraph* Graph : FilterContext.Graphs)
-	{		
-		UClass* NodeClass = BlueprintAction->NodeClass;
-		if (NodeClass == nullptr)
-		{
-			continue;
-		}
-		else if (NodeClass->IsChildOf<UK2Node_Event>())// @TODO: make all event nodes, this: BlueprintAction->IsA<UBlueprintEventNodeSpawner>())
-		{
-			// events need a valid function to check CanPasteHere() (we can't use the CDO)
-			// @TODO: modify the CDO's function reference, and then restore it
-			continue;
-		}
-
-		// wouldn't want to spawn a temp node here (too costly to be doing while
-		// filtering)... if a node that is unpasteble slips through, then the 
-		// user should be notified through ui feedback way (we purposely do this
-		// with the palette, so that it can have an all encompassing list)
 		if (UEdGraphNode* NodeCDO = NodeClass->GetDefaultObject<UEdGraphNode>())
 		{
-			if (!NodeCDO->CanPasteHere(Graph, Graph->Schema->GetDefaultObject<UEdGraphSchema>()))
+			for (UEdGraph* Graph : FilterContext.Graphs)
 			{
-				bIsFilteredOut = true;
-				break;
+				if (!NodeCDO->IsCompatibleWithGraph(Graph))
+				{
+					bIsFilteredOut = true;
+					break;
+				}
 			}
 		}
 	}
-	
 	return bIsFilteredOut;
 }
 
@@ -789,8 +641,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsExternalField));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPermissionNotGranted));
-	//AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNodeUnpastable));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));
 
 	// @TODO: account for all K2ActionMenuBuilder checks...

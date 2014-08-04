@@ -238,12 +238,20 @@ public:
 	/**
 	 * Determine if this node can live in the specified graph
 	 */
-	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const { return CanCreateUnderSpecifiedSchema(Schema); }
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const { return IsCompatibleWithGraph(TargetGraph); }
+
+	DEPRECATED(4.5, "The UEdGraphNode::CanPasteHere() that takes a UEdGraphSchema parameter is deprecated, instead use the CanPasteHere() that only takes a single UEdGraph param.")
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const { return CanPasteHere(TargetGraph); }
 
 	/**
 	 * Determine if this node can be created under the specified schema
      */
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const { return true; }
+	
+	/**
+	 * Determine if a node of this type can be created for the specified graph.
+     */
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const;
 
 	/**
 	 * Perform any fixups (deep copies of associated data, etc...) necessary after a node has been pasted in the editor

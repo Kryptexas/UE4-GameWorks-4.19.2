@@ -162,6 +162,11 @@ const class UEdGraphSchema* UEdGraphNode::GetSchema() const
 	return GetGraph()->GetSchema();
 }
 
+bool UEdGraphNode::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	return CanCreateUnderSpecifiedSchema(Graph->GetSchema());
+}
+
 FLinearColor UEdGraphNode::GetNodeTitleColor() const
 {
 	return FLinearColor(0.4f, 0.62f, 1.0f);

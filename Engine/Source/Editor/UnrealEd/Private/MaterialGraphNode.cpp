@@ -116,9 +116,9 @@ void UMaterialGraphNode::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph) const
 {
-	if (Super::CanPasteHere(TargetGraph, Schema))
+	if (Super::CanPasteHere(TargetGraph))
 	{
 		const UMaterialGraph* MaterialGraph = Cast<const UMaterialGraph>(TargetGraph);
 		if (MaterialGraph)

@@ -3572,7 +3572,7 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 	{
 		UEdGraphNode* Node = *NodeIt;
 
-		if(!Node->CanPasteHere(FunctionGraph, K2Schema))
+		if(!Node->CanPasteHere(FunctionGraph))
 		{
 			if (UK2Node_CustomEvent* const CustomEvent = Cast<UK2Node_CustomEvent>(Node))
 			{
@@ -3719,7 +3719,7 @@ bool FBlueprintEditor::CanCollapseSelectionToMacro(TSet<class UEdGraphNode*>& In
 	{
 		UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt);
 
-		if(!Node->CanPasteHere(MacroGraph, Schema))
+		if(!Node->CanPasteHere(MacroGraph))
 		{
 			LogResults.Error(*LOCTEXT("CannotPasteNodeMacro_Error", "@@ cannot be placed in macro graph").ToString(), Node);
 			bCollapseAllowed = false;
@@ -5368,7 +5368,7 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 
 		// We do not check CanPasteHere when determining CanCollapseNodes, unlike CanCollapseSelectionToFunction/Macro,
 		// so when expanding a collapsed graph we don't want to check the CanPasteHere function:
-		if (!bIsCollapsedGraph && !Node->CanPasteHere(DestinationGraph, Node->GetSchema()))
+		if (!bIsCollapsedGraph && !Node->CanPasteHere(DestinationGraph))
 		{
 			continue;
 		}

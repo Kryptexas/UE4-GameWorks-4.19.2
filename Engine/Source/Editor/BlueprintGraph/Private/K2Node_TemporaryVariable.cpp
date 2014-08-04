@@ -88,21 +88,21 @@ FString UK2Node_TemporaryVariable::GetDescriptiveCompiledName() const
 	return Result;
 }
 
-bool UK2Node_TemporaryVariable::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+bool UK2Node_TemporaryVariable::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bIsPastable = Super::CanPasteHere(TargetGraph, Schema);
-	if (bIsPastable)
+	bool bIsCompatible = Super::IsCompatibleWithGraph(TargetGraph);
+	if (bIsCompatible)
 	{
-		EGraphType const GraphType = Schema->GetGraphType(TargetGraph);
-		bIsPastable = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
+		EGraphType const GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+		bIsCompatible = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
 
-		if (bIsPastable && (GraphType != GT_Macro))
+		if (bIsCompatible && (GraphType != GT_Macro))
 		{
-			bIsPastable = !bIsPersistent;
+			bIsCompatible = !bIsPersistent;
 		}
 	}
 
-	return bIsPastable;
+	return bIsCompatible;
 }
 
 // get variable pin

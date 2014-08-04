@@ -126,7 +126,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 			ImpededReasonOut = FText::GetEmpty();
 		}
 		// as a general catch-all, if a node cannot be pasted, it probably can't be created there
-		else if (bCanBePlaced && !NodeToBePlaced->CanPasteHere(HoveredGraphIn, GraphSchema) && !bWillFocusOnExistingNode)
+		else if (bCanBePlaced && !NodeToBePlaced->CanPasteHere(HoveredGraphIn) && !bWillFocusOnExistingNode)
 		{
 			bCanBePlaced = false;
 			ImpededReasonOut = LOCTEXT("CannotPaste", "Cannot place this node in this type of graph");
