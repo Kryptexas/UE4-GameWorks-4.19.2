@@ -336,7 +336,13 @@ namespace UnrealBuildTool
          */
         public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
         {
-            if (Target.Platform == UnrealTargetPlatform.HTML5)
+			//@todo.Rocket: Add platform support
+			if (UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket())
+			{
+				return;
+			}
+
+			if (Target.Platform == UnrealTargetPlatform.HTML5)
             {
                 if (InModule.ToString() == "Core")
                 {
