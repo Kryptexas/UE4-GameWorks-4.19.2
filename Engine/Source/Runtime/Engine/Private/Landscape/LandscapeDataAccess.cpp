@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+
+#if WITH_EDITOR
+
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeInfo.h"
@@ -194,3 +197,5 @@ ENGINE_API void FLandscapeComponentDataInterface::GetWorldPositionTangents(int32
 	WorldTangentY = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentY);
 	WorldTangentZ = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentZ);
 }
+
+#endif // WITH_EDITOR
