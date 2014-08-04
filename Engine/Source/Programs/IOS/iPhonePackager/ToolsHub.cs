@@ -87,7 +87,7 @@ namespace iPhonePackager
 		public static ToolsHub CreateShowingTools()
 		{
 			ToolsHub Result = new ToolsHub();
-			Result.tabControl1.SelectTab(Result.tabPage2);
+			Result.tabControl1.SelectTab(Result.tabPage1);
 			return Result;
 		}
 
@@ -307,9 +307,9 @@ namespace iPhonePackager
 
 		private void ProvisionCertToolsButton_Click(object sender, EventArgs e)
 		{
-			GraphicalResignTool ResignTool = GraphicalResignTool.GetActiveInstance();
-			ResignTool.TabBook.SelectTab(ResignTool.ProvisionCertPage);
-			ResignTool.Show();
+// 			GraphicalResignTool ResignTool = GraphicalResignTool.GetActiveInstance();
+// 			ResignTool.TabBook.SelectTab(ResignTool.ProvisionCertPage);
+// 			ResignTool.Show();
 		}
 
 		private void OtherDeployToolsButton_Click(object sender, EventArgs e)
