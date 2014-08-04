@@ -88,6 +88,11 @@ struct FAndroidPlatformProperties
 		return false;
 	}
 
+	static FORCEINLINE bool SupportsQuit() 
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool HasFixedResolution()
 	{
 		return true;
