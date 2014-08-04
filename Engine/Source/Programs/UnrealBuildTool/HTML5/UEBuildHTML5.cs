@@ -367,9 +367,14 @@ namespace UnrealBuildTool
                     }
                 }
             }
-            else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
+            else if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
             {
-                if ( (!UEBuildConfiguration.bBuildRequiresCookedData
+				// allow standalone tools to use targetplatform modules, without needing Engine
+				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				{
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
+				}
+				if ((!UEBuildConfiguration.bBuildRequiresCookedData
                     && InModule.ToString() == "Engine"
                     && UEBuildConfiguration.bBuildDeveloperTools)
                     || UEBuildConfiguration.bForceBuildTargetPlatforms)

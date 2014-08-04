@@ -319,7 +319,6 @@ namespace UnrealBuildTool
                 // allow standalone tools to use target platform modules, without needing Engine
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxServerTargetPlatform");
