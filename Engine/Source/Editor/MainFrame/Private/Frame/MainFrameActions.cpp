@@ -27,8 +27,11 @@ FMainFrameCommands::FMainFrameCommands()
 
 void FMainFrameCommands::RegisterCommands()
 {
-	// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
-	FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+	if ( !IsRunningCommandlet() )
+	{
+		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
+		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+	}
 
 	// Make a default can execute action that disables input when in debug mode
 	FCanExecuteAction DefaultExecuteAction = FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::DefaultCanExecuteAction );
