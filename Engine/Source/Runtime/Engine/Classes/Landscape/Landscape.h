@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "LandscapeInfo.h"
 #include "LandscapeProxy.h"
-#include "Components/LightComponent.h"
-
 #include "Landscape.generated.h"
 
 UENUM()

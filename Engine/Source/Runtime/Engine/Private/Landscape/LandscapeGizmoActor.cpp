@@ -7,6 +7,8 @@
 #include "Landscape/LandscapeGizmoActiveActor.h"
 #include "Landscape/LandscapeGizmoRenderComponent.h"
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "DynamicMeshBuilder.h"
 
 namespace

@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeEdit.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeSplineProxies.h"

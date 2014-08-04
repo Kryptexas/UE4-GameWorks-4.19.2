@@ -1,20 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "AI/Navigation/NavRelevantActorInterface.h"
 #include "Engine/EngineTypes.h"
-#include "LandscapeInfo.h"
+#include "GameFramework/Actor.h"
 #include "PhysicsEngine/BodyInstance.h"
-
 #include "LandscapeProxy.generated.h"
 
-//
-// Forward declarations.
-//
 class ULandscapeMaterialInstanceConstant;
 class ULandscapeLayerInfoObject;
 class ULandscapeSplinesComponent;
 class ULandscapeHeightfieldCollisionComponent;
+class UMaterialInterface;
+class UTexture2D;
+class ALandscape;
+class ALandscapeProxy;
+class ULandscapeComponent;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
@@ -148,13 +149,7 @@ struct FLandscapeImportLayerInfo
 	{
 	}
 
-	FLandscapeImportLayerInfo(const struct FLandscapeInfoLayerSettings& InLayerSettings)
-	:	LayerName(InLayerSettings.GetLayerName())
-	,	LayerInfo(InLayerSettings.LayerInfoObj)
-	,	ThumbnailMIC(NULL)
-	,	SourceFilePath(InLayerSettings.GetEditorSettings().ReimportLayerFilePath)
-	{
-	}
+	ENGINE_API FLandscapeImportLayerInfo(const struct FLandscapeInfoLayerSettings& InLayerSettings);
 #endif
 };
 

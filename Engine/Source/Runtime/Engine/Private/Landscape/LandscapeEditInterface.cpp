@@ -9,6 +9,8 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 
 #if WITH_EDITOR
 

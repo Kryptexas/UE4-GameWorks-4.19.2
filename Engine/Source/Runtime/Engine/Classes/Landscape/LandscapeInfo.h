@@ -1,9 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "LandscapeLayerInfoObject.h"
-
 #include "LandscapeInfo.generated.h"
 
 /** Structure storing Collision for LandscapeComponent Add */
@@ -65,17 +62,7 @@ struct FLandscapeInfoLayerSettings
 	{
 	}
 
-	FLandscapeInfoLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, class ALandscapeProxy* InProxy)
-		: LayerInfoObj(InLayerInfo)
-		, LayerName((InLayerInfo != NULL) ? InLayerInfo->LayerName : NAME_None)
-#if WITH_EDITORONLY_DATA
-		, ThumbnailMIC(NULL)
-		, Owner(InProxy)
-		, DebugColorChannel(0)
-		, bValid(false)
-#endif
-	{
-	}
+	ENGINE_API FLandscapeInfoLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, class ALandscapeProxy* InProxy);
 
 	FLandscapeInfoLayerSettings(FName InPlaceholderLayerName, class ALandscapeProxy* InProxy)
 		: LayerInfoObj(NULL)

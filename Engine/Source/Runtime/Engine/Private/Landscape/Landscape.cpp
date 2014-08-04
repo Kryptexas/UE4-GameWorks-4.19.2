@@ -17,6 +17,8 @@ Landscape.cpp: Terrain rendering
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
 #include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 

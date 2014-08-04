@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "LandscapeLayerInfoObject.h"
 #include "SceneTypes.h"
 #include "LandscapeComponent.generated.h"
+
+class ULandscapeLayerInfoObject;
 
 class FLandscapeComponentDerivedData
 {
@@ -90,14 +91,7 @@ struct FWeightmapLayerAllocationInfo
 	{
 	}
 	
-	FName GetLayerName() const
-	{
-		if (LayerInfo)
-		{
-			return LayerInfo->LayerName;
-		}
-		return NAME_None;
-	}
+	FName GetLayerName() const;
 };
 
 UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)

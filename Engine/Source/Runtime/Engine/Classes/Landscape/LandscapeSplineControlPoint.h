@@ -2,9 +2,10 @@
 
 
 #pragma once
-#include "LandscapeSplineSegment.h"
-
+#include "Landscape/LandscapeSplineSegment.h"
 #include "LandscapeSplineControlPoint.generated.h"
+
+struct FLandscapeSplineInterpPoint;
 
 USTRUCT()
 struct FLandscapeSplineConnection

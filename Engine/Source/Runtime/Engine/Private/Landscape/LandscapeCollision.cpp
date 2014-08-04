@@ -15,6 +15,8 @@ LandscapeCollision.cpp: Landscape collision
 #include "../PhysicsEngine/PhysDerivedData.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
+#include "Landscape/LandscapeInfo.h"
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 

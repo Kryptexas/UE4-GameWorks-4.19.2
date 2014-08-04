@@ -13,11 +13,6 @@ LandscapeRender.h: New terrain rendering
 #include "LightMap.h"
 #include "ShadowMap.h"
 
-
-class FLandscapeVertexFactory;
-class FLandscapeVertexBuffer;
-class FLandscapeComponentSceneProxy;
-
 // This defines the number of border blocks to surround terrain by when generating lightmaps
 #define TERRAIN_PATCH_EXPAND_SCALAR	1
 

@@ -14,6 +14,7 @@ struct FHeightmapToolTarget;
 template<typename TargetType> class FLandscapeToolCopyPaste;
 
 #include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Landscape/LandscapeGizmoActiveActor.h"
 
@@ -311,10 +312,7 @@ struct FLandscapeTargetListInfo
 		return NULL;
 	}
 
-	FName GetLayerName() const
-	{
-		return LayerInfoObj.IsValid() ? LayerInfoObj->LayerName : LayerName;
-	}
+	FName GetLayerName() const;
 
 	FString& ReimportFilePath() const
 	{

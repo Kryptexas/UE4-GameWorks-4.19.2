@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Landscape/LandscapeSplineSegment.h"
-
 //////////////////////////////////////////////////////////////////////////
 // LANDSCAPE SPLINES HIT PROXY
 
@@ -68,10 +66,8 @@ struct HLandscapeSplineProxy_Tangent : public HLandscapeSplineProxy
 		End(InEnd)
 	{
 	}
-	virtual void Serialize(FArchive& Ar)
-	{
-		Ar << SplineSegment;
-	}
+	ENGINE_API virtual void Serialize(FArchive& Ar);
+
 	virtual EMouseCursor::Type GetMouseCursor()
 	{
 		return EMouseCursor::CardinalCross;

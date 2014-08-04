@@ -26,6 +26,7 @@
 
 // Classes
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeMaterialInstanceConstant.h"
 #include "Landscape/LandscapeSplinesComponent.h"
@@ -2649,6 +2650,11 @@ bool LandscapeEditorUtils::SetWeightmapData(ALandscapeProxy* Landscape, ULandsca
 	}
 
 	return false;
+}
+
+FName FLandscapeTargetListInfo::GetLayerName() const
+{
+	return LayerInfoObj.IsValid() ? LayerInfoObj->LayerName : LayerName;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -24,6 +24,8 @@
 #include "AssetRegistryModule.h"
 #include "LandscapeRender.h"
 
+#include "Landscape/LandscapeLayerInfoObject.h"
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor.TargetLayers"
 
 TSharedRef<IDetailCustomization> FLandscapeEditorDetailCustomization_TargetLayers::MakeInstance()

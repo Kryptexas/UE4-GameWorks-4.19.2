@@ -28,6 +28,7 @@
 #include "ImageWrapper.h"
 
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 
