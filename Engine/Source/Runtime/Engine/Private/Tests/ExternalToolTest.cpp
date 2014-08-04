@@ -77,7 +77,7 @@ bool FWaitForProcessToCompleteLatentCommand::Update()
 /**
  * RunExternalToolTest
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FRunExternalToolTest, "External", EAutomationTestFlags::ATF_None )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FRunExternalToolTest, "External", EAutomationTestFlags::ATF_NonNullRHI)
 
 /** 
  * Find all the external too commands
