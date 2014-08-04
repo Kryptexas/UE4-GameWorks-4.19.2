@@ -123,7 +123,7 @@ namespace iPhonePackager
 					{
 						Program.Error( "Could not delete file: " + Info.FullName );
 						Program.Error( "    Exception: " + Ex.Message );
-						Program.ReturnCode = 300;
+						Program.ReturnCode = (int)ErrorCodes.Error_DeleteFile;
 					}
 				}
 
@@ -140,7 +140,7 @@ namespace iPhonePackager
 				{
 					Program.Error( "Could not delete folder: " + DirInfo.FullName );
 					Program.Error( "    Exception: " + Ex.Message );
-					Program.ReturnCode = 310;
+					Program.ReturnCode = (int)ErrorCodes.Error_DeleteDirectory;
 				}
 			}
 		}
@@ -162,7 +162,7 @@ namespace iPhonePackager
 				{
 					Program.Error( "Could not delete file: " + Info.FullName );
 					Program.Error( "    Exception: " + Ex.Message );
-					Program.ReturnCode = 310;
+					Program.ReturnCode = (int)ErrorCodes.Error_DeleteFile;
 				}
 			}
 		}
@@ -190,7 +190,7 @@ namespace iPhonePackager
 				{
 					Program.Error( "Could not create folder: " + DestFolderName );
 					Program.Error( "    Exception: " + Ex.Message );
-					Program.ReturnCode = 312;
+					Program.ReturnCode = (int)ErrorCodes.Error_CreateDirectory;
 				}
 				RecursiveFolderCopy( SourceSubFolderInfo, new DirectoryInfo( DestFolderName ), bLowercase );
 			}
@@ -227,7 +227,7 @@ namespace iPhonePackager
 			{
 				Program.Error( "Could not create folder: " + DestFolderInfo.FullName );
 				Program.Error( "    Exception: " + Ex.Message );
-				Program.ReturnCode = 312;
+				Program.ReturnCode = (int)ErrorCodes.Error_CreateDirectory;
 			}
 
 			RecursiveFolderCopy(SourceFolderInfo, DestFolderInfo, bLowercase);
@@ -390,7 +390,7 @@ namespace iPhonePackager
 				if (bCopyMustSucceed)
 				{
 					Program.Error(Msg);
-					Program.ReturnCode = 320;
+					Program.ReturnCode = (int)ErrorCodes.Error_CopyFile;
 				}
 				else
 				{

@@ -772,6 +772,8 @@ namespace AutomationTool
 
             if (Result > MaxSuccessCode || Result < 0)
             {
+				ErrorReporter.Error(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+												App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode), Result.ExitCode);
                 throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }

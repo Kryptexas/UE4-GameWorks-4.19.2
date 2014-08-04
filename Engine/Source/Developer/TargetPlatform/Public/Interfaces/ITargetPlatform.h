@@ -306,7 +306,7 @@ public:
 	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
 	 * @return Readiness status
 	 */
-	virtual int IsReadyToBuild(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 #if WITH_ENGINE
 	/**

@@ -135,8 +135,7 @@ protected:
 			FPlatformProcess::Sleep(0.25);
 		}
 
-		int32 ReturnCode;
-		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &Result))
 		{
 			return false;
 		}
@@ -146,7 +145,7 @@ protected:
 			return false;
 		}
 
-		return (ReturnCode == 0);
+		return (Result == 0);
 	}
 
 private:

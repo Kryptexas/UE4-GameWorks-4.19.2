@@ -72,7 +72,7 @@ namespace iPhonePackager
 			if (!bHasCodeSignature || !bHasMobileProvision)
 			{
 				Program.Error("Stub IPA does not appear to be signed correctly (missing mobileprovision or CodeResources)");
-				Program.ReturnCode = 129;
+				Program.ReturnCode = (int)ErrorCodes.Error_StubNotSignedCorrectly;
 			}
 
             // Set encoding to support unicode filenames
@@ -92,7 +92,7 @@ namespace iPhonePackager
 			if (Zip[PListPathInZIP] == null)
 			{
 				Program.Error("Failed to find Info.plist in IPA (cannot update plist version)");
-				Program.ReturnCode = 142;
+				Program.ReturnCode = (int)ErrorCodes.Error_IPAMissingInfoPList;
 				return "";
 			}
 			else

@@ -24,6 +24,7 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 
+#include "EditorAnalytics.h"
 
 #define LOCTEXT_NAMESPACE "DebuggerCommands"
 
@@ -1371,18 +1372,32 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	DeviceId.FindChar(TEXT('@'), Index);
 	FString PlatformName = DeviceId.Left(Index);
 
-	// does the project have any code?
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(FName(*PlatformName));
+	check(PlatformInfo);
+
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-	bool bProjectHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+	bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0));
+		FEditorAnalytics::ReportEvent(TEXT("Editor.LaunchOn.Failed"), PlatformInfo->TargetPlatformName.ToString(), bHasCode, EAnalyticsErrorCodes::SDKNotFound, ParamArray);
+		return false;
+	}
 
 	const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
 	if (Platform)
 	{
 		FString NotInstalledDocLink;
 		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-		switch (Platform->IsReadyToBuild(ProjectPath, bProjectHasCode, NotInstalledDocLink))
+		int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bHasCode, NotInstalledDocLink);
+		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
+		switch (Result)
 		{
-			// broadcast this, and assume someone will pick it up
+		// broadcast this, and assume someone will pick it up
 		case ETargetPlatformReadyStatus::SDKNotFound:
 		case ETargetPlatformReadyStatus::ProvisionNotFound:
 		case ETargetPlatformReadyStatus::SigningKeyNotFound:
