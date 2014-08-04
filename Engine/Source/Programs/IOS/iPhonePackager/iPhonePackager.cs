@@ -603,7 +603,7 @@ namespace iPhonePackager
 						string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
 						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
 						{
-							Error("iTunes Not Found!!", ErrorCodes.Error_SDKNotFound);
+							Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
 						}
 						else
 						{
@@ -614,19 +614,19 @@ namespace iPhonePackager
 							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides);
 							if (!foundPlist)
 							{
-								Error("Could not find a valid plist file!!", ErrorCodes.Error_InfoPListNotFound);
+								Error("Could not find a valid plist file!!", (int)ErrorCodes.Error_InfoPListNotFound);
 							}
 							else if (Provision == null && Cert == null)
 							{
-								Error("No Provision or cert found!!", ErrorCodes.Error_ProvisionAndCertificateNotFound);
+								Error("No Provision or cert found!!", (int)ErrorCodes.Error_ProvisionAndCertificateNotFound);
 							}
 							else if (Provision == null)
 							{
-								Error("No Provision found!!", ErrorCodes.Error_ProvisionNotFound);
+								Error("No Provision found!!", (int)ErrorCodes.Error_ProvisionNotFound);
 							}
 							else if (Cert == null)
 							{
-								Error("No Signing Certificate found!!", ErrorCodes.Error_CertificateNotFound);
+								Error("No Signing Certificate found!!", (int)ErrorCodes.Error_CertificateNotFound);
 							}
 						}
 						break;
