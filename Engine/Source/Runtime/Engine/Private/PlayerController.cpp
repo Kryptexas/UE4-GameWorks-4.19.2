@@ -630,9 +630,6 @@ void APlayerController::InitInputSystem()
 		PlayerInput = ConstructObject<UPlayerInput>(UPlayerInput::StaticClass(), this);
 	}
 
-	// initialize input stack
-	CurrentInputStack.Empty();
-
 	SetupInputComponent();
 
 	CurrentMouseCursor = DefaultMouseCursor;
