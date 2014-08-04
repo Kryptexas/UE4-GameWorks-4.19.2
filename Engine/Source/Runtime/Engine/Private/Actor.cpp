@@ -2295,20 +2295,23 @@ void AActor::EnableInput(APlayerController* PlayerController)
 		// If it doesn't exist create it and bind delegates
 		if (!InputComponent)
 		{
+			InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
+			InputComponent->RegisterComponent();
+			InputComponent->bBlockInput = bBlockInput;
+
 			// Only do this if this actor is of a blueprint class
 			UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
 			if(BGClass != NULL)
 			{
-				InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
-				InputComponent->RegisterComponent();
-				InputComponent->bBlockInput = bBlockInput;
-
 				UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
 			}
 		}
+		else
+		{
+			// Make sure we only have one instance of the InputComponent on the stack
+			PlayerController->PopInputComponent(InputComponent);
+		}
 
-		// Make sure we only have one instance of the InputComponent on the stack
-		PlayerController->PopInputComponent(InputComponent);
 		PlayerController->PushInputComponent(InputComponent);
 	}
 }

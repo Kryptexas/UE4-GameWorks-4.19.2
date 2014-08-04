@@ -3996,14 +3996,7 @@ void APlayerController::PushInputComponent(UInputComponent* InputComponent)
 {
 	if (InputComponent)
 	{
-		if (InputComponent->HasBindings())
-		{
-			CurrentInputStack.Push(InputComponent);
-		}
-		else
-		{
-			UE_LOG(LogPlayerController, Warning, TEXT("InputComponent '%s' with no bindings pushed on the stack"), *InputComponent->GetFullName());
-		}
+		CurrentInputStack.Push(InputComponent);
 	}
 }
 
