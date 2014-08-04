@@ -288,7 +288,7 @@ struct FTickableLevelFilter
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return !Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel;
+		return Level->bIsVisible;
 	}
 };
 
