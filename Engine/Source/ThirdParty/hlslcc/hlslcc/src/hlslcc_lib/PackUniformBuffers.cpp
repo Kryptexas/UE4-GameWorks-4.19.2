@@ -1044,6 +1044,7 @@ bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_par
 	return true;
 }
 
+// Removes redundant casts (A->B->A), except for the case of a truncation (float->int->float)
 struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 {
 	FFixRedundantCastsVisitor() {}
@@ -1074,7 +1075,15 @@ struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 			{
 				if (Expression->type == OperandExpr->operands[0]->type)
 				{
-					*RValuePtr = OperandExpr->operands[0];
+					if (Expression->type->is_float() && OperandExpr->type->is_integer())
+					{
+						// Skip
+					}
+					else
+					{
+						// Remove the conversion
+						*RValuePtr = OperandExpr->operands[0];
+					}
 				}
 			}
 		}

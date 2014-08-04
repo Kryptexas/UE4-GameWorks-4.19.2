@@ -1017,9 +1017,17 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 		if (numOps == 1 && op >= ir_unop_first_conversion && op <= ir_unop_last_conversion)
 		{
-			ralloc_asprintf_append(buffer, "%s(", FixHlslName(expr->type).c_str());
-			expr->operands[0]->accept(this);
-			ralloc_asprintf_append(buffer, ")");
+			if (op == ir_unop_f2h || op == ir_unop_h2f)
+			{
+				// No need to convert from half<->float as that is part of the precision of a variable
+				expr->operands[0]->accept(this);
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "%s(", FixHlslName(expr->type).c_str());
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
 		}
 		else if (expr->type->is_scalar() &&
 			((numOps == 1 && op == ir_unop_logic_not) ||
@@ -2390,9 +2398,9 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 		// @PackedUBCopies: SourceArray:SourceOffset-DestArray:DestOffset,SizeInFloats;SourceArray:SourceOffset-DestArray:DestOffset,SizeInFloats,...
 		bool bFirst = true;
-		for (auto Iter = CBRanges.begin(); Iter != CBRanges.end(); ++Iter)
+		for (auto& Pair : CBRanges)
 		{
-			TDMARangeList& List = Iter->second;
+			TDMARangeList& List = Pair.second;
 			for (auto IterList = List.begin(); IterList != List.end(); ++IterList)
 			{
 				if (bFirst)
@@ -4715,51 +4723,51 @@ void FGlslCodeBackend::GenShaderPatchConstantFunctionInputs(_mesa_glsl_parse_sta
 		ir_assignment* assignment = ir->as_assignment();
 
 		if (!assignment)
-{
+		{
 			continue;
-}
+		}
 
 		ir_dereference_record* lhs = assignment->lhs->as_dereference_record();
 		ir_rvalue* rhs = assignment->rhs;
 
 		if (!lhs)
-{
+		{
 			continue;
-}
+		}
 
 		if (!rhs)
-{
+		{
 			continue;
-}
+		}
 
 		ir_dereference_array* lhs_array = lhs->record->as_dereference_array();
 
 		if (!lhs_array)
-{
+		{
 			continue;
-}
+		}
 
 		ir_dereference_variable* OutputPatchArrayIndex = lhs_array->array_index->as_dereference_variable();
 		ir_dereference_variable* OutputPatchArray = lhs_array->array->as_dereference_variable();
 
 		if (!OutputPatchArrayIndex)
-{
+		{
 			continue;
-}
+		}
 
 		if (0 != strcmp(OutputPatchArrayIndex->var->name, "gl_InvocationID"))
-{
+		{
 			continue;
-}
+		}
 
 		if (!OutputPatchArray)
-{
+		{
 			continue;
-}
+		}
 
 		const char* OutArrayFieldName = lhs->field;
 
-for (int OutputVertex = 0; OutputVertex < ParseState->tessellation.outputcontrolpoints; ++OutputVertex)
+		for (int OutputVertex = 0; OutputVertex < ParseState->tessellation.outputcontrolpoints; ++OutputVertex)
 		{
 			struct Helper
 			{
@@ -4796,9 +4804,9 @@ for (int OutputVertex = 0; OutputVertex < ParseState->tessellation.outputcontrol
 				}
 			};
 
-	ir_dereference_array* OutputPatchElementIndex = new(ParseState)ir_dereference_array(
+			ir_dereference_array* OutputPatchElementIndex = new(ParseState)ir_dereference_array(
 				OutputPatchVar,
-		new(ParseState)ir_constant(
+				new(ParseState)ir_constant(
 				OutputVertex
 				)
 				);
@@ -4806,13 +4814,13 @@ for (int OutputVertex = 0; OutputVertex < ParseState->tessellation.outputcontrol
 			ir_rvalue* OutputPatchElement = rhs->clone(ParseState, 0);
 			Helper::ReplaceVariableDerefWithArrayDeref(OutputPatchElement, OutputPatchElementIndex);
 
-	PostCallInstructions.push_tail(
-		new (ParseState)ir_assignment(
+			PostCallInstructions.push_tail(
+				new (ParseState)ir_assignment(
 				OutputPatchElement,
 				new(ParseState)ir_dereference_record(
-					new(ParseState)ir_dereference_array(
+				new(ParseState)ir_dereference_array(
 				OutputPatchArray->clone(ParseState, 0),
-						new(ParseState)ir_constant(OutputVertex)
+				new(ParseState)ir_constant(OutputVertex)
 				),
 				OutArrayFieldName
 				)
