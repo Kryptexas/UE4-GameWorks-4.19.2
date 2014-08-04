@@ -13,7 +13,7 @@ class ULandscapeHeightfieldCollisionComponent;
 struct FFoliageInstancePlacementInfo;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
-class AInstancedFoliageActor : public AActor
+class AInstancedFoliageActor : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -106,7 +106,8 @@ public:
 	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);
 #endif	//WITH_EDITOR
+
+	// Begin INavRelevantActorInterface Interface
+	virtual bool DoesSupplyPerComponentNavigationCollision() const override { return true; }
+	// End INavRelevantActorInterface Interface
 };
-
-
-

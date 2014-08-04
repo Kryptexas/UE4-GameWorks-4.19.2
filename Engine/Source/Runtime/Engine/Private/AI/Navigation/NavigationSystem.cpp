@@ -1811,6 +1811,28 @@ FSetElementId UNavigationSystem::RegisterNavOctreeElement(class UObject* Element
 		return SetId;
 	}
 
+	//
+	// HACK: This is necessary to work around the case where a PerComponentNavigation actor has its components registered,
+	// which registers the actor, and also UpdateNavOctree(Component) is called in the same frame.
+	//
+	// A better solution would be to make the RegisterNavigationRelevantActor function add only individual components if
+	// the actor is using PerComponentNavigation.
+	//
+	UPrimitiveComponent* Component = Cast<UPrimitiveComponent>(ElementOwner);
+	if (Component && Component->GetOwner())
+	{
+		INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Component->GetOwner());
+		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
+		if (bPerComponentNavigation)
+		{
+			FSetElementId ActorSetId = PendingOctreeUpdates.FindId(Component->GetOwner());
+			if (ActorSetId.IsValidId())
+			{
+				return ActorSetId;
+			}
+		}
+	}
+
 	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(ElementOwner);
 	if (ElementId == NULL)
 	{

@@ -1507,6 +1507,11 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 	SetupNewInstanceData(*NewInstanceData, PerInstanceSMData.Num() - 1, InstanceTransform);
 
 	MarkRenderStateDirty();
+
+	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
+	{
+		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
+	}
 }
 
 void UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
@@ -1597,6 +1602,11 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
+	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
+	{
+		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
+	}
+
 	return true;
 }
 
@@ -1609,6 +1619,11 @@ void UInstancedStaticMeshComponent::ClearInstances()
 
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
+
+	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
+	{
+		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
+	}
 }
 
 int32 UInstancedStaticMeshComponent::GetInstanceCount() const
@@ -1653,10 +1668,10 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 				if (!Scale3D.IsZero())
 				{
 					GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
-						NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+						NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform) * ComponentToWorld);
 
 					GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
-						NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+						NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform) * ComponentToWorld);
 				}
 			}
 		}
@@ -1671,7 +1686,7 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 					// if any of scales is 0 there's no point in exporting it
 					if (!Scale3D.IsZero())
 					{
-						GeomExport->ExportRigidBodySetup(*BodySetup, FTransform(InstanceData.Transform));
+						GeomExport->ExportRigidBodySetup(*BodySetup, FTransform(InstanceData.Transform) * ComponentToWorld);
 					}
 				}
 
