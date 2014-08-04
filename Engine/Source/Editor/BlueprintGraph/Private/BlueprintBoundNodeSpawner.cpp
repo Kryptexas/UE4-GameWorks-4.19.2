@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "BlueprintComponentNodeSpawner.h"
+#include "BlueprintBoundNodeSpawner.h"
 #include "K2Node_ComponentBoundEvent.h"
 #include "BlueprintPropertyNodeSpawner.h"
 #include "K2Node_AddComponent.h"
