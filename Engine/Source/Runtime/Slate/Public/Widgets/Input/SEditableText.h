@@ -290,17 +290,17 @@ public:
 	virtual void DeleteChar() override;
 	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const override;
 	virtual void TypeChar( const int32 Character ) override;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) override;
-	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) override;
+	virtual FReply MoveCursor( FMoveCursor Args ) override;
+	virtual void JumpTo(ETextLocation JumpLocation, ECursorAction Action) override;
 	virtual void ClearSelection() override;
 	virtual void SelectAllText() override;
 	virtual bool SelectAllTextWhenFocused() override;
-	virtual void SelectWordAt(const FVector2D& LocalPosition) override;
+	virtual void SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) override;
 	virtual void BeginDragSelection() override;
 	virtual bool IsDragSelecting() const override;
 	virtual void EndDragSelection() override;
 	virtual bool AnyTextSelected() const override;
-	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const override;
+	virtual bool IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const override;
 	virtual void SetWasFocusedByLastMouseDown( bool Value ) override;
 	virtual bool WasFocusedByLastMouseDown() const override;
 	virtual void SetHasDragSelectedSinceFocused( bool Value ) override;
@@ -367,11 +367,12 @@ protected:
 	/**
 	 * Determines which character was clicked on
 	 *
-	 * @param  InLocalCursorPosition	Click position (in local space)
+	 * @param  InLocalCursorPosition       Click position (in local space)
+	 * @param  GeometryScale               The DPI scale with which this widget is being drawn.
 	 *
 	 * @return  The clicked character index
 	 */
-	int32 FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const;
+	int32 FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition, float GeometryScale ) const;
 
 	/** Find the closest word boundary */
 	int32 ScanForWordBoundary( const int32 Location, int8 Direction ) const; 

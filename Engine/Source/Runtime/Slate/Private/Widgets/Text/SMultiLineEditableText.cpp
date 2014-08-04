@@ -788,10 +788,10 @@ void SMultiLineEditableText::DeleteSelectedText()
 	}
 }
 
-FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
+FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 {
 	// We can't use the keyboard to move the cursor while composing, as the IME has control over it
-	if(TextInputMethodContext->IsComposing && Method != ECursorMoveMethod::ScreenPosition)
+	if(TextInputMethodContext->IsComposing && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition)
 	{
 		return FReply::Handled();
 	}
@@ -806,9 +806,9 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 	// This is done regardless of whether the selection was made left-to-right, or right-to-left
 	// This also needs to be done *before* moving to word boundaries, or moving vertically, as the 
 	// start point needs to be the start or end of the selection depending on the above rules
-	if (Action == ECursorAction::MoveCursor && Method != ECursorMoveMethod::ScreenPosition && AnyTextSelected())
+	if ( Args.GetAction() == ECursorAction::MoveCursor && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition && AnyTextSelected( ) )
 	{
-		if (Method == ECursorMoveMethod::CharacterHorizontal)
+		if (Args.IsHorizontalMovement())
 		{
 			// If we're moving the cursor horizontally, we just snap to the start or end of the selection rather than 
 			// move the cursor by the normal movement rules
@@ -816,21 +816,10 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		}
 
 		// Work out which edge of the selection we need to start at
-		bool bSnapToSelectionStart = false;
-		switch (Method)
-		{
-		case ECursorMoveMethod::CharacterHorizontal:
-		case ECursorMoveMethod::Word:
-			bSnapToSelectionStart = Direction.X < 0.0f;
-			break;
-	
-		case ECursorMoveMethod::CharacterVertical:
-			bSnapToSelectionStart = Direction.Y < 0.0f;
-			break;
+		bool bSnapToSelectionStart =
+			Args.GetMoveMethod() == ECursorMoveMethod::Cardinal &&
+			(Args.GetMoveDirection().X < 0.0f || Args.GetMoveDirection().Y < 0.0f);
 
-		default:
-			break;
-		}
 
 		// Adjust the current cursor position - also set the new cursor position so that the bAllowMoveCursor == false case is handled
 		const FTextSelection Selection(SelectionStart.GetValue(), CursorPosition);
@@ -838,7 +827,7 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		NewCursorPosition = CursorPosition;
 
 		// If we're snapping to a word boundary, but the selection was already at a word boundary, don't let the cursor move any more
-		if (Method == ECursorMoveMethod::Word && IsAtWordStart(NewCursorPosition))
+		if (Args.GetGranularity() == ECursorMoveGranularity::Word && IsAtWordStart(NewCursorPosition))
 		{
 			bAllowMoveCursor = false;
 		}
@@ -848,46 +837,49 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 	bool bUpdatePreferredCursorScreenOffsetInLine = false;
 	if (bAllowMoveCursor)
 	{
-		switch (Method)
+		if ( Args.GetMoveMethod() == ECursorMoveMethod::Cardinal )
 		{
-		case ECursorMoveMethod::CharacterHorizontal:
-			NewCursorPosition = TranslatedLocation( CursorPosition, Direction.X );
-			bUpdatePreferredCursorScreenOffsetInLine = true;
-			break;
-
-		case ECursorMoveMethod::Word:
-			NewCursorPosition = ScanForWordBoundary( CursorPosition, Direction.X );
-			bUpdatePreferredCursorScreenOffsetInLine = true;
-			break;
-	
-		case ECursorMoveMethod::CharacterVertical:
-			TranslateLocationVertical( CursorPosition, Direction.Y, NewCursorPosition, NewCursorAlignment );
-			break;
-	
-		case ECursorMoveMethod::ScreenPosition:
+			if ( Args.GetGranularity() == ECursorMoveGranularity::Character )
 			{
-				ETextHitPoint HitPoint = ETextHitPoint::WithinText;
-				NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale(), &HitPoint );
-				bUpdatePreferredCursorScreenOffsetInLine = true;
-
-				// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
-				// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
-				// We use the HitPoint to work this out and then adjust the cursor position accordingly
-				if (HitPoint == ETextHitPoint::RightGutter)
+				if ( Args.IsHorizontalMovement() )
 				{
-					NewCursorPosition = FTextLocation(NewCursorPosition, -1);
-					NewCursorAlignment = ECursorAlignment::Right;
+					NewCursorPosition = TranslatedLocation( CursorPosition, Args.GetMoveDirection().X );
+					bUpdatePreferredCursorScreenOffsetInLine = true;
+				}
+				else
+				{
+					TranslateLocationVertical( CursorPosition, Args.GetMoveDirection().Y, Args.GetGeometryScale(), NewCursorPosition, NewCursorAlignment );
 				}
 			}
-			break;
+			else
+			{
+				checkSlow( Args.GetGranularity() == ECursorMoveGranularity::Word );
+				NewCursorPosition = ScanForWordBoundary( CursorPosition, Args.GetMoveDirection().X );
+				bUpdatePreferredCursorScreenOffsetInLine = true;
+			}
+		}
+		else if ( Args.GetMoveMethod() == ECursorMoveMethod::ScreenPosition )
+		{
+			ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+			NewCursorPosition = TextLayout->GetTextLocationAt( Args.GetLocalPosition() * Args.GetGeometryScale(), &HitPoint );
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 
-		default:
+			// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
+			// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+			// We use the HitPoint to work this out and then adjust the cursor position accordingly
+			if ( HitPoint == ETextHitPoint::RightGutter )
+			{
+				NewCursorPosition = FTextLocation( NewCursorPosition, -1 );
+				NewCursorAlignment = ECursorAlignment::Right;
+			}
+		}
+		else
+		{
 			checkSlow(false, "Unknown ECursorMoveMethod value");
-			break;
 		}
 	}
 
-	if (Action == ECursorAction::SelectText)
+	if (Args.GetAction() == ECursorAction::SelectText)
 	{
 		// We are selecting text. Just remember where the selection started.
 		// The cursor is implicitly the other endpoint.
@@ -1055,7 +1047,7 @@ void SMultiLineEditableText::UpdatePreferredCursorScreenOffsetInLine()
 	PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right).X;
 }
 
-void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action)
+void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 {
 	switch (JumpLocation)
 	{
@@ -1215,9 +1207,11 @@ bool SMultiLineEditableText::SelectAllTextWhenFocused()
 	return bSelectAllTextWhenFocused.Get();
 }
 
-void SMultiLineEditableText::SelectWordAt(const FVector2D& LocalPosition)
+void SMultiLineEditableText::SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition )
 {
-	FTextLocation InitialLocation = TextLayout->GetTextLocationAt(LocalPosition * TextLayout->GetScale());
+	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal( ScreenSpacePosition );
+
+	FTextLocation InitialLocation = TextLayout->GetTextLocationAt(LocalPosition * MyGeometry.Scale);
 	FTextSelection WordSelection = TextLayout->GetWordAt(InitialLocation);
 
 	FTextLocation WordStart = WordSelection.GetBeginning();
@@ -1261,7 +1255,7 @@ bool SMultiLineEditableText::AnyTextSelected() const
 	return SelectionPosition != CursorInteractionPosition;
 }
 
-bool SMultiLineEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) const
+bool SMultiLineEditableText::IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const
 {
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionPosition = SelectionStart.Get(CursorInteractionPosition);
@@ -1271,7 +1265,8 @@ bool SMultiLineEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) co
 		return false;
 	}
 
-	const FTextLocation ClickedPosition = TextLayout->GetTextLocationAt(LocalPosition * TextLayout->GetScale());
+	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(ScreenSpacePosition);
+	const FTextLocation ClickedPosition = TextLayout->GetTextLocationAt(LocalPosition * MyGeometry.Scale);
 
 	FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
 	FTextSelection Selection(SelectionLocation, CursorInteractionPosition);
@@ -1920,7 +1915,7 @@ FTextLocation SMultiLineEditableText::TranslatedLocation( const FTextLocation& L
 	}
 }
 
-void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
+void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
 {
 	const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
 	const int32 NumberOfLineViews = LineViews.Num();
@@ -1934,7 +1929,7 @@ void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Loc
 	
 	// Our horizontal position is the clamped version of whatever the user explicitly set with horizontal movement.
 	ETextHitPoint HitPoint = ETextHitPoint::WithinText;
-	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale(), &HitPoint );
+	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * GeometryScale, &HitPoint );
 
 	// PreferredCursorScreenOffsetInLine can cause the cursor to move to the right hand gutter, and it needs to be placed there
 	// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).

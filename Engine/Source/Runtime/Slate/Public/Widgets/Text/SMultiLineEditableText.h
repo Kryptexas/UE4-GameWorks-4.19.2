@@ -292,16 +292,16 @@ private:
 	virtual void DeleteChar() override;
 	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const override;
 	virtual void TypeChar( const int32 Character ) override;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) override;
-	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) override;
+	virtual FReply MoveCursor( FMoveCursor Args ) override;
+	virtual void JumpTo(ETextLocation JumpLocation, ECursorAction Action) override;
 	virtual void SelectAllText() override;
 	virtual bool SelectAllTextWhenFocused() override;
-	virtual void SelectWordAt(const FVector2D& LocalPosition) override;
+	virtual void SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) override;
 	virtual void BeginDragSelection() override;
 	virtual bool IsDragSelecting() const override;
 	virtual void EndDragSelection() override;
 	virtual bool AnyTextSelected() const override;
-	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const override;
+	virtual bool IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const override;
 	virtual void SetWasFocusedByLastMouseDown( bool Value ) override;
 	virtual bool WasFocusedByLastMouseDown() const override;
 	virtual void SetHasDragSelectedSinceFocused( bool Value ) override;
@@ -374,12 +374,13 @@ private:
 	/**
 	 * Given a location and a Direction to offset, return a new location.
 	 *
-	 * @param Location				Cursor location from which to offset
-	 * @param Direction				Positive means down, negative means up.
-	 * @param OutCursorPosition		Fill with the updated cursor position.
-	 * @param OutCursorAlignment	Optionally fill with a new cursor alignment (will be auto-calculated if not set).
+	 * @param Location              Cursor location from which to offset
+	 * @param Direction             Positive means down, negative means up.
+	 * @param GeometryScale         Geometry DPI scale at which the widget is being rendered
+	 * @param OutCursorPosition     Fill with the updated cursor position.
+	 * @param OutCursorAlignment    Optionally fill with a new cursor alignment (will be auto-calculated if not set).
 	 */
-	void TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
+	void TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
 
 	/** Find the closest word boundary */
 	FTextLocation ScanForWordBoundary( const FTextLocation& Location, int8 Direction ) const; 

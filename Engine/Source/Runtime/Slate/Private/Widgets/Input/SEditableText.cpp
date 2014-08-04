@@ -201,7 +201,7 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	const FString VisibleText = GetStringToRender();
 	const FSlateFontInfo& FontInfo = Font.Get();
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const float FontMaxCharHeight = FontMeasureService->Measure( FString(), FontInfo ).Y;
+	const float FontMaxCharHeight = FontMeasureService->Measure( FString( ), FontInfo, AllottedGeometry.Scale ).Y;
 
 
 	// Update caret position
@@ -212,7 +212,7 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 		if( bShouldAppearFocused )
 		{
 			FString TextBeforeCaret( VisibleText.Left( CaretPosition ) );
-			const FVector2D TextBeforeCaretSize( FontMeasureService->Measure( TextBeforeCaret, FontInfo ) );
+			const FVector2D TextBeforeCaretSize( FontMeasureService->Measure( TextBeforeCaret, FontInfo, AllottedGeometry.Scale ) );
 
 			FinalCaretTargetPosition = TextBeforeCaretSize.X;
 		}
@@ -243,26 +243,27 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 		const float WidgetSpaceCaretLeft = ScrollHelper.FromScrollerSpace( FVector2D( CaretLeft, ScrollHelper.GetPosition().Y ) ).X;
 		const float WidgetSpaceCaretRight = ScrollHelper.FromScrollerSpace( FVector2D( CaretRight, ScrollHelper.GetPosition().Y ) ).X;
 
+		const float AllotedGeometryDrawX = AllottedGeometry.Size.X*AllottedGeometry.Scale;
+
 		// If caret is to the left of the scrolled area, start scrolling left
 		if( WidgetSpaceCaretLeft < 0.0f )
 		{
 			ScrollHelper.SetPosition( FVector2D( CaretLeft, ScrollHelper.GetPosition().Y ) );
 		}
-
 		// If caret is to the right of the scrolled area, start scrolling right
-		else if( WidgetSpaceCaretRight > AllottedGeometry.Size.X )
+		else if ( WidgetSpaceCaretRight > AllotedGeometryDrawX )
 		{
-			ScrollHelper.SetPosition( FVector2D( CaretRight - AllottedGeometry.Size.X, ScrollHelper.GetPosition().Y ) );
+			ScrollHelper.SetPosition( FVector2D( CaretRight - AllotedGeometryDrawX, ScrollHelper.GetPosition( ).Y ) );
 		}
 
 
 		// Make sure text is never scrolled out of view when it doesn't need to be!
 		{
 			// Measure the total widget of text string, plus the caret's width!
-			const float TotalTextWidth = FontMeasureService->Measure( VisibleText, FontInfo ).X + CaretWidth;
-			if( ScrollHelper.GetPosition().X > TotalTextWidth - AllottedGeometry.Size.X )
+			const float TotalTextWidth = FontMeasureService->Measure( VisibleText, FontInfo, AllottedGeometry.Scale ).X + CaretWidth;
+			if ( ScrollHelper.GetPosition( ).X > TotalTextWidth - AllotedGeometryDrawX )
 			{
-				ScrollHelper.SetPosition( FVector2D( TotalTextWidth - AllottedGeometry.Size.X, ScrollHelper.GetPosition().Y ) );
+				ScrollHelper.SetPosition( FVector2D( TotalTextWidth - AllotedGeometryDrawX, ScrollHelper.GetPosition( ).Y ) );
 			}
 			if( ScrollHelper.GetPosition().X < 0.0f )
 			{
@@ -276,8 +277,8 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	{
 		if( AnyTextSelected() )
 		{
-			const float SelectionLeftX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMinIndex() ), FontInfo ).X;
-			const float SelectionRightX = EditableTextDefs::SelectionRectRightOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMaxIndex() ), FontInfo ).X;
+			const float SelectionLeftX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMinIndex() ), FontInfo, AllottedGeometry.Scale ).X;
+			const float SelectionRightX = EditableTextDefs::SelectionRectRightOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMaxIndex( ) ), FontInfo, AllottedGeometry.Scale ).X;
 
 			SelectionTargetLeftSpring.SetTarget( SelectionLeftX );
 			SelectionTargetRightSpring.SetTarget( SelectionRightX );
@@ -422,8 +423,8 @@ bool SEditableText::FTextInputMethodContext::GetTextBounds(const uint32 BeginInd
 		const FString VisibleText = OwningWidgetPtr->GetStringToRender();
 		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
-		const float TextLeft = FontMeasureService->Measure( VisibleText.Left( BeginIndex ), FontInfo ).X;
-		const float TextRight = FontMeasureService->Measure( VisibleText.Left( BeginIndex + Length ), FontInfo ).X;
+		const float TextLeft = FontMeasureService->Measure( VisibleText.Left( BeginIndex ), FontInfo, CachedGeometry.Scale ).X;
+		const float TextRight = FontMeasureService->Measure( VisibleText.Left( BeginIndex + Length ), FontInfo, CachedGeometry.Scale ).X;
 
 		const float ScrollAreaLeft = OwningWidgetPtr->ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
 		const float ScrollAreaRight = OwningWidgetPtr->ScrollHelper.ToScrollerSpace( CachedGeometry.Size ).X;
@@ -633,10 +634,10 @@ static int32 OffsetToTestBasedOnDirection( int8 Direction )
 	return (Direction >= 0) ? 0 : -1;
 }
 
-FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
+FReply SEditableText::MoveCursor( FMoveCursor Args )
 {
 	// We can't use the keyboard to move the cursor while composing, as the IME has control over it
-	if(TextInputMethodContext->IsComposing && Method != ECursorMoveMethod::ScreenPosition)
+	if ( TextInputMethodContext->IsComposing && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition )
 	{
 		return FReply::Handled();
 	}
@@ -651,9 +652,9 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2
 	// This is done regardless of whether the selection was made left-to-right, or right-to-left
 	// This also needs to be done *before* moving to word boundaries, as the start point needs to be 
 	// the start or end of the selection depending on the above rules
-	if (Action == ECursorAction::MoveCursor && Method != ECursorMoveMethod::ScreenPosition && AnyTextSelected())
+	if ( Args.GetAction( ) == ECursorAction::MoveCursor && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition && AnyTextSelected( ) )
 	{
-		if (Method == ECursorMoveMethod::CharacterHorizontal)
+		if (Args.IsHorizontalMovement())
 		{
 			// If we're moving the cursor horizontally, we just snap to the start or end of the selection rather than 
 			// move the cursor by the normal movement rules
@@ -661,24 +662,14 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2
 		}
 
 		// Work out which edge of the selection we need to start at
-		bool bSnapToSelectionStart = false;
-		switch (Method)
-		{
-		case ECursorMoveMethod::CharacterHorizontal:
-		case ECursorMoveMethod::Word:
-			bSnapToSelectionStart = Direction.X < 0.0f;
-			break;
-
-		default:
-			break;
-		}
+		bool bSnapToSelectionStart = Args.IsHorizontalMovement() && Args.GetMoveDirection().X < 0;
 
 		// Adjust the current cursor position - also set the new cursor position so that the bAllowMoveCursor == false case is handled
 		OldCaretPosition = bSnapToSelectionStart ? Selection.GetMinIndex() : Selection.GetMaxIndex();
 		NewCaretPosition = OldCaretPosition;
 
 		// If we're snapping to a word boundary, but the selection was already at a word boundary, don't let the cursor move any more
-		if (Method == ECursorMoveMethod::Word && IsAtWordStart(NewCaretPosition))
+		if (Args.GetGranularity() == ECursorMoveGranularity::Word && IsAtWordStart(NewCaretPosition))
 		{
 			bAllowMoveCursor = false;
 		}
@@ -690,32 +681,36 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2
 
 		// If control is held down, jump to beginning of the current word (or, the previous word, if
 		// the caret is currently on a whitespace character
-		switch( Method ) 
+		if ( Args.GetMoveMethod() == ECursorMoveMethod::Cardinal )
 		{
-		case ECursorMoveMethod::Word:
-			NewCaretPosition = ScanForWordBoundary( CaretPosition, Direction.X );
-			break;
-
-		case ECursorMoveMethod::CharacterHorizontal:
-			NewCaretPosition = FMath::Clamp<int32>( CaretPosition + Direction.X, 0, StringLength );
-			break;
-	
-		case ECursorMoveMethod::CharacterVertical:
-			return FReply::Unhandled();
-	
-		case ECursorMoveMethod::ScreenPosition:
-			NewCaretPosition = FindClickedCharacterIndex( Direction );
-			break;
-
-		default:
+			if ( Args.GetGranularity() == ECursorMoveGranularity::Word )
+			{
+				NewCaretPosition = ScanForWordBoundary( CaretPosition, Args.GetMoveDirection().X );
+			}
+			else if ( Args.IsHorizontalMovement() )
+			{
+				checkSlow( Args.GetGranularity() == ECursorMoveGranularity::Character );
+				NewCaretPosition = FMath::Clamp<int32>( CaretPosition + Args.GetMoveDirection( ).X, 0, StringLength );
+			}
+			else
+			{
+				checkSlow( Args.IsVerticalMovement() );
+				return FReply::Unhandled( );
+			}			
+		}
+		else if ( Args.GetMoveMethod( ) == ECursorMoveMethod::ScreenPosition )
+		{			
+			NewCaretPosition = FindClickedCharacterIndex( Args.GetLocalPosition(), Args.GetGeometryScale() );
+		}
+		else
+		{
 			checkSlow(false, "Unknown ECursorMoveMethod value");
-			break;
 		}
 	}
 
 	SetCaretPosition( NewCaretPosition );
 
-	if( Action == ECursorAction::SelectText )
+	if( Args.GetAction() == ECursorAction::SelectText )
 	{
 		SelectText( OldCaretPosition );
 	}
@@ -740,7 +735,7 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2
 }
 
 
-void SEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action)
+void SEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 {
 	switch( JumpLocation )
 	{
@@ -806,7 +801,7 @@ void SEditableText::SelectAllText()
 
 	// Make sure the animated selection effect starts roughly where the cursor is
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( EditedText.ToString().Left( CaretPosition ), Font.Get() ).X;
+	const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( EditedText.ToString( ).Left( CaretPosition ), Font.Get( ), 1.0f/*CachedGeometry.Scale*/ ).X;
 	SelectionTargetLeftSpring.SetPosition( SelectionTargetX );
 	SelectionTargetRightSpring.SetPosition( SelectionTargetX );
 }
@@ -816,10 +811,11 @@ bool SEditableText::SelectAllTextWhenFocused()
 	return bSelectAllTextWhenFocused.Get();
 }
 
-void SEditableText::SelectWordAt(const FVector2D& LocalPosition)
+void SEditableText::SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition )
 {
+	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal( ScreenSpacePosition );
 	// Figure out where in the string the user clicked
-	const int32 ClickedCharIndex = FindClickedCharacterIndex( LocalPosition );
+	const int32 ClickedCharIndex = FindClickedCharacterIndex( LocalPosition, MyGeometry.Scale );
 
 	// Deselect any text that was selected
 	ClearSelection();
@@ -872,9 +868,9 @@ bool SEditableText::AnyTextSelected() const
 	return Selection.StartIndex != INDEX_NONE && Selection.StartIndex != Selection.FinishIndex;
 }
 
-bool SEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) const
+bool SEditableText::IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const
 {
-	const int32 ClickedCharIndex = FindClickedCharacterIndex(LocalPosition);
+	const int32 ClickedCharIndex = FindClickedCharacterIndex(MyGeometry, ScreenSpacePosition);
 	return ClickedCharIndex >= Selection.GetMinIndex() && ClickedCharIndex < Selection.GetMaxIndex();
 }
 
@@ -1197,11 +1193,11 @@ FVector2D SEditableText::ComputeDesiredSize() const
 	const FString StringToRender = GetStringToRender();
 	if( !StringToRender.IsEmpty() )
 	{
-		TextSize = FontMeasureService->Measure( StringToRender, FontInfo );
+		TextSize = FontMeasureService->Measure( StringToRender, FontInfo, 1.0f/*CachedGeometry.Scale*/ );
 	}
 	else
 	{
-		TextSize = FontMeasureService->Measure( HintText.Get().ToString(), FontInfo );
+		TextSize = FontMeasureService->Measure( HintText.Get( ).ToString( ), FontInfo, 1.0f/*CachedGeometry.Scale*/ );
 	}
 	
 	const float DesiredWidth = FMath::Max(TextSize.X, MinDesiredWidth.Get()) + CaretWidth;
@@ -1219,6 +1215,8 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	const int32 SelectionLayer = 0;
 	const int32 TextLayer = 1;
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const float ScaleInverse = 1.0f / AllottedGeometry.Scale;
+	const FVector2D DrawGeometrySize = AllottedGeometry.Size * AllottedGeometry.Scale;
 
 	// See if a disabled effect should be used
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -1229,7 +1227,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	const FString VisibleText = GetStringToRender();
 	const FLinearColor ThisColorAndOpacity = ColorAndOpacity.Get().GetColor(InWidgetStyle);
 	const FColor ColorAndOpacitySRGB = ThisColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint();
-	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo) * AllottedGeometry.Scale;
 	const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 
 	// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
@@ -1241,10 +1239,10 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 		// Figure out a universally visible selection color.
 		const FColor SelectionBackgroundColorAndOpacity = ( (FLinearColor::White - ThisColorAndOpacity)*0.5f + FLinearColor(-0.2f, -0.05f, 0.15f)) * InWidgetStyle.GetColorAndOpacityTint();
 
-		const float SelectionLeftX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMinIndex() ), FontInfo ).X;
-		const float SelectionRightX = EditableTextDefs::SelectionRectRightOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMaxIndex() ), FontInfo ).X;
+		const float SelectionLeftX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMinIndex() ), FontInfo, AllottedGeometry.Scale ).X;
+		const float SelectionRightX = EditableTextDefs::SelectionRectRightOffset + FontMeasureService->Measure( VisibleText.Left( Selection.GetMaxIndex( ) ), FontInfo, AllottedGeometry.Scale ).X;
 		const float SelectionTopY = 0.0f;
-		const float SelectionBottomY = AllottedGeometry.GetDrawSize().Y;
+		const float SelectionBottomY = DrawGeometrySize.Y;
 
 		const FVector2D DrawPosition = ScrollHelper.FromScrollerSpace( FVector2D( SelectionLeftX, SelectionTopY ) );
 		const FVector2D DrawSize = ScrollHelper.SizeFromScrollerSpace( FVector2D( SelectionRightX - SelectionLeftX, SelectionBottomY - SelectionTopY ) );
@@ -1252,7 +1250,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + SelectionLayer,
-			AllottedGeometry.ToPaintGeometry(DrawPosition, DrawSize),	// Position, Size, Scale
+			AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize, ScaleInverse ),	// Position, Size, Scale
 			BackgroundImageSelected.Get(),								// Image
 			MyClippingRect,												// Clipping rect
 			DrawEffects,												// Effects to use
@@ -1264,10 +1262,10 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	const FTextRange CompositionRange(TextInputMethodContext->CompositionBeginIndex, TextInputMethodContext->CompositionBeginIndex + TextInputMethodContext->CompositionLength);
 	if( TextInputMethodContext->IsComposing && CompositionRange.InclusiveContains(CaretPosition) )
 	{
-		const float CompositionLeft = FontMeasureService->Measure( VisibleText.Left( CompositionRange.BeginIndex ), FontInfo ).X;
-		const float CompositionRight = FontMeasureService->Measure( VisibleText.Left( CompositionRange.EndIndex ), FontInfo ).X;
+		const float CompositionLeft = FontMeasureService->Measure( VisibleText.Left( CompositionRange.BeginIndex ), FontInfo, AllottedGeometry.Scale ).X;
+		const float CompositionRight = FontMeasureService->Measure( VisibleText.Left( CompositionRange.EndIndex ), FontInfo, AllottedGeometry.Scale ).X;
 		const float CompositionTop = 0.0f;
-		const float CompositionBottom = FontMeasureService->Measure( VisibleText.Mid( TextInputMethodContext->CompositionBeginIndex, TextInputMethodContext->CompositionLength ), FontInfo ).Y;
+		const float CompositionBottom = FontMeasureService->Measure( VisibleText.Mid( TextInputMethodContext->CompositionBeginIndex, TextInputMethodContext->CompositionLength ), FontInfo, AllottedGeometry.Scale ).Y;
 
 		const FVector2D DrawPosition = ScrollHelper.FromScrollerSpace( FVector2D( CompositionLeft, CompositionTop ) );
 		const FVector2D DrawSize = ScrollHelper.SizeFromScrollerSpace( FVector2D( CompositionRight - CompositionLeft, CompositionBottom - CompositionTop ) );
@@ -1275,14 +1273,14 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + SelectionLayer,
-			AllottedGeometry.ToPaintGeometry(DrawPosition, DrawSize),	// Position, Size, Scale
+			AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize, ScaleInverse ),	// Position, Size, Scale
 			BackgroundImageComposing.Get(),								// Image
 			MyClippingRect,												// Clipping rect
 			DrawEffects,												// Effects to use
 			ColorAndOpacitySRGB );						// Color
 	}
 
-	const float DrawPositionY = ( AllottedGeometry.Size.Y / 2 ) - ( FontMaxCharHeight / 2 );
+	const float DrawPositionY = ( DrawGeometrySize.Y / 2) - (FontMaxCharHeight / 2);
 	if (VisibleText.Len() == 0)
 	{
 		// Draw the hint text.
@@ -1291,7 +1289,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			LayerId + TextLayer,
-			AllottedGeometry.ToPaintGeometry( FVector2D( 0, DrawPositionY ), AllottedGeometry.Size ),
+			AllottedGeometry.ToPaintGeometry( FVector2D( 0, DrawPositionY ), AllottedGeometry.Size, ScaleInverse ),
 			ThisHintText,          // Text
 			FontInfo,              // Font information (font name, size)
 			MyClippingRect,        // Clipping rect
@@ -1305,11 +1303,11 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 
 		// Only draw the text that's potentially visible
 		const float ScrollAreaLeft = ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
-		const float ScrollAreaRight = ScrollHelper.ToScrollerSpace( AllottedGeometry.Size ).X;
-		const int32 FirstVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaLeft );
-		const int32 LastVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaRight );
+		const float ScrollAreaRight = ScrollHelper.ToScrollerSpace( DrawGeometrySize ).X;
+		const int32 FirstVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaLeft, AllottedGeometry.Scale );
+		const int32 LastVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaRight, AllottedGeometry.Scale );
 		const FString PotentiallyVisibleText( VisibleText.Mid( FirstVisibleCharacter, ( LastVisibleCharacter - FirstVisibleCharacter ) + 1 ) );
-		const float FirstVisibleCharacterPosition = FontMeasureService->Measure( VisibleText.Left( FirstVisibleCharacter ), FontInfo ).X;
+		const float FirstVisibleCharacterPosition = FontMeasureService->Measure( VisibleText.Left( FirstVisibleCharacter ), FontInfo, AllottedGeometry.Scale ).X;
 
 		const float TextVertOffset = EditableTextDefs::TextVertOffsetPercent * FontMaxCharHeight;
 		const FVector2D DrawPosition = ScrollHelper.FromScrollerSpace( FVector2D( FirstVisibleCharacterPosition, DrawPositionY + TextVertOffset ) );
@@ -1375,7 +1373,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + TextLayer,
-				AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize ),	// Position, Size, Scale
+				AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize, ScaleInverse ),	// Position, Size, Scale
 				SelectionTargetBrush,										// Image
 				MyClippingRect,												// Clipping rect
 				DrawEffects,												// Effects to use
@@ -1415,7 +1413,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + TextLayer,
-			AllottedGeometry.ToPaintGeometry( CaretDrawPosition, CaretDrawSize ),		// Position, Size, Scale
+			AllottedGeometry.ToPaintGeometry( CaretDrawPosition, CaretDrawSize, ScaleInverse ),		// Position, Size, Scale
 			CaretImage.Get(),															// Image
 			MyClippingRect,																// Clipping rect
 			DrawEffects,																// Effects to use
@@ -1619,7 +1617,7 @@ FReply SEditableText::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPoi
 			{
 				// Start the selection animation wherever the user started the click/drag
 				const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-				const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( EditedText.ToString().Left( Selection.StartIndex ), Font.Get() ).X;
+				const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( EditedText.ToString( ).Left( Selection.StartIndex ), Font.Get( ), InMyGeometry.Scale ).X;
 				SelectionTargetLeftSpring.SetPosition( SelectionTargetX );
 				SelectionTargetRightSpring.SetPosition( SelectionTargetX );
 
@@ -1690,7 +1688,7 @@ void SEditableText::DeleteSelectedText()
 
 		// Visually collapse the selection target right before we clear selection
 		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( NewText.Left( CaretPosition ), Font.Get() ).X;
+		const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( NewText.Left( CaretPosition ), Font.Get( ), 1.0f/*CachedGeometry.Scale*/ ).X;
 		SelectionTargetLeftSpring.SetTarget( SelectionTargetX );
 		SelectionTargetRightSpring.SetTarget( SelectionTargetX );
 
@@ -1706,19 +1704,19 @@ int32 SEditableText::FindClickedCharacterIndex( const FGeometry& InMyGeometry, c
 	const FVector2D& ScreenCursorPosition = InScreenCursorPosition;
 	const FVector2D& LocalCursorPosition = InMyGeometry.AbsoluteToLocal( ScreenCursorPosition );
 
-	return FindClickedCharacterIndex(LocalCursorPosition);
+	return FindClickedCharacterIndex( LocalCursorPosition, InMyGeometry.Scale );
 }
 
 
-int32 SEditableText::FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const
+int32 SEditableText::FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition, float GeometryScale ) const
 {
 	// Convert the click position from the local widget space to the scrolled area
-	const FVector2D& PositionInScrollableArea = ScrollHelper.ToScrollerSpace( InLocalCursorPosition );
+	const FVector2D& PositionInScrollableArea = ScrollHelper.ToScrollerSpace( InLocalCursorPosition * GeometryScale );
 	const float ClampedCursorX = FMath::Max( PositionInScrollableArea.X, 0.0f );
 
 	// Figure out where in the string the user clicked
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const int32 ClickedCharIndex = FontMeasureService->FindCharacterIndexAtOffset( EditedText.ToString(), Font.Get(), ClampedCursorX );
+	const int32 ClickedCharIndex = FontMeasureService->FindCharacterIndexAtOffset( EditedText.ToString( ), Font.Get( ), ClampedCursorX, GeometryScale );
 
 	return ClickedCharIndex;
 }

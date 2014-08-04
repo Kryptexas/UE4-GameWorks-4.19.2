@@ -98,45 +98,45 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	if( Key == EKeys::Left )
 	{
-		return TextEditor->MoveCursor(
+		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
 			// Ctrl moves a whole word instead of one character.	
-			InKeyboardEvent.IsControlDown() ? ECursorMoveMethod::Word : ECursorMoveMethod::CharacterHorizontal,
+			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move left
-			FVector2D( -1, 0 ),
+			FIntPoint( -1, 0 ),
 			// Shift selects text.	
 			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
-		);
+		));
 	}
 	else if( Key == EKeys::Right )
 	{
-		return TextEditor->MoveCursor(
+		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
 			// Ctrl moves a whole word instead of one character.	
-			InKeyboardEvent.IsControlDown() ? ECursorMoveMethod::Word : ECursorMoveMethod::CharacterHorizontal,
+			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move right
-			FVector2D( +1, 0 ),
+			FIntPoint( +1, 0 ),
 			// Shift selects text.	
 			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
-		);
+		));
 	}
 	else if ( Key == EKeys::Up )
 	{
-		return TextEditor->MoveCursor(
-			ECursorMoveMethod::CharacterVertical,
+		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
+			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move up
-			FVector2D( 0, -1 ),
+			FIntPoint( 0, -1 ),
 			// Shift selects text.	
 			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
-		);
+		));
 	}
 	else if ( Key == EKeys::Down )
 	{
-		return TextEditor->MoveCursor(
-			ECursorMoveMethod::CharacterVertical,
+		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
+			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move down
-			FVector2D( 0, +1 ),
+			FIntPoint( 0, +1 ),
 			// Shift selects text.	
 			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
-		);
+		));
 	}
 	else if( Key == EKeys::Home )
 	{
@@ -170,13 +170,13 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 		// Delete to next word boundary (Ctrl+Delete)
 		if (InKeyboardEvent.IsControlDown() && !InKeyboardEvent.IsAltDown() && !InKeyboardEvent.IsShiftDown())
 		{
-			TextEditor->MoveCursor(
-				ECursorMoveMethod::Word, 
+			TextEditor->MoveCursor( FMoveCursor::Cardinal(
+				ECursorMoveGranularity::Word, 
 				// Move right
-				FVector2D(+1, 0),
+				FIntPoint(+1, 0),
 				// selects text.	
 				ECursorAction::SelectText
-			);
+			));
 		}
 
 		FScopedTextTransaction TextTransaction(TextEditor);
@@ -238,12 +238,12 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 	{
 		FScopedTextTransaction TextTransaction(TextEditor);
 
-		TextEditor->MoveCursor(
-			ECursorMoveMethod::Word, 
+		TextEditor->MoveCursor( FMoveCursor::Cardinal(
+			ECursorMoveGranularity::Word, 
 			// Move left
-			FVector2D(-1, 0), 
+			FIntPoint(-1, 0), 
 			ECursorAction::SelectText
-		);
+		));
 		TextEditor->BackspaceChar();
 
 		return FReply::Handled();
@@ -302,13 +302,13 @@ FReply FTextEditHelper::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 			{
 				if( InMouseEvent.IsShiftDown() )
 				{
-					TextEditor->MoveCursor( ECursorMoveMethod::ScreenPosition, MyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() ), ECursorAction::SelectText );
+					TextEditor->MoveCursor( FMoveCursor::ViaScreenPointer( MyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition( ) ), MyGeometry.Scale, ECursorAction::SelectText ) );
 				}
 				else
 				{
 					// Deselect any text that was selected
 					TextEditor->ClearSelection();
-					TextEditor->MoveCursor( ECursorMoveMethod::ScreenPosition, MyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() ), ECursorAction::MoveCursor );
+					TextEditor->MoveCursor( FMoveCursor::ViaScreenPointer( MyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition( ) ), MyGeometry.Scale, ECursorAction::MoveCursor ) );
 				}
 
 				// Start drag selection
@@ -318,7 +318,7 @@ FReply FTextEditHelper::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 			{
 				// If the user right clicked on a character that wasn't already selected, we'll clear
 				// the selection
-				if (TextEditor->AnyTextSelected() && !TextEditor->IsTextSelectedAt(MyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition())))
+				if ( TextEditor->AnyTextSelected( ) && !TextEditor->IsTextSelectedAt( MyGeometry, InMouseEvent.GetScreenSpacePosition() ) )
 				{
 					// Deselect any text that was selected
 					TextEditor->ClearSelection();
@@ -341,7 +341,7 @@ FReply FTextEditHelper::OnMouseMove( const FGeometry& InMyGeometry, const FPoint
 
 	if( TextEditor->IsDragSelecting() && TextEditor->GetWidget()->HasMouseCapture() )
 	{
-		TextEditor->MoveCursor( ECursorMoveMethod::ScreenPosition, InMyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() ), ECursorAction::SelectText );
+		TextEditor->MoveCursor( FMoveCursor::ViaScreenPointer( InMyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition( ) ), InMyGeometry.Scale, ECursorAction::SelectText ) );
 		TextEditor->SetHasDragSelectedSinceFocused( true );
 		Reply = FReply::Handled();
 	}
@@ -413,7 +413,7 @@ FReply FTextEditHelper::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, 
 
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		TextEditor->SelectWordAt(InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()));
+		TextEditor->SelectWordAt(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 
 		Reply = FReply::Handled();
 	}
