@@ -838,10 +838,12 @@ namespace UnrealBuildTool
 	{
 		public class AutoGenerateCppInfoClass
 		{
+			public class BuildInfoClass
+			{
 			/** The filename of the *.generated.cpp file which was generated for the module */
 			public readonly string Filename;
 
-			public AutoGenerateCppInfoClass(string InFilename)
+				public BuildInfoClass(string InFilename)
 			{
 				Debug.Assert(InFilename != null);
 
@@ -849,7 +851,16 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Information about the .inl file . */
+			/** Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module. */
+			public BuildInfoClass BuildInfo;
+
+			public AutoGenerateCppInfoClass(BuildInfoClass InBuildInfo)
+			{
+				BuildInfo = InBuildInfo;
+			}
+		}
+
+		/** Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code. */
 		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
 		public class SourceFilesClass
@@ -1188,9 +1199,9 @@ namespace UnrealBuildTool
 				double SharedPCHTime = 0.0;
 				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 				{
-					
+
 					if (CPPFile.AbsolutePath.IndexOf("ActorConstruction.cpp", StringComparison.InvariantCultureIgnoreCase) >= 0)
-					{
+				{
 						Log.TraceVerbose("ActorConstruction.cpp");
 					}
 
@@ -1206,44 +1217,44 @@ namespace UnrealBuildTool
 					{
 						var SharedPCHStartTime = DateTime.UtcNow;
 
-						// When compiling in modular mode, we can't use a shared PCH file when compiling a module
-						// with exports, because the shared PCH can only have imports in it to work correctly.
+					// When compiling in modular mode, we can't use a shared PCH file when compiling a module
+					// with exports, because the shared PCH can only have imports in it to work correctly.
 						// @todo SharedPCH: If we ever have SharedPCH headers that themselves belong to modules which never use DLL Exports, we can avoid
 						// generating TWO PCH files by checking for that here.  For now, we always assume that SharedPCH headers have exports when
 						// compiling in modular mode.
 						bool bCanModuleUseOwnSharedPCH = bAllowSharedPCH && bIsASharedPCHModule && bCompileMonolithic && CPPFile.PrecompiledHeaderIncludeFilename.Equals( SharedPCHHeaderFilePath, StringComparison.InvariantCultureIgnoreCase );
-						if( bAllowSharedPCH && ( !bIsASharedPCHModule || bCanModuleUseOwnSharedPCH ) )
+					if( bAllowSharedPCH && ( !bIsASharedPCHModule || bCanModuleUseOwnSharedPCH ) )
+					{
+						// Figure out which shared PCH tier we're in
+						int LargestSharedPCHHeaderFileIndex = -1;
 						{
-							// Figure out which shared PCH tier we're in
-							int LargestSharedPCHHeaderFileIndex = -1;
-							{
 								var AllIncludedFiles = ModuleCompileEnvironment.GetIncludeDependencies( CPPFile );
 								foreach( var IncludedFile in AllIncludedFiles )
 								{
 									// These PCHs are ordered from least complex to most complex.  We'll start at the last one and search backwards.
-									for( var SharedPCHHeaderFileIndex = GlobalCompileEnvironment.SharedPCHHeaderFiles.Count - 1; SharedPCHHeaderFileIndex > LargestSharedPCHHeaderFileIndex; --SharedPCHHeaderFileIndex )
-									{
-										var CurSharedPCHHeaderFile = GlobalCompileEnvironment.SharedPCHHeaderFiles[ SharedPCHHeaderFileIndex ];
+							for( var SharedPCHHeaderFileIndex = GlobalCompileEnvironment.SharedPCHHeaderFiles.Count - 1; SharedPCHHeaderFileIndex > LargestSharedPCHHeaderFileIndex; --SharedPCHHeaderFileIndex )
+							{
+								var CurSharedPCHHeaderFile = GlobalCompileEnvironment.SharedPCHHeaderFiles[ SharedPCHHeaderFileIndex ];
 										if( IncludedFile == CurSharedPCHHeaderFile.PCHHeaderFile )
-										{
-											LargestSharedPCHHeaderFileIndex = SharedPCHHeaderFileIndex;
-											break;
-										}
-									}
+								{
+									LargestSharedPCHHeaderFileIndex = SharedPCHHeaderFileIndex;
+									break;
+								}
+							}
 
 									if( LargestSharedPCHHeaderFileIndex == GlobalCompileEnvironment.SharedPCHHeaderFiles.Count - 1)
-									{
-										// We've determined that the module is using our most complex PCH header, so we can early-out
-										break;
-									}
-								}
+							{
+								// We've determined that the module is using our most complex PCH header, so we can early-out
+								break;
+							}
+						}
 							}
 
 							if( LargestSharedPCHHeaderFileIndex > -1 )
 							{
 								var LargestIncludedSharedPCHHeaderFile = GlobalCompileEnvironment.SharedPCHHeaderFiles[LargestSharedPCHHeaderFileIndex];
 								if( SharedPCHHeaderFile == null )
-								{
+						{
 									SharedPCHModuleName = LargestIncludedSharedPCHHeaderFile.Module.Name;
 									SharedPCHHeaderFile = LargestIncludedSharedPCHHeaderFile.PCHHeaderFile;
 								}
@@ -1252,12 +1263,12 @@ namespace UnrealBuildTool
 									// @todo UBT perf: It is fairly costly to perform this test, as we could easily early-out after we have SharedPCHHeaderFile and not bother testing the rest of the files in the module.  But this can be useful to find abusive modules that include a shared PCH header in the bowels of a non-PCH private source file.
 									Console.WriteLine( "WARNING: File '{0}' doesn't use same 'shared' precompiled header as other files in this module: '{1}' vs '{2}'.  This can greatly impact compile times.  Make sure that your module's private PCH header includes the 'largest' shared PCH header that your module uses", 
 										CPPFile.AbsolutePath, SharedPCHHeaderFile, LargestIncludedSharedPCHHeaderFile.PCHHeaderFile );
-								}
-							}
-							else
-							{
+						}
+					}
+					else
+					{
 								Log.TraceVerbose("File {0} doesn't use a Shared PCH!", CPPFile.AbsolutePath);
-							}
+					}
 
 							SharedPCHTime += ( DateTime.UtcNow - SharedPCHStartTime ).TotalSeconds;
 						}
@@ -1278,7 +1289,7 @@ namespace UnrealBuildTool
 						if( CurPCH.Value.Count > MostFilesIncluded )
 						{
 							MostFilesIncluded = CurPCH.Value.Count;
-						}
+				}
 
 						Log.TraceVerbose("   {0}  ({1} files including it: {2}, ...)", CurPCH.Key, CurPCH.Value.Count, CurPCH.Value[0].AbsolutePath);
 					}
@@ -1481,9 +1492,9 @@ namespace UnrealBuildTool
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( CPPFilesToCompile, Name ).ObjectFiles );
 			}
 
-			if (AutoGenerateCppInfo != null && !ModuleCompileEnvironment.bHackHeaderGenerator)
+			if (AutoGenerateCppInfo != null && AutoGenerateCppInfo.BuildInfo != null && !ModuleCompileEnvironment.bHackHeaderGenerator)
 			{
-				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.Filename );
+				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.BuildInfo.Filename );
 
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
 			}
@@ -1576,11 +1587,11 @@ namespace UnrealBuildTool
 				}
 
 				ProcessedDependencies = new ProcessedDependenciesClass{ UniquePCHHeaderFile = UniquePCH };
-			}
-		}
+						}
+					}
 
 		private FileItem ProcessDependencies(FileItem CPPFile, CPPEnvironment ModuleCompileEnvironment)
-		{
+					{
 			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(CPPFile, ModuleCompileEnvironment.Config.Target.Platform);
 			if (BuildConfiguration.bPrintDebugInfo)
 			{
@@ -1780,19 +1791,19 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
-				{
-					_AllClassesHeaders.Add(UObjectHeaderFileItem);
+					if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
+					{
+						_AllClassesHeaders.Add(UObjectHeaderFileItem);
+					}
+					else if (UObjectHeaderFileItem.AbsolutePath.StartsWith(PublicFolder))
+					{
+						_PublicUObjectHeaders.Add(UObjectHeaderFileItem);
+					}
+					else
+					{
+						_PrivateUObjectHeaders.Add(UObjectHeaderFileItem);
+					}
 				}
-				else if (UObjectHeaderFileItem.AbsolutePath.StartsWith(PublicFolder))
-				{
-					_PublicUObjectHeaders.Add(UObjectHeaderFileItem);
-				}
-				else
-				{
-					_PrivateUObjectHeaders.Add(UObjectHeaderFileItem);
-				}
-			}
 
 			CachedModuleUHTInfo = new UHTModuleInfo {
 				ModuleName                  = this.Name,
@@ -1805,7 +1816,7 @@ namespace UnrealBuildTool
 
 			return CachedModuleUHTInfo;
 		}
-
+	
 		public override void GetAllDependencyModules( ref Dictionary<string, UEBuildModule> ReferencedModules, ref List<UEBuildModule> OrderedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular )
 		{
 			var AllModuleNames = new List<string>();
@@ -1828,7 +1839,7 @@ namespace UnrealBuildTool
 						var Module = Target.GetModuleByName( DependencyName );
 						ReferencedModules[ DependencyName ] = Module;
 
-						// Recurse into dependent modules first
+							// Recurse into dependent modules first
 						Module.GetAllDependencyModules(ref ReferencedModules, ref OrderedModules, bIncludeDynamicallyLoaded, bForceCircular);
 
 						OrderedModules.Add( Module );
