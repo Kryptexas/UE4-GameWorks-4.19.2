@@ -1487,14 +1487,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			return;
 		}
 
-/*
-		//@todo-rco: Remove me!
+		// This requires removing the HLSLCC_NoPreprocess flag later on!
 		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
 		{
-			check(0);
+			return;
 		}
 
-*/
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
@@ -1530,10 +1528,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			}
 		}
 
-/*
-//@todo-rco: Remove me!
-CCFlags &= ~HLSLCC_NoPreprocess;
-*/
+		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
+		CCFlags &= ~HLSLCC_NoPreprocess;
+
 		FGlslCodeBackend GlslBackEnd(CCFlags);
 		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
 		int32 Result = HlslCrossCompile(

@@ -72,6 +72,7 @@ struct SCmdOptions
 	EHlslccBackend Backend;
 	const char* Entry;
 	bool bDumpAST;
+	bool bNoPreprocess;
 	bool bFlattenUB;
 	bool bFlattenUBStructures;
 	bool bGroupFlattenedUB;
@@ -87,6 +88,7 @@ struct SCmdOptions
 		Backend = HB_Invalid;
 		Entry = nullptr;
 		bDumpAST = false;
+		bNoPreprocess = false;
 		bFlattenUB = false;
 		bFlattenUBStructures = false;
 		bGroupFlattenedUB = false;
@@ -157,6 +159,10 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strcmp(*argv, "-ast"))
 			{
 				OutOptions.bDumpAST = true;
+			}
+			else if (!strcmp(*argv, "-nopp"))
+			{
+				OutOptions.bNoPreprocess = true;
 			}
 			else if (!strcmp(*argv, "-flattenub"))
 			{
@@ -289,7 +295,8 @@ int main( int argc, char** argv)
 		return -2;
 	}
 
-	int Flags = HLSLCC_PackUniforms; //HLSLCC_NoPreprocess | HLSLCC_NoValidation | HLSLCC_PackUniforms;
+	int Flags = HLSLCC_PackUniforms; // | HLSLCC_NoValidation | HLSLCC_PackUniforms;
+	Flags |= Options.bNoPreprocess ? HLSLCC_NoPreprocess : 0;
 	Flags |= Options.bDumpAST ? HLSLCC_PrintAST : 0;
 	Flags |= Options.bFlattenUB ? HLSLCC_FlattenUniformBuffers : 0;
 	Flags |= Options.bFlattenUBStructures ? HLSLCC_FlattenUniformBufferStructures : 0;
