@@ -7,6 +7,7 @@
 
 #define LOCTEXT_NAMESPACE "FMediaAssetEditorModule"
 
+
 /**
  * Implements the MediaAssetEditor module.
  */

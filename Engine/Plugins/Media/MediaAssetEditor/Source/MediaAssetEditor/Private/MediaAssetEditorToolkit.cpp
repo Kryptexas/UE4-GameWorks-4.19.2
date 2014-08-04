@@ -8,12 +8,14 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMediaAssetEditor, Log, All);
 
+
 /* Local constants
  *****************************************************************************/
 
 static const FName DetailsTabId("Details");
-static const FName PlayerTabId("Player");
 static const FName MediaAssetEditorAppIdentifier("MediaAssetEditorApp");
+static const FName PlayerTabId("Player");
+
 
 /* FMediaAssetEditorToolkit structors
  *****************************************************************************/

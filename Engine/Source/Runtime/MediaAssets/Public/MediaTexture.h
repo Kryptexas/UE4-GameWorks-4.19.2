@@ -7,6 +7,7 @@
 
 class UMediaAsset;
 
+
 /**
  * Implements a texture for rendering video tracks from media assets.
  */

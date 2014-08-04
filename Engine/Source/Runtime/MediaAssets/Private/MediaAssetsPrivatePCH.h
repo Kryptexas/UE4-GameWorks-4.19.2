@@ -15,3 +15,9 @@
 #include "MediaAsset.h"
 #include "MediaSoundWave.h"
 #include "MediaTexture.h"
+
+
+/* Private includes
+ *****************************************************************************/
+
+#include "MediaTextureResource.h"

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
-#include "Assets/MediaTextureResource.h"
+
 
 /* FMediaTextureResource structors
  *****************************************************************************/
