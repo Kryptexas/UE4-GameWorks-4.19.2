@@ -83,6 +83,8 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			if ( Prop )
 			{
 				Prop->SetObjectPropertyValue_InContainer(UserWidget, Widget);
+				UObject* Value = Prop->GetObjectPropertyValue_InContainer(UserWidget);
+				check(Value == Widget);
 			}
 
 			// Perform binding
