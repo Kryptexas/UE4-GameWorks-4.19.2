@@ -3611,16 +3611,22 @@ void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expr
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
 	{
 		UMaterialExpression* Expression = Expressions[ExpressionIndex];
-		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
-		Expression->MaterialExpressionEditorY *= PosScaling;
+		if (Expression)
+		{
+			Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
+			Expression->MaterialExpressionEditorY *= PosScaling;
+		}
 	}
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
 	{
 		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
-		Comment->MaterialExpressionEditorX = (-Comment->MaterialExpressionEditorX - Comment->SizeX) * PosScaling;
-		Comment->MaterialExpressionEditorY *= PosScaling;
-		Comment->SizeX *= PosScaling;
-		Comment->SizeY *= PosScaling;
+		if (Comment)
+		{
+			Comment->MaterialExpressionEditorX = (-Comment->MaterialExpressionEditorX - Comment->SizeX) * PosScaling;
+			Comment->MaterialExpressionEditorY *= PosScaling;
+			Comment->SizeX *= PosScaling;
+			Comment->SizeY *= PosScaling;
+		}
 	}
 }
 
