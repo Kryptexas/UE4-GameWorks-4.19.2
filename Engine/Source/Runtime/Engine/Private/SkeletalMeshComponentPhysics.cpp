@@ -6,6 +6,7 @@
 #include "SkeletalRenderPublic.h"
 
 #include "MessageLog.h"
+#include "CollisionDebugDrawingPublic.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"

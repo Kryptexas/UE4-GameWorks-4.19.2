@@ -6,6 +6,7 @@
 #include "Sound/SoundWave.h"
 #include "MediaSoundWave.generated.h"
 
+class UMediaAsset;
 
 /**
  * Implements a playable sound object for audio streams from media assets.

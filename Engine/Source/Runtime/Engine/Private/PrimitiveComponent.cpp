@@ -19,6 +19,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "CollisionDebugDrawingPublic.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 

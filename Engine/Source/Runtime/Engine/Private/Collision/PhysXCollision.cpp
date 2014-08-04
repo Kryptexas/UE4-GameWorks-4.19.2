@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
+#include "CollisionDebugDrawingPublic.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"

@@ -5,6 +5,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "AVIWriter.h"
+#include "CapturePin.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAVIWriter, Log, All);
 

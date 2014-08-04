@@ -4,9 +4,7 @@
 #if WITH_RECAST
 
 #include "Recast.h"
-#include "DetourCommon.h"
 #include "DetourNavMesh.h"
-#include "DetourNavMeshBuilder.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/NavigationModifier.h"
 

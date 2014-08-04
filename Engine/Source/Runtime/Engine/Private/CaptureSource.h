@@ -8,8 +8,14 @@
 #define _CAPTURESOURCE_HEADER_
 
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL
-
-#include "CapturePin.h"
+#pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
+#pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 
+#include "AllowWindowsPlatformTypes.h"
+#include <streams.h>
+#include "HideWindowsPlatformTypes.h"
+#pragma warning(default : 4263) // 'function' : member function does not override any base class virtual member function
+#pragma warning(default : 4264) // 'virtual_function' : no override available for virtual member function from base
+class FCapturePin;
 
 // {9A80E195-3BBA-4821-B18B-21BB496F80F8}
 DEFINE_GUID(CLSID_CaptureSource, 

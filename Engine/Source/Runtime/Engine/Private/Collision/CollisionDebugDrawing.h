@@ -4,8 +4,6 @@
 
 #pragma once 
 
-#include "CollisionDebugDrawingPublic.h"
-
 #if WITH_PHYSX
 /** Draw PhysX geom with overlaps */
 void DrawGeomOverlaps(const UWorld* InWorld, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<struct FOverlapResult>& Overlaps, float Lifetime);

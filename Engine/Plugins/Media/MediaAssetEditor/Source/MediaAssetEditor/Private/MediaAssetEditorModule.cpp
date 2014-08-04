@@ -7,9 +7,6 @@
 
 #define LOCTEXT_NAMESPACE "FMediaAssetEditorModule"
 
-static const FName MediaAssetEditorAppIdentifier("MediaAssetEditorApp");
-
-
 /**
  * Implements the MediaAssetEditor module.
  */

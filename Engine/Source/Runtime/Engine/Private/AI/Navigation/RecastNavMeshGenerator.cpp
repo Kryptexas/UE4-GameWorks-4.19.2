@@ -15,6 +15,7 @@
 
 // recast includes
 #include "Recast.h"
+#include "DetourCommon.h"
 #include "DetourNavMeshBuilder.h"
 #include "DetourNavMeshQuery.h"
 #include "RecastAlloc.h"

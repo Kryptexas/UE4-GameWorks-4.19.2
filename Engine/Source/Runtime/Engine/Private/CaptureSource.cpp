@@ -5,8 +5,9 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 
-
+#include "CapturePin.h"
 #include "CaptureSource.h"
+
 
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL
 
