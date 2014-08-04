@@ -25,7 +25,7 @@ public:
 	/**
 	 * Ensures that the database singleton is initialized and populated.
 	 */
-	static void Prime() { Get(); }
+	static void Prime();
 
 	/**
 	 * Getter to access the database singleton. Will populate the database first 

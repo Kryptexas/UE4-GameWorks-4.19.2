@@ -98,11 +98,12 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
 	{
 		check(SpawnedNode != nullptr);
-		
+
+		// @TODO: Move Modify()/AddNode() into UBlueprintNodeSpawner and pull selection functionality out here
 		ParentGraph->Modify();
-		ParentGraph->AddNode(SpawnedNode, /*bool bFromUI =*/true, bSelectNewNode);
-		
-		SpawnedNode->PostPlacedNewNode();
+		ParentGraph->AddNode(SpawnedNode, /*bFromUI =*/true, bSelectNewNode);
+		// @TODO: if this spawned multiple nodes, then we should be selecting all of them
+
 		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
 		
 		if (FromPin != nullptr)

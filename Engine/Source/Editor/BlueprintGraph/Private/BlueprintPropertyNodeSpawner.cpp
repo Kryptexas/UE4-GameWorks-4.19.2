@@ -38,11 +38,7 @@ UBlueprintPropertyNodeSpawner::UBlueprintPropertyNodeSpawner(class FPostConstruc
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintPropertyNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
-	// if a NodeClass was set, then this should spawn something
-	UEdGraphNode* NewNode = Super::Invoke(ParentGraph, Location);
-	check(Property != nullptr);
-
-	if (NewNode != nullptr)
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UProperty const* Property, FCustomizeNodeDelegate UserDelegate)
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(NewNode);
 		UClass* OwnerClass = Property->GetOwnerClass();
@@ -56,15 +52,12 @@ UEdGraphNode* UBlueprintPropertyNodeSpawner::Invoke(UEdGraph* ParentGraph, FVect
 		{
 			DelegateNode->SetFromProperty(Property, bIsSelfContext);
 		}
-	}
-	// else, without a NodeClass explicitly specified, we don't know what kind  
-	// of property node to spawn (for example: a getter versus a setter)... 
-	// we can use a null NodeClass to represent the property itself (an 
-	// accumulation of all the nodes that it COULD spawn), and the ui can then 
-	// provide the user with a sub-menu to pick from (but it is up to some 
-	// external system to interpret/use it that way)
 
-	return NewNode;
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+	};
+
+	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, Property, CustomizeNodeDelegate);
+	return Super::Invoke(ParentGraph, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------

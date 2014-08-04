@@ -16,7 +16,22 @@
 
 namespace BlueprintBoundNodeSpawnerImpl
 {
+	/**
+	 * For UK2Node_AddComponent nodes. Spawns the component with a certain 
+	 * asset (mesh, child-actor, etc.).
+	 * 
+	 * @param  NewNode	The newly spawned node that needs to be bound.
+	 * @param  AssetObj	The asset object you want bound to the node.
+	 */
 	static void BindAddComponentNodeWithAsset(UEdGraphNode* NewNode, UObject* AssetObj);
+
+	/**
+	 * Binds function nodes to specific properties. Results in a call to a 
+	 * function on the supplied property.
+	 * 
+	 * @param  NewNode		The newly spawned node that needs to be bound.
+	 * @param  PropertyObj	The property object you want bound to the node.
+	 */
 	static void BindFunctionNodeWithProperty(UEdGraphNode* NewNode, UObject* PropertyObj);
 };
 
@@ -53,6 +68,9 @@ static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithProperty(UEdGraph
 		
 		UEdGraph* ParentGraph = FuncNode->GetGraph();
 		UK2Node_VariableGet* GetVarNode = CastChecked<UK2Node_VariableGet>(TempNodeSpawner->Invoke(ParentGraph, VarNodePos));
+
+		ParentGraph->Modify();
+		ParentGraph->AddNode(GetVarNode, /*bFromUI =*/false, /*bSelectNewNode =*/false); 
 		
 		UEdGraphPin* LiteralOutput = GetVarNode->GetValuePin();
 		UEdGraphPin* CallSelfInput = FuncNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);

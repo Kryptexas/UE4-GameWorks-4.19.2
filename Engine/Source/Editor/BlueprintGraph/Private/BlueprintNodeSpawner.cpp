@@ -128,6 +128,7 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D con
 		{
 			NewNode->SetFlags(RF_Transactional);
 			NewNode->AllocateDefaultPins();
+			NewNode->PostPlacedNewNode();
 		}
 	}
 

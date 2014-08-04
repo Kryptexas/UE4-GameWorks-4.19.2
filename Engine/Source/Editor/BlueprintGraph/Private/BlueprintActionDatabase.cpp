@@ -242,6 +242,19 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawn
 namespace FBlueprintActionDatabaseImpl
 {
 	/** 
+	 * Since the action-database is a singleton, we can track its state in a
+	 * static enum value here (hidden as an implementation detail to keep the 
+	 * API clean).
+	 */
+	enum EDatabaseState
+	{
+		DB_Uninitialized,
+		DB_Initializing,
+		DB_Primed,
+	};
+	static EDatabaseState DatabaseState = DB_Uninitialized;
+
+	/** 
 	 * Wrapper around FBlueprintActionDatabase's FActionList. Manages the 
 	 * RF_RootSet flag for the UBlueprintNodeSpawners (ensures they don't get 
 	 * GC'd whilst in the database.
@@ -396,6 +409,8 @@ namespace FBlueprintActionDatabaseImpl
 	 * @param  ActionListOut	The list you want populated with new spawners.
 	 */
 	static void AddAutonomousNodeActions(UClass* const Class, FActionList& ActionListOut);
+
+	static void OnBlueprintChanged(UBlueprint* InBlueprint);
 }
 
 //------------------------------------------------------------------------------
@@ -683,7 +698,7 @@ static void FBlueprintActionDatabaseImpl::AddBlueprintGraphActions(UClass const*
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMacroNodeSpawner()
 
-	if (UBlueprint const* const Blueprint = Cast<UBlueprint const>(Class->ClassGeneratedBy))
+	if (UBlueprint* const Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy))
 	{
 		for (auto GraphIt = Blueprint->MacroGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
 		{
@@ -739,18 +754,49 @@ static void FBlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const
 	}
 }
 
+//------------------------------------------------------------------------------
+static void FBlueprintActionDatabaseImpl::OnBlueprintChanged(UBlueprint* Blueprint)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.RefreshClassActions(Blueprint->SkeletonGeneratedClass);
+	ActionDatabase.RefreshClassActions(Blueprint->GeneratedClass);
+}
+
 /*******************************************************************************
  * FBlueprintActionDatabase
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
+void FBlueprintActionDatabase::Prime()
+{
+	using namespace FBlueprintActionDatabaseImpl; // for DatabaseState
+	if (DatabaseState == DB_Uninitialized)
+	{
+		// set DB_Initializing before Get(), else we end up in an infinite loop
+		DatabaseState = DB_Initializing;
+
+		FBlueprintActionDatabase& DatabaseInst = Get();
+		DatabaseInst.RefreshAll();
+
+		for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
+		{
+			BpIt->OnChanged().AddStatic(&FBlueprintActionDatabaseImpl::OnBlueprintChanged);
+		}
+
+		DatabaseState = DB_Primed;
+	}
+}
+
+//------------------------------------------------------------------------------
 FBlueprintActionDatabase& FBlueprintActionDatabase::Get()
 {
+	using namespace FBlueprintActionDatabaseImpl; // for DatabaseState/DB_Uninitialized
+
 	static FBlueprintActionDatabase DatabaseInst;
-	if (DatabaseInst.ClassActions.Num() == 0)
+	if (DatabaseState == DB_Uninitialized)
 	{
 		// prime the database the first time we access it
-		DatabaseInst.RefreshAll();
+		Prime();
 	}
 
 	return DatabaseInst;
@@ -773,12 +819,12 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 	using namespace FBlueprintActionDatabaseImpl;
 
 	check(Class != nullptr);
-	bool const bIsSkelClass   = FKismetEditorUtilities::IsClassABlueprintSkeleton(Class);
-	bool const bIsReinstClass = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
+	bool const bIsBlueprintClass = Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+	bool const bIsSkelClass      = bIsBlueprintClass && FKismetEditorUtilities::IsClassABlueprintSkeleton(Class);
+	bool const bIsReinstClass    = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
+	bool const bIsIgnorableClass = bIsReinstClass || (bIsBlueprintClass && !bIsSkelClass);
 	
-	// make sure this class is not an intermediate that was part of some
-	// blueprint compile (if it is a SKEL or REINST class, then don't bother)
-	if (!bIsSkelClass && !bIsReinstClass)
+	if (!bIsIgnorableClass)
 	{
 		FBlueprintActionDatabaseImpl::FActionList ClassActionList(ClassActions.FindOrAdd(Class));
 		
