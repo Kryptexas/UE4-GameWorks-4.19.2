@@ -9,6 +9,7 @@
 #include "BlueprintPropertyNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
+#include "BlueprintBoundNodeSpawner.h"
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
@@ -310,6 +311,16 @@ namespace FBlueprintActionDatabaseImpl
 	static void AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut);
 
 	/**
+	 * Loops over all of the property's class properties and creates bound 
+	 * actions for any that are viable for blueprint use. Evolved from certain
+	 * parts of FK2ActionMenuBuilder::AddBoundEventActionsForClass().
+	 *
+	 * @param  Property			The component property that you want node-spawners for.
+	 * @param  ActionListOut	The list you want populated with the new spawners.
+	 */
+	static void AddComponentBoundActions(UObjectProperty* Property, FActionList& ActionListOut);
+
+	/**
 	 * Evolved from FClassDynamicCastHelper::GetClassDynamicCastNodes(). If the
 	 * specified class is a viable blueprint variable type, then two cast nodes
 	 * are added for it (UK2Node_DynamicCast, and UK2Node_ClassDynamicCast).
@@ -485,12 +496,15 @@ static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* 
 			ActionListOut.Add(ClearSpawner);
 
 			// @TODO: AddBoundEventActionsForClass()
-			//   UK2Node_ComponentBoundEvent 
 			//   UK2Node_ActorBoundEvent
  		}
 		else
 		{
-			
+			if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Property))
+			{
+				AddComponentBoundActions(ObjProperty, ActionListOut);
+			}
+
 			UBlueprintPropertyNodeSpawner* GetterSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_VariableGet>(Property);
 			ActionListOut.Add(GetterSpawner);
 			UBlueprintPropertyNodeSpawner* SetterSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_VariableSet>(Property);
@@ -499,6 +513,65 @@ static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* 
 	}
 
 	// @TODO: if blueprint class, loop over function graphs and get local variables
+}
+
+//------------------------------------------------------------------------------
+static void FBlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectProperty* ComponentProperty, FActionList& ActionListOut)
+{
+	check(ComponentProperty != nullptr);
+
+	bool const bIsComponentProperty = ComponentProperty->PropertyClass->IsChildOf<UActorComponent>();
+	if (bIsComponentProperty)
+	{
+		// evolved from FK2ActionMenuBuilder::GetBoundEventsFromComponentSelection()
+		for (TFieldIterator<UMulticastDelegateProperty> PropertyIt(ComponentProperty->PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			UMulticastDelegateProperty* Property = *PropertyIt;
+			if (!IsPropertyBlueprintVisible(Property))
+			{
+				continue;
+			}
+
+			UBlueprintPropertyNodeSpawner* PropertySpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_ComponentBoundEvent>(Property);
+			UBlueprintBoundNodeSpawner* BoundEventSpawner = UBlueprintBoundNodeSpawner::Create(PropertySpawner, ComponentProperty);
+
+			auto BindComponentLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UObjectProperty> ComponentProp, TWeakObjectPtr<UMulticastDelegateProperty> DelegateProp)
+			{
+				UK2Node_ComponentBoundEvent* BoundNode = CastChecked<UK2Node_ComponentBoundEvent>(NewNode);
+				if (ComponentProp.IsValid() && DelegateProp.IsValid())
+				{
+					BoundNode->InitializeComponentBoundEventParams(ComponentProp.Get(), DelegateProp.Get());
+				}
+			};
+
+			TWeakObjectPtr<UObjectProperty> ComponentPropPtr = ComponentProperty;
+			TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr = Property;
+			BoundEventSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(BindComponentLambda, ComponentPropPtr, DelegatePropPtr);
+			
+			ActionListOut.Add(BoundEventSpawner);
+		}
+		
+		// evolved from FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents()
+		for (TFieldIterator<UFunction> FuncIt(ComponentProperty->PropertyClass, EFieldIteratorFlags::IncludeSuper); FuncIt; ++FuncIt)
+		{
+			UFunction* ComponentFunc = *FuncIt;
+			if (!UEdGraphSchema_K2::CanUserKismetCallFunction(ComponentFunc))
+			{
+				continue;
+			}
+			
+			bool const bIsPure  = (ComponentFunc->HasAnyFunctionFlags(FUNC_BlueprintPure) != false);
+			bool const bIsConst = (ComponentFunc->HasAnyFunctionFlags(FUNC_Const) != false);
+			
+			// don't know why we only allow impure ("imperitive") and const functions,
+			// but this mimics legacy functionality in GetFunctionCallsOnSelectedComponents()
+			if (!bIsPure || bIsConst)
+			{
+				UBlueprintFunctionNodeSpawner* FuncSpawner = UBlueprintFunctionNodeSpawner::Create(ComponentFunc);
+				ActionListOut.Add(UBlueprintBoundNodeSpawner::Create(FuncSpawner, ComponentProperty));
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -732,7 +805,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 		AddAutonomousNodeActions(Class, ClassActionList);
 	}
 
-	// @TODO: account for all K2ActionMenuBuilder mathods...
+	// @TODO: account for all K2ActionMenuBuilder methods...
 	//   GetLiteralsFromActorSelection() - UK2Node_Literal
 	//   GetAnimNotifyMenuItems()
 	//   GetMatineeControllers() - UK2Node_MatineeController

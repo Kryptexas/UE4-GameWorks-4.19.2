@@ -28,6 +28,6 @@ struct FBlueprintActionMenuUtils
 	 * @param  SelectedProperties	A set of selected properties to offer contextual menu options for.
 	 * @param  MenuOut				The structure that will be populated with context menu items.
 	 */
-	KISMET_API static void MakeContextMenu(FBlueprintActionContext const& Context, TArray<UProperty*> const& SelectedProperties, FBlueprintActionMenuBuilder& MenuOut);
+	KISMET_API static void MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, FBlueprintActionMenuBuilder& MenuOut);
 };
 

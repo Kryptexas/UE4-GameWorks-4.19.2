@@ -401,7 +401,6 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 	// with a valid node, then fix it up in filtering
 	FilterContext.Graphs.Add(GraphObj);
 	
-	TArray<UProperty*> SelectedProperties;
 	if (bIsContextSensitive)
 	{
 		FilterContext.Pins = DraggedFromPins;
@@ -409,7 +408,7 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 		FEdGraphSchemaAction_K2Var* SelectedVar = BlueprintEditor->GetMyBlueprintWidget()->SelectionAsVar();
 		if ((SelectedVar != nullptr) && (SelectedVar->GetProperty() != nullptr))
 		{
-			SelectedProperties.Add(SelectedVar->GetProperty());
+			FilterContext.SelectedObjects.Add(SelectedVar->GetProperty());
 		}
 	}
 	
@@ -417,7 +416,7 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 	// NOTE: cannot call GetGraphContextActions() during serialization and GC due to its use of FindObject()
 	if(!GIsSavingPackage && !GIsGarbageCollecting)
 	{
-		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
+		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, bIsContextSensitive, MenuBuilder);
 	}
 	// copy the added options back to the main list
 	OutAllActions.Append(MenuBuilder); // @TODO: Avoid this copy

@@ -745,7 +745,9 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 			}
 		}
 
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);		
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);
+		MadeBlueprint->SetFlags(RF_RootSet); // to keep the BP from being garbage collected
+		FKismetEditorUtilities::CompileBlueprint(MadeBlueprint);
 		ClassBlueprints.Add(ParentClass, MadeBlueprint);
 	}
 
@@ -914,9 +916,10 @@ static FString DumpBlueprintInfoUtils::GetActionKey(FGraphActionListBuilderBase:
 //------------------------------------------------------------------------------
 static void DumpBlueprintInfoUtils::GetComponentProperties(UBlueprint* Blueprint, TArray<UObjectProperty*>& PropertiesOut)
 {
-	if (AActor* BlueprintCDO = Cast<AActor>(Blueprint->SkeletonGeneratedClass->GetDefaultObject()))
+	UClass* BpClass = Blueprint->GeneratedClass;
+	if (BpClass->IsChildOf<AActor>())
 	{
-		for (TFieldIterator<UObjectProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		for (TFieldIterator<UObjectProperty> PropertyIt(BpClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			// SMyBlueprint filters out component variables in SMyBlueprint::CollectAllActions() using CPF_BlueprintVisible/CPF_Parm flags
 			if (PropertyIt->PropertyClass->IsChildOf(UActorComponent::StaticClass()) &&
@@ -1102,6 +1105,14 @@ static void DumpBlueprintInfoUtils::DumpActionList(uint32 Indent, FGraphActionLi
 	{
 		bool operator()(FGraphActionListBuilderBase::ActionGroup const& LHS, FGraphActionListBuilderBase::ActionGroup const& RHS) const
 		{
+			TSharedPtr<FEdGraphSchemaAction> LHSAction = LHS.Actions[0];
+			TSharedPtr<FEdGraphSchemaAction> RHSAction = RHS.Actions[0];
+			
+			if (LHSAction->Grouping != RHSAction->Grouping)
+			{
+				return LHSAction->Grouping > RHSAction->Grouping;
+			}
+			
 			FString LhKey = GetActionKey(LHS);
 			FString RhKey = GetActionKey(RHS);
 			return (LhKey.Compare(RhKey) < 0);
@@ -1534,7 +1545,7 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 		{
 			if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
 			{
-				SelectedProperties.Add(SelectedProperty);
+				FilterContext.SelectedObjects.Add(SelectedProperty);
 			}
 		}
 		
@@ -1544,7 +1555,7 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 			FBlueprintActionDatabase::Prime();
 			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
+			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, MenuBuilder);
 		}
 		ActionBuilder.Append(MenuBuilder);
 	}

@@ -32,6 +32,13 @@ struct FBlueprintActionContext
 	 * be viable for every pin to pass the filter).
 	 */
 	TArray<UEdGraphPin*> Pins;
+
+	/** 
+	 * A list of objects the user currently has selected (things like blueprint 
+	 * properties, level actors, content-browser assets, etc.). Objects listed 
+	 * here will result in certain bound actions passing the filter.
+	 */
+	TArray<UObject*> SelectedObjects;
 };
 
 

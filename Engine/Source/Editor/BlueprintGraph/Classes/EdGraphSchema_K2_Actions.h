@@ -416,7 +416,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2TargetNode : public FEdGraphSch
 
 /** Action to paste at this location on graph*/
 USTRUCT()
-struct FEdGraphSchemaAction_K2PasteHere : public FEdGraphSchemaAction_K2NewNode
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2PasteHere : public FEdGraphSchemaAction_K2NewNode
 {
 	GENERATED_USTRUCT_BODY()
 

@@ -4,10 +4,36 @@
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h"
+#include "BlueprintBoundNodeSpawner.h"
+#include "KismetEditorUtilities.h" // for CanPasteNodes()
 #include "K2Node_CallFunction.h"
 #include "K2Node_Event.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
+
+/*******************************************************************************
+* Static FBlueprintActionMenuUtils Helpers
+******************************************************************************/
+
+namespace BlueprintActionMenuUtilsImpl
+{
+	static bool IsUnBoundSpawner(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilter const& /*Filter*/, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = true;
+	if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
+	{
+		bIsFilteredOut = (BoundSpawner->GetBoundObject() == nullptr);
+	}
+	return bIsFilteredOut;
+}
+
+/*******************************************************************************
+* FBlueprintActionMenuUtils
+******************************************************************************/
 
 //------------------------------------------------------------------------------
 void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& Context, UClass* FilterClass, FBlueprintActionMenuBuilder& MenuOut)
@@ -27,49 +53,75 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	{
 		MenuFilter.OwnerClasses.Add(FilterClass);
 	}
-	
+
 	MenuOut.AddMenuSection(MenuFilter, LOCTEXT("PaletteRoot", "Library"), /*MenuOrder =*/0, FBlueprintActionMenuBuilder::ConsolidatePropertyActions);
 	MenuOut.RebuildActionList();
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& Context, TArray<UProperty*> const& SelectedProperties, FBlueprintActionMenuBuilder& MenuOut)
+void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, FBlueprintActionMenuBuilder& MenuOut)
 {
-	MenuOut.Empty();
+	using namespace BlueprintActionMenuUtilsImpl;
 	
-	FBlueprintActionFilter MenuFilter;
-	MenuFilter.Context = Context;
+	static int32 const MainMenuSectionGroup   = 000;
+	static int32 const ComponentsSectionGroup = 100;
+
+	FBlueprintActionFilter ComponentsFilter;
+	ComponentsFilter.Context = Context;
+	ComponentsFilter.NodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
+	ComponentsFilter.NodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	ComponentsFilter.AddIsFilteredTest(FBlueprintActionFilter::FIsFilteredDelegate::CreateStatic(IsUnBoundSpawner));
 	
-	for (UProperty* SelectedProperty : SelectedProperties)
+	bool bHasComponentsSection = false;
+	for (UObject* Selection : Context.SelectedObjects)
 	{
-		static int32 const ComponentsSectionGroup = 100;
-		
-		if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(SelectedProperty))
+		if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Selection))
 		{
-			MenuFilter.OwnerClasses.Add(ObjProperty->PropertyClass);
-			FText const PropertyName = FText::FromName(ObjProperty->GetFName());
-			
-			MenuFilter.NodeTypes.Add(UK2Node_CallFunction::StaticClass());
-			FText const FuncSectionName = FText::Format(LOCTEXT("ComponentFuncSection", "Call Function on {0}"), PropertyName);
-			MenuOut.AddMenuSection(MenuFilter, FuncSectionName, ComponentsSectionGroup);
-			
-			MenuFilter.NodeTypes[0] = UK2Node_Event::StaticClass();
-			FText const EventSectionName = FText::Format(LOCTEXT("ComponentEventSection", "Add Event for {0}"), PropertyName);
-			MenuOut.AddMenuSection(MenuFilter, EventSectionName, ComponentsSectionGroup);
-			
-			MenuFilter.NodeTypes.Empty();
+			ComponentsFilter.OwnerClasses.Add(ObjProperty->PropertyClass);
+			bHasComponentsSection = true;
 		}
 	}
-	
-	for (UBlueprint* Blueprint : Context.Blueprints)
+
+	MenuOut.Empty();
+
+	FBlueprintActionFilter MenuFilter;
+	MenuFilter.Context = Context;
+	MenuFilter.Context.SelectedObjects.Empty();
+
+	if (bIsContextSensitive)
 	{
-		MenuFilter.OwnerClasses.Empty();
-		MenuFilter.OwnerClasses.Add(Blueprint->GeneratedClass);
+		if (bHasComponentsSection)
+		{
+			MenuOut.AddMenuSection(ComponentsFilter, FText::GetEmpty(), ComponentsSectionGroup);
+		}
 		
-		MenuOut.AddMenuSection(MenuFilter);
+		for (UBlueprint* Blueprint : Context.Blueprints)
+		{
+			MenuFilter.OwnerClasses.Add(Blueprint->GeneratedClass);
+		}
 	}
-	
+
+	MenuOut.AddMenuSection(MenuFilter);
 	MenuOut.RebuildActionList();
+
+	for (UEdGraph const* Graph : Context.Graphs)
+	{
+		if (FKismetEditorUtilities::CanPasteNodes(Graph))
+		{
+			// @TODO: Grey out menu option with tooltip if one of the nodes cannot paste into this graph
+			TSharedPtr<FEdGraphSchemaAction> PasteHereAction(new FEdGraphSchemaAction_K2PasteHere(TEXT(""), LOCTEXT("PasteHereMenuName", "Paste here"), TEXT(""), MainMenuSectionGroup));
+			MenuOut.AddAction(PasteHereAction);
+			break;
+		}
+	}
+
+	if (bIsContextSensitive && (Context.SelectedObjects.Num() == 0))
+	{
+		FText SelectComponentMsg     = LOCTEXT("SelectComponentForEvents",        "Select a Component to see available Events & Functions");
+		FText SelectComponentToolTip = LOCTEXT("SelectComponentForEventsTooltip", "Select a Component in the MyBlueprint tab to see available Events and Functions in this menu.");
+		TSharedPtr<FEdGraphSchemaAction> MsgAction = TSharedPtr<FEdGraphSchemaAction>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectComponentMsg, SelectComponentToolTip.ToString(), ComponentsSectionGroup));
+		MenuOut.AddAction(MsgAction);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
