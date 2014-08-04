@@ -86,7 +86,7 @@ UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
 	check(ParentGraph != nullptr);
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
@@ -116,25 +116,25 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 	// if there is no existing node, then we can happily spawn one into the graph
 	if (EventNode == nullptr)
 	{
-		bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+		auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* EventFunc, FName EventName, FCustomizeNodeDelegate UserDelegate)
+		{
+			UK2Node_Event* EventNode = CastChecked<UK2Node_Event>(NewNode);
+			if (EventFunc != nullptr)
+			{
+				EventNode->EventSignatureName  = EventName;
+				EventNode->EventSignatureClass = EventFunc->GetOuterUClass();
+				EventNode->bOverrideFunction   = true;
+			}
+			else if (!bIsTemplateNode)
+			{
+				EventNode->CustomFunctionName = EventName;
+			}
 
-		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph));
-		if (EventFunc != nullptr)
-		{
-			EventNode->EventSignatureName  = EventName;
-			EventNode->EventSignatureClass = ClassOwner;
-			EventNode->bOverrideFunction   = true;
-		}
-		else if (!bIsTemplateNode)
-		{
-			EventNode->CustomFunctionName  = CustomEventName;
-		}
+			UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+		};
 
-		if (!bIsTemplateNode)
-		{
-			EventNode->SetFlags(RF_Transactional);
-			EventNode->AllocateDefaultPins();
-		}
+		FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, EventFunc, EventName, CustomizeNodeDelegate);
+		EventNode = Cast<UK2Node_Event>(Super::Invoke(ParentGraph, Location, PostSpawnDelegate));
 	}
 	// else, a node for this event already exists, and we should return that 
 	// (the FBlueprintActionMenuItem should detect this and focus in on it).

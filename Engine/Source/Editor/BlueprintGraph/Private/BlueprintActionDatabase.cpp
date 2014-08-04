@@ -220,8 +220,12 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawn
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(OuterGraph);
 		check(Blueprint != nullptr);
 
-		FSlateRect Bounds;
-		FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, 50.0f);
+		float const OldNodePosX = NewNode->NodePosX;
+		float const OldNodePosY = NewNode->NodePosY;
+
+		static const float CommentNodePadding = 50.0f;
+		FSlateRect Bounds(OldNodePosX - CommentNodePadding, OldNodePosY - CommentNodePadding, OldNodePosX + CommentNodePadding, OldNodePosY + CommentNodePadding);
+		FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, CommentNodePadding);
 		CommentNode->SetBounds(Bounds);
 	};
 

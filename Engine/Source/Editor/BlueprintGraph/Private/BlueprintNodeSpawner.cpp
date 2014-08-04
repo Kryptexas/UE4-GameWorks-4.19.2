@@ -33,28 +33,9 @@ UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializePrope
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
-	UEdGraphNode* NewNode = nullptr;	
-	if (NodeClass != nullptr)
-	{
-		NewNode = NewObject<UEdGraphNode>(ParentGraph, NodeClass);
-		check(NewNode != nullptr);
-
-		bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);		
-		if (CustomizeNodeDelegate.IsBound())
-		{
-			CustomizeNodeDelegate.Execute(NewNode, bIsTemplateNode);
-		}
-
-		if (!bIsTemplateNode)
-		{
-			NewNode->SetFlags(RF_Transactional);
-			NewNode->AllocateDefaultPins();
-		}
-	}
-
-	return NewNode;
+	return Invoke(ParentGraph, Location, CustomizeNodeDelegate);
 }
 
 //------------------------------------------------------------------------------
@@ -116,7 +97,7 @@ UEdGraphNode* UBlueprintNodeSpawner::MakeTemplateNode(UEdGraph* Outer) const
 	//        graph's class type (and graph type)
 	if (CachedNodeTemplate == nullptr)// || (CachedNodeTemplate->GetOuter() != Outer))
 	{
-		CachedNodeTemplate = Invoke(Outer);
+		CachedNodeTemplate = Invoke(Outer, FVector2D::ZeroVector);
 		if (CachedNodeTemplate != nullptr)
 		{
 			CachedNodeTemplate->SetFlags(RF_Transient | RF_ArchetypeObject);
@@ -124,4 +105,31 @@ UEdGraphNode* UBlueprintNodeSpawner::MakeTemplateNode(UEdGraph* Outer) const
 	}
 	
 	return CachedNodeTemplate;
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+{
+	UEdGraphNode* NewNode = nullptr;
+	if (NodeClass != nullptr)
+	{
+		NewNode = NewObject<UEdGraphNode>(ParentGraph, NodeClass);
+		check(NewNode != nullptr);
+
+		// position the node before invoking PostSpawnDelegate (in case it 
+		// wishes to modify this positioning)
+		NewNode->NodePosX = Location.X;
+		NewNode->NodePosY = Location.Y;
+
+		bool const bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+		PostSpawnDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+
+		if (!bIsTemplateNode)
+		{
+			NewNode->SetFlags(RF_Transactional);
+			NewNode->AllocateDefaultPins();
+		}
+	}
+
+	return NewNode;
 }

@@ -57,28 +57,22 @@ UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
-	UEdGraphNode* NewNode = Super::Invoke(ParentGraph);
-	// user could have changed the node class (to something like
-	// UK2Node_BaseAsyncTask, which also wraps a function)
-	if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FCustomizeNodeDelegate UserDelegate)
 	{
-		FuncNode->SetFromFunction(Function);
-	}
-	
-	bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
-	if (CustomizeNodeDelegate.IsBound())
-	{
-		CustomizeNodeDelegate.Execute(NewNode, bIsTemplateNode);
-	}
-	if (!bIsTemplateNode)
-	{
-		NewNode->SetFlags(RF_Transactional);
-		NewNode->AllocateDefaultPins();
-	}
- 	
-	return NewNode;
+		// user could have changed the node class (to something like
+		// UK2Node_BaseAsyncTask, which also wraps a function)
+		if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
+		{
+			FuncNode->SetFromFunction(Function);
+		}
+
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+	};
+
+	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, Function, CustomizeNodeDelegate);
+	return Super::Invoke(ParentGraph, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------

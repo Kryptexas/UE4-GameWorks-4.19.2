@@ -36,10 +36,10 @@ UBlueprintPropertyNodeSpawner::UBlueprintPropertyNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintPropertyNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintPropertyNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
 	// if a NodeClass was set, then this should spawn something
-	UEdGraphNode* NewNode = Super::Invoke(ParentGraph);
+	UEdGraphNode* NewNode = Super::Invoke(ParentGraph, Location);
 	check(Property != nullptr);
 
 	if (NewNode != nullptr)

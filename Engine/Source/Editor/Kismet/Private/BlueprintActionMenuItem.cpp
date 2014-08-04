@@ -10,6 +10,7 @@
 #include "BPVariableDragDropAction.h"
 #include "BPDelegateDragDropAction.h"
 #include "BlueprintEditor.h"		// for GetVarIconAndColor()
+#include "SNodePanel.h"				// for GetSnapGridSize()
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
 
@@ -71,8 +72,27 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	using namespace FBlueprintMenuActionItemImpl;
 	FScopedTransaction Transaction(LOCTEXT("AddNodeTransaction", "Add Node"));
 	
+	FVector2D ModifiedLocation = Location;
+	if (FromPin != nullptr)
+	{
+		// for input pins, a new node will generally overlap the node being
+		// dragged from... work out if we want add in some spacing from the connecting node
+		if (FromPin->Direction == EGPD_Input)
+		{
+			UEdGraphNode* FromNode = FromPin->GetOwningNode();
+			check(FromNode != nullptr);
+			float const FromNodeX = FromNode->NodePosX;
+
+			static const float MinNodeDistance = 60.f; // min distance between spawned nodes (to keep them from overlapping)
+			if (MinNodeDistance > FMath::Abs(FromNodeX - Location.X))
+			{
+				ModifiedLocation.X = FromNodeX - MinNodeDistance;
+			}
+		}
+	}
+
 	// this could return an existing node
-	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph);
+	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Location);
 	
 	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
 	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
@@ -83,36 +103,16 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 		ParentGraph->AddNode(SpawnedNode, /*bool bFromUI =*/true, bSelectNewNode);
 		
 		SpawnedNode->PostPlacedNewNode();
-		SpawnedNode->NodePosX = Location.X;
-		SpawnedNode->NodePosY = Location.Y;
+		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
 		
 		if (FromPin != nullptr)
 		{
-			// for input pins, a new node will generally overlap the node being
-			// dragged from... work out if we want add in some spacing from the connecting node
-			if (FromPin->Direction == EGPD_Input)
-			{
-				UEdGraphNode* FromNode = FromPin->GetOwningNode();
-				check(FromNode != nullptr);
-				float const FromNodeX = FromNode->NodePosX;
-				
-				static const float MinNodeDistance = 60.f; // min distance between spawned nodes (to keep them from overlapping)
-				if (MinNodeDistance > FMath::Abs(FromNodeX - Location.X))
-				{
-					SpawnedNode->NodePosX = FromNodeX - MinNodeDistance;
-				}
-			}
-			
 			// modify before the call to AutowireNewNode() below
 			FromPin->Modify();
+			// make sure to auto-wire after we position the new node (in case
+			// the auto-wire creates a conversion node to put between them)
+			SpawnedNode->AutowireNewNode(FromPin);
 		}
-		
-		static const float GridSnapSize = 16.f; // @TODO: ensure this is the same as SNodePanel::GetSnapGridSize()
-		SpawnedNode->SnapToGrid(GridSnapSize);
-		
-		// make sure to auto-wire after we position the new node (in case
-		// the auto-wire creates a conversion node to put between them)
-		SpawnedNode->AutowireNewNode(FromPin);
 		
 		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
 		DirtyBlueprintFromNewNode(SpawnedNode);

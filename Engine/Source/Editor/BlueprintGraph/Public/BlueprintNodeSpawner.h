@@ -8,6 +8,10 @@
 class UEdGraph;
 class UEdGraphNode;
 
+/*******************************************************************************
+* UBlueprintNodeSpawner Declaration
+******************************************************************************/
+
 /**
  * Intended to be wrapped and used by FBlueprintActionMenuItem. Rather than 
  * sub-classing the menu item, we choose to subclass this instead (for 
@@ -30,18 +34,30 @@ public:
 	 * the allocated spawner's NodeClass and CustomizeNodeDelegate fields from
 	 * the supplied parameters.
 	 *
-	 * @param  NodeClass                The node type that you want the spawner to spawn.
-	 * @param  Outer					Optional outer for the new spawner (if left null, the transient package will be used).
-	 * @param  CustomizeNodeDelegate    A delegate to perform specialized node setup post-spawn.
+	 * @param  NodeClass			The node type that you want the spawner to spawn.
+	 * @param  Outer				Optional outer for the new spawner (if left null, the transient package will be used).
+	 * @param  PostSpawnDelegate    A delegate to perform specialized node setup post-spawn.
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintNodeSpawner* Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer = nullptr, FCustomizeNodeDelegate CustomizeNodeDelegate = FCustomizeNodeDelegate());
+	static UBlueprintNodeSpawner* Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer = nullptr, FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate());
+	
+	/**
+	 * Templatized version of the above Create() method (where we specify the 
+	 * spawner's node class through the template argument).
+	 *
+	 * @param  Outer				Optional outer for the new spawner (if left null, the transient package will be used).
+	 * @param  PostSpawnDelegate    A delegate to perform specialized node setup post-spawn.
+	 * @return A newly allocated instance of this class.
+	 */
+	template<class NodeType>
+	static UBlueprintNodeSpawner* Create(UObject* Outer = nullptr, FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate());
 	
 	/**
 	 * Holds the class of node to spawn. May be null for sub-classes that know
 	 * specifically what node types to spawn (if null for an instance of this 
 	 * class, then nothing will be spawned).
 	 */
+	UPROPERTY()
 	TSubclassOf<UEdGraphNode> NodeClass;
 	
 	/**
@@ -62,9 +78,10 @@ public:
 	 * this case upon use.
 	 * 
 	 * @param  ParentGraph	The graph you want the node spawned into.
-	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or posibly one that already existed.
+	 * @param  Location     Where you want the new node positioned in the graph.
+	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or possibly one that already existed.
 	 */
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const;
 	
 	// @TODO: for favorites, generated for the spawner type + data (function, property, node, etc.)
 	//virtual FGuid GetActionHash() const;
@@ -146,6 +163,18 @@ public:
 	 */
 	UEdGraphNode* MakeTemplateNode(UEdGraph* Outer) const;
 
+protected:
+	/**
+	 * Protected Invoke() that let's sub-classes specify their own post-spawn
+	 * delegate. Creates a new node based off of the set NodeClass.
+	 * 
+	 * @param  ParentGraph			The graph you want the node spawned into.
+	 * @param  Location				Where you want the new node positioned in the graph.
+	 * @param  PostSpawnDelegate	A delegate to run after spawning the node, but prior to allocating the node's pins.
+	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
+	 */
+	UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
+
 private:
 	/**
 	 * We try to avoid the spawning of node-templates (save on perf/mem where we
@@ -158,3 +187,14 @@ private:
 	UPROPERTY(Transient)
 	mutable UEdGraphNode* CachedNodeTemplate;
 };
+
+/*******************************************************************************
+ * Templatized UBlueprintNodeSpawner Implementation
+ ******************************************************************************/
+
+//------------------------------------------------------------------------------
+template<class NodeType>
+UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(UObject* Outer, FCustomizeNodeDelegate PostSpawnDelegate)
+{
+	Create(NodeType::StaticClass(), Outer, PostSpawnDelegate);
+}

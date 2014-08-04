@@ -45,7 +45,7 @@ public:
 	}
 
 	// UBlueprintNodeSpawner interface
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) override;

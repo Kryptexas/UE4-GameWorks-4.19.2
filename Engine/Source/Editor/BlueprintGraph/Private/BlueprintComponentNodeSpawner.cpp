@@ -36,30 +36,31 @@ UBlueprintComponentNodeSpawner::UBlueprintComponentNodeSpawner(class FPostConstr
 //------------------------------------------------------------------------------
 // Evolved from a combination of FK2ActionMenuBuilder::CreateAddComponentAction()
 // and FEdGraphSchemaAction_K2AddComponent::PerformAction().
-UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
 {
-	UK2Node_AddComponent* NewNode = NewObject<UK2Node_AddComponent>(ParentGraph);
-	UBlueprint* Blueprint = NewNode->GetBlueprint();
-
-	UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
-	NewNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
+	check(ComponentClass != nullptr);
+	
+	auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
+	{
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+		
+		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
+		UBlueprint* Blueprint = AddCompNode->GetBlueprint();
+		
+		UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
+		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
+	};
+	FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, CustomizeNodeDelegate);
+	
+	UK2Node_AddComponent* NewNode = CastChecked<UK2Node_AddComponent>(Super::Invoke(ParentGraph, Location, PostSpawnDelegate));
 
 	bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
-	if (CustomizeNodeDelegate.IsBound())
-	{
-		CustomizeNodeDelegate.Execute(NewNode, bIsTemplateNode);
-	}
-
 	if (!bIsTemplateNode)
 	{
-		NewNode->SetFlags(RF_Transactional);
-		NewNode->AllocateDefaultPins();
-
-		check(ComponentClass != nullptr);
+		UBlueprint* Blueprint = NewNode->GetBlueprint();
 		UActorComponent* ComponentTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
 		ComponentTemplate->SetFlags(RF_ArchetypeObject);
 
-		// @TODO: what is this is a template?
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);
 
 		// set the name of the template as the default for the TemplateName param
