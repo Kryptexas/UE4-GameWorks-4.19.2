@@ -118,6 +118,24 @@ ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(int32 LocalUserNum)
 }
 
 
+ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(const FUniqueNetId& UserId) const
+{
+	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
+
+	if(bLoggedIn)
+	{
+		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Logged in"));
+		LoginStatus = ELoginStatus::LoggedIn;
+	}
+	else
+	{
+		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Not logged in"));
+	}
+
+	return LoginStatus;
+}
+
+
 TSharedPtr<FUniqueNetId> FOnlineIdentityGooglePlay::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	TSharedPtr<FUniqueNetId> NewID = MakeShareable(new FUniqueNetIdString(""));
@@ -152,6 +170,11 @@ FString FOnlineIdentityGooglePlay::GetPlayerNickname(int32 LocalUserNum) const
 	return PlayerAlias;
 }
 
+FString FOnlineIdentityGooglePlay::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetPlayerNickname"));
+	return PlayerAlias;
+}
 
 FString FOnlineIdentityGooglePlay::GetAuthToken(int32 LocalUserNum) const
 {

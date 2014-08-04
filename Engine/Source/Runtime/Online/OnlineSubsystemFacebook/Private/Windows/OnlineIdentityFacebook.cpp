@@ -313,13 +313,19 @@ ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(int32 LocalUserNum) c
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid() &&
-			UserAccount->GetUserId()->IsValid() &&
-			!UserAccount->GetAccessToken().IsEmpty())
-		{
-			return ELoginStatus::LoggedIn;
-		}
+		return GetLoginStatus(*UserId);
+	}
+	return ELoginStatus::NotLoggedIn;
+}
+
+ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& UserId) const
+{
+	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
+	if (UserAccount.IsValid() &&
+		UserAccount->GetUserId()->IsValid() &&
+		!UserAccount->GetAccessToken().IsEmpty())
+	{
+		return ELoginStatus::LoggedIn;
 	}
 	return ELoginStatus::NotLoggedIn;
 }
@@ -329,12 +335,18 @@ FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId->ToString());
-		if (FoundUserAccount != NULL)
-		{
-			const TSharedRef<FUserOnlineAccountFacebook>& UserAccount = *FoundUserAccount;
-			return UserAccount->RealName;
-		}
+		return  GetPlayerNickname(*UserId);
+	}
+	return TEXT("");
+}
+
+FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId.ToString());
+	if (FoundUserAccount != NULL)
+	{
+		const TSharedRef<FUserOnlineAccountFacebook>& UserAccount = *FoundUserAccount;
+		return UserAccount->RealName;
 	}
 	return TEXT("");
 }

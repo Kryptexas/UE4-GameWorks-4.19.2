@@ -191,8 +191,18 @@ ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(int32 LocalUserNum) c
 	return LoginStatus;
 }
 
+ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	return LoginStatus;
+}
+
 
 FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
+{
+	return TEXT("FacebookUser");
+}
+
+FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const 
 {
 	return TEXT("FacebookUser");
 }

@@ -205,12 +205,18 @@ ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(int32 LocalUserNum) const
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid() &&
-			UserAccount->GetUserId()->IsValid())
-		{
-			return ELoginStatus::LoggedIn;
-		}
+		return GetLoginStatus(*UserId);
+	}
+	return ELoginStatus::NotLoggedIn;
+}
+
+ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
+	if (UserAccount.IsValid() &&
+		UserAccount->GetUserId()->IsValid())
+	{
+		return ELoginStatus::LoggedIn;
 	}
 	return ELoginStatus::NotLoggedIn;
 }
@@ -224,6 +230,11 @@ FString FOnlineIdentityNull::GetPlayerNickname(int32 LocalUserNum) const
 	}
 
 	return TEXT("NullUser");
+}
+
+FString FOnlineIdentityNull::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	return UserId.ToString();
 }
 
 FString FOnlineIdentityNull::GetAuthToken(int32 LocalUserNum) const

@@ -125,6 +125,18 @@ ELoginStatus::Type FOnlineIdentityIOS::GetLoginStatus(int32 LocalUserNum) const
 	return LoginStatus;
 }
 
+ELoginStatus::Type FOnlineIdentityIOS::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
+
+	if(GetLocalGameCenterUser() != NULL && GetLocalGameCenterUser().isAuthenticated == YES)
+	{
+		LoginStatus = ELoginStatus::LoggedIn;
+	}
+
+	return LoginStatus;
+}
+
 TSharedPtr<FUniqueNetId> FOnlineIdentityIOS::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	return UniqueNetId;
@@ -153,6 +165,21 @@ TSharedPtr<FUniqueNetId> FOnlineIdentityIOS::CreateUniquePlayerId(const FString&
 FString FOnlineIdentityIOS::GetPlayerNickname(int32 LocalUserNum) const
 {
 	if (LocalUserNum < MAX_LOCAL_PLAYERS && GetLocalGameCenterUser() != NULL)
+	{
+		NSString* PersonaName = [GetLocalGameCenterUser() alias];
+		
+        if (PersonaName != nil)
+        {
+            return FString(PersonaName);
+        }
+	}
+
+	return FString();
+}
+
+FString FOnlineIdentityIOS::GetPlayerNickname(const FUniqueNetId& UserId) const 
+{
+	if (GetLocalGameCenterUser() != NULL)
 	{
 		NSString* PersonaName = [GetLocalGameCenterUser() alias];
 		

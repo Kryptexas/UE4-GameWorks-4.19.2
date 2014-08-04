@@ -248,6 +248,15 @@ public:
 	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const = 0;
 
 	/**
+	 * Fetches the login status for a given player
+	 *
+	 * @param UserId the unique net id of the associated user
+	 *
+	 * @return the enum value of their status
+	 */
+	virtual ELoginStatus::Type GetLoginStatus(const FUniqueNetId& UserId) const = 0;
+
+	/**
 	 * Reads the player's nick name from the online service
 	 *
 	 * @param LocalUserNum the controller number of the associated user
@@ -256,6 +265,16 @@ public:
 	 */
 	//@todo - move to user interface
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const = 0;
+
+	/**
+	 * Reads the player's nick name from the online service
+	 *
+	 * @param UserId the unique net of the associated user
+	 *
+	 * @return a string containing the players nick name
+	 */
+	//@todo - move to user interface
+	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const = 0;
 
 	/**
 	 * Gets a user's platform specific authentication token to verify their identity

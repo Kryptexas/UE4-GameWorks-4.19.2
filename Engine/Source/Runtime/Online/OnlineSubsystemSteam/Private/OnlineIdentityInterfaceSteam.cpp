@@ -101,6 +101,11 @@ ELoginStatus::Type FOnlineIdentitySteam::GetLoginStatus(int32 LocalUserNum) cons
 	return ELoginStatus::NotLoggedIn; 
 }
 
+ELoginStatus::Type FOnlineIdentitySteam::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	return GetLoginStatus(0);
+}
+
 TSharedPtr<FUniqueNetId> FOnlineIdentitySteam::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	if (LocalUserNum < MAX_LOCAL_PLAYERS &&
@@ -142,6 +147,16 @@ FString FOnlineIdentitySteam::GetPlayerNickname(int32 LocalUserNum) const
 {
 	if (LocalUserNum < MAX_LOCAL_PLAYERS &&
 		SteamFriendsPtr != NULL)
+	{
+		const char* PersonaName = SteamFriendsPtr->GetPersonaName();
+		return FString(UTF8_TO_TCHAR(PersonaName));
+	}
+	return FString(TEXT(""));
+}
+
+FString FOnlineIdentitySteam::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	if (SteamFriendsPtr != NULL)
 	{
 		const char* PersonaName = SteamFriendsPtr->GetPersonaName();
 		return FString(UTF8_TO_TCHAR(PersonaName));
