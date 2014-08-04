@@ -53,14 +53,21 @@ void FKCHandler_MakeStruct::RegisterNets(FKismetFunctionContext& Context, UEdGra
 	check(NULL != Net);
 	FBPTerminal** FoundTerm = Context.NetMap.Find(Net);
 	FBPTerminal* Term = FoundTerm ? *FoundTerm : NULL;
-	check(NULL != Term);
 
-	UStruct* StructInTerm = Cast<UStruct>(Term->Type.PinSubCategoryObject.Get());
-	if (NULL == StructInTerm || !StructInTerm->IsChildOf(Node->StructType))
+	if (Term == nullptr)
 	{
-		CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoMatch_Error", "Structures don't match for @@").ToString(), Node);
+		CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoTerm_Error", "Failed to generate a term for the @@ pin; was it a struct reference that was left unset?").ToString(), OutputPin);
+	}
+	else
+	{
+		UStruct* StructInTerm = Cast<UStruct>(Term->Type.PinSubCategoryObject.Get());
+		if (NULL == StructInTerm || !StructInTerm->IsChildOf(Node->StructType))
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoMatch_Error", "Structures don't match for @@").ToString(), Node);
+		}
 	}
 }
+	
 
 void FKCHandler_MakeStruct::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
 {
