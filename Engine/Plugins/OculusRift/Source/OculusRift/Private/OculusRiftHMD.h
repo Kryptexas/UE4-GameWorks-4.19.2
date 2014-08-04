@@ -87,6 +87,8 @@ public:
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
+	virtual void RecordAnalytics() override;
+
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
 	virtual bool EnableStereo(bool stereo = true) override;
@@ -366,11 +368,6 @@ private:
 
 	void ResetControlRotation() const;
 
-	/** Get/set head model. Units are meters, not UU! 
-	    Use ToFVector and ToFVector_M2U conversion routines. */
-	OVR::Vector3f	GetHeadModel() const;
-	void			SetHeadModel(const OVR::Vector3f&);
-
 	void PrecalculatePostProcess_NoLock();
 
 	void UpdateHmdCaps();
@@ -457,9 +454,6 @@ private: // data
 
 	/** Gain for gravity correction (should not need to be changed) */
 	float AccelGain;
-
-	/** Whether or not to use a head model offset to determine view position */
-	bool bUseHeadModel;
 
     /** Distortion on/off */
     bool bHmdDistortion;
