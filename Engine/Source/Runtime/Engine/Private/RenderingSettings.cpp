@@ -36,7 +36,7 @@ void URendererSettings::PostInitProperties()
 				}
 				else
 				{
-					UE_LOG(LogTemp, Error, TEXT("URendererSettings failed to find console variable %s for %s"), *CVarName, *Property->GetName());
+					UE_LOG(LogTemp, Fatal, TEXT("URendererSettings failed to find console variable %s for %s"), *CVarName, *Property->GetName());
 				}
 			}
 		}
