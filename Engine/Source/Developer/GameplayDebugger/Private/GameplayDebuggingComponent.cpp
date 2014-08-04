@@ -1132,16 +1132,15 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	//const APlayerController* MyPC = MyPawn ? Cast<APlayerController>(MyPawn->Controller) : NULL;
 	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && World && World->GetNetMode() != NM_DedicatedServer)
 	{
-		TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe> NewNavmeshRenderData = MakeShareable(new FNavMeshSceneProxyData());
-		NewNavmeshRenderData->bNeedsNewData = false;
-		NewNavmeshRenderData->bEnableDrawing = false;
-		PrepareNavMeshData(NewNavmeshRenderData.Get());
-		if (NewNavmeshRenderData.IsValid())
-		{
-			NavMeshBounds = NewNavmeshRenderData->Bounds;
-			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-			CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, NewNavmeshRenderData, FSimpleDelegateGraphTask::FDelegate(), true));
-		}
+		FNavMeshSceneProxyData NewNavmeshRenderData;
+		NewNavmeshRenderData.Reset();
+		NewNavmeshRenderData.bNeedsNewData = false;
+		NewNavmeshRenderData.bEnableDrawing = false;
+		PrepareNavMeshData(&NewNavmeshRenderData);
+
+		NavMeshBounds = NewNavmeshRenderData.Bounds;
+		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
+		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, &NewNavmeshRenderData, true));
 	}
 #endif
 

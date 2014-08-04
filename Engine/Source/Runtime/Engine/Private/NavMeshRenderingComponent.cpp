@@ -27,14 +27,12 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 	FPrimitiveSceneProxy* SceneProxy = NULL;
 	if (IsVisible())
 	{
-		if (!ProxyData.IsValid())
-		{
-			ProxyData = MakeShareable(new FNavMeshSceneProxyData());
-		}
-		GatherData(ProxyData.Get());
-		ProxyData->bNeedsNewData = false;
+		FNavMeshSceneProxyData ProxyData;
+		ProxyData.Reset();
+		GatherData(&ProxyData);
 
-		SceneProxy = new FRecastRenderingSceneProxy(this, ProxyData);
+		SceneProxy = new FRecastRenderingSceneProxy(this, &ProxyData);
+		ProxyData.Reset();
 	}
 	return SceneProxy;
 #else
@@ -86,6 +84,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 
 	CurrentData->Reset();
 	CurrentData->bEnableDrawing = NavMesh->bEnableDrawing;
+	CurrentData->bNeedsNewData = false;
 
 	if (CurrentData && NavMesh && NavMesh->bEnableDrawing)
 	{

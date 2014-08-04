@@ -22,7 +22,4 @@ class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 	// End USceneComponent Interface
 
 	void GatherData(struct FNavMeshSceneProxyData*) const;
-
-protected:
-	TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe>	ProxyData;
 };
