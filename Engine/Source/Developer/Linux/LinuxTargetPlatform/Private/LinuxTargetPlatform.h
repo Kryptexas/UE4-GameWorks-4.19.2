@@ -32,11 +32,27 @@ public:
 		LocalDevice = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, FPlatformProcess::ComputerName()));
 #endif
 	
-		#if WITH_ENGINE
-			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
-			TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
-			StaticMeshLODSettings.Initialize(EngineSettings);
-		#endif
+#if WITH_ENGINE
+		FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
+		TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+		StaticMeshLODSettings.Initialize(EngineSettings);
+
+		// Get the Target RHIs for this platform, we do not always want all those that are supported.
+		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.Remove(ShaderFormat);
+			}
+		}
+#endif // WITH_ENGINE
 	}
 
 
@@ -83,16 +99,17 @@ public:
 			return LocalDevice;
 		}
 
-		FTargetDeviceId UATFriendlyId(TEXT("linux"), DeviceId.GetDeviceName());
+		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceId.GetDeviceName());
 		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
 	}
 
 	virtual bool IsRunningPlatform( ) const override
 	{
-		return false;
+		// Must be Linux platform as editor for this to be considered a running platform
+		return PLATFORM_LINUX && !UE_SERVER && !UE_GAME && WITH_EDITOR && HAS_EDITOR_DATA;
 	}
 
-	bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
+	virtual bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
 	{
 		if (Feature == ETargetPlatformFeatures::UserCredentials || Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -118,7 +135,10 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
-		GetAllPossibleShaderFormats( OutFormats );
+		for(const FString& ShaderFormat : TargetedShaderFormats)
+		{
+			OutFormats.AddUnique(FName(*ShaderFormat));
+		}
 	}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
@@ -131,7 +151,7 @@ public:
 		if (!IS_DEDICATED_SERVER)
 		{
 			// just use the standard texture format name for this texture
-			OutFormats.Add(GetDefaultTextureFormatName(InTexture, EngineSettings));
+			OutFormats.Add(this->GetDefaultTextureFormatName(InTexture, EngineSettings));
 		}
 	}
 
@@ -143,6 +163,12 @@ public:
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+
+		if (Wave->IsStreaming())
+		{
+			return NAME_OPUS;
+		}
 
 		return NAME_OGG;
 	}
@@ -176,6 +202,9 @@ private:
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
+
+	// List of shader formats specified as targets
+	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:
