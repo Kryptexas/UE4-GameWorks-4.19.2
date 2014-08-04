@@ -10,9 +10,13 @@ class UMG_API USpacer : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** The size of the spacer */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D Size;
+
+public:
 
 	/** Sets the size of the spacer */
 	UFUNCTION(BlueprintCallable, Category="Widget")

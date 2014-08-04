@@ -6,7 +6,9 @@
 
 class USlateBrushAsset;
 
-/** Image widget */
+/**
+ * The image widget allows you to display a Slate Brush, or texture or material in the UI.
+ */
 UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UImage : public UWidget
 {
@@ -32,6 +34,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;
+
+public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

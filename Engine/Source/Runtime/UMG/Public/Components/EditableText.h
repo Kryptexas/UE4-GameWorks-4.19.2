@@ -85,6 +85,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+public:
+
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnEditableTextChangedEvent OnTextChanged;

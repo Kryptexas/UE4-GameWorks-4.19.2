@@ -14,6 +14,8 @@ class UMG_API UScaleBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Controls in what direction content can be scaled */
 	UPROPERTY(EditDefaultsOnly, Category="Stretching")
 	TEnumAsByte<EStretchDirection::Type> StretchDirection;
@@ -21,6 +23,8 @@ class UMG_API UScaleBox : public UContentWidget
 	/** The stretching rule to apply when content is stretched */
 	UPROPERTY(EditDefaultsOnly, Category="Stretching")
 	TEnumAsByte<EStretch::Type> Stretch;
+
+public:
 
 	// UWidget interface
 	virtual void SyncronizeProperties() override;

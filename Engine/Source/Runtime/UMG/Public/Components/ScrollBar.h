@@ -10,6 +10,8 @@ class UMG_API UScrollBar : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Style of the scrollbar */
 	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
@@ -25,6 +27,8 @@ class UMG_API UScrollBar : public UPanelWidget
 	/** The thickness of the scrollbar thumb */
 	UPROPERTY(EditDefaultsOnly, Category="Behavior")
 	FVector2D Thickness;
+
+public:
 
 	/**
 	* Set the offset and size of the track's thumb.

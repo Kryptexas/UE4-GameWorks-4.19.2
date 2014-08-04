@@ -15,6 +15,8 @@ class UMG_API UBorder : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Color and opacity multiplier of content in the border */
 	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FLinearColor ContentColorAndOpacity;
@@ -63,6 +65,8 @@ class UMG_API UBorder : public UContentWidget
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseDoubleClickEvent;
 
+public:
+
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBrushColor(FLinearColor InColorAndOpacity);
@@ -75,11 +79,13 @@ class UMG_API UBorder : public UContentWidget
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
 	// Begin UObject interface
 	virtual void PostLoad() override;
 	// End of UObject interface
-
-	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

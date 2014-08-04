@@ -10,6 +10,8 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Padding given to each slot */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	FMargin SlotPadding;
@@ -21,6 +23,8 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 	/** The minimum desired height of the slots */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	float MinDesiredSlotHeight;
+
+public:
 
 	// UWidget interface
 	virtual void SyncronizeProperties() override;

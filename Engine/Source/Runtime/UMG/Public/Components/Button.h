@@ -6,7 +6,9 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
-/** Buttons are clickable widgets */
+/**
+ * The button is a clickable primitive widget to enable basic interaction.
+ */
 UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UButton : public UContentWidget
 {
@@ -25,7 +27,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	FVector2D ContentScale;
 	
-	/** The color multiplier for the button images */
+	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
 	FLinearColor ColorAndOpacity;
 	
@@ -33,41 +35,47 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
 	FLinearColor BackgroundColor;
 
-	/** The foreground color of the button */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance )
-	FLinearColor ForegroundColor;
+	/** The type of mouse action required by the user to trigger the buttons 'Click' */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction")
+	TEnumAsByte<EButtonClickMethod::Type> ClickMethod;
 
+	/** The type of touch action required by the user to trigger the buttons 'Click' */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction")
+	TEnumAsByte<EButtonTouchMethod::Type> TouchMethod;
+
+	/** The sound made when the user 'clicks' the button */
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound PressedSound;
 
+	/** The sound made when the user hovers over the button */
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound HoveredSound;
 
-	/** Called when the button is clicked */
-	UPROPERTY(EditDefaultsOnly, Category=Events)
-	FOnReply OnClickedEvent;
+public:
 
-	virtual void ReleaseNativeWidget() override;
+	/** Called when the button is clicked */
+	UPROPERTY(BlueprintAssignable)
+	FOnButtonClickedEvent OnClicked;
 	
-	/**  */
+	/** Sets the color multiplier for the button content */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
 
-	/**  */
+	/** Sets the color multiplier for the button background */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBackgroundColor(FLinearColor InBackgroundColor);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetForegroundColor(FLinearColor InForegroundColor);
-	
-	/**  */
+	/** @return true if the user is actively pressing the button otherwise false.  For detecting Clicks, use the OnClicked event. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsPressed() const;
 
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
 
 	// Begin UObject interface
 	virtual void PostLoad() override;
@@ -86,11 +94,12 @@ protected:
 	// End UPanelWidget
 
 protected:
+	FReply SlateHandleClicked();
+
+protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
-
-	FReply HandleOnClicked();
 
 protected:
 	TSharedPtr<SButton> MyButton;

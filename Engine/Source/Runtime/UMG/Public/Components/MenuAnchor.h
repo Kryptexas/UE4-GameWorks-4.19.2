@@ -27,6 +27,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Menu)
 	TEnumAsByte<EMenuPlacement> Placement;
 
+public:
+
 	/**
 	 * Open or close the popup
 	 *

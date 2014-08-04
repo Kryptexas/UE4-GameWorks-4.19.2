@@ -48,7 +48,7 @@ void UVerticalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UVerticalBoxSlot* UVerticalBox::Add(UWidget* Content)
+UVerticalBoxSlot* UVerticalBox::AddChildToVerticalBox(UWidget* Content)
 {
 	return Cast<UVerticalBoxSlot>( Super::AddChild(Content) );
 }

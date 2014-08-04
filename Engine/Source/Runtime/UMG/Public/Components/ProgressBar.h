@@ -50,6 +50,8 @@ public:
 	/** Border Padding around fill bar */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D BorderPadding;
+
+public:
 	
 	/** Sets the current value of the ProgressBar. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")

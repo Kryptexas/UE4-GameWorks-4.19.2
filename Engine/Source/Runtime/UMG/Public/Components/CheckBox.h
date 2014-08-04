@@ -77,11 +77,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
 
-	//SLATE_ATTRIBUTE( bool, ReadOnly )
-	//SLATE_ARGUMENT( bool, IsFocusable )
-
-	//SLATE_EVENT( FOnGetContent, OnGetMenuContent )
-
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound CheckedSound;
 
@@ -90,6 +85,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound HoveredSound;
+
+public:
 
 	/** Called when the checked state has changed */
 	UPROPERTY(BlueprintAssignable)

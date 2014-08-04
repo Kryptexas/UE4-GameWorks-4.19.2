@@ -19,7 +19,10 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 
 	ColorAndOpacity = FLinearColor::White;
 	BackgroundColor = FLinearColor::White;
-	ForegroundColor = FLinearColor::Black;
+	//ForegroundColor = FLinearColor::Black;
+
+	ClickMethod = EButtonClickMethod::DownAndUp;
+	TouchMethod = EButtonTouchMethod::DownAndUp;
 }
 
 void UButton::ReleaseNativeWidget()
@@ -31,7 +34,9 @@ void UButton::ReleaseNativeWidget()
 
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
-	MyButton = SNew(SButton);
+	MyButton = SNew(SButton)
+		.ClickMethod(ClickMethod)
+		.TouchMethod(TouchMethod);
 
 	if ( GetChildrenCount() > 0 )
 	{
@@ -67,7 +72,6 @@ void UButton::SyncronizeProperties()
 
 	MyButton->SetButtonStyle( StylePtr );
 
-	MyButton->SetForegroundColor( ForegroundColor );
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
 	
@@ -76,7 +80,7 @@ void UButton::SyncronizeProperties()
 	MyButton->SetPressedSound( OptionalPressedSound );
 	MyButton->SetHoveredSound( OptionalHoveredSound );
 
-	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
+	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked));
 }
 
 UClass* UButton::GetSlotClass() const
@@ -120,25 +124,6 @@ void UButton::SetBackgroundColor(FLinearColor Color)
 	}
 }
 
-void UButton::SetForegroundColor(FLinearColor InForegroundColor)
-{
-	ForegroundColor = InForegroundColor;
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetForegroundColor(InForegroundColor);
-	}
-}
-
-FReply UButton::HandleOnClicked()
-{
-	if ( OnClickedEvent.IsBound() && MyButton.IsValid() )
-	{
-		return OnClickedEvent.Execute().ToReply( MyButton.ToSharedRef() );
-	}
-	
-	return FReply::Unhandled();
-}
-
 bool UButton::IsPressed() const
 {
 	return MyButton->IsPressed();
@@ -163,6 +148,13 @@ void UButton::PostLoad()
 			}
 		}
 	}
+}
+
+FReply UButton::SlateHandleClicked()
+{
+	OnClicked.Broadcast();
+
+	return FReply::Handled();
 }
 
 #if WITH_EDITOR

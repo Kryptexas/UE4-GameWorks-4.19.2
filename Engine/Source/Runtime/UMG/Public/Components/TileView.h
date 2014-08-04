@@ -10,6 +10,8 @@ class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float ItemWidth;
@@ -29,6 +31,8 @@ class UMG_API UTileView : public UTableViewBase
 	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateTileEvent;
+
+public:
 
 	/** Set item width */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

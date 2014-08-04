@@ -11,6 +11,8 @@ UCLASS()
 class UMG_API UVerticalBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/** The padding area between the slot and the content it contains. */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
@@ -27,6 +29,8 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 	/** The alignment of the object vertically. */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+
+public:
 
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetPadding(FMargin InPadding);

@@ -13,9 +13,12 @@ class UMG_API UWidgetSwitcher : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Image to draw */
+public:
+	/** The slot index to display */
 	UPROPERTY(EditDefaultsOnly, Category="Switcher", meta=( UIMin=0, ClampMin=0 ))
 	int32 ActiveWidgetIndex;
+
+public:
 
 	/** Gets the number of widgets that this switcher manages. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
@@ -28,6 +31,10 @@ class UMG_API UWidgetSwitcher : public UPanelWidget
 	/** Activates the widget at the specified index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidgetIndex( int32 Index );
+
+	/** Activates the widget and makes it the active index. */
+	UFUNCTION(BlueprintCallable, Category="Switcher")
+	void SetActiveWidget(UWidget* Widget);
 	
 	virtual void SyncronizeProperties() override;
 

@@ -49,7 +49,18 @@ void UWidgetSwitcher::SetActiveWidgetIndex(int32 Index)
 	if ( MyWidgetSwitcher.IsValid() )
 	{
 		// Ensure the index is clamped to a valid range.
-		int32 SafeIndex = FMath::Clamp(Index, 0, FMath::Max(0, Slots.Num() - 1));
+		int32 SafeIndex = FMath::Clamp(ActiveWidgetIndex, 0, FMath::Max(0, Slots.Num() - 1));
+		MyWidgetSwitcher->SetActiveWidgetIndex(SafeIndex);
+	}
+}
+
+void UWidgetSwitcher::SetActiveWidget(UWidget* Widget)
+{
+	ActiveWidgetIndex = GetChildIndex(Widget);
+	if ( MyWidgetSwitcher.IsValid() )
+	{
+		// Ensure the index is clamped to a valid range.
+		int32 SafeIndex = FMath::Clamp(ActiveWidgetIndex, 0, FMath::Max(0, Slots.Num() - 1));
 		MyWidgetSwitcher->SetActiveWidgetIndex(SafeIndex);
 	}
 }
