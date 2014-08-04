@@ -175,6 +175,8 @@ namespace iPhonePackager
 			{
 				Program.Error("Could not find {0}.mobileprovision in {1} (error: '{2}').  Please follow the setup instructions to get a mobile provision from the Apple Developer site.",
 					Program.GameName, Path.GetFullPath(Config.BuildDirectory), ex.Message);
+				Program.ReturnCode = (int)ErrorCodes.Error_ProvisionNotFound;
+				throw ex;
 			}
 
 			return Result;
@@ -374,6 +376,8 @@ namespace iPhonePackager
 			{
 				// Failed to find a cert already installed or to install, cannot proceed any futher
 				Program.Error("... Failed to find a certificate that matches the mobile provision to be used for code signing");
+				Program.ReturnCode = (int)ErrorCodes.Error_CertificateNotFound;
+				throw new InvalidDataException("Certificate not found!");
 			}
 			else
 			{
