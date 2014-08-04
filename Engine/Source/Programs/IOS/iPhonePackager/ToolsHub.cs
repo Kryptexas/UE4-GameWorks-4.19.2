@@ -87,7 +87,7 @@ namespace iPhonePackager
 		public static ToolsHub CreateShowingTools()
 		{
 			ToolsHub Result = new ToolsHub();
-			Result.tabControl1.SelectTab(Result.tabPage3);
+			Result.tabControl1.SelectTab(Result.tabPage2);
 			return Result;
 		}
 
@@ -106,9 +106,9 @@ namespace iPhonePackager
 
 			MobileProvisionCheck2.Image = MobileProvisionCheck.Image = CheckStateImages[Provision != null];
 			CertificatePresentCheck2.Image = CertificatePresentCheck.Image = CheckStateImages[Cert != null];
-			OverridesPresentCheck2.Image = OverridesPresentCheck.Image = CheckStateImages[bOverridesExists];
+//			OverridesPresentCheck2.Image = OverridesPresentCheck.Image = CheckStateImages[bOverridesExists];
 
-			ReadyToPackageButton.Enabled = bOverridesExists && (Provision != null) && (Cert != null);
+//			ReadyToPackageButton.Enabled = /*bOverridesExists && */(Provision != null) && (Cert != null);
 		}
 
 		private void CreateCSRButton_Click(object sender, EventArgs e)
@@ -139,9 +139,12 @@ namespace iPhonePackager
 					MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionFilename);
 					bIsDistribution = IsProfileForDistribution(Provision);
 
+					// use the input filename if the GameName is empty
+					string DestName = string.IsNullOrEmpty(Program.GameName) ? Path.GetFileNameWithoutExtension(ProvisionFilename) : Program.GameName;
+
 					// Copy the file into the destination location
 					string EffectivePrefix = bIsDistribution ? "Distro_" : Config.SigningPrefix;
-					string DestinationFilename = Path.Combine(Config.ProvisionDirectory, EffectivePrefix + Program.GameName + ".mobileprovision");
+					string DestinationFilename = Path.Combine(Config.ProvisionDirectory, EffectivePrefix + DestName + ".mobileprovision");
 
 					if (File.Exists(DestinationFilename))
 					{
