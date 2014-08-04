@@ -24,6 +24,11 @@ struct FParentClassItem
 class FNativeClassParentFilter : public IClassViewerFilter
 {
 public:
+	FNativeClassParentFilter(const TSharedPtr<GameProjectUtils::FModuleContextInfo>* InSelectedModuleInfoPtr)
+		: SelectedModuleInfoPtr(InSelectedModuleInfoPtr)
+	{
+	}
+
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
 		// You may not make native classes based on blueprint generated classes
@@ -33,9 +38,9 @@ public:
 		const bool bIsExplicitlyUObject = (InClass == UObject::StaticClass());
 
 		// Is this class in the same module as our current module?
-		const GameProjectUtils::FModuleContextInfo ModuleInfo = GameProjectUtils::GetCurrentModuleContextInfo();
 		const FString ClassModuleName = InClass->GetOutermost()->GetName().RightChop( FString(TEXT("/Script/")).Len() );
-		const bool bIsInDestinationModule = (ModuleInfo.ModuleName == ClassModuleName);
+		const TSharedPtr<GameProjectUtils::FModuleContextInfo>& ModuleInfo = *SelectedModuleInfoPtr;
+		const bool bIsInDestinationModule = (ModuleInfo.IsValid() && ModuleInfo->ModuleName == ClassModuleName);
 
 		// You need API if you are either not UObject itself and you are not in the destination module
 		const bool bNeedsAPI = !bIsExplicitlyUObject && !bIsInDestinationModule;
@@ -54,14 +59,53 @@ public:
 	{
 		return false;
 	}
+
+private:
+	/** Pointer to the currently selected module in the new class dialog */
+	const TSharedPtr<GameProjectUtils::FModuleContextInfo>* SelectedModuleInfoPtr;
 };
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
-	ModuleInfo = GameProjectUtils::GetCurrentModuleContextInfo();
+	{
+		TArray<GameProjectUtils::FModuleContextInfo> CurrentModules = GameProjectUtils::GetCurrentProjectModules();
+		check(CurrentModules.Num()); // this should never happen since GetCurrentProjectModules is supposed to add a dummy runtime module if the project currently has no modules
 
-	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/, ModuleInfo);
+		AvailableModules.Reserve(CurrentModules.Num());
+		for(const GameProjectUtils::FModuleContextInfo& ModuleInfo : CurrentModules)
+		{
+			AvailableModules.Emplace(MakeShareable(new GameProjectUtils::FModuleContextInfo(ModuleInfo)));
+		}
+	}
+
+	// If we have a runtime module with the same name as our project, then use that
+	// Otherwise, set out default target module as the first runtime module in the list
+	{
+		const FString ProjectName = FApp::GetGameName();
+		for(const auto& AvailableModule : AvailableModules)
+		{
+			if(AvailableModule->ModuleName == ProjectName)
+			{
+				SelectedModuleInfo = AvailableModule;
+				break;
+			}
+			
+			if(AvailableModule->ModuleType == EHostType::Runtime)
+			{
+				SelectedModuleInfo = AvailableModule;
+				// keep going in case we find a better match
+			}
+		}
+
+		if (!SelectedModuleInfo.IsValid())
+		{
+			// No runtime modules? Just take the first available module then
+			SelectedModuleInfo = AvailableModules[0];
+		}
+	}
+
+	NewClassPath = SelectedModuleInfo->ModuleSourcePath;
 	ClassLocation = GameProjectUtils::EClassLocation::UserDefined; // the first call to UpdateInputValidity will set this correctly based on NewClassPath
 
 	ParentClassInfo = GameProjectUtils::FNewClassInfo(InArgs._Class);
@@ -87,7 +131,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	Options.bShowObjectRootClass = true;
 
 	// Prevent creating native classes based on blueprint classes
-	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter);
+	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter(&SelectedModuleInfo));
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
 
@@ -392,6 +436,22 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 												SAssignNew( ClassNameEditBox, SEditableTextBox)
 												.Text( this, &SNewClassDialog::OnGetClassNameText )
 												.OnTextChanged( this, &SNewClassDialog::OnClassNameTextChanged )
+											]
+
+											+SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(6.0f, 0.0f, 0.0f, 0.0f)
+											[
+												SAssignNew(AvailableModulesCombo, SComboBox<TSharedPtr<GameProjectUtils::FModuleContextInfo>>)
+												.ToolTipText( LOCTEXT("ModuleComboToolTip", "Choose the target module for your new class") )
+												.OptionsSource( &AvailableModules )
+												.InitiallySelectedItem( SelectedModuleInfo )
+												.OnSelectionChanged( this, &SNewClassDialog::SelectedModuleComboBoxSelectionChanged )
+												.OnGenerateWidget( this, &SNewClassDialog::MakeWidgetForSelectedModuleCombo )
+												[
+													SNew(STextBlock)
+													.Text( this, &SNewClassDialog::GetSelectedModuleComboText )
+												]
 											]
 
 											+SHorizontalBox::Slot()
@@ -858,6 +918,18 @@ FText SNewClassDialog::OnGetClassPathText() const
 void SNewClassDialog::OnClassPathTextChanged(const FText& NewText)
 {
 	NewClassPath = NewText.ToString();
+
+	// If the user has selected a path which matches the root of a known module, then update our selected module to be that module
+	for(const auto& AvailableModule : AvailableModules)
+	{
+		if(NewClassPath.StartsWith(AvailableModule->ModuleSourcePath))
+		{
+			SelectedModuleInfo = AvailableModule;
+			AvailableModulesCombo->SetSelectedItem(SelectedModuleInfo);
+			break;
+		}
+	}
+
 	UpdateInputValidity();
 }
 
@@ -889,7 +961,7 @@ void SNewClassDialog::FinishClicked()
 	FString CppFilePath;
 
 	FText FailReason;
-	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, ParentClassInfo, HeaderFilePath, CppFilePath, FailReason) )
+	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, HeaderFilePath, CppFilePath, FailReason) )
 	{
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
@@ -956,11 +1028,57 @@ FReply SNewClassDialog::HandleChooseFolderButtonClicked()
 			}
 
 			NewClassPath = FolderName;
+
+			// If the user has selected a path which matches the root of a known module, then update our selected module to be that module
+			for(const auto& AvailableModule : AvailableModules)
+			{
+				if(NewClassPath.StartsWith(AvailableModule->ModuleSourcePath))
+				{
+					SelectedModuleInfo = AvailableModule;
+					AvailableModulesCombo->SetSelectedItem(SelectedModuleInfo);
+					break;
+				}
+			}
+
 			UpdateInputValidity();
 		}
 	}
 
 	return FReply::Handled();
+}
+
+FText SNewClassDialog::GetSelectedModuleComboText() const
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ModuleName"), FText::FromString(SelectedModuleInfo->ModuleName));
+	Args.Add(TEXT("ModuleType"), FText::FromString(EHostType::ToString(SelectedModuleInfo->ModuleType)));
+	return FText::Format(LOCTEXT("ModuleComboEntry", "{ModuleName} ({ModuleType})"), Args);
+}
+
+void SNewClassDialog::SelectedModuleComboBoxSelectionChanged(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value, ESelectInfo::Type SelectInfo)
+{
+	const FString& OldModulePath = SelectedModuleInfo->ModuleSourcePath;
+	const FString& NewModulePath = Value->ModuleSourcePath;
+
+	SelectedModuleInfo = Value;
+
+	// Update the class path to be rooted to the new module location
+	const FString AbsoluteClassPath = FPaths::ConvertRelativePathToFull(NewClassPath) / ""; // Ensure trailing /
+	if(AbsoluteClassPath.StartsWith(OldModulePath))
+	{
+		NewClassPath = AbsoluteClassPath.Replace(*OldModulePath, *NewModulePath);
+	}
+
+	UpdateInputValidity();
+}
+
+TSharedRef<SWidget> SNewClassDialog::MakeWidgetForSelectedModuleCombo(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ModuleName"), FText::FromString(Value->ModuleName));
+	Args.Add(TEXT("ModuleType"), FText::FromString(EHostType::ToString(Value->ModuleType)));
+	return SNew(STextBlock)
+		.Text(FText::Format(LOCTEXT("ModuleComboEntry", "{ModuleName} ({ModuleType})"), Args));
 }
 
 FSlateColor SNewClassDialog::GetClassLocationTextColor(GameProjectUtils::EClassLocation InLocation) const
@@ -999,12 +1117,10 @@ void SNewClassDialog::OnClassLocationChanged(ESlateCheckBoxState::Type InChecked
 	{
 		const FString AbsoluteClassPath = FPaths::ConvertRelativePathToFull(NewClassPath) / ""; // Ensure trailing /
 
-		FString ModuleName;
 		GameProjectUtils::EClassLocation TmpClassLocation = GameProjectUtils::EClassLocation::UserDefined;
-		GameProjectUtils::GetClassLocation(AbsoluteClassPath, ModuleName, TmpClassLocation, ModuleInfo);
+		GameProjectUtils::GetClassLocation(AbsoluteClassPath, *SelectedModuleInfo, TmpClassLocation);
 
-		const FString BaseRootPath = GameProjectUtils::GetSourceRootPath(false/*bIncludeModuleName*/, ModuleInfo);
-		const FString RootPath = BaseRootPath / ModuleName / "";	// Ensure trailing /
+		const FString RootPath = SelectedModuleInfo->ModuleSourcePath;
 		const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
 		const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
 
@@ -1052,15 +1168,14 @@ void SNewClassDialog::UpdateInputValidity()
 	bLastInputValidityCheckSuccessful = true;
 
 	// Validate the path first since this has the side effect of updating the UI
-	FString ModuleName;
-	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, ModuleInfo, &LastInputValidityErrorText);
+	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, *SelectedModuleInfo, CalculatedClassHeaderName, CalculatedClassSourceName, &LastInputValidityErrorText);
 	CalculatedClassHeaderName /= ParentClassInfo.GetHeaderFilename(NewClassName);
 	CalculatedClassSourceName /= ParentClassInfo.GetSourceFilename(NewClassName);
 
 	// If the source paths check as succeeded, check to see if we're using a Public/Private class
 	if(bLastInputValidityCheckSuccessful)
 	{
-		GameProjectUtils::GetClassLocation(NewClassPath, ModuleName, ClassLocation, ModuleInfo);
+		GameProjectUtils::GetClassLocation(NewClassPath, *SelectedModuleInfo, ClassLocation);
 
 		// We only care about the Public and Private folders
 		if(ClassLocation != GameProjectUtils::EClassLocation::Public && ClassLocation != GameProjectUtils::EClassLocation::Private)
@@ -1076,7 +1191,7 @@ void SNewClassDialog::UpdateInputValidity()
 	// Validate the class name only if the path is valid
 	if ( bLastInputValidityCheckSuccessful )
 	{
-		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, ModuleInfo, LastInputValidityErrorText);
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, *SelectedModuleInfo, LastInputValidityErrorText);
 	}
 
 	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();

@@ -122,6 +122,15 @@ private:
 	/** Handler for when the "Choose Folder" button is clicked */
 	FReply HandleChooseFolderButtonClicked( );
 
+	/** Get the combo box text for the currently selected module */
+	FText GetSelectedModuleComboText() const;
+
+	/** Called when the currently selected module is changed */
+	void SelectedModuleComboBoxSelectionChanged(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value, ESelectInfo::Type SelectInfo);
+
+	/** Create the widget to use as the combo box entry for the given module info */
+	TSharedRef<SWidget> MakeWidgetForSelectedModuleCombo(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value);
+
 private:
 
 	/** Get the text color to use for the given class location checkbox */
@@ -166,6 +175,9 @@ private:
 	/** The editable text box to enter the current name */
 	TSharedPtr<SEditableTextBox> ClassNameEditBox;
 
+	/** The available modules combo box */
+	TSharedPtr<SComboBox<TSharedPtr<GameProjectUtils::FModuleContextInfo>>> AvailableModulesCombo;
+
 	/** The name of the class being created */
 	FString NewClassName;
 
@@ -205,6 +217,9 @@ private:
 	/** Whether the class should be created as a Public or Private class */
 	GameProjectUtils::EClassLocation ClassLocation;
 
-	/** Information about the currently loaded module; used for class validation */
-	GameProjectUtils::FModuleContextInfo ModuleInfo;
+	/** Information about the currently available modules for this project */
+	TArray<TSharedPtr<GameProjectUtils::FModuleContextInfo>> AvailableModules;
+
+	/** Information about the currently selected module; used for class validation */
+	TSharedPtr<GameProjectUtils::FModuleContextInfo> SelectedModuleInfo;
 };
