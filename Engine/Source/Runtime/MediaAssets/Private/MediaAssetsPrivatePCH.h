@@ -11,7 +11,7 @@
 #include "Engine.h"
 #include "Media.h"
 
-#include "MaterialExpressionTExtureSampleParameterMedia.h"
+#include "MaterialExpressionTextureSampleParameterMedia.h"
 #include "MediaAsset.h"
 #include "MediaSoundWave.h"
 #include "MediaTexture.h"
