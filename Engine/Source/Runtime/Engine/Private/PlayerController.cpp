@@ -722,13 +722,12 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 	
 	if (Role < ROLE_Authority)
 	{
+		ChangeState( NAME_Playing );
 		if (bAutoManageActiveCameraTarget)
 		{
 			AutoManageActiveCameraTarget(GetPawn());
 			ResetCameraMode();
 		}
-		
-		ChangeState( NAME_Playing );
 	}
 }
 
@@ -756,7 +755,6 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		check(GetPawn() != NULL);
 
 		GetPawn()->SetActorTickEnabled(true);
-		GetPawn()->Restart();
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
@@ -764,10 +762,18 @@ void APlayerController::Possess(APawn* PawnToPossess)
 			NetworkPredictionInterface->ResetPredictionData_Server();
 		}
 
-		ChangeState( NAME_Playing );
 		AcknowledgedPawn = NULL;
+		
+		// Local PCs will have the Restart() triggered right away in ClientRestart (via PawnClientRestart()), but the server should call Restart() locally for remote PCs.
+		// We're really just trying to avoid calling Restart() multiple times.
+		if (!IsLocalPlayerController())
+		{
+			GetPawn()->Restart();
+		}
+
 		ClientRestart(GetPawn());
 		
+		ChangeState( NAME_Playing );
 		if (bAutoManageActiveCameraTarget)
 		{
 			AutoManageActiveCameraTarget(GetPawn());
@@ -3932,18 +3938,6 @@ void APlayerController::ChangeState(FName NewState)
 
 void APlayerController::BeginPlayingState()
 {
-	if (GetPawn() != NULL)
-	{
-		if (GetCharacter() != NULL)
-		{
-			GetCharacter()->UnCrouch(false);
-			UCharacterMovementComponent* CharacterMovement = GetCharacter()->CharacterMovement;
-			if (CharacterMovement && !CharacterMovement->IsFalling() && GetCharacter()->GetRootComponent() && !GetCharacter()->GetRootComponent()->IsSimulatingPhysics()) // FIXME HACK!!!
-			{
-				CharacterMovement->SetMovementMode(MOVE_Walking);
-			}
-		}		
-	}
 }
 
 void APlayerController::EndSpectatingState()

@@ -626,9 +626,16 @@ void ACharacter::TurnOff()
 void ACharacter::Restart()
 {
 	Super::Restart();
+
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
 	ClearJumpInput();
+	UnCrouch(true);
+
+	if (CharacterMovement)
+	{
+		CharacterMovement->SetDefaultMovementMode();
+	}
 }
 
 void ACharacter::PawnClientRestart()

@@ -720,6 +720,10 @@ public:
 	/** Adjust distance from floor, trying to maintain a slight offset from the floor when walking (based on CurrentFloor). */
 	virtual void AdjustFloorHeight();
 
+	/** Return PrimitiveComponent we are based on (standing and walking on). */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	UPrimitiveComponent* GetMovementBase() const;
+
 	/** Update or defer updating of position based on Base movement */
 	virtual void MaybeUpdateBasedMovement(float DeltaSeconds);
 

@@ -565,13 +565,6 @@ void AController::UpdateNavigationComponents()
 	{
 		PathFollowingComp->UpdateCachedComponents();
 	}
-
-	// initialize movement mode in characters
-	ACharacter* MyCharacter = Cast<ACharacter>(GetPawn());
-	if (MyCharacter && MyCharacter->CharacterMovement)
-	{
-		MyCharacter->CharacterMovement->SetDefaultMovementMode();
-	}
 }
 
 void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)

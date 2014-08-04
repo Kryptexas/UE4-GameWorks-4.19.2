@@ -34,7 +34,7 @@ class ENGINE_API APawn : public AActor, public INavAgentInterface
 	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
 	virtual UPawnMovementComponent* GetMovementComponent() const;
 
-	/** Return Actor we are based on (standing on, attached to, and moving on). */
+	/** Return PrimitiveComponent we are based on (standing on, attached to, and moving on). */
 	virtual UPrimitiveComponent* GetMovementBase() const { return NULL; }
 
 public:
@@ -244,9 +244,11 @@ public:
 	 */
 	virtual void PossessedBy(AController* NewController);
 
+	/** Event called when the Pawn is possessed by a Controller (normally only occurs on the server/standalone). */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Possessed"))
 	void ReceivePossessed(AController* NewController);
 
+	/** Event called when the Pawn is no longer possessed by a Controller. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Unpossessed"))
 	void ReceiveUnpossessed(AController* OldController);
 

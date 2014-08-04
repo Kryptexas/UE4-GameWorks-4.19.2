@@ -196,7 +196,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	CrouchedHalfHeight = 40.0f;
 	PendingLaunchVelocity = FVector::ZeroVector;
 	DefaultWaterMovementMode = MOVE_Swimming;
-	DefaultLandMovementMode = MOVE_Falling;
+	DefaultLandMovementMode = MOVE_Walking;
+	bForceNextFloorCheck = true;
 	bForceBraking_DEPRECATED = false;
 	bShrinkProxyCapsule = true;
 	bCanWalkOffLedges = true;
@@ -560,9 +561,15 @@ void UCharacterMovementComponent::SetDefaultMovementMode()
 	{
 		SetMovementMode(DefaultWaterMovementMode);
 	}
-	else if ( !CharacterOwner || !IsFalling() )
+	else if ( !CharacterOwner || MovementMode != DefaultLandMovementMode )
 	{
 		SetMovementMode(DefaultLandMovementMode);
+
+		// Avoid 1-frame delay if trying to walk but walking fails at this location.
+		if (MovementMode == MOVE_Walking && GetMovementBase() == NULL)
+		{
+			SetMovementMode(MOVE_Falling);
+		}
 	}
 }
 
@@ -1131,6 +1138,11 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	bJustTeleported = false;
 
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+}
+
+UPrimitiveComponent* UCharacterMovementComponent::GetMovementBase() const
+{
+	return CharacterOwner ? CharacterOwner->GetMovementBase() : NULL;
 }
 
 void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, FName BoneName, bool bNotifyActor )
@@ -3561,7 +3573,14 @@ void UCharacterMovementComponent::OnTeleported()
 	// If we were walking but no longer have a valid base or floor, start falling.
 	if (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase))
 	{
-		SetDefaultMovementMode();
+		if (DefaultLandMovementMode == MOVE_Walking)
+		{
+			SetMovementMode(MOVE_Falling);
+		}
+		else
+		{
+			SetDefaultMovementMode();
+		}
 	}
 }
 
