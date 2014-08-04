@@ -497,7 +497,11 @@ namespace UnrealBuildTool
 			}
             foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
             {
-                FileItem Item = FileItem.GetExistingItemByPath(InputFile);
+                FileItem Item = FileItem.GetItemByPath(InputFile);
+
+                if (Item.AbsolutePath.Contains(".lib"))
+                    continue; 
+
                 if (Item != null)
                 {
                     if (Item.ToString().Contains(".js"))

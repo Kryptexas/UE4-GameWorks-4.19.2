@@ -98,7 +98,7 @@ function getHTMLGetParam(name){
       return decodeURIComponent(name[1]);
 }
 
-var filehostargument = " ' ' "; 
+var filehostargument = "   "; 
 
 // we are serving via a server and it is unreal file server.
 if ( location.host != "" && getHTMLGetParam("cookonthefly") == "true" )
@@ -178,7 +178,7 @@ var Module = {
   TOTAL_MEMORY: %HEAPSIZE%,
   noImageDecoding: true,
   noAudioDecoding: true,
-        arguments: [ filehostargument, %UE4CMDLINE%],
+      arguments: [%UE4CMDLINE% , filehostargument],
   print: (function() {
     var element = document.getElementById('output');
     element.value = ''; // clear browser cache

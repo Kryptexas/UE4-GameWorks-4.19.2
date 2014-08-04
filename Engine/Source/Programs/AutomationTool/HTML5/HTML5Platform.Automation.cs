@@ -267,7 +267,7 @@ public class HTML5Platform : Platform
         if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
         {
             FirefoxPath = "/bin/bash";
-            FirefoxProfileCommand = " -c  \" open -a Firefox.app  \"" + HTMLPath + "\"   \" ";
+			FirefoxProfileCommand = " -c  ' open -a Firefox.app  \"" + HTMLPath + "\"   ' ";
         }
         else if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64)
         {
