@@ -49,7 +49,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket())
+					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket() && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 					{
 						DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 					}
@@ -73,7 +73,7 @@ public class TargetPlatform : ModuleRules
 				if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
 				{
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket())
+					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket() && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 					{
 						DynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
 						DynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
