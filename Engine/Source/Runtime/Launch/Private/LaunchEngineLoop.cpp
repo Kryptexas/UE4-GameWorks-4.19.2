@@ -711,14 +711,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
-	LoadCoreModules();
-
-#if WITH_ENGINE
-	extern ENGINE_API void InitializeRenderingCVarsCaching();
-	InitializeRenderingCVarsCaching();
-#endif
-
 	// remember thread id of the main thread
 	GGameThreadId = FPlatformTLS::GetCurrentThreadId();
 	GIsGameThreadIdInitialized = true;
@@ -932,6 +924,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		const FString GameBinariesDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Binaries" ), FPlatformProcess::GetBinariesSubdirectory() );
 		FModuleManager::Get().SetGameBinariesDirectory(*GameBinariesDirectory);
 	}
+#endif
+
+	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
+	LoadCoreModules();
+
+#if WITH_ENGINE
+	extern ENGINE_API void InitializeRenderingCVarsCaching();
+	InitializeRenderingCVarsCaching();
 #endif
 
 	bool bTokenDoesNotHaveDash = Token.Len() && FCString::Strnicmp(*Token, TEXT("-"), 1) != 0;
