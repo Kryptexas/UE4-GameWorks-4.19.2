@@ -2875,12 +2875,15 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		// NULL GWorld before various PostLoad functions are called, this makes it easier to debug invalid GWorld accesses
 		GWorld = NULL;
 
+		EObjectFlags FlagMask = RF_AllFlags;
+		FlagMask&= ~RF_WasLoaded; // clear "was loaded" flag for duplicated world, so editor will not run construction script for it
+		
 		// Duplicate the editor world to create the PIE world
 		NewPIEWorld = CastChecked<UWorld>( StaticDuplicateObject(
 			EditorWorld,			// Source root
 			PlayWorldPackage,		// Destination root
 			*EditorWorld->GetName(),// Name for new object
-			RF_AllFlags,			// FlagMask
+			FlagMask,				// FlagMask
 			NULL,					// DestClass
 			SDO_DuplicateForPie		// bDuplicateForPIE
 			) );
