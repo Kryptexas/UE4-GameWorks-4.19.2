@@ -11,23 +11,6 @@ static FSlateRect NullRect;
 static FSlateWindowElementList NullElementList;
 static FWidgetStyle NullStyle;
 
-class FUMGDragDropOp : public FDragDropOperation
-{
-public:
-	DRAG_DROP_OPERATOR_TYPE(FUMGDragDropOp, FDragDropOperation)
-
-	static TSharedRef<FUMGDragDropOp> New();
-
-	virtual void OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent) override;
-
-	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
-
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
-
-private:
-	TSharedPtr<SWidget> DecoratorWidget;
-};
-
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
  * allow script code to override OnPaint behavior.

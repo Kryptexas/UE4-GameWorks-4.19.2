@@ -132,15 +132,7 @@ FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 	TSharedPtr<SWidget> SlateWidget = WidgetObject->GetCachedWidget();
 	if ( SlateWidget.IsValid() )
 	{
-		FReply Reply = WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
-
-		//TODO UMG Figure out how to let the user more easily manage when drags start.
-		//if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-		//{
-		//	return Reply.DetectDrag(SlateWidget.ToSharedRef(), EKeys::LeftMouseButton);
-		//}
-
-		return Reply;
+		return WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).ToReply(SlateWidget.ToSharedRef());
 	}
 
 	return FReply::Unhandled();

@@ -5,29 +5,6 @@
 #include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
 
-TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New()
-{
-	TSharedRef<FUMGDragDropOp> Operation = MakeShareable(new FUMGDragDropOp);
-	Operation->Construct();
-
-	return Operation;
-}
-
-void FUMGDragDropOp::OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent)
-{
-	FDragDropOperation::OnDrop(bDropWasHandled, MouseEvent);
-}
-
-void FUMGDragDropOp::OnDragged(const class FDragDropEvent& DragDropEvent)
-{
-	FDragDropOperation::OnDragged(DragDropEvent);
-}
-
-TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
-{
-	return DecoratorWidget;
-}
-
 /**
  * This class holds onto the widget when it's placed into the viewport.
  */
