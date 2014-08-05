@@ -4,6 +4,7 @@
 
 #include "ModuleManager.h"
 
+class UEditorTutorial;
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
@@ -49,5 +50,14 @@ public:
 	 * @param AssetClass		Asset type to unregister the tutorial from
 	 */
 	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass)=0;
+
+	/**
+	 * Launch a tutorial immediately, bypassing the tutorial browser.
+	 * 
+	 * @param	Tutorial	The tutorial to launch
+	 * @param	bRestart	Whether to restart the tutorial or resume from where we left off last time.
+	 * @param	InNavigationWindow	Optional window to launch the tutorial from - this is where navigation will be displayed.
+	 */
+	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr) = 0;
 };
 

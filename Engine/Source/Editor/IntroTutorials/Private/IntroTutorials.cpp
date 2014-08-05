@@ -15,6 +15,17 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "Particles/ParticleSystem.h"
+#include "EditorTutorialSettings.h"
+#include "TutorialSettings.h"
+#include "Settings.h"
+#include "EditorTutorial.h"
+#include "SEditorTutorials.h"
+#include "STutorialsBrowser.h"
+#include "STutorialNavigation.h"
+#include "STutorialOverlay.h"
+#include "TutorialStructCustomization.h"
+#include "EditorTutorialDetailsCustomization.h"
+#include "STutorialRoot.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -185,6 +196,29 @@ void FIntroTutorials::StartupModule()
 			ResetWelcomeTutorials();
 		}
 	}
+
+	// Register to display our settings
+	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->RegisterSettings("Editor", "General", "Tutorials",
+			LOCTEXT("EditorTutorialSettingsName", "Tutorials"),
+			LOCTEXT("EditorTutorialSettingsDescription", "Control what tutorials are available in the Editor."),
+			GetMutableDefault<UEditorTutorialSettings>()
+		);
+
+		SettingsModule->RegisterSettings("Project", "Engine", "Tutorials",
+			LOCTEXT("TutorialSettingsName", "Tutorials"),
+			LOCTEXT("TutorialSettingsDescription", "Control what tutorials are available in this project."),
+			GetMutableDefault<UTutorialSettings>()
+		);
+	}
+
+	// register details customizations
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContent", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentCustomization::MakeInstance));
+	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContentAnchor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentAnchorCustomization::MakeInstance));
+	PropertyEditorModule.RegisterCustomClassLayout("EditorTutorial", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorTutorialDetailsCustomization::MakeInstance));
 }
 
 void FIntroTutorials::ShutdownModule()
@@ -207,6 +241,21 @@ void FIntroTutorials::ShutdownModule()
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		MainFrameModule.OnMainFrameCreationFinished().RemoveAll(this);
+	}
+
+	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->UnregisterSettings("Editor", "General", "Tutorials");
+		SettingsModule->UnregisterSettings("Project", "Engine", "Tutorials");
+	}
+
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialContent");
+		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialWidgetReference");
+		PropertyEditorModule.UnregisterCustomClassLayout("EditorTutorial");
 	}
 }
 
@@ -258,6 +307,15 @@ void FIntroTutorials::MainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNe
 			RootWindow = InRootWindow;
 		}
 
+		// install a root widget for the tutorial overlays to hang off
+		if(InRootWindow.IsValid() && !TutorialRoot.IsValid())
+		{
+			InRootWindow->AddOverlaySlot()
+				[
+					SAssignNew(TutorialRoot, STutorialRoot)
+				];
+		}
+
 		// See if we should show 'welcome' screen
 		MaybeOpenWelcomeTutorial(UE4WelcomeTutorial.TutorialPath, UE4WelcomeTutorial.SeenOnceSettingName);
 	}
@@ -265,8 +323,16 @@ void FIntroTutorials::MainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNe
 
 void FIntroTutorials::SummonTutorialHome()
 {
-	CurrentObjectClass = nullptr;
-	SummonTutorialWindowForPage(HomePath);
+	if(FParse::Param(FCommandLine::Get(), TEXT("NewTutorials")))
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
+		SummonTutorialBrowser(LevelEditorModule.GetLevelEditorTab()->GetParentWindow().ToSharedRef());
+	}
+	else
+	{
+		CurrentObjectClass = nullptr;
+		SummonTutorialWindowForPage(HomePath);
+	}
 }
 
 void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome)
@@ -471,6 +537,35 @@ FWelcomeTutorialProperties const* FIntroTutorials::FindAssetEditorTutorialProper
 
 bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
 {
+	if(FParse::Param(FCommandLine::Get(), TEXT("NewTutorials")))
+	{
+		// try editor startup tutorial
+		TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(EditorStartupTutorialClass != nullptr)
+		{
+			UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if(!GetDefault<UEditorTutorialSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
+		}
+
+		// Try project startup tutorial
+		TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(ProjectStartupTutorialClass != nullptr)
+		{
+			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if(!GetDefault<UEditorTutorialSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// don't open if viewing any tutorial other than the index
 	if (TutorialWidget.IsValid() && (TutorialWidget.Pin()->GetCurrentPagePath() != HomePath))
 	{
@@ -630,6 +725,27 @@ void FIntroTutorials::UnregisterTutorialForAssetEditor(UClass* AssetClass)
 	const FWelcomeTutorialProperties& TutorialData = AssetEditorTutorialPropertyMap.FindChecked(AssetClass);
 	TutorialSurveyMap.Remove(TutorialData.TutorialPath);
 	AssetEditorTutorialPropertyMap.Remove(AssetClass);
+}
+
+FOnIsPicking& FIntroTutorials::OnIsPicking()
+{
+	return OnIsPickingDelegate;
+}
+
+void FIntroTutorials::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter)
+{
+	if(TutorialRoot.IsValid())
+	{
+		TutorialRoot->SummonTutorialBrowser(InWindow, InFilter);
+	}
+}
+
+void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow)
+{
+	if(TutorialRoot.IsValid())
+	{
+		TutorialRoot->LaunchTutorial(InTutorial, bInRestart, InNavigationWindow);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

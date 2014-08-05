@@ -53,6 +53,7 @@ void SWidget::Construct(
 	Cursor = InCursor;
 	EnabledState = InEnabledState;
 	Visibility = InVisibility;
+	Tag = InTag;
 }
 
 
@@ -443,6 +444,12 @@ FString SWidget::GetCreatedInFile() const
 int32 SWidget::GetCreatedInLineNumber() const
 {
 	return this->CreatedOnLine;
+}
+
+
+FName SWidget::GetTag() const
+{
+	return this->Tag;
 }
 
 

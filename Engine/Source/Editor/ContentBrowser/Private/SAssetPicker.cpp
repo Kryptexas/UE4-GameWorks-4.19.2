@@ -69,20 +69,18 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			HorizontalBox->AddSlot()
 			.AutoWidth()
 			[
-				SNew( STutorialWrapper, TEXT("ContentBrowserFiltersCombo") )
+				SNew( SComboButton )
+				.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+				.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
+				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
+				.HasDownArrow( true )
+				.ContentPadding( FMargin( 1, 0 ) )
+				.Tag(TEXT("ContentBrowserFiltersCombo"))
+				.ButtonContent()
 				[
-					SNew( SComboButton )
-					.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
-					.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
-					.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
-					.HasDownArrow( true )
-					.ContentPadding( FMargin( 1, 0 ) )
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
-						.Text( LOCTEXT( "Filters", "Filters" ) )
-					]
+					SNew( STextBlock )
+					.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
+					.Text( LOCTEXT( "Filters", "Filters" ) )
 				]
 			];
 		}

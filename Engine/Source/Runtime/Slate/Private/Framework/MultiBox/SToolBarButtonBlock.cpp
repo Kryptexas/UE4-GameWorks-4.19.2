@@ -154,6 +154,8 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	TSharedRef< SWidget > ButtonContent =
 
 		SNew(SHorizontalBox)
+		.Tag(TutorialHighlightName)
+
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
 		.VAlign(VAlign_Center)
@@ -184,18 +186,6 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 					.ShadowOffset( FVector2D::UnitVector )
 			]
 		];
-
-	// Add a tutorial highlight wrapper if desired
-	if(TutorialHighlightName != NAME_None)
-	{
-		TSharedRef<SWidget> Wrapper = 
-			SNew(STutorialWrapper, TutorialHighlightName)
-			[
-				ButtonContent
-			];
-
-		ButtonContent = Wrapper;
-	}
 
 	EMultiBlockLocation::Type BlockLocation = GetMultiBlockLocation();
 	

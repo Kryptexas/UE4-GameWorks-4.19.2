@@ -18,7 +18,6 @@
 #include "PropertyCustomizationHelpers.h"
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
-#include "STutorialWrapper.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"

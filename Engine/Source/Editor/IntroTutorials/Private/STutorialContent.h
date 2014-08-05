@@ -1,0 +1,113 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "IDocumentation.h"
+#include "IDocumentationPage.h"
+#include "EditorTutorial.h"
+
+/**
+ * The widget which displays 'floating' content 
+ */
+class STutorialContent : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS( STutorialContent )
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+		_IsStandalone = false;
+	}
+
+	/** Alignment of content relative to widget, note "Fill" is not supported */
+	SLATE_ATTRIBUTE(EVerticalAlignment, VAlign)
+
+	/** Alignment of content relative to widget, note "Fill" is not supported */
+	SLATE_ATTRIBUTE(EHorizontalAlignment, HAlign)
+
+	/** Offset form the widget we annotate */
+	SLATE_ATTRIBUTE(FVector2D, Offset)
+
+	/** Whether this a standalone widget (with its own close button) or part of a group of other widgets, paired with tutorial navigation */
+	SLATE_ARGUMENT(bool, IsStandalone)
+
+	/** Delegate fired when the close button is clicked */
+	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
+
+	/** Where text should be wrapped */
+	SLATE_ARGUMENT(float, WrapTextAt)
+
+	/** Anchor if required */
+	SLATE_ARGUMENT(FTutorialContentAnchor, Anchor)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, const FTutorialContent& InContent);
+
+	/** SWidget implementation */
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+
+	/** Helper function to generate widgets from an FTutorialContent struct */
+	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, bool bForWidget, TSharedPtr<IDocumentationPage>& OutDocumentationPage);
+
+	/** Handle repositioning the widget */
+	FVector2D GetPosition() const;
+
+	/** Handle resizing the widget */
+	FVector2D GetSize() const;
+
+	/** Delegate handler called back from the overlay paint routines to flag whether we should paint as well (i.e. if this widget content is highlighted for the current stage) */
+	void HandlePaintNamedWidget(TSharedRef<SWidget> InWidget, const FGeometry& InGeometry);
+
+	/** Called back from the overlay paint routines to reset the flag we check for painting with */
+	void HandleResetNamedWidget();
+
+	/** Handle caching window size - called back from overlay paint routine */
+	void HandleCacheWindowSize(const FVector2D& InWindowSize);
+
+private:
+
+	/** Get the visibility of this content */
+	EVisibility GetVisibility() const;
+
+	/** Handle close button clicked - forward to delegate */
+	FReply OnCloseButtonClicked();
+
+	/** Get close button visibility - varies depending on whether we are standalone or not */
+	EVisibility GetCloseButtonVisibility() const;
+
+	/** Copy of the window size we were last draw at */
+	FVector2D CachedWindowSize;
+
+	/** Copy of the geometry our widget was last drawn with */
+	FGeometry CachedGeometry;
+
+	/** Container for widget content */
+	TSharedPtr<SWidget> ContentWidget;
+
+	/** Alignment of content relative to widget, note "Fill" is not supported */
+	TAttribute<EVerticalAlignment> VerticalAlignment;
+
+	/** Alignment of content relative to widget, note "Fill" is not supported */
+	TAttribute<EHorizontalAlignment> HorizontalAlignment;
+
+	/** Offset form the widget we annotate */
+	TAttribute<FVector2D> WidgetOffset;
+
+	/** Copy of the anchor for this tutorial content */
+	FTutorialContentAnchor Anchor; 
+
+	/** Whether this a standalone widget (with its own close button) or part of a group of other widgets, paired with tutorial navigation */
+	bool bIsStandalone;
+
+	/** Whether this overlay is currently visible */
+	bool bIsVisible;
+
+	/** Delegate fired when the close button is clicked */
+	FSimpleDelegate OnClosed;
+
+	/** Animation curves for displaying border */
+	FCurveSequence BorderPulseAnimation;
+	FCurveSequence BorderIntroAnimation;
+
+	/** Documentation page reference to use if we are displaying a UDN doc - we need this otherwise the page will be freed */
+	TSharedPtr<IDocumentationPage> DocumentationPage;
+};

@@ -2,6 +2,13 @@
 
 #pragma once
 
+/** Query delegate to see if we are in picking mode */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsPicking, FName& /* OutWidgetNameToHighlight */);
+
+class UEditorTutorial;
+struct FTutorialContent;
+class STutorialRoot;
+
 /** Contains properties defining a "welcome" tutorial, which is auto-shown once.*/
 struct FWelcomeTutorialProperties
 {
@@ -58,7 +65,11 @@ public:
 	// ctor
 	FIntroTutorials();
 
+	/** Get the delegate used to check for whether we are picking widgets */
+	FOnIsPicking& OnIsPicking();
+
 private:
+
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -126,11 +137,14 @@ private:
 	/** Handle linking between tutorials */
 	FString HandleGotoNextTutorial(const FString& InCurrentPage) const;
 
+	void SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter = TEXT(""));
+
 public:
 
 	// IIntroTutorials interface
 	virtual void RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString) override;
 	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass) override;
+	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr) override;
 	// End of IIntroTutorials interface
 private:
 	/** The tab id of the tutorial tab */
@@ -168,4 +182,10 @@ private:
 
 	/** should we be clearing the 'have seen this tutorial' flag? (controlled by -tutorials on the command line) */
 	bool bDesireResettingTutorialSeenFlagOnLoad;
+
+	/** Delegate used to determine whether we are in picking mode */
+	FOnIsPicking OnIsPickingDelegate;
+
+	/** Root widget for tutorial overlay system */
+	TSharedPtr<STutorialRoot> TutorialRoot;
 };

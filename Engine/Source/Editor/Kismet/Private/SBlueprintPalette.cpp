@@ -20,7 +20,6 @@
 #include "SBlueprintLibraryPalette.h"
 #include "SBlueprintFavoritesPalette.h"
 #include "BlueprintPaletteFavorites.h"
-#include "STutorialWrapper.h"
 #include "ClassIconFinder.h"
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
@@ -1515,29 +1514,23 @@ void SBlueprintPalette::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintE
 	{
 		this->ChildSlot
 		[
-			SNew( STutorialWrapper, TEXT("FullBlueprintPalette") )
+			SAssignNew(PaletteSplitter, SSplitter)
+				.Orientation(Orient_Vertical)
+				.OnSplitterFinishedResizing(this, &SBlueprintPalette::OnSplitterResized)
+				.Tag(TEXT("FullBlueprintPalette"))
+
+			+ SSplitter::Slot()
+			.Value(FavoritesHeightRatio)
 			[
-				SAssignNew(PaletteSplitter, SSplitter)
-					.Orientation(Orient_Vertical)
-					.OnSplitterFinishedResizing(this, &SBlueprintPalette::OnSplitterResized)
+				SNew(SBlueprintFavoritesPalette, InBlueprintEditor)
+				.Tag(TEXT("BlueprintPaletteFavorites"))
+			]
 
-				+ SSplitter::Slot()
-				.Value(FavoritesHeightRatio)
-				[
-					SAssignNew( FavoritesWrapper, STutorialWrapper, TEXT("BlueprintPaletteFavorites") )
-					[
-						SNew(SBlueprintFavoritesPalette, InBlueprintEditor)
-					]
-				]
-
-				+ SSplitter::Slot()
-				.Value(LibraryHeightRatio)
-				[
-					SAssignNew( LibraryWrapper, STutorialWrapper, TEXT("BlueprintPaletteLibrary") )
-					[
-						SNew(SBlueprintLibraryPalette, InBlueprintEditor)
-					]
-				]
+			+ SSplitter::Slot()
+			.Value(LibraryHeightRatio)
+			[
+				SNew(SBlueprintLibraryPalette, InBlueprintEditor)
+				.Tag(TEXT("BlueprintPaletteLibrary"))
 			]
 		];
 	}	

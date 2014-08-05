@@ -9,7 +9,7 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
-					"CoreUObject", // @todo Mac: for some reason CoreUObject and Engine are needed to link in debug on Mac
+					"CoreUObject",
 					"Engine", // @todo Mac: for some reason CoreUObject and Engine are needed to link in debug on Mac
                     "InputCore",
                     "Slate",
@@ -33,6 +33,8 @@ namespace UnrealBuildTool.Rules
                     "Kismet",
                     "PlacementMode",
 					"SlateCore",
+					"Settings",
+					"PropertyEditor"
 				}
 			);
 

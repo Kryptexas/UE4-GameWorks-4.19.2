@@ -12,17 +12,37 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	PropertyEditor = InPropertyEditor;
 
-	ChildSlot
-	[
-		SAssignNew( PrimaryWidget, SEditableTextBox )
-		.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
-		.Font( InArgs._Font )
-		.SelectAllTextWhenFocused( true )
-		.ClearKeyboardFocusOnCommit(false)
-		.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
-		.SelectAllTextOnCommit( true )
-		.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
-	];
+	const UProperty* Property = InPropertyEditor->GetProperty();
+	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
+	if(bIsMultiLine)
+	{
+		ChildSlot
+		[
+			SAssignNew( PrimaryWidget, SMultiLineEditableTextBox)
+			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
+			.Font( InArgs._Font )
+			.SelectAllTextWhenFocused( false )
+			.ClearKeyboardFocusOnCommit(false)
+			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+			.SelectAllTextOnCommit( false )
+			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+			.AutoWrapText(true)
+		];
+	}
+	else
+	{
+		ChildSlot
+		[
+			SAssignNew( PrimaryWidget, SEditableTextBox )
+			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
+			.Font( InArgs._Font )
+			.SelectAllTextWhenFocused( true )
+			.ClearKeyboardFocusOnCommit(false)
+			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+			.SelectAllTextOnCommit( true )
+			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+		];
+	}
 
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
 	{
@@ -35,7 +55,15 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 
 void SPropertyEditorText::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
 {
-	OutMinDesiredWidth = 125.0f;
+	if(bIsMultiLine)
+	{
+		OutMinDesiredWidth = 250.0f;
+	}
+	else
+	{
+		OutMinDesiredWidth = 125.0f;
+	}
+	
 	OutMaxDesiredWidth = 600.0f;
 }
 

@@ -357,13 +357,11 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(STutorialWrapper, TEXT("CategoryFilters"))
-				[
-					SAssignNew(FilterListPtr, SLogFilterList)
-					.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
-					/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
-					/*.FrontendFilters(FrontendFilters)*/
-				]
+				SAssignNew(FilterListPtr, SLogFilterList)
+				.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
+				.Tag(TEXT("CategoryFilters"))
+				/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
+				/*.FrontendFilters(FrontendFilters)*/
 			]
 
 			+SVerticalBox::Slot()

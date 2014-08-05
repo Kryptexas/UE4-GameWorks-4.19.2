@@ -26,10 +26,8 @@ TSharedRef<SWidget> FPaletteTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
-	return SNew(STutorialWrapper, TEXT("Palette"))
-		[
-			SNew(SPaletteView, BlueprintEditorPtr)
-		];
+	return SNew(SPaletteView, BlueprintEditorPtr)
+			.Tag(TEXT("Palette"));
 }
 
 #undef LOCTEXT_NAMESPACE 

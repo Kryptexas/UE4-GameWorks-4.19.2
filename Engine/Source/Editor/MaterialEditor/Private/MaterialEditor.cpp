@@ -41,7 +41,6 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"
-#include "STutorialWrapper.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -2475,7 +2474,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Palette(const FSpawnTabArgs& Args
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.Palette"))
 		.Label(LOCTEXT("MaterialPaletteTitle", "Palette"))
 		[
-			SNew( STutorialWrapper, TEXT("MaterialPalette") )
+			SNew( SBox )
+			.Tag(TEXT("MaterialPalette"))
 			[
 				Palette.ToSharedRef()
 			]
@@ -2492,7 +2492,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Stats(const FSpawnTabArgs& Args)
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.CompilerResults"))
 		.Label(LOCTEXT("MaterialStatsTitle", "Stats"))
 		[
-			SNew( STutorialWrapper, TEXT("MaterialStats") )
+			SNew( SBox )
+			.Tag(TEXT("MaterialStats"))
 			[
 				Stats.ToSharedRef()
 			]
@@ -2509,7 +2510,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.FindResults"))
 		.Label(LOCTEXT("MaterialFindTitle", "Find Results"))
 		[
-			SNew(STutorialWrapper, TEXT("MaterialFind"))
+			SNew(SBox)
+			.Tag(TEXT("MaterialFind"))
 			[
 				FindResults.ToSharedRef()
 			]

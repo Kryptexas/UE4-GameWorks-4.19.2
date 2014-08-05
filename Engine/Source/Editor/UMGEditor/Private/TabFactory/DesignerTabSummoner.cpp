@@ -28,10 +28,8 @@ TSharedRef<SWidget> FDesignerTabSummoner::CreateTabBody(const FWorkflowTabSpawnI
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
 		[
-			SNew(STutorialWrapper, TEXT("Designer"))
-			[
-				SNew(SDesignerView, BlueprintEditor.Pin())
-			]
+			SNew(SDesignerView, BlueprintEditor.Pin())
+			.Tag(TEXT("Designer"))
 		];
 }
 

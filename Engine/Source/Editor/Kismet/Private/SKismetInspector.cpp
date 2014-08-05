@@ -8,7 +8,6 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "SKismetInspector.h"
 #include "SKismetLinearExpression.h"
-#include "STutorialWrapper.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 
@@ -241,17 +240,14 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	// Create the border that all of the content will get stuffed into
 	ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("BlueprintInspector") )
+		SNew(SVerticalBox)
+		.Tag( TEXT("BlueprintInspector"))
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			[
-				SAssignNew( ContextualEditingBorderWidget, SBorder )
-				.Padding(0)
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-			]
+			SAssignNew( ContextualEditingBorderWidget, SBorder )
+			.Padding(0)
+			.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		]
 	];
 

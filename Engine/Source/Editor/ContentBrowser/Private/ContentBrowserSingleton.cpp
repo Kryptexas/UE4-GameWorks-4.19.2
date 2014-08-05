@@ -5,7 +5,6 @@
 #include "ContentBrowserModule.h"
 #include "ObjectTools.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "STutorialWrapper.h"
 #include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -362,8 +361,9 @@ TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSp
 	}
 
 	// Add wrapper for tutorial highlighting
-	TSharedRef<STutorialWrapper> Wrapper = 
-		SNew( STutorialWrapper, TEXT("ContentBrowser") )
+	TSharedRef<SBox> Wrapper = 
+		SNew( SBox )
+		.Tag(TEXT("ContentBrowser"))
 		[
 			NewBrowser
 		];

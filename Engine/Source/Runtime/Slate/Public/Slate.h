@@ -156,7 +156,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SDPIScaler.h"
 #include "SInlineEditableTextBlock.h"
 #include "SVirtualKeyboardEntry.h"
-#include "STutorialWrapper.h"
 #include "ScrollyZoomy.h"
 #include "SSafeZone.h"
 #include "MarqueeRect.h"

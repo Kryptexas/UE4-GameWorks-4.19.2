@@ -10,8 +10,6 @@
 #include "KismetEditorUtilities.h"
 #include "EditorClassUtils.h"
 
-#include "STutorialWrapper.h"
-
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the
  * enum accordingly.
@@ -322,7 +320,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.Padding( 0, 3, 0, 0 )
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMRecentlyPlaced") )
+			SNew( SBox)
+			.Tag(TEXT("PMRecentlyPlaced"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::RecentlyPlaced, NSLOCTEXT( "PlacementMode", "RecentlyPlaced", "Recently Placed" ), true )
 			]
@@ -331,7 +330,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMGeometry") )
+			SNew( SBox )
+			.Tag(TEXT("PMGeometry"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
 			]
@@ -340,7 +340,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMLights") )
+			SNew( SBox )
+			.Tag(TEXT("PMLights"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Lights, NSLOCTEXT( "PlacementMode", "Lights", "Lights" ), false )
 			]
@@ -349,7 +350,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMVisual") )
+			SNew( SBox )
+			.Tag(TEXT("PMVisual"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
 			]
@@ -358,7 +360,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMBasic") )
+			SNew( SBox )
+			.Tag(TEXT("PMBasic"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
 			]
@@ -367,7 +370,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMVolumes") )
+			SNew( SBox )
+			.Tag(TEXT("PMVolumes"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Volumes, NSLOCTEXT( "PlacementMode", "Volumes", "Volumes" ), false )
 			]
@@ -376,7 +380,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMAllClasses") )
+			SNew( SBox )
+			.Tag(TEXT("PMAllClasses"))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::AllClasses, NSLOCTEXT( "PlacementMode", "AllClasses", "All Classes" ), true )
 			]

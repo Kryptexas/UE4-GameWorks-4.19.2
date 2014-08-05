@@ -10,7 +10,6 @@
 #include "SKismetInspector.h"
 #include "SSCSEditorViewport.h"
 #include "SComponentClassCombo.h"
-#include "STutorialWrapper.h"
 
 #include "AssetSelection.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
@@ -2009,7 +2008,8 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 
 	this->ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("ComponentsPanel") )
+		SNew( SBox )
+		.Tag(TEXT("ComponentsPanel"))
 		[
 			Contents.ToSharedRef()
 		]

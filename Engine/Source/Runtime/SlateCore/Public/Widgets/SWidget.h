@@ -610,6 +610,9 @@ public:
 	/** @return The line number of the widgets location */
 	virtual int32 GetCreatedInLineNumber() const;
 
+	/** @return The name this widget was tagged with */
+	virtual FName GetTag() const;
+
 	/** @return the Foreground color that this widget sets; unset options if the widget does not set a foreground color */
 	virtual FSlateColor GetForegroundColor() const;
 
@@ -709,6 +712,9 @@ protected:
 	FName CreatedInFile;
 	/** Line number on which this widget was created */
 	int32 CreatedOnLine;
+
+	/** Tag for this widget */
+	FName Tag;
 
 	/** The cursor to show when the mouse is hovering over this widget. */
 	TAttribute< TOptional<EMouseCursor::Type> > Cursor;

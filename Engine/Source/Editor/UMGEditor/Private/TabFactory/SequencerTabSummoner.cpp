@@ -27,7 +27,8 @@ TSharedRef<SWidget> FSequencerTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPinned = BlueprintEditor.Pin();
 
-	return SNew(STutorialWrapper, TEXT("Sequencer"))
+	return SNew(SBox)
+		.Tag(TEXT("Sequencer"))
 		[
 			BlueprintEditorPinned->GetSequencer()->GetSequencerWidget()
 		];

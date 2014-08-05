@@ -38,4 +38,7 @@ private:
 	TSharedPtr< class FPropertyEditor > PropertyEditor;
 
 	TSharedPtr< class SWidget > PrimaryWidget;
+
+	/** Cached flag as we would like multi-line text widgets to be slightly larger */
+	bool bIsMultiLine;
 };

@@ -329,6 +329,13 @@ public:
 	TSharedRef<const SWidget> GetContent() const;
 
 	/**
+	 * Check whether we have a full window overlay, used to draw content over the entire window.
+	 * 
+	 * @return true if the window has an overlay
+	 */
+	bool HasOverlay() const;
+
+	/**
 	 * Adds content to draw on top of the entire window
 	 *
 	 * @param	InZOrder	Z-order to use for this widget

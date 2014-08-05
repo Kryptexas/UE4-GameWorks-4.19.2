@@ -83,82 +83,80 @@ void SGraphTitleBar::Construct( const FArguments& InArgs )
 	
 	this->ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("EventGraphTitleBar") )
+		SNew(SBorder)
+		.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
+		.HAlign(HAlign_Fill)
+		.Tag(TEXT("EventGraphTitleBar"))
 		[
-			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
-			.HAlign(HAlign_Fill)
+			SNew(SVerticalBox)
+			// Title text/icon
+			+SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SVerticalBox)
-				// Title text/icon
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SHorizontalBox)
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					InArgs._HistoryNavigationWidget.ToSharedRef()
+				]
+
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.FillWidth(1.f)
 				[
 					SNew(SHorizontalBox)
-
 					+SHorizontalBox::Slot()
 					.AutoWidth()
+					.Padding( 10,5 )
+					.VAlign(VAlign_Center)
 					[
-						InArgs._HistoryNavigationWidget.ToSharedRef()
+						SNew(SImage)
+						.Image( this, &SGraphTitleBar::GetTypeGlyph )
+					]
+
+					// show fake 'root' breadcrumb for the title
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(BreadcrumbTrailPadding)
+					[
+						SNew(STextBlock)
+						.Text(this, &SGraphTitleBar::GetBlueprintTitle )
+						.TextStyle( FEditorStyle::Get(), TEXT("GraphBreadcrumbButtonText") )
+						.Visibility( this, &SGraphTitleBar::IsGraphBlueprintNameVisible )
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SImage)
+						.Image( BreadcrumbButtonImage )
+						.Visibility( this, &SGraphTitleBar::IsGraphBlueprintNameVisible )
+					]
+
+					// New style breadcrumb
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SAssignNew(BreadcrumbTrail, SBreadcrumbTrail<UEdGraph*>)
+						.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
+						.TextStyle(FEditorStyle::Get(), "GraphBreadcrumbButtonText")
+						.ButtonContentPadding( BreadcrumbTrailPadding )
+						.DelimiterImage( BreadcrumbButtonImage )
+						.PersistentBreadcrumbs( true )
+						.OnCrumbClicked( this, &SGraphTitleBar::OnBreadcrumbClicked )
 					]
 
 					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Center)
-					.FillWidth(1.f)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding( 10,5 )
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage)
-							.Image( this, &SGraphTitleBar::GetTypeGlyph )
-						]
-
-						// show fake 'root' breadcrumb for the title
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(BreadcrumbTrailPadding)
-						[
-							SNew(STextBlock)
-							.Text(this, &SGraphTitleBar::GetBlueprintTitle )
-							.TextStyle( FEditorStyle::Get(), TEXT("GraphBreadcrumbButtonText") )
-							.Visibility( this, &SGraphTitleBar::IsGraphBlueprintNameVisible )
-						]
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage)
-							.Image( BreadcrumbButtonImage )
-							.Visibility( this, &SGraphTitleBar::IsGraphBlueprintNameVisible )
-						]
-
-						// New style breadcrumb
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SAssignNew(BreadcrumbTrail, SBreadcrumbTrail<UEdGraph*>)
-							.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
-							.TextStyle(FEditorStyle::Get(), "GraphBreadcrumbButtonText")
-							.ButtonContentPadding( BreadcrumbTrailPadding )
-							.DelimiterImage( BreadcrumbButtonImage )
-							.PersistentBreadcrumbs( true )
-							.OnCrumbClicked( this, &SGraphTitleBar::OnBreadcrumbClicked )
-						]
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
-							.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
-							.Text( this, &SGraphTitleBar::GetTitleExtra )
-						]
+						SNew(STextBlock)
+						.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
+						.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
+						.Text( this, &SGraphTitleBar::GetTitleExtra )
 					]
 				]
 			]

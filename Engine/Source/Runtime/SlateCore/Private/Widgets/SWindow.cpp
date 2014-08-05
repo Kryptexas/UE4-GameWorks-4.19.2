@@ -891,6 +891,11 @@ TSharedRef<const SWidget> SWindow::GetContent() const
 	}
 }
 
+bool SWindow::HasOverlay() const
+{
+	return WindowOverlay.IsValid();
+}
+
 SOverlay::FOverlaySlot& SWindow::AddOverlaySlot( const int32 ZOrder )
 {
 	if(!WindowOverlay.IsValid())

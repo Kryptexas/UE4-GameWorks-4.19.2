@@ -756,14 +756,15 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 		ChildSlot[ BuildMenuBarWidget( BuildParams ) ];
 	}
 
-	// Insert named STutorialWrapper if desired
+	// Insert named widget if desired
 	FName TutorialName = MenuEntryBlock->GetTutorialHighlightName();
 	if(TutorialName != NAME_None)
 	{
 		TSharedRef<SWidget> ChildWidget = ChildSlot.GetWidget();
 		ChildSlot
 		[
-			SNew( STutorialWrapper, TutorialName )
+			SNew( SBox )
+			.Tag(TutorialName)
 			[
 				ChildWidget
 			]

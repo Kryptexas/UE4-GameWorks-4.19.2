@@ -65,11 +65,6 @@ void FInteractiveTutorials::SetupEditorHooks()
 
 	UK2Node_TutorialExcerptComplete::OnTutorialExcerptComplete.AddSP(this, &FInteractiveTutorials::CompleteExcerpt);
 
-
-	// Hook us up to the tutorial system to allow us to highlight particular widgets
-	STutorialWrapper::OnWidgetHighlight().BindSP(this, &FInteractiveTutorials::IsWidgetHighlighted);
-
-
 	// Then make sure to collect all our actual tutorial data
 	PopulateInteractivityData(SharedThis(this));
 }

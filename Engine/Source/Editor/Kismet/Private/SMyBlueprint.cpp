@@ -5,7 +5,6 @@
 #include "BlueprintUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
-#include "STutorialWrapper.h"
 
 #include "BlueprintEditor.h"
 
@@ -204,54 +203,52 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	// now piece together all the content for this widget
 	ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("MyBlueprintPanel") )
+		SNew(SBorder)
+		.Padding(4.0f)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.Tag(TEXT("MyBlueprintPanel"))
 		[
-			SNew(SBorder)
-			.Padding(4.0f)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					ToolbarBuilder.MakeWidget()
-				]
+				ToolbarBuilder.MakeWidget()
+			]
 				
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					FilterBox.ToSharedRef()
-				]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				FilterBox.ToSharedRef()
+			]
 				
-				+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					SAssignNew(ActionMenuContainer, SSplitter)
-					.Orientation(Orient_Vertical)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SAssignNew(ActionMenuContainer, SSplitter)
+				.Orientation(Orient_Vertical)
 
-					+ SSplitter::Slot()
-					[
-						MyBlueprintActionMenu
-					]
+				+ SSplitter::Slot()
+				[
+					MyBlueprintActionMenu
 				]
+			]
 
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(FMargin(3.0f, 2.0f, 0.0f, 0.0f))
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(3.0f, 2.0f, 0.0f, 0.0f))
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SMyBlueprint::OnUserVarsCheckState)
+				.OnCheckStateChanged(this, &SMyBlueprint::OnUserVarsCheckStateChanged)
 				[
-					SNew(SCheckBox)
-					.IsChecked(this, &SMyBlueprint::OnUserVarsCheckState)
-					.OnCheckStateChanged(this, &SMyBlueprint::OnUserVarsCheckStateChanged)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("ShowInheritedVariables", "Show inherited variables"))
-						.ToolTip(IDocumentation::Get()->CreateToolTip(
-							LOCTEXT("ShowInheritedVariablesTooltip", "Should inherited variables from parent classes and blueprints be shown in the tree?"),
-							NULL,
-							TEXT("Shared/Editors/BlueprintEditor"),
-							TEXT("MyBlueprint_ShowInheritedVariables")))
-					]
+					SNew(STextBlock)
+					.Text(LOCTEXT("ShowInheritedVariables", "Show inherited variables"))
+					.ToolTip(IDocumentation::Get()->CreateToolTip(
+						LOCTEXT("ShowInheritedVariablesTooltip", "Should inherited variables from parent classes and blueprints be shown in the tree?"),
+						NULL,
+						TEXT("Shared/Editors/BlueprintEditor"),
+						TEXT("MyBlueprint_ShowInheritedVariables")))
 				]
 			]
 		]

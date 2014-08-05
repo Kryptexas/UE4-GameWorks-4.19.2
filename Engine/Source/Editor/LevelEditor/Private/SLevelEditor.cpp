@@ -34,7 +34,6 @@
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "Editor/UMGEditor/Public/UMGEditorModule.h"
 #include "EditorModes.h"
-#include "STutorialWrapper.h"
 #include "IDocumentation.h"
 #include "NewsFeed.h"
 
@@ -187,7 +186,8 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 
 			+SOverlay::Slot()
 			[
-				SNew( STutorialWrapper, TEXT("MainMenu") )
+				SNew( SBox )
+				.Tag(TEXT("MainMenu"))
 				[
 					Widget1
 				]
@@ -198,10 +198,8 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			+SOverlay::Slot()
 			.HAlign( HAlign_Right )
 			[
-				SNew( STutorialWrapper, TEXT("PerformanceTools") )
-				[
-					SAssignNew( NotificationBarBox, SHorizontalBox )
-				]
+				SAssignNew( NotificationBarBox, SHorizontalBox )
+				.Tag(TEXT("PerformanceTools"))
 			]
 #endif
 		]
@@ -214,13 +212,11 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 	];
 	
 // For OS X we need to put it into the window's title bar since there's no per-window menu bar
-#if PLATFORM_MAC
-	TSharedRef<SWidget> TutorialWidget = SNew( STutorialWrapper, TEXT("PerformanceTools") )
-	[
+#if PLATFORM_MAC	
+	OwnerTab->SetRightContent(
 		SAssignNew( NotificationBarBox, SHorizontalBox )
-	];
-	
-	OwnerTab->SetRightContent(TutorialWidget);
+		.Tag(TEXT("PerformanceTools"))
+		);
 #endif
 
 	ConstructNotificationBar();
@@ -553,7 +549,8 @@ static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
 		.Label( Label )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "DetailsTab" ) )
 		[
-			SNew( STutorialWrapper, TEXT("ActorDetails") )
+			SNew( SBox )
+			.Tag(TEXT("ActorDetails"))
 			[
 				DetailsView
 			]
@@ -586,17 +583,14 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.ShouldAutosize(true)
 			.Icon( FEditorStyle::GetBrush("ToolBar.Icon") )
 			[
-				SNew( STutorialWrapper, TEXT("LevelToolbar") )
+				SNew(SHorizontalBox)
+				.Tag(TEXT("LevelToolbar"))
+				+ SHorizontalBox::Slot()
+				.FillWidth(1)
+				.VAlign(VAlign_Bottom)
+				.HAlign(HAlign_Left)
 				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					.VAlign(VAlign_Bottom)
-					.HAlign(HAlign_Left)
-					[
-						FLevelEditorToolBar::MakeLevelEditorToolBar( LevelEditorCommands.ToSharedRef(), SharedThis(this) )
-					]
+					FLevelEditorToolBar::MakeLevelEditorToolBar( LevelEditorCommands.ToSharedRef(), SharedThis(this) )
 				]
 			];
 
@@ -619,7 +613,8 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.Modes" ) )
 			.Label( NSLOCTEXT( "LevelEditor", "ToolsTabTitle", "Modes" ) )
 			[
-				SNew( STutorialWrapper, TEXT("ToolsPanel") )
+				SNew( SBox )
+				.Tag(TEXT("ToolsPanel"))
 				[
 					NewToolBox
 				]
@@ -669,16 +664,14 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "SceneOutlinerTab" ) )
 			.ContentPadding( 5 )
 			[
-				SNew( STutorialWrapper, TEXT("SceneOutliner") )
+				SNew(SBorder)
+				.Padding(4)
+				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+				.Tag(TEXT("SceneOutliner"))
 				[
-					SNew(SBorder)
-					.Padding(4)
-					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-					[
-						SceneOutlinerModule.CreateSceneOutliner(
-							InitOptions,
-							FOnActorPicked() /* Not used for outliner when in browsing mode */ )
-					]
+					SceneOutlinerModule.CreateSceneOutliner(
+						InitOptions,
+						FOnActorPicked() /* Not used for outliner when in browsing mode */ )
 				]
 			];
 	}

@@ -2358,6 +2358,33 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		const FTextBlockStyle TutorialHeaderText = FTextBlockStyle(DocumentationHeaderText)
 			.SetColorAndOpacity(FLinearColor::Black);
 
+		Set( "Tutorials.Border", new BOX_BRUSH( "Tutorials/OverlayFrame", FMargin(18.0f/64.0f), FLinearColor(1.0f, 1.0f, 1.0f, 0.8f) ) );
+		Set( "Tutorials.Browser.WelcomeHeader", FTextBlockStyle(TutorialHeaderText)
+			.SetFontSize(20));
+
+		Set( "Tutorials.Browser.SummaryHeader", FTextBlockStyle(TutorialHeaderText)
+			.SetFontSize(16));
+
+		Set( "Tutorials.Browser.SummaryText", FTextBlockStyle(TutorialText)
+			.SetFontSize(10));
+
+		Set( "Tutorials.Browser.HighlightTextColor", TutorialSelectionColor );
+
+		Set( "Tutorials.Browser.Button", FButtonStyle()
+			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,0.15f) ) )
+			.SetHovered( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
+			.SetPressed( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
+			.SetNormalPadding( FMargin(0,0,0,1))
+			.SetPressedPadding( FMargin(0,1,0,0)));
+
+		Set( "Tutorials.Browser.CategoryArrow", new IMAGE_BRUSH( "Tutorials/BrowserCategoryArrow", FVector2D(24.0f, 24.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+
+		Set( "Tutorials.Browser.BackButton", new IMAGE_BRUSH( "Tutorials/BrowserBack", FVector2D(32.0f, 32.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+		Set( "Tutorials.Browser.RestartButton", new IMAGE_BRUSH( "Tutorials/BrowserRestart", FVector2D(16.0f, 16.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+
+		Set( "Tutorials.WidgetContent", FTextBlockStyle(TutorialText)
+			.SetFontSize(10));
+
 		Set( "Tutorials.ButtonColor", TutorialButtonColor );
 		Set( "Tutorials.ButtonHighlightColor", TutorialSelectionColor );
 		Set( "Tutorials.ButtonDisabledColor", SelectionColor_Inactive );
