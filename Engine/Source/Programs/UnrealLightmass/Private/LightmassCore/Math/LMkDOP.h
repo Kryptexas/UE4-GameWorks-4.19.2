@@ -422,9 +422,9 @@ public:
 		V0(vert0), V1(vert1), V2(vert2),
 		MeshIndex(InMeshIndex),
 		LODIndex(InLODIndex),
-		MaterialIndex(InMaterialIndex),
 		bTwoSided(bInTwoSided),
-		bStaticAndOpaque(bInStaticAndOpaque)
+		bStaticAndOpaque(bInStaticAndOpaque),
+		MaterialIndex(InMaterialIndex)
 	{
 #if CACHE_BUILD_TEMPORARIES
 		// Calculate the centroid for the triangle

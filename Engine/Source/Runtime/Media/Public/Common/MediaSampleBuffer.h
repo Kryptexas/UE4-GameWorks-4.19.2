@@ -24,6 +24,8 @@ public:
 		: CurrentSampleTime(FTimespan::MinValue())
 	{ }
 
+	virtual ~FMediaSampleBuffer()
+	{ }
 public:
 
 	/**

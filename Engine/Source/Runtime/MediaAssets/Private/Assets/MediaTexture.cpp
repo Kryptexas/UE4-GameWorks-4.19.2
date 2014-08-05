@@ -9,8 +9,8 @@
 
 UMediaTexture::UMediaTexture( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
-	, MediaAsset(nullptr)
 	, ClearColor(FLinearColor::Red)
+	, MediaAsset(nullptr)
 	, CurrentMediaAsset(nullptr)
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
 {

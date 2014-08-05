@@ -39,6 +39,9 @@ public:
 		}
 	}
 
+	virtual ~FTutorialListEntry_Category()
+	{}
+
 	virtual TSharedRef<ITableRow> OnGenerateTutorialRow(const TSharedRef<STableViewBase>& OwnerTable) const override
 	{
 		return SNew(STableRow<TSharedPtr<ITutorialListEntry>>, OwnerTable)
@@ -166,6 +169,9 @@ public:
 		: Tutorial(InTutorial)
 		, OnTutorialSelected(InOnTutorialSelected)
 		, HighlightText(InHighlightText)
+	{}
+
+	virtual ~FTutorialListEntry_Tutorial()
 	{}
 
 	virtual TSharedRef<ITableRow> OnGenerateTutorialRow(const TSharedRef<STableViewBase>& OwnerTable) const override

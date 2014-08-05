@@ -2986,9 +2986,9 @@ public:
 		) :
 		Scene(InScene),
 		TexelToNumTrianglesMap(InTexelToNumTrianglesMap),
-		bDebugThisMapping(bInDebugThisMapping),
 		TotalPixelsWritten(0),
-		TotalPixelOverlapsOccured(0)
+		TotalPixelOverlapsOccured(0),
+		bDebugThisMapping(bInDebugThisMapping)
 	{}
 
 	int32 GetTotalPixelsWritten() const

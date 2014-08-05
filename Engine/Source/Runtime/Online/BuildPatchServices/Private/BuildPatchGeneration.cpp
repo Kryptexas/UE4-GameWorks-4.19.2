@@ -288,16 +288,16 @@ FBuildDataChunkProcessor::FBuildDataChunkProcessor( FBuildPatchAppManifestRef In
 	: NumNewChunks( 0 )
 	, NumKnownChunks( 0 )
 	, BuildRoot( InBuildRoot )
-	, ChunkIsPushed( false )
+	, ChunkWriter( FBuildPatchServicesModule::GetCloudDirectory() )
+	, CurrentChunkBufferPos( 0 )
+	, CurrentFile( NULL )
 	, IsProcessingChunk( false )
 	, IsProcessingChunkPart( false )
+	, IsProcessingFile( false )
+	, ChunkIsPushed( false )
+	, BackupChunkBufferPos( 0 )
 	, BackupProcessingChunk( false )
 	, BackupProcessingChunkPart( false )
-	, CurrentChunkBufferPos( 0 )
-	, BackupChunkBufferPos( 0 )
-	, IsProcessingFile( false )
-	, CurrentFile( NULL )
-	, ChunkWriter( FBuildPatchServicesModule::GetCloudDirectory() )
 {
 	BuildManifest = InBuildManifest;
 	CurrentChunkGuid.Invalidate();

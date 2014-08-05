@@ -19,6 +19,8 @@ class FMediaSampleQueue
 {
 public:
 
+	virtual ~FMediaSampleQueue() {}
+
 	// IMediaSink interface
 
 	void ProcessMediaSample( const void* Buffer, uint32 BufferSize, FTimespan Duration, FTimespan Time ) override

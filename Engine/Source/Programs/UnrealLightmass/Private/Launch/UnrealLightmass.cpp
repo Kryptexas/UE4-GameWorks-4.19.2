@@ -336,10 +336,10 @@ class FLocalCompareLightingResultsVisitor : public IPlatformFile::FDirectoryVisi
 public:
 
 	FLocalCompareLightingResultsVisitor(const TCHAR* InDir1, const TCHAR* InDir2, float InErrorThreshold)
-	:	Dir1(InDir1)
-	,	Dir2(InDir2)
-	,	NumDifferentFiles(0)
+	:	NumDifferentFiles(0)
 	,	TotalFiles(0)
+	,	Dir1(InDir1)
+	,	Dir2(InDir2)
 	,	ErrorThreshold(InErrorThreshold)
 	{
 	}

@@ -207,8 +207,8 @@ struct FPDBCacheEntry
 {
 	/** Default constructor. */
 	FPDBCacheEntry( const FDateTime InLastAccessTime )
-		: SizeGB( 0 )
-		, LastAccessTime( InLastAccessTime )
+		: LastAccessTime( InLastAccessTime )
+		, SizeGB( 0 )
 	{}
 
 	/** Initialization constructor. */

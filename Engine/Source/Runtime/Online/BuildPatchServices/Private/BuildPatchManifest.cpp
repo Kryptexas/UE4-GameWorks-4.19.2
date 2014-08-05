@@ -90,11 +90,11 @@ const int64 FBuildPatchCustomField::AsInteger() const
 
 FBuildPatchFileManifest::FBuildPatchFileManifest()
 	: Filename( TEXT( "" ) )
-	, FileSize( INDEX_NONE )
 #if PLATFORM_MAC
 	, bIsUnixExecutable( false )
 	, SymlinkTarget( TEXT( "" ) )
 #endif
+	, FileSize( INDEX_NONE )
 {
 }
 

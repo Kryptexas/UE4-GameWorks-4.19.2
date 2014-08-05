@@ -121,9 +121,9 @@ public:
 	{}
 
 	FGatheredLightMapSample(const FGatheredLightSample& Sample)
-	: bIsMapped(false)
-	, HighQuality(Sample)
+	: HighQuality(Sample)
 	, LowQuality(Sample)
+	, bIsMapped(false)
 	{}
 
 	FGatheredLightMapSample& operator=(const FGatheredLightSample& Sample)
@@ -1455,18 +1455,18 @@ public:
 
 	/** Initialization constructor. */
 	FStaticLightingThreadRunnable(FStaticLightingSystem* InSystem, int32 InThreadIndex) :
-		System(InSystem),
 		Thread(NULL),
 		IdleTime(0),
 		ThreadIndex(InThreadIndex),
+		System(InSystem),
 		bTerminatedByError(false)
 	{}
 
 	FStaticLightingThreadRunnable(FStaticLightingSystem* InSystem) :
-		System(InSystem),
 		Thread(NULL),
 		IdleTime(0),
 		ThreadIndex(0),
+		System(InSystem),
 		bTerminatedByError(false)
 	{}
 
@@ -1558,8 +1558,8 @@ public:
 		int32 InThreadIndex,
 		const FDirectPhotonEmittingInput& InInput)
 		:
-		ThreadIndex(InThreadIndex),
 		FStaticLightingThreadRunnable(InSystem),
+		ThreadIndex(InThreadIndex),
 		Input(InInput)
 	{}
 
