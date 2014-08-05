@@ -374,12 +374,13 @@ private:
 	/** Calculates a trigger offset based on the supplied time taking into account only the montages sections */
 	EAnimEventTriggerOffsets::Type CalculateOffsetFromSections(float Time) const;
 
-#if WITH_EDITOR
+
 public:
 	// UAnimSequenceBase Interface
 	virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight) const override;
 	// End of UAnimSequenceBase Interface
 
+#if WITH_EDITOR
 	/**
 	 * Add Composite section with InSectionName
 	 * returns index of added item 
