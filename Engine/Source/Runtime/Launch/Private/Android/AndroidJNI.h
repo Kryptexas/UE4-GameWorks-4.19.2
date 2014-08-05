@@ -34,6 +34,8 @@ public:
 	static jmethodID AndroidThunkJava_CloseAdBanner;
 
 	static jmethodID AndroidThunkJava_GetAssetManager;
+	static jmethodID AndroidThunkJava_Minimize;
+	static jmethodID AndroidThunkJava_ForceQuit;
 
 	// IDs related to achievement query
 	static jclass JavaAchievementClassID;

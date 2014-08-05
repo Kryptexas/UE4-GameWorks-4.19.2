@@ -22,6 +22,21 @@ GenericApplication* FAndroidMisc::CreateApplication()
 	return FAndroidApplication::CreateAndroidApplication();
 }
 
+extern void AndroidThunkCpp_ForceQuit();
+
+void FAndroidMisc::RequestExit( bool Force )
+{
+	AndroidThunkCpp_ForceQuit();
+}
+
+extern void AndroidThunkCpp_Minimize();
+
+void FAndroidMisc::RequestMinimize()
+{
+	AndroidThunkCpp_Minimize();
+}
+
+
 void FAndroidMisc::LowLevelOutputDebugString(const TCHAR *Message)
 {
 	LocalPrint(Message);

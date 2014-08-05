@@ -545,10 +545,20 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleReattachComponentsCommand( Cmd, Ar );
 	}
-	// exec to 
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
-		if ( FPlatformProperties::SupportsQuit() )
+		FString CmdName = FParse::Token(Cmd, 0);
+		bool Background = false;
+		if (!CmdName.IsEmpty() && !FCString::Stricmp(*CmdName, TEXT("background")))
+		{
+			Background = true;
+		}
+
+		if ( Background && FPlatformProperties::SupportsMinimize() )
+		{
+			return HandleMinimizeCommand( Cmd, Ar );
+		}
+		else if ( FPlatformProperties::SupportsQuit() )
 		{
 			return HandleExitCommand( Cmd, Ar );
 		}
@@ -644,6 +654,14 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 	Ar.Log( TEXT("Closing by request") );
 	FPlatformMisc::RequestExit( 0 );
+	return true;
+}
+
+bool UGameEngine::HandleMinimizeCommand( const TCHAR *Cmd, FOutputDevice &Ar )
+{
+	Ar.Log( TEXT("Minimize by request") );
+	FPlatformMisc::RequestMinimize();
+
 	return true;
 }
 

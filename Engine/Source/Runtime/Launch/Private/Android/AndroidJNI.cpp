@@ -118,6 +118,8 @@ jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
+jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
+jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
 
 jclass JDef_GameActivity::JavaAchievementClassID;
 jfieldID JDef_GameActivity::AchievementIDField;
@@ -336,6 +338,22 @@ AAssetManager * AndroidThunkCpp_GetAssetManager()
 	return GAssetManagerRef;
 }
 
+void AndroidThunkCpp_Minimize()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Minimize);
+	}
+}
+
+void AndroidThunkCpp_ForceQuit()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ForceQuit);
+	}
+}
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -346,6 +364,17 @@ AAssetManager * AndroidThunkCpp_GetAssetManager()
 // Use the JNI_OnLoad function to map all the class IDs and method IDs to their respective
 // variables. That way, later when the Java functions need to be called, the IDs will be ready.
 // It is much slower to keep looking up the class and method IDs.
+
+#if UE_BUILD_SHIPPING
+#define CHECK_JNI_RESULT( Id )
+#else
+#define CHECK_JNI_RESULT( Id ) \
+	if ( Id == 0 ) \
+	{ \
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("JNI_OnLoad: Failed to find " #Id)); \
+	}
+#endif
+
 JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function");
@@ -353,29 +382,55 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JNIEnv* env = NULL;
 	InJavaVM->GetEnv((void **)&env, JNI_CURRENT_VERSION);
 
+	// if you have problems with stuff being missing esspecially in distribution builds then it could be because proguard is stripping things from java
+	// check proguard-project.txt and see if your stuff is included in the exceptions
 	GJavaVM = InJavaVM;
 
 	JDef_GameActivity::ClassID = env->FindClass("com/epicgames/ue4/GameActivity");
+	CHECK_JNI_RESULT( JDef_GameActivity::ClassID );
 
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow );
 	JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowVirtualKeyboardInput", "(ILjava/lang/String;Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput );
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_LaunchURL );
 	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowLeaderboard );
 	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowAchievements );
 	JDef_GameActivity::AndroidThunkJava_QueryAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_QueryAchievements", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_QueryAchievements );
 	JDef_GameActivity::AndroidThunkJava_ResetAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ResetAchievements", "()V");
 	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue );
 	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GooglePlayConnect );
 	JDef_GameActivity::AndroidThunkJava_WriteAchievement = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteAchievement", "(Ljava/lang/String;F)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_WriteAchievement );
 	JDef_GameActivity::AndroidThunkJava_ShowAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowAdBanner );
 	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_HideAdBanner );
 	JDef_GameActivity::AndroidThunkJava_CloseAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_CloseAdBanner", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_CloseAdBanner );
 	JDef_GameActivity::AndroidThunkJava_GetAssetManager = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetAssetManager", "()Landroid/content/res/AssetManager;");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetAssetManager );
+
+	JDef_GameActivity::AndroidThunkJava_Minimize = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_Minimize", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_Minimize );
+	JDef_GameActivity::AndroidThunkJava_ForceQuit = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ForceQuit", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ForceQuit );
+	
 
 	// Set up achievement query IDs
 	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");
+	CHECK_JNI_RESULT( JDef_GameActivity::JavaAchievementClassID );
 	JDef_GameActivity::AchievementIDField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "ID", "Ljava/lang/String;");
+	CHECK_JNI_RESULT( JDef_GameActivity::AchievementIDField );
 	JDef_GameActivity::AchievementProgressField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "Progress", "D");
+	CHECK_JNI_RESULT( JDef_GameActivity::AchievementProgressField );
+	
 
 	// hook signals
 #if UE_BUILD_DEBUG
@@ -409,6 +464,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	DECLARE_DELEGATE_OneParam(FAndroidLaunchURLDelegate, const FString&);
 	extern CORE_API FAndroidLaunchURLDelegate OnAndroidLaunchURL;
 	OnAndroidLaunchURL = FAndroidLaunchURLDelegate::CreateStatic(&AndroidThunkCpp_LaunchURL);
+
+	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function 5");
+
 
 	return JNI_CURRENT_VERSION;
 }

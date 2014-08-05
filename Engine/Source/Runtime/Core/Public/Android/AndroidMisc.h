@@ -53,6 +53,8 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 {
 	static class GenericApplication* CreateApplication();
 
+	static void RequestMinimize();
+	static void RequestExit( bool Force );
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
@@ -83,6 +85,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();
+
 
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()

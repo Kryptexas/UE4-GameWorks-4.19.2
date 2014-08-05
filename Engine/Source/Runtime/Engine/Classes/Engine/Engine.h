@@ -1606,7 +1606,6 @@ public:
 	 * Exec command handlers
 	 */
 	bool HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );

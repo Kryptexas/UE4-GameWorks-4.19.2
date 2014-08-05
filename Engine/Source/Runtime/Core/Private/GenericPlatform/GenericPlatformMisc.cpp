@@ -323,6 +323,10 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #endif
 }
 
+void FGenericPlatformMisc::RequestMinimize()
+{
+}
+
 void FGenericPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogGenericPlatformMisc, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );

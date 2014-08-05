@@ -220,12 +220,19 @@ void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, co
 	}
 }
 
-void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer)
+void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer, TEnumAsByte<EQuitPreference::Type> QuitPreference)
 {
 	APlayerController* TargetPC = SpecificPlayer ? SpecificPlayer : UGameplayStatics::GetPlayerController(WorldContextObject, 0);
 	if( TargetPC )
 	{
-		TargetPC->ConsoleCommand("quit");
+		if ( QuitPreference == EQuitPreference::Background)
+		{
+			TargetPC->ConsoleCommand("quit background");
+		}
+		else
+		{
+			TargetPC->ConsoleCommand("quit");
+		}
 	}
 }
 

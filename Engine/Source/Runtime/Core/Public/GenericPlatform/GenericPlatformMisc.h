@@ -479,6 +479,13 @@ public:
 	/** Prints string to the default output */
 	static void LocalPrint( const TCHAR* Str );
 
+
+	/**
+	 * Request application to minimize (goto background)
+	 *
+	 **/
+	static void RequestMinimize();
+
 	/**
 	 * Requests application exit.
 	 *

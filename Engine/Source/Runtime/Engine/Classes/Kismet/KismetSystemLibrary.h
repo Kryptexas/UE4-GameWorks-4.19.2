@@ -35,6 +35,18 @@ namespace EMoveComponentAction
 	};
 }
 
+UENUM()
+namespace EQuitPreference
+{
+	enum Type
+	{
+		/** Move the application to the background */
+		Background,
+		/** Exit the game completely */
+		Quit,
+	};
+}
+
 USTRUCT()
 struct FGenericStruct
 {
@@ -203,7 +215,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param	SpecificPlayer	The specific player to quit the game. If not specified, player 0 will quit.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game",meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static void QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer);
+	static void QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer, TEnumAsByte<EQuitPreference::Type> QuitPreference);
 
 	//=============================================================================
 	// Latent Actions

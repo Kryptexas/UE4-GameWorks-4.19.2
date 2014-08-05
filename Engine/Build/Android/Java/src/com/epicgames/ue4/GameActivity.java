@@ -1034,7 +1034,19 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		return JavaBuildSettings.PackageType.AMAZON == JavaBuildSettings.PACKAGING;
 	}
 
+	public void AndroidThunkJava_Minimize()
+	{
+		Intent startMain = new Intent(Intent.ACTION_MAIN);
+		startMain.addCategory(Intent.CATEGORY_HOME);
+		startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		startActivity(startMain);
+	}
 
+	public void AndroidThunkJava_ForceQuit()
+	{
+		System.exit(0);
+		// finish();
+	}
 
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();

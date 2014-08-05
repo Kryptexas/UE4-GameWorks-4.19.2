@@ -2123,10 +2123,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleFlushLogCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
-	{
-		return HandleExitCommand( Cmd, Ar );
-	}
 	else if( FParse::Command(&Cmd, TEXT("GAMEVER")) ||  FParse::Command(&Cmd, TEXT("GAMEVERSION")))
 	{
 		return HandleGameVerCommand( Cmd, Ar );
@@ -5129,17 +5125,6 @@ bool UEngine::HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	GLog->FlushThreadedLogs();
 	GLog->Flush();
-	return true;
-}
-
-bool UEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// Ignore these commands when running the editor
-	if( !GIsEditor )
-	{
-		Ar.Log( TEXT("Closing by request") );
-		FPlatformMisc::RequestExit( 0 );
-	}
 	return true;
 }
 

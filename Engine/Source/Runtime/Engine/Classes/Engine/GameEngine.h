@@ -106,6 +106,7 @@ public:
 	bool HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleMinimizeCommand( const TCHAR *Cmd, FOutputDevice &Ar );
 	bool HandleGetMaxTickRateCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCancelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 #if !UE_BUILD_SHIPPING

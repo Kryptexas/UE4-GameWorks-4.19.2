@@ -88,6 +88,11 @@ struct FAndroidPlatformProperties
 		return false;
 	}
 
+	static FORCEINLINE bool SupportsMinimize()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsQuit() 
 	{
 		return true;
