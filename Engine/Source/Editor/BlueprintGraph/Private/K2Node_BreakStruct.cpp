@@ -124,6 +124,17 @@ UK2Node_BreakStruct::UK2Node_BreakStruct(const class FPostConstructInitializePro
 {
 }
 
+bool UK2Node_BreakStruct::CanCreatePinForProperty(const UProperty* Property)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	FEdGraphPinType DumbGraphPinType;
+	const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
+
+	//TODO: remove CPF_Edit in a next release.
+	const bool bVisible = Property ? Property->HasAnyPropertyFlags(CPF_Edit | CPF_BlueprintVisible) : false;
+	return bVisible && bConvertable;
+}
+
 bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
@@ -131,15 +142,9 @@ bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct)
 	{
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
-			if(const UProperty* Property = *It)
+			if (CanCreatePinForProperty(*It))
 			{
-				FEdGraphPinType DumbGraphPinType;
-				const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
-				const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit);
-				if(bVisible && bConvertable)
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 	}
@@ -153,7 +158,19 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	{
 		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, StructType->GetName(), true);
 		
-		UK2Node_StructMemberGet::AllocateDefaultPins();
+		struct FBreakStructPinManager : public FStructOperationOptionalPinManager
+		{
+			virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override
+			{
+				return UK2Node_BreakStruct::CanCreatePinForProperty(TestProperty);
+			}
+		};
+
+		{
+			FBreakStructPinManager OptionalPinManager;
+			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
+			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Output, this);
+		}
 
 		// When struct has a lot of fields, mark their pins as advanced
 		if(Pins.Num() > 5)
@@ -194,6 +211,37 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	if(!StructType)
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
+	}
+	else
+	{
+		bool bHasAnyBlueprintVisibleProperty = false;
+		for (TFieldIterator<UProperty> It(StructType); It; ++It)
+		{
+			const UProperty* Property = *It;
+			if (CanCreatePinForProperty(Property))
+			{
+				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible);
+				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
+
+				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+				const bool bIsLinked = Pin && Pin->LinkedTo.Num();
+
+				if (!bIsBlueprintVisible && bIsLinked)
+				{
+					MessageLog.Warning(*LOCTEXT("PropertyIsNotBPVisible_Warning", "@@ - the native property is not tagged as BlueprintReadWrite or BlueprintReadOnly, the pin will be removed in a future release.").ToString(), Pin);
+				}
+
+				if ((Property->ArrayDim > 1) && bIsLinked)
+				{
+					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
+				}
+			}
+		}
+
+		if (!bHasAnyBlueprintVisibleProperty)
+		{
+			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite or BlueprintReadOnly. The node will be removed in a future release.").ToString(), this);
+		}
 	}
 }
 

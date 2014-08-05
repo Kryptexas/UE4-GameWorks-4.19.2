@@ -5548,6 +5548,18 @@ Found:
 		FError::Throwf(TEXT("Function '%s': Base implementation of RPCs cannot be in a state. Add a stub outside state scope."), *TopFunction->GetName());
 	}
 
+	if (TopFunction->FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintEvent))
+	{
+		for (TFieldIterator<UProperty> It(TopFunction); It; ++It)
+		{
+			UProperty const* const Param = *It;
+			if (Param->ArrayDim > 1)
+			{
+				FError::Throwf(TEXT("Static array cannot be exposed to blueprint. Function: %s Parameter %s\n"), *TopFunction->GetName(), *Param->GetName());
+			}
+		}
+	}
+
 	// Just declaring a function, so end the nesting.
 	PopNest( AllClasses, NEST_FunctionDeclaration, TypeOfFunction );
 
@@ -5889,6 +5901,12 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 				StructBeingBuilt->StructFlags = EStructFlags(StructBeingBuilt->StructFlags | STRUCT_HasInstancedReference);
 			}
 		}
+
+		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && (NewProperty->ArrayDim > 1))
+		{
+			UE_LOG(LogCompile, Warning, TEXT("Static array cannot be exposed to blueprint %s.%s\n"), *Struct->GetName(), *NewProperty->GetName());
+		}
+
 	} while( MatchSymbol(TEXT(",")) );
 
 	// Expect a semicolon.

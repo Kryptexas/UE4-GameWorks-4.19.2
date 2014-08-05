@@ -116,6 +116,36 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
 	}
+	else
+	{
+		bool bHasAnyBlueprintVisibleProperty = false;
+		for (TFieldIterator<UProperty> It(StructType); It; ++It)
+		{
+			const UProperty* Property = *It;
+			if (CanBeExposed(Property))
+			{
+				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible);
+				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
+
+				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+
+				if (!bIsBlueprintVisible)
+				{
+					MessageLog.Warning(*LOCTEXT("PropertyIsNotBPVisible_Warning", "@@ - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.").ToString(), Pin);
+				}
+
+				if (Property->ArrayDim > 1)
+				{
+					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
+				}
+			}
+		}
+
+		if (!bHasAnyBlueprintVisibleProperty)
+		{
+			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite. The node will be removed in a future release.").ToString(), this);
+		}
+	}
 }
 
 
@@ -155,6 +185,8 @@ bool UK2Node_MakeStruct::CanBeExposed(const UProperty* Property)
 
 		FEdGraphPinType DumbGraphPinType;
 		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
+
+		//TODO: remove CPF_Edit in a future release
 		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit);
 		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
 		if(bVisible && bConvertable && !bBlueprintReadOnly)

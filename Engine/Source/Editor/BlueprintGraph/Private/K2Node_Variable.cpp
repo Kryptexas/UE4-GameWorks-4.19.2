@@ -302,6 +302,11 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableDeprecated", "Variable '%s' for @@ was deprecated.  Please update it.").ToString(), *VariableReference.GetMemberName().ToString()), this);
 		}
 	}
+
+	if (VariableProperty && (VariableProperty->ArrayDim > 1))
+	{
+		MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), this);
+	}
 }
 
 FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
