@@ -74,9 +74,16 @@ static TAutoConsoleVariable<int32> CVarAPEXSortDynamicChunksByBenefit(
 
 void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 {
+	StartPhysicsTickFunction.bCanEverTick = true;
 	StartPhysicsTickFunction.Target = this;
+	
+	EndPhysicsTickFunction.bCanEverTick = true;
 	EndPhysicsTickFunction.Target = this;
+	
+	StartClothTickFunction.bCanEverTick = true;
 	StartClothTickFunction.Target = this;
+	
+	EndClothTickFunction.bCanEverTick = true;
 	EndClothTickFunction.Target = this;
 	
 	

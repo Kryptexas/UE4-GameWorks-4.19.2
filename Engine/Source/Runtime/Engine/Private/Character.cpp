@@ -386,9 +386,12 @@ namespace MovementBaseUtility
 	{
 		if (NewBase && MovementBaseUtility::UseRelativeLocation(NewBase))
 		{
-			BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
-			AActor* NewBaseOwner = NewBase->GetOwner();
+			if (NewBase->PrimaryComponentTick.bCanEverTick)
+			{
+				BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
+			}
 
+			AActor* NewBaseOwner = NewBase->GetOwner();
 			if (NewBaseOwner)
 			{
 				// NOTE: TTP# 341962: Temp hack to fix issues with landing on Foliage actors with thousands of components.
@@ -430,10 +433,7 @@ namespace MovementBaseUtility
 					return;
 				}
 
-				if (OldBaseOwner->PrimaryActorTick.bCanEverTick)
-				{
-					BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
-				}
+				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
 				TArray<UActorComponent*> Components;

@@ -104,7 +104,7 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
-	if (bRegister && Owner && Owner->CanEverTick())
+	if (bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
 	{
 		Owner->PrimaryActorTick.AddPrerequisite(this, PrimaryComponentTick);
 	}

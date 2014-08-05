@@ -1017,7 +1017,10 @@ void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 **/
 void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
 {
-	Prerequisites.AddUnique(FTickPrerequisite(TargetObject, TargetTickFunction));
+	if (TargetTickFunction.bCanEverTick || TargetTickFunction.IsTickFunctionRegistered())
+	{
+		Prerequisites.AddUnique(FTickPrerequisite(TargetObject, TargetTickFunction));
+	}
 }
 
 /** 
@@ -1027,7 +1030,7 @@ void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction&
 **/
 void FTickFunction::RemovePrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
 {
-	Prerequisites.Remove(FTickPrerequisite(TargetObject, TargetTickFunction));
+	Prerequisites.RemoveSwap(FTickPrerequisite(TargetObject, TargetTickFunction));
 }
 
 /**

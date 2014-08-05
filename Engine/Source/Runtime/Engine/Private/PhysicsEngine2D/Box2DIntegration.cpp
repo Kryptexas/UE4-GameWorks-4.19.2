@@ -108,10 +108,12 @@ FPhysicsScene2D::FPhysicsScene2D(UWorld* AssociatedWorld)
 	World = new b2World(DefaultGravityBox);
 	World->SetDebugDraw(&FBox2DVisualizer::GlobalVisualizer);
 
+	StartPhysicsTickFunction.bCanEverTick = true;
 	StartPhysicsTickFunction.Target = this;
 	StartPhysicsTickFunction.TickGroup = TG_StartPhysics;
 	StartPhysicsTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
 
+	EndPhysicsTickFunction.bCanEverTick = true;
 	EndPhysicsTickFunction.Target = this;
 	EndPhysicsTickFunction.TickGroup = TG_EndPhysics;
 	EndPhysicsTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);

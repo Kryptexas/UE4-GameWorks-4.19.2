@@ -339,11 +339,15 @@ void AActor::SetTickPrerequisite(AActor * DependentActor)
 		PrimaryActorTick.AddPrerequisite(DependentActor, DependentActor->PrimaryActorTick);
 		// We can't just rely on rootcomponent. If one of chain is invalid tick, it will invalidate the remaining chains
 		// so here I manually set prerequisite to be the current actor, so it ticks after this actor ticks
-		TArray<UActorComponent*> Components;
-		GetComponents(Components);
-		for (int32 Index = 0; Index < Components.Num(); ++Index)
+
+		if (PrimaryActorTick.bCanEverTick)
 		{
-			Components[Index]->PrimaryComponentTick.AddPrerequisite(this, PrimaryActorTick);
+			TArray<UActorComponent*> Components;
+			GetComponents(Components);
+			for (int32 Index = 0; Index < Components.Num(); ++Index)
+			{
+				Components[Index]->PrimaryComponentTick.AddPrerequisite(this, PrimaryActorTick);
+			}
 		}
 	}
 }
