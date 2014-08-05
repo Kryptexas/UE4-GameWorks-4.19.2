@@ -501,7 +501,7 @@ struct FClothingAssetData
 #if WITH_APEX_CLOTHING
 	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;
 
-	/* Collision volume data for showing to the users whether collision shape is correct or not */
+	/** Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
 	TArray<uint32> ClothCollisionConvexPlaneIndices;
 	TArray<FClothBonePlane> ClothCollisionVolumePlanes;
@@ -513,7 +513,8 @@ struct FClothingAssetData
 	 * Num of this array means LOD number of clothing physical meshes 
 	 */
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
-
+	/** currently mapped morph target name */
+	FName PreparedMorphTargetName;
 #endif// #if WITH_APEX_CLOTHING
 
 	// serialization

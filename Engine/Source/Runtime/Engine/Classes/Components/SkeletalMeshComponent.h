@@ -59,7 +59,7 @@ namespace physx
 
 class FPhysScene;
 
-/** thie is a class to manage an APEX clothing actor */
+/** a class to manage an APEX clothing actor */
 class FClothingActor
 {
 public:
@@ -98,6 +98,20 @@ struct FClothSimulData
 {
 	TArray<FVector4> ClothSimulPositions;
 	TArray<FVector4> ClothSimulNormals;
+};
+
+/**  for storing precomputed cloth morph target data */
+struct FClothMorphTargetData
+{
+	FName MorphTargetName;
+	// save a previous weight to compare whether weight was changed or not
+	float PrevWeight;
+	// an index of clothing assets which this morph target data is used in
+	int32 ClothAssetIndex;
+	// original positions which only this cloth section is including / extracted from a morph target
+	TArray<FVector> OriginPos;
+	// delta positions to morph this cloth section
+	TArray<FVector> PosDelta;
 };
 
 #if WITH_CLOTH_COLLISION_DETECTION
@@ -349,6 +363,15 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Clothing)
 	uint32 bLocalSpaceSimulation : 1;
+
+	/**
+	 * cloth morph target option
+	 * This option will be applied only before playing because should do pre-calculation to reduce computation time for run-time play
+	 * so it's impossible to change this option in run-time
+	 */
+	UPROPERTY(EditAnywhere, Category = Clothing)
+	uint32 bClothMorphTarget : 1;
+
 	/** reset the clothing after moving the clothing position (called teleport) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bResetAfterTeleport:1;
@@ -646,6 +669,10 @@ public:
 	 * use until Apex clothing bug is resolved 
 	 */
 	bool bNeedTeleportAndResetOnceMore;
+	/** used for checking whether cloth morph target data were pre-computed or not */
+	bool bPreparedClothMorphTargets;
+	/** precomputed actual cloth morph target data */
+	TArray<FClothMorphTargetData> ClothMorphTargets;
 
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
@@ -1005,8 +1032,9 @@ public:
 	/** 
 	* APEX clothing actor is created from APEX clothing asset for cloth simulation 
 	* create only if became invalid
+	* BlendedData : added for cloth morph target but not used commonly
 	*/
-	bool CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAsset);
+	bool CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAsset, TArray<FVector>* BlendedDelta=NULL);
 	/** should call this method if occurred any changes in clothing assets */
 	void ValidateClothingActors();
 	/** add bounding box for cloth */
@@ -1015,6 +1043,17 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	virtual void CheckClothTeleport(float DeltaTime);
+
+	/** 
+	* methods for cloth morph targets 
+	*/
+	/** pre-compute morph target data for clothing */
+	void PrepareClothMorphTargets();
+	/** change morph target mapping when active morph target is changed */
+	void ChangeClothMorphTargetMapping(FClothMorphTargetData& MorphData, FName CurrentActivatedMorphName);
+	/** update active morph target's blending data when morph weight is changed */
+	void UpdateClothMorphTarget();
+
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */

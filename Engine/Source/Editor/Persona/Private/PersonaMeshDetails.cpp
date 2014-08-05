@@ -2004,6 +2004,14 @@ void FPersonaMeshDetails::HandleSectionsComboBoxSelectionChanged( TSharedPtr<FSt
 			int32 SelectedIndex = ComboSelectedIndices.IsValidIndex(SectionIndex) ? ComboSelectedIndices[SectionIndex] : 0;
 			ComboBoxes[SectionIndex]->SetSelectedItem(ComboStrings[SelectedIndex]);
 		}
+		else
+		{
+			// when clothing is mapped, need to re-prepare cloth morph targets
+			if (PersonaPtr->PreviewComponent)
+			{
+				PersonaPtr->PreviewComponent->bPreparedClothMorphTargets = false;
+			}
+		}
 	}
 	else
 	{

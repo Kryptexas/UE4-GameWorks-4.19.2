@@ -93,6 +93,8 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const class FPostConstructIniti
 
 #if WITH_APEX_CLOTHING
 	SectionsDisplayMode = ESectionDisplayMode::None;
+	// always shows cloth morph target when previewing in editor
+	bClothMorphTarget = true;
 #endif //#if WITH_APEX_CLOTHING
 }
 
@@ -291,7 +293,6 @@ bool UDebugSkelMeshComponent::IsWindEnabled() const
 {
 	return bEnableWind;
 }
-
 
 void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* PreviewAsset, UVertexAnimation* PreviewVertexAnim)
 {
