@@ -12,6 +12,8 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 @implementation FSlateCocoaWindow
 
 @synthesize bForwardEvents;
+@synthesize TargetWindowMode;
+@synthesize PreFullScreenRect;
 
 - (id)initWithContentRect:(NSRect)ContentRect styleMask:(NSUInteger)Style backing:(NSBackingStoreType)BufferingType defer:(BOOL)Flag
 {
@@ -27,8 +29,10 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 		bRenderInitialised = false;
 		bZoomed = [super isZoomed];
 		self.bForwardEvents = true;
+		self.TargetWindowMode = EWindowMode::Windowed;
 		[super setAlphaValue:DeferOpacity];
 		DeferFrame = [super frame];
+		self.PreFullScreenRect = DeferFrame;
 		bDeferSetFrame = false;
 		bDeferSetOrigin = false;
 	}
@@ -37,7 +41,11 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 - (NSRect)openGLFrame
 {
-	if([self styleMask] & (NSTexturedBackgroundWindowMask))
+	if(self.TargetWindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::Fullscreen)
+	{
+		return self.PreFullScreenRect;
+	}
+	else if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
 		return (!bDeferSetFrame ? [self frame] : DeferFrame);
 	}
@@ -300,9 +308,19 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 	}
 }
 
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+	// Handle clicking on the titlebar fullscreen item
+	if(self.TargetWindowMode == EWindowMode::Windowed)
+	{
+		// @todo: Fix fullscreen mode mouse coordinate handling - for now default to windowed fullscreen
+		self.TargetWindowMode = EWindowMode::WindowedFullscreen;
+	}
+}
+
 - (void)windowDidEnterFullScreen:(NSNotification *)notification
 {
-	WindowMode = EWindowMode::WindowedFullscreen;
+	WindowMode = self.TargetWindowMode;
 	if(self.bForwardEvents)
 	{
 		MacApplication->OnWindowDidResize( self );
@@ -312,6 +330,7 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 - (void)windowDidExitFullScreen:(NSNotification *)notification
 {
 	WindowMode = EWindowMode::Windowed;
+	self.TargetWindowMode = EWindowMode::Windowed;
 	if(self.bForwardEvents)
 	{
 		MacApplication->OnWindowDidResize( self );
@@ -789,7 +808,7 @@ FMacWindow::FMacWindow()
 	, WindowMode(EWindowMode::Windowed)
 	, bIsVisible(false)
 {
-	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
+	PreFullscreenWindowRect.origin.x = PreFullscreenWindowRect.origin.y = PreFullscreenWindowRect.size.width = PreFullscreenWindowRect.size.height = 0.0f;
 }
 
 FSlateCocoaWindow* FMacWindow::GetWindowHandle() const
@@ -805,26 +824,29 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 	const TSharedRef<FGenericApplicationMessageHandler> MessageHandler = OwningApplication->MessageHandler;
 	MessageHandler->BeginReshapingWindow( SharedThis( this ) );
 
-	BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
-	
-	const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
-	if (Definition->HasOSWindowBorder)
+	if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
 	{
-		[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
+		BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+		
+		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
+		if (Definition->HasOSWindowBorder)
+		{
+			[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
+		}
+		else
+		{
+			[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
+		}
+		
+		// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
+		// have to subvert the OS X or UE fullscreen handling events elsewhere.
+		if(WindowMode != EWindowMode::Windowed)
+		{
+			[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
+		}
+		
+		WindowHandle->bZoomed = [WindowHandle isZoomed];
 	}
-	else
-	{
-		[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
-	}
-	
-	// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
-	// have to subvert the OS X or UE fullscreen handling events elsewhere.
-	if(WindowMode != EWindowMode::Windowed)
-	{
-		[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
-	}
-	
-	WindowHandle->bZoomed = [WindowHandle isZoomed];
 	
 	MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
 }
@@ -832,8 +854,8 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const
 {
 	SCOPED_AUTORELEASE_POOL;
-
-	const NSRect Frame = [WindowHandle screen].frame;
+	bool const bIsFullscreen = (WindowMode == EWindowMode::Fullscreen);
+	const NSRect Frame = (!bIsFullscreen) ? [WindowHandle screen].frame : PreFullscreenWindowRect;
 	X = Frame.origin.x;
 	Y = Frame.origin.y;
 	Width = Frame.size.width;
@@ -994,6 +1016,13 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		
 		[WindowHandle setCollectionBehavior: Behaviour];
 		
+		if(!bIsFullscreen)
+		{
+			PreFullscreenWindowRect = [WindowHandle openGLFrame];
+			WindowHandle.PreFullScreenRect = PreFullscreenWindowRect;
+		}
+		
+		WindowHandle.TargetWindowMode = NewWindowMode;
 		[WindowHandle toggleFullScreen:nil];
 		// Ensure that the window has transitioned BEFORE leaving this function
 		// this prevents problems with failure to correctly update mouse locks

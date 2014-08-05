@@ -27,6 +27,8 @@
 	bool bZoomed;
 }
 
+@property (assign) NSRect PreFullScreenRect;
+@property (assign) EWindowMode::Type TargetWindowMode;
 @property (assign) bool bForwardEvents;
 
 /** Get the frame filled by a child OpenGL view, which may cover the window or fill the content view depending upon the window style.
@@ -193,7 +195,7 @@ private:
 	/** The mode that the window is in (windowed, fullscreen, windowedfullscreen ) */
 	EWindowMode::Type WindowMode;
 
-	RECT PreFullscreenWindowRect;
+	NSRect PreFullscreenWindowRect;
 
 	bool bIsVisible : 1;
 };

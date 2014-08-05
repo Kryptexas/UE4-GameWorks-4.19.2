@@ -1041,7 +1041,7 @@ void FMacApplication::OnWindowDidResize( FSlateCocoaWindow* Window )
 		uint32 Width = [Window openGLFrame].size.width;
 		uint32 Height = [Window openGLFrame].size.height;
 		
-		if([Window windowMode] != EWindowMode::Windowed)
+		if([Window windowMode] == EWindowMode::WindowedFullscreen)
 		{
 			// Grab current monitor data for sizing
 			Width = FMath::TruncToInt([[Window screen] frame].size.width);
