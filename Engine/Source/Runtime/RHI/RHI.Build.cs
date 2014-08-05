@@ -8,7 +8,7 @@ public class RHI : ModuleRules
 	{
 		PrivateDependencyModuleNames.Add("Core");
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (UEBuildConfiguration.bCompileAgainstEngine && !UEBuildConfiguration.bBuildDedicatedServer)
 		{
             DynamicallyLoadedModuleNames.Add("NullDrv");
 
@@ -19,7 +19,8 @@ public class RHI : ModuleRules
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64) ||
-				(Target.Platform == UnrealTargetPlatform.Mac)   || 
+				(Target.Platform == UnrealTargetPlatform.Mac)   ||
+				(Target.Platform == UnrealTargetPlatform.Linux) ||
                 (Target.Platform == UnrealTargetPlatform.HTML5))
 			{
 				DynamicallyLoadedModuleNames.Add("OpenGLDrv");

@@ -113,6 +113,8 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 		return TEXT(":");
 	}
 
+	static EAppReturnType::Type MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption);
+
 	FORCEINLINE static void MemoryBarrier()
 	{
 		__sync_synchronize();

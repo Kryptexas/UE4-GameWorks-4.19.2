@@ -81,12 +81,6 @@ public class Engine : ModuleRules
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)
 		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[] {
-					"ImageCore",
-					"RawMesh"
-				});
-
 			// Add "BlankModule" so that it gets compiled as an example and will be maintained and tested.  This can be removed
 			// at any time if needed.  The module isn't actually loaded by the engine so there is no runtime cost.
 			DynamicallyLoadedModuleNames.Add("BlankModule");
@@ -95,6 +89,12 @@ public class Engine : ModuleRules
 			{
 				PrivateIncludePathModuleNames.Add("MeshUtilities");
 				DynamicallyLoadedModuleNames.Add("MeshUtilities");
+
+				PrivateDependencyModuleNames.AddRange(
+					new string[] {
+						"ImageCore",
+						"RawMesh"
+					});
 			}
 
 			if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test && Target.Type != TargetRules.TargetType.Server)
@@ -125,6 +125,16 @@ public class Engine : ModuleRules
 					    "MacNoEditorTargetPlatform",
 						"MacServerTargetPlatform",
 						"MacClientTargetPlatform"
+					}
+				);
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				DynamicallyLoadedModuleNames.AddRange(
+					new string[] {
+						"LinuxTargetPlatform",
+						"LinuxNoEditorTargetPlatform",
+						"LinuxServerTargetPlatform",
 					}
 				);
 			}

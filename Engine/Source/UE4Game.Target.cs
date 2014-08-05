@@ -44,7 +44,7 @@ public class UE4GameTarget : TargetRules
 				}
 				OutExtraModuleNames.Add("OnlineSubsystemFacebook");
 			}
-			else if (Target.Platform == UnrealTargetPlatform.Mac)
+			else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				OutExtraModuleNames.Add("OnlineSubsystemNull");
 				if (UEBuildConfiguration.bCompileSteamOSS == true)
