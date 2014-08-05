@@ -1265,7 +1265,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 			.FillHeight(1.f)
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
-					.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetTileViewNameFont"))
+					.Font( this, &SAssetTileItem::GetThumbnailFont )
 					.Text( GetNameText() )
 					.OnBeginTextEdit(this, &SAssetTileItem::HandleBeginNameChange)
 					.OnTextCommitted(this, &SAssetTileItem::HandleNameCommitted)
@@ -1308,6 +1308,21 @@ FOptionalSize SAssetTileItem::GetThumbnailBoxSize() const
 FOptionalSize SAssetTileItem::GetSCCImageSize() const
 {
 	return GetThumbnailBoxSize().Get() * 0.2;
+}
+
+FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
+{
+	FOptionalSize ThumbSize = GetThumbnailBoxSize();
+	if ( ThumbSize.IsSet() )
+	{
+		float Size = ThumbSize.Get();
+		if ( Size < 85 )
+		{
+			return FEditorStyle::GetFontStyle("ContentBrowser.AssetTileViewNameFontSmall");
+		}
+	}
+
+	return FEditorStyle::GetFontStyle("ContentBrowser.AssetTileViewNameFont");
 }
 
 float SAssetTileItem::GetNameTextWrapWidth() const

@@ -459,6 +459,9 @@ private:
 	/** Returns the size of the thumbnail box widget */
 	FOptionalSize GetThumbnailBoxSize() const;
 
+	/** Returns the font to use for the thumbnail label */
+	FSlateFontInfo GetThumbnailFont() const;
+
 	/** Returns the size of the source control state box widget */
 	FOptionalSize GetSCCImageSize() const;
 
