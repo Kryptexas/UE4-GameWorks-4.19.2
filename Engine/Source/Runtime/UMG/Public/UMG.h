@@ -45,6 +45,9 @@
 #include "UniformGridSlot.h"
 #include "UniformGridPanel.h"
 
+#include "GridSlot.h"
+#include "GridPanel.h"
+
 #include "OverlaySlot.h"
 #include "Overlay.h"
 

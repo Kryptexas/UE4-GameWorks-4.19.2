@@ -11,6 +11,21 @@ SGridPanel::FSlot& SGridPanel::AddSlot( int32 Column, int32 Row, SGridPanel::Lay
 	return InsertSlot( new FSlot( Column, Row, InLayer.TheLayer ) );
 }
 
+
+bool SGridPanel::RemoveSlot(const TSharedRef<SWidget>& SlotWidget)
+{
+	for ( int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx )
+	{
+		if ( SlotWidget == Slots[SlotIdx].GetWidget() )
+		{
+			Slots.RemoveAt(SlotIdx);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void SGridPanel::ClearChildren()
 {
 	Columns.Empty();
@@ -341,7 +356,6 @@ void SGridPanel::NotifySlotChanged(SGridPanel::FSlot* InSlot)
 		Rows.AddZeroed( NumRowsRequiredForThisSlot - Rows.Num() );
 	}
 }
-
 
 void SGridPanel::ComputeDesiredCellSizes( TArray<float>& OutColumns, TArray<float>& OutRows ) const
 {

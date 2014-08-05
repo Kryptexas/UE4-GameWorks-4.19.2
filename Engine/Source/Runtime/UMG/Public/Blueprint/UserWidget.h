@@ -113,13 +113,34 @@ public:
 	// End of UVisual interface
 
 	/*  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void AddToViewport(bool bAbsoluteLayout = false, bool bModal = false, bool bShowCursor = false);
 
 	/*  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void RemoveFromViewport();
 
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetOffsetInViewport(FVector2D DesiredOffset);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetDesiredSizeInViewport(FVector2D DesiredSize);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetAnchorsInViewport(FVector2D Anchors);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetAlignmentInViewport(FVector2D Alignment);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetZOrderInViewport(int32 ZOrder);
+
+	/*  */
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	bool GetIsVisible();
 
@@ -273,22 +294,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateChildSize Size;
 
-	/** The position on the screen to place the UI. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenPosition;
-
-	/** The size on the screen the UI should be. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenSize;
-
-	/** The normalized UI alignment on the screen, 0..1.  Think of this as the pivot point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenAlignment;
-
-	/** The Z-Order when the UI is fullscreen. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	int32 FullScreenZOrder;
-
 	/**
 	* Horizontal pivot position
 	*  Given a top aligned slot, where '+' represents the
@@ -336,10 +341,16 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	FMargin GetFullScreenOffset() const;
+	FAnchors GetViewportAnchors() const;
 	FVector2D GetFullScreenAlignment() const;
 	int32 GetFullScreenZOrder() const;
 
 private:
+	FVector2D ViewportAnchors;
+	FMargin ViewportOffsets;
+	FVector2D ViewportAlignment;
+	int32 ViewportZOrder;
+
 	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;

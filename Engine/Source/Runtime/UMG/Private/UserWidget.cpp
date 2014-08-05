@@ -351,6 +351,7 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool b
 
 			+ SConstraintCanvas::Slot()
 			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
+			.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
 			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
 			.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 			[
@@ -478,9 +479,36 @@ APlayerController* UUserWidget::GetPlayerController() const
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 }
 
+void UUserWidget::SetOffsetInViewport(FVector2D DesiredOffset)
+{
+	ViewportOffsets.Left = DesiredOffset.X;
+	ViewportOffsets.Top = DesiredOffset.Y;
+}
+
+void UUserWidget::SetDesiredSizeInViewport(FVector2D DesiredSize)
+{
+	ViewportOffsets.Right = DesiredSize.X;
+	ViewportOffsets.Bottom = DesiredSize.Y;
+}
+
+void UUserWidget::SetAnchorsInViewport(FVector2D Anchors)
+{
+	ViewportAnchors = Anchors;
+}
+
+void UUserWidget::SetAlignmentInViewport(FVector2D Alignment)
+{
+	ViewportAlignment = Alignment;
+}
+
+void UUserWidget::SetZOrderInViewport(int32 ZOrder)
+{
+	ViewportZOrder = ZOrder;
+}
+
 FMargin UUserWidget::GetFullScreenOffset() const
 {
-	FVector2D FinalSize = FullScreenSize;
+	FVector2D FinalSize = FVector2D(ViewportOffsets.Right, ViewportOffsets.Bottom);
 	if ( FinalSize.IsZero() )
 	{
 		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
@@ -490,17 +518,22 @@ FMargin UUserWidget::GetFullScreenOffset() const
 		}
 	}
 
-	return FMargin(FullScreenPosition.X, FullScreenPosition.Y, FinalSize.X, FinalSize.Y);
+	return FMargin(ViewportOffsets.Left, ViewportOffsets.Top, FinalSize.X, FinalSize.Y);
+}
+
+FAnchors UUserWidget::GetViewportAnchors() const
+{
+	return FAnchors(ViewportAnchors.X, ViewportAnchors.Y, ViewportAnchors.X, ViewportAnchors.Y);
 }
 
 FVector2D UUserWidget::GetFullScreenAlignment() const
 {
-	return FullScreenAlignment;
+	return ViewportAlignment;
 }
 
 int32 UUserWidget::GetFullScreenZOrder() const
 {
-	return FullScreenZOrder;
+	return ViewportZOrder;
 }
 
 #if WITH_EDITOR

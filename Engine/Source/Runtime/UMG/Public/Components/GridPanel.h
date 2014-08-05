@@ -2,27 +2,34 @@
 
 #pragma once
 
-#include "VerticalBox.generated.h"
+#include "GridPanel.generated.h"
 
-/**
- * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
- * vertically.
- */
+/** A panel that evenly divides up available space between all of its children. */
 UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
-class UMG_API UVerticalBox : public UPanelWidget
+class UMG_API UGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Panel")
-	UVerticalBoxSlot* AddSlot(UWidget* Content);
+	/** Fill */
+	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
+	TArray<float> ColumnFill;
+
+	/** Fill */
+	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
+	TArray<float> RowFill;
+
+public:
+
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
+
+	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
-	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
-	// End UWidget interface
 #endif
 
 protected:
@@ -33,11 +40,9 @@ protected:
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
 
-	virtual void ReleaseNativeWidget() override;
-
 protected:
 
-	TSharedPtr<class SVerticalBox> MyVerticalBox;
+	TSharedPtr<SGridPanel> MyGridPanel;
 
 protected:
 	// UWidget interface

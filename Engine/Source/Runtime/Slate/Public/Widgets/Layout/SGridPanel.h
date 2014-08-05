@@ -57,6 +57,18 @@ public:
 			/** Offset this slot's content by some amount; positive values offset to lower right*/
 			FVector2D NudgeParam;
 
+			/**  */
+			FSlot& Column(int32 Column)
+			{
+				ColumnParam = FMath::Max(0, Column);
+
+				if ( Panel.IsValid() )
+				{
+					Panel.Pin()->NotifySlotChanged(this);
+				}
+
+				return *this;
+			}
 
 			/** How many columns this slot spans over */
 			FSlot& ColumnSpan( int32 ColumnSpan )
@@ -64,6 +76,19 @@ public:
 				ColumnSpanParam = FMath::Max(1,ColumnSpan);
 
 				if(Panel.IsValid())
+				{
+					Panel.Pin()->NotifySlotChanged(this);
+				}
+
+				return *this;
+			}
+
+			/**  */
+			FSlot& Row(int32 Row)
+			{
+				RowParam = FMath::Max(0, Row);
+
+				if ( Panel.IsValid() )
 				{
 					Panel.Pin()->NotifySlotChanged(this);
 				}
@@ -106,6 +131,14 @@ public:
 	 * @return A reference to the newly-added slot
 	 */
 	FSlot& AddSlot( int32 Column, int32 Row, Layer InLayer = Layer(0) );
+
+	/**
+	* Removes a slot from this panel which contains the specified SWidget
+	*
+	* @param SlotWidget The widget to match when searching through the slots
+	* @returns The true if the slot was removed and false if no slot was found matching the widget
+	*/
+	bool RemoveSlot(const TSharedRef<SWidget>& SlotWidget);
 
 	SLATE_BEGIN_ARGS( SGridPanel )
 		{

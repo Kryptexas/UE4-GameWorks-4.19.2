@@ -48,9 +48,9 @@ void UVerticalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UVerticalBoxSlot* UVerticalBox::AddChildToVerticalBox(UWidget* Content)
+UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 {
-	return Cast<UVerticalBoxSlot>( Super::AddChild(Content) );
+	return Cast<UVerticalBoxSlot>(Super::AddChild(Content));
 }
 
 TSharedRef<SWidget> UVerticalBox::RebuildWidget()
