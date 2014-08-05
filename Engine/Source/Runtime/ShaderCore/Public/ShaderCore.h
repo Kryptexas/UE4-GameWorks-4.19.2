@@ -417,7 +417,6 @@ struct FShaderCompilerInput
 	FString SourceFilePrefix;
 	FString SourceFilename;
 	FString EntryPointName;
-	//gilmerge, it isn't clear what the relationship is between these two and what the call sites are supposed to use. I might have botched the call sites.
 	FString DumpDebugInfoRootPath;	// Dump debug path (up to platform)
 	FString DumpDebugInfoPath;		// Dump debug path (platform/groupname)
 	FShaderCompilerEnvironment Environment;

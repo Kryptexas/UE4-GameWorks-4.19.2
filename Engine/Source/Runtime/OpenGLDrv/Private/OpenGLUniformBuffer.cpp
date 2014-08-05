@@ -513,7 +513,6 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 			}
 			else if (IsSuballocatingUBOs())
 			{
-				//gilmerge was SuballocateUBO(BufferSize, AllocatedResource, OffsetInBuffer, PersistentlyMappedBuffer);
 				SuballocateUBO(AllocatedSize, AllocatedResource, OffsetInBuffer, PersistentlyMappedBuffer);
 			}
 			else

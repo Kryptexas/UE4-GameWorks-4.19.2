@@ -1717,7 +1717,6 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 
 		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			//gilmerge
 			if (GBufferResources.IsBound())
 			{
 				SetUniformBufferParameter(RHICmdList, ShaderRHI, GBufferResources, GSceneRenderTargets.GetGBufferResourcesUniformBuffer());

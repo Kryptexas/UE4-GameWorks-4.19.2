@@ -65,7 +65,6 @@ void OnPixelBufferDeletion( GLuint PixelBufferResource )
 	PrivateOpenGLDevicePtr->OnPixelBufferDeletion( PixelBufferResource );
 }
 
-//gilmerge lose more of these args?
 void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 , uint8*  )
 {
 	check(PrivateOpenGLDevicePtr);
