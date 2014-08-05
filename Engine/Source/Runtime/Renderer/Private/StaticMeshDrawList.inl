@@ -368,7 +368,6 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(AA_FDrawVisibleRenderThreadTask);
 		delete RHICmdList;
 	}
 

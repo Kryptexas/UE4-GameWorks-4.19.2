@@ -66,7 +66,7 @@ public:
 	 * Renders the scene's prepass for a particular view in parallel
 	 * @return the submit chain
 	 */
-	FGraphEventRef RenderPrePassViewParallel(FRHICommandList& RHICmdList, const FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	FGraphEventRef RenderPrePassViewParallel(const FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
 
     /** Renders the basepass for the static data of a given View. */
     bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
