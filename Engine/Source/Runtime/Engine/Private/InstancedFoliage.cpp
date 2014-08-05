@@ -719,6 +719,7 @@ AInstancedFoliageActor::AInstancedFoliageActor(const FPostConstructInitializePro
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
 #endif // WITH_EDITORONLY_DATA
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 #if WITH_EDITOR
