@@ -108,7 +108,8 @@ public:
 			]
 		];
 
-		SetToolTipText( Factory->GetToolTip() );
+		
+		SetToolTip(IDocumentation::Get()->CreateToolTip(Factory->GetToolTip(), nullptr, FEditorClassUtils::GetDocumentationPage(Factory->SupportedClass), FEditorClassUtils::GetDocumentationExcerpt(Factory->SupportedClass)));
 	}
 
 private:
