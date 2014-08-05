@@ -179,8 +179,9 @@ void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<U
 
 			const FText Message = LOCTEXT("RetargetSkeleton_Warning", "This only converts animation data -i.e. animation assets and Anim Blueprints. \nIf you'd like to convert SkeletalMesh, use the context menu (Assign Skeleton) for each mesh. \n\nIf you'd like to convert mesh as well, please do so before converting animation data. \nOtherwise you will lose any extra track that is in the new mesh.");
 
+			bool bConvertSpaces = true;
 			// ask user what they'd like to change to 
-			if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message ))
+			if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, bConvertSpaces ))
 			{
 				// find all assets who references old skeleton
 				TArray<FName> Packages;
@@ -193,12 +194,12 @@ void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<U
 				{
 					// Open a dialog asking the user to wait while assets are being discovered
 					SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-						SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetTypeActions_Skeleton::PerformRetarget, OldSkeleton, NewSkeleton, Packages)
+						SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetTypeActions_Skeleton::PerformRetarget, OldSkeleton, NewSkeleton, Packages, bConvertSpaces)
 						);
 				}
 				else
 				{
-					PerformRetarget(OldSkeleton, NewSkeleton, Packages);
+					PerformRetarget(OldSkeleton, NewSkeleton, Packages, bConvertSpaces);
 				}
 				
 			}
@@ -206,7 +207,7 @@ void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<U
 	}
 }
 
-void FAssetTypeActions_Skeleton::PerformRetarget(USkeleton *OldSkeleton, USkeleton *NewSkeleton, TArray<FName> Packages) const
+void FAssetTypeActions_Skeleton::PerformRetarget(USkeleton *OldSkeleton, USkeleton *NewSkeleton, TArray<FName> Packages, bool bConvertSpaces) const
 {
 	TArray<FAssetToRemapSkeleton> AssetsToRemap;
 
@@ -238,7 +239,7 @@ void FAssetTypeActions_Skeleton::PerformRetarget(USkeleton *OldSkeleton, USkelet
 		DetectReadOnlyPackages(AssetsToRemap, PackagesToSave);
 
 		// retarget skeleton
-		RetargetSkeleton(AssetsToRemap, OldSkeleton, NewSkeleton);
+		RetargetSkeleton(AssetsToRemap, OldSkeleton, NewSkeleton, bConvertSpaces);
 
 		// Save all packages that were referencing any of the assets that were moved without redirectors
 		SavePackages(PackagesToSave);
@@ -439,7 +440,7 @@ void FAssetTypeActions_Skeleton::ReportFailures(const TArray<FAssetToRemapSkelet
 	}
 }
 
-void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>& AssetsToRemap, USkeleton* OldSkeleton, USkeleton* NewSkeleton) const
+void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>& AssetsToRemap, USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bConvertSpaces) const
 {
 	TArray<UAnimBlueprint*>	AnimBlueprints;
 
@@ -454,7 +455,7 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 			{
 				if ( UAnimationAsset * AnimAsset = Cast<UAnimationAsset>(Asset) )
 				{
-					AnimAsset->ReplaceSkeleton(NewSkeleton);
+					AnimAsset->ReplaceSkeleton(NewSkeleton, bConvertSpaces);
 				}
 				else if ( UAnimBlueprint * AnimBlueprint = Cast<UAnimBlueprint>(Asset) )
 				{

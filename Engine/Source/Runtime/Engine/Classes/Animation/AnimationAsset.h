@@ -400,7 +400,7 @@ public:
 	 * 
 	 * @param NewSkeleton	NewSkeleton to change to 
 	 */
-	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton);
+	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces=false);
 
 	/** Retrieve all animations that are used by this asset 
 	 * 

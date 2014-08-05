@@ -57,15 +57,16 @@ private: // Helper functions
 	 * @param OldSkeleton : Old Skeleton that it changes from
 	 * @param NewSkeleton : New Skeleton that it would change to
 	 * @param Referencers : List of asset names that reference Old Skeleton
+	 * @param bConvertSpaces : Whether to convert spaces or not
 	 */
- 	void PerformRetarget(USkeleton *OldSkeleton, USkeleton *NewSkeleton, TArray<FName> Packages) const;
+ 	void PerformRetarget(USkeleton *OldSkeleton, USkeleton *NewSkeleton, TArray<FName> Packages, bool bConvertSpaces) const;
 
 	// utility functions for performing retargeting
 	// these codes are from AssetRenameManager workflow
 	void LoadPackages(TArray<FAssetToRemapSkeleton>& AssetsToRemap, TArray<UPackage*>& OutPackagesToSave) const;
 	bool CheckOutPackages(TArray<FAssetToRemapSkeleton>& AssetsToRemap, TArray<UPackage*>& InOutPackagesToSave) const;
 	void ReportFailures(const TArray<FAssetToRemapSkeleton>& AssetsToRemap) const;
-	void RetargetSkeleton(TArray<FAssetToRemapSkeleton>& AssetsToRemap, USkeleton* OldSkeleton, USkeleton* NewSkeleton) const;
+	void RetargetSkeleton(TArray<FAssetToRemapSkeleton>& AssetsToRemap, USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bConvertSpaces) const;
 	void SavePackages(const TArray<UPackage*> PackagesToSave) const;
 	void DetectReadOnlyPackages(TArray<FAssetToRemapSkeleton>& AssetsToRemap, TArray<UPackage*>& InOutPackagesToSave) const;
 	void FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons) const;

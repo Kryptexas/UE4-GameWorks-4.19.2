@@ -150,13 +150,20 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 void FAssetTypeActions_AnimBlueprint::RetargetAssets(const TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets)
 {
 	bool bRemapReferencedAssets = false;
+	bool bConvertSpaces = true;
 	USkeleton * NewSkeleton = NULL;
+	USkeleton * OldSkeleton = NULL;
+	if ( InAnimBlueprints.Num() > 0 )
+	{
+		UAnimBlueprint * AnimBP = CastChecked<UAnimBlueprint>(InAnimBlueprints[0]);
+		OldSkeleton = AnimBP->TargetSkeleton;
+	}
 
 	const FText Message = LOCTEXT("RemapSkeleton_Warning", "Select the skeleton to remap this asset to.");
 
-	if (SAnimationRemapSkeleton::ShowModal(NULL, NewSkeleton, Message, &bRemapReferencedAssets))
+	if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, bConvertSpaces, &bRemapReferencedAssets))
 	{
-		EditorAnimUtils::RetargetAnimations(NewSkeleton, InAnimBlueprints, bRemapReferencedAssets, bDuplicateAssets);
+		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}
 }
 

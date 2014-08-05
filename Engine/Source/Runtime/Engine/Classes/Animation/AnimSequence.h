@@ -583,7 +583,17 @@ public:
 	 * @param	bUseRawData		If true, use raw animation data instead of compressed data.
 	 */
 	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
-	
+
+	/**
+	 * Extract Bone Transform of the Time given, from InRawAnimationData
+	 *
+	 * @param	InRawAnimationData	RawAnimationData it extracts bone transform from
+	 * @param	OutAtom				[out] Output bone transform.
+	 * @param	TrackIndex			Index of track to interpolate.
+	 * @param	Time				Time on track to interpolate to.
+	 */
+	ENGINE_API void ExtractBoneTransform(const TArray<struct FRawAnimSequenceTrack> & InRawAnimationData, FTransform& OutAtom, int32 TrackIndex, float Time) const;
+
 	// End Transform related functions 
 
 	// Begin Memory related functions
@@ -704,7 +714,7 @@ private:
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton );
+	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bConvertSpaces );
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	

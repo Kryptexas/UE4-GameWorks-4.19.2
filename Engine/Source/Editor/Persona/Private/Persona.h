@@ -574,6 +574,8 @@ private:
 
 	/** Extend menu and toolbar */
 	void ExtendMenu();
+	/** update skeleton ref pose based on current preview mesh */
+	void UpdateSkeletonRefPose();
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;

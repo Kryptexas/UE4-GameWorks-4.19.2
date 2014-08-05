@@ -295,11 +295,20 @@ public:
 	 */
 	bool bRemapReferencedAssets;
 
+	/**
+	 * Whether we are remapping assets that are referenced by the assets the user selects to remap
+	 */
+	bool bConvertSpaces;
+
 	TWeakPtr<SWindow> WidgetWindow;
 
 	/** Handlers for check box for remapping assets option */
 	ESlateCheckBoxState::Type IsRemappingReferencedAssets() const;
 	void OnRemappingReferencedAssetsChanged(ESlateCheckBoxState::Type InNewRadioState);
+
+	/** Handlers for check box for converting spaces*/
+	ESlateCheckBoxState::Type IsConvertSpacesChecked() const;
+	void OnConvertSpacesCheckChanged(ESlateCheckBoxState::Type InNewRadioState);
 
 	/**
 	 * return true if it can apply 
@@ -324,7 +333,7 @@ public:
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool * bRemapReferencedAssets=NULL);
+	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool & bConvertSpace, bool * bRemapReferencedAssets=NULL);
 };
 
 ////////////////////////////////////////////////////

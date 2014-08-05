@@ -473,6 +473,7 @@ void FPersona::ExtendMenu()
 			{
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ChangeSkeletonPreviewMesh);
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RemoveUnusedBones);
+				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().UpdateSkeletonRefPose);
 			}
 			MenuBuilder.EndSection();
 
@@ -996,6 +997,9 @@ void FPersona::CreateDefaultCommands()
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
+		);
+	ToolkitCommands->MapAction(FPersonaCommands::Get().UpdateSkeletonRefPose,
+		FExecuteAction::CreateSP(this, &FPersona::UpdateSkeletonRefPose)
 		);
 
 	ToolkitCommands->MapAction(FPersonaCommands::Get().AnimNotifyWindow,
@@ -2564,6 +2568,15 @@ void FPersona::ChangeSkeletonPreviewMesh()
 		{
 			Notification->SetCompletionState( SNotificationItem::CS_Fail );
 		}
+	}
+}
+
+void FPersona::UpdateSkeletonRefPose()
+{
+	// update ref pose with current preview mesh
+	if (TargetSkeleton)
+	{
+		TargetSkeleton->UpdateReferencePoseFromMesh(GetPreviewMeshComponent()->SkeletalMesh);
 	}
 }
 

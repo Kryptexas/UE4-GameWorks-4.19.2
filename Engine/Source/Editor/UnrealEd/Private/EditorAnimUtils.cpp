@@ -19,7 +19,9 @@ namespace EditorAnimUtils
 	//////////////////////////////////////////////////////////////////
 	// FAnimationRetargetContext
 
-	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets) : SingleTargetObject(NULL)
+	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces) 
+		: SingleTargetObject(NULL)
+		, bConvertAnimationDataInComponentSpaces(bInConvertAnimationDataInComponentSpaces)
 	{
 		TArray<UObject*> Objects;
 		for(auto Iter = AssetsToRetarget.CreateConstIterator(); Iter; ++Iter)
@@ -29,7 +31,9 @@ namespace EditorAnimUtils
 		Initialize(Objects,bRetargetReferredAssets);
 	}
 
-	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets) : SingleTargetObject(NULL)
+	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces) 
+		: SingleTargetObject(NULL)
+		, bConvertAnimationDataInComponentSpaces(bInConvertAnimationDataInComponentSpaces)
 	{
 		Initialize(AssetsToRetarget,bRetargetReferredAssets);
 	}
@@ -135,12 +139,23 @@ namespace EditorAnimUtils
 		}
 	}
 
-	void FAnimationRetargetContext::RetargetAnimations(USkeleton* NewSkeleton)
+	void FAnimationRetargetContext::RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton)
 	{
+		check (OldSkeleton);
+		check (NewSkeleton);
+
+		if (bConvertAnimationDataInComponentSpaces)
+		{
+			// we need to update reference pose before retargeting. 
+			// this is to ensure the skeleton has the latest pose you're looking at. 
+			OldSkeleton->UpdateReferencePoseFromMesh(OldSkeleton->GetPreviewMesh(true));
+			NewSkeleton->UpdateReferencePoseFromMesh(NewSkeleton->GetPreviewMesh(true));
+		}
+
 		for(auto Iter = AnimSequencesToRetarget.CreateIterator(); Iter; ++Iter)
 		{
 			UAnimSequence* AssetToRetarget = (*Iter);
-			AssetToRetarget->ReplaceSkeleton(NewSkeleton);
+			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 		}
 
 		for(auto Iter = ComplexAnimsToRetarget.CreateIterator(); Iter; ++Iter)
@@ -150,7 +165,7 @@ namespace EditorAnimUtils
 			{
 				AssetToRetarget->ReplaceReferredAnimations(DuplicatedSequences);
 			}
-			AssetToRetarget->ReplaceSkeleton(NewSkeleton);
+			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 		}
 
 		// convert all Animation Blueprints and compile 
@@ -189,19 +204,19 @@ namespace EditorAnimUtils
 	}
 
 	//////////////////////////////////////////////////////////////////
-	UObject* RetargetAnimations(USkeleton* NewSkeleton, const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget)
+	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace)
 	{
-		FAnimationRetargetContext RetargetContext(AssetsToRetarget, bRetargetReferredAssets);
-		return RetargetAnimations(NewSkeleton, RetargetContext, bRetargetReferredAssets, bDuplicateAssetsBeforeRetarget);
+		FAnimationRetargetContext RetargetContext(AssetsToRetarget, bRetargetReferredAssets, bConvertSpace);
+		return RetargetAnimations(OldSkeleton, NewSkeleton, RetargetContext, bRetargetReferredAssets, bDuplicateAssetsBeforeRetarget);
 	}
 
-	UObject* RetargetAnimations(USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget)
+	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace)
 	{
-		FAnimationRetargetContext RetargetContext(AssetsToRetarget, bRetargetReferredAssets);
-		return RetargetAnimations(NewSkeleton, RetargetContext, bRetargetReferredAssets, bDuplicateAssetsBeforeRetarget);
+		FAnimationRetargetContext RetargetContext(AssetsToRetarget, bRetargetReferredAssets, bConvertSpace);
+		return RetargetAnimations(OldSkeleton, NewSkeleton, RetargetContext, bRetargetReferredAssets, bDuplicateAssetsBeforeRetarget);
 	}
 
-	UObject* RetargetAnimations(USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget)
+	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget)
 	{
 		check(NewSkeleton);
 		UObject* OriginalObject  = RetargetContext.GetSingleTargetObject();
@@ -213,7 +228,7 @@ namespace EditorAnimUtils
 			{
 				RetargetContext.DuplicateAssetsToRetarget(DuplicationDestPackage);
 			}
-			RetargetContext.RetargetAnimations(NewSkeleton);
+			RetargetContext.RetargetAnimations(OldSkeleton, NewSkeleton);
 		}
 
 		FNotificationInfo Notification(FText::GetEmpty());

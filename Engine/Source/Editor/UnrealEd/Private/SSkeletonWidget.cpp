@@ -341,16 +341,32 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Column;
 	AssetPickerConfig.ThumbnailScale = 0.0f;
 
-	TSharedRef<SWidget> Widget = SNew(SBox);
+	TSharedRef<SVerticalBox> Widget = SNew(SVerticalBox);
 	if(InArgs._ShowRemapOption)
 	{
-		Widget = SNew(SCheckBox)
-				.IsChecked(this, &SAnimationRemapSkeleton::IsRemappingReferencedAssets)
-				.OnCheckStateChanged(this, &SAnimationRemapSkeleton::OnRemappingReferencedAssetsChanged)
-				[
-					SNew(STextBlock).Text(LOCTEXT("RemapSkeleton_RemapAssets", "Remap referenced assets "))
-				];
+		Widget->AddSlot()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &SAnimationRemapSkeleton::IsRemappingReferencedAssets)
+			.OnCheckStateChanged(this, &SAnimationRemapSkeleton::OnRemappingReferencedAssetsChanged)
+			[
+				SNew(STextBlock).Text(LOCTEXT("RemapSkeleton_RemapAssets", "Remap referenced assets "))
+			]
+		];
 	}
+
+	TSharedPtr<SToolTip> ConvertSpaceTooltip = IDocumentation::Get()->CreateToolTip(FText::FromString("Check if you'd like to convert animation data to new skeleton space. If this is false, it won't convert any animation data to new space."), 
+											NULL, FString("Shared/Editors/Persona"), FString("AnimRemapSkeleton_ConvertSpace"));
+	Widget->AddSlot()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &SAnimationRemapSkeleton::IsConvertSpacesChecked)
+		.OnCheckStateChanged(this, &SAnimationRemapSkeleton::OnConvertSpacesCheckChanged)
+		[
+			SNew(STextBlock).Text(LOCTEXT("RemapSkeleton_ConvertSpaces", "Convert Spaces to new Skeleton"))
+			.ToolTip(ConvertSpaceTooltip)
+		]
+	];
 
 	TSharedPtr<SToolTip> SkeletonTooltip = IDocumentation::Get()->CreateToolTip(FText::FromString("Pick a skeleton for this mesh"), NULL, FString("Shared/Editors/Persona"), FString("Skeleton"));
 
@@ -483,6 +499,16 @@ void SAnimationRemapSkeleton::OnRemappingReferencedAssetsChanged(ESlateCheckBoxS
 	bRemapReferencedAssets = (InNewRadioState == ESlateCheckBoxState::Checked);
 }
 
+ESlateCheckBoxState::Type SAnimationRemapSkeleton::IsConvertSpacesChecked() const
+{
+	return bConvertSpaces ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAnimationRemapSkeleton::OnConvertSpacesCheckChanged(ESlateCheckBoxState::Type InNewRadioState)
+{
+	bConvertSpaces = (InNewRadioState == ESlateCheckBoxState::Checked);
+}
+
 bool SAnimationRemapSkeleton::CanApply() const
 {
 	return (NewSkeleton!=NULL && NewSkeleton!=OldSkeleton);
@@ -516,7 +542,7 @@ void SAnimationRemapSkeleton::CloseWindow()
 	}
 }
 
-bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool * bRemapReferencedAssets)
+bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool & bConvertSpace, bool * bRemapReferencedAssets)
 {
 	TSharedPtr<class SAnimationRemapSkeleton> DialogWidget;
 
@@ -547,6 +573,8 @@ bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & N
 	{
 		*bRemapReferencedAssets = DialogWidget.Get()->bRemapReferencedAssets;
 	}
+
+	bConvertSpace = DialogWidget.Get()->bConvertSpaces;
 
 	return (NewSkeleton != NULL && NewSkeleton != OldSkeleton);
 }
