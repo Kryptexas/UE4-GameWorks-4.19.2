@@ -44,8 +44,8 @@ public:
 			, "%"					//const FString PercentSymbol
 			, "‰"					//const FString PerMilleSymbol
 			, ""					//const FString PositiveSign
-			, ECurrencyNegativePattern::NegativeSymbolCurrencySymbolSpaceX
-			, ECurrencyPositivePattern::CurrencySymbolSpaceX
+			, ECurrencyNegativePattern::NegativeSymbolCurrencySymbolX
+			, ECurrencyPositivePattern::CurrencySymbolX
 			, EPercentNegativePattern::NegativeSymbolXPct
 			, EPercentPositivePattern::XPct
 			, ENumberNegativePattern::NegativeSymbolX
