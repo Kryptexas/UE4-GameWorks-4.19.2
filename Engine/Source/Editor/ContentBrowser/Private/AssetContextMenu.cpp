@@ -375,9 +375,9 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 			MenuBuilder.BeginSection( "ActorDocumentation", LOCTEXT("ActorDocsHeading", "Documentation") );
 			{
 					MenuBuilder.AddMenuEntry(
-						LOCTEXT("GoToDocsForActor", "Full documentation"),
+						LOCTEXT("GoToDocsForActor", "View Documentation"),
 						LOCTEXT("GoToDocsForActor_ToolTip", "Click to open documentation for this actor"),
-						FSlateIcon(),
+						FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
 						FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
 						);
 			}
