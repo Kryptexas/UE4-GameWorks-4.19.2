@@ -25,6 +25,7 @@
 	#include "NxClothingCollision.h"
 	// for cloth morph target	
 	#include "Animation/VertexAnim/VertexAnimBase.h"
+	#include "Animation/VertexAnim/MorphTarget.h"
 
 #endif// #if WITH_APEX_CLOTHING
 
