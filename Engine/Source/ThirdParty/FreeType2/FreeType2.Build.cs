@@ -27,7 +27,7 @@ public class FreeType2 : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-            PublicAdditionalLibraries.Add(FreeType2LibPath + "Mac/libfreetype.dylib");
+            PublicAdditionalLibraries.Add(FreeType2LibPath + "Mac/libfreetype2412.a");
 		}
         else if (Target.Platform == UnrealTargetPlatform.IOS)
         {
