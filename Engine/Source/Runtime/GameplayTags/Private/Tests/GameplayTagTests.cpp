@@ -4,7 +4,7 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayTagTest, "GameplayTags.GameplayTag", EAutomationTestFlags::ATF_Editor)
 
-UDataTable* CreateGameplayDataTable()
+static UDataTable* CreateGameplayDataTable()
 {
 	FString CSV(TEXT(",Tag,CategoryText,\r\n0,GameplayTagTest.Test1\r\n1,GameplayTagTest.Test2"));
 

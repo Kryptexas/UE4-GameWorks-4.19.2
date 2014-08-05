@@ -2378,7 +2378,7 @@ void ClearGlobalDataTable()
 	IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(NULL);
 }
 
-UDataTable* CreateGameplayDataTable()
+static UDataTable* CreateGameplayDataTable()
 {
 	FString CSV(TEXT(",Tag,CategoryText,"));
 	CSV.Append(TEXT("\r\n0,Damage"));
