@@ -81,6 +81,12 @@ void FFloatCurve::SetCurveTypeFlag(EAnimCurveFlags InFlag, bool bValue)
 	}
 }
 
+void FFloatCurve::ToggleCurveTypeFlag(EAnimCurveFlags InFlag)
+{
+	bool Current = GetCurveTypeFlag(InFlag);
+	SetCurveTypeFlag(InFlag, !Current);
+}
+
 bool FFloatCurve::GetCurveTypeFlag(EAnimCurveFlags InFlag) const
 {
 	return (CurveTypeFlags & InFlag) != 0;
@@ -106,16 +112,16 @@ void FRawCurveTracks::EvaluateCurveData(class UAnimInstance* Instance, float Cur
 	for (auto CurveIter = FloatCurves.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
 		const FFloatCurve & Curve = *CurveIter;
-		Instance->AddCurveValue( Curve.CurveName, Curve.FloatCurve.Eval(CurrentTime)*BlendWeight, Curve.GetCurveTypeFlags() );
+
+		Instance->AddCurveValue( Curve.CurveUid, Curve.FloatCurve.Eval(CurrentTime)*BlendWeight, Curve.GetCurveTypeFlags() );
 	}
 }
 
-FFloatCurve * FRawCurveTracks::GetCurveData(FName InCurveName) 
+FFloatCurve * FRawCurveTracks::GetCurveData(USkeleton::AnimCurveUID Uid)
 {
-	for (auto CurveIter = FloatCurves.CreateIterator(); CurveIter; ++CurveIter)
+	for(FFloatCurve& Curve : FloatCurves)
 	{
-		FFloatCurve & Curve = *CurveIter;
-		if (Curve.CurveName == InCurveName)
+		if(Curve.CurveUid == Uid)
 		{
 			return &Curve;
 		}
@@ -124,13 +130,13 @@ FFloatCurve * FRawCurveTracks::GetCurveData(FName InCurveName)
 	return NULL;
 }
 
-bool FRawCurveTracks::DeleteCurveData(FName InCurveName)
+bool FRawCurveTracks::DeleteCurveData(USkeleton::AnimCurveUID Uid)
 {
-	for ( int32 Id=0; Id<FloatCurves.Num(); ++Id )
+	for( int32 Idx = 0; Idx < FloatCurves.Num(); ++Idx )
 	{
-		if (FloatCurves[Id].CurveName == InCurveName)
+		if( FloatCurves[Idx].CurveUid == Uid )
 		{
-			FloatCurves.RemoveAt(Id);
+			FloatCurves.RemoveAt(Idx);
 			return true;
 		}
 	}
@@ -138,25 +144,45 @@ bool FRawCurveTracks::DeleteCurveData(FName InCurveName)
 	return false;
 }
 
-bool FRawCurveTracks::AddCurveData(FName InCurveName, int32 CurveFlags /*= ACF_DefaultCurve*/)
+bool FRawCurveTracks::AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags /*= ACF_DefaultCurve*/)
 {
-	// if we don't have same name used
-	if ( GetCurveData(InCurveName) == NULL )
+	if(GetCurveData(Uid) == NULL)
 	{
-		FloatCurves.Add( FFloatCurve(InCurveName, CurveFlags) );
+		FloatCurves.Add(FFloatCurve(Uid, CurveFlags));
 		return true;
 	}
-
 	return false;
 }
 
-ENGINE_API bool FRawCurveTracks::DuplicateCurveData(FName CurveToCopyName, FName NewName)
+void FRawCurveTracks::Serialize(FArchive& Ar)
 {
-	FFloatCurve* ExistingCurve = GetCurveData(CurveToCopyName);
-	if(ExistingCurve != NULL && GetCurveData(NewName) == NULL)
+	if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
+	{
+		for(FFloatCurve& Curve : FloatCurves)
+		{
+			Curve.Serialize(Ar);
+		}
+	}
+}
+
+void FRawCurveTracks::UpdateLastObservedNames(FSmartNameMapping* NameMapping)
+{
+	if(NameMapping)
+	{
+		for(FFloatCurve& Curve : FloatCurves)
+		{
+			NameMapping->GetName(Curve.CurveUid, Curve.LastObservedName);
+		}
+	}
+}
+
+ENGINE_API bool FRawCurveTracks::DuplicateCurveData(USkeleton::AnimCurveUID ToCopyUid, USkeleton::AnimCurveUID NewUid)
+{
+	FFloatCurve* ExistingCurve = GetCurveData(ToCopyUid);
+	if(ExistingCurve && GetCurveData(NewUid) == NULL)
 	{
 		// Add the curve to the track and set its data to the existing curve
-		FloatCurves.Add(FFloatCurve(NewName, ExistingCurve->GetCurveTypeFlags()));
+		FloatCurves.Add(FFloatCurve(NewUid, ExistingCurve->GetCurveTypeFlags()));
 		FloatCurves.Last().FloatCurve = ExistingCurve->FloatCurve;
 		
 		return true;
@@ -217,6 +243,41 @@ void UAnimSequenceBase::PostLoad()
 #if WITH_EDITORONLY_DATA
 	InitializeNotifyTrack();
 	UpdateAnimNotifyTrackCache();
+
+	if(USkeleton* Skeleton = GetSkeleton())
+	{
+		// Get the name mapping object for curves
+		FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+		
+		// Fix up the existing curves to work with smartnames
+		if(GetLinkerUE4Version() < VER_UE4_SKELETON_ADD_SMARTNAMES)
+		{
+			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
+			{
+				// Add the names of the curves into the smartname mapping and store off the curve uid which will be saved next time the sequence saves.
+				NameMapping->AddName(Curve.LastObservedName, Curve.CurveUid);
+			}
+		}
+		else
+		{
+			TArray<FFloatCurve*> UnlinkedCurves;
+			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
+			{
+				if(!NameMapping->Exists(Curve.CurveUid))
+				{
+					// The skeleton doesn't know our name. Use the last observed name that was saved with the
+					// curve to create a new name. This can happen if a user saves an animation but not a skeleton
+					// either when updating the assets or editing the curves within.
+					UnlinkedCurves.Add(&Curve);
+				}
+			}
+
+			for(FFloatCurve* Curve : UnlinkedCurves)
+			{
+				NameMapping->AddName(Curve->LastObservedName, Curve->CurveUid);
+			}
+		}
+	}
 #endif
 }
 
@@ -503,7 +564,7 @@ void UAnimSequenceBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 			// only add if not BP anim notify since they're handled separate
 			if(Iter->IsBlueprintNotify() == false)
 			{
-				NotifyList += FString::Printf(TEXT("%s%c"), *Iter->NotifyName.ToString(), USkeleton::AnimNotifyTagDeliminator);
+				NotifyList += FString::Printf(TEXT("%s%c"), *Iter->NotifyName.ToString(), USkeleton::AnimNotifyTagDelimiter);
 			}
 		}
 		
@@ -512,6 +573,18 @@ void UAnimSequenceBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 			OutTags.Add(FAssetRegistryTag(USkeleton::AnimNotifyTag, NotifyList, FAssetRegistryTag::TT_Hidden));
 		}
 	}
+
+	// Add curve IDs to a tag list, or a blank tag if we have no curves.
+	// The blank list is necessary when we attempt to delete a curve so
+	// an old asset can be detected from its asset data so we load as few
+	// as possible.
+	FString CurveIdList;
+
+	for(const FFloatCurve& Curve : RawCurveData.FloatCurves)
+	{
+		CurveIdList += FString::Printf(TEXT("%u%c"), Curve.CurveUid, USkeleton::CurveTagDelimiter);
+	}
+	OutTags.Add(FAssetRegistryTag(USkeleton::CurveTag, CurveIdList, FAssetRegistryTag::TT_Hidden));
 }
 
 uint8* UAnimSequenceBase::FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty)
@@ -584,3 +657,18 @@ void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform & RootTransform, 
 	RootTransform = FTransform::Identity;
 };
 
+void UAnimSequenceBase::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.ArIsSaving && Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
+	{
+		if(USkeleton* Skeleton = GetSkeleton())
+		{
+			FSmartNameMapping* Mapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+			check(Mapping); // Should always exist
+			RawCurveData.UpdateLastObservedNames(Mapping);
+		}
+	}
+	RawCurveData.Serialize(Ar);
+}

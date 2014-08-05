@@ -545,8 +545,8 @@ public:
 	/** Trigger AnimNotifies **/
 	void TriggerAnimNotifies(float DeltaSeconds);
 
-	/** Add curve float data **/
-	void AddCurveValue(const FName & CurveName, float Value, int32 CurveTypeFlags);
+	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
+	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
 
 	/* native cpp montage interface functions **/
 	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded);
@@ -592,6 +592,12 @@ protected:
 	void StopAllMontages(float BlendOut);
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FAnimMontageInstance* MontageInstance, FName ToSectionName);
+
+	/** 
+	 * Add curve float data, using a curve name. External values should all be added using
+	 * The curve UID to the public version of this method
+	 */
+	void AddCurveValue(const FName & CurveName, float Value, int32 CurveTypeFlags);
 
 #if WITH_EDITORONLY_DATA
 	// Returns true if a snapshot is being played back and the remainder of Update should be skipped.

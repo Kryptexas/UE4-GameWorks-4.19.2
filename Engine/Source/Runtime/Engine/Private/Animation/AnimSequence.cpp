@@ -1504,12 +1504,17 @@ void UAnimSequence::UpgradeMorphTargetCurves()
 		const FCurveTrack & CurveTrack = (*CurveIter);
 
 		{
+			// Add curves into naming system 
+			FSmartNameMapping* NameMapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+			check(NameMapping); // This name mapping should always be present
+			USkeleton::AnimCurveUID NewId;
+			NameMapping->AddName(CurveTrack.CurveName, NewId);
 
 			// add it first, it won't add if duplicate
-			RawCurveData.AddCurveData(CurveTrack.CurveName);
-
+			RawCurveData.AddCurveData(NewId);
+			
 			// get the last one I just added
-			FFloatCurve * NewCurve = RawCurveData.GetCurveData(CurveTrack.CurveName);
+			FFloatCurve * NewCurve = RawCurveData.GetCurveData(NewId);
 			check (NewCurve);
 
 			// since the import code change, this might not match all the time

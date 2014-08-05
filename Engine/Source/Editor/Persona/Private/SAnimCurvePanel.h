@@ -8,6 +8,7 @@
 #include "SNodePanel.h"
 #include "SAnimTrackPanel.h"
 #include "SCurveEditor.h"
+#include "Animation/AnimSequenceBase.h"
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
 DECLARE_DELEGATE( FOnUpdatePanel )
@@ -29,6 +30,10 @@ public:
 		, _OnGetScrubValue()
 	{}
 
+	/**
+	 * Weak ptr to our Persona instance
+	 */
+	SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona)
 	/**
 	 * AnimSequenceBase to be used for this panel
 	 */
@@ -60,23 +65,29 @@ public:
 	/**
 	 * Create New Curve Track
 	 */
-	FReply CreateNewTrack();
+	FReply AddButtonClicked();
 
 	/**
 	 * Add Track
 	 */
-	void AddTrack(const FText & CurveNameToAdd, ETextCommit::Type CommitInfo);
-	
+	void CreateTrack(const FText& CommittedText, ETextCommit::Type CommitInfo);
+
+	/**
+	 * Add new variable curve
+	 */
+	void AddVariableCurve(USkeleton::AnimCurveUID CurveUid);
+
+
 	/**
 	 * Duplicate Track
 	 */
-	FReply DuplicateTrack(const FString& CurveNameToDuplicate);
+	FReply DuplicateTrack(USkeleton::AnimCurveUID Uid);
 
 	/**
 	 * Delete Track
 	 *
 	 */
-	FReply DeleteTrack(const FString & CurveNameToDelete);
+	void DeleteTrack(USkeleton::AnimCurveUID Uid);
 
 	/**
 	 * Build and display curve track context menu for all tracks.
@@ -99,12 +110,30 @@ public:
 	 */
 	EVisibility IsSetAllTracksButtonVisible() const;
 
+	/**
+	 * Creates a context menu for the provided curve
+	 */
+	TSharedRef<SWidget> CreateCurveContextMenu(FFloatCurve* Curve) const;
+
+	/**
+	 * Sets the specified flag value to State for the provided curve
+	 */
+	void SetCurveFlag(FFloatCurve* CurveInterface, bool State, EAnimCurveFlags FlagToSet);
+
+	/**
+	* Update Panel
+	* Used internally and by sequence editor to refresh the panel contents
+	* @todo this has to be more efficient. Right now it refreshes the entire panel
+	*/
+	void UpdatePanel();
+
 private:
+	TWeakPtr<FPersona> WeakPersona;
 	TSharedPtr<SSplitter> PanelSlot;
 	class UAnimSequenceBase* Sequence;
 	TAttribute<float> CurrentPosition;
 	FOnGetScrubValue OnGetScrubValue;
-	TMap<FString, TWeakPtr<class SCurveEdTrack> > Tracks;
+	TArray<TWeakPtr<class SCurveEdTrack>> Tracks;
 
 	/**
 	 * This is to control visibility of the curves, so you can edit or not
@@ -114,11 +143,11 @@ private:
 	/**
 	 * Returns true if this curve is editable
 	 */
-	ESlateCheckBoxState::Type	IsCurveEditable(FName CurveName) const;
+	ESlateCheckBoxState::Type	IsCurveEditable(USkeleton::AnimCurveUID Uid) const;
 	/**
 	 * Toggle curve visibility
 	 */
-	void		ToggleEditability(ESlateCheckBoxState::Type NewType, FName CurveName);
+	void		ToggleEditability(ESlateCheckBoxState::Type NewType, USkeleton::AnimCurveUID Uid);
 	/**
 	 * Refresh Panel
 	 */
@@ -128,10 +157,50 @@ private:
 	 */
 	FReply		ShowAll(bool bShow);
 
-private:
+	void FillEntryMenu(FMenuBuilder& Builder, FText AddToolTip, FExecuteAction& AddDelegate, FText CreateToolTip, FExecuteAction& CreateDelegate);
+
 	/**
-	 * Update Panel 
-	 * @todo this has to be more efficient. Right now it refreshes the entire panel
+	 * Fills a menu for creating and adding new metadata entries
 	 */
-	void UpdatePanel();
+	void FillMetadataEntryMenu(FMenuBuilder& Builder);
+
+	/**
+	 * Fills a menu for creating and adding new variable curves
+	 */
+	void FillVariableCurveMenu(FMenuBuilder& Builder);
+
+	/**
+	 * Adds a metadata entry from a Uid for a name that exists in the skeleton
+	 */
+	void AddMetadataEntry(USkeleton::AnimCurveUID Uid);
+
+	/**
+	 * Handler for the new metadata item in the context menu, spawns a text entry for the name
+	 */
+	void CreateNewMetadataEntryClicked();
+
+	/**
+	 * Create a new curve name in the skeleton using the committed text and add that curve to the sequence
+	 */
+	void CreateNewMetadataEntry(const FText& CommittedText, ETextCommit::Type CommitType);
+
+	/**
+	* Handler for the new curve item in the context menu, spawns a text entry for the name
+	*/
+	void CreateNewCurveClicked();
+
+	/**
+	 * Convert the requested flag bool value into a checkbox state
+	 */
+	ESlateCheckBoxState::Type GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const;
+
+	/**
+	 * Convert a given checkbox state into a flag value in the provided curve
+	 */
+	void SetCurveFlagFromCheckboxState(ESlateCheckBoxState::Type CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag);
+
+	/**
+	 * Handler for converting a curve from metadata to variable curve or vice versa
+	 */
+	void ToggleCurveTypeMenuCallback(FFloatCurve* Curve);
 };

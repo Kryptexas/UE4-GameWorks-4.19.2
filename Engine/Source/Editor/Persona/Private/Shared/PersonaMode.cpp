@@ -8,6 +8,7 @@
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotGroupNames.h"
 #include "SSkeletonSlotNames.h"
+#include "SSkeletonSmartNameManager.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -39,6 +40,7 @@ const FName FPersonaTabs::PreviewManagerID("AnimPreviewSetup");		//@TODO: Name
 const FName FPersonaTabs::SkeletonAnimNotifiesID("SkeletonAnimNotifies");
 const FName FPersonaTabs::SkeletonSlotNamesID("SkeletonSlotNames");
 const FName FPersonaTabs::SkeletonSlotGroupNamesID("SkeletonSlotGroupNames");
+const FName FPersonaTabs::CurveNameManagerID("CurveNameManager");
 
 /////////////////////////////////////////////////////
 // FPersonaMode
@@ -66,6 +68,7 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetSourceManagerTabSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotGroupNamesSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonCurveNameManagerSummoner(InPersona)));
 }
 
 void FPersonaAppMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)

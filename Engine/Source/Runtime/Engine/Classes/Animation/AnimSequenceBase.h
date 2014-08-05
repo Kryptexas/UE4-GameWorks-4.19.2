@@ -8,6 +8,8 @@
  */
 
 #include "AnimationAsset.h"
+#include "SmartName.h"
+#include "Skeleton.h"
 #include "Curves/CurveBase.h"
 #include "AnimSequenceBase.generated.h"
 
@@ -155,15 +157,32 @@ struct FAnimCurveBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Name of curve. - in the future, we might need TMap, right now TMap doesn't support property serialization, but in the future we can change this to TMap*/
+	// Last observed name of the curve. We store this so we can recover from situations that
+	// mean the skeleton doesn't have a mapped name for our UID (such as a user saving the an
+	// animation but not the skeleton).
 	UPROPERTY()
-	FName		CurveName;
+	FName		LastObservedName;
+
+	FSmartNameMapping::UID CurveUid;
 
 	FAnimCurveBase(){}
 
 	FAnimCurveBase(FName InName)
-		: CurveName(InName)
+		: LastObservedName(InName)
 	{	
+	}
+
+	FAnimCurveBase(USkeleton::AnimCurveUID Uid)
+		: CurveUid(Uid)
+	{}
+
+	// To be able to use typedef'd types we need to serialize manually
+	virtual void Serialize(FArchive& Ar)
+	{
+		if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
+		{
+			Ar << CurveUid;
+		}
 	}
 };
 
@@ -178,6 +197,8 @@ enum EAnimCurveFlags
 	ACF_Editable			= 0x00000004,
 	// Used as a material curve
 	ACF_DrivesMaterial		= 0x00000008,
+	// Is a metadata 'curve'
+	ACF_Metadata		= 0x00000010,
 
 	// default flag when created
 	ACF_DefaultCurve		= ACF_TriggerEvent | ACF_Editable,
@@ -202,10 +223,21 @@ struct FFloatCurve : public FAnimCurveBase
 	{
 	}
 
+	FFloatCurve(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
+		: FAnimCurveBase(Uid)
+		, CurveTypeFlags(InCurveTypeFlags)
+	{}
+
 	/**
 	 * Set InFlag to bValue
 	 */
 	ENGINE_API void SetCurveTypeFlag(EAnimCurveFlags InFlag, bool bValue);
+
+	/**
+	 * Toggle the value of the specified flag
+	 */
+	ENGINE_API void ToggleCurveTypeFlag(EAnimCurveFlags InFlag);
+
 	/**
 	 * Return true if InFlag is set, false otherwise 
 	 */
@@ -220,6 +252,11 @@ struct FFloatCurve : public FAnimCurveBase
 	 * returns CurveTypeFlags
 	 */
 	int32 GetCurveTypeFlags() const;
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+		FAnimCurveBase::Serialize(Ar);
+	}
 
 private:
 
@@ -244,23 +281,30 @@ struct FRawCurveTracks
 	 */
 	void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const;
 	/**
-	 * Find curve data based on name, you give pointer
+	 * Find curve data based on the curve UID
 	 */
-	ENGINE_API FFloatCurve * GetCurveData(FName InCurveName);
+	ENGINE_API FFloatCurve * GetCurveData(USkeleton::AnimCurveUID Uid);
 	/**
-	 * Add new curve named InCurveName and return true if success
+	 * Add new curve from the provided UID and return true if success
 	 * bVectorInterpCurve == true, then it will create FVectorCuve, otherwise, FFloatCurve
 	 */
-	ENGINE_API bool AddCurveData(FName InCurveName, int32 CurveFlags = ACF_DefaultCurve);
+	ENGINE_API bool AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags = ACF_DefaultCurve);
 	/*
 	 * Delete curve data 
 	 */
-	ENGINE_API bool DeleteCurveData(FName InCurveName);
+	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid);
 	/**
 	 * Duplicate curve data
 	 * 
 	 */
-	ENGINE_API bool DuplicateCurveData(FName CurveToCopyName, FName NewName);
+	ENGINE_API bool DuplicateCurveData(USkeleton::AnimCurveUID ToCopyUid, USkeleton::AnimCurveUID NewUid);
+
+	/**
+	 * Updates the LastObservedName field of the curves from the provided name container
+	 */
+	void UpdateLastObservedNames(FSmartNameMapping* NameMapping);
+
+	void Serialize(FArchive& Ar);
 };
 
 UENUM()
@@ -370,6 +414,9 @@ class UAnimSequenceBase : public UAnimationAsset
 
 protected:
 	virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const;
+
+public:
+	virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITOR
 private:

@@ -943,13 +943,18 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	if (TargetSequence && FbxCurve)
 	{
 		FName Name = *CurveName;
+		FSmartNameMapping* NameMapping = TargetSequence->GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
 
-		FFloatCurve * CurveToImport = TargetSequence->RawCurveData.GetCurveData(Name);
+		// Add or retrieve curve
+		USkeleton::AnimCurveUID Uid;
+		NameMapping->AddName(Name, Uid);
+
+		FFloatCurve * CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
 		if(CurveToImport==NULL)
 		{
-			if(TargetSequence->RawCurveData.AddCurveData(Name, CurveFlags))
+			if(TargetSequence->RawCurveData.AddCurveData(Uid, CurveFlags))
 			{
-				CurveToImport = TargetSequence->RawCurveData.GetCurveData(Name);
+				CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
 			}
 			else
 			{
@@ -1025,6 +1030,32 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 							{
 								// now see if we have one already exists. If so, just overwrite that. if not, add new one. 
 								ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve,  ACF_DrivesMorphTarget | ACF_TriggerEvent, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/);
+
+
+//								FName Name = *ChannelName;
+//								USkeleton::AnimCurveUID CurveId;
+//								Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName)->AddName(Name, CurveId);
+//								FFloatCurve * CurveToImport = DestSeq->RawCurveData.GetCurveData(CurveId);
+//								if (CurveToImport==NULL)
+//								{
+//									if ( DestSeq->RawCurveData.AddCurveData(CurveId, ACF_DrivesMorphTarget | ACF_TriggerEvent) )
+//									{
+//										CurveToImport = DestSeq->RawCurveData.GetCurveData(CurveId);
+//									}
+//									else
+//									{
+//										// this should not happen, we already checked before adding
+//										ensureMsg (0, TEXT("FBX Import: Critical error: no memory?"));
+//									}
+//								}
+//								else
+//								{
+//									CurveToImport->FloatCurve.Reset();
+//								}
+//	
+//								ImportCurve(Curve, CurveToImport, AnimTimeSpan);
+
+
 							}
 						}
 					}

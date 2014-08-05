@@ -330,6 +330,8 @@ private:
 	DECLARE_MULTICAST_DELEGATE( FOnChangeSkeletonTree )
 	// Called when the notifies of the current animation are changed
 	DECLARE_MULTICAST_DELEGATE( FOnChangeAnimNotifies )
+	// Called when the curve panel is changed / updated
+	DECLARE_MULTICAST_DELEGATE( FOnChangeCurves )
 	// Called when the preview viewport is created
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
 	// Called when generic delete happens
@@ -458,6 +460,24 @@ public:
 
 	/** Delegate for when the skeletons animation notifies have been changed */
 	FOnChangeAnimNotifies OnAnimNotifiesChanged;
+
+	// Curve changed
+	typedef FOnChangeCurves::FDelegate FOnCurvesChanged;
+
+	/** Registers delegate for changing / updating of curves panel */
+	void RegisterOnChangeCurves(const FOnCurvesChanged& Delegate)
+	{
+		OnCurvesChanged.Add(Delegate);
+	}
+
+	/** Unregisters delegate for changing / updating of curves panel */
+	void UnregisterOnChangeCurves(SWidget* Widget)
+	{
+		OnCurvesChanged.RemoveAll(Widget);
+	}
+
+	/** Delegate for changing / updating of curves panel */
+	FOnChangeCurves OnCurvesChanged;
 
 	// Viewport Created
 	typedef FOnCreateViewport::FDelegate FOnViewportCreated;

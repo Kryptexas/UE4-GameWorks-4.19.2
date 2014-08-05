@@ -1060,6 +1060,18 @@ void UAnimInstance::AddCurveValue(const FName & CurveName, float Value, int32 Cu
 	}
 }
 
+void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags)
+{
+	FName CurrentCurveName;
+	// Grab the smartname mapping from our current skeleton and resolve the curve name. We cannot cache
+	// the smart name mapping as the skeleton can change at any time.
+	if(FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+	{
+		NameMapping->GetName(Uid, CurrentCurveName);
+	}
+	AddCurveValue(CurrentCurveName, Value, CurveTypeFlags);
+}
+
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();

@@ -15,8 +15,14 @@
 
 #if WITH_EDITOR
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
-const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
+const TCHAR USkeleton::AnimNotifyTagDelimiter = TEXT(';');
+
+const FName USkeleton::CurveTag = FName(TEXT("CurveUIDList"));
+const TCHAR USkeleton::CurveTagDelimiter = TEXT(';');
 #endif 
+
+// Names of smartname containers for skeleton properties
+const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
 
 const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 
@@ -71,6 +77,9 @@ void USkeleton::PostLoad()
 #if WITH_EDITOR
 	if ( GIsEditor )
 	{
+		// Set up smart name mappings, if these have been loaded they will already be present
+		SmartNames.AddContainer(AnimCurveMappingName);
+
 		CollectAnimationNotifies();
 	}
 #endif
@@ -148,6 +157,12 @@ void USkeleton::Serialize( FArchive& Ar )
 	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
 	{
 		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
+	}
+
+	// If we should be using smartnames, serialize the mappings
+	if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
+	{
+		SmartNames.Serialize(Ar);
 	}
 #endif
 }
@@ -687,7 +702,7 @@ void USkeleton::CollectAnimationNotifies()
 			if (const FString * Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
 			{
 				TArray<FString> NotifyList;
-				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDeliminator, true);
+				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDelimiter, true);
 				for (auto NotifyIter = NotifyList.CreateConstIterator(); NotifyIter; ++NotifyIter)
 				{
 					FString NotifyName = *NotifyIter;
@@ -907,6 +922,52 @@ bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
 {
 	return SlotGroupNames.Contains(GroupName);
 }
+
+bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		if(RequestedMapping->AddName(NewName, NewUid))
+		{
+			Modify(true);
+			Successful = true;
+		}
+	}
+	return Successful;
+}
+
+bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		FName CurrentName;
+		RequestedMapping->GetName(Uid, CurrentName);
+		if(CurrentName != NewName)
+		{
+			Modify();
+			Successful = RequestedMapping->Rename(Uid, NewName);
+		}
+	}
+	return Successful;
+}
+
+void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		if(RequestedMapping->Exists(Uid))
+		{
+			Modify();
+			RequestedMapping->Remove(Uid);
+		}
+	}
+}
+
 #endif // WITH_EDITORONLY_DATA
 
 void USkeleton::RegenerateGuid()
