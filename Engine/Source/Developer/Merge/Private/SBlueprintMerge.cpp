@@ -1,87 +1,491 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
-#include "SBlueprintMerge.h"
+#include "BlueprintEditor.h"
 #include "DiffResults.h"
 #include "GraphDiffControl.h"
 #include "ISourceControlModule.h"
-#include "BlueprintEditor.h"
+#include "SBlueprintDiff.h"
+#include "SBlueprintMerge.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
-// todo doc: where doe this utility function belong!
-static UPackage* CreateTempPackage(FString Name)
+// This cludge is used to move arrays of structures into arrays of 
+// shared ptrs of those structures. It is used because SListView
+// does not support arrays of values:
+template< typename T >
+TArray< TSharedPtr<T> > HackToShared( const TArray<T>& Values )
 {
-	static uint32 TempUid = 0;
-	FString TempPackageName = FString::Printf(TEXT("/Temp/BpMerge-%u-%s"), TempUid++, *Name);
-	return CreatePackage(NULL, *TempPackageName);
+	TArray< TSharedPtr<T> > Ret;
+	for( const auto& Value : Values )
+	{
+		Ret.Add( TSharedPtr<T>( new T(Value) ) );
+	}
+	return Ret;
 }
 
-template< class Predicate >
-UObject* FindOuter( UObject& Obj, Predicate P )
+namespace EMergeParticipant
 {
-	UObject* Iter = &Obj;
-	while( Iter )
+	enum Type
 	{
-		const UObject* ImmutableIter = Iter;
-		if( P(*ImmutableIter) )
-		{
-			break;
-		}
-		Iter = Iter->GetOuter();
-	}
-	return Iter;
+		MERGE_PARTICIPANT_REMOTE,
+		MERGE_PARTICIPANT_BASE,
+		MERGE_PARTICIPANT_LOCAL,
+	};
 }
 
-static bool PackagesAppearEquivalent( const UPackage* A, const UPackage* B )
+struct FBlueprintRevPair
 {
-	TArray<UObject*> SubobjectsA;
-	GetObjectsWithOuter(A, SubobjectsA, true);
-	TArray<UObject*> SubobjectsB;
-	GetObjectsWithOuter(B, SubobjectsB, true);
-
-	auto IsTransientOrPendingKill = [](UObject const& Obj){ return Obj.HasAnyFlags(RF_Transient | RF_PendingKill); };
-	TSet<FString> SubobjectANames;
-	for( const auto& I : SubobjectsA )
+	FBlueprintRevPair( const UBlueprint* InBlueprint, const FRevisionInfo& InRevData )
+		: Blueprint( InBlueprint )
+		, RevData( InRevData )
 	{
-		if (!FindOuter(*I, IsTransientOrPendingKill ) )
-		{
-			SubobjectANames.Add(I->GetName());
-		}
-	}
-	TSet<FString> SubobjectBNames;
-	for (const auto& I : SubobjectsB)
-	{
-		if (!FindOuter(*I, IsTransientOrPendingKill))
-		{
-			SubobjectBNames.Add(I->GetName());
-		}
 	}
 
-	TArray<UObject*> DifferentObjects;
-	TSet<FString> AB = SubobjectANames.Difference(SubobjectBNames);
-	TSet<FString> BA = SubobjectBNames.Difference(SubobjectANames);
-	TSet<FString> Difference = AB.Union( BA );
-	for(const auto& I : Difference )
-	{
-		auto FindByName = [&I]( const UObject* Candidate ) { return Candidate->GetName() == I; };
-		UObject** FoundObject = SubobjectsA.FindByPredicate( FindByName );
-		if( !FoundObject )
-		{
-			FoundObject = SubobjectsB.FindByPredicate( FindByName );
-		}
+	const UBlueprint* Blueprint;
+	const FRevisionInfo& RevData;
+};
 
-		if( FoundObject )
+struct FMergeGraphRowEntry
+{
+	FString GraphName;
+
+	// These lists contain shared ptrs because they are displayed by a
+	// SListView, and it currently does not support lists of values.
+	TArray< TSharedPtr<FDiffSingleResult> > RemoteDifferences;
+	TArray< TSharedPtr<FDiffSingleResult> > LocalDifferences;
+	
+	bool bExistsInRemote;
+	bool bExistsInBase;
+	bool bExistsInLocal;
+};
+
+static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
+{
+	TArray<UEdGraph*> Graphs;
+	FromBlueprint.GetAllGraphs(Graphs);
+
+	UEdGraph* Ret = NULL;
+	if (UEdGraph** Result = Graphs.FindByPredicate(FMatchName(GraphName)))
+	{
+		Ret = *Result;
+	}
+	return Ret;
+}
+
+static FDiffPanel InitializePanel(const FBlueprintRevPair& BlueprintRevPair)
+{
+	FDiffPanel Ret;
+	Ret.Blueprint = BlueprintRevPair.Blueprint;
+	SAssignNew(Ret.GraphEditorBorder, SBorder)
+		.VAlign(VAlign_Fill)
+		[
+			SBlueprintDiff::DefaultEmptyPanel()
+		];
+	Ret.RevisionInfo = BlueprintRevPair.RevData;
+	Ret.bShowAssetName = false;
+	return Ret;
+}
+
+// @todo doc: can i avoid shared ptrs for individual entries?
+static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems( const FBlueprintRevPair& RemoteBlueprint, const FBlueprintRevPair& BaseBlueprint, const FBlueprintRevPair& LocalBlueprint)
+{
+	// Index all the graphs by name, we use the name of the graph as the 
+	// basis of comparison between the various versions of the blueprint.
+	TMap< FString, UEdGraph* > RemoteGraphMap, BaseGraphMap, LocalGraphMap;
+	// We also want the set of all graph names in these blueprints, so that we 
+	// can iterate over every graph.
+	TSet< FString > AllGraphNames;
+	{ 
+		TArray<UEdGraph*> GraphsRemote, GraphsBase, GraphsLocal;
+		RemoteBlueprint.Blueprint->GetAllGraphs(GraphsRemote);
+		BaseBlueprint.Blueprint->GetAllGraphs(GraphsBase);
+		LocalBlueprint.Blueprint->GetAllGraphs(GraphsLocal);
+
+		const auto ToMap = [&AllGraphNames]( const TArray<UEdGraph*>& InList, TMap<FString, UEdGraph*>& OutMap)
 		{
-			DifferentObjects.Add( *FoundObject );
-		}
-		else
+			for( auto Graph : InList )
+			{
+				OutMap.Add( Graph->GetName(), Graph );
+				AllGraphNames.Add(Graph->GetName());
+			}
+		};
+		ToMap(GraphsRemote, RemoteGraphMap);
+		ToMap(GraphsBase, BaseGraphMap);
+		ToMap(GraphsLocal, LocalGraphMap);
+	}
+	
+	TArray< TSharedPtr<FMergeGraphRowEntry> > Ret;
+	{
+		const auto GenerateDifferences = []( UEdGraph* GraphNew, UEdGraph** GraphOld )
 		{
-			verify(false);
+			TArray<FDiffSingleResult> Results;
+			FGraphDiffControl::DiffGraphs(GraphOld ? *GraphOld : NULL, GraphNew, Results );
+			return Results;
+		};
+
+		for( const auto& GraphName : AllGraphNames )
+		{
+			TArray< FDiffSingleResult > RemoteDifferences;
+			TArray< FDiffSingleResult > LocalDifferences;
+			bool bExistsInRemote, bExistsInBase, bExistsInLocal;
+
+			{
+				UEdGraph** RemoteGraph = RemoteGraphMap.Find(GraphName);
+				UEdGraph** BaseGraph = BaseGraphMap.Find(GraphName);
+				UEdGraph** LocalGraph = LocalGraphMap.Find(GraphName);
+
+				if( RemoteGraph )
+				{
+					RemoteDifferences = GenerateDifferences(*RemoteGraph, BaseGraph);
+				}
+
+				if( LocalGraph )
+				{
+					LocalDifferences = GenerateDifferences(*LocalGraph, BaseGraph);
+				}
+				
+				bExistsInRemote = RemoteGraph != NULL;
+				bExistsInBase = BaseGraph != NULL;
+				bExistsInLocal = LocalGraph != NULL;
+			}
+
+			FMergeGraphRowEntry NewEntry = {
+				GraphName,
+				HackToShared(RemoteDifferences),
+				HackToShared(LocalDifferences),
+				bExistsInRemote,
+				bExistsInBase,
+				bExistsInLocal
+			};
+			Ret.Add( TSharedPtr<FMergeGraphRowEntry>( new FMergeGraphRowEntry(NewEntry) ) );
 		}
 	}
 
-	return Difference.Num() == 0;
+	return Ret;
+}
+
+static void LockViews( TArray<FDiffPanel>& Views, bool bAreLocked )
+{
+	for( auto& Panel : Views )
+	{
+		auto GraphEditor = Panel.GraphEditor.Pin();
+		if( GraphEditor.IsValid() )
+		{
+			// lock this panel to ever other panel:
+			for (auto& OtherPanel : Views)
+			{
+				auto OtherGraphEditor = OtherPanel.GraphEditor.Pin();
+				if( OtherGraphEditor.IsValid() &&
+					OtherGraphEditor != GraphEditor )
+				{
+					if( bAreLocked )
+					{
+						GraphEditor->LockToGraphEditor(OtherGraphEditor);
+					}
+					else
+					{
+						GraphEditor->UnlockFromGraphEditor(OtherGraphEditor);
+					}
+				}
+			}
+		}
+	}
+}
+
+FDiffPanel& GetDiffPanelForNode( const UEdGraphNode& Node, TArray< FDiffPanel >& Panels )
+{
+	for( auto& Panel : Panels )
+	{
+		auto GraphEditor = Panel.GraphEditor.Pin();
+		if( GraphEditor.IsValid() )
+		{
+			if( Node.GetGraph() == GraphEditor->GetCurrentGraph() )
+			{
+				return Panel;
+			}
+		}
+	}
+	checkf(false, TEXT("Looking for node %s but it cannot be found in provided panels"), *Node.GetName() );
+	static FDiffPanel Default;
+	return Default;
+}
+
+class SMergeGraphView : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SMergeGraphView)
+	{}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+
+private:
+	void OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType);
+	void OnDiffListSelectionChanged(TSharedPtr<FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
+
+	FDiffPanel& GetRemotePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]; }
+	FDiffPanel& GetBasePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_BASE]; }
+	FDiffPanel& GetLocalPanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]; }
+
+	FReply OnToggleLockView();
+	const FSlateBrush*  GetLockViewImage() const;
+
+	TArray< FDiffPanel > DiffPanels;
+	FBlueprintMergeData Data;
+
+	TArray< TSharedPtr<FMergeGraphRowEntry> > DifferencesFromBase;
+	TSharedPtr<SBorder> DiffResultsWidget;
+
+	bool bViewsAreLocked;
+};
+
+// Some color constants used by the merge view:
+const FLinearColor MergeBlue = FLinearColor(0.3f, 0.3f, 1.f);
+const FLinearColor MergeRed = FLinearColor(1.0f, 0.2f, 0.3f);
+const FLinearColor MergeYellow = FLinearColor::Yellow;
+const FLinearColor MergeWhite = FLinearColor::White;
+
+void SMergeGraphView::Construct( const FArguments InArgs, const FBlueprintMergeData& InData )
+{
+	Data = InData;
+	bViewsAreLocked = true;
+
+	TArray<FBlueprintRevPair> BlueprintsForDisplay;
+	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
+	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintNew, InData.RevisionNew));
+	// EMergeParticipant::MERGE_PARTICIPANT_BASE
+	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintBase, InData.RevisionBase));
+	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
+	BlueprintsForDisplay.Add( FBlueprintRevPair(InData.BlueprintLocal, FRevisionInfo()) );
+
+	for( const auto& BlueprintRevPair : BlueprintsForDisplay )
+	{
+		DiffPanels.Add( InitializePanel( BlueprintRevPair ) );
+	}
+
+	TSharedRef<SSplitter> PanelContainer = SNew(SSplitter);
+	for( const auto& Panel : DiffPanels )
+	{
+		PanelContainer->AddSlot()[ Panel.GraphEditorBorder.ToSharedRef() ];
+	}
+
+	DifferencesFromBase = GenerateDiffListItems(	BlueprintsForDisplay[ EMergeParticipant::MERGE_PARTICIPANT_REMOTE ]
+													,BlueprintsForDisplay[ EMergeParticipant::MERGE_PARTICIPANT_BASE ]
+													,BlueprintsForDisplay[ EMergeParticipant::MERGE_PARTICIPANT_LOCAL ]);
+
+	// This is the function we'll use to generate a row in the control that lists all the available graphs:
+	const auto RowGenerator = [](TSharedPtr<FMergeGraphRowEntry> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
+	{
+		// blue indicates added, red indicates changed, yellow indicates removed, white indicates no change:
+		const auto ComputeColorForRevision = [](bool bExistsInBase, bool bExistsInThisRevision, bool bHasChangesInThisRevision) -> FLinearColor
+		{
+			if( bExistsInBase )
+			{
+				if( !bExistsInThisRevision )
+				{
+					return MergeYellow;
+				}
+				else if( bHasChangesInThisRevision )
+				{
+					return MergeRed;
+				}
+			}
+			if( !bExistsInBase )
+			{
+				if( bExistsInThisRevision  )
+				{
+					return MergeBlue;
+				}
+			}
+
+			return MergeWhite;
+		};
+
+		FLinearColor RemoteColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInRemote, ParamItem->RemoteDifferences.Num() != 0);
+		FLinearColor BaseColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInBase, false);
+		FLinearColor LocalColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInLocal, ParamItem->LocalDifferences.Num() != 0);
+
+		const auto Box = [] (bool bIsPresent, FLinearColor Color) -> SHorizontalBox::FSlot&
+		{
+			return SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				.MaxWidth(8.0f)
+				[
+					SNew(SImage)
+					.ColorAndOpacity(Color)
+					.Image(bIsPresent ? FEditorStyle::GetBrush("BlueprintDif.HasGraph") : FEditorStyle::GetBrush("BlueprintDif.MissingGraph"))
+				];
+		};
+
+		return SNew(STableRow< TSharedPtr<FMergeGraphRowEntry> >, OwnerTable)
+			.ToolTipText(LOCTEXT("MergeGraphsDifferentText", "@todo doc"))
+			.Content()
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FLinearColor::White)
+						.Text(ParamItem->GraphName)
+					]
+					+ Box(ParamItem->bExistsInRemote, RemoteColor )
+					+ Box(ParamItem->bExistsInBase, BaseColor)
+					+ Box(ParamItem->bExistsInLocal, LocalColor)
+			];
+	};
+
+	ChildSlot
+	[
+		SNew(SSplitter)
+		.Orientation(Orient_Horizontal)
+		+ SSplitter::Slot()
+		.Value(0.1f)
+		[
+			// ToolPanel.GroupBorder is currently what gives this control its dark grey appearance:
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+			.Padding(FMargin(1.0f))
+			[
+				SNew(SSplitter)
+				.Orientation(Orient_Vertical)
+				+SSplitter::Slot()
+				.Value(.3f)
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					[
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.HAlign(HAlign_Left)
+						[
+							SNew(SButton)
+							.OnClicked(this, &SMergeGraphView::OnToggleLockView)
+							.Content()
+							[
+								SNew(SImage)
+								.Image(this, &SMergeGraphView::GetLockViewImage)
+								.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?"))
+							]
+						]
+						+ SVerticalBox::Slot()
+						[
+							SNew(SListView< TSharedPtr<FMergeGraphRowEntry> >)
+							.ItemHeight(24)
+							.ListItemsSource(&DifferencesFromBase)
+							.OnGenerateRow(SListView< TSharedPtr<FMergeGraphRowEntry> >::FOnGenerateRow::CreateStatic(RowGenerator))
+							.SelectionMode(ESelectionMode::Single)
+							.OnSelectionChanged(this, &SMergeGraphView::OnGraphListSelectionChanged)
+						]
+					]
+				]
+				+ SSplitter::Slot()
+				.Value(.7f)
+				[
+					SAssignNew(DiffResultsWidget, SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				]
+			]
+		]
+		+ SSplitter::Slot()
+		.Value(0.9f)
+		[
+			PanelContainer
+		]
+	];
+}
+
+void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
+	{
+		return;
+	}
+
+	FString GraphName = Item->GraphName;
+
+	UEdGraph* GraphRemote = FindGraphByName(*GetRemotePanel().Blueprint, GraphName);
+	UEdGraph* GraphBase = FindGraphByName(*GetBasePanel().Blueprint, GraphName);
+	UEdGraph* GraphLocal = FindGraphByName(*GetLocalPanel().Blueprint, GraphName);
+
+	GetBasePanel().GeneratePanel(GraphBase, NULL);
+	GetRemotePanel().GeneratePanel(GraphRemote, GraphBase);
+	GetLocalPanel().GeneratePanel(GraphLocal, GraphBase);
+
+	LockViews(DiffPanels, bViewsAreLocked);
+
+	DiffResultsWidget->SetContent(
+		SNew( SListView< TSharedPtr<FDiffSingleResult> >)
+		.ItemHeight(24)
+		.ListItemsSource(&Item->LocalDifferences)
+		.OnGenerateRow( SListView< TSharedPtr<FDiffSingleResult> >::FOnGenerateRow::CreateStatic(
+			[](TSharedPtr<FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
+			{
+				FDiffResultItem WidgetGenerator( *ParamItem );
+				return SNew(STableRow< TSharedPtr<FDiffSingleResult> >, OwnerTable)
+					.Content()
+					[
+						WidgetGenerator.GenerateWidget()
+					];
+			}
+		) )
+		.SelectionMode(ESelectionMode::Single)
+		.OnSelectionChanged(this, &SMergeGraphView::OnDiffListSelectionChanged)
+	);
+}
+
+void SMergeGraphView::OnDiffListSelectionChanged(TSharedPtr<FDiffSingleResult> Item, ESelectInfo::Type SelectionType)
+{
+	if( SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid() )
+	{
+		return;
+	}
+
+	// Clear graph selection:
+	for( auto& Panel : DiffPanels )
+	{
+		auto GraphEdtiorPtr = Panel.GraphEditor.Pin();
+		if (GraphEdtiorPtr.IsValid())
+		{
+			GraphEdtiorPtr->ClearSelectionSet();
+		}
+	}
+
+	//focus the graph onto the diff that was clicked on
+	if (Item->Pin1)
+	{
+		GetDiffPanelForNode(*Item->Pin1->GetOwningNode(), DiffPanels).FocusDiff( *Item->Pin1 );
+
+		if (Item->Pin2)
+		{
+			GetDiffPanelForNode(*Item->Pin2->GetOwningNode(), DiffPanels).FocusDiff( *Item->Pin2 );
+		}
+	}
+	else if (Item->Node1)
+	{
+		GetDiffPanelForNode(*Item->Node1, DiffPanels).FocusDiff( *Item->Node1 );
+
+		if (Item->Node2)
+		{
+			GetDiffPanelForNode(*Item->Node2, DiffPanels).FocusDiff( *Item->Node2 );
+		}
+	}
+}
+
+FReply SMergeGraphView::OnToggleLockView()
+{
+	bViewsAreLocked = !bViewsAreLocked;
+
+	LockViews( DiffPanels, bViewsAreLocked );
+	return FReply::Handled();
+}
+
+const FSlateBrush* SMergeGraphView::GetLockViewImage() const
+{
+	return bViewsAreLocked ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock");
 }
 
 /** 
@@ -112,228 +516,30 @@ public:
 };
 
 SBlueprintMerge::SBlueprintMerge()
-	: SBlueprintDiff()
-	, OwningEditor()
+	: Data()
+	, GraphView()
+	, ComponentsView()
+	, DefaultsView()
 {
 }
 
-void SBlueprintMerge::Construct(const FArguments& InArgs)
+void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
 {
 	FMergeDifferencesListCommands::Register();
 
-	PanelLocal.Blueprint = InArgs._BlueprintLocal;
+	check( InData.OwningEditor.Pin().IsValid() );
 
-	OwningEditor = InArgs._OwningEditor;
-	check( OwningEditor.Pin().IsValid() );
+	Data = InData;
 
-	return SBlueprintDiff::Construct( InArgs._BaseArgs );
-}
+	GraphView = SNew( SMergeGraphView, InData );
 
-TSharedRef<ITableRow> SBlueprintMerge::OnGenerateRow( TSharedPtr<struct FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	FDiffSingleResult const& Result = *ParamItem;
-	FString ToolTip = Result.ToolTip;
-	FLinearColor Color = Result.DisplayColor;
-	FString Text = Result.DisplayString;
-	if (Text.Len() == 0)
-	{
-		Text = LOCTEXT("DIF_UnknownDiff", "Unknown Diff").ToString();
-		ToolTip = LOCTEXT("DIF_Confused", "There is an unspecified difference").ToString();
-	}
-	return SNew(STableRow< TSharedPtr<struct FDiffSingleResult> >, OwnerTable)
-		.Content()
+	this->ChildSlot
 		[
-			SNew(STextBlock)
-			.ToolTipText(ToolTip)
-			.ColorAndOpacity(Color)
-			.Text(Text)
+			GraphView.ToSharedRef()
 		];
-}
 
-void SBlueprintMerge::OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType)
-{
-	if( !Item.IsValid() )
-	{
-		return;
-	}
-
-	//focus the graph onto the diff that was clicked on
-	FDiffSingleResult const& Result = *Item;
-	if (Result.Pin1)
-	{
-		PanelNew.GraphEditor.Pin()->ClearSelectionSet();
-		PanelOld.GraphEditor.Pin()->ClearSelectionSet();
-
-		if (Result.Pin1)
-		{
-			Result.Pin1->bIsDiffing = true;
-			GetGraphEditorForGraph(Result.Pin1->GetOwningNode()->GetGraph())->JumpToPin(Result.Pin1);
-		}
-
-		if (Result.Pin2)
-		{
-			Result.Pin2->bIsDiffing = true;
-			GetGraphEditorForGraph(Result.Pin2->GetOwningNode()->GetGraph())->JumpToPin(Result.Pin2);
-		}
-	}
-	else if (Result.Node1)
-	{
-		PanelNew.GraphEditor.Pin()->ClearSelectionSet();
-		PanelOld.GraphEditor.Pin()->ClearSelectionSet();
-
-		if (Result.Node2)
-		{
-			GetGraphEditorForGraph(Result.Node2->GetGraph())->JumpToNode(Result.Node2, false);
-		}
-		GetGraphEditorForGraph(Result.Node1->GetGraph())->JumpToNode(Result.Node1, false);
-	}
-}
-
-void SBlueprintMerge::ResetGraphEditors()
-{
-	auto GraphEditor = PanelLocal.GraphEditor.Pin();
-	if (GraphEditor != TSharedPtr<SGraphEditor>())
-	{
-		if (bLockViews)
-		{
-			GraphEditor->LockToGraphEditor(PanelNew.GraphEditor);
-			GraphEditor->LockToGraphEditor(PanelOld.GraphEditor);
-
-			auto OldGraph = PanelOld.GraphEditor.Pin();
-			if( OldGraph != TSharedPtr<SGraphEditor>() )
-			{
-				OldGraph->LockToGraphEditor( GraphEditor );
-			}
-			auto NewGraph = PanelNew.GraphEditor.Pin();
-			if( NewGraph!= TSharedPtr<SGraphEditor>() )
-			{
-				NewGraph->LockToGraphEditor(GraphEditor);
-			}
-		}
-		else
-		{
-			GraphEditor->UnlockFromGraphEditor(PanelNew.GraphEditor);
-			GraphEditor->UnlockFromGraphEditor(PanelOld.GraphEditor);
-
-			auto OldGraph = PanelOld.GraphEditor.Pin();
-			if (OldGraph != TSharedPtr<SGraphEditor>())
-			{
-				OldGraph->UnlockFromGraphEditor(GraphEditor);
-			}
-			auto NewGraph = PanelNew.GraphEditor.Pin();
-			if (NewGraph != TSharedPtr<SGraphEditor>())
-			{
-				NewGraph->UnlockFromGraphEditor(GraphEditor);
-			}
-		}
-	}
-	return SBlueprintDiff::ResetGraphEditors();
-}
-
-TSharedRef<SWidget> SBlueprintMerge::GenerateDiffWindow()
-{
-	return SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		[
-			SNew(SSplitter).Orientation(Orient_Vertical)
-			+ SSplitter::Slot()
-			.Value(.7f)
-			[
-				SNew(SSplitter)
-				+ SSplitter::Slot()
-				.Value(0.5f)
-				[
-					//left blueprint
-					SAssignNew(PanelLocal.GraphEditorBorder, SBorder)
-					.VAlign(VAlign_Fill)
-					[
-						SBlueprintDiff::DefaultEmptyPanel()
-					]
-				]
-				+ SSplitter::Slot()
-				.Value(0.5f)
-				[
-					//middle (base) blueprint
-					SAssignNew(PanelOld.GraphEditorBorder, SBorder)
-					.VAlign(VAlign_Fill)
-					[
-						SBlueprintDiff::DefaultEmptyPanel()
-					]
-				]
-			+ SSplitter::Slot()
-				.Value(0.5f)
-				[
-					//right blueprint
-					SAssignNew(PanelNew.GraphEditorBorder, SBorder)
-					.VAlign(VAlign_Fill)
-					[
-						SBlueprintDiff::DefaultEmptyPanel()
-					]
-				]
-			]
-		]
-	;
-}
-
-TSharedRef<SWidget> SBlueprintMerge::GenerateToolbar()
-{
-	return SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.OnClicked(this, &SBlueprintMerge::OnAcceptResultClicked)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AcceptResult", "Accept Result"))
-					.ToolTipText( LOCTEXT( "AcceptResultToolTip", "Overwrite the local blueprint with the blueprint constructed in the lower portion of the merge tool." ) )
-				]
-			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.OnClicked(this, &SBlueprintMerge::OnCancelClicked)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("CancelMerge", "Cancel"))
-					.ToolTipText(LOCTEXT("CancelMergeToolTip", "Discards the changes made in the merge tool. Local file will remain unresolved so the merge tool can be run again if desired."))
-				]
-			]
-		]
-		+ SVerticalBox::Slot()
-			.AutoHeight()
-		[
-			SAssignNew(DiffListBorder, SBorder)
-		];
-}
-
-static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
-{
-	TArray<UEdGraph*> Graphs;
-	FromBlueprint.GetAllGraphs(Graphs);
-
-	UEdGraph* Ret = NULL;
-	if (UEdGraph** Result = Graphs.FindByPredicate(FMatchName(GraphName)))
-	{
-		Ret = *Result;
-	}
-	return Ret;
-}
-
-void SBlueprintMerge::HandleGraphChanged(const FString& GraphName)
-{
-	UEdGraph* GraphOld = FindGraphByName(*PanelOld.Blueprint, GraphName);
-	UEdGraph* GraphNew = FindGraphByName(*PanelNew.Blueprint, GraphName);
-	UEdGraph* GraphLocal = FindGraphByName(*PanelLocal.Blueprint, GraphName);
-
-	PanelOld.GeneratePanel(GraphOld, NULL);
-	PanelNew.GeneratePanel(GraphNew, GraphOld);
-	PanelLocal.GeneratePanel(GraphLocal, GraphOld);
+	/*ComponentsView;
+	DefaultsView;*/
 }
 
 template< typename T >
@@ -359,132 +565,18 @@ static void WriteBackup( UPackage& Package, const FString& Directory, const FStr
 	}
 }
 
-void SBlueprintMerge::OnSelectionChanged(SBlueprintDiff::FGraphToDiff Item, ESelectInfo::Type SelectionType)
-{
-	if (SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
-	{
-		return;
-	}
-
-	FString GraphName = Item->GetGraphOld()->GetName();
-	DisablePinDiffFocus();
-	HandleGraphChanged(GraphName);
-
-	// Ensure that regenerated graphs are properly locked/unlocked:
-	ResetGraphEditors();
-
-	// We'll diff the other two graphs against this shared base:
-	UEdGraph* GraphBase = FindGraphByName(*PanelOld.Blueprint, GraphName);
-
-	// Diff local version vs base:
-	TArray<FDiffSingleResult> FoundDiffsLocal;
-	UEdGraph* GraphLocal = FindGraphByName(*PanelLocal.Blueprint, GraphName);
-	FGraphDiffControl::DiffGraphs(GraphLocal, GraphBase, FoundDiffsLocal);
-
-	// Diff remote version vs. base:
-	TArray<FDiffSingleResult> FoundDiffsRemote;
-	UEdGraph* GraphRemote = FindGraphByName(*PanelNew.Blueprint, GraphName);
-	FGraphDiffControl::DiffGraphs(GraphRemote, GraphBase, FoundDiffsRemote);
-
-	// Display results of the two diffs:
-	FMergeDifferencesListCommands const& Commands = FMergeDifferencesListCommands::Get();
-	LocalDiffResults.Empty();
-	TSharedRef< SWidget > DiffsLocal = GenerateDiffView(FoundDiffsLocal, Commands.LocalNext, Commands.LocalPrevious, LocalDiffResults );
-	RemoteDiffResults.Empty();
-	TSharedRef< SWidget > DiffsRemote = GenerateDiffView(FoundDiffsRemote, Commands.RemoteNext, Commands.RemotePrevious, RemoteDiffResults );
-
-	DiffListBorder->SetContent( SNew( SVerticalBox )
-		+ SVerticalBox::Slot()[DiffsLocal]
-		+ SVerticalBox::Slot()[DiffsRemote] );
-}
-
-SGraphEditor* SBlueprintMerge::GetGraphEditorForGraph(UEdGraph* Graph) const
-{
-	if (PanelLocal.GraphEditor.Pin()->GetCurrentGraph() == Graph)
-	{
-		return PanelLocal.GraphEditor.Pin().Get();
-	}
-	return SBlueprintDiff::GetGraphEditorForGraph(Graph);
-}
-
-TSharedRef< SWidget > SBlueprintMerge::GenerateDiffView(TArray<FDiffSingleResult>& Diffs, TSharedPtr< const FUICommandInfo > CommandNext, TSharedPtr< const FUICommandInfo > CommandPrev, TArray< TSharedPtr<FDiffSingleResult> >& SharedResults )
-{
-	struct SortDiff
-	{
-		bool operator () (const FDiffSingleResult& A, const FDiffSingleResult& B) const
-		{
-			return A.Diff < B.Diff;
-		}
-	};
-
-	Sort(Diffs.GetTypedData(), Diffs.Num(), SortDiff());
-
-	TSharedPtr<FUICommandList> KeyCommands = MakeShareable(new FUICommandList);
-
-	//KeyCommands->MapAction(CommandPrev, FExecuteAction::CreateSP(this, &FListItemGraphToDiff::PrevDiff));
-	//KeyCommands->MapAction(CommandNext, FExecuteAction::CreateSP(this, &FListItemGraphToDiff::NextDiff));
-
-	FToolBarBuilder ToolbarBuilder(KeyCommands, FMultiBoxCustomization::None);
-	ToolbarBuilder.AddToolBarButton(CommandPrev, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.PrevDiff"));
-	ToolbarBuilder.AddToolBarButton(CommandNext, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.NextDiff"));
-
-	CopyToShared(Diffs, SharedResults);
-
-	TSharedRef<SHorizontalBox> Result = SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.f)
-		.MaxWidth(350.f)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.Padding(0.f)
-			.AutoHeight()
-			[
-				ToolbarBuilder.MakeWidget()
-			]
-			+ SVerticalBox::Slot()
-				.Padding(0.f)
-				.AutoHeight()
-				[
-					SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("PropertyWindow.CategoryBackground"))
-					.Padding(FMargin(2.0f))
-					.ForegroundColor(FEditorStyle::GetColor("PropertyWindow.CategoryForeground"))
-					.ToolTipText(LOCTEXT("BlueprintDifDifferencesToolTip", "List of differences found between revisions, click to select"))
-					.HAlign(HAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("RevisionDifferences", "Revision Differences"))
-					]
-				]
-			+ SVerticalBox::Slot()
-				.Padding(1.f)
-				.FillHeight(1.f)
-				[
-					SNew(SListView< TSharedPtr<FDiffSingleResult> >)
-					.ItemHeight(24)
-					.ListItemsSource(&SharedResults)
-					.OnGenerateRow(this, &SBlueprintMerge::OnGenerateRow)
-					.SelectionMode(ESelectionMode::Single)
-					.OnSelectionChanged( this, &SBlueprintMerge::OnDiffListSelectionChanged)
-				]
-		];
-	return Result;
-}
-
 UBlueprint* SBlueprintMerge::GetTargetBlueprint()
 {
-	// @todo doc, do we need to cache this on merge construction?
-	return OwningEditor.Pin()->GetBlueprintObj();
+	return Data.OwningEditor.Pin()->GetBlueprintObj();
 }
 
 FReply SBlueprintMerge::OnAcceptResultClicked()
 {
 	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
 	const FString BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
-	WriteBackup(*PanelNew.Blueprint->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension() );
-	WriteBackup(*PanelOld.Blueprint->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension() );
-	WriteBackup(*PanelLocal.Blueprint->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
+	WriteBackup(*Data.BlueprintNew->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension() );
+	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension() );
+	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
 	UPackage* Package = GetTargetBlueprint()->GetOutermost();
 	TArray<UPackage*> PackagesToSave;
@@ -503,14 +595,14 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 		FSlateNotificationManager::Get().AddNotification( ErrorNotification );
 	}
 
-	OwningEditor.Pin()->CloseMergeTool();
+	Data.OwningEditor.Pin()->CloseMergeTool();
 
 	return FReply::Handled();
 }
 
 FReply SBlueprintMerge::OnCancelClicked()
 {
-	OwningEditor.Pin()->CloseMergeTool();
+	Data.OwningEditor.Pin()->CloseMergeTool();
 	return FReply::Handled();
 }
 

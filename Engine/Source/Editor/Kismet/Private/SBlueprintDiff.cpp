@@ -79,29 +79,21 @@ const UObject* GetCDO( const UBlueprint* ForBlueprint )
 	return ForBlueprint->GeneratedClass->ClassDefaultObject;
 }
 
-/** Individual Diff item shown in the list of diffs */
-struct FDiffResultItem: public TSharedFromThis<FDiffResultItem>
+TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
 {
-	FDiffResultItem(FDiffSingleResult InResult): Result(InResult){}
-
-	FDiffSingleResult Result;
-
-	TSharedRef<SWidget>	GenerateWidget() const
+	FString ToolTip = Result.ToolTip;
+	FLinearColor Color = Result.DisplayColor;
+	FString Text = Result.DisplayString;
+	if (Text.Len() == 0)
 	{
-		FString ToolTip = Result.ToolTip;
-		FLinearColor Color = Result.DisplayColor;
-		FString Text = Result.DisplayString;
-		if(Text.Len() == 0)
-		{
-			Text = LOCTEXT("DIF_UnknownDiff", "Unknown Diff").ToString();
-			ToolTip = LOCTEXT("DIF_Confused", "There is an unspecified difference").ToString();
-		}
-		return SNew(STextBlock)
-				.ToolTipText(ToolTip)
-				.ColorAndOpacity(Color)
-				.Text(Text);
+		Text = LOCTEXT("DIF_UnknownDiff", "Unknown Diff").ToString();
+		ToolTip = LOCTEXT("DIF_Confused", "There is an unspecified difference").ToString();
 	}
-};
+	return SNew(STextBlock)
+		.ToolTipText(ToolTip)
+		.ColorAndOpacity(Color)
+		.Text(Text);
+}
 
 FListItemGraphToDiff::FListItemGraphToDiff( class SBlueprintDiff* InDiff, class UEdGraph* InGraphOld, class UEdGraph* InGraphNew, const FRevisionInfo& InRevisionOld, const FRevisionInfo& InRevisionNew )
 	: Diff(InDiff), GraphOld(InGraphOld), GraphNew(InGraphNew), RevisionOld(InRevisionOld), RevisionNew(InRevisionNew)
@@ -397,6 +389,7 @@ void FListItemGraphToDiff::KeyWasPressed( const FKeyboardEvent& InKeyboardEvent 
 FDiffPanel::FDiffPanel()
 {
 	Blueprint = NULL;
+	LastFocusedPin = NULL;
 }
 
 // Generates a widget showing CDO values. NewBlueprint's CDO values will be displayed by the widget (Base just used for determining what to hide):
@@ -487,8 +480,6 @@ static TSharedRef<SWidget> GenerateComponentsDiff( UBlueprint const* BaseBluepri
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SBlueprintDiff::Construct( const FArguments& InArgs)
 {
-	LastPinTarget = NULL;
-	LastOtherPinTarget = NULL;
 	FDiffListCommands::Register();
 	check(InArgs._BlueprintOld && InArgs._BlueprintNew);
 	PanelOld.Blueprint = InArgs._BlueprintOld;
@@ -631,9 +622,20 @@ void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
 	}
 }
 
+TSharedRef<SWidget> SBlueprintDiff::DefaultEmptyPanel()
+{
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
+		];
+}
+
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
-	DisablePinDiffFocus();
 	HandleGraphChanged( GraphOld ? GraphOld->GetName() : GraphNew->GetName() );
 
 	ResetGraphEditors();
@@ -644,41 +646,36 @@ void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdG
 
 void SBlueprintDiff::OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer )
 {
-	DisablePinDiffFocus();
-
-	//focus the graph onto the diff that was clicked on
 	FDiffSingleResult Result = TheDiff->Result;
-	if(Result.Pin1)
-	{
-		PanelNew.GraphEditor.Pin()->ClearSelectionSet();
-		PanelOld.GraphEditor.Pin()->ClearSelectionSet();
-	
-		if(Result.Pin1)
-		{
-			LastPinTarget = Result.Pin1;
-			Result.Pin1->bIsDiffing = true;
-			GetGraphEditorForGraph(Result.Pin1->GetOwningNode()->GetGraph())->JumpToPin(Result.Pin1);
-		}
 
-		if(Result.Pin2)
+	const auto SafeClearSelection = []( TWeakPtr<SGraphEditor> GraphEditor )
+	{
+		auto GraphEditorPtr = GraphEditor.Pin();
+		if( GraphEditorPtr.IsValid())
 		{
-			LastOtherPinTarget = Result.Pin2;
-			Result.Pin2->bIsDiffing = true;
-			GetGraphEditorForGraph(Result.Pin2->GetOwningNode()->GetGraph())->JumpToPin(Result.Pin2);
+			GraphEditorPtr->ClearSelectionSet();
+		}
+	};
+
+	SafeClearSelection( PanelNew.GraphEditor );
+	SafeClearSelection( PanelOld.GraphEditor );
+
+	if (Result.Pin1)
+	{
+		GetDiffPanelForNode(*Result.Pin1->GetOwningNode()).FocusDiff(*Result.Pin1);
+		if (Result.Pin2)
+		{
+			GetDiffPanelForNode(*Result.Pin2->GetOwningNode()).FocusDiff(*Result.Pin2);
 		}
 	}
-	else if(Result.Node1)
+	else if (Result.Node1)
 	{
-		PanelNew.GraphEditor.Pin()->ClearSelectionSet();
-		PanelOld.GraphEditor.Pin()->ClearSelectionSet();
-
-		if(Result.Node2)
+		GetDiffPanelForNode(*Result.Node1).FocusDiff(*Result.Node1);
+		if (Result.Node2)
 		{
-			GetGraphEditorForGraph(Result.Node2->GetGraph())->JumpToNode(Result.Node2, false);
+			GetDiffPanelForNode(*Result.Node2).FocusDiff(*Result.Node2);
 		}
-		GetGraphEditorForGraph(Result.Node1->GetGraph())->JumpToNode(Result.Node1, false);
 	}
-
 }
 
 FReply	SBlueprintDiff::OnToggleLockView()
@@ -712,6 +709,12 @@ void SBlueprintDiff::ResetGraphEditors()
 
 void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
 {
+	if( LastFocusedPin )
+	{
+		LastFocusedPin->bIsDiffing = false;
+	}
+	LastFocusedPin = NULL;
+
 	TSharedPtr<SWidget> Widget = SNew(SBorder)
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
@@ -824,30 +827,44 @@ bool FDiffPanel::CanCopyNodes() const
 	return false;
 }
 
-SGraphEditor* SBlueprintDiff::GetGraphEditorForGraph( UEdGraph* Graph ) const
+void FDiffPanel::FocusDiff(UEdGraphPin& Pin)
 {
-	if(PanelOld.GraphEditor.Pin()->GetCurrentGraph() == Graph)
+	if( LastFocusedPin )
 	{
-		return PanelOld.GraphEditor.Pin().Get();
+		LastFocusedPin->bIsDiffing = false;
 	}
-	else if(PanelNew.GraphEditor.Pin()->GetCurrentGraph() == Graph)
-	{
-		return PanelNew.GraphEditor.Pin().Get();
-	}
-	checkNoEntry();
-	return NULL;
+	Pin.bIsDiffing = true;
+	LastFocusedPin = &Pin;
+
+	GraphEditor.Pin()->JumpToPin(&Pin);
 }
 
-TSharedRef<SWidget> SBlueprintDiff::DefaultEmptyPanel()
+void FDiffPanel::FocusDiff(UEdGraphNode& Node)
 {
-	return SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
-		];
+	if (LastFocusedPin)
+	{
+		LastFocusedPin->bIsDiffing = false;
+	}
+	LastFocusedPin = NULL;
+
+	GraphEditor.Pin()->JumpToNode(&Node, false);
+}
+
+FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
+{
+	auto OldGraphEditorPtr = PanelOld.GraphEditor.Pin();
+	if (OldGraphEditorPtr.IsValid() && Node.GetGraph() == OldGraphEditorPtr->GetCurrentGraph())
+	{
+		return PanelOld;
+	}
+	auto NewGraphEditorPtr = PanelNew.GraphEditor.Pin();
+	if (NewGraphEditorPtr.IsValid() && Node.GetGraph() == NewGraphEditorPtr->GetCurrentGraph())
+	{
+		return PanelNew;
+	}
+	checkf(false, TEXT("Looking for node %s but it cannot be found in provided panels"), *Node.GetName());
+	static FDiffPanel Default;
+	return Default;
 }
 
 TSharedRef<SWidget> SBlueprintDiff::GenerateDiffWindow()
@@ -1080,18 +1097,6 @@ FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 		Diff->KeyWasPressed(InKeyboardEvent);
 	}
 	return FReply::Handled();
-}
-
-void SBlueprintDiff::DisablePinDiffFocus()
-{
-	if(LastPinTarget)
-	{
-		LastPinTarget->bIsDiffing = false;
-	}
-	if(LastOtherPinTarget)
-	{
-		LastOtherPinTarget->bIsDiffing = false;
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

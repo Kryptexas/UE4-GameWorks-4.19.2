@@ -1,52 +1,38 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SBlueprintDiff.h"
+#include "BlueprintMergeData.h"
 
 class FBlueprintEditor;
 
-class MERGE_API SBlueprintMerge : public SBlueprintDiff
+class MERGE_API SBlueprintMerge : public SCompoundWidget
 {
 public:
 	SBlueprintMerge();
 
-	SLATE_BEGIN_ARGS(SBlueprintMerge){}
-	SLATE_ARGUMENT( const class UBlueprint*, BlueprintLocal)
-	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
-	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
+	SLATE_BEGIN_ARGS(SBlueprintMerge)
+	{}
 	SLATE_END_ARGS()
-	
-	void Construct(const FArguments& InArgs);
-	TSharedRef<ITableRow> OnGenerateRow( TSharedPtr<struct FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable);
-	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
 
-protected:
-	/** SBlueprintDiff overrides, see base class for documentation */
-	virtual void ResetGraphEditors() override;
-	virtual TSharedRef<SWidget> GenerateDiffWindow() override;
-	virtual TSharedRef<SWidget> GenerateToolbar() override;
-	virtual void HandleGraphChanged(const FString& GraphName) override;
-	virtual void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType) override;
-	virtual SGraphEditor* GetGraphEditorForGraph(UEdGraph* Graph) const override;
-	
+	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+
+protected:	
 	/** Helper functions */
-	TSharedRef< SWidget > GenerateDiffView(TArray<FDiffSingleResult>& Diffs, TSharedPtr< const FUICommandInfo > CommandNext, TSharedPtr< const FUICommandInfo > CommandPrev, TArray< TSharedPtr<FDiffSingleResult> >& SharedResults);
 	UBlueprint* GetTargetBlueprint();
 
 	/** Event handlers */
 	FReply OnAcceptResultClicked();
 	FReply OnCancelClicked();
 
-	// We can't maintain a SharedPtr to OwningEditor because we don't logically own it,
-	// if you make this a SharedPtr closing the blueprint editor while the merge tool
-	// is open will prevent the blueprint editor destructor from running:
-	TWeakPtr<FBlueprintEditor> OwningEditor;
-	FDiffPanel PanelLocal;
-	TWeakPtr<SWindow>		OwningWindow;
+	FBlueprintMergeData Data;
+
+	TSharedPtr<SWidget>		GraphView;
+	TSharedPtr<SWidget>		ComponentsView;
+	TSharedPtr<SWidget>		DefaultsView;
 
 	// This has to be allocated here because SListView cannot own the list
 	// that it is displaying. It also seems like the display list *has*
 	// to be a list of TSharedPtrs.
-	TArray< TSharedPtr<FDiffSingleResult> > LocalDiffResults;
-	TArray< TSharedPtr<FDiffSingleResult> > RemoteDiffResults;
+	TArray< TSharedPtr<struct FDiffSingleResult> > LocalDiffResults;
+	TArray< TSharedPtr<struct FDiffSingleResult> > RemoteDiffResults;
 };

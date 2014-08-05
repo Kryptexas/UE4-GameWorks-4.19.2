@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
+#include "Editor/GraphEditor/Public/DiffResults.h"
 #include "GraphEditor.h"
 
 struct FMatchName
@@ -19,8 +20,18 @@ struct FMatchName
 	FString const& Name;
 };
 
+/** Individual Diff item shown in the list of diffs */
+struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
+{
+	FDiffResultItem(FDiffSingleResult InResult) : Result(InResult){}
+
+	FDiffSingleResult Result;
+
+	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
+};
+
 /*List item that entry for a graph*/
-struct FListItemGraphToDiff: public TSharedFromThis<FListItemGraphToDiff>
+struct KISMET_API FListItemGraphToDiff: public TSharedFromThis<FListItemGraphToDiff>
 {
 	FListItemGraphToDiff(class SBlueprintDiff* Diff, class UEdGraph* GraphOld, class UEdGraph* GraphNew, const FRevisionInfo& RevisionOld, const FRevisionInfo& RevisionNew);
 	~FListItemGraphToDiff();
@@ -122,6 +133,10 @@ struct KISMET_API FDiffPanel
 	/*Can user copy any of the selected nodes?*/
 	bool CanCopyNodes() const;
 
+	/*Functions used to focus/find a particular change in a diff result*/
+	void FocusDiff(UEdGraphPin& Pin);
+	void FocusDiff(UEdGraphNode& Node);
+
 	/*The blueprint that owns the graph we are showing*/
 	const class UBlueprint*				Blueprint;
 
@@ -137,6 +152,8 @@ struct KISMET_API FDiffPanel
 	/*A name identifying which asset this panel is displaying */
 	bool							bShowAssetName;
 
+	/*The panel stores the last pin that was focused on by the user, so that it can clear the visual style when selection changes*/
+	UEdGraphPin*					LastFocusedPin;
 private:
 	/*Command list for this diff panel*/
 	TSharedPtr<FUICommandList> GraphEditorCommands;
@@ -161,6 +178,9 @@ public:
 
 	/** Called when a new Graph is clicked on by user */
 	void OnGraphChanged(FListItemGraphToDiff* Diff);
+
+	/** Helper function for generating an empty widget */
+	static TSharedRef<SWidget> DefaultEmptyPanel();
 
 protected:
 	/* Need to process keys for shortcuts to buttons */
@@ -200,10 +220,7 @@ protected:
 	TArray< FGraphToDiff> Graphs;
 
 	/** Get Graph editor associated with this Graph */
-	virtual SGraphEditor* GetGraphEditorForGraph(UEdGraph* Graph) const ;
-
-	/** Helper function for generating an empty widget */
-	static TSharedRef<SWidget> DefaultEmptyPanel();
+	FDiffPanel& GetDiffPanelForNode(UEdGraphNode& Node);
 
 	/** Generates the widgets used to display the graphs that are being diff'd */
 	virtual TSharedRef<SWidget> GenerateDiffWindow();
@@ -238,12 +255,6 @@ protected:
 
 	/** The ListView containing the graphs the user can select */
 	TSharedPtr<SListViewType>	GraphsToDiff;
-
-	/** The last pin the user clicked on */
-	UEdGraphPin* LastPinTarget;
-
-	/** The last other pin the user clicked on */
-	UEdGraphPin* LastOtherPinTarget;
 
 	friend struct FListItemGraphToDiff;
 };

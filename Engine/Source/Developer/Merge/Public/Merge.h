@@ -3,16 +3,9 @@
 #pragma once
 
 #include "ModuleManager.h"
-#include "IAssetTypeActions.h"
 
 class UBlueprint;
 class FBlueprintEditor;
-
-struct FMergeDisplayArgs
-{
-	FRevisionInfo DepotHeadRevision;
-	FRevisionInfo CommonBaseRevision;
-};
 
 /**
  * The public interface to this module
@@ -48,7 +41,7 @@ public:
 	 *
 	 * @return The merge view widget
 	 */
-	virtual TSharedRef<class SDockTab> GenerateMergeWidget( const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor ) = 0;
+	virtual TSharedRef<class SDockTab> GenerateMergeWidget( const UBlueprint& Object, TSharedRef< class FBlueprintEditor> Editor ) = 0;
 
 	/** 
 	 * @return whether the blueprint is in a conflicted state, and can therefore be merged.
