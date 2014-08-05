@@ -148,7 +148,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			}
 			if ( HandleHitWall(Hit, TimeTick*Hit.Time, MoveDelta) )
 			{
-				return;
+				break;
 			}
 			if( NumBounces < 2 )
 			{
