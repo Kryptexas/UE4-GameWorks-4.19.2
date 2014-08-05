@@ -1549,7 +1549,11 @@ FString ULocalPlayer::GetNickname() const
 		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
 		if (OnlineIdentityInt.IsValid())
 		{
-			return OnlineIdentityInt->GetPlayerNickname(ControllerId);
+			auto UniqueId = GetPreferredUniqueNetId();
+			if (UniqueId.IsValid())
+			{
+				return OnlineIdentityInt->GetPlayerNickname(*UniqueId);
+			}
 		}
 	}
 
