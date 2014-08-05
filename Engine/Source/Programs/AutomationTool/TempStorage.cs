@@ -42,9 +42,6 @@ namespace AutomationTool
                     // this is a bit of a hack, but UAT itself creates these, so we need to allow them to be 
                     bool bOkToBeDifferent = Name.Contains("Engine/Binaries/DotNET/");
                     // this is a problem with mac compiles
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbb.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbbmalloc.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libfreetype.dylib");
                     bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libogg.dylib");
                     bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libvorbis.dylib");
                     bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("Contents/MacOS/UE4Editor");

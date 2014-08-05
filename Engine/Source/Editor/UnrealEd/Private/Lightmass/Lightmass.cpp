@@ -2447,9 +2447,7 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Mac/AgentInterface.dll"),
 		TEXT("../Mac/UnrealLightmass-Core-Mac-Debug.dylib"),
 		TEXT("../Mac/UnrealLightmass-Projects-Mac-Debug.dylib"),
-		TEXT("../Mac/UnrealLightmass-SwarmInterface-Mac-Debug.dylib"),
-		TEXT("../Mac/libtbb.dylib"),
-		TEXT("../Mac/libtbbmalloc.dylib")
+		TEXT("../Mac/UnrealLightmass-SwarmInterface-Mac-Debug.dylib")
 	};
 #else
 	const TCHAR* LightmassExecutable64 = TEXT("../Mac/UnrealLightmass");
@@ -2458,9 +2456,7 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Mac/AgentInterface.dll"),
 		TEXT("../Mac/UnrealLightmass-Core.dylib"),
 		TEXT("../Mac/UnrealLightmass-Projects.dylib"),
-		TEXT("../Mac/UnrealLightmass-SwarmInterface.dylib"),
-		TEXT("../Mac/libtbb.dylib"),
-		TEXT("../Mac/libtbbmalloc.dylib")
+		TEXT("../Mac/UnrealLightmass-SwarmInterface.dylib")
 	};
 #endif
 #elif PLATFORM_LINUX
