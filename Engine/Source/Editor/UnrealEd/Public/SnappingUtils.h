@@ -55,7 +55,7 @@ public:
 	 * @param OutVertexNormal	The normal at the closest vertex
 	 * @return true if anything was snapped
 	 */
-	static bool SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal );
+	static bool SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertHelpers );
 
 	/**
 	 * Snaps a scale value to the scale grid

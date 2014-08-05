@@ -203,9 +203,10 @@ FTransform FActorPositioning::GetSnappedSurfaceAlignedTransform(FLevelEditorView
 {
 	FSnappingUtils::SnapPointToGrid(InSurfaceLocation, FVector(0.f));
 
+	bool bDrawVertexHelpers = false;
 	// Secondly, attempt vertex snapping
 	FVector AlignToNormal;
-	if (!InViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( InSurfaceLocation, InViewportClient->GetDropPreviewLocation(), InViewportClient, AlignToNormal ))
+	if (!InViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( InSurfaceLocation, InViewportClient->GetDropPreviewLocation(), InViewportClient, AlignToNormal, bDrawVertexHelpers ))
 	{
 		AlignToNormal = SurfaceNormal;
 	}
