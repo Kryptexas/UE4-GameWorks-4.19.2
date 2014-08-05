@@ -6,13 +6,16 @@
 =============================================================================*/ 
 
 #pragma once
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequenceBase.h"
 
 struct FInputBlendPose;
+struct FA2CSPose;
 struct FA2Pose;
 struct FAnimTrack;
+struct FPerBoneBlendWeight;
 class UBlendSpaceBase;
-
+class UAnimSequenceBase;
+typedef TArray<FTransform> FTransformArrayA2;
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
 
@@ -205,7 +208,7 @@ public:
 	 *
 	 * return ETypeAdvanceAnim type
 	 */
-	static ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float & MoveDelta, float & InOutTime, const float & EndTime);
+	static enum ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float & MoveDelta, float & InOutTime, const float & EndTime);
 
 	static void TickBlendWeight(float DeltaTime, float DesiredWeight, float & Weight, float& BlendTime);
 	/** 

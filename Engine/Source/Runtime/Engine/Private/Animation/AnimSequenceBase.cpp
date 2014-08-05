@@ -4,6 +4,8 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimInstance.h"
 
 #define NOTIFY_TRIGGER_OFFSET KINDA_SMALL_NUMBER;
 

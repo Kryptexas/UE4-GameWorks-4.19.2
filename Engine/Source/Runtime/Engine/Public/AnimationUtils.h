@@ -7,20 +7,16 @@
 #ifndef __ANIMATIONUTILS_H__
 #define __ANIMATIONUTILS_H__
 
+#include "Animation/AnimSequence.h"
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogMatinee, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAnimNotify, Warning, All);
 
-#include "Animation/AnimSequence.h"
 
 // Forward declarations.
 class UAnimCompress;
 class UAnimSet;
-class USkeletalMesh;
-struct FAnimSetMeshLinkup;
 class FTransform;
-struct FMeshBone;
-struct FRotationTrack;
-struct FTranslationTrack;
 
 /**
  * Encapsulates commonly useful data about bones.
@@ -230,7 +226,7 @@ public:
 	 * @param	InFormat	The compression format to convert into a string
 	 * @return				The format as a string
 	 */
-	ENGINE_API static FString GetAnimationCompressionFormatString(AnimationCompressionFormat InFormat);
+	ENGINE_API static FString GetAnimationCompressionFormatString(enum AnimationCompressionFormat InFormat);
 
 	/**
 	 * Computes the 'height' of each track, relative to a given animation linkup.

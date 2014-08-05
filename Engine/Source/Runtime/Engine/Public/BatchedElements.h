@@ -7,8 +7,8 @@
 #ifndef _INC_BATCHEDELEMENTS
 #define _INC_BATCHEDELEMENTS
 
-#include "StaticBoundShaderState.h"
 #include "HitProxies.h"
+#include "StaticBoundShaderState.h"
 #include "SceneTypes.h"
 
 

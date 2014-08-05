@@ -12,6 +12,7 @@
 #include "Animation/AnimData/BoneMaskFilter.h"
 #include "Animation/BlendSpaceBase.h"
 #include "Animation/AnimCompositeBase.h"
+#include "Animation/AnimInstance.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);

@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "AnimationRuntime.h"
 #include "AssetRegistryModule.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
