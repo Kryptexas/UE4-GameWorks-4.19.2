@@ -233,6 +233,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 private:
 
 	friend class FGameplayTagTest;
+	friend class FGameplayEffectsTest;
 
 	/** Helper function to populate the tag tree from each table */
 	void PopulateTreeFromDataTable(class UDataTable* Table);
