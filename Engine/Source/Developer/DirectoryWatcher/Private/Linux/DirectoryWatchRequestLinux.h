@@ -32,17 +32,19 @@ public:
 
 private:
 
-    bool bRunning;
+	FString Directory;
+
+	bool bRunning;
 	bool bEndWatchRequestInvoked;
 
-    int FileDescriptor;
-    int * WatchDescriptor;
-    int NotifyFilter;
+	int FileDescriptor;
+	int * WatchDescriptor;
+	int NotifyFilter;
 
-    TArray<FString> AllFiles;
+	TArray<FString> AllFiles;
 	TArray<IDirectoryWatcher::FDirectoryChanged> Delegates;
 	TArray<FFileChangeData> FileChanges;
 
-    void Shutdown();
-    void ProcessChanges();
+	void Shutdown();
+	void ProcessChanges();
 };
