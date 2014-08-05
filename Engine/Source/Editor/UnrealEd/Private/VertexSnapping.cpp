@@ -360,13 +360,14 @@ void FVertexSnappingImpl::DrawSnappingHelpers(const FSceneView* View,FPrimitiveD
 
 struct FVertexSnappingArgs
 {
-	FVertexSnappingArgs( const FPlane& InActorPlane, const FVector& InCurrentLocation, FLevelEditorViewportClient* InViewportClient, const FSceneView* InView, const FVector2D& InMousePosition, EAxisList::Type InCurrentAxis )
+	FVertexSnappingArgs( const FPlane& InActorPlane, const FVector& InCurrentLocation, FLevelEditorViewportClient* InViewportClient, const FSceneView* InView, const FVector2D& InMousePosition, EAxisList::Type InCurrentAxis, bool bInDrawVertexHelpers )
 		: ActorPlane( InActorPlane )
 		, CurrentLocation( InCurrentLocation )
 		, ViewportClient( InViewportClient )
 		, MousePosition( InMousePosition )
 		, SceneView( InView )
 		, CurrentAxis( InCurrentAxis )
+		, bDrawVertexHelpers( bInDrawVertexHelpers )
 	{}
 
 	/** Plane that the actor is on.  For checking distances and culling vertices behind the plane */
@@ -381,6 +382,8 @@ struct FVertexSnappingArgs
 	const FSceneView* SceneView;
 	/** The current axis being dragged */
 	EAxisList::Type CurrentAxis;
+	/** Whether or not to draw vertex helpers */
+	bool bDrawVertexHelpers;
 };
 
 bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapActor, UPrimitiveComponent* Component, const FVertexSnappingArgs& InArgs, FSnappingVertex& OutClosestLocation )
@@ -546,14 +549,21 @@ FSnappingVertex FVertexSnappingImpl::GetClosestVertex( const TArray<FSnapActor>&
 		}
 	}
 
-	if( ActorVertsToDraw.IsValid() )
+	if( InArgs.bDrawVertexHelpers )
 	{
-		ActorVertsToFade.Add( ActorVertsToDraw, FApp::GetCurrentTime() );
+		if(ActorVertsToDraw.IsValid())
+		{
+			ActorVertsToFade.Add(ActorVertsToDraw, FApp::GetCurrentTime());
+		}
+
+		ActorVertsToFade.Remove(ClosestActor);
+		ActorVertsToDraw = ClosestActor;
 	}
-
-
-	ActorVertsToFade.Remove( ClosestActor );
-	ActorVertsToDraw = ClosestActor;
+	else
+	{
+		ActorVertsToDraw = nullptr;
+		ActorVertsToFade.Empty();
+	}
 
 
 	return ClosestLocation;
@@ -601,7 +611,7 @@ void FVertexSnappingImpl::GetActorsInsideBox( const FBox& Box, UWorld* World, TA
 }
 
 
-bool FVertexSnappingImpl::SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal )
+bool FVertexSnappingImpl::SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertexHelpers )
 {
 	bool bSnapped = false;
 
@@ -634,7 +644,8 @@ bool FVertexSnappingImpl::SnapLocationToNearestVertex( FVector& Location, const 
 		ViewportClient,
 		View,
 		Cursor.GetCursorPos(),
-		EAxisList::Screen
+		EAxisList::Screen,
+		bDrawVertexHelpers
 	);
 	
 	// Snap to the nearest vertex
@@ -741,7 +752,8 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 					ViewportClient,
 					View,
 					MousePosition,
-					CurrentAxis
+					CurrentAxis,
+					true
 				);
 
 				// Snap the drag delta
@@ -872,7 +884,8 @@ bool FVertexSnappingImpl::SnapDragLocationToNearestVertex( const FVector& BaseLo
 			ViewportClient,
 			View,
 			MousePosition,
-			CurrentAxis
+			CurrentAxis,
+			true
 		);
 
 		SnapDragDelta( Args, BaseLocation, AllowedSnappingBox, NoActorsToIgnore, DragDelta );

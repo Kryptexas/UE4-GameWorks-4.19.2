@@ -81,7 +81,7 @@ public:
 	 * @param OutVertexNormal	The normal at the closest vertex
 	 * @return true if anything was snapped
 	 */
-	bool SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal );
+	bool SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertHelpers );
 
 	bool SnapToBSPVertex( FVector& Location, FVector GridBase, FRotator& Rotation );
 
@@ -369,12 +369,12 @@ void FEditorViewportSnapping::DrawSnappingHelpers(const FSceneView* View,FPrimit
 	VertexSnappingImpl.DrawSnappingHelpers( View, PDI );
 }
 
-bool FEditorViewportSnapping::SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal )
+bool FEditorViewportSnapping::SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertHelpers )
 {
 	bool bSnapped = false;
 	if( IsSnapToVertexEnabled() )
 	{
-		bSnapped = VertexSnappingImpl.SnapLocationToNearestVertex( Location, MouseLocation, ViewportClient, OutVertexNormal );
+		bSnapped = VertexSnappingImpl.SnapLocationToNearestVertex( Location, MouseLocation, ViewportClient, OutVertexNormal, bDrawVertHelpers );
 	}
 	else
 	{
@@ -445,9 +445,9 @@ bool FSnappingUtils::SnapDragLocationToNearestVertex(const FVector& BaseLocation
 	return EditorViewportSnapper->SnapDragLocationToNearestVertex(BaseLocation, DragDelta, ViewportClient);
 }
 
-bool FSnappingUtils::SnapLocationToNearestVertex(FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal)
+bool FSnappingUtils::SnapLocationToNearestVertex(FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertHelpers )
 {
-	return EditorViewportSnapper->SnapLocationToNearestVertex(Location, MouseLocation, ViewportClient, OutVertexNormal);
+	return EditorViewportSnapper->SnapLocationToNearestVertex(Location, MouseLocation, ViewportClient, OutVertexNormal, bDrawVertHelpers );
 }
 
 void FSnappingUtils::SnapScale(FVector& Point, const FVector& GridBase)
