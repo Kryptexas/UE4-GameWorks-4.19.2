@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UserWidget.h"
+
 #include "WidgetTree.generated.h"
 
 /** The widget tree manages the collection of widgets in a blueprint widget. */
