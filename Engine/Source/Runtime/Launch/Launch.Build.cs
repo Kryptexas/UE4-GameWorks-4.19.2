@@ -35,6 +35,7 @@ public class Launch : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Sockets",
+				"HeadMountedDisplay",
 			}
 		);
         
@@ -49,6 +50,7 @@ public class Launch : ModuleRules
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
+					"HeadMountedDisplay"
 		        }
             );
         }
