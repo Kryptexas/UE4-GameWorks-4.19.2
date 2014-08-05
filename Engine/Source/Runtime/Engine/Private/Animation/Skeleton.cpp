@@ -74,12 +74,12 @@ void USkeleton::PostLoad()
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
 
+	// Set up smart name mappings, if these have been loaded they will already be present
+	SmartNames.AddContainer(AnimCurveMappingName);
+
 #if WITH_EDITOR
 	if ( GIsEditor )
 	{
-		// Set up smart name mappings, if these have been loaded they will already be present
-		SmartNames.AddContainer(AnimCurveMappingName);
-
 		CollectAnimationNotifies();
 	}
 #endif
