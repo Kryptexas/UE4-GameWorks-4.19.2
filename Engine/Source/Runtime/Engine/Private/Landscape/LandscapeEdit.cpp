@@ -716,7 +716,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	// Set new collision component to pointer
 	CollisionComponent = CollisionComp;
 
-	if (ChangeType && CreatedNew)
+	if (ChangeType || CreatedNew)
 	{
 		Proxy->RegisterAllComponents();
 	}
