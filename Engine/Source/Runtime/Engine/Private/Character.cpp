@@ -13,6 +13,7 @@
 #include "DisplayDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -389,13 +390,26 @@ namespace MovementBaseUtility
 			AActor* NewBaseOwner = NewBase->GetOwner();
 			if (NewBaseOwner)
 			{
-				BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
+				// NOTE: TTP# 341962: Temp hack to fix issues with landing on Foliage actors with thousands of components.
+				if (Cast<AInstancedFoliageActor>(NewBaseOwner))
+				{
+					return;
+				}
 
+				if (NewBaseOwner->PrimaryActorTick.bCanEverTick)
+				{
+					BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
+				}
+
+				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
 				TArray<UActorComponent*> Components;
 				NewBaseOwner->GetComponents(Components);
 				for (auto& Component : Components)
 				{
-					BasedObjectTick.AddPrerequisite(Component, Component->PrimaryComponentTick);
+					if (Component->PrimaryComponentTick.bCanEverTick)
+					{
+						BasedObjectTick.AddPrerequisite(Component, Component->PrimaryComponentTick);
+					}
 				}
 			}
 		}
@@ -409,13 +423,26 @@ namespace MovementBaseUtility
 			AActor* OldBaseOwner = OldBase->GetOwner();
 			if (OldBaseOwner)
 			{
-				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
+				// NOTE: TTP# 341962: Temp hack to fix issues with landing on Foliage actors with thousands of components.
+				if (Cast<AInstancedFoliageActor>(OldBaseOwner))
+				{
+					return;
+				}
 
+				if (OldBaseOwner->PrimaryActorTick.bCanEverTick)
+				{
+					BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
+				}
+
+				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
 				TArray<UActorComponent*> Components;
 				OldBaseOwner->GetComponents(Components);
 				for (auto& Component : Components)
 				{
-					BasedObjectTick.RemovePrerequisite(Component, Component->PrimaryComponentTick);
+					if (Component->PrimaryComponentTick.bCanEverTick)
+					{
+						BasedObjectTick.RemovePrerequisite(Component, Component->PrimaryComponentTick);
+					}
 				}
 			}
 		}
