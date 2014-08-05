@@ -343,8 +343,12 @@ void UChildConnection::CleanUp()
 	{
 		if (OwningActor != NULL)
 		{
-			// Cleanup/Destroy the connection actor & controller	
-			OwningActor->OnNetCleanup(this);
+			if ( !OwningActor->HasAnyFlags( RF_BeginDestroyed | RF_FinishDestroyed ) )
+			{
+				// Cleanup/Destroy the connection actor & controller	
+				OwningActor->OnNetCleanup(this);
+			}
+
 			OwningActor = NULL;
 			PlayerController = NULL;
 		}
