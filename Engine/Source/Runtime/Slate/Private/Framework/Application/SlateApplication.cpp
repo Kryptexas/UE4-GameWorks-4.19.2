@@ -718,6 +718,12 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateDrawWindowTime );
 
+		const bool bClearHittestGrid = !DrawOnlyThisWindow.IsValid();
+		if ( !SWidget::UseLegacyHittest( ) && bClearHittestGrid )
+		{
+			HittestGrid->BeginFrame( VirtualDesktopRect );
+		}
+
 		TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow(); 
 
 		if (ActiveModalWindow.IsValid())
@@ -858,11 +864,6 @@ void FSlateApplication::Tick()
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateTickWindowAndChildren );
-
-		if ( !SWidget::UseLegacyHittest() )
-		{
-			HittestGrid->BeginFrame( VirtualDesktopRect );
-		}
 
 		if ( ActiveModalWindow.IsValid() )
 		{
