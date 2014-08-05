@@ -52,4 +52,8 @@ public:
 	 */
 	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() = 0;
 
+	/**
+	* Optionally pre-init the HMD module.
+	*/
+	virtual void PreInit() {}
 };

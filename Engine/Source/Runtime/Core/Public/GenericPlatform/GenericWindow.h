@@ -16,7 +16,12 @@ namespace EWindowMode
 		/** The window has no border and takes up the entire area of the screen */
 		WindowedFullscreen,
 		/** The window has a border and may not take up the entire screen area */
-		Windowed
+		Windowed,
+		/** Pseudo-fullscreen mode for devices like HMDs */
+		WindowedMirror,
+
+		/** The total number of supported window modes */
+		NumWindowModes
 	};
 
 	static inline Type ConvertIntToWindowMode(int32 InWindowMode)
@@ -29,6 +34,9 @@ namespace EWindowMode
 				break;
 			case 1:
 				WindowMode = WindowedFullscreen;
+				break;
+			case 3:
+				WindowMode = WindowedMirror;
 				break;
 			case 2:
 			default:

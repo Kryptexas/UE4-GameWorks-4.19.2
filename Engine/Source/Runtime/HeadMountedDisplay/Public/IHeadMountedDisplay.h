@@ -70,7 +70,7 @@ public:
     /**
 	 * Calculates the FOV, based on the screen dimensions of the device
 	 */
-	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const = 0;
+	virtual void	GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const = 0;
 
 	/**
 	 * Whether or not the HMD supports positional tracking (either via camera or other means)
@@ -148,6 +148,11 @@ public:
     virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) = 0;
 
 	/**
+	* Returns true, if HMD allows fullscreen mode.
+	*/
+	virtual bool IsFullScreenAllowed() const { return true; }
+
+	/**
 	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position 
 	 * before switching to fullscreen mode.
 	 */
@@ -207,6 +212,13 @@ public:
 	 * @param Canvas The canvas on which to draw.
 	 */
 	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) {}
+
+	/**
+	* Passing key events to HMD.
+	* If returns 'false' then key will be handled by PlayerController;
+	* otherwise, key won't be handled by the PlayerController.
+	*/
+	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
 
 	/** 
 	 * Additional optional distorion rendering parameters

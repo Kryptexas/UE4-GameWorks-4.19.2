@@ -281,7 +281,7 @@ public:
 	virtual float GetTabletPressure() { return 0.f; }
 	virtual bool IsPenActive() { return false; }
 	virtual void SetMouse(int32 x, int32 y) = 0;
-	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen; }
+	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen || WindowMode == EWindowMode::WindowedMirror; }
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**

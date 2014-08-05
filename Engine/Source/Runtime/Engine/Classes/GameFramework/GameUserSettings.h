@@ -143,6 +143,7 @@ protected:
 	 *	0 = Fullscreen
 	 *	1 = Windowed fullscreen
 	 *	2 = Windowed
+	 *	3 = WindowedMirror
 	 */
 	UPROPERTY(config)
 	int32 FullscreenMode;

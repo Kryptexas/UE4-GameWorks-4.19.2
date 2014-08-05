@@ -45,6 +45,7 @@
 	#include "Commandlets/Commandlet.h"
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
+	#include "HeadMountedDisplay.h"
 
 #if !UE_SERVER
 	#include "ISlateRHIRendererModule.h"
@@ -2361,6 +2362,8 @@ bool FEngineLoop::AppInit( )
 		return false;
 	}
 
+	PreInitHMDDevice();
+
 	// Put the command line and config info into the suppression system
 	FLogSuppressionInterface::Get().ProcessConfigAndCommandLine();
 
@@ -2570,6 +2573,26 @@ void FEngineLoop::AppExit( )
 	}
 
 	FInternationalization::TearDown();
+}
+
+void FEngineLoop::PreInitHMDDevice()
+{
+#if WITH_ENGINE
+	if (!GIsEditor)
+	{
+#if 0	//@todo vr: only preinit first valid hmd
+		if (!FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
+		{
+			// Get a list of plugins that implement this feature
+			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
+			for (auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+			{
+				(*HMDModuleIt)->PreInit();
+			}
+		}
+#endif
+	}
+#endif // #if WITH_ENGINE
 }
 
 #undef LOCTEXT_NAMESPACE
