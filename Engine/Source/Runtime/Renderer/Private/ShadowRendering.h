@@ -741,6 +741,17 @@ public:
 
 private:
 
+	/**
+	* Renders the shadow subject depth, to a particular hacked view
+	*/
+	void RenderDepthInner(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+
+	/**
+	* Renders the dynamic shadow subject depth, to a particular hacked view
+	*/
+	friend class FRenderDepthDynamicThreadTask;
+	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
 	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);

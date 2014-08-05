@@ -371,6 +371,18 @@ public:
 		QUICK_SCOPE_CYCLE_COUNTER(AA_FDrawVisibleRenderThreadTask);
 		delete RHICmdList;
 	}
+
+	/*** Helper function set up a submit chain of the these   */
+	static FGraphEventRef AddToChain(FGraphEventRef AnyThreadCompletionEvent, FGraphEventRef SubmitChain, FRHICommandList* CmdList)
+	{
+		FGraphEventArray Prereqs;
+		Prereqs.Add(AnyThreadCompletionEvent);
+		if (SubmitChain.GetReference())
+		{
+			Prereqs.Add(SubmitChain);
+		}
+		return TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+	}
 };
 
 template<typename DrawingPolicyType>
@@ -403,15 +415,7 @@ FGraphEventRef TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 				.ConstructAndDispatchWhenReady(this, CmdList, &View, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
 			Start = Last + 1;
 
-			FGraphEventArray Prereqs;
-			Prereqs.Add(AnyThreadCompletionEvent);
-			if (SubmitChain.GetReference())
-			{
-				Prereqs.Add(SubmitChain);
-			}
-
-			SubmitChain = TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
-
+			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 		}
 	}
 	check(Start == OrderedDrawingPolicies.Num());

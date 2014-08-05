@@ -247,6 +247,13 @@ private:
 	/** Renders the velocities of movable objects for the motion blur effect. */
 	void RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame);
 
+	/** Renders the velocities of movable objects for the motion blur effect. */
+	friend class FRenderVelocityDynamicThreadTask;
+	void RenderDynamicVelocities(FRHICommandList& RHICmdList, const FViewInfo& View);
+
+	/** Renders the velocities of movable objects for the motion blur effect. */
+	void RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 	/** Renders world-space lightmap density instead of the normal color. */
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 

@@ -441,6 +441,110 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
+void FDeferredShadingSceneRenderer::RenderDynamicVelocities(FRHICommandList& RHICmdList, const FViewInfo& View)
+{
+	// Draw velocities for movable dynamic meshes.
+	TDynamicPrimitiveDrawer<FVelocityDrawingPolicyFactory> Drawer(
+		RHICmdList, &View, FVelocityDrawingPolicyFactory::ContextType(DDM_AllOccluders), true, false, true
+		);
+	for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num(); PrimitiveIndex++)
+	{
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
+
+		if (!PrimitiveSceneInfo->ShouldRenderVelocity(View))
+		{
+			continue;
+		}
+
+		FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
+
+		Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+		PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
+	}
+	Drawer.IsDirty();
+}
+
+class FRenderVelocityDynamicThreadTask
+{
+	FDeferredShadingSceneRenderer& ThisRenderer;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	FDeferredShadingSceneRenderer* SceneRenderer;
+
+public:
+
+	FRenderVelocityDynamicThreadTask(
+		FDeferredShadingSceneRenderer* InThisRenderer,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView
+		)
+		: ThisRenderer(*InThisRenderer)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderVelocityDynamicThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		ThisRenderer.RenderDynamicVelocities(RHICmdList, View);
+	}
+};
+
+
+void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
+{
+	static TAutoConsoleVariable<int32> CVarParallelVelocity(
+		TEXT("r.ParallelVelocity"),
+		1,
+		TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+		ECVF_RenderThreadSafe
+		);
+
+	if (!GRHICommandList.Bypass() && CVarParallelVelocity.GetValueOnRenderThread())
+	{
+		// parallel version
+
+		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
+		bool OutDirty = false; // unused
+
+		FGraphEventRef SubmitChain;
+
+		SubmitChain = Scene->VelocityDrawList.DrawVisibleParallel(View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, OutDirty);
+		{
+			FRHICommandList* CmdList = new FRHICommandList;
+
+			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+				.ConstructAndDispatchWhenReady(this, CmdList, &View);
+
+			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
+		}
+		if (SubmitChain.GetReference())
+		{
+			RHICmdList.Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
+		}
+	}
+	else
+	{
+		// single threaded version
+		// Draw velocities for movable static meshes.
+		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
+		RenderDynamicVelocities(RHICmdList, View);
+	}
+}
+
 void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame)
 {
 	check(FeatureLevel >= ERHIFeatureLevel::SM4);
@@ -488,28 +592,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 			
 	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
 
-	// Draw velocities for movable static meshes.
-	Scene->VelocityDrawList.DrawVisible(RHICmdList, View,View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
-
-	// Draw velocities for movable dynamic meshes.
-	TDynamicPrimitiveDrawer<FVelocityDrawingPolicyFactory> Drawer(
-		RHICmdList, &View, FVelocityDrawingPolicyFactory::ContextType(DDM_AllOccluders), true, false, true
-		);
-	for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
-	{
-		const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-
-		if(!PrimitiveSceneInfo->ShouldRenderVelocity(View))
-		{
-			continue;
-		}
-
-		FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-
-		Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-		PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
-	}				
-	Drawer.IsDirty();
+	RenderVelocitiesInner(RHICmdList, View);
 
 	RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 

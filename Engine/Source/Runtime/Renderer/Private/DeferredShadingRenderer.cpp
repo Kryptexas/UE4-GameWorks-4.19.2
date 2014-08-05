@@ -461,14 +461,7 @@ FGraphEventRef FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(
 	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 		.ConstructAndDispatchWhenReady(this, CmdList, &View, &bOutDirty);
 
-	FGraphEventArray Prereqs;
-	Prereqs.Add(AnyThreadCompletionEvent);
-	if (SubmitChain.GetReference())
-	{
-		Prereqs.Add(SubmitChain);
-	}
-
-	return TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+	return FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 }
 
 static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View, bool bShaderComplexity)
@@ -1169,14 +1162,7 @@ FGraphEventRef FDeferredShadingSceneRenderer::RenderPrePassViewParallel(FRHIComm
 		FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderPrepassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 			.ConstructAndDispatchWhenReady(this, CmdList, &View, &OutDirty);
 
-		FGraphEventArray Prereqs;
-		Prereqs.Add(AnyThreadCompletionEvent);
-		if (SubmitChain.GetReference())
-		{
-			Prereqs.Add(SubmitChain);
-		}
-
-		SubmitChain = TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+		SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 	}
 
 	return SubmitChain;
