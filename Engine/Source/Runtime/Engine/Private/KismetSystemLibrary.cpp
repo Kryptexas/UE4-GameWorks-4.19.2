@@ -2606,7 +2606,7 @@ void UKismetSystemLibrary::CollectGarbage()
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
+void UKismetSystemLibrary::ShowAdBanner(bool bShowOnBottomOfScreen)
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
@@ -2614,7 +2614,7 @@ void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
 	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
+void UKismetSystemLibrary::HideAdBanner()
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
@@ -2622,7 +2622,7 @@ void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
 	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
+void UKismetSystemLibrary::ForceCloseAdBanner()
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{

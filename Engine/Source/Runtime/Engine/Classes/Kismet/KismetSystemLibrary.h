@@ -1124,27 +1124,27 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void CollectGarbage();
 
 	/**
-	 * Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize the view)
-	 * (iOS only; this function will be renamed or moved in a future release)
+	 * Will show an ad banner (iAd on iOS, or AdMob on Android) on the top or bottom of screen, on top of the GL view (doesn't resize the view)
+	 * (iOS and Android only)
 	 *
 	 * @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen);
+	static void ShowAdBanner(bool bShowOnBottomOfScreen);
 
 	/**
-	 * Hides the iAd banner shows with IPhoneShowAdBanner. Will force close the ad if it's open
-	 * (iOS only; this function will be renamed or moved in a future release)
+	 * Hides the ad banner (iAd on iOS, or AdMob on Android). Will force close the ad if it's open
+	 * (iOS and Android only)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void EXPERIMENTAL_HideAdBanner();
+	static void HideAdBanner();
 
 	/**
 	 * Forces closed any displayed ad. Can lead to loss of revenue
-	 * (iOS only; this function will be renamed or moved in a future release)
+	 * (iOS and Android only)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void EXPERIMENTAL_CloseAdBanner();
+	static void ForceCloseAdBanner();
 
 	/**
 	 * Displays the built-in leaderboard GUI (iOS and Android only; this function may be renamed or moved in a future release)
