@@ -3087,8 +3087,9 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		// case of async loading as we cannot in-place replace objects.
 
 		UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(NULL, ThisParent, Export.ObjectName, true);
-
-		if(	(FApp::IsGame() && !GIsEditor && !IsRunningCommandlet()) 
+		
+		// if we require cooked data, attempt to find exports in memory first
+		if(	FPlatformProperties::RequiresCookedData() 
 		||	GIsAsyncLoading 
 		||	Export.bForcedExport 
 		||	LinkerRoot->ShouldFindExportsInMemoryFirst()
