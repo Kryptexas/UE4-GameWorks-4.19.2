@@ -158,8 +158,7 @@ uint32 FRecastDebugGeometry::GetAllocatedSize() const
 
 	for (int i = 0; i < Clusters.Num(); ++i)
 	{
-//		Removed this as a race condition causes crash: TTP#343021
-//		Size += Clusters[i].MeshIndices.GetAllocatedSize();
+		Size += Clusters[i].MeshIndices.GetAllocatedSize();
 	}
 
 	return Size;
