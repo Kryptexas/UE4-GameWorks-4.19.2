@@ -8,6 +8,7 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
 #include "BlueprintEventNodeSpawner.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
