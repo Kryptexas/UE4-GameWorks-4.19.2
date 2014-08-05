@@ -116,8 +116,6 @@ void FFrame::Step(UObject *Context, RESULT_DECL)
 
 void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
 {
-	checkSlow(Result != NULL);
-
 	if (Property->PropertyFlags & CPF_OutParm)
 	{
 		// look through the out parameter infos and find the one that has the address of this property
@@ -134,7 +132,10 @@ void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
 	else
 	{
 		MostRecentPropertyAddress = Property->ContainerPtrToValuePtr<uint8>(Locals);
-		Property->CopyCompleteValueToScriptVM(Result, MostRecentPropertyAddress);
+		if (Result)
+		{
+			Property->CopyCompleteValueToScriptVM(Result, MostRecentPropertyAddress);
+		}
 	}
 }
 
