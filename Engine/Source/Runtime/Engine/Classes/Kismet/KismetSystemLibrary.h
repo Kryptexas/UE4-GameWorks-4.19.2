@@ -40,10 +40,10 @@ namespace EQuitPreference
 {
 	enum Type
 	{
-		/** Move the application to the background */
-		Background,
 		/** Exit the game completely */
 		Quit,
+		/** Move the application to the background */
+		Background,
 	};
 }
 
