@@ -285,7 +285,7 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 		const UTimelineTemplate* TimelineTemplate = Timelines[i];
 
 		// Not fatal if NULL, but shouldn't happen
-		if(!ensure(TimelineTemplate != NULL))
+		if(!TimelineTemplate)
 		{
 			continue;
 		}
