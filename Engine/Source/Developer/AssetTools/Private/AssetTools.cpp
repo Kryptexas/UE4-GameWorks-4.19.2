@@ -699,6 +699,11 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
 							continue;
 						}
+						else
+						{
+							// succeed, recreate package since it has been deleted
+							Pkg = CreatePackage(NULL, *PackageName);
+						}
 					}
 					else
 					{
