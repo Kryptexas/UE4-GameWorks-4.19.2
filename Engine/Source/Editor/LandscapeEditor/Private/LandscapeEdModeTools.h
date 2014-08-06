@@ -604,8 +604,12 @@ struct FHeightmapAccessor
 
 				for (ULandscapeComponent* Component : Components)
 				{
-					CollisionComponents.Add(Component->CollisionComponent.Get());
-					PreUpdateLocalBoxes.Add(FBox(FVector((float)X1, (float)Y1, Component->CachedLocalBox.Min.Z), FVector((float)X2, (float)Y2, Component->CachedLocalBox.Max.Z)));
+					ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
+					if (CollisionComponent)
+					{
+						CollisionComponents.Add(CollisionComponent);
+						PreUpdateLocalBoxes.Add(FBox(FVector((float)X1, (float)Y1, Component->CachedLocalBox.Min.Z), FVector((float)X2, (float)Y2, Component->CachedLocalBox.Max.Z)));
+					}
 				}
 
 				// Update landscape.

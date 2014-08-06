@@ -756,7 +756,12 @@ public:
 		,	XYOffsetCache(InTarget)
 	{}
 
-	virtual ~FLandscapeToolStrokeAddComponent() {}
+	virtual ~FLandscapeToolStrokeAddComponent()
+	{
+		// We flush here so here ~FXYOffsetmapAccessor can safely lock the heightmap data to update bounds
+		HeightCache.Flush();
+		XYOffsetCache.Flush();
+	}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
