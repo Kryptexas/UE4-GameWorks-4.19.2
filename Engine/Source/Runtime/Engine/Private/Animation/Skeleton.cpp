@@ -153,16 +153,17 @@ void USkeleton::Serialize( FArchive& Ar )
 	{
 		Ar << Guid;
 	}
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
-	{
-		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
-	}
 
 	// If we should be using smartnames, serialize the mappings
 	if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
 	{
 		SmartNames.Serialize(Ar);
+	}
+
+#if WITH_EDITORONLY_DATA
+	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
+	{
+		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
 	}
 #endif
 }
