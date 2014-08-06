@@ -1282,6 +1282,53 @@ namespace AutomationTool
 			}
 			File.SetLastWriteTimeUtc(Dest, File.GetLastWriteTimeUtc(Source));
 		}
+
+		/// <summary>
+		/// Copies a directory and all of it's contents recursively. Does not throw exceptions.
+		/// </summary>
+		/// <param name="Source"></param>
+		/// <param name="Dest"></param>
+		/// <returns>True if the operation was successful, false otherwise.</returns>
+		public static bool CopyDirectory_NoExceptions(string Source, string Dest, bool bQuiet = false)
+		{
+			Source = ConvertSeparators(PathSeparator.Default, Source);
+			Dest = ConvertSeparators(PathSeparator.Default, Dest);
+			Dest.TrimEnd(PathSeparator.Default.ToString().ToCharArray());
+
+			if (InternalUtils.SafeDirectoryExists(Dest))
+			{
+				InternalUtils.SafeDeleteDirectory(Dest, bQuiet);
+				if (InternalUtils.SafeDirectoryExists(Dest, true))
+				{
+					return false;
+				}
+			}
+
+			if (!InternalUtils.SafeCreateDirectory(Dest, bQuiet))
+			{
+				return false;
+			}
+			foreach (var SourceSubDirectory in Directory.GetDirectories(Source))
+			{
+				string DestPath = Dest + PathSeparator.Default.ToString() + GetDirectoryName(SourceSubDirectory);
+				if (!CopyDirectory_NoExceptions(SourceSubDirectory, DestPath, bQuiet))
+				{
+					return false;
+				}
+			}
+			foreach (var SourceFile in Directory.GetFiles(Source))
+			{
+				int FilenameStart = SourceFile.LastIndexOf(PathSeparator.Default.ToString());
+				string DestPath = Dest + SourceFile.Substring(FilenameStart);
+				if (!CopyFile_NoExceptions(SourceFile, DestPath, bQuiet))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		/// <summary>
 		/// Returns directory name without filename. 
 		/// The difference between this and Path.GetDirectoryName is that this
