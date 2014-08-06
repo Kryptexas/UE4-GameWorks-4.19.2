@@ -2745,7 +2745,7 @@ void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
 
 	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
 	{
-		PRigidDynamic->setMaxDepenetrationVelocity(MaxVelocity);
+		PRigidDynamic->setMaxDepenetrationVelocity(UseMaxVelocity);
 	}
 #endif
 }
