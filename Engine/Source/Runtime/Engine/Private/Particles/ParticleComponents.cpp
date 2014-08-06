@@ -4459,21 +4459,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
-		// Force an LOD update
-		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
-		{
-			FVector EffectPosition = GetComponentLocation();
-			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			if (DesiredLODLevel != LODLevel)
-			{
-				SetLODLevel(DesiredLODLevel);
-			}
-		}
-		else
-		{
-			bForceLODUpdateFromRenderer = true;
-		}
-
 		if (bFlagAsJustAttached)
 		{
 			bJustRegistered = true;
@@ -4506,6 +4491,23 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				}
 			}
 		}
+
+
+		// Force an LOD update
+		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
+		{
+			FVector EffectPosition = GetComponentLocation();
+			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
+			if (DesiredLODLevel != LODLevel)
+			{
+				SetLODLevel(DesiredLODLevel);
+			}
+		}
+		else
+		{
+			bForceLODUpdateFromRenderer = true;
+		}
+
 
 		// Flag the system as having been activated at least once
 		bHasBeenActivated = true;
