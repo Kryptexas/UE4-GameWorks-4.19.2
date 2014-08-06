@@ -55,8 +55,6 @@ struct TDereferenceWrapper<T*, PREDICATE_CLASS>
 	/** Dereferennce pointers */
 	FORCEINLINE bool operator()( T* A, T* B ) const 
 	{
-		check( A != NULL );
-		check( B != NULL );
 		return Predicate( *A, *B ); 
 	} 
 };
