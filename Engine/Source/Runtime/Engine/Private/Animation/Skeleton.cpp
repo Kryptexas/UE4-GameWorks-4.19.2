@@ -43,12 +43,13 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	// Make sure we have somewhere for curve names.
+	SmartNames.AddContainer(AnimCurveMappingName);
+
 #if WITH_EDITORONLY_DATA
 	SlotGroupNames.Empty();
 	SlotGroupNames.Add(DefaultSlotGroupName);
 
-	// Make sure we have somewhere for curve names.
-	SmartNames.AddContainer(AnimCurveMappingName);
 #endif
 }
 
