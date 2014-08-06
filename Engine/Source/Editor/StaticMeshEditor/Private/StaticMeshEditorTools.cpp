@@ -501,7 +501,7 @@ void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Ty
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRecomputeNormals"), bRecomputeNormals ? TEXT("True") : TEXT("False"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bRecomputeNormals"), bRecomputeNormals ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bRecomputeNormals = bRecomputeNormals;
 	}
@@ -514,7 +514,7 @@ void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::T
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRecomputeTangents"), bRecomputeTangents ? TEXT("True") : TEXT("False"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bRecomputeTangents"), bRecomputeTangents ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bRecomputeTangents = bRecomputeTangents;
 	}
@@ -527,7 +527,7 @@ void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::T
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bRemoveDegenerates"), bRemoveDegenerates ? TEXT("True") : TEXT("False"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bRemoveDegenerates"), bRemoveDegenerates ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bRemoveDegenerates = bRemoveDegenerates;
 	}
@@ -540,7 +540,7 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("bUseFullPrecisionUVs"), bUseFullPrecisionUVs ? TEXT("True") : TEXT("False"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bUseFullPrecisionUVs"), bUseFullPrecisionUVs ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bUseFullPrecisionUVs = bUseFullPrecisionUVs;
 	}
@@ -552,7 +552,7 @@ void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX, ETextCommi
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.X"), FString::Printf(TEXT("%.3f"), NewScaleX));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("BuildScale3D.X"), FString::Printf(TEXT("%.3f"), NewScaleX));
 		}
 		BuildSettings.BuildScale3D.X = NewScaleX;
 	}
@@ -564,7 +564,7 @@ void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY, ETextCommi
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Y"), FString::Printf(TEXT("%.3f"), NewScaleY));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Y"), FString::Printf(TEXT("%.3f"), NewScaleY));
 		}
 		BuildSettings.BuildScale3D.Y = NewScaleY;
 	}
@@ -576,7 +576,7 @@ void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommi
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Z"), FString::Printf(TEXT("%.3f"), NewScaleZ));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("BuildScale3D.Z"), FString::Printf(TEXT("%.3f"), NewScaleZ));
 		}
 		BuildSettings.BuildScale3D.Z = NewScaleZ;
 	}
@@ -591,7 +591,7 @@ void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleCommitted(float New
 {
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.BuildSettings"), TEXT("DistanceFieldResolutionScale"), FString::Printf(TEXT("%.3f"), NewValue));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("DistanceFieldResolutionScale"), FString::Printf(TEXT("%.3f"), NewValue));
 	}
 	OnDistanceFieldResolutionScaleChanged(NewValue);
 }

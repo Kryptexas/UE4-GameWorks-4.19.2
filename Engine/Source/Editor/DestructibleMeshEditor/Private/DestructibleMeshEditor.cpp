@@ -400,7 +400,7 @@ void FDestructibleMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.DestructibleMesh.ReimportedViaEditor"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.DestructibleMesh.ReimportedViaEditor"));
 		}
 		RefreshTool();
 	}

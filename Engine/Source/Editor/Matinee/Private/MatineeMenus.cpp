@@ -407,7 +407,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.NewGroup"), GroupAttribs);
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.NewGroup"), GroupAttribs);
 	}
 
 	IData->InterpGroups.Append(NewGroups);

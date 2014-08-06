@@ -1067,7 +1067,7 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
 		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Convex, PrimIndex));
@@ -1085,7 +1085,7 @@ void FStaticMeshEditor::OnCollisionBox()
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
 		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Box, PrimIndex));
@@ -1103,7 +1103,7 @@ void FStaticMeshEditor::OnCollisionSphere()
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
 		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Sphere, PrimIndex));
@@ -1121,7 +1121,7 @@ void FStaticMeshEditor::OnCollisionSphyl()
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
 		}
 		ClearSelectedPrims();
 		AddSelectedPrim(FPrimData(KPT_Sphyl, PrimIndex));
@@ -1779,7 +1779,7 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.ReimportedViaEditor"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.ReimportedViaEditor"));
 		}
 		RefreshTool();
 	}

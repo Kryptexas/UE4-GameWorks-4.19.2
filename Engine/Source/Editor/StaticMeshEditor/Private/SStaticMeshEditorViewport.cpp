@@ -249,7 +249,7 @@ void SStaticMeshEditorViewport::SetViewModeWireframe()
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), TEXT("CurrentViewMode"), FString::Printf(TEXT("%d"), static_cast<int32>(CurrentViewMode)));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("CurrentViewMode"), FString::Printf(TEXT("%d"), static_cast<int32>(CurrentViewMode)));
 	}
 	EditorViewportClient->SetViewMode(CurrentViewMode);
 	SceneViewport->Invalidate();
@@ -275,7 +275,7 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), EditorViewportClient->EngineShowFlags.VertexColors));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), EditorViewportClient->EngineShowFlags.VertexColors));
 	}
 	SceneViewport->Invalidate();
 }

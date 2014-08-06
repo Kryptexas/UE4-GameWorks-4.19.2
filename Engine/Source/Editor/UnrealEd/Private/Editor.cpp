@@ -2603,7 +2603,7 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 						GEditor->BroadcastObjectReimported(Obj);
 						if (FEngineAnalytics::IsAvailable())
 						{
-							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.AssetReimported"));
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"));
 						}
 						bSuccess = true;
 					}

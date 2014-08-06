@@ -905,7 +905,7 @@ void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Persona.ReimportedViaEditor"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Persona.ReimportedViaEditor"));
 		}
 		ConditionalRefreshEditor(InObject);
 	}

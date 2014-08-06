@@ -421,7 +421,7 @@ void SSocketManager::CreateSocket()
 
 		if (FEngineAnalytics::IsAvailable())
 		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.StaticMesh.CreateSocket"));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.CreateSocket"));
 		}
 
 		FString SocketNameString = TEXT("Socket");
