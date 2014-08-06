@@ -131,7 +131,7 @@ void AHUD::PostRender()
 		
 		ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
 
-		if (LocalPlayer)
+		if (LocalPlayer && LocalPlayer->ViewportClient)
 		{
 			TArray<FVector2D> ContactPoints;
 
