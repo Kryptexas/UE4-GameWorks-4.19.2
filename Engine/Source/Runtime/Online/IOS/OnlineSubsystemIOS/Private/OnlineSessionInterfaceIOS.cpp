@@ -343,7 +343,7 @@ bool FOnlineSessionIOS::CancelMatchmaking(int32 SearchingPlayerNum, FName Sessio
 }
 
 
-bool FOnlineSessionIOS::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+bool FOnlineSessionIOS::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
 	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
