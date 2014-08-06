@@ -33,10 +33,10 @@ struct FFormatTextArgument
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText ArgumentName;
 
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText TextValue;
 };
 
