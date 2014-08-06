@@ -27,7 +27,7 @@ namespace AutomationTool
 		/// </summary>
 		internal static void Initialize()
 		{
-			if (UnrealBuildTool.Utils.IsRunningOnMono)
+			if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 			{
 				RunningPlatform = new MacHostPlatform();
 			}

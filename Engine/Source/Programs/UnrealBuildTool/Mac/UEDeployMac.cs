@@ -41,7 +41,7 @@ namespace UnrealBuildTool.IOS
 
 			bool bIsStaticLibrary = InTarget.OutputPath.EndsWith(".a");
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				if (!bIsStaticLibrary)
 				{

@@ -2346,7 +2346,7 @@ namespace AutomationTool
 			if (!Command.ParseParam("NoSign"))
 			{
 				CommandUtils.Log("Signing up to {0} files...", Files.Count);
-				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.ExternalExecution.GetRuntimePlatform();
+				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.BuildHostPlatform.Current.Platform;
 				if (TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 				{
 					foreach (var File in Files)

@@ -146,7 +146,7 @@ public class MacPlatform : Platform
     public override bool ShouldUseManifestForUBTBuilds(string AddArgs)
 	{
 		// don't use the manifest to set up build products if we are compiling Mac under Windows and we aren't going to copy anything back to the PC
-		bool bIsBuildingRemotely = UnrealBuildTool.ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac;
+		bool bIsBuildingRemotely = UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
         bool bUseManifest = !bIsBuildingRemotely || AddArgs.IndexOf("-CopyAppBundleBackToDevice", StringComparison.InvariantCultureIgnoreCase) > 0;
 		return bUseManifest;
 	}

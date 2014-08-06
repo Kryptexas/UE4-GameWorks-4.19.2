@@ -840,7 +840,7 @@ namespace UnrealBuildTool
 
 				UBTArguments.Append("UnrealHeaderTool");
 				// Which desktop platform do we need to clean UHT for?
-                UBTArguments.Append(" " + ExternalExecution.GetRuntimePlatform().ToString());
+                UBTArguments.Append(" " + BuildHostPlatform.Current.Platform.ToString());
 				UBTArguments.Append(" " + UnrealTargetConfiguration.Development.ToString());
 				// NOTE: We disable mutex when launching UBT from within UBT to clean UHT
 				UBTArguments.Append(" -NoMutex -Clean");

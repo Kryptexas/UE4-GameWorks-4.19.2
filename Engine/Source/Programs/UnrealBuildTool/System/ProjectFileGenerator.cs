@@ -269,7 +269,7 @@ namespace UnrealBuildTool
 
 				if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
 				{
-					if (ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
+					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 					{
 						MasterProjectRelativePath = Path.GetFullPath(Path.Combine (Utils.GetExecutingAssemblyDirectory (), "..", "..", "..", "Engine"));
 						GameProjectName = "UE4Game";
@@ -1563,7 +1563,7 @@ namespace UnrealBuildTool
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
-					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(ExternalExecution.GetRuntimePlatform(), UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
+					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))
@@ -1992,7 +1992,7 @@ namespace UnrealBuildTool
                     // TODO(sbc): See if we can just drop the Encoding.UTF8 argument on all
                     // platforms.  In this case UTF8 encoding will still be used but without the
                     // BOM, which is, AFAICT, desirable in almost all cases.
-					if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                         File.WriteAllText(FileName, NewFileContents);
                     else
                         File.WriteAllText(FileName, NewFileContents, Encoding.UTF8);

@@ -160,7 +160,7 @@ namespace UnrealBuildTool
 
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
 			}
@@ -348,7 +348,7 @@ namespace UnrealBuildTool
 
 		string GetRemoteFrameworkZipPath( UEBuildFramework Framework )
 		{
-			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			if ( BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac )
 			{
 				return ConvertPath( GetLocalFrameworkZipPath( Framework ) );
 			}
@@ -366,7 +366,7 @@ namespace UnrealBuildTool
 			string IntermediatePath = Framework.OwningModule.Target.ProjectDirectory + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
 			IntermediatePath =  Path.GetFullPath( ( IntermediatePath + Framework.FrameworkZipPath ).Replace( ".zip", "" ) );
 
-			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			if ( BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac )
 			{
 				return ConvertPath( IntermediatePath );
 			}
@@ -376,7 +376,7 @@ namespace UnrealBuildTool
 
 		void CleanIntermediateDirectory( string Path )
 		{
-			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			if ( BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac )
 			{
 				// Delete the intermediate directory on the mac
 				RPCUtilHelper.Command( "/", String.Format( "rm -rf {0}", Path ), "", null );
@@ -468,7 +468,7 @@ namespace UnrealBuildTool
 			{
 				Arguments += string.Format(" -I\"{0}\"", ConvertPath(Path.GetFullPath(IncludePath)));
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					// sync any third party headers we may need
 					if (IncludePath.Contains("ThirdParty"))
@@ -542,7 +542,7 @@ namespace UnrealBuildTool
 				// Add the C++ source file and its included files to the prerequisite item list.
 				CompileAction.PrerequisiteItems.Add(SourceFile);
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					QueueFileForBatchUpload(SourceFile);
 				}
@@ -554,7 +554,7 @@ namespace UnrealBuildTool
 						CompileAction.PrerequisiteItems.Add(IncludedFile);
 
 						if (!BuildConfiguration.bUseExperimentalFastDependencyScan &&	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
-							ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+							BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 						{
 							QueueFileForBatchUpload(IncludedFile);
 						}
@@ -605,7 +605,7 @@ namespace UnrealBuildTool
 				FileArguments += string.Format(" \"{0}\"", ConvertPath(SourceFile.AbsolutePath), false);
 
 				string CompilerPath = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + IOSCompiler;
-				if (!Utils.IsRunningOnMono && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					CompileAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 				}
@@ -633,7 +633,7 @@ namespace UnrealBuildTool
 			// Create an action that invokes the linker.
 			Action LinkAction = new Action(ActionType.Link);
 
-			if (!Utils.IsRunningOnMono && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				LinkAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
@@ -674,7 +674,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				// Add any additional files that we'll need in order to link the app
 				foreach (string AdditionalShadowFile in LinkEnvironment.Config.AdditionalShadowFiles)
@@ -710,7 +710,7 @@ namespace UnrealBuildTool
 				RememberedAdditionalFrameworks.Add( Framework );
 
 				// Copy them to remote mac if needed
-				if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+				if ( BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac )
 				{
 					FileItem ShadowFile = FileItem.GetExistingItemByPath( GetLocalFrameworkZipPath( Framework ) );
 
@@ -754,7 +754,7 @@ namespace UnrealBuildTool
 			else
 			{
 				string ResponsePath = Path.GetFullPath("..\\Intermediate\\IOS\\LinkFileList_" + Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePath) + ".tmp"); 
-				if (!Utils.IsRunningOnMono && ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+				if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					ResponseFile.Create (ResponsePath, InputFileNames);
 					RPCUtilHelper.CopyFile (ResponsePath, ConvertPath (ResponsePath), true);
@@ -940,7 +940,7 @@ namespace UnrealBuildTool
 
 		public override void PreBuildSync()
 		{
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				BuiltBinaries = new List<string>();
 			}
@@ -960,7 +960,7 @@ namespace UnrealBuildTool
 				// Assume that there is another directory inside the zip with the same name as the zip
 				ZipDstPath = ZipDstPath.Substring( 0, ZipDstPath.LastIndexOf( '/' ) );
 
-				if ( ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac )
+				if ( BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac )
 				{
 					// If we're on the mac, just unzip using the shell
 					string ResultsText;
@@ -984,7 +984,7 @@ namespace UnrealBuildTool
 
 			string AppName = Target.Rules.Type == TargetRules.TargetType.Game ? Target.GameName : Target.AppName;
 
-			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				string RemoteShadowDirectoryMac = Path.GetDirectoryName(Target.OutputPath);
 				string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);

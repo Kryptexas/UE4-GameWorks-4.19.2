@@ -80,7 +80,7 @@ namespace UnrealBuildTool
          */
         protected override SDKStatus HasRequiredManualSDKInternal()
         {
-            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
             {
                 return SDKStatus.Valid;
             }

@@ -276,7 +276,7 @@ namespace UnrealBuildTool
 
         public override void SetupBinaries(UEBuildTarget InBuildTarget)
         {
-            if (ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
             {
                 // dangerously fast mode doesn't generate stub files
                 if (!IOSToolChain.bUseDangerouslyFastMode)

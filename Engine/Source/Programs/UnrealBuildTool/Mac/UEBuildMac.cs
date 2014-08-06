@@ -159,8 +159,8 @@ namespace UnrealBuildTool
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
 		{
 //			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bCheckExternalHeadersForModification = ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac;
-			BuildConfiguration.bCheckSystemHeadersForModification = ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac;
+			BuildConfiguration.bCheckExternalHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
+			BuildConfiguration.bCheckSystemHeadersForModification = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
 			BuildConfiguration.ProcessorCountMultiplier = MacToolChain.GetAdjustedProcessorCountMultiplier();
 			BuildConfiguration.bUseSharedPCHs = false;
 

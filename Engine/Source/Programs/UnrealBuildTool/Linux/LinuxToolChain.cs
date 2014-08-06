@@ -13,7 +13,7 @@ namespace UnrealBuildTool
     {
         protected static bool CrossCompiling()
         {
-            return ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Linux;
+            return BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux;
         }
 
         protected static bool UsingClang()
@@ -517,7 +517,7 @@ namespace UnrealBuildTool
             // Create an archive action
             Action ArchiveAction = new Action(ActionType.Link);
             ArchiveAction.WorkingDirectory = Path.GetFullPath(".");
-            bool bUsingSh = ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Win64 && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Win32;
+            bool bUsingSh = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32;
             if (bUsingSh)
             {
                 ArchiveAction.CommandPath = "/bin/sh";
@@ -576,7 +576,7 @@ namespace UnrealBuildTool
 
 			Log.TraceVerbose("Adding postlink step");
 
-            bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+            bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
             string ShellBinary = bUseCmdExe ? "cmd.exe" : "/bin/sh";
             string ExecuteSwitch = bUseCmdExe ? " /C" : ""; // avoid -c so scripts don't need +x
             string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
@@ -798,7 +798,7 @@ namespace UnrealBuildTool
 			// are created. This script will be called by action created in FixDependencies()
 			if (LinkEnvironment.Config.bIsCrossReferenced && LinkEnvironment.Config.bIsBuildingDLL)
 			{
-                bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+                bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
                 string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
 
 				string FixDepsScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName);
@@ -876,7 +876,7 @@ namespace UnrealBuildTool
         /** Converts the passed in path from UBT host to compiler native format. */
         public override String ConvertPath(String OriginalPath)
         {
-            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
             {
                 return OriginalPath.Replace("\\", "/");
             }

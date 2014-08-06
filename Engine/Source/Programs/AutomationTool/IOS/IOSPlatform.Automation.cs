@@ -133,7 +133,7 @@ public class IOSPlatform : Platform
 		//   - IPP needs to be able to take a .app directory instead of a Payload directory when doing RepackageFromStage (which would probably be renamed)
 		//   - Some discrepancy in the loading screen pngs that are getting packaged, which needs to be investigated
 		//   - Code here probably needs to be updated to write 0 byte files as 1 byte (difference with IPP, was required at one point when using Ionic.Zip to prevent issues on device, maybe not needed anymore?)
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			// copy in all of the artwork and plist
 			var DeployHandler = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.IOS);
@@ -161,9 +161,9 @@ public class IOSPlatform : Platform
 				InternalUtils.SafeCopyFile(Filename, DestFilename, true);
 			}
 		}
-		
 
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			if (SC.StageTargetConfigurations.Count != 1) 
 			{
@@ -672,7 +672,7 @@ public class IOSPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			// copy the icons/launch screens from the engine
 			{
@@ -749,7 +749,7 @@ public class IOSPlatform : Platform
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
 		string ProjectGameExeFilename = Params.ProjectGameExeFilename;
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			ProjectGameExeFilename = CombinePaths (Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Path.GetFileName (Params.ProjectGameExeFilename));
 		}
@@ -775,7 +775,7 @@ public class IOSPlatform : Platform
 
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
     {
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			if (SC.StageTargetConfigurations.Count != 1)
 			{
@@ -838,7 +838,7 @@ public class IOSPlatform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-	public override bool LaunchViaUFE { get { return UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac; } }
+	public override bool LaunchViaUFE { get { return UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac; } }
 
 	public override string Remap(string Dest)
 	{
@@ -851,7 +851,7 @@ public class IOSPlatform : Platform
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
@@ -916,7 +916,7 @@ public class IOSPlatform : Platform
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
 		}

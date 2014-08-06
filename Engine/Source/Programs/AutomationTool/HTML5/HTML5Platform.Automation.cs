@@ -264,12 +264,12 @@ public class HTML5Platform : Platform
             HTMLPath += "?cookonthefly=true";
         }
 
-        if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+		if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
         {
             FirefoxPath = "/bin/bash";
 			FirefoxProfileCommand = " -c  ' open -a Firefox.app  \"" + HTMLPath + "\"   ' ";
         }
-        else if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64)
+		else if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64)
         {
             FirefoxProfileCommand = FirefoxProfileCommand + "\"" + HTMLPath + "\" ";
         }

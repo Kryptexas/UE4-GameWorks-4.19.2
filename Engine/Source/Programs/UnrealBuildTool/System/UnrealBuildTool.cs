@@ -346,7 +346,7 @@ namespace UnrealBuildTool
         /// <returns>true if valid, false if not</returns>
         static public bool IsValidDesktopPlatform(UnrealTargetPlatform InPlatform)
         {
-            switch (ExternalExecution.GetRuntimePlatform())
+            switch (BuildHostPlatform.Current.Platform)
             {
             case UnrealTargetPlatform.Linux:
                 return InPlatform == UnrealTargetPlatform.Linux;
@@ -355,7 +355,7 @@ namespace UnrealBuildTool
             case UnrealTargetPlatform.Win64:
                 return ((InPlatform == UnrealTargetPlatform.Win32) || (InPlatform == UnrealTargetPlatform.Win64));
             default:
-                throw new BuildException("Invalid RuntimePlatform:" + ExternalExecution.GetRuntimePlatform());
+                throw new BuildException("Invalid RuntimePlatform:" + BuildHostPlatform.Current.Platform);
             }
         }
 
@@ -1180,7 +1180,7 @@ namespace UnrealBuildTool
                 }
 
                 bool CreateStub = Utils.ParseCommandLineFlag(Arguments, "-nocreatestub", out ArgumentIndex);
-                if (CreateStub || (String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) && ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac))
+                if (CreateStub || (String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) && BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac))
                 {
                     BuildConfiguration.bCreateStubIPA = false;
                 }

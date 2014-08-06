@@ -67,7 +67,7 @@ class BuildThirdPartyLibs : BuildCommand
 
 		// figure out what batch/script to run
 		string CompileScriptName;
-		switch (UnrealBuildTool.ExternalExecution.GetRuntimePlatform())
+		switch (UnrealBuildTool.BuildHostPlatform.Current.Platform)
 		{
 			case UnrealTargetPlatform.Win64:
 				CompileScriptName = WindowsCompileScript;

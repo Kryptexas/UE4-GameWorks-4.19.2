@@ -404,7 +404,7 @@ namespace UnrealBuildTool
          */
         public String GetPathVarDelimiter()
         {
-            switch (ExternalExecution.GetRuntimePlatform())
+            switch (BuildHostPlatform.Current.Platform)
             {
                 case UnrealTargetPlatform.Linux:
                 case UnrealTargetPlatform.Mac:
@@ -413,7 +413,7 @@ namespace UnrealBuildTool
                 case UnrealTargetPlatform.Win64:
                     return ";";
                 default:
-                    Log.TraceWarning("PATH var delimiter unknown for platform " + ExternalExecution.GetRuntimePlatform().ToString() + " using ';'");
+                    Log.TraceWarning("PATH var delimiter unknown for platform " + BuildHostPlatform.Current.Platform.ToString() + " using ';'");
                     return ";";
             }
         }
@@ -908,7 +908,7 @@ namespace UnrealBuildTool
             {
                 if (SDKRoot != "")
                 {
-                    SDKPath = Path.Combine(SDKRoot, "Host" + ExternalExecution.GetRuntimePlatform(), GetSDKTargetPlatformName());
+                    SDKPath = Path.Combine(SDKRoot, "Host" + BuildHostPlatform.Current.Platform, GetSDKTargetPlatformName());
                 }
             }
             return SDKPath;

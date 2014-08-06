@@ -630,7 +630,7 @@ public partial class Project : CommandUtils
 			{
 				FileHostParams += "-filehostip=";
 				bool FirstParam = true;
-				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 				{
 					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
 					foreach (NetworkInterface adapter in Interfaces)

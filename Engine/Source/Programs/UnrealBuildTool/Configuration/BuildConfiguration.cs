@@ -493,7 +493,7 @@ namespace UnrealBuildTool
 			DistccExecutablesPath = "/usr/local/bin";
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
-			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				string UserDir = Environment.GetEnvironmentVariable("HOME");
 				string MacDistccExecutablesPath = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/Distcc 3.2.xcplugin/Contents/usr/bin";

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace UnrealBuildTool
 {
@@ -114,6 +115,8 @@ namespace UnrealBuildTool
 	 */
 	public class ExternalExecution
 	{
+
+
 		static ExternalExecution()
 		{
 		}
@@ -123,17 +126,28 @@ namespace UnrealBuildTool
 		/// </summary>
 		static string GetHeaderToolPath()
 		{
-			UnrealTargetPlatform Platform = GetRuntimePlatform();
+			UnrealTargetPlatform Platform = BuildHostPlatform.Current.Platform;
 			string ExeExtension = UEBuildPlatform.GetBuildPlatform(Platform).GetBinaryExtension(UEBuildBinaryType.Executable);
 			string HeaderToolExeName = "UnrealHeaderTool";
 			string HeaderToolPath = Path.Combine("..", "Binaries", Platform.ToString(), HeaderToolExeName + ExeExtension);
 			return HeaderToolPath;
 		}
 
+		class VersionedBinary
+		{
+			public VersionedBinary(string InFilename, int InVersion)
+			{
+				Filename = InFilename;
+				Version = InVersion;
+			}
+			public string Filename;
+			public int Version;
+		}
+
 		/// <summary>
 		/// Finds all UnrealHeaderTool plugins in the plugin directory
 		/// </summary>
-		static void RecursivelyCollectHeaderToolPlugins(string RootPath, string Pattern, string Platform, List<string> PluginBinaries)
+		static void RecursivelyCollectHeaderToolPlugins(string RootPath, string Pattern, string Platform, List<VersionedBinary> PluginBinaries)
 		{
 			var SubDirectories = Directory.GetDirectories(RootPath);
 			foreach (var Dir in SubDirectories)
@@ -153,7 +167,7 @@ namespace UnrealBuildTool
 			{
 				if (Binary.Contains(Platform))
 				{
-					PluginBinaries.Add(Binary);
+					PluginBinaries.Add(new VersionedBinary(Binary, BuildHostPlatform.Current.GetDllApiVersion(Binary)));
 				}
 			}
 		}
@@ -161,21 +175,25 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets all UnrealHeaderTool binaries (including DLLs if it was not build monolithically)
 		/// </summary>
-		static string[] GetHeaderToolBinaries()
+		static VersionedBinary[] GetHeaderToolBinaries()
 		{
-			var Binaries = new List<string>();
+			var Binaries = new List<VersionedBinary>();
 			var HeaderToolExe = GetHeaderToolPath();
 			if (File.Exists(HeaderToolExe))
 			{
-				Binaries.Add(HeaderToolExe);
+				Binaries.Add(new VersionedBinary(HeaderToolExe, -1));
 
 				var HeaderToolLocation = Path.GetDirectoryName(HeaderToolExe);
-				var Platform = GetRuntimePlatform();
+				var Platform = BuildHostPlatform.Current.Platform;
 				var DLLExtension = UEBuildPlatform.GetBuildPlatform(Platform).GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary);
 				var DLLSearchPattern = "UnrealHeaderTool-*" + DLLExtension;
 				var HeaderToolDLLs = Directory.GetFiles(HeaderToolLocation, DLLSearchPattern, SearchOption.TopDirectoryOnly);
-								
-				Binaries.AddRange(HeaderToolDLLs);
+
+
+				foreach (var Binary in HeaderToolDLLs)
+				{
+					Binaries.Add(new VersionedBinary(Binary, BuildHostPlatform.Current.GetDllApiVersion(Binary)));
+				}
 
 				var PluginDirectory = Path.Combine("..", "Plugins");
 				RecursivelyCollectHeaderToolPlugins(PluginDirectory, DLLSearchPattern, Platform.ToString(), Binaries);
@@ -186,42 +204,59 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the latest write time of any of the UnrealHeaderTool binaries (including DLLs and Plugins) or DateTime.MaxValue if UnrealHeaderTool does not exist
 		/// </summary>
-		static DateTime GetHeaderToolTimestamp()
-		{			 
-			var HeaderToolBinaries = GetHeaderToolBinaries();
+		/// <returns>
+		/// Latest timestamp of UHT binaries or DateTime.MaxValue if UnrealHeaderTool is out of date and needs to be rebuilt.
+		/// </returns>
+		static DateTime CheckIfUnrealHeaderToolIsUpToDate()
+		{
 			var LatestWriteTime = DateTime.MinValue;
-			// Find the latest write time for all UnrealHeaderTool binaries
-			foreach (var Binary in HeaderToolBinaries)
+			int? MinVersion = null;
+			using (var TimestampTimer = new ScopedTimer("GetHeaderToolTimestamp"))
 			{
-				var BinaryInfo = new FileInfo(Binary);
-				if (BinaryInfo.Exists)
+				var HeaderToolBinaries = GetHeaderToolBinaries();				
+				// Find the latest write time for all UnrealHeaderTool binaries
+				foreach (var Binary in HeaderToolBinaries)
 				{
-					if (BinaryInfo.LastWriteTime > LatestWriteTime)
+					var BinaryInfo = new FileInfo(Binary.Filename);
+					if (BinaryInfo.Exists)
 					{
-						LatestWriteTime = BinaryInfo.LastWriteTime;
+						// Latest write time
+						if (BinaryInfo.LastWriteTime > LatestWriteTime)
+						{
+							LatestWriteTime = BinaryInfo.LastWriteTime;
+						}
+						// Minimum version
+						if (Binary.Version > -1)
+						{
+							MinVersion = MinVersion.HasValue ? Math.Min(MinVersion.Value, Binary.Version) : Binary.Version;
+						}
+					}
+				}
+				if (MinVersion.HasValue)
+				{
+					// If we were able to retrieve the minimal API version, go through all binaries one more time
+					// and delete all binaries that do not match the minimum version (which for local builds would be 0, but it will
+					// also detect bad or partial syncs)
+					foreach (var Binary in HeaderToolBinaries)
+					{
+						if (Binary.Version > -1)
+						{
+							if (Binary.Version != MinVersion.Value)
+							{
+								// Bad sync
+								File.Delete(Binary.Filename);
+								LatestWriteTime = DateTime.MaxValue;
+								Log.TraceWarning("Detected mismatched version in UHT binary {0} (API Version {1}, expected: {2})", Path.GetFileName(Binary.Filename), Binary.Version, MinVersion.Value);
+							}
+						}
 					}
 				}
 			}
-			// If UHT doesn't exist, force regenerate.
+			// If UHT doesn't exist or is out of date/mismatched, force regenerate.
 			return LatestWriteTime > DateTime.MinValue ? LatestWriteTime : DateTime.MaxValue;
 		}
 
-		private static bool bIsMac = File.Exists("/System/Library/CoreServices/SystemVersion.plist");
 
-		/** Returns the name of platform UBT is running on */
-		public static UnrealTargetPlatform GetRuntimePlatform()
-		{
-			PlatformID Platform = Environment.OSVersion.Platform;
-			switch (Platform)
-			{
-			case PlatformID.Win32NT:
-				return UnrealTargetPlatform.Win64;
-			case PlatformID.Unix:
-				return bIsMac ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Linux;
-			default:
-				throw new BuildException("Unhandled runtime platform " + Platform);
-			}
-		}
 
 		/// <summary>
 		/// Gets the timestamp of CoreUObject.generated.cpp file.
@@ -264,7 +299,7 @@ namespace UnrealBuildTool
 			bool bIsOutOfDate = false;
 
 			// Get UnrealHeaderTool timestamp. If it's newer than generated headers, they need to be rebuilt too.
-			var HeaderToolTimestamp = GetHeaderToolTimestamp();
+			var HeaderToolTimestamp = CheckIfUnrealHeaderToolIsUpToDate();
 
 			// Get CoreUObject.generated.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
 			// need to regenerate code for the module
@@ -500,7 +535,7 @@ namespace UnrealBuildTool
 						UBTArguments.Append( "UnrealHeaderTool" );
 
 						// Which desktop platform do we need to compile UHT for?
-						UBTArguments.Append( " " + GetRuntimePlatform().ToString() );
+						UBTArguments.Append(" " + BuildHostPlatform.Current.Platform.ToString());
 						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug
 						UBTArguments.Append( " " + UnrealTargetConfiguration.Development.ToString() );
 

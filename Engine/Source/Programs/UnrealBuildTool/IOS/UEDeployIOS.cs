@@ -272,7 +272,7 @@ namespace UnrealBuildTool.IOS
 			string BuildPath = InTarget.ProjectDirectory + "/Binaries/IOS";
 			string ProjectDirectory = InTarget.ProjectDirectory;
 
-			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
 				string DecoratedGameName;
 				if (InTarget.Configuration == UnrealTargetConfiguration.Development)
