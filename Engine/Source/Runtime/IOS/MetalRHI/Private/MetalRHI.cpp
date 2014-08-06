@@ -56,7 +56,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 //	GRHIVendorId = 
 	GSupportsRenderTargetFormat_PF_G8 = false;
 	GSupportsQuads = false;
-	GRHISupportsTextureStreaming = false;
+	GRHISupportsTextureStreaming = true;
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 // 	GReadTexturePoolSizeFromIni = true;

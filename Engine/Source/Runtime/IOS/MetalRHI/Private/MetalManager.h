@@ -142,10 +142,20 @@ public:
 	}
 
 	/**
+	 * Return an auto-released command buffer, caller will need to retain it if it needs to live awhile
+	 */
+	id<MTLCommandBuffer> CreateTempCommandBuffer(bool bRetainReferences)
+	{
+		return bRetainReferences ? [CommandQueue commandBuffer] : [CommandQueue commandBufferWithUnretainedReferences];
+	}
+
+	/**
 	 * Handle rendering thread starting/stopping
 	 */
 	void CreateAutoreleasePool();
 	void DrainAutoreleasePool();
+
+
 
 protected:
 	FMetalManager();
