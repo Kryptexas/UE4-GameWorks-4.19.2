@@ -124,7 +124,8 @@ ENavigationQueryResult::Type DTStatusToNavQueryResult(dtStatus Status)
 // FRecastQueryFilter();
 //----------------------------------------------------------------------//
 
-FRecastQueryFilter::FRecastQueryFilter()
+FRecastQueryFilter::FRecastQueryFilter(bool bIsVirtual)
+	: dtQueryFilter(bIsVirtual)
 {
 	SetExcludedArea(RECAST_NULL_AREA);
 }
@@ -134,10 +135,17 @@ INavigationQueryFilterInterface* FRecastQueryFilter::CreateCopy() const
 	return new FRecastQueryFilter(*this);
 }
 
+void FRecastQueryFilter::SetIsVirtual(bool bIsVirtual)
+{
+	dtQueryFilter* Filter = static_cast<dtQueryFilter*>(this);
+	Filter = new(Filter)dtQueryFilter(bIsVirtual);
+	SetExcludedArea(RECAST_NULL_AREA);
+}
+
 void FRecastQueryFilter::Reset()
 {
 	dtQueryFilter* Filter = static_cast<dtQueryFilter*>(this);
-	Filter = new(Filter) dtQueryFilter();
+	Filter = new(Filter) dtQueryFilter(isVirtual);
 	SetExcludedArea(RECAST_NULL_AREA);
 }
 

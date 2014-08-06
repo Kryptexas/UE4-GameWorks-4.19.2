@@ -194,16 +194,18 @@ const FRecastQueryFilter* ARecastNavMesh::NamedFilters[] = {
 	, &ERecastNamedFilter::FilterOutNavLinksAndAreasImpl
 };
 
-namespace
+namespace FNavMeshConfig
 {
-struct FRecastNamedFiltersCreator
-{
-	ARecastNavMesh::FNavPolyFlags NavLinkFlag;
+	ARecastNavMesh::FNavPolyFlags NavLinkFlag = ARecastNavMesh::FNavPolyFlags(0);
 
-	FRecastNamedFiltersCreator()
+	FRecastNamedFiltersCreator::FRecastNamedFiltersCreator(bool bVirtualFilters)
 	{
 		// setting up the last bit available in dtPoly::flags
 		NavLinkFlag = ARecastNavMesh::FNavPolyFlags(1 << (sizeof(((dtPoly*)0)->flags) * 8 - 1));
+
+		ERecastNamedFilter::FilterOutNavLinksImpl.SetIsVirtual(bVirtualFilters);
+		ERecastNamedFilter::FilterOutAreasImpl.SetIsVirtual(bVirtualFilters);
+		ERecastNamedFilter::FilterOutNavLinksAndAreasImpl.SetIsVirtual(bVirtualFilters);
 
 		ERecastNamedFilter::FilterOutNavLinksImpl.setExcludeFlags(NavLinkFlag);
 		ERecastNamedFilter::FilterOutNavLinksAndAreasImpl.setExcludeFlags(NavLinkFlag);
@@ -217,11 +219,9 @@ struct FRecastNamedFiltersCreator
 		ERecastNamedFilter::FilterOutAreasImpl.setAreaCost(RECAST_DEFAULT_AREA, 1.f);
 		ERecastNamedFilter::FilterOutNavLinksAndAreasImpl.setAreaCost(RECAST_DEFAULT_AREA, 1.f);
 	}
-};
 }
-static const FRecastNamedFiltersCreator RecastNamedFiltersCreator;
 
-ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = RecastNamedFiltersCreator.NavLinkFlag;
+ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = ARecastNavMesh::FNavPolyFlags(0);
 
 ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -232,6 +232,7 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 	, MaxSimplificationError(1.3f)	// from RecastDemo
 	, DefaultMaxSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
+	, bUseVirtualFilters(true)
 	, bPerformVoxelFiltering(true)	
 	, NextTimeToSortTiles(0.f)
 	, TileSetUpdateInterval(1.0f)
@@ -264,7 +265,7 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 		RaycastImplementation = NavMeshRaycast;
 
 		RecastNavMeshImpl = new FPImplRecastNavMesh(this);
-		DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
+		
 		TickHelper.Owner = this;
 
 		// add default and null areas up front
@@ -686,6 +687,9 @@ void ARecastNavMesh::PostInitProperties()
 	if (HasAnyFlags(RF_ClassDefaultObject) == true)
 	{
 		SetDrawDistance(DefaultDrawDistance);
+
+		static const FNavMeshConfig::FRecastNamedFiltersCreator RecastNamedFiltersCreator(bUseVirtualFilters);
+		NavLinkFlag = FNavMeshConfig::NavLinkFlag;
 	}
 	else if(GetWorld() != NULL)
 	{
@@ -709,10 +713,11 @@ void ARecastNavMesh::PostInitProperties()
 		NavDataReadWriteLock = &NavDataReadWriteLockDummy;		
 #endif // RECAST_ASYNC_REBUILDING
 
-		DefaultQueryFilter->SetMaxSearchNodes(DefaultMaxSearchNodes);
-
+		DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
 		FRecastQueryFilter* DetourFilter = static_cast<FRecastQueryFilter*>(DefaultQueryFilter->GetImplementation());
+		DetourFilter->SetIsVirtual(bUseVirtualFilters);
 		DetourFilter->setHeuristicScale(HeuristicScale);
+		DefaultQueryFilter->SetMaxSearchNodes(DefaultMaxSearchNodes);		
 	}
 
 	// voxel cache requires the same rasterization setup for all navmeshes, as it's stored in octree

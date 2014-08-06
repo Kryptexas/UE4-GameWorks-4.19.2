@@ -402,6 +402,15 @@ struct FTileSetItem
 
 DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
 
+namespace FNavMeshConfig
+{
+	struct FRecastNamedFiltersCreator
+	{
+		FRecastNamedFiltersCreator(bool bVirtualFilters);
+	};
+}
+
+
 UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication))
 class ENGINE_API ARecastNavMesh : public ANavigationData
 {
@@ -517,6 +526,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	/** specifes default limit to A* nodes used when performing hierarchical navigation queries. */
 	UPROPERTY(config)
 	float DefaultMaxHierarchicalSearchNodes;
+
+	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
+	UPROPERTY(config)
+	uint32 bUseVirtualFilters : 1;
 
 	/** partitioning method for creating navmesh polys */
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)

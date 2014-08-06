@@ -24,6 +24,7 @@
 
 #include "DetourNavMesh.h"
 #include "DetourStatus.h"
+#include "DetourCommon.h"
 
 //@UE4 BEGIN
 #ifndef WITH_FIXED_AREA_ENTERING_COST
@@ -36,12 +37,11 @@
 #define DT_UNWALKABLE_POLY_COST FLT_MAX
 //@UE4 END
 
-// Define DT_VIRTUAL_QUERYFILTER if you wish to derive a custom filter from dtQueryFilter.
+// By default dtQueryFilter will use virtual calls.
 // On certain platforms indirect or virtual function call is expensive. The default
 // setting is to use non-virtual functions, the actual implementations of the functions
 // are declared as inline for maximum speed. 
-
-//#define DT_VIRTUAL_QUERYFILTER 1
+// To avoid virtual calls create dtQueryFilter with inIsVirtual = false.
 
 // Special link filter is custom filter run only for offmesh links with assigned UserId
 // Used by smart navlinks in UE4
@@ -81,24 +81,19 @@ class NAVMESH_API dtQueryFilter
 {
 protected:
 	dtQueryFilterData data;
-
+	const bool isVirtual;
+	
 public:
+	dtQueryFilter(bool inIsVirtual = true) : isVirtual(inIsVirtual)
+	{}
 	virtual ~dtQueryFilter() {}
 	
-	/// Returns true if the polygon can be visited.  (I.e. Is traversable.)
-	///  @param[in]		ref		The reference id of the polygon test.
-	///  @param[in]		tile	The tile containing the polygon.
-	///  @param[in]		poly  The polygon to test.
-#ifdef DT_VIRTUAL_QUERYFILTER
-	virtual bool passFilter(const dtPolyRef ref,
-							const dtMeshTile* tile,
-							const dtPoly* poly) const;
-#else
-//@UE4 BEGIN
-	// moved here from cpp file due to the cross-lib inlining issues
-	inline bool passFilter(const dtPolyRef /*ref*/,
-			const dtMeshTile* /*tile*/,
-			const dtPoly* poly) const
+protected:
+
+	/// inlined filter implementation. @see passFilter for parameter description
+	inline bool passInlineFilter(const dtPolyRef ref,
+		const dtMeshTile* tile,
+		const dtPoly* poly) const
 	{
 		return (poly->flags & data.m_includeFlags) != 0 && (poly->flags & data.m_excludeFlags) == 0
 			&& (data.m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
@@ -107,9 +102,58 @@ public:
 #endif // WITH_FIXED_AREA_ENTERING_COST
 			;
 	}
-//@UE4 END
-#endif
 
+	/// virtual filter implementation (defaults to passInlineFilter). @see passFilter for parameter description
+	virtual bool passVirtualFilter(const dtPolyRef ref,
+		const dtMeshTile* tile,
+		const dtPoly* poly) const
+	{
+		return passInlineFilter(ref, tile, poly);
+	}
+
+public:
+	/// Returns true if the polygon can be visited.  (I.e. Is traversable.)
+	///  @param[in]		ref		The reference id of the polygon test.
+	///  @param[in]		tile	The tile containing the polygon.
+	///  @param[in]		poly  The polygon to test.
+	inline bool passFilter(const dtPolyRef ref,
+							const dtMeshTile* tile,
+							const dtPoly* poly) const
+	{
+		return !isVirtual ? passInlineFilter(ref, tile, poly) : passVirtualFilter(ref, tile, poly);
+	}
+
+protected:
+
+	/// inlined scoring function. @see getCost for parameter description
+	inline float getInlineCost(const float* pa, const float* pb,
+		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
+		const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
+		const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const
+	{
+#if WITH_FIXED_AREA_ENTERING_COST
+		const float areaChangeCost = nextPoly != 0 && nextPoly->getArea() != curPoly->getArea()
+			? data.m_areaFixedCost[nextPoly->getArea()] : 0.f;
+
+		return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()] + areaChangeCost;
+#else
+		return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()];
+#endif // #if WITH_FIXED_AREA_ENTERING_COST
+	}
+
+	/// virtual scoring function implementation (defaults to getInlineCost). @see getCost for parameter description
+	virtual float getVirtualCost(const float* pa, const float* pb,
+		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
+		const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
+		const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const
+	{
+		return getInlineCost(pa, pb,
+			prevRef, prevTile, prevPoly,
+			curRef, curTile, curPoly,
+			nextRef, nextTile, nextPoly);
+	}
+
+public:
 	/// Returns cost to move from the beginning to the end of a line segment
 	/// that is fully contained within a polygon.
 	///  @param[in]		pa			The start position on the edge of the previous and current polygon. [(x, y, z)]
@@ -120,20 +164,17 @@ public:
 	///  @param[in]		curRef		The reference id of the current polygon.
 	///  @param[in]		curTile		The tile containing the current polygon.
 	///  @param[in]		curPoly		The current polygon.
-	///  @param[in]		nextRef		The refernece id of the next polygon. [opt]
+	///  @param[in]		nextRef		The reference id of the next polygon. [opt]
 	///  @param[in]		nextTile	The tile containing the next polygon. [opt]
 	///  @param[in]		nextPoly	The next polygon. [opt]
-#ifdef DT_VIRTUAL_QUERYFILTER
-	virtual float getCost(const float* pa, const float* pb,
+	inline float getCost(const float* pa, const float* pb,
 						  const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
 						  const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
-						  const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const;
-#else
-	float getCost(const float* pa, const float* pb,
-				  const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
-				  const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
-				  const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const;
-#endif
+						  const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const
+	{
+		return !isVirtual ? getInlineCost(pa, pb, prevRef, prevTile, prevPoly, curRef, curTile, curPoly, nextRef, nextTile, nextPoly)
+			: getVirtualCost(pa, pb, prevRef, prevTile, prevPoly, curRef, curTile, curPoly, nextRef, nextTile, nextPoly);
+	}
 
 	/// @name Getters and setters for the default implementation data.
 	///@{
@@ -635,19 +676,12 @@ private:
 
 	inline bool passLinkFilter(const dtMeshTile* tile, const int polyIdx) const
 	{
-		// check if poly is offmesh link with assigned UserId
-		if (m_linkFilter && polyIdx >= tile->header->offMeshBase)
-		{
-			const int linkIdx = polyIdx - tile->header->offMeshBase;
-			if (linkIdx < tile->header->offMeshConCount &&
-				tile->offMeshCons[linkIdx].userId != 0 &&
-				m_linkFilter->isLinkAllowed(tile->offMeshCons[linkIdx].userId) == false)
-			{
-				return false;
-			}
-		}
+		const int linkIdx = polyIdx - tile->header->offMeshBase;
 
-		return true;
+		return !(m_linkFilter && polyIdx >= tile->header->offMeshBase
+			&& linkIdx < tile->header->offMeshConCount
+			&& tile->offMeshCons[linkIdx].userId != 0
+			&& m_linkFilter->isLinkAllowed(tile->offMeshCons[linkIdx].userId) == false);
 	}
 
 	const dtNavMesh* m_nav;							///< Pointer to navmesh data.

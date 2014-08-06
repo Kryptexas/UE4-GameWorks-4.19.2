@@ -18,7 +18,7 @@
 class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
 public:
-	FRecastQueryFilter();
+	FRecastQueryFilter(bool bIsVirtual = true);
 	virtual ~FRecastQueryFilter(){}
 
 	virtual void Reset() override;
@@ -38,6 +38,9 @@ public:
 	virtual INavigationQueryFilterInterface* CreateCopy() const override;
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
+
+	/** note that it results in loosing all area cost setup. Call it before setting anything else */
+	void SetIsVirtual(bool bIsVirtual);
 };
 
 struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter

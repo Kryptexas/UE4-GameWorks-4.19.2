@@ -52,7 +52,7 @@
 ///
 /// <b>Custom Implementations</b>
 /// 
-/// DT_VIRTUAL_QUERYFILTER must be defined in order to extend this class.
+/// dtQueryFilter.isVIrtual must be true in order to extend this class.
 /// 
 /// Implement a custom query filter by overriding the virtual passFilter() 
 /// and getCost() functions. If this is done, both functions should be as 
@@ -87,62 +87,6 @@ void dtQueryFilterData::copyFrom(const dtQueryFilterData* source)
 {
 	memcpy((void*)this, source, sizeof(dtQueryFilterData));
 }
-
-#ifdef DT_VIRTUAL_QUERYFILTER
-bool dtQueryFilter::passFilter(const dtPolyRef /*ref*/,
-							   const dtMeshTile* /*tile*/,
-							   const dtPoly* poly) const
-{
-	return (poly->flags & data.m_includeFlags) != 0 && (poly->flags & data.m_excludeFlags) == 0
-		&& (data.m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
-#if WITH_FIXED_AREA_ENTERING_COST
-		&& (data.m_areaFixedCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
-#endif // WITH_FIXED_AREA_ENTERING_COST
-		;
-}
-
-float dtQueryFilter::getCost(const float* pa, const float* pb,
-							 const dtPolyRef /*prevRef*/, const dtMeshTile* /*prevTile*/, const dtPoly* /*prevPoly*/,
-							 const dtPolyRef /*curRef*/, const dtMeshTile* /*curTile*/, const dtPoly* curPoly,
-							 const dtPolyRef /*nextRef*/, const dtMeshTile* /*nextTile*/, const dtPoly* nextPoly) const
-{
-//@UE4 BEGIN
-#if WITH_FIXED_AREA_ENTERING_COST
-	const float areaChangeCost = nextPoly != 0 && nextPoly->getArea() != curPoly->getArea() 
-		? data.m_areaFixedCost[nextPoly->getArea()] : 0.f;
-	
-	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()] + areaChangeCost;
-#else
-//@UE4 END
-	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()];
-//@UE4 BEGIN
-#endif // #if WITH_FIXED_AREA_ENTERING_COST
-//@UE4 END
-}
-#else
-//@UE4 BEGIN
-// dtQueryFilter::passFilter moved to header file due to the cross-lib inlining issues
-//@UE4 END
-
-inline float dtQueryFilter::getCost(const float* pa, const float* pb,
-									const dtPolyRef /*prevRef*/, const dtMeshTile* /*prevTile*/, const dtPoly* /*prevPoly*/,
-									const dtPolyRef /*curRef*/, const dtMeshTile* /*curTile*/, const dtPoly* curPoly,
-									const dtPolyRef /*nextRef*/, const dtMeshTile* /*nextTile*/, const dtPoly* nextPoly) const
-{
-//@UE4 BEGIN
-#if WITH_FIXED_AREA_ENTERING_COST
-	const float areaChangeCost = nextPoly != 0 && nextPoly->getArea() != curPoly->getArea() 
-		? data.m_areaFixedCost[nextPoly->getArea()] : 0.f;
-
-	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()] + areaChangeCost;
-#else
-//@UE4 END
-	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()];
-//@UE4 BEGIN
-#endif // #if WITH_FIXED_AREA_ENTERING_COST
-//@UE4 END
-}
-#endif	
 	
 //@UE4 BEGIN
 // removed following line to make H_SCALE parametrizable (via dtQueryFilter::heuristicScale)
@@ -1296,7 +1240,17 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 			float heuristic = 0;
 			
 			// Special case for last node.
-			if (neighbourRef == endRef)
+			if (neighbourRef != endRef)
+			{
+				// Cost
+				const float curCost = filter->getCost(bestNode->pos, neiPos,
+					parentRef, parentTile, parentPoly,
+					bestRef, bestTile, bestPoly,
+					neighbourRef, neighbourTile, neighbourPoly);
+				cost = bestNode->cost + curCost;
+				heuristic = dtVdist(neiPos, endPos)*H_SCALE;
+			}
+			else
 			{
 				// Cost
 				const float curCost = filter->getCost(bestNode->pos, neiPos,
@@ -1310,16 +1264,6 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 				
 				cost = bestNode->cost + curCost + endCost;
 				heuristic = 0;
-			}
-			else
-			{
-				// Cost
-				const float curCost = filter->getCost(bestNode->pos, neiPos,
-													  parentRef, parentTile, parentPoly,
-													  bestRef, bestTile, bestPoly,
-													  neighbourRef, neighbourTile, neighbourPoly);
-				cost = bestNode->cost + curCost;
-				heuristic = dtVdist(neiPos, endPos)*H_SCALE;
 			}
 
 			const float total = cost + heuristic;
@@ -1762,7 +1706,17 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			float heuristic = 0;
 			
 			// Special case for last node.
-			if (neighbourRef == m_query.endRef)
+			if (neighbourRef != m_query.endRef)
+			{
+				// Cost
+				const float curCost = m_query.filter->getCost(bestNode->pos, neiPos,
+					parentRef, parentTile, parentPoly,
+					bestRef, bestTile, bestPoly,
+					neighbourRef, neighbourTile, neighbourPoly);
+				cost = bestNode->cost + curCost;
+				heuristic = dtVdist(neiPos, m_query.endPos)*H_SCALE;
+			}
+			else
 			{
 				// Cost
 				const float curCost = m_query.filter->getCost(bestNode->pos, neiPos,
@@ -1776,16 +1730,6 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 				
 				cost = bestNode->cost + curCost + endCost;
 				heuristic = 0;
-			}
-			else
-			{
-				// Cost
-				const float curCost = m_query.filter->getCost(bestNode->pos, neiPos,
-															  parentRef, parentTile, parentPoly,
-															  bestRef, bestTile, bestPoly,
-															  neighbourRef, neighbourTile, neighbourPoly);
-				cost = bestNode->cost + curCost;
-				heuristic = dtVdist(neiPos, m_query.endPos)*H_SCALE;
 			}
 			
 			const float total = cost + heuristic;
@@ -4129,13 +4073,11 @@ bool dtNavMeshQuery::isValidPolyRef(dtPolyRef ref, const dtQueryFilter* filter) 
 	const dtMeshTile* tile = 0;
 	const dtPoly* poly = 0;
 	dtStatus status = m_nav->getTileAndPolyByRef(ref, &tile, &poly);
-	// If cannot get polygon, assume it does not exists and boundary is invalid.
-	if (dtStatusFailed(status))
-		return false;
-	// If cannot pass filter, assume flags has changed and boundary is invalid.
-	if (!filter->passFilter(ref, tile, poly) || !passLinkFilterByRef(tile, ref))
-		return false;
-	return true;
+
+	// should be able to get the polygon if the boundary is valid
+	return !dtStatusFailed(status)
+		// and should pass all filters
+		&& filter->passFilter(ref, tile, poly) && passLinkFilterByRef(tile, ref);
 }
 
 /// @par
