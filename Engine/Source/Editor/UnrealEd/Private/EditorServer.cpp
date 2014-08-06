@@ -697,7 +697,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			GEditor->RebuildStaticNavigableGeometry(Level);
 		}
 
-		if (IsLoading() == false) 
+		if (IsLoading() == false && InWorld->GetNavigationSystem()) 
 		{
 			InWorld->GetNavigationSystem()->Build();
 		}
