@@ -2,6 +2,7 @@
 
 #include "ContentBrowserPCH.h"
 #include "NewAssetContextMenu.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
