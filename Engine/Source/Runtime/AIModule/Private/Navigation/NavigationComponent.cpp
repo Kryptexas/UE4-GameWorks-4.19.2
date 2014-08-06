@@ -43,6 +43,7 @@ void UNavigationComponent::UpdateCachedComponents()
 	if (MyOwner)
 	{
 		PathFollowComp = MyOwner->FindComponentByClass<UPathFollowingComponent>();
+		ControllerOwner = Cast<AController>(MyOwner);
 	}
 }
 
@@ -74,7 +75,7 @@ void UNavigationComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 			}
 			else
 			{
-				FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+				FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 			}
 		}
 		else
@@ -133,7 +134,7 @@ void UNavigationComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPat
 			break;
 		}
 		case ENavPathEvent::RePathFailed:
-			FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+			FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 			break;
 		case ENavPathEvent::UpdatedDueToGoalMoved:
 		case ENavPathEvent::UpdatedDueToNavigationChanged:
@@ -759,8 +760,10 @@ void UNavigationComponent::NotifyPathUpdate()
 
 void UNavigationComponent::DeferredRepathToGoal()
 {
+	check(ControllerOwner);
+
 	// check if repath is allowed right now
-	const bool bShouldPostponeRepath = MyNavAgent && MyNavAgent->ShouldPostponePathUpdates();
+	const bool bShouldPostponeRepath = ControllerOwner->ShouldPostponePathUpdates();
 	if (bShouldPostponeRepath)
 	{
 		GetWorld()->GetTimerManager().SetTimer(this, &UNavigationComponent::DeferredRepathToGoal, 0.1f, false);
@@ -780,7 +783,7 @@ void UNavigationComponent::DeferredRepathToGoal()
 	}
 	else
 	{
-		FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+		FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 	}
 
 	bIsWaitingForRepath = false;

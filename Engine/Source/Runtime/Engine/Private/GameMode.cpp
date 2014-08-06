@@ -945,11 +945,6 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 		// keep general game state until we transition to the final destination
 		ActorList.Add(World->GameState);
 	}
-
-	if (GameSession)
-	{
-		ActorList.Add(GameSession);
-	}
 }
 
 void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)

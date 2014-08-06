@@ -659,11 +659,45 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
 	const FVector RecastEnd = Unreal2RecastPoint(EndLoc);
 
-	NavNodeRef StartPolyID = INVALID_NAVNODEREF;
-	NavQuery.findNearestPoly(&RecastStart.X, Extent, QueryFilter, &StartPolyID, NULL);
-	if (StartPolyID != INVALID_NAVNODEREF)
+	NavNodeRef StartNode = INVALID_NAVNODEREF;
+	NavQuery.findNearestPoly(&RecastStart.X, Extent, QueryFilter, &StartNode, NULL);
+
+	if (StartNode != INVALID_NAVNODEREF)
 	{
-		const dtStatus RaycastStatus = NavQuery.raycast(StartPolyID, &RecastStart.X, &RecastEnd.X
+		const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
+			, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
+			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+
+		if (dtStatusSucceed(RaycastStatus) == false)
+		{
+			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
+		}
+	}
+}
+
+void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
+{
+	if (DetourNavMesh == NULL || NavMeshOwner == NULL)
+	{
+		return;
+	}
+
+	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(InQueryFilter.GetImplementation()))->GetAsDetourQueryFilter();
+	if (QueryFilter == NULL)
+	{
+		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::FindPath failing due to QueryFilter == NULL"));
+		return;
+	}
+
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
+
+	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
+	const FVector RecastEnd = Unreal2RecastPoint(EndLoc);
+
+	if (StartNode != INVALID_NAVNODEREF)
+	{
+		const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
 					, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
 					, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
 
@@ -1314,15 +1348,14 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 			{
 				float ClosestPoint[3];
 				
-				status = NavQuery.closestPointOnPoly(HitPolys[i], &RcPoint.X, ClosestPoint);
+				status = NavQuery.projectedPointOnPoly(HitPolys[i], &RcPoint.X, ClosestPoint);
 				if (dtStatusSucceed(status))
 				{
 					FNavLocation HitLocation(Recast2UnrealPoint(ClosestPoint), HitPolys[i]);
-					if ((HitLocation.Location - AdjustedPoint).SizeSquared2D() < KINDA_SMALL_NUMBER)
-					{
-						Result.Add(HitLocation);
-						bSuccess = true;
-					}
+					ensure((HitLocation.Location - AdjustedPoint).SizeSquared2D() < KINDA_SMALL_NUMBER);
+					
+					Result.Add(HitLocation);
+					bSuccess = true;
 				}
 			}
 		}

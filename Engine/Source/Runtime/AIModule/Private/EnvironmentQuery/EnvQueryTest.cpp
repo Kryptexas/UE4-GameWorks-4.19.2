@@ -13,6 +13,8 @@
 
 UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
+	ExecuteDelegate.BindUObject(this, &UEnvQueryTest::RunTest);
+
 	TestPurpose = EEnvTestPurpose::FilterAndScore;
 	FilterType = EEnvTestFilterType::Range;
 	BoolFilter.Value = true;

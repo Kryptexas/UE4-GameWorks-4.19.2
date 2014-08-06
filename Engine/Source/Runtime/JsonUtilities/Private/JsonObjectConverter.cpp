@@ -52,7 +52,7 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 		FScriptArrayHelper Helper(ArrayProperty, Value);
 		for (int32 i=0, n=Helper.Num(); i<n; ++i)
 		{
-			TSharedPtr<FJsonValue> Elem = UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags, SkipFlags);
+			TSharedPtr<FJsonValue> Elem = UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags);
 			if (Elem.IsValid())
 			{
 				// add to the array
@@ -64,7 +64,7 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		TSharedRef<FJsonObject> Out = MakeShareable(new FJsonObject());
-		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags, SkipFlags))
+		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags & (~CPF_ParmFlags), SkipFlags))
 		{
 			return MakeShareable(new FJsonValueObject(Out));
 		}
@@ -198,7 +198,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 			// set the property values
 			for (int32 i=0;i<ArrLen;++i)
 			{
-				if (!JsonValueToUProperty(ArrayValue[i], ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags, SkipFlags))
+				if (!JsonValueToUProperty(ArrayValue[i], ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags))
 				{
 					UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d]"), i);
 					return false;
@@ -218,7 +218,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
 			if (Obj.IsValid()) // should normally always be true
 			{
-				if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags, SkipFlags))
+				if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags & (~CPF_ParmFlags), SkipFlags))
 				{
 					// error message should have already been logged
 					return false;

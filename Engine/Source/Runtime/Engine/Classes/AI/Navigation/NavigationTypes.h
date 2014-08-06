@@ -350,6 +350,30 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 	}	
 };
 
+struct FNavigationProjectionWork
+{
+	const FVector Point;
+	FNavLocation OutLocation;
+	bool bResult;
+
+	explicit FNavigationProjectionWork(const FVector& StartPoint)
+		: Point(StartPoint), bResult(false)
+	{}
+};
+
+struct FNavigationRaycastWork
+{
+	const FVector RayStart;
+	const FVector RayEnd;
+	/** depending on bDidHit HitLocation contains either actual hit location or RayEnd*/
+	FNavLocation HitLocation;
+	bool bDidHit;
+
+	explicit FNavigationRaycastWork(const FVector& InRayStart, const FVector& InRayEnd)
+		: RayStart(InRayStart), RayEnd(InRayEnd), HitLocation(InRayEnd), bDidHit(false)
+	{}
+};
+
 UENUM()
 namespace ENavigationQueryResult
 {

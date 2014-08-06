@@ -1651,7 +1651,6 @@ void UBehaviorTreeComponent::StoreDebuggerSearchStep(const class UBTNode* Node, 
 		FBehaviorTreeDebuggerInstance::FNodeFlowData FlowInfo;
 		FlowInfo.ExecutionIndex = Node->GetExecutionIndex();
 		FlowInfo.bPassed = (NodeResult == EBTNodeResult::Succeeded);
-		FlowInfo.bOptional = (NodeResult == EBTNodeResult::Optional);
 		
 		if (CurrentSearchFlow.Num() < (InstanceIdx + 1))
 		{

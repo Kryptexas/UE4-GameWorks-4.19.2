@@ -13,6 +13,7 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Perception/AIPerceptionComponent.h"
 #include "AIController.h"
 
 // mz@todo these need to be removed, legacy code
@@ -42,6 +43,8 @@ AAIController::AAIController(const class FPostConstructInitializeProperties& PCI
 
 	PathFollowingComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
+
+	PerceptionComponent = PCIP.CreateDefaultSubobject<UAIPerceptionComponent>(this, "PerceptionComponent");
 
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
@@ -361,6 +364,11 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		}
 	}
 	return false;
+}
+
+void AAIController::ActorsPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
+{
+
 }
 
 DEFINE_LOG_CATEGORY_STATIC(LogTestAI, All, All);

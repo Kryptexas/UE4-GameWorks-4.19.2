@@ -205,6 +205,8 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	{
 		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
 
+//		SCOPE_LOG_TIME(TEXT("Generator"), nullptr);
+
 		RawData.Reset();
 		Items.Reset();
 		ItemType = OptionItem.ItemType;
@@ -215,6 +217,8 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 	else
 	{
+//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()).ToString(), nullptr);
+
 		const int32 ItemsAlreadyProcessed = CurrentTestStartingItem;
 		OptionItem.TestDelegates[CurrentTest].Execute(*this);
 		bStepDone = CurrentTestStartingItem >= Items.Num() || bFoundSingleResult
@@ -284,7 +288,7 @@ void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
 }
 
 
-FEnvQueryInstance::ItemIterator::ItemIterator(class UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance)
+FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance)
 	: Instance(&QueryInstance), CurrentItem(QueryInstance.CurrentTestStartingItem)
 {
 	Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;

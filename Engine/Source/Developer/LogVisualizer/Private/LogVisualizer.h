@@ -37,7 +37,7 @@ public:
 
 	void CleanUp();
 
-	void PullDataFromVisualLog(FVisualLog& VisualLog);
+	void PullDataFromVisualLog(const FVisualLog& VisualLog);
 
 	int32 GetLogIndexForActor(const class AActor* Actor);
 

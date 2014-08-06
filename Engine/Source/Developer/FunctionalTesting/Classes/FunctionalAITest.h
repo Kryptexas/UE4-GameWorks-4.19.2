@@ -4,6 +4,7 @@
 
 #include "AITypes.h"
 #include "GameFramework/Pawn.h"
+#include "GenericTeamAgentInterface.h"
 #include "FunctionalAITest.generated.h"
 
 class AFunctionalAITest;

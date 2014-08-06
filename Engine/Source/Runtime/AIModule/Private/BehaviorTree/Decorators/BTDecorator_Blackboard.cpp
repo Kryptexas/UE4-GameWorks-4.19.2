@@ -28,10 +28,20 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		const EBlackboardKeyOperation::Type Op = KeyCDO->GetTestOperation();
 		switch (Op)
 		{
-		case EBlackboardKeyOperation::Basic:		bResult = KeyCDO->TestBasicOperation(KeyMemory, (EBasicKeyOperation::Type)OperationType); break;
-		case EBlackboardKeyOperation::Arithmetic:	bResult = KeyCDO->TestArithmeticOperation(KeyMemory, (EArithmeticKeyOperation::Type)OperationType, IntValue, FloatValue); break;
-		case EBlackboardKeyOperation::Text:			bResult = KeyCDO->TestTextOperation(KeyMemory, (ETextKeyOperation::Type)OperationType, StringValue); break;
-		default: break;
+			case EBlackboardKeyOperation::Basic:
+				bResult = KeyCDO->TestBasicOperation(KeyMemory, (EBasicKeyOperation::Type)OperationType);
+				break;
+
+			case EBlackboardKeyOperation::Arithmetic:
+				bResult = KeyCDO->TestArithmeticOperation(KeyMemory, (EArithmeticKeyOperation::Type)OperationType, IntValue, FloatValue);
+				break;
+
+			case EBlackboardKeyOperation::Text:
+				bResult = KeyCDO->TestTextOperation(KeyMemory, (ETextKeyOperation::Type)OperationType, StringValue);
+				break;
+
+			default:
+				break;
 		}
 	}
 

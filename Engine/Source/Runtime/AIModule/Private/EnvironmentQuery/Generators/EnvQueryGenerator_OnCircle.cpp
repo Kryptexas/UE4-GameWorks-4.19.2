@@ -6,9 +6,95 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_OnCircle.h"
 #include "AI/Navigation/RecastNavMesh.h"
 
-
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
+struct FBatchTracingHelper
+{
+	UWorld* World;
+	enum ECollisionChannel Channel;
+	const FCollisionQueryParams Params;
+	const FVector Extent;
+
+	FBatchTracingHelper(UWorld* InWorld, enum ECollisionChannel InChannel, const FCollisionQueryParams& InParams, const FVector& InExtent)
+		: World(InWorld), Channel(InChannel), Params(InParams), Extent(InExtent)
+	{
+
+	}
+
+	FORCEINLINE_DEBUGGABLE FVector RunLineTrace(const FVector& StartPos, const FVector& EndPos)
+	{
+		FHitResult OutHit;
+		const bool bHit = World->LineTraceSingle(OutHit, StartPos, EndPos, Channel, Params);
+		return bHit ? OutHit.ImpactPoint : EndPos;
+	}
+
+	FORCEINLINE_DEBUGGABLE FVector RunSphereTrace(const FVector& StartPos, const FVector& EndPos)
+	{
+		FHitResult OutHit;
+		const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), Params);
+		return bHit ? OutHit.ImpactPoint : EndPos;
+	}
+
+	FORCEINLINE_DEBUGGABLE FVector RunCapsuleTrace(const FVector& StartPos, const FVector& EndPos)
+	{
+		FHitResult OutHit;
+		const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), Params);
+		return bHit ? OutHit.ImpactPoint : EndPos;
+	}
+
+	FORCEINLINE_DEBUGGABLE FVector RunBoxTrace(const FVector& StartPos, const FVector& EndPos)
+	{
+		FHitResult OutHit;
+		const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat((EndPos - StartPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), Params);
+		return bHit ? OutHit.ImpactPoint : EndPos;
+	}
+
+	template<EEnvTraceShape::Type TraceType>
+	void DoSingleSourceMultiDestinations(const FVector& Source, TArray<FVector>& DestinationAndClampedResult)
+	{
+		UE_LOG(LogEQS, Error, TEXT("FBatchTracingHelper::DoSingleSourceMultiDestinations called with unhandled trace type: %d"), int32(TraceType));
+	}
+};
+
+template<>
+void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(const FVector& Source, TArray<FVector>& DestinationAndClampedResult)
+{
+	for (auto& OutLocation : DestinationAndClampedResult)
+	{
+		OutLocation = RunLineTrace(Source, OutLocation);
+	}
+}
+
+template<>
+void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(const FVector& Source, TArray<FVector>& DestinationAndClampedResult)
+{
+	for (auto& OutLocation : DestinationAndClampedResult)
+	{
+		OutLocation = RunBoxTrace(Source, OutLocation);
+	}
+}
+
+template<>
+void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(const FVector& Source, TArray<FVector>& DestinationAndClampedResult)
+{
+	for (auto& OutLocation : DestinationAndClampedResult)
+	{
+		OutLocation = RunSphereTrace(Source, OutLocation);
+	}
+}
+
+template<>
+void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(const FVector& Source, TArray<FVector>& DestinationAndClampedResult)
+{
+	for (auto& OutLocation : DestinationAndClampedResult)
+	{
+		OutLocation = RunCapsuleTrace(Source, OutLocation);
+	}
+}
+
+//----------------------------------------------------------------------//
+// UEnvQueryGenerator_OnCircle
+//----------------------------------------------------------------------//
 UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 {
@@ -154,37 +240,50 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		{
 			TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
 
-			for (int32 Step = 0; Step < StepsCount; ++Step)
+			TArray<FNavigationRaycastWork> RaycastWorkload;
+			RaycastWorkload.Reserve(ItemCandidates.Num());
+
+			for (const auto& ItemLocation : ItemCandidates)
 			{
-				NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
+				RaycastWorkload.Add(FNavigationRaycastWork(CenterLocation, ItemLocation));
+			}
+
+			NavMesh->BatchRaycast(RaycastWorkload, NavigationFilter);
+			
+			for (int32 ItemIndex = 0; ItemIndex < ItemCandidates.Num(); ++ItemIndex)
+			{
+				ItemCandidates[ItemIndex] = RaycastWorkload[ItemIndex].HitLocation.Location;
 			}
 		}
 #endif
 	}
 	else
 	{
-		FRunTraceSignature TraceFunc;
+		ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
+		FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+		FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+		TraceParams.bTraceAsyncScene = true;
+
+		FBatchTracingHelper TracingHelper(QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
+
 		switch (TraceData.TraceShape)
 		{
-		case EEnvTraceShape::Line:		TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunLineTrace); break;
-		case EEnvTraceShape::Sphere:	TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunSphereTrace); break;
-		case EEnvTraceShape::Capsule:	TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunCapsuleTrace); break;
-		case EEnvTraceShape::Box:		TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunBoxTrace); break;
-		default: break;
-		}
-
-		if (TraceFunc.IsBound())
-		{
-			ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);	
-			FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
-
-			FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
-			TraceParams.bTraceAsyncScene = true;
-
-			for (int32 Step = 0; Step < StepsCount; ++Step)
-			{
-				TraceFunc.Execute(CenterLocation, ItemCandidates[Step], QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent, ItemCandidates[Step]);
-			}
+		case EEnvTraceShape::Line:		
+			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(CenterLocation, ItemCandidates);
+			break;
+		case EEnvTraceShape::Sphere:	
+			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(CenterLocation, ItemCandidates);
+			break;
+		case EEnvTraceShape::Capsule:
+			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(CenterLocation, ItemCandidates);
+			break;
+		case EEnvTraceShape::Box:
+			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(CenterLocation, ItemCandidates);
+			break;
+		default:
+			UE_VLOG(Cast<AActor>(QueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+			break;
 		}
 	}
 
@@ -201,34 +300,6 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		QueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);
 	}
 }
-
-void UEnvQueryGenerator_OnCircle::RunLineTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
-{
-	FHitResult OutHit;
-	const bool bHit = World->LineTraceSingle(OutHit, StartPos, EndPos, Channel, Params);
-	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
-};
-
-void UEnvQueryGenerator_OnCircle::RunSphereTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
-{
-	FHitResult OutHit;
-	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), Params);
-	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
-};
-
-void UEnvQueryGenerator_OnCircle::RunCapsuleTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
-{
-	FHitResult OutHit;
-	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), Params);
-	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
-};
-
-void UEnvQueryGenerator_OnCircle::RunBoxTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
-{
-	FHitResult OutHit;
-	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat((EndPos - StartPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), Params);
-	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
-};
 
 FText UEnvQueryGenerator_OnCircle::GetDescriptionTitle() const
 {

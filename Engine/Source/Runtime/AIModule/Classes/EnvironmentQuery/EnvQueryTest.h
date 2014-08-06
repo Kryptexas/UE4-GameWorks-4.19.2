@@ -107,6 +107,9 @@ public:
 
 	FExecuteTestSignature ExecuteDelegate;
 
+	/** Function that does the actual work */
+	virtual void RunTest(struct FEnvQueryInstance& QueryInstance) const { check(false && "You need to override this function!"); }
+
 	/** check if test supports item type */
 	bool IsSupportedItem(TSubclassOf<class UEnvQueryItemType> ItemType) const;
 

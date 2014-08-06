@@ -60,7 +60,7 @@ void FFriendsAndChatManager::Init( FOnFriendsNotification& NotificationDelegate 
 		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnSendInviteComplete );
 		OnDeleteFriendsListCompleteDelegate = FOnDeleteFriendsListCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendsListComplete );
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendComplete );
-		OnQueryUserIdFromIdentificationStringCompleteDelegate = FOnQueryUserIdFromIdentificationStringCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete );
+		OnQueryUserIdFromDisplayNameCompleteDelegate = FOnQueryUserIdFromDisplayNameCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete );
 		OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserInfoComplete );
 
 		FriendsInterface->AddOnReadFriendsListCompleteDelegate( 0, OnReadFriendsCompleteDelegate );
@@ -126,7 +126,7 @@ void FFriendsAndChatManager::Logout()
 			FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
 			if ( OnlineAccountMappingMcp.IsValid() )
 			{
-				OnlineAccountMappingMcp->ClearOnQueryUserIdFromIdentificationStringCompleteDelegate( OnQueryUserIdFromIdentificationStringCompleteDelegate );
+				OnlineAccountMappingMcp->ClearOnQueryUserIdFromDisplayNameCompleteDelegate( OnQueryUserIdFromDisplayNameCompleteDelegate );
 				OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate( 0, OnQueryUserInfoCompleteDelegate );
 			}
 		}
@@ -627,11 +627,11 @@ void FFriendsAndChatManager::SendFriendRequests()
 	FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
 	TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 
-	OnlineAccountMappingMcp->AddOnQueryUserIdFromIdentificationStringCompleteDelegate(OnQueryUserIdFromIdentificationStringCompleteDelegate);
+	OnlineAccountMappingMcp->AddOnQueryUserIdFromDisplayNameCompleteDelegate(OnQueryUserIdFromDisplayNameCompleteDelegate);
 
 	for ( int32 Index = 0; Index < FriendByNameRequests.Num(); Index++ )
 	{
-		OnlineAccountMappingMcp->QueryUserIdFromIdentificationString( *UserId, FriendByNameRequests[Index] );
+		OnlineAccountMappingMcp->QueryUserIdFromDisplayName( *UserId, FriendByNameRequests[Index] );
 	}
 }
 
@@ -781,7 +781,7 @@ void FFriendsAndChatManager::SendFriendInviteNotification()
 	PendingIncomingInvitesList.RemoveAt( 0 );
 }
 
-void FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& IdentificationString, const FUniqueNetId& IdentifiedUserId, const FString& Error)
+void FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error)
 {
 	check( OnlineSubMcp != NULL && OnlineSubMcp->GetMcpAccountMappingService().IsValid() );
 
@@ -790,17 +790,17 @@ void FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete(bool 
 		TSharedPtr<FUniqueNetId> FriendId = OnlineIdentity->CreateUniquePlayerId( IdentifiedUserId.ToString() );
 		// Don't allow the user to add themselves as friends
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-		if ( UserId.IsValid() && OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName() != IdentificationString )
+		if ( UserId.IsValid() && OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName() != DisplayName )
 		{
 			PendingOutgoingFriendRequests.Add( FriendId.ToSharedRef() );
 		}
 	}
-	FriendByNameInvites.AddUnique( IdentificationString );
-	FriendByNameRequests.Remove( IdentificationString );
+	FriendByNameInvites.AddUnique( DisplayName );
+	FriendByNameRequests.Remove( DisplayName );
 	if ( FriendByNameRequests.Num() == 0 )
 	{
 		FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
-		OnlineAccountMappingMcp->ClearOnQueryUserIdFromIdentificationStringCompleteDelegate(OnQueryUserIdFromIdentificationStringCompleteDelegate);
+		OnlineAccountMappingMcp->ClearOnQueryUserIdFromDisplayNameCompleteDelegate(OnQueryUserIdFromDisplayNameCompleteDelegate);
 
 		if ( PendingOutgoingFriendRequests.Num() > 0 )
 		{

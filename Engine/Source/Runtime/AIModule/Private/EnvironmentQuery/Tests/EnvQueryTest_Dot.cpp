@@ -8,8 +8,6 @@
 
 UEnvQueryTest_Dot::UEnvQueryTest_Dot(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Dot::RunTest);
-
 	Cost = EEnvTestCost::Low;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 	LineA.DirMode = EEnvDirection::Rotation;
@@ -19,7 +17,7 @@ UEnvQueryTest_Dot::UEnvQueryTest_Dot(const class FPostConstructInitializePropert
 	LineB.LineTo = UEnvQueryContext_Item::StaticClass();
 }
 
-void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryTest_Dot::RunTest(FEnvQueryInstance& QueryInstance) const
 {
 // 	float ThresholdValue = 0.0f;
 // 	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))
@@ -97,7 +95,7 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 }
 
 void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
-	TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo)
+	TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo) const
 {
 	TArray<FVector> ContextLocationFrom;
 	if (IsContextPerItem(LineFrom))
@@ -129,8 +127,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 	}
 }
 
-void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation,
-	TSubclassOf<class UEnvQueryContext> LineDirection)
+void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation, TSubclassOf<class UEnvQueryContext> LineDirection) const
 {
 	TArray<FRotator> ContextRotations;
 	if (IsContextPerItem(LineDirection))
@@ -151,7 +148,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 
 void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance,
 	TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext,
-	const FVector& ItemLocation, const FRotator& ItemRotation)
+	const FVector& ItemLocation, const FRotator& ItemRotation) const
 {
 	if (bUseDirectionContext)
 	{
@@ -163,7 +160,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 	}
 }
 
-bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext)
+bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext) const
 {
 	bool bRequirePerItemUpdate = false;
 	if (bUseDirectionContext)

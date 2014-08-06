@@ -77,7 +77,7 @@ void FLogVisualizer::CleanUp()
 	FVisualLog::Get().ClearNewLogsObserver();
 }
 
-void FLogVisualizer::PullDataFromVisualLog(FVisualLog& VisualLog)
+void FLogVisualizer::PullDataFromVisualLog(const FVisualLog& VisualLog)
 {
 	Logs.Reset();
 	const FVisualLog::FLogsMap* LogsMap = VisualLog.GetLogs();

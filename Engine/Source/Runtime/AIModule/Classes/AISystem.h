@@ -9,12 +9,14 @@
 
 class UBehaviorTreeManager;
 class UEnvQueryManager;
+class UAIPerceptionSystem;
 
 UCLASS(config=Engine)
 class AIMODULE_API UAISystem : public UAISystemBase
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
 	/** Behavior tree manager used by game */
 	UPROPERTY(Transient)
 	UBehaviorTreeManager* BehaviorTreeManager;
@@ -23,7 +25,11 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	UPROPERTY(Transient)
 	UEnvQueryManager* EnvironmentQueryManager;
 
-	~UAISystem();
+	UPROPERTY(Transient)
+	UAIPerceptionSystem* PerceptionSystem;
+
+public:
+	virtual ~UAISystem();
 
 	// IAISystemInterface begin		
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) override;
@@ -40,6 +46,9 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	FORCEINLINE UEnvQueryManager* GetEnvironmentQueryManager() { return EnvironmentQueryManager; }
 	/** Behavior tree manager const getter */
 	FORCEINLINE const UEnvQueryManager* GetEnvironmentQueryManager() const { return EnvironmentQueryManager; }
+
+	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystem; }
+	FORCEINLINE const UAIPerceptionSystem* GetPerceptionSystem() const { return PerceptionSystem; }
 
 	FORCEINLINE static UAISystem* GetCurrent(UWorld* World) 
 	{ 

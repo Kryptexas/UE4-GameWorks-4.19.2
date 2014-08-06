@@ -28,7 +28,7 @@ class UEnvQueryTest_Distance : public UEnvQueryTest
 	UPROPERTY(EditDefaultsOnly, Category=Distance)
 	TSubclassOf<class UEnvQueryContext> DistanceTo;
 
-	void RunTest(struct FEnvQueryInstance& QueryInstance);
+	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FString GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

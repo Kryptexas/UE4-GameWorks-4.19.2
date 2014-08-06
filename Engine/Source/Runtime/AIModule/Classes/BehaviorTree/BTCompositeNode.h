@@ -164,9 +164,6 @@ protected:
 	/** execution index of last node in child branches */
 	uint16 LastExecutionIndex;
 
-	/** replace "optional" result before deactivating node with given one  */
-	TEnumAsByte<EBTNodeResult::Type> OptionalDeactivationResult;
-
 	/** if set, NotifyChildExecution will be called */
 	uint8 bUseChildExecutionNotify : 1;
 

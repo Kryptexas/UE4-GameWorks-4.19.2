@@ -17,7 +17,7 @@ void FAnimNode_HandIKRetargeting::GatherDebugData(FNodeDebugData& DebugData)
 
 	DebugLine += "(";
 	AddDebugNodeData(DebugLine);
-	DebugLine += FString::Printf(TEXT(" HandFKWeight: %s)"), HandFKWeight);
+	DebugLine += FString::Printf(TEXT(" HandFKWeight: %f)"), HandFKWeight);
 	for (int32 BoneIndex = 0; BoneIndex < IKBonesToMove.Num(); BoneIndex++)
 	{
 		DebugLine += FString::Printf(TEXT(", %s)"), *IKBonesToMove[BoneIndex].BoneName.ToString());

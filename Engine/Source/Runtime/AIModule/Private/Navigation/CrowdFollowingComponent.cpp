@@ -23,6 +23,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructIni
 	bEnableOptimizeVisibility = true;
 	bEnableOptimizeTopology = true;
 	bEnablePathOffset = false;
+	bEnableSlowdownAtGoal = true;
 
 	SeparationWeight = 2.0f;
 	CollisionQueryRange = 400.0f;		// approx: radius * 12.0f
@@ -116,6 +117,19 @@ void UCrowdFollowingComponent::SetCrowdOptimizeTopology(bool bEnable, bool bUpda
 	if (bEnableOptimizeTopology != bEnable)
 	{
 		bEnableOptimizeTopology = bEnable;
+
+		if (bUpdateAgent)
+		{
+			UpdateCrowdAgentParams();
+		}
+	}
+}
+
+void UCrowdFollowingComponent::SetCrowdSlowdownAtGoal(bool bEnable, bool bUpdateAgent)
+{
+	if (bEnableSlowdownAtGoal != bEnable)
+	{
+		bEnableSlowdownAtGoal = bEnable;
 
 		if (bUpdateAgent)
 		{

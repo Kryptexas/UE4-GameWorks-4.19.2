@@ -325,7 +325,6 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	Node->bDebuggerMarkFlashActive = bIsNodeActivePath && bIsTaskNode && IsPlaySessionRunning();
 	Node->bDebuggerMarkSearchTrigger = false;
 	Node->bDebuggerMarkSearchFailedTrigger = false;
-	Node->bDebuggerMarkSearchOptional = false;
 
 	Node->bDebuggerMarkBreakpointTrigger = NodeInstance->GetExecutionIndex() == StoppedOnBreakpointExecutionIndex;
 	if (Node->bDebuggerMarkBreakpointTrigger)
@@ -362,8 +361,7 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	}
 
 	Node->bDebuggerMarkSearchSucceeded = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bPassed;
-	Node->bDebuggerMarkSearchOptional = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bOptional;
-	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed && !Data.PathFromPrevious[SearchPathIdx].bOptional;
+	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed;
 	Node->DebuggerSearchPathIndex = bTriggerOnly ? 0 : FMath::Max(-1, SearchPathIdx - NumTriggers);
 	Node->DebuggerSearchPathSize = Data.PathFromPrevious.Num() - NumTriggers;
 }
@@ -414,8 +412,7 @@ void FBehaviorTreeDebugger::SetCompositeDecoratorFlags(const struct FBehaviorTre
 	}
 
 	Node->bDebuggerMarkSearchSucceeded = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bPassed;
-	Node->bDebuggerMarkSearchOptional = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bOptional;
-	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed && !Data.PathFromPrevious[SearchPathIdx].bOptional;
+	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed;
 	Node->DebuggerSearchPathIndex = bTriggerOnly ? 0 : FMath::Max(-1, SearchPathIdx - NumTriggers);
 	Node->DebuggerSearchPathSize = Data.PathFromPrevious.Num() - NumTriggers;
 }

@@ -127,12 +127,13 @@ public:
 	{
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
-		bool bExists = FPaths::FileExists(Filename);
+		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
+		bool bExists = TimeStamp > FDateTime::MinValue();
 		if (bExists)
 		{
 			// Update file timestamp to prevent it from being deleted by DDC Cleanup.
 			if (bTouch || 
-				 (!bReadOnly && (FDateTime::UtcNow() - IFileManager::Get().GetTimeStamp(*Filename)).GetDays() > (DaysToDeleteUnusedFiles / 4)))
+				 (!bReadOnly && (FDateTime::UtcNow() - TimeStamp).GetDays() > (DaysToDeleteUnusedFiles / 4)))
 			{
 				IFileManager::Get().SetTimeStamp(*Filename, FDateTime::UtcNow());
 			}

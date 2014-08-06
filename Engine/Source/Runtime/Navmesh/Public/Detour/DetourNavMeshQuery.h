@@ -578,6 +578,13 @@ public:
 	///  @param[out]	closest		The closest point. [(x, y, z)]
 	/// @returns The status flags for the query.
 	dtStatus closestPointOnPolyBoundary(dtPolyRef ref, const float* pos, float* closest) const;
+
+	/// Finds the point's projection on the specified polygon.
+	///  @param[in]		ref			The reference id of the polygon.
+	///  @param[in]		pos			The position to check. [(x, y, z)]
+	///  @param[out]	closest		The projected point on the polygon. [(x, y, z)]
+	/// @returns The status flags for the query.
+	dtStatus projectedPointOnPoly(dtPolyRef ref, const float* pos, float* projected) const;
 	
 	/// Gets the height of the polygon at the provided position using the height detail. (Most accurate.)
 	///  @param[in]		ref			The reference id of the polygon.
@@ -640,6 +647,9 @@ private:
 									const dtQueryFilter* filter, float* nearestPt) const;
 	/// Returns closest point on polygon.
 	void closestPointOnPolyInTile(const dtMeshTile* tile, const dtPoly* poly, const float* pos, float* closest) const;
+
+	/// Returns projected point on polygon.
+	dtStatus projectedPointOnPolyInTile(const dtMeshTile* tile, const dtPoly* poly, const float* pos, float* projected) const;
 	
 	//@UE4 BEGIN
 	// exposing function to be able to generate navigation corridors as sequence of point pairs

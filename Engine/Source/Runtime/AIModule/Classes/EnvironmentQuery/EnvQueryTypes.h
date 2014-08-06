@@ -5,6 +5,10 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvQueryTypes.generated.h"
 
+class UEnvQueryTest;
+class UEnvQueryItemType_VectorBase;
+class UEnvQueryItemType_ActorBase;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 
 // If set, execution details will be processed by debugger
@@ -416,7 +420,7 @@ struct AIMODULE_API FEnvQueryResult
 	TArray<FEnvQueryItem> Items;
 
 	/** type of generated items */
-	TSubclassOf<class UEnvQueryItemType> ItemType;
+	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** query status */
 	TEnumAsByte<EEnvQueryStatus::Type> Status;
@@ -495,7 +499,7 @@ struct AIMODULE_API FEnvQueryItemDetails
 struct AIMODULE_API FEnvQueryContextData
 {
 	/** type of context values */
-	TSubclassOf<class UEnvQueryItemType> ValueType;
+	TSubclassOf<UEnvQueryItemType> ValueType;
 
 	/** number of stored values */
 	int32 NumValues;
@@ -519,7 +523,7 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	TArray<FExecuteTestSignature> TestDelegates;
 
 	/** type of generated items */
-	TSubclassOf<class UEnvQueryItemType> ItemType;
+	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** is set, items will be shuffled after tests */
 	bool bShuffleItems;
@@ -603,10 +607,10 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	TEnumAsByte<EEnvQueryRunMode::Type> Mode;
 
 	/** item type's CDO for location tests */
-	class UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
+	UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
 
 	/** item type's CDO for actor tests */
-	class UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
+	UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
 
 	/** if > 0 then it's how much time query has for performing current step */
 	double TimeLimit;
@@ -731,7 +735,7 @@ public:
 #if CPP || UE_BUILD_DOCS
 	struct AIMODULE_API ItemIterator
 	{
-		ItemIterator(class UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance);
+		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance);
 
 		~ItemIterator()
 		{
@@ -880,7 +884,7 @@ public:
 	protected:
 
 		FEnvQueryInstance* Instance;
-		UEnvQueryTest* Test;
+		//UEnvQueryTest* Test;
 		int32 CurrentItem;
 		int32 NumPartialScores;
 		double Deadline;

@@ -129,8 +129,8 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 		}
 	}
 #else
-	TSharedPtr<FNavigationQueryFilter> NavFilterInstance = NavigationFilter != NULL 
-		? UNavigationQueryFilter::GetQueryFilter<URecastFilter_UseDefaultArea>(NavMesh)->GetCopy()
+	TSharedPtr<FNavigationQueryFilter> NavFilterInstance = NavigationFilter != NULL
+		? UNavigationQueryFilter::GetQueryFilter(NavMesh, NavigationFilter)->GetCopy()
 		: NavMesh->GetDefaultQueryFilter()->GetCopy();
 
 	NavFilterInstance->SetBacktrackingEnabled(!bPathFromContext);

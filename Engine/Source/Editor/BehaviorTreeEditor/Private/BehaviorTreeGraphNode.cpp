@@ -31,7 +31,6 @@ UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitial
 	bDebuggerMarkFlashActive = false;
 	bDebuggerMarkSearchSucceeded = false;
 	bDebuggerMarkSearchFailed = false;
-	bDebuggerMarkSearchOptional = false;
 	bDebuggerMarkSearchTrigger = false;
 	bDebuggerMarkSearchFailedTrigger = false;
 	DebuggerSearchPathIndex = -1;
@@ -431,7 +430,6 @@ void UBehaviorTreeGraphNode::ClearDebuggerState()
 	bDebuggerMarkFlashActive = false;
 	bDebuggerMarkSearchSucceeded = false;
 	bDebuggerMarkSearchFailed = false;
-	bDebuggerMarkSearchOptional = false;
 	bDebuggerMarkSearchTrigger = false;
 	bDebuggerMarkSearchFailedTrigger = false;
 	DebuggerSearchPathIndex = -1;

@@ -6,6 +6,7 @@
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
+#include "VisualLog.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
@@ -33,9 +34,15 @@
 
 #if WITH_RECAST
 /// Helper for accessing navigation query from different threads
-#define INITIALIZE_NAVQUERY(NavQueryVariable, NumNodes)	dtNavMeshQuery NavQueryVariable##Private;	\
+#define INITIALIZE_NAVQUERY(NavQueryVariable, NumNodes)	\
+	dtNavMeshQuery NavQueryVariable##Private;	\
 	dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? RecastNavMeshImpl->SharedNavQuery : NavQueryVariable##Private; \
 	NavQueryVariable.init(RecastNavMeshImpl->DetourNavMesh, NumNodes);
+
+#define INITIALIZE_NAVQUERY_WLINKFILTER(NavQueryVariable, NumNodes, LinkFilter)	\
+	dtNavMeshQuery NavQueryVariable##Private;	\
+	dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? RecastNavMeshImpl->SharedNavQuery : NavQueryVariable##Private; \
+	NavQueryVariable.init(RecastNavMeshImpl->DetourNavMesh, NumNodes, &LinkFilter);
 
 #endif // WITH_RECAST
 
@@ -1124,6 +1131,47 @@ bool ARecastNavMesh::ProjectPoint(const FVector& Point, FNavLocation& OutLocatio
 	return bSuccess;
 }
 
+void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workload, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* Querier) const 
+{
+	if (Workload.Num() == 0 || RecastNavMeshImpl == NULL || RecastNavMeshImpl->DetourNavMesh == NULL)
+	{
+		return;
+	}
+
+	SECTION_LOCK_TILES;
+	
+	const FNavigationQueryFilter& FilterToUse = GetRightFilterRef(Filter);
+
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), Querier);
+	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterToUse.GetMaxSearchNodes(), LinkFilter);
+	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(FilterToUse.GetImplementation()))->GetAsDetourQueryFilter();
+	
+	ensure(QueryFilter);
+	if (QueryFilter)
+	{
+		FVector RcExtent = Unreal2RecastPoint(Extent).GetAbs();
+		float ClosestPoint[3];
+		dtPolyRef PolyRef;
+
+		for (int32 Idx = 0; Idx < Workload.Num(); Idx++)
+		{
+			FVector RcPoint = Unreal2RecastPoint(Workload[Idx].Point);
+			NavQuery.findNearestPoly(&RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint);
+
+			// one last step required due to recast's BVTree imprecision
+			if (PolyRef > 0)
+			{
+				const FVector& UnrealClosestPoint = Recast2UnrealPoint(ClosestPoint);
+				if (FVector::DistSquared(UnrealClosestPoint, Workload[Idx].Point) <= Extent.SizeSquared())
+				{
+					Workload[Idx].OutLocation = FNavLocation(UnrealClosestPoint, PolyRef);
+					Workload[Idx].bResult = true;
+				}
+			}
+		}
+	}
+}
+
 bool ARecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,
 	float MinZ, float MaxZ, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
 {
@@ -1621,6 +1669,77 @@ bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, const FVector& 
 	HitLocation = Result.HasHit() ? (RayStart + (RayEnd - RayStart) * Result.HitTime) : RayEnd;
 
 	return Result.HasHit();
+}
+
+bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, NavNodeRef RayStartNode, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* QueryOwner)
+{
+	check(Cast<const ARecastNavMesh>(Self));
+
+	const ARecastNavMesh* RecastNavMesh = (const ARecastNavMesh*)Self;
+	if (Self == NULL || RecastNavMesh->RecastNavMeshImpl == NULL)
+	{
+		HitLocation = RayStart;
+		return true;
+	}
+
+	FRaycastResult Result;
+	{
+		SECTION_LOCK_TILES_FOR(RecastNavMesh);
+		RecastNavMesh->RecastNavMeshImpl->Raycast2D(RayStartNode, RayStart, RayEnd, RecastNavMesh->GetRightFilterRef(QueryFilter), QueryOwner, Result);
+	}
+
+	HitLocation = Result.HasHit() ? (RayStart + (RayEnd - RayStart) * Result.HitTime) : RayEnd;
+
+	return Result.HasHit();
+}
+
+void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* Querier) const
+{
+	if (RecastNavMeshImpl == NULL || Workload.Num() == 0 || RecastNavMeshImpl->DetourNavMesh == NULL)
+	{
+		return;
+	}
+
+	SECTION_LOCK_TILES;
+
+	const FNavigationQueryFilter& FilterToUse = GetRightFilterRef(Filter);
+
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), Querier);
+	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterToUse.GetMaxSearchNodes(), LinkFilter);
+	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(FilterToUse.GetImplementation()))->GetAsDetourQueryFilter();
+	
+	if (QueryFilter == NULL)
+	{
+		UE_VLOG(this, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::FindPath failing due to QueryFilter == NULL"));
+		return;
+	}
+	
+	const FVector& NavExtent = GetDefaultQueryExtent();
+	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
+
+	for (auto& WorkItem : Workload)
+	{
+		ARecastNavMesh::FRaycastResult RaycastResult;
+
+		const FVector RecastStart = Unreal2RecastPoint(WorkItem.RayStart);
+		const FVector RecastEnd = Unreal2RecastPoint(WorkItem.RayEnd);
+
+		NavNodeRef StartNode = INVALID_NAVNODEREF;
+		NavQuery.findNearestPoly(&RecastStart.X, Extent, QueryFilter, &StartNode, NULL);
+
+		if (StartNode != INVALID_NAVNODEREF)
+		{
+			const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
+				, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
+				, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+
+			if (dtStatusSucceed(RaycastStatus))
+			{
+				WorkItem.bDidHit = true;
+				WorkItem.HitLocation = WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime;
+			}
+		}
+	}
 }
 
 bool ARecastNavMesh::IsSegmentOnNavmesh(const FVector& SegmentStart, const FVector& SegmentEnd, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const

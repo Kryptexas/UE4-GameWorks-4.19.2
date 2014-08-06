@@ -91,6 +91,8 @@ namespace EOnlineServerConnectionStatus
 {
 	enum Type
 	{
+		/** System normal (used for default state) */
+		Normal,
 		/** Gracefully disconnected from the online servers */
 		NotConnected,
 		/** Connected to the online servers just fine */
@@ -108,7 +110,11 @@ namespace EOnlineServerConnectionStatus
 		/** Disconnected due to duplicate login */
 		DuplicateLoginDetected,
 		/** Can't connect because of an invalid/unknown user */
-		InvalidUser
+		InvalidUser,
+		/** Not authorized */
+		NotAuthorized,
+		/** Session has been lost on the backend */
+		InvalidSession
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -116,6 +122,10 @@ namespace EOnlineServerConnectionStatus
 	{
 		switch (EnumVal)
 		{
+			case Normal:
+			{
+				return TEXT("Normal");
+			}
 			case NotConnected:
 			{
 				return TEXT("NotConnected");
@@ -151,6 +161,14 @@ namespace EOnlineServerConnectionStatus
 			case InvalidUser:
 			{
 				return TEXT("InvalidUser");
+			}
+			case NotAuthorized:
+			{
+				return TEXT("Not Authorized");
+			}
+			case InvalidSession:
+			{
+				return TEXT("Invalid Session");
 			}
 		}
 		return TEXT("");

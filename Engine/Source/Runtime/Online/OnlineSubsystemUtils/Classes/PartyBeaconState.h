@@ -186,6 +186,26 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual bool RemoveReservation(const FUniqueNetIdRepl& PartyLeader);
 
 	/**
+	 * Swap the parties between teams, parties must be able to fit on other team after swap
+	 *
+	 * @param PartyLeader party 1 to swap
+	 * @param OtherPartyLeader party 2 to swap
+	 * 
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool SwapTeams(const FUniqueNetIdRepl& PartyLeader, const FUniqueNetIdRepl& OtherPartyLeader);
+
+	/**
+	 * Place a party on a new team, party must fit and team must exist
+	 *
+	 * @param PartyLeader party to change teams
+	 * @param NewTeamNum team to change to
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool ChangeTeam(const FUniqueNetIdRepl& PartyLeader, int32 NewTeamNum);
+
+	/**
 	 * Remove a single player from their party's reservation
 	 *
 	 * PlayerId player to remove

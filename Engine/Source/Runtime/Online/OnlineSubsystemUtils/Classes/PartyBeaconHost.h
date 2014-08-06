@@ -6,6 +6,12 @@
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconHostObject.h"
 #include "PartyBeaconHost.generated.h"
 
+class FUniqueNetId;
+class UNetConnection;
+class UPartyBeaconState;
+class AOnlineBeaconClient;
+class APartyBeaconClient;
+
 /**
  * Delegate fired when a the beacon host detects a reservation addition/removal
  */
@@ -16,7 +22,7 @@ DECLARE_DELEGATE(FOnReservationChanged);
  *
  * @param PartyLeader leader of the canceled reservation
  */
-DECLARE_DELEGATE_OneParam(FOnCancelationReceived, const class FUniqueNetId&);
+DECLARE_DELEGATE_OneParam(FOnCancelationReceived, const FUniqueNetId&);
 
 /**
  * Delegate called when the beacon gets any request, allowing the owner to validate players at a higher level (bans,etc)
@@ -51,9 +57,9 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	// End AActor Interface
 
 	// Begin AOnlineBeaconHostObject Interface 
-	virtual AOnlineBeaconClient* SpawnBeaconActor(class UNetConnection* ClientConnection) override;
-	virtual void ClientConnected(class AOnlineBeaconClient* NewClientActor, class UNetConnection* ClientConnection);
-	virtual void RemoveClientActor(class AOnlineBeaconClient* ClientActor);
+	virtual AOnlineBeaconClient* SpawnBeaconActor(UNetConnection* ClientConnection) override;
+	virtual void ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection);
+	virtual void RemoveClientActor(AOnlineBeaconClient* ClientActor);
 	// End AOnlineBeaconHost Interface 
 
 	/**
@@ -75,7 +81,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
      *
 	 * @return true if successful created, false otherwise
 	 */
-	virtual bool InitFromBeaconState(class UPartyBeaconState* PrevState);
+	virtual bool InitFromBeaconState(UPartyBeaconState* PrevState);
 
 	/** 
 	 * Reconfigures the beacon for a different team/player count configuration
@@ -91,7 +97,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	/**
 	 * @return reference to the state of the PartyBeacon
 	 */
-	class UPartyBeaconState* GetState() const { return State; }
+	UPartyBeaconState* GetState() const { return State; }
 
 	/**
 	 * Notify the beacon of a player logout
@@ -131,6 +137,26 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * @return The number of teams.
 	 */
 	int32 GetNumTeams() const { return State->GetNumTeams(); }
+
+	/**
+	 * Swap the parties between teams, parties must be of same size
+	 *
+	 * @param PartyLeader party 1 to swap
+	 * @param OtherPartyLeader party 2 to swap
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool SwapTeams(const FUniqueNetIdRepl& PartyLeader, const FUniqueNetIdRepl& OtherPartyLeader);
+
+	/**
+	 * Place a party on a new team, party must fit and team must exist
+	 *
+	 * @param PartyLeader party to change teams
+	 * @param NewTeamNum team to change to
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool ChangeTeam(const FUniqueNetIdRepl& PartyLeader, int32 NewTeamNum);
 
 	/**
 	 * Does a given player id have an existing reservation
@@ -174,7 +200,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * @param Client client beacon making the request
 	 * @param ReservationRequest payload of request
 	 */
-	virtual void ProcessReservationRequest(class APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest);
+	virtual void ProcessReservationRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest);
 
 	/**
 	 * Handle a reservation cancellation request received from an incoming client
@@ -182,7 +208,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * @param Client client beacon making the request
 	 * @param PartyLeader reservation leader
 	 */
-	virtual void ProcessCancelReservationRequest(class APartyBeaconClient* Client, const FUniqueNetIdRepl& PartyLeader);
+	virtual void ProcessCancelReservationRequest(APartyBeaconClient* Client, const FUniqueNetIdRepl& PartyLeader);
 
 	/**
 	 * Delegate fired when a the beacon host detects a reservation addition/removal
@@ -218,11 +244,11 @@ protected:
 
 	/** State of the beacon */
 	UPROPERTY()
-	class UPartyBeaconState* State;
+	UPartyBeaconState* State;
 
 	/** List of all party beacon actors with active connections */
 	UPROPERTY()
-	TArray<class AOnlineBeaconClient*> ClientActors;
+	TArray<AOnlineBeaconClient*> ClientActors;
 
 	/** Delegate fired when the beacon indicates all reservations are taken */
 	FOnReservationsFull ReservationsFull;

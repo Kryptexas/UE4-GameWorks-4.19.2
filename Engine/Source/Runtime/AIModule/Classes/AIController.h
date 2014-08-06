@@ -9,12 +9,20 @@
 //=============================================================================
 
 #pragma once
+
 #include "AITypes.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "GameFramework/Controller.h"
+#include "Perception/AIPerceptionListenerInterface.h"
 #include "AIController.generated.h"
+
+class APawn;
+class UNavigationComponent;
+class UPathFollowingComponent;
+class UBrainComponent;
+class UAIPerceptionComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
@@ -65,7 +73,7 @@ struct FFocusKnowledge
 };
 
 UCLASS(BlueprintType, Blueprintable)
-class AIMODULE_API AAIController : public AController
+class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -91,18 +99,21 @@ public:
 
 	/** Component used for pathfinding and querying environment's navigation. */
 	UPROPERTY()
-	TSubobjectPtr<class UNavigationComponent> NavComponent;
+	TSubobjectPtr<UNavigationComponent> NavComponent;
 
 	/** Component used for moving along a path. */
 	UPROPERTY()
-	TSubobjectPtr<class UPathFollowingComponent> PathFollowingComponent;
+	TSubobjectPtr<UPathFollowingComponent> PathFollowingComponent;
 
 	/** Component responsible for behaviors. */
 	UPROPERTY()
-	class UBrainComponent* BrainComponent;
+	UBrainComponent* BrainComponent;
+
+	UPROPERTY()
+	TSubobjectPtr<UAIPerceptionComponent> PerceptionComponent;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
-	void OnPossess(class APawn* PossessedPawn);
+	void OnPossess(APawn* PossessedPawn);
 
 	/** Makes AI go toward specified Goal actor (destination will be continuously updated)
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
@@ -256,10 +267,12 @@ public:
 	virtual bool LineOfSightTo(const class AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const override;
 	// End AController Interface
 
+	/** Notifies AIController of changes in given actors' perception */
+	virtual void ActorsPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
+
 	/** Update direction AI is looking based on FocalPoint */
 	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true);
 
-public:
 	/** Set FocalPoint for given priority as absolute position or offset from base. */
 	virtual void SetFocalPoint(FVector FP, bool bOffsetFromBase=false, uint8 InPriority=EAIFocusPriority::Gameplay);
 
@@ -270,8 +283,17 @@ public:
 	 *	@param InPriority focus priority to clear. If you don't know what to use you probably mean EAIFocusPriority::Gameplay*/
 	virtual void ClearFocus(uint8 InPriority);
 
-	virtual FString GetDebugIcon() const {return FString();}
+	//----------------------------------------------------------------------//
+	// IAIPerceptionListenerInterface
+	//----------------------------------------------------------------------//
+	virtual class UAIPerceptionComponent* GetPerceptionComponent() override { return PerceptionComponent; }
 
+
+	//----------------------------------------------------------------------//
+	// debug/dev-time 
+	//----------------------------------------------------------------------//
+	virtual FString GetDebugIcon() const {return FString();}
+	
 	// Cheat/debugging functions
 	static void ToggleAIIgnorePlayers() { bAIIgnorePlayers = !bAIIgnorePlayers; }
 	static bool AreAIIgnoringPlayers() { return bAIIgnorePlayers; }

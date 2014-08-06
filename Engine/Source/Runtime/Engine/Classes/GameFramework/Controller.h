@@ -272,8 +272,10 @@ public:
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
 	virtual FVector GetNavAgentLocation() const override;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
-	virtual bool ShouldPostponePathUpdates() const override;
 	// End INavAgentInterface Interface
+
+	/** Allows agent to postpone any path updates (e.g. locked by gameplay). */
+	bool ShouldPostponePathUpdates() const;
 	
 	/** prepares path finding and path following components */
 	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp);

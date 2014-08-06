@@ -10,9 +10,11 @@ UBTService_BlueprintBase::UBTService_BlueprintBase(const class FPostConstructIni
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
 	bImplementsReceiveActivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveActivation"), this, StopAtClass);
 	bImplementsReceiveDeactivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveDeactivation"), this, StopAtClass);
+	bImplementsReceiveSearchStart = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveSearchStart"), this, StopAtClass);
 
-	bNotifyBecomeRelevant = bImplementsReceiveActivation || bImplementsReceiveTick;
+	bNotifyBecomeRelevant = bImplementsReceiveActivation;
 	bNotifyCeaseRelevant = bNotifyBecomeRelevant;
+	bNotifyOnSearch = bImplementsReceiveTick || bImplementsReceiveSearchStart;
 	bNotifyTick = bImplementsReceiveTick;
 	bShowPropertyDetails = true;
 
@@ -53,6 +55,20 @@ void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* Own
 	if (bImplementsReceiveDeactivation)
 	{
 		ReceiveDeactivation(OwnerComp->GetOwner());
+	}
+}
+
+void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+{
+	// skip flag, will be handled by bNotifyOnSearch
+
+	if (bImplementsReceiveSearchStart)
+	{
+		ReceiveSearchStart(SearchData.OwnerComp->GetOwner());
+	}
+	else
+	{
+		Super::OnSearchStart(SearchData);
 	}
 }
 

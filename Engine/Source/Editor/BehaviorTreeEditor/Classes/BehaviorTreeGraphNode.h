@@ -142,9 +142,6 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** debugger flag: mark as failed on search path */
 	uint32 bDebuggerMarkSearchFailed : 1;
 
-	/** debugger flag: mark as optional on search path */
-	uint32 bDebuggerMarkSearchOptional : 1;
-
 	/** debugger flag: mark as trigger of search path */
 	uint32 bDebuggerMarkSearchTrigger : 1;
 

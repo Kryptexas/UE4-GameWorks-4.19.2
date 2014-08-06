@@ -5,8 +5,8 @@
 
 UBTService::UBTService(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	bNotifyBecomeRelevant = true;
 	bNotifyTick = true;
+	bNotifyOnSearch = true;
 	bTickIntervals = true;
 
 	Interval = 0.5f;
@@ -19,10 +19,22 @@ void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, 
 	SetNextTickTime(NodeMemory, NextTickTime);
 }
 
-void UBTService::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
 {
-	// force it, without checking delays in ConditionalTickNode
-	TickNode(OwnerComp, NodeMemory, 0.0f);
+	uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
+	TickNode(SearchData.OwnerComp, NodeMemory, 0.0f);
+}
+
+void UBTService::NotifyParentActivation(struct FBehaviorTreeSearchData& SearchData)
+{
+	if (bNotifyOnSearch)
+	{
+		UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(SearchData) : this;
+		if (NodeOb)
+		{
+			((UBTService*)NodeOb)->OnSearchStart(SearchData);
+		}
+	}
 }
 
 FString UBTService::GetStaticDescription() const

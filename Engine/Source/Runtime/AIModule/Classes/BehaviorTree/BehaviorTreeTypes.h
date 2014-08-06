@@ -49,7 +49,6 @@ namespace EBTNodeResult
 	{
 		Succeeded,		// finished as success
 		Failed,			// finished as failure
-		Optional,		// finished, parent should continue
 		Aborted,		// finished aborting = failure
 		InProgress,		// not finished yet
 	};
@@ -152,11 +151,10 @@ struct FBehaviorTreeDebuggerInstance
 	{
 		uint16 ExecutionIndex;
 		uint16 bPassed : 1;
-		uint16 bOptional : 1;
 		uint16 bTrigger : 1;
 		uint16 bDiscardedTrigger : 1;
 
-		FNodeFlowData() : ExecutionIndex(INDEX_NONE), bPassed(0), bOptional(0), bTrigger(0), bDiscardedTrigger(0) {}
+		FNodeFlowData() : ExecutionIndex(INDEX_NONE), bPassed(0), bTrigger(0), bDiscardedTrigger(0) {}
 	};
 
 	FBehaviorTreeDebuggerInstance() : TreeAsset(NULL), RootNode(NULL) {}

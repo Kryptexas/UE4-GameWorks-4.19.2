@@ -296,6 +296,16 @@ public:
 		return Getter.IsBound();
 	}
 
+	/**
+	* Gets the attribute's 'getter' which can be bound or unbound
+	*
+	* @return  The attribute's FGetter.
+	*/
+	const FGetter& GetBinding() const
+	{
+		return Getter;
+	}
+
 
 	/**
 	 * Equality operator

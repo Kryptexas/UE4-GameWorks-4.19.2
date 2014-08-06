@@ -51,7 +51,6 @@ namespace BehaviorTreeColors
 		const FLinearColor TaskFlash(1.0f, 1.0f, 0.0f);
 		const FLinearColor SearchSucceeded(0.0f, 1.0f, 0.0f);
 		const FLinearColor SearchFailed(1.0f, 0.0f, 0.0f);
-		const FLinearColor SearchOptional(1.0f, 1.0f, 0.0f);
 
 		const FLinearColor DescHeader(0.3f, 0.8f, 0.4f);
 		const FLinearColor DescKeys(0.3f, 0.4f, 0.8f);

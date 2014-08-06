@@ -60,25 +60,6 @@ namespace EAILogicResuming
 	};
 }
 
-USTRUCT()
-struct FGenericTeamId
-{
-	GENERATED_USTRUCT_BODY()
-
-	enum EPredefinedId
-	{
-		NoTeam = 255
-	};
-
-	UPROPERTY(Category="TeamID", EditAnywhere, BlueprintReadWrite)
-	uint8 TeamID;
-
-	FGenericTeamId(uint8 InTeamID = NoTeam)  : TeamID(InTeamID)
-	{}
-
-	FORCEINLINE operator uint8() const { return TeamID; }
-};
-
 UENUM()
 namespace EPawnActionAbortState
 {

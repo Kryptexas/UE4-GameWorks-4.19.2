@@ -300,11 +300,11 @@ private:
 	 *
 	 * @param bWasSuccessful		- true if the async action completed without error, false if there was an error
 	 * @param RequestingUserId		- the ID of the user making the request
-	 * @param IdentificationString	- The string ID of the friend found
+	 * @param DisplayName	- The string ID of the friend found
 	 * @param IdentifiedUserId		- The net ID of the found friend
 	 * @param ErrorStr				- string representing the error condition
 	 */
-	void OnQueryUserIdFromIdentificationStringComplete( bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& IdentificationString, const FUniqueNetId& IdentifiedUserId, const FString& Error );
+	void OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error);
 
 	/**
 	 * Delegate used when a query user info request has completed
@@ -414,8 +414,8 @@ private:
 	FOnDeleteFriendsListCompleteDelegate OnDeleteFriendsListCompleteDelegate;
 	// Delegate to use for deleting a friend
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
-	// Delegate for querying user id from an identification string
-	FOnQueryUserIdFromIdentificationStringCompleteDelegate OnQueryUserIdFromIdentificationStringCompleteDelegate;
+	// Delegate for querying user id from a name string
+	FOnQueryUserIdFromDisplayNameCompleteDelegate OnQueryUserIdFromDisplayNameCompleteDelegate;
 	// Delegate to use for querying user info list
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate;
 	// Holds the delegate to call when the friends list gets updated - refresh the UI

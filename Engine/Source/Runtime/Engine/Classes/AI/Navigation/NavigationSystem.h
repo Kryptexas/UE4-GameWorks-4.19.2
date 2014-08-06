@@ -370,6 +370,7 @@ public:
 
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
 
+
 	//----------------------------------------------------------------------//
 	// Bookkeeping 
 	//----------------------------------------------------------------------//

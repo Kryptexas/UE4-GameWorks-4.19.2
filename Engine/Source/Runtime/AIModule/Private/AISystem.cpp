@@ -4,10 +4,12 @@
 #include "EngineUtils.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
+#include "Perception/AIPerceptionSystem.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayDebuggingReplicator.h"
 #include "GameplayDebuggingComponent.h"
 #include "AISystem.h"
+
 
 UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -17,6 +19,7 @@ UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCI
 		UObject* ManagersOuter = WorldOuter != NULL ? (UObject*)WorldOuter : (UObject*)this;
 		BehaviorTreeManager = NewObject<UBehaviorTreeManager>(ManagersOuter);
 		EnvironmentQueryManager = NewObject<UEnvQueryManager>(ManagersOuter);
+		PerceptionSystem = NewObject<UAIPerceptionSystem>(ManagersOuter);
 	}
 }
 

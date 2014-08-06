@@ -29,7 +29,7 @@ class UEnvQueryTest_Trace : public UEnvQueryTest
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	TSubclassOf<class UEnvQueryContext> Context;
 
-	void RunTest(struct FEnvQueryInstance& QueryInstance);
+	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FString GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

@@ -1579,10 +1579,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		}
 	}
 
-	if( bUpdateRootMotionMontageInstance )
-	{
-		UpdateRootMotionMontageInstance();
-	}
+	UpdateRootMotionMontageInstance();
 
 	// If Root Motion has been extracted, store it.
 	if ((GetRootMotionMontageInstance() != NULL) && LocalExtractedRootMotion.bHasRootMotion)
@@ -1798,7 +1795,7 @@ void UAnimInstance::UpdateRootMotionMontageInstance()
 {
 	FAnimMontageInstance * ActiveMontageInstance = GetActiveMontageInstance();
 
-	const bool bValidRootMotionInstance = (ActiveMontageInstance && ActiveMontageInstance->IsValid() && ActiveMontageInstance->Montage 
+	const bool bValidRootMotionInstance = (ActiveMontageInstance && ActiveMontageInstance->IsValid() && (ActiveMontageInstance->DesiredWeight > 0.f) && ActiveMontageInstance->Montage 
 		&& (ActiveMontageInstance->Montage->bEnableRootMotionTranslation || ActiveMontageInstance->Montage->bEnableRootMotionRotation) );
 
 	RootMotionMontageInstance = bValidRootMotionInstance ? ActiveMontageInstance : NULL;

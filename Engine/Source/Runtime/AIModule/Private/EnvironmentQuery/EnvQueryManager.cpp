@@ -237,6 +237,8 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			const double StartTime = FPlatformTime::Seconds();
 
 			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
+			//SCOPE_LOG_TIME(*FString::Printf(TEXT("Query %s step"), *QueryInstance->QueryName), nullptr);
+
 			QueryInstance->ExecuteOneStep(TimeLeft);
 			
 			if (QueryInstance->Status != EEnvQueryStatus::Processing)

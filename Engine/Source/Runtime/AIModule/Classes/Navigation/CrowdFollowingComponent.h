@@ -66,6 +66,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	void SetCrowdSeparation(bool bEnable, bool bUpdateAgent = true);
 	void SetCrowdOptimizeVisibility(bool bEnable, bool bUpdateAgent = true);
 	void SetCrowdOptimizeTopology(bool bEnable, bool bUpdateAgent = true);
+	void SetCrowdSlowdownAtGoal(bool bEnable, bool bUpdateAgent = true);
 	void SetCrowdSeparationWeight(float Weight, bool bUpdateAgent = true);
 	void SetCrowdCollisionQueryRange(float Range, bool bUpdateAgent = true);
 	void SetCrowdPathOptimizationRange(float Range, bool bUpdateAgent = true);
@@ -78,6 +79,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FORCEINLINE bool IsCrowdOptimizeVisibilityEnabled() const { return bEnableOptimizeVisibility; /** don't check suspend here! */ }
 	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology && !bSuspendCrowdSimulation; }
 	FORCEINLINE bool IsCrowdPathOffsetEnabled() const { return bEnablePathOffset; }
+	FORCEINLINE bool IsCrowdSlowdownAtGoalEnabled() const { return bEnableSlowdownAtGoal; }
 	FORCEINLINE float GetCrowdSeparationWeight() const { return SeparationWeight; }
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }
@@ -129,6 +131,7 @@ protected:
 	uint32 bEnableOptimizeVisibility : 1;
 	uint32 bEnableOptimizeTopology : 1;
 	uint32 bEnablePathOffset : 1;
+	uint32 bEnableSlowdownAtGoal : 1;
 
 	/** if set, agent if moving on final path part, skip further updates (runtime flag) */
 	uint32 bFinalPathPart : 1;

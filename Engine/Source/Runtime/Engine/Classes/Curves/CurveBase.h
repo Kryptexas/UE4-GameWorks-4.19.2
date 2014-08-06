@@ -427,8 +427,8 @@ public:
 /**
  * Defines a curve of interpolated points to evaluate over a given range
  */
-UCLASS(abstract,MinimalAPI)
-class UCurveBase : public UObject, public FCurveOwnerInterface
+UCLASS(abstract)
+class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -438,11 +438,11 @@ class UCurveBase : public UObject, public FCurveOwnerInterface
 
 	/** Get the time range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	ENGINE_API void GetTimeRange(float& MinTime, float& MaxTime) const;
+	void GetTimeRange(float& MinTime, float& MaxTime) const;
 
 	/** Get the value range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	ENGINE_API void GetValueRange(float& MinValue, float& MaxValue) const;
+	void GetValueRange(float& MinValue, float& MaxValue) const;
 
 public:
 	// Begin FCurveOwnerInterface
@@ -472,10 +472,10 @@ public:
 	 *	Create curve from CSV style comma-separated string. 
 	 *	@return	Set of problems encountered while processing input
 	 */
-	ENGINE_API TArray<FString> CreateCurveFromCSVString(const FString& InString);
+	TArray<FString> CreateCurveFromCSVString(const FString& InString);
 	
 	/** Reset all curve data */
-	ENGINE_API void ResetCurve();
+	void ResetCurve();
 
 	// End UCurveBase interface
 

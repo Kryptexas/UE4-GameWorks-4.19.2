@@ -765,6 +765,70 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(dtPolyRef ref, const float* 
 
 /// @par
 ///
+/// Uses the detail polygons to find the surface height. (Most accurate.)
+///
+/// @p pos does not have to be within the bounds of the polygon or navigation mesh.
+///
+dtStatus dtNavMeshQuery::projectedPointOnPoly(dtPolyRef ref, const float* pos, float* projected) const
+{
+	dtAssert(m_nav);
+	const dtMeshTile* tile = 0;
+	const dtPoly* poly = 0;
+	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
+		return DT_FAILURE | DT_INVALID_PARAM;
+	if (!tile)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	return projectedPointOnPolyInTile(tile, poly, pos, projected);
+}
+
+
+dtStatus dtNavMeshQuery::projectedPointOnPolyInTile(const dtMeshTile* tile, const dtPoly* poly,
+	const float* pos, float* projected) const
+{
+	// Off-mesh connections don't have detail polygons.
+	if (poly->getType() == DT_POLYTYPE_OFFMESH_POINT)
+	{
+		const float* v0 = &tile->verts[poly->verts[0] * 3];
+		const float* v1 = &tile->verts[poly->verts[1] * 3];
+		const float d0 = dtVdist(pos, v0);
+		const float d1 = dtVdist(pos, v1);
+		const float u = d0 / (d0 + d1);
+		dtVlerp(projected, v0, v1, u);
+		
+		// @todo this is not quite true, this calculated the closes point, not a projection
+		return DT_SUCCESS;
+	}
+
+	const unsigned int ip = (unsigned int)(poly - tile->polys);
+
+	// Clamp point to be inside the polygon.
+	float verts[DT_VERTS_PER_POLYGON * 3];
+	const int nv = poly->vertCount;
+	for (int i = 0; i < nv; ++i)
+		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
+
+	// copy source to output, just to have any valid information there
+	dtVcopy(projected, pos);
+
+	if (dtPointInPolygon(pos, verts, nv))
+	{
+		// adjust point's height
+		// @todo this is an aproximation. Implement a proper solution if needed
+		float h = 0;
+		for (int i = 0; i < nv; ++i)
+			h += verts[i * 3 + 1];
+		
+		projected[1] = h / nv;
+
+		return DT_SUCCESS;
+	}
+
+	return DT_FAILURE;
+}
+
+/// @par
+///
 /// Will return #DT_FAILURE if the provided position is outside the xz-bounds 
 /// of the polygon.
 /// 

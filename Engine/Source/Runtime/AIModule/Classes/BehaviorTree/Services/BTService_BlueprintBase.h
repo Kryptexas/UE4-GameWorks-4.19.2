@@ -44,13 +44,21 @@ protected:
 	/** set if ReceiveDeactivation is implemented by blueprint */
 	uint32 bImplementsReceiveDeactivation : 1;
 
+	/** set if ReceiveSearchStart is implemented by blueprint */
+	uint32 bImplementsReceiveSearchStart : 1;
+
 	virtual void OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData) override;
 
 	/** tick function */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
+
+	/** task search enters branch of tree, initial ReceiveTick won't be called if you implement this event! */
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual void ReceiveSearchStart(AActor* OwnerActor);
 
 	/** service became active */
 	UFUNCTION(BlueprintImplementableEvent)

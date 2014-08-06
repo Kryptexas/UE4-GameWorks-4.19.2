@@ -46,7 +46,12 @@
 #include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 #include "BehaviorTree/Services/BTService_BlackboardBase.h"
 
+#include "GenericTeamAgentInterface.h"
+
 #include "Actions/PawnAction.h"
+
+#include "Perception/AISense.h"
+#include "Perception/AIPerceptionComponent.h"
 
 #include "VisualLog.h"
 

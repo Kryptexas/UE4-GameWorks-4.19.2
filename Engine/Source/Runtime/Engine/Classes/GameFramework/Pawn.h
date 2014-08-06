@@ -216,6 +216,9 @@ public:
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	// End INavAgentInterface Interface
 
+	/** Allows agent to postpone any path updates (e.g. locked by gameplay) */
+	virtual bool ShouldPostponePathUpdates() const { return false; }
+
 	/** updates MovementComponent's parameters used by navigation system */
 	void UpdateNavAgent();
 
