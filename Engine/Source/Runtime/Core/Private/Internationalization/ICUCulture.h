@@ -116,6 +116,8 @@ class FCulture::FICUCultureImplementation
 
 	FString GetName() const;
 
+	static FString GetParentName(const FString& CultureName);
+
 	FString GetNativeName() const;
 
 	FString GetNativeLanguage() const;

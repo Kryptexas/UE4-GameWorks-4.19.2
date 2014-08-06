@@ -566,7 +566,7 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 	}
 }
 
-void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bAllowFallback) const
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bIncludeDerivedCultures) const
 {
 	OutAvailableCultures.Reset();
 
@@ -604,13 +604,28 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 		FileManager.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);
 	}
 
-	// Find any cultures that are a complete or partial match for the languages we have translations for
-	for(const auto& Culture : AllCultures)
+	// Find any cultures that are a partial match for those we have translations for.
+	if(bIncludeDerivedCultures)
+	{
+		for(const auto& Culture : AllCultures)
+		{
+			for(FString ParentCultureName = Culture->GetName(); !ParentCultureName.IsEmpty(); ParentCultureName = FCulture::GetParentName(ParentCultureName))
+			{
+				if(AllLocalizationFolders.Contains(ParentCultureName))
+				{
+					OutAvailableCultures.AddUnique(Culture);
+					break;
+				}
+			}
+		}
+	}
+	// Find any cultures that are a complete match for those we have translations for.
+	else
 	{
 		for(const FString& LocalizationFolder : AllLocalizationFolders)
 		{
-			// Check the full name, but if it doesn't match, see if the base language is present
-			if(LocalizationFolder == Culture->GetName() || (bAllowFallback && LocalizationFolder == Culture->GetTwoLetterISOLanguageName()))
+			TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = GetCulture(LocalizationFolder);
+			if(Culture.IsValid() && AllCultures.Contains(Culture.ToSharedRef()))
 			{
 				OutAvailableCultures.AddUnique(Culture);
 			}

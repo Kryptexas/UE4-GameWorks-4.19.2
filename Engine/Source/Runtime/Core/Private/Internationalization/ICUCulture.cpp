@@ -107,6 +107,14 @@ FString FCulture::FICUCultureImplementation::GetName() const
 	return ICULocale.getName();
 }
 
+FString FCulture::FICUCultureImplementation::GetParentName(const FString& CultureName)
+{
+	char Parent[32];
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	int32_t ParentLength = uloc_getParent(TCHAR_TO_ANSI(*CultureName), Parent, 32, &ICUStatus);
+	return FString(Parent);
+}
+
 FString FCulture::FICUCultureImplementation::GetNativeName() const
 {
 	icu::UnicodeString ICUResult;

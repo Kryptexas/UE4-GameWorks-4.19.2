@@ -41,6 +41,8 @@ public:
 
 	FString GetName() const;
 
+	static FString GetParentName(const FString& CultureName);
+	
 	FString GetNativeName() const;
 
 	FString GetNativeLanguage() const;
@@ -60,10 +62,12 @@ public:
 #if UE_ENABLE_ICU
 public:
 	class FICUCultureImplementation;
+	typedef FICUCultureImplementation FImplementation;
 	TSharedRef<FICUCultureImplementation> Implementation;
 #else
 public:
 	class FLegacyCultureImplementation;
+	typedef FLegacyCultureImplementation FImplementation;
 	TSharedRef<FLegacyCultureImplementation> Implementation;
 
 	// The date formating rule for this culture

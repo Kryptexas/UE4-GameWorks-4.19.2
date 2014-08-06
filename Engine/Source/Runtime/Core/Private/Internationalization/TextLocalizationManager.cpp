@@ -36,19 +36,19 @@ void EndInitTextLocalization()
 	else
 #endif
 	{
-		FString TargetCultureName;
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), TargetCultureName))
+		FString RequestedCultureName;
+		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), RequestedCultureName))
 		{
 			// Write the culture passed in if first install...
 			if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
 			{
-				GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), *TargetCultureName, GEngineIni);
+				GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), *RequestedCultureName, GEngineIni);
 			}
 		}
 		else
 #if !UE_BUILD_SHIPPING
 		// Use culture override specified on commandline.
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), TargetCultureName))
+		if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), RequestedCultureName))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
 		}
@@ -56,66 +56,65 @@ void EndInitTextLocalization()
 #endif // !UE_BUILD_SHIPPING
 #if WITH_EDITOR
 		// See if we've been provided a culture override in the editor
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), TargetCultureName, GEditorGameAgnosticIni ))
+		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorGameAgnosticIni ))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
 		}
 		else
 #endif // WITH_EDITOR
 		// Use culture specified in engine configuration.
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), TargetCultureName, GEngineIni ))
+		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);
 		}
 		else
 		{
-			TargetCultureName = I18N.GetDefaultCulture()->GetName();
+			RequestedCultureName = I18N.GetDefaultCulture()->GetName();
 		}
 
+		FString TargetCultureName = RequestedCultureName;
 		{
 			TArray<FString> LocalizationPaths;
-
 			if(ShouldLoadEditor)
 			{
 				LocalizationPaths += FPaths::GetEditorLocalizationPaths();
 			}
-
 			if(ShouldLoadGame)
 			{
 				LocalizationPaths += FPaths::GetGameLocalizationPaths();
 			}
-
 			LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
 			TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableCultures;
-			I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures);
+			I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
 
-			const FString RequestedCultureName = TargetCultureName;
-			TSharedPtr<FCulture, ESPMode::ThreadSafe> RequestedCulture = I18N.GetCulture(TargetCultureName);
-			if(RequestedCulture.IsValid())
+			// Query for parent culture name based on request culture name.
+			FString ParentCultureName = RequestedCultureName;
+				
+			// If we do not have localization data, try the parent culture.
+			for(TSharedPtr<FCulture, ESPMode::ThreadSafe> ParentCulture = I18N.GetCulture(ParentCultureName); !AvailableCultures.Contains(ParentCulture); ParentCulture = I18N.GetCulture(ParentCultureName))
 			{
-				if(!AvailableCultures.Contains(RequestedCulture))
+				ParentCultureName = FCulture::GetParentName(ParentCultureName);
+
+				// No parent culture
+				if(ParentCultureName.IsEmpty())
 				{
-					// Try base language.
-					TargetCultureName = RequestedCulture->GetTwoLetterISOLanguageName();
-					TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture = I18N.GetCulture(TargetCultureName);
-					if(AvailableCultures.Contains(TargetCulture))
-					{
-						// Fallback to base language.
-						UE_LOG(LogTextLocalizationManager, Log, TEXT("The selected culture '%s' has no localization data; falling back to base language '%s'"), *RequestedCultureName, *TargetCultureName);
-					}
-					else
-					{
-						// Fallback to English.
-						UE_LOG(LogTextLocalizationManager, Log, TEXT("The selected culture '%s' has no localization data; falling back to 'en'"), *RequestedCultureName);
-						TargetCultureName = "en";
-					}
+					break;
 				}
 			}
-			// Fallback to English.
+
+			if(!ParentCultureName.IsEmpty())
+			{
+				if(RequestedCultureName != ParentCultureName)
+				{
+					// Make the user aware that the localization data belongs to a parent culture.
+					UE_LOG(LogTextLocalizationManager, Log, TEXT("The requested culture ('%s') has no localization data; parent culture's ('%s') localization data will be used."), *RequestedCultureName, *ParentCultureName);
+				}
+			}
 			else
 			{
-				UE_LOG(LogTextLocalizationManager, Warning, TEXT("The selected culture '%s' is not valid; falling back to 'en'"), *RequestedCultureName);
+				// Fallback to English.
+				UE_LOG(LogTextLocalizationManager, Log, TEXT("The requested culture ('%s') has no localization data; falling back to 'en' for localization and internationalization data."), *RequestedCultureName);
 				TargetCultureName = "en";
 			}
 		}

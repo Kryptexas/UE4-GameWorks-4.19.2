@@ -68,8 +68,8 @@ public:
 
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
 
-	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bAllowFallback, include cultures for which we have non-region-specific data for.
-	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bAllowFallback = false) const;
+	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
 
 private:
 	FInternationalization();
