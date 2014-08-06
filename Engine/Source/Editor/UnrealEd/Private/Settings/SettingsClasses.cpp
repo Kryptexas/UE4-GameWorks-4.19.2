@@ -305,4 +305,21 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		FPaths::MakePathRelativeTo(Path, FPlatformProcess::BaseDir());
 		StagingDirectory.Path = Path;
 	}
+	else if (Name == FName(TEXT("ForDistribution")) || Name == FName(TEXT("BuildConfiguration")))
+	{
+		if (ForDistribution)
+		{
+			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
+		}
+	}
+}
+
+bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) const
+{
+	if (InProperty->GetFName() == FName(TEXT("BuildConfiguration")) && ForDistribution)
+	{
+		return false;
+	}
+
+	return Super::CanEditChange(InProperty);
 }
