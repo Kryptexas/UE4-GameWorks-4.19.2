@@ -1,39 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
+
 #include "BlueprintEditor.h"
+#include "BlueprintEditorModes.h"
+#include "ISourceControlModule.h"
+#include "SBlueprintEditorToolbar.h"
 #include "SBlueprintMerge.h"
 #include "SMergeGraphView.h"
-#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
-
-/** 
- * Commands used to navigate the lists of differences between the local revision and the common base
- * or the remote revision and the common base.
- */
-class FMergeDifferencesListCommands : public TCommands<FMergeDifferencesListCommands>
-{
-public:
-	FMergeDifferencesListCommands()
-		: TCommands<FMergeDifferencesListCommands>("MergeList", NSLOCTEXT("Merge", "Blueprint", "Blueprint Merge"), NAME_None, FEditorStyle::GetStyleSetName())
-	{
-	}
-
-	/** Go to previous or next difference, focusing on either the remote or local diff */
-	TSharedPtr<FUICommandInfo> LocalPrevious;
-	TSharedPtr<FUICommandInfo> LocalNext;
-	TSharedPtr<FUICommandInfo> RemotePrevious;
-	TSharedPtr<FUICommandInfo> RemoteNext;
-
-	virtual void RegisterCommands() override
-	{
-		UI_COMMAND(LocalPrevious, "LocalPrevious", "Go to previous local difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7, EModifierKey::Control));
-		UI_COMMAND(LocalNext, "LocalNext", "Go to next local difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7));
-		UI_COMMAND(RemotePrevious, "RemotePrevious", "Go to previous remote difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F8, EModifierKey::Control));
-		UI_COMMAND(RemoteNext, "RemoteNext", "Go to next remote difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F8));
-	}
-};
 
 SBlueprintMerge::SBlueprintMerge()
 	: Data()
@@ -45,21 +21,16 @@ SBlueprintMerge::SBlueprintMerge()
 
 void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
 {
-	FMergeDifferencesListCommands::Register();
-
 	check( InData.OwningEditor.Pin().IsValid() );
 
 	Data = InData;
 
 	GraphView = SNew( SMergeGraphView, InData );
+	ComponentsView = SNew(SBorder);
+	DefaultsView = SNew(SBorder);
 
-	this->ChildSlot
-		[
-			GraphView.ToSharedRef()
-		];
-
-	/*ComponentsView;
-	DefaultsView;*/
+	InData.OwningEditor.Pin()->OnModeSet().AddSP( this, &SBlueprintMerge::OnModeChanged );
+	OnModeChanged( InData.OwningEditor.Pin()->GetCurrentMode() );
 }
 
 template< typename T >
@@ -124,6 +95,37 @@ FReply SBlueprintMerge::OnCancelClicked()
 {
 	Data.OwningEditor.Pin()->CloseMergeTool();
 	return FReply::Handled();
+}
+
+void SBlueprintMerge::OnModeChanged(FName NewMode)
+{
+	if (NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ||
+		NewMode == FBlueprintEditorApplicationModes::BlueprintMacroMode)
+	{
+		this->ChildSlot
+			[
+				GraphView.ToSharedRef()
+			];
+	}
+	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
+	{
+		this->ChildSlot
+			[
+				DefaultsView.ToSharedRef()
+			];
+	}
+	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode ||
+			 NewMode == FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
+	{
+		this->ChildSlot
+			[
+				ComponentsView.ToSharedRef()
+			];
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("Diff panel does not support mode %s"), *NewMode.ToString());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

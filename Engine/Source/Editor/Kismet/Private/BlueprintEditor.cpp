@@ -1120,6 +1120,12 @@ void FBlueprintEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 	FWorkflowCentricApplication::RegisterTabSpawners(TabManager);
 }
 
+void FBlueprintEditor::SetCurrentMode(FName NewMode)
+{
+	OnModeSetData.Broadcast( NewMode );
+	FWorkflowCentricApplication::SetCurrentMode(NewMode);
+}
+
 void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
 	check(InBlueprints.Num() == 1 || bShouldOpenInDefaultsMode);

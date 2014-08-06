@@ -34,7 +34,7 @@ public:
 	bool IsModeCurrent(FName ModeToCheck) const {return GetCurrentMode() == ModeToCheck;}
 
 	// Attempt to set the current mode.  If this mode is illegal or unknown, the mode will remain unchanged.
-	void SetCurrentMode(FName NewMode);
+	virtual void SetCurrentMode(FName NewMode);
 
 	void PushTabFactories(FWorkflowAllowedTabSet& FactorySetToPush);
 

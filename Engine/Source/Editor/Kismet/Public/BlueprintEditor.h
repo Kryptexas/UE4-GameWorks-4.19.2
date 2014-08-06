@@ -110,6 +110,10 @@ public:
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnModeSet, FName);
+	FOnModeSet& OnModeSet() { return OnModeSetData; }
+	virtual void SetCurrentMode(FName NewMode) override;
+
 public:
 	/**
 	 * Edits the specified blueprint
@@ -1018,6 +1022,9 @@ private:
 
 	/** Whether the current project is C++ or blueprint based */
 	bool bCodeBasedProject;
+
+	/** Delegates that are fired when the blueprint editor changes modes */
+	FOnModeSet OnModeSetData;
 
 };
 

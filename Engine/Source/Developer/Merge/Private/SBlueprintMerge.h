@@ -16,13 +16,14 @@ public:
 
 	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
 
-protected:	
+private:
 	/** Helper functions */
 	UBlueprint* GetTargetBlueprint();
 
 	/** Event handlers */
 	FReply OnAcceptResultClicked();
 	FReply OnCancelClicked();
+	void OnModeChanged(FName NewMode);
 
 	FBlueprintMergeData Data;
 
