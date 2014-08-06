@@ -10,13 +10,14 @@
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
-#include <sys/ioctl.h>	// ioctl
-#include <asm/ioctls.h>	// FIONREAD
+#include <sys/ioctl.h> // ioctl
+#include <asm/ioctls.h> // FIONREAD
 
 void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check( Filename );
-	void *Handle = dlopen( TCHAR_TO_ANSI(Filename), RTLD_LAZY | RTLD_LOCAL );
+	FString AbsolutePath = FPaths::ConvertRelativePathToFull(Filename);
+	void *Handle = dlopen( TCHAR_TO_ANSI(*AbsolutePath), RTLD_LAZY | RTLD_LOCAL );
 	if (!Handle)
 	{
 		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
@@ -40,7 +41,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return MODULE_API_VERSION;
+	return ENGINE_VERSION;
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()
@@ -88,6 +89,32 @@ const TCHAR* FLinuxPlatformProcess::ComputerName()
 	return CachedResult;
 }
 
+void FLinuxPlatformProcess::CleanFileCache()
+{
+	bool bShouldCleanShaderWorkingDirectory = true;
+#if !(UE_BUILD_SHIPPING && WITH_EDITOR)
+	// Only clean the shader working directory if we are the first instance, to avoid deleting files in use by other instances
+	// @todo - check if any other instances are running right now
+	bShouldCleanShaderWorkingDirectory = GIsFirstInstance;
+#endif
+
+	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
+	{
+		// get shader path, and convert it to the userdirectory
+		FString ShaderDir = FString(FPlatformProcess::BaseDir()) / FPlatformProcess::ShaderDir();
+		FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
+		FPaths::CollapseRelativeDirectories(ShaderDir);
+
+		// make sure we don't delete from the source directory
+		if (ShaderDir != UserShaderDir)
+		{
+			IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+		}
+
+		FPlatformProcess::CleanShaderWorkingDir();
+	}
+}
+
 const TCHAR* FLinuxPlatformProcess::BaseDir()
 {
 	static bool bHaveResult = false;
@@ -96,7 +123,14 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 	if (!bHaveResult)
 	{
 		char SelfPath[ PlatformProcessLimits::MaxBaseDirLength ] = {0};
-		readlink( "/proc/self/exe", SelfPath, ARRAY_COUNT(SelfPath) - 1);
+		if (readlink( "/proc/self/exe", SelfPath, ARRAY_COUNT(SelfPath) - 1) == -1)
+		{
+			int ErrNo = errno;
+			UE_LOG(LogHAL, Fatal, TEXT("readlink() failed with errno = %d (%s)"), ErrNo,
+				StringCast< TCHAR >(strerror(ErrNo)).Get());
+			// unreachable
+			return CachedResult;
+		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
 		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(dirname(SelfPath)));
@@ -105,6 +139,56 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 		bHaveResult = true;
 	}
 	return CachedResult;
+}
+
+const TCHAR* FLinuxPlatformProcess::UserDir()
+{
+	// The UserDir is where user visible files (such as game projects) live.
+	// On Linux (just like on Mac) this corresponds to $HOME/Documents.
+	static TCHAR Result[MAX_PATH] = TEXT("");
+
+	if (!Result[0])
+	{
+		char* Home = secure_getenv("HOME");
+		if (!Home)
+		{
+			UE_LOG(LogHAL, Warning, TEXT("Unable to read the $HOME environment variable"));
+		}
+		else
+		{
+			FCString::Strcpy(Result, ANSI_TO_TCHAR(Home));
+			FCString::Strcat(Result, TEXT("/Documents/"));
+		}
+	}
+	return Result;
+}
+
+const TCHAR* FLinuxPlatformProcess::UserSettingsDir()
+{
+	// Like on Mac we use the same folder for UserSettingsDir and ApplicationSettingsDir
+	// $HOME/.config/Epic/
+	return ApplicationSettingsDir();
+}
+
+const TCHAR* FLinuxPlatformProcess::ApplicationSettingsDir()
+{
+	// The ApplicationSettingsDir is where the engine stores settings and configuration
+	// data.  On linux this corresponds to $HOME/.config/Epic
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		char* Home = secure_getenv("HOME");
+		if (!Home)
+		{
+			UE_LOG(LogHAL, Warning, TEXT("Unable to read the $HOME environment variable"));
+		}
+		else
+		{
+			FCString::Strcpy(Result, ANSI_TO_TCHAR(Home));
+			FCString::Strcat(Result, TEXT("/.config/Epic/"));
+		}
+	}
+	return Result;
 }
 
 bool FLinuxPlatformProcess::SetProcessLimits(EProcessResource::Type Resource, uint64 Limit)
@@ -122,7 +206,7 @@ bool FLinuxPlatformProcess::SetProcessLimits(EProcessResource::Type Resource, ui
 			break;
 
 		default:
-			UE_LOG(LogHAL, Warning, TEXT("Unkown resource type %d"), Resource);
+			UE_LOG(LogHAL, Warning, TEXT("Unknown resource type %d"), Resource);
 			return false;
 	}
 
@@ -142,7 +226,13 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 	if (!bHaveResult)
 	{
 		char SelfPath[ PlatformProcessLimits::MaxBaseDirLength ] = {0};
-		readlink( "/proc/self/exe", SelfPath, ARRAY_COUNT(SelfPath) - 1);
+		if (readlink( "/proc/self/exe", SelfPath, ARRAY_COUNT(SelfPath) - 1) == -1)
+		{
+			int ErrNo = errno;
+			UE_LOG(LogHAL, Fatal, TEXT("readlink() failed with errno = %d (%s)"), ErrNo,
+				StringCast< TCHAR >(strerror(ErrNo)).Get());
+			return CachedResult;
+		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
 		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(basename(SelfPath)));
@@ -291,14 +381,31 @@ FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 
 void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error)
 {
-	// stub implementation for now
-	// TODO: consider looking for gnome-open, xdg-open, sensible-browser or just hardcoded names...
+	// @todo This ignores params and error; mostly a stub
+	pid_t pid = fork();
+	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::LaunchURL: '%s'"), TCHAR_TO_ANSI(URL));
+	if (pid == 0)
+	{
+		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_ANSI(URL), (char *)0));
+	}
 }
 
 FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
 {
-	FString AbsolutePath = FPaths::ConvertRelativePathToFull(URL);
-	FString Commandline = AbsolutePath;
+	// @TODO bLaunchHidden bLaunchReallyHidden are not handled
+	// When using OptionalWorkingDirectory, we need an absolute path to executable
+	FString ProcessPath = URL;
+	if (*URL != '/' && OptionalWorkingDirectory)
+	{
+		ProcessPath = FString(BaseDir()) + ProcessPath;
+	}
+
+	if (!FPaths::FileExists(ProcessPath))
+	{
+		return FProcHandle();
+	}
+
+	FString Commandline = ProcessPath;
 	Commandline += TEXT(" ");
 	Commandline += Parms;
 
@@ -306,12 +413,12 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 
 	TArray<FString> ArgvArray;
 	int Argc = Commandline.ParseIntoArray(&ArgvArray, TEXT(" "), true);
-	char * Argv[PlatformProcessLimits::MaxArgvParameters + 1] = { NULL };	// last argument is NULL, hence +1
+	char* Argv[PlatformProcessLimits::MaxArgvParameters + 1] = { NULL };	// last argument is NULL, hence +1
 	struct CleanupArgvOnExit
 	{
 		int Argc;
-		char ** Argv;	// relying on it being long enough to hold Argc elements
-		
+		char** Argv;	// relying on it being long enough to hold Argc elements
+
 		CleanupArgvOnExit( int InArgc, char *InArgv[] )
 			:	Argc(InArgc)
 			,	Argv(InArgv)
@@ -326,6 +433,65 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		}
 	} CleanupGuard(Argc, Argv);
 
+	// make sure we do not lose arguments with spaces in them due to Commandline.ParseIntoArray breaking them apart above
+	// @todo this code might need to be optimized somehow and integrated with main argument parser below it
+	TArray<FString> NewArgvArray;
+	if (Argc > 0)
+	{
+		if (Argc > PlatformProcessLimits::MaxArgvParameters)
+		{
+			UE_LOG(LogHAL, Warning, TEXT("FLinuxPlatformProcess::CreateProc: too many (%d) commandline arguments passed, will only pass %d"),
+				Argc, PlatformProcessLimits::MaxArgvParameters);
+			Argc = PlatformProcessLimits::MaxArgvParameters;
+		}
+
+		FString MultiPartArg;
+		for (int32 Index = 0; Index < Argc; Index++)
+		{
+			if (MultiPartArg.IsEmpty())
+			{
+				if ((ArgvArray[Index].StartsWith(TEXT("\"")) && !ArgvArray[Index].EndsWith(TEXT("\""))) // check for a starting quote but no ending quote, excludes quoted single arguments
+					|| (ArgvArray[Index].Contains(TEXT("=\"")) && !ArgvArray[Index].EndsWith(TEXT("\""))) // check for quote after =, but no ending quote, this gets arguments of the type -blah="string string string"
+					|| ArgvArray[Index].EndsWith(TEXT("=\""))) // check for ending quote after =, this gets arguments of the type -blah=" string string string "
+				{
+					MultiPartArg = ArgvArray[Index];
+				}
+				else
+				{
+					if (ArgvArray[Index].Contains(TEXT("=\"")))
+					{
+						FString SingleArg = ArgvArray[Index];
+						SingleArg = SingleArg.Replace(TEXT("=\""), TEXT("="));
+						NewArgvArray.Add(SingleArg.TrimQuotes(NULL));
+					}
+					else
+					{
+						NewArgvArray.Add(ArgvArray[Index].TrimQuotes(NULL));
+					}
+				}
+			}
+			else
+			{
+				MultiPartArg += TEXT(" ");
+				MultiPartArg += ArgvArray[Index];
+				if (ArgvArray[Index].EndsWith(TEXT("\"")))
+				{
+					if (MultiPartArg.StartsWith(TEXT("\"")))
+					{
+						NewArgvArray.Add(MultiPartArg.TrimQuotes(NULL));
+					}
+					else
+					{
+						NewArgvArray.Add(MultiPartArg);
+					}
+					MultiPartArg.Empty();
+				}
+			}
+		}
+	}
+	// update Argc with the new argument count
+	Argc = NewArgvArray.Num();
+
 	if (Argc > 0)	// almost always, unless there's no program name
 	{
 		if (Argc > PlatformProcessLimits::MaxArgvParameters)
@@ -337,8 +503,8 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 
 		for (int Idx = 0; Idx < Argc; ++Idx)
 		{
-			auto AnsiBuffer = StringCast<ANSICHAR>(*ArgvArray[Idx]);
-			const char * Ansi = AnsiBuffer.Get();
+			auto AnsiBuffer = StringCast<ANSICHAR>(*NewArgvArray[Idx]);
+			const char* Ansi = AnsiBuffer.Get();
 			size_t AnsiSize = FCStringAnsi::Strlen(Ansi) + 1;
 			check(AnsiSize);
 
@@ -357,7 +523,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	pid_t ChildPid = -1;
 
 	posix_spawn_file_actions_t FileActions;
-	
+
 	posix_spawn_file_actions_init(&FileActions);
 	if (PipeWrite)
 	{
@@ -365,7 +531,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
 	}
 
-	int ErrNo = posix_spawn(&ChildPid, TCHAR_TO_ANSI(*AbsolutePath), &FileActions, NULL, Argv, environ);
+	int ErrNo = posix_spawn(&ChildPid, TCHAR_TO_ANSI(*ProcessPath), &FileActions, NULL, Argv, environ);
 	posix_spawn_file_actions_destroy(&FileActions);
 	if (ErrNo != 0)
 	{
@@ -376,6 +542,13 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	{
 		UE_LOG(LogHAL, Log, TEXT("FLinuxPlatformProcess::CreateProc: spawned child %d"), ChildPid);
 	}
+
+	if (OutProcessID)
+	{
+		*OutProcessID = ChildPid;
+	}
+
+	posix_spawn_file_actions_destroy(&FileActions);
 
 	return FProcHandle( ChildPid );
 }
@@ -430,7 +603,7 @@ bool FProcHandle::GetReturnCode(int32* ReturnCodePtr)
 		Wait();
 	}
 
-	if (ReturnCode < 0)
+	if (ReturnCode != -1)
 	{
 		if (ReturnCodePtr != NULL)
 		{
@@ -488,14 +661,19 @@ void FLinuxPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool Kil
 	if (KillTree)
 	{
 		// TODO: enumerate the children
-		check(!"Killing a subtree is not implemented yet");
+		STUBBED("FLinuxPlatformProcess::TerminateProc() : Killing a subtree is not implemented yet");
 	}
 
 	int KillResult = kill(ProcessHandle.Get(), SIGTERM);	// graceful
 	check(KillResult != -1 || errno != EINVAL);
 }
 
-bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode )
+uint32 FLinuxPlatformProcess::GetCurrentProcessId()
+{
+	return getpid();
+}
+
+bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle& ProcHandle, int32* ReturnCode )
 {
 	if (IsProcRunning(ProcHandle))
 	{
@@ -516,4 +694,156 @@ bool FLinuxPlatformProcess::Daemonize()
 	}
 
 	return true;
+}
+
+bool FLinuxPlatformProcess::IsApplicationRunning( uint32 ProcessId )
+{
+	errno = 0;
+	getpriority(PRIO_PROCESS, ProcessId);
+	return errno == 0;
+}
+
+bool FLinuxPlatformProcess::IsThisApplicationForeground()
+{
+	STUBBED("FLinuxPlatformProcess::IsThisApplicationForeground");
+	return true;
+}
+
+bool FLinuxPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
+{
+	FString Commandline = TEXT("pidof '");
+	Commandline += ProcName;
+	Commandline += TEXT("'  > /dev/null");
+	return !system(TCHAR_TO_ANSI(*Commandline));
+}
+
+bool FLinuxPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
+{
+	TArray<FString> ArgsArray;
+	FString(Params).ParseIntoArray(&ArgsArray, TEXT(" "), true);
+	char *args[ArgsArray.Num()];
+
+	for(int i = 0; i < ArgsArray.Num(); i++)
+	{
+		args[i] = TCHAR_TO_ANSI(*ArgsArray[i]);
+	}
+	pid_t pid;
+	int status;
+	int fd_stdout[2], fd_stderr[2];
+
+	if (pipe(fd_stdout) == -1) 
+	{
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Fatal, TEXT("Creating fd_stdout pipe failed with errno = %d (%s)"), ErrNo,
+			StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return false;
+	}
+
+	if (pipe(fd_stderr) == -1) 
+	{
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Fatal, TEXT("Creating fd_stderr pipe failed with errno = %d (%s)"), ErrNo,
+			StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return false;
+	}
+
+	pid = fork();
+	if(pid < 0)
+	{
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Fatal, TEXT("fork() failed with errno = %d (%s)"), ErrNo,
+			StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return false;
+	}
+
+	if(pid == 0)
+	{
+		close(fd_stdout[0]);
+		close(fd_stderr[0]);
+		dup2(fd_stdout[1], 1);
+		dup2(fd_stderr[1], 2);
+		close(fd_stdout[1]);
+		close(fd_stderr[1]);
+
+		// TODO Not sure if we need to look up URL in PATH
+		exit(execv(TCHAR_TO_ANSI(URL), args));
+	}
+	else
+	{
+		// TODO This might deadlock, should use select. Rewrite me. Also doesn't handle all errors correctly.
+		close(fd_stdout[1]);
+		close(fd_stderr[1]);
+		do
+		{
+			pid_t wpid = waitpid(pid, &status, 0);
+			if (wpid == -1)
+			{
+				int ErrNo = errno;
+				UE_LOG(LogHAL, Fatal, TEXT("waitpid() failed with errno = %d (%s)"), ErrNo,
+				StringCast< TCHAR >(strerror(ErrNo)).Get());
+				return false;
+			}
+
+			if (WIFEXITED(status))
+			{
+				*OutReturnCode = WEXITSTATUS(status);
+			}
+			else if (WIFSIGNALED(status))
+			{
+				*OutReturnCode = WTERMSIG(status);
+			}
+
+		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+		while(1)
+		{
+			char buf[100];
+			int size = read(fd_stdout[0], buf, 100);
+			if(size)
+			{
+				if(OutStdErr)
+				{
+					*OutStdErr += FString(buf);
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		while(1)
+		{
+			char buf[100];
+			int size = read(fd_stderr[0], buf, 100);
+			if(size)
+			{
+				if(OutStdOut)
+				{
+					*OutStdOut += FString(buf);
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		return true;
+	}
+}
+
+void FLinuxPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms, ELaunchVerb::Type Verb )
+{
+	// TODO This ignores parms and verb
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_ANSI(FileName), (char *)0));
+	}
+}
+
+void FLinuxPlatformProcess::ExploreFolder( const TCHAR* FilePath )
+{
+	// TODO This is broken, not an explore action but should be fine if called on a directory
+	FLinuxPlatformProcess::LaunchFileInDefaultExternalApplication(FilePath, NULL, ELaunchVerb::Edit);
 }

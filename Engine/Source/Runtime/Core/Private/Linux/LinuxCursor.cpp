@@ -1,5 +1,7 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
+#include "LinuxApplication.h"
 #include "LinuxCursor.h"
 #include "LinuxWindow.h"
 
@@ -91,7 +93,19 @@ FLinuxCursor::FLinuxCursor() : bHidden(false)
 			break;
 
 		case EMouseCursor::EyeDropper:
-			//CursorHandle = LoadCursorFromFile((LPCTSTR)*(FString( FPlatformProcess::BaseDir() ) / FString::Printf( TEXT("%sEditor/Slate/Icons/eyedropper.cur"), *FPaths::EngineContentDir() )));
+			{
+				Uint8 mask[32]={0x00, 0x07, 0x00, 0x0f, 0x00, 0x5f, 0x00, 0xfe,
+								0x01, 0xfc, 0x00, 0xf8, 0x01, 0xfc, 0x02, 0xf8,
+								0x07, 0xd0, 0x0f, 0x80, 0x1f, 0x00, 0x3e, 0x00,
+								0x7c, 0x00, 0x78, 0x00, 0xf0, 0x00, 0x40, 0x00};
+
+				Uint8 data[32]={0x00, 0x07, 0x00, 0x0b, 0x00, 0x53, 0x00, 0xa6,
+								0x01, 0x0c, 0x00, 0xf8, 0x01, 0x7c, 0x02, 0x38,
+								0x04, 0x50, 0x08, 0x80, 0x11, 0x00, 0x22, 0x00,
+								0x44, 0x00, 0x48, 0x00, 0xb0, 0x00, 0x40, 0x00};
+
+				CursorHandle = SDL_CreateCursor(data, mask, 16, 16, 0, 15);
+			}
 			break;
 
 			// NOTE: For custom app cursors, use:
@@ -119,27 +133,29 @@ FLinuxCursor::~FLinuxCursor()
 	{
 		switch( CurCursorIndex )
 		{
-		case EMouseCursor::None:
-		case EMouseCursor::Default:
-		case EMouseCursor::TextEditBeam:
-		case EMouseCursor::ResizeLeftRight:
-		case EMouseCursor::ResizeUpDown:
-		case EMouseCursor::ResizeSouthEast:
-		case EMouseCursor::ResizeSouthWest:
-		case EMouseCursor::CardinalCross:
-		case EMouseCursor::Crosshairs:
-		case EMouseCursor::Hand:
-		case EMouseCursor::GrabHand:
-		case EMouseCursor::GrabHandClosed:
-		case EMouseCursor::SlashedCircle:
-		case EMouseCursor::EyeDropper:
-			// Standard shared cursors don't need to be destroyed
-			break;
+			case EMouseCursor::None:
+			case EMouseCursor::Default:
+			case EMouseCursor::TextEditBeam:
+			case EMouseCursor::ResizeLeftRight:
+			case EMouseCursor::ResizeUpDown:
+			case EMouseCursor::ResizeSouthEast:
+			case EMouseCursor::ResizeSouthWest:
+			case EMouseCursor::CardinalCross:
+			case EMouseCursor::Crosshairs:
+			case EMouseCursor::Hand:
+			case EMouseCursor::GrabHand:
+			case EMouseCursor::GrabHandClosed:
+			case EMouseCursor::SlashedCircle:
+				// Standard shared cursors don't need to be destroyed
+				break;
+			case EMouseCursor::EyeDropper:
+				SDL_FreeCursor(CursorHandles[CurCursorIndex]);
+				break;
 
-		default:
-			// Unrecognized cursor type!
-			check( 0 );
-			break;
+			default:
+				// Unrecognized cursor type!
+				check( 0 );
+				break;
 		}
 	}
 }
@@ -169,13 +185,14 @@ void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
 	if(InNewCursor == EMouseCursor::None)
 	{
 		bHidden = true;
-		SDL_ShowCursor(0);
+		SDL_ShowCursor(SDL_DISABLE);
+		SDL_SetCursor(CursorHandles[0]);
 	}
 	else
 	{
 		bHidden = false;
-		SDL_ShowCursor(1);
-		SDL_SetCursor( CursorHandles[ InNewCursor ] );
+		SDL_ShowCursor(SDL_ENABLE);
+		SDL_SetCursor(CursorHandles[InNewCursor]);
 	}
 }
 
@@ -190,12 +207,14 @@ void FLinuxCursor::Show( bool bShow )
 	if( bShow )
 	{
 		// Show mouse cursor.
-		SDL_ShowCursor(1);
+		bHidden = false;
+		SDL_ShowCursor(SDL_ENABLE);
 	}
 	else
 	{
 		// Disable the cursor.
-		SDL_ShowCursor(0);
+		bHidden = true;
+		SDL_ShowCursor(SDL_DISABLE);
 	}
 }
 

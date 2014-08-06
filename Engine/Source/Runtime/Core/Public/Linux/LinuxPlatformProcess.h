@@ -136,7 +136,11 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 	static int32 GetDllApiVersion( const TCHAR* Filename );
 	static const TCHAR* ComputerName();
+	static void CleanFileCache();
 	static const TCHAR* BaseDir();
+	static const TCHAR* UserDir();
+	static const TCHAR* UserSettingsDir();
+	static const TCHAR* ApplicationSettingsDir();
 	static FString GetApplicationName( uint32 ProcessId );
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
@@ -153,8 +157,15 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
+	static uint32 GetCurrentProcessId();
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
 	static bool Daemonize();
+	static bool IsApplicationRunning( uint32 ProcessId );
+	static bool IsApplicationRunning( const TCHAR* ProcName );
+	static bool IsThisApplicationForeground();
+	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static void ExploreFolder( const TCHAR* FilePath );
+	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

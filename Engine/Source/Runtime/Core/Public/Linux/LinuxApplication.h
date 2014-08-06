@@ -56,6 +56,11 @@ public:
 	void AddPendingEvent( SDL_Event event );
 
 	void OnMouseCursorLock( bool bLockEnabled );
+	
+	void RemoveEventWindow(SDL_HWindow Window);
+
+	EWindowZone::Type WindowHitTest( const TSharedPtr< FLinuxWindow > &window, int x, int y );
+	TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( SDL_Window *win );
 
 private:
 	FLinuxApplication();
@@ -105,6 +110,8 @@ private:
 	SDL_HWindow MouseCaptureWindow;
 
 	SDLControllerState *ControllerStates;
+
+	float fMouseWheelScrollAccel;
 
 #if STEAM_CONTROLLER_SUPPORT
 	TSharedPtr< class SteamControllerInterface > SteamInput;
