@@ -297,6 +297,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static float RandomFloatInRange(float Min, float Max);
 
+	/* Returns the value of PI */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Get PI", CompactNodeTitle = "PI"), Category="Math|Trig")
+	static float GetPI();
+
+	/* Returns radians value based on the input degrees */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Degrees To Radians", CompactNodeTitle = "D2R"), Category="Math|Trig")
+	static float DegreesToRadians(float A);
+
+	/* Returns degrees value based on the input radians */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Radians To Degrees", CompactNodeTitle = "R2D"), Category="Math|Trig")
+	static float RadiansToDegrees(float A);
+
 	/* Returns the sin of A (expects Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Sin (Degrees)", CompactNodeTitle = "SINd"), Category="Math|Trig")
 	static float DegSin(float A);

@@ -323,6 +323,22 @@ bool UKismetMathLibrary::InRange_FloatFloat(float Value, float Min, float Max, b
 	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }	
 
+float UKismetMathLibrary::GetPI()
+{
+    return PI;
+}
+
+float UKismetMathLibrary::DegreesToRadians(float A)
+{
+    return FMath::DegreesToRadians(A);
+}
+
+float UKismetMathLibrary::RadiansToDegrees(float A)
+{
+    return FMath::RadiansToDegrees(A);
+}
+
+
 float UKismetMathLibrary::Abs(float A)
 {
 	return FMath::Abs(A);
