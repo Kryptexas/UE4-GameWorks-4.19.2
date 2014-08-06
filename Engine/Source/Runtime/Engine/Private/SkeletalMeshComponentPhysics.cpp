@@ -56,7 +56,7 @@ void FClothingActor::Clear(bool bReleaseResource)
 {
 	if(bReleaseResource)
 	{
-		GPhysCommandHandler->DeferredRelease(ApexClothingActor);
+		PhysScene->DeferredCommandHandler.DeferredRelease(ApexClothingActor);
 	}
 
 	ParentClothingAsset = NULL;
