@@ -2,7 +2,9 @@
 
 #pragma once
 
-class FAssetTypeActions_Blueprint : public FAssetTypeActions_Base
+#include "AssetTypeActions_Base.h"
+
+class ASSETTOOLS_API FAssetTypeActions_Blueprint : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation

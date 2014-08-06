@@ -11,6 +11,7 @@ namespace UnrealBuildTool.Rules
                     "Editor/GraphEditor/Private",
 				    "Editor/Kismet/Private",
 					"Editor/GameplayAbilitiesEditor/Private",
+                    "Developer/AssetTools/Private",
 				}
 			);
 

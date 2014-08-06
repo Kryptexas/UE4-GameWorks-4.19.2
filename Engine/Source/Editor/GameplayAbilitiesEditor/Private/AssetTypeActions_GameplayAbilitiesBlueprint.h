@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "AssetTypeActions_Base.h"
+#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
 
-//TODO Use base class FAssetTypeActions_Blueprint later
-class FAssetTypeActions_GameplayAbilitiesBlueprint : public FAssetTypeActions_Base
+class FAssetTypeActions_GameplayAbilitiesBlueprint : public FAssetTypeActions_Blueprint
 {
 public:
 	// IAssetTypeActions Implementation
