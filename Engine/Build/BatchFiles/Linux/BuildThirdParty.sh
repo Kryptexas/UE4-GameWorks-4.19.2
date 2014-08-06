@@ -316,7 +316,7 @@ if [ -z "$1" ]; then
   Run BuildHLSLCC
   Run BuildMcpp
   # use bundled Run BuildFreeType
-  #on hold for now Run BuildLND
+  Run BuildLND
   Run BuildForsythTriOO
   Run BuildnvTriStrip
   Run BuildnvTextureTools
