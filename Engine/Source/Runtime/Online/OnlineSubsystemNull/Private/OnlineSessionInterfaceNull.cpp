@@ -235,6 +235,12 @@ bool FOnlineSessionNull::CreateSession(int32 HostingPlayerNum, FName SessionName
 	return Result == ERROR_IO_PENDING || Result == ERROR_SUCCESS;
 }
 
+bool FOnlineSessionNull::CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
+{
+	// todo: use proper	HostingPlayerId
+	return CreateSession(0, SessionName, NewSessionSettings);
+}
+
 bool FOnlineSessionNull::NeedsToAdvertise()
 {
 	FScopeLock ScopeLock(&SessionLock);
@@ -442,7 +448,21 @@ bool FOnlineSessionNull::StartMatchmaking(int32 SearchingPlayerNum, FName Sessio
 	return false;
 }
 
+bool FOnlineSessionNull::StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
 bool FOnlineSessionNull::CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
+bool FOnlineSessionNull::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
 	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
@@ -480,6 +500,12 @@ bool FOnlineSessionNull::FindSessions(int32 SearchingPlayerNum, const TSharedRef
 	}
 
 	return Return == ERROR_SUCCESS || Return == ERROR_IO_PENDING;
+}
+
+bool FOnlineSessionNull::FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	// This function doesn't use the SearchingPlayerNum parameter, so passing in anything is fine.
+	return FindSessions(0, SearchSettings);
 }
 
 uint32 FOnlineSessionNull::FindLANSession()
@@ -586,6 +612,12 @@ bool FOnlineSessionNull::JoinSession(int32 PlayerNum, FName SessionName, const F
 	return Return == ERROR_SUCCESS || Return == ERROR_IO_PENDING;
 }
 
+bool FOnlineSessionNull::JoinSession(const FUniqueNetId& PlayerId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
+{
+	// Assuming player 0 should be OK here
+	return JoinSession(0, SessionName, DesiredSession);
+}
+
 bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
@@ -594,17 +626,37 @@ bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetI
 	return false;
 };
 
+bool FOnlineSessionNull::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
+{
+	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	FOnlineSessionSearchResult EmptySearchResult;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptySearchResult);
+	return false;
+}
+
 bool FOnlineSessionNull::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
 	return false;
 };
 
+bool FOnlineSessionNull::SendSessionInviteToFriend(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Friend)
+{
+	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	return false;
+}
+
 bool FOnlineSessionNull::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
 	return false;
 };
+
+bool FOnlineSessionNull::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+{
+	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	return false;
+}
 
 uint32 FOnlineSessionNull::JoinLANSession(int32 PlayerNum, FNamedOnlineSession* Session, const FOnlineSession* SearchSession)
 {

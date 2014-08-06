@@ -270,6 +270,12 @@ bool FOnlineSessionSteam::CreateSession(int32 HostingPlayerNum, FName SessionNam
 	return Result == ERROR_IO_PENDING || Result == ERROR_SUCCESS;
 }
 
+bool FOnlineSessionSteam::CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
+{
+	// @todo: use proper HostingPlayerId
+	return CreateSession(0, SessionName, NewSessionSettings);
+}
+
 uint32 FOnlineSessionSteam::CreateLobbySession(int32 HostingPlayerNum, FNamedOnlineSession* Session)
 {
 	uint32 Result = E_FAIL; 
@@ -641,7 +647,21 @@ bool FOnlineSessionSteam::StartMatchmaking(int32 SearchingPlayerNum, FName Sessi
 	return false;
 }
 
+bool FOnlineSessionSteam::StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
 bool FOnlineSessionSteam::CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
+bool FOnlineSessionSteam::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
 	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
@@ -683,6 +703,12 @@ bool FOnlineSessionSteam::FindSessions(int32 SearchingPlayerNum, const TSharedRe
 	}
 
 	return Return == ERROR_SUCCESS || Return == ERROR_IO_PENDING;
+}
+
+bool FOnlineSessionSteam::FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	// @todo: use proper SearchingPlayerId
+	return FindSessions(0, SearchSettings);
 }
 
 uint32 FOnlineSessionSteam::FindInternetSession(const TSharedRef<FOnlineSessionSearch>& SearchSettings)
@@ -841,6 +867,12 @@ bool FOnlineSessionSteam::JoinSession(int32 PlayerNum, FName SessionName, const 
 	return Return == ERROR_SUCCESS || Return == ERROR_IO_PENDING;
 }
 
+bool FOnlineSessionSteam::JoinSession(const FUniqueNetId& PlayerId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
+{
+	// @todo: use proper PlayerId
+	return JoinSession(0, SessionName, DesiredSession);
+}
+
 uint32 FOnlineSessionSteam::JoinLobbySession(int32 PlayerNum, FNamedOnlineSession* Session, const FOnlineSession* SearchSession)
 {
 	uint32 Result = E_FAIL;
@@ -959,6 +991,12 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 	return bSuccess;
 }
 
+bool FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
+{
+	// @todo: use proper LocalUserId
+	return FindFriendSession(0, Friend);
+}
+
 bool FOnlineSessionSteam::PingSearchResults(const FOnlineSessionSearchResult& SearchResult)
 {
 	return false;
@@ -1007,6 +1045,12 @@ bool FOnlineSessionSteam::SendSessionInviteToFriend(int32 LocalUserNum, FName Se
 	TSharedRef<FUniqueNetId> FriendCopy = MakeShareable(new FUniqueNetIdSteam(SteamFriend));
 	Friends.Add(FriendCopy);
 	return SendSessionInviteToFriends(LocalUserNum, SessionName, Friends);
+}
+
+bool FOnlineSessionSteam::SendSessionInviteToFriend(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Friend)
+{
+	// @todo: use proper LocalUserId
+	return SendSessionInviteToFriend(0, SessionName, Friend);
 }
 
 bool FOnlineSessionSteam::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
@@ -1067,6 +1111,12 @@ bool FOnlineSessionSteam::SendSessionInviteToFriends(int32 LocalUserNum, FName S
 	}
 
 	return bSuccess;
+}
+
+bool FOnlineSessionSteam::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+{
+	// @todo: use proper LocalUserId
+	return SendSessionInviteToFriends(0, SessionName, Friends);
 }
 
 FString FOnlineSessionSteam::GetSteamConnectionString(FName SessionName)

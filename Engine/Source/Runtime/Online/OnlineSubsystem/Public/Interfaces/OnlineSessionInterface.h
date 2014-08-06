@@ -229,6 +229,19 @@ public:
 	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings) = 0;
 
 	/**
+	 * Creates an online session based upon the settings object specified.
+	 * NOTE: online session registration is an async process and does not complete
+	 * until the OnCreateSessionComplete delegate is called.
+	 *
+	 * @param HostingPlayerId the index of the player hosting the session
+	 * @param SessionName the name to use for this session so that multiple sessions can exist at the same time
+	 * @param NewSessionSettings the settings to use for the new session
+	 *
+	 * @return true if successful creating the session, false otherwise
+	 */
+	virtual bool CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings) = 0;
+
+	/**
 	* Delegate fired when a session create request has completed
 	*
 	* @param SessionName the name of the session this callback is for
@@ -329,6 +342,19 @@ public:
 	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
 
 	/**
+	 * Begins cloud based matchmaking for a session
+	 *
+	 * @param SearchingPlayerId the id of the player searching for a match
+	 * @param SessionName the name of the session to use, usually will be GAME_SESSION_NAME
+	 * @param NewSessionSettings the desired settings to match against or create with when forming new sessions
+	 * @param SearchSettings the desired settings that the matched session will have
+	 *
+	 * @return true if successful searching for sessions, false otherwise
+	 */
+	virtual bool StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
+
+
+	/**
 	 * Delegate fired when the cloud matchmaking has completed
 	 *
 	 * @param SessionName The name of the session that was found via matchmaking
@@ -343,6 +369,14 @@ public:
 	 * @param SessionName the name of the session that was passed to StartMatchmaking (or CreateSession)
 	 */ 
 	virtual bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) = 0;
+
+	/**
+	 * Cancel a Matchmaking request for a given session name
+	 *
+	 * @param SearchingPlayerId the id of the player canceling the search
+	 * @param SessionName the name of the session that was passed to StartMatchmaking (or CreateSession)
+	 */ 
+	virtual bool CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName) = 0;
 
 	/**
 	 * Delegate fired when the cloud matchmaking has been canceled
@@ -361,6 +395,16 @@ public:
 	 * @return true if successful searching for sessions, false otherwise
 	 */
 	virtual bool FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
+
+	/**
+	 * Searches for sessions matching the settings specified
+	 *
+	 * @param SearchingPlayerId the id of the player searching for a match
+	 * @param SearchSettings the desired settings that the returned sessions will have
+	 *
+	 * @return true if successful searching for sessions, false otherwise
+	 */
+	virtual bool FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
 
 	/**
 	 * Delegate fired when the search for an online session has completed
@@ -412,6 +456,18 @@ public:
 	virtual bool JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& DesiredSession) = 0;
 
 	/**
+	 * Joins the session specified
+	 *
+	 * @param LocalUserId the id of the player searching for a match
+	 * @param SessionName the name of the session to join
+	 * @param DesiredSession the desired session to join
+	 *
+	 * @return true if the call completed successfully, false otherwise
+	 */
+	virtual bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession) = 0;
+
+
+	/**
 	 * Delegate fired when the joining process for an online session has completed
 	 *
 	 * @param SessionName the name of the session this callback is for
@@ -428,6 +484,16 @@ public:
 	 * @return true if the async call worked, false otherwise
 	 */
 	virtual bool FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend) = 0;
+
+	/**
+	 * Allows the local player to follow a friend into a session
+	 *
+	 * @param LocalUserId the local player wanting to join
+	 * @param Friend the player that is being followed
+	 *
+	 * @return true if the async call worked, false otherwise
+	 */
+	virtual bool FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend) = 0;
 
 	/**
 	 * Delegate fired once the find friend task has completed
@@ -451,6 +517,17 @@ public:
 	virtual bool SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend) = 0;
 
 	/**
+	 * Sends an invitation to play in the player's current session
+	 *
+	 * @param LocalUserId the user that is sending the invite
+	 * @param SessionName session to invite them to
+	 * @param Friend the player to send the invite to
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool SendSessionInviteToFriend(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Friend) = 0;
+
+	/**
 	 * Sends invitations to play in the player's current session
 	 *
 	 * @param LocalUserNum the user that is sending the invite
@@ -460,6 +537,17 @@ public:
 	 * @return true if successful, false otherwise
 	 */
 	virtual bool SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends) = 0;
+
+	/**
+	 * Sends invitations to play in the player's current session
+	 *
+	 * @param LocalUserId the user that is sending the invite
+	 * @param SessionName session to invite them to
+	 * @param Friends the player to send the invite to
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends) = 0;
 
 	/**
 	 * Called when a user accepts a session invitation. Allows the game code a chance

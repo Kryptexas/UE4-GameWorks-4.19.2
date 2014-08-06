@@ -231,6 +231,13 @@ bool FOnlineSessionIOS::CreateSession(int32 HostingPlayerNum, FName SessionName,
 }
 
 
+bool FOnlineSessionIOS::CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
+{
+	// HostingPlayerNum is unused, can pass in anything
+	return CreateSession(0, SessionName, NewSessionSettings);
+}
+
+
 bool FOnlineSessionIOS::StartSession(FName SessionName)
 {
 	bool bSuccessfullyStartedSession = false;
@@ -319,7 +326,24 @@ bool FOnlineSessionIOS::StartMatchmaking(int32 SearchingPlayerNum, FName Session
 	return false;
 }
 
+
+bool FOnlineSessionIOS::StartMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
+
 bool FOnlineSessionIOS::CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName)
+{
+	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+	return false;
+}
+
+
+bool FOnlineSessionIOS::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
@@ -344,6 +368,13 @@ bool FOnlineSessionIOS::FindSessions(int32 SearchingPlayerNum, const TSharedRef<
 	TriggerOnFindSessionsCompleteDelegates(bSuccessfullyFoundSessions);
 
 	return bSuccessfullyFoundSessions;
+}
+
+
+bool FOnlineSessionIOS::FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	// SearchingPlayerNum is unused, can pass in anything
+	return FindSessions(0, SearchSettings);
 }
 
 
@@ -389,6 +420,13 @@ bool FOnlineSessionIOS::JoinSession(int32 PlayerNum, FName SessionName, const FO
 }
 
 
+bool FOnlineSessionIOS::JoinSession(const FUniqueNetId& PlayerId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
+{
+	// PlayerNum is unused, can pass in anything
+	return JoinSession(0, SessionName, DesiredSession);
+}
+
+
 bool FOnlineSessionIOS::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	bool bSuccessfullyJointFriendSession = false;
@@ -402,6 +440,12 @@ bool FOnlineSessionIOS::FindFriendSession(int32 LocalUserNum, const FUniqueNetId
 }
 
 
+bool FOnlineSessionIOS::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
+{
+	return FindFriendSession(0, Friend);
+}
+
+
 bool FOnlineSessionIOS::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
 {
 	bool bSuccessfullySentSessionInviteToFriend = false;
@@ -412,6 +456,14 @@ bool FOnlineSessionIOS::SendSessionInviteToFriend(int32 LocalUserNum, FName Sess
 }
 
 
+bool FOnlineSessionIOS::SendSessionInviteToFriend(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Friend)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::SendSessionInviteToFriend - not implemented"));
+	
+	return false;
+}
+
+
 bool FOnlineSessionIOS::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
 {
 	bool bSuccessfullySentSessionInviteToFriends = false;
@@ -419,6 +471,14 @@ bool FOnlineSessionIOS::SendSessionInviteToFriends(int32 LocalUserNum, FName Ses
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::SendSessionInviteToFriends - not implemented"));
 	
 	return bSuccessfullySentSessionInviteToFriends;
+}
+
+
+bool FOnlineSessionIOS::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::SendSessionInviteToFriends - not implemented"));
+	
+	return false;
 }
 
 
