@@ -48,7 +48,7 @@ FString FCulture::FLegacyCultureImplementation::GetParentName(const FString& Cul
 	FString Result;
 
 	int32 UnderscoreIndex = INDEX_NONE;
-	if(Name.FindLastChar(TEXT('_'), UnderscoreIndex))
+	if(CultureName.FindLastChar(TEXT('_'), UnderscoreIndex))
 	{
 		Result = FString(CultureName).RemoveAt(UnderscoreIndex);
 	}
