@@ -46,6 +46,9 @@ USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 	SlotGroupNames.Empty();
 	SlotGroupNames.Add(DefaultSlotGroupName);
+
+	// Make sure we have somewhere for curve names.
+	SmartNames.AddContainer(AnimCurveMappingName);
 #endif
 }
 
@@ -73,9 +76,6 @@ void USkeleton::PostLoad()
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
-
-	// Set up smart name mappings, if these have been loaded they will already be present
-	SmartNames.AddContainer(AnimCurveMappingName);
 
 #if WITH_EDITOR
 	if ( GIsEditor )
