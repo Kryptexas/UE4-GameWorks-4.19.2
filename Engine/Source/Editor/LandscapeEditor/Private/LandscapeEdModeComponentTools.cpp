@@ -749,6 +749,13 @@ public:
 		,	XYOffsetCache(InTarget)
 	{}
 
+	virtual ~FLandscapeToolStrokeAddComponent()
+	{
+		// We flush here so here ~FXYOffsetmapAccessor can safely lock the heightmap data to update bounds
+		HeightCache.Flush();
+		XYOffsetCache.Flush();
+	}
+
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : NULL;
@@ -835,8 +842,8 @@ public:
 			}
 			else
 			{
-				HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
-				HeightCache.Flush();
+			HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
+			HeightCache.Flush();
 			}
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
