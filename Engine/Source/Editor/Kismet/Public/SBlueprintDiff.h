@@ -200,7 +200,7 @@ protected:
 	TSharedRef<ITableRow> OnGenerateRow(FGraphToDiff ParamItem, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/*Called when user clicks on a new graph list item */
-	virtual void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
+	void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
 	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer);
 		
@@ -211,7 +211,7 @@ protected:
 	FReply	OnToggleLockView();
 
 	/*Reset the graph editor, called when user switches graphs to display*/
-	virtual void ResetGraphEditors();
+	void ResetGraphEditors();
 
 	/*Get the image to show for the toggle lock option*/
 	const FSlateBrush* GetLockViewImage() const;
@@ -222,14 +222,8 @@ protected:
 	/** Get Graph editor associated with this Graph */
 	FDiffPanel& GetDiffPanelForNode(UEdGraphNode& Node);
 
-	/** Generates the widgets used to display the graphs that are being diff'd */
-	virtual TSharedRef<SWidget> GenerateDiffWindow();
-
-	/** Generates the toolbar of buttons (for example, the button that lets you diff the CDO) */
-	virtual TSharedRef<SWidget> GenerateToolbar();
-
 	/** Event handler that updates the graph view when user selects a new graph */
-	virtual void HandleGraphChanged( const FString& GraphName );
+	void HandleGraphChanged( const FString& GraphName );
 
 	TSharedRef<SWidget> GenerateGraphPanel();
 	TSharedRef<SWidget> GenerateDefaultsPanel();

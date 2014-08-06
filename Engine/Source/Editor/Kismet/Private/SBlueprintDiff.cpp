@@ -867,41 +867,6 @@ FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
 	return Default;
 }
 
-TSharedRef<SWidget> SBlueprintDiff::GenerateDiffWindow()
-{
-	return SNew(SSplitter)
-		+ SSplitter::Slot()
-		.Value(0.5f)
-		[
-			//left blueprint
-			SAssignNew(PanelOld.GraphEditorBorder, SBorder)
-			.VAlign(VAlign_Fill)
-			[
-				DefaultEmptyPanel()
-			]
-		]
-	+ SSplitter::Slot()
-		.Value(0.5f)
-		[
-			//right blueprint
-			SAssignNew(PanelNew.GraphEditorBorder, SBorder)
-			.VAlign(VAlign_Fill)
-			[
-				DefaultEmptyPanel()
-			]
-		];
-}
-
-TSharedRef<SWidget> SBlueprintDiff::GenerateToolbar()
-{
-	return SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.FillHeight(1.f)
-		[
-			SAssignNew(DiffListBorder, SBorder)
-		];
-}
-
 void SBlueprintDiff::HandleGraphChanged( const FString& GraphName )
 {
 	TArray<UEdGraph*> GraphsOld, GraphsNew;
@@ -998,7 +963,12 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 						+ SSplitter::Slot()
 							.Value(0.7f)
 							[
-								GenerateToolbar()
+								SNew(SVerticalBox)
+								+ SVerticalBox::Slot()
+								.FillHeight(1.f)
+								[
+									SAssignNew(DiffListBorder, SBorder)
+								]
 							]
 					]
 				]
@@ -1010,7 +980,27 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 						.FillWidth(1.f)
 						[
 							//diff window
-							GenerateDiffWindow()
+							SNew(SSplitter)
+							+ SSplitter::Slot()
+							.Value(0.5f)
+							[
+								//left blueprint
+								SAssignNew(PanelOld.GraphEditorBorder, SBorder)
+								.VAlign(VAlign_Fill)
+								[
+									DefaultEmptyPanel()
+								]
+							]
+							+ SSplitter::Slot()
+							.Value(0.5f)
+							[
+								//right blueprint
+								SAssignNew(PanelNew.GraphEditorBorder, SBorder)
+								.VAlign(VAlign_Fill)
+								[
+									DefaultEmptyPanel()
+								]
+							]
 						]
 					]
 			]
