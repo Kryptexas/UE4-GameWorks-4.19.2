@@ -776,10 +776,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Time")
 	float GetActorTimeDilation() const;
 
-	/** Adds a dependent actor, so DependentActor ticks before this actor. */
-	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(FriendlyName = "SetTickDependency"))
-	void SetTickPrerequisite(AActor* DependentActor);
+	DEPRECATED(4.5, "Actor::SetTickPrerequisite() will be removed, use AddTickPrerequisiteActor().")
+	void SetTickPrerequisite(AActor* PrerequisiteActor);
 
+	/** Make this actor tick after PrerequisiteActor */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Make this actor tick after PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+
+	/** Remove tick dependency on PrerequisiteActor. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Remove tick dependency on PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+
+	/** Sets whether this actor can tick when paused. */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
 

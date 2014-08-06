@@ -866,6 +866,39 @@ void UActorComponent::SetTickGroup(ETickingGroup NewTickGroup)
 	PrimaryComponentTick.TickGroup = NewTickGroup;
 }
 
+
+void UActorComponent::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrimaryComponentTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
+	{
+		PrimaryComponentTick.AddPrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void UActorComponent::AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrimaryComponentTick.bCanEverTick && PrerequisiteComponent && PrerequisiteComponent->PrimaryComponentTick.bCanEverTick)
+	{
+		PrimaryComponentTick.AddPrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
+}
+
+void UActorComponent::RemoveTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrerequisiteActor)
+	{
+		PrimaryComponentTick.RemovePrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void UActorComponent::RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrerequisiteComponent)
+	{
+		PrimaryComponentTick.RemovePrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
+}
+
 void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 {
 	checkf(!HasAnyFlags(RF_Unreachable), TEXT("%s"), *GetFullName());

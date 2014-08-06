@@ -481,6 +481,22 @@ public:
 	/** Changes the ticking group for this component */
 	void SetTickGroup(ETickingGroup NewTickGroup);
 
+	/** Make this component tick after PrerequisiteActor */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Make this component tick after PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+
+	/** Remove tick dependency on PrerequisiteActor. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Remove tick dependency on PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+
 	/** 
 	 *  Called by owner actor on position shifting
 	 *  Component should update all relevant data structures to reflect new actor location

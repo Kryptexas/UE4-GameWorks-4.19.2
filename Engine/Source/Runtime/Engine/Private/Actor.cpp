@@ -332,23 +332,40 @@ bool AActor::K2_TeleportTo( FVector DestLocation, FRotator DestRotation )
 	return TeleportTo(DestLocation, DestRotation, false, false);
 }
 
-void AActor::SetTickPrerequisite(AActor * DependentActor)
+void AActor::SetTickPrerequisite(AActor* PrerequisiteActor)
 {
-	if (DependentActor)
-	{
-		PrimaryActorTick.AddPrerequisite(DependentActor, DependentActor->PrimaryActorTick);
-		// We can't just rely on rootcomponent. If one of chain is invalid tick, it will invalidate the remaining chains
-		// so here I manually set prerequisite to be the current actor, so it ticks after this actor ticks
+	AddTickPrerequisiteActor(PrerequisiteActor);
+}
 
-		if (PrimaryActorTick.bCanEverTick)
-		{
-			TArray<UActorComponent*> Components;
-			GetComponents(Components);
-			for (int32 Index = 0; Index < Components.Num(); ++Index)
-			{
-				Components[Index]->PrimaryComponentTick.AddPrerequisite(this, PrimaryActorTick);
-			}
-		}
+void AActor::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrimaryActorTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
+	{
+		PrimaryActorTick.AddPrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void AActor::AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrimaryActorTick.bCanEverTick && PrerequisiteComponent && PrerequisiteComponent->PrimaryComponentTick.bCanEverTick)
+	{
+		PrimaryActorTick.AddPrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
+}
+
+void AActor::RemoveTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrerequisiteActor)
+	{
+		PrimaryActorTick.RemovePrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void AActor::RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrerequisiteComponent)
+	{
+		PrimaryActorTick.RemovePrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
 	}
 }
 
