@@ -867,6 +867,7 @@ namespace iPhonePackager
 
 			public override void Close()
 			{
+				Zip.Dispose();
 				Zip = null;
 			}
 

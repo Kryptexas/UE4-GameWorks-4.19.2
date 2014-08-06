@@ -69,6 +69,7 @@ namespace iPhonePackager
 				Program.Warning(String.Format("Couldn't find an embedded mobile provision ({0})", ex.Message));
 				Provision = null;
 			}
+			Zip.Close();
 
 			if (Provision != null)
 			{
