@@ -28,11 +28,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;		//Maybe add a socket to this?
 
+	UPROPERTY(BlueprintReadOnly, Category = Targeting)
+	APlayerController* SourcePC;
+
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
 
 protected:
-	FHitResult PerformTrace(AActor *SourceActor) const;
+	virtual FHitResult PerformTrace(AActor *SourceActor) const;
 
 	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
 };
