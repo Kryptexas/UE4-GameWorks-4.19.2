@@ -2354,7 +2354,7 @@ private:
 	/**
 	 * Toggles PIE to SIE or vice-versa
 	 */
-	void ToggleBetweenPIEandSIE();
+	void ToggleBetweenPIEandSIE( bool bNewSession = false);
 
 	/**
 	 * Hack to switch worlds for the PIE window before and after a slate event

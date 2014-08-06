@@ -1916,7 +1916,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 		if (bInSimulateInEditor)
 		{
-			ToggleBetweenPIEandSIE();
+			ToggleBetweenPIEandSIE( true );
 		}
 	}
 	else
@@ -2567,7 +2567,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 	return NULL;
 }
 
-void UEditorEngine::ToggleBetweenPIEandSIE()
+void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 {
 	bIsToggleBetweenPIEandSIEQueued = false;
 
@@ -2587,6 +2587,13 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 	if (!SlateInfoPtr)
 	{
 		return;
+	}
+
+	if( FEngineAnalytics::IsAvailable() && !bNewSession )
+	{
+		FString ToggleType = bIsSimulatingInEditor ? TEXT("SIEtoPIE") : TEXT("PIEtoSIE");
+
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PIE"), TEXT("ToggleBetweenPIEandSIE"), ToggleType );
 	}
 
 	FSlatePlayInEditorInfo & SlatePlayInEditorSession = *SlateInfoPtr;
