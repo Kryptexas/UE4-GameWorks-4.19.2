@@ -3766,7 +3766,7 @@ void FMatinee::OnMenuImport()
 					{
 						if (FEngineAnalytics::IsAvailable())
 						{
-							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Imported"));
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.Imported"));
 						}
 					}
 
@@ -3842,7 +3842,7 @@ void FMatinee::OnMenuExport()
 				{
 					if (FEngineAnalytics::IsAvailable())
 					{
-						FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.Exported"));
+						FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.Exported"));
 					}
 				}
 
@@ -3989,7 +3989,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 
 			if (FEngineAnalytics::IsAvailable())
 			{
-				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.ExportedSoundCue"));
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.ExportedSoundCue"));
 			}
 		}
 		else
@@ -4178,7 +4178,7 @@ void FMatinee::OnExportAnimationInfoCommand()
 
 			if (FEngineAnalytics::IsAvailable())
 			{
-				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Matinee.ExportedAnimationInfo"));
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Matinee.ExportedAnimationInfo"));
 			}
 		}
 	}
