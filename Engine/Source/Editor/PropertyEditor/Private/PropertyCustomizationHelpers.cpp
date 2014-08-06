@@ -152,6 +152,18 @@ namespace PropertyCustomizationHelpers
 			.IsFocusable( false );
 	}
 
+	TSharedRef<SWidget> MakeNewBlueprintButton( FSimpleDelegate OnFindClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )
+	{
+		return
+			SNew( SPropertyEditorButton )
+			.Text( LOCTEXT( "NewBlueprintButtonLabel", "New Blueprint") )
+			.ToolTipText( OptionalToolTipText.Get().IsEmpty() ? LOCTEXT( "NewBlueprintButtonToolTipText", "Create New Blueprint") : OptionalToolTipText )
+			.Image( FEditorStyle::GetBrush("PropertyWindow.Button_CreateNewBlueprint") )
+			.OnClickAction( OnFindClicked )
+			.IsEnabled(IsEnabled)
+			.IsFocusable( false );
+	}
+
 	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton( FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked )
 	{	
 		FMenuBuilder MenuContentBuilder( true, NULL );

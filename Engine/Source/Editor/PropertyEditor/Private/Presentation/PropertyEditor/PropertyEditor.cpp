@@ -11,6 +11,9 @@
 
 #include "DelegateFilter.h"
 
+#include "EditorClassUtils.h"
+#include "KismetEditorUtilities.h"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 TSharedRef< FPropertyEditor > FPropertyEditor::Create( const TSharedRef< class FPropertyNode >& InPropertyNode, const TSharedRef<class IPropertyUtilities >& InPropertyUtilities )
@@ -206,6 +209,25 @@ void FPropertyEditor::OnClearItem()
 {
 	static const FString None("None");
 	PropertyHandle->SetValueFromFormattedString( None );
+}
+
+void FPropertyEditor::MakeNewBlueprint()
+{
+	UProperty* NodeProperty = PropertyNode->GetProperty();
+	UClassProperty* ClassProp = Cast<UClassProperty>(NodeProperty);
+	UClass* Class = (ClassProp ? ClassProp->MetaClass : FEditorClassUtils::GetClassFromString(NodeProperty->GetMetaData("MetaClass")));
+
+	if (Class)
+	{
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(LOCTEXT("CreateNewBlueprint", "Create New Blueprint"), Class, FString::Printf(TEXT("New%s"),*Class->GetName()));
+
+		if(Blueprint != NULL && Blueprint->GeneratedClass)
+		{
+			PropertyHandle->SetValueFromFormattedString(Blueprint->GeneratedClass->GetPathName());
+
+			FAssetEditorManager::Get().OpenEditorForAsset(Blueprint);
+		}
+	}
 }
 
 void FPropertyEditor::InsertItem()

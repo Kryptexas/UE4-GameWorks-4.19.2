@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "StringClassReferenceCustomization.h"
+#include "EditorClassUtils.h"
 
 void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
@@ -17,8 +18,8 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 	const bool bAllowNone = !(StructPropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
 
 	check(!MetaClassName.IsEmpty());
-	const UClass* const MetaClass = StringToClass(MetaClassName);
-	const UClass* const RequiredInterface = StringToClass(RequiredInterfaceName);
+	const UClass* const MetaClass = FEditorClassUtils::GetClassFromString(MetaClassName);
+	const UClass* const RequiredInterface = FEditorClassUtils::GetClassFromString(RequiredInterfaceName);
 
 	HeaderRow
 	.NameContent()
@@ -54,7 +55,7 @@ const UClass* FStringClassReferenceCustomization::OnGetClass() const
 	const UClass* Class = CachedClassPtr.Get();
 	if(!Class || Class->GetPathName() != ClassName)
 	{
-		Class = StringToClass(ClassName);
+		Class = FEditorClassUtils::GetClassFromString(ClassName);
 		CachedClassPtr = Class;
 	}
 	return Class;
@@ -66,19 +67,4 @@ void FStringClassReferenceCustomization::OnSetClass(const UClass* NewClass)
 	{
 		CachedClassPtr = NewClass;
 	}
-}
-
-const UClass* FStringClassReferenceCustomization::StringToClass(const FString& ClassName)
-{
-	if(ClassName.IsEmpty() || ClassName == "None")
-	{
-		return nullptr;
-	}
-
-	const UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
-	if(!Class)
-	{
-		Class = LoadObject<UClass>(nullptr, *ClassName);
-	}
-	return Class;
 }

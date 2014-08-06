@@ -25,6 +25,9 @@
 #include "SPropertyEditorClass.h"
 #include "IDocumentation.h"
 
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EditorClassUtils.h"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPropertyEditor> InPropertyEditor )
@@ -577,7 +580,25 @@ namespace PropertyEditorHelpers
 		//////////////////////////////
 		// Handle a class property.
 
-		if( NodeProperty->IsA<UClassProperty>() || IsStringClassReference(NodeProperty) || NodeProperty->IsA<UAssetClassProperty>() )
+		UClassProperty* ClassProp = Cast<UClassProperty>(NodeProperty);
+		if( ClassProp || IsStringClassReference(NodeProperty))
+		{
+			OutRequiredButtons.Add( EPropertyButton::Use );			
+			OutRequiredButtons.Add( EPropertyButton::Browse );
+
+			UClass* Class = (ClassProp ? ClassProp->MetaClass : FEditorClassUtils::GetClassFromString(NodeProperty->GetMetaData("MetaClass")));
+
+			if (Class && FKismetEditorUtilities::CanCreateBlueprintOfClass(Class))
+			{
+				OutRequiredButtons.Add( EPropertyButton::NewBlueprint );
+			}
+
+			if( !(NodeProperty->PropertyFlags & CPF_NoClear) )
+			{
+				OutRequiredButtons.Add( EPropertyButton::Clear );
+			}
+		}
+		else if (NodeProperty->IsA<UAssetClassProperty>() )
 		{
 			OutRequiredButtons.Add( EPropertyButton::Use );
 			
@@ -778,6 +799,10 @@ namespace PropertyEditorHelpers
 
 		case EPropertyButton::PickActorInteractive:
 			NewButton = PropertyCustomizationHelpers::MakeInteractiveActorPicker( FOnGetAllowedClasses::CreateSP( PropertyEditor, &FPropertyEditor::OnGetClassesForAssetPicker ), FOnShouldFilterActor(), FOnActorSelected::CreateSP( PropertyEditor, &FPropertyEditor::OnActorSelected ) );
+			break;
+
+		case EPropertyButton::NewBlueprint:
+			NewButton = PropertyCustomizationHelpers::MakeNewBlueprintButton( FSimpleDelegate::CreateSP( PropertyEditor, &FPropertyEditor::MakeNewBlueprint )  );
 			break;
 
 		default:

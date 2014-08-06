@@ -117,3 +117,18 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 
 	return SourceHyperlink;
 }
+
+UClass* FEditorClassUtils::GetClassFromString(const FString& ClassName)
+{
+	if(ClassName.IsEmpty() || ClassName == "None")
+	{
+		return nullptr;
+	}
+
+	UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+	if(!Class)
+	{
+		Class = LoadObject<UClass>(nullptr, *ClassName);
+	}
+	return Class;
+}

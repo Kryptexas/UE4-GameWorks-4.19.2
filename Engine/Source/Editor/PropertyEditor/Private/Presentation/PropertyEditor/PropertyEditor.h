@@ -80,6 +80,7 @@ public:
 	void InsertItem();
 	void DeleteItem();
 	void DuplicateItem();
+	void MakeNewBlueprint();
 	void BrowseTo();
 	void EmptyArray();
 	void Find();
