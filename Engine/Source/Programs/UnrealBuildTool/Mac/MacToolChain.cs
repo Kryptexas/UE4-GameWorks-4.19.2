@@ -51,6 +51,8 @@ namespace UnrealBuildTool
 
 		private static List<FileItem> BundleDependencies = new List<FileItem>();
 
+		public List<string> BuiltBinaries = new List<string>();
+
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
@@ -1185,6 +1187,23 @@ namespace UnrealBuildTool
 				XBuildProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 				Utils.RunLocalProcess(XBuildProcess);
 			}
+		}
+
+		public override void PreBuildSync()
+		{
+			BuiltBinaries = new List<string>();
+
+			base.PreBuildSync();
+		}
+
+		public override void PostBuildSync(UEBuildTarget Target)
+		{
+			foreach (UEBuildBinary Binary in Target.AppBinaries)
+			{
+				BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
+			}
+
+			base.PostBuildSync(Target);
 		}
 
 		public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
