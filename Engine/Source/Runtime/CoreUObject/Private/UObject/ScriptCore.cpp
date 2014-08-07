@@ -26,7 +26,8 @@ COREUOBJECT_API int32 GNativeDuplicate=0;
 COREUOBJECT_API void (UObject::*GCasts[CST_Max])( FFrame &Stack, RESULT_DECL );
 COREUOBJECT_API int32 GCastDuplicate=0;
 
-#define RUNAWAY_LIMIT 1000000
+COREUOBJECT_API int32 GMaximumScriptLoopIterations = 1000000;
+
 #if !PLATFORM_DESKTOP
 	#define RECURSE_LIMIT 120
 #else
@@ -85,6 +86,11 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	{
 		// Crash maybe?
 	}
+}
+
+void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 MaximumLoopIterations )
+{
+	GMaximumScriptLoopIterations = MaximumLoopIterations;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -571,7 +577,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		while (*Stack.Code != EX_Return)
 		{
 #if DO_GUARD
-			if( Runaway > RUNAWAY_LIMIT )
+			if( Runaway > GMaximumScriptLoopIterations )
 			{
 				// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
 				UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
@@ -581,7 +587,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				ClearReturnValue(ReturnProp, Result);
 
 				// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
-				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), RUNAWAY_LIMIT);
+				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), GMaximumScriptLoopIterations );
 				FBlueprintExceptionInfo RunawayLoopExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, RunawayLoopExceptionInfo);
 

@@ -1104,7 +1104,11 @@ public:
 	/** Batching granularity used to register actor components during level streaming */
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	int32 LevelStreamingComponentsRegistrationGranularity;
-	
+
+	/** Script maximum loop iteration count used as a threshold to warn users about script execution runaway */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	int32 MaximumLoopIterationCount;
+
 	/** @todo document */
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;

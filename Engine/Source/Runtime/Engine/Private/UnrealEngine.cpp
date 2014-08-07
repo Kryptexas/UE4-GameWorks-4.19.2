@@ -709,6 +709,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		GConfig->GetBool(TEXT("DevOptions.Debug"), TEXT("ShowSelectedLightmap"), GShowDebugSelectedLightmap, GEngineIni);
 	}
 
+	// Update Script Maximum loop iteration count
+	FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( GEngine->MaximumLoopIterationCount );
+
 	GNearClippingPlane = NearClipPlane;
 
 	// Initialize the audio device
