@@ -309,7 +309,6 @@ void FFXSystem::PreInitViews()
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		ResetSimulationPhases();
 		ResetSortedGPUParticles();
 	}
 }

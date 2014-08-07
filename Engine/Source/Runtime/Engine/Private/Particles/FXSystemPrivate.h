@@ -144,11 +144,6 @@ private:
 	void SortGPUParticles(FRHICommandListImmediate& RHICmdList);
 
 	/**
-	 * Resets all simulations to be run in the main pass.
-	 */
-	void ResetSimulationPhases();
-
-	/**
 	 * Update particles simulated on the GPU.
 	 * @param Phase				Which emitters are being simulated.
 	 * @param CollisionView		View to be used for collision checks.
