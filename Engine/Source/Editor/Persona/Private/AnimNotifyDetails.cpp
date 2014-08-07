@@ -56,9 +56,9 @@ void FAnimNotifyDetails::AddBoneNameProperty(IDetailLayoutBuilder& DetailBuilder
 		{
 			TWeakObjectPtr<UObject> SelectedObject = SelectedObjects[0];
 			const UObject* OuterObject = SelectedObject->GetOuter();
-			if (const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(OuterObject))
+			if (const UAnimationAsset* AnimAsset = Cast<const UAnimationAsset>(OuterObject))
 			{
-				if (const USkeleton* Skeleton = AnimSequence->GetSkeleton())
+				if (const USkeleton* Skeleton = AnimAsset->GetSkeleton())
 				{
 					AnimNotifyCategory.AddProperty(BoneNameProperty.ToSharedRef())
 						.CustomWidget()
