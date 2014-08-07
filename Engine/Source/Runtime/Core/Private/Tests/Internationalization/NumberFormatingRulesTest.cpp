@@ -211,42 +211,42 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 #endif
 
 	Test(this, TEXT("Convert a Double to a currency formatted correct for en-US"),			FText::AsCurrency(DoubleValue),			FText::FromString(TEXT("$12,345,678.90")));
-	Test(this, TEXT("Convert a Float to a currency formatted correct for en-US"),				FText::AsCurrency(FloatValue),			FText::FromString(TEXT("$1,234.57")));
+	Test(this, TEXT("Convert a Float to a currency formatted correct for en-US"),			FText::AsCurrency(FloatValue),			FText::FromString(TEXT("$1,234.57")));
 	Test(this, TEXT("Convert a Negative Double to a currency formatted correct for en-US"),	FText::AsCurrency(DoubleNegativeValue), FText::FromString(TEXT("-$12,345,678.90")));
 	Test(this, TEXT("Convert a Negative Float to a currency formatted correct for en-US"),	FText::AsCurrency(FloatNegativeValue),	FText::FromString(TEXT("-$1,234.57")));
-	Test(this, TEXT("Convert a uint8 to a currency formatted correct for en-US"),				FText::AsCurrency(Uint8Value),			FText::FromString(TEXT("$255.00")));
+	Test(this, TEXT("Convert a uint8 to a currency formatted correct for en-US"),			FText::AsCurrency(Uint8Value),			FText::FromString(TEXT("$255.00")));
 	Test(this, TEXT("Convert a uint16 to a currency formatted correct for en-US"),			FText::AsCurrency(Uint16Value),			FText::FromString(TEXT("$65,535.00")));
 	Test(this, TEXT("Convert a uint32 to a currency formatted correct for en-US"),			FText::AsCurrency(Uint32Value),			FText::FromString(TEXT("$4,294,967,295.00")));
 	Test(this, TEXT("Convert a uint64 to a currency formatted correct for en-US"),			FText::AsCurrency(Uint64Value),			FText::FromString(TEXT("$1,844,674,407,370,955,161.00")));
-	Test(this, TEXT("Convert a int8 to a currency formatted correct for en-US"),				FText::AsCurrency(Int8Value),			FText::FromString(TEXT("$123.00")));
-	Test(this, TEXT("Convert a int16 to a currency formatted correct for en-US"),				FText::AsCurrency(Int16Value),			FText::FromString(TEXT("$12,345.00")));
-	Test(this, TEXT("Convert a int32 to a currency formatted correct for en-US"),				FText::AsCurrency(Int32Value),			FText::FromString(TEXT("$12,345.00")));
-	Test(this, TEXT("Convert a int64 to a currency formatted correct for en-US"),				FText::AsCurrency(Int64Value),			FText::FromString(TEXT("$12,345.00")));
-	Test(this, TEXT("Convert a Negative int8 to a currency formatted correct for en-US"),		FText::AsCurrency(Int8NegativeValue),	FText::FromString(TEXT("-$123.00")));
+	Test(this, TEXT("Convert a int8 to a currency formatted correct for en-US"),			FText::AsCurrency(Int8Value),			FText::FromString(TEXT("$123.00")));
+	Test(this, TEXT("Convert a int16 to a currency formatted correct for en-US"),			FText::AsCurrency(Int16Value),			FText::FromString(TEXT("$12,345.00")));
+	Test(this, TEXT("Convert a int32 to a currency formatted correct for en-US"),			FText::AsCurrency(Int32Value),			FText::FromString(TEXT("$12,345.00")));
+	Test(this, TEXT("Convert a int64 to a currency formatted correct for en-US"),			FText::AsCurrency(Int64Value),			FText::FromString(TEXT("$12,345.00")));
+	Test(this, TEXT("Convert a Negative int8 to a currency formatted correct for en-US"),	FText::AsCurrency(Int8NegativeValue),	FText::FromString(TEXT("-$123.00")));
 	Test(this, TEXT("Convert a Negative int16 to a currency formatted correct for en-US"),	FText::AsCurrency(Int16NegativeValue),	FText::FromString(TEXT("-$12,345.00")));
 	Test(this, TEXT("Convert a Negative int32 to a currency formatted correct for en-US"),	FText::AsCurrency(Int32NegativeValue),	FText::FromString(TEXT("-$12,345.00")));
 	Test(this, TEXT("Convert a Negative int64 to a currency formatted correct for en-US"),	FText::AsCurrency(Int64NegativeValue),	FText::FromString(TEXT("-$12,345.00")));
 
-	Test(this, TEXT("Convert a Double to a percent formatted correct for en-US"),				FText::AsPercent(DoubleValue),			FText::FromString(TEXT("1,234,567,890%")));
-	Test(this, TEXT("Convert a Float to a percent formatted correct for en-US"),				FText::AsPercent(FloatValue),			FText::FromString(TEXT("123,457%")));
+	Test(this, TEXT("Convert a Double to a percent formatted correct for en-US"),			FText::AsPercent(DoubleValue),			FText::FromString(TEXT("1,234,567,890%")));
+	Test(this, TEXT("Convert a Float to a percent formatted correct for en-US"),			FText::AsPercent(FloatValue),			FText::FromString(TEXT("123,457%")));
 	Test(this, TEXT("Convert a Negative Double to a percent formatted correct for en-US"),	FText::AsPercent(DoubleNegativeValue),	FText::FromString(TEXT("-1,234,567,890%")));
-	Test(this, TEXT("Convert a Negative Float to a percent formatted correct for en-US"),		FText::AsPercent(FloatNegativeValue),	FText::FromString(TEXT("-123,457%")));
+	Test(this, TEXT("Convert a Negative Float to a percent formatted correct for en-US"),	FText::AsPercent(FloatNegativeValue),	FText::FromString(TEXT("-123,457%")));
 
 	I18N.SetCurrentCulture("hi-IN");
 
 	Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN"),			FText::AsNumber(DoubleValue),			FText::FromString(TEXT("1,23,45,678.901")));
-	Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN"),			FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
-	Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN"), FText::AsNumber(DoubleNegativeValue),	FText::FromString(TEXT("-1,23,45,678.901")));
+	Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN"),				FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
+	Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN"),	FText::AsNumber(DoubleNegativeValue),	FText::FromString(TEXT("-1,23,45,678.901")));
 	Test(this, TEXT("Convert a Negative Float to a number formatted correct for hi-IN"),	FText::AsNumber(FloatNegativeValue),	FText::FromString(TEXT("-1,234.567")));
-	Test(this, TEXT("Convert a uint8 to a number formatted correct for hi-IN"),			FText::AsNumber(Uint8Value),			FText::FromString(TEXT("255")));
+	Test(this, TEXT("Convert a uint8 to a number formatted correct for hi-IN"),				FText::AsNumber(Uint8Value),			FText::FromString(TEXT("255")));
 	Test(this, TEXT("Convert a uint16 to a number formatted correct for hi-IN"),			FText::AsNumber(Uint16Value),			FText::FromString(TEXT("65,535")));
 	Test(this, TEXT("Convert a uint32 to a number formatted correct for hi-IN"),			FText::AsNumber(Uint32Value),			FText::FromString(TEXT("4,29,49,67,295")));
 	Test(this, TEXT("Convert a uint64 to a number formatted correct for hi-IN"),			FText::AsNumber(Uint64Value),			FText::FromString(TEXT("18,44,67,44,07,37,09,55,161")));
-	Test(this, TEXT("Convert a int8 to a number formatted correct for hi-IN"),			FText::AsNumber(Int8Value),				FText::FromString(TEXT("123")));
-	Test(this, TEXT("Convert a int16 to a number formatted correct for hi-IN"),			FText::AsNumber(Int16Value),			FText::FromString(TEXT("12,345")));
-	Test(this, TEXT("Convert a int32 to a number formatted correct for hi-IN"),			FText::AsNumber(Int32Value),			FText::FromString(TEXT("12,345")));
-	Test(this, TEXT("Convert a int64 to a number formatted correct for hi-IN"),			FText::AsNumber(Int64Value),			FText::FromString(TEXT("12,345")));
-	Test(this, TEXT("Convert a Negative int8 to a number formatted correct for hi-IN"),	FText::AsNumber(Int8NegativeValue),		FText::FromString(TEXT("-123")));
+	Test(this, TEXT("Convert a int8 to a number formatted correct for hi-IN"),				FText::AsNumber(Int8Value),				FText::FromString(TEXT("123")));
+	Test(this, TEXT("Convert a int16 to a number formatted correct for hi-IN"),				FText::AsNumber(Int16Value),			FText::FromString(TEXT("12,345")));
+	Test(this, TEXT("Convert a int32 to a number formatted correct for hi-IN"),				FText::AsNumber(Int32Value),			FText::FromString(TEXT("12,345")));
+	Test(this, TEXT("Convert a int64 to a number formatted correct for hi-IN"),				FText::AsNumber(Int64Value),			FText::FromString(TEXT("12,345")));
+	Test(this, TEXT("Convert a Negative int8 to a number formatted correct for hi-IN"),		FText::AsNumber(Int8NegativeValue),		FText::FromString(TEXT("-123")));
 	Test(this, TEXT("Convert a Negative int16 to a number formatted correct for hi-IN"),	FText::AsNumber(Int16NegativeValue),	FText::FromString(TEXT("-12,345")));
 	Test(this, TEXT("Convert a Negative int32 to a number formatted correct for hi-IN"),	FText::AsNumber(Int32NegativeValue),	FText::FromString(TEXT("-12,345")));
 	Test(this, TEXT("Convert a Negative int64 to a number formatted correct for hi-IN"),	FText::AsNumber(Int64NegativeValue),	FText::FromString(TEXT("-12,345")));
@@ -256,13 +256,13 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 		const TSharedPtr<FCulture, ESPMode::ThreadSafe>& InvariantCulture = I18N.GetInvariantCulture();
 		Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(DoubleValue, NULL, InvariantCulture),			FText::FromString(TEXT("12345678.901")));
 		Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(FloatValue, NULL, InvariantCulture),			FText::FromString(TEXT("1234.567017")));
-		Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN but as invariant"),	FText::AsNumber(DoubleNegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345678.901")));
+		Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN but as invariant"),		FText::AsNumber(DoubleNegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345678.901")));
 		Test(this, TEXT("Convert a Negative Float to a number formatted correct for hi-IN but as invariant"),		FText::AsNumber(FloatNegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-1234.567017")));
 		Test(this, TEXT("Convert a uint8 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Uint8Value, NULL, InvariantCulture),			FText::FromString(TEXT("255")));
 		Test(this, TEXT("Convert a uint16 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Uint16Value, NULL, InvariantCulture),			FText::FromString(TEXT("65535")));
 		Test(this, TEXT("Convert a uint32 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Uint32Value, NULL, InvariantCulture),			FText::FromString(TEXT("4294967295")));
 		Test(this, TEXT("Convert a uint64 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Uint64Value, NULL, InvariantCulture),			FText::FromString(TEXT("1844674407370955161")));
-		Test(this, TEXT("Convert a int8 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Int8Value, NULL, InvariantCulture),				FText::FromString(TEXT("123")));
+		Test(this, TEXT("Convert a int8 to a number formatted correct for hi-IN but as invariant"),					FText::AsNumber(Int8Value, NULL, InvariantCulture),				FText::FromString(TEXT("123")));
 		Test(this, TEXT("Convert a int16 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Int16Value, NULL, InvariantCulture),			FText::FromString(TEXT("12345")));
 		Test(this, TEXT("Convert a int32 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Int32Value, NULL, InvariantCulture),			FText::FromString(TEXT("12345")));
 		Test(this, TEXT("Convert a int64 to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(Int64Value, NULL, InvariantCulture),			FText::FromString(TEXT("12345")));
@@ -275,26 +275,26 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	AddWarning("ICU is disabled thus invariant number formatting options are disabled.");
 #endif
 
-	Test(this, TEXT("Convert a Double to a currency formatted correct for hi-IN"),			FText::AsCurrency(DoubleValue),			FText::FromString(TEXT("\x20B9") TEXT("1,23,45,678.90")));
+	Test(this, TEXT("Convert a Double to a currency formatted correct for hi-IN"),				FText::AsCurrency(DoubleValue),			FText::FromString(TEXT("\x20B9") TEXT("1,23,45,678.90")));
 	Test(this, TEXT("Convert a Float to a currency formatted correct for hi-IN"),				FText::AsCurrency(FloatValue),			FText::FromString(TEXT("\x20B9") TEXT("1,234.57")));
-	Test(this, TEXT("Convert a Negative Double to a currency formatted correct for hi-IN"),	FText::AsCurrency(DoubleNegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("1,23,45,678.90")));
-	Test(this, TEXT("Convert a Negative Float to a currency formatted correct for hi-IN"),	FText::AsCurrency(FloatNegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("1,234.57")));
+	Test(this, TEXT("Convert a Negative Double to a currency formatted correct for hi-IN"),		FText::AsCurrency(DoubleNegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("1,23,45,678.90")));
+	Test(this, TEXT("Convert a Negative Float to a currency formatted correct for hi-IN"),		FText::AsCurrency(FloatNegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("1,234.57")));
 	Test(this, TEXT("Convert a uint8 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Uint8Value),			FText::FromString(TEXT("\x20B9") TEXT("255.00")));
-	Test(this, TEXT("Convert a uint16 to a currency formatted correct for hi-IN"),			FText::AsCurrency(Uint16Value),			FText::FromString(TEXT("\x20B9") TEXT("65,535.00")));
-	Test(this, TEXT("Convert a uint32 to a currency formatted correct for hi-IN"),			FText::AsCurrency(Uint32Value),			FText::FromString(TEXT("\x20B9") TEXT("4,29,49,67,295.00")));
-	Test(this, TEXT("Convert a uint64 to a currency formatted correct for hi-IN"),			FText::AsCurrency(Uint64Value),			FText::FromString(TEXT("\x20B9") TEXT("18,44,67,44,07,37,09,55,161.00")));
+	Test(this, TEXT("Convert a uint16 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Uint16Value),			FText::FromString(TEXT("\x20B9") TEXT("65,535.00")));
+	Test(this, TEXT("Convert a uint32 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Uint32Value),			FText::FromString(TEXT("\x20B9") TEXT("4,29,49,67,295.00")));
+	Test(this, TEXT("Convert a uint64 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Uint64Value),			FText::FromString(TEXT("\x20B9") TEXT("18,44,67,44,07,37,09,55,161.00")));
 	Test(this, TEXT("Convert a int8 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Int8Value),			FText::FromString(TEXT("\x20B9") TEXT("123.00")));
 	Test(this, TEXT("Convert a int16 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Int16Value),			FText::FromString(TEXT("\x20B9") TEXT("12,345.00")));
 	Test(this, TEXT("Convert a int32 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Int32Value),			FText::FromString(TEXT("\x20B9") TEXT("12,345.00")));
 	Test(this, TEXT("Convert a int64 to a currency formatted correct for hi-IN"),				FText::AsCurrency(Int64Value),			FText::FromString(TEXT("\x20B9") TEXT("12,345.00")));
 	Test(this, TEXT("Convert a Negative int8 to a currency formatted correct for hi-IN"),		FText::AsCurrency(Int8NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("123.00")));
-	Test(this, TEXT("Convert a Negative int16 to a currency formatted correct for hi-IN"),	FText::AsCurrency(Int16NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
-	Test(this, TEXT("Convert a Negative int32 to a currency formatted correct for hi-IN"),	FText::AsCurrency(Int32NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
-	Test(this, TEXT("Convert a Negative int64 to a currency formatted correct for hi-IN"),	FText::AsCurrency(Int64NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
+	Test(this, TEXT("Convert a Negative int16 to a currency formatted correct for hi-IN"),		FText::AsCurrency(Int16NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
+	Test(this, TEXT("Convert a Negative int32 to a currency formatted correct for hi-IN"),		FText::AsCurrency(Int32NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
+	Test(this, TEXT("Convert a Negative int64 to a currency formatted correct for hi-IN"),		FText::AsCurrency(Int64NegativeValue),	FText::FromString(TEXT("-") TEXT("\x20B9") TEXT("12,345.00")));
 
 	Test(this, TEXT("Convert a Double to a percent formatted correct for hi-IN"),				FText::AsPercent(DoubleValue),			FText::FromString(TEXT("1,23,45,67,890%")));
 	Test(this, TEXT("Convert a Float to a percent formatted correct for hi-IN"),				FText::AsPercent(FloatValue),			FText::FromString(TEXT("1,23,457%")));
-	Test(this, TEXT("Convert a Negative Double to a percent formatted correct for hi-IN"),	FText::AsPercent(DoubleNegativeValue),	FText::FromString(TEXT("-1,23,45,67,890%")));
+	Test(this, TEXT("Convert a Negative Double to a percent formatted correct for hi-IN"),		FText::AsPercent(DoubleNegativeValue),	FText::FromString(TEXT("-1,23,45,67,890%")));
 	Test(this, TEXT("Convert a Negative Float to a percent formatted correct for hi-IN"),		FText::AsPercent(FloatNegativeValue),	FText::FromString(TEXT("-1,23,457%")));
 
 	I18N.SetCurrentCulture( OriginalCulture );

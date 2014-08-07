@@ -111,7 +111,7 @@ FText UKismetTextLibrary::Conv_FloatToText(float Value, TEnumAsByte<ERoundingMod
 	return FText::AsNumber(Value, &NumberFormatOptions);
 }
 
-FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
+FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
 {
 	FNumberFormattingOptions NumberFormatOptions;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
@@ -121,10 +121,10 @@ FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingM
 	NumberFormatOptions.MinimumFractionalDigits = MinimumFractionalDigits;
 	NumberFormatOptions.MaximumFractionalDigits = MaximumFractionalDigits;
 
-	return FText::AsCurrency(Value, &NumberFormatOptions);
+	return FText::AsCurrency(Value, CurrencyCode, &NumberFormatOptions);
 }
 
-FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
+FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
 {
 	FNumberFormattingOptions NumberFormatOptions;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
@@ -134,7 +134,7 @@ FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMod
 	NumberFormatOptions.MinimumFractionalDigits = MinimumFractionalDigits;
 	NumberFormatOptions.MaximumFractionalDigits = MaximumFractionalDigits;
 
-	return FText::AsCurrency(Value, &NumberFormatOptions);
+	return FText::AsCurrency(Value, CurrencyCode, &NumberFormatOptions);
 }
 
 FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)

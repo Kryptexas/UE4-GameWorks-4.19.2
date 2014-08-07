@@ -462,12 +462,12 @@ DEF_ASNUMBER(uint16)
 DEF_ASNUMBER_CAST(uint32, int64_t)
 DEF_ASNUMBER_CAST(uint64, int64_t)
 #undef DEF_ASNUMBER
+#undef DEF_ASNUMBER_CAST
 
 /**
-* Generate an FText that represents the passed number as currency in the current culture
-*/
-
-#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, Options, TargetCulture); }
+ * Generate an FText that represents the passed number as currency in the current culture
+ */
+#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FString& CurrencyCode, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, CurrencyCode, Options, TargetCulture); }
 #define DEF_ASCURRENCY(T) DEF_ASCURRENCY_CAST(T, T)
 DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY(double)
@@ -480,6 +480,7 @@ DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY_CAST(uint32, int64_t)
 	DEF_ASCURRENCY_CAST(uint64, int64_t)
 #undef DEF_ASCURRENCY
+#undef DEF_ASCURRENCY_CAST
 
 /**
 * Generate an FText that represents the passed number as a percentage in the current culture
@@ -490,6 +491,7 @@ DEF_ASCURRENCY(float)
 DEF_ASPERCENT(double)
 DEF_ASPERCENT(float)
 #undef DEF_ASPERCENT
+#undef DEF_ASPERCENT_CAST
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {

@@ -405,8 +405,9 @@ void FTextHistory_AsPercent::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsCurrency
 
-FTextHistory_AsCurrency::FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
-	: FTextHistory_FormatNumber(InSourceValue, InFormatOptions, InTargetCulture)
+FTextHistory_AsCurrency::FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FString& CurrencyCode, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
+: FTextHistory_FormatNumber(InSourceValue, InFormatOptions, InTargetCulture)
+, CurrencyCode(CurrencyCode)
 {
 }
 
@@ -418,19 +419,19 @@ FText FTextHistory_AsCurrency::ToText(bool bInAsSource) const
 	{
 	case EFormatArgumentType::UInt:
 		{
-			return FText::AsCurrency(SourceValue.UIntValue, FormatOptions, CurrentCulture);
+			return FText::AsCurrency(SourceValue.UIntValue, CurrencyCode, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Int:
 		{
-			return FText::AsCurrency(SourceValue.IntValue, FormatOptions, CurrentCulture);
+			return FText::AsCurrency(SourceValue.IntValue, CurrencyCode, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Float:
 		{
-			return FText::AsCurrency(SourceValue.FloatValue, FormatOptions, CurrentCulture);
+			return FText::AsCurrency(SourceValue.FloatValue, CurrencyCode, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Double:
 		{
-			return FText::AsCurrency(SourceValue.DoubleValue, FormatOptions, CurrentCulture);
+			return FText::AsCurrency(SourceValue.DoubleValue, CurrencyCode, FormatOptions, CurrentCulture);
 		}
 	default:
 		{
@@ -447,6 +448,11 @@ void FTextHistory_AsCurrency::Serialize( FArchive& Ar )
 	{
 		int8 HistoryType = (int8)ETextHistoryType::AsCurrency;
 		Ar << HistoryType;
+	}
+
+	if (Ar.UE4Ver() >= VER_UE4_ADDED_CURRENCY_CODE_TO_FTEXT)
+	{
+		Ar << CurrencyCode;
 	}
 
 	FTextHistory_FormatNumber::Serialize(Ar);

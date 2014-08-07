@@ -590,6 +590,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CLEAR_NOTIFY_TRIGGERS,
 	// Convert old curve names stored in anim assets into skeleton smartnames
 	VER_UE4_SKELETON_ADD_SMARTNAMES,
+	// Added the currency code field to FTextHistory_AsCurrency
+	VER_UE4_ADDED_CURRENCY_CODE_TO_FTEXT,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
