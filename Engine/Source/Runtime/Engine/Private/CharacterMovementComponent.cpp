@@ -746,7 +746,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	const FVector InputVector = ConsumeInputVector();
-	if (!HasValidData() || UpdatedComponent->Mobility != EComponentMobility::Movable || UpdatedComponent->IsSimulatingPhysics())
+	if (!HasValidData() || ShouldSkipUpdate(DeltaTime) || UpdatedComponent->IsSimulatingPhysics())
 	{
 		return;
 	}
@@ -1011,7 +1011,7 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 
 void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 {
-	if (!HasValidData() || UpdatedComponent->IsSimulatingPhysics())
+	if (!HasValidData() || UpdatedComponent->Mobility != EComponentMobility::Movable || UpdatedComponent->IsSimulatingPhysics())
 	{
 		return;
 	}
@@ -1063,7 +1063,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 			HandlePendingLaunch();
 		}
 
-		if (MovementMode == MOVE_None || UpdatedComponent->Mobility != EComponentMobility::Movable)
+		if (MovementMode == MOVE_None)
 		{
 			return;
 		}

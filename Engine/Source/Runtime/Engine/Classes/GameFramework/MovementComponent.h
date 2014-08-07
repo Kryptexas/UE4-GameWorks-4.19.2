@@ -118,11 +118,15 @@ public:
 	virtual void StopMovementImmediately();
 
 	/**
-	 * Possibly skip update if moved component is not rendered.
+	 * Possibly skip update if moved component is not rendered or can't move.
 	 * @param DeltaTime @todo this parameter is not used in the function.
 	 * @return true if component movement update should be skipped
 	 */
-	virtual bool SkipUpdate(float DeltaTime);
+	virtual bool ShouldSkipUpdate(float DeltaTime) const;
+
+	DEPRECATED(4.5, "SkipUpdate has been renamed to ShouldSkipUpdate")
+	virtual bool SkipUpdate(float DeltaTime) { return ShouldSkipUpdate(DeltaTime); }
+
 
 	/** @return PhysicsVolume this MovementComponent is using, or the world's default physics volume if none. **/
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")

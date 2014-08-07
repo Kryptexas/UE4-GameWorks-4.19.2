@@ -13,8 +13,8 @@ URotatingMovementComponent::URotatingMovementComponent(const class FPostConstruc
 
 void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	// skip if don't want component updated when not rendered
-	if ( SkipUpdate(DeltaTime) )
+	// skip if don't want component updated when not rendered or updated component can't move
+	if ( ShouldSkipUpdate(DeltaTime) )
 	{
 		return;
 	}

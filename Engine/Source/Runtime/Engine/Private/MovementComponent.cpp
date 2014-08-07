@@ -143,11 +143,48 @@ bool UMovementComponent::IsInWater() const
 	return GetPhysicsVolume() && GetPhysicsVolume()->bWaterVolume;
 }
 
-bool UMovementComponent::SkipUpdate(float DeltaTime)
+bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 {
-	return UpdatedComponent == NULL
-			|| (bUpdateOnlyIfRendered 
-				&& ((GetNetMode() == NM_DedicatedServer) || (GetWorld()->GetTimeSeconds() - UpdatedComponent->LastRenderTime > 0.2f)));
+	if (UpdatedComponent == NULL || UpdatedComponent->Mobility != EComponentMobility::Movable)
+	{
+		return true;
+	}
+
+	if (bUpdateOnlyIfRendered)
+	{
+		if (GetNetMode() == NM_DedicatedServer)
+		{
+			// Dedicated servers never render
+			return true;
+		}
+
+		const float RenderTimeThreshold = 0.41f;
+		UWorld* TheWorld = GetWorld();
+		if (TheWorld->TimeSince(UpdatedComponent->LastRenderTime) <= RenderTimeThreshold)
+		{
+			return false; // Rendered, don't skip it.
+		}
+
+		// Most components used with movement components don't actually render, so check attached children render times.
+		TArray<USceneComponent*> Children;
+		UpdatedComponent->GetChildrenComponents(true, Children);
+		for (auto Child : Children)
+		{
+			const UPrimitiveComponent* PrimitiveChild = Cast<UPrimitiveComponent>(Child);
+			if (PrimitiveChild)
+			{
+				if (PrimitiveChild->IsRegistered() && TheWorld->TimeSince(PrimitiveChild->LastRenderTime) <= RenderTimeThreshold)
+				{
+					return false; // Rendered, don't skip it.
+				}
+			}
+		}
+
+		// No children were recently rendered, safely skip the update.
+		return true;
+	}
+
+	return false;
 }
 
 
