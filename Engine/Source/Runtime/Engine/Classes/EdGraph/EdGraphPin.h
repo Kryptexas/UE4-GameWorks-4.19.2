@@ -281,6 +281,9 @@ public:
 	/** Get the current DefaultObject path name, or DefaultValue if its null */
 	ENGINE_API FString GetDefaultAsString() const;
 
+	/** Returns how the name of the pin should be displayed in the UI */
+	ENGINE_API FText GetDisplayName() const;
+
 	void ResetToDefaults()
 	{
 		check(LinkedTo.Num() == 0);

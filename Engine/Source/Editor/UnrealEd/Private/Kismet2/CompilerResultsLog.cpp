@@ -160,7 +160,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 					}
 					else if (Pin != NULL)
 					{
-						ObjText = Pin->PinFriendlyName.IsEmpty() ? FText::FromString(Pin->PinName) : Pin->PinFriendlyName;
+						ObjText = Pin->GetDisplayName();
 					}
 					else
 					{

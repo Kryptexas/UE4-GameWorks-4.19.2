@@ -202,6 +202,11 @@ FString UEdGraphPin::GetDefaultAsString() const
 	}
 }
 
+FText UEdGraphPin::GetDisplayName() const
+{
+	return FText::FromString(GetSchema()->GetPinDisplayName(this));
+}
+
 const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, const FString& InInfoData, const UEdGraphPin* InToPin ) const
 {
 #if WITH_EDITOR
