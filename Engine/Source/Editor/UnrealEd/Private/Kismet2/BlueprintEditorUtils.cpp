@@ -624,6 +624,16 @@ struct FRegenerationHelper
 		}
 	}
 
+	static void ForceLoadMetaData(UObject* InObject)
+	{
+		checkSlow(InObject);
+		UPackage* Package = InObject->GetOutermost();
+		checkSlow(Package);
+		UMetaData* MetaData = Package->GetMetaData();
+		checkSlow(MetaData);
+		ForcedLoad(MetaData);
+	}
+
 	static void PreloadAndLinkIfNecessary(UStruct* Struct)
 	{
 		bool bChanged = false;
@@ -636,13 +646,7 @@ struct FRegenerationHelper
 			}
 		}
 
-		{
-			UPackage* Package = Struct->GetOutermost();
-			check(Package);
-			UMetaData* MetaData = Package->GetMetaData();
-			check(MetaData);
-			ForcedLoad(MetaData);
-		}
+		ForceLoadMetaData(Struct);
 
 		const int32 OldPropertiesSize = Struct->GetPropertiesSize();
 		for (UField* Field = Struct->Children; Field; Field = Field->Next)
@@ -1035,6 +1039,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	if (!Blueprint->bHasBeenRegenerated)
 	{
 		check(PreviousCDO != nullptr);
+		FRegenerationHelper::ForceLoadMetaData(Blueprint);
 		FRegenerationHelper::ForcedLoadMembers(PreviousCDO);
 		FRegenerationHelper::ForcedLoadMembers(Blueprint);
 	}

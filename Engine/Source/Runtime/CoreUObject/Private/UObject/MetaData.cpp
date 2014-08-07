@@ -114,10 +114,31 @@ void UMetaData::Serialize(FArchive& Ar)
 		}
 	}
 	
-	Ar << ObjectMetaDataMap;
-
-	if (Ar.IsLoading())
+	if (!Ar.IsLoading())
 	{
+		Ar << ObjectMetaDataMap;
+	}
+	else
+	{
+		{
+			TMap< FWeakObjectPtr, TMap<FName, FString> > TempMap;
+			Ar << TempMap;
+
+			const bool bLoadFromLinker = (NULL != Ar.GetLinker());
+			if (bLoadFromLinker && HasAnyFlags(RF_LoadCompleted))
+			{
+				UE_LOG(LogMetaData, Verbose, TEXT("Metadata was already loaded by linker. %s"), *GetFullName());
+			}
+			else
+			{
+				if (bLoadFromLinker && ObjectMetaDataMap.Num())
+				{
+					UE_LOG(LogMetaData, Verbose, TEXT("Metadata: Some values, filled while serialization, may be lost. %s"), *GetFullName());
+				}
+				Swap(ObjectMetaDataMap, TempMap);
+			}
+		}
+
 		// Run redirects on loaded keys
 		InitializeRedirectMap();
 
@@ -269,6 +290,11 @@ void UMetaData::SetObjectValues(const UObject* Object, const TMap<FName, FString
 void UMetaData::SetValue(const UObject* Object, FName Key, const TCHAR* Value)
 {
 	check(Key != NAME_None);
+
+	if (!HasAllFlags(RF_LoadCompleted))
+	{
+		UE_LOG(LogMetaData, Error, TEXT("MetaData::SetValue called before meta data is completely loaded. %s'"), *GetPathName());
+	}
 
 	// look up the existing map if we have it
 	TMap<FName, FString>* ObjectValues = ObjectMetaDataMap.Find(Object);
