@@ -3811,7 +3811,6 @@ void APlayerController::BeginSpectatingState()
 	SetSpectatorPawn(SpawnSpectatorPawn());
 }
 
-
 void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 {
 	if (IsInState(NAME_Spectating))
@@ -3822,7 +3821,6 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 		AddPawnTickDependency(SpectatorPawn);
 	}
 }
-
 
 ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 {

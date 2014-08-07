@@ -676,7 +676,7 @@ void UCookCommandlet::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Plat
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_SECONDS_COUNTER(GenerateAssetRegistryTime);
-		UE_LOG(LogCookCommandlet, Display, TEXT("Creating asset registry [is editor: %d]"), GIsEditor);
+		UE_LOG(LogCookCommandlet, Display, TEXT("Populating asset registry."));
 
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
@@ -711,7 +711,7 @@ void UCookCommandlet::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Plat
 			}
 		}
 	}
-	UE_LOG(LogCookCommandlet, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
+	UE_LOG(LogCookCommandlet, Display, TEXT("Done populating registry. It took %5.2fs."), GenerateAssetRegistryTime);
 	
 }
 
@@ -1057,7 +1057,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				{
 					// Populate streaming install manifests
 					FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
-					ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName);
+					ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
 				}
 					
 				if (!CookedPackages.Contains(Filename))
@@ -1194,11 +1194,10 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
-	if (bGenerateStreamingInstallManifests)
 	{
-		ManifestGenerator.SaveManifests();
-	}
-	{
+		// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
+		ManifestGenerator.SaveManifests(SandboxFile.GetOwnedPointer());
+
 		// Save modified asset registry with all streaming chunk info generated during cook
 		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
 		FString SandboxRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*RegistryFilename);

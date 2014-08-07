@@ -6,10 +6,12 @@
 #include "EnvQueryTypes.generated.h"
 
 class UEnvQueryTest;
+class UEnvQueryGenerator;
 class UEnvQueryItemType_VectorBase;
 class UEnvQueryItemType_ActorBase;
+struct FEnvQueryInstance;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -405,8 +407,8 @@ struct AIMODULE_API FEnvQueryItem
 			return !IsValid();
 		}
 
-		// sort by score
-		return Score < Other.Score;
+		// sort by score if not equal. As last resort sort by DataOffset to achieve stable sort.
+		return Score != Other.Score ? Score < Other.Score : DataOffset < Other.DataOffset;
 	}
 
 	FEnvQueryItem() : Score(0.0f), DataOffset(-1), bIsDiscarded(false) {}
@@ -452,8 +454,6 @@ struct AIMODULE_API FEnvQueryResult
 // Runtime processing structures
 
 DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<struct FEnvQueryResult>);
-DECLARE_DELEGATE_OneParam(FGenerateItemsSignature, struct FEnvQueryInstance&);
-DECLARE_DELEGATE_OneParam(FExecuteTestSignature, struct FEnvQueryInstance&);
 
 struct AIMODULE_API FEnvQuerySpatialData
 {
@@ -517,18 +517,20 @@ struct AIMODULE_API FEnvQueryContextData
 struct AIMODULE_API FEnvQueryOptionInstance
 {
 	/** generator's delegate */
-	FGenerateItemsSignature GenerateDelegate;
+	TWeakObjectPtr<UEnvQueryGenerator> Generator;
 
 	/** tests' delegates */
-	TArray<FExecuteTestSignature> TestDelegates;
+	TArray<TWeakObjectPtr<UEnvQueryTest> > TestsToPerform;
 
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
-	/** is set, items will be shuffled after tests */
+	/** if set, items will be shuffled after tests */
 	bool bShuffleItems;
 
-	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + TestDelegates.GetAllocatedSize(); }
+	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + TestsToPerform.GetAllocatedSize(); }
+
+	UEnvQueryTest* GetTestObject(int32 TestIndex) { check(TestsToPerform.IsValidIndex(TestIndex)); return TestsToPerform[TestIndex].Get(); }
 };
 
 #if NO_LOGGING
@@ -543,6 +545,8 @@ struct FEQSQueryDebugData
 	TArray<FEnvQueryItemDetails> DebugItemDetails;
 	TArray<uint8> RawData;
 	TArray<FString> PerformedTestNames;
+	// indicates the query was run in a single-item mode and that it has been found
+	uint32 bSingleItemResult : 1;
 
 	void Store(const FEnvQueryInstance* QueryInstance);
 	void Reset()
@@ -551,6 +555,7 @@ struct FEQSQueryDebugData
 		DebugItemDetails.Reset();
 		RawData.Reset();
 		PerformedTestNames.Reset();
+		bSingleItemResult = false;
 	}
 };
 
@@ -595,12 +600,16 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	/** used to breaking from item iterator loops */
 	uint8 bFoundSingleResult : 1;
 
+private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
+public:
 #if USE_EQS_DEBUGGER
 	/** set to true to store additional debug info */
 	uint8 bStoreDebugInfo : 1;
+	/** set to true when debug data has been stored before items sorting. This is time sensetive and gets reset to false every query step */
+	uint8 bDebugStoredBeforeSorting : 1;
 #endif // USE_EQS_DEBUGGER
 
 	/** run mode */
@@ -615,9 +624,10 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	/** if > 0 then it's how much time query has for performing current step */
 	double TimeLimit;
 
-	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false)
+	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false)
 #if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
+		, bDebugStoredBeforeSorting(false)
 #endif // USE_EQS_DEBUGGER
 	{ IncStats(); }
 	FEnvQueryInstance(const FEnvQueryInstance& Other) { *this = Other; IncStats(); }
@@ -635,6 +645,10 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	bool PrepareContext(UClass* Context, TArray<FRotator>& Data);
 	/** helpers for reading actor data from context */
 	bool PrepareContext(UClass* Context, TArray<AActor*>& Data);
+	
+	bool IsInSingleItemFinalSearch() const { return !!bPassOnSingleResult; }
+	/** check if current test can batch its calculations */
+	bool CanBatchTest() const { return !IsInSingleItemFinalSearch(); }
 
 	/** access named params */
 	template<typename TEQSParam>
@@ -695,9 +709,6 @@ protected:
 	/** pick one of items with highest score */
 	void PickBestItem();
 
-	/** prepare items on reaching final condition in SingleResult mode */
-	void OnFinalCondition();
-
 	/** discard all items but one */
 	void PickSingleItem(int32 ItemIndex);
 
@@ -735,7 +746,7 @@ public:
 #if CPP || UE_BUILD_DOCS
 	struct AIMODULE_API ItemIterator
 	{
-		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance);
+		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
 
 		~ItemIterator()
 		{
@@ -800,10 +811,7 @@ public:
 			switch (FilterType)
 			{
 				case EEnvTestFilterType::Match:
-					if (bScore != bExpected)
-					{
-						bPassedTest = false;
-					}
+					bPassedTest = (bScore == bExpected);
 					break;
 
 				case EEnvTestFilterType::Maximum:
@@ -877,7 +885,7 @@ public:
 			if (!Instance->bFoundSingleResult)
 			{
 				InitItemScore();
-				for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++) ;
+				FindNextValidIndex();
 			}
 		}
 
@@ -901,7 +909,14 @@ public:
 			bSkipped = false;
 		}
 
+		void HandleFailedTestResult();
 		void StoreTestResult();
+
+		FORCEINLINE void FindNextValidIndex()
+		{
+			for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++)
+				;
+		}
 	};
 #endif
 

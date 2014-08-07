@@ -22,6 +22,7 @@
 #include "KismetEditorUtilities.h"
 #include "AssetToolsModule.h"
 #include "ComponentAssetBroker.h"
+#include "SNumericEntryBox.h"
 
 #include "SourceCodeNavigation.h"
 #include "IDocumentation.h"
@@ -247,6 +248,30 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSaveAsset )
 			)
 		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AssignAssetChunk", "Assign to Chunk..."),
+		LOCTEXT("AssignAssetChunkTooltip", "Assign this asset to a specific Chunk"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteAssignChunkID)
+		)
+	);
+
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("RemoveAssetFromChunk", "Remove from Chunk..."),
+		LOCTEXT("RemoveAssetFromChunkTooltip", "Removed an asset from a Chunk it's assigned to."),
+		FNewMenuDelegate::CreateRaw(this, &FAssetContextMenu::MakeChunkIDListMenu)
+	);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("RemoveAllChunkAssignments", "Remove from all Chunks"),
+		LOCTEXT("RemoveAllChunkAssignmentsTooltip", "Removed an asset from all Chunks it's assigned to."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteRemoveAllChunkID)
+		)
+	);
 
 	if (CanExecuteDiffSelected())
 	{
@@ -1501,6 +1526,195 @@ void FAssetContextMenu::GetSelectedPackages(TArray<UPackage*>& OutPackages) cons
 		if ( Package )
 		{
 			OutPackages.Add(Package);
+		}
+	}
+}
+
+void FAssetContextMenu::MakeChunkIDListMenu(FMenuBuilder& MenuBuilder)
+{
+	TArray<int32> FoundChunks;
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			for (auto ChunkID : Package->GetChunkIDs())
+			{
+				FoundChunks.AddUnique(ChunkID);
+			}
+		}
+	}
+
+	for (auto ChunkID : FoundChunks)
+	{
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("PackageChunk", "Chunk {0}"), FText::AsNumber(ChunkID)),
+			FText(),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteRemoveChunkID, ChunkID)
+			)
+		);
+	}
+}
+
+void FAssetContextMenu::ExecuteAssignChunkID()
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	auto AssetViewPtr = AssetView.Pin();
+	if (AssetViewSelectedAssets.Num() > 0 && AssetViewPtr.IsValid())
+	{
+		// Determine the position of the window so that it will spawn near the mouse, but not go off the screen.
+		const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+		FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
+
+		FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal);
+
+		TSharedPtr<SWindow> Window = SNew(SWindow)
+			.AutoCenter(EAutoCenter::None)
+			.ScreenPosition(AdjustedSummonLocation)
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::Autosized)
+			.Title(LOCTEXT("WindowHeader", "Enter Chunk ID"));
+
+		Window->SetContent(
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MeshPaint_LabelStrength", "Chunk ID"))
+				]
+				+ SHorizontalBox::Slot()
+				.FillWidth(2.0f)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SNumericEntryBox<int32>)
+					.AllowSpin(true)
+					.MinSliderValue(0)
+					.MaxSliderValue(300)
+					.MinValue(0)
+					.MaxValue(300)
+					.Value(this, &FAssetContextMenu::GetChunkIDSelection)
+					.OnValueChanged(this, &FAssetContextMenu::OnChunkIDAssignChanged)
+				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ChunkIDAssign_Yes", "OK"))
+					.OnClicked(this, &FAssetContextMenu::OnChunkIDAssignCommit, Window)
+				]
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ChunkIDAssign_No", "Cancel"))
+					.OnClicked(this, &FAssetContextMenu::OnChunkIDAssignCancel, Window)
+				]
+			]
+		);
+
+		ChunkIDSelected = 0;
+		FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), AssetViewPtr);
+	}
+}
+
+void FAssetContextMenu::ExecuteRemoveAllChunkID()
+{
+	TArray<int32> EmptyChunks;
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			Package->SetChunkIDs(EmptyChunks);
+			Package->SetDirtyFlag(true);
+		}
+	}
+}
+
+TOptional<int32> FAssetContextMenu::GetChunkIDSelection() const
+{
+	return ChunkIDSelected;
+}
+
+void FAssetContextMenu::OnChunkIDAssignChanged(int32 NewChunkID)
+{
+	ChunkIDSelected = NewChunkID;
+}
+
+FReply FAssetContextMenu::OnChunkIDAssignCommit(TSharedPtr<SWindow> Window)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			TArray<int32> CurrentChunks = Package->GetChunkIDs();
+			CurrentChunks.AddUnique(ChunkIDSelected);
+			Package->SetChunkIDs(CurrentChunks);
+			Package->SetDirtyFlag(true);
+		}
+	}
+
+	Window->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+FReply FAssetContextMenu::OnChunkIDAssignCancel(TSharedPtr<SWindow> Window)
+{
+	Window->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+void FAssetContextMenu::ExecuteRemoveChunkID(int32 ChunkID)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			int32 FoundIndex;
+			TArray<int32> CurrentChunks = Package->GetChunkIDs();
+			CurrentChunks.Find(ChunkID, FoundIndex);
+			if (FoundIndex != INDEX_NONE)
+			{
+				CurrentChunks.RemoveAt(FoundIndex);
+				Package->SetChunkIDs(CurrentChunks);
+				Package->SetDirtyFlag(true);
+			}
 		}
 	}
 }

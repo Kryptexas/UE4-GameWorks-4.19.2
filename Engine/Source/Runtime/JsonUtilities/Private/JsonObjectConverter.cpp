@@ -149,8 +149,21 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
-		// We want to export numbers as numbers
-		if (NumericProperty->IsFloatingPoint())
+		if (NumericProperty->IsEnum() && JsonValue->Type == EJson::String)
+		{
+			// see if we were passed a string for the enum
+			const UEnum* EnumProperty = NumericProperty->GetIntPropertyEnum();
+			check(EnumProperty); // should be assured by IsEnum()
+			FString StrValue = JsonValue->AsString();
+			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
+			if (IntValue == INDEX_NONE)
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s"), *EnumProperty->ActualEnumNameInsideNamespace, *StrValue);
+				return false;
+			}
+			NumericProperty->SetIntPropertyValue(OutValue, (int64)IntValue);
+		}
+		else if(NumericProperty->IsFloatingPoint())
 		{
 			// AsNumber will log an error for completely inappropriate types (then give us a default)
 			NumericProperty->SetFloatingPointPropertyValue(OutValue, JsonValue->AsNumber());
@@ -168,7 +181,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 				NumericProperty->SetIntPropertyValue(OutValue, (int64)JsonValue->AsNumber());
 			}
 		}
-		else
+		else 
 		{
 			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to set numeric property type %s"), *Property->GetClass()->GetName());
 			return false;

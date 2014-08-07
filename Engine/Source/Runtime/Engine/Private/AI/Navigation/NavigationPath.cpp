@@ -76,8 +76,10 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 	// register for path observing only if we weren't registered already
 	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
 	GoalActor = &ActorToObserve;
+	checkSlow(GoalActor.IsValid());
 	GoalActorAsNavAgent = InterfaceCast<INavAgentInterface>(&ActorToObserve);
 	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
+	UpdateLastRepathGoalLocation();
 
 	NavigationDataUsed->RegisterObservedPath(AsShared());
 }
@@ -88,6 +90,14 @@ void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
 	SourceActorAsNavAgent = InterfaceCast<INavAgentInterface>(&InSourceActor);
 }
 
+void FNavigationPath::UpdateLastRepathGoalLocation()
+{
+	if (GoalActor.IsValid())
+	{
+		GoalActorLastLocation = GoalActorAsNavAgent ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation();
+	}
+}
+
 EPathObservationResult::Type FNavigationPath::TickPathObservation()
 {
 	if (GoalActor.IsValid() == false)
@@ -96,7 +106,7 @@ EPathObservationResult::Type FNavigationPath::TickPathObservation()
 	}
 
 	const FVector GoalLocation = GoalActorAsNavAgent != NULL ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation();
-	return FVector::DistSquared(GoalLocation, PathPoints.Last().Location) <= GoalActorLocationTetherDistanceSq ? EPathObservationResult::NoChange : EPathObservationResult::RequestRepath;
+	return FVector::DistSquared(GoalLocation, GoalActorLastLocation) <= GoalActorLocationTetherDistanceSq ? EPathObservationResult::NoChange : EPathObservationResult::RequestRepath;
 }
 
 void FNavigationPath::DisableGoalActorObservation()

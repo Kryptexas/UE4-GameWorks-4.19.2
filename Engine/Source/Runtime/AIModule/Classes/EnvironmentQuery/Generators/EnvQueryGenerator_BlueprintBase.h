@@ -33,9 +33,9 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 	virtual UWorld* GetWorld() const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Generator)
-	virtual void DoItemGeneration(const TArray<FVector>& ContextLocations);
+	virtual void DoItemGeneration(const TArray<FVector>& ContextLocations) const;
 
-	void GenerateItems(FEnvQueryInstance& QueryInstance); 
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;
@@ -51,5 +51,5 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 
 private:
 	/** this is valid and set only within GenerateItems call */
-	FEnvQueryInstance* CachedQueryInstance;
+	mutable FEnvQueryInstance* CachedQueryInstance;
 };

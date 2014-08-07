@@ -393,7 +393,15 @@ public:
 	 */
 	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
-	/** If login is successful, returns a new PlayerController to associate with this player. Login fails if ErrorMessage string is set. */
+	/** 
+	 * Called to login new players by creating a player controller, overridable by the game
+	 *
+	 * Sets up basic properties of the player (name, unique id, registers with backend, etc) and should not be used to do
+	 * more complicated game logic.  The player controller is not fully initialized within this function as far as networking is conecerned.
+	 * Save "game logic" for PostLogin which is called shortly afterward.
+	 *
+	 * If login is successful, returns a new PlayerController to associate with this player. Login fails if ErrorMessage string is set. 
+	 */
 	virtual APlayerController* Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
@@ -406,8 +414,8 @@ public:
 	/** Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding */
 	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
-	/** @Returns true if NewPlayer may only join the server as a spectator. */
-	virtual bool MustSpectate(APlayerController* NewPlayer) const;
+	/** @Returns true if NewPlayerController may only join the server as a spectator. */
+	virtual bool MustSpectate(APlayerController* NewPlayerController) const;
 
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController(AController* InController);
@@ -571,15 +579,16 @@ public:
 	virtual void DefaultTimer();	
 
 protected:
-	/** 
+	/**
 	 * Customize incoming player based on URL options
 	 *
-	 * @param NewPlayer player logging in
+	 * @param NewPlayerController player logging in
 	 * @param UniqueId unique id for this player
 	 * @param Options URL options that came at login
 	 *
 	 */
-	virtual void InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options);
+	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
+
 
 private:
 	// Hidden functions that don't make sense to use on this class.

@@ -26,7 +26,7 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 	FEnvFloatParam Angle;
 	
 	UPROPERTY()
-	float AngleRadians;
+	mutable float AngleRadians;
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
@@ -41,7 +41,7 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 	virtual void PostLoad() override;
 
-	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

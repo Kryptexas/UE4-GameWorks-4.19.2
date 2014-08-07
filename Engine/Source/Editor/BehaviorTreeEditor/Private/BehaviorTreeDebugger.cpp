@@ -666,8 +666,7 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 			}
 		}
 
-		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
-		const APawn* LockedPawn = DebuggingComponent != NULL ? Cast<APawn>(DebuggingComponent->GetSelectedActor()) : NULL;
+		const APawn* LockedPawn = DebuggingReplicator != NULL ? Cast<APawn>(DebuggingReplicator->GetSelectedActorToDebug()) : NULL;
 		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
 		if (TestInstance)
 		{
@@ -1119,6 +1118,7 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 			{
 				SelectedActors = GEditor->GetSelectedActors();
 				SelectedActors->Select(Pawn);
+				AGameplayDebuggingReplicator::OnSelectionChangedDelegate.Broadcast(Pawn);
 			}
 		}
 

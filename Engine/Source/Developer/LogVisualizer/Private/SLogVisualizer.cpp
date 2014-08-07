@@ -541,6 +541,13 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 
 	LogVisualizer->OnLogAdded().AddSP(this, &SLogVisualizer::OnLogAdded);
 
+	if (LogsList.Num() == 0)
+	{
+		Timeline->SetVisibility(EVisibility::Hidden);
+		ScrollBar->SetVisibility(EVisibility::Hidden);
+		ZoomSlider->SetVisibility(EVisibility::Hidden);
+	}
+
 	TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
 	TSharedPtr<FActorsVisLog>* SharedLog = Logs.GetTypedData();
 	for (int32 LogIndex = 0; LogIndex < Logs.Num(); ++LogIndex, ++SharedLog)
@@ -549,13 +556,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 		{
 			AddOrUpdateLog(LogIndex, SharedLog->Get());
 		}
-	}
-
-	if (LogsList.Num() == 0)
-	{
-		Timeline->SetVisibility(EVisibility::Hidden);
-		ScrollBar->SetVisibility(EVisibility::Hidden);
-		ZoomSlider->SetVisibility(EVisibility::Hidden);
 	}
 
 	DoFullUpdate();

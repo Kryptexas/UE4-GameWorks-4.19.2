@@ -66,10 +66,10 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
 {
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));				// Num1
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));		// Num2
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));					// Num3
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));
 }
 
 void AGameplayDebuggingHUDComponent::PrintAllData()
@@ -202,7 +202,15 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::EQS))
 		{
-			DrawEQSData(MyPC, DebugComponent);
+			bool bEnabledEnvironmentQueryEd = true;
+			if (GConfig)
+			{
+				GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnabledEnvironmentQueryEd, GEngineIni);
+			}
+			if (bEnabledEnvironmentQueryEd)
+			{
+				DrawEQSData(MyPC, DebugComponent);
+			}
 		}
 
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)

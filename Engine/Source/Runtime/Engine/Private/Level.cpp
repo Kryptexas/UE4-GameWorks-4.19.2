@@ -479,12 +479,18 @@ void ULevel::Serialize( FArchive& Ar )
 
 void ULevel::SortActorList()
 {
+	if (Actors.Num() == 0)
+	{
+		// No need to sort an empty list
+		return;
+	}
+
 	int32 StartIndex = 0;
 	TArray<AActor*> NewActors;
 	NewActors.Reserve(Actors.Num());
 
 	// The WorldSettings has fixed actor index.
-	check(Actors.Num() && Actors[StartIndex] == GetWorldSettings());
+	check(Actors[StartIndex] == GetWorldSettings());
 	NewActors.Add(Actors[StartIndex++]);
 
 	// Static not net relevant actors.

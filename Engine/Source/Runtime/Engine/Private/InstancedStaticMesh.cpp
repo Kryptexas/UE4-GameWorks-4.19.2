@@ -1506,6 +1506,9 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 	FInstancedStaticMeshInstanceData* NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
 	SetupNewInstanceData(*NewInstanceData, PerInstanceSMData.Num() - 1, InstanceTransform);
 
+	// added with a set transform, don't allow instance selection to manipulate the transform in the editor
+	bHasPerInstanceHitProxies = false;
+
 	MarkRenderStateDirty();
 
 	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
@@ -1751,17 +1754,20 @@ bool UInstancedStaticMeshComponent::IsInstanceSelected(int32 InInstanceIndex) co
 void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount)
 {
 #if WITH_EDITOR
-	if(PerInstanceSMData.Num() != SelectedInstances.Num())
+	if (bHasPerInstanceHitProxies)
 	{
-		SelectedInstances.Init(false, PerInstanceSMData.Num());
-	}
+		if(PerInstanceSMData.Num() != SelectedInstances.Num())
+		{
+			SelectedInstances.Init(false, PerInstanceSMData.Num());
+		}
 
-	check(SelectedInstances.IsValidIndex(InInstanceIndex));
-	check(SelectedInstances.IsValidIndex(InInstanceIndex + (InInstanceCount - 1)));
+		check(SelectedInstances.IsValidIndex(InInstanceIndex));
+		check(SelectedInstances.IsValidIndex(InInstanceIndex + (InInstanceCount - 1)));
 
-	for(int32 InstanceIndex = InInstanceIndex; InstanceIndex < InInstanceIndex + InInstanceCount; InstanceIndex++)
-	{
-		SelectedInstances[InstanceIndex] = bInSelected;
+		for (int32 InstanceIndex = InInstanceIndex; InstanceIndex < InInstanceIndex + InInstanceCount; InstanceIndex++)
+		{
+			SelectedInstances[InstanceIndex] = bInSelected;
+		}
 	}
 #endif
 }

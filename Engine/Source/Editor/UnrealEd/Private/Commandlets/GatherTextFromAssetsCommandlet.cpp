@@ -380,10 +380,20 @@ namespace
 			UStructProperty* const StructProperty = Cast<UStructProperty>(Property);
 			if(StructProperty)
 			{
-				// Iterate over all properties of the struct's class.
-				for (TFieldIterator<UProperty>PropIt(StructProperty->Struct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
+				// Struct property may be a native array of fixed size.
+				for(int32 i = 0; i < Property->ArrayDim; ++i)
 				{
-					ProcessProperty( *PropIt, PropIt->ContainerPtrToValuePtr<void>(ValueAddress) );
+					uint8* StructureValueAddress = reinterpret_cast<uint8*>(ValueAddress);
+					if(Property->ArrayDim > 1)
+					{
+						StructureValueAddress += StructProperty->Struct->GetStructureSize() * i;
+					}
+
+					// Iterate over all properties of the struct's class.
+					for (TFieldIterator<UProperty>PropIt(StructProperty->Struct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
+					{
+						ProcessProperty( *PropIt, PropIt->ContainerPtrToValuePtr<void>(StructureValueAddress) );
+					}
 				}
 			}
 
@@ -391,30 +401,56 @@ namespace
 			UArrayProperty* const ArrayProperty = Cast<UArrayProperty>(Property);
 			if(ArrayProperty)
 			{
-				// Iterate over all objects of the array.
-				FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValueAddress);
-				const int32 ElementCount = ScriptArrayHelper.Num();
-				for(int32 i = 0; i < ElementCount; ++i)
+				for(int32 i = 0; i < Property->ArrayDim; ++i)
 				{
-					ProcessProperty( ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(i) );
+					void* ArrayValueAddress;
+					if(Property->ArrayDim > 1)
+					{
+						ArrayValueAddress = Property->ContainerPtrToValuePtr<void>(ValueAddress, i);
+					}
+					else
+					{
+						ArrayValueAddress = ValueAddress;
+					}
+
+					// Iterate over all objects of the array.
+					FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ArrayValueAddress);
+					const int32 ElementCount = ScriptArrayHelper.Num();
+					for(int32 j = 0; j < ElementCount; ++j)
+					{
+						ProcessProperty( ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(j) );
+					}
 				}
 			}
 
 			// Property is a text property.
-			UTextProperty* const TextProp = Cast<UTextProperty>(Property);
-			if(TextProp)
+			UTextProperty* const TextProperty = Cast<UTextProperty>(Property);
+			if(TextProperty)
 			{
-				FText* const Text = reinterpret_cast<FText*>(ValueAddress);
-				if( FTextInspector::GetFlags(*Text) & ETextFlag::ConvertedProperty )
+				// Text property may be a native array of fixed size.
+				for(int32 i = 0; i < Property->ArrayDim; ++i)
 				{
-					ObjectPackage->MarkPackageDirty();
-				}
+					FText* Text;
+					if(Property->ArrayDim > 1)
+					{
+						Text = reinterpret_cast<FText*>(Property->ContainerPtrToValuePtr<void>(ValueAddress, i));
+					}
+					else
+					{
+						Text = reinterpret_cast<FText*>(ValueAddress);
+					}
 
-				bool Fixed = false;
-				Commandlet->ProcessTextProperty(TextProp, Text, Object, /*OUT*/Fixed );
-				if( Fixed )
-				{
-					ObjectPackage->MarkPackageDirty();
+					if( FTextInspector::GetFlags(*Text) & ETextFlag::ConvertedProperty )
+					{
+						ObjectPackage->MarkPackageDirty();
+					}
+
+					bool Fixed = false;
+					Commandlet->ProcessTextProperty(TextProperty, Text, Object, /*OUT*/Fixed );
+					if( Fixed )
+					{
+						ObjectPackage->MarkPackageDirty();
+					}
 				}
 			}
 		}

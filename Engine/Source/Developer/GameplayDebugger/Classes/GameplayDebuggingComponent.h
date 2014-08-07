@@ -8,11 +8,14 @@
 #include "Components/PrimitiveComponent.h"
 #include "DebugRenderSceneProxy.h"
 #include "GameplayDebuggingControllerComponent.h"
+#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
+//#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "GameplayDebuggingComponent.generated.h"
 
-#define WITH_EQS 0
+#define WITH_EQS 1
 
 struct FDebugContext;
+//struct FEnvQueryInstance;
 
 UENUM()
 namespace EDebugComponentMessage
@@ -60,7 +63,7 @@ namespace EQSDebug
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
 UCLASS(config=Engine)
-class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent//, public IEQSQueryResultSourceInterface
+class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -107,7 +110,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
 	TArray<uint8> NavmeshRepData;
 	
-#if WITH_EQS
 	/** Begin EQS replication data */
 	UPROPERTY(Replicated)
 	float EQSTimestamp;
@@ -132,7 +134,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	UFUNCTION()
 	virtual void OnRep_UpdateEQS();
-#endif // WITH_EQS
 
 	virtual bool GetComponentClassCanReplicate() const override{ return true; }
 
@@ -179,7 +180,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 		return TargetActor;
 	}
 
-#if WITH_EQS
 	//=============================================================================
 	// EQS debugging
 	//=============================================================================
@@ -198,7 +198,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 protected:
 	virtual void CollectEQSData();
 public:
-#endif //WITH_EQS
 
 	//=============================================================================
 	// Rendering

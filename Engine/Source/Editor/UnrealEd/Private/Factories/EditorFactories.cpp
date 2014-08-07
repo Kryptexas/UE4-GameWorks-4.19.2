@@ -5685,9 +5685,26 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
+			const TArray<UAssetUserData*>* UserData = Mesh->GetAssetUserDataArray();
+			TArray<UAssetUserData*> UserDataCopy;
+			if (UserData)
+			{
+				for (int32 Idx = 0; Idx < UserData->Num(); Idx++)
+				{
+					UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage(), nullptr));
+				}
+			}
+
 			if (FFbxImporter->ReimportStaticMesh(Mesh, ImportData))
 			{
 				UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
+
+				// Copy user data to newly created mesh
+				for (int32 Idx = 0; Idx < UserDataCopy.Num(); Idx++)
+				{
+					UserDataCopy[Idx]->Rename(nullptr, Mesh, REN_DontCreateRedirectors | REN_DoNotDirty);
+					Mesh->AddAssetUserData(UserDataCopy[Idx]);
+				}
 
 				// Try to find the outer package so we can dirty it up
 				if (Mesh->GetOuter())

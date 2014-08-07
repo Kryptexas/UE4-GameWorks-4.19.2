@@ -10,6 +10,8 @@
 class UGameplayDebuggingComponent;
 class AGameplayDebuggingHUDComponent;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
+
 UCLASS(config=Engine, NotBlueprintable, Transient)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 {
@@ -26,6 +28,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	UPROPERTY(Replicated, Transient)
 	APlayerController* LocalPlayerOwner;
+
+	UPROPERTY(Replicated, Transient)
+	bool bIsGlobalInWorld;
 
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
@@ -44,6 +49,10 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual void BeginPlay() override;
 
+	virtual void BeginDestroy() override;
+
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+
 	UGameplayDebuggingComponent* GetDebugComponent();
 
 	bool IsToolCreated();
@@ -51,12 +60,19 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	void EnableTool();
 	bool IsDrawEnabled();
 	void EnableDraw(bool bEnable);
+	void SetAsGlobalInWorld(bool IsGlobal) { bIsGlobalInWorld = IsGlobal;  }
+	bool IsGlobalInWorld() { return bIsGlobalInWorld;  }
 
 	void SetLocalPlayerOwner(APlayerController* PC) { LocalPlayerOwner = PC; }
 	APlayerController* GetLocalPlayerOwner() { return LocalPlayerOwner; }
 
+	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorInSimulation.Get(); }
+	void SetActorToDebug(AActor* InActor);
+
 	uint32 DebuggerShowFlags;
 
+	static FOnSelectionChanged OnSelectionChangedDelegate;
+	
 protected:
 	void OnDebugAIDelegate(class UCanvas* Canvas, class APlayerController* PC);
 	void DrawDebugDataDelegate(class UCanvas* Canvas, class APlayerController* PC);
@@ -65,6 +81,7 @@ protected:
 private:
 	uint32 bEnabledDraw : 1;
 	uint32 LastDrawAtFrame;
+	float PlayerControllersUpdateDelay;
 
 	TWeakObjectPtr<UClass> DebugComponentClass;
 	TWeakObjectPtr<UClass> DebugComponentHUDClass;

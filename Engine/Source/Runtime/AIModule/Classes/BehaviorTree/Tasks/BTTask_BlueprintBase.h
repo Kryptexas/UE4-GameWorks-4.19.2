@@ -24,6 +24,7 @@ class AIMODULE_API UBTTask_BlueprintBase : public UBTTaskNode
 
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
 #if WITH_EDITOR
 	virtual bool UsesBlueprint() const override;

@@ -243,6 +243,9 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	/** set's up the path to use SourceActor's location in case of recalculation */
 	void SetSourceActor(const AActor& InSourceActor);
 
+	FVector GetLastRepathGoalLocation() const { return GoalActorLastLocation; }
+	void UpdateLastRepathGoalLocation();
+
 	/** if enabled path will request recalculation if it gets invalidated due to a change to underlying navigation */
 	void EnableRecalculationOnInvalidation(bool bShouldAutoUpdate)
 	{
@@ -339,6 +342,9 @@ private:
 	/* if GoalActor is set this is the distance we'll try to keep GoalActor from end of path. If GoalActor
 	* moves more then this from the end of the path we'll recalculate the path */
 	float GoalActorLocationTetherDistanceSq;
+
+	/** last location of goal actor that was used for repaths to prevent spamming when path is partial */
+	FVector GoalActorLastLocation;
 };
 
 /** 
@@ -425,6 +431,10 @@ public:
 	class FNavDataGenerator* GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone);
 
 	const class FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
+
+	/** Request navigation data update after changes in nav octree */
+	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas);
+
 #endif // WITH_NAVIGATION_GENERATOR
 	/** releases navigation generator if any has been created */
 protected:

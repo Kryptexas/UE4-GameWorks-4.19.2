@@ -339,10 +339,15 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 				{
 					USceneComponent* CompInstance = *CompIt;
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
-					if(CompInstance == ActorProxy->PrimComponent)
+					if (Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
+					{
+						break;
+					}
+
+					if (CompInstance == ActorProxy->PrimComponent)
 					{
 						const bool bIsCtrlKeyDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-						if(BlueprintEditorPtr.IsValid())
+						if (BlueprintEditorPtr.IsValid())
 						{
 							// Note: This will find and select any node associated with the component instance that's attached to the proxy (including visualizers)
 							BlueprintEditorPtr.Pin()->FindAndSelectSCSEditorTreeNode(CompInstance, bIsCtrlKeyDown);

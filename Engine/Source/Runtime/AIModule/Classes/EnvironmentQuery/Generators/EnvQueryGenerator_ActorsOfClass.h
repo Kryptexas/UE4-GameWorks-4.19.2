@@ -22,7 +22,7 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<class UEnvQueryContext> SearchCenter;
 
-	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

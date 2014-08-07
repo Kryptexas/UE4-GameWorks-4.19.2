@@ -293,9 +293,15 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			const FString SingleTestReproString = TestReproStrings.Pop(/*bAllowShrinking=*/false);
 			SingleTestReproString.ParseIntoArray(&TestParams, TEXT("#"), /*InCullEmpty=*/true);
 			
-			// first param is the test name. Look for it			
-			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestParams[0]);
+			if (TestParams.Num() == 0)
+			{
+				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to parse \'%s\'"), *SingleTestReproString)));
+				continue;
+			}
+			// first param is the test name. Look for it		
+			const FString TestName = TestParams[0];
 			TestParams.RemoveAt(0, 1, /*bAllowShrinking=*/false);
+			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);			
 			if (TestToRun)
 			{
 				TestToRun->TestFinishedObserver = TestFinishedObserver;
@@ -311,11 +317,12 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			}
 			else
 			{
-				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestToRun->GetName())));
+				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestName)));
 			}
 		}
 	}
-	else
+	
+	if (bTestSuccessfullyTriggered == false)
 	{
 		for (int32 Index = TestsLeft.Num()-1; Index >= 0; --Index)
 		{

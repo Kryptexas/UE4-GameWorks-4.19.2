@@ -4,6 +4,13 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryTest.generated.h"
 
+struct FEnvQueryInstance;
+class UEnvQueryItemType;
+class UEnvQueryContext;
+#if WITH_EDITOR
+struct FPropertyChangedEvent;
+#endif // WITH_EDITOR
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTest : public UObject
 {
@@ -89,6 +96,13 @@ class AIMODULE_API UEnvQueryTest : public UObject
 	void SetWorkOnFloatValues(bool bWorkOnFloats);
 	FORCEINLINE bool GetWorkOnFloatValues() const { return bWorkOnFloatValues; }
 
+	FORCEINLINE bool CanRunAsFinalCondition() const 
+	{ 
+		return (TestPurpose != EEnvTestPurpose::Score)							// We are filtering and...
+				&& ((TestPurpose == EEnvTestPurpose::Filter)					// Either we are NOT scoring at ALL or...
+					|| (ScoringEquation == EEnvTestScoreEquation::Constant));	// We are giving a constant score value for passing.
+	}
+
 	// TODO: REMOVE, Deprecated!
 	/** Normalize test result starting from 0 */
 	uint32 bNormalizeFromZero : 1;
@@ -105,28 +119,26 @@ public:
 	UPROPERTY()
 	uint32 bDiscardFailedItems : 1;
 
-	FExecuteTestSignature ExecuteDelegate;
-
 	/** Function that does the actual work */
-	virtual void RunTest(struct FEnvQueryInstance& QueryInstance) const { check(false && "You need to override this function!"); }
+	virtual void RunTest(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 
 	/** check if test supports item type */
-	bool IsSupportedItem(TSubclassOf<class UEnvQueryItemType> ItemType) const;
+	bool IsSupportedItem(TSubclassOf<UEnvQueryItemType> ItemType) const;
 
 	/** check if context needs to be updated for every item */
-	bool IsContextPerItem(TSubclassOf<class UEnvQueryContext> CheckContext) const;
+	bool IsContextPerItem(TSubclassOf<UEnvQueryContext> CheckContext) const;
 
 	/** helper: get location of item */
-	FVector GetItemLocation(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
+	FVector GetItemLocation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
 
 	/** helper: get location of item */
-	FRotator GetItemRotation(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
+	FRotator GetItemRotation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
 
 	/** helper: get actor from item */
-	AActor* GetItemActor(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
+	AActor* GetItemActor(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const;
 
 	/** normalize scores in range */
-	void NormalizeItemScores(struct FEnvQueryInstance& QueryInstance);
+	void NormalizeItemScores(FEnvQueryInstance& QueryInstance);
 
 	FORCEINLINE bool IsScoring() const { return (TestPurpose != EEnvTestPurpose::Filter); } // ((TestPurpose == EEnvTestPurpose::Score) || (TestPurpose == EEnvTestPurpose::FilterAndScore));
 	FORCEINLINE bool IsFiltering() const { return (TestPurpose != EEnvTestPurpose::Score); } // ((TestPurpose == EEnvTestPurpose::Filter) || (TestPurpose == EEnvTestPurpose::FilterAndScore));
@@ -141,14 +153,14 @@ public:
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR
 };
 
 //////////////////////////////////////////////////////////////////////////
 // Inlines
 
-FORCEINLINE bool UEnvQueryTest::IsSupportedItem(TSubclassOf<class UEnvQueryItemType> ItemType) const
+FORCEINLINE bool UEnvQueryTest::IsSupportedItem(TSubclassOf<UEnvQueryItemType> ItemType) const
 {
 	return ItemType && (ItemType == ValidItemType || ItemType->IsChildOf(ValidItemType));
 };

@@ -37,6 +37,8 @@
 #include "AITypes.h"
 #include "AISystem.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "AIController.h"
 #include "AI/Navigation/NavigationSystem.h"

@@ -156,6 +156,7 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
 		}
 
+		// Attempt to login, returning true means an async login is in flight
 		if (!SessionSettings && !GameSession->ProcessAutoLogin())
 		{
 			GameSession->RegisterServer();
@@ -353,10 +354,9 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	}
 
 	AActor* BestStart = ChoosePlayerStart(Player);
-
 	if (BestStart == NULL)
 	{
-		// no playerstart found
+		// no player start found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
 
 		// Search all loaded levels for possible player start object
@@ -365,8 +365,7 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 			ULevel* Level = World->GetLevel( LevelIndex );
 			for ( int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ++ActorIndex )
 			{
-				// BROKEN NOT A NAV OBJECT!!!!!!
-				AActor* NavObject = Level->Actors[ ActorIndex ];
+				AActor* NavObject = Cast<AActor>(Level->Actors[ActorIndex]);
 				if ( NavObject )
 				{
 					BestStart = NavObject;
@@ -815,7 +814,7 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 		OldPlayerState->Destroy();
 	}
 
-	// Find a start spot->
+	// Find a start spot
 	AActor* StartSpot = FindPlayerStart(C);
 
 	if (StartSpot == NULL)
@@ -960,19 +959,51 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 	GAsyncIOBandwidthLimit = AsyncIOBandwidthLimit;
 }
 
-void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options)
+FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal)
 {
+	check(NewPlayerController);
+
+	FString ErrorMessage;
+
+	// Register the player with the session
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
+
+	// Init player's name
+	FString InName = ParseOption(Options, TEXT("Name")).Left(20);
+	if (InName.IsEmpty())
+	{
+		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
+	}
+
+	ChangeName(NewPlayerController, InName, false);
+
+	// Find a starting spot
+	AActor* const StartSpot = FindPlayerStart(NewPlayerController, Portal);
+	if (StartSpot != NULL)
+	{
+		// Set the player controller / camera in this new location
+		FRotator InitialControllerRot = StartSpot->GetActorRotation();
+		InitialControllerRot.Roll = 0.f;
+		NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
+		NewPlayerController->StartSpot = StartSpot;
+	}
+	else
+	{
+		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
+	}
+
+	return ErrorMessage;
 }
 
-bool AGameMode::MustSpectate(APlayerController* NewPlayer) const
+bool AGameMode::MustSpectate(APlayerController* NewPlayerController) const
 {
-	return NewPlayer->PlayerState->bOnlySpectator;
+	return NewPlayerController->PlayerState->bOnlySpectator;
 }
 
 APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
-	if ( !ErrorMessage.IsEmpty() )
+	if (!ErrorMessage.IsEmpty())
 	{
 		return NULL;
 	}
@@ -980,7 +1011,7 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	APlayerController* NewPlayerController = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
 
 	// Handle spawn failure.
-	if( NewPlayerController == NULL)
+	if (NewPlayerController == NULL)
 	{
 		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
@@ -988,35 +1019,15 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayerController, UniqueId, Options);
-
-	// Find a start spot.
-	AActor* const StartSpot = FindPlayerStart( NewPlayerController, Portal );
-	if( StartSpot == NULL )
+	ErrorMessage = InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+	if (!ErrorMessage.IsEmpty())
 	{
-		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
 		return NULL;
 	}
 
-	FRotator InitialControllerRot = StartSpot->GetActorRotation();
-	InitialControllerRot.Roll = 0.f;
-	NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
-	NewPlayerController->StartSpot = StartSpot;
-
-	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
-	
-	// Init player's name
-	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
-	if( InName.IsEmpty() )
-	{
-		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
-	}
-	ChangeName( NewPlayerController, InName, false );
-
 	// Set up spectating
-	bool bSpectator = FCString::Stricmp(*ParseOption( Options, TEXT("SpectatorOnly") ), TEXT("1")) == 0;
-	if ( bSpectator || MustSpectate(NewPlayerController) )
+	bool bSpectator = FCString::Stricmp(*ParseOption(Options, TEXT("SpectatorOnly")), TEXT("1")) == 0;
+	if (bSpectator || MustSpectate(NewPlayerController))
 	{
 		NewPlayerController->StartSpectatingOnly();
 		return NewPlayerController;

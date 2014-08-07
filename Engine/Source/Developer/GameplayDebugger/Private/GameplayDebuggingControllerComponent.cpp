@@ -114,9 +114,9 @@ void UGameplayDebuggingControllerComponent::EnableActiveView(EAIDebugDrawDataVie
 	{
 		GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, bEnable ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, View);
 #if WITH_EQS
-		if (DebugAITargetActor->GetDebugComponent() && View == EAIDebugDrawDataView::EQS)
+		if (GetDebuggingReplicator()->GetDebugComponent() && View == EAIDebugDrawDataView::EQS)
 		{
-			DebugAITargetActor->GetDebugComponent()->EnableClientEQSSceneProxy(IsViewActive(EAIDebugDrawDataView::EQS));
+			GetDebuggingReplicator()->GetDebugComponent()->EnableClientEQSSceneProxy(IsViewActive(EAIDebugDrawDataView::EQS));
 		}
 #endif // WITH_EQS
 	}

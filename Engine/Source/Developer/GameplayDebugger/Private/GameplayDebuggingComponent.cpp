@@ -5,11 +5,14 @@
 #include "AI/Navigation/RecastNavMeshGenerator.h"
 #include "NavMeshRenderingHelpers.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+#include "EnvironmentQuery/EQSRenderingComponent.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "AIController.h"
 #include "BrainComponent.h"
-#include "EnvironmentQuery/EnvQueryTypes.h"
+//#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "BehaviorTreeDelegates.h"
 #include "Navigation/NavigationComponent.h"
 #include "GameFramework/PlayerState.h"
@@ -113,11 +116,9 @@ FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedD
 
 UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
-#if WITH_EQS
 	, EQSTimestamp(0.f)
 	, bDrawEQSLabels(true)
 	, bDrawEQSFailedItems(true)
-#endif // WITH_EQS
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	DebugComponentClassName = TEXT("/Script/GameplayDebugger.GameplayDebuggingComponent");
@@ -137,9 +138,7 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 	bHiddenInGame = false;
 	bEnabledTargetSelection = false;
 
-#if WITH_EQS
 	bEnableClientEQSSceneProxy = false;
-#endif // WITH_EQS
 	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
 #endif
@@ -201,12 +200,10 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
-#if WITH_EQS
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSTimestamp);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSName);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSId);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
-#endif // WITH_EQS
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -320,6 +317,11 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		BestTarget = BestTarget == NULL ? PossibleTarget : BestTarget;
 		if (BestTarget != NULL && BestTarget != GetSelectedActor())
 		{
+			if (AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner()))
+			{
+				Replicator->SetActorToDebug(Cast<AActor>(BestTarget));
+			}
+
 			//always update component for best target
 			SetActorToDebug(Cast<AActor>(BestTarget));
 			SelectForDebugging(true);
@@ -357,7 +359,15 @@ void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedDa
 #if WITH_EQS
 		if (ShouldReplicateData(EAIDebugDrawDataView::EQS))
 		{
-			CollectEQSData();
+			bool bEnabledEnvironmentQueryEd = true;
+			if (GConfig)
+			{
+				GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnabledEnvironmentQueryEd, GEngineIni);
+			}
+			if (bEnabledEnvironmentQueryEd)
+			{
+				CollectEQSData();
+			}
 		}
 #endif // WITH_EQS
 	}
@@ -533,7 +543,6 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-#if WITH_EQS
 //////////////////////////////////////////////////////////////////////////
 // EQS Data
 //////////////////////////////////////////////////////////////////////////
@@ -625,7 +634,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 
 	UWorld* World = GetWorld();
 	UEnvQueryManager* QueryManager = World ? UEnvQueryManager::GetCurrent(World) : NULL;
-	const AActor* Owner = GetOwner();
+	const AActor* Owner = GetSelectedActor();
 
 	if (QueryManager == NULL || Owner == NULL)
 	{
@@ -693,7 +702,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 		{
 			EQSDebug::FTestData TestInfo;
 
-			UEnvQueryTest* TestOb = Cast<UEnvQueryTest>(CachedQueryInstance->Options[CachedQueryInstance->OptionIndex].TestDelegates[TestIdx].GetUObject());
+			UEnvQueryTest* TestOb = CachedQueryInstance->Options[CachedQueryInstance->OptionIndex].GetTestObject(TestIdx);
 			TestInfo.ShortName = TestOb->GetDescriptionTitle();
 			TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 			
@@ -718,10 +727,10 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	EQSRepData.SetNum(CompressedSize + HeaderSize, false);
 	const double Timer3 = FPlatformTime::Seconds();
 
-	UE_LOG(LogEQS, Log, TEXT("Preparing EQS data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
-		EQSRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
-		1000.0f * (Timer2 - Timer1),
-		FMath::TruncToInt(100.0f * EQSRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
+	//UE_LOG(LogEQS, Log, TEXT("Preparing EQS data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
+	//	EQSRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
+	//	1000.0f * (Timer2 - Timer1),
+	//	FMath::TruncToInt(100.0f * EQSRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
@@ -729,7 +738,6 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	}
 #endif
 }
-#endif // WITH_EQS
 
 //----------------------------------------------------------------------//
 // NavMesh rendering

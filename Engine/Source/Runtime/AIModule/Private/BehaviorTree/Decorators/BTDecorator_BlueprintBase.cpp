@@ -194,6 +194,12 @@ void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* 
 	}
 }
 
+void UBTDecorator_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
+{
+	// force dropping all pending latent actions associated with this blueprint
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+}
+
 #if WITH_EDITOR
 
 FName UBTDecorator_BlueprintBase::GetNodeIconName() const

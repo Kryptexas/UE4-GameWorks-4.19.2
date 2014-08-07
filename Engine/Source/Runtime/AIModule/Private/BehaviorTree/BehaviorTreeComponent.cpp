@@ -179,6 +179,11 @@ void UBehaviorTreeComponent::OnTaskFinished(const class UBTTaskNode* TaskNode, E
 	// notify parent node
 	UBTCompositeNode* ParentNode = TaskNode->GetParentNode();
 	const int32 TaskInstanceIdx = FindInstanceContainingNode(TaskNode);
+	if (!InstanceStack.IsValidIndex(TaskInstanceIdx))
+	{
+		return;
+	}
+
 	uint8* ParentMemory = ParentNode->GetNodeMemory<uint8>(InstanceStack[TaskInstanceIdx]);
 
 	const bool bWasWaitingForAbort = bWaitingForAbortingTasks;

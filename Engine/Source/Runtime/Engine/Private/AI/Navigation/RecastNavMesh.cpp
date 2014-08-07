@@ -1314,6 +1314,7 @@ bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& 
 	bool bFound = false;
 	if (RecastNavMeshImpl)
 	{
+		SECTION_LOCK_TILES;
 		uint8 AreaType = RECAST_DEFAULT_AREA;
 		bFound = RecastNavMeshImpl->GetPolyData(PolyID, PolyFlags, AreaType);
 		if (bFound)
@@ -1327,11 +1328,24 @@ bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& 
 	return bFound;
 }
 
+bool ARecastNavMesh::GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const
+{
+	bool bFound = false;
+	if (RecastNavMeshImpl)
+	{
+		SECTION_LOCK_TILES;
+		bFound = RecastNavMeshImpl->GetClosestPointOnPoly(PolyID, TestPt, PointOnPoly);
+	}
+
+	return bFound;
+}
+
 bool ARecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
 {
 	bool bFound = false;
 	if (RecastNavMeshImpl)
 	{
+		SECTION_LOCK_TILES;
 		bFound = RecastNavMeshImpl->GetPolyTileIndex(PolyID, PolyIndex, TileIndex);
 	}
 

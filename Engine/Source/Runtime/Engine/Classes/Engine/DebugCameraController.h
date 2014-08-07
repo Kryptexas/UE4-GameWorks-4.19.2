@@ -125,6 +125,14 @@ protected:
 	virtual void Select( FHitResult const& Hit );
 
 	virtual void SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn) override;
+
+private:
+	/** The normalized screen location when a drag starts */
+	FVector2D LastTouchDragLocation;
+
+	void OnTouchBegin(ETouchIndex::Type FingerIndex, FVector Location);
+	void OnTouchEnd(ETouchIndex::Type FingerIndex, FVector Location);
+	void OnFingerMove(ETouchIndex::Type FingerIndex, FVector Location);
 };
 
 

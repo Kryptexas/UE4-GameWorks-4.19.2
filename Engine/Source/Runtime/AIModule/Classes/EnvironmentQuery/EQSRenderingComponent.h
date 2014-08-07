@@ -6,7 +6,7 @@
 #include "EnvQueryTypes.h"
 #include "EQSRenderingComponent.generated.h"
 
-class FEQSSceneProxy : public FDebugRenderSceneProxy
+class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
 {
 public:
 	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"), bool bDrawOnlyWhenSelected = true);

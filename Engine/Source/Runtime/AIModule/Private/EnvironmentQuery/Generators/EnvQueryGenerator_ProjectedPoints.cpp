@@ -11,7 +11,7 @@ UEnvQueryGenerator_ProjectedPoints::UEnvQueryGenerator_ProjectedPoints(const cla
 	ProjectionData.ExtentX = 0.0f;
 }
 
-void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVector>& Points, const ANavigationData* NavData)
+void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVector>& Points, const ANavigationData* NavData) const
 {
 	if (ProjectionData.TraceMode == EEnvQueryTrace::Navigation && NavData)
 	{

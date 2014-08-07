@@ -5,18 +5,18 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryGenerator_Composite::UEnvQueryGenerator_Composite(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryGenerator_Composite::UEnvQueryGenerator_Composite(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_Composite::GenerateItems);
+
 }
 
-void UEnvQueryGenerator_Composite::GenerateItems(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_Composite::GenerateItems(FEnvQueryInstance& QueryInstance) const 
 {
 	for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
 	{
-		if (Generators[Idx] && Generators[Idx]->GenerateDelegate.IsBound())
+		if (Generators[Idx])
 		{
-			Generators[Idx]->GenerateDelegate.Execute(QueryInstance);
+			Generators[Idx]->GenerateItems(QueryInstance);
 		}
 	}
 }

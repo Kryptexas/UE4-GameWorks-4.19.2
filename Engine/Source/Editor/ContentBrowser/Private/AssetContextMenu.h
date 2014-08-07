@@ -61,6 +61,9 @@ private:
 	/** Adds menu options related to working with collections */
 	bool AddCollectionMenuOptions(FMenuBuilder& MenuBuilder);
 
+	/** Creates a sub-menu of Chunk IDs that are are assigned to all selected assets */
+	void MakeChunkIDListMenu(FMenuBuilder& MenuBuilder);
+
 	/** Handler for when sync to asset tree is selected */
 	void ExecuteSyncToAssetTree();
 
@@ -151,6 +154,15 @@ private:
 	/** Handler for when source control is disabled */
 	void ExecuteEnableSourceControl();
 
+	/** Handler to assign ChunkID to a selection of assets */
+	void ExecuteAssignChunkID();
+
+	/** Handler to remove all ChunkID assignments from a selection of assets */
+	void ExecuteRemoveAllChunkID();
+
+	/** Handler to remove a single ChunkID assignment from a selection of assets */
+	void ExecuteRemoveChunkID(int32 ChunkID);
+
 	/** Handler to check to see if a sync to asset tree command is allowed */
 	bool CanExecuteSyncToAssetTree() const;
 
@@ -229,6 +241,18 @@ private:
 	/** Helper function to gather the packages containing all selected assets */
 	void GetSelectedPackages(TArray<UPackage*>& OutPackages) const;
 
+	/** Update interanl state logic */
+	void OnChunkIDAssignChanged(int32 ChunkID);
+
+	/** Gets the current value of the ChunkID entry box */
+	TOptional<int32> GetChunkIDSelection() const;
+
+	/** Handles when the Assign chunkID dialog OK button is clicked */
+	FReply OnChunkIDAssignCommit(TSharedPtr<SWindow> Window);
+
+	/** Handles when the Assign chunkID dialog Cancel button is clicked */
+	FReply OnChunkIDAssignCancel(TSharedPtr<SWindow> Window);
+
 private:
 	/** Generates a list of selected assets in the content browser */
 	void GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors);
@@ -253,4 +277,7 @@ private:
 	bool bCanExecuteSCCHistory;
 	bool bCanExecuteSCCRevert;
 	bool bCanExecuteSCCSync;
+
+	/** */
+	int32 ChunkIDSelected;
 };

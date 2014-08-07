@@ -122,8 +122,11 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	// using "mid-results" requires manual normalization
 	const bool bUseMidResults = QueryInstance && (QueryInstance->Items.Num() < QueryInstance->DebugData.DebugItems.Num());
 	const TArray<FEnvQueryItem>& Items = bUseMidResults ? QueryInstance->DebugData.DebugItems : ResultItems->Items;
+	const TArray<uint8>& RawData = bUseMidResults ? QueryInstance->DebugData.RawData : ResultItems->RawData;
 	const int32 ItemCountLimit = FMath::Clamp(Items.Num(), 0, EQSMaxItemsDrawn);
 	const bool bNoTestsPerformed = QueryInstance != NULL && QueryInstance->CurrentTest <= 0;
+	
+	const bool bSingleItemResult = QueryInstance != NULL && QueryInstance->DebugData.bSingleItemResult;
 
 	//if (!bUseMidResults && Items.Num() > 0 && Items[0].IsValid())
 	//{
@@ -147,16 +150,46 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	}
 	const float ScoreNormalizer = bUseMidResults && (MaxScore != MinScore) ? 1.f / (MaxScore - MinScore) : 1.f;
 
-	for (int32 ItemIndex = 0; ItemIndex < ItemCountLimit; ++ItemIndex)
+	if (bSingleItemResult == false)
 	{
-		if (Items[ItemIndex].IsValid())
+		for (int32 ItemIndex = 0; ItemIndex < ItemCountLimit; ++ItemIndex)
 		{
-			const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
-			const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, ResultItems->RawData, Items, ItemIndex);
-			Spheres.Add(FSphere(ItemDrawRadius.X, Loc, !bNoTestsPerformed ? FLinearColor(FColor::MakeRedToGreenColorFromScalar(Score)) : FLinearColor(0.2, 1.0, 1.0, 1)));
+			if (Items[ItemIndex].IsValid())
+			{
+				const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
+				const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, ItemIndex);
+				Spheres.Add(FSphere(ItemDrawRadius.X, Loc, bNoTestsPerformed == false 
+					? FLinearColor(FColor::MakeRedToGreenColorFromScalar(Score)) 
+					: FLinearColor(0.2, 1.0, 1.0, 1)));
 
-			const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
+				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
+				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
+			}
+		}
+	}
+	else if (ItemCountLimit > 0)
+	{
+		if (Items[0].IsValid())
+		{
+			const float Score = Items[0].Score * ScoreNormalizer;
+			const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, 0);
+			Spheres.Add(FSphere(ItemDrawRadius.X, Loc, FLinearColor(0.0, 1.0, 0.12, 1)));
+
+			const FString Label = FString::Printf(TEXT("Winner %.2f"), Score);
 			Texts.Add(FText3d(Label, Loc, FLinearColor::White));
+		}
+
+		for (int32 ItemIndex = 1; ItemIndex < ItemCountLimit; ++ItemIndex)
+		{
+			if (Items[ItemIndex].IsValid())
+			{
+				const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
+				const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, ItemIndex);
+				Spheres.Add(FSphere(ItemDrawRadius.X, Loc, FLinearColor(0.0, 0.2, 0.025, 1)));
+
+				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
+				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
+			}
 		}
 	}
 

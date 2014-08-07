@@ -139,6 +139,13 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	int32 GetNumTeams() const { return State->GetNumTeams(); }
 
 	/**
+	 * Get the max number of players per team
+	 *
+	 * @return The number of players per team
+	 */
+	virtual int32 GetMaxPlayersPerTeam() const { return State->GetMaxPlayersPerTeam(); }
+
+	/**
 	 * Swap the parties between teams, parties must be of same size
 	 *
 	 * @param PartyLeader party 1 to swap

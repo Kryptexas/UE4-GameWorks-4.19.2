@@ -117,6 +117,12 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCo
 	}
 }
 
+void UBTService_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
+{
+	// force dropping all pending latent actions associated with this blueprint
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+}
+
 #if WITH_EDITOR
 
 bool UBTService_BlueprintBase::UsesBlueprint() const

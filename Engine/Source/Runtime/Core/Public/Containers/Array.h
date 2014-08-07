@@ -614,7 +614,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Item)
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -630,7 +632,9 @@ public:
 		{
 			--Data;
 			if (*Data == Item)
-				return (int32)(Data - DataStart);
+			{
+				return static_cast<int32>(Data - DataStart);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -645,7 +649,7 @@ public:
 		{
 			if( Matcher.Matches(*Data) )
 			{
-				return (int32)(Data - GetTypedData());
+				return static_cast<int32>(Data - GetTypedData());
 			}
 		}
 		return INDEX_NONE;
@@ -662,7 +666,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Key)
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -678,7 +684,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -703,7 +711,9 @@ public:
 		for (ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Key)
+			{
 				return Data;
+			}
 		}
 
 		return NULL;
@@ -729,7 +739,9 @@ public:
 		for (ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
+			{
 				return Data;
+			}
 		}
 
 		return NULL;
@@ -740,10 +752,10 @@ public:
 	 * @return      TArray with the same type as this object which contains the subset of elements for which the functor returns true.
 	 */
 	template <typename Predicate>
-	TArray<ElementType> FilterByPredicate(Predicate Pred)
+	TArray<ElementType> FilterByPredicate(Predicate Pred) const
 	{
 		TArray<ElementType> FilterResults;
-		for (ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
+		for (const ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
 			{
@@ -760,7 +772,9 @@ public:
 		for (const ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Item)
+			{
 				return true;
+			}
 		}
 		return false;
 	}
@@ -2588,7 +2602,9 @@ public:
 	void ModifyItem( int32 Index )
 	{
 		if( GUndo )
+		{
 			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
+		}
 	}
 	void ModifyAllItems()
 	{

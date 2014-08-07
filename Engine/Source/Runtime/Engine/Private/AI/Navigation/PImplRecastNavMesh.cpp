@@ -1565,6 +1565,27 @@ bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex,
 	return false;
 }
 
+bool FPImplRecastNavMesh::GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const
+{
+	if (DetourNavMesh && PolyID)
+	{
+		INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
+
+		float RcTestPos[3] = { 0.0f };
+		float RcClosestPos[3] = { 0.0f };
+		Unr2RecastVector(TestPt, RcTestPos);
+
+		const dtStatus Status = NavQuery.closestPointOnPoly(PolyID, RcTestPos, RcClosestPos);
+		if (dtStatusSucceed(Status))
+		{
+			PointOnPoly = Recast2UnrealPoint(RcClosestPos);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 uint32 FPImplRecastNavMesh::GetLinkUserId(NavNodeRef LinkPolyID) const
 {
 	uint32 UserID = 0;

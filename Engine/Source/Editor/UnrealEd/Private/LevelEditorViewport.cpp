@@ -42,6 +42,7 @@
 #include "BrushBuilderDragDropOp.h"
 #include "AssetRegistryModule.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
+#include "InstancedFoliage.h"
 
 #include "Editor/ActorPositioning.h"
 
@@ -1669,6 +1670,10 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
 			ClickHandlers::ClickActor(this,((HActor*)HitProxy)->Actor,Click,true);
+		}
+		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
+		{
+			ClickHandlers::ClickActor(this, ((HInstancedStaticMeshInstance*)HitProxy)->Component->GetOwner(), Click, true);
 		}
 		else if (HitProxy->IsA(HBSPBrushVert::StaticGetType()) && ((HBSPBrushVert*)HitProxy)->Brush.IsValid())
 		{

@@ -558,6 +558,10 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		{
 			RecastNavData->GetPolyCenter(NavMeshPath->PathCorridor[PathPartEndIdx], CurrentTargetPt);
 		}
+		else if (NavMeshPath->IsPartial())
+		{
+			RecastNavData->GetClosestPointOnPoly(NavMeshPath->PathCorridor[PathPartEndIdx], Path->GetPathPoints()[1].Location, CurrentTargetPt);
+		}
 
 		// not safe to read those directions yet, you have to wait until crowd manager gives you next corner of string pulled path
 		CrowdAgentMoveDirection = FVector::ZeroVector;
@@ -640,7 +644,9 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 			const float SegmentDot = FVector::DotProduct(ToTarget, Path->IsDirect() ? MovementComp->Velocity : CrowdAgentMoveDirection);
 			const bool bMovedTooFar = bCheckMovementAngle && (SegmentDot < 0.0);
 
-			if (bMovedTooFar || HasReachedDestination(CurrentLocation))
+			// can't use HasReachedDestination here, because it will use last path point
+			// which is not set correctly for partial paths without string pulling
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(EPathFollowingResult::Success);

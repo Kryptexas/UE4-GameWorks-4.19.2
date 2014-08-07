@@ -77,7 +77,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 
 TArray<TSubclassOf<UEnvQueryItemType> > UEnvQueryManager::RegisteredItemTypes;
 
-UEnvQueryManager::UEnvQueryManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryManager::UEnvQueryManager(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -98,7 +98,7 @@ UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
 }
 
-UEnvQueryManager* UEnvQueryManager::GetCurrent(class UObject* WorldContextObject)
+UEnvQueryManager* UEnvQueryManager::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = WorldContextObject ? GEngine->GetWorldFromContextObject(WorldContextObject) : NULL;
 	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
@@ -148,6 +148,11 @@ TStatId UEnvQueryManager::GetStatId() const
 int32 UEnvQueryManager::RunQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate)
 {
 	TSharedPtr<FEnvQueryInstance> QueryInstance = PrepareQueryInstance(Request, RunMode);
+	return RunQuery(QueryInstance, FinishDelegate);
+}
+
+int32 UEnvQueryManager::RunQuery(TSharedPtr<struct FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate)
+{
 	if (QueryInstance.IsValid() == false)
 	{
 		return INDEX_NONE;
@@ -372,7 +377,7 @@ UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
 	return NULL;
 }
 
-TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
+TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
 {
 	if (Template == NULL)
 	{
@@ -473,18 +478,18 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const class 
 	return NewInstance;
 }
 
-void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance)
+void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance)
 {
 	FEnvQueryOptionInstance OptionInstance;
-	OptionInstance.GenerateDelegate = OptionTemplate->Generator->GenerateDelegate;
+	OptionInstance.Generator = OptionTemplate->Generator;
 	OptionInstance.ItemType = OptionTemplate->Generator->ItemType;
 	OptionInstance.bShuffleItems = true;
 
-	OptionInstance.TestDelegates.AddZeroed(SortedTests.Num());
+	OptionInstance.TestsToPerform.AddZeroed(SortedTests.Num());
 	for (int32 TestIndex = 0; TestIndex < SortedTests.Num(); TestIndex++)
 	{
 		const UEnvQueryTest* TestOb = SortedTests[TestIndex];
-		OptionInstance.TestDelegates[TestIndex] = TestOb->ExecuteDelegate;
+		OptionInstance.TestsToPerform[TestIndex] = TestOb;
 
 		// HACK!  TODO: Is this the correct replacement here?  or should it check just if SCORING ONLY?
 		// always randomize when asking for single result

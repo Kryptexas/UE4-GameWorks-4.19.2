@@ -546,9 +546,6 @@ public:
 
 protected:
 
-	/* Notify the given world that the pending connection has been lost */
-	void WorldNotifyPendingConnectionLost( UWorld* InWorld );
-
 	void CleanupDormantActorState();
 };
 

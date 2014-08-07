@@ -4,6 +4,9 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvQueryGenerator_Composite.generated.h"
 
+class UEnvQueryGenerator;
+struct FEnvQueryInstance;
+
 /**
  * Composite generator allows using multiple generators in single query option
  * Currently it's available only from code
@@ -15,8 +18,8 @@ class UEnvQueryGenerator_Composite : public UEnvQueryGenerator
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	TArray<class UEnvQueryGenerator*> Generators;
+	TArray<UEnvQueryGenerator*> Generators;
 
-	void GenerateItems(struct FEnvQueryInstance& QueryInstance);
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 	virtual FText GetDescriptionTitle() const override;
 };

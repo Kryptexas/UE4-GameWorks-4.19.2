@@ -37,6 +37,9 @@ static const uint32 MAX_NAV_SEARCH_NODES = 2048;
 DEFINE_LOG_CATEGORY(LogNavigation);
 
 DECLARE_CYCLE_STAT(TEXT("Rasterize triangles"), STAT_Navigation_RasterizeTriangles,STATGROUP_Navigation);
+DECLARE_CYCLE_STAT(TEXT("Nav Tick: area register"), STAT_Navigation_TickNavAreaRegister, STATGROUP_Navigation);
+DECLARE_CYCLE_STAT(TEXT("Nav Tick: rebuild"), STAT_Navigation_TickRebuild, STATGROUP_Navigation);
+DECLARE_CYCLE_STAT(TEXT("Nav Tick: async pathfinding"), STAT_Navigation_TickAsyncPathfinding, STATGROUP_Navigation);
 
 //----------------------------------------------------------------------//
 // Stats
@@ -469,6 +472,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	// Register any pending nav areas
 	if (PendingNavAreaRegistration.Num() > 0)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickNavAreaRegister);
 		ProcessNavAreaPendingRegistration();
 	}
 
@@ -490,32 +494,33 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	}
 
 #if WITH_NAVIGATION_GENERATOR
-	DirtyAreasUpdateTime += DeltaSeconds;
-	const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
-	const bool bCanRebuildNow = (DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime) || (GetWorld() && !GetWorld()->IsGameWorld());
-
-	if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 	{
-		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickRebuild);
+
+		DirtyAreasUpdateTime += DeltaSeconds;
+		const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
+		const bool bCanRebuildNow = (DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime) || (GetWorld() && !GetWorld()->IsGameWorld());
+
+		if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 		{
-			ANavigationData* NavData = NavDataSet[NavDataIndex];
-			if (NavData != NULL)
+			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
-				FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::DontCreate);
-				if (Generator != NULL)
+				ANavigationData* NavData = NavDataSet[NavDataIndex];
+				if (NavData)
 				{
-					Generator->RebuildDirtyAreas(DirtyAreas);
+					NavData->RebuildDirtyAreas(DirtyAreas);
 				}
 			}
-		}
 
-		DirtyAreasUpdateTime = 0;
-		DirtyAreas.Reset();
+			DirtyAreasUpdateTime = 0;
+			DirtyAreas.Reset();
+		}
 	}
 #endif // WITH_NAVIGATION_GENERATOR
 
 	if (AsyncPathFindingQueries.Num() > 0)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickAsyncPathfinding);
 		TriggerAsyncQueries(AsyncPathFindingQueries);
 		AsyncPathFindingQueries.Reset();
 	}

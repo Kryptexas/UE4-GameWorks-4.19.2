@@ -87,7 +87,6 @@ public:
 	UFUNCTION(exec)
 	virtual void AILoggingVerbose();
 
-	/** insta-runs EQS query for GameplayDebugComponent selected AI */
-	UFUNCTION(exec)
-	void RunEQS(const FString& QueryName);
+	/** insta-runs EQS query for given Target */
+	void RunEQS(const FString& QueryName, UObject* Target);
 };

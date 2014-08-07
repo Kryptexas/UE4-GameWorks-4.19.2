@@ -83,4 +83,7 @@ protected:
 	
 	bool PerformMoveAction();
 	void DeferredPerformMoveAction();
+
+	void TryToRepath();
+	void ClearPendingRepath();
 };

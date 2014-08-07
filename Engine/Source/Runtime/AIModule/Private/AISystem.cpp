@@ -6,8 +6,6 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "Perception/AIPerceptionSystem.h"
 #include "GameFramework/PlayerController.h"
-#include "GameplayDebuggingReplicator.h"
-#include "GameplayDebuggingComponent.h"
 #include "AISystem.h"
 
 
@@ -61,8 +59,9 @@ void UAISystem::AILoggingVerbose()
 	}
 }
 
-void UAISystem::RunEQS(const FString& QueryName)
+void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UWorld* OuterWorld = GetOuterWorld();
 	if (OuterWorld == NULL)
 	{
@@ -71,38 +70,23 @@ void UAISystem::RunEQS(const FString& QueryName)
 
 	APlayerController* MyPC = OuterWorld->GetFirstPlayerController();
 	UEnvQueryManager* EQS = GetEnvironmentQueryManager();
-	if (MyPC && EQS)
+
+	if (Target && MyPC && EQS)
 	{
-		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
-		for (FActorIterator It(OuterWorld); It; ++It)
+		const UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
+
+		if (QueryTemplate)
 		{
-			AActor* A = *It;
-			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
-			{
-				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
-				break;
-			}
-		}
-
-		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
-		UObject* Target = DebuggingComponent != NULL ? DebuggingComponent->GetSelectedActor() : NULL;
-
-		if (Target)
-		{
-			const UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
-
-			if (QueryTemplate)
-			{
-				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-			}
-			else
-			{
-				MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-			}
+			EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
 		}
 		else
 		{
-			MyPC->ClientMessage(TEXT("No debugging target"));
+			MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
 		}
 	}
+	else
+	{
+		MyPC->ClientMessage(TEXT("No debugging target"));
+	}
+#endif
 }

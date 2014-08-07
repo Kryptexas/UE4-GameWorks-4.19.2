@@ -98,8 +98,6 @@ void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Capsul
 UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_OnCircle::GenerateItems);
-
 	CircleCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
 	Radius.Value = 1000.0f;
@@ -170,7 +168,7 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 	return Direction;
 }
 
-void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
 	float AngleDegree = 360.f;
 	float RadiusValue = 0.f;

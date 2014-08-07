@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
+#include "Engine/GameInstance.h"
 #include "Debug/DebugDrawService.h"
 #include "GameFramework/HUD.h"
 #include "GameplayDebuggingComponent.h"
@@ -12,20 +13,27 @@
 #endif // WITH_EDITOR
 #include "UnrealNetwork.h"
 
+FOnSelectionChanged AGameplayDebuggingReplicator::OnSelectionChangedDelegate;
+
 AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bIsGlobalInWorld(true)
 	, LastDrawAtFrame(0)
+	, PlayerControllersUpdateDelay(0)
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+	
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
 	SetTickableWhenPaused(true);
-	SetIsTemporarilyHiddenInEditor(true);
+	SetIsTemporarilyHiddenInEditor(false);
 	SetActorHiddenInGame(false);
-	bHiddenEdLevel = true;
-	bHiddenEdLayer = true;
-	bHiddenEd = true;
+	bHiddenEdLevel = false;
+	bHiddenEdLayer = false;
+	bHiddenEd = false;
 	bEditable = false;
 #endif
 
@@ -38,6 +46,8 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 		bReplicates = false;
 		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 		SetReplicates(true);
+
+		AGameplayDebuggingReplicator::OnSelectionChangedDelegate.AddUObject(this, &AGameplayDebuggingReplicator::SetActorToDebug);
 	}
 }
 
@@ -48,6 +58,7 @@ void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeP
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		DOREPLIFETIME_CONDITION(AGameplayDebuggingReplicator, DebugComponent, COND_OwnerOnly);
 		DOREPLIFETIME_CONDITION(AGameplayDebuggingReplicator, LocalPlayerOwner, COND_OwnerOnly);
+		DOREPLIFETIME_CONDITION(AGameplayDebuggingReplicator, bIsGlobalInWorld, COND_OwnerOnly);
 #endif
 }
 
@@ -59,6 +70,40 @@ bool AGameplayDebuggingReplicator::IsNetRelevantFor(class APlayerController* Rea
 void AGameplayDebuggingReplicator::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+	SetActorTickEnabled(true);
+}
+
+void AGameplayDebuggingReplicator::BeginDestroy()
+{
+	Super::BeginDestroy();
+}
+
+void AGameplayDebuggingReplicator::BeginPlay()
+{
+	Super::BeginPlay();
+	if (Role == ROLE_Authority)
+	{
+		bReplicates = false;
+		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+		SetReplicates(true);
+
+		if (!DebugComponentClass.IsValid())
+		{
+			DebugComponentClass = StaticLoadClass(UGameplayDebuggingComponent::StaticClass(), NULL, *DebugComponentClassName, NULL, LOAD_None, NULL);
+			if (!DebugComponentClass.IsValid())
+			{
+				DebugComponentClass = UGameplayDebuggingComponent::StaticClass();
+			}
+		}
+
+		if (DebugComponent == NULL)
+		{
+			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(DebugComponentClass.Get(), this);
+			DebugComponent->SetIsReplicated(true);
+			DebugComponent->RegisterComponent();
+			DebugComponent->Activate();
+		}
+	}
 
 	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
@@ -77,6 +122,7 @@ void AGameplayDebuggingReplicator::PostInitializeComponents()
 			}
 		}
 	}
+
 
 	if (!DebugComponentClass.IsValid() && GetWorld() && GetNetMode() < ENetMode::NM_Client)
 	{
@@ -99,11 +145,6 @@ UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 	}
 
 	return DebugComponent;
-}
-
-void AGameplayDebuggingReplicator::BeginPlay()
-{
-	Super::BeginPlay();
 }
 
 class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection()
@@ -204,6 +245,59 @@ void AGameplayDebuggingReplicator::EnableTool()
 	}
 }
 
+void AGameplayDebuggingReplicator::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
+{
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
+
+	UWorld* World = GetWorld();
+	if (!IsGlobalInWorld() || !World || GetNetMode() == ENetMode::NM_Client || !IGameplayDebugger::IsAvailable())
+	{
+		// global level replicator don't have any local player and it's prepared to work only on servers
+		return;
+	}
+
+	UGameInstance* GameInstance = World->GetGameInstance();
+	if (!GameInstance || !World->IsGameWorld())
+	{
+		return;
+	}
+
+	PlayerControllersUpdateDelay -= DeltaTime;
+	if (PlayerControllersUpdateDelay <= 0)
+	{
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; Iterator++)
+		{
+			APlayerController* PC = *Iterator;
+			if (PC)
+			{
+				IGameplayDebugger& Debugger = IGameplayDebugger::Get();
+				Debugger.CreateGameplayDebuggerForPlayerController(PC);
+			}
+		}
+		PlayerControllersUpdateDelay = 5;
+	}
+}
+
+void AGameplayDebuggingReplicator::SetActorToDebug(AActor* InActor) 
+{ 
+	if (LastSelectedActorInSimulation.Get() != InActor)
+	{
+		LastSelectedActorInSimulation = InActor;
+		UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.Broadcast(InActor, InActor ? InActor->IsSelected() : false);
+		APawn* TargetPawn = Cast<APawn>(InActor);
+		if (TargetPawn)
+		{
+			FBehaviorTreeDelegates::OnDebugSelected.Broadcast(TargetPawn);
+		}
+	}
+
+	if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
+	{
+		DebugComponent->SetActorToDebug(InActor);
+		DebugComponent->SelectForDebugging(InActor ? InActor->IsSelected() : false);
+	}
+}
+
 void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, class APlayerController* PC)
 {
 #if WITH_EDITOR
@@ -211,6 +305,12 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 	{
 		return;
 	}
+
+	if (!LocalPlayerOwner || IsGlobalInWorld())
+	{
+		return;
+	}
+
 	UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
 	if (GFrameNumber == LastDrawAtFrame || !EEngine || !EEngine->bIsSimulatingInEditor)
 	{
@@ -239,24 +339,17 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 			GetDebugComponent()->SelectForDebugging(NewTarget->IsSelected());
 			GetDebugComponent()->CollectDataToReplicate(NewTarget->IsSelected());
 
-			if (NewTarget->IsSelected() && LastSelectedActorInSimulation.Get() != NewTarget)
+			if (NewTarget->IsSelected())
 			{
-				LastSelectedActorInSimulation = NewTarget;
-				UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.Broadcast(NewTarget, NewTarget->IsSelected());
-				APawn* TargetPawn = Cast<APawn>(NewTarget);
-				if (TargetPawn)
-				{
-					FBehaviorTreeDelegates::OnDebugSelected.Broadcast(TargetPawn);
-				}
+				SetActorToDebug(NewTarget);
 				bBroadcastedNewSelection = true;
 			}
 			DrawDebugData(Canvas, PC);
 		}
 
-		if (!bBroadcastedNewSelection && LastSelectedActorInSimulation.IsValid() && !LastSelectedActorInSimulation->IsSelected() )
+		if (!bBroadcastedNewSelection && GetSelectedActorToDebug() && !GetSelectedActorToDebug()->IsSelected())
 		{
-			UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.Broadcast(LastSelectedActorInSimulation.Get(), false);
-			LastSelectedActorInSimulation = NULL;
+			SetActorToDebug(NULL);
 		}
 	}
 #endif
@@ -266,6 +359,11 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 {
 #if !(UE_BUILD_SHIPPING && UE_BUILD_TEST)
 	if (GetWorld() == NULL || IsPendingKill() || Canvas == NULL || Canvas->IsPendingKill())
+	{
+		return;
+	}
+
+	if (!LocalPlayerOwner || IsGlobalInWorld())
 	{
 		return;
 	}
@@ -292,6 +390,11 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 		for (FConstPawnIterator Iterator = GetWorld()->GetPawnIterator(); Iterator; ++Iterator)
 		{
 			AActor* NewTarget = Cast<AActor>(*Iterator);
+			if (NewTarget->IsSelected() && GetSelectedActorToDebug() != NewTarget)
+			{
+				SetActorToDebug(NewTarget);
+			}
+
 			GetDebugComponent()->SetActorToDebug(NewTarget);
 			GetDebugComponent()->CollectDataToReplicate(true);
 		}
@@ -302,6 +405,11 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 
 void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class APlayerController* PC)
 {
+	if (!LocalPlayerOwner)
+	{
+		return;
+	}
+
 	const bool bAllowToDraw = Canvas && Canvas->SceneView && (Canvas->SceneView->ViewActor == LocalPlayerOwner->AcknowledgedPawn || Canvas->SceneView->ViewActor == LocalPlayerOwner->GetPawnOrSpectator());
 	if (!bAllowToDraw)
 	{

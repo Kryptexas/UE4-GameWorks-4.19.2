@@ -15,7 +15,7 @@ class AIMODULE_API UEnvQueryGenerator : public UObject
 	/** type of generated items */
 	TSubclassOf<class UEnvQueryItemType> ItemType;
 
-	FGenerateItemsSignature GenerateDelegate;
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 
 	/** get description of generator */
 	virtual FText GetDescriptionTitle() const;

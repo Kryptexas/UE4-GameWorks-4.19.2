@@ -6,6 +6,8 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryGenerator_ProjectedPoints.generated.h"
 
+class ANavigationData;
+
 UCLASS(Abstract)
 class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 {
@@ -28,5 +30,5 @@ class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 	};
 
 	/** project all points in array and remove those outside navmesh */
-	void ProjectAndFilterNavPoints(TArray<FVector>& Points, const class ANavigationData* NavData);
+	void ProjectAndFilterNavPoints(TArray<FVector>& Points, const ANavigationData* NavData) const;
 };

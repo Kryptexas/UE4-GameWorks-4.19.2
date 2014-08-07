@@ -280,56 +280,21 @@ void UNetConnection::CleanUp()
 		}
 		else 
 		{
-			UWorld* World = NULL;
-			// We don't have an owning actor. Try to find a world pointer elsewhere
-			if( Viewer )
+			UWorld* World = Driver ? Driver->GetWorld() : NULL;
+			if (World)
 			{
-				World = Viewer->GetWorld();
-			}
-			// If we found a world tell it the pending connection is lost
-			if( World )			
-			{
-				WorldNotifyPendingConnectionLost( World );
-			}
-			else
-			{
-				// We still didn't find a world try the actors in the channel list
-				// Build a list of worlds form the actors
-				TArray< UWorld* > Worlds;
-				for (auto It = ActorChannels.CreateIterator(); It; ++It)
+				AGameMode* const GameMode = World->GetAuthGameMode();
+				if (GameMode)
 				{
-					UActorChannel* Chan = It.Value();					
-					AActor* EachActor = Chan->Actor;
-					if( EachActor )
-					{
-						Worlds.AddUnique( EachActor->GetWorld() );						
-					}
+					GameMode->NotifyPendingConnectionLost();
 				}
-
-				// Tell each world we found the connection has been lost
-				for (int32 iWorld = 0; iWorld < Worlds.Num() ; iWorld++)
-				{
-					WorldNotifyPendingConnectionLost( Worlds[ iWorld ] );							
-				}
-			}			
+			}
 		}
 	}
 
 	CleanupDormantActorState();
 
 	Driver = NULL;
-}
-
-void UNetConnection::WorldNotifyPendingConnectionLost( UWorld* InWorld )
-{
-	if( InWorld )
-	{
-		AGameMode* const GameMode = InWorld->GetAuthGameMode();
-		if (GameMode)
-		{
-			GameMode->NotifyPendingConnectionLost();
-		}
-	}
 }
 
 UChildConnection::UChildConnection(const class FPostConstructInitializeProperties& PCIP)

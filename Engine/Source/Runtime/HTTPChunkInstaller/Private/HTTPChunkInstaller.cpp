@@ -71,7 +71,9 @@ FHTTPChunkInstall::FHTTPChunkInstall()
 	}
 	else
 	{
-		OnlineTitleFile = MakeShareable(new FLocalTitleFile(FPaths::GameConfigDir()));
+		FString LocalTileFileDirectory = FPaths::GameConfigDir();
+		GConfig->GetString(TEXT("HTTPChunkInstall"), TEXT("LocalTitleFileDirectory"), LocalTileFileDirectory, GEngineIni);
+		OnlineTitleFile = MakeShareable(new FLocalTitleFile(LocalTileFileDirectory));
 	}
 	CloudDir	= FPaths::Combine(*FPaths::GameContentDir()	, TEXT("Cloud"));
 	StageDir	= FPaths::Combine(*FPaths::GameSavedDir()	, TEXT("Chunks"), TEXT("Staged"));

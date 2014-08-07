@@ -239,8 +239,10 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			// @todo consider supplying NavAgentPropertied from path's querier
 			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
 
-			if (Result.IsSuccessful())
+			// partial paths are still valid and can change to full path when moving goal gets back on navmesh
+			if (Result.IsSuccessful() || Result.IsPartial())
 			{
+				RecalcRequest.Path->UpdateLastRepathGoalLocation();
 				RecalcRequest.Path->DoneUpdating(RecalcRequest.Reason);
 				if (RecalcRequest.Reason == ENavPathUpdateType::NavigationChanged)
 				{
@@ -404,6 +406,16 @@ FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmp
 
 	return NavDataGenerator.IsValid() && NavDataGenerator.GetSharedReferenceCount() > 0 ? NavDataGenerator.Get() : NULL;
 }
+
+void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
+{
+	FNavDataGenerator* Generator = GetGenerator(FNavigationSystem::DontCreate);
+	if (Generator)
+	{
+		Generator->RebuildDirtyAreas(DirtyAreas);
+	}
+}
+
 #endif // WITH_NAVIGATION_GENERATOR
 
 void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const

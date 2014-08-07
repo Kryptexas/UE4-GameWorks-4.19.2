@@ -5,6 +5,15 @@
 #include "Tickable.h"
 #include "EnvQueryManager.generated.h"
 
+class UObject;
+class UWorld;
+class UEnvQuery;
+class UEnvQueryManager;
+class UEnvQueryOption;
+struct FEnvQueryInstance;
+struct FEnvNamedValue;
+class UEnvQueryTest;
+
 /** wrapper for easy query execution */
 USTRUCT()
 struct AIMODULE_API FEnvQueryRequest
@@ -14,17 +23,17 @@ struct AIMODULE_API FEnvQueryRequest
 	FEnvQueryRequest() : QueryTemplate(NULL), Owner(NULL), World(NULL) {}
 
 	// basic constructor: owner will be taken from finish delegate bindings
-	FEnvQueryRequest(const class UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
+	FEnvQueryRequest(const UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
 
 	// use when owner is different from finish delegate binding
-	FEnvQueryRequest(const class UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
+	FEnvQueryRequest(const UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
 
 	// set named params
 	FORCEINLINE FEnvQueryRequest& SetFloatParam(FName ParamName, float Value) { NamedParams.Add(ParamName, Value); return *this; }
 	FORCEINLINE FEnvQueryRequest& SetIntParam(FName ParamName, int32 Value) { NamedParams.Add(ParamName, *((float*)&Value)); return *this; }
 	FORCEINLINE FEnvQueryRequest& SetBoolParam(FName ParamName, bool Value) { NamedParams.Add(ParamName, Value ? 1.0f : -1.0f); return *this; }
-	FORCEINLINE FEnvQueryRequest& SetNamedParam(const struct FEnvNamedValue& ParamData) { NamedParams.Add(ParamData.ParamName, ParamData.Value); return *this; }
-	FEnvQueryRequest& SetNamedParams(const TArray<struct FEnvNamedValue>& Params);
+	FORCEINLINE FEnvQueryRequest& SetNamedParam(const FEnvNamedValue& ParamData) { NamedParams.Add(ParamData.ParamName, ParamData.Value); return *this; }
+	FEnvQueryRequest& SetNamedParams(const TArray<FEnvNamedValue>& Params);
 
 	// set world (for accessing query manager) when owner can't provide it
 	FORCEINLINE FEnvQueryRequest& SetWorldOverride(UWorld* InWorld) { World = InWorld; return *this; }
@@ -45,7 +54,7 @@ protected:
 
 	/** query to run */
 	UPROPERTY()
-	const class UEnvQuery* QueryTemplate;
+	const UEnvQuery* QueryTemplate;
 
 	/** querier */
 	UPROPERTY()
@@ -58,17 +67,17 @@ protected:
 	/** list of named params */
 	TMap<FName, float> NamedParams;
 
-	friend class UEnvQueryManager;
+	friend UEnvQueryManager;
 };
 
 /** cache of instances with sorted tests */
 struct FEnvQueryInstanceCache
 {
 	/** query template */
-	TWeakObjectPtr<class UEnvQuery> Template;
+	TWeakObjectPtr<UEnvQuery> Template;
 
 	/** instance to duplicate */
-	struct FEnvQueryInstance Instance;
+	FEnvQueryInstance Instance;
 };
 
 #if USE_EQS_DEBUGGER
@@ -99,13 +108,14 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	virtual TStatId GetStatId() const override;
 
 	/** execute query */
-	int32 RunQuery(const struct FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate);
+	int32 RunQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate);
+	int32 RunQuery(TSharedPtr<FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate);
 
 	/** alternative way to run queries. Do not use for anything other then testing! (worse performance) */
-	TSharedPtr<FEnvQueryResult> RunInstantQuery(const struct FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
+	TSharedPtr<FEnvQueryResult> RunInstantQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
 
 	/** Creates a query instance configured for execution */
-	TSharedPtr<struct FEnvQueryInstance> PrepareQueryInstance(const struct FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
+	TSharedPtr<FEnvQueryInstance> PrepareQueryInstance(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
 
 	/** finds UEnvQuery matching QueryName by first looking at instantiated queries (from InstanceCache)
 	 *	falling back to looking up all UEnvQuery and testing their name */
@@ -123,8 +133,8 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** list of all known item types */
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;
 
-	static UEnvQueryManager* GetCurrent(class UWorld* World);
-	static UEnvQueryManager* GetCurrent(class UObject* WorldContextObject);
+	static UEnvQueryManager* GetCurrent(UWorld* World);
+	static UEnvQueryManager* GetCurrent(UObject* WorldContextObject);
 
 #if USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);
@@ -138,7 +148,7 @@ protected:
 protected:
 
 	/** currently running queries */
-	TArray<TSharedPtr<struct FEnvQueryInstance> > RunningQueries;
+	TArray<TSharedPtr<FEnvQueryInstance> > RunningQueries;
 
 	/** cache of instances */
 	TArray<FEnvQueryInstanceCache> InstanceCache;
@@ -147,10 +157,10 @@ protected:
 	int32 NextQueryID;
 
 	/** create new instance, using cached data is possible */
-	TSharedPtr<struct FEnvQueryInstance> CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
+	TSharedPtr<FEnvQueryInstance> CreateQueryInstance(const UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
 
 private:
 
 	/** create and bind delegates in instance */
-	void CreateOptionInstance(class UEnvQueryOption* OptionTemplate, const TArray<class UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance);
+	void CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, FEnvQueryInstance& Instance);
 };

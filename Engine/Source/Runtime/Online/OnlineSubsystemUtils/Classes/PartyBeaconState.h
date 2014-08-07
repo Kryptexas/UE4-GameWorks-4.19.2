@@ -268,6 +268,13 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual int32 GetNumTeams() const { return NumTeams; }
 
 	/**
+	 * Get the max number of players per team
+	 *
+	 * @return The number of player per team
+	 */
+	virtual int32 GetMaxPlayersPerTeam() const { return NumPlayersPerTeam; }
+
+	/**
 	 * Get the number of current players on a given team.
 	 *
 	 * @param TeamIdx team of interest
