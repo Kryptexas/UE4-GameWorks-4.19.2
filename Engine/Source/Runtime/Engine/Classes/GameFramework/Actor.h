@@ -779,11 +779,11 @@ public:
 	DEPRECATED(4.5, "Actor::SetTickPrerequisite() will be removed, use AddTickPrerequisiteActor().")
 	void SetTickPrerequisite(AActor* PrerequisiteActor);
 
-	/** Make this actor tick after PrerequisiteActor */
+	/** Make this actor tick after PrerequisiteActor. This only applies to this actor's tick function; dependencies for owned components must be set up separately if desired. */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void AddTickPrerequisiteActor(AActor* PrerequisiteActor);
 
-	/** Make this actor tick after PrerequisiteComponent. */
+	/** Make this actor tick after PrerequisiteComponent. This only applies to this actor's tick function; dependencies for owned components must be set up separately if desired. */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
 
