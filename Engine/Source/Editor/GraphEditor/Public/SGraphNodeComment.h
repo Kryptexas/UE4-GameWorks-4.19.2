@@ -2,39 +2,14 @@
 
 #pragma once
 
-class SGraphNodeComment : public SGraphNode
+class SGraphNodeComment : public SGraphNodeResizable
 {
-	/**
-	 * The Comment window zone the user is interacting with
-	 */
-	enum ECommentWindowZone
-	{
-		CWZ_NotInWindow			= 0,
-		CWZ_InWindow			= 1,
-		CWZ_RightBorder			= 2,
-		CWZ_BottomBorder		= 3,
-		CWZ_BottomRightBorder	= 4,
-		CWZ_LeftBorder			= 5,
-		CWZ_TopBorder			= 6,
-		CWZ_TopLeftBorder		= 7,
-		CWZ_TopRightBorder		= 8,
-		CWZ_BottomLeftBorder	= 9,
-		CWZ_TitleBar			= 10,
-	};
-
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeComment){}
 	SLATE_END_ARGS()
 
 	// Begin SWidget Interface
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -80,16 +55,13 @@ protected:
 	/** called when user is moving the comment node */
 	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter ) override;
 
+	// SGraphNodeResizable Interface
+	virtual float GetTitleBarHeight() const override;
+	virtual FSlateRect GetHitTestingBorder( float InverseZoomFactor ) const override;
+	virtual FVector2D GetNodeMaximumSize() const override;
+	// SGraphNodeResizable Interface
+
 private:
-
-	/** Find the current window zone the mouse is in for the comment */
-	SGraphNodeComment::ECommentWindowZone FindMouseZone(const FVector2D& LocalGeo) const;
-
-	/** @return true if the current window zone is considered a selection area */
-	bool InSelectionArea() const { return InSelectionArea(MouseZone); }
-
-	/** @return true if the passed zone is a selection area */
-	bool InSelectionArea(ECommentWindowZone InZone) const;
 
 	/** @return the color to tint the comment body */
 	FSlateColor GetCommentBodyColor() const;
@@ -97,30 +69,10 @@ private:
 	/** @return the color to tint the title bar */
 	FSlateColor GetCommentTitleBarColor() const;
 
-	/** Function to store anchor point before resizing the node. The node will be anchored to this point when resizing happens*/
-	void InitNodeAnchorPoint();
-
-	/** Function to fetch the corrected node position based on anchor point*/
-	FVector2D GetCorrectedNodePosition() const;
-
 	/** Returns the width to wrap the text of the comment at */
 	float GetWrapAt() const;
 
 private:
-	/** The desired size of the comment box, set during a drag */
-	FVector2D UserSize;
-
-	/** The original size of the comment box while resizing */
-	FVector2D StoredUserSize;
-
-	/** Anchor point used to correct node position on resizing the node*/
-	FVector2D NodeAnchorPoint;
-
-	/** The current window zone the mouse is in */
-	ECommentWindowZone MouseZone;
-
-	/** If true the user is actively dragging the comment */
-	bool bUserIsDragging;
 
 	/** The current selection state of the comment */
 	mutable bool bIsSelected;

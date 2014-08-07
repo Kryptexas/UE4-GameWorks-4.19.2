@@ -75,6 +75,11 @@ void FDocumentationPage::Reload()
 	Parser->Parse( Link, StoredExcerpts, StoredMetadata );
 }
 
+void FDocumentationPage::SetTextWrapAt( TAttribute<float> WrapAt )
+{
+	Parser->SetWrapAt( WrapAt );
+}
+
 FDocumentationPage::FDocumentationPage( const FString& InLink, const TSharedRef< FUDNParser >& InParser ) 
 	: Link( InLink )
 	, Parser( InParser )

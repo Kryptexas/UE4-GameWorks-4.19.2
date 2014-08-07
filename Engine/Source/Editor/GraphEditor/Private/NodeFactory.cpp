@@ -9,6 +9,8 @@
 
 #include "SGraphNodeDefault.h"
 #include "SGraphNodeComment.h"
+#include "SGraphNodeDocumentation.h"
+#include "EdGraph/EdGraphNode_Documentation.h"
 #include "SGraphNodeKnot.h"
 
 #include "KismetNodes/SGraphNodeK2Base.h"
@@ -218,6 +220,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 	else if (UAnimStateEntryNode* EntryNode = Cast<UAnimStateEntryNode>(InNode))
 	{
 		return SNew(SGraphNodeAnimStateEntry, EntryNode);
+	}
+	else if(UEdGraphNode_Documentation* DocNode = Cast<UEdGraphNode_Documentation>(InNode))
+	{
+		return SNew(SGraphNodeDocumentation, DocNode);
 	}
 	else if (InNode->ShouldDrawNodeAsComment())
 	{

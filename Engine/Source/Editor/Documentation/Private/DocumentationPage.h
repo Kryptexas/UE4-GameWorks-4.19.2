@@ -9,6 +9,7 @@ class FDocumentationPage : public IDocumentationPage
 {
 public:
 
+	/** Returns an instance of class containing content from the link argument */
 	static TSharedRef< IDocumentationPage > Create( const FString& Link, const TSharedRef< FUDNParser >& Parser );
 
 public:
@@ -24,16 +25,23 @@ public:
 
 	virtual void Reload() override;
 
+	virtual void SetTextWrapAt( TAttribute<float> WrapAt ) override;
+
 private:
 
 	FDocumentationPage( const FString& InLink, const TSharedRef< FUDNParser >& InParser );
 
 private:
 
+	/** The string representing the UDN page location */
 	FString Link;
+	/** The UDN parser instance used to create this page */
 	TSharedRef< FUDNParser > Parser;
 
+	/** The excerpts contained in this UDN page */
 	TArray<FExcerpt> StoredExcerpts;
+	/** The UDN meta data contained in this page */
 	FUDNPageMetadata StoredMetadata;
+	/** Signals if the page has been loaded */
 	bool IsLoaded;
 };

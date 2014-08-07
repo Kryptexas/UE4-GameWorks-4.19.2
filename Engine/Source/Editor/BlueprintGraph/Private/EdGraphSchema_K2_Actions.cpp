@@ -11,6 +11,7 @@
 #include "ComponentAssetBroker.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
+#include "EdGraph/EdGraphNode_Documentation.h"
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
 
@@ -603,6 +604,35 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComment::PerformAction(class UEdGraph* P
 
 	// Mark Blueprint as structurally modified since
 	// UK2Node_Comment::NodeCausesStructuralBlueprintChange used to return true
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+	return NewNode;
+}
+
+/////////////////////////////////////////////////////
+// FEdGraphSchemaAction_K2AddDocumentation
+
+UEdGraphNode* FEdGraphSchemaAction_K2AddDocumentation::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
+{
+	// Add menu item for creating document nodes
+	UEdGraphNode_Documentation* DocumentTemplate = NewObject<UEdGraphNode_Documentation>();
+
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(ParentGraph);
+
+	FVector2D SpawnLocation = Location;
+
+	FSlateRect Bounds;
+	if ((Blueprint != NULL) && FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, 50.0f))
+	{
+		DocumentTemplate->SetBounds(Bounds);
+		SpawnLocation.X = DocumentTemplate->NodePosX;
+		SpawnLocation.Y = DocumentTemplate->NodePosY;
+	}
+
+	UEdGraphNode* NewNode = FEdGraphSchemaAction_NewNode::SpawnNodeFromTemplate<UEdGraphNode_Documentation>(ParentGraph, DocumentTemplate, SpawnLocation, bSelectNewNode);
+
+	// Mark Blueprint as structurally modified since
+	// UK2Node_Documentation::NodeCausesStructuralBlueprintChange used to return true
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 
 	return NewNode;

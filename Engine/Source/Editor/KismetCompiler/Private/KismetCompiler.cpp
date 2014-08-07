@@ -18,6 +18,7 @@
 #include "UserDefinedStructureCompilerUtils.h"
 #include "EditorCategoryUtils.h"
 #include "K2Node_EnumLiteral.h"
+#include "EdGraph/EdGraphNode_Documentation.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -384,8 +385,8 @@ bool FKismetCompilerContext::IsNodePure(const UEdGraphNode* Node) const
 	{
 		return K2Node->IsNodePure();
 	}
-	// Only non K2Nodes are comments, which are pure
-	ensure(Node->IsA(UEdGraphNode_Comment::StaticClass()));
+	// Only non K2Nodes are comments and documentation nodes, which are pure
+	ensure(Node->IsA(UEdGraphNode_Comment::StaticClass())||Node->IsA(UEdGraphNode_Documentation::StaticClass()));
 	return true;
 }
 

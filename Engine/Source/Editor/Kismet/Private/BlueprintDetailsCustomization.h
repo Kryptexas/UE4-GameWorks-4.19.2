@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EdGraph/EdGraphNode_Documentation.h"
+
 /** Variable replication states */
 namespace EVariableReplication
 {
@@ -723,4 +725,66 @@ public:
 private:
 	/** Weak reference to the Blueprint editor */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+};
+
+/** Details customization for Blueprint Documentation */
+class FBlueprintDocumentationDetails : public IDetailCustomization
+{
+public:
+	/** Constructor */
+	FBlueprintDocumentationDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+		: BlueprintEditorPtr(InBlueprintEditorPtr)
+	{
+	}
+
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+	{
+		return MakeShareable(new FBlueprintDocumentationDetails(InBlueprintEditorPtr));
+	}
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
+
+protected:
+
+	/** Accessors passed to parent */
+	UBlueprint* GetBlueprintObj() const { return BlueprintEditorPtr.Pin()->GetBlueprintObj(); }
+
+	/** Get the currently selected node from the edgraph */
+	TWeakObjectPtr<UEdGraphNode_Documentation> EdGraphSelectionAsDocumentNode();
+
+	/** Accessor for the current nodes documentation link */
+	FText OnGetDocumentationLink() const;
+
+	/** Accessor for the nodes current documentation excerpt  */
+	FText OnGetDocumentationExcerpt() const;
+	
+	/** Accessor to evaluate if the current excerpt can be modified */
+	bool OnExcerptChangeEnabled() const;
+
+	/** Handler for the documentation link being committed */
+	void OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit ) const;
+	
+	/** Generate table row for excerpt combo */
+	TSharedRef< ITableRow > MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
+	
+	/** Apply selection changes from the excerpt combo */
+	void OnExcerptSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type SelectInfo );
+
+	/** Generate excerpt list widget from documentation page */
+	TSharedRef<SWidget> GenerateExcerptList();
+
+
+private:
+
+	/** Weak reference to the Blueprint editor */
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+	/** The editor node we're editing */
+	TWeakObjectPtr<UEdGraphNode_Documentation> DocumentationNodePtr;
+	/** Excerpt combo widget */
+	TSharedPtr<SComboButton> ExcerptComboButton;
+	/** Excerpt List */
+	TArray<TSharedPtr<FString>> ExcerptList;
+
 };

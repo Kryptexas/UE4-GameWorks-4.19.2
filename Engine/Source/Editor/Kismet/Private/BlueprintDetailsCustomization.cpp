@@ -4873,4 +4873,181 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 	}
 }
 
+namespace BlueprintDocumentationDetailDefs
+{
+	/** Minimum size of the details title panel */
+	static const float DetailsTitleMinWidth = 125.f;
+	/** Maximum size of the details title panel */
+	static const float DetailsTitleMaxWidth = 300.f;
+};
+
+void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+{
+	check( BlueprintEditorPtr.IsValid() );
+	// find currently selected edgraph documentation node
+	DocumentationNodePtr = EdGraphSelectionAsDocumentNode();
+
+	if( DocumentationNodePtr.IsValid() )
+	{
+		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation").ToString(), ECategoryPriority::Default);
+
+		DocumentationCategory.AddCustomRow( TEXT( "Documentation Link" ))
+		.NameContent()
+		.HAlign( HAlign_Fill )
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ).ToString() )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkPathTooltip", "The documentation content path" ))
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		]
+		.ValueContent()
+		.HAlign( HAlign_Left )
+		.MinDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMinWidth )
+		.MaxDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMaxWidth )
+		[
+			SNew( SEditableTextBox )
+			.Padding( FMargin( 4.f, 2.f ))
+			.Text( this, &FBlueprintDocumentationDetails::OnGetDocumentationLink )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkTooltip", "The path of the documentation content relative to /Engine/Documentation/Source" ))
+			.OnTextCommitted( this, &FBlueprintDocumentationDetails::OnDocumentationLinkCommitted )
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		];
+
+		DocumentationCategory.AddCustomRow( TEXT( "Documentation Excerpts" ))
+		.NameContent()
+		.HAlign( HAlign_Left )
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ).ToString() )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptTooltip", "The current documentation excerpt" ))
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		]
+		.ValueContent()
+		.HAlign( HAlign_Left )
+		.MinDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMinWidth )
+		.MaxDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMaxWidth )
+		[
+			SAssignNew( ExcerptComboButton, SComboButton )
+			.ContentPadding( 2.f )
+			.IsEnabled( this, &FBlueprintDocumentationDetails::OnExcerptChangeEnabled )
+			.ButtonContent()
+			[
+				SNew(SBorder)
+				.BorderImage( FEditorStyle::GetBrush( "NoBorder" ))
+				.Padding( FMargin( 0, 0, 5, 0 ))
+				[
+					SNew( STextBlock )
+					.Text( this, &FBlueprintDocumentationDetails::OnGetDocumentationExcerpt )
+					.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptComboTooltip", "Select Excerpt" ))
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+			]
+			.OnGetMenuContent( this, &FBlueprintDocumentationDetails::GenerateExcerptList )
+		];
+	}
+}
+
+TWeakObjectPtr<UEdGraphNode_Documentation> FBlueprintDocumentationDetails::EdGraphSelectionAsDocumentNode()
+{
+	DocumentationNodePtr.Reset();
+
+	if( BlueprintEditorPtr.IsValid() )
+	{
+		/** Get the currently selected set of nodes */
+		if( BlueprintEditorPtr.Pin()->GetNumberOfSelectedNodes() == 1 )
+		{
+			TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
+			TSet<UObject*>::TIterator Iter( Objects );
+			UObject* Object = *Iter;
+
+			if( Object && Object->IsA<UEdGraphNode_Documentation>() )
+			{
+				DocumentationNodePtr = Cast<UEdGraphNode_Documentation>( Object );
+			}
+		}
+	}
+	return DocumentationNodePtr;
+}
+
+FText FBlueprintDocumentationDetails::OnGetDocumentationLink() const
+{
+	FText Link = FText::GetEmpty();
+	if( DocumentationNodePtr.IsValid() )
+	{
+		Link = FText::FromString( DocumentationNodePtr->GetDocumentationLink() );
+	}
+	return Link;
+}
+
+FText FBlueprintDocumentationDetails::OnGetDocumentationExcerpt() const
+{
+	FText Excerpt = NSLOCTEXT( "FBlueprintDocumentationDetails", "ExcerptCombo_DefaultText", "Select Excerpt" );
+	if( DocumentationNodePtr.IsValid() )
+	{
+		Excerpt = FText::FromString( DocumentationNodePtr->GetDocumentationExcerptName() );
+	}
+	return Excerpt;
+}
+
+bool FBlueprintDocumentationDetails::OnExcerptChangeEnabled() const
+{
+	return DocumentationNodePtr.IsValid() && IDocumentation::Get()->PageExists( DocumentationNodePtr->Link );
+}
+
+void FBlueprintDocumentationDetails::OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit ) const
+{
+	if( DocumentationNodePtr.IsValid() )
+	{
+		DocumentationNodePtr->Link = InNewName.ToString();
+		DocumentationNodePtr->Excerpt.Empty();
+	}
+}
+
+TSharedRef< ITableRow > FBlueprintDocumentationDetails::MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable )
+{
+	return 
+		SNew( STableRow<TSharedPtr<FString>>, OwnerTable )
+		[
+			SNew( STextBlock )
+			.Text( *Item.Get() )
+		];
+}
+
+void FBlueprintDocumentationDetails::OnExcerptSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ )
+{
+	if( ProposedSelection.IsValid() && DocumentationNodePtr.IsValid() )
+	{
+		DocumentationNodePtr->Excerpt = *ProposedSelection.Get();
+		ExcerptComboButton->SetIsOpen( false );
+	}
+}
+
+TSharedRef<SWidget> FBlueprintDocumentationDetails::GenerateExcerptList()
+{
+	ExcerptList.Empty();
+
+	if( DocumentationNodePtr.IsValid() && IDocumentation::Get()->PageExists( DocumentationNodePtr->Link ))
+	{
+		TSharedPtr<IDocumentationPage> DocumentationPage = IDocumentation::Get()->GetPage( DocumentationNodePtr->Link, NULL );
+		TArray<FExcerpt> Excerpts;
+		DocumentationPage->GetExcerpts( Excerpts );
+
+		for( auto ExcerptIter = Excerpts.CreateConstIterator(); ExcerptIter; ++ExcerptIter )
+		{
+			ExcerptList.Add( MakeShareable( new FString( ExcerptIter->Name )));
+		}
+	}
+
+	return
+		SNew( SHorizontalBox )
+		+SHorizontalBox::Slot()
+		.Padding( 2.f )
+		[
+			SNew( SListView< TSharedPtr<FString>> )
+			.ListItemsSource( &ExcerptList )
+			.OnGenerateRow( this, &FBlueprintDocumentationDetails::MakeExcerptViewWidget )
+			.OnSelectionChanged( this, &FBlueprintDocumentationDetails::OnExcerptSelectionChanged )
+		];
+}
+
 #undef LOCTEXT_NAMESPACE

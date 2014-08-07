@@ -130,10 +130,11 @@ public:
 
 	bool GetExcerptContent( const FString& Link, FExcerpt& Excerpt );
 
+	/** Allows a TAttribute to be set to control excerpt wrapat values from outside the parser. */
+	void SetWrapAt( TAttribute<float> InWrapAt );
+
 private:
 	/** UI Callbacks for the widgets */
-	float GetTextWrapSize() const;
-	FOptionalSize GetTutorialWidth() const;
 	FReply OnImageLinkClicked(FString Payload);
 	
 	/** Adds the content text source to the scrollbox */
@@ -229,5 +230,9 @@ private:
 	};
 
 	TArray<FTokenConfiguration> LineLibrary;
+	/** Documentation text wrapping control attribute */
+	TAttribute<float> WrapAt;
+	/** Documentation optional width control attribute */
+	TAttribute<FOptionalSize> ContentWidth;
 };
 

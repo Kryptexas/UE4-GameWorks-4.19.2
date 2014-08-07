@@ -43,6 +43,8 @@ TSharedRef< FUDNParser > FUDNParser::Create( const TSharedPtr< FParserConfigurat
 FUDNParser::FUDNParser( const TSharedRef< FParserConfiguration >& InConfiguration, const FDocumentationStyle& InStyle )
 	: Configuration( InConfiguration )
 	, Style(InStyle)
+	, WrapAt(600.f)
+	, ContentWidth(600.f)
 {
 
 }
@@ -339,14 +341,9 @@ bool FUDNParser::GetExcerptContent( const FString& Link, FExcerpt& Excerpt )
 	return false;
 }
 
-float FUDNParser::GetTextWrapSize() const
+void FUDNParser::SetWrapAt( TAttribute<float> InWrapAt )
 {
-	return 600.f;
-}
-
-FOptionalSize FUDNParser::GetTutorialWidth() const 
-{
-	return GetTextWrapSize();
+	WrapAt = InWrapAt;
 }
 
 int32 FUDNParser::FTokenConfiguration::CalculatedExpectedContentStrings()
@@ -678,8 +675,8 @@ void FUDNParser::AppendExcerpt(TSharedPtr<SVerticalBox> Box, TSharedRef<SWidget>
 	.HAlign(HAlign_Center)
 	[
 		SNew(SBox)
-		.WidthOverride(this, &FUDNParser::GetTutorialWidth)
 		.HAlign(HAlign_Left)
+		.WidthOverride(ContentWidth)
 		.Padding(FMargin(0,0,0,8.f))
 		[
 			SNew(SHorizontalBox)
@@ -700,7 +697,7 @@ void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString
 			SNew(STextBlock)
 			.Text(ContentSource)
 			.TextStyle(FEditorStyle::Get(), Style.ContentStyleName)
-			.WrapTextAt(this, &FUDNParser::GetTextWrapSize)
+			.WrapTextAt(WrapAt)
 		);
 	}
 }
@@ -852,7 +849,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					.HAlign(HAlign_Center)
 					[
 						SNew(SBox)
-						.WidthOverride(this, &FUDNParser::GetTutorialWidth)
+						.WidthOverride(ContentWidth)
 						.Padding(FMargin(0,0,0,10))
 						[
 							SNew(SSeparator)

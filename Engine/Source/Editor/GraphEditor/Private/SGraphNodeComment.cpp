@@ -47,263 +47,8 @@ void SGraphNodeComment::Construct(const FArguments& InArgs, UEdGraphNode* InNode
 	UserSize.X = InNode->NodeWidth;
 	UserSize.Y = InNode->NodeHeight;
 
-	MouseZone = CWZ_NotInWindow;
+	MouseZone = CRWZ_NotInWindow;
 	bUserIsDragging = false;
-}
-
-bool SGraphNodeComment::InSelectionArea(ECommentWindowZone InMouseZone) const
-{
-	return (	(InMouseZone == CWZ_RightBorder) || (InMouseZone == CWZ_BottomBorder) || (InMouseZone == CWZ_BottomRightBorder) || 
-				(InMouseZone == CWZ_LeftBorder) || (InMouseZone == CWZ_TopBorder) || (InMouseZone == CWZ_TopLeftBorder) ||
-				(InMouseZone == CWZ_TopRightBorder) || (InMouseZone == CWZ_BottomLeftBorder) );
-}
-
-FCursorReply SGraphNodeComment::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
-{
-	if (MouseZone == CWZ_RightBorder || MouseZone == CWZ_LeftBorder)
-	{
-		// right/left of comment
-		return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
-	}
-	else if (MouseZone == CWZ_BottomRightBorder || MouseZone == CWZ_TopLeftBorder)
-	{
-		// bottom right / top left hand corner
-		return FCursorReply::Cursor( EMouseCursor::ResizeSouthEast );
-	}
-	else if (MouseZone == CWZ_BottomBorder || MouseZone == CWZ_TopBorder)
-	{
-		// bottom / top of comment
-		return FCursorReply::Cursor(EMouseCursor::ResizeUpDown);
-	}
-	else if (MouseZone == CWZ_BottomLeftBorder || MouseZone == CWZ_TopRightBorder)
-	{
-		// bottom left / top right hand corner
-		return FCursorReply::Cursor( EMouseCursor::ResizeSouthWest );
-	}
-	else if (MouseZone == CWZ_TitleBar) 
-	{
-		return FCursorReply::Cursor(EMouseCursor::CardinalCross);
-	}
-
-	return FCursorReply::Unhandled();
-}
-
-FReply SGraphNodeComment::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	
-	if (bUserIsDragging)
-	{
-		FVector2D GraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetScreenSpacePosition() );
-		FVector2D OldGraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetLastScreenSpacePosition() );
-		FVector2D Delta = GraphSpaceCoordinates - OldGraphSpaceCoordinates;
-		
-
-		//Clamp delta value based on resizing direction
-		if( MouseZone == CWZ_LeftBorder || MouseZone == CWZ_RightBorder )
-		{
-			Delta.Y = 0.0f;
-		}
-		else if( MouseZone == CWZ_TopBorder || MouseZone == CWZ_BottomBorder )
-		{
-			Delta.X = 0.0f;
-		}
-
-		//Resize node delta value
-		FVector2D DeltaNodeSize = Delta;
-
-		//Modify node size delta value based on resizing direction
-		if(	(MouseZone == CWZ_LeftBorder) || (MouseZone == CWZ_TopBorder) || (MouseZone == CWZ_TopLeftBorder) )
-		{
-			DeltaNodeSize = -DeltaNodeSize;
-		}
-		else if( MouseZone == CWZ_TopRightBorder )
-		{
-			DeltaNodeSize.Y = -DeltaNodeSize.Y;
-		}
-		else if( MouseZone == CWZ_BottomLeftBorder )
-		{
-			DeltaNodeSize.X = -DeltaNodeSize.X;
-		}
-
-		StoredUserSize.X += DeltaNodeSize.X;
-		StoredUserSize.Y += DeltaNodeSize.Y;
-
-		const FVector2D PreviousUserSize = UserSize;
-		const float SnapSize = SNodePanel::GetSnapGridSize();
-		UserSize.X = SnapSize * FMath::RoundToFloat(StoredUserSize.X/SnapSize);
-		UserSize.Y = SnapSize * FMath::RoundToFloat(StoredUserSize.Y/SnapSize);
-
-		FVector2D DeltaNodePos(0,0);
-		//Modify node position (resizing top and left sides)
-		if( MouseZone != CWZ_BottomBorder && MouseZone != CWZ_RightBorder && MouseZone != CWZ_BottomRightBorder )
-		{
-			//Delta value to move graph node position
-			DeltaNodePos = PreviousUserSize - UserSize;
-
-			//Clamp position delta based on resizing direction
-			if( MouseZone == CWZ_BottomLeftBorder )
-			{
-				DeltaNodePos.Y = 0.0f;
-			}
-			else if( MouseZone == CWZ_TopRightBorder )
-			{
-				DeltaNodePos.X = 0.0f;
-			}
-		}
-
-		if(UserSize.Y < SCommentNodeDefs::MinHeight)
-		{
-			UserSize.Y = SCommentNodeDefs::MinHeight;
-			DeltaNodePos.Y = GetCorrectedNodePosition().Y - GetPosition().Y;
-		}
-
-		if(UserSize.X < SCommentNodeDefs::MinWidth) 
-		{
-			UserSize.X = SCommentNodeDefs::MinWidth;
-			DeltaNodePos.X = GetCorrectedNodePosition().X - GetPosition().X;
-		}
-		SGraphNode::FNodeSet NodeFilter;
-		SGraphNode::MoveTo( GetPosition() + DeltaNodePos, NodeFilter );
-	}
-	else
-	{
-		MouseZone = FindMouseZone(LocalMouseCoordinates);
-	}
-
-	return SGraphNode::OnMouseMove( MyGeometry, MouseEvent );
-}
-
-void SGraphNodeComment::InitNodeAnchorPoint()
-{
-	NodeAnchorPoint = GetPosition();
-	
-	if( (MouseZone == CWZ_LeftBorder) || (MouseZone == CWZ_TopBorder) || (MouseZone == CWZ_TopLeftBorder) )
-	{
-		NodeAnchorPoint += UserSize;
-	}
-	else if( MouseZone == CWZ_BottomLeftBorder )
-	{
-		NodeAnchorPoint.X += UserSize.X;
-	}
-	else if( MouseZone == CWZ_TopRightBorder )
-	{
-		NodeAnchorPoint.Y += UserSize.Y;
-	}
-}
-
-
-FVector2D SGraphNodeComment::GetCorrectedNodePosition() const
-{
-	FVector2D CorrectedPos = NodeAnchorPoint;
-	
-	if( (MouseZone == CWZ_LeftBorder) || (MouseZone == CWZ_TopBorder) || (MouseZone == CWZ_TopLeftBorder) )
-	{
-		CorrectedPos -= UserSize;
-	}
-	else if( MouseZone == CWZ_BottomLeftBorder )
-	{
-		CorrectedPos.X -= UserSize.X;
-	}
-	else if( MouseZone == CWZ_TopRightBorder )
-	{
-		CorrectedPos.Y -= UserSize.Y;
-	}
-
-	return CorrectedPos;
-}
-
-SGraphNodeComment::ECommentWindowZone SGraphNodeComment::FindMouseZone(const FVector2D& LocalMouseCoordinates) const
-{
-	ECommentWindowZone InMouseZone = CWZ_NotInWindow;
-
-	const float InverseZoomFactor = 1.0f / FMath::Min(GetOwnerPanel()->GetZoomAmount(), 1.0f);
-	const FSlateRect HitResultBorderSize(
-		SCommentNodeDefs::HitResultBorderSize.Left * InverseZoomFactor,
-		SCommentNodeDefs::HitResultBorderSize.Right * InverseZoomFactor,
-		SCommentNodeDefs::HitResultBorderSize.Top * InverseZoomFactor, 
-		SCommentNodeDefs::HitResultBorderSize.Bottom * InverseZoomFactor);
-
-	const float TitleBarHeight = TitleBar.IsValid() ? TitleBar->GetDesiredSize().Y : 0.0f;
-
-	// Test for hit in location of 'grab' zone
-	if (LocalMouseCoordinates.Y > ( UserSize.Y - HitResultBorderSize.Bottom))
-	{
-		InMouseZone = CWZ_BottomBorder;
-	}
-	else if (LocalMouseCoordinates.Y <= (HitResultBorderSize.Top))
-	{
-		InMouseZone = CWZ_TopBorder;
-	}
-	else if (LocalMouseCoordinates.Y <= (HitResultBorderSize.Top + TitleBarHeight))
-	{
-		InMouseZone = CWZ_TitleBar;
-	}
-
-	if (LocalMouseCoordinates.X > (UserSize.X - HitResultBorderSize.Right))
-	{
-		if (InMouseZone == CWZ_BottomBorder)
-		{
-			InMouseZone = CWZ_BottomRightBorder;
-		}
-		else if (InMouseZone == CWZ_TopBorder)
-		{
-			InMouseZone = CWZ_TopRightBorder;
-		}
-		else
-		{
-			InMouseZone = CWZ_RightBorder;
-		}
-	}
-	else if (LocalMouseCoordinates.X <= HitResultBorderSize.Left)
-	{
-		if (InMouseZone == CWZ_TopBorder)
-		{
-			InMouseZone = CWZ_TopLeftBorder;
-		}
-		else if (InMouseZone == CWZ_BottomBorder)
-		{
-			InMouseZone = CWZ_BottomLeftBorder;
-		}
-		else
-		{
-			InMouseZone = CWZ_LeftBorder;
-		}
-	}
-	
-	// Test for hit on rest of frame
-	if (InMouseZone == CWZ_NotInWindow)
-	{
-		if (LocalMouseCoordinates.Y > HitResultBorderSize.Top) 
-		{
-			InMouseZone = CWZ_InWindow;
-		}
-		else if (LocalMouseCoordinates.X > HitResultBorderSize.Left) 
-		{
-			InMouseZone = CWZ_InWindow;
-		}
-	}
-
-	return InMouseZone;
-}
-
-void SGraphNodeComment::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{	
-	// Determine the zone the mouse is in
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	MouseZone = FindMouseZone(LocalMouseCoordinates);
-
-	SCompoundWidget::OnMouseEnter( MyGeometry, MouseEvent );
-}
-
-void SGraphNodeComment::OnMouseLeave( const FPointerEvent& MouseEvent ) 
-{
-	if( !bUserIsDragging )
-	{
-		// Reset our mouse zone
-		MouseZone = CWZ_NotInWindow;
-		SCompoundWidget::OnMouseLeave( MouseEvent );
-	}
 }
 
 void SGraphNodeComment::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -422,7 +167,7 @@ FVector2D SGraphNodeComment::ComputeDesiredSize() const
 FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	// If user double-clicked in the title bar area
-	if(FindMouseZone(InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition())) == CWZ_TitleBar && IsEditable.Get())
+	if(FindMouseZone(InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition())) == CRWZ_TitleBar && IsEditable.Get())
 	{
 		// Request a rename
 		RequestRename();
@@ -440,41 +185,6 @@ FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometr
 		// Otherwise let the base class handle it
 		return SGraphNode::OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
 	}
-}
-
-FReply SGraphNodeComment::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	if ( InSelectionArea() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) && IsEditable.Get() ) 
-	{
-		bUserIsDragging = true;
-		StoredUserSize = UserSize;
-
-		//Find node anchor point
-		InitNodeAnchorPoint();
-
-		return FReply::Handled().CaptureMouse( SharedThis(this) );
-	}
-	else
-	{
-		HandleSelection(true, true);
-		return FReply::Unhandled();
-	}
-}
-
-FReply SGraphNodeComment::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	if ( (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) && bUserIsDragging )
-	{
-		bUserIsDragging = false;
-
-		// Resize the node	
-		UserSize.X = FPlatformMath::RoundToFloat(UserSize.X);
-		UserSize.Y =FPlatformMath::RoundToFloat(UserSize.Y);
-
-		GetNodeObj()->ResizeNode(UserSize);
-		return FReply::Handled().ReleaseMouseCapture();
-	}
-	return FReply::Unhandled();
 }
 
 void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderComment) const
@@ -539,16 +249,6 @@ void SGraphNodeComment::GetOverlayBrushes(bool bSelected, const FVector2D Widget
 	return SGraphNode::GetOverlayBrushes(bSelected, WidgetSize, Brushes);
 }
 
-bool SGraphNodeComment::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
-{
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( InAbsoluteCursorPosition );
-	ECommentWindowZone InMouseZone = FindMouseZone(LocalMouseCoordinates);
-	
-	//@TODO: really want to return true for CWZ_InWindow as well, *as long as* there are no other comment bubbles underneath that return one of the edges
-	// This is a brute force way to allow nested comment boxes to work usefully
-	return (InMouseZone != CWZ_NotInWindow) && (InMouseZone != CWZ_InWindow);
-}
-
 void SGraphNodeComment::MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilter ) 
 {
 	FVector2D PositionDelta = NewPosition - GetPosition();
@@ -579,6 +279,24 @@ void SGraphNodeComment::MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilt
 			}
 		}
 	}
+}
+
+float SGraphNodeComment::GetTitleBarHeight() const
+{
+	return TitleBar.IsValid() ? TitleBar->GetDesiredSize().Y : 0.0f;
+}
+
+FSlateRect SGraphNodeComment::GetHitTestingBorder( float InverseZoomFactor ) const
+{
+	return FSlateRect(	SCommentNodeDefs::HitResultBorderSize.Left * InverseZoomFactor,
+						SCommentNodeDefs::HitResultBorderSize.Top * InverseZoomFactor,
+						SCommentNodeDefs::HitResultBorderSize.Right * InverseZoomFactor,
+						SCommentNodeDefs::HitResultBorderSize.Bottom * InverseZoomFactor );
+}
+
+FVector2D SGraphNodeComment::GetNodeMaximumSize() const
+{
+	return FVector2D( UserSize.X + 100, UserSize.Y + 100 );
 }
 
 bool SGraphNodeComment::ShouldScaleNodeComment() const 
@@ -617,8 +335,8 @@ FSlateColor SGraphNodeComment::GetCommentTitleBarColor() const
 
 bool SGraphNodeComment::CanBeSelected(const FVector2D& MousePositionInNode) const
 {
-	const ECommentWindowZone InMouseZone = FindMouseZone(MousePositionInNode);
-	return CWZ_TitleBar == InMouseZone;
+	const EResizableWindowZone InMouseZone = FindMouseZone(MousePositionInNode);
+	return CRWZ_TitleBar == MouseZone;
 }
 
 FVector2D SGraphNodeComment::GetDesiredSizeForMarquee() const

@@ -383,6 +383,41 @@ struct FEdGraphSchemaAction_K2AddComment : public FEdGraphSchemaAction
 };
 
 /*******************************************************************************
+* FEdGraphSchemaAction_K2AddDocumentation
+*******************************************************************************/
+
+/** Action to add a 'documentation' node to the graph */
+USTRUCT()
+struct FEdGraphSchemaAction_K2AddDocumentation : public FEdGraphSchemaAction
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Simple type info
+	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddDocumentation"); return Type;}
+	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+
+	FEdGraphSchemaAction_K2AddDocumentation()
+		: FEdGraphSchemaAction()
+	{
+		Category = TEXT("");
+		MenuDescription = NSLOCTEXT("K2AddDocumentation", "AddDocumentation", "Add Documentation ...");
+		TooltipDescription = NSLOCTEXT("K2AddDocumentation", "AddDocumentation_Tooltip", "Creates a Documentation Node.").ToString();
+	}
+
+	FEdGraphSchemaAction_K2AddDocumentation(const FString& InDescription, const FString& InToolTip)
+		: FEdGraphSchemaAction()
+	{
+		Category = TEXT("");
+		MenuDescription = FText::FromString( InDescription );
+		TooltipDescription = InToolTip;
+	}
+	
+	// FEdGraphSchemaAction interface
+	BLUEPRINTGRAPH_API virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
+	// End of FEdGraphSchemaAction interface
+};
+
+/*******************************************************************************
 * FEdGraphSchemaAction_K2TargetNode
 *******************************************************************************/
 

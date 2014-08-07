@@ -297,6 +297,16 @@ static void GetCommentAction(UBlueprint const* BlueprintIn, FGraphActionListBuil
 	ActionMenuBuilder.AddAction( NewAction );
 }
 
+/** Gets the add documentation action */
+static void GetDocumentationAction(UBlueprint const* BlueprintIn, FGraphActionListBuilderBase& ActionMenuBuilder)
+{
+	const FString MenuDescription = LOCTEXT("AddDocumentationNode", "Add Documentation Node...").ToString();
+	const FString ToolTip = LOCTEXT("AddDocumentationToolTip", "Adds a node to display UDN documentation excerpts.").ToString();
+	TSharedPtr<FEdGraphSchemaAction_K2AddDocumentation> NewAction = TSharedPtr<FEdGraphSchemaAction_K2AddDocumentation>(new FEdGraphSchemaAction_K2AddDocumentation( MenuDescription, ToolTip ));
+
+	ActionMenuBuilder.AddAction( NewAction );
+}
+
 /** */
 static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, bool bLiteralByte, UEnum* OnlyEnum = NULL)
 {
@@ -766,6 +776,8 @@ void FK2ActionMenuBuilder::GetPaletteActions(FBlueprintPaletteListBuilder& Actio
 
 	GetCommentAction(ActionMenuBuilder.Blueprint, ActionMenuBuilder);
 
+	GetDocumentationAction(ActionMenuBuilder.Blueprint, ActionMenuBuilder);
+
 	GetMacroTools(ActionMenuBuilder, true, NULL);
 
 	GetRequestedAction<UK2Node_FormatText>(ActionMenuBuilder, K2ActionCategories::TextCategory);
@@ -1021,6 +1033,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			}
 		}
 		GetCommentAction(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
+		GetDocumentationAction(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
 
 		{
 			UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_Select>();

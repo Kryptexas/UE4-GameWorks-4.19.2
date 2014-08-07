@@ -361,6 +361,11 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 		FBlueprintActionMenuItem* NodeSpawnerAction = (FBlueprintActionMenuItem*)ActionIn.Get();
 		BrushOut = NodeSpawnerAction->GetMenuIcon(ColorOut);
 	}
+	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2AddDocumentation::StaticGetTypeId())
+	{
+		ToolTipOut = LOCTEXT("Documentation_Tooltip", "Create a documentation node.").ToString();
+		BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Documentation_16x"));
+	}
 }
 
 /**
