@@ -7,15 +7,15 @@
 // FAnimNode_Trail
 
 FAnimNode_Trail::FAnimNode_Trail()
-	: FakeVelocity(FVector::ZeroVector)
-	, ChainLength(2)
+	: ChainLength(2)
 	, ChainBoneAxis(EAxis::X)
 	, bInvertChainBoneAxis(false)
 	, bLimitStretch(false)
-	, bActorSpaceFakeVel(false)
-	, bHadValidStrength(false)
 	, TrailRelaxation(10)
 	, StretchLimit(0)
+	, FakeVelocity(FVector::ZeroVector)
+	, bActorSpaceFakeVel(false)
+	, bHadValidStrength(false)
 {
 }
 
