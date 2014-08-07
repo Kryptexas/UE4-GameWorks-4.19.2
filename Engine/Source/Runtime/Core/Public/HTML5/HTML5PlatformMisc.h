@@ -42,7 +42,7 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 		if (IsDebuggerPresent())
 		{
 #if PLATFORM_HTML5_WIN32
-			exit(-1);
+			__debugbreak();
 #else
 			emscripten_log(255, "DebugBreak() called!");
 #endif
