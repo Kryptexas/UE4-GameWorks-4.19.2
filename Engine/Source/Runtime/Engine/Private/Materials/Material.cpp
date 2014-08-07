@@ -3395,7 +3395,7 @@ static void ListSceneColorMaterials()
 	{
 		UMaterialInterface* Mat = *It;
 		const FMaterial* MatRes = Mat->GetRenderProxy(false)->GetMaterial(GRHIFeatureLevel);
-		if (MatRes && MatRes->RequiresSceneColorCopy())
+		if (MatRes && MatRes->RequiresSceneColorCopy_GameThread())
 		{
 			UMaterial* BaseMat = Mat->GetMaterial();
 			UE_LOG(LogConsoleResponse,Display,TEXT("[SepTrans=%d] %s"),

@@ -213,18 +213,21 @@ void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::DrawPoint(
 }
 
 template<class DrawingPolicyFactoryType>
-bool DrawViewElements(
+void DrawViewElementsInner(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
-	bool bPreFog
+	bool bPreFog,
+	int32 FirstIndex,
+	int32 LastIndex
 	)
 {
 	// Get the correct element list based on dpg index
 	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = ( DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements );
 	// Draw the view's mesh elements.
-	for(int32 MeshIndex = 0;MeshIndex < ViewMeshElementList.Num();MeshIndex++)
+	check(LastIndex < ViewMeshElementList.Num());
+	for (int32 MeshIndex = FirstIndex; MeshIndex <= LastIndex; MeshIndex++)
 	{
 		const FHitProxyMeshPair& Mesh = ViewMeshElementList[MeshIndex];
 		const auto FeatureLevel = View.GetFeatureLevel();
@@ -247,8 +250,121 @@ bool DrawViewElements(
 			--bBackFace;
 		} while( bBackFace >= 0 );
 	}
+}
 
-	return View.ViewMeshElements.Num() != 0;
+template<typename DrawingPolicyFactoryType>
+class FDrawViewElementsAnyThreadTask
+{
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	const typename DrawingPolicyFactoryType::ContextType& DrawingContext;
+	uint8 DPGIndex;
+	bool bPreFog;
+
+
+	const int32 FirstIndex;
+	const int32 LastIndex;
+
+public:
+
+	FDrawViewElementsAnyThreadTask(
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
+		uint8 InDPGIndex,
+		bool InbPreFog,
+		int32 InFirstIndex,
+		int32 InLastIndex
+		)
+		: RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, DrawingContext(InDrawingContext)
+		, DPGIndex(InDPGIndex)
+		, bPreFog(InbPreFog)
+		, FirstIndex(InFirstIndex)
+		, LastIndex(InLastIndex)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawViewElementsAnyThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		DrawViewElementsInner<DrawingPolicyFactoryType>(RHICmdList, View, DrawingContext, DPGIndex, bPreFog, FirstIndex, LastIndex);
+	}
+};
+
+template<class DrawingPolicyFactoryType>
+FGraphEventRef DrawViewElementsParallel(
+	const FViewInfo& View,
+	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
+	uint8 DPGIndex,
+	bool bPreFog,
+	FGraphEventRef SubmitChain,
+	int32 Width
+	)
+{
+	// Get the correct element list based on dpg index
+	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
+
+	{
+		int32 NumPrims = ViewMeshElementList.Num();
+		int32 EffectiveThreads = FMath::Min<int32>(NumPrims, Width);
+
+		int32 Start = 0;
+		if (EffectiveThreads)
+		{
+
+			int32 NumPer = NumPrims / EffectiveThreads;
+			int32 Extra = NumPrims - NumPer * EffectiveThreads;
+
+
+			for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+			{
+				int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+				check(Last >= Start);
+
+				FRHICommandList* CmdList = new FRHICommandList;
+
+				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
+					.ConstructAndDispatchWhenReady(CmdList, &View, DrawingContext, DPGIndex, bPreFog, Start, Last);
+				Start = Last + 1;
+
+				SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
+			}
+		}
+	}
+
+	return SubmitChain;
+}
+
+template<class DrawingPolicyFactoryType>
+bool DrawViewElements(
+	FRHICommandList& RHICmdList,
+	const FViewInfo& View,
+	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
+	uint8 DPGIndex,
+	bool bPreFog
+	)
+{
+	// Get the correct element list based on dpg index
+	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
+	if (View.ViewMeshElements.Num() != 0)
+	{
+		DrawViewElementsInner<DrawingPolicyFactoryType>(RHICmdList, View, DrawingContext, DPGIndex, bPreFog, 0, ViewMeshElementList.Num() - 1);
+		return true;
+	}
+	return false;
 }
 
 template<class DrawingPolicyFactoryType>

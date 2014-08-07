@@ -409,7 +409,7 @@ inline bool AllowShadowOnlyMesh()
 
 void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	if (!HasViewDependentDPG())
 	{
 		// Determine the DPG the primitive should be drawn in.
@@ -476,7 +476,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 							Section.bCastShadow
 							&& Material->GetBlendMode() == BLEND_Opaque
 							&& !Material->IsTwoSided()
-							&& !Material->MaterialModifiesMeshPosition();
+							&& !Material->MaterialModifiesMeshPosition_RenderThread();
 						bAnySectionCastsShadow |= Section.bCastShadow;
 					}
 
@@ -556,7 +556,7 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_StaticMeshSceneProxy_DrawDynamicElements );
 
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	const bool bIsLightmapSettingError = HasStaticLighting() && !HasValidSettingsForStaticLighting();
 
@@ -854,7 +854,7 @@ bool FStaticMeshSceneProxy::CanBeOccluded() const
 
 FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 {   
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.StaticMeshes;
@@ -1058,7 +1058,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		FMaterialResource const* MaterialResource = const_cast<UMaterialInterface const*>(SectionInfo.Material)->GetMaterial_Concurrent(RecursionGuard)->GetMaterialResource(FeatureLevel);
 		if(MaterialResource)
 		{
-			if(MaterialResource->MaterialModifiesMeshPosition())
+			if (MaterialResource->MaterialModifiesMeshPosition_GameThread())
 			{
 				bUsesMeshModifyingMaterials = true;
 			}

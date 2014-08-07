@@ -354,6 +354,8 @@ void FSceneRenderTargets::AllocLightAttenuation()
 		return;
 	}
 
+	check(IsInRenderingThread());
+
 	// create LightAttenuation on demand so it can be shared with other pooled RT
 
 	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.

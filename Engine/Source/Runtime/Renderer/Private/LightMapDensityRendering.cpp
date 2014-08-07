@@ -108,7 +108,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	const bool bMaterialMasked = Material->IsMasked();
-	const bool bMaterialModifiesMesh = Material->MaterialModifiesMeshPosition();
+	const bool bMaterialModifiesMesh = Material->MaterialModifiesMeshPosition_RenderThread();
 	if (!bMaterialMasked && !bMaterialModifiesMesh)
 	{
 		// Override with the default material for opaque materials that are not two sided

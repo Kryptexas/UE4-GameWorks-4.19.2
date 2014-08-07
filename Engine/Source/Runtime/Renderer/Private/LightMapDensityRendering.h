@@ -454,7 +454,7 @@ public:
 		return (Material && 
 				!(	Material->IsSpecialEngineMaterial() || 
 					Material->IsMasked() ||
-					Material->MaterialModifiesMeshPosition()
+					Material->MaterialModifiesMeshPosition_RenderThread()
 				));
 	}
 };

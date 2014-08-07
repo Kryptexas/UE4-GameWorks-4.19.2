@@ -973,13 +973,15 @@ public:
 		//@todo - remove non-dynamic parameter particle VF and always support dynamic parameter
 		return true; 
 	}
-	ENGINE_API bool RequiresSceneColorCopy() const;
+	ENGINE_API bool RequiresSceneColorCopy_GameThread() const;
+	ENGINE_API bool RequiresSceneColorCopy_RenderThread() const;
 	ENGINE_API bool NeedsSceneTextures() const;
 	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
 
 	/** Does the material modify the mesh position. */
-	ENGINE_API bool MaterialModifiesMeshPosition() const;
+	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
+	ENGINE_API bool MaterialModifiesMeshPosition_GameThread() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;

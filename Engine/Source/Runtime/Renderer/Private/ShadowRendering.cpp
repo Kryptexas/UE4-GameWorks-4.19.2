@@ -668,7 +668,7 @@ void OverrideWithDefaultMaterialForShadowDepth(
 {
 	// Override with the default material when possible.
 	if (!InOutMaterialResource->IsMasked() &&						// Don't override masked materials.
-		!InOutMaterialResource->MaterialModifiesMeshPosition() &&	// Don't override materials using world position offset.
+		!InOutMaterialResource->MaterialModifiesMeshPosition_RenderThread() &&	// Don't override materials using world position offset.
 		!bReflectiveShadowmap)										// Don't override when rendering reflective shadow maps.
 	{
 		const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -749,7 +749,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	bUsePositionOnlyVS = !bRenderingReflectiveShadowMaps
 		&& VertexFactory->SupportsPositionOnlyStream()
 		&& !MaterialResource->IsMasked()
-		&& !MaterialResource->MaterialModifiesMeshPosition();
+		&& !MaterialResource->MaterialModifiesMeshPosition_RenderThread();
 
 	// Vertex related shaders
 	if (bOnePassPointLightShadow)
@@ -1392,7 +1392,7 @@ public:
 	}
 };
 
-void FProjectedShadowInfo::RenderDepthInner(FRHICommandListImmediate& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView)
+void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView)
 {
 	static TAutoConsoleVariable<int32> CVarParallelShadows(
 		TEXT("r.ParallelShadows"),
@@ -1401,7 +1401,8 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandListImmediate& RHICmdList
 		ECVF_RenderThreadSafe
 		);
 
-	if (!GRHICommandList.Bypass() && CVarParallelShadows.GetValueOnRenderThread())
+	if (&RHICmdList == &FRHICommandListExecutor::GetImmediateCommandList() &&  // translucent shadows are draw on the render thread, using a recursive cmdlist, so this path seems like a loser in that case, but it should be tried
+		!GRHICommandList.Bypass() && CVarParallelShadows.GetValueOnRenderThread())
 	{
 		// parallel version
 
@@ -1446,7 +1447,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandListImmediate& RHICmdList
 
 		if (SubmitChain.GetReference())
 		{
-			RHICmdList.Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
+			FRHICommandListExecutor::GetImmediateCommandList().Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
 		}
 	}
@@ -1489,7 +1490,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandListImmediate& RHICmdList
 	}
 }
 
-void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
+void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
 {
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;

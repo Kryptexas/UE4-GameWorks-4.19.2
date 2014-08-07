@@ -484,7 +484,7 @@ public:
 };
 
 /** Renders shadow maps for translucent primitives. */
-void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandListImmediate& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
+void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
 {
 	
 	checkSlow(!bWholeSceneShadow);
@@ -503,7 +503,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandListImmediate& RH
 			break;
 		}
 	}
-	check(FoundView);
+	check(FoundView && IsInRenderingThread());
 	
 	// Backup properties of the view that we will override
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer = FoundView->UniformBuffer;

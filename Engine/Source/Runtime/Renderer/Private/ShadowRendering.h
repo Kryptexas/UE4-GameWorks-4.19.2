@@ -662,12 +662,12 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/** Renders shadow maps for translucent primitives. */
-	void RenderTranslucencyDepths(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/**
 	 * Projects the shadow onto the scene for a particular view.
@@ -744,7 +744,7 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view

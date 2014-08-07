@@ -326,7 +326,7 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	}
 	else 
 	{
-		checkSlow(IsInRenderingThread());
+		check(IsInRenderingThread());
 		ShaderMapToUse = GetRenderingThreadShaderMap();
 	}
 
@@ -351,9 +351,9 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	}
 	else 
 	{
-		checkSlow(IsInRenderingThread());
+		check(IsInRenderingThread());
 		ShaderMapToUse = GetRenderingThreadShaderMap();
-}
+	}
 
 	if (ShaderMapToUse)
 	{
@@ -364,23 +364,29 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	return EmptyExpressions;
 }
 
-bool FMaterial::RequiresSceneColorCopy() const 
+bool FMaterial::RequiresSceneColorCopy_GameThread() const
 {
-	if (IsInGameThread() && GameThreadShaderMap)
+	check(IsInGameThread());
+	if (GameThreadShaderMap)
 	{
 		return GameThreadShaderMap->RequiresSceneColorCopy();
 	}
-	else if (IsInRenderingThread() && RenderingThreadShaderMap)
+	return false;
+}
+
+bool FMaterial::RequiresSceneColorCopy_RenderThread() const
+{
+	check(IsInParallelRenderingThread());
+	if (RenderingThreadShaderMap)
 	{
 		return RenderingThreadShaderMap->RequiresSceneColorCopy();
 	}
-
 	return false;
 }
 
 bool FMaterial::NeedsSceneTextures() const 
 {
-	checkSlow(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	if (RenderingThreadShaderMap)
 	{
@@ -392,7 +398,7 @@ bool FMaterial::NeedsSceneTextures() const
 
 bool FMaterial::NeedsGBuffer() const
 {
-	checkSlow(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	if (IsOpenGLPlatform(GRHIShaderPlatform)) // @todo: TTP #341211
 	{
@@ -410,7 +416,7 @@ bool FMaterial::NeedsGBuffer() const
 
 bool FMaterial::UsesEyeAdaptation() const 
 {
-	checkSlow(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	if (RenderingThreadShaderMap)
 	{
@@ -420,9 +426,18 @@ bool FMaterial::UsesEyeAdaptation() const
 	return false;
 }
 
-bool FMaterial::MaterialModifiesMeshPosition() const 
+bool FMaterial::MaterialModifiesMeshPosition_RenderThread() const
 { 
-	FMaterialShaderMap* ShaderMap = IsInRenderingThread() ? RenderingThreadShaderMap : GameThreadShaderMap.GetReference();
+	check(IsInParallelRenderingThread());
+	bool bUsesWPO = RenderingThreadShaderMap ? RenderingThreadShaderMap->ModifiesMeshPosition() : false;
+
+	return bUsesWPO || GetTessellationMode() != MTM_NoTessellation;
+}
+
+bool FMaterial::MaterialModifiesMeshPosition_GameThread() const
+{
+	check(IsInGameThread());
+	FMaterialShaderMap* ShaderMap = GameThreadShaderMap.GetReference();
 	bool bUsesWPO = ShaderMap ? ShaderMap->ModifiesMeshPosition() : false;
 
 	return bUsesWPO || GetTessellationMode() != MTM_NoTessellation;
@@ -437,13 +452,13 @@ bool FMaterial::MaterialMayModifyMeshPosition() const
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
 { 
-	checkSlow(IsInParallelRenderingThread());
+	check(IsInParallelRenderingThread());
 	return RenderingThreadShaderMap; 
 }
 
 void FMaterial::SetRenderingThreadShaderMap(FMaterialShaderMap* InMaterialShaderMap)
 {
-	checkSlow(IsInRenderingThread());
+	check(IsInRenderingThread());
 	RenderingThreadShaderMap = InMaterialShaderMap;
 }
 
@@ -1114,7 +1129,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
-	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy_GameThread() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_FULLY_ROUGH"), IsFullyRough() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
@@ -1534,7 +1549,7 @@ void FMaterialRenderProxy::CacheUniformExpressions_GameThread()
 
 void FMaterialRenderProxy::InvalidateUniformExpressionCache()
 {
-	checkSlow(IsInRenderingThread());
+	check(IsInRenderingThread());
 	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
 	{
 		UniformExpressionCache[i].bUpToDate = false;

@@ -339,10 +339,10 @@ public:
 	// ---
 
 	/** Get the current translucent ambient lighting volume texture. Can vary depending on whether volume filtering is enabled */
-	TRefCountPtr<IPooledRenderTarget> GetTranslucencyVolumeAmbient(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeAmbient[SelectTranslucencyVolumeTarget(Cascade)]; }
+	IPooledRenderTarget* GetTranslucencyVolumeAmbient(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeAmbient[SelectTranslucencyVolumeTarget(Cascade)].GetReference(); }
 
 	/** Get the current translucent directional lighting volume texture. Can vary depending on whether volume filtering is enabled */
-	TRefCountPtr<IPooledRenderTarget> GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade)]; }
+	IPooledRenderTarget* GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade)].GetReference(); }
 
 	// ---
 	/** Get the uniform buffer containing GBuffer resources. */
@@ -395,6 +395,8 @@ public:
 
 	//
 	void AllocGBufferTargets();
+
+	void AllocLightAttenuation();
 
 private: // Get...() methods instead of direct access
 
@@ -511,8 +513,6 @@ private:
 	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;
 
 	void AllocSceneColor();
-
-	void AllocLightAttenuation();
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();

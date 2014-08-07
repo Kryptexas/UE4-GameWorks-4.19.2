@@ -139,7 +139,7 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 
 const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	if (Owner->bHasStaticPermutationResource)
 	{
@@ -176,7 +176,7 @@ const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type F
 
 FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	if (Owner->bHasStaticPermutationResource)
 	{
@@ -205,7 +205,7 @@ bool FMaterialInstanceResource::GetScalarValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	const float* Value = RenderThread_FindParameterByName<float>(ParameterName);
 	if(Value)
 	{
@@ -228,7 +228,7 @@ bool FMaterialInstanceResource::GetVectorValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	const FLinearColor* Value = RenderThread_FindParameterByName<FLinearColor>(ParameterName);
 	if(Value)
 	{
@@ -251,7 +251,7 @@ bool FMaterialInstanceResource::GetTextureValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	const UTexture* const * Value = RenderThread_FindParameterByName<const UTexture*>(ParameterName);
 	if(Value && *Value)
 	{

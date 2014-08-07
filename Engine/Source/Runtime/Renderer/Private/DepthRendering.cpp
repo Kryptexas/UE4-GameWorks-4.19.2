@@ -324,7 +324,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	else
 	{
 		if (StaticMesh->VertexFactory->SupportsPositionOnlyStream() 
-			&& !Material->MaterialModifiesMeshPosition())
+			&& !Material->MaterialModifiesMeshPosition_RenderThread())
 		{
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			// Add the static mesh to the position-only depth draw list.
@@ -343,7 +343,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 		}
 		else
 		{
-			if (!Material->MaterialModifiesMeshPosition())
+			if (!Material->MaterialModifiesMeshPosition_RenderThread())
 			{
 				// Override with the default material for everything but opaque two sided materials
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -393,7 +393,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 		if ( BlendMode == BLEND_Opaque 
 			&& Mesh.VertexFactory->SupportsPositionOnlyStream() 
-			&& !Material->MaterialModifiesMeshPosition())
+			&& !Material->MaterialModifiesMeshPosition_RenderThread())
 		{
 			//render opaque primitives that support a separate position-only vertex buffer
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -435,7 +435,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			if(bDraw)
 			{
-				if (!bMaterialMasked && !Material->MaterialModifiesMeshPosition())
+				if (!bMaterialMasked && !Material->MaterialModifiesMeshPosition_RenderThread())
 				{
 					// Override with the default material for opaque materials that are not two sided
 					MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
