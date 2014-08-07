@@ -351,12 +351,12 @@ inline FVector FMath::VRand()
 	do
 	{
 		// Check random vectors in the unit sphere so result is statistically uniform.
-		Result.X = FRand() * 2 - 1;
-		Result.Y = FRand() * 2 - 1;
-		Result.Z = FRand() * 2 - 1;
-
+		Result.X = FRand() * 2.f - 1.f;
+		Result.Y = FRand() * 2.f - 1.f;
+		Result.Z = FRand() * 2.f - 1.f;
 		L = Result.SizeSquared();
-	} while(L > 1.0f || L < 0.001f);
+	}
+	while(L > 1.0f || L < KINDA_SMALL_NUMBER);
 
 	return Result * (1.0f / Sqrt(L));
 }
