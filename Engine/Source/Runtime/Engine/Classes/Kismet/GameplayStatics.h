@@ -497,5 +497,12 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/** Native version, has more options than the Blueprint version. */
 	static bool SuggestProjectileVelocity(UObject* WorldContextObject, FVector& TossVelocity, FVector StartLocation, FVector EndLocation, float TossSpeed, bool bHighArc=false, float CollisionRadius = 0.f, float OverrideGravityZ = 0, ESuggestProjVelocityTraceOption::Type TraceOption = ESuggestProjVelocityTraceOption::TraceFullPath, bool bDrawDebug=false);
 
+	/** Returns world origin current location */
+	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	static FIntVector GetWorldOriginLocation(UObject* WorldContextObject);
+	
+	/** Requests a new location for a world origin */
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	static void SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation);
 };
 

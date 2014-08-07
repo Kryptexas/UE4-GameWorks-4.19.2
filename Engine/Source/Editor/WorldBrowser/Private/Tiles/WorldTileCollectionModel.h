@@ -169,10 +169,10 @@ private:
 	void PrepareToLoadLevels(FWorldTileModelList& InLevels);
 		
 	/** Delegate callback: the world origin is going to be moved. */
-	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin);
+	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin);
 	
 	/** Delegate callback: the world origin has been moved. */
-	void PostWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin);
+	void PostWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin);
 
 	/** Update list layers */
 	void PopulateLayersList();

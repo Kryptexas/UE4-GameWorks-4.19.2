@@ -1061,9 +1061,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	}
 
 	// Translate world origin if requested
-	if (GlobalOriginOffset != RequestedGlobalOriginOffset)
+	if (OriginLocation != RequestedOriginLocation)
 	{
-		SetNewWorldOrigin(RequestedGlobalOriginOffset);
+		SetNewWorldOrigin(RequestedOriginLocation);
 		bOriginOffsetThisFrame = true;
 	}
 	else

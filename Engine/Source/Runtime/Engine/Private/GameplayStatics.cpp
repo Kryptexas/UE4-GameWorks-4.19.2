@@ -1278,3 +1278,15 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 
 	return bFoundAValidSolution;
 }
+
+FIntVector UGameplayStatics::GetWorldOriginLocation(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	return World->OriginLocation;
+}
+
+void UGameplayStatics::SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	return World->RequestNewWorldOrigin(NewLocation);
+}

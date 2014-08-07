@@ -6215,7 +6215,7 @@ UActorFactory* UEditorEngine::FindActorFactoryByClassForActorClass( const UClass
 	return NULL;
 }
 
-void UEditorEngine::PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+void UEditorEngine::PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 {
 	// In case we simulating world in the editor, 
 	// we need to shift current viewport as well, 

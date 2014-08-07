@@ -389,7 +389,7 @@ FVector2D FWorldTileModel::GetLevelCurrentPosition() const
 		FVector2D LevelLocalPosition(TileDetails->Bounds.GetCenter());
 		FIntPoint LevelOffset = GetAbsoluteLevelPosition();
 			
-		return LevelLocalPosition + FVector2D(LevelOffset - CurrentWorld->GlobalOriginOffset); 
+		return LevelLocalPosition + FVector2D(LevelOffset - LevelCollectionModel.GetWorldOriginLocationXY()); 
 	}
 
 	return FVector2D(0, 0);
@@ -480,11 +480,10 @@ void FWorldTileModel::Update()
 			if (TileDetails->Bounds.IsValid)
 			{
 				FBox LevelWorldBounds = TileDetails->Bounds;
-				FIntPoint GlobalOriginOffset = LevelCollectionModel.GetWorld()->GlobalOriginOffset;
 				FIntPoint LevelAbolutePosition = GetAbsoluteLevelPosition();
-				FIntPoint LevelOffset = LevelAbolutePosition - GlobalOriginOffset;
+				FIntPoint LevelOffset = LevelAbolutePosition - LevelCollectionModel.GetWorldOriginLocationXY();
 
-				TileDetails->Bounds = LevelWorldBounds.ShiftBy(-FVector(LevelOffset, 0.f));
+				TileDetails->Bounds = LevelWorldBounds.ShiftBy(-FVector(LevelOffset));
 			}
 
 			OnLevelInfoUpdated();
@@ -763,7 +762,7 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 		}
 
 		// Add source level position
-		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LevelCollectionModel.GetWorld()->GlobalOriginOffset;
+		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LevelCollectionModel.GetWorldOriginLocationXY();
 
 		// Move level with landscape proxy to desired position
 		SetLevelPosition(IntOffset);

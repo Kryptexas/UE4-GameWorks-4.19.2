@@ -8600,7 +8600,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	if (WorldContext.World()->WorldComposition)
 	{
 		// Set initial world origin and stream in levels
-		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
+		WorldContext.World()->NavigateTo(FIntVector::ZeroValue);
 	}
 	else
 	{

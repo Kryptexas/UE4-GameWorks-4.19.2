@@ -441,7 +441,7 @@ void UWorldComposition::GetDistanceVisibleLevels(
 {
 	const UWorld* OwningWorld = GetWorld();
 
-	FIntPoint WorldOffset = OwningWorld->GlobalOriginOffset;
+	FIntPoint WorldOriginLocationXY = FIntPoint(OwningWorld->OriginLocation.X, OwningWorld->OriginLocation.Y);
 			
 	for (int32 TileIdx = 0; TileIdx < Tiles.Num(); TileIdx++)
 	{
@@ -472,8 +472,8 @@ void UWorldComposition::GetDistanceVisibleLevels(
 			//
 			// Check if tile bounding box intersects with a sphere with origin at provided location and with radius equal to tile layer distance settings
 			//
-			FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOffset;
-			FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset, 0));
+			FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOriginLocationXY;
+			FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset));
 			// We don't care about third dimension yet
 			LevelBounds.Min.Z = -WORLD_MAX;
 			LevelBounds.Max.Z = +WORLD_MAX;
@@ -682,7 +682,7 @@ FIntPoint UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 		LevelPosition = LevelPackage->WorldTileInfo->AbsolutePosition;
 	}
 	
-	return LevelPosition - OwningWorld->GlobalOriginOffset;
+	return LevelPosition - FIntPoint(OwningWorld->OriginLocation.X, OwningWorld->OriginLocation.Y);
 }
 
 FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const

@@ -33,7 +33,7 @@ public:
 
 	// IAISystemInterface begin		
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) override;
-	virtual void WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin) override;
+	virtual void WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVector NewOriginLocation) override;
 	virtual void CleanupWorld(bool bSessionEnded = true, bool bCleanupResources = true, UWorld* NewWorld = NULL) override;
 	// IAISystemInterface end
 	

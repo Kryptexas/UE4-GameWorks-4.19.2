@@ -866,11 +866,11 @@ public:
 	/** time at which to start pause **/
 	float PauseDelay;
 
-	/** Offset for all levels from world origin */
-	FIntPoint GlobalOriginOffset;
+	/** Current location of this world origin */
+	FIntVector OriginLocation;
 
-	/** Requested new world origin offset */
-	FIntPoint RequestedGlobalOriginOffset;
+	/** Requested new world origin location */
+	FIntVector RequestedOriginLocation;
 
 	/** Whether world origin was rebased this frame */
 	bool bOriginOffsetThisFrame;
@@ -2412,13 +2412,13 @@ public:
 	bool IsNavigationRebuilt() const;
 
 	/** Request to translate world origin to specified position on next tick */
-	void RequestNewWorldOrigin(const FIntPoint& InNewOrigin);
+	void RequestNewWorldOrigin(FIntVector InNewOriginLocation);
 	
 	/** Translate world origin to specified position  */
-	bool SetNewWorldOrigin(const FIntPoint& InNewOrigin);
+	bool SetNewWorldOrigin(FIntVector InNewOriginLocation);
 
 	/** Sets world origin at specified position and stream-in all relevant levels */
-	void NavigateTo(FIntPoint InPosition);
+	void NavigateTo(FIntVector InLocation);
 
 	/** Gets all matinee actors for the current level */
 	void GetMatineeActors( TArray<AMatineeActor*>& OutMatineeActors );

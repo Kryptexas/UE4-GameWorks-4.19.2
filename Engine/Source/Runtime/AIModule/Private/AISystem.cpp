@@ -33,7 +33,7 @@ void UAISystem::InitializeActorsForPlay(bool bTimeGotReset)
 
 }
 
-void UAISystem::WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin)
+void UAISystem::WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVector NewOriginLocation)
 {
 
 }

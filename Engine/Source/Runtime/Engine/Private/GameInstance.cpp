@@ -192,7 +192,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		// and stream in all relevant levels around that location
 		if (PlayWorld->WorldComposition)
 		{
-			PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
+			PlayWorld->NavigateTo(PlayWorld->OriginLocation);
 		}
 		else
 		{

@@ -989,16 +989,16 @@ void FWorldTileCollectionModel::Focus(FBox InArea, FocusStrategy InStrategy)
 	{
 	case OriginAtCenter:
 		{
-			FIntPoint NewWorldOrigin = FIntPoint(InArea.GetCenter().X, InArea.GetCenter().Y);
-			GetWorld()->SetNewWorldOrigin(NewWorldOrigin + GetWorld()->GlobalOriginOffset);
+			FIntVector OriginOffset = FIntVector(InArea.GetCenter().X, InArea.GetCenter().Y, 0);
+			GetWorld()->SetNewWorldOrigin(GetWorld()->OriginLocation + OriginOffset);
 		}
 		break;
 	
 	case EnsureEditableCentered:
 		if (!bIsEditable)
 		{
-			FIntPoint NewWorldOrigin = FIntPoint(InArea.GetCenter().X, InArea.GetCenter().Y);
-			GetWorld()->SetNewWorldOrigin(NewWorldOrigin + GetWorld()->GlobalOriginOffset);
+			FIntVector OriginOffset = FIntVector(InArea.GetCenter().X, InArea.GetCenter().Y, 0);
+			GetWorld()->SetNewWorldOrigin(GetWorld()->OriginLocation + OriginOffset);
 		}
 		break;
 
@@ -1032,14 +1032,14 @@ void FWorldTileCollectionModel::Focus(FBox InArea, FocusStrategy InStrategy)
 				NewWorldBounds.Min.Y = InArea.Max.Y - EditableAxisLength();
 			}
 
-			FIntPoint NewWorldOrigin = FIntPoint(NewWorldBounds.GetCenter().X, NewWorldBounds.GetCenter().Y);
-			GetWorld()->SetNewWorldOrigin(NewWorldOrigin + GetWorld()->GlobalOriginOffset);
+			FIntVector OriginOffset = FIntVector(NewWorldBounds.GetCenter().X, NewWorldBounds.GetCenter().Y, 0);
+			GetWorld()->SetNewWorldOrigin(GetWorld()->OriginLocation + OriginOffset);
 		}
 		break;
 	}
 }
 
-void FWorldTileCollectionModel::PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+void FWorldTileCollectionModel::PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 {
 	// Make sure we handle our world notifications
 	if (GetWorld() != InWorld)
@@ -1047,7 +1047,7 @@ void FWorldTileCollectionModel::PreWorldOriginOffset(UWorld* InWorld, const FInt
 		return;
 	}
 	
-	FBox NewWorldBounds = EditableWorldArea().ShiftBy(FVector(InDstOrigin-InSrcOrigin, 0));
+	FBox NewWorldBounds = EditableWorldArea().ShiftBy(FVector(InDstOrigin - InSrcOrigin));
 
 	// Shelve levels which do not fit to a new world bounds
 	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
@@ -1060,7 +1060,7 @@ void FWorldTileCollectionModel::PreWorldOriginOffset(UWorld* InWorld, const FInt
 	}
 }
 
-void FWorldTileCollectionModel::PostWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+void FWorldTileCollectionModel::PostWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 {
 	// Make sure we handle our world notifications
 	if (GetWorld() != InWorld)
@@ -1691,7 +1691,7 @@ void FWorldTileCollectionModel::MoveWorldOrigin(const FIntPoint& InOrigin)
 		return;
 	}
 	
-	GetWorld()->SetNewWorldOrigin(InOrigin);
+	GetWorld()->SetNewWorldOrigin(FIntVector(InOrigin.X, InOrigin.Y, 0));
 	RequestUpdateAllLevels();
 }
 
@@ -1710,7 +1710,7 @@ void FWorldTileCollectionModel::ResetWorldOrigin_Executed()
 {
 	if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
-		FBox OriginArea = EditableWorldArea().ShiftBy(FVector(GetWorld()->GlobalOriginOffset, 0));
+		FBox OriginArea = EditableWorldArea().ShiftBy(FVector(GetWorld()->OriginLocation));
 		Focus(OriginArea, OriginAtCenter);
 	
 		MoveWorldOrigin(FIntPoint::ZeroValue);
@@ -1828,7 +1828,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		LODPackage->FileName = FName(*LODLevelFileName);
 				
 		// This is current actors offset from their original position
-		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
+		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - GetWorldOriginLocationXY());
 		if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
 		{
 			ActorsOffset = FVector::ZeroVector;

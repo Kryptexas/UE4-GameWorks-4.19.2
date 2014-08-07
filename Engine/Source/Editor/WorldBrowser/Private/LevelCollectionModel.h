@@ -46,6 +46,9 @@ public:
 	/** Current world size  */
 	FIntPoint GetWorldSize() const { return WorldSize; }
 	
+	/** Current world origin location on XY plane  */
+	FIntPoint GetWorldOriginLocationXY() const { return FIntPoint(GetWorld()->OriginLocation.X, GetWorld()->OriginLocation.Y); }
+	
 	/**	@return	Root list of levels in hierarchy */
 	FLevelModelList& GetRootLevelList();
 

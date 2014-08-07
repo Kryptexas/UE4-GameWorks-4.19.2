@@ -1078,7 +1078,7 @@ void UCheatManager::SetWorldOrigin()
 		ViewLocation = MyPlayerController->GetPawn()->GetActorLocation();
 	}
 	
-	FIntPoint NewOrigin = FIntPoint(ViewLocation.X, ViewLocation.Y) + World->GlobalOriginOffset;
+	FIntVector NewOrigin = FIntVector(ViewLocation.X, ViewLocation.Y, ViewLocation.Z) + World->OriginLocation;
 	World->RequestNewWorldOrigin(NewOrigin);
 }
 

@@ -322,6 +322,23 @@ struct FIntPoint
 
 };
 
+/**
+ *  An integer vector in 3D space
+ */
+
+USTRUCT(immutable, noexport)
+struct FIntVector
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 X;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 Y;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 Z;
+};
+
 
 // A Color.
 

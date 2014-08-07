@@ -196,7 +196,7 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam( FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
 	static FStringAssetReferenceSaving StringAssetReferenceSaving;
 		
-	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, const FIntPoint&, const FIntPoint&);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */
 	static FWorldOriginOffset PreWorldOriginOffset;
 	/** called after world origin shifting */

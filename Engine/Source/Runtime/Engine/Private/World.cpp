@@ -159,8 +159,8 @@ void UWorld::Serialize( FArchive& Ar )
 	// Serialize World composition for PIE
 	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		Ar << GlobalOriginOffset;
-		Ar << RequestedGlobalOriginOffset;
+		Ar << OriginLocation;
+		Ar << RequestedOriginLocation;
 	}
 	
 	// UWorlds loaded/duplicated for PIE must lose RF_Public and RF_Standalone since they should not be referenced by objects in other packages and they should be GCed normally
@@ -2388,9 +2388,9 @@ void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 		CentroidLocation/= ViewFamily.Views.Num();
 	
 		// Request to shift world in case current view is quite far from current origin
-		if (CentroidLocation.Size2D() > HALF_WORLD_MAX1*0.5f)
+		if (CentroidLocation.Size() > HALF_WORLD_MAX1*0.5f)
 		{
-			RequestNewWorldOrigin(FIntPoint(CentroidLocation.X, CentroidLocation.Y) + GlobalOriginOffset);
+			RequestNewWorldOrigin(FIntVector(CentroidLocation.X, CentroidLocation.Y, CentroidLocation.Z) + OriginLocation);
 		}
 	}
 }
@@ -3896,14 +3896,14 @@ void UWorld::CommitMapChange()
 	}
 }
 
-void UWorld::RequestNewWorldOrigin(const FIntPoint& InNewOrigin)
+void UWorld::RequestNewWorldOrigin(FIntVector InNewOriginLocation)
 {
-	RequestedGlobalOriginOffset = InNewOrigin;
+	RequestedOriginLocation = InNewOriginLocation;
 }
 
-bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
+bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 {
-	if (GlobalOriginOffset == InNewOrigin) 
+	if (OriginLocation == InNewOriginLocation) 
 	{
 		return true;
 	}
@@ -3915,13 +3915,15 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		return false;
 	}
 	
-	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION BEGIN {%d, %d} -> {%d, %d}"), GlobalOriginOffset.X, GlobalOriginOffset.Y, InNewOrigin.X, InNewOrigin.Y);
+	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION BEGIN {%d, %d, %d} -> {%d, %d, %d}"), 
+		OriginLocation.X, OriginLocation.Y, OriginLocation.Z, InNewOriginLocation.X, InNewOriginLocation.Y, InNewOriginLocation.Z);
+
 	const double MoveStartTime = FPlatformTime::Seconds();
 
 	// Broadcast that we going to shift world to the new origin
-	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, GlobalOriginOffset, InNewOrigin);
+	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, OriginLocation, InNewOriginLocation);
 
-	FVector Offset(GlobalOriginOffset - InNewOrigin, 0);
+	FVector Offset(OriginLocation - InNewOriginLocation);
 
 	// Send offset command to rendering thread
 	Scene->ApplyWorldOffset(Offset);
@@ -3965,10 +3967,10 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		NavigationSystem->ApplyWorldOffset(Offset, true);
 	}
 
-	FIntPoint PreviosWorldOrigin = GlobalOriginOffset;
+	FIntVector PreviosWorldOriginLocation = OriginLocation;
 	// Set new world origin
-	GlobalOriginOffset = InNewOrigin;
-	RequestedGlobalOriginOffset = InNewOrigin;
+	OriginLocation = InNewOriginLocation;
+	RequestedOriginLocation = InNewOriginLocation;
 	
 	// Propagate event to a level blueprints
 	for(int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++)
@@ -3977,30 +3979,31 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		if (Level->bIsVisible && 
 			Level->LevelScriptActor)
 		{
-			Level->LevelScriptActor->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
+			Level->LevelScriptActor->WorldOriginLocationChanged(PreviosWorldOriginLocation, OriginLocation);
 		}
 	}
 
 	if (AISystem != NULL)
 	{
-		AISystem->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
+		AISystem->WorldOriginLocationChanged(PreviosWorldOriginLocation, OriginLocation);
 	}
 
 	// Broadcast that have finished world shifting
-	FCoreDelegates::PostWorldOriginOffset.Broadcast(this, PreviosWorldOrigin, GlobalOriginOffset);
+	FCoreDelegates::PostWorldOriginOffset.Broadcast(this, PreviosWorldOriginLocation, OriginLocation);
 
 	const double CurrentTime = FPlatformTime::Seconds();
 	const float TimeTaken = CurrentTime - MoveStartTime;
-	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION END {%d, %d} took %.4f"), GlobalOriginOffset.X, GlobalOriginOffset.Y, TimeTaken);
+	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION END {%d, %d, %d} took %.4f ms"),
+		OriginLocation.X, OriginLocation.Y, OriginLocation.Z, TimeTaken);
 	
 	return true;
 }
 
-void UWorld::NavigateTo(FIntPoint InPosition)
+void UWorld::NavigateTo(FIntVector InLocation)
 {
 	check(WorldComposition != NULL);
 
-	SetNewWorldOrigin(InPosition);
+	SetNewWorldOrigin(InLocation);
 	WorldComposition->UpdateStreamingState(FVector::ZeroVector);
 	FlushLevelStreaming();
 }

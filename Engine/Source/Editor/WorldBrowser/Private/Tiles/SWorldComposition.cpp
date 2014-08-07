@@ -770,14 +770,15 @@ protected:
 	}
 
 	/** Delegate callback: world origin is going to be moved. */
-	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 	{
 		if (WorldModel->GetWorld() != InWorld)
 		{
 			return;
 		}
-				
-		RequestScrollBy(-FVector2D(InDstOrigin - InSrcOrigin));
+		
+		FIntVector Offset = InDstOrigin - InSrcOrigin;
+		RequestScrollBy(-FVector2D(Offset.X, Offset.Y));
 	}
 	
 	/** Handles new item added to data source */
@@ -1214,7 +1215,7 @@ FText SWorldComposition::GetZoomText() const
 FString SWorldComposition::GetCurrentOriginText() const
 {
 	UWorld* CurrentWorld = (TileWorldModel->IsSimulating() ? TileWorldModel->GetSimulationWorld() : TileWorldModel->GetWorld());
-	return FString::Printf(TEXT("%d, %d"), CurrentWorld->GlobalOriginOffset.X, CurrentWorld->GlobalOriginOffset.Y);
+	return FString::Printf(TEXT("%d, %d"), CurrentWorld->OriginLocation.X, CurrentWorld->OriginLocation.Y);
 }
 
 FString SWorldComposition::GetCurrentLevelText() const

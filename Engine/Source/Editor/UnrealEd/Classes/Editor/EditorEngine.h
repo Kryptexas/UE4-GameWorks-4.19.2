@@ -2455,7 +2455,7 @@ private:
 	virtual void PostUndo (bool bSuccess);
 
 	/** Delegate callback: the world origin is going to be moved. */
-	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin);
+	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin);
 
 	/** Delegate callback for when a streaming level is added to world. */
 	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
