@@ -1,8 +1,10 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeDocumentation.h"
+#include "IDocumentation.h"
+#include "SLevelOfDetailBranchNode.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeDocumentation"
 
