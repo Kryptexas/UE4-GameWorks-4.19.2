@@ -6,14 +6,14 @@
 
 #include "SlateWidgetRun.h"
 
-TSharedRef< FSlateWidgetRun > FSlateWidgetRun::Create( const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo )
+TSharedRef< FSlateWidgetRun > FSlateWidgetRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo )
 {
-	return MakeShareable( new FSlateWidgetRun( InText, InWidgetInfo ) );
+	return MakeShareable( new FSlateWidgetRun( InRunInfo, InText, InWidgetInfo ) );
 }
 
-TSharedRef< FSlateWidgetRun > FSlateWidgetRun::Create( const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange )
+TSharedRef< FSlateWidgetRun > FSlateWidgetRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange )
 {
-	return MakeShareable( new FSlateWidgetRun( InText, InWidgetInfo, InRange ) );
+	return MakeShareable( new FSlateWidgetRun( InRunInfo, InText, InWidgetInfo, InRange ) );
 }
 
 FTextRange FSlateWidgetRun::GetTextRange() const 
@@ -85,22 +85,28 @@ void FSlateWidgetRun::Move(const TSharedRef<FString>& NewText, const FTextRange&
 
 TSharedRef<IRun> FSlateWidgetRun::Clone() const
 {
-	return FSlateWidgetRun::Create(Text, Info, Range);
+	return FSlateWidgetRun::Create(RunInfo, Text, Info, Range);
 }
 
-void FSlateWidgetRun::AppendText(FString& AppendToText) const
+void FSlateWidgetRun::AppendTextTo(FString& AppendToText) const
 {
 	//Do nothing
 }
 
-void FSlateWidgetRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+void FSlateWidgetRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
 }
 
-FSlateWidgetRun::FSlateWidgetRun( const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo ) 
-	: Text( InText )
+const FRunInfo& FSlateWidgetRun::GetRunInfo() const
+{
+	return RunInfo;
+}
+
+FSlateWidgetRun::FSlateWidgetRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( 0, Text->Len() )
 	, Info( InWidgetInfo )
 	, Children()
@@ -109,8 +115,9 @@ FSlateWidgetRun::FSlateWidgetRun( const TSharedRef< const FString >& InText, con
 	Children.Add( Info.Widget );
 }
 
-FSlateWidgetRun::FSlateWidgetRun( const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange ) 
-	: Text( InText )
+FSlateWidgetRun::FSlateWidgetRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( InRange )
 	, Info( InWidgetInfo )
 	, Children()
@@ -120,7 +127,8 @@ FSlateWidgetRun::FSlateWidgetRun( const TSharedRef< const FString >& InText, con
 }
 
 FSlateWidgetRun::FSlateWidgetRun( const FSlateWidgetRun& Run ) 
-	: Text( Run.Text )
+	: RunInfo( Run.RunInfo )
+	, Text( Run.Text )
 	, Range( Run.Range )
 	, Info( Run.Info )
 	, Children()

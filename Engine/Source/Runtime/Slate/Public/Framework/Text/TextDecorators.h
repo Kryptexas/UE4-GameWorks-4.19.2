@@ -18,9 +18,9 @@ public:
 
 public:
 
-	virtual bool Supports( const FTextRunParseResults& RunInfo, const FString& Text ) const override;
+	virtual bool Supports( const FTextRunParseResults& RunParseResult, const FString& Text ) const override;
 
-	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
+	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
 
 private:
 
@@ -41,9 +41,9 @@ public:
 
 public:
 
-	virtual bool Supports( const FTextRunParseResults& RunInfo, const FString& Text ) const override;
+	virtual bool Supports( const FTextRunParseResults& RunParseResult, const FString& Text ) const override;
 
-	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
+	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
 
 private:
 
@@ -64,9 +64,9 @@ public:
 
 public:
 
-	virtual bool Supports( const FTextRunParseResults& RunInfo, const FString& Text ) const override;
+	virtual bool Supports( const FTextRunParseResults& RunParseResult, const FString& Text ) const override;
 
-	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
+	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style ) override;
 
 private:
 

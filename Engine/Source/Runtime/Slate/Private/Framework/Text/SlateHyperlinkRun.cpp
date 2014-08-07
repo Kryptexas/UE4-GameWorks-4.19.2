@@ -6,14 +6,14 @@
 
 #include "SlateHyperlinkRun.h"
 
-TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const TMap<FString,FString>& Metadata, FOnClick NavigateDelegate )
+TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate )
 {
-	return MakeShareable( new FSlateHyperlinkRun( InText, InStyle, Metadata, NavigateDelegate ) );
+	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate ) );
 }
 
-TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const TMap<FString,FString>& Metadata, FOnClick NavigateDelegate, const FTextRange& InRange )
+TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, const FTextRange& InRange )
 {
-	return MakeShareable( new FSlateHyperlinkRun( InText, InStyle, Metadata, NavigateDelegate, InRange ) );
+	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate, InRange ) );
 }
 
 FTextRange FSlateHyperlinkRun::GetTextRange() const 
@@ -68,7 +68,7 @@ TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, in
 
 void FSlateHyperlinkRun::OnNavigate()
 {
-	NavigateDelegate.Execute( Metadata );
+	NavigateDelegate.Execute( RunInfo.MetaData );
 }
 
 int32 FSlateHyperlinkRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
@@ -92,7 +92,31 @@ void FSlateHyperlinkRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Bloc
 
 int32 FSlateHyperlinkRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale, ETextHitPoint* const OutHitPoint ) const
 {
-	return INDEX_NONE;
+	const FVector2D& BlockOffset = Block->GetLocationOffset();
+	const FVector2D& BlockSize = Block->GetSize();
+
+	const float Left = BlockOffset.X;
+	const float Top = BlockOffset.Y;
+	const float Right = BlockOffset.X + BlockSize.X;
+	const float Bottom = BlockOffset.Y + BlockSize.Y;
+
+	const bool ContainsPoint = Location.X >= Left && Location.X < Right && Location.Y >= Top && Location.Y < Bottom;
+
+	if ( !ContainsPoint )
+	{
+		return INDEX_NONE;
+	}
+
+	const FTextRange BlockRange = Block->GetTextRange();
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+
+	const int32 Index = FontMeasure->FindCharacterIndexAtOffset( Text.Get(), BlockRange.BeginIndex, BlockRange.EndIndex, Style.TextStyle.Font, Location.X - BlockOffset.X, true, Scale );
+	if (OutHitPoint)
+	{
+		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+	}
+
+	return Index;
 }
 
 FVector2D FSlateHyperlinkRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
@@ -108,15 +132,15 @@ void FSlateHyperlinkRun::Move(const TSharedRef<FString>& NewText, const FTextRan
 
 TSharedRef<IRun> FSlateHyperlinkRun::Clone() const
 {
-	return FSlateHyperlinkRun::Create(Text, Style, Metadata, NavigateDelegate, Range);
+	return FSlateHyperlinkRun::Create(RunInfo, Text, Style, NavigateDelegate, Range);
 }
 
-void FSlateHyperlinkRun::AppendText(FString& AppendToText) const
+void FSlateHyperlinkRun::AppendTextTo(FString& AppendToText) const
 {
 	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
 }
 
-void FSlateHyperlinkRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+void FSlateHyperlinkRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
@@ -124,11 +148,16 @@ void FSlateHyperlinkRun::AppendText(FString& AppendToText, const FTextRange& Par
 	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
-FSlateHyperlinkRun::FSlateHyperlinkRun( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& InMetadata, FOnClick InNavigateDelegate ) 
-	: Text( InText )
+const FRunInfo& FSlateHyperlinkRun::GetRunInfo() const
+{
+	return RunInfo;
+}
+
+FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( 0, Text->Len() )
 	, Style( InStyle )
-	, Metadata( InMetadata )
 	, NavigateDelegate( InNavigateDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
@@ -136,11 +165,11 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const TSharedRef< const FString >& InTex
 
 }
 
-FSlateHyperlinkRun::FSlateHyperlinkRun( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& InMetadata, FOnClick InNavigateDelegate, const FTextRange& InRange ) 
-	: Text( InText )
+FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( InRange )
 	, Style( InStyle )
-	, Metadata( InMetadata )
 	, NavigateDelegate( InNavigateDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
@@ -149,10 +178,10 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const TSharedRef< const FString >& InTex
 }
 
 FSlateHyperlinkRun::FSlateHyperlinkRun( const FSlateHyperlinkRun& Run ) 
-	: Text( Run.Text )
+	: RunInfo( Run.RunInfo )
+	, Text( Run.Text )
 	, Range( Run.Range )
 	, Style( Run.Style )
-	, Metadata( Run.Metadata )
 	, NavigateDelegate( Run.NavigateDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()

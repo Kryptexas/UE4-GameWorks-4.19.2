@@ -5,6 +5,7 @@
 #include "SLayoutExample.h"
 #include "SWidgetGallery.h"
 #include "TestStyle.h"
+#include "SyntaxHighlighterTextLayoutMarshaller.h"
 
 
 #define LOCTEXT_NAMESPACE "STestSuite"
@@ -958,16 +959,11 @@ private:
 };
 
 
-class SRichTextTest : public SCompoundWidget
+struct RichTextHelper
 {
-public:
-	SLATE_BEGIN_ARGS( SRichTextTest ){}
-	SLATE_END_ARGS()
-
-	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct(const FArguments& InArgs)
+	static FText GetAliceInWonderland()
 	{
-		FText AliceInWonderland = FText::FromString( 
+		return FText::FromString(
 			TEXT("The <a id=\"browser\" href=\"http://en.wikipedia.org/wiki/Dormouse_(Alice%27s_Adventures_in_Wonderland)\" style=\"RichText.Interactive.Text.Hyperlink\">Dormouse</> had closed its eyes by this time, and was going off into a doze; but, on being pinched by the Hatter, it woke up again with a little shriek, and went on: '<RichText.Interactive.Text.Dialogue>-that begins with an M, such as </><a id=\"browser\" href=\"http://en.wikipedia.org/wiki/Mousetrap_(weapon)\" style=\"RichText.Interactive.Text.DialogueHyperlink\">mouse-traps</><RichText.Interactive.Text.Dialogue>, and the moon, and memory, and muchness-you know you say things are \"much of a muchness\"-did you ever see such a thing as a drawing of a muchness?</>'")
 			TEXT("\n\n")
 			TEXT("'<RichText.Interactive.Text.Dialogue>Really, now you ask me,</>' said <a id=\"browser\" href=\"http://en.wikipedia.org/wiki/Alice_(Alice%27s_Adventures_in_Wonderland)\" style=\"RichText.Interactive.Text.Hyperlink\">Alice</>, very much confused, '<RichText.Interactive.Text.Dialogue>I don't think-</>'")
@@ -987,9 +983,12 @@ public:
 			TEXT("'<RichText.Interactive.Text.Dialogue>I couldn't help it,</>' said Five, in a sulky tone; '<RichText.Interactive.Text.Dialogue>Seven jogged my elbow.</>'")
 			TEXT("\n\n")
 			TEXT("On which Seven looked up and said, '<RichText.Interactive.Text.Dialogue>That's right, Five! Always lay the blame on others!</>'")
-			TEXT("\n\n") );
+			TEXT("\n\n"));
+	}
 
-		FText TheWarOfTheWorlds_Part1 = FText::FromString( 
+	static FText GetTheWarOfTheWorlds_Part1()
+	{
+		return FText::FromString(
 			TEXT("When we had finished eating we went softly upstairs to my study, and I looked again out of the open window.  In one night the valley had become a valley of ashes.  The fires had dwindled now.  Where flames had been there were now streamers of smoke; but the countless ruins of shattered and gutted houses and blasted and blackened trees that the night had hidden stood out now gaunt and terrible in the pitiless light of dawn.  Yet here and there some object had had the luck to escape--a white railway signal here, the end of a greenhouse there, white and fresh amid the wreckage.  Never before in the history of warfare had destruction been so indiscriminate and so universal. And shining with the growing light of the east, three of the metallic giants stood about the pit, their cowls rotating as though they were surveying the desolation they had made.")
 			TEXT("\n\n")
 			TEXT("It seemed to me that the pit had been enlarged, and ever and again puffs of vivid green vapour streamed up and out of it towards the brightening dawn--streamed up, whirled, broke, and vanished.")
@@ -1009,9 +1008,12 @@ public:
 			TEXT("We went down the lane, by the body of the man in black, sodden now from the overnight hail, and broke into the woods at the foot of the hill.  We pushed through these towards the railway without meeting a soul.  The woods across the line were but the scarred and blackened ruins of woods; for the most part the trees had fallen, but a certain proportion still stood, dismal grey stems, with dark brown foliage instead of green.")
 			TEXT("\n\n")
 			TEXT("On our side the fire had done no more than scorch the nearer trees; it had failed to secure its footing.  In one place the woodmen had been at work on Saturday; trees, felled and freshly trimmed, lay in a clearing, with heaps of sawdust by the sawing-machine and its engine. Hard by was a temporary hut, deserted.  There was not a breath of wind this morning, and everything was strangely still.  Even the birds were hushed, and as we hurried along I and the artilleryman talked in whispers and looked now and again over our shoulders.  Once or twice we stopped to listen.")
-			TEXT("\n\n") );
+			TEXT("\n\n"));
+	}
 
-		FText TheWarOfTheWorlds_Part2 = FText::FromString( 
+	static FText GetTheWarOfTheWorlds_Part2()
+	{
+		return FText::FromString(
 			TEXT("And beyond, over the blue hills that rise southward of the river, the glittering Martians went to and fro, calmly and methodically spreading their poison cloud over this patch of country and then over that, laying it again with their steam jets when it had served its purpose, and taking possession of the conquered country.  They do not seem to have aimed at extermination so much as at complete demoralisation and the destruction of any opposition.  They exploded any stores of powder they came upon, cut every telegraph, and wrecked the railways here and there.  They were hamstringing mankind.  They seemed in no hurry to extend the field of their operations, and did not come beyond the central part of London all that day.  It is possible that a very considerable number of people in London stuck to their houses through Monday morning.  Certain it is that many died at home suffocated by the Black Smoke.")
 			TEXT("\n\n")
 			TEXT("Until about midday the Pool of London was an astonishing scene. Steamboats and shipping of all sorts lay there, tempted by the enormous sums of money offered by fugitives, and it is said that many who swam out to these vessels were thrust off with boathooks and drowned.  About one o'clock in the afternoon the thinning remnant of a cloud of the black vapour appeared between the arches of Blackfriars Bridge.  At that the Pool became a scene of mad confusion, fighting, and collision, and for some time a multitude of boats and barges jammed in the northern arch of the Tower Bridge, and the sailors and lightermen had to fight savagely against the people who swarmed upon them from the riverfront.  People were actually clambering down the piers of the bridge from above.")
@@ -1027,10 +1029,12 @@ public:
 			TEXT("On Wednesday the three fugitives--they had passed the night in a field of unripe wheat--reached Chelmsford, and there a body of the inhabitants, calling itself the Committee of Public Supply, seized the pony as provisions, and would give nothing in exchange for it but the promise of a share in it the next day.  Here there were rumours of Martians at Epping, and news of the destruction of Waltham Abbey Powder Mills in a vain attempt to blow up one of the invaders.")
 			TEXT("\n\n")
 			TEXT("People were watching for Martians here from the church towers.  My brother, very luckily for him as it chanced, preferred to push on at once to the coast rather than wait for food, although all three of them were very hungry.  By midday they passed through Tillingham, which, strangely enough, seemed to be quite silent and deserted, save for a few furtive plunderers hunting for food.  Near Tillingham they suddenly came in sight of the sea, and the most amazing crowd of shipping of all sorts that it is possible to imagine.")
-			TEXT("\n\n") );
+			TEXT("\n\n"));
+	}
 
-
-		FText TheWarOfTheWorlds_Part3 = FText::FromString( 
+	static FText GetTheWarOfTheWorlds_Part3()
+	{
+		return FText::FromString(
 			TEXT("They saw the gaunt figures separating and rising out of the water as they retreated shoreward, and one of them raised the camera-like generator of the Heat-Ray.  He held it pointing obliquely downward, and a bank of steam sprang from the water at its touch.  It must have driven through the iron of the ship's side like a white-hot iron rod through paper.")
 			TEXT("\n\n")
 			TEXT("But no one heeded that very much.  At the sight of the Martian's collapse the captain on the bridge yelled inarticulately, and all the crowding passengers on the steamer's stern shouted together.  And then they yelled again.  For, surging out beyond the white tumult, drove something long and black, the flames streaming from its middle parts, its ventilators and funnels spouting fire.")
@@ -1046,9 +1050,12 @@ public:
 			TEXT("Then suddenly out of the golden haze of the sunset came the vibration of guns, and a form of black shadows moving.  Everyone struggled to the rail of the steamer and peered into the blinding furnace of the west, but nothing was to be distinguished clearly.  A mass of smoke rose slanting and barred the face of the sun.  The steamboat throbbed on its way through an interminable suspense.")
 			TEXT("\n\n")
 			TEXT("The sun sank into grey clouds, the sky flushed and darkened, the evening star trembled into sight.  It was deep twilight when the captain cried out and pointed.  My brother strained his eyes. Something rushed up into the sky out of the greyness--rushed slantingly upward and very swiftly into the luminous clearness above the clouds in the western sky; something flat and broad, and very large, that swept round in a vast curve, grew smaller, sank slowly, and vanished again into the grey mystery of the night.  And as it flew it rained down darkness upon the land.")
-			TEXT("\n\n") );
+			TEXT("\n\n"));
+	}
 
-		FText AroundTheWorldIn80Days_Rainbow = FText::FromString( 
+	static FText GetAroundTheWorldIn80Days_Rainbow()
+	{
+		return FText::FromString(
 			TEXT("<Rainbow.Text.Red>\"</><Rainbow.Text.Orange>I</> <Rainbow.Text.Yellow>know</> <Rainbow.Text.Green>it;</> <Rainbow.Text.Blue>I</> <Rainbow.Text.Red>don't</> <Rainbow.Text.Orange>blame</> <Rainbow.Text.Yellow>you.</>  <Rainbow.Text.Green>We</> <Rainbow.Text.Blue>start</> <Rainbow.Text.Red>for</> <Rainbow.Text.Orange>Dover</> <Rainbow.Text.Yellow>and</> <Rainbow.Text.Green>Calais</> <Rainbow.Text.Blue>in</> <Rainbow.Text.Red>ten</> <Rainbow.Text.Orange>minutes.</>\"")
 			TEXT("\n\n")
 			TEXT("<Rainbow.Text.Yellow>A</> <Rainbow.Text.Green>puzzled</> <Rainbow.Text.Blue>grin</> <Rainbow.Text.Red>overspread</> <Rainbow.Text.Orange>Passepartout's</> <Rainbow.Text.Yellow>round</> <Rainbow.Text.Green>face;</> <Rainbow.Text.Blue>clearly</> <Rainbow.Text.Red>he</> <Rainbow.Text.Orange>had</> <Rainbow.Text.Yellow>not</> <Rainbow.Text.Green>comprehended</> <Rainbow.Text.Blue>his</> <Rainbow.Text.Red>master.</>")
@@ -1067,9 +1074,54 @@ public:
 			TEXT("<Rainbow.Text.Orange>\"</><Rainbow.Text.Yellow>We'll</> <Rainbow.Text.Green>have</> <Rainbow.Text.Blue>no</> <Rainbow.Text.Red>trunks;</> <Rainbow.Text.Orange>only</> <Rainbow.Text.Yellow>a</> <Rainbow.Text.Green>carpet-bag,</> <Rainbow.Text.Blue>with</> <Rainbow.Text.Red>two</> <Rainbow.Text.Yellow>shirts</> <Rainbow.Text.Green>and</> <Rainbow.Text.Blue>three</> <Rainbow.Text.Red>pairs</> <Rainbow.Text.Orange>of</> <Rainbow.Text.Yellow>stockings</> <Rainbow.Text.Green>for</> <Rainbow.Text.Blue>me,</> <Rainbow.Text.Red>and</> <Rainbow.Text.Orange>the</> <Rainbow.Text.Yellow>same</> <Rainbow.Text.Green>for</> <Rainbow.Text.Blue>you.</>  <Rainbow.Text.Red>We'll</> <Rainbow.Text.Orange>buy</> <Rainbow.Text.Yellow>our</> <Rainbow.Text.Green>clothes</> <Rainbow.Text.Blue>on</> <Rainbow.Text.Red>the</> <Rainbow.Text.Orange>way.</>  <Rainbow.Text.Yellow>Bring</> <Rainbow.Text.Green>down</> <Rainbow.Text.Blue>my</> <Rainbow.Text.Red>mackintosh</> <Rainbow.Text.Orange>and</> <Rainbow.Text.Yellow>traveling-cloak,</> <Rainbow.Text.Green>and</> <Rainbow.Text.Blue>some</> <Rainbow.Text.Red>stout</> <Rainbow.Text.Yellow>shoes,</> <Rainbow.Text.Green>though</> <Rainbow.Text.Blue>we</> <Rainbow.Text.Red>shall</> <Rainbow.Text.Orange>do</> <Rainbow.Text.Yellow>little</> <Rainbow.Text.Green>walking.</>  <Rainbow.Text.Blue>Make haste!</><Rainbow.Text.Red>\"</>")
 			TEXT("\n\n")
 			TEXT("<Rainbow.Text.Orange>Passepartout</> <Rainbow.Text.Yellow>tried</> <Rainbow.Text.Green>to</> <Rainbow.Text.Blue>reply,</> <Rainbow.Text.Red>but</> <Rainbow.Text.Orange>could</> <Rainbow.Text.Yellow>not.</>  <Rainbow.Text.Green>He</> <Rainbow.Text.Blue>went</> <Rainbow.Text.Red>out,</> <Rainbow.Text.Orange>mounted</> <Rainbow.Text.Yellow>to</> <Rainbow.Text.Green>his</> <Rainbow.Text.Blue>own</> <Rainbow.Text.Red>room,</> <Rainbow.Text.Orange>fell</> <Rainbow.Text.Yellow>into</> <Rainbow.Text.Green>a</> <Rainbow.Text.Blue>chair,</> <Rainbow.Text.Red>and</> <Rainbow.Text.Orange>muttered:</> <Rainbow.Text.Yellow>\"</><Rainbow.Text.Green>That's</> <Rainbow.Text.Blue>good,</> <Rainbow.Text.Red>that</> <Rainbow.Text.Orange>is!</> <Rainbow.Text.Yellow>And</> <Rainbow.Text.Green>I,</> <Rainbow.Text.Blue>who</> <Rainbow.Text.Red>wanted</> <Rainbow.Text.Orange>to</> <Rainbow.Text.Yellow>remain</> <Rainbow.Text.Green>quiet!</><Rainbow.Text.Blue>\"</>")
-			TEXT("\n\n") );
+			TEXT("\n\n"));
+	}
+
+	static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata, TSharedRef<SWidget> ParentWidget)
+	{
+		const FString* url = Metadata.Find(TEXT("href"));
+
+		if(url)
+		{
+			FPlatformProcess::LaunchURL(**url, nullptr, nullptr);
+		}
+		else
+		{
+			SpawnProClickerPopUp(LOCTEXT("FailedToFindUrlPopUpMessage", "Sorry this hyperlink is not <RichText.Tagline.TextHighlight>configured incorrectly</>!"), ParentWidget);
+		}
+	}
+
+	static void SpawnProClickerPopUp(const FText& Text, TSharedRef<SWidget> ParentWidget)
+	{
+		TSharedRef<SWidget> Widget =
+			SNew(SBorder).Padding(10).BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.Background"))
+			[
+				SNew(SRichTextBlock)
+				.Text(Text)
+				.TextStyle(FTestStyle::Get(), "RichText.Tagline.Text")
+				.DecoratorStyleSet(&FTestStyle::Get())
+				.Justification(ETextJustify::Center)
+			];
 
 
+		FSlateApplication::Get().PushMenu(
+			ParentWidget, // Parent widget should be TestSuite, not the menu thats open or it will be closed when the menu is dismissed
+			Widget,
+			FSlateApplication::Get().GetCursorPos(), // summon location
+			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+			);
+	}
+};
+
+class SRichTextTest : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS( SRichTextTest ){}
+	SLATE_END_ARGS()
+
+	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	void Construct(const FArguments& InArgs)
+	{
 		WrapWidth = 600;
 		bShouldWrap = true;
 		LineHeight = 1.0f;
@@ -1321,14 +1373,14 @@ public:
 										.BorderImage( FTestStyle::Get().GetBrush( "RichText.Background" ) )
 										[
 											SAssignNew( InteractiveRichText, SRichTextBlock )
-											.Text( AliceInWonderland )
+											.Text( RichTextHelper::GetAliceInWonderland() )
 											.TextStyle( FTestStyle::Get(), "RichText.Interactive.Text" )
 											.DecoratorStyleSet( &FTestStyle::Get() )
 											.Margin( this, &SRichTextTest::GetRichTextMargin )
 											.WrapTextAt( this, &SRichTextTest::GetRichTextWrapWidthValue )
 											.Justification( this, &SRichTextTest::JustificationGetSelected )
 											.LineHeightPercentage( this, &SRichTextTest::GetLineHeight )
-											+ SRichTextBlock::HyperlinkDecorator( TEXT("browser"), this, &SRichTextTest::OnBrowserLinkClicked )
+											+ SRichTextBlock::HyperlinkDecorator( TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic( &RichTextHelper::OnBrowserLinkClicked, AsShared() ) )
 										]
 									]
 								]
@@ -1359,7 +1411,7 @@ public:
 						+ SHorizontalBox::Slot()
 						[
 							SNew( SRichTextBlock)
-							.Text( TheWarOfTheWorlds_Part1 )
+							.Text( RichTextHelper::GetTheWarOfTheWorlds_Part1() )
 							.TextStyle( FTestStyle::Get(), "TheWarOfTheWorlds.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )
 							.WrapTextAt( 266 )
@@ -1368,7 +1420,7 @@ public:
 						+ SHorizontalBox::Slot() .Padding( 25, 0 )
 						[
 							SNew( SRichTextBlock)
-							.Text( TheWarOfTheWorlds_Part2 )
+							.Text( RichTextHelper::GetTheWarOfTheWorlds_Part2() )
 							.TextStyle( FTestStyle::Get(), "TheWarOfTheWorlds.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )
 							.WrapTextAt( 266 )
@@ -1377,7 +1429,7 @@ public:
 						+ SHorizontalBox::Slot()
 						[
 							SNew( SRichTextBlock)
-							.Text( TheWarOfTheWorlds_Part3 )
+							.Text( RichTextHelper::GetTheWarOfTheWorlds_Part3() )
 							.TextStyle( FTestStyle::Get(), "TheWarOfTheWorlds.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )
 							.WrapTextAt( 266 )
@@ -1406,7 +1458,7 @@ public:
 						+ SHorizontalBox::Slot()
 						[
 							SNew( SRichTextBlock)
-							.Text( AroundTheWorldIn80Days_Rainbow )
+							.Text( RichTextHelper::GetAroundTheWorldIn80Days_Rainbow() )
 							.TextStyle( FTestStyle::Get(), "Rainbow.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )
 							.WrapTextAt( 600 )
@@ -1467,48 +1519,13 @@ public:
 
 	FReply OnWidgetDecoratorClicked()
 	{
-		SpawnProClickerPopUp( LOCTEXT("WidgetDecoratorExamplePopUpMessage", "I don't really do anything. <RichText.Tagline.TextHighlight>Sorry</>.") );
+		RichTextHelper::SpawnProClickerPopUp( LOCTEXT("WidgetDecoratorExamplePopUpMessage", "I don't really do anything. <RichText.Tagline.TextHighlight>Sorry</>."), AsShared() );
 		return FReply::Handled();
 	}
 
 	void OnHyperlinkDecoratorClicked( const FSlateHyperlinkRun::FMetadata& Metadata )
 	{
-		SpawnProClickerPopUp( LOCTEXT("HyperlinkDecoratorExamplePopUpMessage", "You're a <RichText.Tagline.TextHighlight>pro</> at clicking!") );
-	}
-
-	void OnBrowserLinkClicked( const FSlateHyperlinkRun::FMetadata& Metadata )
-	{
-		const FString* url = Metadata.Find( TEXT("href") );
-
-		if ( url != nullptr )
-		{
-			FPlatformProcess::LaunchURL( **url, nullptr, nullptr );
-		}
-		else
-		{
-			SpawnProClickerPopUp( LOCTEXT("FailedToFindUrlPopUpMessage", "Sorry this hyperlink is not <RichText.Tagline.TextHighlight>configured incorrectly</>!") );
-		}
-	}
-
-	void SpawnProClickerPopUp( const FText& Text )
-	{
-		TSharedRef<SWidget> Widget = 
-			SNew( SBorder ) .Padding(10) .BorderImage( FTestStyle::Get().GetBrush( "RichText.Tagline.Background" ) )
-			[
-				SNew( SRichTextBlock )
-				.Text( Text )
-				.TextStyle( FTestStyle::Get(), "RichText.Tagline.Text" )
-				.DecoratorStyleSet( &FTestStyle::Get() )
-				.Justification( ETextJustify::Center )
-			];
-
-
-		FSlateApplication::Get().PushMenu( 
-			AsShared(), // Parent widget should be TestSuite, not the menu thats open or it will be closed when the menu is dismissed
-			Widget,
-			FSlateApplication::Get().GetCursorPos(), // summon location
-			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
-		);
+		RichTextHelper::SpawnProClickerPopUp( LOCTEXT("HyperlinkDecoratorExamplePopUpMessage", "You're a <RichText.Tagline.TextHighlight>pro</> at clicking!"), AsShared() );
 	}
 
 	void OnTextChanged( const FText& NewText )
@@ -1886,6 +1903,826 @@ protected:
 	FText InlineEditableText;
 
  };
+
+ #if WITH_FANCY_TEXT
+
+ /**
+  * This is used in conjunction with the TextStyle decorator to allow arbitrary styling of text within a rich-text editor
+  * This struct defines a set of known font families, as well as providing some utility functions for converting the text style to and from a text layout run
+  */
+struct FTextStyles
+{
+	/** Flags controlling which TTF or OTF font should be picked from the given font family */
+	struct EFontStyle
+	{
+		typedef uint8 Flags;
+		enum Flag
+		{
+			Regular = 0,
+			Bold = 1<<0,
+			Italic = 1<<1,
+		};
+	};
+
+	/** This struct defines a font family, which combines multiple TTF or OTF fonts into a single group, allowing text to be styled as bold or italic */
+	struct FFontFamily
+	{
+		FFontFamily(FText InDisplayName, FName InFamilyName, FName InRegularFont, FName InBoldFont, FName InItalicFont, FName InBoldItalicFont)
+			: DisplayName(InDisplayName)
+			, FamilyName(InFamilyName)
+			, RegularFont(InRegularFont)
+			, BoldFont(InBoldFont)
+			, ItalicFont(InItalicFont)
+			, BoldItalicFont(InBoldItalicFont)
+		{
+		}
+
+		/** Name used for this font family in the UI */
+		FText DisplayName;
+
+		/** Named used to identify this family from the TextStyle decorator */
+		FName FamilyName;
+
+		/** File paths to the fonts on disk */
+		FName RegularFont;
+		FName BoldFont;
+		FName ItalicFont;
+		FName BoldItalicFont;
+	};
+
+	/** Convert the given text style into run meta-information, so that valid source rich-text formatting can be generated for it */
+	static FRunInfo CreateRunInfo(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
+	{
+		FString FontStyleString;
+		if(InFontStyle == EFontStyle::Regular)
+		{
+			FontStyleString = TEXT("Regular");
+		}
+		else
+		{
+			if(InFontStyle & EFontStyle::Bold)
+			{
+				FontStyleString += "Bold";
+			}
+			if(InFontStyle & EFontStyle::Italic)
+			{
+				FontStyleString += "Italic";
+			}
+		}
+
+		FRunInfo RunInfo(TEXT("TextStyle"));
+		RunInfo.MetaData.Add(TEXT("FontFamily"), InFontFamily->FamilyName.ToString());
+		RunInfo.MetaData.Add(TEXT("FontSize"), FString::FromInt(InFontSize));
+		RunInfo.MetaData.Add(TEXT("FontStyle"), FontStyleString);
+		RunInfo.MetaData.Add(TEXT("FontColor"), InFontColor.ToString());
+		return RunInfo;
+	}
+
+	/** Explode some run meta-information back out into its component text style parts */
+	void ExplodeRunInfo(const FRunInfo& InRunInfo, TSharedPtr<FFontFamily>& OutFontFamily, uint8& OutFontSize, EFontStyle::Flags& OutFontStyle, FLinearColor& OutFontColor) const
+	{
+		check(AvailableFontFamilies.Num());
+
+		const FString* const FontFamilyString = InRunInfo.MetaData.Find(TEXT("FontFamily"));
+		if(FontFamilyString)
+		{
+			OutFontFamily = FindFontFamily(FName(**FontFamilyString));
+		}
+		if(!OutFontFamily.IsValid())
+		{
+			OutFontFamily = AvailableFontFamilies[0];
+		}
+
+		OutFontSize = 11;
+		const FString* const FontSizeString = InRunInfo.MetaData.Find(TEXT("FontSize"));
+		if(FontSizeString)
+		{
+			OutFontSize = static_cast<uint8>(FPlatformString::Atoi(**FontSizeString));
+		}
+
+		OutFontStyle = EFontStyle::Regular;
+		const FString* const FontStyleString = InRunInfo.MetaData.Find(TEXT("FontStyle"));
+		if(FontStyleString)
+		{
+			if(*FontStyleString == TEXT("Bold"))
+			{
+				 OutFontStyle = EFontStyle::Bold;
+			}
+			else if(*FontStyleString == TEXT("Italic"))
+			{
+				 OutFontStyle = EFontStyle::Italic;
+			}
+			else if(*FontStyleString == TEXT("BoldItalic"))
+			{
+				 OutFontStyle = EFontStyle::Bold | EFontStyle::Italic;
+			}
+		}
+
+		OutFontColor = FLinearColor::Black;
+		const FString* const FontColorString = InRunInfo.MetaData.Find(TEXT("FontColor"));
+		if(FontColorString && !OutFontColor.InitFromString(*FontColorString))
+		{
+			OutFontColor = FLinearColor::Black;
+		}
+	}
+
+	/** Convert the given text style into a text block style for use by Slate */
+	static FTextBlockStyle CreateTextBlockStyle(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
+	{
+		FName FontName = InFontFamily->RegularFont;
+		if((InFontStyle & EFontStyle::Bold) && (InFontStyle & EFontStyle::Italic))
+		{
+			FontName = InFontFamily->BoldItalicFont;
+		}
+		else if(InFontStyle & EFontStyle::Bold)
+		{
+			FontName = InFontFamily->BoldFont;
+		}
+		else if(InFontStyle & EFontStyle::Italic)
+		{
+			FontName = InFontFamily->ItalicFont;
+		}
+
+		FTextBlockStyle TextBlockStyle;
+		TextBlockStyle.SetFontName(FontName);
+		TextBlockStyle.SetFontSize(InFontSize);
+		TextBlockStyle.SetColorAndOpacity(InFontColor);
+		return TextBlockStyle;
+	}
+
+	/** Convert the given run meta-information into a text block style for use by Slate */
+	FTextBlockStyle CreateTextBlockStyle(const FRunInfo& InRunInfo) const
+	{
+		TSharedPtr<FFontFamily> FontFamily;
+		uint8 FontSize;
+		EFontStyle::Flags FontStyle;
+		FLinearColor FontColor;
+		ExplodeRunInfo(InRunInfo, FontFamily, FontSize, FontStyle, FontColor);
+		return CreateTextBlockStyle(FontFamily, FontSize, FontStyle, FontColor);
+	}
+
+	/** Try and find a font family with the given name */
+	TSharedPtr<FFontFamily> FindFontFamily(const FName InFamilyName) const
+	{
+		const TSharedPtr<FFontFamily>* const FoundFontFamily = AvailableFontFamilies.FindByPredicate([InFamilyName](TSharedPtr<FFontFamily>& Entry) -> bool
+		{
+			return Entry->FamilyName == InFamilyName;
+		});
+		return (FoundFontFamily) ? *FoundFontFamily : nullptr;
+	}
+
+	TArray<TSharedPtr<FFontFamily>> AvailableFontFamilies;
+};
+
+/**
+ * This is a custom decorator used to allow arbitrary styling of text within a rich-text editor
+ * This is required since normal text styling can only work with known styles from a given Slate style-set
+ */
+class FTextStyleDecorator : public ITextDecorator
+{
+public:
+
+	static TSharedRef<FTextStyleDecorator> Create(FTextStyles* const InTextStyles)
+	{
+		return MakeShareable(new FTextStyleDecorator(InTextStyles));
+	}
+
+	virtual ~FTextStyleDecorator()
+	{
+	}
+
+	virtual bool Supports(const FTextRunParseResults& RunParseResult, const FString& Text) const override
+	{
+		return (RunParseResult.Name == TEXT("TextStyle"));
+	}
+
+	virtual TSharedRef<ISlateRun> Create(const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef<FString>& InOutModelText, const ISlateStyle* Style) override
+	{
+		FRunInfo RunInfo(RunParseResult.Name);
+		for(const TPair<FString, FTextRange>& Pair : RunParseResult.MetaData)
+		{
+			RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid(Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
+		}
+
+		FTextRange ModelRange;
+		ModelRange.BeginIndex = InOutModelText->Len();
+		*InOutModelText += OriginalText.Mid(RunParseResult.ContentRange.BeginIndex, RunParseResult.ContentRange.EndIndex - RunParseResult.ContentRange.BeginIndex);
+		ModelRange.EndIndex = InOutModelText->Len();
+
+		return FSlateTextRun::Create(RunInfo, InOutModelText, TextStyles->CreateTextBlockStyle(RunInfo), ModelRange);
+	}
+
+private:
+
+	FTextStyleDecorator(FTextStyles* const InTextStyles)
+		: TextStyles(InTextStyles)
+	{
+	}
+
+	FTextStyles* TextStyles;
+};
+
+class SRichTextEditTest : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS( SRichTextEditTest ){}
+	SLATE_END_ARGS()
+
+	/**
+	 * Construct the widget
+	 *
+	 * @param InArgs   Declaration from which to construct the widget
+	 */
+	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	void Construct(const FArguments& InArgs)
+	{
+		// Define and add the "Roboto" font family
+		TextStyles.AvailableFontFamilies.Emplace(MakeShareable(new FTextStyles::FFontFamily(
+			LOCTEXT("RobotoFontFamily", "Roboto"), 
+			TEXT("Roboto"), 
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"))),
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"))),
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-Italic.ttf"))),
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-BoldItalic.ttf")))
+			)));
+
+		// Set some sensible defaults (these also match the default text style of "RichText.Editor.Text"
+		ActiveFontFamily = TextStyles.AvailableFontFamilies[0];
+		FontSize = 11;
+		FontStyle = FTextStyles::EFontStyle::Regular;
+		FontColor = FLinearColor::Black;
+
+		// Define the example text
+		// Both of our demo editors display this same text, but the text marshallers display it differently
+		RichEditableText = FText::FromString(
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Regular\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\">This is some regular text!</>")
+			TEXT("\n")
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Italic\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\">This is some italic text!</>")
+			TEXT("\n")
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Bold\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\">This is some bold text!</>")
+			TEXT("\n")
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"BoldItalic\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\">This is some bold-italic text!</>")
+			TEXT("\n")
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"26\" FontStyle=\"BoldItalic\" FontColor=\"(R=1.000000,G=0.457315,B=0.164297,A=1.000000)\">This </><TextStyle FontFamily=\"Roboto\" FontSize=\"21\" FontStyle=\"Italic\" FontColor=\"(R=0.331120,G=0.348415,B=1.000000,A=1.000000)\">is </><TextStyle FontFamily=\"Roboto\" FontSize=\"21\" FontStyle=\"Bold\" FontColor=\"(R=1.000000,G=0.195252,B=0.137910,A=1.000000)\">some </><TextStyle FontFamily=\"Roboto\" FontSize=\"18\" FontStyle=\"BoldItalic\" FontColor=\"(R=1.000000,G=0.167594,B=0.566043,A=1.000000)\">crazy </><TextStyle FontFamily=\"Roboto\" FontSize=\"14\" FontStyle=\"Italic\" FontColor=\"(R=0.175489,G=0.695000,B=0.169137,A=1.000000)\">text!</>")
+			TEXT("\n")
+			TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Regular\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\">This is a hyperlink: </><a id=\"browser\" href=\"https://www.unrealengine.com/\" style=\"RichText.Editor.Hyperlink\">Unreal Engine</><TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Regular\" FontColor=\"(R=0.000000,G=0.000000,B=0.000000,A=1.000000)\"></>")
+			);
+
+		// The rich-text marshaller will be used with the rich-text editor...
+		TSharedRef<FRichTextLayoutMarshaller> RichTextMarshaller = FRichTextLayoutMarshaller::Create(
+			TArray<TSharedRef<ITextDecorator>>(), 
+			&FTestStyle::Get(), 
+			FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>("RichText.Editor.Text")
+			);
+
+		// ... so we also need to add some decorators to handle the things we want to demo
+		OnHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateStatic(&RichTextHelper::OnBrowserLinkClicked, AsShared());
+		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("browser"), OnHyperlinkClicked));
+		RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create(&TextStyles));
+
+		// The syntax highlighter marshaller is self contained, so doesn't need any extra configuration
+		SyntaxHighlighterMarshaller = FRichTextSyntaxHighlighterTextLayoutMarshaller::Create(
+			FRichTextSyntaxHighlighterTextLayoutMarshaller::FSyntaxTextStyle()
+			);
+
+		this->ChildSlot
+		[
+			SNew(SScrollBox)
+			+SScrollBox::Slot()
+			[
+				SNew(SBorder)
+				.BorderImage(FTestStyle::Get().GetBrush("RichText.Background"))
+				[
+					SNew(SVerticalBox)
+
+					// Demo title
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0)
+					[
+						SNew(SBorder)
+						.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.Background"))
+						.Padding(0)
+						[
+							SNew(SRichTextBlock)
+							.Text(LOCTEXT("RichTextEdit.Header01", "This WYSIWYG editor has been created to show the flexibility of Slate's <RichText.Tagline.TextHighlight>SMultiLineEditableText</>"))
+							.TextStyle(FTestStyle::Get(), "RichText.Tagline.Text")
+							.DecoratorStyleSet(&FTestStyle::Get())
+							.AutoWrapText(true)
+							.Justification(ETextJustify::Center)
+							.Margin(FMargin(20))
+						]
+					]
+
+					// Demo description
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0)
+					[
+						SNew(SRichTextBlock)
+						.Text(LOCTEXT("RichTextEdit.HowItWorks", "<RichText.TextHighlight>SMultiLineEditableText</> utilizes the power of text marshallers to control how the source text is displayed, and the two editors below are demonstrating the <RichText.TextHighlight>FRichTextLayoutMarshaller</> and <RichText.TextHighlight>FRichTextSyntaxHighlighterTextLayoutMarshaller</> implementations.\n\nYou can use the toolbar to control the style of the text in the rich-text editor, or you can directly edit the source text (demonstrating live injection of style information) to update the rich-text view."))
+						.TextStyle(FTestStyle::Get(), "RichText.Text")
+						.DecoratorStyleSet(&FTestStyle::Get())
+						.AutoWrapText(true)
+						.Margin(FMargin(40, 20))
+					]
+
+					// Rich-text editor
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FMargin(25, 0))
+					[
+						SNew(SBorder)
+						.Padding(5.0f)
+						.BorderImage(FCoreStyle::Get().GetBrush("BoxShadow"))
+						[
+							SNew(SBorder)
+							.BorderImage(FTestStyle::Get().GetBrush("RichText.Interactive.Details.Background"))
+							.Padding(FMargin(4))
+							[
+								// Rich-text editor toolbar
+								SNew(SVerticalBox)
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
+								[
+									SNew(SBorder)
+									.BorderImage(FTestStyle::Get().GetBrush("RichText.RoundedBackground"))
+									.Padding(FMargin(4))
+									[
+										SNew(SHorizontalBox)
+
+										+SHorizontalBox::Slot()
+										.AutoWidth()
+										[
+											SNew(SComboBox<TSharedPtr<FTextStyles::FFontFamily>>)
+											.ComboBoxStyle(FTestStyle::Get(), "RichText.Toolbar.ComboBox")
+											.OptionsSource(&TextStyles.AvailableFontFamilies)
+											.OnSelectionChanged(this, &SRichTextEditTest::OnActiveFontFamilyChanged)
+											.OnGenerateWidget(this, &SRichTextEditTest::GenerateFontFamilyComboEntry)
+											.InitiallySelectedItem(ActiveFontFamily)
+											[
+												SNew(SBox)
+												.Padding(FMargin(0.0f, 0.0f, 2.0f, 0.0f))
+												[
+													SNew(STextBlock)
+													.Text(this, &SRichTextEditTest::GetActiveFontFamilyName)
+												]
+											]
+										]
+
+										+SHorizontalBox::Slot()
+										.AutoWidth()
+										[
+											SNew(SBox)
+											.WidthOverride(24)
+											[
+												SNew(SNumericEntryBox<uint8>)
+												.Value(this, &SRichTextEditTest::GetFontSize)
+												.OnValueCommitted(this, &SRichTextEditTest::SetFontSize)
+											]
+										]
+
+										+SHorizontalBox::Slot()
+										.AutoWidth()
+										.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+										[
+											SNew(SCheckBox)
+											.Style(FTestStyle::Get(), "RichText.Toolbar.ToggleButtonCheckbox")
+											.IsChecked(this, &SRichTextEditTest::IsFontStyleBold)
+											.OnCheckStateChanged(this, &SRichTextEditTest::OnFontStyleBoldChanged)
+											[
+												SNew(SBox)
+												.WidthOverride(24)
+												.HAlign(HAlign_Center)
+												.VAlign(VAlign_Center)
+												[
+													SNew(STextBlock)
+													.TextStyle(FTestStyle::Get(), "RichText.Toolbar.BoldText")
+													.Text(LOCTEXT("BoldLabel", "B"))
+												]
+											]
+										]
+
+										+SHorizontalBox::Slot()
+										.AutoWidth()
+										[
+											SNew(SCheckBox)
+											.Style(FTestStyle::Get(), "RichText.Toolbar.ToggleButtonCheckbox")
+											.IsChecked(this, &SRichTextEditTest::IsFontStyleItalic)
+											.OnCheckStateChanged(this, &SRichTextEditTest::OnFontStyleItalicChanged)
+											[
+												SNew(SBox)
+												.WidthOverride(24)
+												.HAlign(HAlign_Center)
+												.VAlign(VAlign_Center)
+												[
+													SNew(STextBlock)
+													.TextStyle(FTestStyle::Get(), "RichText.Toolbar.ItalicText")
+													.Text(LOCTEXT("ItalicLabel", "I"))
+												]
+											]
+										]
+
+										+SHorizontalBox::Slot()
+										.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+										.AutoWidth()
+										[
+											SNew(SButton)
+											.ButtonStyle(FTestStyle::Get(), "RichText.Toolbar.Button")
+											.OnClicked(this, &SRichTextEditTest::OpenFontColorPicker)
+											[
+												SNew(SOverlay)
+
+												+SOverlay::Slot()
+												.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
+												.HAlign(HAlign_Center)
+												.VAlign(VAlign_Bottom)
+												[
+													SNew(STextBlock)
+													.TextStyle(FTestStyle::Get(), "RichText.Toolbar.BoldText")
+													.Text(LOCTEXT("ColorLabel", "A"))
+												]
+
+												+SOverlay::Slot()
+												.HAlign(HAlign_Center)
+												.VAlign(VAlign_Bottom)
+												[
+													SNew(SColorBlock)
+													.Color(this, &SRichTextEditTest::GetFontColor)
+													.Size(FVector2D(20.0f, 6.0f))
+												]
+											]
+										]
+
+										+SHorizontalBox::Slot()
+										.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+										.AutoWidth()
+										[
+											SAssignNew(HyperlinkComboButton, SComboButton)
+											.ComboButtonStyle(FTestStyle::Get(), "RichText.Toolbar.ComboButton")
+											.HasDownArrow(false)
+											.OnComboBoxOpened(this, &SRichTextEditTest::HandleHyperlinkComboOpened)
+											.ButtonContent()
+											[
+												SNew(SBox)
+												.WidthOverride(20)
+												.HAlign(HAlign_Center)
+												.VAlign(VAlign_Center)
+												[
+													SNew(SImage)
+													.Image(FTestStyle::Get().GetBrush("RichText.Toolbar.HyperlinkImage"))
+												]
+											]
+											.MenuContent()
+											[
+												SNew(SGridPanel)
+												.FillColumn(1, 1.0f)
+
+												+SGridPanel::Slot(0, 0)
+												.HAlign(HAlign_Right)
+												.Padding(FMargin(2.0f))
+												[
+													SNew(STextBlock)
+													.TextStyle(FTestStyle::Get(), "RichText.Toolbar.Text")
+													.Text(LOCTEXT("HyperlinkNameLabel", "Name:"))
+												]
+												+SGridPanel::Slot(1, 0)
+												.Padding(FMargin(2.0f))
+												[
+													SNew(SBox)
+													.WidthOverride(300)
+													[
+														SAssignNew(HyperlinkNameTextBox, SEditableTextBox)
+													]
+												]
+
+												+SGridPanel::Slot(0, 1)
+												.HAlign(HAlign_Right)
+												.Padding(FMargin(2.0f))
+												[
+													SNew(STextBlock)
+													.TextStyle(FTestStyle::Get(), "RichText.Toolbar.Text")
+													.Text(LOCTEXT("HyperlinkURLLabel", "URL:"))
+												]
+												+SGridPanel::Slot(1, 1)
+												.Padding(FMargin(2.0f))
+												[
+													SNew(SBox)
+													.WidthOverride(300)
+													[
+														SAssignNew(HyperlinkURLTextBox, SEditableTextBox)
+													]
+												]
+
+												+SGridPanel::Slot(0, 2)
+												.HAlign(HAlign_Right)
+												.Padding(FMargin(2.0f))
+												.ColumnSpan(2)
+												[
+													SNew(SButton)
+													.ButtonStyle(FTestStyle::Get(), "RichText.Toolbar.Button")
+													.OnClicked(this, &SRichTextEditTest::HandleInsertHyperlinkClicked)
+													[
+														SNew(STextBlock)
+														.TextStyle(FTestStyle::Get(), "RichText.Toolbar.Text")
+														.Text(LOCTEXT("HyperlinkInsertLabel", "Insert Hyperlink"))
+													]
+												]
+											]
+										]
+									]
+								]
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
+								[
+									SAssignNew(RichEditableTextBox, SMultiLineEditableTextBox)
+									.Font(FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>("RichText.Editor.Text").Font)
+									.Text(this, &SRichTextEditTest::GetRichEditableText)
+									.OnTextChanged(this, &SRichTextEditTest::HandleRichEditableTextChanged)
+									.OnTextCommitted(this, &SRichTextEditTest::HandleRichEditableTextCommitted)
+									.OnCursorMoved(this, &SRichTextEditTest::HandleRichEditableTextCursorMoved)
+									.Marshaller(RichTextMarshaller)
+									.AutoWrapText(true)
+									.Margin(4)
+									.LineHeightPercentage(1.1f)
+								]
+							]
+						]
+					]
+
+					// Source text editor
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FMargin(25, 0, 25, 25))
+					[
+						SNew(SBorder)
+						.Padding(5.0f)
+						.BorderImage(FCoreStyle::Get().GetBrush("BoxShadow"))
+						[
+							SNew(SBorder)
+							.BorderImage(FTestStyle::Get().GetBrush("RichText.Interactive.Details.Background"))
+							.Padding(FMargin(4))
+							[
+								SNew(SVerticalBox)
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
+								[
+									SNew(SMultiLineEditableTextBox)
+									.Text(this, &SRichTextEditTest::GetRichEditableText)
+									.OnTextChanged(this, &SRichTextEditTest::HandleRichEditableTextChanged)
+									.OnTextCommitted(this, &SRichTextEditTest::HandleRichEditableTextCommitted)
+									.Marshaller(SyntaxHighlighterMarshaller)
+									.AutoWrapText(true)
+									.Margin(4)
+									.LineHeightPercentage(1.1f)
+								]
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew(SBorder)
+									.BorderImage(FTestStyle::Get().GetBrush("RichText.RoundedBackground"))
+									.Padding(FMargin(4))
+									.HAlign(HAlign_Right)
+									[
+										SNew(SCheckBox)
+										.Style(FTestStyle::Get(), "RichText.Toolbar.Checkbox")
+										.IsChecked(this, &SRichTextEditTest::IsEnableSyntaxHighlightingChecked)
+										.OnCheckStateChanged(this, &SRichTextEditTest::OnEnableSyntaxHighlightingChanged)
+										[
+											SNew(STextBlock)
+											.TextStyle(FTestStyle::Get(), "RichText.Toolbar.Text")
+											.Text(LOCTEXT("EnableSyntaxHighlightingLabel", "Enable Syntax Highlighting"))
+										]
+									]
+								]
+							]
+						]
+					]
+				]
+			]
+		];
+	}
+	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+protected:
+	
+	FText GetRichEditableText() const
+	{
+		return RichEditableText;
+	}
+
+	void HandleRichEditableTextChanged(const FText& Text)
+	{
+		RichEditableText = Text;
+	}
+
+	void HandleRichEditableTextCommitted(const FText& Text, ETextCommit::Type Type)
+	{
+		RichEditableText = Text;
+	}
+
+	void HandleRichEditableTextCursorMoved(const FTextLocation& NewCursorPosition )
+	{
+		// We can use GetRunUnderCursor to query the style of the text under the cursor
+		// We can then use this to update the toolbar
+		TSharedPtr<const IRun> Run = RichEditableTextBox->GetRunUnderCursor();
+		if(Run.IsValid() && Run->GetRunInfo().Name == TEXT("TextStyle"))
+		{
+			TextStyles.ExplodeRunInfo(Run->GetRunInfo(), ActiveFontFamily, FontSize, FontStyle, FontColor);
+		}
+	}
+
+	FText GetActiveFontFamilyName() const
+	{
+		return ActiveFontFamily->DisplayName;
+	}
+
+	void OnActiveFontFamilyChanged(TSharedPtr<FTextStyles::FFontFamily> NewValue, ESelectInfo::Type)
+	{
+		ActiveFontFamily = NewValue;
+		StyleSelectedText();
+	}
+
+	TSharedRef<SWidget> GenerateFontFamilyComboEntry(TSharedPtr<FTextStyles::FFontFamily> SourceEntry)
+	{
+		return SNew(STextBlock).Text(SourceEntry->DisplayName);
+	}
+
+	TOptional<uint8> GetFontSize() const
+	{
+		return FontSize;
+	}
+
+	void SetFontSize(uint8 NewValue, ETextCommit::Type)
+	{		
+		FontSize = NewValue;
+		StyleSelectedText();
+	}
+
+	ESlateCheckBoxState::Type IsFontStyleBold() const
+	{
+		return (FontStyle & FTextStyles::EFontStyle::Bold) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnFontStyleBoldChanged(ESlateCheckBoxState::Type InState)
+	{
+		if(InState == ESlateCheckBoxState::Checked)
+		{
+			FontStyle |= FTextStyles::EFontStyle::Bold;
+		}
+		else
+		{
+			FontStyle &= ~FTextStyles::EFontStyle::Bold;
+		}
+		StyleSelectedText();
+	}
+
+	ESlateCheckBoxState::Type IsFontStyleItalic() const
+	{
+		return (FontStyle & FTextStyles::EFontStyle::Italic) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnFontStyleItalicChanged(ESlateCheckBoxState::Type InState)
+	{
+		if(InState == ESlateCheckBoxState::Checked)
+		{
+			FontStyle |= FTextStyles::EFontStyle::Italic;
+		}
+		else
+		{
+			FontStyle &= ~FTextStyles::EFontStyle::Italic;
+		}
+		StyleSelectedText();
+	}
+
+	FLinearColor GetFontColor() const
+	{
+		return FontColor;
+	}
+
+	void SetFontColor(FLinearColor NewValue)
+	{		
+		FontColor = NewValue;
+		StyleSelectedText();
+	}
+
+	FReply OpenFontColorPicker()
+	{
+		FColorPickerArgs PickerArgs;
+		PickerArgs.bOnlyRefreshOnMouseUp = true;
+		PickerArgs.ParentWidget = AsShared();
+		PickerArgs.bUseAlpha = false;
+		PickerArgs.bOnlyRefreshOnOk = false;
+		PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &SRichTextEditTest::SetFontColor);
+		PickerArgs.OnColorPickerCancelled = FOnColorPickerCancelled::CreateSP(this, &SRichTextEditTest::SetFontColor);
+		PickerArgs.InitialColorOverride = FontColor;
+
+		OpenColorPicker(PickerArgs);
+
+		return FReply::Handled();
+	}
+
+	void StyleSelectedText()
+	{
+		// Apply the current style to the selected text
+		// If no text is selected, then a new (empty) run will be inserted with the appropriate style
+		const FRunInfo RunInfo = TextStyles.CreateRunInfo(ActiveFontFamily, FontSize, FontStyle, FontColor);
+		const FTextBlockStyle TextBlockStyle = TextStyles.CreateTextBlockStyle(ActiveFontFamily, FontSize, FontStyle, FontColor);
+		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+	}
+
+	void HandleHyperlinkComboOpened()
+	{
+		// Read any currently selected text, and use this as the default name of the hyperlink
+		FString SelectedText = RichEditableTextBox->GetSelectedText().ToString();
+		for(int32 SelectedTextIndex = 0; SelectedTextIndex < SelectedText.Len(); ++SelectedTextIndex)
+		{
+			if(FChar::IsLinebreak(SelectedText[SelectedTextIndex]))
+			{
+				SelectedText = SelectedText.Left(SelectedTextIndex);
+				break;
+			}
+		}
+		HyperlinkNameTextBox->SetText(FText::FromString(SelectedText));
+
+		// We can use GetRunUnderCursor to query whether the cursor is currently over a hyperlink
+		// If it is, we can use that as the default URL for the hyperlink
+		TSharedPtr<const IRun> Run = RichEditableTextBox->GetRunUnderCursor();
+		if(Run.IsValid() && Run->GetRunInfo().Name == TEXT("a"))
+		{
+			const FString* const URLUnderCursor = Run->GetRunInfo().MetaData.Find(TEXT("href"));
+			HyperlinkURLTextBox->SetText((URLUnderCursor) ? FText::FromString(*URLUnderCursor) : FText());
+		}
+		else
+		{
+			HyperlinkURLTextBox->SetText(FText());
+		}
+	}
+
+	FReply HandleInsertHyperlinkClicked()
+	{
+		HyperlinkComboButton->SetIsOpen(false);
+
+		const FText& Name = HyperlinkNameTextBox->GetText();
+		const FText& URL = HyperlinkURLTextBox->GetText();
+
+		// Create the correct meta-information for this run, so that valid source rich-text formatting can be generated for it
+		FRunInfo RunInfo(TEXT("a"));
+		RunInfo.MetaData.Add(TEXT("id"), TEXT("browser"));
+		RunInfo.MetaData.Add(TEXT("href"), URL.ToString());
+		RunInfo.MetaData.Add(TEXT("style"), TEXT("RichText.Editor.Hyperlink"));
+
+		// Create the new run, and then insert it at the cursor position
+		TSharedRef<FSlateHyperlinkRun> HyperlinkRun = FSlateHyperlinkRun::Create(
+			RunInfo, 
+			MakeShareable(new FString(Name.ToString())), 
+			FTestStyle::Get().GetWidgetStyle<FHyperlinkStyle>(FName(TEXT("RichText.Editor.Hyperlink"))), 
+			OnHyperlinkClicked
+			);
+		RichEditableTextBox->InsertRunAtCursor(HyperlinkRun);
+
+		return FReply::Handled();
+	}
+
+	ESlateCheckBoxState::Type IsEnableSyntaxHighlightingChecked() const
+	{
+		return (SyntaxHighlighterMarshaller->IsSyntaxHighlightingEnabled()) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnEnableSyntaxHighlightingChanged(ESlateCheckBoxState::Type InState)
+	{
+		SyntaxHighlighterMarshaller->EnableSyntaxHighlighting(InState == ESlateCheckBoxState::Checked);
+	}
+
+protected:
+
+	FText RichEditableText;
+	TSharedPtr<SMultiLineEditableTextBox> RichEditableTextBox;
+
+	TSharedPtr<FSyntaxHighlighterTextLayoutMarshaller> SyntaxHighlighterMarshaller;
+
+	FSlateHyperlinkRun::FOnClick OnHyperlinkClicked;
+	TSharedPtr<SComboButton> HyperlinkComboButton;
+	TSharedPtr<SEditableTextBox> HyperlinkNameTextBox;
+	TSharedPtr<SEditableTextBox> HyperlinkURLTextBox;
+
+	FTextStyles TextStyles;
+
+	TSharedPtr<FTextStyles::FFontFamily> ActiveFontFamily;
+	uint8 FontSize;
+	FTextStyles::EFontStyle::Flags FontStyle;
+	FLinearColor FontColor;
+};
+
+#endif //WITH_FANCY_TEXT
 
 /** Demonstrates the brokenness of our current approach to trading smoothness for sharpness. */
  class SLayoutRoundingTest : public SCompoundWidget
@@ -3291,16 +4128,13 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			MakeLayoutExample()
 		];
 	}
+#if WITH_FANCY_TEXT
 	else if (TabIdentifier == FName(TEXT("RichTextTab")))
 	{
 		return SNew(SDockTab)
 			. Label( LOCTEXT("RichTextTestTab", "Rich Text") )
 			[
-				#if WITH_FANCY_TEXT
 				SNew( SRichTextTest )
-				#else
-				SNew( SSpacer )
-				#endif //WITH_FANCY_TEXT
 			];
 	}
 	else if ( TabIdentifier == FName( TEXT( "MultiLineEditTab" ) ) )
@@ -3315,6 +4149,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				#endif //WITH_FANCY_TEXT
 			];
 	}
+#endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName(TEXT("EditableTextTab")))
 	{
 		return SNew(SDockTab)
@@ -3324,6 +4159,17 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			SNew( STextEditTest )
 		];
 	}
+#if WITH_FANCY_TEXT
+	else if (TabIdentifier == FName(TEXT("RichEditableTextTab")))
+	{
+		return SNew(SDockTab)
+			. Label( LOCTEXT("RichEditableTextTestTab", "Rich Editable Text") )
+			. ToolTipText( LOCTEXT( "RichEditableTextTestTabToolTip", "Switches to the Rich Editable Text tab, where you can test the various rich editable text features." ) )
+			[
+				SNew( SRichTextEditTest )
+			];
+	}
+#endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName("LayoutRoundingTab"))
 	{
 		return SNew(SDockTab)
@@ -3461,9 +4307,12 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 				#endif
 				->AddTab("LayoutRoundingTab", ETabState::OpenedTab)
 				->AddTab("EditableTextTab", ETabState::OpenedTab)
+#if WITH_FANCY_TEXT
 				->AddTab("RichTextTab", ETabState::OpenedTab)
 				->AddTab("MultiLineEditTab", ETabState::OpenedTab)
-			)
+				->AddTab("RichEditableTextTab", ETabState::OpenedTab)
+#endif //WITH_FANCY_TEXT
+				)
 		)
 	)
 #if PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
@@ -3509,6 +4358,10 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 	TestSuite1TabManager->RegisterTabSpawner( "MultiLineEditTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName( "MultiLineEditTab" ) ) )
 		.SetDisplayName( NSLOCTEXT( "TestSuite1", "MultiLineEditTab", "Multiline Edit" ) )
 		.SetGroup( TestSuiteMenu::SuiteTabs );
+
+	TestSuite1TabManager->RegisterTabSpawner( "RichEditableTextTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("RichEditableTextTab") ) )
+		.SetDisplayName( NSLOCTEXT("TestSuite1", "RichEditableTextTab", "Rich Editable Text Test") )
+		.SetGroup(TestSuiteMenu::SuiteTabs);
 
 	TestSuite1TabManager->RegisterTabSpawner( "LayoutRoundingTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("LayoutRoundingTab") ) )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "LayoutRoundingTab", "Layout Rounding") )

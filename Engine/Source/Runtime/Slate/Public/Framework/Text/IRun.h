@@ -1,6 +1,25 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+struct SLATE_API FRunInfo
+{
+	FRunInfo()
+		: Name()
+		, MetaData()
+	{
+	}
+
+	FRunInfo( FString InName )
+		: Name( MoveTemp(InName) )
+		, MetaData()
+	{
+
+	}
+
+	FString Name;
+	TMap< FString, FString > MetaData;
+};
+
 class SLATE_API IRun
 {
 public:
@@ -26,7 +45,9 @@ public:
 	virtual void Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange) = 0;
 	virtual TSharedRef<IRun> Clone() const = 0;
 
-	virtual void AppendText(FString& Text) const = 0;
-	virtual void AppendText(FString& Text, const FTextRange& Range) const = 0;
+	virtual void AppendTextTo(FString& Text) const = 0;
+	virtual void AppendTextTo(FString& Text, const FTextRange& Range) const = 0;
+
+	virtual const FRunInfo& GetRunInfo() const = 0;
 
 };

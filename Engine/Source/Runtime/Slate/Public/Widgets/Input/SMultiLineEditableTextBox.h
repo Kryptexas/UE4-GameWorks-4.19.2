@@ -14,6 +14,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SMultiLineEditableTextBox )
 		: _Style(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"))
+		, _Marshaller()
 		, _Text()
 		, _HintText()
 		, _Font()
@@ -38,6 +39,9 @@ public:
 
 		/** The styling of the textbox */
 		SLATE_STYLE_ARGUMENT( FEditableTextBoxStyle, Style )
+
+		/** The marshaller used to get/set the raw text to/from the text layout. */
+		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
 
 		/** Sets the text content for this editable text box widget */
  		SLATE_ATTRIBUTE( FText, Text )
@@ -83,6 +87,9 @@ public:
 
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 		SLATE_EVENT( FOnTextCommitted, OnTextCommitted )
+
+		/** Called when the cursor is moved within the text area */
+		SLATE_EVENT( SMultiLineEditableText::FOnCursorMoved, OnCursorMoved )
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
@@ -145,6 +152,22 @@ public:
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual bool HasKeyboardFocus() const override;
 	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+
+	/** Get the currently selected text */
+	FText GetSelectedText() const;
+
+	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
+	void InsertTextAtCursor(const FText& InText);
+	void InsertTextAtCursor(const FString& InString);
+
+	/** Insert the given run at the current cursor position */
+	void InsertRunAtCursor(TSharedRef<IRun> InRun);
+
+	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
+	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
+
+	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
+	TSharedPtr<const IRun> GetRunUnderCursor() const;
 
 protected:
 

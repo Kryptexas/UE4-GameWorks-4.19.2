@@ -6,13 +6,18 @@
 
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
+#include "ITextLayoutMarshaller.h"
 
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
 class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget
 {
 public:
+	/** Called when the cursor is moved within the text area */
+	DECLARE_DELEGATE_OneParam( FOnCursorMoved, const FTextLocation& );
+
 	SLATE_BEGIN_ARGS( SMultiLineEditableText )
 		: _Text()
+		, _Marshaller()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
 		, _TextStyle( &FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "NormalText" ) )
@@ -23,10 +28,14 @@ public:
 		, _IsReadOnly(false)
 		, _OnTextChanged()
 		, _OnTextCommitted()
+		, _OnCursorMoved()
 		, _ContextMenuExtender()
 	{}
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
+
+		/** The marshaller used to get/set the raw text to/from the text layout. */
+		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE(float, WrapTextAt)
@@ -60,6 +69,9 @@ public:
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
 
+		/** Called when the cursor is moved within the text area */
+		SLATE_EVENT(FOnCursorMoved, OnCursorMoved)
+
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT(FMenuExtensionDelegate, ContextMenuExtender)
 
@@ -85,6 +97,22 @@ public:
 
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
+
+	/** Get the currently selected text */
+	FText GetSelectedText() const;
+
+	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
+	void InsertTextAtCursor(const FText& InText);
+	void InsertTextAtCursor(const FString& InString);
+
+	/** Insert the given run at the current cursor position */
+	void InsertRunAtCursor(TSharedRef<IRun> InRun);
+
+	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
+	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
+
+	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
+	TSharedPtr<const IRun> GetRunUnderCursor() const;
 
 private:
 	
@@ -361,7 +389,7 @@ private:
 	bool DoesClipboardHaveAnyText() const;
 
 	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
-	void InsertTextAtCursor(const FString& InString);
+	void InsertTextAtCursorImpl(const FString& InString);
 
 	/**
 	 * Given a location and a Direction to offset, return a new location.
@@ -434,6 +462,11 @@ private:
 	 */
 	FText GetEditableText() const;
 
+	/**
+	 * Force the text layout to be updated from the marshaller
+	 */
+	void ForceRefreshTextLayout(const FText& CurrentText);
+
 private:
 
 	/** The text displayed in this text block */
@@ -441,6 +474,9 @@ private:
 
 	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
 	FText BoundTextLastTick;
+
+	/** The marshaller used to get/set the BoundText text to/from the text layout. */
+	TSharedPtr< ITextLayoutMarshaller > Marshaller;
 
 	/** In control of the layout and wrapping of the BoundText */
 	TSharedPtr< FSlateTextLayout > TextLayout;
@@ -509,6 +545,9 @@ private:
 
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 	FOnTextCommitted OnTextCommitted;
+
+	/** Called when the cursor is moved within the text area */
+	FOnCursorMoved OnCursorMoved;
 
 	/** Menu extender for right-click context menu */
 	TSharedPtr<FExtender> MenuExtender;

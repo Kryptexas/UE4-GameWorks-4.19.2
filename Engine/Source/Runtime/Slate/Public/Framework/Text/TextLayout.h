@@ -188,8 +188,8 @@ public:
 
 		void ClearCache();
 
-		void AppendText(FString& Text) const;
-		void AppendText(FString& Text, const FTextRange& Range) const;
+		void AppendTextTo(FString& Text) const;
+		void AppendTextTo(FString& Text, const FTextRange& Range) const;
 
 	private:
 
@@ -351,9 +351,11 @@ public:
 
 	bool InsertAt(const FTextLocation& Location, TCHAR Character);
 
-	bool InsertAt( const FTextLocation& Location, const FString& Text );
+	bool InsertAt(const FTextLocation& Location, const FString& Text);
 
-	bool RemoveAt( const FTextLocation& Location, int32 Count = 1 );
+	bool InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun, const bool bAlwaysKeepRightRun = false);
+
+	bool RemoveAt(const FTextLocation& Location, int32 Count = 1);
 
 	bool RemoveLine(int32 LineIndex);
 

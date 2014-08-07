@@ -40,10 +40,12 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 				[
 					SAssignNew( EditableText, SMultiLineEditableText )
 					.Text( InArgs._Text )
+					.Marshaller( InArgs._Marshaller )
 					.Font( Font )
 					.IsReadOnly( InArgs._IsReadOnly )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
+					.OnCursorMoved( InArgs._OnCursorMoved )
 					.Justification(InArgs._Justification)
 					.LineHeightPercentage(InArgs._LineHeightPercentage)
 					.Margin(InArgs._Margin)
@@ -151,5 +153,34 @@ FReply SMultiLineEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGe
 	return Reply;
 }
 
+FText SMultiLineEditableTextBox::GetSelectedText() const
+{
+	return EditableText->GetSelectedText();
+}
+
+void SMultiLineEditableTextBox::InsertTextAtCursor(const FText& InText)
+{
+	EditableText->InsertTextAtCursor(InText);
+}
+
+void SMultiLineEditableTextBox::InsertTextAtCursor(const FString& InString)
+{
+	EditableText->InsertTextAtCursor(InString);
+}
+
+void SMultiLineEditableTextBox::InsertRunAtCursor(TSharedRef<IRun> InRun)
+{
+	EditableText->InsertRunAtCursor(InRun);
+}
+
+void SMultiLineEditableTextBox::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
+{
+	EditableText->ApplyToSelection(InRunInfo, InStyle);
+}
+
+TSharedPtr<const IRun> SMultiLineEditableTextBox::GetRunUnderCursor() const
+{
+	return EditableText->GetRunUnderCursor();
+}
 
 #endif //WITH_FANCY_TEXT

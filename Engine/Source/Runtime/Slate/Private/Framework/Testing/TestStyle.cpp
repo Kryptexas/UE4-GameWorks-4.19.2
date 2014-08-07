@@ -91,6 +91,8 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 	{
 		Style->Set( "RichText.Background", new BOX_BRUSH( "Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xffeff3f3))) );
 
+		Style->Set( "RichText.RoundedBackground", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(FColor(0xffeff3f3)) ) );
+
 		const FTextBlockStyle NormalRichTextStyle = FTextBlockStyle(NormalText)
 			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 14 ) )
 			.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )));
@@ -229,6 +231,119 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 					.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/Checkbox_Undetermined_Hovered", Icon16x16, FLinearColor( 0.75f, 0.75f, 0.75f ) ) );
 
 				Style->Set( "RichText.Interactive.Details.Checkbox", CheckBoxStyle );
+			}
+		}
+
+		// Editor example
+		{
+			// Default text styles
+			{
+				const FTextBlockStyle RichTextNormal = FTextBlockStyle()
+					.SetFont(TTF_FONT("Fonts/Roboto-Regular", 11))
+					.SetColorAndOpacity(FSlateColor::UseForeground())
+					.SetShadowOffset(FVector2D::ZeroVector)
+					.SetShadowColorAndOpacity(FLinearColor::Black)
+					.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
+					.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f /8.f)));
+				Style->Set( "RichText.Editor.Text", RichTextNormal );
+
+				{
+					const FButtonStyle RichTextHyperlinkButton = FButtonStyle()
+						.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground() ) )
+						.SetPressed(FSlateNoResource() )
+						.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground() ) );
+
+					const FHyperlinkStyle RichTextHyperlink = FHyperlinkStyle()
+						.SetUnderlineStyle(RichTextHyperlinkButton)
+						.SetTextStyle(RichTextNormal)
+						.SetPadding(FMargin(0.0f));
+					Style->Set( "RichText.Editor.Hyperlink", RichTextHyperlink );
+				}
+			}
+
+			// Toolbar
+			{
+				const FLinearColor NormalColor(FColor(0xffeff3f3));
+				const FLinearColor SelectedColor(FColor(0xffdbe4d5));
+				const FLinearColor HoverColor(FColor(0xffdbe4e4));
+				const FLinearColor DisabledColor(FColor(0xaaaaaa));
+				const FLinearColor TextColor(FColor(0xff2c3e50));
+
+				Style->Set( "RichText.Toolbar.HyperlinkImage", new IMAGE_BRUSH( "Testing/hyperlink", Icon16x16, TextColor ) );
+
+				Style->Set( "RichText.Toolbar.TextColor", TextColor );
+
+				Style->Set( "RichText.Toolbar.Text", FTextBlockStyle(NormalText)
+					.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 10 ) )
+					.SetColorAndOpacity( TextColor )
+					);
+
+				Style->Set( "RichText.Toolbar.BoldText", FTextBlockStyle(NormalText)
+					.SetFont( TTF_FONT( "Fonts/Roboto-Bold", 10 ) )
+					.SetColorAndOpacity( TextColor )
+					);
+
+				Style->Set( "RichText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
+					.SetFont( TTF_FONT( "Testing/Fonts/Roboto-Italic", 10 ) )
+					.SetColorAndOpacity( TextColor )
+					);
+
+				Style->Set( "RichText.Toolbar.Checkbox", FCheckBoxStyle()
+					.SetCheckBoxType(ESlateCheckBoxType::CheckBox)
+					.SetUncheckedImage( IMAGE_BRUSH( "Common/CheckBox", Icon16x16, FLinearColor::White ) )
+					.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/CheckBox", Icon16x16, HoverColor ) )
+					.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Hovered", Icon16x16, HoverColor ) )
+					.SetCheckedImage( IMAGE_BRUSH( "Common/CheckBox_Checked_Hovered", Icon16x16, FLinearColor::White ) )
+					.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/CheckBox_Checked_Hovered", Icon16x16, HoverColor ) )
+					.SetCheckedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Checked", Icon16x16, HoverColor ) )
+					.SetUndeterminedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined", Icon16x16, FLinearColor::White ) )
+					.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon16x16, HoverColor ) )
+					.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon16x16, FLinearColor::White ) )
+					);
+
+				Style->Set( "RichText.Toolbar.ToggleButtonCheckbox", FCheckBoxStyle()
+					.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
+					.SetUncheckedImage( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ) )
+					.SetUncheckedHoveredImage( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+					.SetUncheckedPressedImage( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+					.SetCheckedImage( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor ) )
+					.SetCheckedHoveredImage( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+					.SetCheckedPressedImage( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+					);
+
+				const FButtonStyle Button = FButtonStyle()
+					.SetNormal( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ) )
+					.SetHovered( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+					.SetPressed( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor ) )
+					.SetDisabled( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor ) )
+					.SetNormalPadding( FMargin( 2,2,2,2 ) )
+					.SetPressedPadding( FMargin( 2,3,2,1 ) );
+				Style->Set( "RichText.Toolbar.Button", Button );
+
+				const FComboButtonStyle ComboButton = FComboButtonStyle()
+					.SetButtonStyle(Button)
+					.SetDownArrowImage(IMAGE_BRUSH("Common/ComboArrow", Icon8x8))
+					.SetMenuBorderBrush(BOX_BRUSH( "Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ))
+					.SetMenuBorderPadding(FMargin(0.0f));
+				Style->Set( "RichText.Toolbar.ComboButton", ComboButton	);
+
+				{
+					const FButtonStyle ComboBoxButton = FButtonStyle()
+						.SetNormal( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
+						.SetHovered( BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
+						.SetPressed( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
+						.SetDisabled( BOX_BRUSH("Testing/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor ) )
+						.SetNormalPadding( FMargin( 2,2,2,2 ) )
+						.SetPressedPadding( FMargin( 2,3,2,1 ) );
+
+					const FComboButtonStyle ComboBoxComboButton = FComboButtonStyle(ComboButton)
+						.SetButtonStyle(ComboBoxButton)
+						.SetMenuBorderPadding(FMargin(1.0));
+
+					Style->Set( "RichText.Toolbar.ComboBox", FComboBoxStyle()
+						.SetComboButtonStyle(ComboBoxComboButton)
+						);
+				}
 			}
 		}
 

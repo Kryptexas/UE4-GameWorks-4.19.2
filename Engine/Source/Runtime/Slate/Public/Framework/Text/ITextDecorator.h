@@ -50,19 +50,16 @@ public:
 	TArray< FTextRunParseResults > Runs;
 };
 
-struct SLATE_API FTextRunInfo
+struct SLATE_API FTextRunInfo : FRunInfo
 {
 	FTextRunInfo( FString InName, const FText& InContent )
-		: Name( InName )
+		: FRunInfo( MoveTemp(InName) )
 		, Content( InContent )
-		, MetaData()
 	{
 
 	}
 
-	FString Name;
 	FText Content;
-	TMap< FString, FString > MetaData;
 };
 
 class SLATE_API ITextDecorator

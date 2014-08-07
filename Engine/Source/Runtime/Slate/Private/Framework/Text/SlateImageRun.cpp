@@ -6,28 +6,29 @@
 
 #include "SlateImageRun.h"
 
-TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline )
+TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline )
 {
 	if ( InImage == nullptr)
 	{
 		InImage = FStyleDefaults::GetNoBrush();
 	}
 
-	return MakeShareable( new FSlateImageRun( InText, InImage, InBaseline ) );
+	return MakeShareable( new FSlateImageRun( InRunInfo, InText, InImage, InBaseline ) );
 }
 
-TSharedRef< FSlateImageRun > FSlateImageRun::Create( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange )
+TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange )
 {
 	if ( InImage == nullptr)
 	{
 		InImage = FStyleDefaults::GetNoBrush();
 	}
 
-	return MakeShareable( new FSlateImageRun( InText, InImage, InBaseline, InRange ) );
+	return MakeShareable( new FSlateImageRun( InRunInfo, InText, InImage, InBaseline, InRange ) );
 }
 
-FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange ) 
-	: Text( InText )
+FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( InRange )
 	, Image( InImage )
 	, Baseline( InBaseline )
@@ -35,8 +36,9 @@ FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const
 	check( Image != nullptr);
 }
 
-FSlateImageRun::FSlateImageRun( const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline ) 
-	: Text( InText )
+FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Range( 0, Text->Len() )
 	, Image( InImage )
 	, Baseline( InBaseline )
@@ -121,18 +123,23 @@ void FSlateImageRun::Move(const TSharedRef<FString>& NewText, const FTextRange& 
 
 TSharedRef<IRun> FSlateImageRun::Clone() const
 {
-	return FSlateImageRun::Create(Text, Image, Baseline, Range);
+	return FSlateImageRun::Create(RunInfo, Text, Image, Baseline, Range);
 }
 
-void FSlateImageRun::AppendText(FString& Text) const
+void FSlateImageRun::AppendTextTo(FString& Text) const
 {
 	// Do nothing
 }
 
-void FSlateImageRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+void FSlateImageRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
+}
+
+const FRunInfo& FSlateImageRun::GetRunInfo() const
+{
+	return RunInfo;
 }
 
 #endif //WITH_FANCY_TEXT

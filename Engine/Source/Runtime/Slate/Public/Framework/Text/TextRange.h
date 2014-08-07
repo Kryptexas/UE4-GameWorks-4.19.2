@@ -34,6 +34,11 @@ struct SLATE_API FTextRange
 		return Intersected;
 	}
 
+	/**
+	 * Produce an array of line ranges from the given text, breaking at any new-line characters
+	 */
+	static void CalculateLineRangesFromString(const FString& Input, TArray<FTextRange>& LineRanges);
+
 	int32 BeginIndex;
 	int32 EndIndex;
 };

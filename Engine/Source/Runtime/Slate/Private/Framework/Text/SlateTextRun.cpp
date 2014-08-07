@@ -6,14 +6,14 @@
 
 #include "SlateTextRun.h"
 
-TSharedRef< FSlateTextRun > FSlateTextRun::Create( const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
+TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
-	return MakeShareable( new FSlateTextRun( InText, Style ) );
+	return MakeShareable( new FSlateTextRun( InRunInfo, InText, Style ) );
 }
 
-TSharedRef< FSlateTextRun > FSlateTextRun::Create( const TSharedRef< const FString >& InText, const FTextBlockStyle& Style, const FTextRange& InRange )
+TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style, const FTextRange& InRange )
 {
-	return MakeShareable( new FSlateTextRun( InText, Style, InRange ) );
+	return MakeShareable( new FSlateTextRun( InRunInfo, InText, Style, InRange ) );
 }
 
 FTextRange FSlateTextRun::GetTextRange() const 
@@ -177,15 +177,15 @@ void FSlateTextRun::Move(const TSharedRef<FString>& NewText, const FTextRange& N
 
 TSharedRef<IRun> FSlateTextRun::Clone() const
 {
-	return FSlateTextRun::Create(Text, Style, Range);
+	return FSlateTextRun::Create(RunInfo, Text, Style, Range);
 }
 
-void FSlateTextRun::AppendText(FString& AppendToText) const
+void FSlateTextRun::AppendTextTo(FString& AppendToText) const
 {
 	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
 }
 
-void FSlateTextRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+void FSlateTextRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
@@ -193,8 +193,14 @@ void FSlateTextRun::AppendText(FString& AppendToText, const FTextRange& PartialR
 	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
-	: Text( InText )
+const FRunInfo& FSlateTextRun::GetRunInfo() const
+{
+	return RunInfo;
+}
+
+FSlateTextRun::FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Style( InStyle )
 	, Range( 0, Text->Len() )
 #if TEXT_LAYOUT_DEBUG
@@ -204,8 +210,9 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) 
-	: Text( InText )
+FSlateTextRun::FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Style( InStyle )
 	, Range( InRange )
 #if TEXT_LAYOUT_DEBUG
@@ -216,7 +223,8 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 }
 
 FSlateTextRun::FSlateTextRun( const FSlateTextRun& Run ) 
-	: Text( Run.Text )
+	: RunInfo( Run.RunInfo )
+	, Text( Run.Text )
 	, Style( Run.Style )
 	, Range( Run.Range )
 #if TEXT_LAYOUT_DEBUG

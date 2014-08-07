@@ -13,26 +13,30 @@
 
 void SRichTextBlock::Construct( const FArguments& InArgs )
 {
+	TextStyle = *InArgs._TextStyle;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
-	TagStyleSet = InArgs._DecoratorStyleSet;
-	TextStyle = *InArgs._TextStyle;
 
 	CachedAutoWrapTextWidth = 0.0f;
 
-	Parser = InArgs._Parser;
-	if ( !Parser.IsValid() )
 	{
-		Parser = FRichTextMarkupProcessing::Create();
+		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
+		if ( !Parser.IsValid() )
+		{
+			Parser = FDefaultRichTextMarkupParser::Create();
+		}
+
+		Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet, TextStyle);
+		for ( const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators )
+		{
+			Marshaller->AppendInlineDecorator( Decorator );
+		}
 	}
 
 	TextHighlighter = FSlateTextHighlightRunRenderer::Create();
-
-	Decorators.Append( InArgs._Decorators );
-	Decorators.Append( InArgs.InlineDecorators );
 
 	TextLayout = FSlateTextLayout::Create();
 
@@ -49,21 +53,24 @@ void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCur
 {
 	TextLayout->SetScale( AllottedGeometry.Scale );
 
-	if (BoundText.IsBound())
+	bool bRequiresTextUpdate = false;
+	const FText& TextToSet = GetText();
+	if (BoundText.IsBound() && !BoundTextLastTick.IdenticalTo(TextToSet))
 	{
-		const FText& TextToSet = GetText();
-		if (!BoundTextLastTick.IdenticalTo(TextToSet))
+		// The pointer used by the bound text has changed, however the text may still be the same - check that now
+		if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
 		{
-			// The pointer used by the bound text has changed, however the text may still be the same - check that now
-			if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
-			{
-				// The source text has changed, so update the internal editable text
-				SetText(TextToSet);
-			}
-
-			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
-			BoundTextLastTick = TextToSet;
+			// The source text has changed, so update the internal editable text
+			bRequiresTextUpdate = true;
 		}
+
+		// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
+		BoundTextLastTick = TextToSet;
+	}
+
+	if (bRequiresTextUpdate || Marshaller->IsDirty())
+	{
+		SetText(TextToSet);
 	}
 }
 
@@ -155,22 +162,6 @@ void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArra
 	}
 }
 
-TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& InDecorators, const FString& InText, const FTextRunParseResults& TextRun ) const
-{
-	if (InDecorators.Num() > 0)
-	{
-		for (auto DecoratorIter = InDecorators.CreateConstIterator(); DecoratorIter; ++DecoratorIter)
-		{
-			if ((*DecoratorIter)->Supports(TextRun, InText))
-			{
-				return *DecoratorIter;
-			}
-		}
-	}
-
-	return nullptr;
-}
-
 void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 {
 	BoundText = InTextAttr;
@@ -183,59 +174,9 @@ void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 		BoundTextLastTick = InText;
 	}
 
-	const FString& InString = InText.ToString();
-	TArray<FTextLineParseResults> LineParseResultsArray;
-	FString ProcessedString;
-	Parser->Process(LineParseResultsArray, InString, ProcessedString);
-
 	TextLayout->ClearLines();
 
-	// Iterate through parsed line results and create processed lines with runs.
-	for (int LineIndex = 0; LineIndex < LineParseResultsArray.Num(); LineIndex++)
-	{
-		const FTextLineParseResults& LineParseResults = LineParseResultsArray[ LineIndex ];
-
-		TSharedRef<FString> ModelString = MakeShareable(new FString());
-		TArray< TSharedRef< IRun > > Runs;
-
-		for (int RunIndex = 0; RunIndex < LineParseResults.Runs.Num(); RunIndex++)
-		{
-			const FTextRunParseResults& RunParseResult = LineParseResults.Runs[ RunIndex ];
-			TSharedPtr< ISlateRun > Run;
-
-			TSharedPtr< ITextDecorator > Decorator = TryGetDecorator( Decorators, ProcessedString, RunParseResult );
-
-			if ( Decorator.IsValid() )
-			{
-				// Create run and update model string.
-				Run = Decorator->Create( RunParseResult, ProcessedString, ModelString, TagStyleSet );
-			}
-			else
-			{
-				const FTextBlockStyle* TextBlockStyle;
-				FTextRange ModelRange;
-				ModelRange.BeginIndex = ModelString->Len();
-				if(!(RunParseResult.Name.IsEmpty()) && TagStyleSet->HasWidgetStyle< FTextBlockStyle >( FName(*RunParseResult.Name) ))
-				{
-					*ModelString += ProcessedString.Mid(RunParseResult.ContentRange.BeginIndex, RunParseResult.ContentRange.EndIndex - RunParseResult.ContentRange.BeginIndex);
-					TextBlockStyle = &(TagStyleSet->GetWidgetStyle< FTextBlockStyle >( FName(*RunParseResult.Name) ));
-				}
-				else
-				{
-					*ModelString += ProcessedString.Mid(RunParseResult.OriginalRange.BeginIndex, RunParseResult.OriginalRange.EndIndex - RunParseResult.OriginalRange.BeginIndex);
-					TextBlockStyle = &(TextStyle);
-				}
-				ModelRange.EndIndex = ModelString->Len();
-
-				// Create run.
-				Run = FSlateTextRun::Create( ModelString, *TextBlockStyle, ModelRange );
-			}
-
-			Runs.Add( Run.ToSharedRef() );
-		}
-
-		TextLayout->AddLine( ModelString, Runs );
-	}
+	Marshaller->SetText(InText.ToString(), *TextLayout);
 }
 
 void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
@@ -245,15 +186,15 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 		return;
 	}
 
-	TextHighlights.Empty();
 	HighlightText = InHighlightText;
 
-	const FString HighlightTextString = HighlightText.ToString();
+	const FString& HighlightTextString = HighlightText.ToString();
 	const int32 HighlightTextLength = HighlightTextString.Len();
 
 	const TArray< FTextLayout::FLineModel >& LineModels = TextLayout->GetLineModels();
 
-	for (int LineIndex = 0; LineIndex < LineModels.Num(); LineIndex++)
+	TArray< FTextRunRenderer > TextHighlights;
+	for (int32 LineIndex = 0; LineIndex < LineModels.Num(); LineIndex++)
 	{
 		const FTextLayout::FLineModel& LineModel = LineModels[ LineIndex ];
 

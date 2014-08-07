@@ -446,25 +446,31 @@ public:
 
 	FORCEINLINE void InsertAt(int32 Index, TCHAR Character)
 	{
-		if (Data.Num() == 0)
+		if (Character != 0)
 		{
-			*this += Character;
-		}
-		else
-		{
-			Data.Insert(Character, Index);
+			if (Data.Num() == 0)
+			{
+				*this += Character;
+			}
+			else
+			{
+				Data.Insert(Character, Index);
+			}
 		}
 	}
 
 	FORCEINLINE void InsertAt(int32 Index, const FString& Characters)
 	{
-		if (Data.Num() == 0)
+		if (Characters.Len())
 		{
-			*this += Characters;
-		}
-		else
-		{
-			Data.Insert(Characters.Data.GetData(), Characters.Len(), Index);
+			if (Data.Num() == 0)
+			{
+				*this += Characters;
+			}
+			else
+			{
+				Data.Insert(Characters.Data.GetData(), Characters.Len(), Index);
+			}
 		}
 	}
 

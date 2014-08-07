@@ -882,7 +882,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 	LineModel.HasWrappingInformation = false;
 
 	bool RunIsAfterInsertLocation = false;
-	for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
 		FRunModel& RunModel = LineModel.Runs[ RunIndex ];
 		const FTextRange& RunRange = RunModel.GetTextRange();
@@ -907,7 +907,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 	return true;
 }
 
-bool FTextLayout::InsertAt( const FTextLocation& Location, const FString& Text )
+bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 {
 	const int32 InsertLocation = Location.GetOffset();
 	const int32 LineIndex = Location.GetLineIndex();
@@ -923,7 +923,7 @@ bool FTextLayout::InsertAt( const FTextLocation& Location, const FString& Text )
 	LineModel.HasWrappingInformation = false;
 
 	bool RunIsAfterInsertLocation = false;
-	for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
 		FRunModel& RunModel = LineModel.Runs[ RunIndex ];
 		const FTextRange& RunRange = RunModel.GetTextRange();
@@ -941,6 +941,71 @@ bool FTextLayout::InsertAt( const FTextLocation& Location, const FString& Text )
 			FTextRange NewRange = RunRange;
 			NewRange.Offset(Text.Len());
 			RunModel.SetTextRange(NewRange);
+		}
+	}
+
+	DirtyFlags |= EDirtyState::Layout;
+	return true;
+}
+
+bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun, const bool bAlwaysKeepRightRun)
+{
+	const int32 InsertLocation = Location.GetOffset();
+	const int32 LineIndex = Location.GetLineIndex();
+
+	if (!LineModels.IsValidIndex(LineIndex))
+	{
+		return false;
+	}
+
+	FLineModel& LineModel = LineModels[LineIndex];
+
+	FString NewRunText;
+	InRun->AppendTextTo(NewRunText);
+
+	LineModel.Text->InsertAt(InsertLocation, NewRunText);
+	LineModel.HasWrappingInformation = false;
+
+	bool RunIsAfterInsertLocation = false;
+	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	{
+		const TSharedRef<IRun> Run = LineModel.Runs[RunIndex].GetRun();
+		const FTextRange& RunRange = Run->GetTextRange();
+
+		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
+		if (RunRange.Contains(InsertLocation) || (bIsLastRun && !RunIsAfterInsertLocation))
+		{
+			check(RunIsAfterInsertLocation == false);
+			RunIsAfterInsertLocation = true;
+
+			// This run contains the insertion point, so we need to split it
+			const TSharedRef<IRun> LeftRun = Run;
+			const TSharedRef<IRun> RightRun = Run->Clone();
+
+			// Update the text ranges for all of the runs
+			const int32 InsertLocationEnd = InsertLocation + NewRunText.Len();
+			LeftRun->SetTextRange( FTextRange( RunRange.BeginIndex, InsertLocation ) );
+			InRun->Move( LineModel.Text, FTextRange( InsertLocation, InsertLocationEnd ) );
+			RightRun->SetTextRange( FTextRange( InsertLocationEnd, RunRange.EndIndex + NewRunText.Len() ) );
+
+			// Insert the new runs at the correct place, and then skip over these new array entries
+			const bool LeftRunHasText = !LeftRun->GetTextRange().IsEmpty();
+			const bool RightRunHasText = !RightRun->GetTextRange().IsEmpty();
+			if (!LeftRunHasText)
+			{
+				LineModel.Runs.RemoveAt(RunIndex--);
+			}
+			LineModel.Runs.Insert(InRun, ++RunIndex);
+			if (RightRunHasText || bAlwaysKeepRightRun)
+			{
+				LineModel.Runs.Insert(RightRun, ++RunIndex);
+			}
+		}
+		else if (RunIsAfterInsertLocation)
+		{
+			FTextRange NewRange = RunRange;
+			NewRange.Offset(NewRunText.Len());
+			Run->SetTextRange(NewRange);
 		}
 	}
 
@@ -1018,7 +1083,8 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 		const TSharedRef<IRun> Run = LineModel.Runs[RunIndex].GetRun();
 		const FTextRange& RunRange = Run->GetTextRange();
 		
-		if ((LineModel.Runs.Num() == 1 && RunRange.InclusiveContains(BreakLocation)) || RunRange.Contains(BreakLocation))
+		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
+		if (RunRange.Contains(BreakLocation) || (bIsLastRun && RunIsToTheLeftOfTheBreakLocation))
 		{
 			check(RunIsToTheLeftOfTheBreakLocation == true);
 			RunIsToTheLeftOfTheBreakLocation = false;
@@ -1080,32 +1146,58 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 	LineModel.Text->RemoveAt(RemoveLocation, Count);
 	LineModel.HasWrappingInformation = false;
 
-	bool RunIsAfterRemoveLocation = false;
-	for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	const FTextRange RemoveTextRange(RemoveLocation, RemoveLocation + Count);
+	for (int32 RunIndex = LineModel.Runs.Num() - 1; RunIndex >= 0; --RunIndex)
 	{
 		FRunModel& RunModel = LineModel.Runs[RunIndex];
-		const FTextRange& RunRange = RunModel.GetTextRange();
+		const FTextRange RunRange = RunModel.GetTextRange();
 
-		if (RunRange.Contains(RemoveLocation))
+		const FTextRange IntersectedRangeToRemove = RunRange.Intersect(RemoveTextRange);
+		if (IntersectedRangeToRemove.IsEmpty() && RunRange.EndIndex > RemoveTextRange.EndIndex)
 		{
-			check(RunIsAfterRemoveLocation == false);
-			RunIsAfterRemoveLocation = true;
-
-			FTextRange NewRange(RunRange.BeginIndex, RunRange.EndIndex - Count);
-			if (NewRange.IsEmpty() && LineModel.Runs.Num() > 1)
-			{
-				LineModel.Runs.RemoveAt(RunIndex--);
-			}
-			else
-			{
-				RunModel.SetTextRange(NewRange);
-			}
-		}
-		else if (RunIsAfterRemoveLocation)
-		{
+			// The whole run is contained to the right of the removal range, just adjust its range by the amount of text that was removed
 			FTextRange NewRange = RunRange;
 			NewRange.Offset(-Count);
 			RunModel.SetTextRange(NewRange);
+		}
+		else if (!IntersectedRangeToRemove.IsEmpty())
+		{
+			const int32 RunLength = RunRange.Len();
+			const int32 IntersectedLength = IntersectedRangeToRemove.Len();
+			if (RunLength == IntersectedLength)
+			{
+				// The text for this entire run has been removed
+				if (LineModel.Runs.Num() > 1)
+				{
+					LineModel.Runs.RemoveAt(RunIndex);
+				}
+				else
+				{
+					RunModel.SetTextRange(FTextRange(0, 0));
+				}
+			}
+			else if (RunRange.BeginIndex > RemoveTextRange.BeginIndex)
+			{
+				// Some of this run has been removed, and this run is the right hand part of the removal
+				// So we need to adjust the range so that we start at the removal point since the text has been removed from the beginning of this run
+				const FTextRange NewRange(RemoveTextRange.BeginIndex, RunRange.EndIndex - Count);
+				check(!NewRange.IsEmpty());
+				RunModel.SetTextRange(NewRange);
+			}
+			else
+			{
+				// Some of this run has been removed, and this run is the left hand part of the removal
+				// So we need to adjust the range by the amount of text that has been removed from the end of this run
+				const FTextRange NewRange(RunRange.BeginIndex, RunRange.EndIndex - IntersectedLength);
+				check(!NewRange.IsEmpty());
+				RunModel.SetTextRange(NewRange);
+			}
+
+			if (RunRange.BeginIndex <= RemoveTextRange.BeginIndex)
+			{
+				// break since we don't need to process the runs to the left of the removal point
+				break;
+			}
 		}
 	}
 
@@ -1196,7 +1288,7 @@ void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffset
 			const FRunModel& Run = LineModel.Runs[RunIndex];
 			if (OutDisplayText)
 			{
-				Run.AppendText(*OutDisplayText);
+				Run.AppendTextTo(*OutDisplayText);
 			}
 			LineLength += Run.GetTextRange().Len();
 		}
@@ -1221,7 +1313,7 @@ void GetRangeAsTextFromLine(FString& DisplayText, const FTextLayout::FLineModel&
 
 		if (!IntersectRange.IsEmpty())
 		{
-			Run.AppendText(DisplayText, IntersectRange);
+			Run.AppendTextTo(DisplayText, IntersectRange);
 		}
 		else if (RunRange.BeginIndex > Range.EndIndex)
 		{
@@ -1473,14 +1565,14 @@ void FTextLayout::FRunModel::ClearCache()
 	MeasuredRangeSizes.Empty();
 }
 
-void FTextLayout::FRunModel::AppendText(FString& Text) const
+void FTextLayout::FRunModel::AppendTextTo(FString& Text) const
 {
-	Run->AppendText(Text);
+	Run->AppendTextTo(Text);
 }
 
-void FTextLayout::FRunModel::AppendText(FString& Text, const FTextRange& Range) const
+void FTextLayout::FRunModel::AppendTextTo(FString& Text, const FTextRange& Range) const
 {
-	Run->AppendText(Text, Range);
+	Run->AppendTextTo(Text, Range);
 }
 
 TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const

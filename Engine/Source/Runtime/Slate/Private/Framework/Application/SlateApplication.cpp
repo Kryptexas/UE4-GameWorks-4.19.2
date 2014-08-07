@@ -1561,17 +1561,18 @@ bool FSlateApplication::SetKeyboardFocus( const FWidgetPath& InFocusPath, const 
 					}
 				}
 				
+				const FWeakWidgetPath OldFocusedWidgetPath = FocusedWidgetPath;
+				// Store a weak widget path to the widget that's taking focus
+				FocusedWidgetPath = FWeakWidgetPath( NewFocusPath );
+
 				if( OldFocusedWidget.IsValid() )
 				{
 					// Switch worlds for widgets in the old path
-					FScopedSwitchWorldHack SwitchWorld( FocusedWidgetPath.Window.Pin() );
+					FScopedSwitchWorldHack SwitchWorld( OldFocusedWidgetPath.Window.Pin() );
 
 					// Let previously-focused widget know that it's losing focus
 					OldFocusedWidget->OnKeyboardFocusLost( FKeyboardFocusEvent( InCause ) );
 				}
-
-				// Store a weak widget path to the widget that's taking focus
-				FocusedWidgetPath = FWeakWidgetPath( NewFocusPath );
 
 				if (bReflectorShowingFocus)
 				{
@@ -1616,22 +1617,23 @@ FModifierKeysState FSlateApplication::GetModifierKeys() const
 
 void FSlateApplication::ClearKeyboardFocus( const EKeyboardFocusCause::Type InCause )
 {
-	// Let previously-focused widget know that it's losing focus
-	{
-		TSharedPtr< SWidget > OldFocusedWidget( GetKeyboardFocusedWidget() );
-		if( OldFocusedWidget.IsValid() )
-		{
-			if ( FocusedWidgetPath.Window.IsValid() )
-			{
-				// Switch worlds for widgets in the current path
-				FScopedSwitchWorldHack SwitchWorld( FocusedWidgetPath.Window.Pin().ToSharedRef() );
+	TSharedPtr< SWidget > OldFocusedWidget( GetKeyboardFocusedWidget() );
+	const FWeakWidgetPath OldFocusedWidgetPath = FocusedWidgetPath;
+	FocusedWidgetPath = FWeakWidgetPath();
 
-				OldFocusedWidget->OnKeyboardFocusLost( FKeyboardFocusEvent( InCause ) );
-			}
-			else
-			{
-				OldFocusedWidget->OnKeyboardFocusLost( FKeyboardFocusEvent( InCause ) );
-			}
+	// Let previously-focused widget know that it's losing focus
+	if( OldFocusedWidget.IsValid() )
+	{
+		if ( OldFocusedWidgetPath.Window.IsValid() )
+		{
+			// Switch worlds for widgets in the current path
+			FScopedSwitchWorldHack SwitchWorld( OldFocusedWidgetPath.Window.Pin().ToSharedRef() );
+
+			OldFocusedWidget->OnKeyboardFocusLost( FKeyboardFocusEvent( InCause ) );
+		}
+		else
+		{
+			OldFocusedWidget->OnKeyboardFocusLost( FKeyboardFocusEvent( InCause ) );
 		}
 	}
 
@@ -1642,8 +1644,6 @@ void FSlateApplication::ClearKeyboardFocus( const EKeyboardFocusCause::Type InCa
 	{
 		WidgetReflector->SetWidgetsToVisualize(FWidgetPath());
 	}
-
-	FocusedWidgetPath = FWeakWidgetPath();
 }
 
 

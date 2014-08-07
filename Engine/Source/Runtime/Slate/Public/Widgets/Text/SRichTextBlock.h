@@ -3,6 +3,8 @@
 
 #if WITH_FANCY_TEXT
 
+#include "RichTextLayoutMarshaller.h"
+
 /**
  * A rich static text widget. 
  * Through the use of markup and text decorators, text with different styles, embedded image and widgets can be achieved.
@@ -129,25 +131,23 @@ public:
 
 private:
 
-	TSharedPtr< ITextDecorator > TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& Decorators, const FString& Line, const FTextRunParseResults& TextRun ) const;
-
-private:
-
 	/** The text displayed in this text block */
 	TAttribute< FText > BoundText;
 
 	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
 	FText BoundTextLastTick;
 
+	/** The marshaller used to set the Text text in the text layout. */
+	TSharedPtr< FRichTextLayoutMarshaller > Marshaller;
+
 	TSharedPtr< FSlateTextLayout > TextLayout;
 
+	/** Default style used by the TextLayout */
+	FTextBlockStyle TextStyle;
+
 	FText HighlightText;
-	TArray< FTextRunRenderer > TextHighlights;
 	TSharedPtr< ISlateRunRenderer> TextHighlighter;
 
-	const ISlateStyle* TagStyleSet;
-	FTextBlockStyle TextStyle;
-	
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	TAttribute<float> WrapTextAt;
 	
@@ -160,10 +160,6 @@ private:
 	TAttribute< FMargin > Margin;
 	TAttribute< ETextJustify::Type > Justification; 
 	TAttribute< float > LineHeightPercentage;
-
-	TArray< TSharedRef< class ITextDecorator > > Decorators;
-
-	TSharedPtr< class IRichTextMarkupParser > Parser;
 };
 
 #endif //WITH_FANCY_TEXT
