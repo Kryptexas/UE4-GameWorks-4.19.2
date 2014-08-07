@@ -4,7 +4,7 @@
 #include "AI/Navigation/NavCollision.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "NavigationModifier.h"
-#include "../Private/AI/Navigation/RecastNavMeshGenerator.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"

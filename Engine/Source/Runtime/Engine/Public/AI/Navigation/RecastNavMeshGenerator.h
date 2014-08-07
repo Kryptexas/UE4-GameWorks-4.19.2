@@ -135,7 +135,7 @@ struct FRecastDirtyGenerator
 /**
  * Class handling generation of a single tile, caching data that can speed up subsequent tile generations
  */
-class FRecastTileGenerator
+class ENGINE_API FRecastTileGenerator
 {
 public:
 	FRecastTileGenerator();
