@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "RenderUtils.h"
-
+#include "PackedNormal.h"
+#include "RenderResource.h"
 /*=============================================================================
 	Components.h: Forward declarations of object components of actors
 =============================================================================*/

@@ -5,8 +5,7 @@
 //=============================================================================
 
 #pragma once
-#include "WordWrapper.h"
-#include "Engine/EngineTypes.h"
+#include "Internationalization/WordWrapper.h"
 #include "Canvas.generated.h"
 
 class FSceneView;

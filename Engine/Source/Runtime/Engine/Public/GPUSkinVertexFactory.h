@@ -27,7 +27,6 @@
 
 #include "GPUSkinPublicDefs.h"
 #include "ResourcePool.h"
-#include "SharedPointer.h"
 #include "UniformBuffer.h"
 
 /** for final bone matrices - this needs to move out of ifdef due to APEX using it*/

@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Shader.h"
-#include "SceneManagement.h"
-#include "ShaderParameters.h"
 
 class FShaderCompileJob;
 

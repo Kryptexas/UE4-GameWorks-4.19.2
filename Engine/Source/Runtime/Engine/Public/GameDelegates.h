@@ -6,8 +6,6 @@
  * Collection of delegates for various components to call into game code
  */
 
-#include "Delegate.h"
-
 // enum class with size so it can be forward declared.
 enum class EGameDelegates_SaveGame : short
 {	

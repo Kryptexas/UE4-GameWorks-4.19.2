@@ -10,6 +10,7 @@
 #include "Components/InputComponent.h"
 #include "Engine/EngineTypes.h"
 #include "GestureRecognizer.h"
+#include "KeyState.h"
 #include "PlayerInput.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
@@ -18,7 +19,6 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 // Forward declarations.
 //
 struct FDelegateDispatchDetails;
-struct FKeyState;
 
 USTRUCT()
 struct FKeyBind

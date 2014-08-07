@@ -13,7 +13,7 @@
 #include "MoviePlayerThreading.h"
 #include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
-
+#include "ShaderCompiler.h"
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
 

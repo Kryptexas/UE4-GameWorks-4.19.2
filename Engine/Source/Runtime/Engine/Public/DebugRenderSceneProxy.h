@@ -9,8 +9,9 @@
 #ifndef _INC_DEBUGRENDERSCENEPROXY
 #define _INC_DEBUGRENDERSCENEPROXY
 
-#include "Debug/DebugDrawService.h"
 #include "PrimitiveSceneProxy.h"
+
+DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerController*);
 
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
