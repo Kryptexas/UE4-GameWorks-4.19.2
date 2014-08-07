@@ -312,6 +312,12 @@ EHttpRequestStatus::Type FMacHttpRequest::GetStatus()
 }
 
 
+const FHttpResponsePtr FMacHttpRequest::GetResponse() const
+{
+	return Response;
+}
+
+
 void FMacHttpRequest::Tick(float DeltaSeconds)
 {
 	if( CompletionStatus == EHttpRequestStatus::Processing || Response->HadError() )

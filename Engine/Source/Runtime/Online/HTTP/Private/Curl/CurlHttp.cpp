@@ -620,6 +620,11 @@ EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()
 	return CompletionStatus;
 }
 
+const FHttpResponsePtr FCurlHttpRequest::GetResponse() const
+{
+	return Response;
+}
+
 void FCurlHttpRequest::Tick(float DeltaSeconds)
 {
 	// check for true completion/cancellation

@@ -724,6 +724,11 @@ EHttpRequestStatus::Type FHttpRequestWinInet::GetStatus()
 	return CompletionStatus;
 }
 
+const FHttpResponsePtr FHttpRequestWinInet::GetResponse() const
+{
+	return Response;
+}
+
 void FHttpRequestWinInet::Tick(float DeltaSeconds)
 {
 	// keep track of elapsed milliseconds
