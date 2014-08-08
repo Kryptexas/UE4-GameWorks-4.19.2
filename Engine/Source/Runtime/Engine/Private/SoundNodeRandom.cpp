@@ -250,16 +250,6 @@ void USoundNodeRandom::OnBeginPIE(const bool bIsSimulating)
 }
 #endif //WITH_EDITOR
 
-FString USoundNodeRandom::GetUniqueString() const
-{
-	FString Unique = TEXT( "Random" );
-
-	Unique += bRandomizeWithoutReplacement ? TEXT( " True" ) : TEXT( " False" );
-
-	Unique += TEXT( "/" );
-	return( Unique );
-}
-
 #if WITH_EDITOR
 void USoundNodeRandom::UpdatePIEHiddenNodes()
 {

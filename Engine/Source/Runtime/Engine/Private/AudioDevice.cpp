@@ -416,70 +416,6 @@ void FAudioDevice::ShowSoundClassHierarchy( FOutputDevice& Ar, USoundClass* InSo
 	}
 }
 
-struct FSimpleIntCompare
-{
-	FORCEINLINE bool operator()( const int32 A, const int32 B ) const { return B < A; }
-};
-
-bool FAudioDevice::HandleSoundTemplateInfoCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	int32 NumCues = 0;
-	TMap<FString, int32> UniqueCues;
-
-	for( TObjectIterator<USoundCue> It; It; ++It )
-	{
-		TArray<USoundNode*> SoundNodes;
-
-		USoundCue* Cue = *It;
-		if( Cue )
-		{
-			if( Cue->FirstNode )
-			{
-				Cue->FirstNode->GetAllNodes( SoundNodes );
-
-				FString Unique = TEXT( "" );
-				for( int32 SoundNodeIndex = 0; SoundNodeIndex < SoundNodes.Num(); SoundNodeIndex++ )
-				{
-					USoundNode* SoundNode = SoundNodes[ SoundNodeIndex ];
-					Unique += SoundNode->GetUniqueString();
-				}
-
-				if( !FCString::Stristr( *Unique, TEXT( "Complex" ) ) )
-				{
-					int32 Count = 1;
-					if( UniqueCues.Find( Unique ) )
-					{
-						Count = UniqueCues.FindRef( Unique ) + 1;
-					}
-					UniqueCues.Add( Unique, Count );
-				}
-
-				Ar.Logf( TEXT( "Cue: %s : %s" ), *Cue->GetFullName(), *Unique );
-				NumCues++;
-			}
-			else
-			{
-				Ar.Logf( TEXT( "No FirstNode : %s" ), *Cue->GetFullName() );
-			}
-		}
-	}
-
-	Ar.Logf( TEXT( "Potential Templates -" ) );
-
-	UniqueCues.ValueSort( FSimpleIntCompare() );
-
-	for( TMap<FString, int32>::TIterator It( UniqueCues ); It; ++It )
-	{
-		FString Template = It.Key();
-		int32 TemplateCount = It.Value();
-		Ar.Logf( TEXT( "%05d : %s" ), TemplateCount, *Template );
-	}
-
-	Ar.Logf( TEXT( "SoundCues processed: %d" ), NumCues );
-	Ar.Logf( TEXT( "Unique SoundCues   : %d" ), UniqueCues.Num() );
-	return true;
-}
-
 int32 PrecachedRealtime = 0;
 int32 PrecachedNative = 0;
 int32 TotalNativeSize = 0;
@@ -822,10 +758,6 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command( &Cmd, TEXT( "ListSoundDurations" ) ) )
 	{
 		return HandleListSoundDurationsCommand( Cmd, Ar );
-	}
-	else if( FParse::Command( &Cmd, TEXT( "SoundTemplateInfo" ) ) )
-	{
-		return HandleSoundTemplateInfoCommand( Cmd, Ar );
 	}
 	else if( FParse::Command( &Cmd, TEXT( "PlaySoundCue" ) ) )
 	{

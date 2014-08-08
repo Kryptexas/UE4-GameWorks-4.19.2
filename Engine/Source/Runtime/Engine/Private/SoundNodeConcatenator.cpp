@@ -119,8 +119,3 @@ void USoundNodeConcatenator::SetChildNodes(TArray<USoundNode*>& InChildNodes)
 	}
 }
 #endif //WITH_EDITOR
-
-FString USoundNodeConcatenator::GetUniqueString() const
-{
-	return TEXT( "Concatenator/" );
-}

@@ -45,11 +45,6 @@ float USoundNodeDialoguePlayer::GetDuration()
 	return Duration;
 }
 
-FString USoundNodeDialoguePlayer::GetUniqueString() const
-{
-	return TEXT("");
-}
-
 // A Wave Player is the end of the chain and has no children
 int32 USoundNodeDialoguePlayer::GetMaxChildNodes() const
 {

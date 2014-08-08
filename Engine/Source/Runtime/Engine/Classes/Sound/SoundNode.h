@@ -162,7 +162,6 @@ public:
 	/** 
 	 * Used to create a unique string to identify unique nodes
 	 */
-	virtual FString GetUniqueString() const;
 	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex);
 	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex);
 };

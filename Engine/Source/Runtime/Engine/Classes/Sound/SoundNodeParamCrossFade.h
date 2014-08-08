@@ -18,7 +18,6 @@ public:
 	UPROPERTY(EditAnywhere, Category=CrossFade )
 	FName ParamName;
 
-	virtual FString GetUniqueString() const override;
 	virtual float GetCurrentDistance(FAudioDevice* AudioDevice, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams) const override;
 	virtual bool AllowCrossfading(FActiveSound& ActiveSound) const override;
 };

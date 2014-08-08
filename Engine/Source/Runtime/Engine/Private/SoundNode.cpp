@@ -136,11 +136,6 @@ void USoundNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 }
 #endif // WITH_EDITOR
 
-FString USoundNode::GetUniqueString() const
-{
-	return TEXT("ERROR" );
-}
-
 #if WITH_EDITOR
 void USoundNode::PlaceNode( int32 NodeColumn, int32 NodeRow, int32 RowCount )
 {

@@ -226,8 +226,3 @@ void USoundNodeGroupControl::SetChildNodes(TArray<USoundNode*>& InChildNodes)
 	}
 }
 #endif //WITH_EDITOR
-
-FString USoundNodeGroupControl::GetUniqueString() const
-{
-	return TEXT( "GroupControl/" );
-}

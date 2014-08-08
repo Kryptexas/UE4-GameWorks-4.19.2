@@ -73,7 +73,6 @@ public:
 	virtual void OnBeginPIE(const bool bIsSimulating) override;
 #endif //WITH_EDITOR
 	virtual void CreateStartingConnectors( void ) override;
-	virtual FString GetUniqueString() const override;
 	// End USoundNode interface.
 
 	// @todo document

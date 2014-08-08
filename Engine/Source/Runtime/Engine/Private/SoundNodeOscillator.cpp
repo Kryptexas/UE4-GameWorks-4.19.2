@@ -57,8 +57,3 @@ void USoundNodeOscillator::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT 
 	Super::ParseNodes( AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParams, WaveInstances );
 }
 
-
-FString USoundNodeOscillator::GetUniqueString() const
-{
-	return( TEXT( "OscillatorComplex/" ) );
-}

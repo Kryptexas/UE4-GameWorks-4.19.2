@@ -148,11 +148,6 @@ float USoundNodeDistanceCrossFade::GetCurrentDistance(FAudioDevice* AudioDevice,
 	return ActiveSound.bLocationDefined ? FVector::Dist( ParseParams.Transform.GetTranslation(), AudioDevice->Listeners[0].Transform.GetTranslation() ) : 0.f;
 }
 
-FString USoundNodeDistanceCrossFade::GetUniqueString() const
-{
-	return TEXT( "DistanceCrossFadeComplex/" );
-}
-
 bool USoundNodeDistanceCrossFade::AllowCrossfading(FActiveSound& ActiveSound) const
 {
 	// Ignore distance calculations for preview components as they are undefined

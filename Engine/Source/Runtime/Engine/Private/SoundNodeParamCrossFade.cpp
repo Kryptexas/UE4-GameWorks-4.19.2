@@ -20,11 +20,6 @@ float USoundNodeParamCrossFade::GetCurrentDistance(FAudioDevice* AudioDevice, FA
 	return ParamValue;
 }
 
-FString USoundNodeParamCrossFade::GetUniqueString() const
-{
-	return TEXT( "ParamCrossFadeComplex/" );
-}
-
 bool USoundNodeParamCrossFade::AllowCrossfading(FActiveSound& ActiveSound) const
 {
 	// Always allow parameter to control crossfading, even on 2D/preview sounds
