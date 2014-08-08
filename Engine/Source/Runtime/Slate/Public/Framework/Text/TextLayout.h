@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "IBreakIterator.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0
@@ -291,6 +292,9 @@ public:
 	FMargin GetMargin() const;
 	void SetMargin( const FMargin& InMargin );
 
+	/** Set the iterator to use to detect appropriate soft-wrapping points for lines (or null to go back to using the default) */
+	void SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator );
+
 	void ClearLines();
 
 	void AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs );
@@ -458,4 +462,10 @@ protected:
 
 	/** The final size of the text layout on screen. */
 	FVector2D DrawSize;
+
+	/** The iterator to use to detect appropriate soft-wrapping points for lines */
+	TSharedPtr<IBreakIterator> LineBreakIterator;
+
+	/** The iterator to use to detect word boundaries */
+	TSharedPtr<IBreakIterator> WordBreakIterator;
 };

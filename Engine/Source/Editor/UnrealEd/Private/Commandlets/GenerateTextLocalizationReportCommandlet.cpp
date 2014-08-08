@@ -6,6 +6,7 @@
 #include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
 #include "InternationalizationArchiveJsonSerializer.h"
+#include "BreakIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationReportCommandlet, Log, All);
 
@@ -19,12 +20,13 @@ int32 UGenerateTextLocalizationReportCommandlet::CountWords( const FString& Text
 	int32 NumOfWords = 0;
 	// Calculate # of words
 
-	FLineBreakIterator LineBreakIterator( Text );
+	TSharedRef<IBreakIterator> LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
+	LineBreakIterator->SetString( Text );
 
 	int32 PreviousBreak = 0;
 	int32 CurrentBreak = 0;
 
-	while( ( CurrentBreak = LineBreakIterator.MoveToNext() ) != INDEX_NONE )
+	while( ( CurrentBreak = LineBreakIterator->MoveToNext() ) != INDEX_NONE )
 	{
 		if ( CurrentBreak > PreviousBreak )
 		{

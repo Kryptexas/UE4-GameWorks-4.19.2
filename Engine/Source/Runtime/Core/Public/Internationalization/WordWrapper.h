@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "CharacterBoundaryIterator.h"
-#include "LineBreakIterator.h"
+#include "IBreakIterator.h"
 
 // Abstract Base Class for word wrapping functionality.
 class CORE_API FWordWrapper
@@ -55,8 +54,8 @@ protected:
 	const TCHAR* const String;
 	const int32 StringLength;
 private:
-	FCharacterBoundaryIterator GraphemeBreakIterator;
-	FLineBreakIterator LineBreakIterator;
+	TSharedPtr<IBreakIterator> GraphemeBreakIterator;
+	TSharedPtr<IBreakIterator> LineBreakIterator;
 	int32 StartIndex;
 	FWrappedLineData* WrappedLineData;
 };

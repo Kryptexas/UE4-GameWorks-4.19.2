@@ -2,7 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 #include "SyntaxTokenizer.h"
-#include "WordBreakIterator.h"
+#include "BreakIterator.h"
 
 TSharedRef< FSyntaxTokenizer > FSyntaxTokenizer::Create(TArray<FRule> InRules)
 {
@@ -34,8 +34,10 @@ FSyntaxTokenizer::FSyntaxTokenizer(TArray<FRule> InRules)
 
 void FSyntaxTokenizer::TokenizeLineRanges(const FString& Input, const TArray<FTextRange>& LineRanges, TArray<FTokenizedLine>& OutTokenizedLines)
 {
+	TSharedRef<IBreakIterator> WBI = FBreakIterator::CreateWordBreakIterator();
+	WBI->SetString(Input);
+
 	// Tokenize line ranges
-	FWordBreakIterator WBI(Input);
 	for(const FTextRange& LineRange : LineRanges)
 	{
 		FTokenizedLine TokenizedLine;
@@ -73,7 +75,7 @@ void FSyntaxTokenizer::TokenizeLineRanges(const FString& Input, const TArray<FTe
 				}
 
 				// If none matched, consume the character(s) as text
-				const int32 NextWordBoundary = WBI.MoveToCandidateAfter(CurrentOffset);
+				const int32 NextWordBoundary = WBI->MoveToCandidateAfter(CurrentOffset);
 				const int32 TextTokenEnd = (NextWordBoundary == INDEX_NONE) ? LineRange.EndIndex : FMath::Min(NextWordBoundary, LineRange.EndIndex);
 				TokenizedLine.Tokens.Emplace(FToken(ETokenType::Literal, FTextRange(CurrentOffset, TextTokenEnd)));
 				CurrentOffset = TextTokenEnd;

@@ -2,15 +2,19 @@
 
 #include "Core.h"
 #include "WordWrapper.h"
+#include "BreakIterator.h"
 
 FWordWrapper::FWordWrapper(const TCHAR* const InString, const int32 InStringLength, FWrappedLineData* const OutWrappedLineData)
 	: String(InString)
 	, StringLength(InStringLength)
-	, GraphemeBreakIterator(InString, InStringLength)
-	, LineBreakIterator(InString, InStringLength)
+	, GraphemeBreakIterator(FBreakIterator::CreateCharacterBoundaryIterator())
+	, LineBreakIterator(FBreakIterator::CreateLineBreakIterator())
 	, StartIndex(0)
 	, WrappedLineData(OutWrappedLineData)
 {
+	GraphemeBreakIterator->SetString(InString, InStringLength);
+	LineBreakIterator->SetString(InString, InStringLength);
+
 	if(WrappedLineData)
 	{
 		WrappedLineData->Empty();
@@ -139,7 +143,7 @@ int32 FWordWrapper::FindFirstMandatoryBreakBetween(const int32 InStartIndex, con
 
 int32 FWordWrapper::FindLastBreakCandidateBetween(const int32 InStartIndex, const int32 WrapIndex)
 {
-	int32 BreakIndex = LineBreakIterator.MoveToCandidateBefore(WrapIndex + 1);
+	int32 BreakIndex = LineBreakIterator->MoveToCandidateBefore(WrapIndex + 1);
 	if(BreakIndex < InStartIndex)
 	{
 		BreakIndex = INDEX_NONE;
@@ -149,7 +153,7 @@ int32 FWordWrapper::FindLastBreakCandidateBetween(const int32 InStartIndex, cons
 
 int32 FWordWrapper::FindEndOfLastWholeGraphemeCluster(const int32 InStartIndex, const int32 WrapIndex)
 {
-	int32 BreakIndex = GraphemeBreakIterator.MoveToCandidateBefore(WrapIndex + 1);
+	int32 BreakIndex = GraphemeBreakIterator->MoveToCandidateBefore(WrapIndex + 1);
 	if(BreakIndex < InStartIndex)
 	{
 		BreakIndex = INDEX_NONE;

@@ -1,117 +1,34 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
-#include "WordBreakIterator.h"
+#include "BreakIterator.h"
 
 #if UE_ENABLE_ICU
-#include "ICUTextCharacterIterator.h"
-#include <unicode/brkiter.h>
+#include "ICUBreakIterator.h"
 
-namespace
-{
-	TSharedRef<icu::BreakIterator> CreateWordBreakIterator()
-	{
-		UErrorCode ICUStatus = U_ZERO_ERROR;
-		return MakeShareable( icu::BreakIterator::createWordInstance( icu::Locale::getDefault(), ICUStatus ) );
-	}
-}
-
-class FWordBreakIterator::FImplementation
+class FICUWordBreakIterator : public FICUBreakIterator
 {
 public:
-	FImplementation(const TCHAR* const String, const int32 StringLength)
-		: ICUBreakIterator(CreateWordBreakIterator())
-	{
-		ICUBreakIterator->adoptText(new FICUTextCharacterIterator(String, StringLength)); // ICUBreakIterator takes ownership of this instance
-	}
-
-	int32 GetCurrentPosition() const
-	{
-		return ICUBreakIterator->current();
-	}
-
-	int32 ResetToBeginning()
-	{
-		return ICUBreakIterator->first();
-	}
-
-	int32 ResetToEnd()
-	{
-		return ICUBreakIterator->last();
-	}
-
-	int32 MoveToPrevious()
-	{
-		return ICUBreakIterator->previous();
-	}
-
-	int32 MoveToNext()
-	{
-		return ICUBreakIterator->next();
-	}
-
-	int32 MoveToCandidateBefore(const int32 Index)
-	{
-		return ICUBreakIterator->preceding(Index);
-	}
-
-	int32 MoveToCandidateAfter(const int32 Index)
-	{
-		return ICUBreakIterator->following(Index);
-	}
+	FICUWordBreakIterator();
 
 private:
-	TSharedRef<icu::BreakIterator> ICUBreakIterator;
+	static TSharedRef<icu::BreakIterator> CreateInternalWordBreakIterator();
 };
 
-FWordBreakIterator::FWordBreakIterator(const FText& Text)
-	: Implementation( new FImplementation( *Text.ToString(), Text.ToString().Len() ) )
+FICUWordBreakIterator::FICUWordBreakIterator()
+	: FICUBreakIterator(CreateInternalWordBreakIterator())
 {
 }
 
-FWordBreakIterator::FWordBreakIterator(const FString& String)
-	: Implementation( new FImplementation( *String, String.Len() ) )
+TSharedRef<icu::BreakIterator> FICUWordBreakIterator::CreateInternalWordBreakIterator()
 {
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	return MakeShareable(icu::BreakIterator::createWordInstance(icu::Locale::getDefault(), ICUStatus));
 }
 
-FWordBreakIterator::FWordBreakIterator(const TCHAR* const String, const int32 StringLength)
-	: Implementation( new FImplementation( String, StringLength ) )
+TSharedRef<IBreakIterator> FBreakIterator::CreateWordBreakIterator()
 {
-}
-
-int32 FWordBreakIterator::GetCurrentPosition() const
-{
-	return Implementation->GetCurrentPosition();
-}
-
-int32 FWordBreakIterator::ResetToBeginning()
-{
-	return Implementation->ResetToBeginning();
-}
-
-int32 FWordBreakIterator::ResetToEnd()
-{
-	return Implementation->ResetToEnd();
-}
-
-int32 FWordBreakIterator::MoveToPrevious()
-{
-	return Implementation->MoveToPrevious();
-}
-
-int32 FWordBreakIterator::MoveToNext()
-{
-	return Implementation->MoveToNext();
-}
-
-int32 FWordBreakIterator::MoveToCandidateBefore(const int32 Index)
-{
-	return Implementation->MoveToCandidateBefore(Index);
-}
-
-int32 FWordBreakIterator::MoveToCandidateAfter(const int32 Index)
-{
-	return Implementation->MoveToCandidateAfter(Index);
+	return MakeShareable(new FICUWordBreakIterator());
 }
 
 #endif

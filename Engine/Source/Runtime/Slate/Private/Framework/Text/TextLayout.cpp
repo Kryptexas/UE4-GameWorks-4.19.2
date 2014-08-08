@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-#include "LineBreakIterator.h"
-#include "WordBreakIterator.h"
+#include "BreakIterator.h"
 
 FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak )
 {
@@ -518,6 +517,12 @@ void FTextLayout::ClearView()
 
 void FTextLayout::CreateWrappingCache()
 {
+	// If we've not yet been provided with a custom line break iterator, then just use the default one
+	if (!LineBreakIterator.IsValid())
+	{
+		LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
+	}
+
 	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[ LineModelIndex ];
@@ -532,19 +537,21 @@ void FTextLayout::CreateWrappingCache()
 				LineModel.Runs[ RunIndex ].ClearCache();
 			}
 
-			FLineBreakIterator LineBreakIterator( **LineModel.Text );
+			LineBreakIterator->SetString( **LineModel.Text );
 
 			int32 PreviousBreak = 0;
 			int32 CurrentBreak = 0;
 			int32 CurrentRunIndex = 0;
 
-			while( ( CurrentBreak = LineBreakIterator.MoveToNext() ) != INDEX_NONE )
+			while( ( CurrentBreak = LineBreakIterator->MoveToNext() ) != INDEX_NONE )
 			{
 				LineModel.BreakCandidates.Add( CreateBreakCandidate(/*OUT*/CurrentRunIndex, LineModel, PreviousBreak, CurrentBreak) );
 				PreviousBreak = CurrentBreak;
 			}
 		}
 	}
+
+	LineBreakIterator->ClearString();
 }
 
 void FTextLayout::ClearWrappingCache()
@@ -556,7 +563,8 @@ void FTextLayout::ClearWrappingCache()
 	}
 }
 
-FTextLayout::FTextLayout() : LineModels()
+FTextLayout::FTextLayout() 
+	: LineModels()
 	, LineViews()
 	, DirtyFlags( EDirtyState::None )
 	, Scale( 1.0f )
@@ -564,6 +572,8 @@ FTextLayout::FTextLayout() : LineModels()
 	, Margin()
 	, LineHeightPercentage( 1.0f )
 	, DrawSize( ForceInitToZero )
+	, LineBreakIterator() // Initialized in FTextLayout::CreateWrappingCache if no custom iterator is provided
+	, WordBreakIterator(FBreakIterator::CreateWordBreakIterator())
 {
 
 }
@@ -1387,12 +1397,12 @@ FTextSelection FTextLayout::GetWordAt(const FTextLocation& Location) const
 
 	const FLineModel& LineModel = LineModels[LineIndex];
 
-	FWordBreakIterator WordBreakIterator(**LineModel.Text);
+	WordBreakIterator->SetString(**LineModel.Text);
 
-	int32 PreviousBreak = WordBreakIterator.MoveToCandidateAfter(Offset);
+	int32 PreviousBreak = WordBreakIterator->MoveToCandidateAfter(Offset);
 	int32 CurrentBreak = 0;
 
-	while ((CurrentBreak = WordBreakIterator.MoveToPrevious()) != INDEX_NONE)
+	while ((CurrentBreak = WordBreakIterator->MoveToPrevious()) != INDEX_NONE)
 	{
 		bool HasLetter = false;
 		for (int32 Index = CurrentBreak; Index < PreviousBreak; Index++)
@@ -1412,12 +1422,20 @@ FTextSelection FTextLayout::GetWordAt(const FTextLocation& Location) const
 		PreviousBreak = CurrentBreak;
 	}
 
+	WordBreakIterator->ClearString();
+
 	if (PreviousBreak == CurrentBreak || CurrentBreak == INDEX_NONE)
 	{
 		return FTextSelection();
 	}
 
 	return FTextSelection(FTextLocation(LineIndex, CurrentBreak), FTextLocation(LineIndex, PreviousBreak));
+}
+
+void FTextLayout::SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator )
+{
+	LineBreakIterator = InLineBreakIterator;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 void FTextLayout::SetMargin( const FMargin& InMargin )
