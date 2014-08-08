@@ -2,8 +2,10 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintNodeTemplateCache.h"
-#include "BlueprintEditorUtils.h" // for FindFirstNativeClass(), FindBlueprintForGraph()
+#include "BlueprintEditorUtils.h"	// for FindFirstNativeClass(), FindBlueprintForGraph()
 #include "EdGraph/EdGraph.h"
+#include "KismetEditorUtilities.h"	// for CreateBlueprint()
+#include "BlueprintNodeSpawner.h"   // for NodeClass/Invoke()
 
 /*******************************************************************************
  * Static FBlueprintNodeTemplateCache Helpers
