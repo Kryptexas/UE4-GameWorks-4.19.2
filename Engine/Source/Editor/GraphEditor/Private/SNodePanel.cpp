@@ -551,6 +551,10 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	}
 	else if ( bIsRightMouseButtonEffecting )
 	{
+		// Cache current cursor position as zoom origin and software cursor position
+		ZoomStartOffset = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
+		SoftwareCursorPosition = PanelCoordToGraphCoord( ZoomStartOffset );
+
 		FReply ReplyState = FReply::Handled();
 		ReplyState.CaptureMouse( SharedThis(this) );
 		ReplyState.UseHighPrecisionMouseMovement( SharedThis(this) );
