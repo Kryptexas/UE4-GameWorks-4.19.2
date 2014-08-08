@@ -8,30 +8,33 @@
 // FUMGDragDropOp
 void FUMGDragDropOp::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent )
 {
-	//if ( bDropWasHandled == false )
-	//{
-	//	if (OriginalTrackNode.IsValid())
-	//	{
-	//		//OriginalTrackNode.Pin()->OnDropCancelled(MouseEvent);
-	//	}
-	//}
+	UDragDropOperation* OperationObject = DragOperation.Get();
+	if ( OperationObject )
+	{
+		if ( bDropWasHandled )
+		{
+			OperationObject->Drop(MouseEvent);
+		}
+		else
+		{
+			OperationObject->DropCanceled(MouseEvent);
+		}
+	}
 	
 	FDragDropOperation::OnDrop(bDropWasHandled, MouseEvent);
 }
 
 void FUMGDragDropOp::OnDragged( const class FDragDropEvent& DragDropEvent )
 {
-	//TSharedPtr<STrackNode> Node = OriginalTrackNode.Pin();
-	//if (Node.IsValid())
-	//{
-	//	Node->OnDragged(DragDropEvent);
-	//}
+	UDragDropOperation* OperationObject = DragOperation.Get();
+	if ( OperationObject )
+	{
+		OperationObject->Dragged(DragDropEvent);
+	}
 
-	FVector2D pos;
-	pos.X = (DragDropEvent.GetScreenSpacePosition() + Offset).X;
-	pos.Y = StartingScreenPos.Y;
+	FVector2D Position = DragDropEvent.GetScreenSpacePosition() + Offset;
 
-	CursorDecoratorWindow->MoveWindowTo(pos);
+	CursorDecoratorWindow->MoveWindowTo(Position);
 }
 
 TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
@@ -39,14 +42,23 @@ TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
 	return DecoratorWidget;
 }
 
-TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New(UObject* Payload, UUserWidget* Decorator, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode)
+TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New(UDragDropOperation* InOperation, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfDragee)
 {
 	TSharedRef<FUMGDragDropOp> Operation = MakeShareable(new FUMGDragDropOp);
-	Operation->Offset = ScreenPositionOfNode - CursorPosition;
-	Operation->StartingScreenPos = ScreenPositionOfNode;
+	Operation->Offset = ScreenPositionOfDragee - CursorPosition;
+	Operation->StartingScreenPos = ScreenPositionOfDragee;
 
-	Operation->Payload = Payload;
-	Operation->DecoratorWidget = Decorator->TakeWidget();
+	Operation->DragOperation = InOperation;
+
+	if ( InOperation->DefaultDragVisual == nullptr )
+	{
+		Operation->DecoratorWidget = SNew(STextBlock)
+			.Text(FText::FromString(InOperation->Tag));
+	}
+	else
+	{
+		Operation->DecoratorWidget = InOperation->DefaultDragVisual->TakeWidget();
+	}
 
 	Operation->Construct();
 

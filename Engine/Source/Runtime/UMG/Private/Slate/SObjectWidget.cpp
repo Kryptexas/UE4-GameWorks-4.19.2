@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "UMGDragDropOp.h"
+
 void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObject)
 {
 	WidgetObject = InWidgetObject;
@@ -209,41 +211,65 @@ FReply SObjectWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, cons
 	return FReply::Unhandled();
 }
 
-FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& PointerEvent)
 {
-	WidgetObject->OnDragDetected(MyGeometry, MouseEvent);
+	UDragDropOperation* Operation = NULL;
+	WidgetObject->OnDragDetected(MyGeometry, PointerEvent, Operation);
 
-	//TODO UMG Need to support drag drop, instead of returning the standard FSReply, maybe something else?
-	// Maybe like drag data, optional uobject + string data.
+	if ( Operation )
+	{
+		FVector2D ScreenCursorPos = PointerEvent.GetScreenSpacePosition();
+		FVector2D ScreenDrageePosition = MyGeometry.AbsolutePosition;
 
-	//FUMGDragDropOp
-	//.BeginDragDrop(FTrackNodeDragDropOp::New(SharedThis(this), ScreenCursorPos, ScreenNodePosition));
+		return FReply::Handled().BeginDragDrop(FUMGDragDropOp::New(Operation, ScreenCursorPos, ScreenDrageePosition));
+	}
 
-	//FTrackNodeDragDropOp
-
-	// TODO UMG
 	return FReply::Unhandled();
 }
 
 void SObjectWidget::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	// TODO UMG
+	TSharedPtr<FUMGDragDropOp> NativeOp = DragDropEvent.GetOperationAs<FUMGDragDropOp>();
+	if ( NativeOp.IsValid() )
+	{
+		WidgetObject->OnDragEnter(MyGeometry, DragDropEvent, NativeOp->GetOperation());
+	}
 }
 
 void SObjectWidget::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
-	// TODO UMG
+	TSharedPtr<FUMGDragDropOp> NativeOp = DragDropEvent.GetOperationAs<FUMGDragDropOp>();
+	if ( NativeOp.IsValid() )
+	{
+		WidgetObject->OnDragLeave(DragDropEvent, NativeOp->GetOperation());
+	}
 }
 
 FReply SObjectWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	// TODO UMG
+	TSharedPtr<FUMGDragDropOp> NativeOp = DragDropEvent.GetOperationAs<FUMGDragDropOp>();
+	if ( NativeOp.IsValid() )
+	{
+		if ( WidgetObject->OnDragOver(MyGeometry, DragDropEvent, NativeOp->GetOperation()) )
+		{
+			return FReply::Handled();
+		}
+	}
+
 	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	// TODO UMG
+	TSharedPtr<FUMGDragDropOp> NativeOp = DragDropEvent.GetOperationAs<FUMGDragDropOp>();
+	if ( NativeOp.IsValid() )
+	{
+		if ( WidgetObject->OnDrop(MyGeometry, DragDropEvent, NativeOp->GetOperation()) )
+		{
+			return FReply::Handled();
+		}
+	}
+
 	return FReply::Unhandled();
 }
 

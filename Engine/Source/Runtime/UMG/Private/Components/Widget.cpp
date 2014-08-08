@@ -86,6 +86,15 @@ UPanelWidget* UWidget::GetParent() const
 	return NULL;
 }
 
+void UWidget::RemoveFromParent()
+{
+	UPanelWidget* CurrentParent = GetParent();
+	if ( CurrentParent )
+	{
+		CurrentParent->RemoveChild(this);
+	}
+}
+
 TSharedRef<SWidget> UWidget::TakeWidget()
 {
 	TSharedPtr<SWidget> SafeWidget;

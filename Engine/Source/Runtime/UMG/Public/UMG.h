@@ -24,6 +24,8 @@
 // Components
 #include "SlateWrapperTypes.h"
 
+#include "DragDropOperation.h"
+
 #include "Visual.h"
 
 #include "PanelSlot.h"
@@ -91,6 +93,9 @@
 #include "TableViewBase.h"
 #include "ListView.h"
 #include "TileView.h"
+
+#include "DragPanel.h"
+#include "DropPanel.h"
 
 #include "Viewport.h"
 

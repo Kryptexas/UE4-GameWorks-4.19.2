@@ -49,10 +49,10 @@ struct FSReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=User)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=User)
 	uint32 bIsHandled : 1;
 
-	UPROPERTY(EditAnywhere, Category=User)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=User)
 	uint32 bCaptureMouse : 1;
 
 	FSReply()
@@ -87,11 +87,11 @@ struct FSlateChildSize
 	GENERATED_USTRUCT_BODY()
 
 	/** The parameter of the size rule. */
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=(ClampMin="0", ClampMax="1"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( ClampMin="0", ClampMax="1" ))
 	float Value;
 
 	/** The sizing rule of the content. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	TEnumAsByte<ESlateSizeRule::Type> SizeRule;
 
 	FSlateChildSize()

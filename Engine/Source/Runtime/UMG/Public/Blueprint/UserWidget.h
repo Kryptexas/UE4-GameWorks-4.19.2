@@ -192,15 +192,16 @@ public:
 	FSReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//void OnDragEnter(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//void OnDragLeave(FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//FSReply OnDragOver(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//FSReply OnDrop(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
+	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent, UDragDropOperation*& Operation);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
@@ -219,6 +220,9 @@ public:
 	FSReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
+
+	UFUNCTION(BlueprintCallable, Category="User Interface|Drag and Drop")
+	UDragDropOperation* CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation);
 
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 

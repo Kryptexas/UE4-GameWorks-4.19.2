@@ -135,6 +135,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	class UPanelWidget* GetParent() const;
 
+	/** Removes the widget from it's parent widget */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void RemoveFromParent();
+
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
 	 * virtual however, you should not inherit this function unless you're very aware of what you're

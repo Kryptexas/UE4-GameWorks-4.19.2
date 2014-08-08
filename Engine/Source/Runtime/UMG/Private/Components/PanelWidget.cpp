@@ -73,10 +73,17 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 
 UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 {
+	if ( Content == nullptr )
+	{
+		return NULL;
+	}
+
 	if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
 	{
 		return NULL;
 	}
+
+	Content->RemoveFromParent();
 
 	UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
 	Slot->SetFlags(RF_Transactional);
