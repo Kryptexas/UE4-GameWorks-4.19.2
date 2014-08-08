@@ -19,6 +19,9 @@ public:
 
 	void GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth );
 
+private:
+
+	virtual void HandleTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
 
 private:
 
