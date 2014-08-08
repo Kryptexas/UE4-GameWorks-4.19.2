@@ -44,7 +44,7 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InS
 	Params.AddIgnoredActors(ActorsToIgnore);
 
 	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * 3000.f);
+	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);
 
 	// ------------------------------------------------------
 

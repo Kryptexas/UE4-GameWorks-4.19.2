@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayAbilityTargetActor.h"
+#include "GameplayAbilityWorldReticle.h"
 #include "GameplayAbilityTargetActor_SingleLineTrace.generated.h"
 
 UCLASS(Blueprintable)
@@ -28,14 +29,16 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;		//Maybe add a socket to this?
 
-	UPROPERTY(BlueprintReadOnly, Category = Targeting)
-	APlayerController* SourcePC;
-
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
+
+	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn = true), Category = Projectile)
+	float MaxRange;
 
 protected:
 	virtual FHitResult PerformTrace(AActor *SourceActor) const;
 
 	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
+
+	TWeakObjectPtr<AGameplayAbilityWorldReticle> ReticleActor;
 };
