@@ -988,10 +988,15 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 int32 UEditorEngine::BeginTransaction(const TCHAR* TransactionContext, const FText& Description, UObject* PrimaryObject)
 {
-	// generate transaction context
-	int32 index = Trans->Begin( TransactionContext, Description );
-	Trans->SetPrimaryUndoObject(PrimaryObject);
-	return index;
+	int32 Index = INDEX_NONE;
+
+	if (!bIsSimulatingInEditor)
+	{
+		// generate transaction context
+		Index = Trans->Begin(TransactionContext, Description);
+		Trans->SetPrimaryUndoObject(PrimaryObject);
+	}
+	return Index;
 }
 
 int32 UEditorEngine::BeginTransaction(const FText& Description)
@@ -1001,7 +1006,13 @@ int32 UEditorEngine::BeginTransaction(const FText& Description)
 
 int32 UEditorEngine::EndTransaction()
 {
-	return Trans->End();
+	int32 Index = INDEX_NONE;
+	if (!bIsSimulatingInEditor)
+	{
+		Index = Trans->End();
+	}
+
+	return Index;
 }
 
 void UEditorEngine::ResetTransaction(const FText& Reason)

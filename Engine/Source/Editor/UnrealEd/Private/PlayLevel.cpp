@@ -167,8 +167,6 @@ void UEditorEngine::EndPlayMap()
 		// Clear out viewport index
 		PlayInEditorViewportIndex = -1; 
 
-		// The undo system may have a reference to a SIE/PIE object that is about to be destroyed, so clear the transactions
-		ResetTransaction( NSLOCTEXT("UnrealEd", "EndPlayMap", "End Play Map") );
 
 		// We could have been toggling back and forth between simulate and pie before ending the play map
 		// Make sure the property windows are cleared of any pie actors
