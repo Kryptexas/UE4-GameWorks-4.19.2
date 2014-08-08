@@ -24,6 +24,8 @@ FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
 	, InnerPlatformFile(NULL)
 	, bIsUsable(false)
+	, FinishedAsyncNetworkReadUnsolicitedFiles(NULL)
+	, FinishedAsyncWriteUnsolicitedFiles(NULL)
 	, Transport(NULL)
 {
 }
@@ -129,8 +131,20 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 
 bool FNetworkPlatformFile::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out)
 {
+	if ( FinishedAsyncNetworkReadUnsolicitedFiles )
+	{
+		delete FinishedAsyncNetworkReadUnsolicitedFiles;
+		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+	}
+	
 	return Transport->SendPayloadAndReceiveResponse( In, Out );
 }
+
+bool FNetworkPlatformFile::ReceiveResponse(TArray<uint8> &Out )
+{
+	return Transport->ReceiveResponse( Out );
+}
+
 
 void FNetworkPlatformFile::InitializeAfterSetActive()
 {
@@ -312,6 +326,17 @@ FNetworkPlatformFile::~FNetworkPlatformFile()
 {
 	if (!GIsRequestingExit) // the socket subsystem is probably already gone, so it will crash if we clean up
 	{
+		if ( FinishedAsyncNetworkReadUnsolicitedFiles )
+		{
+			delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
+			FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+		}
+		if ( FinishedAsyncWriteUnsolicitedFiles )
+		{
+			delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing 
+			FinishedAsyncWriteUnsolicitedFiles = NULL;
+		}
+		
 		delete Transport; // close our sockets.
 	}
 }
@@ -690,6 +715,7 @@ bool FNetworkPlatformFile::SendMessageToServer(const TCHAR* Message, IPlatformFi
 }
 
 
+static FThreadSafeCounter OutstandingAsyncWrites;
 
 class FAsyncNetworkWriteWorker : public FNonAbandonableTask
 {
@@ -785,7 +811,10 @@ public:
 		}
 		if (Event)
 		{
+			if (OutstandingAsyncWrites.Decrement() == 0)
+			{
 				Event->Trigger(); // last file, fire trigger
+			}
 		}
 	}
 	/** Give the name for external event viewers
@@ -806,7 +835,12 @@ void SyncWriteFile(FArchive* Archive, const FString& Filename, FDateTime ServerT
 	(new FAutoDeleteAsyncTask<FAsyncNetworkWriteWorker>(*Filename, Archive, ServerTimeStamp, &InnerPlatformFile, NullEvent))->StartSynchronousTask();
 }
 
-void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile, FString& InServerEngineDir, FString& InServerGameDir)
+void AsyncWriteFile(FArchive* Archive, const FString& Filename, FDateTime ServerTimeStamp, IPlatformFile& InnerPlatformFile, FScopedEvent* Event = NULL)
+{
+	(new FAutoDeleteAsyncTask<FAsyncNetworkWriteWorker>(*Filename, Archive, ServerTimeStamp, &InnerPlatformFile, Event))->StartBackgroundTask();
+}
+
+void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile, FString& InServerEngineDir, FString& InServerGameDir, FScopedEvent *InNetworkDoneEvent, FScopedEvent *InWritingDoneEvent)
 {
 	class FAsyncReadUnsolicitedFile : public FNonAbandonableTask
 	{
@@ -816,24 +850,28 @@ void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNet
 		IPlatformFile& InnerPlatformFile;
 		FString ServerEngineDir;
 		FString ServerGameDir;
+		FScopedEvent* NetworkDoneEvent; // finished using the network
+		FScopedEvent* WritingDoneEvent; // finished writing the files to disk
 
-		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, IPlatformFile* In_InnerPlatformFile, FString& In_ServerEngineDir, FString& In_ServerGameDir)
+		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, IPlatformFile* In_InnerPlatformFile, FString& In_ServerEngineDir, FString& In_ServerGameDir, FScopedEvent *InNetworkDoneEvent, FScopedEvent *InWritingDoneEvent )
 			: NumUnsolictedFiles(In_NumUnsolictedFiles)
 			, NetworkFile(*In_NetworkFile)
 			, InnerPlatformFile(*In_InnerPlatformFile)
 			, ServerEngineDir(In_ServerEngineDir)
 			, ServerGameDir(In_ServerGameDir)
+			, NetworkDoneEvent(InNetworkDoneEvent)
+			, WritingDoneEvent(InWritingDoneEvent)
 		{
 		}
 		
 		/** Write the file  */
 		void DoWork()
 		{
+			OutstandingAsyncWrites.Add( NumUnsolictedFiles );
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
 				FArrayReader* UnsolictedResponse = new FArrayReader;
-				FNetworkFileArchive Payload(NFS_Messages::Heartbeat); 
-				if (!NetworkFile.SendPayloadAndReceiveResponse(Payload,*UnsolictedResponse))
+				if (!NetworkFile.ReceiveResponse(*UnsolictedResponse))
 				{
 					UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Receive failure!"));
 					return;
@@ -849,9 +887,10 @@ void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNet
 					*UnsolictedResponse << UnsolictedServerTimeStamp;
 
 					// write the file by pulling out of the FArrayReader
-					SyncWriteFile(UnsolictedResponse, UnsolictedReplyFile, UnsolictedServerTimeStamp, InnerPlatformFile);
+					AsyncWriteFile(UnsolictedResponse, UnsolictedReplyFile, UnsolictedServerTimeStamp, InnerPlatformFile, WritingDoneEvent);
 				}
 			}
+			NetworkDoneEvent->Trigger();
 		}
 		/** Give the name for external event viewers
 		* @return	the name to display in external event viewers
@@ -861,7 +900,8 @@ void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNet
 			return TEXT("FAsyncReadUnsolicitedFile");
 		}
 	};
-	 (new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerGameDir))->StartSynchronousTask();
+
+	(new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerGameDir, InNetworkDoneEvent, InWritingDoneEvent))->StartSynchronousTask();
 }
 
 /**
@@ -882,6 +922,20 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 			return;
 		}
 	}
+
+	if ( FinishedAsyncNetworkReadUnsolicitedFiles )
+	{
+		delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
+		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+	}
+	if( FinishedAsyncWriteUnsolicitedFiles)
+	{
+		delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing to disk
+		FinishedAsyncWriteUnsolicitedFiles = NULL;
+	}
+	
+
+
 
 	FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -971,9 +1025,13 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	if (NumUnsolictedFiles)
 	{
-		ReadUnsolicitedFile(NumUnsolictedFiles, *this, *InnerPlatformFile, ServerEngineDir, ServerGameDir);
+		check( FinishedAsyncNetworkReadUnsolicitedFiles == NULL );
+		check( FinishedAsyncWriteUnsolicitedFiles == NULL );
+		FinishedAsyncNetworkReadUnsolicitedFiles = new FScopedEvent;
+		FinishedAsyncWriteUnsolicitedFiles = new FScopedEvent;
+		AsyncReadUnsolicitedFiles(NumUnsolictedFiles, *this, *InnerPlatformFile, ServerEngineDir, ServerGameDir, FinishedAsyncNetworkReadUnsolicitedFiles, FinishedAsyncWriteUnsolicitedFiles);
 	}
-
+	
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Write file to local %6.2fms"), ThisTime);
 }

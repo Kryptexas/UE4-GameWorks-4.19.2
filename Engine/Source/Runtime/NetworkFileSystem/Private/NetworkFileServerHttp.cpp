@@ -238,7 +238,7 @@ void FNetworkFileServerHttp::Process(FArchive& In, FArchive&Out, FNetworkFileSer
 			Server->RequestHandlers.Add(ClientGuid,Connection);
 		}
 
-		Connection->ProcessPayload(In, Out);
+		// Connection->ProcessPayload(In, Out);
 	}
 }
 

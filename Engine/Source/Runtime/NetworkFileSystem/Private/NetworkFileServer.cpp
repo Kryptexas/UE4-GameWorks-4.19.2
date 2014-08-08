@@ -42,19 +42,25 @@ public:
 			  if (!FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FSocket(Socket)))
 				  break; 
 			  // now process the contents of the payload
-			  FBufferArchive Out;
-			  if ( !FNetworkFileServerClientConnection::ProcessPayload(Payload,Out) )
+			  if ( !FNetworkFileServerClientConnection::ProcessPayload(Payload) )
 			  {
 				  // give the processing of the payload a chance to terminate the connection
 				  // failed to process message
 				  UE_LOG(LogFileServer, Warning, TEXT("Unable to process payload terminating connection"));
 				  break;
 			  }
-			  if ( !FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket)))
-				  break; 
 		  }
 
 		  return true;
+	}
+
+	virtual bool SendPayload( TArray<uint8> &Out ) override
+	{
+#if USE_MCSOCKET_FOR_NFS
+		return FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
+#else
+		return FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket));
+#endif
 	}
 
 	virtual void Stop() 
