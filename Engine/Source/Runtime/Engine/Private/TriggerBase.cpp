@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/TriggerBase.h"
 
 ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

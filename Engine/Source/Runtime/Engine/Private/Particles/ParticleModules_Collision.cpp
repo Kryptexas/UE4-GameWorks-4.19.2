@@ -5,6 +5,7 @@
 	Collision-related particle module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Engine/TriggerBase.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Collision/ParticleModuleCollision.h"

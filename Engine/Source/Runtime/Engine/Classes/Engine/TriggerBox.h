@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Engine/TriggerBase.h"
 #include "TriggerBox.generated.h"
 
 UCLASS(MinimalAPI)
