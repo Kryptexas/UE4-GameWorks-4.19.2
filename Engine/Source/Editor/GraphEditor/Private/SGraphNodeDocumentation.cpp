@@ -164,7 +164,7 @@ TSharedPtr<SWidget> SGraphNodeDocumentation::CreateDocumentationPage()
 	if( IDocumentation::Get()->PageExists( GraphNode->GetDocumentationLink() ))
 	{
 		TSharedRef< IDocumentationPage > DocumentationPage = IDocumentation::Get()->GetPage( GraphNode->GetDocumentationLink(), NULL );
-		const TMap< FString, FString > InVariables;
+		TMap< FString, FString > InVariables;
 		FExcerpt DesiredExcerpt( GraphNode->GetDocumentationExcerptName(), SNullWidget::NullWidget, InVariables, 0 );
 
 		// Set attributes to control documentation WrapAt and optional width
@@ -333,3 +333,7 @@ void SGraphNodeDocumentation::Tick( const FGeometry& AllottedGeometry, const dou
 
 	SGraphNodeResizable::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE
