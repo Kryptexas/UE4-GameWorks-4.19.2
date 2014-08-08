@@ -567,6 +567,20 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	ConfigFile.Read(ConfigPath);
 
 	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
+	// Remove invalid entries
+	TArray<FName> KeysToRemove;
+	for (auto It : Section)
+	{
+		const FString& EngineDir = It.Value;
+		if (EngineDir.Contains("Unreal Engine.app/Contents/") || EngineDir.Contains("/Users/Shared/UnrealEngine/Launcher") || !IFileManager::Get().DirectoryExists(*EngineDir))
+		{
+			KeysToRemove.Add(It.Key);
+		}
+	}
+	for (auto Key : KeysToRemove)
+	{
+		Section.Remove(Key);
+	}
 
 	CFArrayRef AllApps = LSCopyApplicationURLsForURL((__bridge CFURLRef)[NSURL fileURLWithPath:UProjectPath.GetNSString()], kLSRolesAll);
 	if (AllApps)
@@ -578,7 +592,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 			NSBundle* AppBundle = [NSBundle bundleWithURL:AppURL];
 			FString EngineDir = FString([[AppBundle bundlePath] stringByDeletingLastPathComponent]);
 			if (([[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
-				&& EngineDir.RemoveFromEnd(TEXT("/Engine/Binaries/Mac")))
+				&& EngineDir.RemoveFromEnd(TEXT("/Engine/Binaries/Mac")) && !EngineDir.Contains("Unreal Engine.app/Contents/") && !EngineDir.Contains("/Users/Shared/UnrealEngine/Launcher"))
 			{
 				FString EngineId;
 				const FName* Key = Section.FindKey(EngineDir);

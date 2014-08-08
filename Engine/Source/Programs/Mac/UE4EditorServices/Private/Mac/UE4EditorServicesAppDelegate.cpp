@@ -404,7 +404,8 @@
 - (BOOL)isAppValidForUProjectFiles:(NSBundle*)AppBundle
 {
 	return AppBundle && ([[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
-					 && [[[AppBundle bundlePath] stringByDeletingLastPathComponent] hasSuffix:@"Engine/Binaries/Mac"];
+					 && [[[AppBundle bundlePath] stringByDeletingLastPathComponent] hasSuffix:@"Engine/Binaries/Mac"]
+					 && [[AppBundle bundlePath] rangeOfString:@".app/Contents/UE4"].location == NSNotFound;
 }
 
 - (NSString*)enginePathForAppBundle:(NSBundle*)AppBundle
