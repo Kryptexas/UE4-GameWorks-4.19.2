@@ -5,7 +5,8 @@
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
 
-#define OCULUS_RIFT_SUPPORTED_PLATFORMS PLATFORM_WINDOWS || PLATFORM_MAC
+// Oculus support is not available on windows xp
+#define OCULUS_RIFT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) || PLATFORM_MAC
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 

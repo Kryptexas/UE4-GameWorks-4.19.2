@@ -3,6 +3,8 @@
 #include "OculusRiftPrivate.h"
 #include "OculusRiftHMD.h"
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 #ifdef __clang__ // @todo: ThirdParty/Oculus/LibOVR/Include/../Src/OVR_DeviceMessages.h:227:46: warning: field 'CameraHandle' will be initialized after field 'pFrameData' [-Wreorder]
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wreorder"
@@ -1074,3 +1076,4 @@ bool FOculusRiftHMD::OGLBridge::Present(int SyncInterval)
 #endif // OVR_DIRECT_RENDERING
 
 
+#endif // OCULUS_RIFT_SUPPORTED_PLATFORMS

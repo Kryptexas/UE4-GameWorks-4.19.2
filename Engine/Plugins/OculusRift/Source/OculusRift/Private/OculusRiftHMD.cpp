@@ -16,30 +16,6 @@
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (pop)
 #endif
-//////////////////////////////////////////////////////////////////////////
-class OculusLog : public OVR::Log
-{
-public:
-	OculusLog()
-	{
-		SetLoggingMask(OVR::LogMask_Debug | OVR::LogMask_Regular);
-	}
-
-	// This virtual function receives all the messages,
-	// developers should override this function in order to do custom logging
-	virtual void    LogMessageVarg(LogMessageType messageType, const char* fmt, va_list argList)
-	{
-		if ((messageType & GetLoggingMask()) == 0)
-			return;
-
-		ANSICHAR buf[1024];
-		int32 len = FCStringAnsi::GetVarArgs(buf, sizeof(buf), sizeof(buf)/sizeof(ANSICHAR), fmt, argList);
-		if (len > 0 && buf[len - 1] == '\n') // truncate the trailing new-line char, since Logf adds its own
-			buf[len - 1] = '\0';
-		TCHAR* tbuf = ANSI_TO_TCHAR(buf);
-		GLog->Logf(TEXT("OCULUS: %s"), tbuf);
-	}
-};
 #endif // #if !UE_BUILD_SHIPPING
 
 //---------------------------------------------------
@@ -66,6 +42,40 @@ TSharedPtr< class IHeadMountedDisplay > FOculusRiftPlugin::CreateHeadMountedDisp
 	return NULL;
 }
 
+//---------------------------------------------------
+// Oculus Rift IHeadMountedDisplay Implementation
+//---------------------------------------------------
+
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
+
+#if !UE_BUILD_SHIPPING
+//////////////////////////////////////////////////////////////////////////
+class OculusLog : public OVR::Log
+{
+public:
+	OculusLog()
+	{
+		SetLoggingMask(OVR::LogMask_Debug | OVR::LogMask_Regular);
+	}
+
+	// This virtual function receives all the messages,
+	// developers should override this function in order to do custom logging
+	virtual void    LogMessageVarg(LogMessageType messageType, const char* fmt, va_list argList)
+	{
+		if ((messageType & GetLoggingMask()) == 0)
+			return;
+
+		ANSICHAR buf[1024];
+		int32 len = FCStringAnsi::GetVarArgs(buf, sizeof(buf), sizeof(buf) / sizeof(ANSICHAR), fmt, argList);
+		if (len > 0 && buf[len - 1] == '\n') // truncate the trailing new-line char, since Logf adds its own
+			buf[len - 1] = '\0';
+		TCHAR* tbuf = ANSI_TO_TCHAR(buf);
+		GLog->Logf(TEXT("OCULUS: %s"), tbuf);
+	}
+};
+
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 class ConditionalLocker
 {
@@ -85,12 +95,6 @@ public:
 private:
 	OVR::Lock*	pLock;
 };
-
-//---------------------------------------------------
-// Oculus Rift IHeadMountedDisplay Implementation
-//---------------------------------------------------
-
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 bool FOculusRiftHMD::IsHMDEnabled() const
 {
