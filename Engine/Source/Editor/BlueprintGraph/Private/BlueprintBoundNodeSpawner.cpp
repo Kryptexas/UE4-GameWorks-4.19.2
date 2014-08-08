@@ -132,7 +132,7 @@ UEdGraphNode* UBlueprintBoundNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 		BoundObj = BoundObjPtr.Get();
 	}
 	
-	bool const bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+	bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
 	if (!bIsTemplateNode && NewNode->IsA<UK2Node_AddComponent>())
 	{
 		BindAddComponentNodeWithAsset(NewNode, BoundObj);

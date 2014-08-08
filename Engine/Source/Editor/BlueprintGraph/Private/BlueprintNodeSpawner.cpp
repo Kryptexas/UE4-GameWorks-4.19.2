@@ -2,10 +2,36 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintNodeTemplateCache.h"
+
+/*******************************************************************************
+ * Static UBlueprintNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintNodeSpawnerImpl
+{
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	FBlueprintNodeTemplateCache* GetSharedTemplateCache(bool const bNoInit = false);
+}
+
+//------------------------------------------------------------------------------
+FBlueprintNodeTemplateCache* BlueprintNodeSpawnerImpl::GetSharedTemplateCache(bool const bNoInit)
+{
+	static FBlueprintNodeTemplateCache* NodeTemplateManager = nullptr;
+	if (!bNoInit && (NodeTemplateManager == nullptr))
+	{
+		NodeTemplateManager = new FBlueprintNodeTemplateCache();
+	}
+	return NodeTemplateManager;
+}
 
 /*******************************************************************************
  * UBlueprintNodeSpawner
-*******************************************************************************/
+ ******************************************************************************/
 
 //------------------------------------------------------------------------------
 UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer/* = nullptr*/, FCustomizeNodeDelegate CustomizeNodeDelegate/* = FCustomizeNodeDelegate()*/)
@@ -28,8 +54,18 @@ UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> c
 //------------------------------------------------------------------------------
 UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
 	: Super(PCIP)
-	, CachedNodeTemplate(nullptr)
 {
+}
+
+//------------------------------------------------------------------------------
+UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
+{
+	// @TODO: What if, on shutdown, the "SharedTemplateCache" is destroyed 
+	//        first? Then we'd be working with a bad pointer here
+	if (FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true))
+	{
+		TemplateCache->ClearCachedTemplate(this);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -85,26 +121,10 @@ FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::MakeTemplateNode(UEdGraph* Outer) const
-{
-	check(Outer != nullptr);
-	check(Outer->HasAnyFlags(RF_Transient));
-	
-	// @TODO: Do we need to respawn when the outers don't match? If not, this'll
-	//        save time for subsequent menu generation... if the old outer gets
-	//        destroyed then CachedNodeTemplate should be nulled (so we should
-	//        be covered on that front)... maybe we should just check the
-	//        graph's class type (and graph type)
-	if (CachedNodeTemplate == nullptr)// || (CachedNodeTemplate->GetOuter() != Outer))
-	{
-		CachedNodeTemplate = Invoke(Outer, FVector2D::ZeroVector);
-		if (CachedNodeTemplate != nullptr)
-		{
-			CachedNodeTemplate->SetFlags(RF_Transient | RF_ArchetypeObject);
-		}
-	}
-	
-	return CachedNodeTemplate;
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer) const
+{	
+	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
+	return TemplateNode;
 }
 
 //------------------------------------------------------------------------------
@@ -121,7 +141,7 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D con
 		NewNode->NodePosX = Location.X;
 		NewNode->NodePosY = Location.Y;
 
-		bool const bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+		bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
 		PostSpawnDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 
 		if (!bIsTemplateNode)

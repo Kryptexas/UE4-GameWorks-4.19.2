@@ -10,29 +10,31 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "Stats.h"					// for RETURN_QUICK_DECLARE_CYCLE_STAT()
+#include "ScopedTimers.h"			// for FScopedDurationTimer
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
-// used below in FBlueprintActionDatabaseImpl::AddClassEnumActions()
+// used below in BlueprintActionDatabaseImpl::AddClassEnumActions()
 #include "K2Node_GetNumEnumEntries.h"
 #include "K2Node_ForEachElementInEnum.h"
 #include "K2Node_EnumLiteral.h"
 #include "K2Node_CastByteToEnum.h"
 #include "K2Node_SwitchEnum.h"
-// used below in FBlueprintActionDatabaseImpl::AddClassStructActions()
+// used below in BlueprintActionDatabaseImpl::AddClassStructActions()
 #include "K2Node_BreakStruct.h"
 #include "K2Node_MakeStruct.h"
 #include "K2Node_SetFieldsInStruct.h"
 // used below in FBlueprintNodeSpawnerFactory::MakeMessageNodeSpawner()
 #include "K2Node_Message.h"
-// used below in FBlueprintActionDatabaseImpl::AddClassPropertyActions()
+// used below in BlueprintActionDatabaseImpl::AddClassPropertyActions()
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
 #include "K2Node_AddDelegate.h"
 #include "K2Node_CallDelegate.h"
 #include "K2Node_RemoveDelegate.h"
 #include "K2Node_ClearDelegate.h"
-// used below in FBlueprintActionDatabaseImpl::AddClassCastActions()
+// used below in BlueprintActionDatabaseImpl::AddClassCastActions()
 #include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
 // used below in FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawner()
@@ -239,53 +241,9 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawn
  * Static FBlueprintActionDatabase Helpers
  ******************************************************************************/
 
-namespace FBlueprintActionDatabaseImpl
+namespace BlueprintActionDatabaseImpl
 {
-	/** 
-	 * Since the action-database is a singleton, we can track its state in a
-	 * static enum value here (hidden as an implementation detail to keep the 
-	 * API clean).
-	 */
-	enum EDatabaseState
-	{
-		DB_Uninitialized,
-		DB_Initializing,
-		DB_Primed,
-	};
-	static EDatabaseState DatabaseState = DB_Uninitialized;
-
-	/** 
-	 * Wrapper around FBlueprintActionDatabase's FActionList. Manages the 
-	 * RF_RootSet flag for the UBlueprintNodeSpawners (ensures they don't get 
-	 * GC'd whilst in the database.
-	 */
-	struct FActionList
-	{
-	public:
-		/** Clears the passed action-list and removes the RF_RootSet from all of its actions */
-		FActionList(FBlueprintActionDatabase::FActionList& DatabaseIn)
-			: ClassDatabase(DatabaseIn)
-		{
-			for (UBlueprintNodeSpawner* Action : ClassDatabase)
-			{
-				check(Action->GetOuter() == GetTransientPackage());
-				Action->ClearFlags(RF_RootSet);
-			}
-			ClassDatabase.Empty();
-		}
-
-		/** 
-		 * Passes the wrapped ClassDatabase this node-spawner to add, after 
-		 * adding the RF_RootSet flag (to keep it from getting GC'd).
-		 *
-		 * @param  NodeSpawner	The action you want added to the database.
-		 */
-		void Add(UBlueprintNodeSpawner* NodeSpawner);
-
-	private:
-		/** */
-		FBlueprintActionDatabase::FActionList& ClassDatabase;
-	};
+	typedef FBlueprintActionDatabase::FActionList FActionList;
 
 	/**
 	 * Mimics UEdGraphSchema_K2::CanUserKismetAccessVariable(); however, this 
@@ -410,24 +368,18 @@ namespace FBlueprintActionDatabaseImpl
 	 */
 	static void AddAutonomousNodeActions(UClass* const Class, FActionList& ActionListOut);
 
+	/**
+	 * Callback to refresh the database when a blueprint has been altered 
+	 * (clears the database entries for the blueprint's classes and recreates 
+	 * them... a property/function could have been added/removed).
+	 * 
+	 * @param  InBlueprint	The blueprint that has been altered.
+	 */
 	static void OnBlueprintChanged(UBlueprint* InBlueprint);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseImpl::FActionList::Add(UBlueprintNodeSpawner* NodeSpawner)
-{
-	check(NodeSpawner != nullptr);
-	check(NodeSpawner->GetOuter() == GetTransientPackage());
-	// since this spawner's outer is the transient package, we want to mark it
-	// root so that it doesn't get GC'd (we have to be careful and remove this 
-	// flag when we refresh).
-	NodeSpawner->SetFlags(RF_RootSet);
-
-	ClassDatabase.Add(NodeSpawner);
-}
-
-//------------------------------------------------------------------------------
-static bool FBlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty const* const Property)
+static bool BlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty const* const Property)
 {
 	bool const bIsAccessible = Property->HasAllPropertyFlags(CPF_BlueprintVisible);
 
@@ -438,7 +390,7 @@ static bool FBlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty c
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMessageNodeSpawner()
 	check(Class != nullptr);
@@ -473,7 +425,7 @@ static void FBlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* 
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeDelegateNodeSpawner()
 	
@@ -531,7 +483,7 @@ static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* 
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectProperty* ComponentProperty, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectProperty* ComponentProperty, FActionList& ActionListOut)
 {
 	check(ComponentProperty != nullptr);
 
@@ -590,7 +542,7 @@ static void FBlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectProper
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class, FActionList& ActionListOut)
 {
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	bool bIsCastPermitted  = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
@@ -614,7 +566,7 @@ static void FBlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Clas
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddComponentClassActions(UClass* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddComponentClassActions(UClass* const Class, FActionList& ActionListOut)
 {
 	bool bIsSpawnable = !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent);
 
@@ -628,7 +580,7 @@ static void FBlueprintActionDatabaseImpl::AddComponentClassActions(UClass* const
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddClassEnumActions(UClass const* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassEnumActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeEnumNodeSpawner()
 
@@ -665,7 +617,7 @@ static void FBlueprintActionDatabaseImpl::AddClassEnumActions(UClass const* cons
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddClassStructActions(UClass const* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassStructActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeStructNodeSpawner()
 
@@ -694,7 +646,7 @@ static void FBlueprintActionDatabaseImpl::AddClassStructActions(UClass const* co
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddBlueprintGraphActions(UClass const* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMacroNodeSpawner()
 
@@ -725,7 +677,7 @@ static void FBlueprintActionDatabaseImpl::AddBlueprintGraphActions(UClass const*
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeCommentNodeSpawner()
 
@@ -734,13 +686,7 @@ static void FBlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const
 		UK2Node const* const NodeCDO = Class->GetDefaultObject<UK2Node>();
 		check(NodeCDO != nullptr);
 
-		FBlueprintActionDatabase::FActionList NodeActionList;
-		NodeCDO->GetMenuActions(NodeActionList);
-
-		for (UBlueprintNodeSpawner* Spawner : NodeActionList)
-		{
-			ActionListOut.Add(Spawner);
-		}
+		NodeCDO->GetMenuActions(ActionListOut);
 	}
 	// unfortunately, UEdGraphNode_Comment is not a UK2Node and therefore cannot
 	// leverage UK2Node's GetMenuActions() function, so here we HACK it in
@@ -755,7 +701,7 @@ static void FBlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const
 }
 
 //------------------------------------------------------------------------------
-static void FBlueprintActionDatabaseImpl::OnBlueprintChanged(UBlueprint* Blueprint)
+static void BlueprintActionDatabaseImpl::OnBlueprintChanged(UBlueprint* Blueprint)
 {
 	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
 	ActionDatabase.RefreshClassActions(Blueprint->SkeletonGeneratedClass);
@@ -767,39 +713,79 @@ static void FBlueprintActionDatabaseImpl::OnBlueprintChanged(UBlueprint* Bluepri
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabase::Prime()
+FBlueprintActionDatabase& FBlueprintActionDatabase::Get()
 {
-	using namespace FBlueprintActionDatabaseImpl; // for DatabaseState
-	if (DatabaseState == DB_Uninitialized)
+	static FBlueprintActionDatabase* DatabaseInst = nullptr;
+	if (DatabaseInst == nullptr)
 	{
-		// set DB_Initializing before Get(), else we end up in an infinite loop
-		DatabaseState = DB_Initializing;
+		DatabaseInst = new FBlueprintActionDatabase();
+	}
 
-		FBlueprintActionDatabase& DatabaseInst = Get();
-		DatabaseInst.RefreshAll();
+	return *DatabaseInst;
+}
 
-		for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
-		{
-			BpIt->OnChanged().AddStatic(&FBlueprintActionDatabaseImpl::OnBlueprintChanged);
-		}
-
-		DatabaseState = DB_Primed;
+//------------------------------------------------------------------------------
+FBlueprintActionDatabase::FBlueprintActionDatabase()
+{
+	RefreshAll();
+	for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
+	{
+		BpIt->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
 	}
 }
 
 //------------------------------------------------------------------------------
-FBlueprintActionDatabase& FBlueprintActionDatabase::Get()
+void FBlueprintActionDatabase::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	using namespace FBlueprintActionDatabaseImpl; // for DatabaseState/DB_Uninitialized
-
-	static FBlueprintActionDatabase DatabaseInst;
-	if (DatabaseState == DB_Uninitialized)
+	for (auto& ActionListIt : ClassActions)
 	{
-		// prime the database the first time we access it
-		Prime();
+		Collector.AddReferencedObjects(ActionListIt.Value);
 	}
+}
 
-	return DatabaseInst;
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::Tick(float DeltaTime)
+{
+	const double DurationThreshold = FMath::Min(0.003, DeltaTime * 0.01);
+	
+	double CurrentDuration = 0.0;
+	while (!NewActions.IsEmpty())
+	{
+		{
+			FScopedDurationTimer ScopedTimer(CurrentDuration);
+
+			TWeakObjectPtr<UBlueprintNodeSpawner> NewSpawner;
+			NewActions.Dequeue(NewSpawner);
+
+			// @TODO: The weak pointer could still be valid, but the class could  
+			//        have since been trashed (awaiting GC)... need to block on
+			//        spawners that have since been removed from the database
+			if (!NewSpawner.IsStale())
+			{
+				if (UEdGraphNode* TemplateNode = NewSpawner->GetTemplateNode(nullptr))
+				{
+					// since we're doing this incrementally, someone could have 
+					// already requested this template, and allocated its pins 
+					if (TemplateNode->Pins.Num() == 0)
+					{
+						// in certain scenarios we need pin information from the 
+						// spawner (to help filter by pin context)
+						TemplateNode->AllocateDefaultPins();
+					}
+				}
+			}
+		}
+		if (CurrentDuration > DurationThreshold)
+		{
+			break;
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
+TStatId FBlueprintActionDatabase::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FBlueprintActionDatabase, STATGROUP_Tickables);
 }
 
 //------------------------------------------------------------------------------
@@ -816,17 +802,19 @@ void FBlueprintActionDatabase::RefreshAll()
 //------------------------------------------------------------------------------
 void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 {
-	using namespace FBlueprintActionDatabaseImpl;
+	using namespace BlueprintActionDatabaseImpl;
 
 	check(Class != nullptr);
 	bool const bIsBlueprintClass = Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 	bool const bIsSkelClass      = bIsBlueprintClass && FKismetEditorUtilities::IsClassABlueprintSkeleton(Class);
 	bool const bIsReinstClass    = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
-	bool const bIsIgnorableClass = bIsReinstClass || (bIsBlueprintClass && !bIsSkelClass);
+	bool const bIsTransientClass = (Class->GetOutermost() == GetTransientPackage());// Class->HasAnyFlags(RF_Transient);
+	bool const bIsIgnorableClass = bIsReinstClass || bIsTransientClass || (bIsBlueprintClass && !bIsSkelClass);
 	
 	if (!bIsIgnorableClass)
 	{
-		FBlueprintActionDatabaseImpl::FActionList ClassActionList(ClassActions.FindOrAdd(Class));
+		FActionList& ClassActionList = ClassActions.FindOrAdd(Class);
+		ClassActionList.Empty();
 		
 		// class field actions (nodes that represent and perform actions on
 		// specific fields of the class... functions, properties, etc.)
@@ -849,6 +837,12 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 		// global structs, enums, etc.; elements that wouldn't be caught
 		// normally when sifting through fields on all known classes)
 		AddAutonomousNodeActions(Class, ClassActionList);
+
+		// queue all the new actions for priming 
+		for (UBlueprintNodeSpawner* Action : ClassActionList)
+		{
+			NewActions.Enqueue(Action);
+		}
 	}
 
 	// @TODO: account for all K2ActionMenuBuilder methods...

@@ -218,7 +218,7 @@ void SBlueprintLibraryPalette::CollectAllActions(FGraphActionListBuilderBase& Ou
 		ClassFilter = FilterClass.Get();
 	}
 	
-	FBlueprintActionMenuBuilder PaletteBuilder;
+	FBlueprintActionMenuBuilder PaletteBuilder(BlueprintEditorPtr);
 	FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, ClassFilter, PaletteBuilder);
 	
 	PaletteBuilder.RebuildActionList();

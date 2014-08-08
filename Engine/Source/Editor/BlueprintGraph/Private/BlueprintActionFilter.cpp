@@ -12,6 +12,7 @@
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
 #include "K2Node_VariableSet.h"
+#include "K2Node_VariableGet.h"
 // "impure" node types (utilized in BlueprintActionFilterImpl::IsImpure)
 #include "K2Node_IfThenElse.h"
 #include "K2Node_MultiGate.h"
@@ -207,6 +208,51 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action would produce a bound node, tied to an object that isn't selected.
 	 */
 	static bool IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 * @param  Pin	
+	 * @return 
+	 */
+	static bool HasMatchingPin(UBlueprintNodeSpawner const* BlueprintAction, UEdGraphPin const* Pin);
+
+	/**
+	 * 
+	 * 
+	 * @param  Pin	
+	 * @param  MemberField	
+	 * @return 
+	 */
+	static bool IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 };
 
 //------------------------------------------------------------------------------
@@ -291,22 +337,24 @@ static UFunction const* BlueprintActionFilterImpl::GetAssociatedFunction(UBluepr
 static bool BlueprintActionFilterImpl::IsImpure(UBlueprintNodeSpawner const* NodeSpawner)
 {
 	bool bIsImpure = false;
-
-	UClass* NodeClass = NodeSpawner->NodeClass;
-	if (NodeClass != nullptr)
+	
+	if (UFunction const* Function = GetAssociatedFunction(NodeSpawner))
 	{
-		// TODO: why are some of these "impure"?
+		bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) == false);
+	}
+	else if (NodeSpawner->NodeClass != nullptr)
+	{
+		UClass* NodeClass = NodeSpawner->NodeClass;
+		// TODO: why are some of these "impure"?... we shouldn't have hardcoded 
+		//       node types here (game modules cannot add their node types here,
+		//       so we should find another way of identifying "pure" node types)
 		bIsImpure = (NodeClass == UK2Node_IfThenElse::StaticClass()) ||
 			(NodeClass == UK2Node_MultiGate::StaticClass()) ||
 			(NodeClass == UK2Node_MakeArray::StaticClass()) ||
 			(NodeClass == UK2Node_Message::StaticClass()) ||
 			(NodeClass == UK2Node_ExecutionSequence::StaticClass());
 	}
-	else if (UFunction const* Function = GetAssociatedFunction(NodeSpawner))
-	{
-		bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) != false);
-	}
-
+	
 	return bIsImpure;
 }
 
@@ -701,6 +749,198 @@ static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActio
 	return bIsFilteredOut;
 }
 
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::HasMatchingPin(UBlueprintNodeSpawner const* BlueprintAction, UEdGraphPin const* Pin)
+{
+	bool bHasCompatiblePin = false;
+
+	UEdGraph* OuterGraph = Pin->GetOwningNode()->GetGraph();
+	if (UEdGraphNode* TemplateNode = BlueprintAction->GetTemplateNode(OuterGraph))
+	{
+		if (TemplateNode->Pins.Num() == 0)
+		{
+			TemplateNode->AllocateDefaultPins();
+		}
+
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(OuterGraph);
+		check(Blueprint != nullptr);
+		UEdGraphSchema_K2 const* Schema = CastChecked<UEdGraphSchema_K2>(OuterGraph->GetSchema());
+
+		UClass* CallingContext = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
+		UK2Node* K2TemplateNode = Cast<UK2Node>(TemplateNode);
+		
+		for (int32 PinIndex = 0; !bHasCompatiblePin && (PinIndex < TemplateNode->Pins.Num()); ++PinIndex)
+		{
+			UEdGraphPin* TemplatePin = TemplateNode->Pins[PinIndex];
+			if (!Schema->ArePinsCompatible(Pin, TemplatePin, CallingContext))
+			{
+				continue;
+			}
+			bHasCompatiblePin = true;
+
+			if (K2TemplateNode != nullptr)
+			{
+				FString DisallowedReason;
+				// to catch wildcard connections that are prevented
+				bHasCompatiblePin = !K2TemplateNode->IsConnectionDisallowed(TemplatePin, Pin, DisallowedReason);
+			}
+		}
+	}	
+
+	return bHasCompatiblePin;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField)
+{
+	bool bIsCompatible = false;
+
+	UClass* OwnerClass = Cast<UClass>(MemberField->GetOuter());
+	if ((Pin->Direction == EGPD_Output) && (OwnerClass != nullptr))
+	{
+		FEdGraphPinType const& PinType = Pin->PinType;
+		if (PinType.PinSubCategoryObject.IsValid()) 
+		{
+			// if PC_Object/PC_Interface
+			if (UClass const* const PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
+			{
+				bIsCompatible = PinObjClass->IsChildOf(OwnerClass);
+			}
+		}
+	}
+
+	return bIsCompatible;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+	if (UFunction const* AssociatedFunc = GetAssociatedFunction(BlueprintAction))
+	{
+		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		bool const bIsEventSpawner = BlueprintAction->NodeClass->IsChildOf<UK2Node_Event>();
+
+		for (int32 PinIndex = 0; !bIsFilteredOut && (PinIndex < Filter.Context.Pins.Num()); ++PinIndex)
+		{
+			UEdGraphPin const* ContextPin = Filter.Context.Pins[PinIndex];
+
+			FEdGraphPinType const& PinType = ContextPin->PinType;
+			UK2Node const* const K2Node = CastChecked<UK2Node const>(ContextPin->GetOwningNode());
+			EEdGraphPinDirection const PinDir = ContextPin->Direction;
+			
+			if (K2Schema->IsExecPin(*ContextPin))
+			{
+				bIsFilteredOut = (bIsEventSpawner && (PinDir == EGPD_Output)) || !IsImpure(BlueprintAction);
+			}
+			else
+			{
+				bIsFilteredOut = true;
+				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetBlueprint(), PinType, (PinDir == EGPD_Input)))
+				{
+					bIsFilteredOut = false;
+				}
+				else if (!bIsEventSpawner)
+				{
+					// need to take "Target" self pins into consideration for objects
+					bIsFilteredOut = !IsPinCompatibleWithTargetSelf(ContextPin, AssociatedFunc);
+				}
+			}
+		}
+	}
+
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+
+	UField const* AssociatedField = GetAssociatedField(BlueprintAction);
+	if (UProperty const* Property = Cast<UProperty const>(AssociatedField))
+	{
+		TArray<UEdGraphPin*> const& ContextPins = Filter.Context.Pins;
+		if (ContextPins.Num() > 0)
+		{
+			bool const bIsDelegate = Property->IsA<UMulticastDelegateProperty>();
+			bool const bIsGetter   = BlueprintAction->NodeClass->IsChildOf<UK2Node_VariableGet>();
+			bool const bIsSetter   = BlueprintAction->NodeClass->IsChildOf<UK2Node_VariableSet>();
+
+			//K2Schema->ConvertPropertyToPinType(VariableProperty, /*out*/ VariablePin->PinType);
+			for (int32 PinIndex = 0; !bIsFilteredOut && PinIndex < ContextPins.Num(); ++PinIndex)
+			{
+				UEdGraphPin const* ContextPin = ContextPins[PinIndex];
+				FEdGraphPinType const& ContextPinType = ContextPin->PinType;
+				UEdGraphSchema_K2 const* K2Schema = CastChecked<UEdGraphSchema_K2 const>(ContextPin->GetSchema());
+
+				// have to account for "self" context pin
+				if (IsPinCompatibleWithTargetSelf(ContextPin, Property))
+				{
+					continue;
+				}
+				else if (bIsDelegate)
+				{
+					// there are a lot of different delegate nodes, so let's  
+					// just iterate over all the pins
+					bIsFilteredOut = !HasMatchingPin(BlueprintAction, ContextPin);
+				}
+				else if (ContextPinType.PinCategory == K2Schema->PC_Exec)
+				{
+					// setters are impure, and therefore should have exec pins
+					bIsFilteredOut = bIsGetter;
+				}
+				else if (bIsGetter || bIsSetter)
+				{
+					bIsFilteredOut = true;
+
+					EEdGraphPinDirection const PinDir = ContextPin->Direction;
+					if ((PinDir == EGPD_Input) && bIsGetter)
+					{
+						FEdGraphPinType InputPinType;
+						K2Schema->ConvertPropertyToPinType(Property, InputPinType);
+						bIsFilteredOut = !K2Schema->ArePinTypesCompatible(ContextPinType, InputPinType);
+					}
+					else if ((PinDir == EGPD_Output) && bIsSetter)
+					{
+						FEdGraphPinType OutputPinType;
+						K2Schema->ConvertPropertyToPinType(Property, OutputPinType);
+						bIsFilteredOut = !K2Schema->ArePinTypesCompatible(OutputPinType, ContextPinType);
+					}					
+				}
+				else
+				{
+					ensureMsg(false, TEXT("Unhandled property/node pair, we've probably made some bad assuptions."));
+				}
+			}
+		}
+	}
+
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+
+	UField const* AssociatedField = GetAssociatedField(BlueprintAction);
+	// we have a separate tests for field nodes (IsFunctionMissingPinParam/IsMissmatchedPropertyType)
+	if (AssociatedField == nullptr)
+	{
+		for (UEdGraphPin const* ContextPin : Filter.Context.Pins)
+		{
+			if (!HasMatchingPin(BlueprintAction, ContextPin))
+			{
+				bIsFilteredOut = true;
+				break;
+			}
+		}
+	}
+
+	return bIsFilteredOut;
+}
+
 /*******************************************************************************
  * FBlueprintActionFilter
  ******************************************************************************/
@@ -712,28 +952,42 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 
 	//
 	// NOTE: The order of these tests can have perf implications, the more one
-	//       rejects on average the sooner it should be added (they're executed
-	//       in order added)
+	//       rejects on average the later it should be added (they're executed
+	//       in reverse order, so user added tests are ran first and the ones 
+	//       here are ran last)
 	//
+
+	// add first the most expensive tests (they will be ran last, and therefore
+	// should be operating on a smaller subset of node-spawners)
+	//
+	// this test in-particular spawns a template-node and then calls 
+	// AllocateDefaultPins() which is costly, so it should be very last!
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissingMatchingPinParam));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissmatchedPropertyType));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFunctionMissingPinParam));
+
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
+	
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));	
+	if (Flags & BPFILTER_ExcludeGlobalFields)
+	{
+		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsGlobal));
+	}
+	
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldInaccessible));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsEventUnimplementable));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPermissionNotGranted));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsRestrictedClassMember));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
 
 	if (!(Flags & BPFILTER_IncludeDeprecated))
 	{
 		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsDeprecated));
 	}
+
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_ExcludeChildNodeTypes) != 0));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsBoundToUnselectedObject));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsEventUnimplementable));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldInaccessible));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsRestrictedClassMember));
-	if (Flags & BPFILTER_ExcludeGlobalFields)
-	{
-		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsGlobal));
-	}
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsExternalField));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPermissionNotGranted));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsBoundToUnselectedObject));
 
 	// @TODO: account for all K2ActionMenuBuilder checks...
 	//    NodeCDO->CanCreateUnderSpecifiedSchema(this)
@@ -813,7 +1067,9 @@ bool FBlueprintActionFilter::IsFilteredByThis(UBlueprintNodeSpawner const* Bluep
 	FBlueprintActionFilter const& FilterRef = *this;
 
 	bool bIsFiltered = false;
-	for (int32 TestIndex = 0; TestIndex < FilterTests.Num(); ++TestIndex)
+	// iterate backwards so that custom user test are ran first (and the slow
+	// internal tests are ran last).
+	for (int32 TestIndex = FilterTests.Num()-1; TestIndex >= 0; --TestIndex)
 	{
 		FIsFilteredDelegate const& IsFilteredDelegate = FilterTests[TestIndex];
 		check(IsFilteredDelegate.IsBound());

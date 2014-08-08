@@ -1049,7 +1049,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 //------------------------------------------------------------------------------
 
-struct FClassDynamicCastHelper
+struct FClassDynamicCastMenuUtils
 {
 	static bool CanCastToClass(const UClass* TestClass, const UEdGraphSchema_K2* K2Schema)
 	{
@@ -1359,7 +1359,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			}
 		}
 
-		FClassDynamicCastHelper::GetClassDynamicCastNodes(ContextMenuBuilder, K2Schema);
+		FClassDynamicCastMenuUtils::GetClassDynamicCastNodes(ContextMenuBuilder, K2Schema);
 
 		if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Int))
 		{

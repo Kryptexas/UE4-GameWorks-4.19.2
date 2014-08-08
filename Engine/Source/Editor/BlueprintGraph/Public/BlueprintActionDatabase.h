@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "GCObject.h"
+#include "TickableEditorObject.h"
+
 // Forward declarations
 class UBlueprint;
 class FBlueprintActionFilter;
 class UBlueprintNodeSpawner;
+class FReferenceCollector;
 
 /**
  * Serves as a container for all available blueprint actions (no matter the 
@@ -16,17 +20,13 @@ class UBlueprintNodeSpawner;
  * 
  * @TODO:  Hook up to handle class recompile events, along with enum/struct asset creation events.
  */
-class BLUEPRINTGRAPH_API FBlueprintActionDatabase
+class BLUEPRINTGRAPH_API FBlueprintActionDatabase : public FGCObject, public FTickableEditorObject
 {
 public:
 	typedef TArray<UBlueprintNodeSpawner*> FActionList;
 	typedef TMap<UClass*, FActionList>     FClassActionMap;
 
-	/**
-	 * Ensures that the database singleton is initialized and populated.
-	 */
-	static void Prime();
-
+public:
 	/**
 	 * Getter to access the database singleton. Will populate the database first 
 	 * if this is the first time accessing it.
@@ -34,6 +34,16 @@ public:
 	 * @return The singleton instance of FBlueprintActionDatabase.
 	 */
 	static FBlueprintActionDatabase& Get();
+
+	// FTickableEditorObject interface
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override;
+	// End FTickableEditorObject interface
+
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// End FGCObject interface
 
 	/**
 	 * Populates the action database from scratch. Loops over every known class
@@ -63,10 +73,10 @@ public:
 	 * @return The entire action database, which maps specific classes to arrays of associated node-spawners.
 	 */
 	FClassActionMap const& GetAllActions();
-	
+
 private:
 	/** Private constructor for singleton purposes. */
-	FBlueprintActionDatabase() {} 
+	FBlueprintActionDatabase();
 
 	/** 
 	 * A map of associated node-spawners for each class. A spawner that 
@@ -76,4 +86,11 @@ private:
 	 * node's type.
 	 */
 	FClassActionMap ClassActions;
+
+	/** 
+	 * Holds newly allocated actions that need to be "primed". Priming is 
+	 * something we do on Tick() aimed at speeding up performance (like 
+	 * pre-caching the spawner's template-node, etc.).
+	 */
+	TQueue<TWeakObjectPtr<UBlueprintNodeSpawner>> NewActions;
 };

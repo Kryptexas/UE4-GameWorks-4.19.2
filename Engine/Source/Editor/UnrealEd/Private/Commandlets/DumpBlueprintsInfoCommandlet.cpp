@@ -20,6 +20,7 @@
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionDatabase.h"
 #include "BlueprintActionMenuUtils.h"
+#include "K2Node_Composite.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -986,10 +987,10 @@ static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteLis
 		FBlueprintActionContext FilterContext;
 		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
 		
-		FBlueprintActionMenuBuilder MenuBuilder;
+		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 		{
 			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Prime();
+			FBlueprintActionDatabase::Get();
 			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
 			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
@@ -1462,11 +1463,16 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 {
 	FBlueprintGraphActionListBuilder ContextMenuBuilder(Graph);
 
-	UEdGraphPin* DummyPin = NewObject<UEdGraphPin>(GetTransientPackage());
-	DummyPin->PinName = DummyPin->GetName();
-	DummyPin->Direction = EGPD_Input;
-	DummyPin->PinType = PinType;
-
+	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
+	UEdGraphPin* DummyPin = DummyNode->CreatePin(
+		EGPD_Input,
+		PinType.PinCategory,
+		PinType.PinSubCategory,
+		PinType.PinSubCategoryObject.Get(),
+		PinType.bIsArray,
+		PinType.bIsReference,
+		DummyNode->GetName()
+	);
 	ContextMenuBuilder.FromPin = DummyPin;
 
 	DumpContextActionList(Indent, ContextMenuBuilder, FileOutWriter);
@@ -1549,11 +1555,11 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 			}
 		}
 		
-		FBlueprintActionMenuBuilder MenuBuilder;
+		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 		{
 			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Prime();
-			
+			FBlueprintActionDatabase::Get();
+
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
 			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, MenuBuilder);
 		}

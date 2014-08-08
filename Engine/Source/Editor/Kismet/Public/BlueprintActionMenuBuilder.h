@@ -12,6 +12,7 @@ namespace FBlueprintActionMenuBuilderImpl
 };
 class  FBlueprintActionFilter;
 struct FBlueprintActionContext;
+class  FBlueprintEditor;
 
 /**
  * Responsible for constructing a list of viable blueprint actions. Runs the 
@@ -31,18 +32,7 @@ public:
 	};
 	
 public:
-	/** Default constructor */
-	FBlueprintActionMenuBuilder() {}
-
-	/**
-	 * Good for constructing a menu built from a single filter. If the 
-	 * bAutoBuild param is set to false, then know you have to manually call
-	 * RebuildActionList() to generate the menu.
-	 *
-	 * @param  Filter		The filter you want applied for this main section of the menu.
-	 * @param  bAutoBuild	If set, will automatically call RebuildActionList() here in the constructor.
-	 */
-	FBlueprintActionMenuBuilder(FBlueprintActionFilter const& Filter, bool bAutoBuild = true);
+	FBlueprintActionMenuBuilder(TWeakPtr<FBlueprintEditor> BlueprintEditorPtr);
 	
 	// FGraphActionListBuilderBase interface
 	virtual void Empty() override;
@@ -76,4 +66,7 @@ private:
 	 * this API clean).
 	 */
 	TArray< TSharedRef<FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition> > MenuSections;
+
+	/** */
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 };

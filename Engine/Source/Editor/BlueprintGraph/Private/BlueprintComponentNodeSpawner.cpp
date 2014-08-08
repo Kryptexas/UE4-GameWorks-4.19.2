@@ -54,7 +54,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FVec
 	
 	UK2Node_AddComponent* NewNode = CastChecked<UK2Node_AddComponent>(Super::Invoke(ParentGraph, Location, PostSpawnDelegate));
 
-	bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+	bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
 	if (!bIsTemplateNode)
 	{
 		UBlueprint* Blueprint = NewNode->GetBlueprint();

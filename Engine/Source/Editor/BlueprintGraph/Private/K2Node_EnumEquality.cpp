@@ -9,6 +9,8 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 
+#define LOCTEXT_NAMESPACE "K2Node_EnumEquality"
+
 UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -122,6 +124,24 @@ void UK2Node_EnumEquality::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			Schema->SetPinDefaultValueBasedOnType(Pin);
 		}
 	}
+}
+
+bool UK2Node_EnumEquality::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool const bOtherPinIsEnum = (OtherPin->PinType.PinCategory == K2Schema->PC_Byte) &&
+		(OtherPin->PinType.PinSubCategoryObject.IsValid()) &&
+		(OtherPin->PinType.PinSubCategoryObject.Get()->IsA(UEnum::StaticClass()));
+
+
+	bool bIsDisallowed = false;
+	if (!bOtherPinIsEnum && (MyPin->Direction == EGPD_Input))
+	{
+		bIsDisallowed = true;
+		OutReason = LOCTEXT("InputIsNotEnum", "Cannot use the enum equality operator on anything but enums.").ToString();
+	}
+	return bIsDisallowed;
 }
 
 UEdGraphPin* UK2Node_EnumEquality::GetReturnValuePin() const
@@ -251,3 +271,5 @@ FText UK2Node_EnumEquality::GetMenuCategory() const
 {
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Enum);
 }
+
+#undef LOCTEXT_NAMESPACE

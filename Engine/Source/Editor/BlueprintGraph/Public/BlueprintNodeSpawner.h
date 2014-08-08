@@ -29,6 +29,9 @@ class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject
 	DECLARE_DELEGATE_TwoParams(FCustomizeNodeDelegate, UEdGraphNode*, bool);
 
 public:
+	/** */
+	virtual ~UBlueprintNodeSpawner();
+
 	/**
 	 * Creates a new UBlueprintNodeSpawner for the specified node class. Sets
 	 * the allocated spawner's NodeClass and CustomizeNodeDelegate fields from
@@ -144,24 +147,15 @@ public:
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut);
 
 	/**
-	 * Expects the supplied outer to be transient. Will spawn a new template-
-	 * node if the cached one is null, or if its graph outer doesn't match the
-	 * one specified here. Once a new node is spawned, this class will cache it
-	 * to save on spawning a new one with later requests (and to keep the node
-	 * from being GC'd).
+	 * Retrieves a cached template for the node that this is set to spawn. Will
+	 * instantiate a new template if one didn't previously exist. If the 
+	 * template-node is not compatible with any of our cached UEdGraph outers, 
+	 * then we use TargetGraph as a model to create one that will work.
 	 *
-	 * This should not have to be overridden (it calls Invoke() with the
-	 * specified outer; the transient-ness of the graph should signify that it
-	 * is for a template).
-	 *
-	 * Unfortunately, the supplied graph requires a Blueprint outer. Certain 
-	 * node types rely on this assumption; this is why the template-node and the
-	 * supplied graph cannot belong to the transient package themselves.
-	 *
-	 * @param  Outer    A transient graph (with a Blueprint outer), to act as the template-node's outer.
+	 * @param  TargetGraph    Optional param that defines a compatible graph outer (used as an achetype if we don't have a compatible outer on hand).
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
-	UEdGraphNode* MakeTemplateNode(UEdGraph* Outer) const;
+	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr) const;
 
 protected:
 	/**
@@ -174,18 +168,6 @@ protected:
 	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
 	 */
 	UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
-
-private:
-	/**
-	 * We try to avoid the spawning of node-templates (save on perf/mem where we
-	 * can), but sometimes users need to pull non-static data from the node 
-	 * itself (before it's spawned).
-	 *
-	 * Here we store the node template once it's created. Stored so that it can
-	 * be reused (and not reallocated) and not GC'd.
-	 */
-	UPROPERTY(Transient)
-	mutable UEdGraphNode* CachedNodeTemplate;
 };
 
 /*******************************************************************************
