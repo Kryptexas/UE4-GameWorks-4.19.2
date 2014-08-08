@@ -144,7 +144,7 @@ public:
 	 * @param  ColorOut		The color to tint the icon with.
 	 * @return Name of the brush to use (use FEditorStyle::GetBrush() to resolve).
 	 */
-	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut);
+	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const;
 
 	/**
 	 * Retrieves a cached template for the node that this is set to spawn. Will

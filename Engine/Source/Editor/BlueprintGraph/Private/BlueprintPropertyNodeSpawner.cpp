@@ -85,6 +85,12 @@ FText UBlueprintPropertyNodeSpawner::GetDefaultMenuName() const
 		{
 			MenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), MenuName);
 		}
+		else if (IsDelegateProperty())
+		{
+			// there are bunch of different delegate node type, so let that 
+			// determine the menu entry text
+			MenuName = FText::GetEmpty();
+		}
 	}
 
 	return MenuName;
@@ -108,7 +114,7 @@ FText UBlueprintPropertyNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
-FName UBlueprintPropertyNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
+FName UBlueprintPropertyNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 {
 	FName BrushName = Super::GetDefaultMenuIcon(ColorOut);
 	if (NodeClass == nullptr)

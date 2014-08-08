@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "K2Node_AddComponent.h"
+#include "ClassIconFinder.h" // for FindIconNameForClass()
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
@@ -117,6 +118,13 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuCategory() const
 	}
 
 	return FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+}
+
+//------------------------------------------------------------------------------
+FName UBlueprintComponentNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
+{
+	check(ComponentClass != nullptr);
+	return FClassIconFinder::FindIconNameForClass(ComponentClass);
 }
 
 //------------------------------------------------------------------------------

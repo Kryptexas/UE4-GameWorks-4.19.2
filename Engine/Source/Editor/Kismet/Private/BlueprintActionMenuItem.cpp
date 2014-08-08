@@ -161,7 +161,7 @@ void FBlueprintActionMenuItem::AddReferencedObjects(FReferenceCollector& Collect
 FSlateBrush const* FBlueprintActionMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
 	// if this brush is invalid
-	if ((IconBrush == nullptr) || !IconBrush->HasUObject())
+	if (IconBrush == nullptr)
 	{
 		if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
 		{

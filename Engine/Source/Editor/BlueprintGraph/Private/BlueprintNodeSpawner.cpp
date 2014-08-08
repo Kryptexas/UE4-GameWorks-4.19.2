@@ -111,7 +111,7 @@ FText UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
 }
 
 //------------------------------------------------------------------------------
-FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
+FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 {
 	ColorOut = FLinearColor::White;
 	// DO NOT make a template node and query it here (the separate ui building
