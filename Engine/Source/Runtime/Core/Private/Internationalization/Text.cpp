@@ -291,6 +291,25 @@ FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 
 	History = MakeShareable(new FTextHistory_Base(InSourceString));
 }
 
+
+bool FText::IsEmptyOrWhitespace() const
+{
+	if (DisplayString.Get().IsEmpty())
+	{
+		return true;
+	}
+
+	for( const TCHAR Character : DisplayString.Get() )
+	{
+		if (!IsWhitespace(Character))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 FText FText::TrimPreceding( const FText& InText )
 {
 	FString TrimmedString = InText.ToString();

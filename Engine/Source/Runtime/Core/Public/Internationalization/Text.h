@@ -238,6 +238,8 @@ public:
 		return DisplayString.Get().IsEmpty();
 	}
 
+	bool IsEmptyOrWhitespace() const;
+
 	/**
 	 * Removes whitespace characters from the front of the string.
 	 */
