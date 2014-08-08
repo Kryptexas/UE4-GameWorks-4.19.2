@@ -318,7 +318,6 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		FString Filename;
 		if (GenerateNextBitmapFilename(Pattern, Filename, FileManager))
 		{
-			Filename += TEXT(".bmp");
 			FCString::Strcpy(File, *Filename);
 			if ( OutFilename )
 			{

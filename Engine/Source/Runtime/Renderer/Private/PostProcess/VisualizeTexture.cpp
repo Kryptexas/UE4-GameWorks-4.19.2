@@ -420,7 +420,11 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 		// continue rendering to HDR if necessary
 		RenderVisualizeTexture(RHICmdList, VisualizeTextureData);
 	}
-	RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	{
+		SCOPED_DRAW_EVENT(VisCopy, DEC_SCENE_ITEMS);
+		RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
 
 	VisualizeTextureDesc = Desc;
 
@@ -517,17 +521,20 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 
 	FIntRect VisualizeTextureRect = ComputeVisualizeTextureRect(Desc.Extent);
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle(
-		RHICmdList,
-		VisualizeTextureRect.Min.X, VisualizeTextureRect.Min.Y,
-		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
-		0, 0,
-		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
-		FIntPoint(RenderTarget->GetSizeX(), RenderTarget->GetSizeY()),
-		VisualizeTextureRect.Size(),
-		*VertexShader,
-		EDRF_Default);
+	{
+		SCOPED_DRAW_EVENT(VisCopyToMain, DEC_SCENE_ITEMS);
+		// Draw a quad mapping scene color to the view's render target
+		DrawRectangle(
+			RHICmdList,
+			VisualizeTextureRect.Min.X, VisualizeTextureRect.Min.Y,
+			VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
+			0, 0,
+			VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
+			FIntPoint(RenderTarget->GetSizeX(), RenderTarget->GetSizeY()),
+			VisualizeTextureRect.Size(),
+			*VertexShader,
+			EDRF_Default);
+	}
 
 	// this is a helper class for FCanvas to be able to get screen size
 	class FRenderTargetTemp : public FRenderTarget
@@ -898,7 +905,7 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
-	bEnabled = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	bEnabled = GMaxRHIFeatureLevel >= ERHIFeatureLevel::ES2;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

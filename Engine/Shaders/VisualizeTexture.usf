@@ -93,6 +93,7 @@ void VisualizeTexturePS(
 	int InputValueMapping = (int)VisualizeParam[2].r;
 	if(InputValueMapping == 1)
 	{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES2
 		// current z buffer is negated (1 is near, 0 is far)
 		float Depth = 1 - TexLookup.r;
 
@@ -109,6 +110,9 @@ void VisualizeTexturePS(
 		fStencil /= 255.0f;
 
 		TexLookup.a = fStencil;
+#else
+		TexLookup.r = 1 - TexLookup.r;
+#endif
 	}	
 
 	float Add = TexLookup.a * VisualizeParam[0].y + VisualizeParam[0].z;
