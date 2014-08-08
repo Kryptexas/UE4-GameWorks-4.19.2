@@ -513,6 +513,8 @@ public:
 			FParse::Value( Entry, TEXT("UnusedFileAge="), UnusedFileAge );
 			int32 MaxFoldersToClean = -1;
 			FParse::Value( Entry, TEXT("FoldersToClean="), MaxFoldersToClean );
+			int32 MaxFileChecksPerSec = -1;
+			FParse::Value( Entry, TEXT("MaxFileChecksPerSec="), MaxFileChecksPerSec );
 
 			if( bFlush )
 			{
@@ -528,7 +530,7 @@ public:
 			// Don't create the file system if shared data cache directory is not mounted
 			if( FCString::Strcmp(NodeName, TEXT("Shared")) != 0 || IFileManager::Get().DirectoryExists(*Path) )
 			{
-				InnerFileSystem = CreateFileSystemDerivedDataBackend( *Path, bReadOnly, bTouch, bPurgeTransient, bDeleteUnused, UnusedFileAge, MaxFoldersToClean );
+				InnerFileSystem = CreateFileSystemDerivedDataBackend( *Path, bReadOnly, bTouch, bPurgeTransient, bDeleteUnused, UnusedFileAge, MaxFoldersToClean, MaxFileChecksPerSec);
 			}
 
 			if( InnerFileSystem )
