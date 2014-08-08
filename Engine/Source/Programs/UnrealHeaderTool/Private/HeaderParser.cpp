@@ -5909,6 +5909,22 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 
 	} while( MatchSymbol(TEXT(",")) );
 
+	// Optional member initializer.
+	if (MatchSymbol(TEXT("=")))
+	{
+		// Skip past the specified member initializer; we make no attempt to parse it
+		FToken SkipToken;
+		while (GetToken(SkipToken))
+		{
+			if (SkipToken.Matches(TEXT(";")))
+			{
+				// went too far
+				UngetToken(SkipToken);
+				break;
+			}
+		}
+	}
+
 	// Expect a semicolon.
 	RequireSymbol( TEXT(";"), TEXT("'variable declaration'") );
 }
