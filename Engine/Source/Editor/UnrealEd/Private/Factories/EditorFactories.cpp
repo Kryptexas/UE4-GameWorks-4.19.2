@@ -7034,10 +7034,21 @@ UStructureFactory::UStructureFactory(const class FPostConstructInitializePropert
 	bEditAfterNew = true;
 }
 
+bool UStructureFactory::ConfigureProperties()
+{
+	static FBoolConfigValueHelper CanBeBasedOnTableRow(TEXT("UserDefinedStructure"), TEXT("bCanBeBasedOnTableRow"));
+	if (CanBeBasedOnTableRow)
+	{
+		const auto ReturnCode = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("BasedOnTableRowBase", "Is this structure based on TableRowBase?"));
+		Base = (EAppReturnType::Yes == ReturnCode) ? FTableRowBase::StaticStruct() : NULL;
+	}
+	return true;
+}
+
 UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	ensure(UUserDefinedStruct::StaticClass() == Class);
-	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags);
+	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags, Base);
 }
 
 /*-----------------------------------------------------------------------------

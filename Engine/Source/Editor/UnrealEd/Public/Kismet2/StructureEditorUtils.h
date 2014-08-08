@@ -44,13 +44,17 @@ public:
 	};
 
 	//STRUCTURE
-	static UUserDefinedStruct* CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags);
+	static UUserDefinedStruct* CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags, UScriptStruct* BaseStruct = NULL);
 
 	static void CompileStructure(UUserDefinedStruct* Struct);
 
 	static FString GetTooltip(const UUserDefinedStruct* Struct);
 
 	static bool ChangeTooltip(UUserDefinedStruct* Struct, const FString& InTooltip);
+
+	static bool SetNativeBase(UUserDefinedStruct* Struct, UScriptStruct* NativeBase);
+
+	static bool IsPropertBaseStruct(UScriptStruct* Base);
 
 	//VARIABLE
 	static bool AddVariable(UUserDefinedStruct* Struct, const FEdGraphPinType& VarType);

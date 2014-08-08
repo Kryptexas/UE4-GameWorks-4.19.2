@@ -26,7 +26,7 @@ FStructureEditorUtils::FStructEditorManager& FStructureEditorUtils::FStructEdito
 
 //////////////////////////////////////////////////////////////////////////
 // FStructureEditorUtils
-UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags)
+UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags, UScriptStruct* BaseStruct)
 {
 	UUserDefinedStruct* Struct = NULL;
 	
@@ -36,6 +36,11 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		check(Struct);
 		Struct->EditorData = NewNamedObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
 		check(Struct->EditorData);
+
+		check(IsPropertBaseStruct(BaseStruct));
+		CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->NativeBase = BaseStruct;
+		Struct->SetSuperStruct(BaseStruct);
+
 		Struct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 		Struct->Bind();
 		Struct->StaticLink(true);
@@ -685,6 +690,23 @@ UProperty* FStructureEditorUtils::GetPropertyByGuid(const UUserDefinedStruct* St
 FGuid FStructureEditorUtils::GetGuidFromPropertyName(const FName Name)
 {
 	return FMemberVariableNameHelper::GetGuidFromName(Name);
+}
+
+bool FStructureEditorUtils::IsPropertBaseStruct(UScriptStruct* Base)
+{
+	return !Base || (FTableRowBase::StaticStruct() == Base);
+}
+
+bool FStructureEditorUtils::SetNativeBase(UUserDefinedStruct* Struct, UScriptStruct* NativeBase)
+{
+	bool bResult = false;
+	if (Struct && IsPropertBaseStruct(NativeBase))
+	{
+		CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->NativeBase = NativeBase;
+		OnStructureChanged(Struct);
+		bResult = true;
+	}
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

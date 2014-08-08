@@ -347,6 +347,8 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 /** Get array of UProperties that corresponds to columns in the table */
 TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
+	static const FName DisplayNameKey(TEXT("DisplayName"));
+
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
@@ -373,6 +375,13 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 			else
 			{
 				UProperty* ColumnProp = FindField<UProperty>(InRowStruct, PropName);
+
+				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
+				{
+					const FString DisplayName = *It ? (*It)->GetMetaData(DisplayNameKey) : FString();
+					ColumnProp = (!DisplayName.IsEmpty() && (DisplayName == ColumnNameStrings[ColIdx])) ? *It : NULL;
+				}
+
 				// Didn't find a property with this name, problem..
 				if(ColumnProp == NULL)
 				{
@@ -398,7 +407,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 					}
 
 					// Track that we found this one
-					ExpectedPropNames.Remove(PropName);
+					ExpectedPropNames.Remove(ColumnProp->GetFName());
 				}
 			}
 		}
@@ -407,7 +416,11 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 	// Generate warning for any properties in struct we are not filling in
 	for(int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
 	{
-		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *ExpectedPropNames[PropIdx].ToString()));
+		const UProperty* const ColumnProp = FindField<UProperty>(InRowStruct, ExpectedPropNames[PropIdx]);
+		const FString DisplayName = (ColumnProp && ColumnProp->HasMetaData(DisplayNameKey)) 
+			? ColumnProp->GetMetaData(DisplayNameKey) 
+			: ExpectedPropNames[PropIdx].ToString();
+		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *DisplayName));
 	}
 
 	return ColumnProps;
@@ -526,13 +539,17 @@ TArray<FString> UDataTable::CreateTableFromJSONString(const FString& InString)
 
 TArray<FString> UDataTable::GetColumnTitles() const
 {
+	static const FName DisplayNameKey(TEXT("DisplayName"));
 	TArray<FString> Result;
 	Result.Add(TEXT("Name"));
 	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
 	{
 		UProperty* Prop = *It;
 		check(Prop != NULL);
-		Result.Add(Prop->GetName());
+		const FString DisplayName = Prop->HasMetaData(DisplayNameKey)
+			? Prop->GetMetaData(DisplayNameKey)
+			: Prop->GetName();
+		Result.Add(DisplayName);
 	}
 	return Result;
 }

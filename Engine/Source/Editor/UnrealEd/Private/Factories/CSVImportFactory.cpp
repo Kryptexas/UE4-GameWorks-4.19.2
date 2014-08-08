@@ -104,7 +104,9 @@ public:
 			{
 				UScriptStruct* Struct = *It;
 				// If a child of the table row struct base, but not itself
-				if (Struct->IsChildOf(TableRowStruct) && Struct != TableRowStruct)
+				if (Struct->IsChildOf(TableRowStruct) 
+					&& (Struct != TableRowStruct) 
+					&& (Struct->GetOutermost() != GetTransientPackage()))
 				{
 					RowStructs.Add(Struct);
 				}

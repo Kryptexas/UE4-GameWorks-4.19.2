@@ -79,6 +79,9 @@ public:
 	UPROPERTY()
 	FString ToolTip;
 
+	UPROPERTY()
+	UScriptStruct* NativeBase;
+
 	// UObject interface.
 	virtual void PostEditUndo() override;
 	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) override;

@@ -146,7 +146,7 @@ struct FUserDefinedStructureCompilerInner
 				continue;
 			}
 
-			NewProperty->SetPropertyFlags(CPF_Edit);
+			NewProperty->SetPropertyFlags(CPF_Edit | CPF_BlueprintVisible);
 			if (VarDesc.bDontEditoOnInstance)
 			{
 				NewProperty->SetPropertyFlags(CPF_DisableEditOnInstance);
@@ -175,6 +175,9 @@ struct FUserDefinedStructureCompilerInner
 		const int32 ErrorNum = MessageLog.NumErrors;
 
 		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FStructureEditorUtils::GetTooltip(Struct));
+
+		auto EditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
+		Struct->SetSuperStruct(EditorData->NativeBase);
 
 		CreateVariables(Struct, K2Schema, MessageLog);
 
