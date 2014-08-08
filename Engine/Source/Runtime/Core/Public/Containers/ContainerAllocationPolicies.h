@@ -721,6 +721,7 @@ class FDefaultSetAllocator         : public TSetAllocator<>         { public: ty
 class FDefaultBitArrayAllocator    : public TInlineAllocator<4>     { public: typedef TInlineAllocator<4>     Typedef; };
 class FDefaultSparseArrayAllocator : public TSparseArrayAllocator<> { public: typedef TSparseArrayAllocator<> Typedef; };
 
-template <> struct TAllocatorTraits<FDefaultAllocator>         : TAllocatorTraits    <typename FDefaultAllocator        ::Typedef> {};
-template <> struct TAllocatorTraits<FDefaultBitArrayAllocator> : TAllocatorTraitsBase<typename FDefaultBitArrayAllocator::Typedef> {};
-
+template <> struct TAllocatorTraits<FDefaultAllocator>            : TAllocatorTraits<typename FDefaultAllocator           ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultSetAllocator>         : TAllocatorTraits<typename FDefaultSetAllocator        ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultBitArrayAllocator>    : TAllocatorTraits<typename FDefaultBitArrayAllocator   ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultSparseArrayAllocator> : TAllocatorTraits<typename FDefaultSparseArrayAllocator::Typedef> {};
