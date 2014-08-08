@@ -88,9 +88,10 @@ private:
 	FClassActionMap ClassActions;
 
 	/** 
-	 * Holds newly allocated actions that need to be "primed". Priming is 
-	 * something we do on Tick() aimed at speeding up performance (like 
-	 * pre-caching the spawner's template-node, etc.).
+	 * References newly allocated actions that need to be "primed". Priming is 
+	 * something we do on Tick() aimed at speeding up performance (like pre-
+	 * caching each spawner's template-node, etc.).
 	 */
-	TQueue<TWeakObjectPtr<UBlueprintNodeSpawner>> NewActions;
+	typedef TPair<TWeakObjectPtr<UClass>, int32> FActionIndex;
+	TQueue<FActionIndex> ActionPrimingQueue;
 };
