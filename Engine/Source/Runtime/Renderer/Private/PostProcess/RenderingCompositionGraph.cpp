@@ -270,7 +270,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	{
 		SourceRect = GetHighResScreenshotConfig().CaptureRegion;
 
-		if (SourceRect.Area() > 0)
+		if (SourceRect.Area() == 0)
 		{
 			SourceRect = Context.View.ViewRect;
 		}
