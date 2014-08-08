@@ -400,6 +400,7 @@ class ENGINE_API ANavigationData : public AActor
 
 	FORCEINLINE bool IsRegistered() const { return bRegistered; }
 	void OnRegistered();
+	void OnUnregistered();
 	
 	FORCEINLINE uint16 GetNavDataUniqueID() const { return NavDataUniqueID; }
 
@@ -625,12 +626,12 @@ public:
 
 	/** new area was registered in navigation system */
 	virtual void OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex);
-	void OnNavAreaAddedNotify(const UClass* NavAreaClass);
 	
 	/** area was removed from navigation system */
 	virtual void OnNavAreaRemoved(const UClass* NavAreaClass);
-	void OnNavAreaRemovedNotify(const UClass* NavAreaClass);
-	
+		
+	void OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::Type Event);
+
 	/** add all existing areas */
 	void ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex);
 

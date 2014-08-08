@@ -3418,6 +3418,28 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 	// expand bounds a bit to support later inclusion tests
 	NavBounds.ExpandBy(CellSize);
 
+	bool bClampBounds = false;
+	const float ExtentLimit = float(MAX_int32);
+	FVector BoundsExtent = NavBounds.GetExtent();
+	if (BoundsExtent.X > ExtentLimit)
+	{
+		BoundsExtent.X = ExtentLimit;
+		bClampBounds = true;
+	}
+	if (BoundsExtent.Y > ExtentLimit)
+	{
+		BoundsExtent.Y = ExtentLimit;
+		bClampBounds = true;
+	}
+
+	if (bClampBounds)
+	{
+		const FVector BoundsCenter = NavBounds.GetCenter();
+		NavBounds = FBox(BoundsCenter - BoundsExtent, BoundsCenter + BoundsExtent);
+
+		UE_LOG(LogNavigation, Warning, TEXT("Navigation bounds are too large. Cutting down every dimention down to %.f"), ExtentLimit);
+	}
+
 	UnrealNavBounds = NavBounds;
 	// now move the box to Recast coords
 	RCNavBounds = Unreal2RecastBox(NavBounds);
@@ -3587,67 +3609,6 @@ bool FRecastNavMeshGenerator::GenerateTiledNavMesh()
 	if ( (DetourMesh == NULL && ConstructTiledNavMesh() == false) )
 	{
 		return false;	
-	}
-
-	const float* BMin = Config.bmin;
-	const float* BMax = Config.bmax;
-	int32 NewGridWidth = 0;
-	int32 NewGridHeight = 0;
-	rcCalcGridSize(BMin, BMax, Config.cs, &NewGridWidth, &NewGridHeight);
-	const int32 ts = Config.tileSize;
-	const int32 tw = (NewGridWidth + ts-1) / ts;
-	const int32 th = (NewGridHeight + ts-1) / ts;
-	if (tw * th <= 0)
-	{
-		return false;
-	}
-	else if (TilesWidth != tw || TilesHeight != th || GridWidth != NewGridWidth || GridHeight != NewGridHeight)
-	{
-		// @todo there's also a low probability number of tiles is the same but other values are different
-		// need to detect that (just in case)
-		
-		TilesWidth = tw;
-		TilesHeight = th;
-		GridWidth = NewGridWidth;
-		GridHeight = NewGridHeight;
-
-		const float tcs = Config.tileSize * Config.cs;
-
-		// Start the build process.
-		float TileBmin[3];
-		float TileBmax[3];
-
-		TileGenerationLock.Lock();
-		// do fresh start
-		++Version;
-		TileGenerators.Reset();
-		TileGenerators.AddUninitialized(th*tw);
-		TileGenerationLock.Unlock();
-
-		DestNavMesh->ReserveTileSet(TilesWidth, TilesHeight);
-		FTileSetItem* TileData = DestNavMesh->GetTileSet();
-		for (int32 TileIndex = 0; TileIndex < TilesWidth * TilesHeight; ++TileIndex, ++TileData)
-		{
-			const int32 X = TileData->X;
-			const int32 Y = TileData->Y;
-
-			TileBmin[0] = BMin[0] + X*tcs;
-			TileBmin[1] = BMin[1];
-			TileBmin[2] = BMin[2] + Y*tcs;
-
-			TileBmax[0] = BMin[0] + (X+1)*tcs;
-			TileBmax[1] = BMax[1];
-			TileBmax[2] = BMin[2] + (Y+1)*tcs;
-
-			// @todo check if this tile overlaps current navmesh generation boundaries 
-			// if not remove it
-			FRecastTileGenerator& TileGenerator = TileGenerators[ Y*TilesWidth + X ];
-			new(&TileGenerator) FRecastTileGenerator();
-			TileGenerator.Init(this, X, Y, TileBmin, TileBmax, InclusionBounds);
-
-			// reinitialize with all data
-			new(TileData) FTileSetItem(X, Y, TileGenerator.GetUnrealBB());
-		}
 	}
 
 	RebuildAll();

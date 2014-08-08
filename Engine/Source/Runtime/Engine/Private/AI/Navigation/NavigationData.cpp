@@ -273,6 +273,11 @@ void ANavigationData::OnRegistered()
 	bRegistered = true; 
 }
 
+void ANavigationData::OnUnregistered()
+{
+	bRegistered = false;
+}
+
 void ANavigationData::InstantiateAndRegisterRenderingComponent()
 {
 #if !UE_BUILD_SHIPPING
@@ -330,7 +335,14 @@ void ANavigationData::PostEditUndo()
 	UWorld* WorldOuter = GetWorld();
 	if (WorldOuter != NULL && WorldOuter->GetNavigationSystem() != NULL)
 	{
-		WorldOuter->GetNavigationSystem()->RequestRegistration(this);
+		if (IsPendingKillPending())
+		{
+			WorldOuter->GetNavigationSystem()->UnregisterNavData(this);
+		}
+		else
+		{
+			WorldOuter->GetNavigationSystem()->RequestRegistration(this);
+		}
 	}
 }
 #endif // WITH_EDITOR
@@ -469,12 +481,19 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 	UE_LOG(LogNavigation, Verbose, TEXT("%s registered area %s with ID %d"), *GetName(), *AreaClassName, NewAgentData.AreaID);
 }
 
-void ANavigationData::OnNavAreaAddedNotify(const UClass* NavAreaClass)
+void ANavigationData::OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::Type Event)
 {
-	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-	const int32 AgentIndex = NavSys->GetSupportedAgentIndex(this);
+	if (Event == ENavAreaEvent::Registered)
+	{
+		const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+		const int32 AgentIndex = NavSys->GetSupportedAgentIndex(this);
 
-	OnNavAreaAdded(NavAreaClass, AgentIndex);
+		OnNavAreaAdded(NavAreaClass, AgentIndex);
+	}
+	else // Unregistered
+	{
+		OnNavAreaRemoved(NavAreaClass);
+	}
 }
 
 void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
@@ -488,11 +507,6 @@ void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
 			break;
 		}
 	}
-}
-
-void ANavigationData::OnNavAreaRemovedNotify(const UClass* NavAreaClass)
-{
-	OnNavAreaRemoved(NavAreaClass);
 }
 
 void ANavigationData::ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex)

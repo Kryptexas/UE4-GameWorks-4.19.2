@@ -945,6 +945,11 @@ void ALandscapeProxy::PreEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+
+		if (GetWorld()->GetNavigationSystem())
+		{
+			GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(this);
+		}
 	}
 }
 
@@ -955,6 +960,11 @@ void ALandscapeProxy::PostEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+
+		if (GetWorld()->GetNavigationSystem())
+		{
+			GetWorld()->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
+		}
 	}
 }
 

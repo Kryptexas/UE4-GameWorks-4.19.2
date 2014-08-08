@@ -5,6 +5,9 @@
 #include "GenericOctree.h"
 #include "AI/Navigation/NavigationProxy.h"
 
+class AActor;
+class UActorComponent;
+
 struct ENGINE_API FNavigationOctreeFilter
 {
 	/** pass when actor has geometry */
@@ -179,14 +182,14 @@ public:
 
 	/** @param Data allow you to access data put into navoctree while not 
 	 *	having to query navoctree about it just after adding */
-	void AddActor(class AActor* Actor, FNavigationOctreeElement& Data);
-	void AddComponent(class UActorComponent* ActorComp, const FBox& Bounds, FNavigationOctreeElement& Data);
+	void AddActor(AActor& Actor, FNavigationOctreeElement& Data);
+	void AddComponent(UActorComponent& ActorComp, const FBox& Bounds, FNavigationOctreeElement& Data);
 
 	/** Add node and update memory stats */
 	void AddNode(FNavigationOctreeElement& Data);
 
 	/** Remove node and update memory stats */
-	void RemoveNode(const FOctreeElementId* Id);
+	void RemoveNode(const FOctreeElementId& Id);
 
 	void SetNavigableGeometryStoringMode(ENavGeometryStoringMode NavGeometryMode);
 

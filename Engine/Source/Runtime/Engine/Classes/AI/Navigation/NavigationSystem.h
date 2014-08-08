@@ -23,6 +23,20 @@ class UWorld;
 class UCrowdManager;
 struct FNavDataConfig;
 struct FPathFindingResult;
+class UActorComponent;
+class AActor;
+class UEnum;
+class AController;
+class UCrowdManager;
+class UNavArea;
+class INavLinkCustomInterface;
+class FNavigationOctree;
+class AVolume;
+class FNavDataGenerator;
+class AWorldSettings;
+#if WITH_EDITOR
+class FEdMode;
+#endif // WITH_EDITOR
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
@@ -160,30 +174,30 @@ public:
 	//----------------------------------------------------------------------//
 	/** Project a point onto the NavigationData */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector GetRandomPoint(UObject* WorldContext, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+	static FVector GetRandomPoint(UObject* WorldContext, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution. Consider using UPathFollowingComponent::GetRemainingPathCost instead */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static ENavigationQueryResult::Type GetPathCost(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathCost, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+	static ENavigationQueryResult::Type GetPathCost(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathCost, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static ENavigationQueryResult::Type GetPathLength(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathLength, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+	static ENavigationQueryResult::Type GetPathLength(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathLength, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToActor(class AController* Controller, const AActor* Goal);
+	static void SimpleMoveToActor(AController* Controller, const AActor* Goal);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToLocation(class AController* Controller, const FVector& Goal);
+	static void SimpleMoveToLocation(AController* Controller, const FVector& Goal);
 
 	/** Finds path instantly, in a FindPath Synchronously. 
 	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
@@ -201,7 +215,7 @@ public:
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ))
-	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, class AController* Querier = NULL);
+	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, AController* Querier = NULL);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);
@@ -240,7 +254,7 @@ public:
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
 
-	class UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
+	UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
 
 	/** spawn new crowd manager */
 	virtual void CreateCrowdManager();
@@ -292,17 +306,17 @@ public:
 	 *	@param ResultLocation Found point is put here
 	 *	@param NavData If NavData == NULL then MainNavData is used.
 	 *	@return true if any location found, false otherwise */
-	bool GetRandomPoint(FNavLocation& ResultLocation, class ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
+	bool GetRandomPoint(FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
 
 	/** Finds random point in navigable space restricted to Radius around Origin
 	 *	@param ResultLocation Found point is put here
 	 *	@param NavData If NavData == NULL then MainNavData is used.
 	 *	@return true if any location found, false otherwise */
-	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, class ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
 
 	/** Calculates a path from PathStart to PathEnd and retrieves its cost. 
 	 *	@NOTE potentially expensive, so use it with caution */
-	ENavigationQueryResult::Type GetPathCost(const FVector& PathStart, const FVector& PathEnd, float& PathCost, const class ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	ENavigationQueryResult::Type GetPathCost(const FVector& PathStart, const FVector& PathEnd, float& PathCost, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
 
 	/** Calculates a path from PathStart to PathEnd and retrieves its overestimated length.
 	 *	@NOTE potentially expensive, so use it with caution */
@@ -319,30 +333,30 @@ public:
 	}
 
 	// @todo document
-	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const class ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
 
 	/** 
 	 * Looks for NavData generated for specified movement properties and returns it. NULL if not found;
 	 */
-	class ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties);
+	ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties);
 
 	/** 
 	 * Looks for NavData generated for specified movement properties and returns it. NULL if not found; Const version.
 	 */
-	const class ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties) const;
+	const ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties) const;
 
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
-	class ANavigationData* GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
+	ANavigationData* GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
-	const class ANavigationData* GetMainNavData() const { return MainNavData; }
+	const ANavigationData* GetMainNavData() const { return MainNavData; }
 
 	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
 	 *	guarantee its existence */
-	bool ShouldGeneratorRun(const class FNavDataGenerator* Generator) const;
+	bool ShouldGeneratorRun(const FNavDataGenerator* Generator) const;
 
-	bool IsNavigationBuilt(const class AWorldSettings* Settings) const;
+	bool IsNavigationBuilt(const AWorldSettings* Settings) const;
 
 	bool IsThereAnywhereToBuildNavigation() const;
 
@@ -353,10 +367,10 @@ public:
 	FBox GetLevelBounds(ULevel* InLevel) const;
 
 	/** @return default walkable area class */
-	FORCEINLINE static TSubclassOf<class UNavArea> GetDefaultWalkableArea() { return DefaultWalkableArea; }
+	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultWalkableArea() { return DefaultWalkableArea; }
 
 	/** @return default obstacle area class */
-	FORCEINLINE static TSubclassOf<class UNavArea> GetDefaultObstacleArea() { return DefaultObstacleArea; }
+	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultObstacleArea() { return DefaultObstacleArea; }
 
 	FORCEINLINE const FNavDataConfig& GetDefaultSupportedAgentConfig() const { check(SupportedAgents.Num() > 0);  return SupportedAgents[0]; }
 
@@ -376,10 +390,10 @@ public:
 	//----------------------------------------------------------------------//
 	
 	// @todo document
-	void UnregisterNavData(class ANavigationData* NavData);
+	void UnregisterNavData(ANavigationData* NavData);
 
 	/** adds NavData to registration candidates queue - NavDataRegistrationQueue */
-	void RequestRegistration(class ANavigationData* NavData, bool bTriggerRegistrationProcessing = true);
+	void RequestRegistration(ANavigationData* NavData, bool bTriggerRegistrationProcessing = true);
 
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
@@ -388,26 +402,26 @@ public:
 	void ProcessNavAreaPendingRegistration();
 	
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
-	class ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
+	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
 
 	void ReleaseInitialBuildingLock();
 
 	//----------------------------------------------------------------------//
 	// navigation octree related functions
 	//----------------------------------------------------------------------//
-	FSetElementId RegisterNavigationRelevantActor(class AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
-	void UnregisterNavigationRelevantActor(class AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
+	FSetElementId RegisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
+	void UnregisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
 
 #if WITH_NAVIGATION_GENERATOR
 	void AddDirtyArea(const FBox& NewArea, int32 Flags);
 	void AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags);
 #endif // WITH_NAVIGATION_GENERATOR
 
-	const class FNavigationOctree* GetNavOctree() const { return NavOctree; }
+	const FNavigationOctree* GetNavOctree() const { return NavOctree; }
 
-	void UpdateNavOctree(class AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
-	void UpdateNavOctree(class UActorComponent* ActorComp, int32 UpdateFlags = OctreeUpdate_Default);
-	void UpdateNavOctreeElement(class UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
+	void UpdateNavOctree(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
+	void UpdateNavOctree(UActorComponent* ActorComp, int32 UpdateFlags = OctreeUpdate_Default);
+	void UpdateNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
 
 	/** called to gather navigation relevant actors that have been created while
 	 *	Navigation System was not present */
@@ -416,6 +430,7 @@ public:
 	FORCEINLINE void SetObjectsNavOctreeId(UObject* Object, FOctreeElementId Id) { ObjectToOctreeId.Add(Object, Id); }
 	FORCEINLINE const FOctreeElementId* GetObjectsNavOctreeId(const UObject* Object) const { return ObjectToOctreeId.Find(Object); }
 	FORCEINLINE	void RemoveObjectsNavOctreeId(UObject* Object) { ObjectToOctreeId.Remove(Object); }
+	void RemoveNavOctreeElementId(const FOctreeElementId& ElementId, int32 UpdateFlags);
 
 	/** find all elements in navigation octree within given box (intersection) */
 	void FindElementsInNavOctree(const FBox& QueryBox, const struct FNavigationOctreeFilter& Filter, TArray<struct FNavigationOctreeElement>& Elements);
@@ -423,14 +438,14 @@ public:
 	//----------------------------------------------------------------------//
 	// Custom navigation links
 	//----------------------------------------------------------------------//
-	void RegisterCustomLink(class INavLinkCustomInterface* CustomLink);
-	void UnregisterCustomLink(class INavLinkCustomInterface* CustomLink);
+	void RegisterCustomLink(INavLinkCustomInterface* CustomLink);
+	void UnregisterCustomLink(INavLinkCustomInterface* CustomLink);
 	
 	/** find custom link by unique ID */
-	class INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
+	INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
 
 	/** updates custom link for all active navigation data instances */
-	void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
+	void UpdateCustomLink(const INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Areas
@@ -449,7 +464,7 @@ public:
 	//----------------------------------------------------------------------//
 	
 	/** prepare descriptions of navigation flags in UNavigationQueryFilter class: using enum */
-	void DescribeFilterFlags(class UEnum* FlagsEnum) const;
+	void DescribeFilterFlags(UEnum* FlagsEnum) const;
 
 	/** prepare descriptions of navigation flags in UNavigationQueryFilter class: using array */
 	void DescribeFilterFlags(const TArray<FString>& FlagsDesc) const;
@@ -477,7 +492,7 @@ public:
 	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
 
 	// @todo document
-	void OnNavigationBoundsUpdated(class AVolume* NavVolume);
+	void OnNavigationBoundsUpdated(AVolume* NavVolume);
 
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
@@ -510,7 +525,7 @@ public:
 
 	void UpdateLevelCollision(ULevel* InLevel);
 
-	virtual void OnEditorModeChanged(class FEdMode* Mode, bool IsEntering);
+	virtual void OnEditorModeChanged(FEdMode* Mode, bool IsEntering);
 #endif // WITH_EDITOR
 
 	/** register actor important for generation (navigation data will be build around them first) */
@@ -518,13 +533,13 @@ public:
 	void UnregisterGenerationSeed(AActor* SeedActor);
 	void GetGenerationSeeds(TArray<FVector>& SeedLocations) const;
 
-	static UNavigationSystem* CreateNavigationSystem(class UWorld* WorldOwner);
+	static UNavigationSystem* CreateNavigationSystem(UWorld* WorldOwner);
 
-	static UNavigationSystem* GetCurrent(class UWorld* World);
-	static UNavigationSystem* GetCurrent(class UObject* WorldContextObject);
+	static UNavigationSystem* GetCurrent(UWorld* World);
+	static UNavigationSystem* GetCurrent(UObject* WorldContextObject);
 
 	/** try to create and setup navigation system */
-	static void InitializeForWorld(class UWorld* World, FNavigationSystem::EMode Mode);
+	static void InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
@@ -552,7 +567,7 @@ protected:
 
 	FNavigationSystem::EMode OperationMode;
 
-	class FNavigationOctree* NavOctree;
+	FNavigationOctree* NavOctree;
 
 	TArray<FAsyncPathFindingQuery> AsyncPathFindingQueries;
 
@@ -563,7 +578,7 @@ protected:
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
 
 	/** Map of all custom navigation links, that are relevant for path following */
-	TMap<uint32, class INavLinkCustomInterface*> CustomLinksMap;
+	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
 
 	/** List of actors relevant to generation of navigation data */
 	TArray<TWeakObjectPtr<AActor> > GenerationSeeds;
@@ -596,7 +611,7 @@ protected:
 #endif // !UE_BUILD_SHIPPING
 
 	/** collection of delegates to create all available navigation data types */
-	static TArray<TSubclassOf<class ANavigationData> > NavDataClasses;
+	static TArray<TSubclassOf<ANavigationData> > NavDataClasses;
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
@@ -605,11 +620,8 @@ protected:
 
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;
-	static TSubclassOf<class UNavArea> DefaultWalkableArea;
-	static TSubclassOf<class UNavArea> DefaultObstacleArea;
-
-	static FOnNavAreaChanged NavAreaAddedObservers;
-	static FOnNavAreaChanged NavAreaRemovedObservers;
+	static TSubclassOf<UNavArea> DefaultWalkableArea;
+	static TSubclassOf<UNavArea> DefaultObstacleArea;
 
 	/** delegate handler for PostLoadMap event */
 	void OnPostLoadMap();
@@ -624,26 +636,28 @@ protected:
 	 *	@return RegistrationSuccessful if registration was successful, other results mean it failed
 	 *	@see ERegistrationResult
 	 */
-	ERegistrationResult RegisterNavData(class ANavigationData* NavData);
+	ERegistrationResult RegisterNavData(ANavigationData* NavData);
 
 	/** tries to register navigation area */
 	void RegisterNavAreaClass(UClass* NavAreaClass);
+
+	void OnNavigationAreaEvent(UClass* AreaClass, ENavAreaEvent::Type Event);
 	
- 	FSetElementId RegisterNavOctreeElement(class UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
-	void UnregisterNavOctreeElement(class UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
+ 	FSetElementId RegisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
+	void UnregisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
 	
 	/** read element data from navigation octree */
-	bool GetNavOctreeElementData(class UObject* NodeOwner, int32& DirtyFlags, FBox& DirtyBounds);
+	bool GetNavOctreeElementData(UObject* NodeOwner, int32& DirtyFlags, FBox& DirtyBounds);
 
 	/** Adds given element to NavOctree. No check for owner's validity are performed, 
 	 *	nor its presence in NavOctree - function assumes callee responsibility 
 	 *	in this regard **/
 	void AddElementToNavOctree(const FNavigationDirtyElement& DirtyElement);
 
-	void AddActorElementToNavOctree(class AActor* Actor, const FNavigationDirtyElement& DirtyElement);
-	void AddComponentElementToNavOctree(class UActorComponent* ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds);
+	void AddActorElementToNavOctree(AActor& Actor, const FNavigationDirtyElement& DirtyElement);
+	void AddComponentElementToNavOctree(UActorComponent& ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds);
 
-	void SetCrowdManager(class UCrowdManager* NewCrowdManager); 
+	void SetCrowdManager(UCrowdManager* NewCrowdManager); 
 
 #if WITH_NAVIGATION_GENERATOR
 
@@ -666,7 +680,7 @@ private:
 
 	/** constructs a navigation data instance of specified NavDataClass, in passed World
 	 *	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(TSubclassOf<class ANavigationData> NavDataClass, UWorld* World, const FNavDataConfig& NavConfig);
+	virtual ANavigationData* CreateNavigationDataInstance(TSubclassOf<ANavigationData> NavDataClass, UWorld* World, const FNavDataConfig& NavConfig);
 
 	/** Triggers navigation building on all eligible navigation data. */
 	void RebuildAll();

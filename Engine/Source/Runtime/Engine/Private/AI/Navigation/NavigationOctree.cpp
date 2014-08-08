@@ -26,20 +26,20 @@ FNavigationOctree::~FNavigationOctree()
 	DEC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, NodesMemory);
 }
 
-void FNavigationOctree::AddActor(class AActor* Actor, FNavigationOctreeElement& Data)
+void FNavigationOctree::AddActor(AActor& Actor, FNavigationOctreeElement& Data)
 {
-	if (Actor == NULL || Actor->IsPendingKill())
+	if (Actor.IsPendingKill())
 	{
 		return;
 	}
 
-	INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
+	INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(&Actor);
 	UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
-	UObject* NodeOwner = ProxyOb ? (UObject*)ProxyOb : Actor;
+	UObject* NodeOwner = ProxyOb ? (UObject*)ProxyOb : &Actor;
 
 	Data.Owner = NodeOwner;
 
-	const FBox BBox = Actor->GetComponentsBoundingBox();
+	const FBox BBox = Actor.GetComponentsBoundingBox();
 	if (BBox.IsValid && !BBox.GetSize().IsNearlyZero())
 	{
 		Data.Bounds = BBox;
@@ -58,7 +58,7 @@ void FNavigationOctree::AddActor(class AActor* Actor, FNavigationOctreeElement& 
 		if (bExportGeometry)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_Navigation_ActorsGeometryExportSync);
-			NavigableGeometryExportDelegate.ExecuteIfBound(*Actor, Data.Data);
+			NavigableGeometryExportDelegate.ExecuteIfBound(Actor, Data.Data);
 		}
 #endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 
@@ -66,23 +66,23 @@ void FNavigationOctree::AddActor(class AActor* Actor, FNavigationOctreeElement& 
 	}
 }
 
-void FNavigationOctree::AddComponent(class UActorComponent* ActorComp, const FBox& Bounds, FNavigationOctreeElement& Data)
+void FNavigationOctree::AddComponent(UActorComponent& ActorComp, const FBox& Bounds, FNavigationOctreeElement& Data)
 {
-	if (ActorComp == NULL || ActorComp->IsPendingKill())
+	if (ActorComp.IsPendingKill())
 	{
 		return;
 	}
 
-	Data.Owner = ActorComp;
+	Data.Owner = &ActorComp;
 	Data.Bounds = Bounds;
 
 #if NAVOCTREE_CONTAINS_COLLISION_DATA
 	if (bGatherGeometry)
 	{
-		NavigableGeometryComponentExportDelegate.ExecuteIfBound(*ActorComp, Data.Data);
+		NavigableGeometryComponentExportDelegate.ExecuteIfBound(ActorComp, Data.Data);
 	}
 
-	UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(ActorComp);
+	UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(&ActorComp);
 	if (NavRelevantComponent)
 	{
 		NavRelevantComponent->OnApplyModifiers(Data.Data.Modifiers);
@@ -108,16 +108,16 @@ void FNavigationOctree::AddNode(FNavigationOctreeElement& Data)
 	AddElement(Data);
 }
 
-void FNavigationOctree::RemoveNode(const FOctreeElementId* Id)
+void FNavigationOctree::RemoveNode(const FOctreeElementId& Id)
 {
 #if NAVOCTREE_CONTAINS_COLLISION_DATA
-	FNavigationOctreeElement& Data = GetElementById(*Id);
+	FNavigationOctreeElement& Data = GetElementById(Id);
 	const int32 ElementMemory = Data.GetAllocatedSize();
 	NodesMemory -= ElementMemory;
 	DEC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
 #endif
 
-	RemoveElement(*Id);
+	RemoveElement(Id);
 }
 
 bool FNavigationRelevantData::IsMatchingFilter(const FNavigationOctreeFilter& Filter) const
