@@ -28,17 +28,20 @@ UK2Node_Event* UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(UBlueprint* B
 {
 	UK2Node_Event* FoundNode = nullptr;
 
-	TArray<UK2Node_Event*> AllEvents;
-	FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
-
-	for (UK2Node_Event* EventNode : AllEvents)
+	if (CustomName != NAME_None)
 	{
-		if (EventNode->CustomFunctionName == CustomName)
+		TArray<UK2Node_Event*> AllEvents;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
+
+		for (UK2Node_Event* EventNode : AllEvents)
 		{
-			FoundNode = EventNode;
-			break;
+			if (EventNode->CustomFunctionName == CustomName)
+			{
+				FoundNode = EventNode;
+				break;
+			}
 		}
-	}
+	}	
 	return FoundNode;
 }
 
