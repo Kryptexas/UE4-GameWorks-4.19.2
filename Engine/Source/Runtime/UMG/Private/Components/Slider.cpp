@@ -54,13 +54,21 @@ void USlider::HandleOnMouseCaptureEnd()
 
 float USlider::GetValue()
 {
-	return MySlider->GetValue();
+	if ( MySlider.IsValid() )
+	{
+		return MySlider->GetValue();
+	}
+
+	return Value;
 }
 
 void USlider::SetValue(float InValue)
 {
 	Value = InValue;
-	return MySlider->SetValue(InValue);
+	if ( MySlider.IsValid() )
+	{
+		MySlider->SetValue(InValue);
+	}
 }
 
 #if WITH_EDITOR

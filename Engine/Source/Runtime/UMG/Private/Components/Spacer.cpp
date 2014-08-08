@@ -28,7 +28,7 @@ TSharedRef<SWidget> USpacer::RebuildWidget()
 {
 	MySpacer = SNew(SSpacer);
 
-	//TODO UMG COnsider using a design time wrapper for spacer to show expandy arrows or some other
+	//TODO UMG Consider using a design time wrapper for spacer to show expandy arrows or some other
 	// indicator that there's a widget at work here.
 	
 	return MySpacer.ToSharedRef();

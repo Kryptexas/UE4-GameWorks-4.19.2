@@ -47,7 +47,11 @@ void UProgressBar::SyncronizeProperties()
 
 void UProgressBar::SetPercent(float InPercent)
 {
-	return MyProgressBar->SetPercent(InPercent);
+	Percent = InPercent;
+	if ( MyProgressBar.IsValid() )
+	{
+		MyProgressBar->SetPercent(InPercent);
+	}
 }
 
 #if WITH_EDITOR
