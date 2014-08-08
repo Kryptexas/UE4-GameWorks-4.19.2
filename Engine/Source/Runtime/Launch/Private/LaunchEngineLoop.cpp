@@ -2296,6 +2296,15 @@ bool FEngineLoop::AppInit( )
 	{
 		GIsBuildMachine = true;
 	}
+
+	// If "-WaitForDebugger" was specified, halt startup and wait for a debugger to attach before continuing
+	if( FParse::Param( FCommandLine::Get(), TEXT( "WaitForDebugger" ) ) )
+	{
+		while( !IsDebuggerPresent() )
+		{
+			FPlatformProcess::Sleep( 0.1f );
+		}
+	}
 #endif // !UE_BUILD_SHIPPING
 
 #if PLATFORM_WINDOWS
