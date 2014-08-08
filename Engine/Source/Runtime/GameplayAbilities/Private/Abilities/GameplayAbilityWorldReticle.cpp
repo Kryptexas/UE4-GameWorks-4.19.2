@@ -2,6 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityWorldReticle.h"
+#include "GameplayAbilityTargetActor.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
