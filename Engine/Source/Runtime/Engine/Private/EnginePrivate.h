@@ -279,9 +279,6 @@
 #include "GameFramework/TouchInterface.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
-#include "VectorField/VectorField.h"
-#include "VectorField/VectorFieldAnimated.h"
-#include "VectorField/VectorFieldStatic.h"
 #include "Engine/World.h"
 
 #include "SystemSettings.h"					// Scalability options.

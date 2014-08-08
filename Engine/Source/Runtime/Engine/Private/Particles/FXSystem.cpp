@@ -13,6 +13,7 @@
 #include "../VectorField.h"
 #include "../GPUSort.h"
 #include "ParticleCurveTexture.h"
+#include "VectorField/VectorField.h"
 
 /*-----------------------------------------------------------------------------
 	External FX system interface.
