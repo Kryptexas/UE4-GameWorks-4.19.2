@@ -21,6 +21,7 @@ void UAbilityTask_MoveToLocation::InterpolatePosition()
 				ActorOwner->GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition);
 				ActorOwner->SetActorLocation(TargetLocation);
 				OnTargetLocationReached.Broadcast();
+				MarkPendingKill();
 			}
 			else
 			{
