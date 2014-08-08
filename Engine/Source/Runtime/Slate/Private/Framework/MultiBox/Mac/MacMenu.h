@@ -28,4 +28,5 @@ public:
 	static void UpdateMenu(FMacMenu* InMenu);
 	static bool IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlock>& Block);
 	static int32 GetMenuItemState(const TSharedRef<const class FMenuEntryBlock>& Block);
+	static TSharedRef<SWidget> GetMenuBuilderWidget(FMacMenu* InMenu);
 };
