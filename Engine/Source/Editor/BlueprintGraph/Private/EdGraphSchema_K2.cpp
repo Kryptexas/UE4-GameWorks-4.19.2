@@ -1474,9 +1474,13 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			{
 				TargetFunction = TEXT("Conv_VectorToTransform");
 			}
-			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == LinearColorStruct))
+			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == LinearColorStruct))
 			{
 				TargetFunction = TEXT("Conv_VectorToLinearColor");
+			}
+			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == RotatorStruct))
+			{
+				TargetFunction = TEXT("Conv_VectorToRotator");
 			}
 			else if (InputPin->PinType.PinCategory == PC_String)
 			{
@@ -1489,6 +1493,10 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == TransformStruct))
 			{
 				TargetFunction = TEXT("MakeTransform");
+			}
+			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == VectorStruct))
+			{
+				TargetFunction = TEXT("Conv_RotatorToVector");
 			}
 			else if (InputPin->PinType.PinCategory == PC_String)
 			{
