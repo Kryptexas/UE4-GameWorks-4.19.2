@@ -89,7 +89,7 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 {
 	if (PaletteActionIn.IsValid())
 	{
-		FString const ActionId = PaletteActionIn->GetTypeId();
+		FName const ActionId = PaletteActionIn->GetTypeId();
 		if (ActionId == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2AddComponent* AddComponentAction = (FEdGraphSchemaAction_K2AddComponent*)PaletteActionIn.Get();

@@ -28,8 +28,8 @@ namespace EBlackboardSectionTitles
 class FEdGraphSchemaAction_BlackboardEntry : public FEdGraphSchemaAction_Dummy
 {
 public:
-	static FString StaticGetTypeId() { static FString Type = TEXT("FEdGraphSchemaAction_BlackboardEntry"); return Type; }
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); }
+	static FName StaticGetTypeId() { static FName Type("FEdGraphSchemaAction_BlackboardEntry"); return Type; }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
 
 	FEdGraphSchemaAction_BlackboardEntry( UBlackboardData* InBlackboardData, FBlackboardEntry& InKey, bool bInIsInherited )
 		: FEdGraphSchemaAction_Dummy()

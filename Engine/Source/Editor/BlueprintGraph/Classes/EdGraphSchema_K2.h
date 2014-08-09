@@ -11,8 +11,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Struct"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Struct"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	UStruct* Struct;
 

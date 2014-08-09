@@ -916,7 +916,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 //------------------------------------------------------------------------------
 TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool const bIsReadOnlyIn)
 {
-	FString const ActionTypeId = InCreateData->Action->GetTypeId();
+	FName const ActionTypeId = InCreateData->Action->GetTypeId();
 
 	FOnVerifyTextChanged OnVerifyTextChanged;
 	FOnTextCommitted     OnTextCommitted;

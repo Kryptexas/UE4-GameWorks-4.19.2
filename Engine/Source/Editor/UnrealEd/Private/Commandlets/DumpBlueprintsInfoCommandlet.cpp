@@ -1176,7 +1176,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		FString const IndentedNewline = "\n" + BuildIndentString(Indent);
 
 		ActionEntry += " : {";
-		ActionEntry += IndentedNewline + "\"ActionType\"  : \"" + PrimeAction->GetTypeId() + "\",";
+		ActionEntry += IndentedNewline + "\"ActionType\"  : \"" + PrimeAction->GetTypeId().ToString() + "\",";
 		ActionEntry += IndentedNewline + "\"Name\"        : \"" + ActionName + "\",";
 		ActionEntry += IndentedNewline + "\"Category\"    : \"";
 		if (bHasCategory)

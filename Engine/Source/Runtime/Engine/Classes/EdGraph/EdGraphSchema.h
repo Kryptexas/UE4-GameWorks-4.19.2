@@ -53,8 +53,8 @@ struct ENGINE_API FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction"); return Type;}
-	virtual FString GetTypeId() const { return StaticGetTypeId(); }
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction"); return Type;}
+	virtual FName GetTypeId() const { return StaticGetTypeId(); }
 
 	/** The menu text that should be displayed for this node in the creation menu */
 	UPROPERTY()
@@ -149,8 +149,8 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_NewNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_NewNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -188,8 +188,8 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 /** Dummy action, useful for putting messages in the menu */
 struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 {
-	static FString StaticGetTypeId() { static FString Type = TEXT("FEdGraphSchemaAction_Dummy"); return Type; }
-	virtual FString GetTypeId() const override{ return StaticGetTypeId(); }
+	static FName StaticGetTypeId() { static FName Type("FEdGraphSchemaAction_Dummy"); return Type; }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
 
 	FEdGraphSchemaAction_Dummy()
 	: FEdGraphSchemaAction()

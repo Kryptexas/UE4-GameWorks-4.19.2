@@ -10,7 +10,7 @@ struct UNREALED_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSchema
 	GENERATED_USTRUCT_BODY();
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FSoundClassGraphSchemaAction_NewNode"); return Type;}
+	static FName StaticGetTypeId() {static FName Type("FSoundClassGraphSchemaAction_NewNode"); return Type;}
 
 	FSoundClassGraphSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
@@ -23,7 +23,7 @@ struct UNREALED_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSchema
 	{}
 
 	// FEdGraphSchemaAction interface
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
 	// End of FEdGraphSchemaAction interface
 

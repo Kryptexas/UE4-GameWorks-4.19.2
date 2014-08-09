@@ -24,14 +24,14 @@ struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY();
 	
 public:
-	static FString StaticGetTypeId() { static FString const TypeId = TEXT("FBlueprintActionMenuItem"); return TypeId; }
+	static FName StaticGetTypeId() { static FName const TypeId("FBlueprintActionMenuItem"); return TypeId; }
 	
 	/** Constructors */
 	FBlueprintActionMenuItem() : Action(nullptr), IconBrush(nullptr), IconTint(FLinearColor::White) {}
 	FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
 	
 	// FEdGraphSchemaAction interface
-	virtual FString       GetTypeId() const final { return StaticGetTypeId(); }
+	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }
 	virtual UEdGraphNode* PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode = true) final;
 	virtual UEdGraphNode* PerformAction(UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, FVector2D const Location, bool bSelectNewNode = true) final;
 	virtual void          AddReferencedObjects(FReferenceCollector& Collector) final;

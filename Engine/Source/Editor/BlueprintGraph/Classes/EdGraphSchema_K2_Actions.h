@@ -32,8 +32,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2NewNode : public FEdGraphSchema
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2NewNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2NewNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -79,8 +79,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2ViewNode : public FEdGraphSchem
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2ViewNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2ViewNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** node we want to view */
 	UPROPERTY()
@@ -113,8 +113,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2AssignDelegate : public FEdGrap
 {
 	GENERATED_USTRUCT_BODY()
 
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AssignDelegate"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AssignDelegate"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AssignDelegate() 
 		:FEdGraphSchemaAction_K2NewNode()
@@ -141,8 +141,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_EventFromFunction : public FEdGra
 {
 	GENERATED_USTRUCT_BODY()
 
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_EventFromFunction"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_EventFromFunction"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	UPROPERTY()
 	class UFunction* SignatureFunction;
@@ -175,8 +175,8 @@ struct FEdGraphSchemaAction_K2AddComponent : public FEdGraphSchemaAction_K2NewNo
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddComponent"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddComponent"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Class of component we want to add */
 	UPROPERTY()
@@ -215,8 +215,8 @@ struct FEdGraphSchemaAction_K2AddTimeline : public FEdGraphSchemaAction_K2NewNod
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddTimeline"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddTimeline"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddTimeline()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -242,8 +242,8 @@ struct FEdGraphSchemaAction_K2AddEvent : public FEdGraphSchemaAction_K2NewNode
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddEvent"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddEvent"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddEvent()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -272,8 +272,8 @@ struct FEdGraphSchemaAction_K2AddCustomEvent : public FEdGraphSchemaAction_K2New
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddCustomEvent"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddCustomEvent"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddCustomEvent()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -299,8 +299,8 @@ struct FEdGraphSchemaAction_K2AddCallOnActor : public FEdGraphSchemaAction_K2New
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddCallOnActor"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddCallOnActor"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Pointer to actors in level we want to call function on */
 	UPROPERTY()
@@ -358,8 +358,8 @@ struct FEdGraphSchemaAction_K2AddComment : public FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddComment"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddComment"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddComment()
 		: FEdGraphSchemaAction()
@@ -393,8 +393,8 @@ struct FEdGraphSchemaAction_K2AddDocumentation : public FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2AddDocumentation"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddDocumentation"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddDocumentation()
 		: FEdGraphSchemaAction()
@@ -429,8 +429,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2TargetNode : public FEdGraphSch
 
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2TargetNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2TargetNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2TargetNode()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -456,8 +456,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2PasteHere : public FEdGraphSche
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2PasteHere"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2PasteHere"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2PasteHere ()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -483,8 +483,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Enum : public FEdGraphSchemaAct
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Enum"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Enum"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	UEnum* Enum;
 
@@ -537,8 +537,8 @@ public:
 	}
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Var"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Var"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2Var() 
 		: FEdGraphSchemaAction()
@@ -595,8 +595,8 @@ public:
 	}
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2LocalVar"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2LocalVar"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2LocalVar() 
 		: FEdGraphSchemaAction()
@@ -652,8 +652,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Graph : public FEdGraphSchemaAc
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Graph"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Graph"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Name of function or class */
 	FName FuncName;
@@ -715,14 +715,14 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Event : public FEdGraphSchemaAc
 	 * 
 	 * @return A static identifier for actions of this type.
 	 */
-	static FString StaticGetTypeId() 
+	static FName StaticGetTypeId() 
 	{
-		static FString Type = TEXT("FEdGraphSchemaAction_K2Event"); 
+		static FName Type("FEdGraphSchemaAction_K2Event"); 
 		return Type;
 	}
 
 	// FEdGraphSchemaAction interface
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
 	virtual bool IsParentable() const override { return true; }
 	// End of FEdGraphSchemaAction interface
 };
@@ -754,8 +754,8 @@ public:
 	}
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Delegate"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Delegate"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** The associated editor graph for this schema */
 	UEdGraph* EdGraph;

@@ -36,7 +36,7 @@ UK2Node const* FK2SchemaActionUtils::ExtractNodeTemplateFromAction(TSharedPtr<FE
 	UK2Node const* TemplateNode = NULL;
 	if (PaletteAction.IsValid())
 	{
-		FString const ActionId = PaletteAction->GetTypeId();
+		FName const ActionId = PaletteAction->GetTypeId();
 		// if this action inherits from FEdGraphSchemaAction_K2NewNode
 		if (ActionId == FEdGraphSchemaAction_K2NewNode::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AssignDelegate::StaticGetTypeId() ||
