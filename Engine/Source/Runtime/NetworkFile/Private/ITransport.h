@@ -16,5 +16,6 @@ public:
 
 	virtual bool Initialize(const TCHAR*) = 0; 
 	virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out) = 0; 
+	virtual bool ReceiveResponse(TArray<uint8> &Out) = 0;
 
 };

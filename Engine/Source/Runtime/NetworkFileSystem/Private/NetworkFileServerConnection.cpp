@@ -115,8 +115,9 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 
 static FCriticalSection SocketCriticalSection;
 
-bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& Out)
+bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 {
+	FBufferArchive Out;
 	bool Result = true;
 
 	// first part of the payload is always the command
@@ -234,17 +235,35 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& O
 		}
 	}
 
+
 	// send back a reply if the command wrote anything back out
-	if (Out.TotalSize() && bSendUnsolicitedFiles)
+	if (Out.Num() && Result )
 	{
 		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
-		Out << NumUnsolictedFiles;
-
-		for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
+		if (bSendUnsolicitedFiles)
 		{
-			PackageFile(UnsolictedFiles[Index], Out);
+			Out << NumUnsolictedFiles;
 		}
-		UnsolictedFiles.Empty();		
+
+		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
+
+		// send back a reply
+		Result &= SendPayload( Out );
+
+		if (bSendUnsolicitedFiles && Result )
+		{
+			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
+			{
+				FBufferArchive OutUnsolicitedFile;
+				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
+
+				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
+
+				Result &= SendPayload(OutUnsolicitedFile);
+			}
+
+			UnsolictedFiles.Empty();
+		}
 	}
 
 	UE_LOG(LogFileServer, Verbose, TEXT("Done Processing payload with Cmd %d Total Size sending %d "), Cmd,Out.TotalSize());
@@ -267,6 +286,10 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 		In << bAppend;
 		In << bAllowRead;
 	}
+
+	// todo: clients from the same ip address "could" be trying to write to the same file in the same sandbox (for example multiple windows clients)
+	//			should probably have the sandbox write to separate files for each client
+	//			not important for now
 
 	ConvertClientFilenameToServerFilename(Filename);
 

@@ -81,6 +81,26 @@ bool FTCPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint
 	return false; 
 }
 
+
+bool FTCPTransport::ReceiveResponse( TArray<uint8> &Out )
+{
+	FArrayReader Response;
+	bool RetResult = true;
+#if USE_MCSOCKET_FOR_NFS
+	RetResult &= FNFSMessageHeader::ReceivePayload(Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
+#else
+	RetResult &= FNFSMessageHeader::ReceivePayload(Response, FSimpleAbstractSocket_FSocket(FileSocket));
+#endif
+
+	if (RetResult)
+	{
+		Out.Append( Response.GetData(), Response.Num()); 
+		return true;
+	}
+
+	return false;
+}
+
 FTCPTransport::~FTCPTransport()
 {
 	// on failure, shut it all down

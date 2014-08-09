@@ -12,8 +12,9 @@ public:
 	~FTCPTransport();
 
 	// ITransport Interface. 
-	virtual bool Initialize(const TCHAR* HostIp);
-	virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out); 
+	virtual bool Initialize(const TCHAR* HostIp) override;
+	virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out) override; 
+	virtual bool ReceiveResponse(TArray<uint8> &Out) override;
 
 private: 
 

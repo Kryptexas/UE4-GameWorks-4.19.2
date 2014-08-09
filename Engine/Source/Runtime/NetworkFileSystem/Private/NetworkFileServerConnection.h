@@ -32,7 +32,7 @@ public:
 	 * @param Ar An archive containing the payload data.
 	 * @param Out An archive that will contain the processed data.
 	 */
-	bool ProcessPayload(FArchive& Ar,FArchive& Out);
+	bool ProcessPayload(FArchive& Ar);
 
 	/**
 	 * Gets the client connection's description.
@@ -147,6 +147,9 @@ protected:
 	 */
 	void ProcessSyncFile( FArchive& In, FArchive& Out );
 
+
+	virtual bool SendPayload( TArray<uint8> &Out ) { return false; }
+	
 private:
 
 	// Hold the name of the currently connected platform.
