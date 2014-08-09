@@ -90,9 +90,14 @@ namespace UnrealBuildTool
 
             if (CrossCompiling())
             {
-                // There are exceptions used in the code base (e.g. UnrealHeadTool).
-                // So this flag cannot be used, at least not for native linux builds.
+                // There are exceptions used in the code base (e.g. UnrealHeadTool).  @todo: weed out exceptions
+                // So this flag cannot be used, at least not for native Linux builds.
                 Result += " -fno-exceptions";               // no exceptions
+                Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
+            }
+            else
+            {
+                Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
             }
 
             Result += " -Wall -Werror";

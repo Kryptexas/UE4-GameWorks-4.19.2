@@ -12,6 +12,11 @@
 **/
 struct CORE_API FGenericPlatformOutputDevices
 {
+	/**
+	 * Adds output devices which can vary depending on platform, configuration, command line parameters.
+	 */
+	static void							SetupOutputDevices();
+
 	static FString						GetAbsoluteLogFilename();
 
 	static class FOutputDevice*			GetLog();

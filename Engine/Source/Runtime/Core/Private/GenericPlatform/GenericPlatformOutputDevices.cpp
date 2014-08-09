@@ -3,6 +3,27 @@
 #include "Core.h"
 #include "FeedbackContextAnsi.h"
 
+void							FGenericPlatformOutputDevices::SetupOutputDevices()
+{
+	check(GLog);
+	check(GLogConsole);
+
+	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
+
+	if (!FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
+	{
+		GLog->AddOutputDevice(GLogConsole);
+	}
+
+	// Only create debug output device if a debugger is attached or we're running on a console or build machine
+	// A shipping build with logging explicitly enabled will fail the IsDebuggerPresent() check, but we still need to add the debug output device for logging purposes
+	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
+	{
+		GLog->AddOutputDevice(new FOutputDeviceDebug());
+	}
+
+	GLog->AddOutputDevice(FPlatformOutputDevices::GetEventLog());
+};
 
 FString								FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 {

@@ -174,6 +174,12 @@ uint32 FLinuxPlatformMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, ui
 	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
 }
 
+void FLinuxPlatformMisc::LowLevelOutputDebugString(const TCHAR *Message)
+{
+	static_assert(PLATFORM_USE_LS_SPEC_FOR_WIDECHAR, "Check printf format");
+	fprintf(stderr, "%ls", Message);	// there's no good way to implement that really
+}
+
 uint32 FLinuxPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 {
 #define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
