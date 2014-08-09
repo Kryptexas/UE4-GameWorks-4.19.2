@@ -1,4 +1,5 @@
 // This code is in the public domain -- castanyo@yahoo.es
+// Modifications copyright 2014 Epic Games, Inc.
 
 #include <nvcore/Ptr.h>
 #include <nvcore/Containers.h>
@@ -135,7 +136,7 @@ FloatImage * nv::ImageIO::loadFloat(const char * fileName)
 	StdInputStream stream(fileName);
 	
 	if (stream.isError()) {
-		return false;
+		return NULL;
 	}
 	
 	return loadFloat(fileName, stream);
@@ -233,7 +234,7 @@ Image * nv::ImageIO::loadTGA(Stream & s)
 		case TGA_TYPE_INDEXED:
 			if( tga.colormap_type!=1 || tga.colormap_size!=24 || tga.colormap_length>256 ) {
 				nvDebug( "*** ImageIO::loadTGA: Error, only 24bit paletted images are supported.\n" );
-				return false;
+				return NULL;
 			}
 			pal = true;
 			break;
@@ -254,7 +255,7 @@ Image * nv::ImageIO::loadTGA(Stream & s)
 
 		default:
 			nvDebug( "*** ImageIO::loadTGA: Error, unsupported image type.\n" );
-			return false;
+			return NULL;
 	}
 
 	const uint pixel_size = (tga.pixel_size/8);
@@ -602,8 +603,8 @@ Image * nv::ImageIO::loadPSD(Stream & s)
 static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
 	nvDebugCheck(png_ptr != NULL);
-	
-	Stream * s = (Stream *)png_ptr->io_ptr;
+
+	Stream * s = (Stream *)png_get_io_ptr(png_ptr)
 	s->serialize(data, (int)length);
 	
 	if (s->isError()) {
@@ -621,7 +622,7 @@ Image * nv::ImageIO::loadPNG(Stream & s)
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL) {
 	//	nvDebug( "*** LoadPNG: Error allocating read buffer in file '%s'.\n", name );
-		return false;
+		return NULL;
 	}
 
 	// Allocate/initialize a memory block for the image information
@@ -629,14 +630,14 @@ Image * nv::ImageIO::loadPNG(Stream & s)
 	if (info_ptr == NULL) {
 		png_destroy_read_struct(&png_ptr, NULL, NULL);
 	//	nvDebug( "*** LoadPNG: Error allocating image information for '%s'.\n", name );
-		return false;
+		return NULL;
 	}
 
 	// Set up the error handling
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 	//	nvDebug( "*** LoadPNG: Error reading png file '%s'.\n", name );
-		return false;
+		return NULL;
 	}
 
 	// Set up the I/O functions.
