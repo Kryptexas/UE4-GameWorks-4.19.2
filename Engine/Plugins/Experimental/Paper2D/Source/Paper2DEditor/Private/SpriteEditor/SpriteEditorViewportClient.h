@@ -26,6 +26,8 @@ namespace ESpriteEditorMode
 	};
 }
 
+struct FRelatedSprite;
+
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorViewportClient
 
@@ -70,11 +72,11 @@ public:
 	void ToggleShowMeshEdges();
 	bool IsShowMeshEdgesChecked() const;
 
-	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; }
-	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; }
-	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; }
-	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; }
-	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; }
+	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; ResetMarqueeTracking(); }
+	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; ResetMarqueeTracking(); UpdateRelatedSpritesList(); }
+	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; ResetMarqueeTracking(); }
+	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; ResetMarqueeTracking(); }
+	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; ResetMarqueeTracking(); }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
 	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
@@ -102,6 +104,10 @@ public:
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged();
+
+	void UpdateRelatedSpritesList();
+
+	UPaperSprite* CreateNewSprite(FVector2D TopLeft, FVector2D Dimensions);
 
 	ESpriteEditorMode::Type GetCurrentMode() const
 	{
@@ -155,6 +161,17 @@ private:
 
 	// Should we zoom to the sprite next tick?
 	bool bDeferZoomToSprite;
+
+	// Should we show related sprites in the source texture?
+	bool bShowRelatedSprites;
+
+	// Marquee tracking
+	bool bIsMarqueeTracking;
+	FVector2D MarqueeStartPos, MarqueeEndPos;
+
+	// Other sprites
+	TArray<FRelatedSprite> RelatedSprites;
+
 private:
 	UPaperSprite* GetSpriteBeingEdited() const
 	{
@@ -175,15 +192,19 @@ private:
 	void DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos);
 	void DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 	void DrawSocketNames(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
-	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry);
+	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
+	void DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
+	void DrawMarquee(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& MarqueeColor);
 
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();
 
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
-
 	void ClearSelectionSet();
 
+
+	void ResetMarqueeTracking();
+	bool ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension);
 	
 	// Can return null
 	FSpritePolygonCollection* GetGeometryBeingEdited() const;
