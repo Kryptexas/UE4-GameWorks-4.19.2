@@ -1492,6 +1492,23 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
+		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+		if (bStereoRenderingAndHMD)
+		{
+			FRenderingCompositePass* Node = NULL;
+			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh)
+			{
+				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+			}
+
+			if (Node)
+			{
+				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+			}
+		}
+
 		// The graph setup should be finished before this line ----------------------------------------
 
 		{

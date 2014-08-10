@@ -16,7 +16,8 @@ namespace EHMDDeviceType
 	enum Type
 	{
 		DT_OculusRift,
-		DT_Morpheus
+		DT_Morpheus,
+		DT_ES2GenericStereoMesh
 	};
 }
 
