@@ -15,8 +15,13 @@ class FWindowsTextInputMethodSystem;
 class FTSFActivationProxy : public ITfInputProcessorProfileActivationSink, public ITfActiveLanguageProfileNotifySink
 {
 public:
-	FTSFActivationProxy(FWindowsTextInputMethodSystem* InOwner) : Owner(InOwner), ReferenceCount(1)
-	{}
+	FTSFActivationProxy(FWindowsTextInputMethodSystem* InOwner) 
+		: Owner(InOwner)
+		, ReferenceCount(1)
+		, TSFProfileCookie(TF_INVALID_COOKIE)
+		, TSFLanguageCookie(TF_INVALID_COOKIE)
+	{
+	}
 
 	// IUnknown Interface Begin
 	STDMETHODIMP QueryInterface(REFIID riid, void **ppvObj) override;
@@ -71,6 +76,8 @@ private:
 
 	// TSF Implementation
 	bool InitializeTSF();
+
+	void OnIMEActivationStateChanged(const bool bIsEnabled);
 
 private:
 	TSharedPtr<ITextInputMethodContext> ActiveContext;
