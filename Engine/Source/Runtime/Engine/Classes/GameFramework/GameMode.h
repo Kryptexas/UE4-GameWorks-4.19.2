@@ -243,6 +243,10 @@ protected:
 	UPROPERTY(config)
 	TArray<struct FGameClassShortName> GameModeClassAliases;
 
+	/** Time a playerstate will stick around in an inactive state after a player logout */
+	UPROPERTY(config)
+	float InactivePlayerStateLifeSpan;
+
 public:
 
 	/** Alters the synthetic bandwidth limit for a running game. */

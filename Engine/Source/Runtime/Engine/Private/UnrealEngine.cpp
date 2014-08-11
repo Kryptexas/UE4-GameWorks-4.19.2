@@ -7160,13 +7160,13 @@ void UEngine::ShutdownAllNetDrivers()
 	{
 		TArray<FNamedNetDriver> & ActiveNetDrivers = It->ActiveNetDrivers;
 
-	for (int32 Index = 0; Index < ActiveNetDrivers.Num(); Index++)
-	{
-		FNamedNetDriver& NamedNetDriver = ActiveNetDrivers[Index];
-		UNetDriver* NetDriver = NamedNetDriver.NetDriver;
-		if (NetDriver)
+		for (int32 Index = 0; Index < ActiveNetDrivers.Num(); Index++)
 		{
-			UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+			FNamedNetDriver& NamedNetDriver = ActiveNetDrivers[Index];
+			UNetDriver* NetDriver = NamedNetDriver.NetDriver;
+			if (NetDriver)
+			{
+				UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
 				UWorld * World = NetDriver->GetWorld();
 				if (World)
 				{
@@ -7174,11 +7174,11 @@ void UEngine::ShutdownAllNetDrivers()
 				}
 				NetDriver->SetWorld(NULL);
 				DestroyNamedNetDriver(It->World(), NetDriver->NetDriverName);
+			}
 		}
-	}
 
-	ActiveNetDrivers.Empty();
-}
+		ActiveNetDrivers.Empty();
+	}
 }
 
 UNetDriver* FindNamedNetDriver_Local(const TArray<FNamedNetDriver>& ActiveNetDrivers, FName NetDriverName)

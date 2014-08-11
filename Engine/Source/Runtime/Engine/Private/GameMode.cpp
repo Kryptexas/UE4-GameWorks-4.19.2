@@ -1531,8 +1531,8 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 		// make PlayerState inactive
 		NewPlayerState->SetReplicates(false);
 
-		// delete after 5 minutes
-		NewPlayerState->SetLifeSpan( 300 );
+		// delete after some time
+		NewPlayerState->SetLifeSpan(InactivePlayerStateLifeSpan);
 
 		// On console, we have to check the unique net id as network address isn't valid
 		bool bIsConsole = GEngine->IsConsoleBuild();
