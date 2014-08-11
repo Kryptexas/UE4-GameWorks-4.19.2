@@ -7,7 +7,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Engine/InputDelegateBinding.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -17,6 +16,7 @@
 #include "NetworkingDistanceConstants.h"
 #include "VisualLog.h"
 #include "AIController.h"
+#include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -127,6 +127,28 @@ void APawn::UpdateNavAgent()
 	{
 		RootComponent->UpdateBounds();
 		MovementComponent->UpdateNavAgent(this);
+	}
+}
+
+bool APawn::UpdateNavigationRelevancy()
+{
+	if (bCanAffectNavigationGeneration == false)
+	{
+		SetNavigationRelevancy(false);
+		return false;
+	}
+	else
+	{
+		return Super::UpdateNavigationRelevancy();
+	}
+}
+
+void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
+{
+	if (bCanAffectNavigationGeneration != bNewValue)
+	{
+		bCanAffectNavigationGeneration = bNewValue;
+		UpdateNavigationRelevancy();
 	}
 }
 

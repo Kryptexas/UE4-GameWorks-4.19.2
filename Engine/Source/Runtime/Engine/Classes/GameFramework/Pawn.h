@@ -50,6 +50,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pawn)
 	uint32 bUseControllerRotationRoll:1;
 
+	/** If set to false (default) given pawn instance will never affect navigation generation. 
+	 *	Setting it to true will result in using regular AActor's navigation relevancy 
+	 *	calculation to check if this pawn instance should affect navigation generation
+	 *	Use SetCanAffectNavigationGeneration to change this value at runtime.
+	 *	Note that modifying this value at runtime will result in any navigation change only if runtime navigation generation is enabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
+	uint32 bCanAffectNavigationGeneration : 1;
+
 private:
 	/* Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
 	uint32 bInputEnabled:1;
@@ -200,13 +208,18 @@ public:
 	virtual void PostRegisterAllComponents() override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void BecomeViewTarget(APlayerController* PC) override;
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
+	virtual bool UpdateNavigationRelevancy() override; 
 	virtual void EnableInput(APlayerController* PlayerController) override;
 	virtual void DisableInput(APlayerController* PlayerController) override;
 
 	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(APawn* APawn) const override;
 	// End AActor Interface
+
+	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
+	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
+	UFUNCTION(BlueprintCallable, Category="Navigation")
+	void SetCanAffectNavigationGeneration(bool bNewValue);
 
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;

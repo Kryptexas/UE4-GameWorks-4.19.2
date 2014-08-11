@@ -17,7 +17,9 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent
 
 	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers);
 
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
+
 	bool IsNavigationRelevant() const { return bNavigationRelevant; }
 
 	/** force refresh in navigation octree */
