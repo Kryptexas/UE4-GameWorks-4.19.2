@@ -196,12 +196,15 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMe
  		return;
 	}
 
+	FbxString NodeName("BaseNode");
 
-	FbxNode* RootNode = Scene->GetRootNode();
+	FbxNode* BaseNode = FbxNode::Create(Scene, NodeName);
+	Scene->GetRootNode()->AddChild(BaseNode);
+
 	// Create the Skeleton
 	TArray<FbxNode*> BoneNodes;
 	FbxNode* SkeletonRootNode = CreateSkeleton(*SkelMesh, BoneNodes);
-	RootNode->AddChild(SkeletonRootNode);
+	BaseNode->AddChild(SkeletonRootNode);
 
 
 	// Export the anim sequence
@@ -229,7 +232,7 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMe
 		FbxNode* MeshRootNode = CreateMesh(*SkelMesh, *MeshName);
 		if(MeshRootNode)
 		{
-			RootNode->AddChild(MeshRootNode);
+			BaseNode->AddChild(MeshRootNode);
 		}
 
 		if(SkeletonRootNode && MeshRootNode)
