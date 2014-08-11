@@ -6,7 +6,6 @@
 void							FGenericPlatformOutputDevices::SetupOutputDevices()
 {
 	check(GLog);
-	check(GLogConsole);
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
