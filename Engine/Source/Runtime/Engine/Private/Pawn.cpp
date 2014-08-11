@@ -7,6 +7,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/InputDelegateBinding.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"

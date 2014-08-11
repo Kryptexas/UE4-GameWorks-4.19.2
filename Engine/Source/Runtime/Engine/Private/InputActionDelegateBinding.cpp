@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
-
+#include "Engine/InputActionDelegateBinding.h"
 
 UInputActionDelegateBinding::UInputActionDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

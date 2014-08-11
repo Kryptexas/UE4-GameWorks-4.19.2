@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_InputKeyEvent.h"
+#include "Engine/InputKeyDelegateBinding.h"
 
 UK2Node_InputKeyEvent::UK2Node_InputKeyEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

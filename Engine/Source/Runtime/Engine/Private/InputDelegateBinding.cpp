@@ -2,7 +2,13 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
-
+#include "Engine/InputDelegateBinding.h"
+#include "Engine/InputActionDelegateBinding.h"
+#include "Engine/InputAxisDelegateBinding.h"
+#include "Engine/InputKeyDelegateBinding.h"
+#include "Engine/InputTouchDelegateBinding.h"
+#include "Engine/InputAxisKeyDelegateBinding.h"
+#include "Engine/InputVectorAxisDelegateBinding.h"
 
 UInputDelegateBinding::UInputDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

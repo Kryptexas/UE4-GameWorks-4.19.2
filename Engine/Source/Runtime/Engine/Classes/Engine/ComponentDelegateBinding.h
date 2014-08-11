@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/DynamicBlueprintBinding.h"
 #include "ComponentDelegateBinding.generated.h"
 
 /** Entry for a delegate to assign after a blueprint has been instanced */

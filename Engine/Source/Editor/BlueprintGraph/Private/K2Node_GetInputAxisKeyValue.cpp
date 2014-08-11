@@ -5,6 +5,7 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/InputAxisKeyDelegateBinding.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisKeyValue"
 

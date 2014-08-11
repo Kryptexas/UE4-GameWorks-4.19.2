@@ -26,6 +26,7 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Camera/CameraActor.h"
 #include "GenericPlatform/IForceFeedbackSystem.h"
+#include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 

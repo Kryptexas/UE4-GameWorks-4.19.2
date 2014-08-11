@@ -4,6 +4,7 @@
 #include "K2Node_GetInputVectorAxisValue.h"
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
+#include "Engine/InputVectorAxisDelegateBinding.h"
 
 UK2Node_GetInputVectorAxisValue::UK2Node_GetInputVectorAxisValue(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

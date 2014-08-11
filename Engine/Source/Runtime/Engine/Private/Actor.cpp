@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/InputDelegateBinding.h"
 #include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
 #include "Sound/SoundCue.h"

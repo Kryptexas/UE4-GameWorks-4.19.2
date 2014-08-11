@@ -4,6 +4,7 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/InputAxisDelegateBinding.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAxisEvent"
 

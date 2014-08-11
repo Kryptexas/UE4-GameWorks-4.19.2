@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
+#include "Engine/InputDelegateBinding.h"
 
 
 UDynamicBlueprintBinding::UDynamicBlueprintBinding(const class FPostConstructInitializeProperties& PCIP)

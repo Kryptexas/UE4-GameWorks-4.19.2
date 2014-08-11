@@ -19,6 +19,7 @@
 #include "EditorCategoryUtils.h"
 #include "K2Node_EnumLiteral.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+#include "Engine/DynamicBlueprintBinding.h"
 
 static bool bDebugPropertyPropagation = false;
 

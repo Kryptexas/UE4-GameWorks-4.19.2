@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
-
+#include "Engine/InputTouchDelegateBinding.h"
 
 UInputTouchDelegateBinding::UInputTouchDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

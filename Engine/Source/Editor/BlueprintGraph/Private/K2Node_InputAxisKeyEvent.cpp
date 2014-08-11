@@ -5,6 +5,7 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/InputAxisKeyDelegateBinding.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputAxisKeyEvent"
 
