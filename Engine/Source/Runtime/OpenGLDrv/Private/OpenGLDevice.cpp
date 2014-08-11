@@ -943,7 +943,7 @@ void FOpenGLDynamicRHI::Init()
 #endif
 
 	// Flush here since we might be switching to a different context/thread for rendering
-	glFlush();
+	FOpenGL::Flush();
 
 	FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "OpenGL" ) );
 

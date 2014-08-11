@@ -343,6 +343,11 @@ struct FOpenGLES2 : public FOpenGLBase
 	{
 		glDeleteTextures(Number, Textures);
 	}
+	
+	static FORCEINLINE void Flush()
+	{
+		glFlush();
+	}
 
 protected:
 	/** GL_OES_vertex_array_object */

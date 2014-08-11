@@ -221,6 +221,11 @@ struct FMacOpenGL : public FOpenGL3
 		glTextureRangeAPPLE(Target, Length, Pointer);
 	}
 	
+	static FORCEINLINE void Flush()
+	{
+		glFlushRenderAPPLE();
+	}
+	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
 	static FORCEINLINE bool SupportsClientStorage()						{ return true; }
 	static FORCEINLINE bool SupportsTextureRange()						{ return true; }

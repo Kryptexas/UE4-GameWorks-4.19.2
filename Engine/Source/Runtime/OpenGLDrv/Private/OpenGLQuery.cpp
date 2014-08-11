@@ -254,7 +254,7 @@ void FOpenGLEventQuery::IssueEvent()
 		Sync = 0;
 	}
 	Sync = FOpenGL::FenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-	glFlush();
+	FOpenGL::Flush();
 	
 	checkSlow(FOpenGL::IsSync(Sync));
 

@@ -489,6 +489,11 @@ struct FOpenGL3 : public FOpenGLBase
 	{
 		glDeleteTextures(Number, Textures);
 	}
+	
+	static FORCEINLINE void Flush()
+	{
+		glFlush();
+	}
 
 	static FORCEINLINE void CompressedTexSubImage3D(GLenum Target, GLint Level, GLint XOffset, GLint YOffset, GLint ZOffset, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLsizei ImageSize, const GLvoid* PixelData)
 	{
