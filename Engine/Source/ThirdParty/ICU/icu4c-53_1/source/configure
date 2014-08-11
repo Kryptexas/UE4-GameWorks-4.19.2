@@ -4872,6 +4872,7 @@ powerpc*-*-linux*)
 	else
 		icu_cv_host_frag=mh-linux-va
 	fi ;;
+*-*-*androideabi) icu_cv_host_frag=mh-androideabi ;;
 *-*-linux*|*-*-gnu|*-*-k*bsd*-gnu|*-*-kopensolaris*-gnu) icu_cv_host_frag=mh-linux ;;
 *-*-cygwin|*-*-mingw32|*-*-mingw64)
 	if test "$GCC" = yes; then
