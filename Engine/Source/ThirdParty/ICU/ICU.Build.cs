@@ -89,7 +89,6 @@ public class ICU : ModuleRules
         else if	(Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android)
         {
             string StaticLibraryExtension = "a";
-            string DynamicLibraryExtension = "so";
 
             switch (Target.Platform)
             {
