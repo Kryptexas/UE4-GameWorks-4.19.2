@@ -2172,8 +2172,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 		// Correct placement will occur during UWorld::AddToWorld
 		if (EditorLevel->OwningWorld->WorldComposition && EditorLevel->bIsVisible)
 		{
-			FIntPoint LevelOffset = FIntPoint::ZeroValue - EditorLevel->OwningWorld->WorldComposition->GetLevelOffset(EditorLevel);
-			PIELevel->ApplyWorldOffset(FVector(LevelOffset, 0), false);
+			FIntVector LevelOffset = FIntVector::ZeroValue - EditorLevel->OwningWorld->WorldComposition->GetLevelOffset(EditorLevel);
+			PIELevel->ApplyWorldOffset(FVector(LevelOffset), false);
 		}
 	}
 

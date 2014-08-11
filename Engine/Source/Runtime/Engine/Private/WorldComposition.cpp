@@ -606,9 +606,9 @@ void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)
 	}
 #endif
 		
-	// Move level according to current global origin offset
-	FIntPoint LevelOffset = GetLevelOffset(InLevel);
-	InLevel->ApplyWorldOffset(FVector(LevelOffset, 0), false);
+	// Move level according to current global origin
+	FIntVector LevelOffset = GetLevelOffset(InLevel);
+	InLevel->ApplyWorldOffset(FVector(LevelOffset), false);
 }
 
 void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
@@ -621,8 +621,8 @@ void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
 #endif
 	
 	// Move level to his local origin
-	FIntPoint LevelOffset = GetLevelOffset(InLevel);
-	InLevel->ApplyWorldOffset(-FVector(LevelOffset, 0), false);
+	FIntVector LevelOffset = GetLevelOffset(InLevel);
+	InLevel->ApplyWorldOffset(-FVector(LevelOffset), false);
 }
 
 void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
@@ -671,18 +671,19 @@ void UWorldComposition::OnLevelPostSave(ULevel* InLevel)
 	}
 }
 
-FIntPoint UWorldComposition::GetLevelOffset(ULevel* InLevel) const
+FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
 	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
 	
-	FIntPoint LevelPosition = FIntPoint::ZeroValue;
+	FIntVector LevelPosition = FIntVector::ZeroValue;
 	if (LevelPackage->WorldTileInfo)
 	{
-		LevelPosition = LevelPackage->WorldTileInfo->AbsolutePosition;
+		FIntPoint AbsolutePosition = LevelPackage->WorldTileInfo->AbsolutePosition;
+		LevelPosition = FIntVector(AbsolutePosition.X, AbsolutePosition.Y, 0);
 	}
 	
-	return LevelPosition - FIntPoint(OwningWorld->OriginLocation.X, OwningWorld->OriginLocation.Y);
+	return LevelPosition - OwningWorld->OriginLocation;
 }
 
 FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
@@ -693,7 +694,7 @@ FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
 	FBox LevelBBox(0);
 	if (LevelPackage->WorldTileInfo)
 	{
-		LevelBBox = LevelPackage->WorldTileInfo->Bounds.ShiftBy(FVector(GetLevelOffset(InLevel), 0));
+		LevelBBox = LevelPackage->WorldTileInfo->Bounds.ShiftBy(FVector(GetLevelOffset(InLevel)));
 	}
 	
 	return LevelBBox;
