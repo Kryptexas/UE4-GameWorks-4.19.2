@@ -403,7 +403,7 @@ SIZE_T FPrecomputedLightVolume::GetAllocatedBytes() const
 	return NodeBytes;
 }
 
-void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
+void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset)
 {
 	Bounds.Min+= InOffset;
 	Bounds.Max+= InOffset;

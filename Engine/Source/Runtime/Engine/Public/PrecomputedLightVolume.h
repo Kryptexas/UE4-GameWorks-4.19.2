@@ -152,7 +152,7 @@ public:
 		return OctreeForRendering->GetNodeLevelExtent(Level);
 	}
 
-	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
+	ENGINE_API void ApplyWorldOffset(const FVector& InOffset);
 
 	// temporary, for ES2 preview verification.
 	FORCEINLINE bool IsUsingHighQualityLightMap() const

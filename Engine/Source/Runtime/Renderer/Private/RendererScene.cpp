@@ -1888,6 +1888,18 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 		(*It)->ApplyWorldOffset(InOffset);
 	}
 
+	// Precomputed light volumes
+	for (const FPrecomputedLightVolume* It : PrecomputedLightVolumes)
+	{
+		const_cast<FPrecomputedLightVolume*>(It)->ApplyWorldOffset(InOffset);
+	}
+
+	// Precomputed visibility
+	if (PrecomputedVisibilityHandler)
+	{
+		const_cast<FPrecomputedVisibilityHandler*>(PrecomputedVisibilityHandler)->ApplyWorldOffset(InOffset);
+	}
+	
 	// Invalidate indirect lighting cache
 	IndirectLightingCache.SetLightingCacheDirty();
 

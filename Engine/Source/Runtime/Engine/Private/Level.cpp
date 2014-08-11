@@ -1843,12 +1843,23 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	// Move precomputed light samples
 	if (PrecomputedLightVolume)
 	{
-		PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset, bWorldShift);
+		if (!PrecomputedLightVolume->IsAddedToScene())
+		{
+			PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
+		}
 	}
-
-	// Move precomputed visibility volume
-	// TODO: should probably move it to RT
-	PrecomputedVisibilityHandler.ApplyWorldOffset(InWorldOffset);
 
 	// Iterate over all actors in the level and move them
 	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
