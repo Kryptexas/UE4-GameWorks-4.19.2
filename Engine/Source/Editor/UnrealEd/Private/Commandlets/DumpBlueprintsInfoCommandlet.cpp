@@ -21,6 +21,8 @@
 #include "BlueprintActionDatabase.h"
 #include "BlueprintActionMenuUtils.h"
 #include "K2Node_Composite.h"
+#include "ModuleManager.h"
+#include "AssetToolsModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -596,11 +598,13 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 	else if (FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorClass))
 	{
 		UActorFactory* NewFactory = ConstructObject<UActorFactory>(UActorFactoryBlueprint::StaticClass());
+		NewFactory->AddToRoot();
 
 		UBlueprint* ActorTemplate = MakeTempBlueprint(ActorClass);
 		SpawnedActor = FActorFactoryAssetProxy::AddActorForAsset(ActorTemplate,
 			/*SelectActor =*/bSelect,
 			RF_Transient, NewFactory, NAME_None);
+		NewFactory->RemoveFromRoot();
 	}
 	// @TODO: What about non-blueprintable actors (brushes, etc.)... the code below crashes
 // 	else
@@ -646,11 +650,17 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		UClass* BlueprintClass = UBlueprint::StaticClass();
 		UClass* GeneratedClass = UBlueprintGeneratedClass::StaticClass();
 		EBlueprintType BlueprintType = BPTYPE_Normal;
+		UFactory* AssetFactory = nullptr;
 
 		if (bIsAnimBlueprint)
 		{
 			BlueprintClass = UAnimBlueprint::StaticClass();
 			GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
+
+			UAnimBlueprintFactory* BlueprintFactory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
+			BlueprintFactory->ParentClass   = ParentClass;
+			BlueprintFactory->BlueprintType = BlueprintType;
+			AssetFactory = BlueprintFactory;
 		}
 		else if (bIsLevelBlueprint)
 		{
@@ -666,6 +676,12 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 				BlueprintOuter = World->GetCurrentLevel();
 			}
 		}
+		else 
+		{
+			UBlueprintFactory* BlueprintFactory = ConstructObject<UBlueprintFactory>(UBlueprintFactory::StaticClass());
+			BlueprintFactory->ParentClass = ParentClass;
+			AssetFactory = BlueprintFactory;
+		}
 		// @TODO: UEditorUtilityBlueprint
 
 		FString const ClassName = ParentClass->GetName();
@@ -673,7 +689,16 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		FName   const TempBpName = MakeUniqueObjectName(BlueprintOuter, BlueprintClass, FName(*DesiredName));
 
 		check(FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass));
-		MadeBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
+		if (AssetFactory != nullptr)
+		{
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+			UObject* NewAsset = AssetTools.CreateAsset(TempBpName.ToString(), BlueprintOuter->GetPathName(), BlueprintClass, AssetFactory, FName("DumpBlueprintsInfoCommandlet"));
+			MadeBlueprint = CastChecked<UBlueprint>(NewAsset);
+		}
+		else
+		{
+			MadeBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
+		}
 		
 		// if this is an animation blueprint, then we want anim specific graphs to test as well (if it has an anim graph)...
 		if (bIsAnimBlueprint && (MadeBlueprint->FunctionGraphs.Num() > 0))
@@ -747,7 +772,7 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		}
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);
-		MadeBlueprint->SetFlags(RF_RootSet); // to keep the BP from being garbage collected
+		MadeBlueprint->AddToRoot(); // to keep the BP from being garbage collected
 		FKismetEditorUtilities::CompileBlueprint(MadeBlueprint);
 		ClassBlueprints.Add(ParentClass, MadeBlueprint);
 	}
@@ -917,7 +942,7 @@ static FString DumpBlueprintInfoUtils::GetActionKey(FGraphActionListBuilderBase:
 //------------------------------------------------------------------------------
 static void DumpBlueprintInfoUtils::GetComponentProperties(UBlueprint* Blueprint, TArray<UObjectProperty*>& PropertiesOut)
 {
-	UClass* BpClass = Blueprint->GeneratedClass;
+	UClass* BpClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
 	if (BpClass->IsChildOf<AActor>())
 	{
 		for (TFieldIterator<UObjectProperty> PropertyIt(BpClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
@@ -988,10 +1013,7 @@ static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteLis
 		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
 		
 		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
-		{
-			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Get();
-			
+		{			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
 			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
 		}
@@ -1557,9 +1579,6 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 		
 		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 		{
-			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Get();
-
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
 			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, MenuBuilder);
 		}
@@ -1741,6 +1760,15 @@ UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(class FPostConstruc
 //------------------------------------------------------------------------------
 int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 {
+	bool const bCachedIsRunning     = GIsRunning;
+	bool const bCachedExitRequested = GIsRequestingExit;
+	// priming the FBlueprintActionDatabase requires GIsRequestingExit to be 
+	// true; so that it registers its database entries with the GC system, via 
+	// AddReferencedObjects() (without GIsRequestingExit, the FGCObject 
+	// constructor doesn't register itself).
+	GIsRunning		  = true;
+	GIsRequestingExit = false;
+
 	TArray<FString> Tokens, Switches;
 	ParseCommandLine(*Params, Tokens, Switches);
 
@@ -1751,6 +1779,13 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 
 	bool const bSplitFilesByClass = (CommandOptions.DumpFlags & DumpBlueprintInfoUtils::BPDUMP_FilePerBlueprint) != 0;
 	bool const bDiffGeneratedFile = !CommandOptions.DiffPath.IsEmpty() || !CommandOptions.DiffCommand.IsEmpty();
+
+	bool const bUseLegacyMenu = (CommandOptions.DumpFlags & DumpBlueprintInfoUtils::BPDUMP_UseLegacyMenuBuilder) != 0;
+	if (!bUseLegacyMenu)
+	{
+		// prime the database so it's not recorded in our timing capture
+		FBlueprintActionDatabase::Get();
+	}
 
 	UClass* const SelectedObjType = DumpBlueprintInfoUtils::CommandOptions.SelectedObjectType;
 	// if the user specified that they want a level actor selected during the 
@@ -1874,6 +1909,11 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 	}
 
 	CloseFileStream(&FileOut);
+
+	// restore the globals that we forcefully overrode
+	GIsRequestingExit = bCachedExitRequested;
+	GIsRunning        = bCachedIsRunning;
+
 	return 0;
 }
 

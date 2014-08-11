@@ -58,6 +58,14 @@ public:
 	 * @param  Class	The class entry you want rebuilt.
 	 */
 	void RefreshClassActions(UClass* const Class);
+
+	/**
+	 * Finds the database entry for the specified class and wipes it. The entry 
+	 * won't be rebuilt, unless RefreshClassActions() is explicitly called after.
+	 * 
+	 * @param  Class	The class entry you want emptied.
+	 */
+	void ClearClassActions(UClass* const Class);
 	
 	/**
 	 * Will populate the database first if it hasn't been created yet, and then 
@@ -92,6 +100,5 @@ private:
 	 * something we do on Tick() aimed at speeding up performance (like pre-
 	 * caching each spawner's template-node, etc.).
 	 */
-	typedef TPair<TWeakObjectPtr<UClass>, int32> FActionIndex;
-	TQueue<FActionIndex> ActionPrimingQueue;
+	TMap<TWeakObjectPtr<UClass>, int32> ActionPrimingQueue;
 };
