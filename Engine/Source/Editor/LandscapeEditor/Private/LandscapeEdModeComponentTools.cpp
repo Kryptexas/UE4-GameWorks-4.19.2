@@ -848,8 +848,8 @@ public:
 				XYOffsetCache.Flush();
 			}
 
-			HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
-			HeightCache.Flush();
+				HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
+				HeightCache.Flush();
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
 			{
