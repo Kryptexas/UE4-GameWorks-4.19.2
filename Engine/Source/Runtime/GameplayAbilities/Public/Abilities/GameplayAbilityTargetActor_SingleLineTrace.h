@@ -32,7 +32,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Projectile)
 	float MaxRange;
 
 protected:
