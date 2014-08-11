@@ -144,6 +144,11 @@ public:
 	 */
 	void ExecuteCompleteDelegate();
 
+	/**
+	 * Only returns once the thread has finished running
+	 */
+	void WaitForThread() const;
+
 private:
 
 	/**

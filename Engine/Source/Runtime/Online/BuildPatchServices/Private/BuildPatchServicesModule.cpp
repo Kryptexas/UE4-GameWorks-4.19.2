@@ -79,13 +79,15 @@ void FBuildPatchServicesModule::ShutdownModule()
 	FBuildPatchAnalytics::SetAnalyticsProvider( NULL );
 
 	// Reset all installer ptrs (this will cause us to wait for each thread to complete)
-	for(auto InstallerIt = BuildPatchInstallers.CreateIterator(); InstallerIt; ++InstallerIt)
+	for (auto& BuildPatchInstaller : BuildPatchInstallers)
 	{
 		// Make sure it is not paused, this function only un-pauses when in error state
-		(*InstallerIt)->TogglePauseInstall();
-		// And reset
-		(*InstallerIt).Reset();
+		BuildPatchInstaller->TogglePauseInstall();
+		// We still have to manually wait for the thread as another system could hold a shared ptr
+		// thus we would not be calling the destructor here
+		BuildPatchInstaller->WaitForThread();
 	}
+	BuildPatchInstallers.Empty();
 
 	// Remove our ticker
 	FTicker::GetCoreTicker().RemoveTicker( FTickerDelegate::CreateRaw( this, &FBuildPatchServicesModule::Tick ) );

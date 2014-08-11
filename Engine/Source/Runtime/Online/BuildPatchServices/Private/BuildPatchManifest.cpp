@@ -859,11 +859,11 @@ void FBuildPatchAppManifest::EnumerateChunkPartInventory( const TArray< FGuid >&
 {
 	ChunkPartsAvailable.Empty();
 	// For each file in the manifest, check what chunks it is made out of, and grab details for the ones in ChunksRequired
-	for( auto FileManifestIt = FileManifestList.CreateConstIterator(); FileManifestIt; ++FileManifestIt )
+	for (auto FileManifestIt = FileManifestList.CreateConstIterator(); FileManifestIt && !FBuildPatchInstallError::HasFatalError(); ++FileManifestIt)
 	{
 		const TSharedPtr< FBuildPatchFileManifest > FileManifest = FileManifestIt.Value();
 		uint64 FileOffset = 0;
-		for( auto ChunkPartIt = FileManifest->FileChunkParts.CreateConstIterator(); ChunkPartIt; ++ChunkPartIt )
+		for (auto ChunkPartIt = FileManifest->FileChunkParts.CreateConstIterator(); ChunkPartIt && !FBuildPatchInstallError::HasFatalError(); ++ChunkPartIt)
 		{
 			const FChunkPart& ChunkPart = *ChunkPartIt;
 			if( ChunksRequired.Contains( ChunkPart.Guid ) )

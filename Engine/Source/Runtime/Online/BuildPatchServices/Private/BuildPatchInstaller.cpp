@@ -958,6 +958,12 @@ void FBuildPatchInstaller::ExecuteCompleteDelegate()
 	OnCompleteDelegate.Execute( bSuccess, NewBuildManifest );
 }
 
-
+void FBuildPatchInstaller::WaitForThread() const
+{
+	if (Thread != NULL)
+	{
+		Thread->WaitForCompletion();
+	}
+}
 
 #undef LOCTEXT_NAMESPACE
