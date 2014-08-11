@@ -529,9 +529,8 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / DefaultVersionSelectorName;
 
 	// Defer to UnrealVersionSelector.exe in a launcher installation if it's got the same version number or greater.
-	TCHAR InstallDir[MAX_PATH];
-	::DWORD InstallDirSize = sizeof(InstallDir);
-	if(RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), RRF_RT_REG_SZ, NULL, InstallDir, &InstallDirSize) == ERROR_SUCCESS)
+	FString InstallDir;
+	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), InstallDir) && (InstallDir.Len() > 0))
 	{
 		FString NormalizedInstallDir = InstallDir;
 		FPaths::NormalizeDirectoryName(NormalizedInstallDir);
