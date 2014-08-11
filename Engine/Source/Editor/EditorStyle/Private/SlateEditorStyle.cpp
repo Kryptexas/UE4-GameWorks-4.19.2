@@ -5504,7 +5504,8 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()
 {
-	Set("TranslationEditor.Import", new IMAGE_BRUSH("Icons/icon_Import_40x", Icon40x40));
+	Set("TranslationEditor.Export", new IMAGE_BRUSH("Icons/icon_Import_40x", Icon40x40));
+	Set("TranslationEditor.Import", new IMAGE_BRUSH("Icons/icon_Samples_Download_40x", Icon40x40));
 }
 
 #undef IMAGE_BRUSH
