@@ -8,6 +8,8 @@
 
 #include "SDL.h"
 
+DECLARE_LOG_CATEGORY_EXTERN( LogLinuxWindow, Log, All );
+
 typedef SDL_Window*		SDL_HWindow;
 
 /**
@@ -41,6 +43,30 @@ public:
 
 	/**	Sets the window region to specified dimensions */
 	void AdjustWindowRegion( int32 Width, int32 Height );
+
+	bool IsNativeMoving() const;
+	bool BeginNativeMove();
+	void AfterNativeMove();
+	void EndNativeMove();
+
+	enum NativeResizeDirection 
+	{
+		ResizeSouthWest = 0,
+		ResizeSouth,
+		ResizeSouthEast,
+		ResizeEast,
+		ResizeNorthEast,
+		ResizeNorth,
+		ResizeNorthWest,
+		ResizeWest,
+
+		InvalidDirection
+	};
+
+	bool IsNativeResizing() const;
+	bool BeginNativeResize( NativeResizeDirection Direction );
+	void AfterNativeResize();
+	void EndNativeResize();
 
 public:
 	virtual void ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height ) override;
@@ -165,4 +191,6 @@ private:
 
 	bool bIsVisible : 1;
 	bool bWasFullscreen;
+
+	static SDL_HitTestResult HitTest( SDL_Window *SDLwin, const SDL_Point *point, void *data );
 };
