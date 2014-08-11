@@ -86,25 +86,74 @@ public class ICU : ModuleRules
                 break;
             }
 		}
-		else if ((Target.Platform == UnrealTargetPlatform.Mac) ||
-            (Target.Platform == UnrealTargetPlatform.IOS) ||
-			(Target.Platform == UnrealTargetPlatform.Linux))
-		{
+        else if	(Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android)
+        {
             string StaticLibraryExtension = "a";
-            string DynamicLibraryExtension;
+            string DynamicLibraryExtension = "so";
+
             switch (Target.Platform)
             {
-            case UnrealTargetPlatform.Mac:
-                DynamicLibraryExtension = "dylib";
-                break;
             case UnrealTargetPlatform.Linux:
                 TargetSpecificPath += Target.Architecture + "/";
-                DynamicLibraryExtension = "so";
                 break;
-            default: // Should be impossible, but the compiler won't accept not having DynamicLibraryExtension assigned.
-                DynamicLibraryExtension = string.Empty;
+            case UnrealTargetPlatform.Android:
+                switch (Target.Architecture)
+                {
+                    case "-armv7":
+                        TargetSpecificPath += "ARMv7" + "/";
+                        break;
+                    case "-arm64":
+                        TargetSpecificPath += "ARM64" + "/";
+                        break;
+                    case "-x86":
+                        TargetSpecificPath += "x86" + "/";
+                        break;
+                    case "-x64":
+                        TargetSpecificPath += "X64" + "/";
+                        break;
+                }
                 break;
             }
+
+			string[] LibraryNameStems =
+			{
+				"data", // Data
+				"uc",   // Unicode Common
+				"i18n", // Internationalization
+				"le",   // Layout Engine
+				"lx",   // Layout Extensions
+				"io"	// Input/Output
+			};
+            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+                "d" : string.Empty;
+
+            // Library Paths
+            switch (ICULinkType)
+            {
+                case EICULinkType.Static:
+                    foreach (string Stem in LibraryNameStems)
+                    {
+                        string LibraryName = "icu" + Stem + LibraryNamePostfix;
+                        if (Target.Platform == UnrealTargetPlatform.Android)
+                        {
+                            PublicLibraryPaths.Add(TargetSpecificPath + "lib/");
+                            PublicAdditionalLibraries.Add(LibraryName); // Android requires only the filename.
+                        }
+                        else
+                        {
+                            PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + "lib" + LibraryName + "." + StaticLibraryExtension); // Linux seem to need the path, not just the filename.
+                        }
+                    }
+                    break;
+                case EICULinkType.Dynamic:
+                    // NOTE: Linux and Android platforms don't *currently* need to deal with dynamic libraries.
+                    break;
+            }
+        }
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
+		{
+            string StaticLibraryExtension = "a";
+            string DynamicLibraryExtension = "dylib";
 
 			string[] LibraryNameStems =
 			{
@@ -187,6 +236,7 @@ public class ICU : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
             (Target.Platform == UnrealTargetPlatform.Win32) ||
             (Target.Platform == UnrealTargetPlatform.Linux) ||
+            (Target.Platform == UnrealTargetPlatform.Android) ||
             (Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.IOS) ||
 			(Target.Platform == UnrealTargetPlatform.PS4))
