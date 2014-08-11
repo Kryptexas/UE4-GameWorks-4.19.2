@@ -30,6 +30,8 @@ TSharedRef<SWidget> UImage::RebuildWidget()
 
 void UImage::SyncronizeProperties()
 {
+	Super::SyncronizeProperties();
+
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(USlateBrushAsset*, Image, const FSlateBrush*, ConvertImage);
 
