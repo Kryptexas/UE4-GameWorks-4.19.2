@@ -8,6 +8,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogTaskGraph, Log, All);
 
 DEFINE_STAT(STAT_FReturnGraphTask);
 DEFINE_STAT(STAT_FTriggerEventGraphTask);
+DEFINE_STAT(STAT_UnknownGraphTask);
 
 namespace ENamedThreads
 {
@@ -114,6 +115,9 @@ private:
 
 };
 
+// this is used to signify a task that is just a call to wake up
+// It is generally bad to reuse pointers for non-pointer data, but efficiency is important here
+static FBaseGraphTask* WakeUpBaseGraphTask = (FBaseGraphTask*)0x3;
 
 /** 
  *	FTaskThread
@@ -206,10 +210,12 @@ public:
 		}
 		else if (ThreadId == ENamedThreads::RenderThread)
 		{
-			//StatName = none, we need to let the scope empty so that the render thread submits tasks in a timely manner
-			// The render thread has a custom method to calculate the idle time, so leave it as it is for now.
-			//StallStatId = GET_STATID(STAT_TaskGraph_RenderStalls);
-			//bCountAsStall = true;
+			if (QueueIndex > 0)
+			{
+				StallStatId = GET_STATID(STAT_TaskGraph_RenderStalls);
+				bCountAsStall = true;
+			}
+			// else StatName = none, we need to let the scope empty so that the render thread submits tasks in a timely manner. 
 		}
 		else if (ThreadId != ENamedThreads::StatsThread)
 		{
@@ -320,7 +326,10 @@ public:
 					ProcessingTasks.Start(StatName);
 				}
 #endif
-				Task->Execute(NewTasks, ENamedThreads::Type(ThreadId | (QueueIndex << ENamedThreads::QueueIndexShift)));
+				if (Task != WakeUpBaseGraphTask)
+				{
+					Task->Execute(NewTasks, ENamedThreads::Type(ThreadId | (QueueIndex << ENamedThreads::QueueIndexShift)));
+				}
 			}
 			else
 			{
@@ -741,34 +750,42 @@ public:
 		}
 		if (ThreadToExecuteOn == ENamedThreads::AnyThread)
 		{
-			FTaskThread* TempTarget = StalledUnnamedThreads.Pop(); //@todo it is possible that a thread is in the process of stalling and we just missed it, non-fatal, but we could lose a whole task of potential parallelism.
-			if (TempTarget)
+			if (FPlatformProcess::SupportsMultithreading())
 			{
-				ThreadToExecuteOn = TempTarget->GetThreadId();
-			}
-			else
-			{
-				// Run everything on the game thread if multithreading is disabled.
-				if (FPlatformProcess::SupportsMultithreading())
+				IncomingAnyThreadTasks.Push(Task);
+				FTaskThread* TempTarget = StalledUnnamedThreads.Pop(); //@todo it is possible that a thread is in the process of stalling and we just missed it, non-fatal, but we could lose a whole task of potential parallelism.
+				if (TempTarget)
 				{
-					ThreadToExecuteOn = ENamedThreads::Type((uint32(NextUnnamedThreadForTaskFromUnknownThread.Increment()) % uint32(NextUnnamedThreadMod)) + NumNamedThreads);
+					ThreadToExecuteOn = TempTarget->GetThreadId();
 				}
 				else
 				{
-					ThreadToExecuteOn = ENamedThreads::GameThread;
+					ThreadToExecuteOn = ENamedThreads::Type((uint32(NextUnnamedThreadForTaskFromUnknownThread.Increment()) % uint32(NextUnnamedThreadMod)) + NumNamedThreads);
 				}
+				FTaskThread* Target = &Thread(ThreadToExecuteOn);
+				if (ThreadToExecuteOn != CurrentThreadIfKnown)
+				{
+					Target->EnqueueFromOtherThread(0, WakeUpBaseGraphTask);
+				}
+				return;
+			}
+			else
+			{
+				ThreadToExecuteOn = ENamedThreads::GameThread;
 			}
 		}
-		int32 QueueToExecuteOn = ENamedThreads::GetQueueIndex(ThreadToExecuteOn);
-		ThreadToExecuteOn = ENamedThreads::GetThreadIndex(ThreadToExecuteOn);
-		FTaskThread* Target = &Thread(ThreadToExecuteOn);
-		if (ThreadToExecuteOn == CurrentThreadIfKnown)
 		{
-			Target->EnqueueFromThisThread(QueueToExecuteOn, Task);
-		}
-		else
-		{
-			Target->EnqueueFromOtherThread(QueueToExecuteOn, Task);
+			int32 QueueToExecuteOn = ENamedThreads::GetQueueIndex(ThreadToExecuteOn);
+			ThreadToExecuteOn = ENamedThreads::GetThreadIndex(ThreadToExecuteOn);
+			FTaskThread* Target = &Thread(ThreadToExecuteOn);
+			if (ThreadToExecuteOn == CurrentThreadIfKnown)
+			{
+				Target->EnqueueFromThisThread(QueueToExecuteOn, Task);
+			}
+			else
+			{
+				Target->EnqueueFromOtherThread(QueueToExecuteOn, Task);
+			}
 		}
 	}
 
@@ -899,6 +916,42 @@ public:
 	**/
 	FBaseGraphTask* FindWork(ENamedThreads::Type ThreadInNeed)
 	{
+		{
+			FBaseGraphTask* Task = SortedAnyThreadTasks.Pop();
+			if (Task)
+			{
+				return Task;
+			}
+		}
+		do
+		{
+			FScopeLock ScopeLock(&CriticalSectionForSortingIncomingAnyThreadTasks);
+			if (!IncomingAnyThreadTasks.IsEmpty() && SortedAnyThreadTasks.IsEmpty())
+			{
+				static TArray<FBaseGraphTask*> NewTasks;
+				NewTasks.Reset();
+				IncomingAnyThreadTasks.PopAll(NewTasks);
+				check(NewTasks.Num());
+
+				if (NewTasks.Num() > 1)
+				{
+					TLockFreePointerList<FBaseGraphTask> TempSortedAnyThreadTasks;
+					for (int32 Index = 0 ; Index < NewTasks.Num() - 1; Index++) // we are going to take the last one for ourselves
+					{
+						TempSortedAnyThreadTasks.Push(NewTasks[Index]);
+					}
+					verify(SortedAnyThreadTasks.ReplaceListIfEmpty(TempSortedAnyThreadTasks));
+				}
+				return NewTasks[NewTasks.Num() - 1];
+			}
+			{
+				FBaseGraphTask* Task = SortedAnyThreadTasks.Pop();
+				if (Task)
+				{
+					return Task;
+				}
+			}
+		} while (!IncomingAnyThreadTasks.IsEmpty() || !SortedAnyThreadTasks.IsEmpty());
 		// this can be called before my constructor is finished
 		for (int32 Pass = 0; Pass < 2; Pass++)
 		{
@@ -1003,6 +1056,10 @@ private:
 	uint32				PerThreadIDTLSSlot;
 	/** Thread safe list of stalled thread "Hints". **/
 	TLockFreePointerList<FTaskThread>		StalledUnnamedThreads; 
+
+	TLockFreePointerList<FBaseGraphTask>		IncomingAnyThreadTasks;
+	TLockFreePointerList<FBaseGraphTask>		SortedAnyThreadTasks;
+	FCriticalSection CriticalSectionForSortingIncomingAnyThreadTasks;
 };
 
 

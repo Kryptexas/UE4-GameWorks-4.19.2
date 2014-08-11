@@ -20,6 +20,7 @@ DECLARE_STATS_GROUP(TEXT("Task Graph Tasks"), STATGROUP_TaskGraphTasks, STATCAT_
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FReturnGraphTask"), STAT_FReturnGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FTriggerEventGraphTask"), STAT_FTriggerEventGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Unknown Graph Task"), STAT_UnknownGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 
 namespace ENamedThreads
 {
@@ -650,7 +651,7 @@ private:
 		
 		TTask& Task = *(TTask*)&TaskStorage;
 		{
-			FScopeCycleCounter Scope(Task.GetStatId()); 
+			FScopeCycleCounter Scope(Task.GetStatId(), true); 
 			Task.DoTask(CurrentThread, Subsequents);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (TTask::GetSubsequentsMode() == ESubsequentsMode::TrackSubsequents)

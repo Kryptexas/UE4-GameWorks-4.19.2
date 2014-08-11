@@ -45,6 +45,15 @@ public:
 	}	
 
 	/**	
+	 *	If the list is empty, replace it with the other list and null the other list.
+	 *	@return true if this call actively closed the list
+	 */
+	bool ReplaceListIfEmpty(TLockFreePointerList<T>& NotThreadSafeTempListToReplaceWith)
+	{
+		return FLockFreeVoidPointerListGeneric::ReplaceListIfEmpty(NotThreadSafeTempListToReplaceWith);
+	}
+
+	/**	
 	 *	Check if the list is empty.
 	 *
 	 *	@return true if the list is empty.

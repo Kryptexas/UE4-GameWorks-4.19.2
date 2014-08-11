@@ -1197,9 +1197,9 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS void Start( TStatId InStatId )
+	FORCEINLINE_STATS void Start( TStatId InStatId, bool bAlways = false )
 	{
-		if( FThreadStats::IsCollectingData( InStatId ) )
+		if( (bAlways && InStatId.IsValidStat()) || FThreadStats::IsCollectingData( InStatId ) )
 		{
 			StatId = *InStatId;
 			FThreadStats::AddMessage( *InStatId, EStatOperation::CycleScopeStart );
