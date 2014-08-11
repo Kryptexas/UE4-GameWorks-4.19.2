@@ -418,6 +418,7 @@ namespace SceneOutliner
 		// Register to find out when actors are added or removed
 		// @todo outliner: Might not catch some cases (see: CALLBACK_ActorPropertiesChange, CALLBACK_LayerChange, CALLBACK_LevelDirtied, CALLBACK_OnActorMoved, CALLBACK_UpdateLevelsForAllActors)
 		FEditorDelegates::MapChange.AddSP( this, &SSceneOutliner::OnMapChange );
+		FEditorDelegates::NewCurrentLevel.AddSP( this, &SSceneOutliner::OnNewCurrentLevel );
 		GEngine->OnLevelActorListChanged().AddSP( this, &SSceneOutliner::FullRefresh );
 		FWorldDelegates::LevelAddedToWorld.AddSP( this, &SSceneOutliner::OnLevelAdded );
 		FWorldDelegates::LevelRemovedFromWorld.AddSP( this, &SSceneOutliner::OnLevelRemoved );
@@ -451,6 +452,7 @@ namespace SceneOutliner
 			USelection::SelectObjectEvent.RemoveAll(this);
 		}
 		FEditorDelegates::MapChange.RemoveAll( this );
+		FEditorDelegates::NewCurrentLevel.RemoveAll( this );
 		GEngine->OnLevelActorListChanged().RemoveAll( this );
 		GEditor->UnregisterForUndo( this );
 
@@ -2727,6 +2729,14 @@ namespace SceneOutliner
 	void SSceneOutliner::OnMapChange(uint32 MapFlags)
 	{
 		FullRefresh();
+	}
+
+	void SSceneOutliner::OnNewCurrentLevel()
+	{
+		if (IsShowingOnlyCurrentLevel())
+		{
+			FullRefresh();
+		}
 	}
 
 	void SSceneOutliner::PostUndo(bool bSuccess)
