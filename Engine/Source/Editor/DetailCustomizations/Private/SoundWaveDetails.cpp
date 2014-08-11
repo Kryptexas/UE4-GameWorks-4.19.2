@@ -19,3 +19,5 @@ void FSoundWaveDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(USoundWave, StreamingPriority));
 	}
 }
+
+#undef LOCTEXT_NAMESPACE
