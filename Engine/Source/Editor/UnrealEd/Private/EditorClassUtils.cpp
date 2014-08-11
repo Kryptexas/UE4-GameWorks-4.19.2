@@ -18,7 +18,12 @@ FString FEditorClassUtils::GetDocumentationExcerpt(const UClass* Class)
 
 TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class)
 {
-	return (Class ? IDocumentation::Get()->CreateToolTip(Class->GetToolTipText(), nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
+	return (Class ? GetTooltip(Class, Class->GetToolTipText()) : SNew(SToolTip));
+}
+
+TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class, const TAttribute<FText>& OverrideText)
+{
+	return (Class ? IDocumentation::Get()->CreateToolTip(OverrideText, nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
 }
 
 FString FEditorClassUtils::GetDocumentationLink(const UClass* Class)

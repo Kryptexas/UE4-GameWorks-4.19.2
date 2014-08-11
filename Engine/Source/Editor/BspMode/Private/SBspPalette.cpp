@@ -5,6 +5,7 @@
 #include "BspModeModule.h"
 #include "SScrollBorder.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/BrushBuilderDragDropOp.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "BspPalette"
 
@@ -135,8 +136,6 @@ TSharedRef<ITableRow> SBspPalette::MakeListViewWidget(TSharedPtr<FBspBuilderType
 	check(BspBuilder.IsValid());
 	check(BspBuilder->BuilderClass.IsValid());
 
-	UClass* BuilderClass = BspBuilder->BuilderClass.Get();
-	
 	TSharedRef< STableRow<TSharedPtr<FBspBuilderType>> > TableRowWidget = 
 		SNew( STableRow<TSharedPtr<FBspBuilderType>>, OwnerTable )
 		.Style( FBspModeStyle::Get(), "BspMode.TableRow" )
@@ -146,7 +145,7 @@ TSharedRef<ITableRow> SBspPalette::MakeListViewWidget(TSharedPtr<FBspBuilderType
 		SNew(SBorder)
 		.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 		.Padding(0)
-		.ToolTipText(BspBuilder->ToolTipText)
+		.ToolTip(FEditorClassUtils::GetTooltip(ABrush::StaticClass(), BspBuilder->ToolTipText))
 		.Cursor( EMouseCursor::GrabHand )
 		[
 			SNew(SHorizontalBox)

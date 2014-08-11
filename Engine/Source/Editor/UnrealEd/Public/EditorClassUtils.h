@@ -34,6 +34,15 @@ namespace FEditorClassUtils
 	UNREALED_API TSharedRef<SToolTip> GetTooltip(const UClass* Class);
 
 	/**
+	 * Gets the tooltip to display for a given class with specified text for the tooltip
+	 *
+	 * @param	InClass			Class we want to build a tooltip for
+	 * @param	OverrideText	The text to display on the standard tooltip
+	 * @return					Shared reference to the constructed tooltip
+	 */
+	UNREALED_API TSharedRef<SToolTip> GetTooltip(const UClass* Class, const TAttribute<FText>& OverrideText);
+
+	/**
 	 * Returns the link path to the documentation for a given class
 	 *
 	 * @param	Class		Class we want to build a link for
