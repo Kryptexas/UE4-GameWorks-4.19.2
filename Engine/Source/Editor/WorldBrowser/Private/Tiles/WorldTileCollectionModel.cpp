@@ -1828,7 +1828,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		LODPackage->FileName = FName(*LODLevelFileName);
 				
 		// This is current actors offset from their original position
-		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - GetWorldOriginLocationXY());
+		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - GetWorldOriginLocationXY(GetWorld()));
 		if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
 		{
 			ActorsOffset = FVector::ZeroVector;

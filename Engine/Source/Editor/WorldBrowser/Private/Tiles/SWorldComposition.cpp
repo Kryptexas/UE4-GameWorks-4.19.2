@@ -772,13 +772,11 @@ protected:
 	/** Delegate callback: world origin is going to be moved. */
 	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 	{
-		if (WorldModel->GetWorld() != InWorld)
+		if (InWorld && (WorldModel->GetWorld() == InWorld || WorldModel->GetSimulationWorld() == InWorld))		
 		{
-			return;
+			FIntVector Offset = InDstOrigin - InSrcOrigin;
+			RequestScrollBy(-FVector2D(Offset.X, Offset.Y));
 		}
-		
-		FIntVector Offset = InDstOrigin - InSrcOrigin;
-		RequestScrollBy(-FVector2D(Offset.X, Offset.Y));
 	}
 	
 	/** Handles new item added to data source */

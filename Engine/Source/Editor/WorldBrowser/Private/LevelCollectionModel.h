@@ -46,9 +46,6 @@ public:
 	/** Current world size  */
 	FIntPoint GetWorldSize() const { return WorldSize; }
 	
-	/** Current world origin location on XY plane  */
-	FIntPoint GetWorldOriginLocationXY() const { return FIntPoint(GetWorld()->OriginLocation.X, GetWorld()->OriginLocation.Y); }
-	
 	/**	@return	Root list of levels in hierarchy */
 	FLevelModelList& GetRootLevelList();
 
@@ -528,6 +525,12 @@ protected:
 	/** Guard to avoid recursive level selection updates */
 	bool								bUpdatingLevelsSelection;
 };
+
+/** Current world origin location on XY plane  */
+FORCEINLINE FIntPoint GetWorldOriginLocationXY(UWorld* InWorld)
+{
+	return FIntPoint(InWorld->OriginLocation.X, InWorld->OriginLocation.Y);
+}
 
 //
 // Helper struct to temporally make specified UObject immune to dirtying
