@@ -4,6 +4,18 @@
 
 #include "TemplateProjectDefs.generated.h"
 
+// does not require reflection exposure
+struct FTemplateConfigValue
+{
+	FString ConfigFile;
+	FString ConfigSection;
+	FString ConfigKey;
+	FString ConfigValue;
+	bool bShouldReplaceExistingValue;
+
+	GAMEPROJECTGENERATION_API FTemplateConfigValue(const FString& InFile, const FString& InSection, const FString& InKey, const FString& InValue, bool InShouldReplaceExistingValue);
+};
+
 USTRUCT()
 struct FTemplateReplacement
 {
@@ -46,7 +58,7 @@ struct FLocalizedTemplateString
 	FString Text;
 };
 
-UCLASS(config=TemplateDefs)
+UCLASS(abstract,config=TemplateDefs,MinimalAPI)
 class UTemplateProjectDefs : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -83,6 +95,18 @@ class UTemplateProjectDefs : public UObject
 
 	/** Returns the display name for the current culture, or English if the current culture has no translation */
 	FText GetLocalizedDescription();
+
+	/** Does this template generate C++ source? */
+	virtual bool GeneratesCode(const FString& ProjectTemplatePath) const PURE_VIRTUAL(UTemplateProjectDefs::GeneratesCode, return false;)
+
+	/** Callback for each file rename, so class renames can be extracted*/
+	virtual bool IsClassRename(const FString& DestFilename, const FString& SrcFilename, const FString& FileExtension) const { return false; }
+
+	/** Callback for adding config values */
+	virtual void AddConfigValues(TArray<FTemplateConfigValue>& ConfigValuesToSet, const FString& TemplateName, const FString& ProjectName, bool bShouldGenerateCode) const { }
+
+	/** Callback after project generation is done, allowing for custom project generation behavior */
+	virtual bool PostGenerateProject(const FString& DestFolder, const FString& SrcFolder, const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, FText& OutFailReason) { return true;  }
 
 private:
 	void FixString(FString& InOutStringToFix, const FString& TemplateName, const FString& ProjectName);

@@ -5,6 +5,7 @@
 #include "UnrealEdMisc.h"
 #include "ISourceControlModule.h"
 #include "MainFrame.h"
+#include "DefaultTemplateProjectDefs.h"
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
@@ -807,7 +808,24 @@ UTemplateProjectDefs* GameProjectUtils::LoadTemplateDefs(const FString& ProjectD
 	const FString TemplateDefsIniFilename = ProjectDirectory / TEXT("Config") / GetTemplateDefsFilename();
 	if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*TemplateDefsIniFilename) )
 	{
-		TemplateDefs = ConstructObject<UTemplateProjectDefs>(UTemplateProjectDefs::StaticClass());
+		UClass* ClassToConstruct = UDefaultTemplateProjectDefs::StaticClass();
+
+		// see if template uses a custom project defs object
+		FString ClassName;
+		const bool bFoundValue = GConfig->GetString(*UTemplateProjectDefs::StaticClass()->GetPathName(), TEXT("TemplateProjectDefsClass"), ClassName, TemplateDefsIniFilename);
+		if (bFoundValue && ClassName.Len() > 0)
+		{
+			UClass* OverrideClass = FindObject<UClass>(ANY_PACKAGE, *ClassName, false);
+			if (nullptr != OverrideClass)
+			{
+				ClassToConstruct = OverrideClass;
+			}
+			else
+			{
+				UE_LOG(LogGameProjectGeneration, Error, TEXT("Failed to find template project defs class '%s', using default."), *ClassName);
+			}
+		}
+		TemplateDefs = ConstructObject<UTemplateProjectDefs>(ClassToConstruct);
 		TemplateDefs->LoadConfig(UTemplateProjectDefs::StaticClass(), *TemplateDefsIniFilename);
 	}
 
@@ -896,23 +914,6 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	UE_LOG(LogGameProjectGeneration, Log, TEXT("Created new project with %d files (plus project files)"), CreatedFiles.Num());
 	return true;
 }
-
-struct FConfigValue
-{
-	FString ConfigFile;
-	FString ConfigSection;
-	FString ConfigKey;
-	FString ConfigValue;
-	bool bShouldReplaceExistingValue;
-
-	FConfigValue(const FString& InFile, const FString& InSection, const FString& InKey, const FString& InValue, bool InShouldReplaceExistingValue)
-		: ConfigFile(InFile)
-		, ConfigSection(InSection)
-		, ConfigKey(InKey)
-		, ConfigValue(InValue)
-		, bShouldReplaceExistingValue(InShouldReplaceExistingValue)
-	{}
-};
 
 bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason)
 {
@@ -1042,19 +1043,12 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 				FilesThatNeedContentsReplaced.Add(DestFilename);
 			}
 
-			if ( FileExtension == TEXT("h")															// A header file
-				&& FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename))	// Whose name changed
+			// Allow project template to extract class renames from this file copy
+			if (FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename)
+				&& TemplateDefs->IsClassRename(DestFilename, SrcFilename, FileExtension))
 			{
-				FString FileContents;
-				if( ensure( FFileHelper::LoadFileToString( FileContents, *DestFilename ) ) )
-				{
-					// @todo uht: Checking file contents to see if this is a UObject class.  Sort of fragile here.
-					if( FileContents.Contains( TEXT( ".generated.h\"" ), ESearchCase::IgnoreCase ) )
-					{
-						// Looks like a UObject header!
-						ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
-					}
-				}
+				// Looks like a UObject file!
+				ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
 			}
 		}
 		else
@@ -1103,24 +1097,21 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 	}
 
 	// Fixup specific ini values
-	TArray<FConfigValue> ConfigValuesToSet;
-	const FString ActiveGameNameRedirectsValue_LongName = FString::Printf(TEXT("(OldGameName=\"/Script/%s\",NewGameName=\"/Script/%s\")"), *TemplateName, *ProjectName);
-	const FString ActiveGameNameRedirectsValue_ShortName = FString::Printf(TEXT("(OldGameName=\"%s\",NewGameName=\"/Script/%s\")"), *TemplateName, *ProjectName);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveGameNameRedirects"), *ActiveGameNameRedirectsValue_LongName, /*InShouldReplaceExistingValue=*/false);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveGameNameRedirects"), *ActiveGameNameRedirectsValue_ShortName, /*InShouldReplaceExistingValue=*/false);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
+	TArray<FTemplateConfigValue> ConfigValuesToSet;
+	TemplateDefs->AddConfigValues(ConfigValuesToSet, TemplateName, ProjectName, bShouldGenerateCode);
+	new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
 
 	// Add all classname fixups
 	for ( auto RenameIt = ClassRenames.CreateConstIterator(); RenameIt; ++RenameIt )
 	{
 		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *RenameIt.Key(), *RenameIt.Value());
-		new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
+		new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
 	}
 
 	// Fix all specified config values
 	for ( auto ConfigIt = ConfigValuesToSet.CreateConstIterator(); ConfigIt; ++ConfigIt )
 	{
-		const FConfigValue& ConfigValue = *ConfigIt;
+		const FTemplateConfigValue& ConfigValue = *ConfigIt;
 		const FString IniFilename = DestFolder / TEXT("Config") / ConfigValue.ConfigFile;
 		bool bSuccessfullyProcessed = false;
 
@@ -1289,6 +1280,13 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 	}
 
+	if (!TemplateDefs->PostGenerateProject(DestFolder, SrcFolder, NewProjectFile, TemplateFile, bShouldGenerateCode, OutFailReason))
+	{
+		DeleteGeneratedProjectFiles(NewProjectFile);
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
+		return false;
+	}
+	
 	return true;
 }
 

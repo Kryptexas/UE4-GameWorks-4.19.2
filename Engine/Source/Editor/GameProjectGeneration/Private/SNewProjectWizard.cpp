@@ -976,8 +976,7 @@ void SNewProjectWizard::FindTemplateProjects()
 					}
 
 					// Only generate code if the template has a source folder
-					const FString SourceFolder = (Root / TEXT("Source"));
-					const bool bGenerateCode = IFileManager::Get().DirectoryExists(*SourceFolder);
+					const bool bGenerateCode = TemplateDefs->GeneratesCode(Root);
 
 					TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 					const FString ThumbnailPNGFile = FPaths::GetBaseFilename(ProjectFilename, false) + TEXT(".png");
@@ -1091,17 +1090,20 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 			bLastGlobalValidityCheckSuccessful = false;
 			LastGlobalValidityErrorText = LOCTEXT("NoTemplateSelected", "No Template Selected");
 		}
-		else if ( IsCompilerRequired() )
+		else
 		{
-			if ( !FSourceCodeNavigation::IsCompilerAvailable() )
+			if (IsCompilerRequired())
 			{
-				bLastGlobalValidityCheckSuccessful = false;
-				LastGlobalValidityErrorText = FText::Format( LOCTEXT("NoCompilerFound", "No compiler was found. In order to use a C++ template, you must first install {0}."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() );
-			}
-			else if ( !FModuleManager::Get().IsUnrealBuildToolAvailable() )
-			{
-				bLastGlobalValidityCheckSuccessful = false;
-				LastGlobalValidityErrorText = LOCTEXT("UBTNotFound", "Engine source code was not found. In order to use a C++ template, you must have engine source code in Engine/Source.");
+				if ( !FSourceCodeNavigation::IsCompilerAvailable() )
+				{
+					bLastGlobalValidityCheckSuccessful = false;
+					LastGlobalValidityErrorText = FText::Format( LOCTEXT("NoCompilerFound", "No compiler was found. In order to use a C++ template, you must first install {0}."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() );
+				}
+				else if ( !FModuleManager::Get().IsUnrealBuildToolAvailable() )
+				{
+					bLastGlobalValidityCheckSuccessful = false;
+					LastGlobalValidityErrorText = LOCTEXT("UBTNotFound", "Engine source code was not found. In order to use a C++ template, you must have engine source code in Engine/Source.");
+				}
 			}
 		}
 	}
