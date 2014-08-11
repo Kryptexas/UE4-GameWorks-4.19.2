@@ -256,7 +256,7 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 			{
 				FSCSEditorTreeNodePtrType SelectedNode = SelectedNodes[SelectionIndex];
 
-				UActorComponent* Comp = Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true));
+				UActorComponent* Comp = SelectedNode->FindComponentInstanceInActor(PreviewActor, true);
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
