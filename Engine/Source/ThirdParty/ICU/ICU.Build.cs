@@ -140,12 +140,22 @@ public class ICU : ModuleRules
                         }
                         else
                         {
-                            PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + "lib" + LibraryName + "." + StaticLibraryExtension); // Linux seem to need the path, not just the filename.
+                            PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + "lib" + LibraryName + "." + StaticLibraryExtension); // Linux seems to need the path, not just the filename.
                         }
                     }
                     break;
                 case EICULinkType.Dynamic:
-                    // NOTE: Linux and Android platforms don't *currently* need to deal with dynamic libraries.
+                    foreach (string Stem in LibraryNameStems)
+                    {
+                        if (Target.Platform == UnrealTargetPlatform.Linux)
+                        {
+                            string LibraryName = "icu" + Stem + LibraryNamePostfix;
+                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
+
+                            PublicLibraryPaths.Add(LibraryPath);
+                            PublicAdditionalLibraries.Add(LibraryName);
+                        }
+                    }
                     break;
             }
         }
