@@ -120,8 +120,13 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=SoundWave )
 	uint32 bLooping:1;
 
-	UPROPERTY()
+	/** Whether this sound can be streamed to avoid increased memory usage */
+	UPROPERTY(EditAnywhere, Category=Streaming)
 	uint32 bStreaming:1;
+
+	/** Priority of this sound when streaming (lower priority streams may not always play) */
+	UPROPERTY(EditAnywhere, Category=Streaming, meta=(ClampMin=0))
+	int32 StreamingPriority;
 
 	/** Set to true for programmatically-generated, streamed audio. */
 	uint32 bProcedural:1;
