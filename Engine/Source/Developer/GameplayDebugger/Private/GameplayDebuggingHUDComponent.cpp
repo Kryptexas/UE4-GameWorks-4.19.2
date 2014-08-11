@@ -14,6 +14,7 @@
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"					// Game play timers
+#include "RenderUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
