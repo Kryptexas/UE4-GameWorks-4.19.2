@@ -127,6 +127,9 @@ void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 		Content->Slot = Slot;
 	}
 
+	// Only allow inserting within the valid range of slots (and one more than the size).
+	Index = FMath::Clamp(Index, 0, FMath::Max(Slots.Num(), 1));
+
 	Slots.Insert(Slot, Index);
 
 	OnSlotAdded(Slot);
@@ -141,6 +144,15 @@ bool UPanelWidget::RemoveChild(UWidget* Content)
 	}
 
 	return false;
+}
+
+void UPanelWidget::ClearChildren()
+{
+	int32 Children = GetChildrenCount();
+	for ( int32 ChildIndex = 0; ChildIndex < Children; ChildIndex++ )
+	{
+		RemoveChildAt(0);
+	}
 }
 
 void UPanelWidget::PostLoad()

@@ -75,8 +75,11 @@ void UEditableText::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
-	MyEditableText->SetText(Text);
-	MyEditableText->SetHintText(HintText);
+	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+
+	MyEditableText->SetText(TextBinding);
+	MyEditableText->SetHintText(HintTextBinding);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
 	MyEditableText->SetColorAndOpacity(ColorAndOpacity);

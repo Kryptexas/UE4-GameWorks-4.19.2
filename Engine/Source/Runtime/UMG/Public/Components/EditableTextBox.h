@@ -25,9 +25,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
 
+	/** A bindable delegate to allow logic to drive the text of the widget */
+	UPROPERTY()
+	FGetText TextDelegate;
+
 	/** Hint text that appears when there is no text in the text box */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText HintText;
+
+	/** A bindable delegate to allow logic to drive the hint text of the widget */
+	UPROPERTY()
+	FGetText HintTextDelegate;
 
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)

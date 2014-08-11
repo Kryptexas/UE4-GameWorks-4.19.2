@@ -90,16 +90,6 @@ void UScrollBox::SyncronizeProperties()
 	MyScrollBox->SetOrientation(Orientation);
 }
 
-void UScrollBox::ClearChildren()
-{
-	Slots.Reset();
-
-	if ( MyScrollBox.IsValid() )
-	{
-		MyScrollBox->ClearChildren();
-	}
-}
-
 void UScrollBox::SetScrollOffset(float NewScrollOffset)
 {
 	DesiredScrollOffset = NewScrollOffset;

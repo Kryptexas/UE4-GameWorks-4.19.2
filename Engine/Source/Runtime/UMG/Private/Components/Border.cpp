@@ -40,7 +40,7 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 		Cast<UBorderSlot>(GetContentSlot())->BuildSlot(MyBorder.ToSharedRef());
 	}
 
-	return MyBorder.ToSharedRef();
+	return BuildDesignTimeWidget( MyBorder.ToSharedRef() );
 }
 
 void UBorder::SyncronizeProperties()
@@ -109,8 +109,7 @@ const FSlateBrush* UBorder::GetBorderBrush() const
 {
 	if ( Brush == NULL )
 	{
-		SBorder::FArguments BorderDefaults;
-		return BorderDefaults._BorderImage.Get();
+		return NULL;
 	}
 
 	return &Brush->Brush;

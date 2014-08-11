@@ -5,7 +5,7 @@
 #include "EditableText.generated.h"
 
 /** Editable text box widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface)
 class UMG_API UEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -21,9 +21,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
 
+	/** A bindable delegate to allow logic to drive the text of the widget */
+	UPROPERTY()
+	FGetText TextDelegate;
+
 	/** Hint text that appears when there is no text in the text box */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText HintText;
+
+	/** A bindable delegate to allow logic to drive the hint text of the widget */
+	UPROPERTY()
+	FGetText HintTextDelegate;
 
 	/** Text style */
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))

@@ -18,8 +18,6 @@ public:
 
 public:
 
-	//TODO UMG Add ways to make adding slots callable by blueprints.
-
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	int32 GetChildrenCount() const;
@@ -40,19 +38,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	UPanelSlot* AddChild(UWidget* Content);
 
-	/**  */
+	/** Swaps the widget out of the slot at the given index, replacing it with a different widget. */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void ReplaceChildAt(int32 Index, UWidget* Content);
 
-	/**  */
+	/** Inserts a widget at a specific index */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void InsertChildAt(int32 Index, UWidget* Content);
 
-	/**  */
+	/**
+	 * Removes a specific widget from the container.
+	 * @return true if the widget was found and removed.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	bool RemoveChild(UWidget* Content);
 
-	/**  */
+	/** Remove all child widgets from the panel widget. */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void ClearChildren();
+
+	/** @returns true if the panel supports more than one child. */
 	bool CanHaveMultipleChildren() const
 	{
 		return bCanHaveMultipleChildren;

@@ -24,10 +24,6 @@ class UMG_API UScrollBox : public UPanelWidget
 
 	virtual void ReleaseNativeWidget() override;
 
-	/** Removes all child widget from the scrollbox */
-	UFUNCTION(BlueprintCallable, Category="Widget")
-	void ClearChildren();
-
 	/** Updates the scroll offset of the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetScrollOffset(float NewScrollOffset);

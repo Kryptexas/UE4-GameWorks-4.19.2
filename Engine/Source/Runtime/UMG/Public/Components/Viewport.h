@@ -238,7 +238,7 @@ protected:
 /**
  * 
  */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface)
 class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()

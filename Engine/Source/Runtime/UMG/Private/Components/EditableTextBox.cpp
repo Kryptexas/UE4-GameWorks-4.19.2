@@ -75,8 +75,11 @@ void UEditableTextBox::SyncronizeProperties()
 		MyEditableTextBlock->SetStyle(StylePtr);
 	}
 
-	MyEditableTextBlock->SetText(Text);
-	MyEditableTextBlock->SetHintText(HintText);
+	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+
+	MyEditableTextBlock->SetText(TextBinding);
+	MyEditableTextBlock->SetHintText(HintTextBinding);
 	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);

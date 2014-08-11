@@ -10,6 +10,8 @@ UCLASS()
 class UMG_API UHorizontalBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/** The amount of padding between the slots parent and the content. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)

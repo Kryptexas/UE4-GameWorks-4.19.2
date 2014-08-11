@@ -12,6 +12,8 @@ struct FAnchorData
 public:
 	GENERATED_USTRUCT_BODY()
 
+public:
+
 	/** Offset. */
 	UPROPERTY(EditAnywhere, Category=AnchorData)
 	FMargin Offsets;
