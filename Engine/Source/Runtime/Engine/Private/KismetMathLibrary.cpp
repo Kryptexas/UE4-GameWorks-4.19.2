@@ -1053,6 +1053,16 @@ FLinearColor UKismetMathLibrary::Conv_VectorToLinearColor(FVector InVec)
 	return FLinearColor(InVec);	
 }
 
+FVector2D UKismetMathLibrary::Conv_VectorToVector2D(FVector InVec)
+{
+	return FVector2D(InVec);
+}
+
+FVector UKismetMathLibrary::Conv_Vector2DToVector(FVector2D InVec2D, float Z)
+{
+	return FVector(InVec2D, Z);
+}
+
 FVector UKismetMathLibrary::Conv_LinearColorToVector(FLinearColor InLinearColor)
 {
 	return FVector(InLinearColor);
