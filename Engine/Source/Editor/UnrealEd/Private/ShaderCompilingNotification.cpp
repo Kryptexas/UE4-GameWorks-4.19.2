@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "MainFrame.h"
+#include "ShaderCompiler.h"
 
 /** Notification class for asynchronous shader compiling. */
 class FShaderCompilingNotificationImpl

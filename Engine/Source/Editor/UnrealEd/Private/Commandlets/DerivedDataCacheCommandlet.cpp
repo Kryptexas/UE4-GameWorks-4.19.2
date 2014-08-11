@@ -10,6 +10,7 @@
 #include "GlobalShader.h"
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 

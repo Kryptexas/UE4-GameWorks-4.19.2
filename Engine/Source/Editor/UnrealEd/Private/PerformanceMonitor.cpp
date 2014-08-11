@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "SScalabilitySettings.h"
 #include "PerformanceMonitor.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "PerformanceMonitor"
 

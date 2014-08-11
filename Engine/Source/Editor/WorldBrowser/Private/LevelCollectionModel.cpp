@@ -7,6 +7,7 @@
 #include "Matinee/MatineeActor.h"
 
 #include "LevelCollectionModel.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

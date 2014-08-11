@@ -11,6 +11,8 @@
 #include "TargetPlatform.h"
 #include "DerivedDataCacheInterface.h"
 #include "EngineModule.h"
+#include "ShaderCompiler.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 

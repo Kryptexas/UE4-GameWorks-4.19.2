@@ -31,6 +31,7 @@
 #include "EngineBuildSettings.h"
 #include "Slate.h"
 #include "DesktopPlatformModule.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 

@@ -18,6 +18,7 @@
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "ComponentReregisterContext.h"
+#include "ShaderCompiler.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 

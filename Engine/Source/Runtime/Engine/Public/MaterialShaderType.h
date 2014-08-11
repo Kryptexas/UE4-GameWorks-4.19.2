@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Shader.h"
-#include "ShaderParameters.h"
-#include "MaterialShared.h"
 #include "GlobalShader.h"
 
 /** A macro to implement material shaders. */

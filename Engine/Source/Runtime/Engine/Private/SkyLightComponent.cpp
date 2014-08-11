@@ -14,6 +14,7 @@
 #include "Net/UnrealNetwork.h"
 #include "MapErrors.h"
 #include "ComponentInstanceDataCache.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 

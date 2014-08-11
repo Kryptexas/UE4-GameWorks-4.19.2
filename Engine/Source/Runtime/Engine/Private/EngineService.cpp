@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+#include "EngineServiceMessages.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineService, Log, All)
 

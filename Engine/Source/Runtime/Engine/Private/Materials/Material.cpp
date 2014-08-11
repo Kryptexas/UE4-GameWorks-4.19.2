@@ -31,6 +31,7 @@
 #include "MaterialCompiler.h"
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
+#include "ShaderCompiler.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

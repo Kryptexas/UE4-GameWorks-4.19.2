@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "MaterialShared.h"
 
-#include "PrimitiveUniformShaderParameters.h"
-
+class FLightCacheInterface;
 /**
  * A batch mesh element definition.
  */

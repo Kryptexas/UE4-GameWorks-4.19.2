@@ -50,6 +50,9 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "Runtime/Engine/Classes/Landscape/LandscapeComponent.h"
+#include "RendererInterface.h"
+#include "DataChannel.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);

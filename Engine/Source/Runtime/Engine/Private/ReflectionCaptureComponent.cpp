@@ -8,6 +8,8 @@
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
+#include "ShaderCompiler.h"
 
 /** 
  * Size of all reflection captures.

@@ -17,8 +17,11 @@
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+
 #include "LocalVertexFactory.h"
 
+#include "VertexFactory.h"
+#include "RendererInterface.h"
 DEFINE_LOG_CATEGORY(LogMaterial);
 
 FName MaterialQualityLevelNames[] = 
@@ -2341,4 +2344,30 @@ bool FMaterialInstanceBasePropertyOverrides::Update(const FMaterialInstanceBaseP
 	*this = Updated;
 
 	return bRet;
+}
+
+bool FMaterialShaderMapId::ContainsShaderType(const FShaderType* ShaderType) const
+{
+	for (int32 TypeIndex = 0; TypeIndex < ShaderTypeDependencies.Num(); TypeIndex++)
+	{
+		if (ShaderTypeDependencies[TypeIndex].ShaderType == ShaderType)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FMaterialShaderMapId::ContainsVertexFactoryType(const FVertexFactoryType* VFType) const
+{
+	for (int32 TypeIndex = 0; TypeIndex < VertexFactoryTypeDependencies.Num(); TypeIndex++)
+	{
+		if (VertexFactoryTypeDependencies[TypeIndex].VertexFactoryType == VFType)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

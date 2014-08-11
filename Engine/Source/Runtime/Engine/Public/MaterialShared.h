@@ -5,28 +5,33 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Misc/SecureHash.h"
 #include "RefCounting.h"
-#include "ShaderCore.h"
-#include "Shader.h"
-#include "VertexFactory.h"
 #include "RenderResource.h"
-#include "ShaderCompiler.h"
 #include "UniformBuffer.h"
 #include "SceneTypes.h"
 #include "StaticParameterSet.h"
+#include "Shader.h"
+#include "VertexFactory.h"
 
-class FMeshMaterialShaderMap;
 class FMaterialShaderMap;
 class FMaterialShaderType;
 class FMaterial;
 class FMaterialRenderProxy;
+class FMeshMaterialShaderMap;
+class FMeshMaterialShaderType;
+class FShaderCompileJob;
+class FShaderType;
+class FShaderTypeDependency;
+class FVertexFactoryType;
+class FVertexFactoryTypeDependency;
 class UMaterial;
 class UMaterialInstance;
 class UMaterialExpression;
 class UMaterialInterface;
 class UTexture;
 struct FExpressionInput;
+struct FShaderCompilerEnvironment;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16
@@ -362,14 +367,17 @@ public:
 	/** A hash of the base property overrides for this material instance. */
 	FSHAHash BasePropertyOverridesHash;
 	
+
 	FMaterialShaderMapId()
 		: BaseMaterialId(0, 0, 0, 0)
 		, QualityLevel(EMaterialQualityLevel::High)
 		, FeatureLevel(ERHIFeatureLevel::SM4)
 		, Usage(EMaterialShaderMapUsage::Default)
-	{
-	}
-	
+	{ }
+
+	~FMaterialShaderMapId()
+	{ }
+
 	void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<FVertexFactoryType*>& VFTypes);
 
 	void Serialize(FArchive& Ar);
@@ -408,32 +416,10 @@ public:
 	void AppendKeyString(FString& KeyString) const;
 
 	/** Returns true if the requested shader type is a dependency of this shader map Id. */
-	bool ContainsShaderType(const FShaderType* ShaderType) const
-	{
-		for (int32 TypeIndex = 0; TypeIndex < ShaderTypeDependencies.Num(); TypeIndex++)
-		{
-			if (ShaderTypeDependencies[TypeIndex].ShaderType == ShaderType)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
+	bool ContainsShaderType(const FShaderType* ShaderType) const;
 
 	/** Returns true if the requested vertex factory type is a dependency of this shader map Id. */
-	bool ContainsVertexFactoryType(const FVertexFactoryType* VFType) const
-	{
-		for (int32 TypeIndex = 0; TypeIndex < VertexFactoryTypeDependencies.Num(); TypeIndex++)
-		{
-			if (VertexFactoryTypeDependencies[TypeIndex].VertexFactoryType == VFType)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
+	bool ContainsVertexFactoryType(const FVertexFactoryType* VFType) const;
 };
 
 /**

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Shader.h"
-#include "MaterialShader.h"
+#include "MaterialShaderType.h"
 
 /**
  * A shader meta type for material-linked shaders which use a vertex factory.

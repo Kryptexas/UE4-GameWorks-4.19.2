@@ -53,6 +53,7 @@
 
 #include "ComponentReregisterContext.h"
 #include "Engine/DocumentationActor.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
