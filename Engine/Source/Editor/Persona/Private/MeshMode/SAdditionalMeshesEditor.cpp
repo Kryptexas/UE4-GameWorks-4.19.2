@@ -131,6 +131,8 @@ private:
 
 void SAdditionalMeshesDisplayPanel::Construct(const FArguments& InArgs)
 {
+	SWrapBox::Construct(SWrapBox::FArguments().UseAllottedWidth(true));
+
 	OnRemoveAdditionalMesh = InArgs._OnRemoveAdditionalMesh;
 }
 
