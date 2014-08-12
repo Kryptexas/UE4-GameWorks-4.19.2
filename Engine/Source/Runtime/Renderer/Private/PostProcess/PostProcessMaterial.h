@@ -24,9 +24,10 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
-	// PF_Unknown for default behavior.
-	EPixelFormat OutputFormat;
 	void SetShader(const FRenderingCompositePassContext& Context);
 
 	UMaterialInterface* MaterialInterface;
+
+	// PF_Unknown for default behavior.
+	EPixelFormat OutputFormat;
 };
