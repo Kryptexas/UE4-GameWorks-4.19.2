@@ -305,12 +305,12 @@ public:
 };
 
 template<class DrawingPolicyFactoryType>
-FGraphEventRef DrawViewElementsParallel(
+void DrawViewElementsParallel(
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
-	FGraphEventRef SubmitChain,
+	FRHICommandList& ParentCmdList,
 	int32 Width
 	)
 {
@@ -334,18 +334,18 @@ FGraphEventRef DrawViewElementsParallel(
 				int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
 				check(Last >= Start);
 
-				FRHICommandList* CmdList = new FRHICommandList;
+				{
+					FRHICommandList* CmdList = new FRHICommandList;
 
-				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(CmdList, &View, DrawingContext, DPGIndex, bPreFog, Start, Last);
+					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
+						.ConstructAndDispatchWhenReady(CmdList, &View, DrawingContext, DPGIndex, bPreFog, Start, Last);
+
+					ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+				}
 				Start = Last + 1;
-
-				SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 			}
 		}
 	}
-
-	return SubmitChain;
 }
 
 template<class DrawingPolicyFactoryType>

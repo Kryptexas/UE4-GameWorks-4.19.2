@@ -976,6 +976,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
         // Delete the scene renderer.
 		delete SceneRenderer;
+		FRHICommandListExecutor::GetImmediateCommandList().Flush(); // we want to make sure this all gets to the GPU this frame and doesn't hang around
 	}
 
 #if STATS

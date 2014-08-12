@@ -1392,24 +1392,23 @@ public:
 	}
 };
 
+static TAutoConsoleVariable<int32> CVarParallelShadows(
+	TEXT("r.ParallelShadows"),
+	1,
+	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	ECVF_RenderThreadSafe
+	);
+
 void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView)
 {
-	static TAutoConsoleVariable<int32> CVarParallelShadows(
-		TEXT("r.ParallelShadows"),
-		1,
-		TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect.\n"),
-		ECVF_RenderThreadSafe
-		);
-
-	if (&RHICmdList == &FRHICommandListExecutor::GetImmediateCommandList() &&  // translucent shadows are draw on the render thread, using a recursive cmdlist, so this path seems like a loser in that case, but it should be tried
-		!GRHICommandList.Bypass() && CVarParallelShadows.GetValueOnRenderThread())
+	if (RHICmdList.IsImmediate() &&  // translucent shadows are draw on the render thread, using a recursive cmdlist
+		GRHICommandList.UseParallelAlgorithms() && CVarParallelShadows.GetValueOnRenderThread())
 	{
 		// parallel version
+		FScopedCommandListFlush Flusher;
 
 		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 		bool OutDirty = false; // unused
-
-		FGraphEventRef SubmitChain;
 
 		// Draw the subject's static elements using static draw lists
 		if (IsWholeSceneDirectionalShadow())
@@ -1418,12 +1417,12 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferr
 
 			if (bReflectiveShadowmap)
 			{
-				SubmitChain = SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisibleParallel(*FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, SubmitChain, OutDirty);
+				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisibleParallel(*FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, RHICmdList, OutDirty);
 			}
 			else
 			{
 				// Use the scene's shadow depth draw list with this shadow's visibility map
-				SubmitChain = SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisibleParallel(*FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, SubmitChain, OutDirty);
+				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisibleParallel(*FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, RHICmdList, OutDirty);
 			}
 		}
 		// Draw the subject's static elements using manual state filtering
@@ -1434,7 +1433,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferr
 			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawShadowMeshElementsThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 				.ConstructAndDispatchWhenReady(this, CmdList, FoundView, bReflectiveShadowmap && !bOnePassPointLightShadow);
 
-			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
+			RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
 		}
 		{
 			FRHICommandList* CmdList = new FRHICommandList;
@@ -1442,13 +1441,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferr
 			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderDepthDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 				.ConstructAndDispatchWhenReady(this, CmdList, FoundView, SceneRenderer);
 
-			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
-		}
-
-		if (SubmitChain.GetReference())
-		{
-			FRHICommandListExecutor::GetImmediateCommandList().Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
-			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
+			RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
 		}
 	}
 	else

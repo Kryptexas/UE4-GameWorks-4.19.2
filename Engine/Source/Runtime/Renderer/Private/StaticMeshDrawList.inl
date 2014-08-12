@@ -344,52 +344,12 @@ public:
 	}
 };
 
-class FSubmitCommandlistThreadTask
-{
-	FRHICommandList* RHICmdList;
-public:
-
-	FSubmitCommandlistThreadTask(FRHICommandList* InRHICmdList)
-		: RHICmdList(InRHICmdList)
-	{
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawVisibleRenderThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::RenderThread_Local;
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
-
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		delete RHICmdList;
-	}
-
-	/*** Helper function set up a submit chain of the these   */
-	static FGraphEventRef AddToChain(FGraphEventRef AnyThreadCompletionEvent, FGraphEventRef SubmitChain, FRHICommandList* CmdList)
-	{
-		FGraphEventArray Prereqs;
-		Prereqs.Add(AnyThreadCompletionEvent);
-		if (SubmitChain.GetReference())
-		{
-			Prereqs.Add(SubmitChain);
-		}
-		return TGraphTask<FSubmitCommandlistThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
-	}
-};
-
 template<typename DrawingPolicyType>
-FGraphEventRef TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
+void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray,
-	int32 Width, FGraphEventRef SubmitChain, bool& OutDirty
+	int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty
 	)
 {
 
@@ -408,18 +368,19 @@ FGraphEventRef TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 			int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
 			check(Last >= Start);
 
-			FRHICommandList* CmdList = new FRHICommandList;
+			{
+				FRHICommandList* CmdList = new FRHICommandList;
 
-			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-				.ConstructAndDispatchWhenReady(this, CmdList, &View, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
+				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
+					.ConstructAndDispatchWhenReady(this, CmdList, &View, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
+
+				ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+			}
+
 			Start = Last + 1;
-
-			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 		}
 	}
 	check(Start == OrderedDrawingPolicies.Num());
-
-	return SubmitChain;
 }
 
 template<typename DrawingPolicyType>

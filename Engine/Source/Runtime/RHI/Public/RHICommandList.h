@@ -6,19 +6,9 @@
 
 #pragma once
 #include "LockFreeFixedSizeAllocator.h"
-
+#include "TaskGraphInterfaces.h"
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListExecuteTime, STATGROUP_RHICMDLIST, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST, RHI_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Nonimmed. Command count"), STAT_NonImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Immed. Command List Execute"), STAT_ImmedCmdListExecuteTime, STATGROUP_RHICMDLIST, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST, RHI_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
-
-
 
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 
@@ -45,7 +35,9 @@ public:
 	~FRHICommandListBase();
 
 	inline void Flush();
+	inline bool IsImmediate();
 	const int32 GetUsedMemory() const;
+	void QueueAsyncCommandListSubmit(FGraphEventRef AnyThreadCompletionEvent, class FRHICommandList* CmdList);
 
 	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
 	{
@@ -1624,6 +1616,7 @@ public:
 	};
 	FRHICommandListExecutor()
 		: bLatchedBypass(!!DefaultBypass)
+		, bLatchedUseParallelAlgorithms(!DefaultBypass && FApp::ShouldUseThreadingForPerformance())
 	{
 	}
 	static inline FRHICommandListImmediate& GetImmediateCommandList();
@@ -1638,10 +1631,18 @@ public:
 	}
 	FORCEINLINE_DEBUGGABLE bool Bypass()
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 		return bLatchedBypass;
 #else
-		return  !FApp::ShouldUseThreadingForPerformance() || !!DefaultBypass;
+		return !!DefaultBypass;
+#endif
+	}
+	FORCEINLINE_DEBUGGABLE bool UseParallelAlgorithms()
+	{
+#if !UE_BUILD_SHIPPING
+		return bLatchedUseParallelAlgorithms;
+#else
+		return  FApp::ShouldUseThreadingForPerformance() && !Bypass();
 #endif
 	}
 	static void CheckNoOutstandingCmdLists();
@@ -1651,6 +1652,7 @@ private:
 	void ExecuteInner(FRHICommandListBase& CmdList);
 
 	bool bLatchedBypass;
+	bool bLatchedUseParallelAlgorithms;
 	friend class FRHICommandListBase;
 	FThreadSafeCounter UIDCounter;
 	FThreadSafeCounter OutstandingCmdListCount;
@@ -1664,6 +1666,19 @@ FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImm
 	return GRHICommandList.CommandListImmediate;
 }
 
+struct FScopedCommandListFlush
+{
+	FRHICommandListImmediate& RHICmdList;
+
+	FScopedCommandListFlush(FRHICommandListImmediate& InRHICmdList = FRHICommandListExecutor::GetImmediateCommandList())
+		: RHICmdList(InRHICmdList)
+	{
+	}
+	~FScopedCommandListFlush()
+	{
+		RHICmdList.Flush();
+	}
+};
 
 #define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 #define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)

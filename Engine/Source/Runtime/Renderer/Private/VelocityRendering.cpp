@@ -441,13 +441,13 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
-void FDeferredShadingSceneRenderer::RenderDynamicVelocities(FRHICommandList& RHICmdList, const FViewInfo& View)
+void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
 {
 	// Draw velocities for movable dynamic meshes.
 	TDynamicPrimitiveDrawer<FVelocityDrawingPolicyFactory> Drawer(
 		RHICmdList, &View, FVelocityDrawingPolicyFactory::ContextType(DDM_AllOccluders), true, false, true
 		);
-	for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num(); PrimitiveIndex++)
+	for (int32 PrimitiveIndex = FirstIndex; PrimitiveIndex <= LastIndex; PrimitiveIndex++)
 	{
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
 
@@ -461,7 +461,6 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocities(FRHICommandList& RHI
 		Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
 		PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
 	}
-	Drawer.IsDirty();
 }
 
 class FRenderVelocityDynamicThreadTask
@@ -470,17 +469,22 @@ class FRenderVelocityDynamicThreadTask
 	FRHICommandList& RHICmdList;
 	const FViewInfo& View;
 	FDeferredShadingSceneRenderer* SceneRenderer;
+	int32 FirstIndex;
+	int32 LastIndex;
 
 public:
 
 	FRenderVelocityDynamicThreadTask(
 		FDeferredShadingSceneRenderer* InThisRenderer,
 		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView
+		const FViewInfo* InView,
+		int32 InFirstIndex, int32 InLastIndex
 		)
 		: ThisRenderer(*InThisRenderer)
 		, RHICmdList(*InRHICmdList)
 		, View(*InView)
+		, FirstIndex(InFirstIndex)
+		, LastIndex(InLastIndex)
 	{
 	}
 
@@ -498,42 +502,58 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		ThisRenderer.RenderDynamicVelocities(RHICmdList, View);
+		ThisRenderer.RenderDynamicVelocitiesInner(RHICmdList, View, FirstIndex, LastIndex);
 	}
 };
 
 
+static TAutoConsoleVariable<int32> CVarParallelVelocity(
+	TEXT("r.ParallelVelocity"),
+	0,  // not possible because of per-bone motion blur
+	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	ECVF_RenderThreadSafe
+	);
+
 void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
-	static TAutoConsoleVariable<int32> CVarParallelVelocity(
-		TEXT("r.ParallelVelocity"),
-		1,
-		TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect.\n"),
-		ECVF_RenderThreadSafe
-		);
-
-	if (!GRHICommandList.Bypass() && CVarParallelVelocity.GetValueOnRenderThread())
+	if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
 	{
 		// parallel version
+		FScopedCommandListFlush Flusher(RHICmdList);
 
 		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 		bool OutDirty = false; // unused
 
-		FGraphEventRef SubmitChain;
+		Scene->VelocityDrawList.DrawVisibleParallel(View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, Width, RHICmdList, OutDirty);
 
-		SubmitChain = Scene->VelocityDrawList.DrawVisibleParallel(View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, OutDirty);
 		{
-			FRHICommandList* CmdList = new FRHICommandList;
+			int32 NumPrims = View.VisibleDynamicPrimitives.Num();
+			int32 EffectiveThreads = FMath::Min<int32>(NumPrims, Width);
 
-			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-				.ConstructAndDispatchWhenReady(this, CmdList, &View);
+			int32 Start = 0;
+			if (EffectiveThreads)
+			{
+				check(IsInRenderingThread());
 
-			SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
-		}
-		if (SubmitChain.GetReference())
-		{
-			RHICmdList.Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
-			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
+				int32 NumPer = NumPrims / EffectiveThreads;
+				int32 Extra = NumPrims - NumPer * EffectiveThreads;
+
+
+				for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+				{
+					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+					check(Last >= Start);
+
+					FRHICommandList* CmdList = new FRHICommandList;
+
+					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+						.ConstructAndDispatchWhenReady(this, CmdList, &View, Start, Last);
+
+					RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+
+					Start = Last + 1;
+				}
+			}
 		}
 	}
 	else
@@ -541,7 +561,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 		// single threaded version
 		// Draw velocities for movable static meshes.
 		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
-		RenderDynamicVelocities(RHICmdList, View);
+		RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
 	}
 }
 

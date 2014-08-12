@@ -191,16 +191,16 @@ bool DrawViewElements(
 * @param DrawingContext - The drawing policy type specific context for the drawing.
 * @param DPGIndex World or Foreground DPG index for draw order
 * @param bPreFog - true if the draw call is occurring before fog has been rendered.
-* @param SubmitChain - parallel submit chain
+* @param ParentCmdList - cmdlist to put the wait and execute task on
 * @param Width - parallel width
 */
 template<class DrawingPolicyFactoryType>
-FGraphEventRef DrawViewElementsParallel(
+void DrawViewElementsParallel(
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
-	FGraphEventRef SubmitChain,
+	FRHICommandList& ParentCmdList,
 	int32 Width
 	);
 

@@ -292,9 +292,11 @@ public:
 	* @param View - The view of the meshes to render.
 	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
 	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
-	* @return True if any static meshes were drawn.
+	* @param Width - parallel width
+	* @param ParentCmdList - cmdlist to put the wait and execute task on
+	* @param OutDirty - set to true if anything is drawn
 	*/
-	FGraphEventRef DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	void DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map, sorted front-to-back.

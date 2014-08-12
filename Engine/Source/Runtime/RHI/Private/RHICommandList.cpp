@@ -4,20 +4,31 @@
 #include "RHI.h"
 #include "RHICommandList.h"
 
-DEFINE_STAT(STAT_ImmedCmdListExecuteTime);
-DEFINE_STAT(STAT_ImmedCmdListMemory);
-DEFINE_STAT(STAT_ImmedCmdListCount);
+DECLARE_CYCLE_STAT(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command count"), STAT_NonImmedCmdListCount, STATGROUP_RHICMDLIST);
 
-DEFINE_STAT(STAT_NonImmedCmdListExecuteTime);
-DEFINE_STAT(STAT_NonImmedCmdListMemory);
-DEFINE_STAT(STAT_NonImmedCmdListCount);
+DECLARE_CYCLE_STAT(TEXT("Immed. Command List Execute"), STAT_ImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
+
 
 static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 	TEXT("r.RHICmdBypass"),
 	FRHICommandListExecutor::DefaultBypass,
 	TEXT("Whether to bypass the rhi command list and send the rhi commands immediately.\n")
-	TEXT("0: Disable, 1: Enable"),
-	ECVF_Cheat);
+	TEXT("0: Disable, 1: Enable"));
+
+static TAutoConsoleVariable<int32> CVarRHICmdUseParallelAlgorithms(
+	TEXT("r.RHICmdUseParallelAlgorithms"),
+	FRHICommandListExecutor::DefaultBypass,
+	TEXT("True to use parallel algorithms. Ignored if r.RHICmdBypass is 1.\n"));
+
+static TAutoConsoleVariable<int32> CVarRHICmdFlushBeforeWait(
+	TEXT("r.RHICmdFlushBeforeWait"),
+	1,
+	TEXT("Whether to flush the immediate command list before waiting for a command list chain.\n")
+	TEXT("0: Disable, 1: Enable"));
 
 TAutoConsoleVariable<int32> CVarRHICmdWidth(
 	TEXT("r.RHICmdWidth"), 
@@ -66,13 +77,28 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 
 	INC_MEMORY_STAT_BY(STAT_ImmedCmdListMemory, CmdList.GetUsedMemory());
 	INC_DWORD_STAT_BY(STAT_ImmedCmdListCount, CmdList.NumCommands);
-
+#if 0
+	static TAutoConsoleVariable<int32> CVarRHICmdMemDump(
+		TEXT("r.RHICmdMemDump"),
+		0,
+		TEXT("dumps callstacks and sizes of the immediate command lists to the console.\n")
+		TEXT("0: Disable, 1: Enable"),
+		ECVF_Cheat);
+	if (CVarRHICmdMemDump.GetValueOnRenderThread() > 0)
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Mem %d\n"), CmdList.GetUsedMemory());
+		if (CmdList.GetUsedMemory() > 300)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("big\n"));
+		}
+	}
+#endif
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ImmedCmdListExecuteTime);
 		ExecuteInner(CmdList);
 	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	if (GRHICommandList.OutstandingCmdListCount.GetValue() == 1)
 	{
 		LatchBypass();
@@ -83,7 +109,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 
 void FRHICommandListExecutor::LatchBypass()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 
 	static bool bOnce = false;
 	if (!bOnce)
@@ -103,6 +129,14 @@ void FRHICommandListExecutor::LatchBypass()
 		FRHIResource::FlushPendingDeletes();
 	}
 	bLatchedBypass = NewBypass;
+	if (!bLatchedBypass)
+	{
+		bLatchedUseParallelAlgorithms = (CVarRHICmdUseParallelAlgorithms.GetValueOnAnyThread() >= 1);
+	}
+	else
+	{
+		bLatchedUseParallelAlgorithms = false;
+	}
 #endif
 }
 
@@ -139,6 +173,39 @@ void FRHICommandListBase::Reset()
 	UID = GRHICommandList.UIDCounter.Increment();
 }
 
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Chains Links"), STAT_ChainLinkCount, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Wait for CmdList"), STAT_ChainWait, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Chain Execute"), STAT_ChainExecute, STATGROUP_RHICMDLIST);
+
+struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitForAndSubmitSubList>
+{
+	FGraphEventRef EventToWaitFor;
+	FRHICommandList* RHICmdList;
+	FORCEINLINE_DEBUGGABLE FRHICommandWaitForAndSubmitSubList(FGraphEventRef& InEventToWaitFor, FRHICommandList* InRHICmdList)
+		: EventToWaitFor(InEventToWaitFor)
+		, RHICmdList(InRHICmdList)
+	{
+	}
+	void Execute()
+	{
+		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_ChainWait);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(EventToWaitFor, ENamedThreads::RenderThread_Local);
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_ChainExecute);
+			delete RHICmdList;
+		}
+	}
+};
+
+void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef AnyThreadCompletionEvent, class FRHICommandList* CmdList)
+{
+	new (AllocCommand<FRHICommandWaitForAndSubmitSubList>()) FRHICommandWaitForAndSubmitSubList(AnyThreadCompletionEvent, CmdList);
+}
+
+
 static TLockFreeFixedSizeAllocator<sizeof(FRHICommandList), FThreadSafeCounter> RHICommandListAllocator;
 
 void* FRHICommandList::operator new(size_t Size)
@@ -157,5 +224,4 @@ void FRHICommandList::operator delete(void *RawMemory)
 	RHICommandListAllocator.Free(RawMemory);
 	//FMemory::Free(RawMemory);
 }	
-
 

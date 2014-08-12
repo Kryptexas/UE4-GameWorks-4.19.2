@@ -839,9 +839,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 	GSceneRenderTargets.AllocLightAttenuation(); // materials will attempt to get this texture before the deferred command to set it up executes
 	int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
+	FScopedCommandListFlush Flusher(RHICmdList);
 	FTranslucencyDrawingPolicyFactory::ContextType ThisContext;
 
-	FGraphEventRef SubmitChain;
+	check(IsInRenderingThread());
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -866,13 +867,15 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
 					check(Last >= Start);
 
-					FRHICommandList* CmdList = new FRHICommandList;
+					{
+						FRHICommandList* CmdList = new FRHICommandList;
 
-					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(this, CmdList, &View, false, Start, Last);
+						FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+							.ConstructAndDispatchWhenReady(this, CmdList, &View, false, Start, Last);
+
+						RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList); 
+					}
 					Start = Last + 1;
-
-					SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 				}
 			}
 			else
@@ -883,14 +886,13 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 					.ConstructAndDispatchWhenReady(this, CmdList, &View, false, 0, -1);
 
-				SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
+				RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
 			}
 		}
-
 		// Draw the view's mesh elements with the translucent drawing policy.
-		SubmitChain = DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(View, ThisContext, SDPG_World, false, SubmitChain, Width);
+		DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(View, ThisContext, SDPG_World, false, RHICmdList, Width);
 		// Draw the view's mesh elements with the translucent drawing policy.
-		SubmitChain = DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(View, ThisContext, SDPG_Foreground, false, SubmitChain, Width);
+		DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(View, ThisContext, SDPG_Foreground, false, RHICmdList, Width);
 
 #if 0 // unsupported visualization in the parallel case
 		const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
@@ -921,34 +923,35 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
 					check(Last >= Start);
 
-					FRHICommandList* CmdList = new FRHICommandList;
+					{
+						FRHICommandList* CmdList = new FRHICommandList;
 
-					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(this, CmdList, &View, true, Start, Last);
+						FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+							.ConstructAndDispatchWhenReady(this, CmdList, &View, true, Start, Last);
+
+						RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList); 
+					}
 					Start = Last + 1;
-
-					SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
 				}
 			}
 			else
 			{
 				// still need to setup the render target, a bit of a waste...
 				FRHICommandList* CmdList = new FRHICommandList;
-
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
 					.ConstructAndDispatchWhenReady(this, CmdList, &View, true, 0, -1);
-				SubmitChain = FSubmitCommandlistThreadTask::AddToChain(AnyThreadCompletionEvent, SubmitChain, CmdList);
+				RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
 			}
 		}
 	}
-
-	if (SubmitChain.GetReference())
-	{
-		RHICmdList.Flush(); // this would happen later anyway, but we might as well do these while we wait for async tasks
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
-	}
 }
 
+static TAutoConsoleVariable<int32> CVarParallelTranslucency(
+	TEXT("r.ParallelTranslucency"),
+	1,
+	TEXT("Toggles parallel translucency rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	ECVF_RenderThreadSafe
+	);
 
 void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList)
 {
@@ -957,7 +960,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
 
-		if (!GRHICommandList.Bypass())
+		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelTranslucency.GetValueOnRenderThread())
 		{
 			RenderTranslucencyParallel(RHICmdList);
 			return;
