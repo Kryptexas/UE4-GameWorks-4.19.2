@@ -11,7 +11,11 @@ class UMG_API UHorizontalBox : public UPanelWidget
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	UHorizontalBoxSlot* Add(UWidget* Content);
+	UHorizontalBoxSlot* AddSlot(UWidget* Content);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Slot")
+	static UHorizontalBoxSlot* HorizontalBoxSlot(UWidget* Child);
 
 #if WITH_EDITOR
 	// UWidget interface
