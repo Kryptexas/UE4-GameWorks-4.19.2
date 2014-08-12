@@ -1552,7 +1552,7 @@ void USkinnedMeshComponent::UnHideBone( int32 BoneIndex )
 
 bool USkinnedMeshComponent::IsBoneHidden( int32 BoneIndex ) const
 {
-	if (ShouldUpdateBoneVisibility())
+	if (ShouldUpdateBoneVisibility() && BoneIndex < BoneVisibilityStates.Num())
 	{
 		if ( BoneIndex != INDEX_NONE )
 		{
