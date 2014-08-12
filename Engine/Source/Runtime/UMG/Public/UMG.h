@@ -65,6 +65,9 @@
 #include "ButtonSlot.h"
 #include "Button.h"
 
+#include "SizeBoxSlot.h"
+#include "SizeBox.h"
+
 #include "TextBlock.h"
 #include "CheckBox.h"
 #include "Image.h"
