@@ -50,6 +50,8 @@ public:
 	{
 	}
 
+	virtual ~CDODiffHighlighter() {}
+
 private:
 	void NextDiff() override;
 	void PrevDiff() override;
