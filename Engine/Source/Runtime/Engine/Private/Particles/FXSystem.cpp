@@ -310,7 +310,7 @@ void FFXSystem::PreInitViews()
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		ResetSortedGPUParticles();
+		AdvanceGPUParticleFrame();
 	}
 }
 

@@ -3951,8 +3951,13 @@ int32 FFXSystem::AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, cons
 	return BufferOffset;
 }
 
-void FFXSystem::ResetSortedGPUParticles()
+void FFXSystem::AdvanceGPUParticleFrame()
 {
+	// We double buffer, so swap the current and previous textures.
+	ParticleSimulationResources->FrameIndex ^= 0x1;
+
+	// Reset the list of sorted simulations. As PreRenderView is called on GPU simulations we'll
+	// allocate space for them in the sorted index buffer.
 	ParticleSimulationResources->SimulationsToSort.Reset();
 	ParticleSimulationResources->SortedParticleCount = 0;
 }
@@ -4019,12 +4024,6 @@ void FFXSystem::SimulateGPUParticles(
 	SCOPE_CYCLE_COUNTER(STAT_GPUParticleTickTime);
 
 	FMemMark Mark(FMemStack::Get());
-
-	if (Phase == EParticleSimulatePhase::First)
-	{
-		// Advance to the next frame.
-		ParticleSimulationResources->FrameIndex ^= 0x1;
-	}
 
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
