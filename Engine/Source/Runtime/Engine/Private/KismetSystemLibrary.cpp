@@ -481,6 +481,18 @@ void UKismetSystemLibrary::SetObjectPropertyByName(UObject* Object, FName Proper
 	}
 }
 
+void UKismetSystemLibrary::SetClassPropertyByName(UObject* Object, FName PropertyName, TSubclassOf<UObject> Value)
+{
+	if (Object && *Value)
+	{
+		auto ClassProp = FindField<UClassProperty>(Object->GetClass(), PropertyName);
+		if (ClassProp != NULL && Value->IsChildOf(ClassProp->MetaClass)) // check it's the right type
+		{
+			ClassProp->SetObjectPropertyValue_InContainer(Object, *Value);
+		}
+	}
+}
+
 void UKismetSystemLibrary::SetStringPropertyByName(UObject* Object, FName PropertyName, const FString& Value)
 {
 	if(Object != NULL)

@@ -3281,6 +3281,11 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetObjectPropertyByName));
 		SetFunctionName = SetObjectName;
 	}
+	else if (PinType.PinCategory == K2Schema->PC_Class)
+	{
+		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetClassPropertyByName));
+		SetFunctionName = SetObjectName;
+	}
 	else if(PinType.PinCategory == K2Schema->PC_Interface)
 	{
 		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetObjectPropertyByName));
