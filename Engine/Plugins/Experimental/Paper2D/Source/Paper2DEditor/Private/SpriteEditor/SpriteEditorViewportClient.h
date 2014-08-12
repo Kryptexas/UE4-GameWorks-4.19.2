@@ -10,6 +10,7 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "SpriteEditorSelections.h"
+#include "AssetData.h"
 
 //////////////////////////////////////////////////////////////////////////
 // 
