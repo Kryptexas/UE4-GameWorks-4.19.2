@@ -83,6 +83,12 @@ public:
 	/** Returns the tooltip text description of this factory */
 	virtual FText GetToolTip() const;
 
+	/** Returns the documentation page that should be use for the rich tool tip for this factory */
+	virtual FString GetToolTipDocumentationPage() const;
+
+	/** Returns the documentation excerpt that should be use for the rich tool tip for this factory */
+	virtual FString GetToolTipDocumentationExcerpt() const;
+
 	/**
 	 * @return		The object class supported by this factory.
 	 */

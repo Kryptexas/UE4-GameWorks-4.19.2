@@ -379,11 +379,11 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 
 				const FString CodeFileName = FPaths::GetCleanFilename( *ClassHeaderPath );
 
-				MenuBuilder.BeginSection( "ActorCode", LOCTEXT("ActorCodeHeading", "C++") );
+				MenuBuilder.BeginSection( "AssetCode", LOCTEXT("AssetCodeHeading", "C++") );
 				{
 					MenuBuilder.AddMenuEntry(
-						FText::Format( LOCTEXT("GoToCodeForActor", "Open {0}"), FText::FromString( CodeFileName ) ),
-						FText::Format( LOCTEXT("GoToCodeForActor_ToolTip", "Opens the header file for this actor ({0}) in a code editing program"), FText::FromString( CodeFileName ) ),
+						FText::Format( LOCTEXT("GoToCodeForAsset", "Open {0}"), FText::FromString( CodeFileName ) ),
+						FText::Format( LOCTEXT("GoToCodeForAsset_ToolTip", "Opens the header file for this asset ({0}) in a code editing program"), FText::FromString( CodeFileName ) ),
 						FSlateIcon(),
 						FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToCodeForAsset, SelectedClass ) )
 						);
@@ -397,14 +397,54 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 		{
 			bAddedOption = true;
 
-			MenuBuilder.BeginSection( "ActorDocumentation", LOCTEXT("ActorDocsHeading", "Documentation") );
+			MenuBuilder.BeginSection( "AssetDocumentation", LOCTEXT("AseetDocsHeading", "Documentation") );
 			{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("GoToDocsForActor", "View Documentation"),
-						LOCTEXT("GoToDocsForActor_ToolTip", "Click to open documentation for this actor"),
-						FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
-						FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
-						);
+					if (bIsBlueprint)
+					{
+						MenuBuilder.AddMenuEntry(
+							FText::Format( LOCTEXT("GoToDocsForAssetWithClass", "View Documentation - {0}"), SelectedClass->GetDisplayNameText() ),
+							FText::Format( LOCTEXT("GoToDocsForAssetWithClass_ToolTip", "Click to open documentation for {0}"), SelectedClass->GetDisplayNameText() ),
+							FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+							FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
+							);
+
+						FString ExcerptSection;
+
+						UEnum* BlueprintTypeEnum = FindObject<UEnum>(nullptr, TEXT("EBlueprintType"), true);
+						FString* EnumString = SelectedAssets[0].TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint,BlueprintType));
+						EBlueprintType BlueprintType = (EnumString ? (EBlueprintType)BlueprintTypeEnum->FindEnumIndex(**EnumString) : BPTYPE_Normal);
+
+						switch (BlueprintType)
+						{
+						case BPTYPE_FunctionLibrary:
+							ExcerptSection = TEXT("UBlueprint_FunctionLibrary");
+							break;
+						case BPTYPE_Interface:
+							ExcerptSection = TEXT("UBlueprint_Interface");
+							break;
+						case BPTYPE_MacroLibrary:
+							ExcerptSection = TEXT("UBlueprint_Macro");
+							break;
+						default:
+							ExcerptSection = TEXT("UBlueprint");
+						}
+
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("GoToDocsForBlueprint", "View Documentation - Blueprint"),
+							LOCTEXT("GoToDocsForBlueprint_ToolTip", "Click to open documentation on blueprints"),
+							FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+							FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), ExcerptSection ) )
+							);
+					}
+					else
+					{
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("GoToDocsForAsset", "View Documentation"),
+							LOCTEXT("GoToDocsForAsset_ToolTip", "Click to open documentation"),
+							FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+							FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
+							);
+					}
 			}
 			MenuBuilder.EndSection();
 		}
@@ -1020,9 +1060,14 @@ void FAssetContextMenu::ExecuteGoToCodeForAsset(UClass* SelectedClass)
 
 void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass)
 {
+	ExecuteGoToDocsForAsset(SelectedClass, FString());
+}
+
+void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FString ExcerptSection)
+{
 	if (SelectedClass)
 	{
-		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass);
+		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass, ExcerptSection);
 		if (!DocumentationLink.IsEmpty())
 		{
 			IDocumentation::Get()->Open( DocumentationLink );

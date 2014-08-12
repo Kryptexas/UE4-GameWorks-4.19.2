@@ -115,6 +115,9 @@ private:
 	/** Handler for GoToAssetDocs */
 	void ExecuteGoToDocsForAsset(UClass* SelectedClass);
 
+	/** Handler for GoToAssetDocs */
+	void ExecuteGoToDocsForAsset(UClass* SelectedClass, const FString ExcerptSection);
+
 	/** Handler for CopyReference */
 	void ExecuteCopyReference();
 

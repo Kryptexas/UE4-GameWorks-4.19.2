@@ -5,6 +5,7 @@
 #include "UnrealEd.h"
 #include "ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "EditorClassUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFactory, Log, All);
 
@@ -119,6 +120,16 @@ uint32 UFactory::GetMenuCategories() const
 FText UFactory::GetToolTip() const
 {
 	return GetSupportedClass()->GetToolTipText();
+}
+
+FString UFactory::GetToolTipDocumentationPage() const
+{
+	return FEditorClassUtils::GetDocumentationPage(GetSupportedClass());
+}
+
+FString UFactory::GetToolTipDocumentationExcerpt() const
+{
+	return FEditorClassUtils::GetDocumentationExcerpt(GetSupportedClass());
 }
 
 UClass* UFactory::GetSupportedClass() const

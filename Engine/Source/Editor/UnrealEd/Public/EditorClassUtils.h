@@ -48,7 +48,7 @@ namespace FEditorClassUtils
 	 * @param	Class		Class we want to build a link for
 	 * @return				The path to the documentation for the class
 	 */
-	UNREALED_API FString GetDocumentationLink(const UClass* Class);
+	UNREALED_API FString GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt = FString());
 
 	/**
 	 * Creates a link widget to the documentation for a given class

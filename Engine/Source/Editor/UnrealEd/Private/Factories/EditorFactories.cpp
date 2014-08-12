@@ -6193,6 +6193,11 @@ FText UBlueprintMacroFactory::GetToolTip() const
 	return LOCTEXT("BlueprintMacroLibraryTooltip", "Blueprint Macro Libraries are containers of macros to be used in other blueprints. They cannot contain variables, inherit from other blueprints, or be placed in levels. Changes to macros in a Blueprint Macro Library will not take effect until client blueprints are recompiled.");
 }
 
+FString UBlueprintMacroFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_Macro");
+}
+
 UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
 	// Make sure we are trying to factory a blueprint, then create and init one
@@ -6248,6 +6253,11 @@ uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
 FText UBlueprintFunctionLibraryFactory::GetToolTip() const
 {
 	return LOCTEXT("BlueprintFunctionLibraryTooltip", "Blueprint Function Libraries are containers of functions to be used in other blueprints. They cannot contain variables, inherit from other blueprints, or be placed in levels. Changes to functions in a Blueprint Function Library will take effect without recompiling the client blueprints.");
+}
+
+FString UBlueprintFunctionLibraryFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_FunctionLibrary");
 }
 
 UObject* UBlueprintFunctionLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
@@ -6308,6 +6318,11 @@ uint32 UBlueprintInterfaceFactory::GetMenuCategories() const
 FText UBlueprintInterfaceFactory::GetToolTip() const
 {
 	return LOCTEXT("BlueprintInterfaceTooltip", "A Blueprint Interface is a collection of one or more functions - name only, no implementation - that can be added to other Blueprints. These other Blueprints are then expected to implement the functions of the Blueprint Interface in a unique manner.");
+}
+
+FString UBlueprintInterfaceFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_Interface");
 }
 
 UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
