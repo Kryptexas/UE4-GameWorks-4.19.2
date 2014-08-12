@@ -2944,6 +2944,7 @@ bool FSlateApplication::ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent )
 		for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
 			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+			if (SomeWidgetGettingEvent.Widget->IsEnabled())
 			{
 				// Widget newly under cursor, so send a MouseEnter.
 				Reply = SomeWidgetGettingEvent.Widget->OnKeyChar( SomeWidgetGettingEvent.Geometry, InCharacterEvent ).SetHandler( SomeWidgetGettingEvent.Widget );				
@@ -3101,6 +3102,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent )
 		for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
 			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+			if (SomeWidgetGettingEvent.Widget->IsEnabled())
 			{
 				// Widget newly under cursor, so send a MouseEnter.
 				Reply = SomeWidgetGettingEvent.Widget->OnKeyUp( SomeWidgetGettingEvent.Geometry, InKeyboardEvent ).SetHandler( SomeWidgetGettingEvent.Widget );				
