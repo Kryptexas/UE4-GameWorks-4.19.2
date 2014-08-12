@@ -68,6 +68,36 @@ bool UWidget::IsHovered() const
 	return false;
 }
 
+bool UWidget::HasKeyboardFocus() const
+{
+	if ( MyWidget.IsValid() )
+	{
+		return MyWidget.Pin()->HasKeyboardFocus();
+	}
+
+	return false;
+}
+
+bool UWidget::HasFocusedDescendants() const
+{
+	if ( MyWidget.IsValid() )
+	{
+		return MyWidget.Pin()->HasFocusedDescendants();
+	}
+
+	return false;
+}
+
+bool UWidget::HasMouseCapture() const
+{
+	if ( MyWidget.IsValid() )
+	{
+		return MyWidget.Pin()->HasMouseCapture();
+	}
+
+	return false;
+}
+
 void UWidget::ForceLayoutPrepass()
 {
 	if ( MyWidget.IsValid() )

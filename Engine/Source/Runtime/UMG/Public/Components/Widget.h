@@ -127,6 +127,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
 
+	/**
+	 * Checks to see if this widget currently has the keyboard focus
+	 *
+	 * @return  True if this widget has keyboard focus
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasKeyboardFocus() const;
+
+	/**
+	 * @return Whether this widget has any descendants with keyboard focus
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasFocusedDescendants() const;
+
+	/**
+	 * Checks to see if this widget is the current mouse captor
+	 *
+	 * @return  True if this widget has captured the mouse
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasMouseCapture() const;
+
 	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
