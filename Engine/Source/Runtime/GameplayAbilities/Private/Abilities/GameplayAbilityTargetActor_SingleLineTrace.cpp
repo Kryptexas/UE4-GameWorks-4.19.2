@@ -102,6 +102,8 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 
 void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 {
+	check(ShouldProduceTargetData());
+
 	if (SourceActor)
 	{
 		bDebug = false;

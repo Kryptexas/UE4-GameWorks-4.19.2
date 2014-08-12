@@ -29,6 +29,8 @@ public:
 	UFUNCTION()
 	virtual void CancelTargeting();
 
+	virtual bool ShouldProduceTargetData() const;
+
 	/** Replicated target data was received from a client. Possibly sanitize/verify. return true if data is good and we should broadcast it as valid data. */
 	virtual bool OnReplicatedTargetDataReceived(FGameplayAbilityTargetDataHandle& Data) const;
 

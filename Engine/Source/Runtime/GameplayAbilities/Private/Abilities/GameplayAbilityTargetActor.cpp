@@ -21,6 +21,8 @@ void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
+	check(ShouldProduceTargetData());
+
 	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	Destroy();
 }
@@ -56,4 +58,9 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor::StaticGetTargetDat
 bool AGameplayAbilityTargetActor::OnReplicatedTargetDataReceived(FGameplayAbilityTargetDataHandle& Data) const
 {
 	return true;
+}
+
+bool AGameplayAbilityTargetActor::ShouldProduceTargetData() const
+{
+	return (MasterPC && MasterPC->IsLocalController());
 }

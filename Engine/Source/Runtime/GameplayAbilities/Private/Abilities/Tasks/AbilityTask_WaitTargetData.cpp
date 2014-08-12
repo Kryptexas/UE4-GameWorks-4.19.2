@@ -156,7 +156,14 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 {
 	check(AbilitySystemComponent.IsValid());
 
-	AbilitySystemComponent->ServerSetReplicatedTargetData(Data);
+	// Send TargetData to the server IFF we are the client or this is a locally controlled player on the server 
+	// If server confirmed a client's target data locally, it doesn't need to go through the replicated target data code path
+	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
+	if (!Info->IsNetAuthority() || Info->IsLocallyControlled())
+	{
+		AbilitySystemComponent->ServerSetReplicatedTargetData(Data);
+	}
+
 	ValidData.Broadcast(Data);
 	
 	Cleanup();
@@ -175,6 +182,12 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 
 void UAbilityTask_WaitTargetData::Cleanup()
 {
+	if (HasAnyFlags(RF_PendingKill))
+	{
+		ensure(false);
+		return;
+	}
+
 	AbilitySystemComponent->ConsumeAbilityTargetData();
 	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
 
