@@ -6,8 +6,8 @@
 #include "ISequencer.h"
 #include "MovieScene.h"
 
-FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene )
-	: MovieScene( &InMovieScene )
+FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation )
+	: WidgetAnimation( &InAnimation )
 	, WidgetBlueprintEditor( InWidgetBlueprintEditor )
 {
 	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().AddRaw( this, &FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated );
@@ -16,6 +16,7 @@ FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlu
 
 FUMGSequencerObjectBindingManager::~FUMGSequencerObjectBindingManager()
 {
+	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().RemoveAll( this );
 }
 
 FGuid FUMGSequencerObjectBindingManager::FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const
@@ -36,9 +37,6 @@ bool FUMGSequencerObjectBindingManager::CanPossessObject( UObject& Object ) cons
 void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject )
 {
 	PreviewObjectToGuidMap.Add( &PossessedObject, PossessableGuid );
-
-	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
-	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
 
 	FWidgetAnimationBinding NewBinding;
 	NewBinding.WidgetName = PossessedObject.GetFName();
@@ -64,7 +62,6 @@ void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& P
 	}
 
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
-	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
 
 	WidgetAnimation->AnimationBindings.RemoveAll( [&]( const FWidgetAnimationBinding& Binding ) { return Binding.AnimationGuid == PossessableGuid; } );
 
@@ -82,41 +79,45 @@ void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMov
 	}
 }
 
-void FUMGSequencerObjectBindingManager::InitPreviewObjects()
+bool FUMGSequencerObjectBindingManager::HasValidWidgetAnimation() const
 {
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
+	return WidgetAnimation.IsValid() && WidgetBlueprint->Animations.Contains( WidgetAnimation.Get() );
+}
 
+void FUMGSequencerObjectBindingManager::InitPreviewObjects()
+{
 	// Populate preview object to guid map
 	UUserWidget* PreviewWidget = WidgetBlueprintEditor.GetPreview();
 
-	UWidgetTree* WidgetTree = PreviewWidget->WidgetTree;
-
-	const FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene( *MovieScene );
-	check( WidgetAnimation );
-
-	for( const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings )
+	if( PreviewWidget )
 	{
-		FName ObjectName = Binding.WidgetName;
-		FName SlotWidgetName = Binding.SlotWidgetName;
+		UWidgetTree* WidgetTree = PreviewWidget->WidgetTree;
 
-		FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
-
-		UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
-		if(FoundObject)
+		for(const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings)
 		{
-			if( SlotWidgetName == NAME_None )
+			FName ObjectName = Binding.WidgetName;
+			FName SlotWidgetName = Binding.SlotWidgetName;
+
+			FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
+
+			UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
+			if(FoundObject)
 			{
-				PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
-			}
-			else
-			{
-				FoundObject = FindObject<UObject>( FoundObject, *ObjectName.ToString() );
-				if( FoundObject )
+				if(SlotWidgetName == NAME_None)
 				{
 					PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
 				}
+				else
+				{
+					FoundObject = FindObject<UObject>(FoundObject, *ObjectName.ToString());
+					if(FoundObject)
+					{
+						PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
+					}
+				}
+
 			}
-		
 		}
 	}
 }

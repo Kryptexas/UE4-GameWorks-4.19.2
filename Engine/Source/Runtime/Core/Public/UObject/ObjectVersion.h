@@ -594,6 +594,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADDED_CURRENCY_CODE_TO_FTEXT,
 	// Added support for C++11 enum classes
 	VER_UE4_ENUM_CLASS_SUPPORT,
+	// Fixup widget animation class
+	VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

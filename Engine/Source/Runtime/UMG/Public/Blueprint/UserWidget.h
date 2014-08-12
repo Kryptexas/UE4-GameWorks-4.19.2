@@ -3,13 +3,14 @@
 #pragma once
 
 #include "Geometry.h"
-
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
 static FSlateRect NullRect;
 static FSlateWindowElementList NullElementList;
 static FWidgetStyle NullStyle;
+
+class UWidgetAnimation;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
@@ -232,7 +233,7 @@ public:
 	 * @param The name of the animation to play
 	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
-	void PlayAnimation(FName AnimationName);
+	void PlayAnimation(const UWidgetAnimation* InAnimation);
 
 	/**
 	 * Stops an already running animation in this widget
@@ -240,7 +241,7 @@ public:
 	 * @param The name of the animation to stop
 	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
-	void StopAnimation(FName AnimationName);
+	void StopAnimation(const UWidgetAnimation* InAnimation);
 
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
@@ -324,6 +325,9 @@ public:
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
 
+	/** List of sequence players to cache and clean up when safe */
+	UPROPERTY(Transient)
+	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 

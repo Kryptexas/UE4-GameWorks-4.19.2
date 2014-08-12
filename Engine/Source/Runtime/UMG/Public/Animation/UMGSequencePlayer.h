@@ -5,7 +5,7 @@
 #include "IMovieScenePlayer.h"
 #include "UMGSequencePlayer.generated.h"
 
-class UMovieScene;
+class UWidgetAnimation;
 class UMovieSceneBindings;
 
 UCLASS(transient)
@@ -14,7 +14,7 @@ class UMG_API UUMGSequencePlayer : public UObject, public IMovieScenePlayer
 	GENERATED_UCLASS_BODY()
 
 public:
-	void InitSequencePlayer( const FWidgetAnimation& Animation, UUserWidget& UserWidget );
+	void InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget );
 
 	/** Updates the running movie */
 	void Tick( float DeltaTime );
@@ -28,7 +28,8 @@ public:
 	/** Pauses a running animation */
 	void Pause();
 
-	const UMovieScene* GetMovieScene() const { return MovieScene; }
+	/** @return The current animation being played */
+	const UWidgetAnimation* GetAnimation() const { return Animation; }
 
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
@@ -42,9 +43,9 @@ public:
 	FOnSequenceFinishedPlaying& OnSequenceFinishedPlaying() { return OnSequenceFinishedPlayingEvent; }
 
 private:
-	/** Sequence being played */
+	/** Animation being played */
 	UPROPERTY()
-	UMovieScene* MovieScene;
+	const UWidgetAnimation* Animation;
 
 	/** Bindings to actual live objects */
 	UPROPERTY()

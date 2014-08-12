@@ -228,7 +228,20 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	}
 
 	// Add movie scenes variables here
+	for(UWidgetAnimation* Animation : Blueprint->Animations)
+	{
+		FString VariableName = Animation->GetName();
 
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Animation->GetClass(), false, true);
+		UProperty* WidgetProperty = CreateVariable(FName(*VariableName), WidgetPinType);
+
+		if(WidgetProperty != NULL)
+		{
+			WidgetProperty->SetMetaData(TEXT("Category"), TEXT("Animations") );
+
+			WidgetProperty->SetPropertyFlags(CPF_BlueprintVisible);
+		}
+	}
 }
 
 void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
@@ -239,16 +252,17 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	BPGClass->WidgetTree = DuplicateObject<UWidgetTree>(Blueprint->WidgetTree, BPGClass);
 
-	BPGClass->AnimationData.Empty();
-	for ( const FWidgetAnimation& Animation : Blueprint->AnimationData )
+	BPGClass->Animations.Empty();
+
+	// Dont duplicate animation data on the skeleton class
+	if( Blueprint->SkeletonGeneratedClass != Class )
 	{
-		UMovieScene* ClonedSequence = DuplicateObject<UMovieScene>(Animation.MovieScene, BPGClass, *Animation.MovieScene->GetName());
-		FWidgetAnimation CompiledAnimation;
+		for(const UWidgetAnimation* Animation : Blueprint->Animations)
+		{
+			UWidgetAnimation* ClonedAnimation = DuplicateObject<UWidgetAnimation>(Animation, BPGClass, *(Animation->GetName()+TEXT("_INST")));
 
-		CompiledAnimation.MovieScene = ClonedSequence;
-		CompiledAnimation.AnimationBindings = Animation.AnimationBindings;
-
-		BPGClass->AnimationData.Add( CompiledAnimation );
+			BPGClass->Animations.Add(ClonedAnimation);
+		}
 	}
 
 	BPGClass->Bindings.Reset();

@@ -4,7 +4,7 @@
 
 #include "Engine/Blueprint.h"
 #include "UserWidget.h"
-#include "WidgetBlueprintGeneratedClass.h"
+#include "WidgetAnimation.h"
 
 #include "WidgetBlueprint.generated.h"
 
@@ -43,6 +43,33 @@ struct UMGEDITOR_API FDelegateEditorBinding
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
 
+
+/** Struct used only for loading old animations */
+USTRUCT()
+struct FWidgetAnimation_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	UMovieScene* MovieScene;
+
+	UPROPERTY()
+	TArray<FWidgetAnimationBinding> AnimationBindings;
+
+	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
+
+};
+
+template<>
+struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+
+
 /**
  * The widget blueprint enables extending UUserWidget the user extensible UWidget.
  */
@@ -60,7 +87,10 @@ public:
 	TArray< FDelegateEditorBinding > Bindings;
 
 	UPROPERTY()
-	TArray<FWidgetAnimation> AnimationData;
+	TArray<FWidgetAnimation_DEPRECATED> AnimationData_DEPRECATED;
+
+	UPROPERTY()
+	TArray<UWidgetAnimation*> Animations;
 
 	/** UObject interface */
 	virtual void PostLoad() override;
@@ -79,8 +109,6 @@ public:
 
 	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
 	// End of UBlueprint interface
-
-	FWidgetAnimation* FindAnimationDataForMovieScene( UMovieScene& MovieScene );
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
 };

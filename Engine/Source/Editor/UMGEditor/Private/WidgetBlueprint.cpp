@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "Runtime/MovieSceneCore/Classes/MovieScene.h"
+#include "PropertyTag.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -23,7 +24,18 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 	return Binding;
 }
 
+bool FWidgetAnimation_DEPRECATED::SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar)
+{
+	static FName AnimationDataName("AnimationData");
+	if(Tag.Type == NAME_StructProperty && Tag.Name == AnimationDataName)
+	{
+		Ar << MovieScene;
+		Ar << AnimationBindings;
+		return true;
+	}
 
+	return false;
+}
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
 
@@ -45,6 +57,28 @@ void UWidgetBlueprint::PostLoad()
 		Widget->ConnectEditorData();
 	}
 
+	if( GetLinkerUE4Version() < VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS )
+	{
+		// Fixup widget animiations.
+		for( auto& OldAnim : AnimationData_DEPRECATED )
+		{
+			FName AnimName = OldAnim.MovieScene->GetFName();
+
+			// Rename the old movie scene so we can reuse the name
+			OldAnim.MovieScene->Rename( *MakeUniqueObjectName( this, UMovieScene::StaticClass(), "MovieScene").ToString(), nullptr, REN_ForceNoResetLoaders | REN_DontCreateRedirectors | REN_DoNotDirty | REN_NonTransactional);
+
+			UWidgetAnimation* NewAnimation = ConstructObject<UWidgetAnimation>( UWidgetAnimation::StaticClass(), this, AnimName, RF_Transactional );
+
+			OldAnim.MovieScene->Rename(*AnimName.ToString(), NewAnimation, REN_ForceNoResetLoaders | REN_DontCreateRedirectors | REN_DoNotDirty | REN_NonTransactional );
+
+			NewAnimation->MovieScene = OldAnim.MovieScene;
+			NewAnimation->AnimationBindings = OldAnim.AnimationBindings;
+			
+			Animations.Add( NewAnimation );
+		}	
+
+		AnimationData_DEPRECATED.Empty();
+	}
 }
 
 UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
@@ -62,11 +96,6 @@ UClass* UWidgetBlueprint::GetBlueprintClass() const
 bool UWidgetBlueprint::AllowsDynamicBinding() const
 {
 	return true;
-}
-
-FWidgetAnimation* UWidgetBlueprint::FindAnimationDataForMovieScene( UMovieScene& MovieScene )
-{
-	return AnimationData.FindByPredicate( [&](const FWidgetAnimation& Data) { return Data.MovieScene == &MovieScene; } );
 }
 
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)

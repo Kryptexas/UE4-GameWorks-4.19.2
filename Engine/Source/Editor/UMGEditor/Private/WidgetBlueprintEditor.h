@@ -26,7 +26,10 @@ public:
 
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
+	/** FBlueprintEditor interface */
 	virtual void Tick(float DeltaTime) override;
+	virtual void PostUndo(bool bSuccessful) override;
+	virtual void PostRedo(bool bSuccessful) override;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -39,6 +42,12 @@ public:
 
 	/** @return The sequencer used to create widget animations */
 	TSharedPtr<ISequencer>& GetSequencer();
+
+	/** Changes the currently viewed animation in Sequencer to the new one*/
+	void ChangeViewedAnimation( UWidgetAnimation& InAnimationToView );
+
+	/** Updates the current animation if it is invalid */
+	const UWidgetAnimation* RefreshCurrentAnimation();
 
 	/** Sets the currently selected set of widgets */
 	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
@@ -57,6 +66,12 @@ public:
 	/** Migrate a property change from the preview GUI to the template GUI. */
 	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
 
+	/** Event called when an undo/redo transaction occurs */
+	DECLARE_EVENT(FWidgetBlueprintEditor, FOnWidgetBlueprintTransaction)
+	FOnWidgetBlueprintTransaction& GetOnWidgetBlueprintTransaction() { return OnWidgetBlueprintTransaction; }
+
+	/** Creates a sequencer widget */
+	TSharedRef<SWidget> CreateSequencerWidget();
 public:
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
@@ -101,12 +116,6 @@ private:
 
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
-	
-	/**
-	 * Gets the default movie scene which is used when there is no 
-	 * animation data present on the widget blueprint
-	 */
-	UMovieScene* GetDefaultMovieScene();
 
 private:
 	/** The preview scene that owns the preview GUI */
@@ -114,6 +123,9 @@ private:
 
 	/** Sequencer for creating and previewing widget animations */
 	TSharedPtr<ISequencer> Sequencer;
+
+	/** Overlay used to display UI on top of sequencer */
+	TWeakPtr<SOverlay> SequencerOverlay;
 
 	/** Manager for handling bindings to sequence animations */
 	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
@@ -129,6 +141,9 @@ private:
 
 	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
+
+	/** Delegate called when a undo/redo transaction happens */
+	FOnWidgetBlueprintTransaction OnWidgetBlueprintTransaction;
 
 	/** The toolbar builder associated with this editor */
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> WidgetToolbar;

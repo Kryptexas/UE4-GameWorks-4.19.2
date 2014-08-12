@@ -190,6 +190,30 @@ UMovieScene* FSequencer::GetFocusedMovieScene() const
 	return MovieSceneStack.Top()->GetMovieScene();
 }
 
+void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISequencerObjectBindingManager> NewObjectBindingManager )
+{
+	DestroySpawnablesForAllMovieScenes();
+
+	//@todo Sequencer - Encapsulate this better
+	MovieSceneStack.Empty();
+	SelectedSections.Empty();
+	SelectedKeys.Empty();
+	FilteringShots.Empty();
+	UnfilterableSections.Empty();
+	UnfilterableObjects.Empty();
+	MovieSceneSectionToInstanceMap.Empty();
+
+	NewRoot.SetFlags(RF_Transactional);
+
+	ObjectBindingManager = NewObjectBindingManager;
+
+	// Focusing the initial movie scene needs to be done before the first time GetFocusedMovieSceneInstane or GetRootMovieSceneInstance is used
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(NewRoot));
+	MovieSceneStack.Add(RootMovieSceneInstance.ToSharedRef());
+
+	NotifyMovieSceneDataChanged();
+}
+
 TSharedRef<FMovieSceneInstance> FSequencer::GetRootMovieSceneInstance() const
 {
 	return MovieSceneStack[0];

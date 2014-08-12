@@ -20,6 +20,7 @@
 #include "DesignerTabSummoner.h"
 #include "SequencerTabSummoner.h"
 #include "DetailsTabSummoner.h"
+#include "AnimationTabSummoner.h"
 
 /////////////////////////////////////////////////////
 // FWidgetDesignerApplicationMode
@@ -43,6 +44,7 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 		(
 			FTabManager::NewSplitter()
 			->SetOrientation(Orient_Horizontal)
+			->SetSizeCoefficient( 0.70f )
 			->Split
 			(
 				FTabManager::NewSplitter()
@@ -75,17 +77,30 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 				->Split
 				(
 					FTabManager::NewStack()
-					->SetSizeCoefficient( 0.5f )
+					->SetSizeCoefficient( 0.35f )
 					->AddTab( FDetailsTabSummoner::TabID, ETabState::OpenedTab )
 				)
 			)
 		)
 		->Split
 		(
-			FTabManager::NewStack()
-			->SetSizeCoefficient(0.2f)
-			->SetHideTabWell(true)
-			->AddTab( FSequencerTabSummoner::TabID, ETabState::OpenedTab )
+			FTabManager::NewSplitter()
+			->SetOrientation(Orient_Horizontal)
+			->SetSizeCoefficient( 0.30f )
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(.15f)
+				->AddTab(FAnimationTabSummoner::TabID, ETabState::OpenedTab)
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(.85f)
+				->SetHideTabWell(true)
+				->AddTab(FSequencerTabSummoner::TabID, ETabState::OpenedTab)
+
+			)
 		)
 	);
 
@@ -97,6 +112,7 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 	TabFactories.RegisterFactory(MakeShareable(new FHierarchyTabSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FPaletteTabSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FSequencerTabSummoner(InWidgetEditor)));
+	TabFactories.RegisterFactory(MakeShareable(new FAnimationTabSummoner(InWidgetEditor)));
 
 	// setup toolbar - clear existing toolbar extender from the BP mode
 	//@TODO: Keep this in sync with BlueprintEditorModes.cpp

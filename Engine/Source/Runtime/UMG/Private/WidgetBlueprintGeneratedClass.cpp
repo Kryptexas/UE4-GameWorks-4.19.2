@@ -63,7 +63,19 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 		TArray<UWidget*> ClonedWidgets;
 		ClonedTree->GetAllWidgets(ClonedWidgets);
 
-		// @todo UMG Create Movie Scene vars here
+		for(UWidgetAnimation* Animation : Animations)
+		{
+			if( Animation->MovieScene )
+			{
+				// Find property with the same name as the template and assign the new widget to it.
+				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, Animation->MovieScene->GetFName());
+				if(Prop)
+				{
+					Prop->SetObjectPropertyValue_InContainer(UserWidget, Animation);
+				}
+			}
+
+		}
 
 		for ( UWidget* Widget : ClonedWidgets )
 		{
@@ -144,11 +156,6 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		//TODO Add OnWidgetInitialized
 	}
-}
-
-const FWidgetAnimation* UWidgetBlueprintGeneratedClass::FindAnimation( FName AnimationName ) const
-{
-	return AnimationData.FindByPredicate( [&](const FWidgetAnimation& Animation) { return Animation.MovieScene->GetFName() == AnimationName; } );
 }
 
 #undef LOCTEXT_NAMESPACE

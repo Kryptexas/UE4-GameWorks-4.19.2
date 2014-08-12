@@ -4,6 +4,7 @@
 
 #include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
+#include "WidgetAnimation.h"
 
 /**
  * This class holds onto the widget when it's placed into the viewport.
@@ -189,57 +190,48 @@ UWorld* UUserWidget::GetWorld() const
 	return CachedWorld;
 }
 
-void UUserWidget::PlayAnimation(FName AnimationName)
+void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
 {
-	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if (BPClass)
+	if( InAnimation )
 	{
-		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
-		if( Animation )
+		// @todo UMG sequencer - Restart animations which have had Play called on them?
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate( [&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; } );
+
+		if( !FoundPlayer )
 		{
-			// @todo UMG sequencer - Restart animations which have had Play called on them?
-			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate( [&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; } );
+			UUMGSequencePlayer* NewPlayer = ConstructObject<UUMGSequencePlayer>( UUMGSequencePlayer::StaticClass(), this );
+			ActiveSequencePlayers.Add( NewPlayer );
 
-			if( !FoundPlayer )
-			{
-				UUMGSequencePlayer* NewPlayer = ConstructObject<UUMGSequencePlayer>( UUMGSequencePlayer::StaticClass(), this );
-				ActiveSequencePlayers.Add( NewPlayer );
+			NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );
 
-				NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );
+			NewPlayer->InitSequencePlayer( *InAnimation, *this );
 
-				NewPlayer->InitSequencePlayer( *Animation, *this );
-
-				NewPlayer->Play();
-			}
-			else
-			{
-				(*FoundPlayer)->Play();
-			}
+			NewPlayer->Play();
+		}
+		else
+		{
+			(*FoundPlayer)->Play();
 		}
 	}
 }
 
-void UUserWidget::StopAnimation(FName AnimationName)
+void UUserWidget::StopAnimation(const UWidgetAnimation* InAnimation)
 {
-	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if(BPClass)
+	if(InAnimation)
 	{
-		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
-		if(Animation)
+		// @todo UMG sequencer - Restart animations which have had Play called on them?
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; } );
+
+		if(FoundPlayer)
 		{
-			// @todo UMG sequencer - Restart animations which have had Play called on them?
-			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; });
-			if(FoundPlayer)
-			{
-				(*FoundPlayer)->Stop();
-			}
+			(*FoundPlayer)->Stop();
 		}
 	}
 }
 
 void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 {
-	ActiveSequencePlayers.Remove( &Player );
+	StoppedSequencePlayers.Add( &Player );
 }
 
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
@@ -316,6 +308,14 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 	{
 		Player->Tick( InDeltaTime );
 	}
+
+	// The process of ticking the players above can stop them so we remove them after all players have ticked
+	for( UUMGSequencePlayer* StoppedPlayer : StoppedSequencePlayers )
+	{
+		ActiveSequencePlayers.Remove( StoppedPlayer );	
+	}
+
+	StoppedSequencePlayers.Empty();
 
 	if ( !bDesignTime )
 	{

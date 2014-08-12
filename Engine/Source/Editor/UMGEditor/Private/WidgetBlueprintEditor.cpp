@@ -34,6 +34,10 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	}
 
 	GEditor->OnObjectsReplaced().RemoveAll(this);
+	
+	Sequencer.Reset();
+
+	SequencerObjectBindingManager.Reset();
 }
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
@@ -251,6 +255,27 @@ void FWidgetBlueprintEditor::CutSelectedWidgets()
 	FWidgetBlueprintEditorUtils::CutWidgets(GetWidgetBlueprintObj(), Widgets);
 }
 
+const UWidgetAnimation* FWidgetBlueprintEditor::RefreshCurrentAnimation()
+{
+	if( !SequencerObjectBindingManager->HasValidWidgetAnimation() )
+	{
+		const TArray<UWidgetAnimation*>& Animations = GetWidgetBlueprintObj()->Animations;
+		if( Animations.Num() > 0 )
+		{
+			// Ensure we are viewing a valid animation
+			ChangeViewedAnimation( *Animations[0] );
+			return Animations[0];
+		}
+		else
+		{
+			ChangeViewedAnimation( *UWidgetAnimation::GetNullAnimation() );
+			return nullptr;
+		}
+	}
+
+	return SequencerObjectBindingManager->GetWidgetAnimation();
+}
+
 bool FWidgetBlueprintEditor::CanPasteWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
@@ -420,6 +445,37 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 	}
 }
 
+void FWidgetBlueprintEditor::PostUndo(bool bSuccessful)
+{
+	FBlueprintEditor::PostUndo(bSuccessful);
+
+	OnWidgetBlueprintTransaction.Broadcast();
+}
+
+void FWidgetBlueprintEditor::PostRedo(bool bSuccessful)
+{
+	FBlueprintEditor::PostRedo(bSuccessful);
+
+	OnWidgetBlueprintTransaction.Broadcast();
+}
+
+TSharedRef<SWidget> FWidgetBlueprintEditor::CreateSequencerWidget()
+{
+	TSharedRef<SOverlay> SequencerOverlayRef =
+		SNew(SOverlay)
+		.Tag(TEXT("Sequencer"))
+		+ SOverlay::Slot()
+		[
+			GetSequencer()->GetSequencerWidget()
+		];
+
+	SequencerOverlay = SequencerOverlayRef;
+
+	RefreshCurrentAnimation();
+
+	return SequencerOverlayRef;
+}
+
 UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 {
 	return Cast<UWidgetBlueprint>(GetBlueprintObj());
@@ -441,23 +497,21 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	{
 		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
-		FWidgetAnimation* WidgetAnimation = nullptr;
+		UWidgetAnimation* WidgetAnimation = nullptr;
 
-		if( Blueprint->AnimationData.Num() )
+		if( Blueprint->Animations.Num() )
 		{
-			WidgetAnimation = &Blueprint->AnimationData[0];
+			WidgetAnimation = Blueprint->Animations[0];
 		}
 		else
 		{
-			UMovieScene* MovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), Blueprint, MakeUniqueObjectName( Blueprint, UMovieScene::StaticClass(), "DefaultAnimationData"), RF_Transactional );
-			FWidgetAnimation NewAnimation;
-			NewAnimation.MovieScene = MovieScene;
-			int32 Index = Blueprint->AnimationData.Add( NewAnimation );
+			UWidgetAnimation* NewAnimation = ConstructObject<UWidgetAnimation>(UWidgetAnimation::StaticClass(), Blueprint, MakeUniqueObjectName(Blueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
+			NewAnimation->MovieScene =  ConstructObject<UMovieScene>(UMovieScene::StaticClass(), NewAnimation, NAME_None, RF_Transactional);
 
-			WidgetAnimation = &Blueprint->AnimationData[Index];
+			WidgetAnimation = NewAnimation;
 		}
 
-		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation->MovieScene) );
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation ) );
 		check( !SequencerObjectBindingManager.IsValid() );
 
 		SequencerObjectBindingManager = ObjectBindingManager;
@@ -470,6 +524,47 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	}
 
 	return Sequencer;
+}
+
+void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimationToView )
+{
+	if( InAnimationToView.MovieScene != Sequencer->GetRootMovieScene() )
+	{
+		TSharedRef<FUMGSequencerObjectBindingManager> NewObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, InAnimationToView));
+
+		Sequencer->ResetToNewRootMovieScene(*InAnimationToView.MovieScene, NewObjectBindingManager);
+
+		check(SequencerObjectBindingManager.IsUnique());
+
+		SequencerObjectBindingManager = NewObjectBindingManager;
+
+		SequencerObjectBindingManager->InitPreviewObjects();
+
+		TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
+		if( &InAnimationToView == UWidgetAnimation::GetNullAnimation() && SequencerOverlayPin.IsValid() )
+		{
+			Sequencer->GetSequencerWidget()->SetEnabled(false);
+			// Disable sequencer from interaction
+			SequencerOverlayPin->AddSlot(1)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
+				.TextStyle( FEditorStyle::Get(), "UMGEditor.NoAnimationFont" )
+				.Text( LOCTEXT("NoAnimationSelected","No Animation Selected") )
+			];
+
+			SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
+		}
+		else if( SequencerOverlayPin.IsValid() && SequencerOverlayPin->GetNumWidgets() > 1 )
+		{
+			Sequencer->GetSequencerWidget()->SetEnabled(true);
+
+			SequencerOverlayPin->RemoveSlot(1);
+			// Allow sequencer to be interacted with
+			SequencerOverlayPin->SetVisibility( EVisibility::SelfHitTestInvisible );
+		}
+	}
 }
 
 void FWidgetBlueprintEditor::DestroyPreview()

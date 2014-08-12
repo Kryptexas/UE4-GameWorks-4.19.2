@@ -147,9 +147,9 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 		}
 
 		// Update widget blueprint names
-		for( FWidgetAnimation& WidgetAnimation : Blueprint->AnimationData )
+		for( UWidgetAnimation* WidgetAnimation : Blueprint->Animations )
 		{
-			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation.AnimationBindings )
+			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation->AnimationBindings )
 			{
 				if( AnimBinding.WidgetName == OldName )
 				{

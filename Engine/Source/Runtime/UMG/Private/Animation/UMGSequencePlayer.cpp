@@ -6,18 +6,21 @@
 #include "MovieSceneBindings.h"
 #include "MovieSceneInstance.h"
 #include "MovieScene.h"
+#include "WidgetAnimation.h"
 
 UUMGSequencePlayer::UUMGSequencePlayer(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 	TimeCursorPosition = 0.0f;
-	MovieScene = nullptr;
+	Animation = nullptr;
 }
 
-void UUMGSequencePlayer::InitSequencePlayer( const FWidgetAnimation& Animation, UUserWidget& UserWidget )
+void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget )
 {
-	MovieScene = Animation.MovieScene;
+	Animation = &InAnimation;
+
+	UMovieScene* MovieScene = Animation->MovieScene;
 
 	// Cache the time range of the sequence to determine when we stop
 	TimeRange = MovieScene->GetTimeRange();
@@ -29,7 +32,7 @@ void UUMGSequencePlayer::InitSequencePlayer( const FWidgetAnimation& Animation, 
 
 	TMap<FGuid, TArray<UObject*> > GuidToRuntimeObjectMap;
 	// Bind to Runtime Objects
-	for (const FWidgetAnimationBinding& Binding : Animation.AnimationBindings)
+	for (const FWidgetAnimationBinding& Binding : InAnimation.AnimationBindings)
 	{
 		FName ObjectName = Binding.WidgetName;
 		FName SlotWidgetName = Binding.SlotWidgetName;
@@ -96,6 +99,8 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 void UUMGSequencePlayer::Play()
 {
+	UMovieScene* MovieScene = Animation->MovieScene;
+
 	RootMovieSceneInstance = MakeShareable( new FMovieSceneInstance( *MovieScene ) );
 
 	RootMovieSceneInstance->RefreshInstance( *this );
