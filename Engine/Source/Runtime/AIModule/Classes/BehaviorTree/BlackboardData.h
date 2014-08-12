@@ -16,7 +16,7 @@ struct FBlackboardEntry
 	FName EntryName;
 
 	/** key type and additional properties */
-	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard, meta=(UseDisplayNames="true"))
+	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard)
 	UBlackboardKeyType* KeyType;
 };
 

@@ -66,7 +66,6 @@ public:
 void SPropertyEditorEditInline::Construct( const FArguments& InArgs, const TSharedRef< class FPropertyEditor >& InPropertyEditor )
 {
 	PropertyEditor = InPropertyEditor;
-	bUseDisplayNames = PropertyEditor->GetProperty()->GetBoolMetaData(TEXT("UseDisplayNames"));
 
 	ChildSlot
 	[
@@ -97,24 +96,17 @@ void SPropertyEditorEditInline::Construct( const FArguments& InArgs, const TShar
 	];
 }
 
-FString SPropertyEditorEditInline::GetDisplayValueAsString() const
+FText SPropertyEditorEditInline::GetDisplayValueAsString() const
 {
 	UObject* CurrentValue = NULL;
 	FPropertyAccess::Result Result = PropertyEditor->GetPropertyHandle()->GetValue( CurrentValue );
 	if( Result == FPropertyAccess::Success && CurrentValue != NULL )
 	{
-		if(bUseDisplayNames)
-		{
-			return CurrentValue->GetClass()->GetDisplayNameText().ToString();
-		}
-		else
-		{
-			return CurrentValue->GetName();
-		}
+		return CurrentValue->GetClass()->GetDisplayNameText();
 	}
 	else
 	{
-		return PropertyEditor->GetValueAsString();
+		return PropertyEditor->GetValueAsText();
 	}
 }
 
@@ -182,7 +174,7 @@ TSharedRef<SWidget> SPropertyEditorEditInline::GenerateClassPicker()
 {
 	FClassViewerInitializationOptions Options;
 	Options.bShowUnloadedBlueprints = true;
-	Options.bShowDisplayNames = bUseDisplayNames;
+	Options.bShowDisplayNames = true;
 
 	TSharedPtr<FPropertyEditorInlineClassFilter> ClassFilter = MakeShareable( new FPropertyEditorInlineClassFilter );
 	Options.ClassFilter = ClassFilter;

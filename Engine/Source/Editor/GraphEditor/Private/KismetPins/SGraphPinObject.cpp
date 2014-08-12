@@ -274,7 +274,11 @@ FText SGraphPinObject::OnGetComboTextValue() const
 	if (GraphPinObj != NULL)
 	{
 		UObject* DefaultObject = GraphPinObj->DefaultObject;
-		if (DefaultObject != NULL)
+		if (UField* Field = Cast<UField>(DefaultObject))
+		{
+			Value = Field->GetDisplayNameText();
+		}
+		else if (DefaultObject != NULL)
 		{
 			Value = FText::FromString(DefaultObject->GetName());
 		}
