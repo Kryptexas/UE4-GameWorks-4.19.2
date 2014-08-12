@@ -7,6 +7,7 @@
 #include "ModuleManager.h"
 
 #include "OnlineIdentityInterface.h"
+#include "OnlineFriendsInterface.h"
 #include "OnlineEventsInterface.h"
 #include "OnlineSessionInterface.h"
 #include "OnlineExternalUIInterface.h"
