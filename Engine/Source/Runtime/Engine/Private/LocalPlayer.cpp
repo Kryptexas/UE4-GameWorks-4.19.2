@@ -17,7 +17,7 @@
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-
+#include "DataChannel.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);

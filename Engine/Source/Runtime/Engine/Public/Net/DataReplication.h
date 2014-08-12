@@ -6,7 +6,7 @@
 =============================================================================*/
 #pragma once
 
-#include "RepLayout.h"
+class FRepState;
 
 /** struct containing property and offset for replicated actor properties */
 struct FReplicatedActorProperty

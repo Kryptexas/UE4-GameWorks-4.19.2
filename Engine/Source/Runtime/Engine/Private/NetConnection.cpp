@@ -9,6 +9,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
+#include "DataChannel.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.

@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/DataChannel.h"
 
 AOnlineBeaconHost::AOnlineBeaconHost(const class FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)

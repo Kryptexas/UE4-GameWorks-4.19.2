@@ -8,11 +8,13 @@
 #include "Net/DataReplication.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
+#include "Net/RepLayout.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/VoiceChannel.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "OnlineSubsystemUtils.h"
 #include "NetworkingDistanceConstants.h"
+#include "DataChannel.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
