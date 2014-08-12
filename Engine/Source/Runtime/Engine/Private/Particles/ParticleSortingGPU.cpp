@@ -71,8 +71,6 @@ public:
 		InParticleIndices.Bind( Initializer.ParameterMap, TEXT("InParticleIndices") );
 		PositionTexture.Bind( Initializer.ParameterMap, TEXT("PositionTexture") );
 		PositionTextureSampler.Bind( Initializer.ParameterMap, TEXT("PositionTextureSampler") );
-		PositionZWTexture.Bind( Initializer.ParameterMap, TEXT("PositionZWTexture") );
-		PositionZWTextureSampler.Bind( Initializer.ParameterMap, TEXT("PositionZWTextureSampler") );
 		OutKeys.Bind( Initializer.ParameterMap, TEXT("OutKeys") );
 		OutParticleIndices.Bind( Initializer.ParameterMap, TEXT("OutParticleIndices") );
 	}
@@ -84,8 +82,6 @@ public:
 		Ar << InParticleIndices;
 		Ar << PositionTexture;
 		Ar << PositionTextureSampler;
-		Ar << PositionZWTexture;
-		Ar << PositionZWTextureSampler;
 		Ar << OutKeys;
 		Ar << OutParticleIndices;
 		return bShaderHasOutdatedParameters;
@@ -127,16 +123,12 @@ public:
 	/**
 	 * Set the texture from which particle positions can be read.
 	 */
-	void SetPositionTextures(FRHICommandList& RHICmdList, FTexture2DRHIParamRef PositionTextureRHI, FTexture2DRHIParamRef PositionZWTextureRHI)
+	void SetPositionTextures(FRHICommandList& RHICmdList, FTexture2DRHIParamRef PositionTextureRHI)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if (PositionTexture.IsBound())
 		{
 			RHICmdList.SetShaderTexture(ComputeShaderRHI, PositionTexture.GetBaseIndex(), PositionTextureRHI);
-		}
-		if (PositionZWTexture.IsBound())
-		{
-			RHICmdList.SetShaderTexture(ComputeShaderRHI, PositionZWTexture.GetBaseIndex(), PositionZWTextureRHI);
 		}
 	}
 
@@ -167,8 +159,6 @@ private:
 	/** Texture containing particle positions. */
 	FShaderResourceParameter PositionTexture;
 	FShaderResourceParameter PositionTextureSampler;
-	FShaderResourceParameter PositionZWTexture;
-	FShaderResourceParameter PositionZWTextureSampler;
 	/** Output key buffer. */
 	FShaderResourceParameter OutKeys;
 	/** Output indices buffer. */
@@ -189,7 +179,6 @@ static int32 GenerateParticleSortKeys(
 	FUnorderedAccessViewRHIParamRef KeyBufferUAV,
 	FUnorderedAccessViewRHIParamRef SortedVertexBufferUAV,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	FTexture2DRHIParamRef PositionZWTextureRHI,
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
@@ -206,7 +195,7 @@ static int32 GenerateParticleSortKeys(
 	TShaderMapRef<FParticleSortKeyGenCS> KeyGenCS(GetGlobalShaderMap());
 	RHICmdList.SetComputeShader(KeyGenCS->GetComputeShader());
 	KeyGenCS->SetOutput(RHICmdList, KeyBufferUAV, SortedVertexBufferUAV);
-	KeyGenCS->SetPositionTextures(RHICmdList, PositionTextureRHI, PositionZWTextureRHI);
+	KeyGenCS->SetPositionTextures(RHICmdList, PositionTextureRHI);
 
 	// For each simulation, generate keys and store them in the sorting buffers.
 	const int32 SimulationCount = SimulationsToSort.Num();
@@ -321,7 +310,6 @@ int32 SortParticlesGPU(
 	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	FTexture2DRHIParamRef PositionZWTextureRHI,
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
@@ -346,7 +334,6 @@ int32 SortParticlesGPU(
 		ParticleSortBuffers.GetKeyBufferUAV(),
 		ParticleSortBuffers.GetVertexBufferUAV(),
 		PositionTextureRHI,
-		PositionZWTextureRHI,
 		SimulationsToSort
 		);
 
