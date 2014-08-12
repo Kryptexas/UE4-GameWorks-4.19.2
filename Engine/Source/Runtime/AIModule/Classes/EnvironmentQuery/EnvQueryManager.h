@@ -136,14 +136,14 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	static UEnvQueryManager* GetCurrent(UWorld* World);
 	static UEnvQueryManager* GetCurrent(UObject* WorldContextObject);
 
-#if USE_EQS_DEBUGGER
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);
 
 	FEQSDebugger& GetDebugger() { return EQSDebugger; }
 
 protected:
 	FEQSDebugger EQSDebugger;
-#endif // USE_EQS_DEBUGGER
+#endif // WITH_EDITOR && USE_EQS_DEBUGGER
 
 protected:
 
