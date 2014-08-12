@@ -10,6 +10,7 @@ void SDockingArea::Construct( const FArguments& InArgs, const TSharedRef<FTabMan
 	InTabManager->GetPrivateApi().OnDockAreaCreated( SharedThis(this) );
 
 	bManageParentWindow = InArgs._ShouldManageParentWindow;
+	bShouldAllowRemovalOfLastTab = InArgs._ShouldAllowRemovalOfLastTab;
 	bIsOverlayVisible = false;
 
 	bIsCenterTargetVisible = false;
@@ -309,6 +310,16 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingArea::GatherPersistentLayout() cons
 TSharedRef<FTabManager> SDockingArea::GetTabManager() const
 {
 	return MyTabManager.Pin().ToSharedRef();
+}
+
+bool SDockingArea::GetShouldAllowRemovalOfLastTab() const
+{
+	return bShouldAllowRemovalOfLastTab;
+}
+
+void SDockingArea::SetShouldAllowRemovalOfLastTab(bool Allow)
+{
+	bShouldAllowRemovalOfLastTab = Allow;
 }
 
 SDockingNode::ECleanupRetVal SDockingArea::CleanUpNodes()

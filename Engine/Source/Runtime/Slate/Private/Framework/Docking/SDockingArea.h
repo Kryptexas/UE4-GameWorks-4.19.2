@@ -15,6 +15,7 @@ public:
 		: _ParentWindow()
 		, _ShouldManageParentWindow(true)
 		, _InitialContent()
+		, _ShouldAllowRemovalOfLastTab(true)
 		{
 			// Visible by default, but don't absorb clicks
 			_Visibility = EVisibility::SelfHitTestInvisible;
@@ -27,6 +28,19 @@ public:
 
 		/** True if this docking area should close the parent window when the last tab in this docking area goes away */
 		SLATE_ARGUMENT( bool, ShouldManageParentWindow )
+
+		/**
+		 * Should the dock area allow removing the last tab in the dock area.  By default this is true, but in cases like the main 
+		 * tab window, we don't want the last tab to ever be dragged out.
+		 */
+		SLATE_ARGUMENT(bool, ShouldAllowRemovalOfLastTab)
+
+
+		/** Should we ignore dragging the last tab in this well? */
+		bool IgnoreDraggingLastTabInWell() const;
+
+		/** Should we ignore dragging the last tab in this well? */
+		TAttribute<bool> bIgnoreDraggingLastTabInWell;
 
 		 /**
 		 * What to put into the DockArea initially. Usually a TabStack, so that some tabs can be added to it.
@@ -74,6 +88,10 @@ public:
 	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
 	TSharedRef<FTabManager> GetTabManager() const;
+
+	bool GetShouldAllowRemovalOfLastTab() const;
+
+	void SetShouldAllowRemovalOfLastTab(bool Allow);
 
 protected:
 	virtual SDockingNode::ECleanupRetVal CleanUpNodes() override;
@@ -125,4 +143,7 @@ private:
 
 	/** True when the last tab has been pulled from this area, meaning that this DockArea will not be necessary once that tab finds a new home. */
 	bool bCleanUpUponTabRelocation;
+
+	/** True normally, prevents dragging out the last tab of a dock area if false. */
+	bool bShouldAllowRemovalOfLastTab;
 };

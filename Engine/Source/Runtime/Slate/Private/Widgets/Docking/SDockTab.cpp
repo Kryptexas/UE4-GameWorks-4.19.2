@@ -29,6 +29,14 @@ FReply SDockTab::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 			TotalDraggedDistance = 0;
 			ActivateInParent(ETabActivationCause::UserClickedOnTab);
 
+			// If we're the last tab and we're disallowing the removal of the last tab, ignore the attempt to drag.
+			TSharedPtr<SDockingTabWell> ParentWell = ParentPtr.Pin();
+			TSharedPtr<SDockingArea> DockArea = GetDockArea();
+			if ( ParentWell.IsValid() && DockArea.IsValid() && ParentWell->GetNumTabs() == 1 && !DockArea->GetShouldAllowRemovalOfLastTab() )
+			{
+				return FReply::Unhandled();
+			}
+
 			return FReply::Handled().DetectDrag( SharedThis(this), EKeys::LeftMouseButton );
 		}
 		else if ( MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton )
