@@ -9,7 +9,7 @@ public class zlib : ModuleRules
 
 		string zlibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/";
 
-		PublicIncludePaths.Add(zlibPath + "inc");
+		PublicIncludePaths.Add(zlibPath + "Inc");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
