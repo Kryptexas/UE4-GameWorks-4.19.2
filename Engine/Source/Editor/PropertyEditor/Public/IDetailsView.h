@@ -33,9 +33,18 @@ struct FDetailsViewArgs
 	uint32 bShowModifiedPropertiesOption : 1;
 	/** True if you want to show the actor label */
 	uint32 bShowActorLabel : 1;
+	/** Bind this delegate to hide differing properties */
+	uint32 bShowDifferingPeropertiesOption : 1;
 
 	/** Default constructor */
-	FDetailsViewArgs( const bool InUpdateFromSelection = false, const bool InLockable = false, const bool InAllowSearch = true, const bool InObjectsUseNameArea = false, const bool InHideSelectionTip = false, FNotifyHook* InNotifyHook = NULL, const bool InSearchInitialKeyFocus = false, FName InViewIdentifier = NAME_None )
+	FDetailsViewArgs( const bool InUpdateFromSelection = false
+					, const bool InLockable = false
+					, const bool InAllowSearch = true
+					, const bool InObjectsUseNameArea = false
+					, const bool InHideSelectionTip = false
+					, FNotifyHook* InNotifyHook = NULL
+					, const bool InSearchInitialKeyFocus = false
+					, FName InViewIdentifier = NAME_None )
 		: ViewIdentifier( InViewIdentifier )
 		, NotifyHook( InNotifyHook ) 
 		, bUpdatesFromSelection( InUpdateFromSelection )
@@ -48,6 +57,7 @@ struct FDetailsViewArgs
 		, bShowOptions( true )
 		, bShowModifiedPropertiesOption(true)
 		, bShowActorLabel(true)
+		, bShowDifferingPeropertiesOption(false)
 	{
 	}
 };
@@ -158,4 +168,14 @@ public:
 	 * Sets the visible state of the filter box/property grid area
 	 */
 	virtual void HideFilterArea(bool bIsVisible) = 0;
+
+	/**
+	 * Creates a box around the property with PropertyName and scrolls the property into view
+	 */
+	virtual void HighlightProperty(const UProperty* Property) = 0;
+
+	/**
+	 * Sets the set of properties that are considered identical, used when filtering out identical properties (showing only differing properties)
+	 */
+	virtual void UpdateIdenticalProperties(const TSet<FString> IdenticalProperties) = 0;
 };

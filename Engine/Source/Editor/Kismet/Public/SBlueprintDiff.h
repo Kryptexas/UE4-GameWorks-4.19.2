@@ -30,89 +30,6 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
 
-/*List item that entry for a graph*/
-struct KISMET_API FListItemGraphToDiff: public TSharedFromThis<FListItemGraphToDiff>
-{
-	FListItemGraphToDiff(class SBlueprintDiff* Diff, class UEdGraph* GraphOld, class UEdGraph* GraphNew, const FRevisionInfo& RevisionOld, const FRevisionInfo& RevisionNew);
-	~FListItemGraphToDiff();
-
-	/*Generate Widget for list item*/
-	TSharedRef<SWidget> GenerateWidget() ;
-
-	/*Get tooltip for list item */
-	FText   GetToolTip() ;
-
-	/*Get old(left) graph*/
-	UEdGraph* GetGraphOld()const{return GraphOld;}
-
-	/*Get new(right) graph*/
-	UEdGraph* GetGraphNew()const{return GraphNew;}
-
-private:
-
-	/*Get icon to use by graph name*/
-	static const FSlateBrush* GetIconForGraph(UEdGraph* Graph);
-
-	/*Diff widget*/
-	class SBlueprintDiff* Diff;
-
-	/*The old graph(left)*/
-	class UEdGraph*	GraphOld;
-
-	/*The new graph(right)*/
-	class UEdGraph* GraphNew;
-
-	/*Description of Old and new graph*/
-	FRevisionInfo	RevisionOld, RevisionNew;
-
-	//////////////////////////////////////////////////////////////////////////
-	// Diff list
-	//////////////////////////////////////////////////////////////////////////
-
-	typedef TSharedPtr<struct FDiffResultItem>	FSharedDiffOnGraph;
-	typedef SListView<FSharedDiffOnGraph >		SListViewType;
-
-public:
-
-	/** Called when the Newer Graph is modified*/
-	void OnGraphChanged( const FEdGraphEditAction& Action) ;
-
-	/** Generate list of differences*/
-	TSharedRef<SWidget> GenerateDiffListWidget() ;
-
-	/** Build up the Diff Source Array*/
-	void BuildDiffSourceArray();
-
-	/** Called when user clicks on a new graph list item */
-	void OnSelectionChanged(FSharedDiffOnGraph Item, ESelectInfo::Type SelectionType);
-
-	/** Called when user presses key within the diff view */
-	void KeyWasPressed( const FKeyboardEvent& InKeyboardEvent);
-
-private:
-	
-	/** Called when user clicks button to go to next difference in graph */
-	void NextDiff();
-
-	/** Called when user clicks button to go to prev difference in graph */
-	void PrevDiff();
-
-	/** Get Index of the current diff that is selected */
-	int32 GetCurrentDiffIndex() ;
-
-	/* Called when a new row is being generated */
-	TSharedRef<ITableRow> OnGenerateRow(FSharedDiffOnGraph ParamItem, const TSharedRef<STableViewBase>& OwnerTable );
-
-	/** ListView of differences */
-	TSharedPtr<SListViewType> DiffList;
-
-	/** Source for list view */
-	TArray<FSharedDiffOnGraph> DiffListSource;
-
-	/** Key commands processed by this widget */
-	TSharedPtr< FUICommandList > KeyCommands;
-};
-
 /*panel used to display the blueprint*/
 struct KISMET_API FDiffPanel
 {
@@ -177,21 +94,30 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	/** Called when a new Graph is clicked on by user */
-	void OnGraphChanged(FListItemGraphToDiff* Diff);
+	void OnGraphChanged(struct FListItemGraphToDiff* Diff);
 
 	/** Helper function for generating an empty widget */
 	static TSharedRef<SWidget> DefaultEmptyPanel();
 
 protected:
+	/** Called when user clicks button to go to next difference */
+	void NextDiff();
+
+	/** Called when user clicks button to go to prev difference */
+	void PrevDiff();
+
+	/** Called to determine whether we have a list of differences to cycle through */
+	bool CanCycleDiffs() const;
+
 	/* Need to process keys for shortcuts to buttons */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 
-	typedef TSharedPtr<FListItemGraphToDiff>	FGraphToDiff;
+	typedef TSharedPtr<struct FListItemGraphToDiff>	FGraphToDiff;
 	typedef SListView<FGraphToDiff >	SListViewType;
 
 	/** Bring these revisions of graph into focus on main display*/
-	void FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew , FListItemGraphToDiff* Diff);
+	void FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew , struct FListItemGraphToDiff* Diff);
 
 	/*Create a list item entry graph that exists in at least one of the blueprints */
 	void CreateGraphEntry(class UEdGraph* GraphOld, class UEdGraph* GraphNew);
@@ -202,7 +128,7 @@ protected:
 	/*Called when user clicks on a new graph list item */
 	void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
-	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer);
+	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, struct FListItemGraphToDiff* GraphDiffer);
 		
 	/** Disable the focus on a particular pin */
 	void DisablePinDiffFocus();
@@ -251,6 +177,12 @@ protected:
 	TSharedPtr<SListViewType>	GraphsToDiff;
 
 	friend struct FListItemGraphToDiff;
+
+	/** Key commands processed by this widget */
+	TSharedPtr< FUICommandList > KeyCommands;
+
+	/** Helper class for highlighting diffs in different types of controls (graph view, details view, etc) */
+	TSharedPtr< class IDiffHighlighter > DiffHighlighter;
 };
 
 

@@ -86,6 +86,39 @@ void SDetailsViewBase::HideFilterArea(bool bHide)
 	DetailsViewArgs.bAllowSearch = !bHide;
 }
 
+void SDetailsViewBase::HighlightProperty(const UProperty* Property)
+{
+	// Clear the previously enabled highlight:
+	auto PrevPropertyPtr = PrevHighlightedProperty.Pin();
+	if( PrevPropertyPtr.IsValid() )
+	{
+		PrevPropertyPtr->SetIsHighlighted( false );
+	}
+
+	if( !Property )
+	{
+		return;
+	}
+
+	// Find the newly highlighted node, and enable the highlight:
+	FName PropertyOwnerFName = Property->GetOwnerStruct()->GetFName();
+	FClassInstanceToPropertyMap* PropertyNodeMap = ClassToPropertyMap.Find(PropertyOwnerFName);
+	if( PropertyNodeMap )
+	{
+		FName InstanceName = NAME_None;
+		FPropertyNodeMap* NodeMap = PropertyNodeMap->Find(InstanceName);
+		if( NodeMap )
+		{
+			TSharedPtr<FPropertyNode>* PropertyNode = NodeMap->PropertyNameToNode.Find(Property->GetFName());
+			if( PropertyNode )
+			{
+				(*PropertyNode)->SetIsHighlighted( true );
+				PrevHighlightedProperty = *PropertyNode;
+			}
+		}
+	}
+}
+
 EVisibility SDetailsViewBase::GetTreeVisibility() const
 {
 	return DetailLayout.IsValid() && DetailLayout->HasDetails() ? EVisibility::Visible : EVisibility::Collapsed;
@@ -294,6 +327,13 @@ TSharedPtr<IPropertyUtilities> SDetailsViewBase::GetPropertyUtilities()
 void SDetailsViewBase::OnShowOnlyModifiedClicked()
 {
 	CurrentFilter.bShowOnlyModifiedProperties = !CurrentFilter.bShowOnlyModifiedProperties;
+
+	UpdateFilteredDetails();
+}
+
+void SDetailsViewBase::OnShowOnlyDifferingClicked()
+{
+	CurrentFilter.bShowOnlyDiffering = !CurrentFilter.bShowOnlyDiffering;
 
 	UpdateFilteredDetails();
 }

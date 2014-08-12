@@ -53,9 +53,10 @@ struct FDetailFilter
 	FDetailFilter()
 		: bShowOnlyModifiedProperties(false)
 		, bShowAllAdvanced(false)
+		, bShowOnlyDiffering(false)
 	{}
 
-	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false; }
+	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false && bShowOnlyDiffering == false; }
 
 	/** Any user search terms that items must match */
 	TArray<FString> FilterStrings;
@@ -63,6 +64,9 @@ struct FDetailFilter
 	bool bShowOnlyModifiedProperties;
 	/** If we should show all advanced properties */
 	bool bShowAllAdvanced;
+	/** If we should only show differing properties */
+	bool bShowOnlyDiffering;
+	TSet<FString> NamesOfMatchingProperties;
 };
 
 struct FDetailColumnSizeData
@@ -95,6 +99,11 @@ public:
 	 * Sets the visible state of the filter box/property grid area
 	 */
 	virtual void HideFilterArea(bool bHide) override;
+
+	/** 
+	 * Creates a box around the property with PropertyName and scrolls the property into view
+	 */
+	virtual void HighlightProperty(const UProperty* Property) override;
 
 	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override
 	{ 
@@ -323,8 +332,14 @@ protected:
 	/** @return true if show all advanced is checked */
 	bool IsShowAllAdvancedChecked() const { return CurrentFilter.bShowAllAdvanced; }
 
+	/** @return true if show only differing is checked */
+	bool IsShowOnlyDifferingChecked() const { return CurrentFilter.bShowOnlyDiffering; }
+
 	/** Called when show only modified is clicked */
 	void OnShowOnlyModifiedClicked();
+
+	/** Called when show only differing is clicked */
+	void OnShowOnlyDifferingClicked();
 
 	/** Called when show all advanced is clicked */
 	void OnShowAllAdvancedClicked();
@@ -336,6 +351,9 @@ protected:
 
 	/** Called when the filter text changes.  This filters specific property nodes out of view */
 	void OnFilterTextChanged(const FText& InFilterText);
+
+	// @todo doc where does this belong?
+	virtual void UpdateIdenticalProperties(const TSet<FString> IdenticalProperties) override { CurrentFilter.NamesOfMatchingProperties = IdenticalProperties; }
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text
@@ -410,4 +428,6 @@ protected:
 
 	/** External property nodes which need to validated each tick */
 	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
+
+	TWeakPtr< FPropertyNode > PrevHighlightedProperty;
 };

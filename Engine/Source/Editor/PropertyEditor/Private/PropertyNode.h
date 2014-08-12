@@ -649,6 +649,12 @@ public:
 
 	FPropertyChangedEvent& FixPropertiesInEvent(FPropertyChangedEvent& Event);
 
+	/** Returns true if this property node should be highlighted by the view */
+	bool IsHighlighted() const { return bIsHighlighted; }
+
+	/** Sets the highlighted flag to the requested value */
+	bool SetIsHighlighted( bool bInIsHighlighted ) { bIsHighlighted = bInIsHighlighted; }
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -762,6 +768,9 @@ protected:
 
 	/** If true, children of this node will be rebuilt next tick. */
 	bool bRebuildChildrenRequested;
+
+	/** Used to display a highlight on this node */
+	bool bIsHighlighted;
 
 	/** An array of restrictions limiting this property's potential values in property editors.*/
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;

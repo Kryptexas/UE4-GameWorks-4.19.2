@@ -21,51 +21,225 @@
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
-struct FPropertyFilter : public TSharedFromThis<FPropertyFilter>
+class IDiffHighlighter
 {
-	FPropertyFilter( TSet< const UProperty*> InHiddenProperties )
-		: HiddenProperties( InHiddenProperties )
-	{
-	}
-
-	~FPropertyFilter()
-	{
-		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT(" Nuking property filter.."));
-	}
-
-	bool IsVisible(const FPropertyAndParent& Property)
-	{
-		return !HiddenProperties.Contains(&Property.Property);
-	}
-
-	TSet< const UProperty*> HiddenProperties;
+public:
+	virtual void NextDiff() = 0;
+	virtual void PrevDiff() = 0;
+	virtual bool HasDifferences() const = 0;
 };
 
 typedef TMap< FString, const UProperty* > FNamePropertyMap;
 
-static FNamePropertyMap GetCDOProperties( const UBlueprint* ForBlueprint )
+class CDODiffHighlighter : public TSharedFromThis<CDODiffHighlighter>
+						, public IDiffHighlighter
+{
+public:
+	CDODiffHighlighter( 
+			TWeakPtr<IDetailsView> InOldView
+			, FNamePropertyMap InOldProperties
+			, TWeakPtr<IDetailsView> InNewView
+			, FNamePropertyMap InNewProperties
+			, TArray< FString > InDifferingProperties )
+		: OldView( InOldView )
+		, OldProperties( InOldProperties )
+		, NewView(InNewView)
+		, NewProperties(InNewProperties)
+		, DifferingProperties( InDifferingProperties )
+		, CurrentDifference( -1 )
+	{
+	}
+
+private:
+	void NextDiff() override;
+	void PrevDiff() override;
+	bool HasDifferences() const override;
+
+	void HighlightCurrentDifference();
+
+	TWeakPtr<IDetailsView> OldView;
+	FNamePropertyMap OldProperties;
+	TWeakPtr<IDetailsView> NewView;
+	FNamePropertyMap NewProperties;
+	TArray< FString > DifferingProperties;
+	int CurrentDifference;
+};
+
+void CDODiffHighlighter::NextDiff()
+{
+	if( DifferingProperties.Num() == 0 )
+	{
+		return;
+	}
+
+	CurrentDifference = (CurrentDifference + 1) % DifferingProperties.Num();
+
+	HighlightCurrentDifference();
+}
+
+void CDODiffHighlighter::PrevDiff()
+{
+	if (DifferingProperties.Num() == 0)
+	{
+		return;
+	}
+
+	--CurrentDifference;
+	if( CurrentDifference < 0 )
+	{
+		CurrentDifference = DifferingProperties.Num() - 1;
+	}
+
+	HighlightCurrentDifference();
+}
+
+bool CDODiffHighlighter::HasDifferences() const
+{
+	return DifferingProperties.Num() != 0;
+}
+
+void CDODiffHighlighter::HighlightCurrentDifference()
+{
+	const FString& PropertyName = DifferingProperties[CurrentDifference];
+
+	const UProperty** OldProperty = OldProperties.Find(PropertyName);
+	const UProperty** NewProperty = NewProperties.Find(PropertyName);
+
+	OldView.Pin()->HighlightProperty(OldProperty ? *OldProperty : NULL);
+	NewView.Pin()->HighlightProperty(NewProperty ? *NewProperty : NULL);
+}
+
+/*List item that entry for a graph*/
+struct KISMET_API FListItemGraphToDiff	: public TSharedFromThis<FListItemGraphToDiff>
+										, public IDiffHighlighter
+{
+	FListItemGraphToDiff(class SBlueprintDiff* Diff, class UEdGraph* GraphOld, class UEdGraph* GraphNew, const FRevisionInfo& RevisionOld, const FRevisionInfo& RevisionNew);
+	~FListItemGraphToDiff();
+
+	/*Generate Widget for list item*/
+	TSharedRef<SWidget> GenerateWidget();
+
+	/*Get tooltip for list item */
+	FText   GetToolTip();
+
+	/*Get old(left) graph*/
+	UEdGraph* GetGraphOld()const{ return GraphOld; }
+
+	/*Get new(right) graph*/
+	UEdGraph* GetGraphNew()const{ return GraphNew; }
+
+private:
+
+	/*Get icon to use by graph name*/
+	static const FSlateBrush* GetIconForGraph(UEdGraph* Graph);
+
+	/*Diff widget*/
+	class SBlueprintDiff* Diff;
+
+	/*The old graph(left)*/
+	class UEdGraph*	GraphOld;
+
+	/*The new graph(right)*/
+	class UEdGraph* GraphNew;
+
+	/*Description of Old and new graph*/
+	FRevisionInfo	RevisionOld, RevisionNew;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Diff list
+	//////////////////////////////////////////////////////////////////////////
+
+	typedef TSharedPtr<struct FDiffResultItem>	FSharedDiffOnGraph;
+	typedef SListView<FSharedDiffOnGraph >		SListViewType;
+
+public:
+
+	/** Called when the Newer Graph is modified*/
+	void OnGraphChanged(const FEdGraphEditAction& Action);
+
+	/** Generate list of differences*/
+	TSharedRef<SWidget> GenerateDiffListWidget();
+
+	/** Build up the Diff Source Array*/
+	void BuildDiffSourceArray();
+
+	/** Called when user clicks on a new graph list item */
+	void OnSelectionChanged(FSharedDiffOnGraph Item, ESelectInfo::Type SelectionType);
+
+	/** Called when user presses key within the diff view */
+	void KeyWasPressed(const FKeyboardEvent& InKeyboardEvent);
+
+private:
+
+	/** Called when user clicks button to go to next difference in graph */
+	void NextDiff() override;
+
+	/** Called when user clicks button to go to prev difference in graph */
+	void PrevDiff() override;
+
+	/** Called when determining whether the prev/nextbuttons should be enabled */
+	bool HasDifferences() const override;
+
+	/** Get Index of the current diff that is selected */
+	int32 GetCurrentDiffIndex();
+
+	/* Called when a new row is being generated */
+	TSharedRef<ITableRow> OnGenerateRow(FSharedDiffOnGraph ParamItem, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** ListView of differences */
+	TSharedPtr<SListViewType> DiffList;
+
+	/** Source for list view */
+	TArray<FSharedDiffOnGraph> DiffListSource;
+
+	/** Key commands processed by this widget */
+	TSharedPtr< FUICommandList > KeyCommands;
+};
+
+static FNamePropertyMap GetProperties( const UObject& ForObj )
 {
 	FNamePropertyMap Ret;
+	if (const UClass* Class = ForObj.GetClass())
+	{
+		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			if ((!PropertyIt->HasAnyPropertyFlags(CPF_Parm) && PropertyIt->HasAnyPropertyFlags(CPF_Edit)))
+			{
+				Ret.Add(PropertyIt->GetName(), *PropertyIt);
+			}
+		}
+	}
+	return Ret;
+}
 
+static FNamePropertyMap GetCDOProperties( const UBlueprint* ForBlueprint )
+{
 	if( ForBlueprint )
 	{
 		if( const UClass* GeneratedClass = ForBlueprint->GeneratedClass )
 		{
 			if( const UObject* CDO = GeneratedClass->ClassDefaultObject )
 			{
-				if( const UClass* CDOClass = CDO->GetClass() )
-				{
-					check( CDOClass == GeneratedClass );
-					for (TFieldIterator<UProperty> PropertyIt(CDOClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-					{
-						Ret.Add(PropertyIt->GetName(), *PropertyIt);
-					}
-				}
+				return GetProperties(*CDO);
 			}
 		}
 	}
 
-	return Ret;
+	return FNamePropertyMap();
+}
+
+static void GetPropertyNameSet( const UObject& ForObj, TSet< FString >& OutProperties )
+{
+	if( const UClass* Class = ForObj.GetClass() )
+	{
+		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			if ((!PropertyIt->HasAnyPropertyFlags(CPF_Parm) && PropertyIt->HasAnyPropertyFlags(CPF_Edit)))
+			{
+				OutProperties.Add(PropertyIt->GetName());
+			}
+		}
+	}
 }
 
 const UObject* GetCDO( const UBlueprint* ForBlueprint )
@@ -210,16 +384,6 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget()
 		
 		const FDiffListCommands& Commands = FDiffListCommands::Get();
 
-		// Map commands through UI
-		KeyCommands = MakeShareable(new FUICommandList );
-
-		KeyCommands->MapAction( Commands.Previous, FExecuteAction::CreateSP(this, &FListItemGraphToDiff::PrevDiff));
-		KeyCommands->MapAction( Commands.Next, FExecuteAction::CreateSP(this, &FListItemGraphToDiff::NextDiff));
-
-		FToolBarBuilder ToolbarBuilder( KeyCommands.ToSharedRef(), FMultiBoxCustomization::None );
-		ToolbarBuilder.AddToolBarButton(Commands.Previous, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.PrevDiff"));
-		ToolbarBuilder.AddToolBarButton(Commands.Next, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.NextDiff"));
-
 		TSharedPtr<SListViewType> DiffListRef;
 		TSharedRef<SHorizontalBox> Result =	SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -227,12 +391,6 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget()
 			.MaxWidth(350.f)
 			[
 				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.Padding(0.f)
-				.AutoHeight()
-				[
-					ToolbarBuilder.MakeWidget()
-				]
 				+SVerticalBox::Slot()
 				.Padding(0.f)
 				.AutoHeight()
@@ -355,17 +513,25 @@ void FListItemGraphToDiff::PrevDiff()
 	DiffList->SetSelection(DiffListSource[Index]);
 }
 
+bool FListItemGraphToDiff::HasDifferences() const
+{
+	return DiffList.IsValid() && DiffListSource.Num() > 0;
+}
+
 int32 FListItemGraphToDiff::GetCurrentDiffIndex() 
 {
-	auto Selected = DiffList->GetSelectedItems();
-	if(Selected.Num() == 1)
-	{	
-		int32 Index = 0;
-		for(auto It(DiffListSource.CreateIterator());It;++It,Index++)
-		{
-			if(*It == Selected[0])
+	if ( DiffList.IsValid() )
+	{
+		auto Selected = DiffList->GetSelectedItems();
+		if(Selected.Num() == 1)
+		{	
+			int32 Index = 0;
+			for(auto It(DiffListSource.CreateIterator());It;++It,Index++)
 			{
-				return Index;
+				if(*It == Selected[0])
+				{
+					return Index;
+				}
 			}
 		}
 	}
@@ -392,65 +558,62 @@ FDiffPanel::FDiffPanel()
 	LastFocusedPin = NULL;
 }
 
-// Generates a widget showing CDO values. NewBlueprint's CDO values will be displayed by the widget (Base just used for determining what to hide):
-static TSharedRef<SWidget> GenerateCDODiff( UBlueprint const* BaseBlueprint, UBlueprint const* NewBlueprint )
+static void CompareUnrelatedObjects( UObject const* A, const FNamePropertyMap& PropertyMapA, UObject const* B, const FNamePropertyMap& PropertyMapB, TArray<FString> &OutIdenticalProperties, TArray<FString> &OutDifferingProperties )
 {
-	const auto GenerateEmptyPanel = []( const FText& Message) { return SNew(STextBlock).Text(Message); };
-
-	// filter out properties that have not changed from the GraphToDiff's blueprint:	
-	FNamePropertyMap BaseProperties = GetCDOProperties(BaseBlueprint);
-	FNamePropertyMap BlueprintProperties = GetCDOProperties(NewBlueprint);
-
-	if( BlueprintProperties.Num() == 0 )
+	TSet<FString> PropertiesInA, PropertiesInB;
+	if( A )
 	{
-		if( NewBlueprint )
-		{
-			return GenerateEmptyPanel( FText::Format( LOCTEXT("BPNoCDO", "Blueprint {0} has no Defaults"), FText::FromString( NewBlueprint->GetName() ) ) );
-		}
-		else
-		{
-			return GenerateEmptyPanel( LOCTEXT("BPMissingBP", "Missing Blueprint" ) );
-		}
+		GetPropertyNameSet(*A, PropertiesInA);
+	}
+	if( B )
+	{
+		GetPropertyNameSet(*B, PropertiesInB);
 	}
 
-	const UObject* BaseBlueprintCDO = GetCDO(BaseBlueprint);
-	const UObject* NewBlueprintCDO = GetCDO(NewBlueprint);
+	// any properties in A that aren't in B are differing:
+	OutDifferingProperties.Append( PropertiesInA.Difference(PropertiesInB).Array() );
 
-	TSet< const UProperty*> HiddenProperties;
-	for (const auto& Property : BlueprintProperties)
+	// and the converse:
+	OutDifferingProperties.Append( PropertiesInB.Difference(PropertiesInA).Array() );
+
+	// for properties in common, dig out the uproperties and determine if they're identical:
+	if( A && B )
 	{
-		const FString& PropertyName = Property.Key;
-		const UProperty* PropertyValue = Property.Value;
-
-		const UProperty** BaseProperty = BaseProperties.Find(PropertyName);
-		if (BaseProperty && (*BaseProperty)->SameType(PropertyValue))
+		TSet<FString> Common = PropertiesInA.Intersect(PropertiesInB);
+		for (const auto& PropertyName : Common)
 		{
-			const void* MyValue = PropertyValue->ContainerPtrToValuePtr<void>(NewBlueprintCDO);
-			const void* BaseValue = (*BaseProperty)->ContainerPtrToValuePtr<void>(BaseBlueprintCDO);
+			const UProperty* const* AProp = PropertyMapA.Find(PropertyName);
+			const UProperty* const* BProp = PropertyMapB.Find(PropertyName);
+			check( AProp && BProp );
 
-			if ((*BaseProperty)->Identical(MyValue, BaseValue, 0))
+			if( (*AProp)->SameType(*BProp) )
 			{
-				HiddenProperties.Add(PropertyValue);
+				const void* AValue = (*AProp)->ContainerPtrToValuePtr<void>(A);
+				const void* BValue = (*BProp)->ContainerPtrToValuePtr<void>(B);
+				if ((*AProp)->Identical(AValue, BValue, 0))
+				{
+					OutIdenticalProperties.Add(PropertyName);
+					continue;
+				}
 			}
+
+			OutDifferingProperties.Add(PropertyName);
 		}
 	}
+}
 
-	if( HiddenProperties.Num() == BlueprintProperties.Num() )
-	{
-		return GenerateEmptyPanel(LOCTEXT("BPNoCDODifference", "No differences found in Defaults"));
-	}
-
+// Generates a widget showing CDO values. NewBlueprint's CDO values will be displayed by the widget (Base just used for determining what to hide):
+static TSharedRef<IDetailsView> GenerateCDODiff( UObject const* CDO, TSet<FString> IdenticalPropertiesSet )
+{
 	FDetailsViewArgs DetailsViewArgs;
-	DetailsViewArgs.bShowOptions = false;
+	DetailsViewArgs.bShowDifferingPeropertiesOption = true;
+
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	auto DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
 	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([]{return false; }));
-	// This filter goes out of scope and is destroyed when this function returns (the control just keeps a weak ptr)
-	// but that seems to be long enough to hide the properties that we want to hide:
-	auto Filter = TSharedPtr<FPropertyFilter>(new FPropertyFilter(HiddenProperties));
-	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateSP(Filter.ToSharedRef(), &FPropertyFilter::IsVisible));
 	// This is a read only details view (see the property editing delegate), but it is not const correct:
-	DetailsView->SetObject(const_cast<UObject*>(NewBlueprintCDO) );
+	DetailsView->SetObject(const_cast<UObject*>(CDO) );
+	DetailsView->UpdateIdenticalProperties(IdenticalPropertiesSet);
 
 	return DetailsView;
 }
@@ -544,6 +707,16 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 			];
 	}
 
+	const FDiffListCommands& Commands = FDiffListCommands::Get();
+	KeyCommands = MakeShareable(new FUICommandList);
+
+	KeyCommands->MapAction(Commands.Previous, FExecuteAction::CreateSP(this, &SBlueprintDiff::PrevDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::CanCycleDiffs) );
+	KeyCommands->MapAction(Commands.Next, FExecuteAction::CreateSP(this, &SBlueprintDiff::NextDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::CanCycleDiffs) );
+
+	FToolBarBuilder ToolbarBuilder(KeyCommands.ToSharedRef(), FMultiBoxCustomization::None);
+	ToolbarBuilder.AddToolBarButton(Commands.Previous, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.PrevDiff"));
+	ToolbarBuilder.AddToolBarButton(Commands.Next, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.NextDiff"));
+
 	this->ChildSlot
 		[
 			SNew(SBorder)
@@ -556,25 +729,31 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
+					.Padding(16.f)
+					.AutoWidth()
+					[
+						ToolbarBuilder.MakeWidget()
+					]
+					+ SHorizontalBox::Slot()
 					[
 						SNew(SSpacer)
 					]
 					+ SHorizontalBox::Slot()
-						.AutoWidth()
+					.AutoWidth()
+					[
+						// Nested box just give us padding similar to the main blueprint editor,
+						// one border has the dark grey "Toolbar.Background" style:
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.Padding(0.0f, 4.f, 0.0f, 12.f)
 						[
-							// Nested box just give us padding similar to the main blueprint editor,
-							// one border has the dark grey "Toolbar.Background" style:
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.Padding(0.0f, 4.f, 0.0f, 12.f)
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush(TEXT("Toolbar.Background")))
 							[
-								SNew(SBorder)
-								.BorderImage(FEditorStyle::GetBrush(TEXT("Toolbar.Background")))
-								[
-									MiscWidgets
-								]
+								MiscWidgets
 							]
 						]
+					]
 				]
 				+ SVerticalBox::Slot()
 				[
@@ -634,12 +813,34 @@ TSharedRef<SWidget> SBlueprintDiff::DefaultEmptyPanel()
 		];
 }
 
+void SBlueprintDiff::NextDiff()
+{
+	if( DiffHighlighter.IsValid() )
+	{
+		DiffHighlighter->NextDiff();
+	}
+}
+
+void SBlueprintDiff::PrevDiff()
+{
+	if (DiffHighlighter.IsValid())
+	{
+		DiffHighlighter->PrevDiff();
+	}
+}
+
+bool SBlueprintDiff::CanCycleDiffs() const
+{
+	return DiffHighlighter.IsValid() && DiffHighlighter->HasDifferences();
+}
+
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
 	HandleGraphChanged( GraphOld ? GraphOld->GetName() : GraphNew->GetName() );
 
 	ResetGraphEditors();
 
+	DiffHighlighter = Diff->AsShared();
 	//set new diff list
 	DiffListBorder->SetContent(Diff->GenerateDiffListWidget());
 }
@@ -973,36 +1174,36 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 					]
 				]
 				+ SSplitter::Slot()
-					.Value(0.8f)
+				.Value(0.8f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.f)
 					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.FillWidth(1.f)
+						//diff window
+						SNew(SSplitter)
+						+ SSplitter::Slot()
+						.Value(0.5f)
 						[
-							//diff window
-							SNew(SSplitter)
-							+ SSplitter::Slot()
-							.Value(0.5f)
+							//left blueprint
+							SAssignNew(PanelOld.GraphEditorBorder, SBorder)
+							.VAlign(VAlign_Fill)
 							[
-								//left blueprint
-								SAssignNew(PanelOld.GraphEditorBorder, SBorder)
-								.VAlign(VAlign_Fill)
-								[
-									DefaultEmptyPanel()
-								]
+								DefaultEmptyPanel()
 							]
-							+ SSplitter::Slot()
-							.Value(0.5f)
+						]
+						+ SSplitter::Slot()
+						.Value(0.5f)
+						[
+							//right blueprint
+							SAssignNew(PanelNew.GraphEditorBorder, SBorder)
+							.VAlign(VAlign_Fill)
 							[
-								//right blueprint
-								SAssignNew(PanelNew.GraphEditorBorder, SBorder)
-								.VAlign(VAlign_Fill)
-								[
-									DefaultEmptyPanel()
-								]
+								DefaultEmptyPanel()
 							]
 						]
 					]
+				]
 			]
 		]
 	];
@@ -1010,6 +1211,18 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 
 TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 {
+	const UObject* A = GetCDO(PanelOld.Blueprint);
+	FNamePropertyMap PropertyMapA = GetProperties(*A);
+	const UObject* B = GetCDO(PanelNew.Blueprint);
+	FNamePropertyMap PropertyMapB = GetProperties(*B);
+	TArray<FString> IdenticalProperties, DifferingProperties;
+	CompareUnrelatedObjects( A, PropertyMapA, B, PropertyMapB, IdenticalProperties, DifferingProperties);
+
+	TSet<FString> IdenticalPropertiesSet(IdenticalProperties);
+	auto LeftDetailsView = GenerateCDODiff(A, IdenticalPropertiesSet );
+	auto RightDetailsView = GenerateCDODiff(B, IdenticalPropertiesSet );
+
+	DiffHighlighter = TSharedPtr<CDODiffHighlighter>(new CDODiffHighlighter(LeftDetailsView, PropertyMapA, RightDetailsView, PropertyMapB, DifferingProperties ) );
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
 	return SNew(SSplitter)
 		+ SSplitter::Slot()
@@ -1018,7 +1231,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			[
-				GenerateCDODiff(PanelNew.Blueprint, PanelOld.Blueprint)
+				LeftDetailsView
 			]
 		]
 	+ SSplitter::Slot()
@@ -1027,7 +1240,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			[
-				GenerateCDODiff(PanelOld.Blueprint, PanelNew.Blueprint)
+				RightDetailsView
 			]
 		];
 }
@@ -1045,7 +1258,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 				GenerateComponentsDiff(PanelNew.Blueprint, PanelOld.Blueprint)
 			]
 		]
-	+ SSplitter::Slot()
+		+ SSplitter::Slot()
 		.Value(0.5f)
 		[
 			SNew(SBorder)
@@ -1060,6 +1273,7 @@ void SBlueprintDiff::SetCurrentMode(FName NewMode)
 {
 	CurrentMode = NewMode;
 
+	DiffHighlighter = TSharedPtr< IDiffHighlighter >();
 	if( NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 	{
 		ModeContents->SetContent( GenerateGraphPanel() );

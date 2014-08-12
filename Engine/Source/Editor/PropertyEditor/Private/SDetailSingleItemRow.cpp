@@ -286,7 +286,11 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 
 const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 {
-	if (IsHovered())
+	if( IsHighlighted() )
+	{
+		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");
+	}
+	else if (IsHovered())
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Hovered");
 	}
@@ -336,4 +340,9 @@ FReply SDetailSingleItemRow::OnAddKeyframeClicked()
 	KeyframeHandler->OnKeyPropertyClicked(*Handle);
 
 	return FReply::Handled();
+}
+
+bool SDetailSingleItemRow::IsHighlighted() const
+{
+	return Customization->IsValidCustomization() && Customization->HasPropertyNode() && Customization->GetPropertyNode()->IsHighlighted();
 }

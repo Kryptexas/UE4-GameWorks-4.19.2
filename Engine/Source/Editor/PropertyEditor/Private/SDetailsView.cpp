@@ -71,6 +71,22 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			);
 		}
 
+		if( DetailsViewArgs.bShowDifferingPeropertiesOption )
+		{
+			DetailViewOptions.AddMenuEntry(
+				LOCTEXT("ShowOnlyDiffering", "Show Only Differing Properties"),
+				LOCTEXT("ShowOnlyDiffering_ToolTip", "Displays only properties in this instance which have been changed or added from the instance being compared"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SDetailsView::OnShowOnlyDifferingClicked),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SDetailsView::IsShowOnlyDifferingChecked)
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+
 		FUIAction ShowAllAdvancedAction( 
 			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
 			FCanExecuteAction(),

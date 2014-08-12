@@ -259,7 +259,7 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 {
 	bool bPassesAllFilters = true;
 	
-	if( InFilter.FilterStrings.Num() > 0 || InFilter.bShowOnlyModifiedProperties == true )
+	if( InFilter.FilterStrings.Num() > 0 || InFilter.bShowOnlyModifiedProperties == true || InFilter.bShowOnlyDiffering == true )
 	{
 		TSharedPtr<FPropertyNode> PropertyNodePin = InCustomization.GetPropertyNode();
 
@@ -273,9 +273,10 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
+			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering == false || InFilter.NamesOfMatchingProperties.Find( PropertyNodePin->GetProperty()->GetName() ) == NULL;
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
-			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter;
+			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter;
 		}
 		else if( InCustomization.HasCustomWidget() )
 		{
