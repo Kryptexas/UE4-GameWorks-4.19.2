@@ -5,18 +5,18 @@
 =============================================================================*/
 
 #pragma once
+#include "SceneView.h"
+#include "PrimitiveUniformShaderParameters.h"
+#include "PrimitiveViewRelevance.h"
 
+// Forward declarations.
 class FSimpleLightEntry;
 class HHitProxy;
 class FStaticPrimitiveDrawInterface;
 class FPrimitiveSceneInfo;
 class FLightSceneProxy;
 class FLightSceneInfo;
-
-
-#include "SceneView.h"
-#include "PrimitiveUniformShaderParameters.h"
-#include "PrimitiveViewRelevance.h"
+class FPrimitiveDrawInterface;
 
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry

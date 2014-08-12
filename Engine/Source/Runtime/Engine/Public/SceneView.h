@@ -8,6 +8,7 @@
 #include "ConvexVolume.h"
 #include "FinalPostProcessSettings.h"
 #include "SceneInterface.h"
+#include "SceneTypes.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;

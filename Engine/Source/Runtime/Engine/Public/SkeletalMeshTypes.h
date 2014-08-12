@@ -12,7 +12,6 @@
 
 #include "Components.h"
 #include "GPUSkinPublicDefs.h"
-#include "Components/PrimitiveComponent.h"
 #include "PrimitiveSceneProxy.h"
 #include "Materials/MaterialInterface.h"
 
@@ -25,6 +24,7 @@ typedef uint16 FBoneIndexType;
 
 
 class FRawStaticIndexBuffer16or32Interface;
+class FPrimitiveDrawInterface;
 
 /** 
 * A pair of bone indices

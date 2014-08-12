@@ -11,6 +11,7 @@ LandscapeRender.h: New terrain rendering
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeProxy.h"
 #include "LightMap.h"
+#include "MeshBatch.h"
 #include "ShadowMap.h"
 
 // This defines the number of border blocks to surround terrain by when generating lightmaps
