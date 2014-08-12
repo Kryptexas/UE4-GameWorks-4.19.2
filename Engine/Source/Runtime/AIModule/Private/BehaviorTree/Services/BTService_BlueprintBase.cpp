@@ -48,7 +48,7 @@ void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* Own
 {
 	// force dropping all pending latent actions associated with this blueprint
 	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
@@ -120,7 +120,7 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCo
 void UBTService_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 }
 
 #if WITH_EDITOR

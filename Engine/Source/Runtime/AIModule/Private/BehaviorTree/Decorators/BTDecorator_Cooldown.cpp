@@ -28,12 +28,11 @@ bool UBTDecorator_Cooldown::CalculateRawConditionValue(class UBehaviorTreeCompon
 	return TimePassed >= CoolDownTime;
 }
 
-void UBTDecorator_Cooldown::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_Cooldown::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
 {
 	FBTCooldownDecoratorMemory* DecoratorMemory = (FBTCooldownDecoratorMemory*)NodeMemory;
-	if (!DecoratorMemory->bInitialized)
+	if (InitType == EBTMemoryInit::Initialize)
 	{
-		DecoratorMemory->bInitialized = true;
 		DecoratorMemory->LastUseTimestamp = -FLT_MAX;
 	}
 

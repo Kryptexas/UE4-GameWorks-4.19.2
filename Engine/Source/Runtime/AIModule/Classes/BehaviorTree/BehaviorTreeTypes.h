@@ -63,6 +63,24 @@ namespace EBTExecutionMode
 	};
 }
 
+namespace EBTMemoryInit
+{
+	enum Type
+	{
+		Initialize,		// first time initialization
+		RestoreSubtree,	// loading saved data on reentering subtree
+	};
+}
+
+namespace EBTMemoryClear
+{
+	enum Type
+	{
+		Destroy,		// final clear
+		StoreSubtree,	// saving data on leaving subtree
+	};
+}
+
 UENUM()
 namespace EBTFlowAbortMode
 {
@@ -204,6 +222,9 @@ struct FBehaviorTreeInstanceId
 	/** behavior tree asset */
 	class UBehaviorTree* TreeAsset;
 
+	/** root node in template for cleanup purposes */
+	class UBTCompositeNode* RootNode;
+
 	/** execution index path from root */
 	TArray<uint16> Path;
 
@@ -213,7 +234,7 @@ struct FBehaviorTreeInstanceId
 	/** index of first node instance (BehaviorTreeComponent.NodeInstances) */
 	int32 FirstNodeInstance;
 
-	FBehaviorTreeInstanceId() :	TreeAsset(0), FirstNodeInstance(-1) {}
+	FBehaviorTreeInstanceId() : TreeAsset(0), RootNode(0), FirstNodeInstance(-1) {}
 
 	bool operator==(const FBehaviorTreeInstanceId& Other) const
 	{
@@ -264,13 +285,18 @@ struct FBehaviorTreeInstance
 #endif // STATS
 
 	/** initialize memory and create node instances */
-	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
+	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
 	/** update injected nodes */
 	void InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
 
 	/** cleanup node instances */
-	void Cleanup(class UBehaviorTreeComponent* OwnerComp);
+	void Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType);
+
+protected:
+
+	/** worker for updating all nodes */
+	void CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType);
 };
 
 struct FBTNodeIndex

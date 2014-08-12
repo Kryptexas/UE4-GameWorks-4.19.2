@@ -50,7 +50,7 @@ EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(class UBehaviorTreeComponen
 {
 	// force dropping all pending latent actions associated with this blueprint
 	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 
 	CurrentCallResult = bImplementsReceiveAbort ? EBTNodeResult::InProgress : EBTNodeResult::Aborted;
 	if (bImplementsReceiveAbort)
@@ -159,7 +159,7 @@ void UBTTask_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCompo
 void UBTTask_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 }
 
 #if WITH_EDITOR

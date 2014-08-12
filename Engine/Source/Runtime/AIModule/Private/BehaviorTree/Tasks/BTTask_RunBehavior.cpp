@@ -33,6 +33,9 @@ uint16 UBTTask_RunBehavior::GetInstanceMemorySize() const
 		UBehaviorTreeManager::InitializeMemoryHelper(BehaviorAsset->RootDecorators, MemoryOffsets, MemorySize);
 	}
 
+	// memory block header: index of first node instance in owner's array
+	MemorySize += sizeof(FBTInstancedNodeMemory);
+
 	return MemorySize;
 }
 
@@ -44,7 +47,10 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	}
 
 	const int32 NumInjectedDecorators = BehaviorAsset->RootDecorators.Num();
-	const int32 FirstNodeIdx = InstancedIndex;
+	FBTInstancedNodeMemory* NodeMemoryHeader = (FBTInstancedNodeMemory*)NodeMemory;
+	int32 FirstNodeIdx = NodeMemoryHeader->NodeIdx;
+
+	uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
 
 	// initialize on first access
 	if (!OwnerComp->NodeInstances.IsValidIndex(InstancedIndex))
@@ -56,9 +62,15 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 		const int32 AlignedInstanceMemorySize = UBehaviorTreeManager::GetAlignedDataSize(sizeof(FBTInstancedNodeMemory));
 
 		// prepare dummy memory block for nodes that won't require instancing and offset it by special data size
-		// InitializeForInstance will read it through GetSpecialNodeMemory function, which moves pointer back 
+		// InitializeInSubtree will read it through GetSpecialNodeMemory function, which moves pointer back 
 		FBTInstancedNodeMemory DummyMemory;
 		uint8* RawDummyMemory = ((uint8*)&DummyMemory) + AlignedInstanceMemorySize;
+
+		// newly created nodes = full init
+		EBTMemoryInit::Type InitType = EBTMemoryInit::Initialize;
+
+		NodeMemoryHeader->NodeIdx = InstancedIndex;
+		FirstNodeIdx = InstancedIndex;
 
 		// create nodes
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
@@ -68,16 +80,16 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			const bool bUsesInstancing = DecoratorOb->HasInstance();
 			if (bUsesInstancing)
 			{
-				DecoratorOb->InitializeForInstance(OwnerComp, NodeMemory + MemoryOffsets[Idx], InstancedIndex);
+				DecoratorOb->InitializeInSubtree(OwnerComp, InjectedMemoryBase + MemoryOffsets[Idx], InstancedIndex, InitType);
 			}
 			else
 			{
 				DecoratorOb->ForceInstancing(true);
-				DecoratorOb->InitializeForInstance(OwnerComp, RawDummyMemory, InstancedIndex);
+				DecoratorOb->InitializeInSubtree(OwnerComp, RawDummyMemory, InstancedIndex, InitType);
 				DecoratorOb->ForceInstancing(false);
 
 				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances.Last());
-				InstancedOb->InitializeMemory(OwnerComp, NodeMemory + MemoryOffsets[Idx]);
+				InstancedOb->InitializeMemory(OwnerComp, InjectedMemoryBase + MemoryOffsets[Idx], InitType);
 			}
 		}
 
@@ -94,6 +106,9 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	}
 	else
 	{
+		// restoring existing nodes = partial init
+		EBTMemoryInit::Type InitType = EBTMemoryInit::RestoreSubtree;
+
 		// initialize memory for injected nodes
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 		{
@@ -107,8 +122,8 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			}
 			else
 			{
-				uint8* InjectedNodeMemory = NodeMemory + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
-				InstancedOb->InitializeMemory(OwnerComp, InjectedNodeMemory);
+				uint8* InjectedNodeMemory = InjectedMemoryBase + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
+				InstancedOb->InitializeMemory(OwnerComp, InjectedNodeMemory, InitType);
 			}
 		}
 
@@ -221,6 +236,29 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 				}
 			}
 #endif
+		}
+	}
+}
+
+void UBTTask_RunBehavior::CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+{
+	Super::CleanupMemory(OwnerComp, NodeMemory, CleanupType);
+
+	if (GetParentNode() && BehaviorAsset)
+	{
+		FBTInstancedNodeMemory* NodeMemoryHeader = (FBTInstancedNodeMemory*)NodeMemory;
+		uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
+
+		const int32 NumInjectedDecorators = BehaviorAsset->RootDecorators.Num();
+		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
+		{
+			const int32 InstancedNodeIdx = NodeMemoryHeader->NodeIdx + Idx;
+			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[InstancedNodeIdx]);
+			if (InstancedOb)
+			{
+				uint8* InjectedNodeMemory = InjectedMemoryBase + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
+				InstancedOb->CleanupMemory(OwnerComp, InjectedNodeMemory, CleanupType);
+			}
 		}
 	}
 }

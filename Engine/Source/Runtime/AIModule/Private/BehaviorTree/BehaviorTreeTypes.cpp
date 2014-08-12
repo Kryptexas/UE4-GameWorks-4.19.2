@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
 //----------------------------------------------------------------------//
-void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
 {
 	if (Node == NULL)
 	{
@@ -18,10 +18,10 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
 	{
-		Node->Services[ServiceIndex]->InitializeForInstance(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
+		Node->Services[ServiceIndex]->InitializeInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 	}
 
-	Node->InitializeForInstance(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex);
+	Node->InitializeInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 
 	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
 	{
@@ -29,16 +29,16 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			ChildInfo.Decorators[DecoratorIndex]->InitializeForInstance(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.Decorators[DecoratorIndex]->InitializeInSubtree(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 		}
 
 		if (ChildInfo.ChildComposite)
 		{
-			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
+			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex, InitType);
 		}
 		else if (ChildInfo.ChildTask)
 		{
-			ChildInfo.ChildTask->InitializeForInstance(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.ChildTask->InitializeInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 		}
 	}
 }
@@ -69,7 +69,7 @@ void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp,
 	}
 }
 
-void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
+void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType)
 {
 	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
@@ -84,8 +84,44 @@ void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
 		}
 	}
 
+	CleanupNodes(OwnerComp, RootNode, CleanupType);
 	Info.InstanceMemory = InstanceMemory;
 }
+
+void FBehaviorTreeInstance::CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType)
+{
+	if (Node == NULL)
+	{
+		return;
+	}
+
+	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
+	{
+		Node->Services[ServiceIndex]->CleanupInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), CleanupType);
+	}
+
+	Node->CleanupInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), CleanupType);
+
+	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
+	{
+		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
+
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
+		{
+			ChildInfo.Decorators[DecoratorIndex]->CleanupInSubtree(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), CleanupType);
+		}
+
+		if (ChildInfo.ChildComposite)
+		{
+			CleanupNodes(OwnerComp, ChildInfo.ChildComposite, CleanupType);
+		}
+		else if (ChildInfo.ChildTask)
+		{
+			ChildInfo.ChildTask->CleanupInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), CleanupType);
+		}
+	}
+}
+
 
 //----------------------------------------------------------------------//
 // FBTNodeIndex

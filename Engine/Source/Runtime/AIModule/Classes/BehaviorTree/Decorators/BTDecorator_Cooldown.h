@@ -8,7 +8,6 @@ struct FBTCooldownDecoratorMemory
 {
 	float LastUseTimestamp;
 	uint8 bRequestedRestart : 1;
-	uint8 bInitialized : 1;
 };
 
 /**
@@ -29,7 +28,7 @@ class AIMODULE_API UBTDecorator_Cooldown : public UBTDecorator
 	// End UObject Interface
 
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
-	virtual void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const override;
 	virtual uint16 GetInstanceMemorySize() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;

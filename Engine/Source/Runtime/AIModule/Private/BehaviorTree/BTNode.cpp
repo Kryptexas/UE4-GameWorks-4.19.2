@@ -44,7 +44,12 @@ void UBTNode::InitializeNode(class UBTCompositeNode* InParentNode, uint16 InExec
 	TreeDepth = InTreeDepth;
 }
 
-void UBTNode::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTNode::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
+{
+	// empty in base class 
+}
+
+void UBTNode::CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
 	// empty in base class 
 }
@@ -59,7 +64,7 @@ void UBTNode::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
 	// empty in base class
 }
 
-void UBTNode::InitializeForInstance(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex) const
+void UBTNode::InitializeInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const
 {
 	if (bCreateNodeInstance)
 	{
@@ -84,7 +89,15 @@ void UBTNode::InitializeForInstance(class UBehaviorTreeComponent* OwnerComp, uin
 	}
 	else
 	{
-		InitializeMemory(OwnerComp, NodeMemory);
+		InitializeMemory(OwnerComp, NodeMemory, InitType);
+	}
+}
+
+void UBTNode::CleanupInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+{
+	if (!bCreateNodeInstance && !bIsInjected)
+	{
+		CleanupMemory(OwnerComp, NodeMemory, CleanupType);
 	}
 }
 

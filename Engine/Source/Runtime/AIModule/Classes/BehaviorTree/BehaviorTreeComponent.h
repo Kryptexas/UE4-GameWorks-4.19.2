@@ -50,6 +50,10 @@ public:
 	virtual bool IsPaused() const override;
 	// End UBrainComponent overrides
 
+	// Begin UObject overrides
+	virtual void BeginDestroy() override;
+	// End UObject overrides
+
 	/** starts execution from root */
 	bool StartTree(class UBehaviorTree* Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
 
@@ -196,6 +200,9 @@ protected:
 
 	/** add unique Id of newly created subtree to KnownInstances list and return its index */
 	uint8 UpdateInstanceId(class UBehaviorTree* TreeAsset, const class UBTNode* OriginNode, int32 OriginInstanceIdx);
+
+	/** remove instanced nodes, known subtree instances and safely clears their persistent memory */
+	void RemoveAllInstances();
 
 	/** find next task to execute */
 	UBTTaskNode* FindNextTask(class UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
