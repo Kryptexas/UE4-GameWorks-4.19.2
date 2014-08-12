@@ -2017,6 +2017,9 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 			}
 		}
 
+		// Clear resources so that if it's already been played, it will reload the wave data
+		Sound->FreeResources();
+
 		// Presize the offsets array, in case the sound was new or the original sound data was stripped by cooking.
 		if ( Sound->ChannelOffsets.Num() != SPEAKER_Count )
 		{
