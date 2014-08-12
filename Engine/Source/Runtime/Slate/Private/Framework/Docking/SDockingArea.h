@@ -14,8 +14,8 @@ public:
 	SLATE_BEGIN_ARGS(SDockingArea)
 		: _ParentWindow()
 		, _ShouldManageParentWindow(true)
-		, _InitialContent()
 		, _ShouldAllowRemovalOfLastTab(true)
+		, _InitialContent()
 		{
 			// Visible by default, but don't absorb clicks
 			_Visibility = EVisibility::SelfHitTestInvisible;
