@@ -476,6 +476,8 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 
 void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
 {
+	SortNotifies();
+
 	for (int32 TrackIndex=0; TrackIndex<AnimNotifyTracks.Num(); ++TrackIndex)
 	{
 		AnimNotifyTracks[TrackIndex].Notifies.Empty();
@@ -496,8 +498,6 @@ void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
 			AnimNotifyTracks[0].Notifies.Add(&Notifies[NotifyIndex]);
 		}
 	}
-
-	SortNotifies();
 
 	// notification broadcast
 	OnNotifyChanged.Broadcast();
