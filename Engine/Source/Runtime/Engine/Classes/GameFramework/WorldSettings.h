@@ -307,12 +307,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, Category=Lightmass)
 	uint32 bForceNoPrecomputedLighting:1;
 
-#if WITH_EDITORONLY_DATA
-	/** The number of triangles per leaf of the kdop tree in lightmass*/
-	UPROPERTY(meta=(FixedIncrement = "4", ClampMin = "4", Multiple = "4"))
-	int32 MaxTrianglesPerLeaf;
-
-#endif // WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Lightmass)
 	struct FLightmassWorldInfoSettings LightmassSettings;
 

@@ -2605,14 +2605,6 @@ bool FLightmassProcessor::BeginRun()
 
 	CommandLineParameters += FString::Printf(TEXT(" -numthreads %i"), NumThreads);
 
-	//append on the maximum number of triangles per leaf for the kdop tree
-	uint32 MaxTrisPerLeaf = 4;
-	if (System.GetWorld()->GetWorldSettings())
-	{
-		MaxTrisPerLeaf = System.GetWorld()->GetWorldSettings()->MaxTrianglesPerLeaf;
-	}
-	CommandLineParameters += FString::Printf(TEXT(" -trisperleaf %i"), MaxTrisPerLeaf);
-
 	NSwarm::FJobSpecification JobSpecification32, JobSpecification64;
 	if ( !bUse64bitProcess )
 	{

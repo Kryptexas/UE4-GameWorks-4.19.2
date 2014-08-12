@@ -117,7 +117,7 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 
 	for (int32 ArgIndex = 1; ArgIndex < argc; ArgIndex++)
 	{
-		if ((FCStringAnsi::Stricmp(argv[ArgIndex], " -help") == 0) || (FCStringAnsi::Stricmp(argv[ArgIndex], " -?") == 0))
+		if ((FCStringAnsi::Stricmp(argv[ArgIndex], "-help") == 0) || (FCStringAnsi::Stricmp(argv[ArgIndex], "-?") == 0))
 		{
 			UE_LOG(LogLightmass, Display, TEXT("Usage:\n  UnrealLightmass\n\t[SceneGuid]\n\t[-debug]\n\t[-unittest]\n\t[-dumptex]\n\t[-numthreads N]\n\t[-compare Dir1 Dir2 [-error N]]"));
 			UE_LOG(LogLightmass, Display, TEXT(""));
@@ -129,23 +129,24 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 			UE_LOG(LogLightmass, Display, TEXT("  -error : Controls the threshold that an error is counted when comparing with -compare"));
 			return 0;
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -unittest") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-unittest") == 0)
 		{
 			bRunUnitTest = true;
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -dumptex") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-dumptex") == 0)
 		{
 			bDumpTextures = true;
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -debug") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-usedebug") == 0)
 		{
+			// Warning!  This will only process mapping tasks and will skip other types of tasks.
 			GDebugMode = true;
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -stats") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-stats") == 0)
 		{
 			GReportDetailedStats = true;
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -numthreads") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-numthreads") == 0)
 		{
 			// use the next parameter as the number of threads (it must exist, or we fail)
 			NumThreads = 0;
@@ -161,7 +162,7 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 				return 1;
 			}
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -compare") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-compare") == 0)
 		{
 			bCompareFiles = true;
 
@@ -174,7 +175,7 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 			File1 = *FString(argv[++ArgIndex]);
 			File2 = *FString(argv[++ArgIndex]);
 		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -error") == 0)
+		else if (FCStringAnsi::Stricmp(argv[ArgIndex], "-error") == 0)
 		{
 			// use the next parameter as the number of threads (it must exist, or we fail)
 			if (ArgIndex >= argc - 1)
@@ -203,17 +204,6 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 			SceneGuid.C = wcstoul(*Arg.Mid(16, 8), NULL, 16);
 			SceneGuid.D = wcstoul(*Arg.Mid(24, 8), NULL, 16);
 #endif
-		}
-		else if (FCStringAnsi::Stricmp(argv[ArgIndex], " -trisperleaf") == 0)
-		{
-			// use the next parameter as the maximum number of triangles per leaf for the kdop tree (it must exist, or we fail)
-			if (ArgIndex >= argc - 1)
-			{
-				UE_LOG(LogLightmass, Display, TEXT("-error requires an error value following (-trisperleaf N)"));
-				return 1;
-			}
-
-			GKDOPMaxTrisPerLeaf = FCString::Atoi(*FString(argv[++ArgIndex]));
 		}
 	}
 

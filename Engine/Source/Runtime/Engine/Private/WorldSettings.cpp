@@ -46,7 +46,6 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 	PackedLightAndShadowMapTextureSize = 1024;
 #if WITH_EDITORONLY_DATA
 	bHiddenEd = true;
-	MaxTrianglesPerLeaf = 4;
 #endif // WITH_EDITORONLY_DATA
 
 	DefaultColorScale = FVector(1.0f, 1.0f, 1.0f);
