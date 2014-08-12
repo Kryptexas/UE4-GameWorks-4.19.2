@@ -32,7 +32,7 @@ private:
 
 	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature);
 
-	TSharedRef<SWidget> OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
+	TSharedRef<SWidget> OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure);
 
 	const FSlateBrush* GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const;
 	FText GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const;
@@ -43,16 +43,20 @@ private:
 	void HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
 	void HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty);
 
-	void HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
+	void HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure);
 	void GotoFunction(UEdGraph* FunctionGraph);
 
 	EVisibility GetGotoBindingVisibility(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	FReply HandleGotoBindingClicked(TSharedRef<IPropertyHandle> PropertyHandle);
 
-	void CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property );
+	void CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property, UWidget* Widget );
 
-	void CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property );
+	void CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property, UWidget* Widget );
+
+	void CreateMulticastEventCustomization(IDetailLayoutBuilder& DetailLayout, FName ThisComponentName, UClass* PropertyClass, UMulticastDelegateProperty* Property);
+
+	FReply AddOrViewEventBinding(TSharedPtr<FEdGraphSchemaAction> Action);
 private:
 
 	TWeakPtr<FWidgetBlueprintEditor> Editor;
