@@ -33,6 +33,8 @@ struct FCharacterMeasureInfo
 	int16 SizeY;
 	/** How many pixels to advance in X after drawing this character (when its part of a string)*/
 	int16 XAdvance;
+	/** The largest vertical distance above the baseline for any character in the font */
+	int16 GlobalAscender;
 	/** The largest vertical distance below the baseline for any character in the font */
 	int16 GlobalDescender;
 	/** The vertical distance from the baseline to the topmost border of the glyph bitmap */
