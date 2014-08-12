@@ -246,8 +246,8 @@ void FModuleManager::AddModule( const FName InModuleName )
 							}
 						}
 					}
-#endif	// !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				}
+#endif	// !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			}
 		}
 #endif	// !IS_MONOLITHIC
