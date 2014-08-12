@@ -509,7 +509,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 {
 	bool bResult = false;
 	bool bNegate = false;
-	UBoolProperty* EditConditionProperty = GetEditConditionProperty( InPropertyNode.GetProperty(), bNegate);
+	UBoolProperty* EditConditionProperty = PropertyCustomizationHelpers::GetEditConditionProperty(InPropertyNode.GetProperty(), bNegate);
 	if ( EditConditionProperty != NULL )
 	{
 		FPropertyNode* ParentNode = InPropertyNode.GetParentNode();
@@ -569,7 +569,7 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 	if (!InProperty->HasMetaData(TEXT("HideEditConditionToggle")))
 	{
 		bool bNegateValue = false;
-		UBoolProperty* ConditionalProperty = GetEditConditionProperty( InProperty, bNegateValue );
+		UBoolProperty* ConditionalProperty = PropertyCustomizationHelpers::GetEditConditionProperty( InProperty, bNegateValue );
 		if( ConditionalProperty != NULL )
 		{
 			bShowEditConditionToggle = true;
@@ -584,35 +584,6 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 	}
 
 	return bShowEditConditionToggle;
-}
-
-UBoolProperty* FPropertyEditor::GetEditConditionProperty( const UProperty* InProperty, bool& bNegate ) 
-{
-	UBoolProperty* EditConditionProperty = NULL;
-	bNegate = false;
-
-	if ( InProperty != NULL )
-	{
-		// find the name of the property that should be used to determine whether this property should be editable
-		FString ConditionPropertyName = InProperty->GetMetaData(TEXT("EditCondition"));
-
-		// Support negated edit conditions whose syntax is !BoolProperty
-		if (ConditionPropertyName.StartsWith(FString(TEXT("!"))))
-		{
-			bNegate = true;
-			// Chop off the negation from the property name
-			ConditionPropertyName = ConditionPropertyName.Right(ConditionPropertyName.Len() - 1);
-		}
-
-		// for now, only support boolean conditions, and only allow use of another property within the same struct as the conditional property
-		if ( ConditionPropertyName.Len() > 0 && !ConditionPropertyName.Contains(TEXT(".")) )
-		{
-			UStruct* Scope = InProperty->GetOwnerStruct();
-			EditConditionProperty = FindField<UBoolProperty>(Scope, *ConditionPropertyName);
-		}
-	}
-
-	return EditConditionProperty;
 }
 
 void FPropertyEditor::SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& WeakPropertyNode )

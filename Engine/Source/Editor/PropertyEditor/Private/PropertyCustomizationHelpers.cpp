@@ -244,6 +244,35 @@ namespace PropertyCustomizationHelpers
 			.OnShouldFilterActor( OnShouldFilterActor )
 			.OnActorSelected( OnActorSelectedFromPicker );
 	}
+
+	UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate)
+	{
+		UBoolProperty* EditConditionProperty = NULL;
+		bNegate = false;
+
+		if ( InProperty != NULL )
+		{
+			// find the name of the property that should be used to determine whether this property should be editable
+			FString ConditionPropertyName = InProperty->GetMetaData(TEXT("EditCondition"));
+
+			// Support negated edit conditions whose syntax is !BoolProperty
+			if ( ConditionPropertyName.StartsWith(FString(TEXT("!"))) )
+			{
+				bNegate = true;
+				// Chop off the negation from the property name
+				ConditionPropertyName = ConditionPropertyName.Right(ConditionPropertyName.Len() - 1);
+			}
+
+			// for now, only support boolean conditions, and only allow use of another property within the same struct as the conditional property
+			if ( ConditionPropertyName.Len() > 0 && !ConditionPropertyName.Contains(TEXT(".")) )
+			{
+				UStruct* Scope = InProperty->GetOwnerStruct();
+				EditConditionProperty = FindField<UBoolProperty>(Scope, *ConditionPropertyName);
+			}
+		}
+
+		return EditConditionProperty;
+	}
 }
 
 void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )

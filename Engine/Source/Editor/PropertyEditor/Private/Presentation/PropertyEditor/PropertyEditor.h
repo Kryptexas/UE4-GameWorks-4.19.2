@@ -141,8 +141,6 @@ private:
 
 	static bool SupportsEditConditionToggle( UProperty* InProperty );
 
-	static UBoolProperty* GetEditConditionProperty( const UProperty* InProperty, bool& bNegate ) ;
-
 private:
 
 	TArray< FPropertyConditionInfo > PropertyEditConditions;
