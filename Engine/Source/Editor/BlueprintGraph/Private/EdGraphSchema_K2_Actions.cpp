@@ -143,6 +143,12 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* Pare
 		// Clear any error messages resulting from placing a node.  They'll be flagged on the next compile
 		K2Node->ErrorMsg.Empty();
 		K2Node->bHasCompilerMessage = false;
+
+		if ( bGotoNode && ResultNode )
+		{
+			// Select existing node
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ResultNode);
+		}
 	}
 
 	return ResultNode;

@@ -39,15 +39,19 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2NewNode : public FEdGraphSchema
 	UPROPERTY()
 	class UK2Node* NodeTemplate;
 
+	UPROPERTY()
+	bool bGotoNode;
 
 	FEdGraphSchemaAction_K2NewNode() 
 		: FEdGraphSchemaAction()
 		, NodeTemplate(NULL)
+		, bGotoNode(false)
 	{}
 
 	FEdGraphSchemaAction_K2NewNode(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
 		, NodeTemplate(NULL)
+		, bGotoNode(false)
 	{}
 
 	// FEdGraphSchemaAction interface
