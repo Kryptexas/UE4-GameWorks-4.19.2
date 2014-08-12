@@ -11,6 +11,7 @@
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavLinkTrivial.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
+#include "AI/Navigation/NavigationProxy.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull

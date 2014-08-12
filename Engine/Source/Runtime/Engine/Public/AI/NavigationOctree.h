@@ -3,7 +3,6 @@
 #pragma once
 #include "AI/NavigationModifier.h"
 #include "GenericOctree.h"
-#include "AI/Navigation/NavigationProxy.h"
 
 class AActor;
 class UActorComponent;
@@ -131,34 +130,7 @@ struct FNavigationOctreeSemantics
 #if NAVSYS_DEBUG
 	FORCENOINLINE 
 #endif // NAVSYS_DEBUG
-	static void SetElementId(const FNavigationOctreeElement& Element, FOctreeElementId Id)
-	{
-		UWorld* World = NULL;
-		UObject* ElementOwner = Element.Owner.Get();
-
-		if (AActor* Actor = Cast<AActor>(ElementOwner))
-		{
-			World = Actor->GetWorld();
-		}
-		else if (UNavigationProxy* Proxy = Cast<UNavigationProxy>(ElementOwner))
-		{
-			World = Proxy->MyOwner != NULL ? Proxy->MyOwner->GetWorld() : NULL;
-		}
-		else if (UActorComponent* AC = Cast<UActorComponent>(ElementOwner))
-		{
-			World = AC->GetWorld();
-		}
-		else if (ULevel* Level = Cast<ULevel>(ElementOwner))
-		{
-			World = Level->OwningWorld;
-		}
-
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-		if (NavSys)
-		{
-			NavSys->SetObjectsNavOctreeId(ElementOwner, Id);
-		}
-	}
+	static void SetElementId(const FNavigationOctreeElement& Element, FOctreeElementId Id);
 };
 
 class FNavigationOctree : public TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>

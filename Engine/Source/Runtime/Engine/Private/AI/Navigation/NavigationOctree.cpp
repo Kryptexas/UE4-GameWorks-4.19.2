@@ -4,6 +4,7 @@
 #include "NavigationOctree.h"
 #include "RecastHelpers.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "AI/Navigation/NavigationProxy.h"
 
 #if NAVOCTREE_CONTAINS_COLLISION_DATA
 #include "RecastNavMeshGenerator.h"
@@ -126,4 +127,36 @@ bool FNavigationRelevantData::IsMatchingFilter(const FNavigationOctreeFilter& Fi
 		(Filter.bIncludeOffmeshLinks && (Modifiers.HasPotentialLinks() || Modifiers.HasLinks())) ||
 		(Filter.bIncludeAreas && Modifiers.HasAreas()) ||
 		(Filter.bIncludeMetaAreas && Modifiers.HasMetaAreas());
+}
+
+#if NAVSYS_DEBUG
+FORCENOINLINE
+#endif // NAVSYS_DEBUG
+void FNavigationOctreeSemantics::SetElementId(const FNavigationOctreeElement& Element, FOctreeElementId Id)
+{
+	UWorld* World = NULL;
+	UObject* ElementOwner = Element.Owner.Get();
+
+	if (AActor* Actor = Cast<AActor>(ElementOwner))
+	{
+		World = Actor->GetWorld();
+	}
+	else if (UNavigationProxy* Proxy = Cast<UNavigationProxy>(ElementOwner))
+	{
+		World = Proxy->MyOwner != NULL ? Proxy->MyOwner->GetWorld() : NULL;
+	}
+	else if (UActorComponent* AC = Cast<UActorComponent>(ElementOwner))
+	{
+		World = AC->GetWorld();
+	}
+	else if (ULevel* Level = Cast<ULevel>(ElementOwner))
+	{
+		World = Level->OwningWorld;
+	}
+
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys)
+	{
+		NavSys->SetObjectsNavOctreeId(ElementOwner, Id);
+	}
 }
