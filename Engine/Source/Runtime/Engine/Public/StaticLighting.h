@@ -6,14 +6,10 @@
 
 #pragma once
 
-#include "VertexFactory.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
 
 // Forward declarations.
 class FStaticLightingTextureMapping;
 class FStaticLightingMapping;
-class FLightMapData2D;
 
 /** The vertex data used to build static lighting. */
 struct FStaticLightingVertex

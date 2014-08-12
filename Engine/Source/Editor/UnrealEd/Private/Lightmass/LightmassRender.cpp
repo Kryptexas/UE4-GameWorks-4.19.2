@@ -10,6 +10,7 @@
 #include "Lightmass.h"
 #include "LightmassRender.h"
 #include "MaterialCompiler.h"
+#include "LightMap.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightmassRender, Error, All);
 

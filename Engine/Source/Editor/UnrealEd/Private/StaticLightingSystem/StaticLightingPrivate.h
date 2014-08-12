@@ -12,6 +12,8 @@
 #include "StaticLighting.h"
 #include "LightingBuildOptions.h"
 
+struct FSelectedLightmapSample;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogStaticLightingSystem, Log, All);
 
 /** Encapsulation of all Lightmass statistics */

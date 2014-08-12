@@ -18,6 +18,9 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "LevelUtils.h"
 #include "CrashTracker.h"
 #include "EngineModule.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 

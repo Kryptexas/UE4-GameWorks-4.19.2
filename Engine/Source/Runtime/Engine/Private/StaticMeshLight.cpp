@@ -8,6 +8,8 @@
 #include "StaticMeshResources.h"
 #include "Raster.h"
 #include "StaticMeshLight.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.

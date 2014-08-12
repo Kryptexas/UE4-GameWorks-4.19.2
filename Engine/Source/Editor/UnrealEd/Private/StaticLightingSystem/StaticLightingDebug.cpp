@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
 #include "StaticLightingPrivate.h"
+#include "LightMap.h"
 
 /** Information about the texel that is selected */
 FSelectedLightmapSample GCurrentSelectedLightmapSample;
