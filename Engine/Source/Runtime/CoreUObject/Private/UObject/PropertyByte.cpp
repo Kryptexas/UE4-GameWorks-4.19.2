@@ -83,11 +83,16 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 {
 	if (Enum)
 	{
-		FString FullyQualifiedEnumName = Enum->GetName();
-		if (!Enum->ActualEnumNameInsideNamespace.IsEmpty())
+		FString FullyQualifiedEnumName;
+		if (!Enum->CppType.IsEmpty())
 		{
-			FullyQualifiedEnumName += TEXT("::");
-			FullyQualifiedEnumName += Enum->ActualEnumNameInsideNamespace;
+			FullyQualifiedEnumName = Enum->CppType;
+		}
+		else
+		{
+			// This would give the wrong result if it's a namespaced type and the CppType hasn't
+			// been set, but we do this here in case existing code relies on it... somehow.
+			FullyQualifiedEnumName = Enum->GetName();
 		}
 
 		if ((CPPExportFlags & CPPF_ArgumentOrReturnValue) && ((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm)))

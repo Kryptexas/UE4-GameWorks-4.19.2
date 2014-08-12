@@ -4,7 +4,7 @@
 
 /** 
  *	User defined enumerations:
- *	- have bIsNamespace set always to true (to comfortable handle names collisions)
+ *	- EnumType is always UEnum::ECppForm::Namespaced (to comfortable handle names collisions)
  *	- always have the last '_MAX' enumerator, that cannot be changed by user
  *	- Full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
  */

@@ -545,34 +545,55 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	TArray<FPropertySpecifier> SpecifiersFound;
 	ReadSpecifierSetInsideMacro(SpecifiersFound, TEXT("Enum"), EnumToken.MetaData);
 
-	// Check enum type. This can be global 'enum' or 'namespace' enum.
-	FToken EnumType;
-	if (!GetIdentifier(EnumType) || (!EnumType.Matches(TEXT("enum"), ESearchCase::CaseSensitive) && !EnumType.Matches(TEXT("namespace"), ESearchCase::CaseSensitive)))
-	{
-		FError::Throwf(TEXT("UENUM() should be followed by \'enum\' or \'namespace\' keywords.") );
-	}
-	bool bInNamespace = EnumType.Matches(TEXT("namespace"));
-
 	FScriptLocation DeclarationPosition;
 
-	// Get enumeration name.
+	// Check enum type. This can be global 'enum', 'namespace' or 'enum class' enums.
+	bool            bReadEnumName = false;
+	UEnum::ECppForm CppForm       = UEnum::ECppForm::Regular;
 	if (!GetIdentifier(EnumToken))
 	{
-		if (bInNamespace)
+		FError::Throwf(TEXT("Missing identifier after UENUM()") );
+	}
+
+	if (EnumToken.Matches(TEXT("namespace"), ESearchCase::CaseSensitive))
+	{
+		CppForm      = UEnum::ECppForm::Namespaced;
+		bReadEnumName = GetIdentifier(EnumToken);
+	}
+	else if (EnumToken.Matches(TEXT("enum"), ESearchCase::CaseSensitive))
+	{
+		if (!GetIdentifier(EnumToken))
 		{
-			FError::Throwf(TEXT("Missing enumeration namespace name") );
+			FError::Throwf(TEXT("Missing identifier after enum") );
+		}
+
+		if (EnumToken.Matches(TEXT("class"), ESearchCase::CaseSensitive) || EnumToken.Matches(TEXT("struct"), ESearchCase::CaseSensitive))
+		{
+			CppForm       = UEnum::ECppForm::EnumClass;
+			bReadEnumName = GetIdentifier(EnumToken);
 		}
 		else
 		{
-			FError::Throwf(TEXT("Missing enumeration name") );
+			CppForm       = UEnum::ECppForm::Regular;
+			bReadEnumName = true;
 		}
+	}
+	else
+	{
+		FError::Throwf(TEXT("UENUM() should be followed by \'enum\' or \'namespace\' keywords.") );
+	}
+
+	// Get enumeration name.
+	if (!bReadEnumName)
+	{
+		FError::Throwf(TEXT("Missing enumeration name") );
 	}
 
 	// Verify that the enumeration definition is unique within this scope.
-	UField* Existing = FindField( Scope, EnumToken.Identifier );
-	if ((Existing != NULL) && (Existing->GetOuter() == Scope))
+	UField* Existing = FindField(Scope, EnumToken.Identifier);
+	if (Existing && Existing->GetOuter() == Scope)
 	{
-		FError::Throwf(TEXT("enum: '%s' already defined here"), *EnumToken.TokenName.ToString() );
+		FError::Throwf(TEXT("enum: '%s' already defined here"), *EnumToken.TokenName.ToString());
 	}
 
 	CheckObscures(Scope, EnumToken.Identifier, EnumToken.Identifier);
@@ -586,25 +607,52 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 
+	// Read optional base for enum class
+	if (CppForm == UEnum::ECppForm::EnumClass && MatchSymbol(TEXT(":")))
+	{
+		FToken BaseToken;
+		if (!GetIdentifier(BaseToken))
+		{
+			FError::Throwf(TEXT("Missing enum base") );
+		}
+
+		// We only support uint8 at the moment, until the properties get updated
+		if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
+		{
+			FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
+		}
+
+		GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
+	}
+
 	// Get opening brace.
 	RequireSymbol( TEXT("{"), TEXT("'Enum'") );
 
-	if (bInNamespace)
+	switch (CppForm)
 	{
-		// Now handle the inner true enum portion
-		RequireIdentifier(TEXT("enum"), TEXT("'Enum'"));
-
-		FToken InnerEnumToken;
-		if (!GetIdentifier(InnerEnumToken))
+		case UEnum::ECppForm::Namespaced:
 		{
-			FError::Throwf(TEXT("Missing enumeration name") );
-		}
-		else
-		{
-			Enum->ActualEnumNameInsideNamespace = InnerEnumToken.Identifier;
-		}
+			// Now handle the inner true enum portion
+			RequireIdentifier(TEXT("enum"), TEXT("'Enum'"));
 
-		RequireSymbol( TEXT("{"), TEXT("'Enum'") );
+			FToken InnerEnumToken;
+			if (!GetIdentifier(InnerEnumToken))
+			{
+				FError::Throwf(TEXT("Missing enumeration name") );
+			}
+
+			Enum->CppType = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, InnerEnumToken.Identifier);
+
+			RequireSymbol( TEXT("{"), TEXT("'Enum'") );
+		}
+		break;
+
+		case UEnum::ECppForm::Regular:
+		case UEnum::ECppForm::EnumClass:
+		{
+			Enum->CppType = EnumToken.Identifier;
+		}
+		break;
 	}
 
 	// List of all metadata generated for this enum
@@ -649,51 +697,58 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 
 		int32 iFound;
 		FName NewTag;
-		if (bInNamespace)
+		switch (CppForm)
 		{
-			NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+			case UEnum::ECppForm::Namespaced:
+			case UEnum::ECppForm::EnumClass:
+			{
+				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+			}
+			break;
+
+			case UEnum::ECppForm::Regular:
+			{
+				NewTag = FName(TagToken.Identifier, FNAME_Add, true);
+			}
+			break;
 		}
-		else
-		{
-			NewTag = FName(TagToken.Identifier, FNAME_Add, true);
-		}
+
 		if (EnumNames.Find(NewTag, iFound))
 		{
 			FError::Throwf(TEXT("Duplicate enumeration tag %s"), TagToken.Identifier );
 		}
-		else if (CurrentEnumValue > 255)
+
+		if (CurrentEnumValue > 255)
 		{
 			FError::Throwf(TEXT("Exceeded maximum of 255 enumerators") );
 		}
-		else
+
+		UEnum* FoundEnum = NULL;
+		if (UEnum::LookupEnumName(NewTag, &FoundEnum) != INDEX_NONE)
 		{
-			UEnum* FoundEnum = NULL;
-			if (UEnum::LookupEnumName(NewTag, &FoundEnum) != INDEX_NONE)
-			{
-				FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
-			}
-
-			// Make sure the enum names array is tightly packed by inserting dummies
-			//@TODO: UCREMOVAL: Improve the UEnum system so we can have loosely packed values for e.g., bitfields
-			for (int32 DummyIndex = EnumNames.Num(); DummyIndex < CurrentEnumValue; ++DummyIndex)
-			{
-				FString DummyName              = FString::Printf(TEXT("UnusedSpacer_%d"), DummyIndex);
-				FString DummyNameWithNamespace = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, *DummyName);
-				EnumNames.Add(FName(*DummyNameWithNamespace));
-
-				// These ternary operators are the correct way around, believe it or not.
-				// Spacers are qualified with the ETheEnum:: when they're not namespaced in order to prevent spacer name clashes.
-				// They're not qualified when they're actually in a namespace.
-				InsertMetaDataPair(EnumValueMetaData, (bInNamespace ? DummyName : DummyNameWithNamespace) + TEXT(".Hidden"), TEXT(""));
-				InsertMetaDataPair(EnumValueMetaData, (bInNamespace ? DummyName : DummyNameWithNamespace) + TEXT(".Spacer"), TEXT(""));
-			}
-
-			// Save the new tag
-			EnumNames.Add( NewTag );
-
-			// Autoincrement the current enumerant value
-			CurrentEnumValue++;
+			FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
 		}
+
+		// Make sure the enum names array is tightly packed by inserting dummies
+		//@TODO: UCREMOVAL: Improve the UEnum system so we can have loosely packed values for e.g., bitfields
+		for (int32 DummyIndex = EnumNames.Num(); DummyIndex < CurrentEnumValue; ++DummyIndex)
+		{
+			FString DummyName              = FString::Printf(TEXT("UnusedSpacer_%d"), DummyIndex);
+			FString DummyNameWithQualifier = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, *DummyName);
+			EnumNames.Add(FName(*DummyNameWithQualifier));
+
+			// These ternary operators are the correct way around, believe it or not.
+			// Spacers are qualified with the ETheEnum:: when they're regular enums in order to prevent spacer name clashes.
+			// They're not qualified when they're actually in a namespace or are enum classes.
+			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Hidden"), TEXT(""));
+			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Spacer"), TEXT(""));
+		}
+
+		// Save the new tag
+		EnumNames.Add( NewTag );
+
+		// Autoincrement the current enumerant value
+		CurrentEnumValue++;
 
 		// check for metadata on this enum value
 		ParseFieldMetaData(TagToken.MetaData, TagToken.Identifier);
@@ -735,27 +790,24 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	RequireSymbol( TEXT("}"), TEXT("'Enum'") );
 	MatchSemi();
 
-	if (bInNamespace)
+	if (CppForm == UEnum::ECppForm::Namespaced)
 	{
 		// Trailing brace for the namespace.
 		RequireSymbol( TEXT("}"), TEXT("'Enum'") );
 	}
 
 	// Register the list of enum names.
-	if (!Enum->SetEnums(EnumNames, bInNamespace))
+	if (!Enum->SetEnums(EnumNames, CppForm))
 	{
-		const FName MaxEnumItem = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
+		const FName MaxEnumItem      = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
 		const int32 MaxEnumItemIndex = Enum->FindEnumIndex(MaxEnumItem);
 		if (MaxEnumItemIndex != INDEX_NONE)
 		{
 			ReturnToLocation(EnumTagLocations[MaxEnumItemIndex], false, true);
 			FError::Throwf(TEXT("Illegal enumeration tag specified.  Conflicts with auto-generated tag '%s'"), *MaxEnumItem.ToString());
 		}
-		else
-		{
-			FError::Throwf(TEXT("Unable to generate enum MAX entry '%s' due to name collision"), *MaxEnumItem.ToString());
-		}
-		///return NULL;
+
+		FError::Throwf(TEXT("Unable to generate enum MAX entry '%s' due to name collision"), *MaxEnumItem.ToString());
 	}
 
 	return Enum;
@@ -1122,18 +1174,17 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	if (!Scope->HasAnyClassFlags(CLASS_Temporary))
 	{
 		UField* Existing = FindField(Scope, *EffectiveStructName);
-		if ((Existing != NULL) && (Existing->GetOuter() == Scope))
+		if (Existing && Existing->GetOuter() == Scope)
 		{
 			FError::Throwf(TEXT("struct: '%s' already defined here"), *EffectiveStructName);
 		}
-		else if (FindObject<UClass>(ANY_PACKAGE, *EffectiveStructName) != NULL)
+
+		if (FindObject<UClass>(ANY_PACKAGE, *EffectiveStructName) != NULL)
 		{
 			FError::Throwf(TEXT("struct: '%s' conflicts with class name"), *EffectiveStructName);
 		}
-		else
-		{
-			CheckObscures(Scope, StructNameInScript, EffectiveStructName);
-		}
+
+		CheckObscures(Scope, StructNameInScript, EffectiveStructName);
 	}
 
 	// Get optional superstruct.
@@ -2654,7 +2705,8 @@ bool FHeaderParser::GetVarType
 		}
 		FError::Throwf(TEXT("%s: Missing variable type"), Thing );
 	}
-	else if ( VarType.Matches(TEXT("int8")) )
+
+	if ( VarType.Matches(TEXT("int8")) )
 	{
 		VarProperty = FPropertyBase(CPT_Int8);
 	}
@@ -2794,7 +2846,7 @@ bool FHeaderParser::GetVarType
 		// Eat the forward declaration enum text if present
 		MatchIdentifier(TEXT("enum"));
 
-		bool bFailedToFindEnum = true;
+		bool bFoundEnum = false;
 
 		FToken InnerEnumType;
 		if (GetIdentifier(InnerEnumType, true))
@@ -2802,9 +2854,9 @@ bool FHeaderParser::GetVarType
 			if (UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, InnerEnumType.Identifier))
 			{
 				// In-scope enumeration.
-				VarProperty = FPropertyBase(Enum);
-				bFailedToFindEnum = false;
-			}	
+				VarProperty = FPropertyBase(Enum, CPT_Byte);
+				bFoundEnum  = true;
+			}
 		}
 
 		// Try to handle namespaced enums
@@ -2818,18 +2870,24 @@ bool FHeaderParser::GetVarType
 			}
 		}
 
-		if (bFailedToFindEnum)
+		if (!bFoundEnum)
 		{
 			FError::Throwf(TEXT("Expected the name of a previously defined enum"));
 		}
 
 		RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 	}
-	else if (UEnum* Enum = FindObject<UEnum>( ANY_PACKAGE, VarType.Identifier ))
+	else if (UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, VarType.Identifier))
 	{
+		EPropertyType UnderlyingType = CPT_Byte;
+
 		if (VariableCategory == EVariableCategory::Member)
 		{
-			FError::Throwf(TEXT("You cannot use the raw enum name as a type for member variables, instead use TEnumAsByte<%s>."), VarType.Identifier);
+			auto* UnderlyingType = GEnumUnderlyingTypes.Find(Enum);
+			if (!UnderlyingType || *UnderlyingType != CPT_Byte)
+			{
+				FError::Throwf(TEXT("You cannot use the raw enum name as a type for member variables, instead use TEnumAsByte or a C++11 enum class with an explicit underlying type (currently only uint8 supported)."), *Enum->CppType);
+			}
 		}
 
 		// Try to handle namespaced enums
@@ -2844,7 +2902,7 @@ bool FHeaderParser::GetVarType
 		}
 
 		// In-scope enumeration.
-		VarProperty = FPropertyBase(Enum);
+		VarProperty            = FPropertyBase(Enum, UnderlyingType);
 		bUnconsumedEnumKeyword = false;
 	}
 	else
@@ -3005,7 +3063,7 @@ bool FHeaderParser::GetVarType
 				CheckInScope( TempClass );
 
 				bool bAllowWeak = !(Disallow & CPF_AutoWeak); // if it is not allowing anything, force it strong. this is probably a function arg
-				VarProperty = FPropertyBase( TempClass, NULL, CPRT_None, bAllowWeak, bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
+				VarProperty = FPropertyBase( TempClass, NULL, bAllowWeak, bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
 				if (TempClass->IsChildOf(UClass::StaticClass()))
 				{
 					if ( MatchSymbol(TEXT("<")) )

@@ -38,3 +38,4 @@ extern TSet<UClass*>                            GPublicClassSet;
 extern TMap<UProperty*, FString>                GArrayDimensions;
 extern TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;
 extern TMap<UField*, uint32>                    GGeneratedCodeCRCs;
+extern TMap<UEnum*,  EPropertyType>             GEnumUnderlyingTypes;

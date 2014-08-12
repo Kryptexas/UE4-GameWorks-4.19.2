@@ -505,7 +505,7 @@ void UBTCompositeNode::RequestDelayedExecution(class UBehaviorTreeComponent* Own
 	OwnerComp->RequestExecution(LastResult);
 }
 
-uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex::Type ChildMode) const
+uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex ChildMode) const
 {
 	const UBTNode* ChildNode = GetChildNode(Index);
 	if (ChildNode)

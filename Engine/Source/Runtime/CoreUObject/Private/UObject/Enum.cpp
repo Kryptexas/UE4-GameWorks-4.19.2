@@ -21,7 +21,19 @@ void UEnum::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 	Ar << Names;
-	Ar << bIsNamespace;
+
+	if (Ar.UE4Ver() < VER_UE4_ENUM_CLASS_SUPPORT)
+	{
+		bool bIsNamespace;
+		Ar << bIsNamespace;
+		CppForm = bIsNamespace ? ECppForm::Namespaced : ECppForm::Regular;
+	}
+	else
+	{
+		int8 EnumTypeByte = (int8)CppForm;
+		Ar << EnumTypeByte;
+		CppForm = (ECppForm)EnumTypeByte;
+	}
 
 	if (Ar.IsLoading() || Ar.IsSaving())
 	{	
@@ -36,7 +48,7 @@ int32 UEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const
 
 FString UEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 {
-	return bIsNamespace ? GenerateFullEnumName(this, InEnumName) : InEnumName;
+	return (CppForm != ECppForm::Regular) ? GenerateFullEnumName(this, InEnumName) : InEnumName;
 }
 
 void UEnum::AddNamesToMasterList()
@@ -127,7 +139,7 @@ FString UEnum::GenerateEnumPrefix() const
 int32 UEnum::FindEnumIndex(FName InName) const
 {
 	int32 EnumIndex = Names.Find( InName );
-	if (EnumIndex == INDEX_NONE && bIsNamespace && !IsFullEnumName(*InName.ToString()))
+	if (EnumIndex == INDEX_NONE && CppForm != ECppForm::Regular && !IsFullEnumName(*InName.ToString()))
 	{
 		// Try the long enum name if InName doesn't have a namespace specified and this is a namespace enum.
 		FName LongName(*GenerateFullEnumName(*InName.ToString()));
@@ -217,15 +229,14 @@ int32 UEnum::FindEnumRedirects(const UEnum * Enum, FName EnumEntryName)
  *
  * @return	true unless the MAX enum already exists and isn't the last enum.
  */
-bool UEnum::SetEnums(TArray<FName>& InNames, bool bNamespace)
+bool UEnum::SetEnums(TArray<FName>& InNames, UEnum::ECppForm InCppForm)
 {
 	if (Names.Num() > 0)
 	{
 		RemoveNamesFromMasterList();
 	}
-	Names.Empty();
-	Names = InNames;
-	bIsNamespace = bNamespace;
+	Names   = InNames;
+	CppForm = InCppForm;
 	return GenerateMaxEnum();
 }
 
@@ -249,10 +260,8 @@ bool UEnum::GenerateMaxEnum()
 			// the MAX identifier is already being used by another enum
 			return false;
 		}
-		else
-		{
-			Names.Add(MaxEnumItem);
-		}
+
+		Names.Add(MaxEnumItem);
 	}
 
 	AddNamesToMasterList();

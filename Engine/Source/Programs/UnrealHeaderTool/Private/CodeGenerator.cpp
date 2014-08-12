@@ -1023,7 +1023,15 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		{
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("            EnumNames.Add(FName(TEXT(\"%s\")));\r\n"), *Enum->GetEnum(Index).ToString());
 		}
-		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum->SetEnums(EnumNames, %s);\r\n"), Enum->IsNamespaceEnum() ? TEXT("true") : TEXT("false"));
+
+		FString EnumTypeStr;
+		switch (Enum->GetCppForm())
+		{
+			case UEnum::ECppForm::Regular:    EnumTypeStr = TEXT("UEnum::ECppForm::Regular");    break;
+			case UEnum::ECppForm::Namespaced: EnumTypeStr = TEXT("UEnum::ECppForm::Namespaced"); break;
+			case UEnum::ECppForm::EnumClass:  EnumTypeStr = TEXT("UEnum::ECppForm::EnumClass");  break;
+		}
+		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum->SetEnums(EnumNames, %s);\r\n"), *EnumTypeStr);
 
 		FString Meta = GetMetaDataCodeForObject(Enum, TEXT("ReturnEnum"), TEXT("            "));
 		if (Meta.Len())
@@ -2256,12 +2264,6 @@ void FNativeClassHeaderGenerator::ExportEnums( const TArray<UEnum*>& Enums )
 	{
 		UEnum* Enum = Enums[EnumIdx];
 
-		FString QualifierPrefix; 
-		if (!Enum->ActualEnumNameInsideNamespace.IsEmpty())
-		{
-			QualifierPrefix = Enum->GetName() + TEXT("::");
-		}
-
 		// Export FOREACH macro
 		EnumForeachText.Logf( TEXT("#define FOREACH_ENUM_%s(op) "), *Enum->GetName().ToUpper() );
 		for (int32 i = 0; i < Enum->NumEnums() - 1; i++)
@@ -3393,26 +3395,17 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FStringOutputDevice& RPCWr
 			}
 		}
 
-		UByteProperty* ByteProp = Cast< UByteProperty >( Param );
-		if ((ByteProp != NULL) && (ByteProp->Enum != NULL))
+		UByteProperty* ByteProp = Cast<UByteProperty>(Param);
+		if (ByteProp && ByteProp->Enum)
 		{
-			UEnum* Enum = ByteProp->Enum;
-
-			FString FullyQualifiedEnumName = Enum->GetName();
-			if (!Enum->ActualEnumNameInsideNamespace.IsEmpty())
-			{
-				FullyQualifiedEnumName += TEXT("::");
-				FullyQualifiedEnumName += Enum->ActualEnumNameInsideNamespace;
-			}
-
 			// For enums, add an explicit conversion 
 			if (!(ByteProp->PropertyFlags & CPF_OutParm))
 			{
-				ParamName = FString::Printf( TEXT( "%s(%s)" ), *FullyQualifiedEnumName, *ParamName );
+				ParamName = FString::Printf( TEXT( "%s(%s)" ), *ByteProp->Enum->CppType, *ParamName );
 			}
 			else
 			{
-				ParamName = FString::Printf( TEXT( "(TEnumAsByte<%s>&)(%s)" ), *FullyQualifiedEnumName, *ParamName );
+				ParamName = FString::Printf( TEXT( "(TEnumAsByte<%s>&)(%s)" ), *ByteProp->Enum->CppType, *ParamName );
 			}
 		}
 

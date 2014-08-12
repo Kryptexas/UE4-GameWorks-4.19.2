@@ -162,18 +162,15 @@ namespace ELandscapeImportHeightmapError
 }
 
 UENUM()
-namespace ELandscapeImportLayerError
+enum class ELandscapeImportLayerError : uint8
 {
-	enum Type
-	{
-		None,
-		MissingLayerInfo,
-		FileNotFound,
-		FileSizeMismatch,
-		CorruptFile,
-		ColorPng,
-	};
-}
+	None,
+	MissingLayerInfo,
+	FileNotFound,
+	FileSizeMismatch,
+	CorruptFile,
+	ColorPng,
+};
 
 USTRUCT()
 struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
@@ -181,7 +178,7 @@ struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(Category="Import", VisibleAnywhere)
-	TEnumAsByte<ELandscapeImportLayerError::Type> ImportError;
+	ELandscapeImportLayerError ImportError;
 
 	FLandscapeImportLayer()
 		: FLandscapeImportLayerInfo()

@@ -17,14 +17,11 @@ struct FBTCompositeMemory
 };
 
 UENUM()
-namespace EBTChildIndex
+enum class EBTChildIndex
 {
-	enum Type
-	{
-		FirstNode,
-		TaskNode,
-	};
-}
+	FirstNode,
+	TaskNode,
+};
 
 UENUM()
 namespace EBTDecoratorLogic
@@ -133,7 +130,7 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	int32 GetChildrenNum() const;
 
 	/** @return execution index of child node */
-	uint16 GetChildExecutionIndex(int32 Index, EBTChildIndex::Type ChildMode = EBTChildIndex::TaskNode) const;
+	uint16 GetChildExecutionIndex(int32 Index, EBTChildIndex ChildMode = EBTChildIndex::TaskNode) const;
 
 	/** @return execution index of last node in child branches */
 	uint16 GetLastExecutionIndex() const;

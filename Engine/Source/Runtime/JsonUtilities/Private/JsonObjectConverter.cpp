@@ -158,7 +158,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
 			if (IntValue == INDEX_NONE)
 			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s"), *EnumProperty->ActualEnumNameInsideNamespace, *StrValue);
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s"), *EnumProperty->CppType, *StrValue);
 				return false;
 			}
 			NumericProperty->SetIntPropertyValue(OutValue, (int64)IntValue);

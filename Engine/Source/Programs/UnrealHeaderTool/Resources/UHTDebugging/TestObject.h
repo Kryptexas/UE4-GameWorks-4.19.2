@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EnumOnlyHeader.h"
 #include "TestObject.generated.h"
 
 UCLASS()
@@ -12,6 +13,9 @@ class UTestObject : public UObject
 
 	UPROPERTY()
 	int32 Cpp11Init = 123;
+
+	UPROPERTY()
+	ECppEnum EnumProperty;
 
 #if BLAH
 	UFUNCTION() int x; // This should not compile if UHT parses it, which it shouldn't
