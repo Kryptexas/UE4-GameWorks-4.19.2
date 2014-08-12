@@ -1787,27 +1787,18 @@ public:
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 	
-	/**
-	* Draw only the section of the material ID given of the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	* @param 	ForceLOD - Force this LOD. If -1, use current LOD of mesh. 
-	* @param	InMaterial - which material section to draw
-	*/
-	virtual void DrawDynamicElementsByMaterial(FPrimitiveDrawInterface* PDI,const FSceneView* View, int32 ForceLOD, int32 InMaterial);
-
 	/**
 	 * Returns the world transform to use for drawing.
 	 * @param View - Current view
 	 * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
 	 * @param OutWorldToLocal - Will contain the world-to-local transform when the function returns.
 	 */
-	virtual void GetWorldMatrices( const FSceneView* View, FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal );
+	void GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const;
 
 	/** Util for getting LOD index currently used by this SceneProxy. */
 	int32 GetCurrentLODIndex();
@@ -1821,7 +1812,7 @@ public:
 	/** 
 	 * Render physics asset for debug display
 	 */
-	void DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI,const FSceneView* View);
+	void DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags) const;
 
 	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODSections.GetAllocatedSize() ); }
@@ -1845,8 +1836,6 @@ protected:
 	class UPhysicsAsset* PhysicsAssetForDebug;
 
 	/** data copied for rendering */
-	FLinearColor LevelColor;
-	FColor PropertyColor;
 	uint32 bForceWireframe : 1;
 	uint32 bIsCPUSkinned : 1;
 	uint32 bCanHighlightSelectedSections : 1;
@@ -1891,12 +1880,8 @@ protected:
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;
 	bool bMaterialsNeedMorphUsage_GameThread;
 	
-	/** The color used by the wireframe mesh overlay mode */
-	FColor WireframeOverlayColor;
-
 	/**
 	* Draw only the section of the scene proxy as a dynamic element
-	* This is to avoid redundant code of two functions (DrawDynamicElementsByMaterial & DrawDynamicElements)
 	* 
 	* @param	PDI - draw interface to render to
 	* @param	View - current view
@@ -1909,4 +1894,9 @@ protected:
 		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, 
 		const FSkelMeshChunk& Chunk, const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors );
 
+	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
+		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
+		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const;
+
+	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };

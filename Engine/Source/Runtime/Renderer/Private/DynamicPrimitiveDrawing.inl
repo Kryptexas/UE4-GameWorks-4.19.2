@@ -12,7 +12,7 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 {
 	if(View)
 	{
-		const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform) && !IsMobileHDR();
+		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) && !IsMobileHDR();
 
 		// Determine whether or not to depth test simple batched elements manually (msaa only)
 		// We need to read from the scene depth in the pixel shader to do manual depth testing
@@ -224,12 +224,12 @@ void DrawViewElementsInner(
 	)
 {
 	// Get the correct element list based on dpg index
-	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = ( DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements );
+	const TIndirectArray<FMeshBatch>& ViewMeshElementList = ( DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements );
 	// Draw the view's mesh elements.
 	check(LastIndex < ViewMeshElementList.Num());
 	for (int32 MeshIndex = FirstIndex; MeshIndex <= LastIndex; MeshIndex++)
 	{
-		const FHitProxyMeshPair& Mesh = ViewMeshElementList[MeshIndex];
+		const FMeshBatch& Mesh = ViewMeshElementList[MeshIndex];
 		const auto FeatureLevel = View.GetFeatureLevel();
 		check(Mesh.MaterialRenderProxy);
 		check(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel));
@@ -245,7 +245,7 @@ void DrawViewElementsInner(
 				!!bBackFace,
 				bPreFog,
 				NULL,
-				Mesh.HitProxyId
+				Mesh.BatchHitProxyId
 				);
 			--bBackFace;
 		} while( bBackFace >= 0 );
@@ -315,7 +315,7 @@ void DrawViewElementsParallel(
 	)
 {
 	// Get the correct element list based on dpg index
-	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
+	const TIndirectArray<FMeshBatch>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
 
 	{
 		int32 NumPrims = ViewMeshElementList.Num();
@@ -358,7 +358,7 @@ bool DrawViewElements(
 	)
 {
 	// Get the correct element list based on dpg index
-	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
+	const TIndirectArray<FMeshBatch>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
 	if (ViewMeshElementList.Num() != 0)
 	{
 		DrawViewElementsInner<DrawingPolicyFactoryType>(RHICmdList, View, DrawingContext, DPGIndex, bPreFog, 0, ViewMeshElementList.Num() - 1);
@@ -539,12 +539,10 @@ inline int32 FViewElementPDI::DrawMesh(const FMeshBatch& Mesh)
 		uint8 DPGIndex = Mesh.DepthPriorityGroup;
 		// Get the correct element list based on dpg index
 		// Translucent view mesh elements in the foreground dpg are not supported yet
-		TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = ( ( DPGIndex == SDPG_Foreground  ) ? ViewInfo->TopViewMeshElements : ViewInfo->ViewMeshElements );
+		TIndirectArray<FMeshBatch>& ViewMeshElementList = ( ( DPGIndex == SDPG_Foreground  ) ? ViewInfo->TopViewMeshElements : ViewInfo->ViewMeshElements );
 
-		new(ViewMeshElementList) FHitProxyMeshPair(
-			Mesh,
-			CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
-			);
+		FMeshBatch* NewMesh = new(ViewMeshElementList) FMeshBatch(Mesh);
+		NewMesh->BatchHitProxyId = CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId();
 
 		return 1;
 	}

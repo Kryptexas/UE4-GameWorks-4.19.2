@@ -75,7 +75,6 @@ public:
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 #if WITH_EDITOR
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
-	virtual bool SetupLightmapResolutionViewInfo(FPrimitiveSceneProxy& Proxy) const override;
 #endif
 	virtual ELightMapInteractionType GetStaticLightingType() const override	{ return LMIT_Texture;	}
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;

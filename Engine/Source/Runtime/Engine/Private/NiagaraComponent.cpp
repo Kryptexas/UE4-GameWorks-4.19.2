@@ -26,6 +26,18 @@ struct FNiagaraDynamicData
 	TArray<FParticleSpriteVertex> VertexData;
 };
 
+class FNiagaraMeshCollectorResources : public FOneFrameResource
+{
+public:
+	FParticleSpriteVertexFactory VertexFactory;
+	FParticleSpriteUniformBufferRef UniformBuffer;
+
+	virtual ~FNiagaraMeshCollectorResources()
+	{
+		VertexFactory.ReleaseResource();
+	}
+};
+
 /**
  * Scene proxy for drawing niagara particle simulations.
  */
@@ -102,6 +114,100 @@ private:
 		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
+
+		check(DynamicData && DynamicData->VertexData.Num());
+
+		const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
+		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(IsSelected(),IsHovered());
+
+		int32 SizeInBytes = DynamicData->VertexData.GetTypeSize() * DynamicData->VertexData.Num();
+		FGlobalDynamicVertexBuffer::FAllocation LocalDynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(SizeInBytes);
+
+		if (LocalDynamicVertexAllocation.IsValid())
+		{
+			// Update the primitive uniform buffer if needed.
+			if (!WorldSpacePrimitiveUniformBuffer.IsInitialized())
+			{
+				FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(
+					FMatrix::Identity,
+					GetActorPosition(),
+					GetBounds(),
+					GetLocalBounds(),
+					ReceivesDecals(),
+					false,
+					UseEditorDepthTest()
+					);
+				WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
+				WorldSpacePrimitiveUniformBuffer.InitResource();
+			}
+
+			// Copy the vertex data over.
+			FMemory::Memcpy(LocalDynamicVertexAllocation.Buffer, DynamicData->VertexData.GetData(), SizeInBytes);
+
+			// Compute the per-view uniform buffers.
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+
+					FNiagaraMeshCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FNiagaraMeshCollectorResources>();
+					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
+
+					// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
+					CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
+					CollectorResources.VertexFactory.SetParticleFactoryType(PVFT_Sprite);
+
+					PerViewUniformParameters.MacroUVParameters = FVector4(0.0f,0.0f,1.0f,1.0f);
+					CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
+
+					CollectorResources.VertexFactory.InitResource();
+					CollectorResources.VertexFactory.SetSpriteUniformBuffer(CollectorResources.UniformBuffer);
+					CollectorResources.VertexFactory.SetInstanceBuffer(
+						LocalDynamicVertexAllocation.VertexBuffer,
+						LocalDynamicVertexAllocation.VertexOffset,
+						sizeof(FParticleSpriteVertex),
+						true
+						);
+					CollectorResources.VertexFactory.SetDynamicParameterBuffer(NULL,0,0,true);
+
+					FMeshBatch& MeshBatch = Collector.AllocateMesh();
+					MeshBatch.VertexFactory = &CollectorResources.VertexFactory;
+					MeshBatch.CastShadow = CastsDynamicShadow();
+					MeshBatch.bUseAsOccluder = false;
+					MeshBatch.ReverseCulling = IsLocalToWorldDeterminantNegative();
+					MeshBatch.Type = PT_TriangleList;
+					MeshBatch.DepthPriorityGroup = GetDepthPriorityGroup(View);
+					MeshBatch.bCanApplyViewModeOverrides = true;
+					MeshBatch.bUseWireframeSelectionColoring = IsSelected();
+
+					if (bIsWireframe)
+					{
+						MeshBatch.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(IsSelected(),IsHovered());
+					}
+					else
+					{
+						MeshBatch.MaterialRenderProxy = MaterialRenderProxy;
+					}
+
+					FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
+					MeshElement.IndexBuffer = &GParticleIndexBuffer;
+					MeshElement.FirstIndex = 0;
+					MeshElement.NumPrimitives = 2;
+					MeshElement.NumInstances = DynamicData->VertexData.Num();
+					MeshElement.MinVertexIndex = 0;
+					MeshElement.MaxVertexIndex = MeshElement.NumInstances * 4 - 1;
+					MeshElement.PrimitiveUniformBufferResource = &WorldSpacePrimitiveUniformBuffer;
+
+					Collector.AddMesh(ViewIndex, MeshBatch);
+				}
+			}
+		}
+	}
+
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraPreRenderView);
@@ -144,7 +250,8 @@ private:
 					GetBounds(),
 					GetLocalBounds(),
 					ReceivesDecals(),
-					false
+					false,
+					UseEditorDepthTest()
 					);
 				WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 				WorldSpacePrimitiveUniformBuffer.InitResource();
@@ -258,7 +365,7 @@ private:
 private:
 	UMaterialInterface* Material;
 	FNiagaraDynamicData* DynamicData;
-	TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
+	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
 	FParticleSpriteVertexFactory VertexFactory;
 	FParticleSpriteUniformParameters UniformParameters;
 	TArray<FParticleSpriteUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;

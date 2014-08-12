@@ -23,7 +23,9 @@
 #include "MeshBatch.h"
 #include "PrimitiveViewRelevance.h"
 #include "SceneInterface.h"
-
+#include "RHIDefinitions.h"
+#include "ChunkedArray.h"
+#include "BatchedElements.h"
 
 // Forward declarations.
 class FSceneViewFamily;
@@ -38,12 +40,6 @@ struct FDynamicMeshVertex;
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
-
-
-
-// -----------------------------------------------------------------------------
-
-
 
 /**
  * The scene manager's persistent view state.
@@ -1104,6 +1100,275 @@ public:
 		) = 0;
 };
 
+/** Primitive draw interface implementation used to store primitives requested to be drawn when gathering dynamic mesh elements. */
+class ENGINE_API FSimpleElementCollector : public FPrimitiveDrawInterface
+{
+public:
+
+	FSimpleElementCollector() : FPrimitiveDrawInterface(NULL)
+	{}
+
+	~FSimpleElementCollector();
+
+	virtual void SetHitProxy(HHitProxy* HitProxy);
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) {}
+
+	virtual void DrawSprite(
+		const FVector& Position,
+		float SizeX,
+		float SizeY,
+		const FTexture* Sprite,
+		const FLinearColor& Color,
+		uint8 DepthPriorityGroup,
+		float U,
+		float UL,
+		float V,
+		float VL,
+		uint8 BlendMode = SE_BLEND_Masked
+		) override;
+
+	virtual void DrawLine(
+		const FVector& Start,
+		const FVector& End,
+		const FLinearColor& Color,
+		uint8 DepthPriorityGroup,
+		float Thickness = 0.0f,
+		float DepthBias = 0.0f,
+		bool bScreenSpace = false
+		) override;
+
+	virtual void DrawPoint(
+		const FVector& Position,
+		const FLinearColor& Color,
+		float PointSize,
+		uint8 DepthPriorityGroup
+		) override;
+
+	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
+
+	// Not supported
+	virtual bool IsHitTesting() 
+	{ 
+		static bool bTriggered = false;
+
+		if (!bTriggered)
+		{
+			bTriggered = true;
+			ensureMsg(false, TEXT("FSimpleElementCollector::DrawMesh called"));
+		}
+
+		return false; 
+	}
+
+	// Not supported
+	virtual int32 DrawMesh(const FMeshBatch& Mesh) 
+	{
+		static bool bTriggered = false;
+
+		if (!bTriggered)
+		{
+			bTriggered = true;
+			ensureMsg(false, TEXT("FSimpleElementCollector::DrawMesh called"));
+		}
+
+		return 0;
+	}
+
+	// Legacy, should not be used
+	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
+	{
+		static bool bTriggered = false;
+
+		if (!bTriggered)
+		{
+			bTriggered = true;
+			ensureMsg(false, TEXT("FSimpleElementCollector::IsMaterialIgnored called"));
+		}
+
+		return false;
+	}
+
+	// Legacy, should not be used
+	virtual bool IsRenderingSelectionOutline() const
+	{
+		static bool bTriggered = false;
+
+		if (!bTriggered)
+		{
+			bTriggered = true;
+			ensureMsg(false, TEXT("FSimpleElementCollector::IsRenderingSelectionOutline called"));
+		}
+
+		return false;
+	}
+
+	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
+
+	/** The batched simple elements. */
+	FBatchedElements BatchedElements;
+
+private:
+
+	FHitProxyId HitProxyId;
+
+	/** The dynamic resources which have been registered with this drawer. */
+	TArray<FDynamicPrimitiveResource*,SceneRenderingAllocator> DynamicResources;
+
+	friend class FMeshElementCollector;
+};
+
+/** 
+ * Base class for a resource allocated from a FMeshElementCollector with AllocateOneFrameResource, which the collector releases.
+ * This is useful for per-frame structures which are referenced by a mesh batch given to the FMeshElementCollector.
+ */
+class FOneFrameResource
+{
+public:
+
+	virtual ~FOneFrameResource() {}
+};
+
+/** 
+ * A reference to a mesh batch that is added to the collector, together with some cached relevance flags. 
+ */
+struct FMeshBatchAndRelevance
+{
+	const FMeshBatch* Mesh;
+
+	/** The render info for the primitive which created this mesh, required. */
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
+
+	/** 
+	 * Cached usage information to speed up traversal in the most costly passes (depth-only, base pass, shadow depth), 
+	 * This is done so the Mesh does not have to be dereferenced to determine pass relevance. 
+	 */
+	uint32 bHasOpaqueOrMaskedMaterial : 1;
+	uint32 bRenderInMainPass : 1;
+
+	FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy, ERHIFeatureLevel::Type FeatureLevel);
+};
+
+/** 
+ * Encapsulates the gathering of meshes from the various FPrimitiveSceneProxy classes. 
+ */
+class FMeshElementCollector
+{
+public:
+
+	/** Accesses the PDI for drawing lines, sprites, etc. */
+	inline FPrimitiveDrawInterface* GetPDI(int32 ViewIndex)
+	{
+		return SimpleElementCollectors[ViewIndex];
+	}
+
+	/** 
+	 * Allocates an FMeshBatch that can be safely referenced by the collector (lifetime will be long enough).
+	 * Returns a reference that will not be invalidated due to further AllocateMesh() calls.
+	 */
+	inline FMeshBatch& AllocateMesh()
+	{
+		return *(new (MeshBatchStorage) FMeshBatch());
+	}
+
+	/** 
+	 * Adds a mesh batch to the collector for the specified view so that it can be rendered.
+	 */
+	ENGINE_API void AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch);
+
+	/** Add a material render proxy that will be cleaned up automatically */
+	void RegisterOneFrameMaterialProxy(FMaterialRenderProxy* Proxy)
+	{
+		TemporaryProxies.Add(Proxy);
+	}
+
+	/** Allocates a temporary resource that is safe to be referenced by an FMeshBatch added to the collector. */
+	template<typename T>
+	T& AllocateOneFrameResource()
+	{
+		T* OneFrameResource = new (FMemStack::Get()) T();
+		OneFrameResources.Add(OneFrameResource);
+		return *OneFrameResource;
+	}
+
+private:
+
+	FMeshElementCollector() :
+		PrimitiveSceneProxy(NULL),
+		FeatureLevel(ERHIFeatureLevel::Num)
+	{}
+
+	~FMeshElementCollector()
+	{
+		for (int32 ProxyIndex = 0; ProxyIndex < TemporaryProxies.Num(); ProxyIndex++)
+		{
+			delete TemporaryProxies[ProxyIndex];
+		}
+
+		// SceneRenderingAllocator does not handle destructors
+		for (int32 ResourceIndex = 0; ResourceIndex < OneFrameResources.Num(); ResourceIndex++)
+		{
+			OneFrameResources[ResourceIndex]->~FOneFrameResource();
+		}
+	}
+
+	void SetPrimitive(const FPrimitiveSceneProxy* InPrimitiveSceneProxy, FHitProxyId DefaultHitProxyId)
+	{
+		check(InPrimitiveSceneProxy);
+		PrimitiveSceneProxy = InPrimitiveSceneProxy;
+
+		for (int32 ViewIndex = 0; ViewIndex < SimpleElementCollectors.Num(); ViewIndex++)
+		{
+			SimpleElementCollectors[ViewIndex]->HitProxyId = DefaultHitProxyId;
+		}
+	}
+
+	void ClearViewMeshArrays()
+	{
+		Views.Empty();
+		MeshBatches.Empty();
+		SimpleElementCollectors.Empty();
+	}
+
+	void AddViewMeshArrays(
+		FSceneView* InView, 
+		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>* ViewMeshes,
+		FSimpleElementCollector* ViewSimpleElementCollector, 
+		ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		Views.Add(InView);
+		MeshBatches.Add(ViewMeshes);
+		SimpleElementCollectors.Add(ViewSimpleElementCollector);
+		FeatureLevel = InFeatureLevel;
+	}
+
+	/** 
+	 * Using TChunkedArray which will never realloc as new elements are added
+	 * @todo - use mem stack
+	 */
+	TChunkedArray<FMeshBatch> MeshBatchStorage;
+
+	/** Meshes to render */
+	TArray<TArray<FMeshBatchAndRelevance, SceneRenderingAllocator>*, TInlineAllocator<2> > MeshBatches;
+
+	/** PDIs */
+	TArray<FSimpleElementCollector*, TInlineAllocator<2> > SimpleElementCollectors;
+
+	/** Views being collected for */
+	TArray<FSceneView*, TInlineAllocator<2> > Views;
+
+	/** Material proxies that will be deleted at the end of the frame. */
+	TArray<FMaterialRenderProxy*, SceneRenderingAllocator> TemporaryProxies;
+
+	/** Resources that will be deleted at the end of the frame. */
+	TArray<FOneFrameResource*, SceneRenderingAllocator> OneFrameResources;
+
+	/** Current primitive being gathered. */
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
+
+	ERHIFeatureLevel::Type FeatureLevel;
+
+	friend class FSceneRenderer;
+};
 
 
 /**
@@ -1351,12 +1616,18 @@ extern ENGINE_API void DrawBox(class FPrimitiveDrawInterface* PDI,const FMatrix&
 extern ENGINE_API void DrawSphere(class FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling=false);
 extern ENGINE_API void DrawCone(class FPrimitiveDrawInterface* PDI,const FMatrix& ConeToWorld, float Angle1, float Angle2, int32 NumSides, bool bDrawSideLines, const FLinearColor& SideLineColor, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority);
 
-
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI,const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
 
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
+
+extern ENGINE_API void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,int32 ViewIndex,FMeshElementCollector& Collector);
+extern ENGINE_API void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling,int32 ViewIndex,FMeshElementCollector& Collector);
+extern ENGINE_API void GetCylinderMesh(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
+									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+extern ENGINE_API void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
+									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
 
 
 extern ENGINE_API void DrawDisc(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& XAxis,const FVector& YAxis,FColor Color,float Radius,int32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority);
@@ -1447,7 +1718,7 @@ extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
  * being made.
  * A view is rich if is missing the EngineShowFlags.Materials showflag, or has any of the render mode affecting showflags.
  */
-extern ENGINE_API bool IsRichView(const FSceneView* View);
+extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 
 /** Emits draw events for a given FMeshBatch and the PrimitiveSceneProxy corresponding to that mesh element. */
 extern ENGINE_API void EmitMeshDrawEvents(const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh);
@@ -1475,6 +1746,16 @@ extern ENGINE_API int32 DrawRichMesh(
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	bool bSelected,
 	bool bDrawInWireframe = false
+	);
+
+extern ENGINE_API void ApplyViewModeOverrides(
+	int32 ViewIndex,
+	const FEngineShowFlags& EngineShowFlags,
+	ERHIFeatureLevel::Type FeatureLevel,
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	bool bSelected,
+	struct FMeshBatch& Mesh,
+	FMeshElementCollector& Collector
 	);
 
 /** Draws the UV layout of the supplied asset (either StaticMeshRenderData OR SkeletalMeshRenderData, not both!) */

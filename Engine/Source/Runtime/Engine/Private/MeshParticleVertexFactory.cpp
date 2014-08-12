@@ -45,7 +45,7 @@ public:
 
 		if (!bInstanced)
 		{
-			FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = (FMeshParticleVertexFactory::FBatchParametersCPU*)BatchElement.UserData;
+			const FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = (const FMeshParticleVertexFactory::FBatchParametersCPU*)BatchElement.UserData;
 			const FMeshParticleInstanceVertex* Vertex = BatchParameters->InstanceBuffer + BatchElement.UserIndex;
 			const FMeshParticleInstanceVertexDynamicParameter* DynamicVertex = BatchParameters->DynamicParameterBuffer + BatchElement.UserIndex;
 

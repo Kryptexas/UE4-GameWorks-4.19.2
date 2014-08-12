@@ -150,8 +150,6 @@ public:
 	FModelSceneProxy(UModelComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),
 		Component(InComponent),
-		LevelColor(FLinearColor::White),
-		PropertyColor(255,255,255),
 		CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITOR
 		, CollisionMaterialInstance(GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(false, false),FColor(157,149,223,255)	)
@@ -181,7 +179,9 @@ public:
 		}
 
 		// Get a color for property coloration.
-		GEngine->GetPropertyColorationColor( (UObject*)InComponent, PropertyColor );
+		FColor NewPropertyColor;
+		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
+		PropertyColor = NewPropertyColor;
 	}
 
 	bool IsCollisionView(const FSceneView* View, bool & bDrawCollision) const
@@ -208,6 +208,200 @@ public:
 		return ModelHitProxy;
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FModelSceneProxy_GetMeshElements);
+		bool bAnySelectedSurfs = false;
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+
+				bool bShowSelection = GIsEditor && !View->bIsGameView && ViewFamily.EngineShowFlags.Selection;
+				bool bDynamicBSPTriangles = bShowSelection || IsRichView(ViewFamily);
+				bool bShowBSPTriangles = ViewFamily.EngineShowFlags.BSPTriangles;
+				bool bShowBSP = ViewFamily.EngineShowFlags.BSP;
+
+#if WITH_EDITOR
+				bool bDrawCollision = false;
+				const bool bInCollisionView = IsCollisionView(View, bDrawCollision);
+				// draw bsp as dynamic when in collision view mode
+				if(bInCollisionView)
+				{
+					bDynamicBSPTriangles = true;
+				}
+#endif
+
+				// If in a collision view, only draw if we have collision
+				if (bDynamicBSPTriangles && bShowBSPTriangles && bShowBSP 
+#if WITH_EDITOR
+					&& (!bInCollisionView || bDrawCollision)
+#endif
+					)
+				{
+					ESceneDepthPriorityGroup DepthPriorityGroup = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
+
+					const FMaterialRenderProxy* MatProxyOverride = NULL;
+
+#if WITH_EDITOR
+					if(bInCollisionView && AllowDebugViewmodes())
+					{
+						MatProxyOverride = &CollisionMaterialInstance;
+					}
+#endif
+
+					// If selection is being shown, batch triangles based on whether they are selected or not.
+					if (bShowSelection)
+					{
+						uint32 TotalIndices = 0;
+
+						for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+						{
+							const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
+							TotalIndices += ModelElement.NumTriangles * 3;
+						}
+
+						if (TotalIndices > 0)
+						{
+							FGlobalDynamicIndexBuffer::FAllocation IndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate<uint32>(TotalIndices);
+
+							if (IndexAllocation.IsValid())
+							{
+								uint32* Indices = (uint32*)IndexAllocation.Buffer;
+								uint32 FirstIndex = IndexAllocation.FirstIndex;
+
+								for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+								{
+									const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
+
+									if (ModelElement.NumTriangles > 0)
+									{
+										const FElementInfo& ProxyElementInfo = Elements[ElementIndex];
+										bool bHasSelectedSurfs = false;
+										bool bHasHoveredSurfs = false;
+
+										for (uint32 BatchIndex = 0; BatchIndex < 3; BatchIndex++)
+										{
+											// Three batches total:
+											//		Batch 0: Only surfaces that are neither selected, nor hovered
+											//		Batch 1: Only selected surfaces
+											//		Batch 2: Only hovered surfaces
+											const bool bOnlySelectedSurfaces = ( BatchIndex == 1 );
+											const bool bOnlyHoveredSurfaces = ( BatchIndex == 2 );
+
+											if (bOnlySelectedSurfaces && !bHasSelectedSurfs)
+											{
+												continue;
+											}
+
+											if (bOnlyHoveredSurfaces && !bHasHoveredSurfs)
+											{
+												continue;
+											}
+
+											uint32 MinVertexIndex = MAX_uint32;
+											uint32 MaxVertexIndex = 0;
+											uint32 NumIndices = 0;
+
+											for(int32 NodeIndex = 0;NodeIndex < ModelElement.Nodes.Num();NodeIndex++)
+											{
+												FBspNode& Node = Component->GetModel()->Nodes[ModelElement.Nodes[NodeIndex]];
+												FBspSurf& Surf = Component->GetModel()->Surfs[Node.iSurf];
+
+												if (!ShouldDrawSurface(Surf))
+												{
+													continue;
+												}
+
+												const bool bSurfaceSelected = (Surf.PolyFlags & PF_Selected) == PF_Selected;
+												const bool bSurfaceHovered = !bSurfaceSelected && ((Surf.PolyFlags & PF_Hovered) == PF_Hovered);
+												bHasSelectedSurfs |= bSurfaceSelected;
+												bHasHoveredSurfs |= bSurfaceHovered;
+
+												if (bSurfaceSelected == bOnlySelectedSurfaces && bSurfaceHovered == bOnlyHoveredSurfaces)
+												{
+													for (uint32 BackFace = 0; BackFace < (uint32)((Surf.PolyFlags & PF_TwoSided) ? 2 : 1); BackFace++)
+													{
+														for (int32 VertexIndex = 2; VertexIndex < Node.NumVertices; VertexIndex++)
+														{
+															*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace;
+															*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace + VertexIndex;
+															*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace + VertexIndex - 1;
+															NumIndices += 3;
+														}
+														MinVertexIndex = FMath::Min(Node.iVertexIndex + Node.NumVertices * BackFace,MinVertexIndex);
+														MaxVertexIndex = FMath::Max(Node.iVertexIndex + Node.NumVertices * BackFace + Node.NumVertices - 1,MaxVertexIndex);
+													}
+												}
+											}
+
+											if (NumIndices > 0)
+											{
+												FMeshBatch& MeshElement = Collector.AllocateMesh();
+												FMeshBatchElement& BatchElement = MeshElement.Elements[0];
+												BatchElement.IndexBuffer = IndexAllocation.IndexBuffer;
+												MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+												MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
+												MeshElement.LCI = &ProxyElementInfo;
+												BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+												BatchElement.FirstIndex = FirstIndex;
+												BatchElement.NumPrimitives = NumIndices / 3;
+												BatchElement.MinVertexIndex = MinVertexIndex;
+												BatchElement.MaxVertexIndex = MaxVertexIndex;
+												MeshElement.Type = PT_TriangleList;
+												MeshElement.DepthPriorityGroup = DepthPriorityGroup;
+												MeshElement.bCanApplyViewModeOverrides = true;
+												MeshElement.bUseWireframeSelectionColoring = false;
+												MeshElement.bUseSelectionOutline = bOnlySelectedSurfaces;
+												Collector.AddMesh(ViewIndex, MeshElement);
+												FirstIndex += NumIndices;
+											}
+										}
+
+										bAnySelectedSurfs |= bHasSelectedSurfs;
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+						for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+						{
+							const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
+
+							if (ModelElement.NumTriangles > 0)
+							{
+								FMeshBatch& MeshElement = Collector.AllocateMesh();
+								FMeshBatchElement& BatchElement = MeshElement.Elements[0];
+								BatchElement.IndexBuffer = ModelElement.IndexBuffer;
+								MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+								MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
+								MeshElement.LCI = &Elements[ElementIndex];
+								BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+								BatchElement.FirstIndex = ModelElement.FirstIndex;
+								BatchElement.NumPrimitives = ModelElement.NumTriangles;
+								BatchElement.MinVertexIndex = ModelElement.MinVertexIndex;
+								BatchElement.MaxVertexIndex = ModelElement.MaxVertexIndex;
+								MeshElement.Type = PT_TriangleList;
+								MeshElement.DepthPriorityGroup = DepthPriorityGroup;
+								MeshElement.bCanApplyViewModeOverrides = true;
+								MeshElement.bUseWireframeSelectionColoring = false;
+								Collector.AddMesh(ViewIndex, MeshElement);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//@todo parallelrendering - remove this legacy state modification
+		// Poly selected state is modified in many places, so it's hard to push the selection state to the proxy
+		const_cast<FModelSceneProxy*>(this)->SetSelection_RenderThread(bAnySelectedSurfs);
+	}
+
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
 	{
 		// Reset any batches leftover from last frame.
@@ -225,7 +419,7 @@ public:
 			const FSceneView* View = ViewFamily->Views[ViewIndex];
 			bool bVisibleInView = (VisibilityMap & ViewBit) == ViewBit;
 			bool bShowSelection = GIsEditor && !View->bIsGameView && View->Family->EngineShowFlags.Selection;
-			bool bDynamicBSPTriangles = bShowSelection || IsRichView(View) ;
+			bool bDynamicBSPTriangles = bShowSelection || IsRichView(*View->Family) ;
 			bool bShowBSPTriangles = View->Family->EngineShowFlags.BSPTriangles;
 			bool bShowBSP = View->Family->EngineShowFlags.BSP;
 
@@ -418,15 +612,6 @@ public:
 				FDynamicModelMeshBatch& Batch = DynamicMeshBatches[BatchIndex];
 				if (!bRenderingSelectionOutline || Batch.bIsSelectedBatch)
 				{
-					if (Batch.ModelElementIndex < ElementLightMapResolutions.Num())
-					{
-						SetLightMapResolutionScale(ElementLightMapResolutions[Batch.ModelElementIndex]);
-					}
-					else
-					{
-						SetLightMapResolutionScale(FVector2D(0.0f, 0.0f));
-					}
-
 					DrawRichMesh(PDI,Batch,FLinearColor::White,UtilColor,PropertyColor,this,false, bIsWireframe);
 				}
 			}
@@ -472,7 +657,7 @@ public:
 		Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.BSPTriangles && View->Family->EngineShowFlags.BSP;
 		bool bShowSelectedTriangles = GIsEditor && !View->bIsGameView && View->Family->EngineShowFlags.Selection;
 		bool bCollisionView = View->Family->EngineShowFlags.CollisionPawn || View->Family->EngineShowFlags.CollisionVisibility;
-		if (IsRichView(View) || HasViewDependentDPG() || bCollisionView
+		if (IsRichView(*View->Family) || HasViewDependentDPG() || bCollisionView
 			|| (bShowSelectedTriangles && HasSelectedSurfaces()))
 		{
 			Result.bDynamicRelevance = true;
@@ -661,10 +846,6 @@ private:
 	};
 
 	TArray<FElementInfo> Elements;
-	TArray<FVector2D> ElementLightMapResolutions;
-
-	FLinearColor LevelColor;
-	FColor PropertyColor;
 
 	FMaterialRelevance MaterialRelevance;
 
@@ -729,36 +910,12 @@ public:
 		return NULL;
 	}
 
-	/**
-	 *	Clear the element LightMap resolutions array.
-	 */
-	void ClearElementLightMapResolutions()
-	{
-		ElementLightMapResolutions.Empty();
-	}
-
-	void AddElementLightMapResolution(int32 InElementIdx, int32 InSizeX, int32 InSizeY)
-	{
-		if (ElementLightMapResolutions.Num() <= InElementIdx)
-		{
-			ElementLightMapResolutions.AddZeroed(InElementIdx - ElementLightMapResolutions.Num() + 1);
-		}
-
-		ElementLightMapResolutions[InElementIdx] = FVector2D((float)InSizeX, (float)InSizeY);
-	}
-
 	friend class UModelComponent;
 };
 
 FPrimitiveSceneProxy* UModelComponent::CreateSceneProxy()
 {
 	FPrimitiveSceneProxy* Proxy = ::new FModelSceneProxy(this);
-#if WITH_EDITOR
-	if (GIsEditor && Proxy)
-	{
-		SetupLightmapResolutionViewInfo(*Proxy);
-	}
-#endif
 	return Proxy;
 }
 
@@ -787,57 +944,3 @@ FBoxSphereBounds UModelComponent::CalcBounds(const FTransform & LocalToWorld) co
 		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
 	}
 }
-
-#if WITH_EDITOR
-bool UModelComponent::SetupLightmapResolutionViewInfo(FPrimitiveSceneProxy& Proxy) const
-{
-	FModelSceneProxy* ModelProxy = (FModelSceneProxy*)(&Proxy);
-
-	// Alway texture based...
-	ModelProxy->SetLightMapType(LMIT_Texture);
-	ModelProxy->SetIsLightMapResolutionPadded(true);
-
-	// Fill in the resolutions array
-	ModelProxy->ClearElementLightMapResolutions();
-
-	if (Model->NodeGroups.Num() > 0)
-	{
-		for (int32 ElementIdx = 0; ElementIdx < ModelProxy->GetElementCount(); ElementIdx++)
-		{
-			const FModelSceneProxy::FElementInfo* Element = ModelProxy->GetElement(ElementIdx);
-			if (Element)
-			{
-				const FModelElement* ModelElement = Element->GetModelElement();
-				if (ModelElement && (ModelElement->Nodes.Num() > 0))
-				{
-					// All the nodes in this element SHOULD be in the same node group...
-					int32 NodeIdx = ModelElement->Nodes[0];
-
-					// Find the node group it belong to
-					FNodeGroup* FoundNodeGroup = NULL;
-					// find the NodeGroup that this node went into, and get all of its node
-					for (TMap<int32, FNodeGroup*>::TIterator It(Model->NodeGroups); It && (FoundNodeGroup == NULL); ++It)
-					{
-						FNodeGroup* NodeGroup = It.Value();
-						check(NodeGroup != NULL);
-						for (int32 NodeIndex = 0; NodeIndex < NodeGroup->Nodes.Num(); NodeIndex++)
-						{
-							if (NodeGroup->Nodes[NodeIndex] == NodeIdx)
-							{
-								FoundNodeGroup = NodeGroup;
-								break;
-							}
-						}
-					}
-
-					ModelProxy->AddElementLightMapResolution(ElementIdx, 
-						FoundNodeGroup ? FoundNodeGroup->SizeX : 0, 
-						FoundNodeGroup ? FoundNodeGroup->SizeY : 0);
-				}
-			}
-		}
-	}
-
-	return true;
-}
-#endif // WITH_EDITOR

@@ -23,8 +23,6 @@ public:
 		, U(InComponent->U)
 		, V(InComponent->V)
 		, Color(FLinearColor::White)
-		, LevelColor(FLinearColor::White)
-		, PropertyColor(255,255,255)
 		, bIsScreenSizeScaled(InComponent->bIsScreenSizeScaled)
 #if WITH_EDITORONLY_DATA
 		, bUseInEditorScaling(InComponent->bUseInEditorScaling)
@@ -94,11 +92,91 @@ public:
 			}
 		}
 
-		GEngine->GetPropertyColorationColor( (UObject*)InComponent, PropertyColor );
+		FColor NewPropertyColor;
+		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
+		PropertyColor = NewPropertyColor;
 	}
 
 	// FPrimitiveSceneProxy interface.
 	
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_SpriteSceneProxy_GetDynamicMeshElements );
+
+		FTexture* TextureResource = (Texture != NULL) ? Texture->Resource : NULL;
+		if (TextureResource)
+		{
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+
+					// Calculate the view-dependent scaling factor.
+					float ViewedSizeX = SizeX;
+					float ViewedSizeY = SizeY;
+
+					if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
+					{
+						const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+
+						if(ZoomFactor != 0.0f)
+						{
+							const float Radius = View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
+
+							if (Radius < 1.0f)
+							{
+								ViewedSizeX *= Radius;
+								ViewedSizeY *= Radius;
+							}					
+						}
+					}
+
+#if WITH_EDITORONLY_DATA
+					ViewedSizeX *= EditorScale;
+					ViewedSizeY *= EditorScale;
+#endif
+
+					FLinearColor ColorToUse = Color;
+
+					// Set the selection/hover color from the current engine setting.
+					// The color is multiplied by 10 because this value is normally expected to be blended
+					// additively, this is not how the sprites work and therefore need an extra boost
+					// to appear the same color as previously.
+					if (IsSelected())
+					{
+						ColorToUse = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
+					}
+					else if (IsHovered())
+					{
+						ColorToUse = FLinearColor::White + (GEngine->GetHoveredMaterialColor() * GEngine->HoverHighlightIntensity * 10);
+					}
+
+					// Sprites of locked actors draw in red.
+					if (bIsActorLocked)
+					{
+						ColorToUse = FColor(255,0,0);
+					}
+					FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
+					FLinearColor PropertyColorToUse = PropertyColor;
+
+					const FLinearColor& SpriteColor = View->Family->EngineShowFlags.LevelColoration ? LevelColorToUse :
+						( (View->Family->EngineShowFlags.PropertyColoration) ? PropertyColorToUse : ColorToUse );
+
+					Collector.GetPDI(ViewIndex)->DrawSprite(
+						Origin,
+						ViewedSizeX,
+						ViewedSizeY,
+						TextureResource,
+						SpriteColor,
+						GetDepthPriorityGroup(View),
+						U,UL,V,VL
+						);
+				}
+			}
+		}
+	}
+
 	/** 
 	 * Draw the scene proxy as a dynamic element
 	 *
@@ -208,8 +286,6 @@ private:
 	const float V;
 	float VL;
 	FLinearColor Color;
-	FLinearColor LevelColor;
-	FColor PropertyColor;
 	const uint32 bIsScreenSizeScaled : 1;
 	uint32 bIsActorLocked : 1;
 #if WITH_EDITOR

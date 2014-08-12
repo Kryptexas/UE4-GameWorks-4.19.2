@@ -613,6 +613,8 @@ public:
 
 	/** Computes FamilySizeX and FamilySizeY from the Views array. */
 	ENGINE_API void ComputeFamilySize();
+
+	ENGINE_API ERHIFeatureLevel::Type GetFeatureLevel() const;
 };
 
 /**

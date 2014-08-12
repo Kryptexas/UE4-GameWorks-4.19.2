@@ -1479,6 +1479,7 @@ bool FParticleBeam2EmitterInstance::FillReplayData( FDynamicEmitterReplayDataBas
 		NewReplayData->bSmoothNoise_Enabled = false;
 	}
 	NewReplayData->Sheets = (BeamTypeData->Sheets > 0) ? BeamTypeData->Sheets : 1;
+	NewReplayData->Sheets = FMath::Max(NewReplayData->Sheets, 1);
 
 	NewReplayData->TextureTile = BeamTypeData->TextureTile;
 	NewReplayData->TextureTileDistance = BeamTypeData->TextureTileDistance;
@@ -1498,6 +1499,7 @@ bool FParticleBeam2EmitterInstance::FillReplayData( FDynamicEmitterReplayDataBas
 	else
 	{
 		NewReplayData->Frequency			= (BeamModule_Noise->Frequency > 0) ? BeamModule_Noise->Frequency : 1;
+		NewReplayData->Frequency = FMath::Max(NewReplayData->Frequency, 1);
 		NewReplayData->NoiseTessellation	= (BeamModule_Noise->NoiseTessellation > 0) ? BeamModule_Noise->NoiseTessellation : 1;
 		NewReplayData->NoiseTangentStrength= BeamModule_Noise->NoiseTangentStrength.GetValue(EmitterTime);
 		if (BeamModule_Noise->bNRScaleEmitterTime)

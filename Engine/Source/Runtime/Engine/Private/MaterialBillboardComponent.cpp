@@ -73,6 +73,12 @@ public:
 };
 static TGlobalResource<FMaterialSpriteVertexFactory> GMaterialSpriteVertexFactory;
 
+class FMaterialSpriteVertexArray : public FOneFrameResource
+{
+public:
+	TArray<FMaterialSpriteVertex, TInlineAllocator<4> > Vertices;
+};
+
 /** Represents a sprite to the scene manager. */
 class FMaterialSpriteSceneProxy : public FPrimitiveSceneProxy
 {
@@ -83,8 +89,6 @@ public:
 	: FPrimitiveSceneProxy(InComponent)
 	, Elements(InComponent->Elements)
 	, BaseColor(FLinearColor::White)
-	, LevelColor(FLinearColor::White)
-	, PropertyColor(255,255,255)
 	{
 		AActor* Owner = InComponent->GetOwner();
 		if (Owner)
@@ -108,7 +112,121 @@ public:
 			}
 		}
 
-		GEngine->GetPropertyColorationColor( (UObject*)InComponent, PropertyColor );
+		FColor NewPropertyColor;
+		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
+		PropertyColor = NewPropertyColor;
+	}
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_MaterialSpriteSceneProxy_GetDynamicMeshElements );
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+
+				const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
+				// Determine the position of the source
+				const FVector SourcePosition = GetLocalToWorld().GetOrigin();
+				const FVector CameraToSource = View->ViewMatrices.ViewOrigin - SourcePosition;
+				const float DistanceToSource = CameraToSource.Size();
+
+				const FVector CameraUp      = -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f));
+				const FVector CameraRight   = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f));
+				const FVector CameraForward = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,0.0f,1.0f));
+				const FMatrix WorldToLocal = GetLocalToWorld().Inverse();
+				const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
+				const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
+				const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
+
+				// Draw the elements ordered so the last is on top of the first.
+				for(int32 ElementIndex = 0;ElementIndex < Elements.Num();++ElementIndex)
+				{
+					const FMaterialSpriteElement& Element = Elements[ElementIndex];
+
+					if(Element.Material)
+					{
+						// Evaluate the size of the sprite.
+						float SizeX = Element.BaseSizeX;
+						float SizeY = Element.BaseSizeY;
+						if(Element.DistanceToSizeCurve)
+						{
+							const float SizeFactor = Element.DistanceToSizeCurve->GetFloatValue(DistanceToSource);
+							SizeX *= SizeFactor;
+							SizeY *= SizeFactor;
+						}
+						
+						// Convert the size into world-space.
+						const float W = View->ViewProjectionMatrix.TransformPosition(SourcePosition).W;
+						const float AspectRatio = CameraRight.Size() / CameraUp.Size();
+						const float WorldSizeX = Element.bSizeIsInScreenSpace ? (SizeX               * W) : (SizeX / CameraRight.Size());
+						const float WorldSizeY = Element.bSizeIsInScreenSpace ? (SizeY * AspectRatio * W) : (SizeY / CameraUp.Size());
+			
+						// Evaluate the color/opacity of the sprite.
+						FLinearColor Color = BaseColor;
+						if(Element.DistanceToOpacityCurve)
+						{
+							Color.A *= Element.DistanceToOpacityCurve->GetFloatValue(DistanceToSource);
+						}
+
+						// Set up the sprite vertex attributes that are constant across the sprite.
+						FMaterialSpriteVertexArray& VertexArray = Collector.AllocateOneFrameResource<FMaterialSpriteVertexArray>();
+						VertexArray.Vertices.Empty(4);
+						VertexArray.Vertices.AddUninitialized(4);
+
+						for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
+						{
+							VertexArray.Vertices[VertexIndex].Color = Color;
+							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.SafeNormal());
+							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.SafeNormal());
+						}
+
+						// Set up the sprite vertex positions and texture coordinates.
+						VertexArray.Vertices[0].Position  = -WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
+						VertexArray.Vertices[0].TexCoords = FVector2D(0,0);
+						VertexArray.Vertices[1].Position  = +WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
+						VertexArray.Vertices[1].TexCoords = FVector2D(1,0);
+						VertexArray.Vertices[2].Position  = -WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
+						VertexArray.Vertices[2].TexCoords = FVector2D(0,1);
+						VertexArray.Vertices[3].Position  = +WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
+						VertexArray.Vertices[3].TexCoords = FVector2D(1,1);
+			
+						// Set up the FMeshElement.
+						FMeshBatch& Mesh = Collector.AllocateMesh();
+						Mesh.UseDynamicData      = true;
+						Mesh.DynamicVertexData   = VertexArray.Vertices.GetData();
+						Mesh.DynamicVertexStride = sizeof(FMaterialSpriteVertex);
+
+						Mesh.VertexFactory           = &GMaterialSpriteVertexFactory;
+						Mesh.MaterialRenderProxy     = Element.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(),IsHovered());
+						Mesh.LCI                     = NULL;
+						Mesh.ReverseCulling          = IsLocalToWorldDeterminantNegative() ? true : false;
+						Mesh.CastShadow              = false;
+						Mesh.DepthPriorityGroup      = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
+						Mesh.Type                    = PT_TriangleStrip;
+						Mesh.bDisableBackfaceCulling = true;
+
+						// Set up the FMeshBatchElement.
+						FMeshBatchElement& BatchElement = Mesh.Elements[0];
+						BatchElement.IndexBuffer            = NULL;
+						BatchElement.DynamicIndexData       = NULL;
+						BatchElement.DynamicIndexStride     = 0;
+						BatchElement.FirstIndex             = 0;
+						BatchElement.MinVertexIndex         = 0;
+						BatchElement.MaxVertexIndex         = 3;
+						BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
+						BatchElement.NumPrimitives          = 2;
+
+						Mesh.bCanApplyViewModeOverrides = true;
+						Mesh.bUseWireframeSelectionColoring = IsSelected();
+
+						Collector.AddMesh(ViewIndex, Mesh);
+					}
+				}
+			}
+		}
 	}
 
 	// FPrimitiveSceneProxy interface.
@@ -218,6 +336,7 @@ public:
 			}
 		}
 	}
+
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
 	{
 		bool bVisible = View->Family->EngineShowFlags.BillboardSprites;
@@ -236,8 +355,6 @@ private:
 	TArray<FMaterialSpriteElement> Elements;
 	FMaterialRelevance MaterialRelevance;
 	FColor BaseColor;
-	FLinearColor LevelColor;
-	FColor PropertyColor;
 };
 
 UMaterialBillboardComponent::UMaterialBillboardComponent(const class FPostConstructInitializeProperties& PCIP)

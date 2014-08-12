@@ -83,7 +83,7 @@ END_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters)
 struct FLandscapeBatchElementParams
 {
 	const TUniformBuffer<FLandscapeUniformShaderParameters>* LandscapeUniformShaderParametersResource;
-	FMatrix* LocalToWorldNoScalingPtr;
+	const FMatrix* LocalToWorldNoScalingPtr;
 
 	// LOD calculation-related params
 	const class FLandscapeComponentSceneProxy* SceneProxy;
@@ -92,6 +92,11 @@ struct FLandscapeBatchElementParams
 	int32	CurrentLOD;
 };
 
+class FLandscapeElementParamArray : public FOneFrameResource
+{
+public:
+	TArray<FLandscapeBatchElementParams, SceneRenderingAllocator> ElementParams;
+};
 
 /** Pixel shader parameters for use with FLandscapeVertexFactory */
 class FLandscapeVertexFactoryPixelShaderParameters : public FVertexFactoryShaderParameters
@@ -446,8 +451,6 @@ protected:
 
 	const ULandscapeComponent* LandscapeComponent;
 
-	FLinearColor LevelColor;
-
 	FVector2D				NeighborPosition[LANDSCAPE_NEIGHBOR_NUM];
 	int32					ForcedLOD;
 	int32					LODBias;
@@ -477,6 +480,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;

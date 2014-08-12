@@ -74,6 +74,7 @@ DEFINE_STAT(STAT_UpdateIndirectLightingCache);
 DEFINE_STAT(STAT_SortStaticDrawLists);
 DEFINE_STAT(STAT_InitDynamicShadowsTime);
 DEFINE_STAT(STAT_PreRenderView);
+DEFINE_STAT(STAT_GetDynamicMeshElements);
 DEFINE_STAT(STAT_UpdateStaticMeshesTime);
 DEFINE_STAT(STAT_StaticRelevance);
 DEFINE_STAT(STAT_ComputeViewRelevance);

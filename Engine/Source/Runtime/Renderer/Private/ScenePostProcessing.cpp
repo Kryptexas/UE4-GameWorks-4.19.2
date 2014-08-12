@@ -80,7 +80,7 @@ IMPLEMENT_SHADER_TYPE(,FGammaCorrectionVS,TEXT("GammaCorrection"),TEXT("MainVS")
 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
 * @param View - The view to process.
 */
-void FDeferredShadingSceneRenderer::FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, bool bLastView)
+void FDeferredShadingSceneRenderer::FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, FViewInfo* View, bool bLastView)
 {
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 

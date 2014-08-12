@@ -923,20 +923,21 @@ public:
 		return Result;
 	}
 
-	/** Common path for the Get*MeshElement functions */
-	inline void SetupInstancedMeshBatch(int32 LODIndex, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	/** Draw the scene proxy as a dynamic element */
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
-		
+
+	virtual int32 GetNumMeshBatches() const override;
+
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
-	virtual bool GetShadowMeshElements(int32 LODIndex, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const override;
+	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const override;
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
-	virtual bool GetMeshElements(int32 LODIndex,int32 ElementIndex,uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const override;
+	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const override;
 
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
-	virtual bool GetWireframeMeshElements(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const override;
+	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const override;
 
 	/**
 	 * Creates the hit proxies are used when DrawDynamicElements is called.
@@ -980,7 +981,75 @@ private:
 	FInstancingUserData UserData_AllInstances;
 	FInstancingUserData UserData_SelectedInstances;
 	FInstancingUserData UserData_DeselectedInstances;
+
+	/** Common path for the Get*MeshElement functions */
+	void SetupInstancedMeshBatch2(int32 LODIndex, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const;
+
+	/** Common path for the Get*MeshElement functions */
+	void SetupInstancedMeshBatch(int32 LODIndex, int32 BatchIndex, FMeshBatch& OutMeshBatch) const;
 };
+
+void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_InstancedStaticMeshSceneProxy_GetMeshElements);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bSelectionRenderEnabled = GIsEditor && ViewFamily.EngineShowFlags.Selection;
+
+	// If the first pass rendered selected instances only, we need to render the deselected instances in a second pass
+	const int32 NumSelectionGroups = (bSelectionRenderEnabled && bHasSelectedInstances) ? 2 : 1;
+
+	const FInstancingUserData* PassUserData[2] =
+	{
+		bHasSelectedInstances && bSelectionRenderEnabled ? &UserData_SelectedInstances : &UserData_AllInstances,
+		&UserData_DeselectedInstances
+	};
+
+	bool BatchRenderSelection[2] = 
+	{
+		bSelectionRenderEnabled && IsSelected(),
+		false
+	};
+
+	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
+		{
+			const FSceneView* View = Views[ViewIndex];
+
+			for (int32 SelectionGroupIndex = 0; SelectionGroupIndex < NumSelectionGroups; SelectionGroupIndex++)
+			{
+				const int32 LODIndex = GetLOD(View);
+				const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
+
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+				{
+					const int32 NumBatches = GetNumMeshBatches();
+
+					for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
+					{
+						FMeshBatch& MeshElement = Collector.AllocateMesh();
+
+						if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, GetDepthPriorityGroup(View), BatchRenderSelection[SelectionGroupIndex], IsHovered(), MeshElement))
+						{
+							//@todo-rco this is only supporting selection on the first element
+							MeshElement.Elements[0].UserData = PassUserData[SelectionGroupIndex];
+							MeshElement.bCanApplyViewModeOverrides = true;
+							MeshElement.bUseSelectionOutline = BatchRenderSelection[SelectionGroupIndex];
+							MeshElement.bUseWireframeSelectionColoring = BatchRenderSelection[SelectionGroupIndex];
+
+							Collector.AddMesh(ViewIndex, MeshElement);
+							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshElement.GetNumPrimitives());
+						}
+					}
+				}
+			}
+		}
+	}
+#endif
+}
 
 void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
 {
@@ -1019,17 +1088,19 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 
 			for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
 			{
-				TArray<FMeshBatch, TInlineAllocator<1>> MeshBatches;
-				new (MeshBatches) FMeshBatch();
-				if (GetMeshElements(LODIndex,SectionIndex,GetDepthPriorityGroup(View), MeshBatches, PassRenderSelection[Pass], IsHovered()))
+				const int32 NumBatches = GetNumMeshBatches();
+
+				for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
 				{
-					for (int32 Index = 0; Index < MeshBatches.Num(); ++Index)
+					FMeshBatch MeshBatch;
+
+					if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, GetDepthPriorityGroup(View), PassRenderSelection[Pass], IsHovered(), MeshBatch))
 					{
-						MeshBatches[Index].Elements[0].UserData = PassUserData[Pass];
+						MeshBatch.Elements[0].UserData = PassUserData[Pass];
 
 						const int32 NumCalls = DrawRichMesh(
 							PDI,
-							MeshBatches[Index],
+							MeshBatch,
 							WireframeColor,
 							UtilColor,
 							PropertyColor,
@@ -1037,7 +1108,7 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 							PassRenderSelection[Pass],
 							bIsWireframe
 							);
-						INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatches[Index].GetNumPrimitives() * NumCalls);
+						INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumCalls);
 					}
 				}
 			}
@@ -1046,93 +1117,95 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 #endif
 }
 
-inline void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const
+int32 FInstancedStaticMeshSceneProxy::GetNumMeshBatches() const
 {
 	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
-	OutMeshBatches[0].VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
-	uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
-	auto* OutBatchElement0 = OutMeshBatches[0].Elements.GetTypedData();
-	OutBatchElement0->UserData = (void*)&UserData_AllInstances;
-	OutBatchElement0->UserIndex = 0;
+
 	if (bInstanced)
 	{
-		OutBatchElement0->NumInstances = NumInstances;
+		return 1;
 	}
 	else
 	{
-		// Create a BatchElement per Instance, and if they overflow the size per mask, create additional MeshBatches
-
-		const uint32 TotalInstances = NumInstances;
+		const uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
 		const uint32 MaxInstancesPerBatch = FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask();
-		uint32 NumBatches = (TotalInstances + MaxInstancesPerBatch - 1) / MaxInstancesPerBatch;
-
-		// Make a copy of the Original MeshBatch, as it only has one Element at this point (cheaper to memcpy)
-		FMeshBatch OriginalBatch = OutMeshBatches[0];
-
-		// Add more Batches if we can't fit all Instances within the visibility mask
-		OutMeshBatches.Reserve(NumBatches);
-
-		uint32 RemainingInstances = TotalInstances;
-		int32 InstanceIndex = 0;
-		for (uint32 Batch = 0; Batch < NumBatches; ++Batch)
-		{
-			NumInstances = FMath::Min(RemainingInstances, MaxInstancesPerBatch);
-			if (Batch > 0)
-			{
-				auto* NewBatch = new (OutMeshBatches) FMeshBatch();
-				*NewBatch = OriginalBatch;
-			}
-
-			OutMeshBatches[Batch].Elements.Reserve(NumInstances);
-			for (uint32 Instance = 0; Instance < NumInstances; ++Instance)
-			{
-				auto* NewBatchElement = (Instance == 0)
-					? OutMeshBatches[Batch].Elements.GetTypedData()
-					: new(OutMeshBatches[Batch].Elements) FMeshBatchElement();
-				*NewBatchElement = *OutBatchElement0;
-				NewBatchElement->UserIndex = InstanceIndex++;
-			}
-
-			RemainingInstances -= NumInstances;
-		}
-
-		check(RemainingInstances == 0);
+		const uint32 NumBatches = FMath::DivideAndRoundUp(NumInstances, MaxInstancesPerBatch);
+		return NumBatches;
 	}
 }
 
-
-bool FInstancedStaticMeshSceneProxy::GetShadowMeshElements(int32 LODIndex, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const
+void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int32 BatchIndex, FMeshBatch& OutMeshBatch) const
 {
-	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetShadowMeshElements(LODIndex, InDepthPriorityGroup, OutMeshBatches))
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	OutMeshBatch.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
+	const uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
+	FMeshBatchElement& BatchElement0 = OutMeshBatch.Elements[0];
+	BatchElement0.UserData = (void*)&UserData_AllInstances;
+	BatchElement0.UserIndex = 0;
+
+	if (bInstanced)
 	{
-		SetupInstancedMeshBatch(LODIndex, OutMeshBatches);
+		BatchElement0.NumInstances = NumInstances;
+	}
+	else
+	{
+		const uint32 MaxInstancesPerBatch = FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask();
+		const uint32 NumBatches = FMath::DivideAndRoundUp(NumInstances, MaxInstancesPerBatch);
+		const uint32 NumInstancesThisBatch = BatchIndex == NumBatches - 1 ? NumInstances % MaxInstancesPerBatch : MaxInstancesPerBatch;
+
+		OutMeshBatch.Elements.Reserve(NumInstances);
+
+		for (uint32 Instance = 0; Instance < NumInstancesThisBatch; ++Instance)
+		{
+			FMeshBatchElement* NewBatchElement; 
+
+			if (Instance == 0)
+			{
+				NewBatchElement = &BatchElement0;
+			}
+			else
+			{
+				NewBatchElement = new(OutMeshBatch.Elements) FMeshBatchElement();
+				*NewBatchElement = BatchElement0;
+			}
+			
+			const int32 InstanceIndex = BatchIndex * MaxInstancesPerBatch + Instance;
+			NewBatchElement->UserIndex = InstanceIndex;
+		}
+	}
+}
+
+bool FInstancedStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const
+{
+	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetShadowMeshElement(LODIndex, BatchIndex, InDepthPriorityGroup, OutMeshBatch))
+	{
+		SetupInstancedMeshBatch(LODIndex, BatchIndex, OutMeshBatch);
 		return true;
 	}
 	return false;
 }
 
 /** Sets up a FMeshBatch for a specific LOD and element. */
-bool FInstancedStaticMeshSceneProxy::GetMeshElements(int32 LODIndex,int32 ElementIndex,uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const
+bool FInstancedStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const
 {
-	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetMeshElements(LODIndex, ElementIndex, InDepthPriorityGroup, OutMeshBatches, bUseSelectedMaterial, bUseHoveredMaterial))
+	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetMeshElement(LODIndex, BatchIndex, ElementIndex, InDepthPriorityGroup, bUseSelectedMaterial, bUseHoveredMaterial, OutMeshBatch))
 	{
-		SetupInstancedMeshBatch(LODIndex, OutMeshBatches);
+		SetupInstancedMeshBatch(LODIndex, BatchIndex, OutMeshBatch);
 		return true;
 	}
 	return false;
 };
 
 /** Sets up a wireframe FMeshBatch for a specific LOD. */
-bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElements(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const
+bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const
 {
-	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetWireframeMeshElements(LODIndex, WireframeRenderProxy, InDepthPriorityGroup, OutMeshBatches))
+	if (LODIndex < InstancedRenderData.VertexFactories.Num() && FStaticMeshSceneProxy::GetWireframeMeshElement(LODIndex, BatchIndex, WireframeRenderProxy, InDepthPriorityGroup, OutMeshBatch))
 	{
-		SetupInstancedMeshBatch(LODIndex, OutMeshBatches);
+		SetupInstancedMeshBatch(LODIndex, BatchIndex, OutMeshBatch);
 		return true;
 	}
 	return false;
 }
-
 
 /*-----------------------------------------------------------------------------
 	UInstancedStaticMeshComponent
@@ -1781,7 +1854,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 	{
 		FVector4 InstancingFadeOutParams(0.f,0.f,1.f,1.f);
 
-		const FInstancingUserData* InstancingUserData = (FInstancingUserData*)BatchElement.UserData;
+		const FInstancingUserData* InstancingUserData = (const FInstancingUserData*)BatchElement.UserData;
 		if (InstancingUserData)
 		{
 			InstancingFadeOutParams.X = InstancingUserData->StartCullDistance;
@@ -1812,8 +1885,8 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 	{
 		if (CPUInstanceShadowMapBias.IsBound())
 		{
-			const auto* InstancingData = (FInstancingUserData*)BatchElement.UserData;
-			auto* InstanceStream = ((FInstancingUserData::FInstanceStream*)InstancingData->RenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
+			auto* InstancingData = (const FInstancingUserData*)BatchElement.UserData;
+			auto* InstanceStream = ((const FInstancingUserData::FInstanceStream*)InstancingData->RenderData->InstanceBuffer.GetRawData()) + BatchElement.UserIndex;
 			SetShaderValue(RHICmdList, VS, CPUInstanceShadowMapBias, InstanceStream->InstanceShadowmapUVBias);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceTransform, InstanceStream->InstanceTransform, 3);
 			SetShaderValueArray(RHICmdList, VS, CPUInstanceInverseTransform, InstanceStream->InstanceInverseTransform, 3);

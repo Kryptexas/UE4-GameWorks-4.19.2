@@ -115,7 +115,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// This might eventually be a problem with multiple views.
 		// Using only view 0 to check to do on-chip transform of alpha.
-		const FViewInfo& View = Views[0];
+		FViewInfo& View = Views[0];
 
 		bool bOnChipSunMask = 
 			GSupportsRenderTargetFormat_PF_FloatRGBA && 

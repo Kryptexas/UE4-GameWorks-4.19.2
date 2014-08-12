@@ -352,8 +352,6 @@ public:
 		const ElementDataType& ElementData
 		) const;
 
-	void UnSetMeshRenderState() const;
-
 	template<bool T2>
 	friend int32 CompareDrawingPolicy(const FShadowDepthDrawingPolicy<T2>& A,const FShadowDepthDrawingPolicy<T2>& B);
 

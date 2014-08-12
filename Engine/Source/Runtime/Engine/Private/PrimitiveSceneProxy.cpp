@@ -8,7 +8,10 @@
 #include "PrimitiveSceneProxy.h"
 
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent, FName InResourceName)
-:	DrawInGame(InComponent->bVisible && !InComponent->bHiddenInGame)
+:	WireframeColor(FLinearColor::White)
+,	LevelColor(FLinearColor::White)
+,	PropertyColor(FLinearColor::White)
+,	DrawInGame(InComponent->bVisible && !InComponent->bHiddenInGame)
 ,	DrawInEditor(InComponent->bVisible)
 ,	bReceivesDecals(InComponent->bReceivesDecals)
 ,	bOnlyOwnerSee(InComponent->bOnlyOwnerSee)
@@ -42,6 +45,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bLightAttachmentsAsGroup(InComponent->bLightAttachmentsAsGroup)
 ,	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer(false)
 ,	bAlwaysHasVelocity(false)
+,	bUseEditorDepthTest(true)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)
@@ -114,15 +118,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 		HiddenEditorViews = InComponent->GetOwner()->HiddenEditorViews;
 #endif
 	}
-
-#if WITH_EDITOR
-	if (GIsEditor && InComponent)
-	{
-		LightMapResolutionScale = FVector2D(0.0f, 0.0f);
-		LightMapType = LMIT_None;
-		bLightMapResolutionPadded = false;
-	}
-#endif
 	
 	// 
 	// Flag components to render only after level will be fully added to the world
@@ -185,7 +180,15 @@ void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
 			PrimitiveSceneProxy->ActorPosition = InActorPosition;
 			// Update the uniform shader parameters.
 			const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters =
-			GetPrimitiveUniformShaderParameters(PrimitiveSceneProxy->LocalToWorld, InActorPosition, PrimitiveSceneProxy->Bounds,PrimitiveSceneProxy->LocalBounds, PrimitiveSceneProxy->bReceivesDecals, PrimitiveSceneProxy->HasDistanceFieldRepresentation(), PrimitiveSceneProxy->GetLpvBiasMultiplier() );
+			GetPrimitiveUniformShaderParameters(
+			PrimitiveSceneProxy->LocalToWorld, 
+			InActorPosition, 
+			PrimitiveSceneProxy->Bounds,
+			PrimitiveSceneProxy->LocalBounds, 
+			PrimitiveSceneProxy->bReceivesDecals, 
+			PrimitiveSceneProxy->HasDistanceFieldRepresentation(), 
+			PrimitiveSceneProxy->UseEditorDepthTest(),
+			PrimitiveSceneProxy->GetLpvBiasMultiplier() );
 
 			PrimitiveSceneProxy->UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 			PrimitiveSceneProxy->OnActorPositionChanged();
@@ -207,7 +210,7 @@ void FPrimitiveSceneProxy::SetTransform(const FMatrix& InLocalToWorld, const FBo
 	ActorPosition = InActorPosition;
 	
 	// Update the uniform shader parameters.
-	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(LocalToWorld, ActorPosition, Bounds, LocalBounds, bReceivesDecals, HasDistanceFieldRepresentation(), LpvBiasMultiplier );
+	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(LocalToWorld, ActorPosition, Bounds, LocalBounds, bReceivesDecals, HasDistanceFieldRepresentation(), UseEditorDepthTest(), LpvBiasMultiplier );
 	UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 	
 	// Notify the proxy's implementation of the change.

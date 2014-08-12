@@ -79,7 +79,7 @@ private:
 
 struct FRenderingCompositePassContext
 {
-	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, const FViewInfo& InView);
+	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, FViewInfo& InView);
 
 	~FRenderingCompositePassContext();
 
@@ -87,7 +87,8 @@ struct FRenderingCompositePassContext
 	void Process(const TCHAR *GraphDebugName);
 
 	//
-	const FViewInfo& View;
+	FViewInfo& View;
+	FSceneViewState* ViewState;
 	// is updated before each Pass->Process() call
 	FRenderingCompositePass* Pass;
 

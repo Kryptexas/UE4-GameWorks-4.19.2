@@ -57,7 +57,24 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmed
 			{
 				SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
 
-				if( View.VisibleDynamicPrimitives.Num() > 0 )
+				const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
+				if (bUseGetMeshElements)
+				{
+					FLightMapDensityDrawingPolicyFactory::ContextType Context;
+
+					for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+					{
+						const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+						if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
+						{
+							const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+							FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+						}
+					}
+				}
+				else if( View.VisibleDynamicPrimitives.Num() > 0 )
 				{
 					// Draw the dynamic non-occluded primitives using a base pass drawing policy.
 					TDynamicPrimitiveDrawer<FLightMapDensityDrawingPolicyFactory> Drawer(
@@ -119,7 +136,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 	/*const */FLightMapInteraction LightMapInteraction = (Mesh.LCI && bIsLitMaterial) ? Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
 	// force simple lightmaps based on system settings
 	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps(View.GetFeatureLevel()) && LightMapInteraction.AllowsHighQualityLightmaps();
-	if (bIsLitMaterial && PrimitiveSceneProxy && (PrimitiveSceneProxy->GetLightMapType() == LMIT_Texture))
+	if (bIsLitMaterial && PrimitiveSceneProxy && (LightMapInteraction.GetType() == LMIT_Texture))
 	{
 		// Should this object be texture lightmapped? Ie, is lighting not built for it??
 		bool bUseDummyLightMapPolicy = false;

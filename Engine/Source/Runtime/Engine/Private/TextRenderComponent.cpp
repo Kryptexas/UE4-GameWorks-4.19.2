@@ -356,6 +356,7 @@ public:
 
 	// Begin FPrimitiveSceneProxy interface
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
@@ -400,6 +401,7 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	VerticalAlignment(Component->VerticalAlignment),
 	bAlwaysRenderAsText(Component->bAlwaysRenderAsText)
 {
+	WireframeColor = FLinearColor(1, 0, 0);
 	UMaterialInterface* EffectiveMaterial = 0;
 
 	if(Component->TextMaterial)
@@ -445,6 +447,46 @@ void FTextRenderSceneProxy::ReleaseRenderThreadResources()
 	VertexBuffer.ReleaseResource();
 	IndexBuffer.ReleaseResource();
 	VertexFactory.ReleaseResource();
+}
+
+void FTextRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const 
+{
+	QUICK_SCOPE_CYCLE_COUNTER( STAT_TextRenderSceneProxy_GetDynamicMeshElements );
+
+	// Vertex factory will not been initialized when the text string is empty or font is invalid.
+	if(VertexFactory.IsInitialized())
+	{
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				// Draw the mesh.
+				FMeshBatch& Mesh = Collector.AllocateMesh();
+				FMeshBatchElement& BatchElement = Mesh.Elements[0];
+				BatchElement.IndexBuffer = &IndexBuffer;
+				Mesh.VertexFactory = &VertexFactory;
+				BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+				BatchElement.FirstIndex = 0;
+				BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+				BatchElement.MinVertexIndex = 0;
+				BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+				Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+				Mesh.bDisableBackfaceCulling = false;
+				Mesh.Type = PT_TriangleList;
+				Mesh.DepthPriorityGroup = SDPG_World;
+				const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false;
+				Mesh.MaterialRenderProxy = TextMaterial->GetRenderProxy(bUseSelectedMaterial);
+				Mesh.bCanApplyViewModeOverrides = !bAlwaysRenderAsText;
+
+				Collector.AddMesh(ViewIndex, Mesh);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				RenderBounds(Collector.GetPDI(ViewIndex), View->Family->EngineShowFlags, GetBounds(), IsSelected());
+#endif
+			}
+		}
+	}
 }
 
 void FTextRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
@@ -535,7 +577,7 @@ FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 
-	if( IsRichView(View) 
+	if( IsRichView(*View->Family) 
 		|| View->Family->EngineShowFlags.Bounds 
 		|| View->Family->EngineShowFlags.Collision 
 		|| IsSelected() 

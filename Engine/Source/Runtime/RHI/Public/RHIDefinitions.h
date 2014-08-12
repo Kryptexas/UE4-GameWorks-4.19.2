@@ -609,6 +609,12 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 	return false;
 }
 
+inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
+{
+	// ES2 needs to flip when rendering to an RT that will be post processed
+	return IsES2Platform(Platform) && !IsPCPlatform(Platform);
+}
+
 inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 {
 	//@todo-rco: Add Metal support

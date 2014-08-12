@@ -130,17 +130,17 @@ public:
 		}
 	}
 
-	int32 GetRequiredVertexCount()
+	int32 GetRequiredVertexCount() const
 	{
 		return (NumSegments + 1) * (NumSides + 1);
 	}
 
-	int32 GetRequiredIndexCount()
+	int32 GetRequiredIndexCount() const
 	{
 		return (NumSegments * NumSides * 2) * 3;
 	}
 
-	int32 GetVertIndex(int32 AlongIdx, int32 AroundIdx)
+	int32 GetVertIndex(int32 AlongIdx, int32 AroundIdx) const
 	{
 		return (AlongIdx * (NumSides+1)) + AroundIdx;
 	}
@@ -242,6 +242,60 @@ public:
 		RHIUnlockIndexBuffer(IndexBuffer.IndexBufferRHI);
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_CableSceneProxy_GetDynamicMeshElements );
+
+		const bool bWireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
+
+		auto WireframeMaterialInstance = new FColoredMaterialRenderProxy(
+			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
+			FLinearColor(0, 0.5f, 1.f)
+			);
+
+		Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+
+		FMaterialRenderProxy* MaterialProxy = NULL;
+		if(bWireframe)
+		{
+			MaterialProxy = WireframeMaterialInstance;
+		}
+		else
+		{
+			MaterialProxy = Material->GetRenderProxy(IsSelected());
+		}
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				// Draw the mesh.
+				FMeshBatch& Mesh = Collector.AllocateMesh();
+				FMeshBatchElement& BatchElement = Mesh.Elements[0];
+				BatchElement.IndexBuffer = &IndexBuffer;
+				Mesh.bWireframe = bWireframe;
+				Mesh.VertexFactory = &VertexFactory;
+				Mesh.MaterialRenderProxy = MaterialProxy;
+				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
+				BatchElement.FirstIndex = 0;
+				BatchElement.NumPrimitives = GetRequiredIndexCount()/3;
+				BatchElement.MinVertexIndex = 0;
+				BatchElement.MaxVertexIndex = GetRequiredVertexCount();
+				Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+				Mesh.Type = PT_TriangleList;
+				Mesh.DepthPriorityGroup = SDPG_World;
+				Mesh.bCanApplyViewModeOverrides = false;
+				Collector.AddMesh(ViewIndex, Mesh);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				// Render bounds
+				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+#endif
+			}
+		}
+	}
+
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_CableSceneProxy_DrawDynamicElements );
@@ -270,7 +324,7 @@ public:
 		Mesh.bWireframe = bWireframe;
 		Mesh.VertexFactory = &VertexFactory;
 		Mesh.MaterialRenderProxy = MaterialProxy;
-		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true);
+		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
 		BatchElement.FirstIndex = 0;
 		BatchElement.NumPrimitives = GetRequiredIndexCount()/3;
 		BatchElement.MinVertexIndex = 0;

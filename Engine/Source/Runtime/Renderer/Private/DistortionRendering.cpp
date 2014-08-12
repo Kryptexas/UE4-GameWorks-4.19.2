@@ -677,14 +677,14 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::IsMaterialIgnored(c
 	FDistortionPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const FViewInfo* ViewInfo, bool bInitializeOffsets)
+bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bInitializeOffsets)
 {
 	bool bDirty=false;
 
 	// Draw the view's elements with the translucent drawing policy.
 	bDirty |= DrawViewElements<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> >(
 		RHICmdList,
-		*ViewInfo,
+		View,
 		bInitializeOffsets,
 		0,	// DPG Index?
 		false // Distortion is rendered post fog.
@@ -692,10 +692,12 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 
 	if( Prims.Num() )
 	{
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
 		// For drawing scene prims with dynamic relevance.
 		TDynamicPrimitiveDrawer<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> > Drawer(
 			RHICmdList,
-			ViewInfo,
+			&View,
 			bInitializeOffsets,
 			false // Distortion is rendered post fog.
 			);
@@ -704,41 +706,54 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 		for( int32 PrimIdx=0; PrimIdx < Prims.Num(); PrimIdx++ )
 		{
 			FPrimitiveSceneProxy* PrimitiveSceneProxy = Prims[PrimIdx];
-			const FPrimitiveViewRelevance& ViewRelevance = ViewInfo->PrimitiveViewRelevanceMap[PrimitiveSceneProxy->GetPrimitiveSceneInfo()->GetIndex()];
+			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneProxy->GetPrimitiveSceneInfo()->GetIndex()];
 
-			if( ViewRelevance.bDistortionRelevance )
+			if (bUseGetMeshElements)
 			{
-				// Render dynamic scene prim
-				if( ViewRelevance.bDynamicRelevance )
-				{				
-					Drawer.SetPrimitive(PrimitiveSceneProxy);
-					PrimitiveSceneProxy->DrawDynamicElements(
-						&Drawer,
-						ViewInfo
-						);
-				}
-				// Render static scene prim
-				if( ViewRelevance.bStaticRelevance )
+				TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::ContextType Context(bInitializeOffsets);
+
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 				{
-					// Render static meshes from static scene prim
-					for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num(); StaticMeshIdx++ )
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
 					{
-						FStaticMesh& StaticMesh = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes[StaticMeshIdx];
-						if( ViewInfo->StaticMeshVisibilityMap[StaticMesh.Id]
-							// Only render static mesh elements using translucent materials
-							&& StaticMesh.IsTranslucent(ViewInfo->GetFeatureLevel()) )
-						{
-							bDirty |= TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawStaticMesh(
-								RHICmdList, 
-								ViewInfo,
-								bInitializeOffsets,
-								StaticMesh,
-								StaticMesh.Elements.Num() == 1 ? 1 : ViewInfo->StaticMeshBatchVisibility[StaticMesh.Id],
-								false,
-								PrimitiveSceneProxy,
-								StaticMesh.HitProxyId
-								);
-						}
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					}
+				}
+			}
+			// Render dynamic scene prim
+			else if( ViewRelevance.bDynamicRelevance )
+			{				
+				Drawer.SetPrimitive(PrimitiveSceneProxy);
+				PrimitiveSceneProxy->DrawDynamicElements(
+					&Drawer,
+					&View
+					);
+			}
+
+			// Render static scene prim
+			if( ViewRelevance.bStaticRelevance )
+			{
+				// Render static meshes from static scene prim
+				for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num(); StaticMeshIdx++ )
+				{
+					FStaticMesh& StaticMesh = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes[StaticMeshIdx];
+					if( View.StaticMeshVisibilityMap[StaticMesh.Id]
+						// Only render static mesh elements using translucent materials
+						&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
+					{
+						bDirty |= TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawStaticMesh(
+							RHICmdList, 
+							&View,
+							bInitializeOffsets,
+							StaticMesh,
+							StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
+							false,
+							PrimitiveSceneProxy,
+							StaticMesh.BatchHitProxyId
+							);
 					}
 				}
 			}
@@ -819,7 +834,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
 				// draw only distortion meshes to accumulate their offsets
-				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, &View, false);
+				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, View, false);
 			}
 
 			if (bDirty)

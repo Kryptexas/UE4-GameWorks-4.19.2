@@ -1132,14 +1132,7 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 
 ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
 { 
-	if (Family->Scene)
-	{
-		return Family->Scene->GetFeatureLevel();
-	}
-	else
-	{
-		return GRHIFeatureLevel;
-	}
+	return Family->GetFeatureLevel();
 }
 
 FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
@@ -1238,6 +1231,18 @@ void FSceneViewFamily::ComputeFamilySize()
 	FamilySizeY = FMath::TruncToInt(MaxFamilyY);	
 
 	check(bInitializedExtents);
+}
+
+ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
+{ 
+	if (Scene)
+	{
+		return Scene->GetFeatureLevel();
+	}
+	else
+	{
+		return GRHIFeatureLevel;
+	}
 }
 
 FSceneViewFamilyContext::~FSceneViewFamilyContext()

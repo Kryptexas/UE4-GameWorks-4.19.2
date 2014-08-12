@@ -28,6 +28,8 @@ public:
 	 */
 	ENGINE_API virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View);
 
+	ENGINE_API virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+
 	/**
 	 * Draws a line with an arrow at the end.
 	 *
@@ -36,7 +38,7 @@ public:
 	 * @param Color		Color of the line.
 	 * @param Mag		Size of the arrow.
 	 */
-	void DrawLineArrow(FPrimitiveDrawInterface* PDI,const FVector &Start,const FVector &End,const FColor &Color,float Mag);
+	void DrawLineArrow(FPrimitiveDrawInterface* PDI,const FVector &Start,const FVector &End,const FColor &Color,float Mag) const;
 
 	ENGINE_API virtual void DrawDebugLabels(UCanvas* Canvas, APlayerController*);
 

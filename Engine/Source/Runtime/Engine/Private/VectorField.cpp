@@ -323,6 +323,17 @@ void UVectorFieldStatic::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 }
 #endif // WITH_EDITOR
 
+class FVectorFieldCollectorResources : public FOneFrameResource
+{
+public:
+	FVectorFieldVisualizationVertexFactory VisualizationVertexFactory;
+
+	virtual ~FVectorFieldCollectorResources()
+	{
+		VisualizationVertexFactory.ReleaseResource();
+	}
+};
+
 /*------------------------------------------------------------------------------
 	Scene proxy for visualizing vector fields.
 ------------------------------------------------------------------------------*/
@@ -355,6 +366,30 @@ public:
 	virtual void CreateRenderThreadResources() override
 	{
 		VisualizationVertexFactory.InitResource();
+	}
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{	
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_GetDynamicMeshElements );
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+				DrawVectorFieldBounds(PDI, View, VectorFieldInstance);
+
+				// Draw a visualization of the vectors contained in the field when selected.
+				if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
+				{
+					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>();
+					CollectorResources.VisualizationVertexFactory.InitResource();
+
+					GetVectorFieldMesh(&CollectorResources.VisualizationVertexFactory, VectorFieldInstance, ViewIndex, Collector);
+				}
+			}
+		}
 	}
 
 	/**

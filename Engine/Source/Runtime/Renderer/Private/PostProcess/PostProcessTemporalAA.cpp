@@ -198,7 +198,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
+	const FViewInfo& View = Context.View;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -272,8 +272,8 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -353,8 +353,8 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 
 	SCOPED_DRAW_EVENT(LSTemporalAA, DEC_SCENE_ITEMS);
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -431,8 +431,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 

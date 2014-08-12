@@ -12,6 +12,17 @@
 #include "SceneTypes.h"
 
 
+namespace EBlendModeFilter
+{
+	enum Type
+	{
+		None = 0,
+		OpaqueAndMasked = 1,
+		Translucent = 2,
+		All = (OpaqueAndMasked | Translucent)
+	};
+};
+
 /** The type used to store batched line vertices. */
 struct FSimpleElementVertex
 {
@@ -165,7 +176,7 @@ public:
 	 * @param View			Optional FSceneView for shaders that need access to view constants
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
-	bool Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()) const;
+	bool Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
 	
 	FORCEINLINE bool HasPrimsToDraw() const
 	{

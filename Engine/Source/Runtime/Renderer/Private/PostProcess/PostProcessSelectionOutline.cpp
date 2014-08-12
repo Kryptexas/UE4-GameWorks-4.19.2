@@ -39,62 +39,98 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 	Context.SetViewportAndCallRHI(ViewRect);
 
-	if(View.VisibleDynamicPrimitives.Num() && View.Family->EngineShowFlags.Selection)
+	if (View.Family->EngineShowFlags.Selection)
 	{
-		TDynamicPrimitiveDrawer<FHitProxyDrawingPolicyFactory> Drawer(Context.RHICmdList, &View, FHitProxyDrawingPolicyFactory::ContextType(), true, false, false, false, true);
-		TMultiMap<FName, const FPrimitiveSceneInfo*> PrimitivesByActor;
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
-		for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
+		if (bUseGetMeshElements)
 		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
+			FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
 
-			// Only draw the primitive if relevant
-			if(PrimitiveSceneInfo->Proxy->IsSelected())
-			{
-				PrimitivesByActor.Add(PrimitiveSceneInfo->Proxy->GetOwnerName(), PrimitiveSceneInfo);
-			}
-		}
-
-		if (PrimitivesByActor.Num())
-		{
-			// 0 means no object, 1 means BSP so we start with 1
-			uint32 StencilValue = 2;
-
-			TShaderMapRef< TOneColorVS<false> > VertexShader(GetGlobalShaderMap());
-			TShaderMapRef<FOneColorPS> PixelShader(GetGlobalShaderMap());
+			//@todo - use memstack
+			TMap<FName, int32> ActorNameToStencilIndex;
+			ActorNameToStencilIndex.Add(NAME_BSP, 1);
 
 			Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 			Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
 
-			// Sort by actor
-			TArray<FName> Actors;
-			PrimitivesByActor.GetKeys(Actors);
-			for( TArray<FName>::TConstIterator ActorIt(Actors); ActorIt; ++ActorIt )
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 			{
-				bool bBSP = *ActorIt == NAME_BSP;
-				if (bBSP)
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+				const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
+
+				if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline)
 				{
+					const int32* AssignedStencilIndexPtr = ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
+
+					if (!AssignedStencilIndexPtr)
+					{
+						AssignedStencilIndexPtr = &ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), ActorNameToStencilIndex.Num() + 1);
+					}
+
 					// This is a reversed Z depth surface, using CF_GreaterEqual.
-					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 1);
+					// Note that the stencil value will overflow with enough selected objects
+					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), *AssignedStencilIndexPtr);
+
+					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 				}
-				else
-				{
-					// This is a reversed Z depth surface, using CF_GreaterEqual.
-					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
+			}
+		}
+		else if (View.VisibleDynamicPrimitives.Num() > 0)
+		{
+			TDynamicPrimitiveDrawer<FHitProxyDrawingPolicyFactory> Drawer(Context.RHICmdList, &View, FHitProxyDrawingPolicyFactory::ContextType(), true, false, false, true);
+			TMultiMap<FName, const FPrimitiveSceneInfo*> PrimitivesByActor;
 
-					// we want to use 1..255 for all objects, not correct silhouettes after that is acceptable
-					StencilValue = (StencilValue == 255) ? 2 : (StencilValue + 1);
+			for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
+			{
+				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
+
+				// Only draw the primitive if relevant
+				if(PrimitiveSceneInfo->Proxy->IsSelected())
+				{
+					PrimitivesByActor.Add(PrimitiveSceneInfo->Proxy->GetOwnerName(), PrimitiveSceneInfo);
 				}
+			}
 
-				TArray<const FPrimitiveSceneInfo*> Primitives;
-				PrimitivesByActor.MultiFind(*ActorIt, Primitives);
+			if (PrimitivesByActor.Num())
+			{
+				// 0 means no object, 1 means BSP so we start with 2
+				uint32 StencilValue = 2;
 
-				for( TArray<const FPrimitiveSceneInfo*>::TConstIterator PrimIt(Primitives); PrimIt; ++PrimIt )
+				Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+				Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
+
+				// Sort by actor
+				TArray<FName> Actors;
+				PrimitivesByActor.GetKeys(Actors);
+				for( TArray<FName>::TConstIterator ActorIt(Actors); ActorIt; ++ActorIt )
 				{
-					const FPrimitiveSceneInfo* PrimitiveSceneInfo = *PrimIt;
-					// Render the object to the stencil/depth buffer
-					Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
+					bool bBSP = *ActorIt == NAME_BSP;
+					if (bBSP)
+					{
+						// This is a reversed Z depth surface, using CF_GreaterEqual.
+						Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 1);
+					}
+					else
+					{
+						// This is a reversed Z depth surface, using CF_GreaterEqual.
+						Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
+
+						// we want to use 1..255 for all objects, not correct silhouettes after that is acceptable
+						StencilValue = (StencilValue == 255) ? 2 : (StencilValue + 1);
+					}
+
+					TArray<const FPrimitiveSceneInfo*> Primitives;
+					PrimitivesByActor.MultiFind(*ActorIt, Primitives);
+
+					for( TArray<const FPrimitiveSceneInfo*>::TConstIterator PrimIt(Primitives); PrimIt; ++PrimIt )
+					{
+						const FPrimitiveSceneInfo* PrimitiveSceneInfo = *PrimIt;
+						// Render the object to the stencil/depth buffer
+						Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+						PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
+					}
 				}
 			}
 		}
@@ -237,7 +273,7 @@ public:
 
 			if(EditorPrimitivesStencil.IsBound())
 			{
-			// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
+				// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
 				if(ViewState->SelectionOutlineCacheKey != TargetableTexture)
 				{
 					// release if not the right one (as the internally SRV stores a pointer to the texture we cannot get a false positive)

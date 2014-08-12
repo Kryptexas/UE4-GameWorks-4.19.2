@@ -48,6 +48,14 @@ public:
 		}
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
+		{
+			ChildProxies[Index]->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector);
+		}
+	}
+
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)

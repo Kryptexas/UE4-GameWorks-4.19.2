@@ -155,6 +155,20 @@ public:
 	 */
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, uint32 DrawDynamicFlags ) { DrawDynamicElements( PDI, View ); }
 
+	/** 
+	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
+	 * This is called from the rendering thread for each set of views that might be rendered.  
+	 * Game thread state like UObjects must have their properties mirrored on the proxy to avoid race conditions.  The rendering thread must not dereference UObjects.
+	 * The gathered mesh elements will be used multiple times, any memory referenced must last as long as the Collector (eg no stack memory should be referenced).
+	 * This function should not modify the proxy but simply collect a description of things to render.  Updates to the proxy need to be pushed from game thread or external events.
+	 *
+	 * @param Views - the array of views to consider.  These may not exist in the ViewFamily.
+	 * @param ViewFamily - the view family, for convenience
+	 * @param VisibilityMap - a bit representing this proxy's visibility in the Views array
+	 * @param Collector - gathers the mesh elements to be rendered and provides mechanisms for temporary allocations
+	 */
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const {}
+
 	/**
 	 * Determines the relevance of this primitive's elements to the given view.
 	 * Called in the rendering thread.
@@ -291,12 +305,6 @@ public:
 	inline bool IsLocalToWorldDeterminantNegative() const { return bIsLocalToWorldDeterminantNegative; }
 	inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
-	inline const FVector2D& GetLightMapResolutionScale() const { return LightMapResolutionScale; }
-	inline bool IsLightMapResolutionPadded() const { return bLightMapResolutionPadded; }
-	inline ELightMapInteractionType GetLightMapType() const { return (ELightMapInteractionType)LightMapType; }
-	inline void SetLightMapResolutionScale(const FVector2D& InLightMapResolutionScale) { LightMapResolutionScale = InLightMapResolutionScale; }
-	inline void SetIsLightMapResolutionPadded(bool bInLightMapResolutionPadded) { bLightMapResolutionPadded = bInLightMapResolutionPadded; }
-	inline void SetLightMapType(ELightMapInteractionType InLightMapType) { LightMapType = InLightMapType; }
 	inline FName GetOwnerName() const { return OwnerName; }
 	inline FName GetResourceName() const { return ResourceName; }
 	inline FName GetLevelName() const { return LevelName; }
@@ -342,10 +350,15 @@ public:
 	inline bool WillEverBeLit() const { return bWillEverBeLit; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
+	inline bool UseEditorDepthTest() const { return bUseEditorDepthTest; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
 #endif
+
+	inline FLinearColor GetWireframeColor() const { return WireframeColor; }
+	inline FLinearColor GetLevelColor() const { return LevelColor; }
+	inline FLinearColor GetPropertyColor() const { return PropertyColor; }
 
 	/**
 	* Returns whether this proxy should be considered a "detail mesh".
@@ -408,11 +421,12 @@ protected:
 		OwnerName = InOwnerName;
 	}
 
+	FLinearColor WireframeColor;
+	FLinearColor LevelColor;
+	FLinearColor PropertyColor;
+
 private:
 	friend class FScene;
-
-	/** The LightMap method used by the primitive */
-	uint32 LightMapType : LMIT_NumBits;
 
 	uint32 bIsLocalToWorldDeterminantNegative : 1;
 	uint32 DrawInGame : 1;
@@ -426,9 +440,6 @@ private:
 	
 	/** true if the mouse is currently hovered over this primitive in a level viewport */
 	uint32 bHovered : 1;
-
-	/** true if the LightMapResolutionScale value has been padded. */
-	uint32 bLightMapResolutionPadded : 1;
 
 	/** true if ViewOwnerDepthPriorityGroup should be used. */
 	uint32 bUseViewOwnerDepthPriorityGroup : 1;
@@ -515,6 +526,9 @@ protected:
 	/** Whether the primitive should always be considered to have velocities, even if it hasn't moved. */
 	uint32 bAlwaysHasVelocity : 1;
 
+	/** Whether editor compositing depth testing should be used for this primitive.  Only matters for primitives with bUseEditorCompositing. */
+	uint32 bUseEditorDepthTest : 1;
+
 private:
 
 	/** If this is True, this primitive will be used to occlusion cull other primitives. */
@@ -575,9 +589,6 @@ private:
 
 	/** The name of the level the primitive is in. */
 	FName LevelName;
-
-	/** The StaticLighting resolution for this mesh */
-	FVector2D LightMapResolutionScale;
 
 #if WITH_EDITOR
 	/** A copy of the actor's group membership for handling per-view group hiding */

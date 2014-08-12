@@ -357,23 +357,9 @@ public:
 		else
  		if (PrimitiveSceneProxy)
  		{
- 			LMResolutionScale = PrimitiveSceneProxy->GetLightMapResolutionScale();
+ 			LMResolutionScale = FVector2D(0, 0);
 			BuiltLightingAndSelectedFlags.X = 0.0f;
 			BuiltLightingAndSelectedFlags.Y = 1.0f;
-			if (PrimitiveSceneProxy->GetLightMapType() == LMIT_Texture)
-			{
-				if (PrimitiveSceneProxy->IsLightMapResolutionPadded() == true)
-				{
-					LMResolutionScale.X -= 2.0f;
-					LMResolutionScale.Y -= 2.0f;
-				}
-				bTextureMapped = true;
-				if (PrimitiveSceneProxy->HasStaticLighting())
-				{
-					BuiltLightingAndSelectedFlags.X = 1.0f;
-					BuiltLightingAndSelectedFlags.Y = 0.0f;
-				}
-			}
 		}
 
 		if (Mesh.MaterialRenderProxy && (Mesh.MaterialRenderProxy->IsSelected() == true))

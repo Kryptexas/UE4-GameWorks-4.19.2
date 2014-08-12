@@ -76,6 +76,60 @@ void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWo
 	MeshBuilder.Draw(PDI, FScaleMatrix(Radii) * ObjectToWorld, MaterialRenderProxy, DepthPriorityGroup, 0.f);
 }
 
+
+void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,int32 ViewIndex,FMeshElementCollector& Collector)
+{
+	// Calculate verts for a face pointing down Z
+	FVector Positions[4] =
+	{
+		FVector(-1, -1, +1),
+		FVector(-1, +1, +1),
+		FVector(+1, +1, +1),
+		FVector(+1, -1, +1)
+	};
+	FVector2D UVs[4] =
+	{
+		FVector2D(0,0),
+		FVector2D(0,1),
+		FVector2D(1,1),
+		FVector2D(1,0),
+	};
+
+	// Then rotate this face 6 times
+	FRotator FaceRotations[6];
+	FaceRotations[0] = FRotator(0,		0,	0);
+	FaceRotations[1] = FRotator(90.f,	0,	0);
+	FaceRotations[2] = FRotator(-90.f,	0,  0);
+	FaceRotations[3] = FRotator(0,		0,	90.f);
+	FaceRotations[4] = FRotator(0,		0,	-90.f);
+	FaceRotations[5] = FRotator(180.f,	0,	0);
+
+	FDynamicMeshBuilder MeshBuilder;
+
+	for(int32 f=0; f<6; f++)
+	{
+		FMatrix FaceTransform = FRotationMatrix(FaceRotations[f]);
+
+		int32 VertexIndices[4];
+		for(int32 VertexIndex = 0;VertexIndex < 4;VertexIndex++)
+		{
+			VertexIndices[VertexIndex] = MeshBuilder.AddVertex(
+				FaceTransform.TransformPosition( Positions[VertexIndex] ),
+				UVs[VertexIndex],
+				FaceTransform.TransformVector(FVector(1,0,0)),
+				FaceTransform.TransformVector(FVector(0,1,0)),
+				FaceTransform.TransformVector(FVector(0,0,1)),
+				FColor::White
+				);
+		}
+
+		MeshBuilder.AddTriangle(VertexIndices[0],VertexIndices[1],VertexIndices[2]);
+		MeshBuilder.AddTriangle(VertexIndices[0],VertexIndices[2],VertexIndices[3]);
+	}
+
+	MeshBuilder.GetMesh(FScaleMatrix(Radii) * BoxToWorld,MaterialRenderProxy,DepthPriorityGroup,false,false,ViewIndex,Collector);
+}
+
 void DrawBox(FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup)
 {
 	// Calculate verts for a face pointing down Z
@@ -129,6 +183,88 @@ void DrawBox(FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVecto
 	MeshBuilder.Draw(PDI,FScaleMatrix(Radii) * BoxToWorld,MaterialRenderProxy,DepthPriorityGroup,0.f);
 }
 
+void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling,int32 ViewIndex,FMeshElementCollector& Collector)
+{
+	// Use a mesh builder to draw the sphere.
+	FDynamicMeshBuilder MeshBuilder;
+	{
+		// The first/last arc are on top of each other.
+		int32 NumVerts = (NumSides+1) * (NumRings+1);
+		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc( NumVerts * sizeof(FDynamicMeshVertex) );
+
+		// Calculate verts for one arc
+		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc( (NumRings+1) * sizeof(FDynamicMeshVertex) );
+
+		for(int32 i=0; i<NumRings+1; i++)
+		{
+			FDynamicMeshVertex* ArcVert = &ArcVerts[i];
+
+			float angle = ((float)i/NumRings) * PI;
+
+			// Note- unit sphere, so position always has mag of one. We can just use it for normal!			
+			ArcVert->Position.X = 0.0f;
+			ArcVert->Position.Y = FMath::Sin(angle);
+			ArcVert->Position.Z = FMath::Cos(angle);
+
+			ArcVert->SetTangents(
+				FVector(1,0,0),
+				FVector(0.0f,-ArcVert->Position.Z,ArcVert->Position.Y),
+				ArcVert->Position
+				);
+
+			ArcVert->TextureCoordinate.X = 0.0f;
+			ArcVert->TextureCoordinate.Y = ((float)i/NumRings);
+		}
+
+		// Then rotate this arc NumSides+1 times.
+		for(int32 s=0; s<NumSides+1; s++)
+		{
+			FRotator ArcRotator(0, 360.f * (float)s/NumSides, 0);
+			FRotationMatrix ArcRot( ArcRotator );
+			float XTexCoord = ((float)s/NumSides);
+
+			for(int32 v=0; v<NumRings+1; v++)
+			{
+				int32 VIx = (NumRings+1)*s + v;
+
+				Verts[VIx].Position = ArcRot.TransformPosition( ArcVerts[v].Position );
+
+				Verts[VIx].SetTangents(
+					ArcRot.TransformVector( ArcVerts[v].TangentX ),
+					ArcRot.TransformVector( ArcVerts[v].GetTangentY() ),
+					ArcRot.TransformVector( ArcVerts[v].TangentZ )
+					);
+
+				Verts[VIx].TextureCoordinate.X = XTexCoord;
+				Verts[VIx].TextureCoordinate.Y = ArcVerts[v].TextureCoordinate.Y;
+			}
+		}
+
+		// Add all of the vertices we generated to the mesh builder.
+		for(int32 VertIdx=0; VertIdx < NumVerts; VertIdx++)
+		{
+			MeshBuilder.AddVertex(Verts[VertIdx]);
+		}
+
+		// Add all of the triangles we generated to the mesh builder.
+		for(int32 s=0; s<NumSides; s++)
+		{
+			int32 a0start = (s+0) * (NumRings+1);
+			int32 a1start = (s+1) * (NumRings+1);
+
+			for(int32 r=0; r<NumRings; r++)
+			{
+				MeshBuilder.AddTriangle(a0start + r + 0, a1start + r + 0, a0start + r + 1);
+				MeshBuilder.AddTriangle(a1start + r + 0, a1start + r + 1, a0start + r + 1);
+			}
+		}
+
+		// Free our local copy of verts and arc verts
+		FMemory::Free(Verts);
+		FMemory::Free(ArcVerts);
+	}
+	MeshBuilder.GetMesh(FScaleMatrix( Radii ) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, false, ViewIndex, Collector);
+}
 
 
 void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
@@ -439,6 +575,27 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 		OutIndices.Add(V1);
 	}
 
+}
+
+
+void GetCylinderMesh(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
+				  float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
+{
+	GetCylinderMesh( FMatrix::Identity, Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MaterialRenderProxy, DepthPriority, ViewIndex, Collector );
+}
+
+void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
+{
+	TArray<FDynamicMeshVertex> MeshVerts;
+	TArray<int32> MeshIndices;
+	BuildCylinderVerts(Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MeshVerts, MeshIndices);
+
+
+	FDynamicMeshBuilder MeshBuilder;
+	MeshBuilder.AddVertices(MeshVerts);
+	MeshBuilder.AddTriangles(MeshIndices);
+
+	MeshBuilder.GetMesh(CylToWorld, MaterialRenderProxy, DepthPriority, false, false, ViewIndex, Collector);
 }
 
 void DrawCylinder(FPrimitiveDrawInterface* PDI,const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
@@ -1218,28 +1375,28 @@ FLinearColor GetSelectionColor(const FLinearColor& BaseColor,bool bSelected,bool
 	return ret;
 }
 
-bool IsRichView(const FSceneView* View)
+bool IsRichView(const FSceneViewFamily& ViewFamily)
 {
 	// Flags which make the view rich when absent.
-	if( !View->Family->EngineShowFlags.LOD ||
-		!View->Family->EngineShowFlags.IndirectLightingCache ||
-		!View->Family->EngineShowFlags.Lighting ||
-		!View->Family->EngineShowFlags.Materials)
+	if( !ViewFamily.EngineShowFlags.LOD ||
+		!ViewFamily.EngineShowFlags.IndirectLightingCache ||
+		!ViewFamily.EngineShowFlags.Lighting ||
+		!ViewFamily.EngineShowFlags.Materials)
 	{
 		return true;
 	}
 
 	// Flags which make the view rich when present.
-	if( View->Family->EngineShowFlags.LightComplexity ||
-		View->Family->EngineShowFlags.ShaderComplexity ||
-		View->Family->EngineShowFlags.StationaryLightOverlap ||
-		View->Family->EngineShowFlags.BSPSplit ||
-		View->Family->EngineShowFlags.LightMapDensity ||
-		View->Family->EngineShowFlags.PropertyColoration ||
-		View->Family->EngineShowFlags.MeshEdges ||
-		View->Family->EngineShowFlags.LightInfluences ||
-		View->Family->EngineShowFlags.Wireframe ||
-		View->Family->EngineShowFlags.LevelColoration)
+	if( ViewFamily.EngineShowFlags.LightComplexity ||
+		ViewFamily.EngineShowFlags.ShaderComplexity ||
+		ViewFamily.EngineShowFlags.StationaryLightOverlap ||
+		ViewFamily.EngineShowFlags.BSPSplit ||
+		ViewFamily.EngineShowFlags.LightMapDensity ||
+		ViewFamily.EngineShowFlags.PropertyColoration ||
+		ViewFamily.EngineShowFlags.MeshEdges ||
+		ViewFamily.EngineShowFlags.LightInfluences ||
+		ViewFamily.EngineShowFlags.Wireframe ||
+		ViewFamily.EngineShowFlags.LevelColoration)
 	{
 		return true;
 	}
@@ -1247,6 +1404,226 @@ bool IsRichView(const FSceneView* View)
 	return false;
 }
 
+void ApplyViewModeOverrides(
+	int32 ViewIndex,
+	const FEngineShowFlags& EngineShowFlags,
+	ERHIFeatureLevel::Type FeatureLevel,
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	bool bSelected,
+	FMeshBatch& Mesh,
+	FMeshElementCollector& Collector
+	)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+	// If debug viewmodes are not allowed, skip all of the debug viewmode handling
+	if (!AllowDebugViewmodes())
+	{
+		return;
+	}
+
+	if (EngineShowFlags.Wireframe)
+	{
+		// In wireframe mode, draw the edges of the mesh with the specified wireframe color, or
+		// with the level or property color if level or property coloration is enabled.
+		FLinearColor BaseColor( PrimitiveSceneProxy->GetWireframeColor() );
+		if (EngineShowFlags.PropertyColoration)
+		{
+			BaseColor = PrimitiveSceneProxy->GetPropertyColor();
+		}
+		else if (EngineShowFlags.LevelColoration)
+		{
+			BaseColor = PrimitiveSceneProxy->GetLevelColor();
+		}
+
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition_RenderThread())
+		{
+			// If the material is mesh-modifying, we cannot rely on substitution
+			auto WireframeMaterialInstance = new FOverrideSelectionColorMaterialRenderProxy(
+				Mesh.MaterialRenderProxy,
+				GetSelectionColor( BaseColor, bSelected, Mesh.MaterialRenderProxy->IsHovered(), /*bUseOverlayIntensity=*/false)
+				);
+
+			Mesh.bWireframe = true;
+			Mesh.MaterialRenderProxy = WireframeMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+		}
+		else
+		{
+			auto WireframeMaterialInstance = new FColoredMaterialRenderProxy(
+				GEngine->WireframeMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+				GetSelectionColor( BaseColor, bSelected, Mesh.MaterialRenderProxy->IsHovered(), /*bUseOverlayIntensity=*/false)
+				);
+
+			Mesh.bWireframe = true;
+			Mesh.MaterialRenderProxy = WireframeMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+		}
+	}
+	else if (EngineShowFlags.LightComplexity)
+	{
+		// Don't render unlit translucency when in 'light complexity' viewmode.
+		if (!Mesh.IsTranslucent(FeatureLevel) || Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit)
+		{
+			// Count the number of lights interacting with this primitive.
+			int32 NumDynamicLights = GetRendererModule().GetNumDynamicLightsAffectingPrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo(),Mesh.LCI);
+
+			// Get a colored material to represent the number of lights.
+			// Some component types (BSP) have multiple FLightCacheInterface's per component, so make sure the whole component represents the number of dominant lights affecting
+			NumDynamicLights = FMath::Min( NumDynamicLights, GEngine->LightComplexityColors.Num() - 1 );
+			const FColor Color = GEngine->LightComplexityColors[NumDynamicLights];
+
+			auto LightComplexityMaterialInstance = new FColoredMaterialRenderProxy(
+				GEngine->LevelColorationUnlitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+				Color
+				);
+
+			// Draw the mesh colored by light complexity.
+			Mesh.MaterialRenderProxy = LightComplexityMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(LightComplexityMaterialInstance);
+		}
+	}
+	else if (!EngineShowFlags.Materials)
+	{
+		// Don't render unlit translucency when in 'lighting only' viewmode.
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit
+			// Don't render translucency in 'lighting only', since the viewmode works by overriding with an opaque material
+			// This would cause a mismatch of the material's blend mode with the primitive's view relevance,
+			// And make faint particles block the view
+			&& !IsTranslucentBlendMode(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode()))
+		{
+			// When materials aren't shown, apply the same basic material to all meshes.
+			bool bTextureMapped = false;
+			FVector2D LMResolution;
+
+			if (EngineShowFlags.LightMapDensity &&
+				Mesh.LCI &&
+				(Mesh.LCI->GetLightMapInteraction().GetType() == LMIT_Texture) &&
+				Mesh.LCI->GetLightMapInteraction().GetTexture())
+			{
+				LMResolution.X = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeX();
+				LMResolution.Y = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeY();
+				bTextureMapped = true;
+			}
+
+			if (bTextureMapped == false)
+			{
+				FMaterialRenderProxy* RenderProxy = GEngine->LevelColorationLitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(),Mesh.MaterialRenderProxy->IsHovered());
+				auto LightingOnlyMaterialInstance = new FColoredMaterialRenderProxy(
+					RenderProxy,
+					GEngine->LightingOnlyBrightness
+					);
+
+				Mesh.MaterialRenderProxy = LightingOnlyMaterialInstance;
+				Collector.RegisterOneFrameMaterialProxy(LightingOnlyMaterialInstance);
+			}
+			else
+			{
+				FMaterialRenderProxy* RenderProxy = GEngine->LightingTexelDensityMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(),Mesh.MaterialRenderProxy->IsHovered());
+				auto LightingDensityMaterialInstance = new FLightingDensityMaterialRenderProxy(
+					RenderProxy,
+					GEngine->LightingOnlyBrightness,
+					LMResolution
+					);
+
+				Mesh.MaterialRenderProxy = LightingDensityMaterialInstance;
+				Collector.RegisterOneFrameMaterialProxy(LightingDensityMaterialInstance);
+			}
+		}
+	}
+	else
+	{	
+		if (EngineShowFlags.PropertyColoration)
+		{
+			// In property coloration mode, override the mesh's material with a color that was chosen based on property value.
+			const UMaterial* PropertyColorationMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
+
+			auto PropertyColorationMaterialInstance = new FColoredMaterialRenderProxy(
+				PropertyColorationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+				GetSelectionColor(PrimitiveSceneProxy->GetPropertyColor(),bSelected,Mesh.MaterialRenderProxy->IsHovered())
+				);
+
+			Mesh.MaterialRenderProxy = PropertyColorationMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(PropertyColorationMaterialInstance);
+		}
+		else if (EngineShowFlags.LevelColoration)
+		{
+			const UMaterial* LevelColorationMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
+			// Draw the mesh with level coloration.
+			auto LevelColorationMaterialInstance = new FColoredMaterialRenderProxy(
+				LevelColorationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+				GetSelectionColor(PrimitiveSceneProxy->GetLevelColor(),bSelected,Mesh.MaterialRenderProxy->IsHovered())
+				);
+			Mesh.MaterialRenderProxy = LevelColorationMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(LevelColorationMaterialInstance);
+		}
+		else if (EngineShowFlags.BSPSplit
+			&& PrimitiveSceneProxy->ShowInBSPSplitViewmode())
+		{
+			// Determine unique color for model component.
+			FLinearColor BSPSplitColor;
+			FRandomStream RandomStream(GetTypeHash(PrimitiveSceneProxy->GetPrimitiveComponentId().Value));
+			BSPSplitColor.R = RandomStream.GetFraction();
+			BSPSplitColor.G = RandomStream.GetFraction();
+			BSPSplitColor.B = RandomStream.GetFraction();
+			BSPSplitColor.A = 1.0f;
+
+			// Piggy back on the level coloration material.
+			const UMaterial* BSPSplitMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
+			
+			// Draw BSP mesh with unique color for each model component.
+			auto BSPSplitMaterialInstance = new FColoredMaterialRenderProxy(
+				BSPSplitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+				GetSelectionColor(BSPSplitColor,bSelected,Mesh.MaterialRenderProxy->IsHovered())
+				);
+			Mesh.MaterialRenderProxy = BSPSplitMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(BSPSplitMaterialInstance);
+		}
+		else if (PrimitiveSceneProxy->HasStaticLighting() && !PrimitiveSceneProxy->HasValidSettingsForStaticLighting())
+		{
+			auto InvalidSettingsMaterialInstance = new FColoredMaterialRenderProxy(
+				GEngine->InvalidLightmapSettingsMaterial->GetRenderProxy(bSelected),
+				GetSelectionColor(PrimitiveSceneProxy->GetLevelColor(),bSelected,Mesh.MaterialRenderProxy->IsHovered())
+				);
+			Mesh.MaterialRenderProxy = InvalidSettingsMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(InvalidSettingsMaterialInstance);
+		}
+
+		//Draw a wireframe overlay last, if requested
+		if (EngineShowFlags.MeshEdges)
+		{
+			FMeshBatch& MeshEdgeElement = Collector.AllocateMesh();
+
+			// Draw the mesh's edges in blue, on top of the base geometry.
+			if (MeshEdgeElement.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition_RenderThread())
+			{
+				// If the material is mesh-modifying, we cannot rely on substitution
+				auto WireframeMaterialInstance = new FOverrideSelectionColorMaterialRenderProxy(
+					MeshEdgeElement.MaterialRenderProxy,
+					PrimitiveSceneProxy->GetWireframeColor()
+					);
+
+				MeshEdgeElement.bWireframe = true;
+				MeshEdgeElement.MaterialRenderProxy = WireframeMaterialInstance;
+				Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+			}
+			else
+			{
+				auto WireframeMaterialInstance = new FColoredMaterialRenderProxy(
+					GEngine->WireframeMaterial->GetRenderProxy(MeshEdgeElement.MaterialRenderProxy->IsSelected(), MeshEdgeElement.MaterialRenderProxy->IsHovered()),
+					PrimitiveSceneProxy->GetWireframeColor()
+					);
+
+				MeshEdgeElement.bWireframe = true;
+				MeshEdgeElement.MaterialRenderProxy = WireframeMaterialInstance;
+				Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+			}
+
+			Collector.AddMesh(ViewIndex, MeshEdgeElement);
+		}
+	}
+#endif
+}
 
 /**
  * Draws a mesh, modifying the material which is used depending on the view's show flags.

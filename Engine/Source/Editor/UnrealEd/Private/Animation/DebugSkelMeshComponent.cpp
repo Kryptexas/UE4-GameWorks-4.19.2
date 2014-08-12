@@ -28,13 +28,36 @@ public:
 		FSkeletalMeshSceneProxy( InComponent, InSkelMeshResource )
 	{
 		SkeletalMeshComponent = InComponent;
-		WireframeOverlayColor = InWireframeOverlayColor;
+		WireframeColor = FLinearColor(InWireframeOverlayColor);
 	}
 
 	virtual ~FDebugSkelMeshSceneProxy()
 	{
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		if (SkeletalMeshComponent->bDrawMesh)
+		{
+			// We don't want to draw the mesh geometry to the hit testing render target
+			// so that we can get to triangle strips that are partially obscured by other
+			// triangle strips easier.
+			const bool bSelectable = false;
+			GetMeshElementsConditionallySelectable(Views, ViewFamily, bSelectable, VisibilityMap, Collector);
+		}
+
+		//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
+		if( SkeletalMeshComponent->MeshObject && (SkeletalMeshComponent->bDrawNormals || SkeletalMeshComponent->bDrawTangents || SkeletalMeshComponent->bDrawBinormals) )
+		{
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					SkeletalMeshComponent->MeshObject->DrawVertexElements(Collector.GetPDI(ViewIndex), SkeletalMeshComponent->ComponentToWorld, SkeletalMeshComponent->bDrawNormals, SkeletalMeshComponent->bDrawTangents, SkeletalMeshComponent->bDrawBinormals);
+				}
+			}
+		}
+	}
 
 	/** 
 	* Draw the scene proxy as a dynamic element

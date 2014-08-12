@@ -13,6 +13,7 @@ public:
 	FPaperSpriteSceneProxy(const UPaperSpriteComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	// End of FPrimitiveSceneProxy interface
 
@@ -22,6 +23,7 @@ protected:
 
 	// FPaperRenderSceneProxy interface
 	virtual void DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor) override;
+	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 
 	UMaterialInterface* AlternateMaterial;

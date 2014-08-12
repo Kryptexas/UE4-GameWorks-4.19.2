@@ -909,24 +909,6 @@ void UPrimitiveComponent::SetViewOwnerDepthPriorityGroup(
 	MarkRenderStateDirty();
 }
 
-
-
-#if WITH_EDITOR
-bool UPrimitiveComponent::SetupLightmapResolutionViewInfo(FPrimitiveSceneProxy& Proxy) const
-{
-	if (GIsEditor)
-	{
-		int32 Width, Height;
-		Proxy.SetIsLightMapResolutionPadded(GetLightMapResolution(Width, Height));
-		FVector2D TempVector(Width, Height);
-		Proxy.SetLightMapResolutionScale(TempVector);
-		Proxy.SetLightMapType(GetStaticLightingType());
-		return true;
-	}
-	return false;
-}
-#endif
-
 bool UPrimitiveComponent::IsWorldGeometry() const
 {
 	// if modify flag doesn't change, and 

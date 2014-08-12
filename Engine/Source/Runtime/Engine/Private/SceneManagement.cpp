@@ -4,22 +4,157 @@
 #include "StaticMeshResources.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 
-/*
-TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUniformBufferImmediate(
-	const FMatrix& LocalToWorld,
-	FVector BoundsOrigin,
-	FVector Bounds,
-	float BoundsRadius,
-	bool bReceivesDecals
+FSimpleElementCollector::~FSimpleElementCollector()
+{
+	// Cleanup the dynamic resources.
+	for(int32 ResourceIndex = 0;ResourceIndex < DynamicResources.Num();ResourceIndex++)
+	{
+		//release the resources before deleting, they will delete themselves
+		DynamicResources[ResourceIndex]->ReleasePrimitiveResource();
+	}
+}
+
+void FSimpleElementCollector::SetHitProxy(HHitProxy* HitProxy)
+{
+	if (HitProxy)
+	{
+		HitProxyId = HitProxy->Id;
+	}
+	else
+	{
+		HitProxyId = FHitProxyId();
+	}
+}
+
+void FSimpleElementCollector::DrawSprite(
+	const FVector& Position,
+	float SizeX,
+	float SizeY,
+	const FTexture* Sprite,
+	const FLinearColor& Color,
+	uint8 DepthPriorityGroup,
+	float U,
+	float UL,
+	float V,
+	float VL,
+	uint8 BlendMode
 	)
 {
-	check(IsInRenderingThread());
-	return TUniformBufferRef<FPrimitiveUniformShaderParameters>::CreateUniformBufferImmediate(
-		GetPrimitiveUniformShaderParameters(LocalToWorld, BoundsOrigin, BoundsOrigin, Bounds, BoundsRadius, bReceivesDecals),
-		UniformBuffer_MultiFrame
+	BatchedElements.AddSprite(
+		Position,
+		SizeX,
+		SizeY,
+		Sprite,
+		Color,
+		HitProxyId,
+		U,
+		UL,
+		V,
+		VL,
+		BlendMode
 		);
 }
-*/
+
+void FSimpleElementCollector::DrawLine(
+	const FVector& Start,
+	const FVector& End,
+	const FLinearColor& Color,
+	uint8 DepthPriorityGroup,
+	float Thickness/* = 0.0f*/,
+	float DepthBias/* = 0.0f*/,
+	bool bScreenSpace/* = false*/
+	)
+{
+	BatchedElements.AddLine(
+		Start,
+		End,
+		Color,
+		HitProxyId,
+		Thickness,
+		DepthBias,
+		bScreenSpace
+		);
+}
+
+void FSimpleElementCollector::DrawPoint(
+	const FVector& Position,
+	const FLinearColor& Color,
+	float PointSize,
+	uint8 DepthPriorityGroup
+	)
+{
+	BatchedElements.AddPoint(
+		Position,
+		PointSize,
+		Color,
+		HitProxyId
+		);
+}
+
+void FSimpleElementCollector::RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource)
+{
+	// Add the dynamic resource to the list of resources to cleanup on destruction.
+	DynamicResources.Add(DynamicResource);
+
+	// Initialize the dynamic resource immediately.
+	DynamicResource->InitPrimitiveResource();
+}
+
+void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
+{
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	const bool bIsMobileHDR = MobileHDRCvar->GetValueOnRenderThread() == 1;
+
+	// Mobile HDR does not execute post process, so does not need to render flipped
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) && !bIsMobileHDR;
+
+	// Draw the batched elements.
+	BatchedElements.Draw(
+		RHICmdList,
+		bNeedToSwitchVerticalAxis,
+		View.ViewProjectionMatrix,
+		View.ViewRect.Width(),
+		View.ViewRect.Height(),
+		View.Family->EngineShowFlags.HitProxies,
+		1.0f,
+		&View,
+		DepthTexture,
+		Filter
+		);
+}
+
+FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy, ERHIFeatureLevel::Type FeatureLevel) :
+	Mesh(&InMesh),
+	PrimitiveSceneProxy(InPrimitiveSceneProxy)
+{
+	EBlendMode BlendMode = InMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode();
+	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(BlendMode);
+	bRenderInMainPass = PrimitiveSceneProxy->ShouldRenderInMainPass();
+}
+
+void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
+{
+	checkSlow(MeshBatch.GetNumPrimitives() > 0);
+	checkSlow(MeshBatch.VertexFactory && MeshBatch.MaterialRenderProxy);
+	checkSlow(PrimitiveSceneProxy);
+
+	if (MeshBatch.bCanApplyViewModeOverrides)
+	{
+		FSceneView* View = Views[ViewIndex];
+
+		ApplyViewModeOverrides(
+			ViewIndex,
+			View->Family->EngineShowFlags,
+			View->GetFeatureLevel(),
+			PrimitiveSceneProxy,
+			MeshBatch.bUseWireframeSelectionColoring,
+			MeshBatch,
+			*this);
+	}
+
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& ViewMeshBatches = *MeshBatches[ViewIndex];
+	new (ViewMeshBatches) FMeshBatchAndRelevance(MeshBatch, PrimitiveSceneProxy, FeatureLevel);	
+}
 
 FLightMapInteraction FLightMapInteraction::Texture(
 	const class ULightMapTexture2D* const* InTextures,

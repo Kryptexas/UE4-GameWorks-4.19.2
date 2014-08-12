@@ -152,6 +152,76 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_ArrowSceneProxy_DrawDynamicElements );
+
+		FMatrix EffectiveLocalToWorld;
+#if WITH_EDITOR
+		if (bLightAttachment)
+		{
+			EffectiveLocalToWorld = GetLocalToWorld().GetMatrixWithoutScale();
+		}
+		else
+#endif	//WITH_EDITOR
+		{
+			EffectiveLocalToWorld = GetLocalToWorld();
+		}
+
+		auto ArrowMaterialRenderProxy = new FColoredMaterialRenderProxy(
+			GEngine->ArrowMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+			ArrowColor,
+			"GizmoColor"
+			);
+
+		Collector.RegisterOneFrameMaterialProxy(ArrowMaterialRenderProxy);
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+
+				// Calculate the view-dependent scaling factor.
+				float ViewScale = 1.0f;
+				if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
+				{
+					const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+					if (ZoomFactor != 0.0f)
+					{
+						const float Radius = View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
+						if (Radius < 1.0f && Radius > 0)
+						{
+							ViewScale *= Radius;
+						}
+					}
+				}
+
+		#if WITH_EDITORONLY_DATA
+				ViewScale *= EditorScale;
+		#endif
+
+				// Draw the mesh.
+				FMeshBatch& Mesh = Collector.AllocateMesh();
+				FMeshBatchElement& BatchElement = Mesh.Elements[0];
+				BatchElement.IndexBuffer = &IndexBuffer;
+				Mesh.bWireframe = false;
+				Mesh.VertexFactory = &VertexFactory;
+				Mesh.MaterialRenderProxy = ArrowMaterialRenderProxy;
+				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FScaleMatrix(ViewScale) * EffectiveLocalToWorld, GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
+				BatchElement.FirstIndex = 0;
+				BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+				BatchElement.MinVertexIndex = 0;
+				BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+				Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+				Mesh.Type = PT_TriangleList;
+				Mesh.DepthPriorityGroup = SDPG_World;
+				Mesh.bCanApplyViewModeOverrides = false;
+				Collector.AddMesh(ViewIndex, Mesh);
+			}
+		}
+	}
+
 	/** 
 	* Draw the scene proxy as a dynamic element
 	*
@@ -208,7 +278,7 @@ public:
 		Mesh.bWireframe = false;
 		Mesh.VertexFactory = &VertexFactory;
 		Mesh.MaterialRenderProxy = &ArrowMaterialRenderProxy;
-		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FScaleMatrix(ViewScale) * EffectiveLocalToWorld, GetBounds(), GetLocalBounds(), true);
+		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FScaleMatrix(ViewScale) * EffectiveLocalToWorld, GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
 		BatchElement.FirstIndex = 0;
 		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
 		BatchElement.MinVertexIndex = 0;

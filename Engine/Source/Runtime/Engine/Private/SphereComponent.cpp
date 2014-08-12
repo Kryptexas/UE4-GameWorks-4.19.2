@@ -90,7 +90,45 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 		}
 
 		  // FPrimitiveSceneProxy interface.
-		  
+		
+		virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+		{
+			QUICK_SCOPE_CYCLE_COUNTER( STAT_SphereSceneProxy_GetDynamicMeshElements );
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+					FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+					const FMatrix& LocalToWorld = GetLocalToWorld();
+					int32 SphereSides =  FMath::Clamp<int32>(SphereRadius/4.f, 16, 64);
+					if(ShapeMaterial && !View->Family->EngineShowFlags.Wireframe)
+					{
+						GetSphereMesh(LocalToWorld.GetOrigin(), FVector(SphereRadius), SphereSides, SphereSides/2, ShapeMaterial->GetRenderProxy(false), SDPG_World, false, ViewIndex, Collector);
+					}
+					else
+					{
+						const FLinearColor DrawSphereColor = GetSelectionColor(SphereColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
+
+						float AbsScaleX = LocalToWorld.GetScaledAxis(EAxis::X).Size();
+						float AbsScaleY = LocalToWorld.GetScaledAxis(EAxis::Y).Size();
+						float AbsScaleZ = LocalToWorld.GetScaledAxis(EAxis::Z).Size();
+						float MinAbsScale = FMath::Min3(AbsScaleX, AbsScaleY, AbsScaleZ);
+
+						FVector ScaledX = LocalToWorld.GetUnitAxis(EAxis::X) * MinAbsScale;
+						FVector ScaledY = LocalToWorld.GetUnitAxis(EAxis::Y) * MinAbsScale;
+						FVector ScaledZ = LocalToWorld.GetUnitAxis(EAxis::Z) * MinAbsScale;
+
+						DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledY, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
+						DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
+						DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledY, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
+					}
+				}
+			}
+		}
+
 		/** 
 		* Draw the scene proxy as a dynamic element
 		*

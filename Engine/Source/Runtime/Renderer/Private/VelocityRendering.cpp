@@ -463,6 +463,23 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesInner(FRHICommandList
 	}
 }
 
+void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View)
+{
+	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+
+	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+	{
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+		if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial
+			&& MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->ShouldRenderVelocity(View))
+		{
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FVelocityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+		}
+	}
+}
+
 class FRenderVelocityDynamicThreadTask
 {
 	FDeferredShadingSceneRenderer& ThisRenderer;
@@ -516,6 +533,8 @@ static TAutoConsoleVariable<int32> CVarParallelVelocity(
 
 void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
 	if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
 	{
 		// parallel version
@@ -526,6 +545,11 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 
 		Scene->VelocityDrawList.DrawVisibleParallel(View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, Width, RHICmdList, OutDirty);
 
+		if (bUseGetMeshElements)
+		{
+			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View);
+		}
+		else
 		{
 			int32 NumPrims = View.VisibleDynamicPrimitives.Num();
 			int32 EffectiveThreads = FMath::Min<int32>(NumPrims, Width);
@@ -561,7 +585,15 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 		// single threaded version
 		// Draw velocities for movable static meshes.
 		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
-		RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
+
+		if (bUseGetMeshElements)
+		{
+			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View);
+		}
+		else
+		{
+			RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
+		}
 	}
 }
 

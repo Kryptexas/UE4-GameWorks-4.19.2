@@ -13,6 +13,7 @@ public:
 	FPaperTileMapRenderSceneProxy(const UPaperTileMapRenderComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface.
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	// End of FPrimitiveSceneProxy interface.
 

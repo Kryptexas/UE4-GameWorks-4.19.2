@@ -92,6 +92,12 @@ public:
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
+	// For those situations when the default ctor had to be used
+	inline void SetFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		FeatureLevel = InFeatureLevel;
+	}
+
 protected:
 	// This is used during mobile editor preview refactor, this will eventually be replaced with a parameter to InitRHI() etc..
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }

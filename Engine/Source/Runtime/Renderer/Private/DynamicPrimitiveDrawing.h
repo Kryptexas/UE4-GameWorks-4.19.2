@@ -30,7 +30,6 @@ public:
 		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
 		bool InPreFog,
 		bool bInIsHitTesting = false,
-		bool bInIsVelocityRendering = false,
 		bool bInEditorCompositeDepthTest = false,
 		bool bInIsSelectionOutlineRendering = false
 		):
@@ -42,7 +41,6 @@ public:
 		bPreFog(InPreFog),
 		bDirty(false),
 		bIsHitTesting(bInIsHitTesting),
-		bIsVelocityRendering(bInIsVelocityRendering),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		bIsSelectionOutlineRendering(bInIsSelectionOutlineRendering)
 	{}
@@ -88,11 +86,6 @@ public:
 		uint8 DepthPriorityGroup
 		) override;
 
-	// Accessors.
-	bool IsPreFog() const
-	{
-		return bPreFog;
-	}
 	bool IsDirty() const
 	{
 		return bDirty;
@@ -101,11 +94,6 @@ public:
 	{
 		bDirty = false;
 	}
-
-	/**
-	 * @return true if rendering is occurring during velocity pass 
-	 */
-	virtual bool IsRenderingVelocities() const { return bIsVelocityRendering; }
 
 private:
 
@@ -138,9 +126,6 @@ private:
 
 	/** true if hit proxies are being drawn. */
 	uint32 bIsHitTesting : 1;
-
-	/** true if rendering is occuring during velocity pass */
-	uint32 bIsVelocityRendering : 1;
 
 	/** true if rendering is occuring during editor compositing */
 	uint32 bEditorCompositeDepthTest : 1;

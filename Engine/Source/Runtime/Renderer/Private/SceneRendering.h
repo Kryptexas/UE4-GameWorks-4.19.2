@@ -13,19 +13,6 @@
 // Forward declarations.
 class FPostprocessContext;
 
-/** An association between a hit proxy and a mesh. */
-class FHitProxyMeshPair : public FMeshBatch
-{
-public:
-	FHitProxyId HitProxyId;
-
-	/** Initialization constructor. */
-	FHitProxyMeshPair(const FMeshBatch& InMesh,FHitProxyId InHitProxyId):
-		FMeshBatch(InMesh),
-		HitProxyId(InHitProxyId)
-	{}
-};
-
 /** Information about a visible light which is specific to the view it's visible in. */
 class FVisibleLightViewInfo
 {
@@ -204,9 +191,6 @@ private:
 
 	/** Renders a single primitive for the deferred shading pipeline. */
 	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, bool bSeparateTranslucencyPass) const;
-
-	/** Renders a single primitive for the forward shading pipeline. */
-	void RenderPrimitiveForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance) const;
 };
 
 /** A batched occlusion primitive. */
@@ -369,13 +353,22 @@ public:
 	FBatchedElements TopBatchedViewElements;
 
 	/** The view's mesh elements. */
-	TIndirectArray<FHitProxyMeshPair> ViewMeshElements;
+	TIndirectArray<FMeshBatch> ViewMeshElements;
 
 	/** The view's mesh elements for the foreground (editor gizmos and primitives )*/
-	TIndirectArray<FHitProxyMeshPair> TopViewMeshElements;
+	TIndirectArray<FMeshBatch> TopViewMeshElements;
 
 	/** The dynamic resources used by the view elements. */
 	TArray<FDynamicPrimitiveResource*> DynamicResources;
+
+	/** Gathered in initviews from all the primitives with dynamic view relevance, used in each mesh pass. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicMeshElements;
+
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicEditorMeshElements;
+
+	FSimpleElementCollector SimpleElementCollector;
+
+	FSimpleElementCollector EditorSimpleElementCollector;
 
 	/** Parameters for exponential height fog. */
 	FVector4 ExponentialFogParameters;
@@ -501,6 +494,11 @@ struct FCombinedShadowStats
 	{}
 };
 
+/**
+ * Masks indicating for which views a primitive needs to have a certain operation on.
+ * One entry per primitive in the scene.
+ */
+typedef TArray<uint8, SceneRenderingAllocator> FPrimitiveViewMasks;
 
 /**
  * Used as the scope for scene rendering functions.
@@ -519,6 +517,8 @@ public:
 
 	/** The views being rendered. */
 	TArray<FViewInfo> Views;
+
+	FMeshElementCollector MeshCollector;
 
 	/** Information about the visible lights. */
 	TArray<FVisibleLightInfo,SceneRenderingAllocator> VisibleLightInfos;
@@ -562,6 +562,14 @@ protected:
 
 	/** Performs once per frame setup after to visibility determination. */
 	void PostVisibilityFrameSetup();
+
+	void GatherDynamicMeshElements(
+		TArray<FViewInfo>& Views, 
+		const FScene* Scene, 
+		const FSceneViewFamily& ViewFamily, 
+		const FPrimitiveViewMasks& HasDynamicMeshElementsMasks, 
+		const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks, 
+		FMeshElementCollector& Collector);
 
 	/** Initialized the fog constants for each view. */
 	void InitFogConstants();

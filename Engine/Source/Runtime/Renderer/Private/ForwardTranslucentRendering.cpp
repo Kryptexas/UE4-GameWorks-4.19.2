@@ -242,6 +242,8 @@ FTranslucentPrimSet
 
 void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FSceneRenderer& Renderer) const
 {
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
 	// Draw sorted scene prims
 	for (int32 PrimIdx = 0; PrimIdx < SortedPrims.Num(); PrimIdx++)
 	{
@@ -249,60 +251,72 @@ void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmedia
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
-		RenderPrimitiveForForwardShading(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance);
-	}
-}
+		checkSlow(ViewRelevance.HasTranslucency());
 
-void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
-	FRHICommandListImmediate& RHICmdList,
-	const FViewInfo& View, 
-	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
-	const FPrimitiveViewRelevance& ViewRelevance) const
-{
-	checkSlow(ViewRelevance.HasTranslucency());
-
-	if(ViewRelevance.bDrawRelevance)
-	{
-		// Render dynamic scene prim
-		if( ViewRelevance.bDynamicRelevance )
+		if(ViewRelevance.bDrawRelevance)
 		{
-			TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
-				RHICmdList,
-				&View,
-				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
-				false
-				);
-
-			TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-			PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-				&TranslucencyDrawer,
-				&View
-				);
-		}
-
-		// Render static scene prim
-		if( ViewRelevance.bStaticRelevance )
-		{
-			// Render static meshes from static scene prim
-			for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
+			if (bUseGetMeshElements)
 			{
-				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
-				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
-					// Only render static mesh elements using translucent materials
-					&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
+				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType Context;
+
+				//@todo parallelrendering - come up with a better way to filter these by primitive
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 				{
-					FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
-						RHICmdList, 
-						View,
-						FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
-						StaticMesh,
-						false,
-						PrimitiveSceneInfo->Proxy,
-						StaticMesh.HitProxyId
-						);
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
+					{
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					}
+				}
+			}
+			// Render dynamic scene prim
+			else if( ViewRelevance.bDynamicRelevance )
+			{
+				TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
+					RHICmdList,
+					&View,
+					FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
+					false
+					);
+
+				TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+					&TranslucencyDrawer,
+					&View
+					);
+			}
+
+			// Render static scene prim
+			if( ViewRelevance.bStaticRelevance )
+			{
+				// Render static meshes from static scene prim
+				for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
+				{
+					FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
+					if (View.StaticMeshVisibilityMap[StaticMesh.Id]
+						// Only render static mesh elements using translucent materials
+						&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
+					{
+						FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
+							RHICmdList, 
+							View,
+							FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
+							StaticMesh,
+							false,
+							PrimitiveSceneInfo->Proxy,
+							StaticMesh.BatchHitProxyId
+							);
+					}
 				}
 			}
 		}
+	}
+
+	if (bUseGetMeshElements)
+	{
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 	}
 }
 

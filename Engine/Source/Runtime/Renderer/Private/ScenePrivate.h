@@ -36,6 +36,8 @@ bool IsMobileHDR();
 /** True if the mobile renderer is emulating HDR in a 32bpp render target. */
 bool IsMobileHDR32bpp();
 
+extern bool ShouldUseGetDynamicMeshElements();
+
 // Dependencies.
 #include "StaticBoundShaderState.h"
 #include "BatchedElements.h"

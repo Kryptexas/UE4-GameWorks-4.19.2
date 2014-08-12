@@ -1275,11 +1275,14 @@ void FProjectedShadowInfo::RenderDepthDynamic(FRHICommandList& RHICmdList, FDefe
 		DrawPrimitiveFlags = EDrawDynamicFlags::ForceLowestLOD;
 	}
 
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 	TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(RHICmdList, FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
 	uint32 PrimitiveCount = SubjectPrimitives.Num();
+
 	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
 	{
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy = PrimitiveSceneInfo->Proxy;
 
 		// Lookup the primitive's cached view relevance
 		FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
@@ -1293,10 +1296,29 @@ void FProjectedShadowInfo::RenderDepthDynamic(FRHICommandList& RHICmdList, FDefe
 		// Only draw if the subject primitive is shadow relevant.
 		if (ViewRelevance.bShadowRelevance)
 		{
-			FScopeCycleCounter Context(SubjectPrimitives[PrimitiveIndex]->Proxy->GetStatId());
-			Drawer.SetPrimitive(SubjectPrimitives[PrimitiveIndex]->Proxy);
+			if (bUseGetMeshElements)
+			{
+				FShadowDepthDrawingPolicyFactory::ContextType Context(this);
 
-			SubjectPrimitives[PrimitiveIndex]->Proxy->DrawDynamicElements(&Drawer, FoundView, DrawPrimitiveFlags);
+				//@todo parallelrendering - come up with a better way to filter these by primitive
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < FoundView->DynamicMeshElements.Num(); MeshBatchIndex++)
+				{
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = FoundView->DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
+					{
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					}
+				}
+			}
+			else 
+			{
+				FScopeCycleCounter Context(PrimitiveSceneProxy->GetStatId());
+				Drawer.SetPrimitive(PrimitiveSceneProxy);
+
+				SubjectPrimitives[PrimitiveIndex]->Proxy->DrawDynamicElements(&Drawer, FoundView, DrawPrimitiveFlags);
+			}
 		}
 	}
 }
@@ -1798,6 +1820,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		// Draw the receiver's dynamic elements.
 		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < ReceiverPrimitives.Num(); PrimitiveIndex++)
 		{
@@ -1808,7 +1831,22 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				const FPrimitiveViewRelevance& ViewRelevance = View->PrimitiveViewRelevanceMap[ReceiverPrimitiveSceneInfo->GetIndex()];
 				if (ViewRelevance.bRenderInMainPass)
 				{
-					if (ViewRelevance.bDynamicRelevance)
+					if (bUseGetMeshElements)
+					{
+						FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+
+						for (int32 MeshBatchIndex = 0; MeshBatchIndex < View->DynamicMeshElements.Num(); MeshBatchIndex++)
+						{
+							const FMeshBatchAndRelevance& MeshBatchAndRelevance = View->DynamicMeshElements[MeshBatchIndex];
+
+							if (MeshBatchAndRelevance.PrimitiveSceneProxy == ReceiverPrimitiveSceneInfo->Proxy)
+							{
+								const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+								FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+							}
+						}
+					}
+					else if (ViewRelevance.bDynamicRelevance)
 					{
 						Drawer.SetPrimitive(ReceiverPrimitiveSceneInfo->Proxy);
 						ReceiverPrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, View);
@@ -1830,7 +1868,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 									StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
 									true,
 									ReceiverPrimitiveSceneInfo->Proxy,
-									StaticMesh.HitProxyId
+									StaticMesh.BatchHitProxyId
 									);
 							}
 						}

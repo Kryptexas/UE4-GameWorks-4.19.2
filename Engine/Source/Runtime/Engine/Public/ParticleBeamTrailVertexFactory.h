@@ -31,8 +31,11 @@ public:
 	/** Default constructor. */
 	FParticleBeamTrailVertexFactory( EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel )
 		: FParticleVertexFactoryBase(InType, InFeatureLevel)
-	{
-	}
+	{}
+
+	FParticleBeamTrailVertexFactory()
+		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+	{}
 
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 

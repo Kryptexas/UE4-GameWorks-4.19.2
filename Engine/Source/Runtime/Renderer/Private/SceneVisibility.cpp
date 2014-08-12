@@ -621,12 +621,6 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 typedef TArray<int32, SceneRenderingAllocator> FRelevantStaticPrimitives;
 
 /**
- * Masks indicating for which views a primitive needs to have PreRenderView
- * called. One entry per primitive in the scene.
- */
-typedef TArray<uint8, SceneRenderingAllocator> FPrimitivePreRenderViewMasks;
-
-/**
  * Computes view relevance for visible primitives in the view and adds them to
  * appropriate per-view rendering lists.
  * @param Scene - The scene being rendered.
@@ -643,7 +637,9 @@ static void ComputeRelevanceForView(
 	FViewInfo& View,
 	uint8 ViewBit,
 	FRelevantStaticPrimitives& OutRelevantStaticPrimitives,
-	FPrimitivePreRenderViewMasks& OutPreRenderViewMasks
+	FPrimitiveViewMasks& OutPreRenderViewMasks,
+	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks,
+	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks
 	)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
@@ -655,6 +651,7 @@ static void ComputeRelevanceForView(
 	// But it's hard to say since the view relevance is going to be available right now.
 
 	check(OutPreRenderViewMasks.Num() == Scene->Primitives.Num());
+	check(OutHasDynamicMeshElementsMasks.Num() == Scene->Primitives.Num());
 
 	float CurrentWorldTime = View.Family->CurrentWorldTime;
 	float DeltaWorldTime = View.Family->DeltaWorldTime;
@@ -694,11 +691,17 @@ static void ComputeRelevanceForView(
 		{
 			// Editor primitives are rendered after post processing and composited onto the scene
 			View.VisibleEditorPrimitives.Add(PrimitiveSceneInfo);
+
+			if (GIsEditor)
+			{
+				OutHasDynamicEditorMeshElementsMasks[BitIt.GetIndex()] |= ViewBit;
+			}
 		}
 		else if(bDynamicRelevance)
 		{
 			// Keep track of visible dynamic primitives.
 			View.VisibleDynamicPrimitives.Add(PrimitiveSceneInfo);
+			OutHasDynamicMeshElementsMasks[BitIt.GetIndex()] |= ViewBit;
 		}
 
 		if (ViewRelevance.HasTranslucency() && !bEditorRelevance && ViewRelevance.bRenderInMainPass)
@@ -721,7 +724,7 @@ static void ComputeRelevanceForView(
 		if (ViewRelevance.bRenderCustomDepth)
 		{
 			// Add to set of dynamic distortion primitives
-			View.CustomDepthSet.AddScenePrimitive(PrimitiveSceneInfo->Proxy, View);
+			View.CustomDepthSet.AddScenePrimitive(PrimitiveSceneInfo->Proxy);
 		}
 
 		// INITVIEWS_TODO: Do this in a separate pass? There are no dependencies
@@ -756,6 +759,62 @@ static void ComputeRelevanceForView(
 		}
 
 		PrimitiveSceneInfo->ConditionalUpdateStaticMeshes(RHICmdList);
+	}
+}
+
+void FSceneRenderer::GatherDynamicMeshElements(
+	TArray<FViewInfo>& Views, 
+	const FScene* Scene, 
+	const FSceneViewFamily& ViewFamily, 
+	const FPrimitiveViewMasks& HasDynamicMeshElementsMasks, 
+	const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks, 
+	FMeshElementCollector& Collector)
+{
+	SCOPE_CYCLE_COUNTER(STAT_GetDynamicMeshElements);
+
+	int32 NumPrimitives = Scene->Primitives.Num();
+	check(HasDynamicMeshElementsMasks.Num() == NumPrimitives);
+
+	{
+		Collector.ClearViewMeshArrays();
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			Collector.AddViewMeshArrays(&Views[ViewIndex], &Views[ViewIndex].DynamicMeshElements, &Views[ViewIndex].SimpleElementCollector, ViewFamily.GetFeatureLevel());
+		}
+
+		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
+		{
+			const uint8 ViewMask = HasDynamicMeshElementsMasks[PrimitiveIndex];
+
+			if (ViewMask != 0)
+			{
+				FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ViewFamily.Views, ViewFamily, ViewMask, Collector);
+			}
+		}
+	}
+
+	{
+		Collector.ClearViewMeshArrays();
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			Collector.AddViewMeshArrays(&Views[ViewIndex], &Views[ViewIndex].DynamicEditorMeshElements, &Views[ViewIndex].EditorSimpleElementCollector, ViewFamily.GetFeatureLevel());
+		}
+
+		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
+		{
+			const uint8 ViewMask = HasDynamicEditorMeshElementsMasks[PrimitiveIndex];
+
+			if (ViewMask != 0)
+			{
+				FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ViewFamily.Views, ViewFamily, ViewMask, Collector);
+			}
+		}
 	}
 }
 
@@ -871,7 +930,7 @@ static void MarkRelevantStaticMeshesForView(
 static void DispatchPreRenderView(
 	const FScene* Scene,
 	const FSceneViewFamily* ViewFamily,
-	const FPrimitivePreRenderViewMasks& PreRenderViewMasks,
+	const FPrimitiveViewMasks& PreRenderViewMasks,
 	uint32 FrameNumber
 	)
 {
@@ -1224,8 +1283,18 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 	// This array contains a per-primitive mask specifying for which views a
 	// primitive must have PreRenderView called.
-	FPrimitivePreRenderViewMasks PreRenderViewMasks;
+	FPrimitiveViewMasks PreRenderViewMasks;
 	PreRenderViewMasks.AddZeroed(NumPrimitives);
+
+	FPrimitiveViewMasks HasDynamicMeshElementsMasks;
+	HasDynamicMeshElementsMasks.AddZeroed(NumPrimitives);
+
+	FPrimitiveViewMasks HasDynamicEditorMeshElementsMasks;
+
+	if (GIsEditor)
+	{
+		HasDynamicEditorMeshElementsMasks.AddZeroed(NumPrimitives);
+	}
 
 	// This array contains a list of relevant static primities.
 	FRelevantStaticPrimitives RelevantStaticPrimitives;
@@ -1385,7 +1454,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 		// Compute view relevance for all visible primitives.
 		RelevantStaticPrimitives.Reset();
-		ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks);
+		ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 		MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1411,7 +1480,16 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 #endif
 	}
 
-	DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
+	if (bUseGetMeshElements)
+	{
+		GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, MeshCollector);
+	}
+	else
+	{
+		DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
+	}
 
 	INC_DWORD_STAT_BY(STAT_ProcessedPrimitives,NumProcessedPrimitives);
 	INC_DWORD_STAT_BY(STAT_CulledPrimitives,NumCulledPrimitives);

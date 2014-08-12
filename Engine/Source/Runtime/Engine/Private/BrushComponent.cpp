@@ -135,8 +135,6 @@ public:
 		bSolidWhenSelected(false),
 		bInManipulation(false),
 		BrushColor(GEngine->C_BrushWire),
-		LevelColor(FLinearColor::White),
-		PropertyColor(255,255,255),
 		BodySetup(Component->BrushBodySetup),
 		CollisionResponse(Component->GetCollisionResponseToChannels())
 	{
@@ -175,8 +173,12 @@ public:
 			}
 		}
 
+		bUseEditorDepthTest = !bInManipulation;
+
 		// Get a color for property coloration.
-		GEngine->GetPropertyColorationColor( (UObject*)Component, PropertyColor );
+		FColor NewPropertyColor;
+		GEngine->GetPropertyColorationColor( (UObject*)Component, NewPropertyColor );
+		PropertyColor = NewPropertyColor;
 
 #if WITH_EDITORONLY_DATA
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -204,13 +206,13 @@ public:
 
 	}
 
-	bool IsCollisionView(const FSceneView* View, bool & bDrawCollision) const
+	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool & bDrawCollision) const
 	{
-		const bool bInCollisionView = View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn;
+		const bool bInCollisionView = EngineShowFlags.CollisionVisibility || EngineShowFlags.CollisionPawn;
 		if (bInCollisionView && IsCollisionEnabled())
 		{
-			bDrawCollision = View->Family->EngineShowFlags.CollisionPawn && (CollisionResponse.GetResponse(ECC_Pawn) != ECR_Ignore);
-			bDrawCollision |= View->Family->EngineShowFlags.CollisionVisibility && (CollisionResponse.GetResponse(ECC_Visibility) != ECR_Ignore);
+			bDrawCollision = EngineShowFlags.CollisionPawn && (CollisionResponse.GetResponse(ECC_Pawn) != ECR_Ignore);
+			bDrawCollision |= EngineShowFlags.CollisionVisibility && (CollisionResponse.GetResponse(ECC_Visibility) != ECR_Ignore);
 		}
 		else
 		{
@@ -218,6 +220,103 @@ public:
 		}
 
 		return bInCollisionView;
+	}
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_BrushSceneProxy_GetDynamicMeshElements );
+
+		if( AllowDebugViewmodes() )
+		{
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+
+					bool bDrawCollision = false;
+					const bool bInCollisionView = IsCollisionView(ViewFamily.EngineShowFlags, bDrawCollision);
+
+					// Draw solid if 'solid when selected' and selected, or we are in a 'collision view'
+					const bool bDrawSolid = ((bSolidWhenSelected && IsSelected()) || (bInCollisionView && bDrawCollision));
+					// Don't draw wireframe if in a collision view mode and not drawing solid
+					const bool bDrawWireframe = !bInCollisionView;
+
+					// Choose color to draw it
+					FLinearColor DrawColor = BrushColor;
+					// In a collision view mode
+					if(bInCollisionView)
+					{
+						DrawColor = BrushColor;
+					}
+					else if(View->Family->EngineShowFlags.PropertyColoration)
+					{
+						DrawColor = PropertyColor;
+					}
+					else if(View->Family->EngineShowFlags.LevelColoration)
+					{
+						DrawColor = LevelColor;
+					}
+
+
+					// SOLID
+					if(bDrawSolid)
+					{
+						if(BodySetup != NULL)
+						{
+							auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+								GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+								DrawColor
+								);
+
+							Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+							FTransform GeomTransform(GetLocalToWorld());
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, DrawColor, /*Material=*/SolidMaterialInstance, false, /*bSolid=*/ true, UseEditorDepthTest(), ViewIndex, Collector);
+						}
+					}
+					// WIREFRAME
+					else if(bDrawWireframe)
+					{
+						// If we have the editor data (Wire Buffers) use those for wireframe
+#if WITH_EDITOR
+						if(WireIndexBuffer.GetNumEdges() && WireVertexBuffer.GetNumVertices())
+						{
+							auto WireframeMaterial = new FColoredMaterialRenderProxy(
+								GEngine->LevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+								GetSelectionColor(DrawColor,!(GIsEditor && (View->Family->EngineShowFlags.Selection)) || IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false)
+								);
+
+							Collector.RegisterOneFrameMaterialProxy(WireframeMaterial);
+
+							FMeshBatch& Mesh = Collector.AllocateMesh();
+							FMeshBatchElement& BatchElement = Mesh.Elements[0];
+							BatchElement.IndexBuffer = &WireIndexBuffer;
+							Mesh.VertexFactory = &VertexFactory;
+							Mesh.MaterialRenderProxy = WireframeMaterial;
+							BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+							BatchElement.FirstIndex = 0;
+							BatchElement.NumPrimitives = WireIndexBuffer.GetNumEdges();
+							BatchElement.MinVertexIndex = 0;
+							BatchElement.MaxVertexIndex = WireVertexBuffer.GetNumVertices() - 1;
+							Mesh.CastShadow = false;
+							Mesh.Type = PT_LineList;
+							Mesh.DepthPriorityGroup = IsSelected() ? SDPG_Foreground : SDPG_World;
+							Collector.AddMesh(ViewIndex, Mesh);
+						}
+						else 
+#endif
+						if(BodySetup != NULL)
+							// If not, use the body setup for wireframe
+						{
+							FTransform GeomTransform(GetLocalToWorld());
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()), /* Material=*/ NULL, false, /* bSolid=*/ false, UseEditorDepthTest(), ViewIndex, Collector);
+						}
+
+					}
+				}
+			}
+		}
 	}
 
 	/** 
@@ -234,7 +333,7 @@ public:
 		if( AllowDebugViewmodes() )
 		{
 			bool bDrawCollision = false;
-			const bool bInCollisionView = IsCollisionView(View, bDrawCollision);
+			const bool bInCollisionView = IsCollisionView(View->Family->EngineShowFlags, bDrawCollision);
 
 			// Draw solid if 'solid when selected' and selected, or we are in a 'collision view'
 			const bool bDrawSolid = ((bSolidWhenSelected && IsSelected()) || (bInCollisionView && bDrawCollision));
@@ -269,7 +368,7 @@ public:
 						);
 
 					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, DrawColor, /*Material=*/&SolidMaterialInstance, false, /*bSolid=*/ true );
+					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, DrawColor, /*Material=*/&SolidMaterialInstance, false, /*bSolid=*/ true, UseEditorDepthTest() );
 				}
 			}
 			// WIREFRAME
@@ -305,7 +404,7 @@ public:
 				// If not, use the body setup for wireframe
 				{
 					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()), /* Material=*/ NULL, false, /* bSolid=*/ false );
+					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()), /* Material=*/ NULL, false, /* bSolid=*/ false, UseEditorDepthTest() );
 				}
 
 			}

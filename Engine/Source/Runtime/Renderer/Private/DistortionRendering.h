@@ -19,7 +19,7 @@ public:
 	* @param DPGIndex - current DPG used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo* ViewInfo, bool bInitializeOffsets);
+	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bInitializeOffsets);
 
 	/**
 	* Add a new primitive to the list of distortion prims
@@ -47,5 +47,5 @@ public:
 
 private:
 	/** list of distortion prims added from the scene */
-	TArray<FPrimitiveSceneProxy*> Prims;
+	TArray<FPrimitiveSceneProxy*, SceneRenderingAllocator> Prims;
 };

@@ -664,7 +664,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 	if(FRCPassPostProcessBusyWait::IsPassRequired())
 	{
 		// mostly view independent but to be safe we use the first view
-		const FViewInfo& View = Views[0];
+		FViewInfo& View = Views[0];
 
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
@@ -883,7 +883,7 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-			View.CustomDepthSet.DrawPrims(RHICmdList, &View, false);
+			View.CustomDepthSet.DrawPrims(RHICmdList, View);
 		}
 
 		// resolve using the current ResolveParams 
@@ -1064,4 +1064,11 @@ bool IsMobileHDR32bpp()
 {
 	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
 	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppCvar->GetValueOnRenderThread() == 1);
+}
+
+bool ShouldUseGetDynamicMeshElements()
+{
+	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
+	const bool bUseGetMeshElements = CVarUseGetMeshElements->GetValueOnRenderThread() != 0;
+	return bUseGetMeshElements;
 }

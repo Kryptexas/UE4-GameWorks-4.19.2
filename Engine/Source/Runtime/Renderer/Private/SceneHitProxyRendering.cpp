@@ -258,7 +258,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	
 	Scene->HitProxyDrawList.AddMesh(
 		StaticMesh,
-		StaticMesh->HitProxyId,
+		StaticMesh->BatchHitProxyId,
 		FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
 		Scene->GetFeatureLevel()
 		);
@@ -271,7 +271,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	{
 		Scene->HitProxyDrawList_OpaqueOnly.AddMesh(
 			StaticMesh,
-			StaticMesh->HitProxyId,
+			StaticMesh->BatchHitProxyId,
 			FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
 			Scene->GetFeatureLevel()
 			);
@@ -375,7 +375,7 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -403,26 +403,62 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 		const bool bPreFog = true;
 		const bool bHitTesting = true;
 
-		// Draw all dynamic primitives using the hit proxy drawing policy.
-		DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-			RHICmdList,
-			View,
-			View.VisibleDynamicPrimitives,
-			FHitProxyDrawingPolicyFactory::ContextType(),
-			bPreFog,
-			bHitTesting
-			);
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
-		// Draw all visible editor primitives using the hit proxy drawing policy
-		DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-			RHICmdList,
-			View,
-			View.VisibleEditorPrimitives,
-			FHitProxyDrawingPolicyFactory::ContextType(),
-			bPreFog,
-			bHitTesting
-			);
+		if (bUseGetMeshElements)
+		{
+			FHitProxyDrawingPolicyFactory::ContextType DrawingContext;
 
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				
+				if (MeshBatch.bSelectable)
+				{
+					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
+				}
+			}
+
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
+			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+
+				if (MeshBatch.bSelectable)
+				{
+					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
+				}
+			}
+
+			View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+		}
+		else 
+		{
+			// Draw all dynamic primitives using the hit proxy drawing policy.
+			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
+				RHICmdList,
+				View,
+				View.VisibleDynamicPrimitives,
+				FHitProxyDrawingPolicyFactory::ContextType(),
+				bPreFog,
+				bHitTesting
+				);
+
+			// Draw all visible editor primitives using the hit proxy drawing policy
+			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
+				RHICmdList,
+				View,
+				View.VisibleEditorPrimitives,
+				FHitProxyDrawingPolicyFactory::ContextType(),
+				bPreFog,
+				bHitTesting
+				);
+		}
 
 		// Draw the view's elements.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_World, bPreFog);

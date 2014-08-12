@@ -1143,17 +1143,6 @@ public:
 	
 	virtual bool GetShadowIndirectOnly() const { return false; }
 
-#if WITH_EDITOR
-	/**
-	 *	Setup the information required for rendering LightMap Density mode
-	 *	for this component.
-	 *
-	 *	@param	Proxy		The scene proxy for the component (information is set on it)
-	 *	@return	bool		true if successful, false if not.
-	 */
-	virtual bool SetupLightmapResolutionViewInfo(FPrimitiveSceneProxy& Proxy) const;
-#endif // WITH_EDITOR
-
 	/**
 	 *	Set the angular velocity of all bodies in this component.
 	 *

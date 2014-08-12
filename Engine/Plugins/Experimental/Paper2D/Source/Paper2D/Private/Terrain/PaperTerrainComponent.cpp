@@ -37,6 +37,7 @@ protected:
 protected:
 	// FPaperRenderSceneProxy interface
 	virtual void DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor) override;
+	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 };
 
@@ -60,6 +61,17 @@ void FPaperTerrainSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfa
 		if (Batch.Material != nullptr)
 		{
 			DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Batch.Material, Batch.Records);
+		}
+	}
+}
+
+void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const
+{
+	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
+	{
+		if (Batch.Material != nullptr)
+		{
+			GetBatchMesh(View, bUseOverrideColor, OverrideColor, Batch.Material, Batch.Records, ViewIndex, Collector);
 		}
 	}
 }
