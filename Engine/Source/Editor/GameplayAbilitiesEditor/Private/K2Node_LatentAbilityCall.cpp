@@ -525,7 +525,8 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 	
 	for (auto SpawnVarPin : SpawnParmPins)
 	{
-		if (SpawnVarPin->LinkedTo.Num() > 0 || SpawnVarPin->DefaultValue != FString())
+		const bool bHasDefaultValue = !SpawnVarPin->DefaultValue.IsEmpty() || !SpawnVarPin->DefaultTextValue.IsEmpty() || SpawnVarPin->DefaultObject;
+		if (SpawnVarPin->LinkedTo.Num() > 0 || bHasDefaultValue)
 		{
 			if (SpawnVarPin->LinkedTo.Num() == 0)
 			{

@@ -30,14 +30,3 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Network")
 	AGameplayAbilityTargetActor* TargetingActor;
 };
-
-
-/** Temporary work around for allowing TSubClassOf property to be used in ExposeOnSpawn situation */
-USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayAbilityWorldReticleClass
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadWrite,EditAnywhere,Category="Class")
-	TSubclassOf<AGameplayAbilityWorldReticle>	Class;
-};
