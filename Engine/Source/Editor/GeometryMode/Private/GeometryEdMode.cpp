@@ -15,7 +15,7 @@ void FGeometryModeModule::StartupModule()
 		FBuiltinEditorModes::EM_Geometry,
 		NSLOCTEXT("EditorModes", "GeometryMode", "Geometry Editing"),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.BspMode", "LevelEditor.BspMode.Small"),
-		true
+		true, 500
 		);
 }
 
