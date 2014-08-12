@@ -403,7 +403,7 @@ private:
  * NOTE: These must remain binary compatible with the ones in Lightmass.
  */
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 	#pragma pack(push, 1)
 #endif
 
@@ -493,7 +493,7 @@ struct FDebugLightingOutput
 	{}
 };
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 	#pragma pack(pop)
 #endif
 

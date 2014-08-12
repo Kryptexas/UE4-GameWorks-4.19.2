@@ -5,7 +5,7 @@
 namespace Lightmass
 {
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(push, 1)
 #endif
 
@@ -82,7 +82,7 @@ struct FMaterialData
 	}
 };
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(pop)
 #endif
 
