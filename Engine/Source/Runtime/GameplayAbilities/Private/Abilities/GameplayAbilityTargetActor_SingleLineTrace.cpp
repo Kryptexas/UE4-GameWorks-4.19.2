@@ -29,6 +29,16 @@ void AGameplayAbilityTargetActor_SingleLineTrace::GetLifetimeReplicatedProps(TAr
 	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceActor);
 }
 
+void AGameplayAbilityTargetActor_SingleLineTrace::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (ReticleActor.IsValid())
+	{
+		ReticleActor.Get()->Destroy();
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 
 FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InSourceActor) const
 {
@@ -43,13 +53,29 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InS
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
+	FVector AimDirection = InSourceActor->GetActorForwardVector();		//Default
+	UGameplayAbility* MyAbility = Ability.Get();
+	if (MyAbility)		//Server and launching client only
+	{
+		APlayerController* AimingPC = MyAbility->GetCurrentActorInfo()->PlayerController.Get();
+		check(AimingPC);
+		FVector CamLoc;
+		FRotator CamRot;
+		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
+		AimDirection = CamRot.Vector();
+	}
+
 	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);
+	FVector TraceEnd = TraceStart + (AimDirection * 3000.f);
 
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
 	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
+	if (AActor* LocalReticleActor = ReticleActor.Get())
+	{
+		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
+	}
 	return ReturnHitResult;
 }
 
@@ -78,25 +104,39 @@ void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbilit
 	}
 	
 	bDebug = true;
+
+	ReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
+	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
+	{
+		CachedReticleActor->InitializeReticle(this);
+	}
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
-
 	// very temp - do a mostly hardcoded trace from the source actor
 	if (SourceActor)
 	{
 		FHitResult HitResult = PerformTrace(SourceActor);
-
 		FVector EndPoint = HitResult.Component.IsValid() ? HitResult.ImpactPoint : HitResult.TraceEnd;
-		
+
 		if (bDebug)
 		{
 			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), EndPoint, FLinearColor::Green, false);
 			DrawDebugSphere(GetWorld(), EndPoint, 16, 10, FLinearColor::Green, false);
 		}
+
 		SetActorLocationAndRotation(EndPoint, SourceActor->GetActorRotation());
+
+		if (ShouldProduceTargetData() && bAutoFire)
+		{
+			if (TimeUntilAutoFire <= 0.0f)
+			{
+				ConfirmTargeting();
+				bAutoFire = false;
+			}
+			TimeUntilAutoFire -= DeltaSeconds;
+		}
 	}
 }
 
@@ -107,6 +147,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 	if (SourceActor)
 	{
 		bDebug = false;
+		bAutoFire = false;
 		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor));
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}
