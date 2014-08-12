@@ -18,7 +18,8 @@ public class ComponentVisualizers : ModuleRules
                 "SlateCore",
 				"UnrealEd",
                 "PropertyEditor",
-                "EditorStyle"
+                "EditorStyle",
+				"AIModule"
 			}
 			);
 	}
