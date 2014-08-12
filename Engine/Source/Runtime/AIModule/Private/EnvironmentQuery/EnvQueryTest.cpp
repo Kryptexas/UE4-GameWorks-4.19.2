@@ -298,13 +298,13 @@ void UEnvQueryTest::PostLoad()
 	bFormatUpdated = true;
 }
 
-#if WITH_EDITOR
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	UEnvQueryManager::NotifyAssetUpdate(NULL);
 }
-#endif //WITH_EDITOR
+#endif //WITH_EDITOR && USE_EQS_DEBUGGER
 
 FText UEnvQueryTest::DescribeFloatTestParams() const
 {

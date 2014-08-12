@@ -18,10 +18,10 @@ FText UEnvQueryGenerator::GetDescriptionDetails() const
 	return FText::GetEmpty();
 }
 
-#if WITH_EDITOR
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 void UEnvQueryGenerator::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	UEnvQueryManager::NotifyAssetUpdate(NULL);
 }
-#endif //WITH_EDITOR
+#endif //WITH_EDITOR && USE_EQS_DEBUGGER

@@ -152,9 +152,9 @@ public:
 
 	virtual void PostLoad() override;
 
-#if WITH_EDITOR
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif //WITH_EDITOR
+#endif //WITH_EDITOR && USE_EQS_DEBUGGER
 };
 
 //////////////////////////////////////////////////////////////////////////
