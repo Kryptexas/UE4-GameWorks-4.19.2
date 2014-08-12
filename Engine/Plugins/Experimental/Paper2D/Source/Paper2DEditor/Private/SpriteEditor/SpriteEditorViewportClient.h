@@ -26,7 +26,15 @@ namespace ESpriteEditorMode
 	};
 }
 
-struct FRelatedSprite;
+//////////////////////////////////////////////////////////////////////////
+// FRelatedSprite
+
+struct FRelatedSprite
+{
+	FAssetData AssetData;
+	FVector2D SourceUV;
+	FVector2D SourceDimension;
+};
 
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorViewportClient
