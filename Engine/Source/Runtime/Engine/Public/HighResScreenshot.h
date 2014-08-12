@@ -14,6 +14,10 @@ struct ENGINE_API FHighResScreenshotConfig
 	bool bDumpBufferVisualizationTargets;
 	TWeakPtr<FSceneViewport> TargetViewport;
 	bool bDisplayCaptureRegion;
+	bool bCaptureHDR;
+
+	TSharedPtr<class IImageWrapper> ImageCompressorLDR;
+	TSharedPtr<class IImageWrapper> ImageCompressorHDR;
 
 	FHighResScreenshotConfig();
 
@@ -27,6 +31,13 @@ struct ENGINE_API FHighResScreenshotConfig
 	  * Returns true if the mask was written, and false otherwise.
 	**/
 	bool MergeMaskIntoAlpha(TArray<FColor>& InBitmap);
+
+	/** Enable/disable HDR capable captures **/
+	void SetHDRCapture(bool bCaptureHDRIN);
+
+	/** Save to image file **/
+	template<typename TPixelType>
+	ENGINE_API FString SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, EPixelFormat SourceFormat) const;
 };
 
 ENGINE_API FHighResScreenshotConfig& GetHighResScreenshotConfig();

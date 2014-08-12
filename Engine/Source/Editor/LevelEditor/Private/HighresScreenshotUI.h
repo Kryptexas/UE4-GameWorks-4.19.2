@@ -87,9 +87,21 @@ private:
 		}
 	}
 
-	void OnBufferVisualizationDumpEnabledChanged( ESlateCheckBoxState::Type NewValue )
+	void OnHDREnabledChanged(ESlateCheckBoxState::Type NewValue)
 	{
-		Config.bDumpBufferVisualizationTargets = (NewValue == ESlateCheckBoxState::Checked);
+		Config.SetHDRCapture(NewValue == ESlateCheckBoxState::Checked);
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport.IsValid())
+		{
+			ConfigViewport->Invalidate();
+		}
+	}
+
+	void OnBufferVisualizationDumpEnabledChanged(ESlateCheckBoxState::Type NewValue)
+	{
+		bool bEnabled = (NewValue == ESlateCheckBoxState::Checked);
+		Config.bDumpBufferVisualizationTargets = bEnabled;
+		SetHDRUIEnableState(bEnabled);
 	}
 
 	EVisibility GetSpecifyCaptureRegionVisibility() const
@@ -122,6 +134,11 @@ private:
 		return Config.bMaskEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
+	ESlateCheckBoxState::Type GetHDRCheckboxUIState() const
+	{
+		return Config.bCaptureHDR ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
 	ESlateCheckBoxState::Type GetBufferVisualizationDumpEnabled() const
 	{
 		return Config.bDumpBufferVisualizationTargets ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
@@ -132,6 +149,12 @@ private:
 		return CaptureRegionWidget.IsValid();
 	}
 	
+	void SetHDRUIEnableState(bool bEnable)
+	{
+		HDRCheckBox->SetEnabled(bEnable);
+		HDRLabel->SetEnabled(bEnable);
+	}
+
 	static void WindowClosedHandler(const TSharedRef<SWindow>& InWindow);
 
 	static void ResetViewport();
@@ -140,6 +163,9 @@ private:
 	TSharedPtr<class SCaptureRegionWidget> CaptureRegionWidget;
 	TSharedPtr<SButton> CaptureRegionButton;
 	TSharedPtr<SHorizontalBox> RegionCaptureActiveControlRoot;
+	TSharedPtr<SCheckBox> HDRCheckBox;
+	TSharedPtr<STextBlock> HDRLabel;
+
 	FHighResScreenshotConfig& Config;
 	bool bCaptureRegionControlsVisible;
 

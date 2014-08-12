@@ -91,8 +91,8 @@ private:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FPostProcessMaterialPS,TEXT("PostProcessMaterialShaders"),TEXT("MainPS"),SF_Pixel);
 
-FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface)
-	: MaterialInterface(InMaterialInterface)
+FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, EPixelFormat OutputFormatIN)
+: MaterialInterface(InMaterialInterface), OutputFormat(OutputFormatIN)
 {
 }
 
@@ -179,6 +179,10 @@ FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutpu
 {
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 
+	if (OutputFormat != PF_Unknown)
+	{
+		Ret.Format = OutputFormat;
+	}
 	Ret.Reset();
 	Ret.DebugName = TEXT("PostProcessMaterial");
 

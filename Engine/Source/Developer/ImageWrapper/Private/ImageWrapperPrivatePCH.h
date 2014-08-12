@@ -28,5 +28,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogImageWrapper, Log, All);
 	#include "PngImageWrapper.h"
 #endif
 
+#if WITH_UNREALEXR
+#include "ExrImageWrapper.h"
+#endif
+
 #include "BmpImageWrapper.h"
 #include "IcoImageWrapper.h"

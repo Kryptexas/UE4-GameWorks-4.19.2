@@ -15,7 +15,7 @@ class FRCPassPostProcessMaterial : public TRenderingCompositePassBase<2,1>
 {
 public:
 	// constructor
-	FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface);
+	FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, EPixelFormat OutputFormatIN = PF_Unknown);
 
 	// interface FRenderingCompositePass ---------
 
@@ -24,6 +24,8 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
+	// PF_Unknown for default behavior.
+	EPixelFormat OutputFormat;
 	void SetShader(const FRenderingCompositePassContext& Context);
 
 	UMaterialInterface* MaterialInterface;

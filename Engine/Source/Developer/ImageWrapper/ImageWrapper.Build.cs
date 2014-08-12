@@ -9,7 +9,7 @@ public class ImageWrapper : ModuleRules
 		PrivateIncludePaths.Add("Developer/ImageWrapper/Private");
 
 		Definitions.Add("WITH_UNREALPNG=1");
-		Definitions.Add("WITH_UNREALJPEG=1");
+        Definitions.Add("WITH_UNREALJPEG=1");
 
 		PrivateDependencyModuleNames.Add("Core");
 
@@ -18,5 +18,12 @@ public class ImageWrapper : ModuleRules
 			"UElibPNG",
 			"UElibJPG"
 			);
+
+        // Add openEXR lib for windows builds.
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+        {
+            Definitions.Add("WITH_UNREALEXR=1");
+            AddThirdPartyPrivateStaticDependencies(Target, "UEOpenEXR");
+        }
 	}
 }

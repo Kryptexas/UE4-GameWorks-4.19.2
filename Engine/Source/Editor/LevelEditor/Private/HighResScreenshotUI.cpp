@@ -45,6 +45,12 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 								SNew( STextBlock )
 								.Text( NSLOCTEXT("HighResScreenshot", "IncludeBufferVisTargets", "Include Buffer Visualization Targets") )
 							]
+							+ SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SAssignNew(HDRLabel, STextBlock)
+								.Text(NSLOCTEXT("HighResScreenshot", "CaptureHDR", "Write HDR format visualization targets"))
+							]
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
 							[
@@ -83,6 +89,13 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 								SNew( SCheckBox )
 								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnBufferVisualizationDumpEnabledChanged)
 								.IsChecked(this, &SHighResScreenshotDialog::GetBufferVisualizationDumpEnabled)
+							]
+							+ SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SAssignNew(HDRCheckBox, SCheckBox)
+								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnHDREnabledChanged)
+								.IsChecked(this, &SHighResScreenshotDialog::GetHDRCheckboxUIState)
 							]
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
@@ -202,6 +215,7 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 			]
 		];
 
+	SetHDRUIEnableState(Config.bDumpBufferVisualizationTargets);
 	bCaptureRegionControlsVisible = false;
 }
 

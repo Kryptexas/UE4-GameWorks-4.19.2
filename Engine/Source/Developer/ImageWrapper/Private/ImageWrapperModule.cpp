@@ -44,7 +44,11 @@ public:
 		case EImageFormat::ICO:
 			ImageWrapper = new FIcoImageWrapper();
 			break;
-
+#if WITH_UNREALEXR
+		case EImageFormat::EXR:
+			ImageWrapper = new FExrImageWrapper();
+			break;
+#endif
 		default:
 			break;
 		}

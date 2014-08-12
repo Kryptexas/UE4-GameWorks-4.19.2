@@ -237,53 +237,60 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 	}
 }
 
-void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const 
+void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
 {
-	FReadSurfaceDataFlags ReadDataFlags;
-	ReadDataFlags.SetLinearToGamma(false);
-
 	FSceneRenderTargetItem& RenderTargetItem = Output->PooledRenderTarget->GetRenderTargetItem();
 	FTextureRHIRef Texture = RenderTargetItem.TargetableTexture ? RenderTargetItem.TargetableTexture : RenderTargetItem.ShaderResourceTexture;
-
 	check(Texture);
 	check(Texture->GetTexture2D());
 
-	TArray<FColor> Bitmap;
-
-	FIntPoint Extent = Context.View.ViewRect.Size();
-	Context.RHICmdList.ReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
-
-	static TCHAR File[MAX_SPRINTF];
-	FCString::Sprintf( File, TEXT("%s.bmp"), *Filename);
-
-	uint32 ExtendXWithMSAA = Bitmap.Num() / Extent.Y;
-	uint32 CaptureRegionScaleX = 1.0f;
-	if (ExtendXWithMSAA > (uint32)Extent.X)
-	{
-		CaptureRegionScaleX = ExtendXWithMSAA / (uint32)Extent.X;
-	}
-
-	// Save the contents of the array to a bitmap file. (24bit only so alpha channel is dropped)
 	FIntRect SourceRect;
-	
+	int32 MSAAXSamples = Texture->GetNumSamples();
 	if (GIsHighResScreenshot)
 	{
 		SourceRect = GetHighResScreenshotConfig().CaptureRegion;
-
 		if (SourceRect.Area() == 0)
 		{
 			SourceRect = Context.View.ViewRect;
 		}
 		else
 		{
-			SourceRect.Min.X *= CaptureRegionScaleX;
-			SourceRect.Max.X *= CaptureRegionScaleX;
+			SourceRect.Min.X *= MSAAXSamples;
+			SourceRect.Max.X *= MSAAXSamples;
 		}
 	}
-	
-	FFileHelper::CreateBitmap(File, ExtendXWithMSAA, Extent.Y, Bitmap.GetTypedData(), GIsHighResScreenshot ? &SourceRect : NULL);	
 
-	UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *FPaths::ScreenShotDir());
+	FIntPoint DestSize(SourceRect.Width(), SourceRect.Height());
+
+	EPixelFormat PixelFormat = Texture->GetFormat();
+	FString ResultPath;
+	switch (PixelFormat)
+	{
+		case PF_FloatRGBA:
+		{
+			TArray<FFloat16Color> Bitmap;
+			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
+			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+		}
+		break;
+		case PF_R8G8B8A8:
+		case PF_B8G8R8A8:
+		{
+			FReadSurfaceDataFlags ReadDataFlags;
+			ReadDataFlags.SetLinearToGamma(false);
+			TArray<FColor> Bitmap;
+			Context.RHICmdList.ReadSurfaceData(Texture, SourceRect, Bitmap, ReadDataFlags);
+			FColor* Pixel = Bitmap.GetData();
+			for (int32 i = 0, Count = Bitmap.Num(); i < Count; i++, Pixel++)
+			{
+				Pixel->A = 255;
+			}
+			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+		}
+		break;
+	}
+
+	UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *ResultPath);
 }
 
 void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const

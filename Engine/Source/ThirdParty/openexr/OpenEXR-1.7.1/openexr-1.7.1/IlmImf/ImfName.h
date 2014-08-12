@@ -96,14 +96,21 @@ bool operator < (const Name &x, const Name &y);
 //-----------------
 // Inline functions
 //-----------------
-
+#ifdef _MSC_VER
+// disable MS's warning C4996: deprecation /_CRT_SECURE_NO_WARNINGS. stuff.
+#pragma warning( push )
+#pragma warning( disable : 4996 )
+#endif
 inline Name &
 Name::operator = (const char text[])
 {
-    strncpy (_text, text, MAX_LENGTH);
-    return *this;
+	strncpy(_text, text, MAX_LENGTH);
+	return *this;
 }
-
+#ifdef _MSC_VER
+// restore warnings.
+#pragma warning( pop )
+#endif
 
 inline
 Name::Name ()
