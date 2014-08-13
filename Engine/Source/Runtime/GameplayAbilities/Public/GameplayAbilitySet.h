@@ -30,11 +30,14 @@ struct FGameplayAbilityBindInfo
 };
 
 /**
-* UGameplayAbilitySet
-*	This contains a list of abilities along with key bindings. This will be very game specific, so it is expected for games to override this class.
-*	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the AbilitySystemComponent (rather than AbilitySystemComponent processing the ability set).
-*	Ideally this avoids games having to implement their own UAbilitySystemComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
-*/
+ * UGameplayAbilitySet
+ *	This contains a list of abilities along with key bindings. This will be very game specific, so it is expected for games to override this class or create their own.
+ *	
+ *	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the AbilitySystemComponent (rather than AbilitySystemComponent processing the ability set).
+ *	Ideally this avoids games having to implement their own UAbilitySystemComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
+ *	
+ *	In the end, this class just facilitates adding stuff to AbilitySystemComponent::ActivatableAbilities. Games are free to do this however they want.
+ */
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API UGameplayAbilitySet : public UDataAsset
 {

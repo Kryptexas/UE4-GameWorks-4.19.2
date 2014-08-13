@@ -6,7 +6,7 @@
 #include "GameplayAbility_CharacterJump.generated.h"
 
 /**
- *	A gameplay ability that plays a single montage and applies a GameplayEffect
+ *	Ability that jumps with a character
  */
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbility_CharacterJump : public UGameplayAbility
