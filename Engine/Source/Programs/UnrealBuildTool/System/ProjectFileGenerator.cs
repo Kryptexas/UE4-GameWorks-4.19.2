@@ -283,7 +283,7 @@ namespace UnrealBuildTool
 
 				IncludeDocumentation = false;
 				IncludeBuildSystemFiles = false;
-				IncludeShaderSource = false;
+				IncludeShaderSource = true;
 				IncludeTemplateFiles = false;
 				IncludeConfigFiles = true;
 			}
