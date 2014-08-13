@@ -104,10 +104,14 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 		Label = ToolBarComboButtonBlock->Label;
 	}
 
+	// Create a tag
+	FString TagName;
+	TagName = FString::Printf(TEXT("ToolbarComboButton,%s,0"), *Label.Get().ToString());
+	
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =
 		SNew( SVerticalBox )
-		.Tag(*Label.Get().ToString())
+		.Tag(*TagName)
 		// Icon image
 		+ SVerticalBox::Slot()
 		.AutoHeight()

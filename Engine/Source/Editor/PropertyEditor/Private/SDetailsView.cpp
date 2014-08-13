@@ -148,7 +148,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 				.ContentPadding(0)
 				.ForegroundColor( FSlateColor::UseForeground() )
 				.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-				.Tag(TEXT("ViewOtions"))
+				.Tag(TEXT("ViewOptions"))
 				.MenuContent()
 				[
 					DetailViewOptions.MakeWidget()

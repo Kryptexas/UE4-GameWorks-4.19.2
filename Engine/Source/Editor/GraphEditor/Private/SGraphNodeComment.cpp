@@ -102,9 +102,7 @@ void SGraphNodeComment::UpdateGraphNode()
 	if (GraphNode != nullptr)
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-		FString NodeName;
-		NodeName = GetEditableNodeTitleAsText().ToString();
-		TagName = FString::Printf(TEXT("%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *GetEditableNodeTitleAsText().ToString(), *GraphNode->NodeGuid.ToString());
 	}
 
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();

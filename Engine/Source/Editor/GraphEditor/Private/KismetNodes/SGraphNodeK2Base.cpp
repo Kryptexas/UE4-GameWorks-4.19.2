@@ -49,7 +49,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	if (GraphNode != nullptr)
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-		TagName = FString::Printf(TEXT("%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());		
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());		
 	}
 	
 	//

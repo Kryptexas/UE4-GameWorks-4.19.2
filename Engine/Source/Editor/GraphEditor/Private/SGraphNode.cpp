@@ -712,7 +712,7 @@ void SGraphNode::UpdateGraphNode()
 			NodeName = NodeTitle->GetHeadTitle().ToString();
 		}
 
-		TagName = FString::Printf(TEXT("%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
  	}
 	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;

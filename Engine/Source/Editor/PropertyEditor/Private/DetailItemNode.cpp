@@ -138,7 +138,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 	FString TagName;
 	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
 	{
-		TagName = Customization.GetPropertyNode()->GetDisplayName();
+		TagName = FString::Printf(TEXT("DetailItemNode,%s,%d"), *Customization.GetPropertyNode()->GetDisplayName(), Customization.GetPropertyNode()->GetArrayIndex());
 	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{

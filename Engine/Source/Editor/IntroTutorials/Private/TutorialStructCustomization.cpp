@@ -310,13 +310,18 @@ private:
 
 	FText MakeFriendlyStringFromName(const FString& WidgetName) const
 	{
+		// We will likely have meta data for this eventually. For now just parse a comma delimited string which currently will either be a name or ident,name,UID
 		if (WidgetName == "None")
 		{
 			return FText::FromName(*WidgetName);
 		}
 		TArray<FString> Tokens;
 		WidgetName.ParseIntoArray(&Tokens, TEXT(","),true);
-		if (Tokens.Num() == 2)
+		if (Tokens.Num() == 3)
+		{
+			return FText::FromName(*Tokens[1]);
+		}
+		else if (Tokens.Num() == 3)
 		{
 			return FText::FromName(*Tokens[0]);
 		}

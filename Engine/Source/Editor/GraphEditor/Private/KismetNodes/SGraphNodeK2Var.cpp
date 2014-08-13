@@ -162,23 +162,24 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	FString TagName;
 	if (GraphNode != nullptr)
 	{
+		FString TagLabel;		
 		// Try to get a suitable name for the tag.
 		if (UK2Node_Variable const* K2Node = Cast<UK2Node_Variable>(GraphNode))
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-			TagName = FString::Printf(TEXT("%s,%s"), *K2Node->GetVarNameString(), *GraphNode->NodeGuid.ToString());
+			TagLabel = K2Node->GetVarNameString();
 		}
 		else if (UK2Node_Self const* K2Node = Cast<UK2Node_Self>(GraphNode))
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-			TagName = FString::Printf(TEXT("Self,%s"), *GraphNode->NodeGuid.ToString());
+			TagLabel = GraphNode->NodeGuid.ToString();
 		}
 		else
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-			TagName = FString::Printf(TEXT("%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());
+			TagLabel = GraphNode->GetName();
 		}
-
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *TagLabel, *GraphNode->NodeGuid.ToString());
 	}
 
 	//             ________________
