@@ -131,6 +131,7 @@
     <When Condition="Exists('Android\UEBuildAndroid.cs')">
       <ItemGroup>
         <Compile Include="Android\UEBuildAndroid.cs" />
+		<Compile Include="Android\UEDeployAndroid.cs" />
         <Compile Include="Android\AndroidToolChain.cs" />
         <Compile Include="Android\AndroidProjectGenerator.cs" />
       </ItemGroup>
@@ -192,7 +193,6 @@
     <Compile Include="..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
-    <Compile Include="Android\UEDeployAndroid.cs" />
     <Compile Include="Configuration\UEBuildClient.cs" />
     <Compile Include="Configuration\UEBuildDeploy.cs" />
     <Compile Include="Configuration\UEBuildBinary.cs" />
