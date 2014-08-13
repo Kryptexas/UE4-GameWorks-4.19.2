@@ -15,6 +15,12 @@ struct ENGINE_API FLocalPlayerContext
 	FLocalPlayerContext(const class APlayerController* InPlayerController);
 	FLocalPlayerContext(const FLocalPlayerContext& InPlayerContext);
 
+	/** Is this context initialized and still valid? */
+	bool IsValid() const;
+
+	/** Is this context initialized */
+	bool IsInitialized() const;
+
 	/* Returns the world context. */
 	UWorld* GetWorld() const;
 
@@ -31,17 +37,24 @@ struct ENGINE_API FLocalPlayerContext
 		return CastChecked<T>(GetPlayerController(), ECastCheckedType::NullAllowed);
 	}
 
-	/** Is this context initialized and still valid? */
-	bool IsValid() const;
-
-	/** Is this context initialized */
-	bool IsInitialized() const;
+	/** Getter for the Game State */
+	class AGameState* GetGameState() const;
 
 	/** Templated Getter for the Game State */
 	template<class T>
 	FORCEINLINE T* GetGameState() const
 	{
-		return CastChecked<T>(GetWorld()->GameState, ECastCheckedType::NullAllowed);
+		return CastChecked<T>(GetGameState(), ECastCheckedType::NullAllowed);
+	}
+
+	/** Getter for the Player State */
+	class APlayerState* GetPlayerState() const;
+
+	/** Templated Getter for the Player State */
+	template<class T>
+	FORCEINLINE T* GetPlayerState() const
+	{
+		return CastChecked<T>(GetPlayerState(), ECastCheckedType::NullAllowed);
 	}
 
 private:	

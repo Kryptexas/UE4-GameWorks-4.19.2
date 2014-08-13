@@ -68,6 +68,16 @@ FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerCon
 	SetLocalPlayer(InPlayerContext.GetLocalPlayer());
 }
 
+bool FLocalPlayerContext::IsValid() const
+{
+	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+}
+
+bool FLocalPlayerContext::IsInitialized() const
+{
+	return LocalPlayer.IsValid();
+}
+
 UWorld* FLocalPlayerContext::GetWorld() const
 {
 	check( LocalPlayer.IsValid() );
@@ -86,14 +96,18 @@ APlayerController* FLocalPlayerContext::GetPlayerController() const
 	return LocalPlayer->PlayerController;
 }
 
-bool FLocalPlayerContext::IsValid() const
+AGameState* FLocalPlayerContext::GetGameState() const
 {
-	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+	check(LocalPlayer.IsValid());
+	UWorld* World = LocalPlayer->GetWorld();
+	return World ? World->GameState : NULL;
 }
 
-bool FLocalPlayerContext::IsInitialized() const
+APlayerState* FLocalPlayerContext::GetPlayerState() const
 {
-	return LocalPlayer.IsValid();
+	check(LocalPlayer.IsValid());
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->PlayerState : NULL;
 }
 
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
