@@ -672,8 +672,8 @@ void FWorldTileModel::OnParentPackageNamePropertyChanged()
 	if (GetLevelObject())
 	{
 		TSharedPtr<FLevelModel> NewParent = LevelCollectionModel.FindLevelModel(TileDetails->ParentPackageName);
-		// Assign to a root level if new parent is not found
-		if (!NewParent.IsValid()) 
+		// Assign to a root level if new parent is not found or we assigning to ourself 
+		if (!NewParent.IsValid() || NewParent.Get() == this) 
 		{
 			NewParent = static_cast<FWorldTileCollectionModel&>(LevelCollectionModel).GetWorldRootModel();
 		}

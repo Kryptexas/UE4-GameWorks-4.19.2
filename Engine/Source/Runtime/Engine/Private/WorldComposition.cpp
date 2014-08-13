@@ -300,7 +300,7 @@ void UWorldComposition::CaclulateTilesAbsolutePositions()
 			{
 				UE_LOG(LogWorldComposition, Warning, TEXT("World composition tile (%s) has a cycled parent (%s)"), *Tile.PackageName.ToString(), *NextParentTileName.ToString());
 				NextParentTile = nullptr;
-				ParentTile->Info.ParentTilePackageName = TEXT("");
+				ParentTile->Info.ParentTilePackageName = FName(NAME_None).ToString();
 			}
 			
 			ParentTile = NextParentTile;
