@@ -28,7 +28,7 @@ bool UWidgetBlueprintFactory::ConfigureProperties()
 
 bool UWidgetBlueprintFactory::ShouldShowInNewMenu() const
 {
-	return GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics;
+	return true;
 }
 
 UObject* UWidgetBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)

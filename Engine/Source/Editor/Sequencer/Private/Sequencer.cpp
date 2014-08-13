@@ -39,12 +39,7 @@ DEFINE_LOG_CATEGORY(LogSequencer);
 
 bool FSequencer::IsSequencerEnabled()
 {
-	if ( GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics )
-	{
-		return true;
-	}
-
-	return FParse::Param(FCommandLine::Get(), TEXT("Sequencer"));
+	return true;
 }
 
 

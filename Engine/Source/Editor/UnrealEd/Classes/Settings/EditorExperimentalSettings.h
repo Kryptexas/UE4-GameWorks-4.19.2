@@ -21,9 +21,6 @@ class UNREALED_API UEditorExperimentalSettings
 
 public:
 
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Unreal Motion Graphics (UMG)" ))
-	bool bUnrealMotionGraphics;
-
 	/** Allows usage of the Translation Editor */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
 	bool bEnableTranslationEditor;
