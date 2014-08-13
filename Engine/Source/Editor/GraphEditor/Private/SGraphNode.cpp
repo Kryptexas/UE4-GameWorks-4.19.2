@@ -697,6 +697,24 @@ void SGraphNode::UpdateGraphNode()
 		SetToolTip(DefaultToolTip);
 	}
 
+	// Setup a tag for this node
+ 	FString TagName;
+ 	if (GraphNode != nullptr)
+ 	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+		FString NodeName;
+		if (Blueprint != nullptr)
+		{
+			NodeName = Blueprint->GetOuter()->GetName();
+		}
+		else
+		{
+			NodeName = NodeTitle->GetHeadTitle().ToString();
+		}
+
+		TagName = FString::Printf(TEXT("%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
+ 	}
+	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 	this->ChildSlot
@@ -710,6 +728,7 @@ void SGraphNode::UpdateGraphNode()
 				SNew(SBorder)
 				.BorderImage( FEditorStyle::GetBrush( "Graph.Node.Body" ) )
 				.Padding(0)
+				.Tag(*TagName)
 				[
 					SAssignNew(InnerVerticalBox, SVerticalBox)
 					+SVerticalBox::Slot()

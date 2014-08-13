@@ -107,7 +107,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =
 		SNew( SVerticalBox )
-
+		.Tag(*Label.Get().ToString())
 		// Icon image
 		+ SVerticalBox::Slot()
 		.AutoHeight()

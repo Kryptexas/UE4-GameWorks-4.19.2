@@ -44,6 +44,14 @@ void SGraphNodeK2Base::UpdateCompactNode()
 		NodeToolTip = IDocumentation::Get()->CreateToolTip( TAttribute< FText >( this, &SGraphNode::GetNodeTooltip ), NULL, GraphNode->GetDocumentationLink(), GraphNode->GetDocumentationExcerptName() );
 	}
 
+	// Setup a tag for this node
+	FString TagName;
+	if (GraphNode != nullptr)
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+		TagName = FString::Printf(TEXT("%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());		
+	}
+	
 	//
 	//             ______________________
 	//            | (>) L |      | R (>) |
@@ -70,6 +78,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			// NODE CONTENT AREA
 			SNew(SOverlay)
 			.ToolTip( NodeToolTip.ToSharedRef() )
+			.Tag(*TagName)
 			+SOverlay::Slot()
 			[
 				SNew(SImage)

@@ -46,6 +46,12 @@ private:
 	/** Recursive function used to re-generate widget geometry and forward the geometry of named widgets onto their respective content */
 	int32 TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeometry& InGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
+	/* Opens the browser that the given widget requires if it is not already. */
+	void OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent);
+
+	/* Creates a map of broswers required by the various widget types. */
+	void AddTabInfo();
+
 private:
 	/** Reference to the canvas we use to position our content widgets */
 	TSharedPtr<SCanvas> OverlayCanvas;
@@ -67,4 +73,7 @@ private:
 
 	/** Delegate used to inform widgets of the current window size, so they can auto-adjust layout */
 	FOnCacheWindowSize OnCacheWindowSize;
+
+	/* A map of which tab requires invoking based on the tag name of the asset */
+	TMap< FString, FString >	BrowserTabMap;
 };

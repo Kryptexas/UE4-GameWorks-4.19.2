@@ -158,6 +158,29 @@ void SGraphNodeK2Var::UpdateGraphNode()
 
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
 
+	// Setup a tag for this node
+	FString TagName;
+	if (GraphNode != nullptr)
+	{
+		// Try to get a suitable name for the tag.
+		if (UK2Node_Variable const* K2Node = Cast<UK2Node_Variable>(GraphNode))
+		{
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+			TagName = FString::Printf(TEXT("%s,%s"), *K2Node->GetVarNameString(), *GraphNode->NodeGuid.ToString());
+		}
+		else if (UK2Node_Self const* K2Node = Cast<UK2Node_Self>(GraphNode))
+		{
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+			TagName = FString::Printf(TEXT("Self,%s"), *GraphNode->NodeGuid.ToString());
+		}
+		else
+		{
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+			TagName = FString::Printf(TEXT("%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());
+		}
+
+	}
+
 	//             ________________
 	//            | (>) L |  R (>) |
 	//            | (>) E |  I (>) |
@@ -182,6 +205,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		+SVerticalBox::Slot()
 		[
 			SNew(SOverlay)
+			.Tag(*TagName)
 			+ SOverlay::Slot()
 			[
 				SNew(SImage)

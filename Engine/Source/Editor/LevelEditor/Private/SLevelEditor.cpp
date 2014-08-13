@@ -686,6 +686,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					SNew(SBorder)
 					.Padding( 0 )
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+					.Tag(TEXT("LayerBrowser"))
 					[
 						LayersModule.CreateLayerBrowser()
 					]
@@ -778,6 +779,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.WorldProperties.Tab" ) )
 			.Label( NSLOCTEXT("LevelEditor", "WorldSettingsTabTitle", "World Settings") )
+			.Tag(TEXT("WorldSettings"))
 			[
 				WorldSettingsView.ToSharedRef()
 			];

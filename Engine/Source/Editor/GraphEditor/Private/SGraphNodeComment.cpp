@@ -96,6 +96,16 @@ void SGraphNodeComment::UpdateGraphNode()
 	// Avoid standard box model too
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
+	
+	// Setup a tag for this node
+	FString TagName;
+	if (GraphNode != nullptr)
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+		FString NodeName;
+		NodeName = GetEditableNodeTitleAsText().ToString();
+		TagName = FString::Printf(TEXT("%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
+	}
 
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
 
@@ -110,6 +120,7 @@ void SGraphNodeComment::UpdateGraphNode()
 			.ColorAndOpacity( FLinearColor::White )
 			.BorderBackgroundColor( this, &SGraphNodeComment::GetCommentBodyColor )
 			.Padding(  FMargin(3.0f) )
+			.Tag(*TagName)
 			[
 				SNew(SVerticalBox)
 				.ToolTipText( this, &SGraphNode::GetNodeTooltip )

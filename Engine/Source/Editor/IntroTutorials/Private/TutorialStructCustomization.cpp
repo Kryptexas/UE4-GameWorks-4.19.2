@@ -301,8 +301,26 @@ private:
 	{
 		FName WidgetName = NAME_None;
 		TSharedPtr<IPropertyHandle> WrapperIdentifierProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, WrapperIdentifier));
-		WrapperIdentifierProperty->GetValue(WidgetName);
-		return FText::FromName(WidgetName);
+
+		// Some of the tags contain a GUID, we dont want to see that here
+		FString WidgetValue;
+		WrapperIdentifierProperty->GetValue(WidgetValue);
+		return MakeFriendlyStringFromName(WidgetValue);
+	}
+
+	FText MakeFriendlyStringFromName(const FString& WidgetName) const
+	{
+		if (WidgetName == "None")
+		{
+			return FText::FromName(*WidgetName);
+		}
+		TArray<FString> Tokens;
+		WidgetName.ParseIntoArray(&Tokens, TEXT(","),true);
+		if (Tokens.Num() == 2)
+		{
+			return FText::FromName(*Tokens[0]);
+		}
+		return FText::FromName(*WidgetName);
 	}
 
 	bool OnIsPicking(FName& OutWidgetNameToHighlight) const

@@ -135,12 +135,18 @@ void FDetailItemNode::ToggleExpansion()
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
+	FString TagName;
+	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
+	{
+		TagName = Customization.GetPropertyNode()->GetDisplayName();
+	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{
-		return 
-			SNew( SDetailCategoryTableRow, AsShared(), OwnerTable )
-			.IsEnabled( IsParentEnabled )
-			.DisplayName( Customization.GetPropertyNode()->GetDisplayName() )
+		return
+			SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
+			.IsEnabled(IsParentEnabled)
+			.DisplayName(Customization.GetPropertyNode()->GetDisplayName())
+			.Tag(*TagName)
 			.InnerCategory( true );
 	}
 	else
@@ -148,7 +154,8 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.IsEnabled( IsParentEnabled )
-			.ColumnSizeData( ColumnSizeData ) ;
+			.Tag(*TagName)
+			.ColumnSizeData(ColumnSizeData);
 	}
 }
 
