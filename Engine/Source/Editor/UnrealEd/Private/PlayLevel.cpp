@@ -1613,9 +1613,6 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	check(EditorPlayInSettings);
 
-	// Update Script Maximum loop iteration count
-	FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( GEngine->MaximumLoopIterationCount );
-
 	// Prompt the user to compile any dirty Blueprints before PIE can occur.
 	TArray< UBlueprint* > ErrorBlueprintList;
 	bool bAnyBlueprintsDirty = false;

@@ -1689,6 +1689,15 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 {
 	// Propagate the callback up to the superclass.
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if( PropertyName == FName( TEXT( "MaximumLoopIterationCount" )))
+	{
+		// Clamp to a reasonable range and feed the new value to the script core
+		MaximumLoopIterationCount = FMath::Clamp( MaximumLoopIterationCount, 100, 10000000 );
+		FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( MaximumLoopIterationCount );
+	}
 }
 
 void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& TransReset )
