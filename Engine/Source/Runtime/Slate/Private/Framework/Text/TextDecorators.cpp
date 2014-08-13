@@ -114,7 +114,7 @@ bool FHyperlinkDecorator::Supports( const FTextRunParseResults& RunParseResult, 
 		MetaDataId = Text.Mid(MetaDataIdRange->BeginIndex, MetaDataIdRange->EndIndex - MetaDataIdRange->BeginIndex);
 	}
 
-	return ( RunParseResult.Name == TEXT("a") && MetaDataIdRange != NULL && MetaDataId == Id );
+	return (RunParseResult.Name == TEXT("a") && MetaDataId == Id);
 }
 
 TSharedRef< ISlateRun > FHyperlinkDecorator::Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style )
