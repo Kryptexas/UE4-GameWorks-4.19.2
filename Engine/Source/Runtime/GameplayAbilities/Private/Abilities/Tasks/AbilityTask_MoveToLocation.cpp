@@ -2,8 +2,6 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_MoveToLocation.h"
 
-#pragma optimize( "", off )
-
 UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
