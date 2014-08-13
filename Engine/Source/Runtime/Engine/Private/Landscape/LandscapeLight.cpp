@@ -99,23 +99,23 @@ void FLandscapeStaticLightingTextureMapping::Apply(FQuantizedLightmapData* Quant
 
 /** Initialization constructor. */
 FLandscapeStaticLightingMesh::FLandscapeStaticLightingMesh(ULandscapeComponent* InComponent, const TArray<ULightComponent*>& InRelevantLights, int32 InExpandQuadsX, int32 InExpandQuadsY, float InLightMapRatio, int32 InLOD)
-:	FStaticLightingMesh(
-					FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) - 1 + 2*InExpandQuadsX) * 2,
-					FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) - 1 + 2*InExpandQuadsX) * 2,
-					FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2*InExpandQuadsX),
-					FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2*InExpandQuadsX),
-					0,
-					!!(InComponent->CastShadow | InComponent->bCastHiddenShadow),
-					false,
-					InRelevantLights,
-					InComponent,
-					InComponent->Bounds.GetBox(),
-					InComponent->GetLightingGuid()
-					)
-,	LandscapeComponent(InComponent)
-,	LightMapRatio(InLightMapRatio)
-,	ExpandQuadsX(InExpandQuadsX)
-,	ExpandQuadsY(InExpandQuadsY)
+	: FStaticLightingMesh(
+		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) - 1 + 2 * InExpandQuadsX) * 2,
+		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) - 1 + 2 * InExpandQuadsX) * 2,
+		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
+		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
+		0,
+		!!(InComponent->CastShadow | InComponent->bCastHiddenShadow),
+		false,
+		InRelevantLights,
+		InComponent,
+		InComponent->Bounds.GetBox(),
+		InComponent->GetLightingGuid()
+	)
+	, LandscapeComponent(InComponent)
+	, LightMapRatio(InLightMapRatio)
+	, ExpandQuadsX(InExpandQuadsX)
+	, ExpandQuadsY(InExpandQuadsY)
 {
 	const float LODScale = (float)InComponent->ComponentSizeQuads / (((InComponent->ComponentSizeQuads + 1) >> InLOD) - 1);
 	LocalToWorld = FTransform(FQuat::Identity, FVector::ZeroVector, FVector(LODScale, LODScale, 1)) * InComponent->ComponentToWorld;
@@ -123,6 +123,7 @@ FLandscapeStaticLightingMesh::FLandscapeStaticLightingMesh(ULandscapeComponent* 
 	NumVertices = ComponentSizeQuads + 2*InExpandQuadsX + 1;
 	NumQuads = NumVertices - 1;
 	UVFactor = LightMapRatio / NumVertices;
+	bReverseWinding = (LocalToWorld.GetDeterminant() < 0.0f);
 
 	int32 GeometricLOD = FMath::Clamp<int32>(InComponent->ForcedLOD >= 0 ? InComponent->ForcedLOD : InComponent->LODBias, 0, FMath::CeilLogTwo(InComponent->SubsectionSizeQuads+1) - 1);
 	GetHeightmapData(InLOD, FMath::Max(GeometricLOD, InLOD));
@@ -545,6 +546,11 @@ void FLandscapeStaticLightingMesh::GetTriangleIndices(int32 TriangleIndex,int32&
 		OutI1 = (QuadX + 0) + (QuadY + 1) * NumVertices;
 		OutI2 = (QuadX + 1) + (QuadY + 1) * NumVertices;
 		break;
+	}
+
+	if (bReverseWinding)
+	{
+		Swap(OutI1, OutI2);
 	}
 }
 
