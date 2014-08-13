@@ -254,7 +254,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 	{
 		if (Task.IsValid())
 		{
-			Task->AbilityEnded();
+			Task.Get()->AbilityEnded();
 		}
 	}
 	ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.

@@ -25,7 +25,7 @@ UWorld* UAbilityTask::GetWorld() const
 {
 	if (AbilitySystemComponent.IsValid())
 	{
-		return AbilitySystemComponent->GetWorld();
+		return AbilitySystemComponent.Get()->GetWorld();
 	}
 
 	return nullptr;
