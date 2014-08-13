@@ -345,7 +345,13 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 			{
 				for (UStruct* Struct : Dependencies)
 				{
-					if (Struct->IsChildOf(RefreshOnlyChild))
+					bool bShouldRefresh = Struct->IsChildOf(RefreshOnlyChild);
+					if (!bShouldRefresh)
+					{
+						UClass* OwnerClass = Struct->GetOwnerClass();
+						bShouldRefresh |= OwnerClass && OwnerClass->IsChildOf(RefreshOnlyChild);
+					}
+					if (bShouldRefresh)
 					{
 						//@todo:  Do we really need per-schema refreshing?
 						const UEdGraphSchema* Schema = Node->GetGraph()->GetSchema();
