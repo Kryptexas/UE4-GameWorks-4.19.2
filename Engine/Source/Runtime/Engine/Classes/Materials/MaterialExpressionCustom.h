@@ -33,7 +33,7 @@ class UMaterialExpressionCustom : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionCustom)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionCustom, meta=(MultiLine=true))
 	FString Code;
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionCustom)
