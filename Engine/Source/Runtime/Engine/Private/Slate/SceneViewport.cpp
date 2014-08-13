@@ -867,18 +867,6 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 				int32 NewWindowSizeX = NewSizeX;
 				int32 NewWindowSizeY = NewSizeY;
 
-				if (DesiredWindowMode != EWindowMode::Windowed && CVarValue != 0)
-				{
-					FSlateRect Rect = WindowToResize->GetFullScreenInfo();
-
-					// needs to be implemented
-					if( Rect.IsValid() )
-					{
-						NewWindowSizeX = Rect.GetSize().X;
-						NewWindowSizeY = Rect.GetSize().Y;
-					}
-				}
-
 				WindowToResize->Resize( FVector2D(NewWindowSizeX, NewWindowSizeY) );
 
 				ResizeViewport(NewWindowSizeX, NewWindowSizeY, NewWindowMode, InPosX, InPosY);

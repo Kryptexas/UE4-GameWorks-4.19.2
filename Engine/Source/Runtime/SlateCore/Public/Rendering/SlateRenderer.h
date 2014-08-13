@@ -56,6 +56,13 @@ public:
 	 */
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> InWindow, uint32 OverrideResX = 0, uint32 OverrideResY = 0 ) = 0;
 
+	/**
+     * Restore the given window to the resolution settings currently cached by the engine
+	 * 
+	 * @param InWindow    -> The window to restore to the cached settings
+     */
+	virtual void RestoreSystemResolution(const TSharedRef<SWindow> InWindow) = 0;
+
 	/** 
 	 * Creates necessary resources to render a window and sends draw commands to the rendering thread
 	 *

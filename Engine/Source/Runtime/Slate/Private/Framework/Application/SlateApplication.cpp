@@ -4261,6 +4261,11 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 			// Inform the notification manager we have activated a window - it may want to force notifications 
 			// back to the front of the z-order
 			FSlateNotificationManager::Get().ForceNotificationsInFront( ActivateEvent.GetAffectedWindow() );
+
+			// As we've just been activated, attempt to restore the resolution that the engine previously cached.
+			// This allows us to force ourselves back to the correct resolution after alt-tabbing out of a fullscreen
+			// window and then going back in again.
+			Renderer->RestoreSystemResolution(ActivateEvent.GetAffectedWindow());
 		}
 		else
 		{

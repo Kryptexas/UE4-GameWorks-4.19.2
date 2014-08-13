@@ -1007,6 +1007,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Apply renderer settings from console variables stored in the INI.
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni);
 
+#if !UE_SERVER
+	if (!IsRunningDedicatedServer())
+	{
+		if (!IsRunningCommandlet())
+		{
+			// Note: It is critical that resolution settings are loaded before the movie starts playing so that the window size and fullscreen state is known
+			UGameUserSettings::PreloadResolutionSettings();
+		}
+	}
+#endif
+
 	// As early as possible to avoid expensive re-init of subsystems, 
 	// after SystemSettings.ini file loading so we get the right state,
 	// before ConsoleVariables.ini so the local developer can always override.
@@ -1296,12 +1307,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if !UE_SERVER
 	if ( !IsRunningDedicatedServer() )
 	{
-		if (!IsRunningCommandlet())
-		{
-			// Note: It is critical that resolution settings are loaded before the movie starts playing so that the window size and fullscreen state is known
-			UGameUserSettings::PreloadResolutionSettings();
-		}
-
 		// @todo ps4: If a loading movie starts earlier, which it probably should, then please see PS4's PlatformPostInit() implementation!
 
 		// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case

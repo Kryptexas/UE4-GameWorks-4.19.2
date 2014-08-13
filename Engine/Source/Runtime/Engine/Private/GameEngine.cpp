@@ -84,19 +84,12 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if (WindowMode == EWindowMode::Windowed)
-		{
-			return WindowMode;
-		}
-
 		if (GEngine && GEngine->HMDDevice.IsValid())
 		{
 			return EWindowMode::Fullscreen;
 		}
 		
-		// Figure out which full screen mode we should be
-		EWindowMode::Type DesiredFullScreenWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
-		return DesiredFullScreenWindowMode;
+		return WindowMode;
 	}
 
 	return EWindowMode::Fullscreen;
@@ -263,9 +256,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || WindowMode != GSystemResolution.WindowMode)
 	{
 		FSystemResolution::RequestResolutionChange(ResX, ResY, WindowMode);
-		GSystemResolution.ResX = ResX;
-		GSystemResolution.ResY = ResY;
-		GSystemResolution.WindowMode = WindowMode;
+		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
 #if PLATFORM_64BITS
@@ -422,7 +413,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
-	GetGameUserSettings()->ApplySettings(true);
+	GetGameUserSettings()->ApplyNonResolutionSettings();
 
 	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
 	{

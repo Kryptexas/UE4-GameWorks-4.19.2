@@ -375,6 +375,15 @@ void FSlateRHIRenderer::UpdateFullscreenState( const TSharedRef<SWindow> Window,
 	}
 }
 
+void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWindow)
+{
+	if (!GIsEditor)
+	{
+		FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, GSystemResolution.WindowMode);
+		GSystemResolution.ResX = GSystemResolution.ResY = 0;
+	}
+}
+
 /** Called when a window is destroyed to give the renderer a chance to free resources */
 void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 {

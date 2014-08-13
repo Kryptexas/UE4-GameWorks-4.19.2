@@ -2420,8 +2420,7 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		}
 		if( X && Y )
 		{
-			FIntPoint Dims = FIntPoint(X,Y);
-			return SetDisplayConfiguration(&Dims, WindowMode);
+			FSystemResolution::RequestResolutionChange(X, Y, WindowMode);
 		}
 	}
 	return true;
