@@ -378,7 +378,7 @@ void FStreamingLevelCollectionModel::AddExistingLevel_Executed()
 
 void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	if (UEditorEngine::IsUsingWorldAssets())
 	{
 		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
 		const bool bAllowMultipleSelection = true;

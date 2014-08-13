@@ -62,7 +62,7 @@ uint32 FAssetDataGatherer::Run()
 {
 	int32 CacheSerializationVersion = CACHE_SERIALIZATION_VERSION;
 	
-	static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
 	if ( bUsingWorldAssets )
 	{
 		// Bump the serialization version to refresh the cache when switching between -WorldAssets and without.

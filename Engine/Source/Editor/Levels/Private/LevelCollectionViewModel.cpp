@@ -1398,7 +1398,7 @@ void FLevelCollectionViewModel::AddExistingLevel_Executed()
 
 void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
+	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
 		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
 		const bool bAllowMultipleSelection = true;

@@ -86,7 +86,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VertexAnimation) );
 
-	if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
+	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
 		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_World) );
 	}

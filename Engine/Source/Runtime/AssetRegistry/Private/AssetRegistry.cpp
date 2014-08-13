@@ -327,7 +327,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			{
 				UPackage* InMemoryPackage = ObjIt->GetOutermost();
 
-				static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+				static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
 				// Skip assets in map packages... unless we are showing world assets
 				if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
 				{
@@ -1272,6 +1272,11 @@ void FAssetRegistry::Tick(float DeltaTime)
 
 		FileLoadedEvent.Broadcast();
 	}
+}
+
+bool FAssetRegistry::IsUsingWorldAssets()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
 }
 
 void FAssetRegistry::Serialize(FArchive& Ar)

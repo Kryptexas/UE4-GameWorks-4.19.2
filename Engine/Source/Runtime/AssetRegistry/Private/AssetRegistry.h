@@ -74,6 +74,9 @@ public:
 
 	virtual void Tick (float DeltaTime) override;
 
+	/** True if world assets are enabled */
+	static bool IsUsingWorldAssets();
+
 private:
 
 	/** Called when the asset registry is done gathering files and directories */

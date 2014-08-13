@@ -7319,6 +7319,11 @@ namespace EditorUtilities
 	}
 }
 
+bool UEditorEngine::IsUsingWorldAssets()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+}
+
 void UEditorEngine::OnAssetLoaded(UObject* Asset)
 {
 	UWorld* WorldAsset = Cast<UWorld>(Asset);

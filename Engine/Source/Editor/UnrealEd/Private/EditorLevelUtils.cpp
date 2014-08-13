@@ -546,7 +546,7 @@ namespace EditorLevelUtils
 		GLevelEditorModeTools().DeactivateAllModes();
 
 		UWorld* NewWorld = nullptr;
-		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (UEditorEngine::IsUsingWorldAssets())
 		{
 			// Create a new world
 			UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
@@ -575,7 +575,7 @@ namespace EditorLevelUtils
 			NewPackageName = NewWorld->GetOutermost()->GetName();
 		}
 
-		if (!FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (!UEditorEngine::IsUsingWorldAssets())
 		{
 			// Destroy the new world we created and collect the garbage
 			NewWorld->DestroyWorld( false );

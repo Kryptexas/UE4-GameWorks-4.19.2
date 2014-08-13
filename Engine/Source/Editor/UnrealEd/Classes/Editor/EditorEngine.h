@@ -2596,6 +2596,10 @@ protected:
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 
+public:
+	/** True if world assets are enabled */
+	static bool IsUsingWorldAssets();
+
 private:
 	/** Handler for when any asset is loaded in the editor */
 	void OnAssetLoaded( UObject* Asset );

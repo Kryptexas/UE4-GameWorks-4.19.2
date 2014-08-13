@@ -628,7 +628,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	{
 		FString SaveFilename;
 		bool bSaveFileLocationSelected = false;
-		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (UEditorEngine::IsUsingWorldAssets())
 		{
 			FString DefaultPackagePath;
 			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, DefaultPackagePath);
@@ -1605,7 +1605,7 @@ void FEditorFileUtils::LoadMap()
 		return;
 	}
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	if (UEditorEngine::IsUsingWorldAssets())
 	{
 		struct FLocal
 		{
@@ -2011,7 +2011,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 	bool bAttemptSave = true;
 
 	// If we are treating worlds as assets, there is never a need to go down the "Save As" codepath
-	static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	static const bool bUsingWorldAssets = UEditorEngine::IsUsingWorldAssets();
 
 	FString ExistingFilename;
 	const bool bPackageAlreadyExists = FPackageName::DoesPackageExist( PackageToSave->GetName(), NULL, &ExistingFilename );

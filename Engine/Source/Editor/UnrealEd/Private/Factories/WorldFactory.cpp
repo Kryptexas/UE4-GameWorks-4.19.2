@@ -7,7 +7,7 @@
 UWorldFactory::UWorldFactory(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bCreateNew = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	bCreateNew = UEditorEngine::IsUsingWorldAssets();
 	SupportedClass = UWorld::StaticClass();
 	WorldType = EWorldType::Inactive;
 	bInformEngineOfWorld = false;
