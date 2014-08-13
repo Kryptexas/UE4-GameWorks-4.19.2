@@ -452,7 +452,12 @@ class FSpatializationHelper
 	X3DAUDIO_DISTANCE_CURVE       ReverbVolumeCurve;
 
 	float                         EmitterAzimuths[UE4_XAUDIO3D_INPUTCHANNELS];
-	float					      MatrixCoefficients[UE4_XAUDIO3D_INPUTCHANNELS * SPEAKER_COUNT];
+
+	// TODO: Hardcoding this to 8 because X3DAudioCalculate is ignoring the destination speaker count we put in and
+	//       using the number of speakers on the output device.  For 7.1 this means that it writes to 8 speakers,
+	//       overrunning the buffer and trashing other static variables
+	// 	float					      MatrixCoefficients[UE4_XAUDIO3D_INPUTCHANNELS * SPEAKER_COUNT];
+	float					      MatrixCoefficients[8]; 
 	
 public:
 	/**
