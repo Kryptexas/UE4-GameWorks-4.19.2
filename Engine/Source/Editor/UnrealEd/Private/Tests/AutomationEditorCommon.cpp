@@ -2,6 +2,10 @@
 
 #include "UnrealEd.h"
 #include "AutomationEditorCommon.h"
+#include "AssetEditorManager.h"
+#include "ModuleManager.h"
+#include "LevelEditor.h"
+#include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
 
@@ -291,5 +295,54 @@ bool FUndoRedoCommand::Update()
 		GEditor->RedoTransaction();
 	}
 
+	return true;
+}
+
+/**
+* Open editor for a particular asset
+*/
+bool FOpenEditorForAssetCommand::Update()
+{
+	UObject* Object = StaticLoadObject(UObject::StaticClass(), NULL, *AssetName);
+	if (Object)
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(Object);
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("Verified asset editor for: %s."), *AssetName);
+	}
+	else
+	{
+		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to find object: %s."), *AssetName);
+	}
+	return true;
+}
+
+/**
+* Close all sub-editors
+*/
+bool FCloseAllAssetEditorsCommand::Update()
+{
+	FAssetEditorManager::Get().CloseAllAssetEditors();
+
+	return true;
+}
+
+/**
+* Start PIE session
+*/
+bool FStartPIECommand::Update()
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedPtr<class ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+	GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false);
+	return true;
+}
+
+/**
+* End PlayMap session
+*/
+bool FEndPlayMapCommand::Update()
+{
+	GUnrealEd->RequestEndPlayMap();
 	return true;
 }

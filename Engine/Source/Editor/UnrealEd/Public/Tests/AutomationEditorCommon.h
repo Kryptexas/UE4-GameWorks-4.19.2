@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AssetRegistryModule.h"
+#include "ModuleManager.h"
+#include "AutomationCommon.h"
 
 #include "Tests/AutomationTestSettings.h"
 
@@ -90,12 +93,144 @@ namespace AutomationEditorCommonUtils
 }
 
 
+
 //////////////////////////////////////////////////////////////////////////
 //Common latent commands used for automated editor testing.
-
 
 /**
 * Creates a latent command which the user can either undo or redo an action.
 * True will trigger Undo, False will trigger a redo
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FUndoRedoCommand, bool, bUndo);
+
+/**
+* Open editor for a particular asset
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FOpenEditorForAssetCommand, FString, AssetName);
+
+/**
+* Close all asset editors
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FCloseAllAssetEditorsCommand);
+
+/**
+* Start PIE session
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartPIECommand, bool, bSimulateInEditor);
+
+/**
+* End PlayMap session
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
+
+
+//////////////////////////////////////////////////////////////////////////
+// FEditorAutomationTestUtilities
+
+class FEditorAutomationTestUtilities
+{
+public:
+	/**
+	* Loads the map specified by an automation test
+	*
+	* @param MapName - Map to load
+	*/
+	static void LoadMap(const FString& MapName)
+	{
+		bool bLoadAsTemplate = false;
+		bool bShowProgress = false;
+		FEditorFileUtils::LoadMap(MapName, bLoadAsTemplate, bShowProgress);
+	}
+
+	/**
+	* Run PIE
+	*/
+	static void RunPIE()
+	{
+		bool bInSimulateInEditor = true;
+		//once in the editor
+		ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(true));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.0f));
+		ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
+
+		//wait between tests
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+
+		//once not in the editor
+		ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.0f));
+		ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
+	}
+
+	/**
+	* Generates a list of assets from the ENGINE and the GAME by a specific type.
+	* This is to be used by the GetTest() function.
+	*/
+	static void CollectTestsByClass(UClass * Class, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		TArray<FAssetData> ObjectList;
+		AssetRegistryModule.Get().GetAssetsByClass(Class->GetFName(), ObjectList);
+
+		for (TObjectIterator<UClass> AllClassesIt; AllClassesIt; ++AllClassesIt)
+		{
+			UClass* ClassList = *AllClassesIt;
+			FName ClassName = ClassList->GetFName();
+			//UE_LOG(LogEditorAutomationTests, Log, TEXT("Here: %s"), *ClassName);
+		}
+
+
+		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+		{
+			const FAssetData & Asset = *ObjIter;
+			FString Filename = Asset.ObjectPath.ToString();
+			//convert to full paths
+			Filename = FPackageName::LongPackageNameToFilename(Filename);
+			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			{
+				FString BeautifiedFilename = Asset.AssetName.ToString();
+				OutBeautifiedNames.Add(BeautifiedFilename);
+				OutTestCommands.Add(Asset.ObjectPath.ToString());
+			}
+		}
+	}
+
+	/**
+	* Generates a list of assets from the GAME by a specific type.
+	* This is to be used by the GetTest() function.
+	*/
+	static void CollectGameContentTestsByClass(UClass * Class, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands)
+	{
+		//Setting the Asset Registry
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		
+		//Variable setups
+		TArray<FAssetData> ObjectList;
+		FARFilter AssetFilter;
+
+		//Generating the list of assets.
+		//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
+		AssetFilter.ClassNames.Add(Class->GetFName());
+		AssetFilter.PackagePaths.Add("/Game");
+		AssetFilter.bRecursivePaths = true;
+		AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
+
+		//Loop through the list of assets, make their path full and a string, then add them to the test.
+		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+		{
+			const FAssetData & Asset = *ObjIter;
+			FString Filename = Asset.ObjectPath.ToString();
+			//convert to full paths
+			Filename = FPackageName::LongPackageNameToFilename(Filename);
+			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			{
+				FString BeautifiedFilename = Asset.AssetName.ToString();
+				OutBeautifiedNames.Add(BeautifiedFilename);
+				OutTestCommands.Add(Asset.ObjectPath.ToString());
+			}
+		}
+	}
+};
+
+
