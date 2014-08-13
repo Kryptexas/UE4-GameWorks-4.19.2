@@ -5,6 +5,8 @@
 #include "AnimationTabSummoner.h"
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
+#include "WidgetAnimation.h"
+#include "MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

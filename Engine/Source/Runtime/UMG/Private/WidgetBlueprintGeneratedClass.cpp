@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "MovieScene.h"
+#include "WidgetAnimation.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
