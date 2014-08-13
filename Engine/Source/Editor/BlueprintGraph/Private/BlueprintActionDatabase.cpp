@@ -15,6 +15,7 @@
 #include "CallbackDevice.h"			// for FCoreDelegates::OnAssetLoaded
 #include "ModuleManager.h"
 #include "AssetRegistryModule.h"	// for OnAssetAdded()/OnAssetRemoved()
+#include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
@@ -37,12 +38,15 @@
 #include "K2Node_CallDelegate.h"
 #include "K2Node_RemoveDelegate.h"
 #include "K2Node_ClearDelegate.h"
+#include "K2Node_AssignDelegate.h"
 // used below in BlueprintActionDatabaseImpl::AddClassCastActions()
 #include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
 // used below in BlueprintActionDatabaseImpl::AddAutonomousNodeActions()
 #include "EdGraph/EdGraphNode_Comment.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+
+#define LOCTEXT_NAMESPACE "BlueprintActionDatabase"
 
 /*******************************************************************************
  * FBlueprintNodeSpawnerFactory
@@ -103,6 +107,15 @@ namespace FBlueprintNodeSpawnerFactory
 	 */
 	template <class DocNodeType>
 	static UBlueprintNodeSpawner* MakeDocumentationNodeSpawner();
+
+	/**
+	 * Constructs a delegate binding node along with a connected event that is  
+	 * triggered from the specified delegate.
+	 * 
+	 * @param  DelegateProperty	The delegate the spawner will bind to.
+	 * @return A new node-spawner, setup to spawn a UK2Node_AssignDelegate.
+	 */
+	static UBlueprintNodeSpawner* MakeAssignDelegateNodeSpawner(UMulticastDelegateProperty* DelegateProperty);
 };
 
 //------------------------------------------------------------------------------
@@ -240,6 +253,42 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDocumentationNod
 	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMessageNodeLambda);
 
 	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNodeSpawner(UMulticastDelegateProperty* DelegateProperty)
+{
+	// @TODO: it'd be awesome to have both nodes spawned by this available for 
+	//        context pin matching (the delegate inputs and the event outputs)
+	return UBlueprintPropertyNodeSpawner::Create<UK2Node_AssignDelegate>(DelegateProperty);
+// 	// using the event spawner as
+// 	UBlueprintNodeSpawner* EventNodeSpawner = UBlueprintEventNodeSpawner::Create(UK2Node_CustomEvent::StaticClass(), FName());
+// 	check(EventNodeSpawner != nullptr);
+// 
+// 	auto SetupDelegateEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr)
+// 	{
+// 		UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
+// 		if (DelegatePropPtr.IsValid())
+// 		{
+// 			UMulticastDelegateProperty* DelegateProp = DelegatePropPtr.Get();		
+// 			// don't needlessly spend unique blueprint names
+// 			if (!bIsTemplateNode)
+// 			{
+// 				UBlueprint* Blueprint = EventNode->GetBlueprint();
+// 
+// 				FText DelegateName = FText::FromName(DelegateProp->GetFName());
+// 				FText DesiredEventName = FText::Format(LOCTEXT("BindedEventName", "{0}_Event"), DelegateName);
+// 				EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, DesiredEventName.ToString());
+// 			}
+// 		}
+// 	};
+// 
+// 	TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr = DelegateProperty;
+// 	EventNodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupDelegateEventNodeLambda, DelegatePropPtr);
+// 
+// 	// the bound spawner should conform the event node to match the delegate's 
+// 	// signature
+// 	return UBlueprintBoundNodeSpawner::Create(EventNodeSpawner, DelegateProperty);
 }
 
 /*******************************************************************************
@@ -477,7 +526,8 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 				UBlueprintNodeSpawner* AddSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_AddDelegate>(DelegateProperty);
 				ActionListOut.Add(AddSpawner);
 				
-				// @TODO: account for: GetEventDispatcherNodesForClass() - FEdGraphSchemaAction_K2AssignDelegate
+				UBlueprintNodeSpawner* AssignSpawner = MakeAssignDelegateNodeSpawner(DelegateProperty);
+				ActionListOut.Add(AssignSpawner);
 			}
 			
 			if (DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintCallable))
@@ -507,8 +557,6 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 			ActionListOut.Add(SetterSpawner);
 		}
 	}
-
-	// @TODO: if blueprint class, loop over function graphs and get local variables
 }
 
 //------------------------------------------------------------------------------
@@ -968,3 +1016,5 @@ FBlueprintActionDatabase::FClassActionMap const& FBlueprintActionDatabase::GetAl
 	}
 	return ClassActions;
 }
+
+#undef LOCTEXT_NAMESPACE

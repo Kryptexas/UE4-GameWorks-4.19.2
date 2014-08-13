@@ -6,6 +6,7 @@
 #include "EditorStyleSettings.h"	// for bShowFriendlyNames
 #include "ObjectEditorUtils.h"		// for GetCategory()
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForNodeChecked()
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPropertyNodeSpawner"
 
@@ -108,7 +109,7 @@ FText UBlueprintPropertyNodeSpawner::GetDefaultMenuCategory() const
 	}
 	else if (PropertyCategory.IsEmpty())
 	{
-		PropertyCategory = LOCTEXT("DefaultDelegateCategory", "Event Dispatchers");
+		PropertyCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
 	}
 	return PropertyCategory;
 }

@@ -64,6 +64,7 @@ static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
 		REGISTER_ROOT_CATEGORY(Pawn);
 		REGISTER_ROOT_CATEGORY(Rendering);
 		REGISTER_ROOT_CATEGORY(Utilities);
+		ASSIGN_ROOT_CATEGORY(Delegates, "Event Dispatchers");
 		REGISTER_ROOT_CATEGORY(Variables);
 
 #undef REGISTER_ROOT_CATEGORY
@@ -131,6 +132,7 @@ FText const& FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::EVal
 		REGISTER_COMMON_CATEGORY(Pawn);
 		REGISTER_COMMON_CATEGORY(Rendering);
 		REGISTER_COMMON_CATEGORY(Utilities);
+		REGISTER_COMMON_CATEGORY(Delegates);
 		REGISTER_COMMON_CATEGORY(Variables);
 
 		REGISTER_COMMON_CATEGORY(FlowControl);

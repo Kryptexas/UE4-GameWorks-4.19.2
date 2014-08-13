@@ -223,9 +223,10 @@ namespace BlueprintActionFilterImpl
 	 * 
 	 * @param  Pin	
 	 * @param  MemberField	
+	 * @param  MemberNodeSpawner
 	 * @return 
 	 */
-	static bool IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField);
+	static bool IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, UBlueprintNodeSpawner const* MemberNodeSpawner);
 
 	/**
 	 * 
@@ -791,20 +792,43 @@ static bool BlueprintActionFilterImpl::HasMatchingPin(UBlueprintNodeSpawner cons
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField)
+static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, UBlueprintNodeSpawner const* MemberNodeSpawner)
 {
 	bool bIsCompatible = false;
+	checkSlow(GetAssociatedField(MemberNodeSpawner) == MemberField);
 
 	UClass* OwnerClass = Cast<UClass>(MemberField->GetOuter());
 	if ((Pin->Direction == EGPD_Output) && (OwnerClass != nullptr))
 	{
 		FEdGraphPinType const& PinType = Pin->PinType;
-		if (!PinType.bIsArray && PinType.PinSubCategoryObject.IsValid())
+		if (PinType.PinSubCategoryObject.IsValid())
 		{
 			// if PC_Object/PC_Interface
-			if (UClass const* const PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
+			UClass const* const PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
+			if ((PinObjClass != nullptr) && PinObjClass->IsChildOf(OwnerClass))
 			{
-				bIsCompatible = PinObjClass->IsChildOf(OwnerClass);
+				bIsCompatible = true;
+				if (PinType.bIsArray)
+				{
+					if (UFunction const* Function = Cast<UFunction>(MemberField))
+					{
+						// @TODO: duplicated from UK2Node_CallFunction::AllowMultipleSelfs()... 
+						//        move into a shared resource (don't want to call 
+						//        AllowMultipleSelfs()  to save on perf)
+						bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
+						bool const bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) == false);
+						bool const bIsLatent = (Function->HasMetaData(FBlueprintMetadata::MD_Latent) != false);
+						bIsCompatible = !bHasReturnParam && bIsImpure && !bIsLatent;
+					}
+					else
+					{
+						UEdGraph* OuterGraph = Pin->GetOwningNode()->GetGraph();
+						if (UK2Node* TemplateNode = Cast<UK2Node>(MemberNodeSpawner->GetTemplateNode(OuterGraph)))
+						{
+							bIsCompatible = TemplateNode->AllowMultipleSelfs(/*bInputAsArray =*/true);
+						}	
+					}
+				}
 			}
 		}
 	}
@@ -828,24 +852,29 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 			FEdGraphPinType const& PinType = ContextPin->PinType;
 			UK2Node const* const K2Node = CastChecked<UK2Node const>(ContextPin->GetOwningNode());
 			EEdGraphPinDirection const PinDir = ContextPin->Direction;
-			
+
 			if (K2Schema->IsExecPin(*ContextPin))
 			{
 				bIsFilteredOut = (bIsEventSpawner && (PinDir == EGPD_Output)) || !IsImpure(BlueprintAction);
 			}
 			else
 			{
-				bIsFilteredOut = true;
-				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetBlueprint(), PinType, (PinDir == EGPD_Input)))
+				// event nodes have their parameters as outputs (even though
+				// the function signature would have them as inputs), so we 
+				// want to flip the connotation here
+				bool const bWantsOutputConnection = (PinDir == EGPD_Input) ^ bIsEventSpawner;
+
+				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetBlueprint(), PinType, bWantsOutputConnection))
 				{
 					bIsFilteredOut = false;
 				}
-				else if (!bIsEventSpawner)
+				else
 				{
 					// need to take "Target" self pins into consideration for objects
-					bIsFilteredOut = !IsPinCompatibleWithTargetSelf(ContextPin, AssociatedFunc);
+					bIsFilteredOut = bIsEventSpawner || !IsPinCompatibleWithTargetSelf(ContextPin, AssociatedFunc, BlueprintAction);
 				}
 			}
+			
 		}
 	}
 
@@ -875,7 +904,7 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 				UEdGraphSchema_K2 const* K2Schema = CastChecked<UEdGraphSchema_K2 const>(ContextPin->GetSchema());
 
 				// have to account for "self" context pin
-				if (IsPinCompatibleWithTargetSelf(ContextPin, Property))
+				if (IsPinCompatibleWithTargetSelf(ContextPin, Property, BlueprintAction))
 				{
 					continue;
 				}
