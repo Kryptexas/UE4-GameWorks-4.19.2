@@ -16,13 +16,11 @@ class ANavMeshBoundsVolume : public AVolume
 
 	// Begin AActor Interface
 	virtual void PostInitializeComponents() override;
-#if WITH_EDITOR
-	virtual void ReregisterAllComponents() override;
 	// End AActor Interface
+#if WITH_EDITOR
 	// Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
-
 #endif // WITH_EDITOR
 };
 
