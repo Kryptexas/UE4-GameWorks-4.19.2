@@ -107,15 +107,20 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 //=======================================================================
 // Attribute Helpers
 
-FString SPinTypeSelector::GetTypeDescription() const
+FText SPinTypeSelector::GetTypeDescription() const
 {
-	if( TargetPinType.Get().PinSubCategoryObject != NULL )
+	const UObject* PinSubCategoryObject = TargetPinType.Get().PinSubCategoryObject.Get();
+	if (PinSubCategoryObject)
 	{
-		return TargetPinType.Get().PinSubCategoryObject->GetName();
+		if (auto Field = Cast<const UField>(PinSubCategoryObject))
+		{
+			return Field->GetDisplayNameText();
+		}
+		return FText::FromString(PinSubCategoryObject->GetName());
 	}
 	else
 	{
-		return TargetPinType.Get().PinCategory;
+		return FText::FromString(TargetPinType.Get().PinCategory);
 	}
 }
 

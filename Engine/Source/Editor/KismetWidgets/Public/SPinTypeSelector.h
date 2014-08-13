@@ -51,7 +51,7 @@ protected:
 	FSlateColor GetTypeIconColor() const;
 
 	/** Gets a succinct type description for the type being manipulated */
-	FString GetTypeDescription() const;
+	FText GetTypeDescription() const;
 
 	TSharedPtr<SComboButton>		TypeComboButton;
 	TSharedPtr<SSearchBox>			FilterTextBox;

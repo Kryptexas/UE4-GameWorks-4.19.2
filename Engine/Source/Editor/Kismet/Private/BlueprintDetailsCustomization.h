@@ -493,6 +493,21 @@ public:
 		: GlobalOptionsDetailsPtr(InGlobalOptionsDetails)
 		, bShowsInheritedInterfaces(bInShowsInheritedInterfaces) {}
 
+	struct FInterfaceName
+	{
+		FName Name;
+		FText DisplayText;
+
+		FInterfaceName() {}
+		FInterfaceName(FName InName, const FText& InDisplayText) 
+			: Name(InName), DisplayText(InDisplayText) {}
+
+		bool operator==(const FInterfaceName& Other) const
+		{
+			return Name == Other.Name;
+		}
+	};
+
 private:
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {RegenerateChildrenDelegate = InOnRegenerateChildren;}
@@ -506,11 +521,11 @@ private:
 private:
 	/** Callbacks for details UI */
 	void OnBrowseToInterface(TWeakObjectPtr<UObject> Asset);
-	void OnRemoveInterface(FString InterfaceName);
+	void OnRemoveInterface(FInterfaceName InterfaceName);
 
 	TSharedRef<SWidget> OnGetAddInterfaceMenuContent();
-	TSharedRef<ITableRow> GenerateInterfaceListRow( TSharedPtr<FString> InterfaceName, const TSharedRef<STableViewBase>& OwningList );
-	void OnInterfaceListSelectionChanged(TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo);
+	TSharedRef<ITableRow> GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList);
+	void OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo);
 
 private:
 	/** The parent graph action details customization */
@@ -520,7 +535,7 @@ private:
 	bool bShowsInheritedInterfaces;
 
 	/** List of unimplemented interfaces, for source for a list view */
-	TArray<TSharedPtr<FString>> UnimplementedInterfaces;
+	TArray<TSharedPtr<FInterfaceName>> UnimplementedInterfaces;
 
 	/** The add interface combo button */
 	TSharedPtr<SComboButton> AddInterfaceComboButton;
@@ -557,7 +572,7 @@ public:
 
 protected:
 	/** Gets the Blueprint parent class name text */
-	FString GetParentClassName() const;
+	FText GetParentClassName() const;
 
 	// Determine whether or not we should be allowed to reparent (but still display the parent class regardless)
 	bool CanReparent() const;
