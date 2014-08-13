@@ -91,7 +91,7 @@ protected:
 			GetMutableDefault<UAudioSettings>()
 		);
 
-		// packaging settings
+		// collision settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Collision",
 			LOCTEXT("ProjectCollisionSettingsName", "Collision"),
 			LOCTEXT("ProjectCollisionSettingsDescription", "Set up and modify collision settings."),
