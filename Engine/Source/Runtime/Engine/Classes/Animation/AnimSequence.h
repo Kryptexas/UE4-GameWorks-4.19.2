@@ -697,6 +697,11 @@ public:
 	 * This increases framecount + time, so that it requires recompression
 	 */
 	ENGINE_API bool AddLoopingInterpolation();
+
+	/** 
+	 * Add validation check to see if it's being ready to play or not
+	 */
+	virtual bool IsValidToPlay() const override;
 #endif
 
 private:
