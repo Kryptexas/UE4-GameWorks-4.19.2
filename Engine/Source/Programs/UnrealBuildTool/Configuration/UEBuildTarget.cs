@@ -215,6 +215,7 @@ namespace UnrealBuildTool
 				{
 					switch (Arguments[ArgumentIndex].ToUpperInvariant())
 					{
+						// @todo ubtmake: How does this work with UBTMake?  Do we even need to support it anymore?
 						case "-MODULE":
 							// Specifies a module to recompile.  Can be specified more than once on the command-line to compile multiple specific modules.
 							{
@@ -625,7 +626,7 @@ namespace UnrealBuildTool
 		/// <returns>true if it should, false if it shouldn't</returns>
 		public bool ShouldCompileMonolithic()
 		{
-			return bCompileMonolithic;
+			return bCompileMonolithic;	// @todo ubtmake: We need to make sure this function and similar things aren't called in assembler mode
 		}
 
 		/** 
@@ -767,7 +768,7 @@ namespace UnrealBuildTool
 		/// Attempts to delete a file. Will retry a few times before failing.
 		/// </summary>
 		/// <param name="Filename"></param>
-		void CleanFile(string Filename)
+		public static void CleanFile(string Filename)
 		{
 			const int RetryDelayStep = 200;
 			int RetryDelay = 1000;
@@ -997,6 +998,20 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Delete the UBT makefile
+				{
+					// Figure out what to call our action graph based on everything we're building
+					var Targets = new List<UEBuildTarget>();
+					Targets.Add( this );	// @todo ubtmake: Only supports cleaning one target at a time :(
+
+					var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( Targets );
+					if (File.Exists(UBTMakefilePath))
+					{
+						Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
+						CleanFile(UBTMakefilePath);
+					}
+				}
+
 				// Delete the action history
 				{
 					var ActionHistoryFilename = ActionHistory.GeneratePathForTarget(this);
@@ -1205,8 +1220,11 @@ namespace UnrealBuildTool
 		}
 
 		/** Builds the target, appending list of output files and returns building result. */
-		public ECompilationResult Build(IUEToolChain TargetToolChain, List<FileItem> OutputItems, out string EULAViolationWarning)
+		public ECompilationResult Build(IUEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules, out string EULAViolationWarning)
 		{
+			OutputItems = new List<FileItem>();
+			UObjectModules = new List<UHTModuleInfo>();
+
 			var SpecialRocketLibFilesThatAreBuildProducts = PreBuildSetup();
 
 			EULAViolationWarning = !ProjectFileGenerator.bGenerateProjectFiles
@@ -1309,21 +1327,19 @@ namespace UnrealBuildTool
 			// just an optimization
 			if( !ProjectFileGenerator.bGenerateProjectFiles )
 			{
-				var SharedPCHHeaderFiles = FindSharedPCHHeaders();
-				GlobalCompileEnvironment.SharedPCHHeaderFiles = SharedPCHHeaderFiles;
+				GlobalCompileEnvironment.SharedPCHHeaderFiles = FindSharedPCHHeaders();
 			}
 
 			if( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles) )
 			{
 				var UObjectDiscoveryStartTime = DateTime.UtcNow;
 
-				var UObjectModules = new List<UHTModuleInfo>();
-
 				// Figure out which modules have UObjects that we may need to generate headers for
 				foreach( var Binary in AppBinaries )
 				{
+					var LocalUObjectModules = UObjectModules;	// For lambda access
 					var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-					foreach( var DependencyModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where( CPPModule => !UObjectModules.Any( Module => Module.ModuleName == CPPModule.Name ) ) )
+					foreach( var DependencyModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where( CPPModule => !LocalUObjectModules.Any( Module => Module.ModuleName == CPPModule.Name ) ) )
 					{
 						if( !DependencyModuleCPP.bIncludedInTarget )
 						{
@@ -1344,6 +1360,21 @@ namespace UnrealBuildTool
 
 							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);
 
+							// If we're running in "gather" mode only, we'll go ahead and cache PCH information for each module right now, so that we don't
+							// have to do it in the assembling phase.  It's OK for gathering to take a bit longer, even if UObject headers are not out of
+							// date in order to save a lot of time in the assembling runs.
+							UHTModuleInfo.PCH = "";
+							if( UnrealBuildTool.IsGatheringBuild && !UnrealBuildTool.IsAssemblingBuild )
+							{
+								// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
+								var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+								DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
+								if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+								{
+									UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+								}
+							}
+
 							UObjectModules.Add( UHTModuleInfo );
 							Log.TraceVerbose( "Detected UObject module: " + UHTModuleInfo.ModuleName );
 						}
@@ -1356,16 +1387,16 @@ namespace UnrealBuildTool
 					Trace.TraceInformation( "UObject discovery time: " + UObjectDiscoveryTime + "s" );
 				}
 
+				// @todo ubtmake: Even in Gather mode, we need to run UHT to make sure the files exist for the static action graph to be setup correctly.  This is because UHT generates .cpp
+				// files that are injected as top level prerequisites.  If UHT only emitted included header files, we wouldn't need to run it during the Gather phase at all.
 				if( UObjectModules.Count > 0 )
 				{
 					// Execute the header tool
-					var TargetName = !String.IsNullOrEmpty( GameName ) ? GameName : AppName;
 					string ModuleInfoFileName = Path.GetFullPath( Path.Combine( ProjectIntermediateDirectory, "UnrealHeaderTool.manifest" ) );
-
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
 					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
-						Log.TraceInformation("UnrealHeaderTool failed for target '" + TargetName + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+						Log.TraceInformation("UnrealHeaderTool failed for target '" + GetTargetName() + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
 						return UHTResult;
 					}
 				}
@@ -1385,7 +1416,7 @@ namespace UnrealBuildTool
 				OutputItems.AddRange(Binary.Build(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
-			if (BuildConfiguration.WriteTargetInfoPath != null)
+			if (BuildConfiguration.WriteTargetInfoPath != null)	// @todo ubtmake: This has some overlap with what we are doing with the action graph.  It might be easier to support other build systems with formatting like this, but it is a lot of duplicated code
 			{
 				Log.TraceInformation("Writing build environment to " + BuildConfiguration.WriteTargetInfoPath + "...");
 				WriteTargetInfo();
@@ -1953,10 +1984,26 @@ namespace UnrealBuildTool
 			var ModuleSourceFolder = bHasModuleRules ? Path.GetDirectoryName(RulesCompiler.GetModuleFilename(Module.Name)) : ModuleFilename;
 			bool bShouldBeBuiltFromSource = bHasModuleRules && Directory.GetFiles(ModuleSourceFolder, "*.cpp", SearchOption.AllDirectories).Length > 0;
 
+			string PluginIntermediateBuildPath;
+			{ 
+				if (Plugin.LoadedFrom == PluginInfo.LoadedFromType.Engine)
+				{
+					// Plugin folder is in the engine directory
+					var PluginConfiguration = Configuration == UnrealTargetConfiguration.DebugGame ? UnrealTargetConfiguration.Development : Configuration;
+					PluginIntermediateBuildPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder, AppName, PluginConfiguration.ToString()));
+				}
+				else
+				{
+					// Plugin folder is in the project directory
+					PluginIntermediateBuildPath = Path.GetFullPath(Path.Combine(ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder, GetTargetName(), Configuration.ToString()));
+				}
+				PluginIntermediateBuildPath = Path.Combine(PluginIntermediateBuildPath, "Plugins", ShouldCompileMonolithic() ? "Static" : "Dynamic");
+			}
+
 			// Create the binary
 			UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType:                  BinaryType,
 																				InOutputFilePath:        OutputFilePath,
-																				InIntermediateDirectory: Plugin.IntermediateBuildPath,
+																				InIntermediateDirectory: PluginIntermediateBuildPath,
 																				bInAllowExports:         true,
 																				bInAllowCompilation:     bShouldBeBuiltFromSource,
 																				bInHasModuleRules:       bHasModuleRules,
@@ -2156,62 +2203,42 @@ namespace UnrealBuildTool
 		/** Sets up the plugins for this target */
 		protected virtual void SetupPlugins()
 		{
-			if (!UEBuildConfiguration.bExcludePlugins)
+			// Filter the plugins list by the current project
+			List<PluginInfo> ValidPlugins = new List<PluginInfo>();
+			foreach(PluginInfo Plugin in Plugins.AllPlugins)
 			{
-				// Filter the plugins list by the current project
-				List<PluginInfo> ValidPlugins = new List<PluginInfo>();
-				foreach(PluginInfo Plugin in Plugins.AllPlugins)
+				if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
-					{
-						if (Plugin.LoadedFrom == PluginInfo.LoadedFromType.Engine)
-						{
-							// Plugin folder is in the engine directory
-							var PluginConfiguration = Configuration == UnrealTargetConfiguration.DebugGame ? UnrealTargetConfiguration.Development : Configuration;
-							Plugin.IntermediateIncPath   = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
-							Plugin.IntermediateBuildPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder, AppName, PluginConfiguration.ToString()));
-						}
-						else
-						{
-							// Plugin folder is in the project directory
-							Plugin.IntermediateIncPath   = Path.GetFullPath(Path.Combine(ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder));
-							Plugin.IntermediateBuildPath = Path.GetFullPath(Path.Combine(ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder, GetTargetName(), Configuration.ToString()));
-						}
+					ValidPlugins.Add(Plugin);
+				}
+			}
 
-						Plugin.IntermediateIncPath   = Path.Combine(Plugin.IntermediateIncPath,   "Inc", "Plugins");
-						Plugin.IntermediateBuildPath = Path.Combine(Plugin.IntermediateBuildPath, "Plugins", ShouldCompileMonolithic() ? "Static" : "Dynamic");
+			// Build the enabled plugin list
+			if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
+			{
+				var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
 
-						ValidPlugins.Add(Plugin);
-					}
+				// Add the list of plugins enabled by default
+				if (UEBuildConfiguration.bCompileAgainstEngine)
+				{
+					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
 				}
 
-				// Build the enabled plugin list
-				if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
+				// Update the plugin list for game targets
+				if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
 				{
-					var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
+					// Enable all the game specific plugins by default
+					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
 
-					// Add the list of plugins enabled by default
-					if (UEBuildConfiguration.bCompileAgainstEngine)
-					{
-						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
-					}
-
-					// Update the plugin list for game targets
-					if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
-					{
-						// Enable all the game specific plugins by default
-						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
-
-						// Use the project settings to update the plugin list for this target
-						FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
-					}
-
-					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
+					// Use the project settings to update the plugin list for this target
+					FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
 				}
-				else
-				{
-					EnabledPlugins.AddRange(ValidPlugins);
-				}
+
+				EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
+			}
+			else
+			{
+				EnabledPlugins.AddRange(ValidPlugins);
 			}
 		}
 
@@ -2319,7 +2346,7 @@ namespace UnrealBuildTool
 			{
 				throw new BuildException( "Couldn't find Engine/Source directory using relative path" );
 			}
-			GlobalCompileEnvironment.Config.IncludePaths.Add( EngineSourceDirectory );
+			GlobalCompileEnvironment.Config.CPPIncludeInfo.IncludePaths.Add( EngineSourceDirectory );
 
 			//@todo.PLATFORM: Do any platform specific tool chain initialization here if required
 

@@ -227,13 +227,7 @@ namespace UnrealBuildTool
 		public CPPCLRMode CLRMode = CPPCLRMode.CLRDisabled;
 
 		/** The include paths to look for included files in. */
-		public List<string> IncludePaths = new List<string>();
-
-		/**
-		 * The include paths where changes to contained files won't cause dependent C++ source files to
-		 * be recompiled, unless BuildConfiguration.bCheckSystemHeadersForModification==true.
-		 */
-		public List<string> SystemIncludePaths = new List<string>();
+		public readonly CPPIncludeInfo CPPIncludeInfo = new CPPIncludeInfo();
 
 		/** Paths where .NET framework assembly references are found, when compiling CLR applications. */
 		public List<string> SystemDotNetAssemblyPaths = new List<string>();
@@ -277,8 +271,8 @@ namespace UnrealBuildTool
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;
 			bIsBuildingDLL                         = InCopyEnvironment.bIsBuildingDLL;
 			CLRMode                                = InCopyEnvironment.CLRMode;
-			IncludePaths                 .AddRange(InCopyEnvironment.IncludePaths);
-			SystemIncludePaths           .AddRange(InCopyEnvironment.SystemIncludePaths);
+			CPPIncludeInfo.IncludePaths                 .AddRange(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
+			CPPIncludeInfo.SystemIncludePaths           .AddRange(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
 			SystemDotNetAssemblyPaths    .AddRange(InCopyEnvironment.SystemDotNetAssemblyPaths);
 			FrameworkAssemblyDependencies.AddRange(InCopyEnvironment.FrameworkAssemblyDependencies);
  			PrivateAssemblyDependencies  .AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
@@ -387,26 +381,6 @@ namespace UnrealBuildTool
 			return new CPPEnvironment(this);
 		}
 
-
-		/// <summary>
-		/// Give a C++ source file, returns a list of include paths we should search to resolve #includes for this path
-		/// </summary>
-		/// <param name="SourceFile">C++ source file we're going to check #includes for.</param>
-		/// <returns>Ordered list of paths to search</returns>
-		public List<string> GetIncludesPathsToSearch( FileItem SourceFile )
-		{
-			// Build a single list of include paths to search.
-			var IncludePathsToSearch = new List<string>();
-			string SourceFilesDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath);
-			IncludePathsToSearch.Add( SourceFilesDirectory );
-			IncludePathsToSearch.AddRange( Config.IncludePaths );
-			if( BuildConfiguration.bCheckSystemHeadersForModification )
-			{
-				IncludePathsToSearch.AddRange( Config.SystemIncludePaths );
-			}
-			
-			return IncludePathsToSearch;
-		}
 
 	};
 }

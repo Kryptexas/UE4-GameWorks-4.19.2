@@ -161,9 +161,9 @@ namespace UnrealBuildTool
 				}
 
 				ActionStartInfo.UseShellExecute = false;
-				ActionStartInfo.RedirectStandardInput = Action.bShouldBlockStandardInput;
-				ActionStartInfo.RedirectStandardOutput = Action.bShouldBlockStandardOutput;
-				ActionStartInfo.RedirectStandardError = Action.bShouldBlockStandardOutput;
+				ActionStartInfo.RedirectStandardInput = false;
+				ActionStartInfo.RedirectStandardOutput = false;
+				ActionStartInfo.RedirectStandardError = false;
 
 				// Log command-line used to execute task if debug info printing is enabled.
 				if (BuildConfiguration.bPrintDebugInfo)
@@ -495,7 +495,7 @@ namespace UnrealBuildTool
 			}
 
 			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "^Action Type^Duration (seconds)^Tool^Task^Using PCH^Description");
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 			double TotalThreadSeconds = 0;
 
@@ -522,13 +522,12 @@ namespace UnrealBuildTool
 
 				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
 					TraceEventType.Information,
-					"^{0}^{1:0.00}^{2}^{3}^{4}^{5}", 
+					"^{0}^{1:0.00}^{2}^{3}^{4}", 
 					Action.ActionType.ToString(),
 					ThreadSeconds,
 					Path.GetFileName(Action.CommandPath), 
                       Action.StatusDescription,
-					Action.bIsUsingPCH,
-					Action.StatusDetailedDescription);
+					Action.bIsUsingPCH);
 
 				// Update statistics
 				switch (Action.ActionType)

@@ -420,11 +420,11 @@ namespace UnrealBuildTool
 			}
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
-			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
@@ -479,11 +479,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-				{
-					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
@@ -542,7 +538,6 @@ namespace UnrealBuildTool
 				CompileAction.CommandPath = ClangPath;
 				CompileAction.CommandArguments = ResponseArgument;
 				CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
 

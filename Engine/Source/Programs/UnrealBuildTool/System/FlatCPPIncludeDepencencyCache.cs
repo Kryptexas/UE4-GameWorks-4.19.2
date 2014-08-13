@@ -78,7 +78,7 @@ namespace UnrealBuildTool
 			{
 				using (FileStream Stream = new FileStream(Cache.AbsolutePath, FileMode.Open, FileAccess.Read))
 				{	
-					// @todo fastubt: We can store the cache in a cheaper/smaller way using hash file names and indicies into included headers, but it might actually slow down load times
+					// @todo fastubt: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
 					// @todo fastubt: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
 					BinaryFormatter Formatter = new BinaryFormatter();
 					Result = Formatter.Deserialize(Stream) as FlatCPPIncludeDependencyCache;
@@ -105,7 +105,7 @@ namespace UnrealBuildTool
 		protected FlatCPPIncludeDependencyCache(FileItem Cache)
 		{
 			CacheFileItem = Cache;
-			DependencyMap = new Dictionary<string, FlatCPPIncludeDependencyInfo>(StringComparer.InvariantCultureIgnoreCase);
+			DependencyMap = new Dictionary<string, FlatCPPIncludeDependencyInfo>(StringComparer.InvariantCultureIgnoreCase);	// @todo fastubt: Apparently StringComparer is not very fast on Mono, better to use ToLowerInvariant(), even though it is an extra string copy
 		}
 
 

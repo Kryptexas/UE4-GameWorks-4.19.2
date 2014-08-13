@@ -356,6 +356,23 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseExperimentalFastDependencyScan;
+
+		/// <summary>
+		/// Enables a new 'experimental' support for very fast iterative builds.  Turning this on causes Unreal Build Tool to emit
+		/// 'UBT Makefiles' for targets when they're built the first time.  Subsequent builds will load these Makefiles and begin
+		/// outdatedness checking and build invocation very quickly.  The caveat is that if source files are added or removed to
+		/// the project, UBT will need to gather information about those in order for your build to complete successfully.  Currently,
+		/// you must run the project file generator after adding/removing source files to tell UBT to re-gather this information.
+		/// Events that can invalidate the 'UBT Makefile':  
+		///		- Adding/removing .cpp files
+		///		- Adding/removing .h files with UObjects
+		///		- Adding new UObject types to a file that didn't previously have any
+		///		- Changing global build settings (most settings in this file qualify.)
+		///		- Changed code that affects how Unreal Header Tool works
+		///	You can force regeneration of the 'UBT Makefile' by passing the '-gather' argument, or simply regenerating project files
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseExperimentalFastBuildIteration;
 	
 		/// <summary>
 		/// Whether DMUCS/Distcc may be used.
@@ -482,8 +499,13 @@ namespace UnrealBuildTool
 			bCheckLicenseViolations = false;
 			bBreakBuildOnLicenseViolation = true;
 
-			// The new experimental fast dependency scanning is still being tested, so we disable it by default
+			// This feature reduces the time spent tracking C++ header dependencies every run.  This feature is still being tested, 
+			// so we disable it by default
 			bUseExperimentalFastDependencyScan = false;
+
+			// Experimental support for 'gathering' and 'assembling' builds in separate invocations is still being tested, so we
+			// leave it disabled by default
+			bUseExperimentalFastBuildIteration = false;
 
 			// Distcc requires some setup - so by default disable it so we don't break local or remote building
 			bAllowDistcc = false;

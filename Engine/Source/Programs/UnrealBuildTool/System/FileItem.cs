@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 using System.Threading;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
@@ -13,59 +14,36 @@ namespace UnrealBuildTool
 	 * Represents a file on disk that is used as an input or output of a build action.
 	 * FileItems are created by calling FileItem.GetItemByPath, which creates a single FileItem for each unique file path.
 	 */
-	public class FileItem
+	[Serializable]
+	public class FileItem : ISerializable
 	{
+		///
+		/// Preparation and Assembly (serialized)
+		/// 
+
 		/** The action that produces the file. */
 		public Action ProducingAction = null;
 
 		/** The absolute path of the file. */
 		public readonly string AbsolutePath;
 
-		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
-		    This is needed by some compilers to use PCH features. */
-		public string PCHHeaderNameInCode;
-
-		/** The pch file that this file will use */
-		public string PrecompiledHeaderIncludeFilename;
-
-		/** Description of file, used for logging. */
-		public string Description;
-
-		/** The information about the file. */
-		public FileInfo Info;
-
-		/** This is true if this item is actually a directory. Consideration for Mac application bundles. Note that Info will be null if true! */
-		public bool IsDirectory;
-
-		/** Relative cost of action associated with producing this file. */
-		public long RelativeCost = 0;
-
-		/** Used for performance debugging */
-		public static long TotalFileItemCount = 0;
-		public static long MissingFileItemCount = 0;
-
 		/** True if any DLLs produced by this  */
 		public bool bNeedsHotReloadNumbersDLLCleanUp = false;
-
-		/** A case-insensitive dictionary that's used to map each unique file name to a single FileItem object. */
-		static Dictionary<string, FileItem> UniqueSourceFileMap = new Dictionary<string, FileItem>();
 
 		/** Whether or not this is a remote file, in which case we can't access it directly */
 		public bool bIsRemoteFile = false;
 
-		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
-		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
 
-		/** The compile environment for this file.  This is only set on C++ source file file items, or C++-related files that have include paths.  It's part of UBT's dependency caching optimizations. */
-		public CPPEnvironment CachedCPPEnvironment
+		/** For C++ file items, this stores cached information about the include paths needed in order to include header files from these C++ files.  This is part of UBT's dependency caching optimizations. */
+		public CPPIncludeInfo CachedCPPIncludeInfo
 		{
 			get
 			{
-				return _CachedCPPEnvironment;
+				return _CachedCPPIncludeInfo;
 			}
 			set
 			{
-				if( value != null && _CachedCPPEnvironment != null && _CachedCPPEnvironment != value )
+				if( value != null && _CachedCPPIncludeInfo != null && _CachedCPPIncludeInfo != value )
 				{
 					// Uh oh.  We're clobbering our cached CompileEnvironment for this file with a different CompileEnvironment.  This means
 					// that the same source file is being compiled into more than one module. (e.g. PCLaunch.rc)
@@ -79,7 +57,7 @@ namespace UnrealBuildTool
 					{ 					
 						// Let's make sure the include paths are the same
 						// @todo fastubt: We have not seen examples of this actually firing off, so we could probably remove the check for matching includes and simply always make this an error case
-						var CachedIncludePathsToSearch = _CachedCPPEnvironment.GetIncludesPathsToSearch( this );
+						var CachedIncludePathsToSearch = _CachedCPPIncludeInfo.GetIncludesPathsToSearch( this );
 						var NewIncludePathsToSearch = value.GetIncludesPathsToSearch( this );
 
 						bool bIncludesAreDifferent = false;
@@ -105,10 +83,36 @@ namespace UnrealBuildTool
 						}
 					}
 				}
-				_CachedCPPEnvironment = value;
+				_CachedCPPIncludeInfo = value;
 			}
 		}
-		public CPPEnvironment _CachedCPPEnvironment;
+		public CPPIncludeInfo _CachedCPPIncludeInfo;
+
+
+		///
+		/// Preparation only (not serialized)
+		/// 
+
+		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
+		    This is needed by some compilers to use PCH features. */
+		public string PCHHeaderNameInCode;
+
+		/** The PCH file that this file will use */
+		public string PrecompiledHeaderIncludeFilename;
+
+
+		///
+		/// Transients (not serialized)
+		///
+
+		/** The information about the file. */
+		public FileInfo Info;
+
+		/** This is true if this item is actually a directory. Consideration for Mac application bundles. Note that Info will be null if true! */
+		public bool IsDirectory;
+
+		/** Relative cost of action associated with producing this file. */
+		public long RelativeCost = 0;
 
 		/** The last write time of the file. */
 		public DateTimeOffset _LastWriteTime;
@@ -116,7 +120,10 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				LookupOutstandingFiles();
+				if (bIsRemoteFile)
+				{
+					LookupOutstandingFiles();
+				}
 				return _LastWriteTime;
 			}
 			set { _LastWriteTime = value; }
@@ -128,7 +135,10 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				LookupOutstandingFiles();
+				if (bIsRemoteFile)
+				{
+					LookupOutstandingFiles();
+				}
 				return _bExists;
 			}
 			set { _bExists = value; }
@@ -140,11 +150,31 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				LookupOutstandingFiles();
+				if (bIsRemoteFile)
+				{
+					LookupOutstandingFiles();
+				}
 				return _Length;
 			}
 			set { _Length = value; }
 		}
+
+
+		///
+		/// Statics
+		///
+
+		/** Used for performance debugging */
+		public static long TotalFileItemCount = 0;
+		public static long MissingFileItemCount = 0;
+
+		/** A case-insensitive dictionary that's used to map each unique file name to a single FileItem object. */
+		static Dictionary<string, FileItem> UniqueSourceFileMap = new Dictionary<string, FileItem>();
+
+		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
+		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
+
+
 
 		/**
 		 * Resolve any outstanding remote file info lookups
@@ -318,6 +348,53 @@ namespace UnrealBuildTool
 
 			UniqueSourceFileMap[ AbsolutePath.ToLowerInvariant() ] = this;
 		}
+
+
+		/** ISerializable: Constructor called when this object is deserialized */
+		protected FileItem( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
+		{
+			ProducingAction = (Action)SerializationInfo.GetValue( "pa", typeof( Action ) );
+			AbsolutePath = SerializationInfo.GetString( "ap" );
+			bIsRemoteFile = SerializationInfo.GetBoolean( "rf" );
+			bNeedsHotReloadNumbersDLLCleanUp = SerializationInfo.GetBoolean( "hr" );
+			CachedCPPIncludeInfo = (CPPIncludeInfo)SerializationInfo.GetValue( "ci", typeof( CPPIncludeInfo ) );
+
+			// Go ahead and init normally now
+			{ 
+				ResetFileInfo();
+
+				++TotalFileItemCount;
+				if (!_bExists)
+				{
+					++MissingFileItemCount;
+					// Log.TraceInformation( "Missing: " + FileAbsolutePath );
+				}
+
+				if( bIsRemoteFile )
+				{
+					lock (DelayedRemoteLookupFiles)
+					{
+						DelayedRemoteLookupFiles.Add(this);
+					}
+				}
+				else
+				{ 
+					UniqueSourceFileMap[ AbsolutePath.ToLowerInvariant() ] = this;
+				}
+			}
+		}
+
+
+		/** ISerializable: Called when serialized to report additional properties that should be saved */
+		public void GetObjectData( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
+		{
+			SerializationInfo.AddValue( "pa", ProducingAction );
+			SerializationInfo.AddValue( "ap", AbsolutePath );
+			SerializationInfo.AddValue( "rf", bIsRemoteFile );
+			SerializationInfo.AddValue( "hr", bNeedsHotReloadNumbersDLLCleanUp );
+			SerializationInfo.AddValue( "ci", CachedCPPIncludeInfo );
+		}
+
 
 		/// <summary>
 		/// (Re-)set file information for this FileItem

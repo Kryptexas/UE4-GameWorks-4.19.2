@@ -16,7 +16,6 @@ namespace UnrealBuildTool
 		/// <param name="Lines">List of lines to write to the response file</param>
 		public static string Create(string TempFileName, List<string> Lines)
 		{
-			// @todo fastubt: Make sure we aren't spitting out response files more often than we have to.  Also look at Unity.cpp files, injected .cpp files, etc.
 			FileInfo TempFileInfo = new FileInfo( TempFileName );
 			// Delete the existing file if it exists
 			if( TempFileInfo.Exists )

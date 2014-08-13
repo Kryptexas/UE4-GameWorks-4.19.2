@@ -156,10 +156,6 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-		/** True if plugins should be excluded when building target. */
-		[XmlConfig]
-		public static bool bExcludePlugins;
-
         /** True if we need to package up Android with the OBB in the APK file */
 		[XmlConfig]
         public static bool bOBBinAPK;

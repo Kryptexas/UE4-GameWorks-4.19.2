@@ -19,11 +19,11 @@ namespace UnrealBuildTool
 	public enum ECompilationResult
 	{
 		Succeeded = 0,
-		FailedDueToHeaderChange = 1,
 		OtherCompilationError = 2
 	}
 
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */
+	[Serializable]
 	public class UHTModuleInfo
 	{
 		/** Module name */
@@ -262,7 +262,7 @@ namespace UnrealBuildTool
 		/// Gets the timestamp of CoreUObject.generated.cpp file.
 		/// </summary>
 		/// <returns>Last write time of CoreUObject.generated.cpp or DateTime.MaxValue if it doesn't exist.</returns>
-		private static DateTime GetCoreGeneratedTimestamp(UEBuildTarget Target)
+		private static DateTime GetCoreGeneratedTimestamp(UEBuildTarget Target, string ModuleName, string ModuleDirectory)
 		{			
 			DateTime Timestamp;
 			if( UnrealBuildTool.RunningRocket() )
@@ -272,8 +272,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				var CoreUObjectModule = (UEBuildModuleCPP)Target.GetModuleByName( "CoreUObject" );
-				string CoreGeneratedFilename = Path.Combine(UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, CoreUObjectModule.ModuleDirectory, CoreUObjectModule.Name), CoreUObjectModule.Name + ".generated.cpp");
+				string CoreGeneratedFilename = Path.Combine(UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, ModuleDirectory, ModuleName), ModuleName + ".generated.cpp");
 				if (File.Exists(CoreGeneratedFilename))
 				{
 					Timestamp = new FileInfo(CoreGeneratedFilename).LastWriteTime;
@@ -303,7 +302,23 @@ namespace UnrealBuildTool
 
 			// Get CoreUObject.generated.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
 			// need to regenerate code for the module
-			var CoreGeneratedTimestamp = GetCoreGeneratedTimestamp(Target);
+			DateTime? CoreGeneratedTimestamp = null;
+			{ 
+				// Find the CoreUObject module
+				foreach( var Module in UObjectModules )
+				{
+					if( Module.ModuleName.Equals( "CoreUObject", StringComparison.InvariantCultureIgnoreCase ) )
+					{
+						CoreGeneratedTimestamp = GetCoreGeneratedTimestamp(Target, Module.ModuleName, Module.ModuleDirectory);
+						break;
+					}
+				}
+				if( CoreGeneratedTimestamp == null )
+				{
+					throw new BuildException( "Could not find CoreUObject in list of all UObjectModules" );
+				}
+			}
+
 
 			foreach( var Module in UObjectModules )
 			{
@@ -349,16 +364,24 @@ namespace UnrealBuildTool
 									break;
 								}
 
-								// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
-								// changed, new source files may have been added or deleted.  We don't know whether the new/deleted
-								// files were actually UObject headers, but because we don't know all of the files we processed
-								// in the previous run, we need to assume our generated code is out of date if the directory timestamp
-								// is newer.
-								var HeaderDirectoryTimestamp = new DirectoryInfo( Path.GetDirectoryName( HeaderFile.AbsolutePath ) ).LastWriteTime;
-								if( SavedTimestamp.CompareTo( HeaderDirectoryTimestamp) < 0 )
+								// When we're running in assembler mode, outdatedness cannot be inferred by checking the directory timestamp
+								// of the source headers.  We don't care if source files were added or removed in this mode, because we're only
+								// able to process the known UObject headers that are in the Makefile.  If UObject header files are added/removed,
+								// we expect the user to re-run GenerateProjectFiles which will force UBTMakefile outdatedness.
+								// @todo fastubt: Possibly, we should never be doing this check these days.
+								if( UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild )
 								{
-									bIsOutOfDate = true;
-									break;
+									// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
+									// changed, new source files may have been added or deleted.  We don't know whether the new/deleted
+									// files were actually UObject headers, but because we don't know all of the files we processed
+									// in the previous run, we need to assume our generated code is out of date if the directory timestamp
+									// is newer.
+									var HeaderDirectoryTimestamp = new DirectoryInfo( Path.GetDirectoryName( HeaderFile.AbsolutePath ) ).LastWriteTime;
+									if( SavedTimestamp.CompareTo( HeaderDirectoryTimestamp) < 0 )
+									{
+										bIsOutOfDate = true;
+										break;
+									}
 								}
 							}
 						}
@@ -506,25 +529,32 @@ namespace UnrealBuildTool
 					// want to save this work until we know that UHT actually needs to be run to speed up best-case iteration times.
 					foreach( var UHTModuleInfo in UObjectModules )
 					{
-						UHTModuleInfo.PCH = "";
-
-						// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
-						var DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName( UHTModuleInfo.ModuleName );
-						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
-						DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
-						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+						// Only cache the PCH name if we don't already have one.  When running in 'gather only' mode, this will have already been cached
+						if( string.IsNullOrEmpty( UHTModuleInfo.PCH ) )
 						{
-							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+							UHTModuleInfo.PCH = "";
+
+							// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
+							var DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName( UHTModuleInfo.ModuleName );
+							var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+							DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
+							if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+							{
+								UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+							}
 						}
 					}
 				}
 
+				// @todo fastubt: @todo ubtmake: Optimization: Ideally we could avoid having to generate this data in the case where UHT doesn't even need to run!  Can't we use the existing copy?  (see below use of Manifest)
 				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
 
 				if( !bIsBuildingUHT && bUHTNeedsToRun )
 				{
 					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
-					if (UnrealBuildTool.RunningRocket() == false && UEBuildConfiguration.bDoNotBuildUHT == false)
+					if (UnrealBuildTool.RunningRocket() == false && 
+						UEBuildConfiguration.bDoNotBuildUHT == false &&
+						!( !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild ) )	// If running in "assembler only" mode, we assume UHT is already up to date for much faster iteration!
 					{
 						// If it is out of date or not there it will be built.
 						// If it is there and up to date, it will add 0.8 seconds to the build time.
@@ -546,7 +576,7 @@ namespace UnrealBuildTool
 						{
 							UBTArguments.Append(" -noxge");
 						}
-
+						
 						if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
 						{ 
 							return false;
@@ -613,6 +643,7 @@ namespace UnrealBuildTool
 					// Allow generated code to be sync'd to remote machines if needed. This needs to be done even if UHT did not run because
 					// generated headers include other generated headers using absolute paths which in case of building remotely are already
 					// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
+					// @todo ubtmake: Need to figure out what this does in the assembler case, and whether we need to run it
 					ToolChain.PostCodeGeneration(Target, Manifest);
 				}
 

@@ -462,8 +462,8 @@ namespace UnrealBuildTool
 			}
 
 			// Add include paths to the argument list.
-			List<string> AllIncludes = CompileEnvironment.Config.IncludePaths;
-			AllIncludes.AddRange(CompileEnvironment.Config.SystemIncludePaths);
+			List<string> AllIncludes = CompileEnvironment.Config.CPPIncludeInfo.IncludePaths;
+			AllIncludes.AddRange(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
 			foreach (string IncludePath in AllIncludes)
 			{
 				Arguments += string.Format(" -I\"{0}\"", ConvertPath(Path.GetFullPath(IncludePath)));
@@ -540,26 +540,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-
-				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-				{
-					QueueFileForBatchUpload(SourceFile);
-				}
-
-				{
-					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-					foreach (FileItem IncludedFile in IncludedFileList)
-					{
-						CompileAction.PrerequisiteItems.Add(IncludedFile);
-
-						if (!BuildConfiguration.bUseExperimentalFastDependencyScan &&	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
-							BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-						{
-							QueueFileForBatchUpload(IncludedFile);
-						}
-					}
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
@@ -615,7 +596,6 @@ namespace UnrealBuildTool
 				CompileAction.CommandPath = CompilerPath;
 				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 				CompileAction.bIsGCCCompiler = true;
 				// We're already distributing the command by execution on Mac.
 				CompileAction.bCanExecuteRemotely = false;

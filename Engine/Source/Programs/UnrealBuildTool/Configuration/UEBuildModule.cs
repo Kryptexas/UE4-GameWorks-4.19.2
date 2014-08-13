@@ -1110,8 +1110,8 @@ namespace UnrealBuildTool
 			{
 				// Update project file's set of preprocessor definitions and include paths
 				IntelliSenseGatherer.AddIntelliSensePreprocessorDefinitions( ModuleCompileEnvironment.Config.Definitions );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.SystemIncludePaths, bAddingSystemIncludes: true );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.IncludePaths, bAddingSystemIncludes: false );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths, bAddingSystemIncludes: true );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludePaths, bAddingSystemIncludes: false );
 
 				// Bail out.  We don't need to actually compile anything while generating project files.
 				return LinkInputFiles;
@@ -1158,7 +1158,7 @@ namespace UnrealBuildTool
 				// Make sure our RC files have cached includes.  
 				foreach( var RCFile in SourceFilesToBuild.RCFiles )
 				{ 
-					RCFile.CachedCPPEnvironment = ModuleCompileEnvironment;
+					RCFile.CachedCPPIncludeInfo = ModuleCompileEnvironment.Config.CPPIncludeInfo;
 				}
 			}
 
@@ -1453,7 +1453,7 @@ namespace UnrealBuildTool
 
 				CachePCHUsageForModuleSourceFile( this.Target, CPPCompileEnvironment, GeneratedCppFileItem );
 
-				// @todo fastubt: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPEnvironment first (anything platform specfic?)
+				// @todo fastubt: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specfic?)
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( Target, new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
 			}
 
@@ -1539,13 +1539,13 @@ namespace UnrealBuildTool
 			var PCHCacheTimerStart = DateTime.UtcNow;
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform( ModuleCompileEnvironment.Config.Target.Platform );
-			var IncludePathsToSearch = ModuleCompileEnvironment.GetIncludesPathsToSearch( CPPFile );
+			var IncludePathsToSearch = ModuleCompileEnvironment.Config.CPPIncludeInfo.GetIncludesPathsToSearch( CPPFile );
 
 			// Store the module compile environment along with the .cpp file.  This is so that we can use it later on when looking
 			// for header dependencies
-			CPPFile.CachedCPPEnvironment = ModuleCompileEnvironment;
+			CPPFile.CachedCPPIncludeInfo = ModuleCompileEnvironment.Config.CPPIncludeInfo;
 
-			var PCHFile = CachePCHUsageForCPPFile( Target, CPPFile, BuildPlatform, IncludePathsToSearch, ModuleCompileEnvironment.IncludeFileSearchDictionary );
+			var PCHFile = CachePCHUsageForCPPFile( Target, CPPFile, BuildPlatform, IncludePathsToSearch, ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludeFileSearchDictionary );
 
 			if( BuildConfiguration.bPrintPerformanceInfo )
 			{
@@ -1568,17 +1568,17 @@ namespace UnrealBuildTool
 				bool bFoundAProblemWithPCHs = false;
 
 				FileItem UniquePCH = null;
-				foreach( var CPPFile in SourceFilesFound.CPPFiles )
+				foreach( var CPPFile in SourceFilesFound.CPPFiles )	// @todo fastubt: We're not caching CPPEnvironments for .c/.mm files, etc.  Even though they don't use PCHs, they still have #includes!  This can break dependency checking!
 				{
 					// Build a single list of include paths to search.
-					var IncludePathsToSearch = ModuleCompileEnvironment.GetIncludesPathsToSearch( CPPFile );   // @todo fastubt: This call could be made faster (list caching)
+					var IncludePathsToSearch = ModuleCompileEnvironment.Config.CPPIncludeInfo.GetIncludesPathsToSearch( CPPFile );   // @todo fastubt: This call could be made faster (list caching)
 
 					// Store the module compile environment along with the .cpp file.  This is so that we can use it later on when looking
 					// for header dependencies
-					CPPFile.CachedCPPEnvironment = ModuleCompileEnvironment;
+					CPPFile.CachedCPPIncludeInfo = ModuleCompileEnvironment.Config.CPPIncludeInfo;
 
 					// Find headers used by the source file.
-					var PCH = UEBuildModuleCPP.CachePCHUsageForCPPFile(Target, CPPFile, BuildPlatform, IncludePathsToSearch, ModuleCompileEnvironment.IncludeFileSearchDictionary);
+					var PCH = UEBuildModuleCPP.CachePCHUsageForCPPFile(Target, CPPFile, BuildPlatform, IncludePathsToSearch, ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludeFileSearchDictionary);
 					if( PCH == null )
 					{
 						throw new BuildException( "Source file \"{0}\" is not including any headers.  We expect all modules to include a header file for precompiled header generation.  Please add an #include statement.", CPPFile.AbsolutePath );
@@ -1603,7 +1603,7 @@ namespace UnrealBuildTool
 				{
 					// Map from pch header string to the source files that use that PCH
 					var UsageMapPCH = new Dictionary<string, List<FileItem>>( StringComparer.InvariantCultureIgnoreCase );
-					foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
+					foreach( var CPPFile in SourceFilesToBuild.CPPFiles )	// @todo fastubt: Using SourceFilesToBuild here, but SourceFilesFound up above.  Why are there two arrays again?
 					{
 						// Create a new entry if not in the pch usage map
 						UsageMapPCH.GetOrAddNew( CPPFile.PrecompiledHeaderIncludeFilename ).Add( CPPFile );
@@ -1741,7 +1741,7 @@ namespace UnrealBuildTool
 			Result.Config.Definitions.AddRange(Definitions);
 
 			// Setup the compile environment for the module.
-			SetupPrivateCompileEnvironment(ref Result.Config.IncludePaths, ref Result.Config.SystemIncludePaths, ref Result.Config.Definitions, ref Result.Config.AdditionalFrameworks);
+			SetupPrivateCompileEnvironment(ref Result.Config.CPPIncludeInfo.IncludePaths, ref Result.Config.CPPIncludeInfo.SystemIncludePaths, ref Result.Config.Definitions, ref Result.Config.AdditionalFrameworks);
 
 			return Result;
 		}
@@ -1771,9 +1771,9 @@ namespace UnrealBuildTool
 
 			// Add all of the include paths
 			List<string> IncludePaths = new List<string>();
-			IncludePaths.AddRange(CompileEnvironment.Config.SystemIncludePaths);
+			IncludePaths.AddRange(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
 			IncludePaths.AddRange(PrivateSystemIncludePaths);
-			IncludePaths.AddRange(CompileEnvironment.Config.IncludePaths);
+			IncludePaths.AddRange(CompileEnvironment.Config.CPPIncludeInfo.IncludePaths);
 			IncludePaths.AddRange(PrivateIncludePaths);
 
 			// Build the full list of definitions
@@ -2083,11 +2083,26 @@ namespace UnrealBuildTool
 			else if (Plugins.IsPluginModule(ModuleName))
 			{
 				// Plugin module
-				BaseDirectory = Plugins.GetPluginInfoForModule(ModuleName).IntermediateIncPath;
+				string PluginIntermediateIncPath;
+				{ 
+					PluginInfo Plugin = Plugins.GetPluginInfoForModule(ModuleName);
+					if (Plugin.LoadedFrom == PluginInfo.LoadedFromType.Engine)
+					{
+						// Plugin folder is in the engine directory
+						PluginIntermediateIncPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
+					}
+					else
+					{
+						// Plugin folder is in the project directory
+						PluginIntermediateIncPath   = Path.GetFullPath(Path.Combine( Target.ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder));
+					}
+					PluginIntermediateIncPath = Path.Combine(PluginIntermediateIncPath, "Inc", "Plugins");
+				}
+				BaseDirectory = PluginIntermediateIncPath;
 			}
 			else
 			{
-				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();
+				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();		// @todo fastubt: This will be called again and again for every UObject module (80+)
 				BaseDirectory = AllProjectFolders.Find(ProjectFolder => Utils.IsFileUnderDirectory( ModuleDirectory, ProjectFolder ));
 				if (BaseDirectory == null)
 				{
@@ -2227,5 +2242,96 @@ namespace UnrealBuildTool
 
 		public string ResourcePath			= null;
 		public string BundleContentsSubdir	= null;
+	}
+
+	public class PrecompileHeaderEnvironment
+	{
+		/** The name of the module this PCH header is a member of */
+		public readonly string ModuleName;
+
+		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
+			This is needed by some compilers to use PCH features. */
+		public string PCHHeaderNameInCode;
+
+		/** The source header file that this precompiled header will be generated for */
+		public readonly FileItem PrecompiledHeaderIncludeFilename;
+
+		/** Whether this precompiled header will be built with CLR features enabled.  We won't mix and match CLR PCHs with non-CLR PCHs */
+		public readonly CPPCLRMode CLRMode;
+
+		/** Whether this precompiled header will be built with code optimization enabled. */
+		public readonly ModuleRules.CodeOptimization OptimizeCode;
+
+		/** The PCH file we're generating */
+		public FileItem PrecompiledHeaderFile = null;
+
+		/** Object files emitted from the compiler when generating this precompiled header.  These will be linked into modules that
+			include this PCH */
+		public readonly List<FileItem> OutputObjectFiles = new List<FileItem>();
+
+		public PrecompileHeaderEnvironment( string InitModuleName, string InitPCHHeaderNameInCode, FileItem InitPrecompiledHeaderIncludeFilename, CPPCLRMode InitCLRMode, ModuleRules.CodeOptimization InitOptimizeCode )
+		{
+			ModuleName = InitModuleName;
+			PCHHeaderNameInCode = InitPCHHeaderNameInCode;
+			PrecompiledHeaderIncludeFilename = InitPrecompiledHeaderIncludeFilename;
+			CLRMode = InitCLRMode;
+			OptimizeCode = InitOptimizeCode;
+		}
+
+		/// <summary>
+		/// Creates a precompiled header action to generate a new pch file 
+		/// </summary>
+		/// <param name="PCHHeaderNameInCode">The precompiled header name as it appeared in an #include statement</param>
+		/// <param name="PrecompiledHeaderIncludeFilename">Name of the header used for pch.</param>
+		/// <param name="ProjectCPPEnvironment">The environment the C/C++ files in the project are compiled with.</param>
+		/// <param name="OutputDirectory">The folder to save the generated PCH file to</param>
+		/// <param name="ModuleName">Name of the module this PCH is being generated for</param>
+		/// <param name="bAllowDLLExports">True if we should allow DLLEXPORT definitions for this PCH</param>
+		/// <returns>the compilation output result of the created pch.</returns>
+		public static CPPOutput GeneratePCHCreationAction(UEBuildTarget Target, string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, string OutputDirectory, string ModuleName, bool bAllowDLLExports )
+		{
+			// Find the header file to be precompiled. Don't skip external headers
+			if (PrecompiledHeaderIncludeFilename.bExists)
+			{
+				// Create a Dummy wrapper around the PCH to avoid problems with #pragma once on clang
+				var ToolChain = UEToolChain.GetPlatformToolChain(ProjectCPPEnvironment.Config.Target.Platform);
+				string PCHGuardDefine = Path.GetFileNameWithoutExtension(PrecompiledHeaderIncludeFilename.AbsolutePath).ToUpper();
+				string LocalPCHHeaderNameInCode = ToolChain.ConvertPath(PrecompiledHeaderIncludeFilename.AbsolutePath);
+				string TmpPCHHeaderContents = String.Format("#ifndef __AUTO_{0}_H__\n#define __AUTO_{0}_H__\n//Last Write: {2}\n#include \"{1}\"\n#endif//__AUTO_{0}_H__", PCHGuardDefine, LocalPCHHeaderNameInCode, PrecompiledHeaderIncludeFilename.LastWriteTime);
+				string DummyPath = Path.Combine(
+					ProjectCPPEnvironment.Config.OutputDirectory,
+					Path.GetFileName(PrecompiledHeaderIncludeFilename.AbsolutePath));
+				FileItem DummyPCH = FileItem.CreateIntermediateTextFile(DummyPath, TmpPCHHeaderContents);
+
+				// Create a new C++ environment that is used to create the PCH.
+				var ProjectPCHEnvironment = ProjectCPPEnvironment.DeepCopy();
+				ProjectPCHEnvironment.Config.PrecompiledHeaderAction = PrecompiledHeaderAction.Create;
+				ProjectPCHEnvironment.Config.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFilename.AbsolutePath;
+				ProjectPCHEnvironment.Config.PCHHeaderNameInCode = PCHHeaderNameInCode;
+				ProjectPCHEnvironment.Config.OutputDirectory = OutputDirectory;
+
+				if( !bAllowDLLExports )
+				{
+					for( var CurDefinitionIndex = 0; CurDefinitionIndex < ProjectPCHEnvironment.Config.Definitions.Count; ++CurDefinitionIndex )
+					{
+						// We change DLLEXPORT to DLLIMPORT for "shared" PCH headers
+						var OldDefinition = ProjectPCHEnvironment.Config.Definitions[ CurDefinitionIndex ];
+						if( OldDefinition.EndsWith( "=DLLEXPORT" ) )
+						{
+							ProjectPCHEnvironment.Config.Definitions[ CurDefinitionIndex ] = OldDefinition.Replace( "DLLEXPORT", "DLLIMPORT" );
+						}
+					}
+				}
+
+				// Cache our CPP environment so that we can check for outdatedness quickly.  Only files that have includes need this.
+				DummyPCH.CachedCPPIncludeInfo = ProjectPCHEnvironment.Config.CPPIncludeInfo;
+
+				Log.TraceVerbose( "Found PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
+
+				// Create the action to compile the PCH file.
+				return ProjectPCHEnvironment.CompileFiles(Target, new List<FileItem>() { DummyPCH }, ModuleName);
+			}
+			throw new BuildException( "Couldn't find PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
+		}
 	}
 }

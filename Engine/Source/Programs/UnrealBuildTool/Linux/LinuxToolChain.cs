@@ -383,11 +383,11 @@ namespace UnrealBuildTool
             }
 
             // Add include paths to the argument list.
-            foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+            foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
             {
                 Arguments += string.Format(" -I\"{0}\"", IncludePath);
             }
-            foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+            foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
             {
                 Arguments += string.Format(" -I\"{0}\"", IncludePath);
             }
@@ -441,12 +441,8 @@ namespace UnrealBuildTool
                     FileArguments += PCHArguments;
                 }
 
-                // Add the C++ source file and its included files to the prerequisite item list.
-                CompileAction.PrerequisiteItems.Add(SourceFile);
-				{
-					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
-				}
+				// Add the C++ source file and its included files to the prerequisite item list.
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
                 if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
                 {
@@ -502,7 +498,6 @@ namespace UnrealBuildTool
                 CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
                 CompileAction.CommandDescription = "Compile";
                 CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
-                CompileAction.StatusDetailedDescription = SourceFile.Description;
                 CompileAction.bIsGCCCompiler = true;
 
                 // Don't farm out creation of pre-compiled headers as it is the critical path task.

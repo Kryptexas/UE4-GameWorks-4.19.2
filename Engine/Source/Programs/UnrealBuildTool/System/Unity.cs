@@ -149,7 +149,7 @@ namespace UnrealBuildTool
 					// dependency cache, as it is now an "indirect include" from the unity file.  We'll clear out the compile environment
 					// attached to this file.  This prevents us from having to cache all of the indirect includes from these files inside our
 					// dependency cache, which speeds up iterative builds a lot!
-					CPPFile.CachedCPPEnvironment = null;
+					CPPFile.CachedCPPIncludeInfo = null;
 				}
 				AllUnityFiles = CPPUnityFileBuilder.GetUnityFiles();
 			}
@@ -225,7 +225,6 @@ namespace UnrealBuildTool
 				}
 
 				UnityCPPFile.RelativeCost        = UnityFile.TotalLength;
-				UnityCPPFile.Description         = string.Join(" + ", UnityFile.Files.Select(F => Path.GetFileName(F.AbsolutePath)));
 				UnityCPPFile.PCHHeaderNameInCode = PCHHeaderNameInCode;
                 UnityCPPFiles.Add(UnityCPPFile);
 

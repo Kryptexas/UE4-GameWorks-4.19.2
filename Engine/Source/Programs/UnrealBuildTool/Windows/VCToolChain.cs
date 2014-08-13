@@ -631,11 +631,11 @@ namespace UnrealBuildTool
 			AppendCLArguments_Global(CompileEnvironment, Arguments);
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
 			{
 				Arguments.AppendFormat(" /I \"{0}\"", IncludePath);
 			}
-			foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
 				if( WindowsPlatform.bCompileWithClang )
 				{
@@ -697,15 +697,7 @@ namespace UnrealBuildTool
 				bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-				{
-					// @todo fastubt: What if one of the prerequisite files has become missing since it was updated in our cache? (usually, because a coder eliminated the source file)
-					//		-> Two CASES:
-					//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
-					//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
-					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.GetIncludesPathsToSearch( SourceFile ), CompileEnvironment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				// If this is a CLR file then make sure our dependent assemblies are added as prerequisites
 				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLREnabled)
@@ -904,7 +896,6 @@ namespace UnrealBuildTool
 					CompileAction.bIsVCCompiler = true;
 				}
 				CompileAction.CommandArguments = Arguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 
 				if( CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create )
 				{
@@ -984,13 +975,13 @@ namespace UnrealBuildTool
 				CompileAction.CommandArguments += " /l 0x409";
 
 				// Include paths.
-				foreach (string IncludePath in Environment.Config.IncludePaths)
+				foreach (string IncludePath in Environment.Config.CPPIncludeInfo.IncludePaths)
 				{
 					CompileAction.CommandArguments += string.Format( " /i \"{0}\"", IncludePath );
 				}
 
 				// System include paths.
-				foreach( var SystemIncludePath in Environment.Config.SystemIncludePaths )
+				foreach( var SystemIncludePath in Environment.Config.CPPIncludeInfo.SystemIncludePaths )
 				{
 					CompileAction.CommandArguments += string.Format( " /i \"{0}\"", SystemIncludePath );
 				}
@@ -1013,14 +1004,10 @@ namespace UnrealBuildTool
 				Result.ObjectFiles.Add(CompiledResourceFile);
 
 				// Add the RC file as a prerequisite of the action.
-				CompileAction.PrerequisiteItems.Add(RCFile);
 				CompileAction.CommandArguments += string.Format(" \"{0}\"", RCFile.AbsolutePath);
 
-				// Add the files included by the RC file as prerequisites of the action.
-				{
-					var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, RCFile, BuildPlatform, Environment.GetIncludesPathsToSearch( RCFile ), Environment.IncludeFileSearchDictionary, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
-					CompileAction.PrerequisiteItems.AddRange( IncludedFileList );
-				}
+				// Add the C++ source file and its included files to the prerequisite item list.
+				AddPrerequisiteSourceFile( Target, BuildPlatform, Environment, RCFile, CompileAction.PrerequisiteItems );
 			}
 
 			return Result;
@@ -1284,9 +1271,6 @@ namespace UnrealBuildTool
 
 			// Add project
 			BuildProjectAction.CommandArguments += String.Format(" \"{0}\"", ProjectFileItem.AbsolutePath);
-
-			// We don't want to display all of the regular MSBuild output to the console
-			BuildProjectAction.bShouldBlockStandardOutput = false;
 
 			// Specify the output files.
 			string PDBFilePath = Path.Combine( Path.GetDirectoryName(DestinationFile), Path.GetFileNameWithoutExtension(DestinationFile) + ".pdb" );
