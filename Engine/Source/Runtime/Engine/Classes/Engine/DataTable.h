@@ -116,6 +116,11 @@ class UDataTable : public UObject
 		return RowData;
 	}
 
+	/** Empty the table info (will not clear RowStruct) */
+	ENGINE_API void EmptyTable();
+
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
+
 	/** Output entire contents of table as a string */
 	ENGINE_API FString GetTableAsString();
 
@@ -139,14 +144,14 @@ class UDataTable : public UObject
 	*/
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString);
 
-	/** Empty the table info (will not clear RowStruct) */
-	ENGINE_API void EmptyTable();
-
 	/** Get array of all the column titles */
 	ENGINE_API TArray<FString> GetColumnTitles() const;
 
+	TArray<UProperty*> GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems);
+
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
+#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
 
 	ENGINE_API static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData);
 
@@ -157,8 +162,6 @@ class UDataTable : public UObject
 	ENGINE_API static FName MakeValidName(const FString& InString);
 
 	ENGINE_API static bool IsSupportedTableProperty(const UProperty* InProp);
-
-	TArray<UProperty*> GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	// End UDataTable interface
 };

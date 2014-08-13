@@ -181,6 +181,50 @@ void UDataTable::FinishDestroy()
 	}
 }
 
+void UDataTable::EmptyTable()
+{
+	UScriptStruct* LoadUsingStruct = RowStruct;
+	if (LoadUsingStruct == NULL)
+	{
+		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
+		LoadUsingStruct = FTableRowBase::StaticStruct();
+	}
+
+	// Iterate over all rows in table and free mem
+	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+	{
+		uint8* RowData = RowIt.Value();
+		LoadUsingStruct->DestroyScriptStruct(RowData);
+		FMemory::Free(RowData);
+	}
+
+	// Finally empty the map
+	RowMap.Empty();
+}
+
+/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
+UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
+{
+	UProperty* Property = NULL;
+	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	{
+		Property = *It;
+		check(Property != NULL);
+		if (PropertyName == Property->GetFName())
+		{
+			break;
+		}
+	}
+	if (!IsSupportedTableProperty(Property))
+	{
+		Property = NULL;
+	}
+
+	return Property;
+}
+
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
+
 FString UDataTable::GetTableAsString()
 {
 	FString Result;
@@ -302,48 +346,6 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 	return true;
 }
 
-void UDataTable::EmptyTable()
-{
-	UScriptStruct* LoadUsingStruct = RowStruct;
-	if(LoadUsingStruct == NULL)
-	{
-		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
-		LoadUsingStruct = FTableRowBase::StaticStruct();
-	}
-
-	// Iterate over all rows in table and free mem
-	for ( auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt )
-	{
-		uint8* RowData = RowIt.Value();
-		LoadUsingStruct->DestroyScriptStruct(RowData);
-		FMemory::Free(RowData);
-	}
-
-	// Finally empty the map
-	RowMap.Empty();
-}
-
-/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
-UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
-{
-	UProperty* Property = NULL;
-	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
-	{
-		Property = *It;
-		check(Property != NULL);
-		if (PropertyName == Property->GetFName())
-		{
-			break;
-		}
-	}
-	if (!IsSupportedTableProperty(Property))
-	{
-		Property = NULL;
-	}
-
-	return Property;
-}
-
 /** Get array of UProperties that corresponds to columns in the table */
 TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
@@ -378,11 +380,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 
 				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
 				{
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
 					const FString DisplayName = *It ? (*It)->GetMetaData(DisplayNameKey) : FString();
-#else
-					const FString DisplayName = TEXT("");
-#endif
 					ColumnProp = (!DisplayName.IsEmpty() && (DisplayName == ColumnNameStrings[ColIdx])) ? *It : NULL;
 				}
 
@@ -421,13 +419,9 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 	for(int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
 	{
 		const UProperty* const ColumnProp = FindField<UProperty>(InRowStruct, ExpectedPropNames[PropIdx]);
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
 		const FString DisplayName = (ColumnProp && ColumnProp->HasMetaData(DisplayNameKey))
 			? ColumnProp->GetMetaData(DisplayNameKey) 
 			: ExpectedPropNames[PropIdx].ToString();
-#else
-		const FString DisplayName = ExpectedPropNames[PropIdx].ToString();
-#endif
 		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *DisplayName));
 	}
 
@@ -554,13 +548,9 @@ TArray<FString> UDataTable::GetColumnTitles() const
 	{
 		UProperty* Prop = *It;
 		check(Prop != NULL);
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
 		const FString DisplayName = Prop->HasMetaData(DisplayNameKey)
 			? Prop->GetMetaData(DisplayNameKey)
 			: Prop->GetName();
-#else
-		const FString DisplayName = Prop->GetName();
-#endif
 		Result.Add(DisplayName);
 	}
 	return Result;
@@ -599,3 +589,4 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 
 }
 
+#endif //WITH_EDITOR || HACK_HEADER_GENERATOR

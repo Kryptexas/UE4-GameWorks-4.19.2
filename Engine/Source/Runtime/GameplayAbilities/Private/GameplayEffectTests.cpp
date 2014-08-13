@@ -16,6 +16,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayEffectsTest, "AbilitySystem.GameplayEf
 
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 
+#if WITH_EDITOR
+
 void GameplayTest_TickWorld(UWorld *World, float Time)
 {
 	const float step = 0.1f;
@@ -6040,10 +6042,12 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 	return true;
 }
 
-
+#endif //WITH_EDITOR
 
 bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 {
+#if WITH_EDITOR
+
 	UCurveTable *CurveTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
 	UDataTable *DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeDataTable();
 
@@ -6179,6 +6183,8 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 
 	IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(CurveTable);
 	IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+
+#endif //WITH_EDITOR
 	return true;
 }
 
