@@ -1458,6 +1458,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _SourceContext;
 		
+		private string _EpicAccountId;
+		
+		private string _EngineVersion;
+		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
 		private EntitySet<Crash_FunctionCall> _Crash_FunctionCalls;
@@ -1540,6 +1544,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnHasMetaDataChanged();
     partial void OnSourceContextChanging(string value);
     partial void OnSourceContextChanged();
+    partial void OnEpicAccountIdChanging(string value);
+    partial void OnEpicAccountIdChanged();
+    partial void OnEngineVersionChanging(string value);
+    partial void OnEngineVersionChanged();
     #endregion
 		
 		public Crash()
@@ -2255,6 +2263,46 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._SourceContext = value;
 					this.SendPropertyChanged("SourceContext");
 					this.OnSourceContextChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_EpicAccountId", DbType="varchar(64)")]
+		public string EpicAccountId
+		{
+			get
+			{
+				return this._EpicAccountId;
+			}
+			set
+			{
+				if ((this._EpicAccountId != value))
+				{
+					this.OnEpicAccountIdChanging(value);
+					this.SendPropertyChanging();
+					this._EpicAccountId = value;
+					this.SendPropertyChanged("EpicAccountId");
+					this.OnEpicAccountIdChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_EngineVersion", DbType="varchar(64)")]
+		public string EngineVersion
+		{
+			get
+			{
+				return this._EngineVersion;
+			}
+			set
+			{
+				if ((this._EngineVersion != value))
+				{
+					this.OnEngineVersionChanging(value);
+					this.SendPropertyChanging();
+					this._EngineVersion = value;
+					this.SendPropertyChanged("EngineVersion");
+					this.OnEngineVersionChanged();
 				}
 			}
 		}

@@ -825,8 +825,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return UserGroupNameId;
 		}
 
-		// This string is written to the report in FCrashReportClient's constructor
+		/// <summary> 
+		/// This string is written to the report in FCrashReportClient's constructor.
+		/// This is obsolete, but left here for the backward compatibility.
+		/// </summary>
 		const string UserNamePrefix = "!Name:";
+
+		/// <summary> Special user name, currently used to mark crashes from UE4 releases. </summary>
+		const string UserNameAnonymous = "Anonymous";
 
 		/// <summary>
 		/// Add a new crash to the db based on a CrashDescription sent from the client.
@@ -845,13 +851,29 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.CommandLine = NewCrashInfo.CommandLine;
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
 
-			NewCrash.ComputerName = NewCrashInfo.MachineGuid;
-
-			// Check for internal crashes with user name in the form "!Name:<name>"
-			NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser(
-				NewCrashInfo.MachineGuid.StartsWith(UserNamePrefix) ?
-					NewCrashInfo.MachineGuid.Substring(UserNamePrefix.Count()) : "Anonymous");
-
+			// Valid MachineID and UserName, updated crash from non-UE4 release
+			if( !string.IsNullOrEmpty(NewCrashInfo.MachineGuid) && !string.IsNullOrEmpty(NewCrashInfo.UserName) )
+			{
+				NewCrash.ComputerName = NewCrashInfo.MachineGuid;
+				NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser( NewCrashInfo.UserName );
+			}
+			// Valid MachineID and EpicAccountId, updated crash from UE4 release
+			else if( !string.IsNullOrEmpty( NewCrashInfo.MachineGuid ) && !string.IsNullOrEmpty( NewCrashInfo.EpicAccountId ) )
+			{
+				NewCrash.EpicAccountId = NewCrashInfo.EpicAccountId;
+				NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser( UserNameAnonymous );
+			}
+			// Crash from an older version.
+			else
+			{
+				// MachineGuid for older crashes is obsolete, so ignore it.
+				//NewCrash.ComputerName = NewCrashInfo.MachineGuid;
+				NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser
+				(
+					!string.IsNullOrEmpty( NewCrashInfo.UserName ) ? NewCrashInfo.UserName : UserNameAnonymous
+				);
+			}
+			
 			NewCrash.Description = "";
 			if( NewCrashInfo.UserDescription != null )
 			{
@@ -860,7 +882,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
 			NewCrash.GameName = NewCrashInfo.GameName;
-			NewCrash.LanguageExt = NewCrashInfo.Language;		// Convert
+			NewCrash.LanguageExt = NewCrashInfo.Language; // Converted by the crash process.
 			NewCrash.PlatformName = NewCrashInfo.Platform;
 
 			if (NewCrashInfo.AssertionMessage != null)
@@ -905,6 +927,28 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			// As we're adding it, the status is always new
 			NewCrash.Status = "New";
+
+			/*
+				Unused Crashes' fields.
+	 
+				Title				nchar(20)		
+				Selected			bit				
+				Version				int				
+				AutoReporterID		int				
+				Processed			bit				
+				HasDiagnosticsFile	bit				
+				HasNewLogFile		bit				
+				HasMetaData			bit	
+			*/
+			// Set the unused fields to the default values.
+			NewCrash.Title = "";
+			NewCrash.Selected = false;
+			NewCrash.Version = 4;
+			NewCrash.AutoReporterID = 0;
+			NewCrash.Processed = true;
+			//NewCrash.HasDiagnosticsFile = true;
+			NewCrash.HasNewLogFile = false;
+			//NewCrash.HasMetaData = true;
 
 			// Add the crash to the database
 			CrashRepositoryDataContext.Crashes.InsertOnSubmit( NewCrash );

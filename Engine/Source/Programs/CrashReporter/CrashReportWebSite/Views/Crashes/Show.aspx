@@ -182,8 +182,11 @@
 			<dt>Platform</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.PlatformName) %></dd>
 
-			<dt>Computer</dt> 
+			<dt>Machine Id</dt> 
 				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.ComputerName) %></dd>
+
+			<dt>Epic Account Id</dt> 
+				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.EpicAccountId) %></dd>
 
 			<dt>Build Version</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.BuildVersion) %></dd>
