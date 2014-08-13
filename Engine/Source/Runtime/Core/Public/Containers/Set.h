@@ -776,6 +776,17 @@ public:
 		return Result;
 	}
 
+	/**
+	 * Checks that the specified address is not part of an element within the container.  Used for implementations
+	 * to check that reference arguments aren't going to be invalidated by possible reallocation.
+	 *
+	 * @param Addr The address to check.
+	 */
+	FORCEINLINE void CheckAddress(const void* Addr)
+	{
+		Elements.CheckAddress(Addr);
+	}
+
 private:
 	/** Extracts the element value from the set's element structure and passes it to the user provided comparison class. */
 	template <typename PREDICATE_CLASS>

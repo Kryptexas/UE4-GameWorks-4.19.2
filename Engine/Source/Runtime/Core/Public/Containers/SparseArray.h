@@ -568,6 +568,17 @@ public:
 	int32 GetMaxIndex() const { return Data.Num(); }
 	int32 Num() const { return Data.Num() - NumFreeIndices; }
 
+	/**
+	 * Checks that the specified address is not part of an element within the container.  Used for implementations
+	 * to check that reference arguments aren't going to be invalidated by possible reallocation.
+	 *
+	 * @param Addr The address to check.
+	 */
+	FORCEINLINE void CheckAddress(const void* Addr)
+	{
+		Data.CheckAddress(Addr);
+	}
+
 private:
 
 	/** The base class of sparse array iterators. */
