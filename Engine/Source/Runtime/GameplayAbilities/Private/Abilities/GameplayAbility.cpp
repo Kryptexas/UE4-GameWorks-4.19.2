@@ -3,6 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
+#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilityTask.h"
@@ -19,7 +20,11 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 	CostGameplayEffect = NULL;
 	CooldownGameplayEffect = NULL;
 
-	
+	{
+		static FName FuncName = FName(TEXT("K2_ShouldAbilityRespondToEvent"));
+		UFunction* ShouldRespondFunction = GetClass()->FindFunctionByName(FuncName);
+		HasBlueprintShouldAbilityRespondToEvent = ShouldRespondFunction && ShouldRespondFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+	}
 	{
 		static FName FuncName = FName(TEXT("K2_CanActivateAbility"));
 		UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
@@ -42,6 +47,28 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 		}
 	}
 #endif
+}
+
+void UGameplayAbility::TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag EventTag, FGameplayEventData* Payload)
+{
+	if (ShouldAbilityRespondToEvent(EventTag, Payload))
+	{
+		TryActivateAbility(ActorInfo);
+	}
+}
+
+// TODO: polymorphic payload
+void UGameplayAbility::SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload)
+{
+	AActor *OwnerActor = Cast<AActor>(GetOuter());
+	if (OwnerActor)
+	{
+		UAbilitySystemComponent* AbilitySystemComponent = OwnerActor->FindComponentByClass<UAbilitySystemComponent>();
+		if (ensure(AbilitySystemComponent))
+		{
+			AbilitySystemComponent->HandleGameplayEvent(EventTag, &Payload);
+		}
+	}
 }
 
 void UGameplayAbility::PostNetInit()
@@ -115,6 +142,20 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* Actor
 		if (K2_CanActivateAbility(*ActorInfo) == false)
 		{
 			ABILITY_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool UGameplayAbility::ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const
+{
+	if (HasBlueprintShouldAbilityRespondToEvent)
+	{
+		if (K2_ShouldAbilityRespondToEvent(*Payload) == false)
+		{
+			ABILITY_LOG(Log, TEXT("ShouldAbilityRespondToEvent %s failed, blueprint refused"), *GetName());
 			return false;
 		}
 	}
@@ -215,6 +256,9 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 	{
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
 		ActivationInfo.GeneratePredictionKey(ActorInfo->AbilitySystemComponent.Get());
+		
+		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
+		ServerTryActivateAbility(ActorInfo, ActivationInfo);
 
 		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -240,8 +284,6 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 		{
 			CallActivateAbility(ActorInfo, ActivationInfo);
 		}
-		
-		ServerTryActivateAbility(ActorInfo, ActivationInfo);
 	}
 
 	return true;	

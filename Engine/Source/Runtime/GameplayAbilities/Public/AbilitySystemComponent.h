@@ -320,9 +320,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */ 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Abilities")
+	UPROPERTY(ReplicatedUsing = OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
 	TArray<UGameplayAbility*>	ActivatableAbilities;
 	
+	UFUNCTION()
+	void	OnRep_ActivateAbilities();
 
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
@@ -363,6 +365,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	FGenericAbilityDelegate AbilityActivatedCallbacks;
 	FGenericAbilityDelegate AbilityCommitedCallbacks;
+
+	void HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData* Payload);
+
+	TMap<FGameplayTag, TArray<TWeakObjectPtr<UGameplayAbility> > > GameplayEventTriggeredAbilities;
 
 	void NotifyAbilityCommit(UGameplayAbility* Ability);
 	void NotifyAbilityActivated(UGameplayAbility* Ability);

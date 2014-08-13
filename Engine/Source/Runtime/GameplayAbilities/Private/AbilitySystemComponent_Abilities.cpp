@@ -165,6 +165,29 @@ TEXT("AbilitySystem.DenyClientActivations"),
 	);
 #endif
 
+void UAbilitySystemComponent::OnRep_ActivateAbilities()
+{
+	for (UGameplayAbility * Ability : ActivatableAbilities)
+	{
+		for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
+		{
+			FGameplayTag EventTag = TriggerData.TriggerTag;
+
+			if (GameplayEventTriggeredAbilities.Contains(EventTag))
+			{
+				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers = GameplayEventTriggeredAbilities[EventTag];
+				Triggers.Add(Ability);
+			}
+			else
+			{
+				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
+				Triggers.Add(Ability);
+				GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
+			}
+		}
+	}
+}
+
 void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -340,6 +363,22 @@ void UAbilitySystemComponent::NotifyAbilityCommit(UGameplayAbility* Ability)
 void UAbilitySystemComponent::NotifyAbilityActivated(UGameplayAbility* Ability)
 {
 	AbilityActivatedCallbacks.Broadcast(Ability);
+}
+
+void UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData* Payload)
+{
+	if (GameplayEventTriggeredAbilities.Contains(EventTag))
+	{
+		TArray<TWeakObjectPtr<UGameplayAbility> > TriggeredAbilities = GameplayEventTriggeredAbilities[EventTag];
+
+		for (auto Ability : TriggeredAbilities)
+		{
+			if (Ability.IsValid())
+			{
+				Ability.Get()->TriggerAbilityFromGameplayEvent(AbilityActorInfo.Get(), EventTag, Payload);
+			}
+		}
+	}
 }
 
 // --------------------------------------------------------------------------

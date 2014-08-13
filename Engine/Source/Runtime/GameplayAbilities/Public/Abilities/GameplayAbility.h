@@ -62,6 +62,15 @@
  */
 
 
+USTRUCT()
+struct FAbilityTriggerData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category=TriggerData)
+	FGameplayTag TriggerTag;
+};
+
 /**
  *	Abilities define custom gameplay logic that can be activated by players or external game logic.
  */
@@ -71,6 +80,7 @@ class GAMEPLAYABILITIES_API UGameplayAbility : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend class UAbilitySystemComponent;
+	friend class UGameplayAbilitySet;
 
 public:
 
@@ -113,6 +123,9 @@ public:
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
 	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	/** Returns true if this ability can be triggered right now. Has no side effects */
+	virtual bool ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const;
 	
 	float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const;
 		
@@ -169,6 +182,16 @@ public:
 	
 
 protected:
+
+	// --------------------------------------
+	//	ShouldAbilityRespondToEvent
+	// --------------------------------------
+
+	/** Returns true if this ability can be activated right now. Has no side effects */
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ShouldAbilityRespondToEvent")
+	virtual bool K2_ShouldAbilityRespondToEvent(FGameplayEventData Payload) const;
+
+	bool HasBlueprintShouldAbilityRespondToEvent;
 		
 	// --------------------------------------
 	//	CanActivate
@@ -200,6 +223,11 @@ protected:
 
 	/** Called on a predictive ability when the server confirms its execution */
 	void ConfirmActivateSucceed();
+
+	virtual void TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+		void SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload);
 
 	// --------------------------------------
 	//	CommitAbility
@@ -312,28 +340,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Advanced)
 	TEnumAsByte<EGameplayAbilityInstancingPolicy::Type>	InstancingPolicy;						
 
-	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authorting, confirmed, etc. */
+	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authoring, confirmed, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = Ability)
 	FGameplayAbilityActivationInfo	CurrentActivationInfo;
 
 	UPROPERTY(EditDefaultsOnly, Category=Advanced)
 	TEnumAsByte<EGameplayAbilityNetExecutionPolicy::Type> NetExecutionPolicy;
 
-	/** This GameplayEffect represents the cooldown. It will be applied when the ability is commited and the ability cannot be used again until it is expired. */
+	/** This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category=Cooldowns)
 	class UGameplayEffect* CooldownGameplayEffect;
 
-	/** This GameplayEffect represents the cost (mana, stamina, etc) of the ability. It will be applied when the ability is commited. */
+	/** This GameplayEffect represents the cost (mana, stamina, etc) of the ability. It will be applied when the ability is committed. */
 	UPROPERTY(EditDefaultsOnly, Category=Costs)
 	class UGameplayEffect* CostGameplayEffect;
 
+	/** Triggers to determine if this ability should execute in response to an event */
+	UPROPERTY(EditDefaultsOnly, Category = Triggers)
+	TArray<FAbilityTriggerData> AbilityTriggers;
+	
 	// ----------------------------------------------------------------------------------------------------------------
 	//
-	//	Ability exclusion / cancelling
+	//	Ability exclusion / canceling
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 	
-	/** Abilities with these tags are canelled when this ability is executed */
+	/** Abilities with these tags are canceled when this ability is executed */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer CancelAbilitiesWithTag;
 

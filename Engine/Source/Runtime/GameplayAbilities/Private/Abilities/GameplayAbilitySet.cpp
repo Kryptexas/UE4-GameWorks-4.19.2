@@ -7,7 +7,7 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
-//	UGameplayAbilitySet
+//	Helper Functions
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -67,6 +67,23 @@ void UGameplayAbilitySet::InitializeAbilities(UAbilitySystemComponent *AbilitySy
 			}
 
 			AbilitySystemComponent->ActivatableAbilities.Add(Ability);
+		}
+
+		for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
+		{
+			FGameplayTag EventTag = TriggerData.TriggerTag;
+
+			if (AbilitySystemComponent->GameplayEventTriggeredAbilities.Contains(EventTag))
+			{
+				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers = AbilitySystemComponent->GameplayEventTriggeredAbilities[EventTag];
+				Triggers.Add(Ability);
+			}
+			else
+			{
+				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
+				Triggers.Add(Ability);
+				AbilitySystemComponent->GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
+			}
 		}
 	}
 }
