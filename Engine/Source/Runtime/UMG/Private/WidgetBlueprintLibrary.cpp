@@ -27,6 +27,11 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 	}
 }
 
+void UWidgetBlueprintLibrary::SetFocusToGameViewport()
+{
+	FSlateApplication::Get().SetFocusToGameViewport();
+}
+
 void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
 {
 	Context.MaxLayer++;

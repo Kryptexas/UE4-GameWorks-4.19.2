@@ -98,6 +98,14 @@ bool UWidget::HasMouseCapture() const
 	return false;
 }
 
+void UWidget::SetKeyboardFocus() const
+{
+	if ( MyWidget.IsValid() )
+	{
+		FSlateApplication::Get().SetKeyboardFocus(MyWidget.Pin());
+	}
+}
+
 void UWidget::ForceLayoutPrepass()
 {
 	if ( MyWidget.IsValid() )

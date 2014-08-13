@@ -149,6 +149,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasMouseCapture() const;
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetKeyboardFocus() const;
+
 	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
