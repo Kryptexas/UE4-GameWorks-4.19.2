@@ -26,7 +26,12 @@ class UAbilityTask_MoveToLocation : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_MoveToLocation* MoveToLocation(UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve);
 
+	virtual void Activate() override;
+
 protected:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
 	FVector StartLocation;
 	FVector TargetLocation;
 	float DurationOfMovement;

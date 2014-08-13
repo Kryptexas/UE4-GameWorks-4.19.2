@@ -9,6 +9,7 @@ class UAnimInstance;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class AGameplayAbilityTargetActor;
+class UAbilityTask;
 
 
 UENUM(BlueprintType)

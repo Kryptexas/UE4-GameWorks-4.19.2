@@ -13,19 +13,11 @@ UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const class F
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate(UObject* WorldContextObject, FGameplayTag InWithTag, FGameplayTag InWithoutTag)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitAbilityActivate * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitAbilityActivate>();
-		MyObj->InitTask(ThisAbility);
-		MyObj->WithTag = InWithTag;
-		MyObj->WithoutTag = InWithoutTag;
+	auto MyObj = NewTask<UAbilityTask_WaitAbilityActivate>(WorldContextObject);
+	MyObj->WithTag = InWithTag;
+	MyObj->WithoutTag = InWithoutTag;
 
-		return MyObj;
-	}
-	return NULL;
+	return MyObj;
 }
 
 void UAbilityTask_WaitAbilityActivate::Activate()
@@ -44,11 +36,18 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility *Activ
 		// Failed tag check
 		return;
 	}
-	
+
+	OnActivate.Broadcast(ActivatedAbility);
+
+	EndTask();
+}
+
+void UAbilityTask_WaitAbilityActivate::OnDestroy(bool AbilityEnded)
+{
 	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->AbilityActivatedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
 	}
 
-	OnActivate.Broadcast(ActivatedAbility);
+	Super::OnDestroy(AbilityEnded);
 }

@@ -25,7 +25,9 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 
 	virtual void Activate() override;
 
-public:
+private:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
 
 	UAnimMontage* MontageToPlay;
 	

@@ -2,6 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_MoveToLocation.h"
 
+#pragma optimize( "", off )
+
 UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
@@ -18,10 +20,9 @@ void UAbilityTask_MoveToLocation::InterpolatePosition()
 
 			if (CurrentTime >= TimeMoveWillEnd)
 			{
-				ActorOwner->GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition);
 				ActorOwner->SetActorLocation(TargetLocation);
 				OnTargetLocationReached.Broadcast();
-				MarkPendingKill();
+				EndTask();
 			}
 			else
 			{
@@ -38,22 +39,27 @@ void UAbilityTask_MoveToLocation::InterpolatePosition()
 
 UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	check(ThisAbility);
-	AActor* ActorOwner = Cast<AActor>(ThisAbility->GetOuter());
-	check(ActorOwner);
+	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
 
-	UAbilityTask_MoveToLocation* MyObj = NewObject<UAbilityTask_MoveToLocation>();
-	MyObj->Ability = ThisAbility;
-
-	MyObj->StartLocation = ActorOwner->GetActorLocation();
+	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
 	MyObj->TargetLocation = Location;
 	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		//Avoid negative or divide-by-zero cases
-	MyObj->TimeMoveStarted = WorldContextObject->GetWorld()->GetTimeSeconds();
+	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
 	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
 	MyObj->LerpCurve = OptionalInterpolationCurve;
-	WorldContextObject->GetWorld()->GetTimerManager().SetTimer(MyObj, &UAbilityTask_MoveToLocation::InterpolatePosition, 0.001f, true);
 
 	return MyObj;
+}
+
+void UAbilityTask_MoveToLocation::OnDestroy(bool AbilityEnded)
+{
+	GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition);
+
+	Super::OnDestroy(AbilityEnded);
+}
+
+void UAbilityTask_MoveToLocation::Activate()
+{
+	// FIXME: This is bad - its calling InterpolatePOsition @ 1000hz!!!!
+	GetWorld()->GetTimerManager().SetTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition, 0.001f, true);
 }

@@ -5,6 +5,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementModeChangedDelegate, EMovementMode, NewMovementMode);
 
+class ACharacter;
+
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
@@ -25,4 +27,9 @@ public:
 	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
 
 	virtual void Activate() override;
+private:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
+	TWeakObjectPtr<ACharacter>	MyCharacter;
 };

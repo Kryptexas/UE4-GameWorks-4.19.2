@@ -7,6 +7,10 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitConfirmCancelDelegate);
 
+// Fixme: this name is conflicting with AbilityTask_WaitConfirm
+// UAbilityTask_WaitConfirmCancel = Wait for Targeting confirm/cancel
+// UAbilityTask_WaitConfirm = Wait for server to confirm ability activation
+
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitConfirmCancel : public UAbilityTask
 {
@@ -27,8 +31,12 @@ class UAbilityTask_WaitConfirmCancel : public UAbilityTask
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", FriendlyName="Wait for Confirm Input"), Category="Ability|Tasks")
 	static UAbilityTask_WaitConfirmCancel* WaitConfirmCancel(UObject* WorldContextObject);	
 
-	virtual void Activate() override;	
+	virtual void Activate() override;
 
-public:
+protected:
+
+	virtual void OnDestroy(bool AbilityEnding) override;
+
+	bool RegisteredCallbacks;
 	
 };

@@ -9,7 +9,7 @@ UAbilityTask_WaitOverlap::UAbilityTask_WaitOverlap(const class FPostConstructIni
 }
 
 
-void UAbilityTask_WaitOverlap::OnOverlapCallback(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void UAbilityTask_WaitOverlap::OnOverlapCallback(AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	if (OtherActor && bFromSweep)
 	{	
@@ -29,9 +29,8 @@ void UAbilityTask_WaitOverlap::OnHitCallback(AActor* OtherActor, UPrimitiveCompo
 		Handle.Data = TSharedPtr<FGameplayAbilityTargetData>(TargetData);
 		OnOverlap.Broadcast(Handle);
 
-
 		// We are done. Kill us so we don't keep getting broadcast messages
-		MarkPendingKill();
+		EndTask();
 	}
 }
 
@@ -41,32 +40,47 @@ void UAbilityTask_WaitOverlap::OnHitCallback(AActor* OtherActor, UPrimitiveCompo
 *	-Easy way to specify which types of actors/collision overlaps that we care about/want to block on
 */
 
-UAbilityTask_WaitOverlap* UAbilityTask_WaitOverlap::WaitForOverlap(class UObject* WorldContextObject)
+UAbilityTask_WaitOverlap* UAbilityTask_WaitOverlap::WaitForOverlap(UObject* WorldContextObject)
 {
-	check(WorldContextObject);
-
-	UAbilityTask_WaitOverlap * MyObj = NewObject<UAbilityTask_WaitOverlap>();
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	MyObj->Ability = ThisAbility;
-
+	auto MyObj = NewTask<UAbilityTask_WaitOverlap>(WorldContextObject);
 	return MyObj;
 }
 
 void UAbilityTask_WaitOverlap::Activate()
 {
-	if (Ability.IsValid())
+	UPrimitiveComponent* PrimComponent = GetComponent();
+	if (PrimComponent)
 	{
-		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
+		PrimComponent->OnComponentBeginOverlap.AddDynamic(this, &UAbilityTask_WaitOverlap::OnOverlapCallback);
+		PrimComponent->OnComponentHit.AddDynamic(this, &UAbilityTask_WaitOverlap::OnHitCallback);
+	}
+}
 
-		// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
-		UPrimitiveComponent * PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
+void UAbilityTask_WaitOverlap::OnDestroy(bool AbilityEnded)
+{
+	UPrimitiveComponent* PrimComponent = GetComponent();
+	if (PrimComponent)
+	{
+		PrimComponent->OnComponentBeginOverlap.RemoveDynamic(this, &UAbilityTask_WaitOverlap::OnOverlapCallback);
+		PrimComponent->OnComponentHit.RemoveDynamic(this, &UAbilityTask_WaitOverlap::OnHitCallback);
+	}
+
+	Super::OnDestroy(AbilityEnded);
+}
+
+UPrimitiveComponent* UAbilityTask_WaitOverlap::GetComponent()
+{
+	// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
+	UPrimitiveComponent * PrimComponent = nullptr;
+	AActor* ActorOwner = GetActor();
+	if (ActorOwner)
+	{
+		PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
 		if (!PrimComponent)
 		{
 			PrimComponent = ActorOwner->FindComponentByClass<UPrimitiveComponent>();
 		}
-		check(PrimComponent);
-
-		PrimComponent->OnComponentBeginOverlap.AddDynamic(this, &UAbilityTask_WaitOverlap::OnOverlapCallback);
-		PrimComponent->OnComponentHit.AddDynamic(this, &UAbilityTask_WaitOverlap::OnHitCallback);
 	}
+
+	return PrimComponent;
 }

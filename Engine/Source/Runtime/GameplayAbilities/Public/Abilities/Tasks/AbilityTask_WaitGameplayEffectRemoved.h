@@ -32,4 +32,8 @@ class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 	static UAbilityTask_WaitGameplayEffectRemoved* WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle Handle);
 
 	FActiveGameplayEffectHandle Handle;
+
+protected:
+
+	virtual void OnDestroy(bool AbilityIsEnding) override;
 };

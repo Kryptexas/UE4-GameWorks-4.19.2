@@ -13,18 +13,10 @@ UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(c
 
 UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle InHandle)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitGameplayEffectRemoved * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitGameplayEffectRemoved>();
-		MyObj->InitTask(ThisAbility);
-		MyObj->Handle = InHandle;
+	auto MyObj = NewTask<UAbilityTask_WaitGameplayEffectRemoved>(WorldContextObject);
+	MyObj->Handle = InHandle;
 
-		return MyObj;
-	}
-	return NULL;
+	return MyObj;
 }
 
 void UAbilityTask_WaitGameplayEffectRemoved::Activate()
@@ -44,8 +36,19 @@ void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 	}
 }
 
+void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
+{
+	FOnActiveGameplayEffectRemoved* DelPtr = AbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+	if (DelPtr)
+	{
+		DelPtr->RemoveUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
+	}
+
+	Super::OnDestroy(AbilityIsEnding);
+}
+
 void UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved()
 {
 	OnRemoved.Broadcast();
-	MarkPendingKill();
+	EndTask();
 }

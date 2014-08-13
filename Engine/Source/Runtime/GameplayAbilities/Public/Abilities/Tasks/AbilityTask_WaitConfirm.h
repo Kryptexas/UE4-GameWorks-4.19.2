@@ -21,6 +21,9 @@ class UAbilityTask_WaitConfirm : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitConfirm* WaitConfirm(UObject* WorldContextObject);
 
-public:
-	
+protected:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
+	bool RegisteredCallback;
 };

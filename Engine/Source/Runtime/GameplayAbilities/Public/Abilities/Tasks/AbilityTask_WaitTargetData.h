@@ -41,12 +41,11 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	void FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor);
 
-
 protected:
 
-	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
+	virtual void OnDestroy(bool AbilityEnded) override;
 
-	void Cleanup();
+	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 
 	/** The TargetActor that we spawned, or the class CDO if this is a static targeting task */
 	TWeakObjectPtr<AGameplayAbilityTargetActor>	MyTargetActor;

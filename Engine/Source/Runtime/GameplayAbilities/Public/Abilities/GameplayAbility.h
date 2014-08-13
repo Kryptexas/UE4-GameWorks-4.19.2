@@ -62,32 +62,6 @@
  */
 
 
-
-/***
- 
-
- TODO: Update: this is not all accurate anymore now that PredictiveACtivateAbility is gone. Please update comments!
-
-
-This is the basic flow of function calls in a networked environment:
--Client sees if he thinks he can activate the ability.
--Tells server to try and activate ability, predicts the ability immediately
--Server runs through Try/Can/Call, tells client if it passed or failed.
-
-
-																			 [If predictive] **Instance Ability** -> CallPredictiveActivateAbility() 
-			  (Optional)                                                     &&
-Client:		InputPressed()  ->  TryActivateAbility() -> CanActivateAbility() -> ServerTryActivateAbility()            --                         --                      --                          --                         --                ClientActivateAbilitySucceed() -> CallActivateAbility()
-																										  \\                                                                                                                                     //
-Server:		     --                      --                    --                          --                ServerTryActivateAbility()	-> CanActivateAbility() -> **Instance Ability** -> CallActivateAbility() -> ClientActivateAbilitySucceed()
-																																								||
-																																								-> ClientActivateAbilityFailed()
-																																																\\
-																																											Client:               ClientActivateAbilityFailed() [Remove and prediction work]
-
-***/
-
-
 /**
  *	Abilities define custom gameplay logic that can be activated by players or external game logic.
  */
@@ -186,7 +160,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer AbilityTags;
 
+	/** Callback for when this ability has been confirmed by the server */
 	FGenericAbilityDelegate	OnConfirmDelegate;
+
+	void TaskStarted(UAbilityTask* NewTask);
+
+	void TaskEnded(UAbilityTask* Task);
+	
 
 protected:
 		
@@ -359,7 +339,15 @@ protected:
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
-	//	Animation callbacks
+	//	Ability Tasks
+	//
+	// ----------------------------------------------------------------------------------------------------------------
+	
+	TArray<TWeakObjectPtr<UAbilityTask> >	ActiveTasks;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	Animation callbacks (still WIP)
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 

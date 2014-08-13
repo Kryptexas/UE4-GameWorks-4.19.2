@@ -248,9 +248,18 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 
 void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
+	// Tell all our tasks that we are finished and they should cleanup
+	for (TWeakObjectPtr<UAbilityTask> Task : ActiveTasks)
+	{
+		if (Task.IsValid())
+		{
+			Task->AbilityEnded();
+		}
+	}
+	ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
+
+	// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
 	ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(this);
-	
-	// TODO: generic way of releasing all callbacks?
 }
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -461,6 +470,18 @@ void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey
 	CurrentActivationInfo.SetActivationConfirmed();
 
 	CallActivateAbility(CurrentActorInfo, CurrentActivationInfo);
+}
+
+//----------------------------------------------------------------------
+
+void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
+{
+	ActiveTasks.Add(NewTask);
+}
+
+void UGameplayAbility::TaskEnded(UAbilityTask* Task)
+{
+	ActiveTasks.Remove(Task);
 }
 
 //----------------------------------------------------------------------

@@ -12,9 +12,7 @@ UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const class FPostConstr
 
 UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
 {
-	UAbilityTask_WaitTargetData * MyObj = NewObject<UAbilityTask_WaitTargetData>();
-	UGameplayAbility * ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	MyObj->InitTask(ThisAbility);
+	auto MyObj = NewTask<UAbilityTask_WaitTargetData>(WorldContextObject);
 	MyObj->TargetClass = InTargetClass;
 	return MyObj;	
 }
@@ -82,7 +80,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 			if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
 			{
 				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
-				Cleanup();
+				EndTask();
 			}
 			else
 			{
@@ -138,7 +136,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 		ValidData.Broadcast(Data);
 	}
 
-	Cleanup();
+	EndTask();
 }
 
 /** Client cancelled this Targeting Task (we are the server */
@@ -148,7 +146,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 
 	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
 	
-	Cleanup();
+	EndTask();
 }
 
 /** The TargetActor we spawned locally has called back with valid target data */
@@ -166,7 +164,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 
 	ValidData.Broadcast(Data);
 	
-	Cleanup();
+	EndTask();
 }
 
 /** The TargetActor we spawned locally has called back with a cancel event (they still include the 'last/best' targetdata but the consumer of this may want to discard it) */
@@ -177,17 +175,11 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 	AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled();
 	Cancelled.Broadcast(Data);
 
-	Cleanup();
+	EndTask();
 }
 
-void UAbilityTask_WaitTargetData::Cleanup()
+void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 {
-	if (HasAnyFlags(RF_PendingKill))
-	{
-		ensure(false);
-		return;
-	}
-
 	AbilitySystemComponent->ConsumeAbilityTargetData();
 	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
 
@@ -199,7 +191,7 @@ void UAbilityTask_WaitTargetData::Cleanup()
 		MyTargetActor->Destroy();
 	}
 
-	MarkPendingKill();
+	Super::OnDestroy(AbilityEnded);
 }
 
 

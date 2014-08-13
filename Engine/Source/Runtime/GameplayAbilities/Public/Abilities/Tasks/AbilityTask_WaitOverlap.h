@@ -34,6 +34,10 @@ class UAbilityTask_WaitOverlap : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitOverlap* WaitForOverlap(UObject* WorldContextObject);
 
-public:
+private:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
+	UPrimitiveComponent* GetComponent();
 	
 };

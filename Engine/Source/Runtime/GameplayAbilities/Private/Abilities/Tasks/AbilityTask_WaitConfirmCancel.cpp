@@ -9,6 +9,7 @@
 UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	RegisteredCallbacks = false;
 
 }
 
@@ -18,7 +19,7 @@ void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->ConsumeAbilityConfirmCancel();
-		MarkPendingKill();
+		EndTask();
 	}
 }
 
@@ -28,23 +29,13 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->ConsumeAbilityConfirmCancel();
-		MarkPendingKill();
+		EndTask();
 	}
 }
 
 UAbilityTask_WaitConfirmCancel* UAbilityTask_WaitConfirmCancel::WaitConfirmCancel(UObject* WorldContextObject)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitConfirmCancel * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitConfirmCancel>();
-		MyObj->InitTask(ThisAbility);
-
-		return MyObj;
-	}
-	return NULL;
+	return NewTask<UAbilityTask_WaitConfirmCancel>(WorldContextObject);
 }
 
 void UAbilityTask_WaitConfirmCancel::Activate()
@@ -73,8 +64,21 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 
 		AbilitySystemComponent->ConfirmCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback);	// Tell me if the confirm input is pressed
 		AbilitySystemComponent->CancelCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback);	// Tell me if the cancel input is pressed
+
+		RegisteredCallbacks = true;
 		
 		// Tell me if something else tells me to 'force' my target data (an ability may allow targeting during animation/limited time)
 		// Tell me if something else tells me to cancel my targeting
 	}
+}
+
+void UAbilityTask_WaitConfirmCancel::OnDestroy(bool AbilityEnding)
+{
+	if (RegisteredCallbacks && AbilitySystemComponent.IsValid())
+	{
+		AbilitySystemComponent->ConfirmCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback);
+		AbilitySystemComponent->CancelCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback);
+	}
+
+	Super::OnDestroy(AbilityEnding);
 }

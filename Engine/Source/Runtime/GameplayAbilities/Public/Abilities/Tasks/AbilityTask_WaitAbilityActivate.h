@@ -7,7 +7,6 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitAbilityActivateDelegate, UGameplayAbility*, ActivatedAbility);
 
 class AActor;
-class UPrimitiveComponent;
 
 /**
  *	Waits for the actor to activate another ability
@@ -31,4 +30,9 @@ class UAbilityTask_WaitAbilityActivate : public UAbilityTask
 
 	FGameplayTag WithTag;
 	FGameplayTag WithoutTag;
+
+protected:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
 };
