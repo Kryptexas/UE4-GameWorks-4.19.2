@@ -85,14 +85,14 @@ void EndInitTextLocalization()
 			}
 			LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
-			TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableCultures;
+			TArray< FCulturePtr > AvailableCultures;
 			I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
 
 			// Query for parent culture name based on request culture name.
 			FString ParentCultureName = RequestedCultureName;
 				
 			// If we do not have localization data, try the parent culture.
-			for(TSharedPtr<FCulture, ESPMode::ThreadSafe> ParentCulture = I18N.GetCulture(ParentCultureName); !AvailableCultures.Contains(ParentCulture); ParentCulture = I18N.GetCulture(ParentCultureName))
+			for(FCulturePtr ParentCulture = I18N.GetCulture(ParentCultureName); !AvailableCultures.Contains(ParentCulture); ParentCulture = I18N.GetCulture(ParentCultureName))
 			{
 				ParentCultureName = FCulture::GetParentName(ParentCultureName);
 

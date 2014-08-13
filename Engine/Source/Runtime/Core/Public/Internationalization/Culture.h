@@ -80,3 +80,5 @@ public:
 	const FNumberFormattingRules NumberFormattingRule;
 #endif
 };
+
+#include "CulturePointer.h"

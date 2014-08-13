@@ -42,10 +42,10 @@ public:
 	CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
-	CORE_API TSharedRef<FCulture, ESPMode::ThreadSafe> GetCurrentCulture() const;
+	CORE_API FCultureRef GetCurrentCulture() const;
 
 	//@return culture object by given name, or NULL if not found
-	CORE_API TSharedPtr<FCulture, ESPMode::ThreadSafe> GetCulture(const FString& Name) const;
+	CORE_API FCulturePtr GetCulture(const FString& Name) const;
 
 	//@return the default culture
 	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetDefaultCulture() const
@@ -69,7 +69,7 @@ public:
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
 
 	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
-	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCulturePtr >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
 
 private:
 	FInternationalization();

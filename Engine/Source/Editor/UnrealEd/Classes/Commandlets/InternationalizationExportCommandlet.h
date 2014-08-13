@@ -74,7 +74,7 @@ public:
 	/**
 	 * Retrieves the culture equivalent that matches the set language code.
 	 */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> GetCulture() const;
+	FCulturePtr GetCulture() const;
 
 	/**
 	 * Retrieves the display name for the language.
@@ -97,7 +97,7 @@ private:
 	FString LanguageCode;
 	FString LanguagePluralForms;
 
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture;
+	FCulturePtr Culture;
 };
 
 

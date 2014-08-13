@@ -30,7 +30,7 @@ bool FDocumentation::OpenHome() const
 	return Open( TEXT("%ROOT%") );
 }
 
-bool FDocumentation::OpenHome(const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const
+bool FDocumentation::OpenHome(const FCultureRef& Culture) const
 {
 	return Open(TEXT("%ROOT%"), Culture);
 }
@@ -84,7 +84,7 @@ bool FDocumentation::Open( const FString& Link ) const
 	return !DocumentationUrl.IsEmpty();
 }
 
-bool FDocumentation::Open(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const
+bool FDocumentation::Open(const FString& Link, const FCultureRef& Culture) const
 {
 	FString DocumentationUrl;
 
@@ -158,7 +158,7 @@ bool FDocumentation::PageExists(const FString& Link) const
 	return FPaths::FileExists(SourcePath);
 }
 
-bool FDocumentation::PageExists(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const
+bool FDocumentation::PageExists(const FString& Link, const FCultureRef& Culture) const
 {
 	const TWeakPtr< IDocumentationPage >* ExistingPagePtr = LoadedPages.Find(Link);
 	if (ExistingPagePtr != NULL)

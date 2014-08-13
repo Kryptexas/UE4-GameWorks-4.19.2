@@ -42,19 +42,19 @@ private:
 	FText GetCurrentLanguageText() const;
 
 	/** Generate a widget for the language combo */
-	TSharedRef<SWidget> OnLanguageGenerateWidget( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, IDetailLayoutBuilder* DetailBuilder ) const;
+	TSharedRef<SWidget> OnLanguageGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const;
 
 	/** Delegate called when the language selection has changed */
-	void OnLanguageSelectionChanged( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, ESelectInfo::Type SelectionType );
+	void OnLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
 
 	/** Generate a widget for the region combo */
-	TSharedRef<SWidget> OnRegionGenerateWidget( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, IDetailLayoutBuilder* DetailBuilder ) const;
+	TSharedRef<SWidget> OnRegionGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const;
 
 	/** Delegate called to display the current region */
 	FText GetCurrentRegionText() const;
 
 	/** Delegate called when the region selection has changed */
-	void OnRegionSelectionChanged( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, ESelectInfo::Type SelectionType );
+	void OnRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
 
 	/** Delegate called to see if we're allowed to change the region */
 	bool IsRegionSelectionAllowed() const;
@@ -72,25 +72,25 @@ private:
 	TWeakObjectPtr<UInternationalizationSettingsModel> Model;
 
 	/** The culture selected at present */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> SelectedCulture;
+	FCulturePtr SelectedCulture;
 
 	/** The language selected at present */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> SelectedLanguage;
+	FCulturePtr SelectedLanguage;
 
 	/** The cultures we have available to us */
-	TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableCultures;
+	TArray< FCulturePtr > AvailableCultures;
 
 	/** The languages we have available to us */
-	TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableLanguages;
+	TArray< FCulturePtr > AvailableLanguages;
 
 	/** The dropdown for the languages */
-	TSharedPtr<SComboBox< TSharedPtr<FCulture, ESPMode::ThreadSafe> > > LanguageComboBox;
+	TSharedPtr<SComboBox< FCulturePtr > > LanguageComboBox;
 
 	/** The regions we have available to us */
-	TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableRegions;
+	TArray< FCulturePtr > AvailableRegions;
 
 	/** The dropdown for the regions */
-	TSharedPtr<SComboBox< TSharedPtr<FCulture, ESPMode::ThreadSafe> > > RegionComboBox;
+	TSharedPtr<SComboBox< FCulturePtr > > RegionComboBox;
 
 	/** The check box for using localized field names */
 	TSharedPtr<SCheckBox> FieldNamesCheckBox;
