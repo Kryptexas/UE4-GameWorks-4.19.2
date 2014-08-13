@@ -504,7 +504,14 @@ static struct FQueueTests
 			if (CommandLine.Contains(TEXT("-AutomationTests=")))
 			{
 				//Let the current callstack complete then quit
-				GEngine->DeferredCommands.Add(TEXT("QUIT"));
+				if (GEngine->IsEditor())
+				{
+					GEngine->DeferredCommands.Add(TEXT("QUIT_EDITOR"));
+				}
+				else
+				{
+					GEngine->DeferredCommands.Add(TEXT("QUIT"));
+				}
 			}
 		}
 	}
@@ -564,6 +571,11 @@ bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 		else if (FParse::Command(&TempCmd, TEXT("CommandLineTests")))
 		{
 			TArray<FString> TestNames;
+
+			const bool bSkipScreenshots = FParse::Param(FCommandLine::Get(), TEXT("NoScreenshots"));
+			const bool bFullSizeScreenshots = FParse::Param(FCommandLine::Get(), TEXT("FullSizeScreenshots"));
+			FAutomationTestFramework::GetInstance().SetScreenshotOptions(!bSkipScreenshots, bFullSizeScreenshots);
+
 			if (GenerateTestNamesFromCommandLine(TempCmd, TestNames))
 			{
 				//Get the number of times to loop

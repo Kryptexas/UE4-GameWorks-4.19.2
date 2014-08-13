@@ -11,64 +11,7 @@
 
 #if WITH_EDITOR
 
-/**
- * Helper class for receiving the results of async source control operations
- */
-class FAsyncCommandHelper
-{
-public:
-	FAsyncCommandHelper( const FString& InParameter = FString() )
-		: Parameter(InParameter)
-		, bDispatched(false)
-		, bDone(false)
-		, bSuccessful(false)
-	{
-	}
-
-	void SourceControlOperationComplete( const FSourceControlOperationRef& Operation, ECommandResult::Type InResult )
-	{
-		bDone = true;
-		bSuccessful = InResult == ECommandResult::Succeeded;
-	}
-
-	const FString& GetParameter() const
-	{
-		return Parameter;
-	}
-
-	bool IsDispatched() const
-	{
-		return bDispatched;
-	}
-
-	void SetDispatched()
-	{
-		bDispatched = true;
-	}
-
-	bool IsDone() const
-	{
-		return bDone;
-	}
-
-	bool IsSuccessful() const
-	{
-		return bSuccessful;
-	}
-
-private:
-	/** Parameter we perform this operation with, if any */
-	FString Parameter;
-
-	/** Whether the async operation been issued */
-	bool bDispatched;
-
-	/** Whether the async operation has completed */
-	bool bDone;
-
-	/** Whether the operation was successful */
-	bool bSuccessful;
-};
+#include "Tests/SourceControlAutomationCommon.h"
 
 static void GetProviders(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands)
 {
@@ -156,14 +99,14 @@ bool FSetProviderTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FConnectLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FConnectLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FConnectLatentCommand::Update()
 {
 	// attempt a login and wait for the result
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(ISourceControlModule::Get().GetProvider().Login( FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) ) != ECommandResult::Succeeded)
+		if(ISourceControlModule::Get().GetProvider().Login( FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) ) != ECommandResult::Succeeded)
 		{
 			return false;
 		}
@@ -184,12 +127,12 @@ bool FConnectTest::RunTest(const FString& Parameters)
 {
 	// parameter is the provider we want to use
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*Parameters)));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
 
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FRevertLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FRevertLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FRevertLatentCommand::Update()
 {
@@ -199,7 +142,7 @@ bool FRevertLatentCommand::Update()
 			ISourceControlOperation::Create<FRevert>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -231,7 +174,7 @@ bool FRevertLatentCommand::Update()
 	return AsyncHelper.IsDone();
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCheckOutLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCheckOutLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FCheckOutLatentCommand::Update()
 {
@@ -241,7 +184,7 @@ bool FCheckOutLatentCommand::Update()
 			ISourceControlOperation::Create<FCheckOut>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -290,9 +233,9 @@ bool FCheckOutTest::RunTest(const FString& Parameters)
 	bool bWasReadOnly = IFileManager::Get().IsReadOnly(*SourceControlHelpers::PackageFilename(ParamArray[1]));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(FAsyncCommandHelper(ParamArray[1])));
-	ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetReadOnlyFlag(FReadOnlyState(ParamArray[1], bWasReadOnly)));
 
@@ -382,7 +325,7 @@ bool FDeletePackageLatentCommand::Update()
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FMarkForAddLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FMarkForAddLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FMarkForAddLatentCommand::Update()
 {
@@ -392,7 +335,7 @@ bool FMarkForAddLatentCommand::Update()
 			ISourceControlOperation::Create<FMarkForAdd>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -438,14 +381,14 @@ bool FMarkForAddTest::RunTest(const FString& Parameters)
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
 
 	struct Local
 	{
 		static void AddDependentCommands(const FString& InParameter)
 		{
-			ADD_LATENT_AUTOMATION_COMMAND(FMarkForAddLatentCommand(FAsyncCommandHelper(InParameter)));
-			ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(FAsyncCommandHelper(InParameter)));
+			ADD_LATENT_AUTOMATION_COMMAND(FMarkForAddLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(InParameter)));
+			ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(InParameter)));
 			ADD_LATENT_AUTOMATION_COMMAND(FDeletePackageLatentCommand(InParameter));
 		}
 	};
@@ -455,7 +398,7 @@ bool FMarkForAddTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FDeleteLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FDeleteLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FDeleteLatentCommand::Update()
 {
@@ -465,7 +408,7 @@ bool FDeleteLatentCommand::Update()
 			ISourceControlOperation::Create<FDelete>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -516,16 +459,16 @@ bool FDeleteTest::RunTest(const FString& Parameters)
 	FString AbsoluteFilename = SourceControlHelpers::PackageFilename(ParamArray[1]);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FDeleteLatentCommand(FAsyncCommandHelper(AbsoluteFilename)));
-	ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(FAsyncCommandHelper(AbsoluteFilename)));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(AbsoluteFilename)));
+	ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(AbsoluteFilename)));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetReadOnlyFlag(FReadOnlyState(ParamArray[1], bWasReadOnly)));
 
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCheckInLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCheckInLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FCheckInLatentCommand::Update()
 {
@@ -538,7 +481,7 @@ bool FCheckInLatentCommand::Update()
 			CheckInOperation, 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -616,17 +559,17 @@ bool FCheckInTest::RunTest(const FString& Parameters)
 
 	// parameter is the provider we want to use
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 	ADD_LATENT_AUTOMATION_COMMAND(FEditTextureLatentCommand(ParamArray[1]));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckInLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckInLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetReadOnlyFlag(FReadOnlyState(ParamArray[1], bWasReadOnly)));
 
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FSyncLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FSyncLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FSyncLatentCommand::Update()
 {
@@ -636,7 +579,7 @@ bool FSyncLatentCommand::Update()
 			ISourceControlOperation::Create<FSync>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -682,8 +625,8 @@ bool FSyncTest::RunTest(const FString& Parameters)
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FSyncLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FSyncLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 
 	return true;
 }
@@ -705,14 +648,14 @@ bool FRevertTest::RunTest(const FString& Parameters)
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
 
 	struct Local
 	{
 		static void AddDepedentCommands(const FString& InParameter)
 		{
-			ADD_LATENT_AUTOMATION_COMMAND(FMarkForAddLatentCommand(FAsyncCommandHelper(InParameter)));
-			ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(FAsyncCommandHelper(InParameter)));
+			ADD_LATENT_AUTOMATION_COMMAND(FMarkForAddLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(InParameter)));
+			ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(InParameter)));
 			ADD_LATENT_AUTOMATION_COMMAND(FDeletePackageLatentCommand(InParameter));
 		}
 	};
@@ -722,7 +665,7 @@ bool FRevertTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FUpdateStatusLatentCommand, FAsyncCommandHelper, AsyncHelper);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FUpdateStatusLatentCommand, SourceControlAutomationCommon::FAsyncCommandHelper, AsyncHelper);
 
 bool FUpdateStatusLatentCommand::Update()
 {
@@ -736,7 +679,7 @@ bool FUpdateStatusLatentCommand::Update()
 			UpdateStatusOperation, 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
-			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &SourceControlAutomationCommon::FAsyncCommandHelper::SourceControlOperationComplete ) 
 			) != ECommandResult::Succeeded)
 		{
 			return true;
@@ -800,9 +743,9 @@ bool FUpdateStatusTest::RunTest(const FString& Parameters)
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(FAsyncCommandHelper(ParamArray[1])));
-	ADD_LATENT_AUTOMATION_COMMAND(FUpdateStatusLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckOutLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FUpdateStatusLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 	ADD_LATENT_AUTOMATION_COMMAND(FGetStateLatentCommand(ParamArray[1]));
 	ADD_LATENT_AUTOMATION_COMMAND(FRevertLatentCommand(ParamArray[1]));
 
@@ -887,7 +830,7 @@ bool FGetLabelTest::RunTest(const FString& Parameters)
 	FilesToGet.Add(FPaths::ConvertRelativePathToFull(TEXT("../../../Engine/Source/Developer/SourceControl/SourceControl.Build.cs")));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
 	ADD_LATENT_AUTOMATION_COMMAND(FGetLabelLatentCommand(FLabelAndFilenames(ParamArray[1], FilesToGet)));
 
 	return true;
@@ -933,7 +876,7 @@ bool FSyncLabelTest::RunTest(const FString& Parameters)
 	FilesToGet.Add(FPaths::ConvertRelativePathToFull(TEXT("../../../Engine/Source/Developer/SourceControl/Public/ISourceControlModule.h")));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
 	ADD_LATENT_AUTOMATION_COMMAND(FSyncLabelLatentCommand(FLabelAndFilenames(ParamArray[1], FilesToGet)));
 
 	return true;
@@ -995,8 +938,8 @@ bool FGetRevisionTest::RunTest(const FString& Parameters)
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
-	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FUpdateStatusLatentCommand(FAsyncCommandHelper(ParamArray[1])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FUpdateStatusLatentCommand(SourceControlAutomationCommon::FAsyncCommandHelper(ParamArray[1])));
 	ADD_LATENT_AUTOMATION_COMMAND(FGetRevisionLatentCommand(ParamArray[1]));
 
 	return true;

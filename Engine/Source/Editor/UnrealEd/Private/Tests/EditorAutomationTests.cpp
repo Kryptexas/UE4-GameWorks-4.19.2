@@ -1017,7 +1017,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPValidation, "QA.BSP Validation", EAutomatio
 
 bool FBSPValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 	GEditor->Exec( World, TEXT("BRUSH Scale 1 1 1"));
 
 	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
@@ -1166,7 +1166,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshValidation, "QA.Mesh Factory Validat
 
 bool FStaticMeshValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Adjust camera in viewports
 	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
@@ -1269,7 +1269,7 @@ ABrush* ConvertTestFindNewBrush (const TArray<ABrush*> &PreviousBrushes)
 
 bool FConvertToValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Set the Test Name which is used later for getting the directory to store the screenshots.
 	const FString BaseFileName = TEXT("ConvertMeshTest");
@@ -1422,7 +1422,7 @@ void FOpenAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FS
 	//Put the Engine Content Folder Location into an array.  
 	TArray<FString> EngineContentFolderLocationArray;
 	EngineContentFolderLocation.ParseIntoArray(&EngineContentFolderLocationArray, TEXT("/"), true);
-	
+
 	for (int32 i = 0; i < AssetNames.Num(); ++i)
 	{
 		//true means that the life is located in the Engine/Content folder.
@@ -1583,7 +1583,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	const FString BaseFileName = TEXT("PointLightPlacementTest");
 
 	//Open a new blank map.
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Move the perspective viewport view to show the test.
 	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)

@@ -2054,11 +2054,10 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
-	const bool bAutomationTesting = GIsAutomationTesting;
 	const bool bIsInteratcting = false;// FSlateApplication::Get().GetMouseCaptor().IsValid() || GUnrealEd->IsUserInteracting();
 	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
 
-	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bAutomationTesting && !bIsInteratcting && !GIsDemoMode && bHasGameOrProjectLoaded );
+	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bIsInteratcting && !GIsDemoMode && bHasGameOrProjectLoaded );
 }
 
 /**

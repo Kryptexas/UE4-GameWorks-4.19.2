@@ -391,7 +391,7 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 		UE_LOG(LogBlueprintDebug, Warning, TEXT("Tried to break execution in an unknown spot at object %s:%04X"), *StackFrame.Node->GetFullName(), StackFrame.Code - StackFrame.Node->Script.GetTypedData());
 	}
 
-	if (GUnrealEd->PlayWorld != NULL)
+	if ((GUnrealEd->PlayWorld != NULL) && !GIsAutomationTesting)
 	{
 		// Pause the simulation
 		GUnrealEd->PlayWorld->bDebugPauseExecution = true;

@@ -105,6 +105,176 @@ struct FEditorImportExportTestDefinition
 };
 
 /**
+* Holds settings for the asset import workflow test
+*/
+USTRUCT()
+struct FEditorImportWorkflowDefinition
+{
+	GENERATED_USTRUCT_BODY()
+
+	/* The file to import */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "*"))
+	FFilePath ImportFilePath;
+
+	/* Settings for the import factory */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	TArray<FImportFactorySettingValues> FactorySettings;
+};
+
+/**
+* Holds settings for the import workflow stage of the build promotion test
+*/
+USTRUCT()
+struct FBuildPromotionImportWorkflowSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/* Import settings for the Diffuse texture */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition Diffuse;
+
+	/* Import settings for the Normalmap texture */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition Normal;
+
+	/* Import settings for the static mesh */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition StaticMesh;
+
+	/* Import settings for the static mesh to re-import */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition ReimportStaticMesh;
+
+	/* Import settings for the blend shape */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition BlendShapeMesh;
+
+	/* Import settings for the morph mesh */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition MorphMesh;
+
+	/* Import settings for the skeletal mesh */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition SkeletalMesh;
+
+	/* Import settings for the animation asset.  (Will automatically use the skeleton of the skeletal mesh above) */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition Animation;
+
+	/* Import settings for the sound */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition Sound;
+
+	/* Import settings for the surround sound (Select any of the channels.  It will auto import the rest)*/
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	FEditorImportWorkflowDefinition SurroundSound;
+
+	/* Import settings for any other assets you may want to import */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	TArray<FEditorImportWorkflowDefinition> OtherAssetsToImport;
+};
+
+/**
+* Holds settings for the open assets stage of the build promotion test
+*/
+USTRUCT()
+struct FBuildPromotionOpenAssetSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/* The blueprint asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath BlueprintAsset;
+
+	/* The material asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath MaterialAsset;
+	
+	/* The particle system asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath ParticleSystemAsset;
+	
+	/* The skeletal mesh asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath SkeletalMeshAsset;
+	
+	/* The static mesh asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath StaticMeshAsset;
+	
+	/* The texture asset to open */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath TextureAsset;
+};
+
+/**
+* Holds settings for the blueprint stage of the build promotion test
+*/
+USTRUCT()
+struct FBuildPromotionBlueprintSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** The starting mesh for the blueprint **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath FirstMeshPath;
+
+	/** The mesh to set on the blueprint after the delay **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath SecondMeshPath;
+};
+
+/**
+* Holds settings for the new project stage of the build promotion test
+*/
+USTRUCT()
+struct FBuildPromotionNewProjectSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** The path for the new project */
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FDirectoryPath NewProjectFolderOverride;
+
+	/** The name of the project **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FString NewProjectNameOverride;
+};
+
+/**
+* Holds settings for the editor build promotion test
+*/
+USTRUCT()
+struct FBuildPromotionTestSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Default static mesh asset to apply materials to **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FFilePath DefaultStaticMeshAsset;
+
+	/** Import workflow settings **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FBuildPromotionImportWorkflowSettings	ImportWorkflow;
+
+	/** Open assets settings **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FBuildPromotionOpenAssetSettings	OpenAssets;
+
+	/** Blueprint settings **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FBuildPromotionBlueprintSettings	BlueprintSettings;
+
+	/** New project settings **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FBuildPromotionNewProjectSettings NewProjectSettings;
+
+	/** Material to modify for the content browser step **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FFilePath	SourceControlMaterial;
+};
+
+/**
  * Implements the Editor's user settings.
  */
 UCLASS(config=Engine)
@@ -155,4 +325,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	TArray<FEditorImportExportTestDefinition> ImportExportTestDefinitions;
+
+	/**
+	* Editor build promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FBuildPromotionTestSettings BuildPromotionTest;
 };
