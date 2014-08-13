@@ -20,10 +20,6 @@ public:
 	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
 	bool GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const;
 
-	// UWidget interface
-	virtual void SyncronizeProperties() override;
-	// End of UWidget interface
-
 	void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR

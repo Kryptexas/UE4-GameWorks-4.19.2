@@ -25,9 +25,9 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 	return MySlider.ToSharedRef();
 }
 
-void USlider::SyncronizeProperties()
+void USlider::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
 	

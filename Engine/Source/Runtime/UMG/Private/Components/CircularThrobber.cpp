@@ -38,9 +38,9 @@ TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 	return MyCircularThrobber.ToSharedRef();
 }
 
-void UCircularThrobber::SyncronizeProperties()
+void UCircularThrobber::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyCircularThrobber->SetPieceImage(GetPieceBrush());
 	MyCircularThrobber->SetNumPieces(NumberOfPieces);

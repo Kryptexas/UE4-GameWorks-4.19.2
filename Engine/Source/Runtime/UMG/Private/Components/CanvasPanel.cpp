@@ -64,11 +64,6 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
-void UCanvasPanel::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
-}
-
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
 	return MyCanvas;

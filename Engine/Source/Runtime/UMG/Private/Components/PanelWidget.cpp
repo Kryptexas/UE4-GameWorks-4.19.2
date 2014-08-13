@@ -112,7 +112,7 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 		Content->Slot = Slot;
 	}
 
-	Slot->SyncronizeProperties();
+	Slot->SynchronizeProperties();
 }
 
 void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)

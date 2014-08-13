@@ -170,7 +170,7 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 			MyGCWidget = SafeGCWidget;
 
-			SyncronizeProperties();
+			SynchronizeProperties();
 
 			return SafeGCWidget.ToSharedRef();
 		}
@@ -179,7 +179,7 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	{
 		if ( bNewlyCreated )
 		{
-			SyncronizeProperties();
+			SynchronizeProperties();
 		}
 
 		return SafeWidget.ToSharedRef();
@@ -273,7 +273,7 @@ void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 	if ( MyWidget.IsValid() )
 	{
-		SyncronizeProperties();
+		SynchronizeProperties();
 	}
 }
 
@@ -334,7 +334,7 @@ TSharedRef<SWidget> UWidget::RebuildWidget()
 	return SNew(SSpacer);
 }
 
-void UWidget::SyncronizeProperties()
+void UWidget::SynchronizeProperties()
 {
 	// We want to apply the bindings to the cached widget, which could be the SWidget, or the SObjectWidget, 
 	// in the case where it's a user widget.  We always want to prefer the SObjectWidget so that bindings to 

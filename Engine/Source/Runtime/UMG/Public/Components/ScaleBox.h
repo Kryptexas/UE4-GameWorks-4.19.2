@@ -27,7 +27,7 @@ public:
 public:
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 	virtual void ReleaseNativeWidget() override;

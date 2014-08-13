@@ -35,7 +35,7 @@ public:
 	virtual void ReleaseNativeWidget() override;
 
 	/** Applies all properties to the live slot if possible. */
-	virtual void SyncronizeProperties()
+	virtual void SynchronizeProperties()
 	{
 	}
 
@@ -45,7 +45,7 @@ public:
 	{
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 
-		SyncronizeProperties();
+		SynchronizeProperties();
 	}
 
 #endif

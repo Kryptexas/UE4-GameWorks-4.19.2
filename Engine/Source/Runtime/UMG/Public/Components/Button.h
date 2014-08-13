@@ -70,7 +70,7 @@ public:
 	bool IsPressed() const;
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 	// UVisual interface

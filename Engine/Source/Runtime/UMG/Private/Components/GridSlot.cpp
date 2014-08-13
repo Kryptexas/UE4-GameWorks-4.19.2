@@ -85,7 +85,7 @@ void UGridSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 	}
 }
 
-void UGridSlot::SyncronizeProperties()
+void UGridSlot::SynchronizeProperties()
 {
 	SetRow(Row);
 	SetRowSpan(RowSpan);

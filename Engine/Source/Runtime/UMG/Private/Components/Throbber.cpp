@@ -32,9 +32,9 @@ TSharedRef<SWidget> UThrobber::RebuildWidget()
 	return MyThrobber.ToSharedRef();
 }
 
-void UThrobber::SyncronizeProperties()
+void UThrobber::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyThrobber->SetPieceImage(GetPieceBrush());
 	MyThrobber->SetNumPieces(NumberOfPieces);

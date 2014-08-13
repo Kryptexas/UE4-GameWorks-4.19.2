@@ -46,9 +46,9 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 	return MyButton.ToSharedRef();
 }
 
-void UButton::SyncronizeProperties()
+void UButton::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	SButton::FArguments ButtonDefaults;
 

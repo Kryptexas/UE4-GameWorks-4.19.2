@@ -108,9 +108,9 @@ TSharedRef<SWidget> UWidgetSwitcher::RebuildWidget()
 	return BuildDesignTimeWidget( MyWidgetSwitcher.ToSharedRef() );
 }
 
-void UWidgetSwitcher::SyncronizeProperties()
+void UWidgetSwitcher::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }

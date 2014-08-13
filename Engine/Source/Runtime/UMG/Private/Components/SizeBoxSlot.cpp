@@ -27,7 +27,7 @@ void USizeBoxSlot::BuildSlot(TSharedRef<SBox> InSizeBox)
 {
 	SizeBox = InSizeBox;
 
-	SyncronizeProperties();
+	SynchronizeProperties();
 
 	SizeBox->SetContent(Content ? Content->TakeWidget() : SNullWidget::NullWidget);
 }
@@ -59,7 +59,7 @@ void USizeBoxSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 	}
 }
 
-void USizeBoxSlot::SyncronizeProperties()
+void USizeBoxSlot::SynchronizeProperties()
 {
 	SetPadding(Padding);
 	SetHorizontalAlignment(HorizontalAlignment);

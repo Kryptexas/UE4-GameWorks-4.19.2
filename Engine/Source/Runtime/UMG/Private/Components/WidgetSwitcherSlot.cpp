@@ -58,7 +58,7 @@ void UWidgetSwitcherSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlig
 	}
 }
 
-void UWidgetSwitcherSlot::SyncronizeProperties()
+void UWidgetSwitcherSlot::SynchronizeProperties()
 {
 	SetPadding(Padding);
 	SetHorizontalAlignment(HorizontalAlignment);

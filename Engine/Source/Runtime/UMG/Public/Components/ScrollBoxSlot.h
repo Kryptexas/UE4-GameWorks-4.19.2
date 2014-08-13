@@ -29,7 +29,7 @@ public:
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */

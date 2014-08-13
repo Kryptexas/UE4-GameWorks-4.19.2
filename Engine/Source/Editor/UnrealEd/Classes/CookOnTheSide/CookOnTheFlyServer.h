@@ -39,7 +39,7 @@ private:
 
 	/** Array which has been made thread safe :) */
 	template<typename Type, typename SynchronizationObjectType, typename ScopeLockType>
-	struct FUnsyncronizedQueue
+	struct FUnsynchronizedQueue
 	{
 	private:
 		mutable SynchronizationObjectType	SynchronizationObject; // made this mutable so this class can have const functions and still be thread safe
@@ -117,20 +117,20 @@ public:
 
 
 	template<typename Type>
-	struct FThreadSafeQueue : public FUnsyncronizedQueue<Type, FCriticalSection, FScopeLock>
+	struct FThreadSafeQueue : public FUnsynchronizedQueue<Type, FCriticalSection, FScopeLock>
 	{
 		/**
 		 * Don't add any functions here, this is just a overqualified typedef
-		 * Add functions / functionality to the FUnsyncronizedQueue
+		 * Add functions / functionality to the FUnsynchronizedQueue
 		 */
 	};
 
 	template<typename Type>
-	struct FQueue : public FUnsyncronizedQueue<Type, FDummyCriticalSection, FDummyScopeLock>
+	struct FQueue : public FUnsynchronizedQueue<Type, FDummyCriticalSection, FDummyScopeLock>
 	{
 		/**
 		 * Don't add any functions here, this is just a overqualified typedef
-		 * Add functions / functionality to the FUnsyncronizedQueue
+		 * Add functions / functionality to the FUnsynchronizedQueue
 		 */
 	};
 

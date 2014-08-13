@@ -35,10 +35,6 @@ public:
 
 public:
 
-	// UWidget interface
-	virtual void SyncronizeProperties() override;
-	// End of UWidget interface
-
 	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR

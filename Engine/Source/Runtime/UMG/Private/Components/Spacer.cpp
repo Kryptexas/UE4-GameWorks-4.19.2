@@ -34,9 +34,9 @@ TSharedRef<SWidget> USpacer::RebuildWidget()
 	return MySpacer.ToSharedRef();
 }
 
-void USpacer::SyncronizeProperties()
+void USpacer::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 	
 	MySpacer->SetSize(Size);
 }

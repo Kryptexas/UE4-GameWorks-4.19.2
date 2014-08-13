@@ -36,7 +36,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidget(UWidget* Widget);
 	
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 
 	virtual void ReleaseNativeWidget() override;
 

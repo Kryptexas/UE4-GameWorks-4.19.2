@@ -66,9 +66,9 @@ TSharedRef<SWidget> UGridPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyGridPanel.ToSharedRef() );
 }
 
-void UGridPanel::SyncronizeProperties()
+void UGridPanel::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	for ( int ColumnIndex = 0; ColumnIndex < ColumnFill.Num(); ColumnIndex++ )
 	{

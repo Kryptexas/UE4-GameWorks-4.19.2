@@ -265,7 +265,7 @@ class UMG_API UViewport : public UContentWidget
 	AActor* Spawn(TSubclassOf<AActor> ActorClass);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 	virtual void ReleaseNativeWidget() override;

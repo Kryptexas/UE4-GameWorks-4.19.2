@@ -52,10 +52,6 @@ public:
 	///** @return Whether this menu has open submenus */
 	//bool HasOpenSubMenus() const;
 
-	// UWidget interface
-	virtual void SyncronizeProperties() override;
-	// End of UWidget interface
-
 	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR

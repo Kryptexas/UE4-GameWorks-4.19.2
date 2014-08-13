@@ -518,9 +518,9 @@ TSharedRef<SWidget> UViewport::RebuildWidget()
 	return BuildDesignTimeWidget( ViewportWidget.ToSharedRef() );
 }
 
-void UViewport::SyncronizeProperties()
+void UViewport::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	ViewportWidget->ViewportClient->SetBackgroundColor(BackgroundColor);
 	ViewportWidget->ViewportClient->SetEngineShowFlags(ShowFlags);

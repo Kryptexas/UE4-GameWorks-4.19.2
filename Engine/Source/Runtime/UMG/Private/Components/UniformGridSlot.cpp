@@ -64,7 +64,7 @@ void UUniformGridSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignme
 	}
 }
 
-void UUniformGridSlot::SyncronizeProperties()
+void UUniformGridSlot::SynchronizeProperties()
 {
 	SetRow(Row);
 	SetColumn(Column);

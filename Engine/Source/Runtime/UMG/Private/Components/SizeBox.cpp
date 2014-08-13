@@ -147,9 +147,9 @@ void USizeBox::ClearMaxDesiredHeight()
 	}
 }
 
-void USizeBox::SyncronizeProperties()
+void USizeBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	if ( bOverride_WidthOverride )
 	{

@@ -68,7 +68,7 @@ public:
 	void SetError(FText InError);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 #if WITH_EDITOR

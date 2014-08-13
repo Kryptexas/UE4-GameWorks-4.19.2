@@ -52,9 +52,9 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	return BuildDesignTimeWidget( MyMultiLineEditableText.ToSharedRef() );
 }
 
-void UMultiLineEditableText::SyncronizeProperties()
+void UMultiLineEditableText::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyMultiLineEditableText->SetText(Text);
 //	MyMultiLineEditableText->SetHintText(HintText);

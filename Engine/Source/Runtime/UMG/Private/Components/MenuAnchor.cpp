@@ -35,11 +35,6 @@ TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 	return BuildDesignTimeWidget( MyMenuAnchor.ToSharedRef() );
 }
 
-void UMenuAnchor::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
-}
-
 void UMenuAnchor::OnSlotAdded(UPanelSlot* Slot)
 {
 	// Add the child to the live slot if it already exists

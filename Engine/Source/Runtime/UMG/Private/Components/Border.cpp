@@ -43,9 +43,9 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 	return BuildDesignTimeWidget( MyBorder.ToSharedRef() );
 }
 
-void UBorder::SyncronizeProperties()
+void UBorder::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 	
 	MyBorder->SetBorderBackgroundColor(BrushColor);
 	MyBorder->SetColorAndOpacity(ContentColorAndOpacity);

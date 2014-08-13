@@ -24,7 +24,7 @@ TSharedRef<SWidget> UProgressBar::RebuildWidget()
 	return MyProgressBar.ToSharedRef();
 }
 
-void UProgressBar::SyncronizeProperties()
+void UProgressBar::SynchronizeProperties()
 {
 	const FProgressBarStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FProgressBarStyle>() : NULL;
 	if ( StylePtr )

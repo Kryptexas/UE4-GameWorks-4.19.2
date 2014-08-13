@@ -37,7 +37,7 @@ TSharedRef<SWidget> UScrollBar::RebuildWidget()
 	return MyScrollBar.ToSharedRef();
 }
 
-void UScrollBar::SyncronizeProperties()
+void UScrollBar::SynchronizeProperties()
 {
 	//MyScrollBar->SetScrollOffset(DesiredScrollOffset);
 }

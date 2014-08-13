@@ -12,11 +12,6 @@ UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UComboBox::ReleaseNativeWidget()
-{
-	Super::ReleaseNativeWidget();
-}
-
 TSharedRef<SWidget> UComboBox::RebuildWidget()
 {
 	TSharedRef< SComboBox<UObject*> > NewComboBox =

@@ -34,11 +34,6 @@ TSharedRef<SWidget> UDragPanel::RebuildWidget()
 	return MyDragPanel.ToSharedRef();
 }
 
-void UDragPanel::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
-}
-
 void UDragPanel::OnSlotAdded(UPanelSlot* Slot)
 {
 	// Add the child to the live slot if it already exists

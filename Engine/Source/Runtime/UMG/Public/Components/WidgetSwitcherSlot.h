@@ -34,7 +34,7 @@ class UMG_API UWidgetSwitcherSlot : public UPanelSlot
 	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
 
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
 	virtual void ReleaseNativeWidget() override;

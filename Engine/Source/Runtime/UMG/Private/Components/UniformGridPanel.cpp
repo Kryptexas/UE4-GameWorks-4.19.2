@@ -69,9 +69,9 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
 }
 
-void UUniformGridPanel::SyncronizeProperties()
+void UUniformGridPanel::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyUniformGridPanel->SetSlotPadding(SlotPadding);
 }

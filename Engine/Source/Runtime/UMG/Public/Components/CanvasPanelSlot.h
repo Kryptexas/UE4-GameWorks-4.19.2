@@ -67,7 +67,7 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	void SetZOrder(int32 InZOrder);
 
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
 	virtual void ReleaseNativeWidget() override;

@@ -89,7 +89,7 @@ public:
 	void SetText(FText InText);
 
 	// UWidget interface
-	void SyncronizeProperties() override;
+	void SynchronizeProperties() override;
 	// End of UWidget interface
 
 #if WITH_EDITOR

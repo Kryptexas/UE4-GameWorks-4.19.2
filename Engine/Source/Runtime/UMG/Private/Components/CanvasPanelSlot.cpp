@@ -29,7 +29,7 @@ void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 
-	SyncronizeProperties();
+	SynchronizeProperties();
 }
 
 void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
@@ -139,7 +139,7 @@ void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 	}
 }
 
-void UCanvasPanelSlot::SyncronizeProperties()
+void UCanvasPanelSlot::SynchronizeProperties()
 {
 	SetOffsets(LayoutData.Offsets);
 	SetAnchors(LayoutData.Anchors);
@@ -167,7 +167,7 @@ void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
 
 void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	SyncronizeProperties();
+	SynchronizeProperties();
 
 	static FName AnchorsProperty(TEXT("Anchors"));
 	
@@ -248,7 +248,7 @@ void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainE
 			}
 
 			// Apply the changes to the properties.
-			SyncronizeProperties();
+			SynchronizeProperties();
 		}
 	}
 

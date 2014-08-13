@@ -84,7 +84,7 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 	return BuildDesignTimeWidget( MyScrollBox.ToSharedRef() );
 }
 
-void UScrollBox::SyncronizeProperties()
+void UScrollBox::SynchronizeProperties()
 {
 	MyScrollBox->SetScrollOffset(DesiredScrollOffset);
 	MyScrollBox->SetOrientation(Orientation);

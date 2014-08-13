@@ -71,9 +71,9 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
 
-void UEditableText::SyncronizeProperties()
+void UEditableText::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);

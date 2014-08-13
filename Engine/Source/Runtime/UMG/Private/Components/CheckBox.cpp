@@ -67,9 +67,9 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 	return MyCheckbox.ToSharedRef();
 }
 
-void UCheckBox::SyncronizeProperties()
+void UCheckBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
 	if ( StylePtr == NULL )

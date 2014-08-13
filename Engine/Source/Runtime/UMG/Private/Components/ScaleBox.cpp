@@ -35,9 +35,9 @@ TSharedRef<SWidget> UScaleBox::RebuildWidget()
 	return MyScaleBox.ToSharedRef();
 }
 
-void UScaleBox::SyncronizeProperties()
+void UScaleBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyScaleBox->SetStretchDirection(StretchDirection);
 	MyScaleBox->SetStretch(Stretch);

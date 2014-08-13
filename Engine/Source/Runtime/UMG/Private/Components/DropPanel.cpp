@@ -37,11 +37,6 @@ TSharedRef<SWidget> UDropPanel::RebuildWidget()
 	return MyDropPanel.ToSharedRef();
 }
 
-void UDropPanel::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
-}
-
 void UDropPanel::OnSlotAdded(UPanelSlot* Slot)
 {
 	// Add the child to the live slot if it already exists

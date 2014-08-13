@@ -69,9 +69,9 @@ TSharedRef<SWidget> UTextBlock::RebuildWidget()
 	return MyTextBlock.ToSharedRef();
 }
 
-void UTextBlock::SyncronizeProperties()
+void UTextBlock::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
 

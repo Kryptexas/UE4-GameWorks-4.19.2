@@ -65,9 +65,9 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 	return MyEditableTextBlock.ToSharedRef();
 }
 
-void UEditableTextBox::SyncronizeProperties()
+void UEditableTextBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	const FEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextBoxStyle>() : NULL;
 	if ( StylePtr )

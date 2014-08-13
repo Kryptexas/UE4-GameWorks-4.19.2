@@ -180,7 +180,7 @@ public:
 	 * It can also be called by the editor to update modified state, so ensure all initialization to a widgets
 	 * properties are performed here, or the property and visual state may become unsynced.
 	 */
-	virtual void SyncronizeProperties();
+	virtual void SynchronizeProperties();
 
 	/** Returns if the widget is currently being displayed in the designer, it may want to display different data. */
 	bool IsDesignTime() const;

@@ -76,7 +76,7 @@ public:
 	void SetForegroundColor(FLinearColor InForegroundColor);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 	// UVisual interface

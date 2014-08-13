@@ -47,9 +47,9 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 	return MyEditableTextBlock.ToSharedRef();
 }
 
-void UMultiLineEditableTextBox::SyncronizeProperties()
+void UMultiLineEditableTextBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	//const FMultiLineEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FMultiLineEditableTextBoxStyle>() : NULL;
 	//if ( StylePtr )

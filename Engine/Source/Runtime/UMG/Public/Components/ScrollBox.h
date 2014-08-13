@@ -29,7 +29,7 @@ class UMG_API UScrollBox : public UPanelWidget
 	void SetScrollOffset(float NewScrollOffset);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 #if WITH_EDITOR
