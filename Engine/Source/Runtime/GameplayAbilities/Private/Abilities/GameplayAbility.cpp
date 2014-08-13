@@ -5,6 +5,7 @@
 #include "GameplayEffect.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilityTask.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
