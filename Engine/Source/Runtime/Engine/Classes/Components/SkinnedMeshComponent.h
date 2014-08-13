@@ -808,6 +808,7 @@ public:
 	 *	@param  BoneName            Name of bone to hide
 	 *	@param	PhysBodyOption		Option for physics bodies that attach to the bones to be hidden
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void HideBoneByName( FName BoneName, EPhysBodyOp PhysBodyOption );
 
 	/**
@@ -815,7 +816,18 @@ public:
 	 *	Compoared to HideBone By Index - This keeps track of list of bones and update when LOD changes
 	 *	@param  BoneName            Name of bone to unhide
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void UnHideBoneByName( FName BoneName );
+
+	/** 
+	 *	Determines if the specified bone is hidden. 
+	 *
+	 *	@param  BoneName            Name of bone to check
+	 *
+	 *	@return true if hidden
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
+	bool IsBoneHiddenByName( FName BoneName );
 
 	/**
 	 *  Show/Hide Material - technical correct name for this is Section, but seems Material is mostly used

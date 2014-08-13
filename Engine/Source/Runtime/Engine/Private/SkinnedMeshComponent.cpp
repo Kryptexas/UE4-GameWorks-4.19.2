@@ -1568,6 +1568,18 @@ bool USkinnedMeshComponent::IsBoneHidden( int32 BoneIndex ) const
 }
 
 
+bool USkinnedMeshComponent::IsBoneHiddenByName( FName BoneName )
+{
+	// Find appropriate BoneIndex
+	int32 BoneIndex = GetBoneIndex(BoneName);
+	if(BoneIndex != INDEX_NONE)
+	{
+		return IsBoneHidden(BoneIndex);
+	}
+
+	return false;
+}
+
 void USkinnedMeshComponent::HideBoneByName( FName BoneName, EPhysBodyOp PhysBodyOption )
 {
 	// Find appropriate BoneIndex
