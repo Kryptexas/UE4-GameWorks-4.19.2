@@ -1731,6 +1731,7 @@ UFoliageType* FEdModeFoliage::SaveSettingsObject(const FText& InSettingsPackageN
 
 	UFoliageType* NewSettings = Cast<UFoliageType>(StaticDuplicateObject(Settings, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
 	NewSettings->SetFlags(RF_Standalone | RF_Public);
+	NewSettings->Modify();
 
 	ReplaceSettingsObject(Settings, NewSettings);
 
