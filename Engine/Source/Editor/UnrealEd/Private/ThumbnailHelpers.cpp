@@ -522,7 +522,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 	PreviewAnimation = InAnimation;
 
-	if (InAnimation)
+	if (InAnimation && InAnimation->IsValidToPlay())
 	{
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{

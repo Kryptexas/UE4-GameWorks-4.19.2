@@ -377,5 +377,6 @@ public:
 	/** Registers a delegate to be called after notification has changed*/
 	ENGINE_API void RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate);
 	ENGINE_API void UnregisterOnNotifyChanged(void * Unregister);
+	ENGINE_API virtual bool IsValidToPlay() const { return true; }
 #endif
 };
