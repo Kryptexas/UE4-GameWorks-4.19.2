@@ -1298,11 +1298,6 @@ void ALandscapeProxy::PostLoad()
 }
 
 #if WITH_EDITOR
-void ALandscape::Destroyed()
-{
-	Super::Destroyed();
-}
-
 void ALandscapeProxy::Destroyed()
 {
 	Super::Destroyed();

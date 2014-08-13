@@ -115,8 +115,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
 
-	virtual void PostNetReceive() override;
-
 	/**
 	 *	Prediction Keys
 	 *		PredictionKey is a simple system to allow clients to locally predict interactions within the AbilityComponent while having

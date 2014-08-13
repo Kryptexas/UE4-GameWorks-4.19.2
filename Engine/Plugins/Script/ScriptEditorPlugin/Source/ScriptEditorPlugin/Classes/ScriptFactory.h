@@ -18,10 +18,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = ScriptFactory, meta = (AllowAbstract = "", BlueprintBaseOnly = ""))
 	TSubclassOf<class UObject> ParentClass;
 
-	// Begin UObject Interface
-	virtual void PostInitProperties() override;
-	// End UObject Interface
-
 	// Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual bool DoesSupportClass(UClass* Class) override;

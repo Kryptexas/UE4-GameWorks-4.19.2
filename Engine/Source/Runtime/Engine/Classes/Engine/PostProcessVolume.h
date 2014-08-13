@@ -47,7 +47,6 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 	uint32 bUnbound:1;
 
 	// Begin IInterface_PostProcessVolume Interface
-	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) override;
 	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const override
 	{
 		FPostProcessVolumeProperties Ret;

@@ -308,14 +308,6 @@ static void AddDistanceFactorToChart(float DistanceFactor)
 }
 #endif // CHART_DISTANCE_FACTORS
 
-
-void USkeletalMeshComponent::PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction)
-{
-	Super::PostPhysicsTick(ThisTickFunction);
-
-	
-}
-
 #if WITH_EDITOR
 void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

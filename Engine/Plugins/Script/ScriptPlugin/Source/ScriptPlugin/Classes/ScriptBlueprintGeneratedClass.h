@@ -131,8 +131,6 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	UPROPERTY()
 	TArray<UProperty*> ScriptProperties;
 
-	virtual void PostInitProperties() override;
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 
 	/**

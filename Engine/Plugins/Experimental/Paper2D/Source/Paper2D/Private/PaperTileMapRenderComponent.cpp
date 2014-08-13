@@ -75,11 +75,6 @@ void UPaperTileMapRenderComponent::TickComponent(float DeltaTime, enum ELevelTic
 }
 
 #if WITH_EDITORONLY_DATA
-void UPaperTileMapRenderComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-
 void UPaperTileMapRenderComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

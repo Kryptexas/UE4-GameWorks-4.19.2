@@ -13,16 +13,6 @@ UScriptBlueprintGeneratedClass::UScriptBlueprintGeneratedClass(const FPostConstr
 {
 }
 
-void UScriptBlueprintGeneratedClass::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
-void UScriptBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
-{
-	Super::Link(Ar, bRelinkExistingProperties);
-}
-
 void UScriptBlueprintGeneratedClass::AddUniqueNativeFunction(const FName& InName, Native InPointer)
 {
 	// Find the function in the class's native function lookup table.

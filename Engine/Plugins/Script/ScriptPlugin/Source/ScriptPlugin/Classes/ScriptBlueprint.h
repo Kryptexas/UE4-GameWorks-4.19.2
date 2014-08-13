@@ -32,11 +32,6 @@ public:
 	UPROPERTY()
 	FString SourceCode;
 	 
-	virtual void PostLoad() override;
-
-	// UBlueprint interface
-	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
-
 #if WITH_EDITOR
 	virtual UClass* GetBlueprintClass() const override;
 

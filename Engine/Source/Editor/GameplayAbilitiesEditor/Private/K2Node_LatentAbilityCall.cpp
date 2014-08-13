@@ -155,11 +155,6 @@ FString FK2Node_LatentAbilityCallHelper::SpawnedActorPinName(TEXT("SpawnedActor"
 
 // -------------------------------------------------
 
-void UK2Node_LatentAbilityCall::AllocateDefaultPins()
-{
-	Super::AllocateDefaultPins();
-}
-
 void UK2Node_LatentAbilityCall::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();

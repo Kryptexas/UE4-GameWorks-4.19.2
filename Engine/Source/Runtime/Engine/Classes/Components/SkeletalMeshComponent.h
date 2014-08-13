@@ -801,7 +801,6 @@ public:
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) override;
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;

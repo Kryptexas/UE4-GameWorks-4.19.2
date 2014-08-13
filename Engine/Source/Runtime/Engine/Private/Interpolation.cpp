@@ -9063,14 +9063,6 @@ void UInterpTrackInstAudioMaster::InitTrackInst(UInterpTrack* Track)
 {
 }
 
-void UInterpTrackInstAudioMaster::TermTrackInst(UInterpTrack* Track)
-{
-	Super::TermTrackInst(Track);
-}
-
-
-
-
 /*-----------------------------------------------------------------------------
 	UInterpTrackVisibility
 -----------------------------------------------------------------------------*/

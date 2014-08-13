@@ -20,7 +20,6 @@ class UK2Node_LatentAbilityCall : public UK2Node_BaseAsyncTask
 	virtual bool IsCompatibleWithGraph(UEdGraph const* TargetGraph) const override;
 	// End of UEdGraphNode interface
 
-	virtual void AllocateDefaultPins() override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;

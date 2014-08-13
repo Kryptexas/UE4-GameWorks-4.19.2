@@ -93,12 +93,6 @@ void APawn::PostInitializeComponents()
 	}
 }
 
-
-void APawn::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
 void APawn::PostLoad()
 {
 	Super::PostLoad();

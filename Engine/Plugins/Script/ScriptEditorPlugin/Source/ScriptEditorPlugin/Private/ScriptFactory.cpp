@@ -16,11 +16,6 @@ UScriptFactory::UScriptFactory(const FPostConstructInitializeProperties& PCIP)
 	bEditAfterNew = true;	
 }
 
-void UScriptFactory::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
 bool UScriptFactory::ConfigureProperties()
 {
 	// Null the parent class so we can check for selection later

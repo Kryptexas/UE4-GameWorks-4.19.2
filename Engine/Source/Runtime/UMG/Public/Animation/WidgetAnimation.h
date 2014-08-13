@@ -44,7 +44,6 @@ class UWidgetAnimation : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 
 #if WITH_EDITOR
 	static UMG_API UWidgetAnimation* GetNullAnimation();

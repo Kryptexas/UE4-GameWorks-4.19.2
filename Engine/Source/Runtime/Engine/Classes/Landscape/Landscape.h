@@ -30,7 +30,6 @@ class ALandscape : public ALandscapeProxy
 	// Begin AActor Interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
-	virtual void Destroyed() override;
 #endif
 	// End AActor Interface
 

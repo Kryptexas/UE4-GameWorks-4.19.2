@@ -22,11 +22,6 @@ FScriptBlueprintCompiler::~FScriptBlueprintCompiler()
 {
 }
 
-void FScriptBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObject)
-{
-	Super::CopyTermDefaultsToDefaultObject(DefaultObject);
-}
-
 void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
 {
 	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);

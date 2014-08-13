@@ -13,16 +13,6 @@ UScriptBlueprint::UScriptBlueprint(const FPostConstructInitializeProperties& PCI
 {
 }
 
-void UScriptBlueprint::PostLoad()
-{
-	Super::PostLoad();
-}
-
-UClass* UScriptBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
-{
-	return Super::RegenerateClass(ClassToRegenerate, PreviousCDO, ObjLoaded);
-}
-
 #if WITH_EDITOR
 UClass* UScriptBlueprint::GetBlueprintClass() const
 {

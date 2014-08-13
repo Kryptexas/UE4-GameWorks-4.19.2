@@ -23,11 +23,6 @@ FWidgetBlueprintCompiler::~FWidgetBlueprintCompiler()
 {
 }
 
-void FWidgetBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
-{
-	Super::MergeUbergraphPagesIn(Ubergraph);
-}
-
 void FWidgetBlueprintCompiler::CreateFunctionList()
 {
 	Super::CreateFunctionList();

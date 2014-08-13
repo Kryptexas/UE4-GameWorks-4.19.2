@@ -95,7 +95,6 @@ public:
 	/** UObject interface */
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
-	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	
 	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;

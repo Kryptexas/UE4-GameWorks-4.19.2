@@ -10,11 +10,6 @@ AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const class FPostConstructInitial
 
 }
 
-void AAbilitySystemDebugHUD::DrawHUD()
-{
-	Super::DrawHUD();
-}
-
 void AAbilitySystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Text, const FColor& TextColor, EAlignHorizontal::Type HAlign, float& OffsetX, EAlignVertical::Type VAlign, float& OffsetY, float Alpha)
 {
 	float SizeX, SizeY;

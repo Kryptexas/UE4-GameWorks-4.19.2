@@ -81,12 +81,6 @@ void UWidgetBlueprint::PostLoad()
 	}
 }
 
-UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
-{
-	return Super::RegenerateClass(ClassToRegenerate, PreviousCDO, ObjLoaded);
-}
-
-
 UClass* UWidgetBlueprint::GetBlueprintClass() const
 {
 	return UWidgetBlueprintGeneratedClass::StaticClass();

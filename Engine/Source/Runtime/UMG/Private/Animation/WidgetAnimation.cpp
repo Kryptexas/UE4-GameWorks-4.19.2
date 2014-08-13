@@ -10,11 +10,6 @@ UWidgetAnimation::UWidgetAnimation(const FPostConstructInitializeProperties& PCI
 
 }
 
-void UWidgetAnimation::PostDuplicate(bool bDuplicateForPIE)
-{
-	Super::PostDuplicate(bDuplicateForPIE);
-}
-
 #if WITH_EDITOR
 
 UWidgetAnimation* UWidgetAnimation::GetNullAnimation()

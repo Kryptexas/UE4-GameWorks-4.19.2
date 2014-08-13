@@ -49,8 +49,6 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual void BeginPlay() override;
 
-	virtual void BeginDestroy() override;
-
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
 	UGameplayDebuggingComponent* GetDebugComponent();

@@ -73,11 +73,6 @@ void AGameplayDebuggingReplicator::PostInitializeComponents()
 	SetActorTickEnabled(true);
 }
 
-void AGameplayDebuggingReplicator::BeginDestroy()
-{
-	Super::BeginDestroy();
-}
-
 void AGameplayDebuggingReplicator::BeginPlay()
 {
 	Super::BeginPlay();

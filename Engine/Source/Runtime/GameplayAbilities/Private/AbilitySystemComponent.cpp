@@ -536,11 +536,6 @@ void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<U
 	}
 }
 
-void UAbilitySystemComponent::PostNetReceive()
-{
-	Super::PostNetReceive();
-}
-
 void UAbilitySystemComponent::OnRep_GameplayEffects()
 {
 

@@ -28,6 +28,5 @@ class GAMEPLAYABILITIES_API UGameplayAbilityBlueprint : public UBlueprint
 	/** Returns the most base gameplay ability blueprint for a given blueprint (if it is inherited from another ability blueprint, returning null if only native / non-ability BP classes are it's parent) */
 	static UGameplayAbilityBlueprint* FindRootGameplayAbilityBlueprint(UGameplayAbilityBlueprint* DerivedBlueprint);
 
-	virtual void PostLoad() override;
 #endif
 };

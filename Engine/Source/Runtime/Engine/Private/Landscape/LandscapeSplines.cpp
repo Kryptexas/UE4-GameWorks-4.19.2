@@ -517,11 +517,6 @@ void ULandscapeSplinesComponent::OnRegister()
 	Super::OnRegister();
 }
 
-void ULandscapeSplinesComponent::OnUnregister()
-{
-	Super::OnUnregister();
-}
-
 #if WITH_EDITOR
 FPrimitiveSceneProxy* ULandscapeSplinesComponent::CreateSceneProxy()
 {

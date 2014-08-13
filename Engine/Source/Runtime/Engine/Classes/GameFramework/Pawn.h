@@ -203,7 +203,6 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual UPlayer* GetNetOwningPlayer() override;
 	virtual UNetConnection* GetNetConnection() override;
-	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;

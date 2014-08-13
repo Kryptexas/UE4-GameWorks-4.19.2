@@ -127,11 +127,6 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 	return false;
 }
 
-void AFunctionalAITest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message)
-{
-	Super::FinishTest(TestResult, Message);
-}
-
 bool AFunctionalAITest::WantsToRunAgain() const
 {
 	return bSingleSetRun == false && CurrentSpawnSetIndex + 1 < SpawnSets.Num();

@@ -30,7 +30,6 @@ protected:
 	virtual void CreateFunctionList() override;
 	virtual void FinishCompilingClass(UClass* Class) override;
 	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class) override;
-	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) override;
 	// End FKismetCompilerContext
 
 protected:

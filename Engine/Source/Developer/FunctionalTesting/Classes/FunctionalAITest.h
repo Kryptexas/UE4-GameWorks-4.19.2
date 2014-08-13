@@ -132,7 +132,6 @@ public:
 	// AActor interface end
 
 	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>()) override;
-	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) override;
 	virtual bool WantsToRunAgain() const override;
 	virtual void CleanUp() override;
 	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const override;
