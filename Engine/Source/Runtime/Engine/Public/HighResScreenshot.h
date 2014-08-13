@@ -21,6 +21,9 @@ struct ENGINE_API FHighResScreenshotConfig
 
 	FHighResScreenshotConfig();
 
+	/** Initialize the image wrapper modules (required for SaveImage) **/
+	void Init();
+
 	/** Point the screenshot UI at a different viewport **/
 	void ChangeViewport(TWeakPtr<FSceneViewport> InViewport);
 

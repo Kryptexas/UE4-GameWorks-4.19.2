@@ -46,6 +46,7 @@
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
 	#include "HeadMountedDisplay.h"
+	#include "HighResScreenshot.h"
 
 #if !UE_SERVER
 	#include "ISlateRHIRendererModule.h"
@@ -2482,6 +2483,9 @@ bool FEngineLoop::AppInit( )
 	// For platform services that need D3D hooks like Steam
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
+
+	// Init HighRes screenshot system.
+	GetHighResScreenshotConfig().Init();
 #endif
 
 	// Checks.

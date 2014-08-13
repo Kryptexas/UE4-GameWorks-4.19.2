@@ -20,11 +20,17 @@ FHighResScreenshotConfig::FHighResScreenshotConfig()
 	, bDumpBufferVisualizationTargets(false)
 {
 	ChangeViewport(TWeakPtr<FSceneViewport>());
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-	ImageCompressorLDR = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-	ImageCompressorHDR = ImageWrapperModule.CreateImageWrapper(EImageFormat::EXR);
 	SetHDRCapture(false);
+}
+
+void FHighResScreenshotConfig::Init()
+{
+	IImageWrapperModule* ImageWrapperModule = FModuleManager::LoadModulePtr<IImageWrapperModule>(FName("ImageWrapper"));
+	if (ImageWrapperModule != nullptr)
+	{
+		ImageCompressorLDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::PNG);
+		ImageCompressorHDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::EXR);
+	}
 }
 
 void FHighResScreenshotConfig::ChangeViewport(TWeakPtr<FSceneViewport> InViewport)
