@@ -808,7 +808,7 @@ namespace EEventPropertyTypes
 			Type( GetTypeFromFormatter(PropertyFormatter) )
 		{}
 
-		CONSTEXPR EEventPropertyTypes::Type GetTypeFromFormatter( const EEventPropertyFormatters::Type PropertyFormatter ) const
+		EEventPropertyTypes::Type GetTypeFromFormatter( const EEventPropertyFormatters::Type PropertyFormatter ) const
 		{
 			switch( PropertyFormatter )
 			{

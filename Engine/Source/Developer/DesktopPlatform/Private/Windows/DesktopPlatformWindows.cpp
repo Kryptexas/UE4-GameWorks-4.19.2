@@ -93,7 +93,7 @@ bool FDesktopPlatformWindows::OpenDirectoryDialog(const void* ParentWindowHandle
 	return bSuccess;
 }
 
-bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags)
+bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {	
 	FScopedSystemModalMode SystemModalScope;
 
@@ -113,7 +113,7 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 		HDC DC = ::GetDC( cf.hwndOwner ); 
 		const float LogicalPixelsY = static_cast<float>(GetDeviceCaps(DC, LOGPIXELSY));
 		const int32 PixelHeight = static_cast<int32>(-lf.lfHeight * ( 72.0f / LogicalPixelsY ));	// Always target 72 DPI
-		uint32 FontFlags = EFontImportFlags::None;
+		auto FontFlags = EFontImportFlags::None;
 		if ( lf.lfUnderline )
 		{
 			FontFlags |= EFontImportFlags::EnableUnderline;
@@ -129,7 +129,7 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 
 		OutFontName = (const TCHAR*)lf.lfFaceName;
 		OutHeight = PixelHeight;
-		OutFlags = static_cast<EFontImportFlags::Type>(FontFlags);
+		OutFlags = FontFlags;
 
 		::ReleaseDC( cf.hwndOwner, DC ); 
 	}

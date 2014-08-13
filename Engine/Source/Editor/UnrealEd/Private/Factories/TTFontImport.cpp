@@ -98,7 +98,7 @@ bool UTrueTypeFontFactory::ConfigureProperties()
 			SetupFontImportOptions();
 		}
 
-		EFontImportFlags::Type FontFlags;
+		EFontImportFlags FontFlags;
 		bFontSelected = DesktopPlatform->OpenFontDialog(
 			ParentWindowWindowHandle,
 			ImportOptions->Data.FontName,
@@ -108,15 +108,15 @@ bool UTrueTypeFontFactory::ConfigureProperties()
 
 		if ( bFontSelected )
 		{
-			if( FontFlags & EFontImportFlags::EnableUnderline )
+			if( !!(FontFlags & EFontImportFlags::EnableUnderline) )
 			{
 				ImportOptions->Data.bEnableUnderline = true;
 			}
-			if( FontFlags & EFontImportFlags::EnableItalic )
+			if( !!(FontFlags & EFontImportFlags::EnableItalic) )
 			{
 				ImportOptions->Data.bEnableItalic = true;
 			}
-			if( FontFlags & EFontImportFlags::EnableBold )
+			if( !!(FontFlags & EFontImportFlags::EnableBold) )
 			{
 				ImportOptions->Data.bEnableBold = true;
 			}

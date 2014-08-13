@@ -472,6 +472,7 @@ extern CORE_API TArray<struct FScriptTraceStackNode> GScriptStack;
 #include "MonitoredProcess.h"
 #include "Attribute.h"
 #include "Optional.h"
+#include "EnumClassFlags.h"
 
 #ifdef TRUE
 	#undef TRUE

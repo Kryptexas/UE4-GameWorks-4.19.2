@@ -268,7 +268,7 @@ bool FDesktopPlatformMac::OpenDirectoryDialog(const void* ParentWindowHandle, co
 	return bSuccess;
 }
 
-bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags)
+bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
 	SCOPED_AUTORELEASE_POOL;
 	FCocoaScopeContext ContextGuard;
@@ -304,14 +304,14 @@ bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString
 		OutFontName = FontName;
 		OutHeight = [Font pointSize];
 
-		uint32 FontFlags = EFontImportFlags::None;
+		auto FontFlags = EFontImportFlags::None;
 
 		if( [Font underlineThickness] >= 1.0 )
 		{
 			FontFlags |= EFontImportFlags::EnableUnderline;
 		}
 
-		OutFlags = static_cast<EFontImportFlags::Type>(FontFlags);
+		OutFlags = FontFlags;
 	}
 
 	MacApplication->ResetModifierKeys();

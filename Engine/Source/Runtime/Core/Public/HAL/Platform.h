@@ -324,7 +324,7 @@
 	#define ABSTRACT
 #endif
 #ifndef CONSTEXPR
-	#define CONSTEXPR
+	#define CONSTEXPR constexpr
 #endif
 
 // String constants

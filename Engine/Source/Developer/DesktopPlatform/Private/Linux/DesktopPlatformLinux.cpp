@@ -81,7 +81,7 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 #endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
-bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags)
+bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
 	unimplemented();
 	return false;
