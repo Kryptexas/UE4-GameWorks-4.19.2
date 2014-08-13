@@ -51,7 +51,6 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( uint32 InWidt
 	return FindSlotForTexture(*RootNode, InWidth, InHeight);
 }
 
-
 void FSlateTextureAtlas::DestroyNodes( FAtlasedTextureSlot* StartNode )
 {
 	if (StartNode->Left)
@@ -73,6 +72,7 @@ void FSlateTextureAtlas::InitAtlasData()
 	check(RootNode == nullptr && AtlasData.Num() == 0);
 
 	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, Padding);
+	AtlasData.Reserve(AtlasWidth * AtlasHeight * Stride);
 	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * Stride);
 
 	INC_MEMORY_STAT_BY(STAT_SlateTextureAtlasMemory, AtlasData.GetAllocatedSize());

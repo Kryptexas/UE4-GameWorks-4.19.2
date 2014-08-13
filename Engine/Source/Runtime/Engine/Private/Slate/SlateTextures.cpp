@@ -45,6 +45,8 @@ void FSlateTexture2DRHIRef::InitDynamicRHI()
 			FRHIResourceCreateInfo CreateInfo;
 			ShaderResource = RHICreateTexture2D( Width, Height, PixelFormat, 1, 1, TexCreateFlags, CreateInfo );
 			check( IsValidRef( ShaderResource ) );
+
+			INC_MEMORY_STAT_BY(STAT_SlateTextureGPUMemory, Width*Height*GPixelFormats[PixelFormat].BlockBytes);
 		}
 
 		if( TextureData.IsValid() && TextureData->GetRawBytes().Num() > 0 )
@@ -66,6 +68,8 @@ void FSlateTexture2DRHIRef::ReleaseDynamicRHI()
 {
 	check( IsInRenderingThread() );
 	ShaderResource.SafeRelease();
+
+	DEC_MEMORY_STAT_BY(STAT_SlateTextureGPUMemory, Width*Height*GPixelFormats[PixelFormat].BlockBytes);
 }
 
 void FSlateTexture2DRHIRef::Resize( uint32 InWidth, uint32 InHeight )

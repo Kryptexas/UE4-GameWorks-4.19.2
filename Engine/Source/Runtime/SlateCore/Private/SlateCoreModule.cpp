@@ -35,6 +35,7 @@ DEFINE_STAT(STAT_SlateVertexCount);
 
 DEFINE_STAT(STAT_SlateTextureDataMemory);
 DEFINE_STAT(STAT_SlateTextureAtlasMemory);
+DEFINE_STAT(STAT_SlateTextureGPUMemory);
 DEFINE_STAT(STAT_SlateFontKerningTableMemory);
 DEFINE_STAT(STAT_SlateFontMeasureCacheMemory);
 DEFINE_STAT(STAT_SlateVertexBatchMemory);

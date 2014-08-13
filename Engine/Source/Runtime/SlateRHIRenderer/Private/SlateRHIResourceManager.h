@@ -150,9 +150,6 @@ public:
 	 */
 	TSharedRef<SWidget> CreateTextureDisplayWidget();
 private:
-	
-	FSlateShaderResourceProxy* AddTexture( const FSlateBrush& InBrush );
-
 	/**
 	 * Deletes resources created by the manager
 	 */
