@@ -976,7 +976,7 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 	
 	// cache component's WorldToLocal
 	FMatrix LtoW = GetLocalToWorld();
-	WorldToLocal = LtoW.Inverse();
+	WorldToLocal = LtoW.InverseFast();
 
 	// cache component's LocalToWorldNoScaling
 	LocalToWorldNoScaling = LtoW;

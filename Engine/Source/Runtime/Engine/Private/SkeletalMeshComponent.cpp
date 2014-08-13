@@ -1059,7 +1059,7 @@ void USkeletalMeshComponent::UpdateBounds()
 			Bounds = CalcBounds(ComponentToWorld);
 
 			bCachedLocalBoundsUpToDate = true;
-			CachedLocalBounds = Bounds.TransformBy(ComponentToWorld.InverseSafe());
+			CachedLocalBounds = Bounds.TransformBy(ComponentToWorld.Inverse());
 		}
 	}
 

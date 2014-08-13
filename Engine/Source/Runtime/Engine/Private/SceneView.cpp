@@ -216,7 +216,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 
 	// For precision reasons the view matrix inverse is calculated independently.
-	InvViewMatrix = ViewMatrices.ViewMatrix.InverseSafe();
+	InvViewMatrix = ViewMatrices.ViewMatrix.Inverse();
 	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
 
 	bool ApplyPreViewTranslation = true;
@@ -272,7 +272,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 	
 	ShadowViewMatrices = ViewMatrices;
 
@@ -371,7 +371,7 @@ void FSceneView::UpdateViewMatrix()
 	
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
@@ -484,7 +484,7 @@ FVector FSceneView::Deproject(const FPlane& ScreenPoint) const
 
 void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_WorldOrigin, FVector& out_WorldDirection) const
 {
-	const FMatrix InverseViewMatrix = ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix InverseViewMatrix = ViewMatrices.ViewMatrix.InverseFast();
 	const FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
 	
 	DeprojectScreenToWorld(ScreenPos, UnscaledViewRect, InverseViewMatrix, InvProjectionMatrix, out_WorldOrigin, out_WorldDirection);

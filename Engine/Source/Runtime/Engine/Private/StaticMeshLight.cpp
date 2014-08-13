@@ -74,7 +74,7 @@ FStaticMeshStaticLightingMesh::FStaticMeshStaticLightingMesh(const UStaticMeshCo
 void FStaticMeshStaticLightingMesh::SetLocalToWorld(const FMatrix& InLocalToWorld)
 {
 	LocalToWorld = InLocalToWorld;
-	LocalToWorldInverseTranspose = LocalToWorld.Inverse().GetTransposed();
+	LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 	LocalToWorldDeterminant = LocalToWorld.Determinant();
 }
 

@@ -2470,7 +2470,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 
 		// Need the transform between builder brush space and static mesh actor space.
 		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
-		const FMatrix MeshW2L = MeshToWorld.Inverse();
+		const FMatrix MeshW2L = MeshToWorld.InverseFast();
 		const FMatrix SMToBB = BrushL2W * MeshW2L;
 		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
 

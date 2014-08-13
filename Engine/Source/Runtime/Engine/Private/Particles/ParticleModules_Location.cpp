@@ -233,7 +233,7 @@ void UParticleModuleLocationWorldOffset::SpawnEx(FParticleEmitterInstance* Owner
 	else
 	{
 		// We need to inverse transform the location so that the bUseLocalSpace transform uses the proper value
-		FMatrix InvMat = Owner->Component->ComponentToWorld.ToMatrixWithScale().Inverse();
+		FMatrix InvMat = Owner->Component->ComponentToWorld.ToMatrixWithScale().InverseFast();
 		FVector StartLoc = StartLocation.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
 		Particle.Location += InvMat.TransformVector(StartLoc);
 	}

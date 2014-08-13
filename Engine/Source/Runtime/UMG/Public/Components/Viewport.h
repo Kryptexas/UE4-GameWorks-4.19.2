@@ -154,7 +154,7 @@ public:
 		if ( bRecalculateView )
 		{
 			FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
-			OrbitMatrix = OrbitMatrix.Inverse();
+			OrbitMatrix = OrbitMatrix.InverseFast();
 
 			ViewTransform.SetRotation(OrbitMatrix.Rotator());
 			ViewTransform.SetLocation(OrbitMatrix.GetOrigin());

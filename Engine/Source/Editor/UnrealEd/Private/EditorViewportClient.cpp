@@ -336,7 +336,7 @@ void FEditorViewportClient::SetViewLocationForOrbiting(const FVector& LookAtPoin
 {
 	FMatrix Matrix = FTranslationMatrix(-GetViewLocation());
 	Matrix = Matrix * FInverseRotationMatrix(GetViewRotation());
-	FMatrix CamRotMat = Matrix.Inverse();
+	FMatrix CamRotMat = Matrix.InverseFast();
 	FVector CamDir = FVector(CamRotMat.M[0][0],CamRotMat.M[0][1],CamRotMat.M[0][2]);
 	SetViewLocation( LookAtPoint - DistanceToCamera * CamDir );
 	SetLookAtLocation( LookAtPoint );
@@ -363,7 +363,7 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 
 		// Convert orbit view to regular view
 		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
-		OrbitMatrix = OrbitMatrix.Inverse();
+		OrbitMatrix = OrbitMatrix.InverseFast();
 
 		if( !bUsingOrbitCamera )
 		{
@@ -383,10 +383,10 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 				OrbitViewMatrix *= FRotationMatrix( FRotator(0,90.f,0) );
 
 				FMatrix RotMat = FTranslationMatrix( -ViewTransform.GetLookAt() ) * OrbitViewMatrix;
-				FMatrix RotMatInv = RotMat.Inverse();
+				FMatrix RotMatInv = RotMat.InverseFast();
 				FRotator RollVec = RotMatInv.Rotator();
 				FMatrix YawMat = RotMatInv * FInverseRotationMatrix( FRotator(0, 0, -RollVec.Roll));
-				FMatrix YawMatInv = YawMat.Inverse();
+				FMatrix YawMatInv = YawMat.InverseFast();
 				FRotator YawVec = YawMat.Rotator();
 				FRotator rotYawInv = YawMatInv.Rotator();
 				SetViewRotation( FRotator(-RollVec.Roll,YawVec.Yaw,0) );
@@ -1590,7 +1590,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 			FRotationMatrix( FRotator(0,GetViewRotation().Yaw,0) ) * 
 			FRotationMatrix( FRotator(0, 0, GetViewRotation().Pitch));
 
-		FVector TransformedDelta = RotMat.Inverse().TransformVector(DeltaLocation);
+		FVector TransformedDelta = RotMat.InverseFast().TransformVector(DeltaLocation);
 
 		SetViewLocation( GetViewLocation() + TransformedDelta );
 		SetLookAtLocation( GetLookAtLocation() + TransformedDelta );
@@ -1599,7 +1599,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	}
 	else if ( IsOrbitZoomMode( InViewport ) )
 	{
-		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().Inverse();
+		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().InverseFast();
 
 		FVector DeltaLocation = FVector(0, Drag.X+ -Drag.Y, 0);
 
@@ -1611,7 +1611,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 			FRotationMatrix( FRotator(0,GetViewRotation().Yaw,0) ) * 
 			FRotationMatrix( FRotator(0, 0, GetViewRotation().Pitch));
 
-		FVector TransformedDelta = RotMat.Inverse().TransformVector(DeltaLocation);
+		FVector TransformedDelta = RotMat.InverseFast().TransformVector(DeltaLocation);
 
 		SetViewLocation( OrbitMatrix.GetOrigin() + TransformedDelta );
 
@@ -2078,7 +2078,7 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 	FMatrix ViewTM = FMatrix::Identity;
 	if ( bUsingOrbitCamera)
 	{
-		ViewTM = FRotationMatrix( ViewTransform.ComputeOrbitMatrix().Inverse().Rotator() );
+		ViewTM = FRotationMatrix( ViewTransform.ComputeOrbitMatrix().InverseFast().Rotator() );
 	}
 	else
 	{

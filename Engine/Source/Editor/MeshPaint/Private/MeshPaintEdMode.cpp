@@ -1237,7 +1237,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 				Params.InnerBrushDepth = BrushDepth - Params.BrushDepthFalloffRange;
 				Params.BrushStrength = BrushStrength;
 				Params.BrushToWorldMatrix = FMatrix( BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition );
-				Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.Inverse();
+				Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();
 				Params.bWriteRed = FMeshPaintSettings::Get().bWriteRed;
 				Params.bWriteGreen = FMeshPaintSettings::Get().bWriteGreen;
 				Params.bWriteBlue = FMeshPaintSettings::Get().bWriteBlue;

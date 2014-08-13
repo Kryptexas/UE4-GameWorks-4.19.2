@@ -40,7 +40,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 {
 	FPrimitiveUniformShaderParameters Result;
 	Result.LocalToWorld = LocalToWorld;
-	Result.WorldToLocal = LocalToWorld.InverseSafe();
+	Result.WorldToLocal = LocalToWorld.Inverse();
 	Result.ObjectWorldPositionAndRadius = FVector4(WorldBounds.Origin, WorldBounds.SphereRadius);
 	Result.ObjectBounds = WorldBounds.BoxExtent;
 	Result.LocalObjectBoundsMin = LocalBounds.GetBoxExtrema(0); // 0 == minimum

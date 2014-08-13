@@ -177,13 +177,13 @@ struct FViewMatrices
 
 	FMatrix GetInvProjMatrix() const
 	{
-		return ProjMatrix.InverseSafe();
+		return ProjMatrix.Inverse();
 	}
 
 	FMatrix GetInvViewMatrix() const
 	{
 		// can be optimized: it's not a perspective matrix so transpose would be enough
-		return ViewMatrix.InverseSafe();
+		return ViewMatrix.Inverse();
 	}
 
 	FMatrix GetInvViewProjMatrix() const

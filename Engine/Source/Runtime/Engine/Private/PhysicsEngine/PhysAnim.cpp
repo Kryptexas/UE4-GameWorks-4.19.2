@@ -479,11 +479,11 @@ void USkeletalMeshComponent::UpdateRBJointMotors()
 
 					FMatrix Body1TM = CS->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1).ToMatrixNoScale();
 					Body1TM.SetOrigin(FVector::ZeroVector);
-					FMatrix Body1TMInv = Body1TM.Inverse();
+					FMatrix Body1TMInv = Body1TM.InverseFast();
 
 					FMatrix Body2TM = CS->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixNoScale();
 					Body2TM.SetOrigin(FVector::ZeroVector);
-					FMatrix Body2TMInv = Body2TM.Inverse();
+					FMatrix Body2TMInv = Body2TM.InverseFast();
 
 					FMatrix JointRot = Body1TM * (LocalRot * ControlBodyToParentBoneTM) * Body2TMInv;
 					FQuat JointQuat(JointRot);

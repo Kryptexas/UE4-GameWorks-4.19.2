@@ -140,7 +140,7 @@ public:
 				SampleSizeY = Gizmo->SampleSizeY;
 				bHeightmapRendering = (Gizmo->DataType & LGT_Height);
 				FMatrix LToW = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale();
-				FMatrix WToL = LToW.Inverse();
+				FMatrix WToL = LToW.InverseFast();
 				FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
 				float ScaleXY = LandscapeInfo->DrawScale.X;
 				float ScaleZ = LandscapeInfo->DrawScale.Z;
@@ -172,7 +172,7 @@ public:
 				float ScaleX = Gizmo->GetWidth() / Gizmo->CachedWidth / ScaleXY * Gizmo->CachedScaleXY;
 				float ScaleY = Gizmo->GetHeight() / Gizmo->CachedHeight / ScaleXY * Gizmo->CachedScaleXY;
 				FScaleMatrix Mat(FVector(ScaleX, ScaleY, L));
-				FMatrix NormalM = Mat.Inverse().GetTransposed();
+				FMatrix NormalM = Mat.InverseFast().GetTransposed();
 
 				int32 SamplingSize = Gizmo->SampleSizeX * Gizmo->SampleSizeY;
 				SampledPositions.Empty(SamplingSize);
@@ -616,7 +616,7 @@ FRotator ALandscapeGizmoActiveActor::SnapToLandscapeGrid(const FRotator& GizmoRo
 	// Snap to multiples of 90 Yaw in landscape coordinate system
 	//check(TargetLandscapeInfo && TargetLandscapeInfo->LandscapeProxy);
 	//const FTransform LToW = TargetLandscapeInfo->LandscapeProxy->ActorToWorld();
-	//const FRotator LandscapeSpaceRotation = (LToW.GetRotation().Inverse() * GizmoRotation.Quaternion()).Rotator().GetNormalized();
+	//const FRotator LandscapeSpaceRotation = (LToW.GetRotation().InverseFast() * GizmoRotation.Quaternion()).Rotator().GetNormalized();
 	//const FRotator SnappedLandscapeSpaceRotation = FRotator(0, FMath::GridSnap(LandscapeSpaceRotation.Yaw, 90), 0);
 	//const FRotator ResultRotation = (SnappedLandscapeSpaceRotation.Quaternion() * LToW.GetRotation()).Rotator().GetNormalized();
 

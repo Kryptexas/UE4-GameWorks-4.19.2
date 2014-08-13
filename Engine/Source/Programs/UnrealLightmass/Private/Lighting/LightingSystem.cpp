@@ -2086,7 +2086,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 
 		{
 			const float InvDistanceRange = 1.0f / (LightSpaceImportanceBounds.Max.Z - LightSpaceImportanceBounds.Min.Z);
-			const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
+			const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.InverseFast();
 
 			for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
 			{
@@ -2177,7 +2177,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 
 		// Calculate the maximum possible distance for quantization
 		const float MaxPossibleDistance = LightSpaceImportanceBoundMax.Z - LightSpaceImportanceBoundMin.Z;
-		const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
+		const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.InverseFast();
 		const FBoxSphereBounds ImportanceVolume = GetImportanceBounds().SphereRadius > 0.0f ? GetImportanceBounds() : FBoxSphereBounds(AggregateMesh.GetBounds());
 
 		for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)

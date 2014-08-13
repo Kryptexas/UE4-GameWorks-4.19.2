@@ -735,7 +735,7 @@ void FPhATEdPreviewViewportClient::StartManipulating(EAxisList::Type Axis, const
 
 		const FTransform WParentFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame2);
 		const FTransform WChildFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame1);
-		StartManRelConTM = WChildFrame * WParentFrame.InverseSafe();
+		StartManRelConTM = WChildFrame * WParentFrame.Inverse();
 
 		UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->GetSelectedConstraint()->Index];
 
@@ -831,7 +831,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* Viewport, bool bCons
 			// Create handle to object.
 			SharedData->MouseHandle->GrabComponent(SharedData->EditorSkelComp, BoneName, Result.Location, bConstrainRotation);
 
-			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.Inverse();
+			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.InverseFast();
 
 			SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
 

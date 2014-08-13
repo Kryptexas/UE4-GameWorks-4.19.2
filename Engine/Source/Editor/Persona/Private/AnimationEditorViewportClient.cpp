@@ -624,7 +624,7 @@ void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSpher
 	FVector OldViewLoc = GetViewLocation();
 	FMatrix EpicMat = FTranslationMatrix(-GetViewLocation());
 	EpicMat = EpicMat * FInverseRotationMatrix(GetViewRotation());
-	FMatrix CamRotMat = EpicMat.Inverse();
+	FMatrix CamRotMat = EpicMat.InverseFast();
 	FVector CamDir = FVector(CamRotMat.M[0][0],CamRotMat.M[0][1],CamRotMat.M[0][2]);
 	FVector NewViewLocation = BoundSphere.Center - BoundSphere.W * 2 * CamDir;
 
@@ -1095,7 +1095,7 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 
 			// Remove SkelControl's orientation from BoneMatrix, as we need to translate/rotate in the non-SkelControlled space
-			BaseTM = BaseTM.InverseSafe() * CurrentSkelControlTM;
+			BaseTM = BaseTM.Inverse() * CurrentSkelControlTM;
 
 			const bool bDoRotation    = WidgetMode == FWidget::WM_Rotate    || WidgetMode == FWidget::WM_TranslateRotateZ;
 			const bool bDoTranslation = WidgetMode == FWidget::WM_Translate || WidgetMode == FWidget::WM_TranslateRotateZ;

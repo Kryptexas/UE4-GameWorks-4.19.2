@@ -1624,7 +1624,7 @@ FVector4 FMath::ComputeBaryCentric3D(const FVector& Point, const FVector& A, con
 
 	//The point V can be expressed as Ax=v where x is the vector containing the weights {w1...wn}
 	//Solve for x by multiplying both sides by AInv   (AInv * A)x = AInv * v ==> x = AInv * v
-	const FMatrix InvSolvMat = SolvMat.InverseSafe();
+	const FMatrix InvSolvMat = SolvMat.Inverse();
 	const FPlane BaryCoords = InvSolvMat.TransformVector(V);	 
 
 	//Reorder the weights to be a, b, c, d

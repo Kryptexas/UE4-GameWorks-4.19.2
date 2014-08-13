@@ -1470,8 +1470,8 @@ static void ComputeTriangleTangents(
 			FPlane(	0,				0,				0,	1	)
 			);
 
-		// Use InverseSlow to catch singular matrices.  InverseSafe can miss this sometimes.
-		const FMatrix TextureToLocal = ParameterToTexture.InverseSlow() * ParameterToLocal;
+		// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
+		const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 
 		TriangleTangentX.Add(TextureToLocal.TransformVector(FVector(1,0,0)).SafeNormal());
 		TriangleTangentY.Add(TextureToLocal.TransformVector(FVector(0,1,0)).SafeNormal());
@@ -2596,7 +2596,7 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 				FPlane(	0,			0,			0,	1	)
 				);
 
-			FMatrix	TextureToLocal = ParameterToTexture.InverseSlow() * ParameterToLocal;
+			FMatrix	TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 			FVector	TangentX = TextureToLocal.TransformVector(FVector(1,0,0)).SafeNormal(),
 				TangentY = TextureToLocal.TransformVector(FVector(0,1,0)).SafeNormal(),
 				TangentZ;

@@ -612,7 +612,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 {
 	if( HasPrimsToDraw() )
 	{
-		FMatrix InvTransform = Transform.InverseSafe();
+		FMatrix InvTransform = Transform.Inverse();
 		FVector CameraX = InvTransform.TransformVector(FVector(1,0,0)).SafeNormal();
 		FVector CameraY = InvTransform.TransformVector(FVector(0,1,0)).SafeNormal();
 		FVector CameraZ = InvTransform.TransformVector(FVector(0,0,1)).SafeNormal();

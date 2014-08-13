@@ -16,7 +16,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogTransform, Log, All);
 const FTransform FTransform::Identity(FQuat(0.f,0.f,0.f,1.f), FVector::ZeroVector, FVector(1.f));
 
 
-// Replacement of InverseSafe of FMatrix
+// Replacement of Inverse of FMatrix
 
 /**
 * Does a debugf of the contents of this BoneAtom.
@@ -107,7 +107,7 @@ FTransform FTransform::GetRelativeTransformReverse(const FTransform& Other) cons
 	FMatrix AM = ToMatrixWithScale();
 	FMatrix BM = Other.ToMatrixWithScale();
 
-	Result.DebugEqualMatrix(AM.Inverse() *  BM);
+	Result.DebugEqualMatrix(AM.InverseFast() *  BM);
 #endif
 
 	return Result;
@@ -138,7 +138,7 @@ void FTransform::SetToRelativeTransform(const FTransform& ParentTransform)
 	Rotation = InverseRot * Rotation;
 
 #if DEBUG_INVERSE_TRANSFORM
- 	DebugEqualMatrix(AM *  BM.Inverse());
+ 	DebugEqualMatrix(AM *  BM.InverseFast());
 #endif
 }
 
@@ -160,7 +160,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 		return FTransform::Identity;
 	}
 
-	FQuat Inverse = Other.Rotation.Inverse();
+	FQuat Inverse = Other.Rotation.InverseFast();
 	Result.Rotation = Inverse*Rotation;
 
 	Result.Translation = (Inverse*(Translation - Other.Translation))*(SafeRecipScale3D);
@@ -169,7 +169,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
  	FMatrix AM = ToMatrixWithScale();
  	FMatrix BM = Other.ToMatrixWithScale();
  
- 	Result.DebugEqualMatrix(AM *  BM.Inverse());
+ 	Result.DebugEqualMatrix(AM *  BM.InverseFast());
 
 #endif
 

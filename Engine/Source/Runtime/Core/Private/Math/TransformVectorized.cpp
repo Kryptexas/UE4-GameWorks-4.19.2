@@ -16,7 +16,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogTransform, Log, All);
 const FTransform FTransform::Identity(FQuat(0.f,0.f,0.f,1.f), FVector::ZeroVector, FVector(1.f));
 
 
-// Replacement of InverseSafe of FMatrix
+// Replacement of Inverse of FMatrix
 
 /**
 * Does a debugf of the contents of this BoneAtom.
@@ -122,7 +122,7 @@ FTransform FTransform::GetRelativeTransformReverse(const FTransform& Other) cons
 	FMatrix AM = ToMatrixWithScale();
 	FMatrix BM = Other.ToMatrixWithScale();
 
-	Result.DebugEqualMatrix(AM.Inverse() *  BM);
+	Result.DebugEqualMatrix(AM.InverseFast() *  BM);
 #endif
 
 	return Result;
@@ -166,7 +166,7 @@ void FTransform::SetToRelativeTransform(const FTransform& ParentTransform)
 	DiagnosticCheckNaN_All(); 
 
 #if DEBUG_INVERSE_TRANSFORM
-	DebugEqualMatrix(AM *  BM.Inverse());
+	DebugEqualMatrix(AM *  BM.InverseFast());
 #endif
 }
 
@@ -212,7 +212,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 	FMatrix AM = ToMatrixWithScale();
 	FMatrix BM = Other.ToMatrixWithScale();
 
-	Result.DebugEqualMatrix(AM *  BM.Inverse());
+	Result.DebugEqualMatrix(AM *  BM.InverseFast());
 
 #endif
 	return Result;

@@ -988,7 +988,7 @@ void FLightPropagationVolume::GetShadowInfo( const FProjectedShadowInfo& Project
 {
 	FIntPoint ShadowBufferResolution( ProjectedShadowInfo.ResolutionX, ProjectedShadowInfo.ResolutionY );
 	RsmInfoOut.WorldToShadow = ProjectedShadowInfo.GetWorldToShadowMatrix(RsmInfoOut.ShadowmapMinMax, &ShadowBufferResolution );
-	RsmInfoOut.ShadowToWorld = RsmInfoOut.WorldToShadow.Inverse();
+	RsmInfoOut.ShadowToWorld = RsmInfoOut.WorldToShadow.InverseFast();
 
 	// Determine the shadow area in world space, so we can scale the brightness if needed. 
 	FVector ShadowUp    = FVector( 1.0f,0.0f,0.0f );

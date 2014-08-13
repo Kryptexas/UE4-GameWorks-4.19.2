@@ -136,7 +136,7 @@ public:
 				const FVector CameraUp      = -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f));
 				const FVector CameraRight   = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f));
 				const FVector CameraForward = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,0.0f,1.0f));
-				const FMatrix WorldToLocal = GetLocalToWorld().Inverse();
+				const FMatrix WorldToLocal = GetLocalToWorld().InverseFast();
 				const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
 				const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
 				const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
@@ -243,7 +243,7 @@ public:
 		const FVector CameraUp      = -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f));
 		const FVector CameraRight   = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f));
 		const FVector CameraForward = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,0.0f,1.0f));
-		const FMatrix WorldToLocal = GetLocalToWorld().Inverse();
+		const FMatrix WorldToLocal = GetLocalToWorld().InverseFast();
 		const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
 		const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
 		const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);

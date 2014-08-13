@@ -312,7 +312,7 @@ void FLevelUtils::RemoveEditorTransform(const ULevelStreaming* StreamingLevel, b
 	ULevel* LoadedLevel = StreamingLevel->GetLoadedLevel();
 	if( LoadedLevel != NULL )
 	{
-		ApplyLevelTransform( LoadedLevel, StreamingLevel->LevelTransform.InverseSafe(), bDoPostEditMove );
+		ApplyLevelTransform( LoadedLevel, StreamingLevel->LevelTransform.Inverse(), bDoPostEditMove );
 	}
 }
 

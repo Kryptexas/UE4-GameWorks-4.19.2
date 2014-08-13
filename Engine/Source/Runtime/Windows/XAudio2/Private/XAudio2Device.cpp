@@ -213,7 +213,7 @@ void FXAudio2Device::UpdateHardware()
 		// at the Y component after normalization to determine spatialization.
 		const FVector Up = Listeners[0].GetUp();
 		const FVector Right = Listeners[0].GetFront();
-		InverseTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).Inverse();
+		InverseTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
 	}
 }
 

@@ -2587,7 +2587,7 @@ public:
 
 	// While this isn't good OO design, access to everything is made public.
 	// This is to allow custom emitter instances to easily be written when extending the engine.
-	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().Inverse();	}
+	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().InverseFast();	}
 	bool GetCastShadow() const			{	return bCastShadow;				}
 	const FMaterialRelevance& GetMaterialRelevance() const
 	{

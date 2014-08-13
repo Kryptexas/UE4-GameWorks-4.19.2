@@ -153,11 +153,11 @@ void UCameraModifier_CameraShake::UpdateCameraShake(float DeltaTime, FCameraShak
 
 			// find transform from camera to the "play space"
 			FRotationMatrix const CamToWorld(InOutPOV.Rotation);
-			FMatrix const CameraToPlaySpace = CamToWorld * PlaySpaceToWorld.InverseSafe();			// CameraToWorld * WorldToPlaySpace
+			FMatrix const CameraToPlaySpace = CamToWorld * PlaySpaceToWorld.Inverse();			// CameraToWorld * WorldToPlaySpace
 
 			// find transform from anim (applied in playspace) back to camera
 			FRotationMatrix const AnimToPlaySpace(RotOffset);
-			FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.InverseSafe();			// AnimToPlaySpace * PlaySpaceToCamera
+			FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.Inverse();			// AnimToPlaySpace * PlaySpaceToCamera
 
 			// RCS = rotated camera space, meaning camera space after it's been animated
 			// this is what we're looking for, the diff between rotated cam space and regular cam space.

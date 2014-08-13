@@ -507,7 +507,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 		uint32 NumIndices = Indices.Num();
 
-		FMatrix LocalToWorldInverseTranspose = StaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse().GetTransposed();
+		FMatrix LocalToWorldInverseTranspose = StaticMeshComponent->ComponentToWorld.ToMatrixWithScale().InverseFast().GetTransposed();
 		for (uint32 i = 0; i < NumIndices; i++)
 		{
 			const FVector& VertexPos = LODModel.PositionVertexBuffer.VertexPosition( Indices[i] );

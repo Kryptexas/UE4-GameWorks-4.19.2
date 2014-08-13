@@ -279,7 +279,7 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 
 	// move animated cam actor to initial-relative position
 	FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
-	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.InverseSafe();
+	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.Inverse();
 	ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
 	MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);		// set it back because that's what the code below expects
 
@@ -308,11 +308,11 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 
 		// rot
 		// find transform from camera to the "play space"
-		FMatrix const CameraToPlaySpace = CameraToWorld * PlaySpaceToWorld.InverseSafe();	// CameraToWorld * WorldToPlaySpace
+		FMatrix const CameraToPlaySpace = CameraToWorld * PlaySpaceToWorld.Inverse();	// CameraToWorld * WorldToPlaySpace
 
 		// find transform from anim (applied in playspace) back to camera
 		FRotationMatrix const AnimToPlaySpace(AnimatedCamActor->GetActorRotation()*Scale);
-		FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.InverseSafe();			// AnimToPlaySpace * PlaySpaceToCamera
+		FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.Inverse();			// AnimToPlaySpace * PlaySpaceToCamera
 
 		// RCS = rotated camera space, meaning camera space after it's been animated
 		// this is what we're looking for, the diff between rotated cam space and regular cam space.

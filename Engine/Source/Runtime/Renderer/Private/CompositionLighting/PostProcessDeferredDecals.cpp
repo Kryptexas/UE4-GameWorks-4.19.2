@@ -482,7 +482,7 @@ public:
 		// 1,1,1 requires no scale
 		//			ComponentTrans = ComponentTrans.GetScaled(GDefaultDecalSize);
 
-		FMatrix WorldToComponent = ComponentTrans.ToMatrixWithScale().Inverse();
+		FMatrix WorldToComponent = ComponentTrans.ToMatrixWithScale().InverseFast();
 
 		// Set the transform from screen space to light space.
 		if(ScreenToDecal.IsBound())

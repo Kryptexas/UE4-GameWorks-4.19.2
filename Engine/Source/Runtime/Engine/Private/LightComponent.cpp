@@ -257,7 +257,7 @@ bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
 void FLightSceneProxy::SetTransform(const FMatrix& InLightToWorld,const FVector4& InPosition)
 {
 	LightToWorld = InLightToWorld;
-	WorldToLight = InLightToWorld.Inverse();
+	WorldToLight = InLightToWorld.InverseFast();
 	Position = InPosition;
 }
 

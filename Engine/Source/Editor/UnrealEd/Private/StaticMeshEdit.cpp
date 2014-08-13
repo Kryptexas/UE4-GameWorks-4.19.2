@@ -725,7 +725,7 @@ static inline void FTexCoordsToVectors(const FVector& V0, const FVector& UV0,
 	TexEqu.SetAxis( 0, FVector(	V1.X - V0.X, V1.Y - V0.Y, V1.Z - V0.Z ) );
 	TexEqu.SetAxis( 1, FVector( V2.X - V0.X, V2.Y - V0.Y, V2.Z - V0.Z ) );
 	TexEqu.SetAxis( 2, FVector( PN.X,        PN.Y,        PN.Z        ) );
-	TexEqu = TexEqu.Inverse();
+	TexEqu = TexEqu.InverseFast();
 
 	const FVector UResult( UV1.X-UV0.X, UV2.X-UV0.X, 0.0f );
 	const FVector TUResult = TexEqu.TransformVector( UResult );
@@ -740,7 +740,7 @@ static inline void FTexCoordsToVectors(const FVector& V0, const FVector& UV0,
 	BaseEqu.SetAxis( 0, TUResult );
 	BaseEqu.SetAxis( 1, TVResult ); 
 	BaseEqu.SetAxis( 2, FVector( PN.X, PN.Y, PN.Z ) );
-	BaseEqu = BaseEqu.Inverse();
+	BaseEqu = BaseEqu.InverseFast();
 
 	const FVector BResult = FVector( UV0.X - ( TUResult|V0 ), UV0.Y - ( TVResult|V0 ),  0.0f );
 

@@ -3787,7 +3787,7 @@ static void RenderViewFrustum( FPrimitiveDrawInterface* PDI,
 
 	for( int32 x = 0 ; x < 8 ; ++x )
 	{
-		Verts[x] = InViewMatrix.Inverse().TransformPosition( Verts[x] );
+		Verts[x] = InViewMatrix.InverseFast().TransformPosition( Verts[x] );
 	}
 
 	const uint8 PrimitiveDPG = SDPG_Foreground;
@@ -3949,7 +3949,7 @@ void FLevelEditorViewportClient::UpdateAudioListener( const FSceneView& View )
 
 			class AReverbVolume* ReverbVolume = GetWorld()->GetAudioSettings( ViewLocation, &ReverbSettings, &InteriorSettings );
 
-			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.Inverse();
+			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
 			FVector ProjRight = CameraToWorld.TransformVector(FVector(1000, 0, 0));
 

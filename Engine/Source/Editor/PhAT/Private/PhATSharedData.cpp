@@ -760,7 +760,7 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 	FMatrix ParentBoneTM = EditorSkelComp->GetBoneMatrix(ParentBoneIndex);
 	ParentBoneTM.RemoveScaling();
 
-	FMatrix RelTM = ChildBoneTM * ParentBoneTM.InverseSafe();
+	FMatrix RelTM = ChildBoneTM * ParentBoneTM.Inverse();
 
 	// Place joint at origin of child
 	ConstraintSetup->DefaultInstance.ConstraintBone1 = ChildBodySetup->BoneName;
@@ -951,9 +951,9 @@ void FPhATSharedData::PasteConstraintProperties()
 		FTransform BodyC = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame1);
 		FTransform BodyD = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame2);
 
-		FTransform FromF1AToF2A = BodyBFrame2B * BodyA.InverseSafe() * Frame1A.InverseSafe();
+		FTransform FromF1AToF2A = BodyBFrame2B * BodyA.Inverse() * Frame1A.Inverse();
 		FTransform Frame2C = FromF1AToF2A * Frame1C;
-		FTransform Frame2D = Frame2C* BodyC * BodyD.InverseSafe();
+		FTransform Frame2D = Frame2C* BodyC * BodyD.Inverse();
 
 
 		ToConstraintSetup->Modify();
@@ -997,7 +997,7 @@ void FPhATSharedData::CycleCurrentConstraintOrientation()
 	FMatrix ConstraintTransform = ConstraintTemplate->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixWithScale();
 	FTransform WParentFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame2);
 	FTransform WChildFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame1);
-	FTransform RelativeTransform = WChildFrame * WParentFrame.InverseSafe();
+	FTransform RelativeTransform = WChildFrame * WParentFrame.Inverse();
 
 	CycleMatrixRows(&ConstraintTransform);
 

@@ -267,7 +267,7 @@ void FStaticMeshStaticLightingMesh::Import( FLightmassImporter& Importer )
 	SplineParameters = TempSMSLMD.SplineParameters;
 
 	// calculate the inverse transpose
-	LocalToWorldInverseTranspose = LocalToWorld.Inverse().GetTransposed();
+	LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 
 	// we have the guid for the mesh, now hook it up to the actual static mesh
 	StaticMesh = Importer.ConditionalImportObject<FStaticMesh>(StaticMeshGuid, LM_STATICMESH_VERSION, LM_STATICMESH_EXTENSION, LM_STATICMESH_CHANNEL_FLAGS, Importer.GetStaticMeshes());

@@ -2561,7 +2561,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	NewLODModel.RequiredBones.Sort();
 
 	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
-	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).Inverse() * BaseSkeletalMesh->GetRefPoseMatrix(0);
+	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).InverseFast() * BaseSkeletalMesh->GetRefPoseMatrix(0);
 
 	for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
 	{

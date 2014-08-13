@@ -329,7 +329,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			{
 				FVector Vel;
 				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
-				const FMatrix InvMat = LocalToWorld.Inverse();
+				const FMatrix InvMat = LocalToWorld.InverseFast();
 				BEGIN_UPDATE_LOOP;
 				{
 					Vel = VelOverLife.GetValue(Particle.RelativeTime, Owner->Component);
@@ -377,7 +377,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			{
 				FVector Vel;
 				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
-				const FMatrix InvMat = LocalToWorld.Inverse();
+				const FMatrix InvMat = LocalToWorld.InverseFast();
 				BEGIN_UPDATE_LOOP;
 				{
 					Vel = VelOverLife.GetValue(Particle.RelativeTime, Owner->Component);
@@ -607,7 +607,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 	else if (LODLevel->RequiredModule->bUseLocalSpace && bInWorldSpace)
 	{
 		Transform *= OwnerRotation;
-		Transform *= LocalToWorld.Inverse();
+		Transform *= LocalToWorld.InverseFast();
 	}
 	else if (!bInWorldSpace)
 	{

@@ -267,16 +267,16 @@ public:
 	FORCEINLINE FMatrix ToInverseMatrixWithScale() const
 	{
 		// todo: optimize
-		return ToMatrixWithScale().InverseSafe();
+		return ToMatrixWithScale().Inverse();
 	}
 
 	/**
 	* Convert this Transform to inverse.
 	*/
-	FORCEINLINE FTransform InverseSafe() const
+	FORCEINLINE FTransform Inverse() const
 	{
 		// todo: optimize
-		return FTransform(ToMatrixWithScale().InverseSafe());
+		return FTransform(ToMatrixWithScale().Inverse());
 	}
 
 	/**

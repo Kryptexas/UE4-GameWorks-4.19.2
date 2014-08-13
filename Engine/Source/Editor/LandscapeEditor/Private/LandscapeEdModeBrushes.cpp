@@ -545,7 +545,7 @@ public:
 				{
 					float ScaleXY = LandscapeInfo->DrawScale.X;
 					FMatrix LToW = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale();
-					FMatrix WToL = LToW.Inverse();
+					FMatrix WToL = LToW.InverseFast();
 
 					UTexture2D* DataTexture = Gizmo->GizmoTexture;
 					int32 MinX = MAX_int32, MaxX = MIN_int32, MinY = MAX_int32, MaxY = MIN_int32;
@@ -646,10 +646,10 @@ public:
 			const float LW = Gizmo->GetWidth() / (2 * ScaleXY);
 			const float LH = Gizmo->GetHeight() / (2 * ScaleXY);
 
-			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().Inverse();
+			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().InverseFast();
 			FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
 			FMatrix LandscapeToGizmoLocal =
-				(FTranslationMatrix(FVector(-LW + 0.5, -LH + 0.5, 0)) * FRotationTranslationMatrix(FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).Inverse();
+				(FTranslationMatrix(FVector(-LW + 0.5, -LH + 0.5, 0)) * FRotationTranslationMatrix(FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).InverseFast();
 
 			float W = Gizmo->GetWidth() / ScaleXY; //Gizmo->GetWidth() / (Gizmo->DrawScale * Gizmo->DrawScale3D.X);
 			float H = Gizmo->GetHeight() / ScaleXY; //Gizmo->GetHeight() / (Gizmo->DrawScale * Gizmo->DrawScale3D.Y);

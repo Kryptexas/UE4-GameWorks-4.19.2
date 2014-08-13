@@ -2488,7 +2488,7 @@ void USkeletalMesh::CalculateInvRefMatrices()
 			}
 
 			// Precompute inverse so we can use from-refpose-skin vertices.
-			RefBasesInvMatrix[b] = RefBases[b].Inverse(); 
+			RefBasesInvMatrix[b] = RefBases[b].InverseFast(); 
 		}
 	}
 }
@@ -4488,7 +4488,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 void FSkeletalMeshSceneProxy::GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const
 {
 	OutLocalToWorld = GetLocalToWorld();
-	OutWorldToLocal = GetLocalToWorld().Inverse();
+	OutWorldToLocal = GetLocalToWorld().InverseFast();
 }
 
 /**

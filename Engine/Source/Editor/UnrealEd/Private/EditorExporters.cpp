@@ -1555,7 +1555,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 
 		check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
 
-		FMatrix LocalToWorldInverseTranspose = LocalToWorld.Inverse().GetTransposed();
+		FMatrix LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 		for(uint32 i = 0; i < VertexCount; i++)
 		{
 			// Vertices

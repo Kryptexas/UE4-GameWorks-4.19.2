@@ -301,18 +301,18 @@ public:
 	FORCEINLINE FMatrix ToInverseMatrixWithScale() const
 	{
 		// todo: optimize
-		return ToMatrixWithScale().InverseSafe();
+		return ToMatrixWithScale().Inverse();
 	}
 
 	/**
 	* Convert this Transform to inverse.
 	*/
-	FORCEINLINE FTransform InverseSafe() const
+	FORCEINLINE FTransform Inverse() const
 	{
-		// Replacement of InverseSafe of FMatrix
+		// Replacement of Inverse of FMatrix
 		if (VectorAnyGreaterThan(VectorAbs(Scale3D), GlobalVectorConstants::SmallNumber))
 		{
-			return Inverse();
+			return InverseFast();
 		}
 		else
 		{
@@ -1231,7 +1231,7 @@ private:
 	}
 
 	/** Returns Inverse Transform of this FTransform **/
-	FORCEINLINE FTransform Inverse() const
+	FORCEINLINE FTransform InverseFast() const
 	{
 		// Inverse QST (A) = QST (~A)
 		// Since A*~A = Identity, 

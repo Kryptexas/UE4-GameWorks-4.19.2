@@ -96,7 +96,7 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 	bHadValidStrength = bHasValidStrength;
 
 	// transform between last frame and now.
-	FMatrix OldToNewTM = OldLocalToWorld * SkelComp->GetTransformMatrix().Inverse();
+	FMatrix OldToNewTM = OldLocalToWorld * SkelComp->GetTransformMatrix().InverseFast();
 
 	// Add fake velocity if present to all but root bone
 	if(!FakeVelocity.IsZero())

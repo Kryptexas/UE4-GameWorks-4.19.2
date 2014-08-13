@@ -989,7 +989,7 @@ void ULevel::CreateModelComponents()
 
 				// fill out the NodeGroup/mapping, as UModelComponent::GetStaticLightingInfo did
 				SomeModelComponent->GetSurfaceLightMapResolution(SurfaceIndex, true, NodeGroup->SizeX, NodeGroup->SizeY, NodeGroup->WorldToMap, &NodeGroup->Nodes);
-				NodeGroup->MapToWorld = NodeGroup->WorldToMap.Inverse();
+				NodeGroup->MapToWorld = NodeGroup->WorldToMap.InverseFast();
 
 				// Cache the surface's vertices and triangles.
 				NodeGroup->BoundingBox.Init();

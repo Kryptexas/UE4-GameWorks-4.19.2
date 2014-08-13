@@ -196,7 +196,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 	// if the closest listener is not the primary one, transform CurrentLocation
 	if( ClosestListenerIndex != 0 )
 	{
-		ParseParams.Transform = ParseParams.Transform * ClosestListener.Transform.InverseSafe() * Listener.Transform;
+		ParseParams.Transform = ParseParams.Transform * ClosestListener.Transform.Inverse() * Listener.Transform;
 	}
 
 	// Recurse nodes, have SoundWave's create new wave instances and update bFinished unless we finished fading out.

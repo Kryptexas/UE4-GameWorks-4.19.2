@@ -1452,7 +1452,7 @@ FReflectionCaptureProxy::FReflectionCaptureProxy(const UReflectionCaptureCompone
 void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 {
 	Position = InTransform.GetOrigin();
-	BoxTransform = InTransform.InverseSafe();
+	BoxTransform = InTransform.Inverse();
 
 	FVector ForwardVector(1.0f,0.0f,0.0f);
 	FVector RightVector(0.0f,-1.0f,0.0f);

@@ -547,7 +547,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	FLinearColor MajorColor = FMath::Lerp(Background, FLinearColor::White, 0.05f);
 	FLinearColor MinorColor = FMath::Lerp(Background, FLinearColor::White, 0.02f);
 
-	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.Inverse() * View->ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.InverseFast() * View->ViewMatrices.ViewMatrix.InverseFast();
 	int32 FirstLine = FMath::TruncToInt(InvViewProjMatrix.TransformPosition(FVector(-1, -1, 0.5f)).Component(Axis) / ViewportGridY);
 	int32 LastLine = FMath::TruncToInt(InvViewProjMatrix.TransformPosition(FVector(+1, +1, 0.5f)).Component(Axis) / ViewportGridY);
 	if (FirstLine > LastLine)
@@ -601,7 +601,7 @@ void FEditorCommonDrawHelper::DrawOriginAxisLine(FVector* A,FVector* B,float* AX
 
 void FEditorCommonDrawHelper::DrawPivot(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-	const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
 
 	const FVector PivLoc = GLevelEditorModeTools().SnappedLocation;
 

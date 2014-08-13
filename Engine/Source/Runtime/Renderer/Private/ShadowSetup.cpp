@@ -459,7 +459,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 
 		GetViewFrustumBounds(CasterFrustum,SubjectAndReceiverMatrix,true);
 
-		InvReceiverMatrix = ReceiverMatrix.Inverse();
+		InvReceiverMatrix = ReceiverMatrix.InverseFast();
 		GetViewFrustumBounds(ReceiverFrustum,ReceiverMatrix,true);
 	}
 	else
@@ -539,7 +539,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 			// Snap the shadow's position and transform it back into world space
 			// This snapping prevents sub-texel camera movements which removes view dependent aliasing from the final shadow result
 			// This only maintains stable shadows under camera translation and rotation
-			const FVector SnappedWorldPosition = WorldToFace.Inverse().TransformPosition(TransformedPosition - FVector(SnapX, SnapY, 0.0f));
+			const FVector SnappedWorldPosition = WorldToFace.InverseFast().TransformPosition(TransformedPosition - FVector(SnapX, SnapY, 0.0f));
 			PreShadowTranslation = -SnappedWorldPosition;
 		}
 
@@ -574,7 +574,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 			// Snap the shadow's position and transform it back into world space
 			// This snapping prevents sub-texel camera movements which removes view dependent aliasing from the final shadow result
 			// This only maintains stable shadows under camera translation and rotation
-			const FVector SnappedWorldPosition = WorldToFace.Inverse().TransformPosition(TransformedPosition - FVector(SnapX, SnapY, 0.0f));
+			const FVector SnappedWorldPosition = WorldToFace.InverseFast().TransformPosition(TransformedPosition - FVector(SnapX, SnapY, 0.0f));
 			PreShadowTranslation = -SnappedWorldPosition;
 		}
 
@@ -603,7 +603,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 
 	float MaxSubjectDepth = SubjectAndReceiverMatrix.TransformPosition(
 		Initializer.SubjectBounds.Origin
-		+ WorldToLightScaled.Inverse().TransformVector(Initializer.FaceDirection) * Initializer.SubjectBounds.SphereRadius
+		+ WorldToLightScaled.InverseFast().TransformVector(Initializer.FaceDirection) * Initializer.SubjectBounds.SphereRadius
 		).Z;
 
 	if (Initializer.bOnePassPointLightShadow)
@@ -622,7 +622,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 		FPlane(0,	1,	0,	0),
 		FPlane(0,	0,	0,	1));
 
-	InvReceiverMatrix = ReceiverMatrix.Inverse();
+	InvReceiverMatrix = ReceiverMatrix.InverseFast();
 
 	GetViewFrustumBounds(ReceiverFrustum, ReceiverMatrix, true);
 
@@ -1666,14 +1666,14 @@ void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility(FRHICommandLis
 								float Far = ProjectedShadowInfo.CascadeSettings.SplitFar;
 
 								// Camera Subfrustum
-								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Near, Mid)).Inverse(), Color, 0);
-								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Mid, Far)).Inverse(), FColor::White, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Near, Mid)).InverseFast(), Color, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Mid, Far)).InverseFast(), FColor::White, 0);
 
 								// Subfrustum Sphere Bounds
 								DrawWireSphere(&ShadowFrustumPDI, FTransform(ProjectedShadowInfo.ShadowBounds.Center), Color, ProjectedShadowInfo.ShadowBounds.W, 40, 0);
 
 								// Shadow Map Projection Bounds
-								DrawFrustumWireframe(&ShadowFrustumPDI, ProjectedShadowInfo.SubjectAndReceiverMatrix.Inverse() * FTranslationMatrix(-ProjectedShadowInfo.PreShadowTranslation), Color, 0);
+								DrawFrustumWireframe(&ShadowFrustumPDI, ProjectedShadowInfo.SubjectAndReceiverMatrix.InverseFast() * FTranslationMatrix(-ProjectedShadowInfo.PreShadowTranslation), Color, 0);
 							}
 							else
 							{

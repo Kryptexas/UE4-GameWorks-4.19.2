@@ -163,7 +163,7 @@ public:
 	*/
 	ENGINE_API FMatrix GetTransform() const
 	{ 
-		return TransformStack.Top().GetMatrix() * TransformStack[0].GetMatrix().Inverse(); 
+		return TransformStack.Top().GetMatrix() * TransformStack[0].GetMatrix().InverseFast(); 
 	}
 
 	/** 

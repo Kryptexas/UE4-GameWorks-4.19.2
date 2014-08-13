@@ -645,7 +645,7 @@ void FDynamicSpriteEmitterDataBase::RenderDebug(const FParticleSystemSceneProxy*
 
 	const FMatrix& LocalToWorld = SpriteSource.bUseLocalSpace ? Proxy->GetLocalToWorld() : FMatrix::Identity;
 
-	FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
+	FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
 	FVector CamX = CameraToWorld.TransformVector(FVector(1,0,0));
 	FVector CamY = CameraToWorld.TransformVector(FVector(0,1,0));
 
@@ -2299,7 +2299,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			else if (CameraFacingOption >= VelocityAligned_ZAxisFacing)
 			{
 				bClearLocal2World = true;
-				VelocityDirection = LocalToWorld.Inverse().GetTransposed().TransformVector(VelocityDirection);
+				VelocityDirection = LocalToWorld.InverseFast().GetTransposed().TransformVector(VelocityDirection);
 			}
 
 			if (bClearLocal2World)
@@ -2601,7 +2601,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 	FVector CameraPosition = View->ViewMatrices.ViewOrigin;
 	if (Source.bUseLocalSpace)
 	{
-		const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().InverseSafe();
+		const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
 		CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
 	}
 
@@ -3237,7 +3237,7 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 
 		FMatrix WorldToLocal = Proxy->GetWorldToLocal();
 		FMatrix LocalToWorld = Proxy->GetLocalToWorld();
-		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
+		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
 		FVector	ViewOrigin = CameraToWorld.GetOrigin();
 
 		// NoiseTessellation is the amount of tessellation that should occur between noise points.
@@ -3587,7 +3587,7 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 
 	if (Source.InterpolationPoints > 1)
 	{
-		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
+		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
 		FVector	ViewOrigin = CameraToWorld.GetOrigin();
 		int32 TessFactor = Source.InterpolationPoints ? Source.InterpolationPoints : 1;
 
@@ -3792,7 +3792,7 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 	int32	TrianglesToRender = 0;
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.InverseSafe();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.Inverse();
 	FVector	ViewOrigin = CameraToWorld.GetOrigin();
 	int32 TessFactor = Source.InterpolationPoints ? Source.InterpolationPoints : 1;
 
@@ -4208,7 +4208,7 @@ int32 FDynamicBeam2EmitterData::FillData_Noise(FAsyncBufferFillData& Me) const
 	}
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.InverseSafe();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.Inverse();
 
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
@@ -5169,7 +5169,7 @@ int32 FDynamicBeam2EmitterData::FillData_InterpolatedNoise(FAsyncBufferFillData&
 	check(Source.Frequency > 0);
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.Inverse();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.InverseFast();
 	
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
@@ -6435,7 +6435,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 	FParticleBeamTrailVertex* Vertex;
 	FParticleBeamTrailVertexDynamicParameter* DynParamVertex;
 
-	FMatrix CameraToWorld = Data.View->ViewMatrices.ViewMatrix.Inverse();
+	FMatrix CameraToWorld = Data.View->ViewMatrices.ViewMatrix.InverseFast();
 	FVector CameraUp = CameraToWorld.TransformVector(FVector(0,0,1));
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 

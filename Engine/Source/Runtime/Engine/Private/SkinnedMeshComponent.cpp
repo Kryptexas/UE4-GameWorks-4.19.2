@@ -1199,7 +1199,7 @@ void USkinnedMeshComponent::TransformToBoneSpace(FName BoneName, FVector InPosit
 	{
 		FMatrix BoneToWorldTM = GetBoneMatrix(BoneIndex);
 		FMatrix WorldTM = FRotationTranslationMatrix(InRotation, InPosition);
-		FMatrix LocalTM = WorldTM * BoneToWorldTM.InverseSafe();
+		FMatrix LocalTM = WorldTM * BoneToWorldTM.Inverse();
 
 		OutPosition = LocalTM.GetOrigin();
 		OutRotation = LocalTM.Rotator();

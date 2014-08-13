@@ -1869,7 +1869,7 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 		return false;
 	}
 
-	const FTransform WorldToComponent(ComponentToWorld.InverseSafe());
+	const FTransform WorldToComponent(ComponentToWorld.Inverse());
 	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
 	bool bHaveBlockingHit = false;
@@ -3163,7 +3163,7 @@ void USkeletalMeshComponent::CheckClothTeleport(float DeltaTime)
 	{
 		// Detect whether teleportation is needed or not
 		// Rotation matrix's transpose means an inverse but can't use a transpose because this matrix includes scales
-		FMatrix AInvB = CurRootBoneMat * PrevRootBoneMatrix.Inverse();
+		FMatrix AInvB = CurRootBoneMat * PrevRootBoneMatrix.InverseFast();
 		float Trace = AInvB.M[0][0] + AInvB.M[1][1] + AInvB.M[2][2];
 		float CosineTheta = (Trace - 1.0f) / 2.0f; // trace = 1+2cos(theta) for a 3x3 matrix
 

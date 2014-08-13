@@ -410,12 +410,12 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 								if(!SceneComp->bAbsoluteLocation)
 								{
-									Drag = ParentToWorldSpace.InverseSafe().TransformVector(Drag);
+									Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
 								}
 								
 								if(!SceneComp->bAbsoluteRotation)
 								{
-									Rot = (ParentToWorldSpace.InverseSafe().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
+									Rot = (ParentToWorldSpace.Inverse().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
 								}
 							}
 

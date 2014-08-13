@@ -166,7 +166,7 @@ FORCEINLINE FVector4 FMatrix::TransformPosition(const FVector &V) const
 /** Inverts the matrix and then transforms V - correctly handles scaling in this matrix. */
 FORCEINLINE FVector FMatrix::InverseTransformPosition(const FVector &V) const
 {
-	FMatrix InvSelf = this->InverseSafe();
+	FMatrix InvSelf = this->InverseFast();
 	return InvSelf.TransformPosition(V);
 }
 
@@ -184,7 +184,7 @@ FORCEINLINE FVector4 FMatrix::TransformVector(const FVector& V) const
 /** Faster version of InverseTransformVector that assumes no scaling. WARNING: Will NOT work correctly if there is scaling in the matrix. */
 FORCEINLINE FVector FMatrix::InverseTransformVector(const FVector &V) const
 {
-	FMatrix InvSelf = this->Inverse();
+	FMatrix InvSelf = this->InverseFast();
 	return InvSelf.TransformVector(V);
 }
 
@@ -255,7 +255,7 @@ inline float FMatrix::RotDeterminant() const
 
 // Inverse.
 /** Fast path, doesn't check for nil matrices in final release builds */
-inline FMatrix FMatrix::Inverse() const
+inline FMatrix FMatrix::InverseFast() const
 {
 	// If we're in non final release, then make sure we're not creating NaNs
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -264,8 +264,8 @@ inline FMatrix FMatrix::Inverse() const
 		GetScaledAxis( EAxis::Y ).IsNearlyZero(SMALL_NUMBER) && 
 		GetScaledAxis( EAxis::Z ).IsNearlyZero(SMALL_NUMBER) ) 
 	{
-		UE_LOG(LogUnrealMath, Error, TEXT("FMatrix::Inverse(), trying to invert a NIL matrix, this results in NaNs! Use InverseSafe() instead."));
-		ensureMsgf(false, TEXT("FMatrix::Inverse(), trying to invert a NIL matrix, this results in NaNs! Use InverseSafe() instead."));
+		UE_LOG(LogUnrealMath, Error, TEXT("FMatrix::Inverse(), trying to invert a NIL matrix, this results in NaNs! Use Inverse() instead."));
+		ensureMsgf(false, TEXT("FMatrix::Inverse(), trying to invert a NIL matrix, this results in NaNs! Use Inverse() instead."));
 	}
 #endif
 	FMatrix Result;
@@ -274,7 +274,7 @@ inline FMatrix FMatrix::Inverse() const
 }
 
 // Inverse.
-inline FMatrix FMatrix::InverseSafe() const
+inline FMatrix FMatrix::Inverse() const
 {
 	FMatrix Result;
 
@@ -284,108 +284,21 @@ inline FMatrix FMatrix::InverseSafe() const
 		GetScaledAxis( EAxis::Z ).IsNearlyZero(SMALL_NUMBER) ) 
 	{
 		// just set to zero - avoids unsafe inverse of zero and duplicates what QNANs were resulting in before (scaling away all children)
-		Result = FMatrix(FVector::ZeroVector, FVector::ZeroVector, FVector::ZeroVector, FVector::ZeroVector);
+		Result = FMatrix::Identity;
 	}
 	else
 	{
-		VectorMatrixInverse( &Result, this );
+		const float	Det = Determinant();
+
+		if(Det == 0.0f)
+		{
+			Result = FMatrix::Identity;
+		}
+		else
+		{
+			VectorMatrixInverse( &Result, this );
+		}
 	}
-	return Result;
-}
-
-inline FMatrix FMatrix::InverseSlow() const
-{
-	FMatrix Result;
-	const float	Det = Determinant();
-
-	if(Det == 0.0f)
-		return FMatrix::Identity;
-
-	const float	RDet = 1.0f / Det;
-
-	Result.M[0][0] = RDet * (
-			M[1][1] * (M[2][2] * M[3][3] - M[2][3] * M[3][2]) -
-			M[2][1] * (M[1][2] * M[3][3] - M[1][3] * M[3][2]) +
-			M[3][1] * (M[1][2] * M[2][3] - M[1][3] * M[2][2])
-			);
-	Result.M[0][1] = -RDet * (
-			M[0][1] * (M[2][2] * M[3][3] - M[2][3] * M[3][2]) -
-			M[2][1] * (M[0][2] * M[3][3] - M[0][3] * M[3][2]) +
-			M[3][1] * (M[0][2] * M[2][3] - M[0][3] * M[2][2])
-			);
-	Result.M[0][2] = RDet * (
-			M[0][1] * (M[1][2] * M[3][3] - M[1][3] * M[3][2]) -
-			M[1][1] * (M[0][2] * M[3][3] - M[0][3] * M[3][2]) +
-			M[3][1] * (M[0][2] * M[1][3] - M[0][3] * M[1][2])
-			);
-	Result.M[0][3] = -RDet * (
-			M[0][1] * (M[1][2] * M[2][3] - M[1][3] * M[2][2]) -
-			M[1][1] * (M[0][2] * M[2][3] - M[0][3] * M[2][2]) +
-			M[2][1] * (M[0][2] * M[1][3] - M[0][3] * M[1][2])
-			);
-
-	Result.M[1][0] = -RDet * (
-			M[1][0] * (M[2][2] * M[3][3] - M[2][3] * M[3][2]) -
-			M[2][0] * (M[1][2] * M[3][3] - M[1][3] * M[3][2]) +
-			M[3][0] * (M[1][2] * M[2][3] - M[1][3] * M[2][2])
-			);
-	Result.M[1][1] = RDet * (
-			M[0][0] * (M[2][2] * M[3][3] - M[2][3] * M[3][2]) -
-			M[2][0] * (M[0][2] * M[3][3] - M[0][3] * M[3][2]) +
-			M[3][0] * (M[0][2] * M[2][3] - M[0][3] * M[2][2])
-			);
-	Result.M[1][2] = -RDet * (
-			M[0][0] * (M[1][2] * M[3][3] - M[1][3] * M[3][2]) -
-			M[1][0] * (M[0][2] * M[3][3] - M[0][3] * M[3][2]) +
-			M[3][0] * (M[0][2] * M[1][3] - M[0][3] * M[1][2])
-			);
-	Result.M[1][3] = RDet * (
-			M[0][0] * (M[1][2] * M[2][3] - M[1][3] * M[2][2]) -
-			M[1][0] * (M[0][2] * M[2][3] - M[0][3] * M[2][2]) +
-			M[2][0] * (M[0][2] * M[1][3] - M[0][3] * M[1][2])
-			);
-
-	Result.M[2][0] = RDet * (
-			M[1][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-			M[2][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) +
-			M[3][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1])
-			);
-	Result.M[2][1] = -RDet * (
-			M[0][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-			M[2][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-			M[3][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1])
-			);
-	Result.M[2][2] = RDet * (
-			M[0][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) -
-			M[1][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-			M[3][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-			);
-	Result.M[2][3] = -RDet * (
-			M[0][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1]) -
-			M[1][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1]) +
-			M[2][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-			);
-
-	Result.M[3][0] = -RDet * (
-			M[1][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-			M[2][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) +
-			M[3][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
-			);
-	Result.M[3][1] = RDet * (
-			M[0][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-			M[2][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-			M[3][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1])
-			);
-	Result.M[3][2] = -RDet * (
-			M[0][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) -
-			M[1][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-			M[3][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-			);
-	Result.M[3][3] = RDet * (
-			M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
-			M[1][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1]) +
-			M[2][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-			);
 
 	return Result;
 }
