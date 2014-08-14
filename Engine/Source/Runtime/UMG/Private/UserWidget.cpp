@@ -24,6 +24,8 @@ class SViewportWidgetHost : public SCompoundWidget
 	{
 		bModal = bInModal;
 
+		SetVisibility(bModal ? EVisibility::Visible : EVisibility::SelfHitTestInvisible);
+
 		ChildSlot
 		[
 			InArgs._Content.Widget
@@ -100,6 +102,8 @@ class SViewportWidgetHost : public SCompoundWidget
 	{
 		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 	}
+
+	bool IsModal() const { return bModal; }
 
 protected:
 	bool bModal;
@@ -396,11 +400,16 @@ void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCur
 			UGameViewportClient* Viewport = World->GetGameViewport();
 			Viewport->AddViewportWidgetContent(WidgetHost);
 
-			TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-			if ( GameViewportWidget.IsValid() )
+			//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+			// the Widget stack, and the dialog stack.
+			if ( bModal )
 			{
-				GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(RootWidget);
-				FSlateApplication::Get().SetKeyboardFocus(RootWidget);
+				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+				if ( GameViewportWidget.IsValid() )
+				{
+					GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(RootWidget);
+					FSlateApplication::Get().SetKeyboardFocus(RootWidget);
+				}
 			}
 		}
 	}
@@ -410,7 +419,7 @@ void UUserWidget::RemoveFromViewport()
 {
 	if ( FullScreenWidget.IsValid() )
 	{
-		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
+		TSharedPtr<SViewportWidgetHost> RootWidget = FullScreenWidget.Pin();
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -419,13 +428,19 @@ void UUserWidget::RemoveFromViewport()
 			UGameViewportClient* Viewport = World->GetGameViewport();
 			Viewport->RemoveViewportWidgetContent(RootWidget.ToSharedRef());
 
-			TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-			if ( GameViewportWidget.IsValid() )
+			if ( RootWidget->IsModal() )
 			{
-				//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-				// the Widget stack, and the dialog stack.
-				GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
-				FSlateApplication::Get().SetKeyboardFocus(TSharedPtr<SWidget>());
+				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+				if ( GameViewportWidget.IsValid() )
+				{
+					//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+					// the Widget stack, and the dialog stack.
+					GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
+					FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+
+					FSlateApplication::Get().SetFocusToGameViewport();
+					FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+				}
 			}
 		}
 	}

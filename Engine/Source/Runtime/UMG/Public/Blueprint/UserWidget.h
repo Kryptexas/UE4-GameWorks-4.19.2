@@ -342,7 +342,7 @@ private:
 	FVector2D ViewportAlignment;
 	int32 ViewportZOrder;
 
-	TWeakPtr<SWidget> FullScreenWidget;
+	TWeakPtr<class SViewportWidgetHost> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;
 
