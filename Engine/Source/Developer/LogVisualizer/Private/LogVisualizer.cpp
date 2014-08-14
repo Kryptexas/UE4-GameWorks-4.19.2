@@ -53,7 +53,6 @@ void FLogVisualizer::CloseUI(UWorld* InWorld)
 	{
 		if (LogWindow.IsValid() && (World.IsValid() == false || World == InWorld))
 		{
-			InWorld->DestroyActor(GetHelperActor(InWorld));
 			DebugActor = NULL;
 
 			CleanUp();

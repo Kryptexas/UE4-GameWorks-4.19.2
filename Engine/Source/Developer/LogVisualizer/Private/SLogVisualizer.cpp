@@ -571,6 +571,11 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SLogVisualizer::~SLogVisualizer()
 {
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->DestroyActor(FLogVisualizerModule::Get()->GetHelperActor(World));
+	}
 	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
