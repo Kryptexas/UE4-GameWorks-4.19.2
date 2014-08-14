@@ -362,6 +362,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			));
 	}
 
+#if  USE_EQS_DEBUGGER
 	if (DebugComponent->EQSLocalData.NumValidItems > 0)
 	{
 		// draw test weights for best X items
@@ -418,6 +419,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			PrintString(DefaultContext, TestDesc);
 		}
 	}
+#endif //USE_EQS_DEBUGGER
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 

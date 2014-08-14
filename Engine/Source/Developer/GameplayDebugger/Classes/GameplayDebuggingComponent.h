@@ -6,10 +6,9 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
-#include "DebugRenderSceneProxy.h"
-#include "GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingTypes.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
-//#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "GameplayDebuggingComponent.generated.h"
 
 #define WITH_EQS 1
@@ -29,34 +28,6 @@ namespace EDebugComponentMessage
 		ActivateDataView,
 		DeactivateDataView,
 		SetMultipleDataViews,
-	};
-}
-
-namespace EQSDebug
-{
-	struct FItemData
-	{
-		FString Desc;
-		int32 ItemIdx;
-		float TotalScore;
-
-		TArray<float> TestValues;
-		TArray<float> TestScores;
-	};
-
-	struct FTestData
-	{
-		FString ShortName;
-		FString Detailed;
-	};
-
-	struct FQueryData
-	{
-		TArray<FItemData> Items;
-		TArray<FTestData> Tests;
-		TArray<FDebugRenderSceneProxy::FSphere> SolidSpheres;
-		TArray<FDebugRenderSceneProxy::FText3d> Texts;
-		int32 NumValidItems;
 	};
 }
 
@@ -124,7 +95,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<uint8> EQSRepData;
 	
 	/** local EQS debug data, decoded from EQSRepData blob */
-	EQSDebug::FQueryData EQSLocalData;	
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	EQSDebug::FQueryData EQSLocalData;
+#endif
 	/** End EQS replication data */
 
 

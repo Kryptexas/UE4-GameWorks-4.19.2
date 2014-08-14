@@ -66,6 +66,9 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
 
+	SolidSpheres = Spheres;
+	Texts = InTexts;
+
 	if (InComponent == NULL)
 	{
 		return;
@@ -81,9 +84,6 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 			return;
 		}
 	}
-
-	SolidSpheres = Spheres;
-	Texts = InTexts;
 }
 
 void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* InQueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts)
@@ -106,6 +106,19 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	const FEnvQueryResult* ResultItems = QueryDataSource->GetQueryResult();
 	const FEnvQueryInstance* QueryInstance = QueryDataSource->GetQueryInstance();
 
+	FEQSSceneProxy::CollectEQSData(ResultItems, QueryInstance, Spheres, Texts, QueryDataSource->GetShouldDrawFailedItems());
+
+	if (ActorOwner && Spheres.Num() > EQSMaxItemsDrawn)
+	{
+		UE_VLOG(ActorOwner, LogEQS, Warning, TEXT("EQS drawing: too much items to draw! Drawing first %d from set of %d")
+			, EQSMaxItemsDrawn
+			, Spheres.Num()
+			);
+	}
+}
+
+void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems)
+{
 	if (ResultItems == NULL)
 	{
 		if (QueryInstance == NULL)
@@ -193,7 +206,7 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 		}
 	}
 
-	if (QueryDataSource->GetShouldDrawFailedItems() && QueryInstance)
+	if (ShouldDrawFailedItems && QueryInstance)
 	{
 		const FEQSQueryDebugData& InstanceDebugData = QueryInstance->DebugData;
 		const TArray<FEnvQueryItem>& DebugQueryItems = InstanceDebugData.DebugItems;
@@ -217,21 +230,13 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 		}
 	}
 #endif // USE_EQS_DEBUGGER
-
-	if (ActorOwner && Spheres.Num() > EQSMaxItemsDrawn)
-	{
-		UE_VLOG(ActorOwner, LogEQS, Warning, TEXT("EQS drawing: too much items to draw! Drawing first %d from set of %d")
-			, EQSMaxItemsDrawn
-			, Spheres.Num()
-			);
-	}
 }
 
 void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController* PC)
 {
 	if ( !ActorOwner
 		 || (ActorOwner->IsSelected() == false && bDrawOnlyWhenSelected == true)
-		 || QueryDataSource->GetShouldDebugDrawLabels() == false)
+		 || (QueryDataSource && QueryDataSource->GetShouldDebugDrawLabels() == false))
 	{
 		return;
 	}
@@ -271,6 +276,12 @@ UEQSRenderingComponent::UEQSRenderingComponent(const class FPostConstructInitial
 
 FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 {
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	if (DebugData.SolidSpheres.Num() > 0 || DebugData.Texts.Num() > 0)
+	{
+		return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected, DebugData.SolidSpheres, DebugData.Texts);
+	}
+#endif
 	return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected);
 }
 

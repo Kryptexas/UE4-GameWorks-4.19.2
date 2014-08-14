@@ -20,6 +20,7 @@
 #endif
 
 #include "GameplayDebuggingComponent.h"
+#include "LogVisualizerModule.h"
 
 #include "SFilterList.h"
 
@@ -769,6 +770,24 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 					break;
 				}
 			}
+
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (const auto CurrentBlock : CurrentEntry->DataBlocks)
+			{
+				const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentBlock.Category.ToString(), ELogVerbosity::All);
+				const bool bCurrentTagNamePassed = FilterListPtr->IsFilterEnabled(CurrentBlock.TagName.ToString(), ELogVerbosity::All);
+
+				if (CurrentBlock.Category != NAME_None && (bCurrentCategoryPassed &&	bCurrentTagNamePassed))
+				{
+					OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
+					bAddedEntry = true;
+					break;
+				}
+			}
 		}
 	}
 	else
@@ -862,6 +881,23 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 						break;
 					}
 				}
+				if (bAddedEntry)
+				{
+					continue;
+				}
+
+				for (const auto CurrentData : CurrentEntry->DataBlocks)
+				{
+					const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All);
+					const bool bCurrentTagNamePassed = FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
+
+					if (CurrentData.TagName != NAME_None && (bCurrentCategoryPassed &&	bCurrentTagNamePassed))
+					{
+						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
+						bAddedEntry = true;
+						break;
+					}
+				}
 			}
 
 		}
@@ -936,6 +972,24 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 					break;
 				}
 			}
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (const auto CurrentData : LogEntry->DataBlocks)
+			{
+				const bool bCurrentCategoryPassed = bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentData.Category.ToString().Find(QuickFilterText) != INDEX_NONE);
+				const bool bCurrentTagNamePassed = !bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentData.TagName.ToString().Find(QuickFilterText) != INDEX_NONE);
+
+				if (bCurrentCategoryPassed &&	bCurrentTagNamePassed)
+				{
+					OutEntries.AddUnique(LogEntry);
+					bAddedEntry = true;
+					break;
+				}
+			}
+
 		} //for (int32 Index = 0; Index < NumEntries; ++Index)
 	} //if (QuickFilterText.Len() > 0)
 	else
@@ -1136,6 +1190,21 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 				}
 			}
 
+			if (!bShouldShow)
+			{
+				for (const auto CurrentData : Log->Entries[NewEntryIndex]->DataBlocks)
+				{
+					const FName CurrentCategory = CurrentData.Category;
+					const FName CurrentTagName = CurrentData.TagName;
+					if (CurrentCategory == NAME_None ||
+						(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentTagName.ToString(), ELogVerbosity::All)))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
 			if (bShouldShow)
 			{
 				break;
@@ -1226,6 +1295,18 @@ void SLogVisualizer::AddOrUpdateLog(int32 LogIndex, const FActorsVisLog* Log)
 			const FString DataNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName.ToString();
 			FilterListPtr->AddGraphFilter(GraphNameAsString, DataNameAsString, FColor::White);
 		}
+
+		for (const auto CurrentData : Log->Entries[EntryIndex]->DataBlocks)
+		{
+			int32 Index = UsedCategories.Find(CurrentData.Category.ToString());
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CurrentData.Category.ToString());
+				FilterListPtr->AddFilter(CurrentData.Category.ToString(), GetColorForUsedCategory(Index));
+			}
+		}
+
+
 	}
 
 	if (CurrentIndex == INDEX_NONE)
@@ -1671,6 +1752,12 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 
 	SetCurrentViewedTime(LogEntry->TimeStamp);
 
+	UWorld* World = GetWorld();
+	for (auto It = FVisualLog::Get().GetAllExtensions().CreateIterator(); It; ++It)
+	{
+		(*It).Value->OnTimestampChange(LogEntry->TimeStamp, World, FLogVisualizerModule::Get()->GetHelperActor(World));
+	}
+	InvalidateCanvas();
 	LogsLinesWidget->RequestListRefresh();
 }
 
@@ -2100,6 +2187,21 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				}
 			}
 
+			AActor* HelperActor = FLogVisualizerModule::Get()->GetHelperActor(World);
+			for (const auto CurrentData : Entry->DataBlocks)
+			{
+				const FName TagName = CurrentData.TagName;
+				const bool bIsValidByFilter = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
+				if (!bIsValidByFilter)
+				{
+					continue;
+				}
+
+				if (FVisualLogExtensionInterface* Extension = FVisualLog::Get().GetExtensionForTag(TagName))
+				{
+					Extension->DrawData(World, Canvas, HelperActor, TagName, CurrentData, Entry->TimeStamp);
+				}
+			}
 
 			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetTypedData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();

@@ -16,4 +16,7 @@ public:
 
 	/** checks if we have LogVisualizer UI opened for given World */
 	virtual bool IsOpenUI(UWorld* InWorld) = 0;
+
+	/** Helper actor used to render data in given world */
+	virtual class AActor* GetHelperActor(class UWorld* InWorld) = 0;
 };

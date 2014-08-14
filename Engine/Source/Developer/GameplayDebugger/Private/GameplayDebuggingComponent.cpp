@@ -9,10 +9,8 @@
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 
-// @todo this is here only due to circular dependency to AIModule. To be removed
 #include "AIController.h"
 #include "BrainComponent.h"
-//#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "BehaviorTreeDelegates.h"
 #include "Navigation/NavigationComponent.h"
 #include "GameFramework/PlayerState.h"
@@ -564,51 +562,9 @@ const FEnvQueryInstance* UGameplayDebuggingComponent::GetQueryInstance() const
 	return CachedQueryInstance.Get();
 }
 
-FArchive& operator<<(FArchive& Ar, FDebugRenderSceneProxy::FSphere& Data)
-{
-	Ar << Data.Radius;
-	Ar << Data.Location;
-	Ar << Data.Color;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, FDebugRenderSceneProxy::FText3d& Data)
-{
-	Ar << Data.Text;
-	Ar << Data.Location;
-	Ar << Data.Color;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, EQSDebug::FItemData& Data)
-{
-	Ar << Data.Desc;
-	Ar << Data.ItemIdx;
-	Ar << Data.TotalScore;
-	Ar << Data.TestValues;
-	Ar << Data.TestScores;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, EQSDebug::FTestData& Data)
-{
-	Ar << Data.ShortName;
-	Ar << Data.Detailed;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
-{
-	Ar << Data.Items;
-	Ar << Data.Tests;
-	Ar << Data.SolidSpheres;
-	Ar << Data.Texts;
-	Ar << Data.NumValidItems;
-	return Ar;
-}
-
 void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 {
+#if  USE_EQS_DEBUGGER
 	// decode scoring data
 	if (World && World->GetNetMode() == NM_Client)
 	{
@@ -630,6 +586,7 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 
 	UpdateBounds();
 	MarkRenderStateDirty();
+#endif //USE_EQS_DEBUGGER
 }
 
 void UGameplayDebuggingComponent::CollectEQSData()
@@ -665,58 +622,8 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	TArray<uint8> UncompressedBuffer;
 	FMemoryWriter ArWriter(UncompressedBuffer);
 
-	// step 1: data for rendering component
-	EQSLocalData.SolidSpheres.Reset();
-	EQSLocalData.Texts.Reset();
-	FEQSSceneProxy::CollectEQSData(this, NULL, EQSLocalData.SolidSpheres, EQSLocalData.Texts);
+	UEnvQueryDebugHelpers::QueryToDebugData(CachedQueryInstance.Get(), EQSLocalData);
 
-	// step 2: detailed scoring data for HUD
-	const int32 MaxDetailedItems = 10;
-	const int32 FirstItemIndex = 0;
-
-	const int32 NumTests = CachedQueryInstance->ItemDetails.IsValidIndex(0) ? CachedQueryInstance->ItemDetails[0].TestResults.Num() : 0;
-	const int32 NumItems = FMath::Min(MaxDetailedItems, CachedQueryInstance->NumValidItems);
-
-	EQSLocalData.Items.Reset(NumItems);
-	EQSLocalData.Tests.Reset(NumTests);
-	EQSLocalData.NumValidItems = CachedQueryInstance->NumValidItems;
-
-	UEnvQueryItemType* ItemCDO = CachedQueryInstance->ItemType.GetDefaultObject();
-	for (int32 ItemIdx = 0; ItemIdx < NumItems; ItemIdx++)
-	{
-		EQSDebug::FItemData ItemInfo;
-		ItemInfo.ItemIdx = ItemIdx + FirstItemIndex;
-		ItemInfo.TotalScore = CachedQueryInstance->Items[ItemInfo.ItemIdx].Score;
-
-		const uint8* ItemData = CachedQueryInstance->RawData.GetTypedData() + CachedQueryInstance->Items[ItemInfo.ItemIdx].DataOffset;
-		ItemInfo.Desc = FString::Printf(TEXT("[%d] %s"), ItemInfo.ItemIdx, *ItemCDO->GetDescription(ItemData));
-
-		ItemInfo.TestValues.Reserve(NumTests);
-		ItemInfo.TestScores.Reserve(NumTests);
-		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
-		{
-			const float ScoreN = CachedQueryInstance->ItemDetails[ItemInfo.ItemIdx].TestResults[TestIdx];
-			const float ScoreW = CachedQueryInstance->ItemDetails[ItemInfo.ItemIdx].TestWeightedScores[TestIdx];
-
-			ItemInfo.TestValues.Add(ScoreN);
-			ItemInfo.TestScores.Add(ScoreW);
-		}
-
-		EQSLocalData.Items.Add(ItemInfo);
-	}
-
-	{
-		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
-		{
-			EQSDebug::FTestData TestInfo;
-
-			UEnvQueryTest* TestOb = CachedQueryInstance->Options[CachedQueryInstance->OptionIndex].GetTestObject(TestIdx);
-			TestInfo.ShortName = TestOb->GetDescriptionTitle();
-			TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
-			
-			EQSLocalData.Tests.Add(TestInfo);
-		}
-	}
 	ArWriter << EQSLocalData;
 
 	const double Timer2 = FPlatformTime::Seconds();
@@ -1160,13 +1067,13 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	}
 #endif
 
-#if WITH_EQS
+#if USE_EQS_DEBUGGER
 	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() )
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 		CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), /*bDrawOnlyWhenSelected=*/false, EQSLocalData.SolidSpheres, EQSLocalData.Texts));
 	}
-#endif // WITH_EQS
+#endif // USE_EQS_DEBUGGER
 
 	return CompositeProxy;
 }
@@ -1183,12 +1090,12 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & Loca
 	}
 #endif
 
-#if WITH_EQS
+#if USE_EQS_DEBUGGER
 	if (EQSRepData.Num())
 	{
 		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	}
-#endif // WITH_EQS
+#endif // USE_EQS_DEBUGGER
 
 	return MyBounds;
 }

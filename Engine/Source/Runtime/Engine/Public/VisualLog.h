@@ -148,6 +148,17 @@ struct ENGINE_API FVisLogEntry
 	};
 	TArray<FHistogramSample>	HistogramSamples;
 
+	struct FDataBlock
+	{
+		FDataBlock() : Verbosity(ELogVerbosity::All) {}
+
+		FName TagName;
+		FName Category;
+		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		TArray<uint8>	Data;
+	};
+	TArray<FDataBlock>	DataBlocks;
+
 
 	FVisLogEntry(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children);
 	FVisLogEntry(TSharedPtr<FJsonValue> FromJson);
@@ -165,6 +176,9 @@ struct ENGINE_API FVisLogEntry
 
 	// histogram sample
 	void AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName);
+
+	// Custom data block
+	void AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName);
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
@@ -277,6 +291,10 @@ namespace VisualLogJson
 	static const FString TAG_HISTOGRAMGRAPHNAME = TEXT("GraphName");
 	static const FString TAG_HISTOGRAMDATANAME = TEXT("DataName");
 
+	static const FString TAG_DATABLOCK = TEXT("DataBlock");
+	static const FString TAG_DATABLOCK_DATA = TEXT("DataBlockData");
+	static const FString TAG_DATABLOCK_TAGNAME = TEXT("DataBlockTagName");
+
 	static const FString TAG_LOGS = TEXT("Logs");
 }
 
@@ -295,6 +313,13 @@ struct ENGINE_API FActorsVisLog
 };
 
 DECLARE_DELEGATE_RetVal(FString, FVisualLogFilenameGetterDelegate);
+
+struct FVisualLogExtensionInterface
+{
+	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) = 0;
+	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
+};
+
 
 /** This class is to capture all log output even if the Visual Logger is closed */
 class ENGINE_API FVisualLog : public FOutputDevice
@@ -344,6 +369,11 @@ public:
 	/** highly encouradged to use FVisualLogFilenameGetterDelegate::CreateUObject with this */
 	void SetLogFileNameGetter(const FVisualLogFilenameGetterDelegate& InLogFileNameGetter) { LogFileNameGetter = InLogFileNameGetter; }
 
+	TMap<FName, FVisualLogExtensionInterface*> AllExtensions;
+	void RegisterExtension(FName TagName, FVisualLogExtensionInterface* ExtensionInterface) { AllExtensions.Add(TagName, ExtensionInterface); }
+	void UnregisterExtension(FName TagName, FVisualLogExtensionInterface* ExtensionInterface) { AllExtensions.Remove(TagName); }
+	FVisualLogExtensionInterface* GetExtensionForTag(const FName TagName) { return AllExtensions.Contains(TagName) ? AllExtensions[TagName] : NULL; }
+	TMap<FName, FVisualLogExtensionInterface*>& GetAllExtensions() { return AllExtensions; }
 protected:
 
 	FString GetLogFileFullName() const;
@@ -393,4 +423,4 @@ private:
 	#define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data)
 	#define REDIRECT_TO_VLOG(Dest)
 	#define REDIRECT_ACTOR_TO_VLOG(Src, Destination) 
-#endif
+#endif //ENABLE_VISUAL_LOG

@@ -4,6 +4,7 @@
 #include "DebugRenderSceneProxy.h"
 #include "Debug/DebugDrawService.h"
 #include "EnvQueryTypes.h"
+#include "EnvQueryDebugHelpers.h"
 #include "EQSRenderingComponent.generated.h"
 
 class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
@@ -18,6 +19,7 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 
 	static void CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts);
+	static void CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems);
 private:
 	FEnvQueryResult QueryResult;	
 	// can be 0
@@ -37,6 +39,10 @@ class AIMODULE_API UEQSRenderingComponent : public UPrimitiveComponent
 
 	FString DrawFlagName;
 	bool bDrawOnlyWhenSelected;
+
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	EQSDebug::FQueryData DebugData;
+#endif
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
