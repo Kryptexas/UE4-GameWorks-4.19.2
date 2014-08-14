@@ -748,10 +748,10 @@ protected:
 	void CollapseNodes(TSet<class UEdGraphNode*>& InCollapsableNodes);
 
 	/** Called when a selection of nodes are being collapsed into a function */
-	UEdGraph* CollapseSelectionToFunction(TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutFunctionNode);
+	UEdGraph* CollapseSelectionToFunction(TSharedPtr<SGraphEditor> InRootGraph, TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutFunctionNode);
 
 	/** Called when a selection of nodes are being collapsed into a macro */
-	UEdGraph* CollapseSelectionToMacro(TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutMacroNode);
+	UEdGraph* CollapseSelectionToMacro(TSharedPtr<SGraphEditor> InRootGraph, TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutMacroNode);
 
 	/**
 	 * Called when a selection of nodes is being collapsed into a function
