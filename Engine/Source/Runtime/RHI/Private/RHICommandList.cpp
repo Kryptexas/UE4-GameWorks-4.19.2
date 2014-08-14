@@ -8,7 +8,7 @@ DECLARE_CYCLE_STAT(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListE
 DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command count"), STAT_NonImmedCmdListCount, STATGROUP_RHICMDLIST);
 
-DECLARE_CYCLE_STAT(TEXT("Immed. Command List Execute"), STAT_ImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("All Command List Execute"), STAT_ImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
 
@@ -95,6 +95,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 #endif
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ImmedCmdListExecuteTime);
+		//FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local); 
 		ExecuteInner(CmdList);
 	}
 
@@ -173,9 +174,9 @@ void FRHICommandListBase::Reset()
 	UID = GRHICommandList.UIDCounter.Increment();
 }
 
-DECLARE_DWORD_COUNTER_STAT(TEXT("Num Chains Links"), STAT_ChainLinkCount, STATGROUP_RHICMDLIST);
-DECLARE_CYCLE_STAT(TEXT("Wait for CmdList"), STAT_ChainWait, STATGROUP_RHICMDLIST);
-DECLARE_CYCLE_STAT(TEXT("Chain Execute"), STAT_ChainExecute, STATGROUP_RHICMDLIST);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Async Chains Links"), STAT_ChainLinkCount, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Wait for Async CmdList"), STAT_ChainWait, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Async Chain Execute"), STAT_ChainExecute, STATGROUP_RHICMDLIST);
 
 struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitForAndSubmitSubList>
 {
@@ -200,11 +201,84 @@ struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitFo
 	}
 };
 
-void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef AnyThreadCompletionEvent, class FRHICommandList* CmdList)
+void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList)
 {
 	new (AllocCommand<FRHICommandWaitForAndSubmitSubList>()) FRHICommandWaitForAndSubmitSubList(AnyThreadCompletionEvent, CmdList);
 }
 
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num RT Chains Links"), STAT_RTChainLinkCount, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Wait for RT CmdList"), STAT_RTChainWait, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("RT Chain Execute"), STAT_RTChainExecute, STATGROUP_RHICMDLIST);
+
+struct FRHICommandWaitForAndSubmitRTSubList : public FRHICommand<FRHICommandWaitForAndSubmitRTSubList>
+{
+	FGraphEventRef EventToWaitFor;
+	FRHICommandList* RHICmdList;
+	FORCEINLINE_DEBUGGABLE FRHICommandWaitForAndSubmitRTSubList(FGraphEventRef& InEventToWaitFor, FRHICommandList* InRHICmdList)
+		: EventToWaitFor(InEventToWaitFor)
+		, RHICmdList(InRHICmdList)
+	{
+	}
+	void Execute()
+	{
+		INC_DWORD_STAT_BY(STAT_RTChainLinkCount, 1);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_RTChainWait);
+			if (IsInRenderingThread())
+			{
+				if (!EventToWaitFor->IsComplete())
+				{
+					if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
+					{
+						// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
+						UE_LOG(LogRHI, Fatal, TEXT("Deadlock in command list processing."));
+					}
+#if 0
+					while (!EventToWaitFor->IsComplete())
+					{
+						FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
+					}
+#endif
+					FTaskGraphInterface::Get().WaitUntilTaskCompletes(EventToWaitFor, ENamedThreads::RenderThread_Local);
+				}
+			}
+			else
+			{
+				FScopedEvent Waiter;
+				FTaskGraphInterface::Get().TriggerEventWhenTaskCompletes(Waiter.Get(), EventToWaitFor);
+			}
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_RTChainExecute);
+			delete RHICmdList;
+		}
+	}
+};
+
+void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList)
+{
+	new (AllocCommand<FRHICommandWaitForAndSubmitRTSubList>()) FRHICommandWaitForAndSubmitRTSubList(RenderThreadCompletionEvent, CmdList);
+}
+
+struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
+{
+	FRHICommandList* RHICmdList;
+	FORCEINLINE_DEBUGGABLE FRHICommandSubmitSubList(FRHICommandList* InRHICmdList)
+		: RHICmdList(InRHICmdList)
+	{
+	}
+	void Execute()
+	{
+		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);
+		SCOPE_CYCLE_COUNTER(STAT_ChainExecute);
+		delete RHICmdList;
+	}
+};
+
+void FRHICommandListBase::QueueCommandListSubmit(class FRHICommandList* CmdList)
+{
+	new (AllocCommand<FRHICommandSubmitSubList>()) FRHICommandSubmitSubList(CmdList);
+}
 
 static TLockFreeFixedSizeAllocator<sizeof(FRHICommandList), FThreadSafeCounter> RHICommandListAllocator;
 

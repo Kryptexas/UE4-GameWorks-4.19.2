@@ -36,6 +36,12 @@ public:
 		FGeometryShaderRHIParamRef GeometryShader
 		);
 
+	/**
+	 * If this global bound shader state has been initialized return it, otherwise return null. Can be called from any thread.
+	 * @return The bound shader state RHI.
+	 */
+	FBoundShaderStateRHIParamRef GetPreinitializedRHI();
+
 private:
 
 	/** The cached bound shader state. */

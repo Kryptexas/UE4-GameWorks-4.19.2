@@ -796,6 +796,7 @@ void FSceneRenderer::GatherDynamicMeshElements(
 		}
 	}
 
+	if (GIsEditor)
 	{
 		Collector.ClearViewMeshArrays();
 

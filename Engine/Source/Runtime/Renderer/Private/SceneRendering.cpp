@@ -1069,6 +1069,6 @@ bool IsMobileHDR32bpp()
 bool ShouldUseGetDynamicMeshElements()
 {
 	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
-	const bool bUseGetMeshElements = CVarUseGetMeshElements->GetValueOnRenderThread() != 0;
+	const bool bUseGetMeshElements = !GRHICommandList.Bypass() ||  CVarUseGetMeshElements->GetValueOnRenderThread() != 0;
 	return bUseGetMeshElements;
 }

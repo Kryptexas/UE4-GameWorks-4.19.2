@@ -136,7 +136,11 @@ public:
 	{
 		FTaggedMemory* Next;
 		int32 DataSize;
-		uint8 Data[1];
+
+		uint8 *Data() const
+		{
+			return ((uint8*)this) + sizeof(FTaggedMemory);
+		}
 	};
 
 private:
@@ -163,6 +167,13 @@ private:
 
 	/** Used for a checkSlow. Most stacks require a mark to allocate. Command lists don't because they never mark, only flush*/
 	int32 MinMarksToAlloc;
+
+	// we are going to use an inline allocator for the first chunk to support things that are small and never get big
+	enum 
+	{
+		SMALL_START_SIZE = 1024 - sizeof(FTaggedMemory)
+	};
+	MS_ALIGN(16) uint8 SmallStart[SMALL_START_SIZE] GCC_ALIGN(16); 
 };
 
 class CORE_API FMemStack : public TThreadSingleton<FMemStack>, public FMemStackBase

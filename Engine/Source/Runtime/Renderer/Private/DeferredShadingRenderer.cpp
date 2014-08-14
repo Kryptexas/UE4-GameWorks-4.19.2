@@ -358,7 +358,7 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 	SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
 	SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
 
-	const bool bUseGetMeshElements = CVarUseGetMeshElements.GetValueOnRenderThread() != 0;
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
 	if (bUseGetMeshElements)
 	{
@@ -505,26 +505,10 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FIntRect& ViewR
 	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0, ViewRect.Max.X, ViewRect.Max.Y, 1);
 }
 
-struct FRHICommandSetupBasePassView : public FRHICommand<FRHICommandSetupBasePassView>
-{
-	FIntRect ViewRect;
-	bool bShaderComplexity;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetupBasePassView(const FViewInfo& InView, bool InbShaderComplexity)
-		: ViewRect(InView.ViewRect)
-		, bShaderComplexity(InbShaderComplexity)
-	{
-	}
-	void Execute()
-	{
-		FRHICommandList RHICmdList;
-		SetupBasePassView(RHICmdList, ViewRect, bShaderComplexity);
-	}
-};
-
 void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
 {
 	// this is probably only needed on the first view
-	new (ParentCmdList.AllocCommand<FRHICommandSetupBasePassView>()) FRHICommandSetupBasePassView(View, !!ViewFamily.EngineShowFlags.ShaderComplexity);
+	SetupBasePassView(ParentCmdList, View.ViewRect, !!ViewFamily.EngineShowFlags.ShaderComplexity);
 
 	RenderBasePassStaticDataParallel(View, Width, ParentCmdList, OutDirty);
 	RenderBasePassDynamicDataParallel(View, ParentCmdList, OutDirty);
@@ -965,7 +949,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
-	const bool bUseGetMeshElements = CVarUseGetMeshElements.GetValueOnRenderThread() != 0;
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
 	if (bUseGetMeshElements)
 	{
@@ -1084,21 +1068,6 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 	return bDirty;
 }
 
-struct FRHICommandSetupPrepassView : public FRHICommand<FRHICommandSetupPrepassView>
-{
-	FIntRect ViewRect;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetupPrepassView(const FViewInfo& InView)
-		: ViewRect(InView.ViewRect)
-	{
-	}
-	void Execute()
-	{
-		FRHICommandList RHICmdList;
-		SetupPrePassView(RHICmdList, ViewRect);
-	}
-};
-
-
 class FRenderPrepassDynamicDataThreadTask
 {
 	FDeferredShadingSceneRenderer& ThisRenderer;
@@ -1145,8 +1114,7 @@ public:
 
 void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
 {
-	// this is probably only needed on the first view
-	new (ParentCmdList.AllocCommand<FRHICommandSetupPrepassView>()) FRHICommandSetupPrepassView(View);
+	SetupPrePassView(ParentCmdList, View.ViewRect);
 
 	// Draw the static occluder primitives using a depth drawing policy.
 	{

@@ -37,7 +37,9 @@ public:
 	inline void Flush();
 	inline bool IsImmediate();
 	const int32 GetUsedMemory() const;
-	void QueueAsyncCommandListSubmit(FGraphEventRef AnyThreadCompletionEvent, class FRHICommandList* CmdList);
+	void QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList);
+	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
+	void QueueCommandListSubmit(class FRHICommandList* CmdList);
 
 	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
 	{

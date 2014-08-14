@@ -48,6 +48,7 @@ public:
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
 	{
+		check(IsInRenderingThread());
 		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}
 	virtual void ReleaseDynamicRHI()
@@ -85,6 +86,11 @@ public:
 	{
 		check(IsInRenderingThread());
 		return TUniformBufferRef<TBufferStruct>(RHICreateUniformBuffer(&Value,TBufferStruct::StaticStruct.GetLayout(),Usage));
+	}
+	/** Creates a uniform buffer with the given value, and returns a structured reference to it. */
+	static FLocalUniformBuffer CreateLocalUniformBuffer(FRHICommandList& RHICmdList, const TBufferStruct& Value, EUniformBufferUsage Usage)
+	{
+		return RHICmdList.BuildLocalUniformBuffer(&Value, sizeof(TBufferStruct), TBufferStruct::StaticStruct.GetLayout());
 	}
 
 private:
