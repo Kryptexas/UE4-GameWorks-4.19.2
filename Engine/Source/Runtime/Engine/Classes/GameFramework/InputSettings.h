@@ -64,6 +64,8 @@ class ENGINE_API UInputSettings
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
+
+	virtual void PostInitProperties() override;
 	// End of UObject interface
 
 	void AddActionMapping(const FInputActionKeyMapping& KeyMapping);

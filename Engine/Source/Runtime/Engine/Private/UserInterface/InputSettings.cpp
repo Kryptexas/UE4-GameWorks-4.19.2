@@ -11,6 +11,26 @@ UInputSettings::UInputSettings(const class FPostConstructInitializeProperties& P
 {
 }
 
+void UInputSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	TMap<FName, int32> UniqueAxisConfigNames;
+	for (int32 Index = 0; Index < AxisConfig.Num(); ++Index)
+	{
+		UniqueAxisConfigNames.Add(AxisConfig[Index].AxisKeyName, Index);
+	}
+
+	for (int32 Index = AxisConfig.Num() - 1; Index >= 0; --Index)
+	{
+		const int32 UniqueAxisIndex = UniqueAxisConfigNames.FindChecked(AxisConfig[Index].AxisKeyName);
+		if (UniqueAxisIndex != Index)
+		{
+			AxisConfig.RemoveAtSwap(Index);
+		}
+	}
+}
+
 #if WITH_EDITOR
 void UInputSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
