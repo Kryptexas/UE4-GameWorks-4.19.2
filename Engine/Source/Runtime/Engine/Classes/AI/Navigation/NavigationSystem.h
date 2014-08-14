@@ -31,7 +31,7 @@ class UCrowdManager;
 class UNavArea;
 class INavLinkCustomInterface;
 class FNavigationOctree;
-class AVolume;
+class ANavMeshBoundsVolume;
 class FNavDataGenerator;
 class AWorldSettings;
 #if WITH_EDITOR
@@ -154,6 +154,9 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	TArray<ANavigationData*> NavDataRegistrationQueue;
 
 	TSet<FNavigationDirtyElement> PendingOctreeUpdates;
+
+	UPROPERTY(transient)
+	TArray<ANavMeshBoundsVolume*> PendingNavVolumeUpdates;
 
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
@@ -395,11 +398,15 @@ public:
 	/** adds NavData to registration candidates queue - NavDataRegistrationQueue */
 	void RequestRegistration(ANavigationData* NavData, bool bTriggerRegistrationProcessing = true);
 
+protected:
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
 
 	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
 	void ProcessNavAreaPendingRegistration();
+
+	/** used to apply updates of nav volumes in navigation system's tick */
+	void PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume);
 	
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
@@ -409,6 +416,7 @@ public:
 	//----------------------------------------------------------------------//
 	// navigation octree related functions
 	//----------------------------------------------------------------------//
+public:
 	FSetElementId RegisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
 	void UnregisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
 
@@ -492,7 +500,8 @@ public:
 	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
 
 	// @todo document
-	void OnNavigationBoundsUpdated(AVolume* NavVolume);
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
 
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);

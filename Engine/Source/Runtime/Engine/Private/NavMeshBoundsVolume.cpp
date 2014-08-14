@@ -49,3 +49,16 @@ void ANavMeshBoundsVolume::PostInitializeComponents()
 	}
 #endif
 }
+
+void ANavMeshBoundsVolume::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_NAVIGATION_GENERATOR
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys && Role == ROLE_Authority)
+	{
+		NavSys->OnNavigationBoundsUpdated(this);
+	}
+#endif
+}

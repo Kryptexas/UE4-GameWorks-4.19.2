@@ -475,6 +475,18 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		ProcessNavAreaPendingRegistration();
 	}
 
+	if (PendingNavVolumeUpdates.Num() > 0)
+	{
+		for (auto Volume : PendingNavVolumeUpdates)
+		{
+			if (Volume != NULL && Volume->IsPendingKillPending() == false)
+			{
+				PerformNavigationBoundsUpdate(Volume);
+			}
+		}
+		PendingNavVolumeUpdates.Reset();
+	}
+
 	if (PendingOctreeUpdates.Num() > 0)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_AddingActorsToNavOctree);
@@ -2363,79 +2375,72 @@ void UNavigationSystem::OnEditorModeChanged(FEdMode* Mode, bool IsEntering)
 #endif
 
 #if WITH_NAVIGATION_GENERATOR
-void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
+void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume)
 {
-	if (Cast<ANavMeshBoundsVolume>(NavVolume) != NULL)
+	if (NavVolume == NULL)
 	{
-		const bool bIsInGame = GIsEditor == false || NavVolume->GetWorld()->IsPlayInEditor();
+		return;
+	}
 
-		if (bNavDataRemovedDueToMissingNavBounds)
+	PendingNavVolumeUpdates.AddUnique(NavVolume);
+}
+
+void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume)
+{
+	const bool bIsInGame = GIsEditor == false || NavVolume->GetWorld()->IsPlayInEditor();
+
+	if (bNavDataRemovedDueToMissingNavBounds)
+	{
+		PopulateNavOctree();
+		bNavDataRemovedDueToMissingNavBounds = false;
+	}
+	
+	if (NavDataSet.Num() == 0)
+	{
+		if (NavDataRegistrationQueue.Num() > 0)
 		{
-			PopulateNavOctree();
-			bNavDataRemovedDueToMissingNavBounds = false;
+			ProcessRegistrationCandidates();
 		}
 
-//#if WITH_EDITOR
-//		if (GEditor)
-//		{
-//			// this is done just in case navigation data has been removed 
-//			for (int32 Index = NavDataSet.Num() - 1; Index >= 0; --Index)
-//			{
-//				if (NavDataSet[Index] == NULL || NavDataSet[Index]->IsPendingKillPending())
-//				{
-//					NavDataSet.RemoveAtSwap(Index, 1, false);
-//				}
-//			}
-//		}
-//#endif // WITH_EDITOR
-	
 		if (NavDataSet.Num() == 0)
 		{
-			if (NavDataRegistrationQueue.Num() > 0)
-			{
-				ProcessRegistrationCandidates();
-			}
+			SpawnMissingNavigationData();
+			ProcessRegistrationCandidates();
 
-			if (NavDataSet.Num() == 0)
-			{
-				SpawnMissingNavigationData();
-				ProcessRegistrationCandidates();
-
-				for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
-				{
-					ANavigationData* NavData = NavDataSet[NavDataIndex];
-					if (NavData != NULL && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
-					{
-						NavData->GetGenerator(FNavigationSystem::Create);
-					}
-				}
-			}
-		}
-
-#if WITH_RECAST
-		if (IsNavigationBuildingLocked() == false)
-		{
-			// rebuild all navmeshes
-			// NOTE: this will most probably be done in editor, if required to be performed at runtime may require some optimizations
 			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
 				ANavigationData* NavData = NavDataSet[NavDataIndex];
-				check(NavData);
-				if (NavData->GetGenerator() != NULL)
+				if (NavData != NULL && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
 				{
-					if ( Cast<ARecastNavMesh>(NavData) != NULL && (bIsInGame == false || ((ARecastNavMesh*)NavData)->bRebuildAtRuntime) )
-					{
-						// there are two possible cases here:
-						// 1. new volume is totally inside original generation bounds
-						// 2. it expands current bounds.
-						// @TODO currently handling every case as 1), 2) is an optimization
-						NavData->GetGenerator(FNavigationSystem::Create)->OnNavigationBoundsUpdated(NavVolume);
-					}
+					NavData->GetGenerator(FNavigationSystem::Create);
 				}
 			}
 		}
-#endif // WITH_RECAST
 	}
+
+#if WITH_RECAST
+	if (IsNavigationBuildingLocked() == false)
+	{
+		// rebuild all navmeshes
+		// NOTE: this will most probably be done in editor, if required to be performed at runtime may require some optimizations
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+		{
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
+			check(NavData);
+			if (NavData->GetGenerator() != NULL)
+			{
+				if ( Cast<ARecastNavMesh>(NavData) != NULL && (bIsInGame == false || ((ARecastNavMesh*)NavData)->bRebuildAtRuntime) )
+				{
+					// there are two possible cases here:
+					// 1. new volume is totally inside original generation bounds
+					// 2. it expands current bounds.
+					// @TODO currently handling every case as 1), 2) is an optimization
+					NavData->GetGenerator(FNavigationSystem::Create)->OnNavigationBoundsUpdated(NavVolume);
+				}
+			}
+		}
+	}
+#endif // WITH_RECAST
 }
 
 void UNavigationSystem::Build()
