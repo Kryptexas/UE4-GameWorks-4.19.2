@@ -30,6 +30,16 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 	BorderIntroAnimation.Play();
 	BorderPulseAnimation.Play();
 
+	if (InContent.Text.IsEmpty() == true)
+	{
+		ChildSlot
+		[
+			SAssignNew(ContentWidget, SBorder)
+			.Visibility(EVisibility::SelfHitTestInvisible)
+		];
+		return;
+	}
+
 	ChildSlot
 	[
 		SAssignNew(ContentWidget, SBorder)
