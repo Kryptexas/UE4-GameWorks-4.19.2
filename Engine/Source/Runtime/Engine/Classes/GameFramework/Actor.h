@@ -39,6 +39,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReas
 
 DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, AActor*, float, class APawn*, const FVector&);
 
+#if !UE_BUILD_SHIPPING
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnProcessEvent, AActor*, UFunction*, void*);
+#endif
+
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATGROUP_Engine,ENGINE_API);
 
 /**
@@ -2036,7 +2040,13 @@ private:
 	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName );
 
 	static FMakeNoiseDelegate MakeNoiseDelegate;
+
 public:
+#if !UE_BUILD_SHIPPING
+	/** Delegate for globally hooking ProccessEvent calls - used by a non-public testing plugin */
+	static FOnProcessEvent ProcessEventDelegate;
+#endif
+
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation);
 	static void SetMakeNoiseDelegate(const FMakeNoiseDelegate& NewDelegate);
 };

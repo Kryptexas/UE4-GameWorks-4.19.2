@@ -491,7 +491,7 @@ public:
 	ENGINE_API virtual void ReceivedRawPacket(void* Data,int32 Count);
 
 	/** Send a raw bunch. */
-	int32 SendRawBunch( FOutBunch& Bunch, bool InAllowMerge );
+	ENGINE_API int32 SendRawBunch( FOutBunch& Bunch, bool InAllowMerge );
 
 	/** @return The driver object */
 	UNetDriver* GetDriver() {return Driver;}

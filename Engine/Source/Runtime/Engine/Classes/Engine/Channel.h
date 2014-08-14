@@ -25,7 +25,7 @@ enum EChannelType
 #define VOICE_CHANNEL_INDEX 1
 
 UCLASS(transient)
-class UChannel : public UObject
+class ENGINE_API UChannel : public UObject
 {
 	GENERATED_UCLASS_BODY()
 	

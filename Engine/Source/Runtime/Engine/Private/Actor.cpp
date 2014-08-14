@@ -33,6 +33,10 @@ DEFINE_STAT(STAT_GetComponentsTime);
 
 FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(&AActor::MakeNoiseImpl);
 
+#if !UE_BUILD_SHIPPING
+FOnProcessEvent AActor::ProcessEventDelegate;
+#endif
+
 AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -531,7 +535,14 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 	#endif
 	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
+#if !UE_BUILD_SHIPPING
+		if (!ProcessEventDelegate.IsBound() || !ProcessEventDelegate.Execute(this, Function, Parameters))
+		{
+			Super::ProcessEvent(Function, Parameters);
+		}
+#else
 		Super::ProcessEvent(Function, Parameters);
+#endif
 	}
 }
 
