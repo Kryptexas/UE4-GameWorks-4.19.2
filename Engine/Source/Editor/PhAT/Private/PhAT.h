@@ -139,8 +139,8 @@ private:
 
 	/** Collision editing helper methods */
 	void AddNewPrimitive(EKCollisionPrimitiveType PrimitiveType, bool bCopySelected = false);
-	void SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType);
-	void SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices);
+	void SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType, bool bMarkAsDirty);
+	void SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices, bool bMarkAsDirty);
 
 	/** Toolbar/menu command methods */
 	bool IsNotSimulation() const;
