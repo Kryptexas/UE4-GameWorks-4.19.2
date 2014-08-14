@@ -76,9 +76,10 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 
 	if (SourceLink.IsValid())
 	{
+		SourceLink->SetVisibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, true ) ) );
+
 		return SourceLink.ToSharedRef();
 	}
-
 	return SNew( STextBlock )
 		.Text( ObjectClass->GetName() )
 		.HighlightText( SceneOutlinerWeak.Pin().Get(), &ISceneOutliner::GetFilterHighlightText )

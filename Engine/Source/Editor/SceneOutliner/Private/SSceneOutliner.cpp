@@ -187,7 +187,7 @@ namespace SceneOutliner
 		}
 		else
 		{
-			CustomColumn = MakeShareable( new FSceneOutlinerActorInfoColumn( SharedThis( this ), ECustomColumnMode::None ) );
+			CustomColumn = MakeShareable( new FSceneOutlinerActorInfoColumn( SharedThis( this ), ECustomColumnMode::ActorClass ) );
 		}
 
 		TSharedRef< SHeaderRow > HeaderRowWidget =
