@@ -1027,8 +1027,8 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( APawn, PlayerState ); 
+	DOREPLIFETIME( APawn, Controller );
 
-	DOREPLIFETIME_CONDITION( APawn, Controller,			COND_OwnerOnly );
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
 }
 
