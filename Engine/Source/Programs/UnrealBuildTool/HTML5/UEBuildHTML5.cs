@@ -406,7 +406,6 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
 
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5=1");
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HTML5=1");
             if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-win32")
             {
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_WIN32=1");
