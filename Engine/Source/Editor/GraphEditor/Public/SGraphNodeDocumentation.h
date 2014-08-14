@@ -35,6 +35,8 @@ protected:
 	virtual bool IsNameReadOnly () const override { return false; }
 	// End SGraphNode Interface
 
+	/** Retrives the current documentation title based on the chosen excerpt */
+	FText GetDocumentationTitle() const;
 	/** Create documentation page from link and excerpt */
 	TSharedPtr<SWidget> CreateDocumentationPage();
 	/** Returns the width the documentation content must adhere to, used as a delegate in child widgets */

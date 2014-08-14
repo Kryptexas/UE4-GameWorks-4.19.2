@@ -779,7 +779,7 @@ protected:
 	bool OnExcerptChangeEnabled() const;
 
 	/** Handler for the documentation link being committed */
-	void OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit ) const;
+	void OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit );
 	
 	/** Generate table row for excerpt combo */
 	TSharedRef< ITableRow > MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
@@ -793,6 +793,10 @@ protected:
 
 private:
 
+	/** Documentation Link */
+	FString DocumentationLink;
+	/** Current Excerpt */
+	FString DocumentationExcerpt;
 	/** Weak reference to the Blueprint editor */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 	/** The editor node we're editing */

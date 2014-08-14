@@ -4888,6 +4888,10 @@ void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 
 	if( DocumentationNodePtr.IsValid() )
 	{
+		// Cache Link
+		DocumentationLink = DocumentationNodePtr->GetDocumentationLink();
+		DocumentationExcerpt = DocumentationNodePtr->GetDocumentationExcerptName();
+
 		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation").ToString(), ECategoryPriority::Default);
 
 		DocumentationCategory.AddCustomRow( TEXT( "Documentation Link" ))
@@ -4970,36 +4974,23 @@ TWeakObjectPtr<UEdGraphNode_Documentation> FBlueprintDocumentationDetails::EdGra
 
 FText FBlueprintDocumentationDetails::OnGetDocumentationLink() const
 {
-	FText Link = FText::GetEmpty();
-	if( DocumentationNodePtr.IsValid() )
-	{
-		Link = FText::FromString( DocumentationNodePtr->GetDocumentationLink() );
-	}
-	return Link;
+	return FText::FromString( DocumentationLink );
 }
 
 FText FBlueprintDocumentationDetails::OnGetDocumentationExcerpt() const
 {
-	FText Excerpt = NSLOCTEXT( "FBlueprintDocumentationDetails", "ExcerptCombo_DefaultText", "Select Excerpt" );
-	if( DocumentationNodePtr.IsValid() )
-	{
-		Excerpt = FText::FromString( DocumentationNodePtr->GetDocumentationExcerptName() );
-	}
-	return Excerpt;
+	return FText::FromString( DocumentationExcerpt );
 }
 
 bool FBlueprintDocumentationDetails::OnExcerptChangeEnabled() const
 {
-	return DocumentationNodePtr.IsValid() && IDocumentation::Get()->PageExists( DocumentationNodePtr->Link );
+	return IDocumentation::Get()->PageExists( DocumentationLink );
 }
 
-void FBlueprintDocumentationDetails::OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit ) const
+void FBlueprintDocumentationDetails::OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit )
 {
-	if( DocumentationNodePtr.IsValid() )
-	{
-		DocumentationNodePtr->Link = InNewName.ToString();
-		DocumentationNodePtr->Excerpt.Empty();
-	}
+	DocumentationLink = InNewName.ToString();
+	DocumentationExcerpt = NSLOCTEXT( "FBlueprintDocumentationDetails", "ExcerptCombo_DefaultText", "Select Excerpt" ).ToString();
 }
 
 TSharedRef< ITableRow > FBlueprintDocumentationDetails::MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable )
@@ -5016,7 +5007,9 @@ void FBlueprintDocumentationDetails::OnExcerptSelectionChanged( TSharedPtr<FStri
 {
 	if( ProposedSelection.IsValid() && DocumentationNodePtr.IsValid() )
 	{
-		DocumentationNodePtr->Excerpt = *ProposedSelection.Get();
+		DocumentationNodePtr->Link = DocumentationLink;
+		DocumentationExcerpt = *ProposedSelection.Get();
+		DocumentationNodePtr->Excerpt = DocumentationExcerpt;
 		ExcerptComboButton->SetIsOpen( false );
 	}
 }
@@ -5025,9 +5018,9 @@ TSharedRef<SWidget> FBlueprintDocumentationDetails::GenerateExcerptList()
 {
 	ExcerptList.Empty();
 
-	if( DocumentationNodePtr.IsValid() && IDocumentation::Get()->PageExists( DocumentationNodePtr->Link ))
+	if( IDocumentation::Get()->PageExists( DocumentationLink ))
 	{
-		TSharedPtr<IDocumentationPage> DocumentationPage = IDocumentation::Get()->GetPage( DocumentationNodePtr->Link, NULL );
+		TSharedPtr<IDocumentationPage> DocumentationPage = IDocumentation::Get()->GetPage( DocumentationLink, NULL );
 		TArray<FExcerpt> Excerpts;
 		DocumentationPage->GetExcerpts( Excerpts );
 

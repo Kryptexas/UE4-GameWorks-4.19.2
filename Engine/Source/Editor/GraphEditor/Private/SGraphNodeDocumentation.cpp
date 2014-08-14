@@ -84,7 +84,7 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 				[
 					SAssignNew( InlineEditableText,SInlineEditableTextBlock )
 					.Style( FEditorStyle::Get(), "Graph.Node.NodeTitleInlineEditableText" )
-					.Text( GraphNode->GetNodeTitle( ENodeTitleType::EditableTitle ))
+					.Text( this, &SGraphNodeDocumentation::GetDocumentationTitle )
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -155,6 +155,11 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 			]
 		]
 	];
+}
+
+FText SGraphNodeDocumentation::GetDocumentationTitle() const
+{
+	return FText::Format( LOCTEXT( "DocumentationNode",  "UDN - {0}" ), FText::FromString( GraphNode->GetDocumentationExcerptName() ));
 }
 
 TSharedPtr<SWidget> SGraphNodeDocumentation::CreateDocumentationPage()
