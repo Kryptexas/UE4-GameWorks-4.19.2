@@ -160,7 +160,7 @@ AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 
 bool APawn::CanBeBaseForCharacter(class APawn* APawn) const
 {
-	UPrimitiveComponent* RootPrimitive = GetRootPrimitiveComponent();
+	UPrimitiveComponent* RootPrimitive = Cast<UPrimitiveComponent>(GetRootComponent());
 	if (RootPrimitive && RootPrimitive->CanCharacterStepUpOn != ECB_Owner)
 	{
 		return RootPrimitive->CanCharacterStepUpOn == ECB_Yes;
@@ -1034,7 +1034,7 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 
 void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = GetRootPrimitiveComponent();
+	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
 		// Remove dead references first
@@ -1048,7 +1048,7 @@ void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 
 void APawn::MoveIgnoreActorRemove(AActor * ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = GetRootPrimitiveComponent();
+	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
 		// Remove dead references first

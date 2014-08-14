@@ -1103,6 +1103,7 @@ public:
 	FORCEINLINE class USceneComponent* GetRootComponent() const { return RootComponent; }
 
 	/** Returns this actor's root component cast to a primitive component */
+	DEPRECATED(4.5, "Use GetRootComponent() and cast manually if needed")
 	class UPrimitiveComponent* GetRootPrimitiveComponent() const;
 
 	/** Sets root component to be the specified component.  NewRootComponent's owner should be this actor.  Returns true if successful. */

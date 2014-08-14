@@ -45,7 +45,7 @@ bool IsHitIgnored(const FHitResult& InHit, const FSceneView& InSceneView)
 	const auto* Actor = InHit.GetActor();
 	
 	// Try and find a primitive component for the hit
-	const UPrimitiveComponent* PrimitiveComponent = Actor ? Actor->GetRootPrimitiveComponent() : nullptr;
+	const UPrimitiveComponent* PrimitiveComponent = Actor ? Cast<UPrimitiveComponent>(Actor->GetRootComponent()) : nullptr;
 
 	if (!PrimitiveComponent)
 	{

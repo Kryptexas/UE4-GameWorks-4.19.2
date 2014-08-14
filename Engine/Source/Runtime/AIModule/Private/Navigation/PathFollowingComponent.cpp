@@ -644,9 +644,10 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	MyPawn->GetSimpleCollisionCylinder(Radius, HalfHeight);
 	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 	FCollisionQueryParams CapsuleParams(NAME_NavAreaTrace, false, MyAI->GetCharacter());
-	if (MyPawn->GetRootPrimitiveComponent())
+	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(MyPawn->GetRootComponent());
+	if (PrimitiveComponent)
 	{
-		CapsuleParams.AddIgnoredActors(MyPawn->GetRootPrimitiveComponent()->MoveIgnoreActors);
+		CapsuleParams.AddIgnoredActors(PrimitiveComponent->MoveIgnoreActors);
 	}
 
 #endif

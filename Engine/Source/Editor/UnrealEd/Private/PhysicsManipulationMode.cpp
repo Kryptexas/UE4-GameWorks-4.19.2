@@ -14,7 +14,7 @@ void FPhysicsManipulationEdModeFactory::OnSelectionChanged(FEditorModeTools& Too
 		AActor* SelectedActor = Cast<AActor>(ItemUndergoingChange);
 		if (SelectedActor != NULL)
 		{
-			UPrimitiveComponent* PC = SelectedActor->GetRootPrimitiveComponent();
+			UPrimitiveComponent* PC = Cast<UPrimitiveComponent>(SelectedActor->GetRootComponent());
 			if (PC != NULL && PC->BodyInstance.bSimulatePhysics)
 			{
 				Tools.ActivateMode(FBuiltinEditorModes::EM_Physics);
@@ -96,7 +96,7 @@ bool FPhysicsManipulationEdMode::StartTracking( FEditorViewportClient* InViewpor
 
 		if (SelectedActor != NULL)
 		{
-			UPrimitiveComponent* PC = SelectedActor->GetRootPrimitiveComponent();
+			UPrimitiveComponent* PC = Cast<UPrimitiveComponent>(SelectedActor->GetRootComponent());
 
 			if (PC != NULL && PC->BodyInstance.bSimulatePhysics)
 			{

@@ -1086,7 +1086,7 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 	AActor* PhysicsActor = FActorFactoryAssetProxy::AddActorForAsset( EditorCubeMesh );
 	PhysicsActor->SetActorRelativeScale3D(FVector(2.0f, 2.0f, .5f));
 	PhysicsActor->GetRootComponent()->SetMobility(EComponentMobility::Movable);
-	PhysicsActor->GetRootPrimitiveComponent()->SetSimulatePhysics(true);
+	CastChecked<UPrimitiveComponent>(PhysicsActor->GetRootComponent())->SetSimulatePhysics(true);
 	PhysicsActor->TeleportTo(FVector(-96.0f, 128.0f, 256.0f), FRotator(0, 0, 0));
 
 	//Skeletal Mesh
