@@ -28,5 +28,3 @@ public:
 		int i = 0;
 	}
 };
-
-#endif
