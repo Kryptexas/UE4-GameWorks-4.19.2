@@ -199,7 +199,7 @@ uint32 FBuildPatchInstaller::Run()
 		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ProcessPausedTime: %.1f sec"), BuildStats.ProcessPausedTime);
 		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ProcessSuccess: %s"), BuildStats.ProcessSuccess ? TEXT("TRUE") : TEXT("FALSE"));
 		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FailureReason: %s"), *BuildStats.FailureReason);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FailureReasonText: %s"), *BuildStats.FailureReasonText.ToString());
+		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FailureReasonText: %s"), *BuildStats.FailureReasonText.BuildSourceString());
 	}
 
 	// Mark that we are done
