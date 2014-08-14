@@ -205,7 +205,7 @@ FEdModeLandscape::FEdModeLandscape()
 	CurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;
 	CurrentToolTarget.LayerInfo = nullptr;
 
-	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass());
+	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
 	UISettings->SetParent(this);
 }
 
@@ -1324,6 +1324,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 			FVector DeltaScale = InScale;
 			DeltaScale.X = DeltaScale.Y = (FMath::Abs(InScale.X) > FMath::Abs(InScale.Y)) ? InScale.X : InScale.Y;
 
+			UISettings->Modify();
 			UISettings->NewLandscape_Location += InDrag;
 			UISettings->NewLandscape_Rotation += InRot;
 			UISettings->NewLandscape_Scale += DeltaScale;
@@ -1338,6 +1339,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 			FTransform Transform(UISettings->NewLandscape_Rotation, UISettings->NewLandscape_Location, UISettings->NewLandscape_Scale * UISettings->NewLandscape_QuadsPerSection * UISettings->NewLandscape_SectionsPerComponent);
 			HitLocation = Transform.InverseTransformPosition(HitLocation);
 
+			UISettings->Modify();
 			switch (DraggingEdge)
 			{
 			case ELandscapeEdge::X_Negative:

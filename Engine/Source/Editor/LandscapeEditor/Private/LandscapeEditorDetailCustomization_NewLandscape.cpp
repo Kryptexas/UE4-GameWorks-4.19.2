@@ -592,6 +592,11 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
@@ -602,8 +607,14 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		GEditor->EndTransaction();
 	}
 }
 
@@ -623,6 +634,11 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
@@ -633,8 +649,14 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		GEditor->EndTransaction();
 	}
 }
 
@@ -1568,9 +1590,8 @@ EVisibility FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorV
 {
 	auto LayerError = ELandscapeImportLayerError::None;
 	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue((uint8&)LayerError);
-	check(Result == FPropertyAccess::Success);
-
-	if (Result == FPropertyAccess::MultipleValues)
+	if (Result == FPropertyAccess::Fail ||
+		Result == FPropertyAccess::MultipleValues)
 	{
 		return EVisibility::Visible;
 	}
@@ -1596,9 +1617,11 @@ FText FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorText(TS
 {
 	auto LayerError = ELandscapeImportLayerError::None;
 	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue((uint8&)LayerError);
-	check(Result == FPropertyAccess::Success);
-
-	if (Result == FPropertyAccess::MultipleValues)
+	if (Result == FPropertyAccess::Fail)
+	{
+		return LOCTEXT("Import_LayerUnknownError", "Unknown Error");
+	}
+	else if (Result == FPropertyAccess::MultipleValues)
 	{
 		return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 	}
@@ -1618,7 +1641,8 @@ FText FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorText(TS
 	case ELandscapeImportLayerError::ColorPng:
 		return LOCTEXT("Import_LayerColorPng", "The Layer file appears to be a color png, grayscale is expected. The import *can* continue, but the result may not be what you expect...");
 	default:
-		check(0);
+		checkSlow(0);
+		return LOCTEXT("Import_LayerUnknownError", "Unknown Error");
 	}
 
 	return FText::GetEmpty();

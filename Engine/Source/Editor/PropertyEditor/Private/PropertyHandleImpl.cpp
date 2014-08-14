@@ -386,16 +386,18 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 				bNotifiedPreChange = true;
 				NotifiedObj = Cur.Object;
 
-				// Begin a transaction only if we need to call PreChange
-				if( GEditor && bTransactable )
+				if (!bInteractiveChangeInProgress)
 				{
-					GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString( InPropertyNode->GetDisplayName() ) ), NodeProperty );
+					// Begin a transaction only if we need to call PreChange
+					if (GEditor && bTransactable)
+					{
+						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString(InPropertyNode->GetDisplayName())), NodeProperty);
+					}
 				}
-				
-				InPropertyNode->NotifyPreChange( NodeProperty, NotifyHook );
+
+				InPropertyNode->NotifyPreChange(NodeProperty, NotifyHook);
 
 				bInteractiveChangeInProgress = (Flags & EPropertyValueSetFlags::InteractiveChange) != 0;
-
 			}
 
 			// Set the new value.
@@ -440,12 +442,12 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			if (bFinished)
 			{
 				bInteractiveChangeInProgress = false;
-			}
 
-			if( bTransactable )
-			{
-				// End the transaction if we called PreChange
-				GEditor->EndTransaction();
+				if (bTransactable)
+				{
+					// End the transaction if we called PreChange
+					GEditor->EndTransaction();
+				}
 			}
 		}
 
