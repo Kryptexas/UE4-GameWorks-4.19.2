@@ -1845,7 +1845,6 @@ void FTexture2DResource::LoadMipData()
 			{
 				int32 ActualMipIndex = MipIndex + PendingFirstMip;
 				const FTexture2DMipMap& MipMap = OwnerMips[ActualMipIndex];
-				int32 MipSize = CalcTextureMipMapSize(MipMap.SizeX, MipMap.SizeY, TextureRHI->GetFormat(), 0);
 
 				void* TheMipData = nullptr;
 				uint32 DestPitch;
