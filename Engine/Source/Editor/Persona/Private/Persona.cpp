@@ -659,6 +659,9 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		}
 	}
 
+	// Force validation of preview attached assets (catch case of never doing it if we dont have a valid preview mesh)
+	ValidatePreviewAttachedAssets(NULL);
+
 	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
 	PreviewComponent->SetAnimInstanceClass(AnimBlueprint ? AnimBlueprint->GeneratedClass : NULL);
 
