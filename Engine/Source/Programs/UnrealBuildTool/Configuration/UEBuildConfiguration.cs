@@ -172,6 +172,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileForSize;
 
+		/** True if hot-reload from IDE is allowed */
+		public static bool bAllowHotReloadFromIDE;
+
+		/** True if performing hot-reload from IDE */
+		public static bool bHotReloadFromIDE;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -208,6 +214,8 @@ namespace UnrealBuildTool
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
+			bHotReloadFromIDE = false;
+			bAllowHotReloadFromIDE = true;
 		}
 
 		/// <summary>

@@ -176,7 +176,8 @@ public class UnrealEd : ModuleRules
 				"UndoHistory",
 				"SourceCodeAccess",
 				"ReferenceViewer",
-				"EditorLiveStreaming"
+				"EditorLiveStreaming",
+				"HotReload",
 			}
 		);
 

@@ -977,6 +977,15 @@ FString FModuleManager::MakeUBTArgumentsForModuleCompiling()
 	return AdditionalArguments;
 }
 
+void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, const FString& NewModuleFilename)
+{
+	TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked(ModuleName);
+
+	// If the compile succeeded, update the module info entry with the new file name for this module
+	ModuleInfo->Filename = NewModuleFilename;
+
+	OnModuleCompileSucceeded(ModuleName, ModuleInfo);
+}
 
 void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {
@@ -1004,6 +1013,11 @@ void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModu
 #endif
 }
 
+void FModuleManager::UpdateModuleCompileData(FName ModuleFName)
+{
+	TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked(ModuleFName);
+	UpdateModuleCompileData(ModuleFName, ModuleInfo);
+}
 
 void FModuleManager::UpdateModuleCompileData(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {

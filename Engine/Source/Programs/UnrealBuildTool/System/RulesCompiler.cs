@@ -1723,7 +1723,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules);
+							InOnlyModules:InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
 				case TargetRules.TargetType.Editor:
@@ -1735,7 +1736,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions,
 							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
+							InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
                 case TargetRules.TargetType.Client:
@@ -1747,7 +1749,8 @@ namespace UnrealBuildTool
                             InRulesObject: RulesObject,
                             InAdditionalDefinitions: InAdditionalDefinitions,
                             InRemoteRoot: InRemoteRoot,
-                            InOnlyModules: InOnlyModules);
+                            InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
                     }
                     break;
 				case TargetRules.TargetType.Server:
@@ -1759,7 +1762,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions,
 							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
+							InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
 				case TargetRules.TargetType.Program:
@@ -1772,22 +1776,10 @@ namespace UnrealBuildTool
 							InRulesObject:RulesObject, 
 							InAdditionalDefinitions:InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules);
+							InOnlyModules:InOnlyModules,
+							bInEditorRecompile:bInEditorRecompile);
 					}
 					break;
-					/*
-				case TargetRules.TargetType.RocketGame:
-					{
-						BuildTarget = new UEBuildRocketGame(
-							InGameName: TargetName,
-							InPlatform: Target.Platform,
-							InConfiguration: Target.Configuration,
-							InRulesObject: RulesObject,
-							InAdditionalDefinitions: InAdditionalDefinitions,
-							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
-					}
-					break;*/
 			}
 
 			if (BuildTarget == null)

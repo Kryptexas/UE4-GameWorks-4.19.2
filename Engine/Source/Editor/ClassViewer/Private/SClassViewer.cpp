@@ -30,6 +30,7 @@
 #include "GameProjectGenerationModule.h"
 
 #include "SourceCodeNavigation.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
@@ -1584,8 +1585,11 @@ FClassHierarchy::FClassHierarchy()
 	AssetRegistryModule.Get().OnAssetAdded().AddRaw( this, &FClassHierarchy::AddAsset);
 	AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FClassHierarchy::RemoveAsset );
 
-	// Register to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-	GEditor->OnHotReload().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	// Register to have Populate called when doing a Hot Reload.
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+
+	// Register to have Populate called when a Blueprint is compiled.
 	GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	GEditor->OnClassPackageLoadedOrUnloaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 
@@ -1602,8 +1606,11 @@ FClassHierarchy::~FClassHierarchy()
 		AssetRegistryModule.Get().OnAssetAdded().RemoveAll( this );
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 
-		// Unregister to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-		GEditor->OnHotReload().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+		// Unregister to have Populate called when doing a Hot Reload.
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.OnHotReload().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+
+		// Unregister to have Populate called when a Blueprint is compiled.
 		GEditor->OnBlueprintCompiled().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 		GEditor->OnClassPackageLoadedOrUnloaded().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	}

@@ -18,8 +18,16 @@ namespace UnrealBuildTool
 	// processes valid.
 	public enum ECompilationResult
 	{
+		/** Compilation succeeded */
 		Succeeded = 0,
-		OtherCompilationError = 2
+		/** Compilation failed because generated code changed which was not supported */
+		FailedDueToHeaderChange = 1,
+		/** Compilation failed due to compilation errors */
+		OtherCompilationError,
+		/** Compilation is not supported in the current build */
+		Unsupported,
+		/** Unknown error */
+		Unknown
 	}
 
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */
@@ -551,9 +559,10 @@ namespace UnrealBuildTool
 
 				if( !bIsBuildingUHT && bUHTNeedsToRun )
 				{
-					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
+					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem or hot-reloading
 					if (UnrealBuildTool.RunningRocket() == false && 
 						UEBuildConfiguration.bDoNotBuildUHT == false &&
+						UEBuildConfiguration.bHotReloadFromIDE == false &&
 						!( !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild ) )	// If running in "assembler only" mode, we assume UHT is already up to date for much faster iteration!
 					{
 						// If it is out of date or not there it will be built.

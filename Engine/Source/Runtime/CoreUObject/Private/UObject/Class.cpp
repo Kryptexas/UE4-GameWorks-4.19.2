@@ -5,8 +5,8 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
-
 #include "PropertyTag.h"
+#include "HotReloadInterface.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
@@ -3414,13 +3414,15 @@ void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 #if !IS_MONOLITHIC
 	if (GIsHotReload)
 	{
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+
 		// Find the function in the class's native function lookup table.
 		for(int32 FunctionIndex = 0;FunctionIndex < NativeFunctionLookupTable.Num();++FunctionIndex)
 		{
 			FNativeFunctionLookup& NativeFunctionLookup = NativeFunctionLookupTable[FunctionIndex];
 			if(NativeFunctionLookup.Name == InFName)
 			{
-				AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
+				HotReloadSupport.AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
 				NativeFunctionLookup.Pointer = InPointer;
 				return;
 			}

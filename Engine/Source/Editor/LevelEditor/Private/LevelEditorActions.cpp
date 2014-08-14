@@ -48,6 +48,7 @@
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
 #include "EngineBuildSettings.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -899,55 +900,8 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 	// Don't allow a recompile while already compiling!
 	if( !FModuleManager::Get().IsCurrentlyCompiling() )
 	{
-		TArray< FString > GameModuleNames;
-		{
-			// Ask the module manager for a list of currently-loaded gameplay modules
-			TArray< FModuleStatus > ModuleStatuses;
-			FModuleManager::Get().QueryModules( ModuleStatuses );
-
-			for( TArray< FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
-			{
-				const FModuleStatus& ModuleStatus = *ModuleStatusIt;
-
-				// We only care about game modules that are currently loaded
-				if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
-				{
-					GameModuleNames.AddUnique( ModuleStatus.Name );
-				}
-			}
-		}
-
-		if( GameModuleNames.Num() > 0 )
-		{
-			TArray< UPackage*> PackagesToRebind;
-			// Packages that rely on packages with UObject, but don't contain UObjects.
-			TArray< FName > DependentModules;
-
-			for( int32 CurModuleIndex = 0; CurModuleIndex < GameModuleNames.Num(); ++CurModuleIndex )
-			{
-				const FString& GameModuleName = *GameModuleNames[ CurModuleIndex ];
-				FString PackagePath( FString( TEXT( "/Script/" ) ) + GameModuleName );
-
-				UPackage* Package = FindPackage(NULL, *PackagePath);
-				if( Package != NULL )
-				{
-					PackagesToRebind.Add( Package );
-				}
-				else
-				{
-					DependentModules.Add( *GameModuleName );
-				}
-			}
-
-			GWarn->BeginSlowTask( LOCTEXT("CompilingGameCode", "Compiling Game Code"), true );
-
-			const bool bWaitForCompletion = false;	// Don't wait -- we want compiling to happen asynchronously
-			RebindPackages( PackagesToRebind, DependentModules, bWaitForCompletion, *GLog );
-
-			GWarn->EndSlowTask();
-
-			GEditor->BroadcastHotReload();
-		}
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.DoHotReloadFromEditor();
 	}
 }
 

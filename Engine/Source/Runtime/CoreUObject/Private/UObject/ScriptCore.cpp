@@ -6,6 +6,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "MallocProfiler.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY(LogScriptFrame);
 DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
@@ -272,8 +273,9 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 #if !IS_MONOLITHIC
 			if (GIsHotReload)
 			{
-				CA_SUPPRESS(6385)
-				AddHotReloadFunctionRemap(Func, GNatives[NativeBytecodeIndex]);
+				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+				CA_SUPPRESS(6385)				
+				HotReloadSupport.AddHotReloadFunctionRemap(Func, GNatives[NativeBytecodeIndex]);
 			}
 			else
 #endif

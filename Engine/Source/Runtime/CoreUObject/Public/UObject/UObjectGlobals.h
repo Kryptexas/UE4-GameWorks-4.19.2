@@ -51,11 +51,6 @@ extern int32						GForcedExportCount;
 /** Objects that might need preloading.									*/
 extern TArray<UObject*>			GObjLoaded;
 
-#if !IS_MONOLITHIC
-	/** Adds and entry for the UFunction native pointer remap table */
-	COREUOBJECT_API void	AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer);
-#endif
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 /** Used to verify that the Super::Serialize chain is intact.			*/
 extern TArray<UObject*,TInlineAllocator<16> >		DebugSerialize;
@@ -426,15 +421,6 @@ COREUOBJECT_API UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageN
 
 void StaticShutdownAfterError();
 void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, bool bNotifyObjectOfChange );
-
-/**
- * HotReload: Reloads the DLLs for given packages. 
- * @param	Package				Packages to reload.
- * @param	DependentModules	Additional modules that don't contain UObjects, but rely on them
- * @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
- * @param	Ar					Output device for logging compilation status
-*/
-COREUOBJECT_API void RebindPackages( TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar );
 
 /**
  * Call back into the async loading code to inform of the creation of a new object

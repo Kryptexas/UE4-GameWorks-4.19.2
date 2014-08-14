@@ -1628,7 +1628,9 @@ public:
 
 	// Compile in Debug or Development
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !IS_MONOLITHIC
 	bool HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+#endif
 	bool HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpAvailableResolutionsCommand( const TCHAR* Cmd, FOutputDevice& Ar );

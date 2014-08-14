@@ -506,13 +506,6 @@ public:
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
 
-	/** Called when a Hot Reload event has completed. */
-	DECLARE_EVENT( UEditorEngine, FHotReloadEvent );
-	FHotReloadEvent& OnHotReload() { return HotReloadEvent; }
-
-	/**	Broadcasts that a hot reload just finished. THIS SHOULD NOT BE PUBLIC */
-	void BroadcastHotReload() { HotReloadEvent.Broadcast(); }
-
 	/** Called when a Blueprint compile is completed. */
 	DECLARE_EVENT( UEditorEngine, FBlueprintCompiledEvent );
 	FBlueprintCompiledEvent& OnBlueprintCompiled() { return BlueprintCompiledEvent; }
@@ -2493,9 +2486,6 @@ private:
 	void HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded );
 
 private:
-
-	/** Delegate broadcast when a module has been hot-reloaded */
-	FHotReloadEvent HotReloadEvent;
 
 	/** Delegate broadcast when blueprint is compiled */
 	FBlueprintCompiledEvent BlueprintCompiledEvent;

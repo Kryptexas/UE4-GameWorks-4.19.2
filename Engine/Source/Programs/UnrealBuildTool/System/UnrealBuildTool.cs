@@ -580,6 +580,7 @@ namespace UnrealBuildTool
         private static int Main(string[] Arguments)
         {
             InitLogging();
+            Log.TraceVerbose(Environment.CommandLine);
 
             try
             {
@@ -1415,6 +1416,13 @@ namespace UnrealBuildTool
                 {
                     var TargetStartTime = DateTime.UtcNow;
 
+                    // Check if we're currently running an editor and this is hot-reload from IDE
+                    UEBuildConfiguration.bHotReloadFromIDE = UEBuildConfiguration.bAllowHotReloadFromIDE && !Target.bEditorRecompile && ShouldDoHotReload(Target);
+                    if (UEBuildConfiguration.bHotReloadFromIDE)
+                    {
+                        Log.TraceInformation("Compiling game modules for Hot-Reload.");
+                    }
+
                     // When in 'assembler only' mode, we'll load this cache later on a worker thread.  It takes a long time to load!
                     if( !( !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild ) )
                     {	
@@ -1707,6 +1715,27 @@ namespace UnrealBuildTool
 
             return BuildResult;
         }
+
+		/// <summary>
+		/// Checks if the editor is currently running and this is a hot-reload
+		/// </summary>
+		/// <param name="ResetPlatform"></param>
+		/// <param name="ResetConfiguration"></param>
+		/// <param name="Target"></param>
+		/// <returns></returns>
+		private static bool ShouldDoHotReload(UEBuildTarget Target)
+		{
+			bool bIsRunning = false;
+			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && Target.Rules.Type == TargetRules.TargetType.Editor)
+			{
+				var EditorProcessFilename = UEBuildTarget.MakeBinaryPath("Launcher", "UE4Editor", Target.Platform, Target.Configuration, UEBuildBinaryType.Executable, null, false, null, "UE4Editor");
+				var EditorProcessName = Path.GetFileNameWithoutExtension(EditorProcessFilename);
+				var EditorProcesses = Process.GetProcessesByName(EditorProcessName);
+				var BinariesPath = Path.GetFullPath(Path.GetDirectoryName(EditorProcessFilename));
+				bIsRunning = EditorProcesses.FirstOrDefault(p => Path.GetFullPath(p.MainModule.FileName).StartsWith(BinariesPath, StringComparison.InvariantCultureIgnoreCase)) != default(Process);
+			}
+			return bIsRunning;
+		}
 
         private static void ParseBuildConfigurationFlags(string[] Arguments)
         {

@@ -218,6 +218,16 @@ namespace UnrealBuildTool
         }
 
 		/// <summary>
+		/// Called to allow the binary to find game modules.
+		/// </summary>
+		/// <param name="OnlyModules"></param>
+		/// <returns>The OnlyModule if found, null if not</returns>
+		public virtual List<UEBuildModule> FindGameModules()
+		{
+			return null;
+		}
+
+		/// <summary>
 		/// Generates a list of all modules referenced by this binary
 		/// </summary>
 		/// <param name="bIncludeDynamicallyLoaded">True if dynamically loaded modules (and all of their dependent modules) should be included.</param>
@@ -674,6 +684,20 @@ namespace UnrealBuildTool
 				}
 			}
 			return null;
+		}
+
+		public override List<UEBuildModule> FindGameModules()
+		{
+			var GameModules = new List<UEBuildModule>();
+			foreach (var ModuleName in ModuleNames)
+			{
+				UEBuildModule Module = Target.GetModuleByName(ModuleName);
+				if (!Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath))
+				{
+					GameModules.Add(Module);
+				}
+			}
+			return GameModules;
 		}
 
 		// Object interface.

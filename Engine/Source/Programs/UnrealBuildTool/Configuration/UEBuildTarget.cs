@@ -611,6 +611,9 @@ namespace UnrealBuildTool
 		/** Extra engine module names to either include in the binary (monolithic) or create side-by-side DLLs for (modular) */
 		public List<string> ExtraModuleNames = new List<string>();
 
+		/** True if re-compiling this target from the editor */
+		public bool bEditorRecompile;
+
 		/** If building only a specific set of modules, these are the modules to build */
 		protected List<OnlyModule> OnlyModules = new List<OnlyModule>();
 
@@ -645,13 +648,15 @@ namespace UnrealBuildTool
 			TargetRules InRulesObject,
 			List<string> InAdditionalDefinitions,
 			string InRemoteRoot,
-			List<OnlyModule> InOnlyModules)
+			List<OnlyModule> InOnlyModules,
+			bool bInEditorRecompile)
 		{
 			AppName = InAppName;
 			GameName = InGameName;
 			Platform = InPlatform;
 			Configuration = InConfiguration;
 			Rules = InRulesObject;
+			bEditorRecompile = bInEditorRecompile;
 
 			{
 				bCompileMonolithic = (Rules != null) ? Rules.ShouldCompileMonolithic(InPlatform, InConfiguration) : false;
@@ -1536,39 +1541,11 @@ namespace UnrealBuildTool
 			// If we're building a single module, then find the binary for that module and add it to our target
 			if (OnlyModules.Count > 0)
 			{
-				var FilteredBinaries = new List<UEBuildBinary>();
-
-				var AnyBinariesAdded = false;
-				foreach (var DLLBinary in AppBinaries)
-				{
-					var FoundOnlyModule = DLLBinary.FindOnlyModule(OnlyModules);
-					if (FoundOnlyModule != null)
-					{
-						FilteredBinaries.Add(DLLBinary);
-						AnyBinariesAdded = true;
-
-						if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
-						{
-							var Appendage = "-" + FoundOnlyModule.OnlyModuleSuffix;
-
-							var MatchPos = DLLBinary.Config.OutputFilePath.LastIndexOf(FoundOnlyModule.OnlyModuleName, StringComparison.InvariantCultureIgnoreCase);
-							if (MatchPos < 0)
-							{
-								throw new BuildException("Failed to find module name \"{0}\" specified on the command line inside of the output filename \"{1}\" to add appendage.", FoundOnlyModule.OnlyModuleName, DLLBinary.Config.OutputFilePath);
-							}
-							DLLBinary.Config.OriginalOutputFilePath = DLLBinary.Config.OutputFilePath;
-							DLLBinary.Config.OutputFilePath = DLLBinary.Config.OutputFilePath.Insert(MatchPos + FoundOnlyModule.OnlyModuleName.Length, Appendage);
-						}
-					}
-				}
-
-				// Copy the result into the final list
-				AppBinaries = FilteredBinaries;
-
-				if (!AnyBinariesAdded)
-				{
-					throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
-				}
+				AppBinaries = FilterOnlyModules();
+			}
+			else if (UEBuildConfiguration.bHotReloadFromIDE)
+			{
+				AppBinaries = FilterGameModules();
 			}
 
 			// Filter out binaries that were already built and are just used for linking. We will not build these binaries but we need them for link information
@@ -1655,6 +1632,76 @@ namespace UnrealBuildTool
 
 			return SpecialRocketLibFilesThatAreBuildProducts;
 		}
+
+		private static string AddModuleFilenameSuffix(string ModuleName, string FilePath, string Suffix)
+		{			
+			var MatchPos = FilePath.LastIndexOf(ModuleName, StringComparison.InvariantCultureIgnoreCase);
+			if (MatchPos < 0)
+			{
+				throw new BuildException("Failed to find module name \"{0}\" specified on the command line inside of the output filename \"{1}\" to add appendage.", ModuleName, FilePath);
+			}
+			var Appendage = "-" + Suffix;
+			return FilePath.Insert(MatchPos + ModuleName.Length, Appendage);
+		}
+
+		private List<UEBuildBinary> FilterOnlyModules()
+		{
+			var FilteredBinaries = new List<UEBuildBinary>();
+
+			var AnyBinariesAdded = false;
+			foreach (var DLLBinary in AppBinaries)
+			{
+				var FoundOnlyModule = DLLBinary.FindOnlyModule(OnlyModules);
+				if (FoundOnlyModule != null)
+				{
+					FilteredBinaries.Add(DLLBinary);
+					AnyBinariesAdded = true;
+
+					if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
+					{
+						DLLBinary.Config.OriginalOutputFilePath = DLLBinary.Config.OutputFilePath;
+						DLLBinary.Config.OutputFilePath = AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, DLLBinary.Config.OutputFilePath, FoundOnlyModule.OnlyModuleSuffix);
+					}
+				}
+			}
+
+			if (!AnyBinariesAdded)
+			{
+				throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
+			}
+
+			// Copy the result into the final list
+			return FilteredBinaries;			
+		}
+
+		private List<UEBuildBinary> FilterGameModules()
+		{
+			var FilteredBinaries = new List<UEBuildBinary>();
+
+			var AnyBinariesAdded = false;
+			foreach (var DLLBinary in AppBinaries)
+			{
+				var GameModules = DLLBinary.FindGameModules();
+				if (GameModules != null && GameModules.Count > 0)
+				{
+					var UniqueSuffix = (new Random((int)(DateTime.Now.Ticks % Int32.MaxValue)).Next(10000)).ToString();
+					DLLBinary.Config.OriginalOutputFilePath = DLLBinary.Config.OutputFilePath;
+					DLLBinary.Config.OutputFilePath = AddModuleFilenameSuffix(GameModules[0].Name, DLLBinary.Config.OutputFilePath, UniqueSuffix);
+
+					FilteredBinaries.Add(DLLBinary);
+					AnyBinariesAdded = true;
+				}
+			}
+
+			if (!AnyBinariesAdded)
+			{
+				throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
+			}
+
+			// Copy the result into the final list
+			return FilteredBinaries;
+		}
+
 		/// <summary>
 		/// Writes target info.
 		/// </summary>

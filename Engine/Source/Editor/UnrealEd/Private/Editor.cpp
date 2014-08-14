@@ -584,6 +584,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		{
 			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 		}
+
+		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 	}
 
 	float BSPTexelScale = 100.0f;

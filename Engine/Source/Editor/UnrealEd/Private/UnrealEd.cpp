@@ -22,7 +22,6 @@
 #include "AssetEditorManager.h"
 
 #include "EditorActorFolders.h"
-#include "Kismet2/KismetReinstanceUtilities.h"
 
 UUnrealEdEngine* GUnrealEd;
 
@@ -186,23 +185,5 @@ void EditorExit()
 	GDebugToolExec = NULL;
 
 }
-
-/** Singleton used for class re-instancing during hot-reload */
-struct FUClassHotReloadReinstancer
-{
-	FUClassHotReloadReinstancer()
-	{
-		FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.BindStatic(&FUClassHotReloadReinstancer::ReinstanceClass);
-	}
-
-	static void ReinstanceClass(UClass* OldClass, UClass* NewClass)
-	{
-		UE_LOG(LogUnrealEd, Display, TEXT("Re-instancing %s after hot-reload."), *NewClass->GetName());
-		FBlueprintCompileReinstancer ReinstanceHelper(NewClass, OldClass);
-		ReinstanceHelper.ReinstanceObjects();
-	}
-};
-static FUClassHotReloadReinstancer GHotReloadReinstancer;
-
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, UnrealEd );

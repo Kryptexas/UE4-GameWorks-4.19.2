@@ -46,10 +46,36 @@ namespace ECompilationResult
 {
 	enum Type
 	{
+		/** Compilation succeeded */
 		Succeeded = 0,
+		/** Compilation failed because generated code changed which was not supported */
 		FailedDueToHeaderChange = 1,
-		OtherCompilationError = 2
+		/** Compilation failed due to compilation errors */
+		OtherCompilationError,
+		/** Compilation is not supported in the current build */
+		Unsupported,
+		/** Unknown error */
+		Unknown
 	};
+
+	/**
+	* Converts ECompilationResult enum to string.
+	*/
+	static FORCEINLINE const TCHAR* ToString(ECompilationResult::Type Result)
+	{
+		switch (Result)
+		{
+		case ECompilationResult::Succeeded:
+			return TEXT("Succeeded");
+		case ECompilationResult::FailedDueToHeaderChange:
+			return TEXT("FailedDueToHeaderChange");
+		case ECompilationResult::OtherCompilationError:
+			return TEXT("OtherCompilationError");
+		case ECompilationResult::Unsupported:
+			return TEXT("Unsupported");
+		};
+		return TEXT("Unknown");
+	}
 }
 
 
@@ -516,6 +542,12 @@ public:
 	 * @return	Configuration name for UBT.
 	 */
 	static const TCHAR *GetUBTConfiguration( );
+
+	/** Called for successfully re-complied module */
+	void OnModuleCompileSucceeded(FName ModuleName, const FString& NewModuleFilename);
+
+	/** Called when the compile data for a module need to be update in memory and written to config */
+	void UpdateModuleCompileData(FName ModuleName);
 
 public:
 
