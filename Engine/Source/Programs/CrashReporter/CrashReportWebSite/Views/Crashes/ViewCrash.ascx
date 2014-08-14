@@ -11,7 +11,19 @@
 			<span class="SelectorLink" id="CheckNone">None</span>
 
 			<div class="PaginationBox">
-				<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", new { page = i, SearchQuery = Model.SearchQuery, SortTerm = Model.SortTerm, SortOrder = Model.SortOrder, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo, CrashType = Model.CrashType } ) )%>
+				<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", 
+					new 
+					{ 
+						page = i, 
+						SearchQuery = Model.SearchQuery, 
+						SortTerm = Model.SortTerm, 
+						SortOrder = Model.SortOrder, 
+						UserGroup = Model.UserGroup, 
+						DateFrom = Model.DateFrom, 
+						DateTo = Model.DateTo, 
+						CrashType = Model.CrashType 
+					} 
+				) )%>
 			</div>
 			<!-- form starts and ends in site.master-->
 			<div id='SetStatusForm'>
