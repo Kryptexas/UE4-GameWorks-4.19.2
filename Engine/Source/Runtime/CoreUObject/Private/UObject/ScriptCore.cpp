@@ -91,7 +91,10 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 
 void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 MaximumLoopIterations )
 {
-	GMaximumScriptLoopIterations = MaximumLoopIterations;
+	if (ensure(MaximumLoopIterations > 0))
+	{
+		GMaximumScriptLoopIterations = MaximumLoopIterations;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
