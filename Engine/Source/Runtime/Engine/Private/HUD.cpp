@@ -135,10 +135,13 @@ void AHUD::PostRender()
 		{
 			TArray<FVector2D> ContactPoints;
 
-			// TODO: This needs a check whether the platform has a mouse at all, but there is no way to currently do that
 			if (!FSlateApplication::Get().IsFakingTouchEvents())
 			{
-				ContactPoints.Add(LocalPlayer->ViewportClient->GetMousePosition());
+				FVector2D MousePosition;
+				if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+				{
+					ContactPoints.Add(MousePosition);
+				}
 			}
 
 			for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)

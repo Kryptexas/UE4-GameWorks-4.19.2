@@ -369,6 +369,8 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 {
 	Super::MouseEnter(InViewport, x, y);
 
+	bMouseOverViewport = true;
+
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -378,6 +380,8 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 void UGameViewportClient::MouseLeave(FViewport* InViewport)
 {
 	Super::MouseLeave(InViewport);
+
+	bMouseOverViewport = false;
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
@@ -391,18 +395,30 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 	}
 }
 
-FVector2D UGameViewportClient::GetMousePosition()
+bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
 {
-	if (Viewport == NULL)
-	{
-		return FVector2D(0.f, 0.f);
-	}
-	else
+	bool bGotMousePosition = false;
+
+	if (Viewport && bMouseOverViewport && FSlateApplication::Get().IsMouseAttached())
 	{
 		FIntPoint MousePos;
 		Viewport->GetMousePos(MousePos);
-		return FVector2D(MousePos);
+		MousePosition = FVector2D(MousePos);
+		bGotMousePosition = true;
 	}
+
+	return bGotMousePosition;
+}
+
+FVector2D UGameViewportClient::GetMousePosition() const
+{
+	FVector2D MousePosition;
+	if (!GetMousePosition(MousePosition))
+	{
+		MousePosition = FVector2D::ZeroVector;
+	}
+
+	return MousePosition;
 }
 
 
@@ -539,9 +555,7 @@ void UGameViewportClient::SetViewport( FViewport* InViewport )
 	}
 }
 
-
-
-void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize )
+void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize ) const
 {
 	if ( Viewport != NULL )
 	{
@@ -550,12 +564,10 @@ void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize )
 	}
 }
 
-bool UGameViewportClient::IsFullScreenViewport()
+bool UGameViewportClient::IsFullScreenViewport() const
 {
 	return Viewport->IsFullscreen();
 }
-
-
 
 bool UGameViewportClient::ShouldForceFullscreenViewport() const
 {

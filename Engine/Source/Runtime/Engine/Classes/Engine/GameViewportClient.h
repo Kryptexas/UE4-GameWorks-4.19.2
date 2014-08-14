@@ -205,6 +205,9 @@ public:
 	/** set to disable world rendering */
 	uint32 bDisableWorldRendering:1;
 
+	/** Whether the mouse is currently over this game viewport */
+	uint32 bMouseOverViewport:1;
+
 protected:
 	/**
 	 * The splitscreen type that is actually being used; takes into account the number of players and other factors (such as cinematic mode)
@@ -392,13 +395,17 @@ public:
 	 *
 	 * @param	out_ViewportSize	[out] will be filled in with the size of the main viewport
 	 */
-	void GetViewportSize( FVector2D& ViewportSize );
+	void GetViewportSize( FVector2D& ViewportSize ) const;
 
 	/** @return Whether or not the main viewport is fullscreen or windowed. */
-	bool IsFullScreenViewport();
+	bool IsFullScreenViewport() const;
 
 	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
-	FVector2D GetMousePosition();
+	DEPRECATED(4.5, "Use GetMousePosition that returns a boolean if mouse is in window instead.")
+	FVector2D GetMousePosition() const;
+
+	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
+	bool GetMousePosition(FVector2D& MousePosition) const;
 
 	/**
 	 * Determine whether a fullscreen viewport should be used in cases where there are multiple players.

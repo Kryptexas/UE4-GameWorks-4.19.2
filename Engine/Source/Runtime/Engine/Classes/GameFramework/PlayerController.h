@@ -360,13 +360,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderFingerForObjects(ETouchIndex::Type FingerIndex, const  TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const;
 
-	/** Convert current mouse 2D position to World Space 3D position and direction. **/
+	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(FriendlyName="ConvertMouseLocationToWorldSpace"))
-	void DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
 
-	/** Convert current mouse 2D position to World Space 3D position and direction. **/
+	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
-	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
 	/**
 	 * Convert a World Space 3D position into a 2D Screen Space position.

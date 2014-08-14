@@ -1700,7 +1700,11 @@ bool APlayerController::GetHitResultUnderCursor(ECollisionChannel TraceChannel, 
 	bool bHit = false;
 	if (LocalPlayer)
 	{
-		bHit = GetHitResultAtScreenPosition(LocalPlayer->ViewportClient->GetMousePosition(), TraceChannel, bTraceComplex, HitResult);
+		FVector2D MousePosition;
+		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+		{
+			bHit = GetHitResultAtScreenPosition(MousePosition, TraceChannel, bTraceComplex, HitResult);
+		}
 	}
 
 	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
@@ -1717,7 +1721,11 @@ bool APlayerController::GetHitResultUnderCursorByChannel(ETraceTypeQuery TraceCh
 	bool bHit = false;
 	if (LocalPlayer)
 	{
-		bHit = GetHitResultAtScreenPosition(LocalPlayer->ViewportClient->GetMousePosition(), TraceChannel, bTraceComplex, HitResult);
+		FVector2D MousePosition;
+		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+		{
+			bHit = GetHitResultAtScreenPosition(MousePosition, TraceChannel, bTraceComplex, HitResult);
+		}
 	}
 
 	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
@@ -1734,7 +1742,11 @@ bool APlayerController::GetHitResultUnderCursorForObjects(const TArray<TEnumAsBy
 	bool bHit = false;
 	if (LocalPlayer)
 	{
-		bHit = GetHitResultAtScreenPosition(LocalPlayer->ViewportClient->GetMousePosition(), ObjectTypes, bTraceComplex, HitResult);
+		FVector2D MousePosition;
+		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+		{
+			bHit = GetHitResultAtScreenPosition(MousePosition, ObjectTypes, bTraceComplex, HitResult);
+		}
 	}
 
 	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
@@ -1811,21 +1823,30 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 	return bHit;
 }
 
-void APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
 {
+	bool bSuccessfulDeproject = false;
+
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL)
+	if (LocalPlayer && LocalPlayer->ViewportClient )
 	{
-		FVector2D ScreenPosition = LocalPlayer->ViewportClient->GetMousePosition();
-		DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, WorldLocation, WorldDirection);
+		FVector2D ScreenPosition;
+		if (LocalPlayer->ViewportClient->GetMousePosition(ScreenPosition))
+		{
+			bSuccessfulDeproject = DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, WorldLocation, WorldDirection);
+		}
 	}
+
+	return bSuccessfulDeproject;
 }
 
-void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
 {
+	bool bSuccessfulDeproject = false;
+
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
-	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
+	if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->Viewport)
 	{
 		// Create a view family for the game viewport
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -1843,8 +1864,12 @@ void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 		{
 			const FVector2D ScreenPosition(ScreenX, ScreenY);
 			SceneView->DeprojectFVector2D(ScreenPosition, WorldLocation, WorldDirection);
+
+			bSuccessfulDeproject = true;
 		}
 	}
+
+	return bSuccessfulDeproject;
 }
 
 
@@ -2004,8 +2029,14 @@ void APlayerController::PlayerTick( float DeltaTime )
 	{
 		if (bEnableMouseOverEvents)
 		{
+			FVector2D MousePosition;
 			FHitResult HitResult;
-			const bool bHit = GetHitResultAtScreenPosition(LocalPlayer->ViewportClient->GetMousePosition(), CurrentClickTraceChannel, true, /*out*/ HitResult);
+			bool bHit = false;
+			
+			if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+			{
+				bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, /*out*/ HitResult);
+			}
 
 			UPrimitiveComponent* PreviousComponent = CurrentClickablePrimitive.Get();
 			UPrimitiveComponent* CurrentComponent = (bHit ? HitResult.Component.Get() : NULL);
@@ -2100,7 +2131,8 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 		// TODO: Allow click key(s?) to be defined
 		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
 		{
-			const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
+			FVector2D MousePosition;
+			verify(CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition(MousePosition));
 			UPrimitiveComponent* ClickedPrimitive = NULL;
 			if (bEnableMouseOverEvents)
 			{
@@ -4093,17 +4125,23 @@ float APlayerController::GetInputKeyTimeDown(const FKey Key) const
 
 bool APlayerController::GetMousePosition(float& LocationX, float& LocationY) const
 {
-	// TODO: Return false if there is no mouse attached
-	if (Player == nullptr)
+	bool bGotMousePosition = false;
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+
+	if (LocalPlayer)
 	{
-		return false;
+		FVector2D MousePosition;
+		
+		bGotMousePosition = LocalPlayer->ViewportClient->GetMousePosition(MousePosition);
+
+		if (bGotMousePosition)
+		{
+			LocationX = MousePosition.X;
+			LocationY = MousePosition.Y;
+		}
 	}
 
-	const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
-	LocationX = MousePosition.X;
-	LocationY = MousePosition.Y;
-
-	return true;
+	return bGotMousePosition;
 }
 
 void APlayerController::GetInputMouseDelta(float& DeltaX, float& DeltaY) const
