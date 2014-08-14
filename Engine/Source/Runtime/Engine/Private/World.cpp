@@ -2100,7 +2100,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	if ( !EditorLevelWorld )
 	{
 		EditorLevelWorld = UWorld::FollowWorldRedirectorInPackage(EditorLevelPackage);
-		if ( EditorLevelPackage )
+		if ( EditorLevelWorld )
 		{
 			EditorLevelPackage = EditorLevelWorld->GetOutermost();
 		}
