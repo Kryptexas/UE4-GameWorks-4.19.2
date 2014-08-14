@@ -699,7 +699,7 @@ void UCookOnTheFlyServer::Initialize( bool inCompressed, bool inIterativeCooking
 
 	
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	const TArray<ITargetPlatform*>& Platforms = TPM.GetTargetPlatforms();
+	const TArray<ITargetPlatform*>& Platforms = TPM.GetActiveTargetPlatforms();
 
 	// Local sandbox file wrapper. This will be used to handle path conversions,
 	// but will not be used to actually write/read files so we can safely
