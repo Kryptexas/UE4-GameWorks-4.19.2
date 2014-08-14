@@ -48,7 +48,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param PackagePath - The package path to convert
 	*/
-	static FString ConvertPackagePathToAssetPath(const FString& PackagePath);
+	FString ConvertPackagePathToAssetPath(const FString& PackagePath);
 
 	/**
 	* Imports an object using a given factory
@@ -58,21 +58,21 @@ namespace AutomationEditorCommonUtils
 	* @param PackagePath - The full path of the package file to create
 	* @param ImportPath - The path to the object to import
 	*/
-	static UObject* ImportAssetUsingFactory(UFactory* ImportFactory, const FString& ObjectName, const FString& PackageName, const FString& ImportPath);
+	UObject* ImportAssetUsingFactory(UFactory* ImportFactory, const FString& ObjectName, const FString& PackageName, const FString& ImportPath);
 
 	/**
 	* Nulls out references to a given object
 	*
 	* @param InObject - Object to null references to
 	*/
-	static void NullReferencesToObject(UObject* InObject);
+	void NullReferencesToObject(UObject* InObject);
 
 	/**
 	* gets a factory class based off an asset file extension
 	*
 	* @param AssetExtension - The file extension to use to find a supporting UFactory
 	*/
-	static UClass* GetFactoryClassForType(const FString& AssetExtension);
+	UClass* GetFactoryClassForType(const FString& AssetExtension);
 
 	/**
 	* Applies settings to an object by finding UProperties by name and calling ImportText
@@ -81,7 +81,7 @@ namespace AutomationEditorCommonUtils
 	* @param PropertyChain - The list UProperty names recursively to search through
 	* @param Value - The value to import on the found property
 	*/
-	static void ApplyCustomFactorySetting(UObject* InObject, TArray<FString>& PropertyChain, const FString& Value);
+	void ApplyCustomFactorySetting(UObject* InObject, TArray<FString>& PropertyChain, const FString& Value);
 
 	/**
 	* Applies the custom factory settings
@@ -89,7 +89,7 @@ namespace AutomationEditorCommonUtils
 	* @param InFactory - The factory to apply custom settings to
 	* @param FactorySettings - An array of custom settings to apply to the factory
 	*/
-	static void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
+	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
 }
 
 

@@ -16,7 +16,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param PackagePath - The package path to convert
 	*/
-	static FString ConvertPackagePathToAssetPath(const FString& PackagePath)
+	FString ConvertPackagePathToAssetPath(const FString& PackagePath)
 	{
 		const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
 		FString EngineFileName = Filename;
@@ -50,7 +50,7 @@ namespace AutomationEditorCommonUtils
 	* @param PackagePath - The full path of the package file to create
 	* @param ImportPath - The path to the object to import
 	*/
-	static UObject* ImportAssetUsingFactory(UFactory* ImportFactory, const FString& ObjectName, const FString& PackagePath, const FString& ImportPath)
+	UObject* ImportAssetUsingFactory(UFactory* ImportFactory, const FString& ObjectName, const FString& PackagePath, const FString& ImportPath)
 	{
 		UObject* ImportedAsset = NULL;
 
@@ -94,7 +94,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param InObject - Object to null references to
 	*/
-	static void NullReferencesToObject(UObject* InObject)
+	void NullReferencesToObject(UObject* InObject)
 	{
 		TArray<UObject*> ReplaceableObjects;
 		TMap<UObject*, UObject*> ReplacementMap;
@@ -161,7 +161,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param AssetExtension - The file extension to use to find a supporting UFactory
 	*/
-	static UClass* GetFactoryClassForType(const FString& AssetExtension)
+	UClass* GetFactoryClassForType(const FString& AssetExtension)
 	{
 		// First instantiate one factory for each file extension encountered that supports the extension
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -193,7 +193,7 @@ namespace AutomationEditorCommonUtils
 	* @param PropertyChain - The list UProperty names recursively to search through
 	* @param Value - The value to import on the found property
 	*/
-	static void ApplyCustomFactorySetting(UObject* InObject, TArray<FString>& PropertyChain, const FString& Value)
+	void ApplyCustomFactorySetting(UObject* InObject, TArray<FString>& PropertyChain, const FString& Value)
 	{
 		const FString PropertyName = PropertyChain[0];
 		PropertyChain.RemoveAt(0);
@@ -250,7 +250,7 @@ namespace AutomationEditorCommonUtils
 	* @param InFactory - The factory to apply custom settings to
 	* @param FactorySettings - An array of custom settings to apply to the factory
 	*/
-	static void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings)
+	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings)
 	{
 		bool bCallConfigureProperties = true;
 

@@ -11,9 +11,11 @@
 #include "AssetRegistryModule.h"
 #include "IAssetRegistry.h"
 #include "ComponentAssetBroker.h"
+#include "AssetSelection.h"
 
 //Materials
 #include "AssetEditorManager.h"
+#include "AssetEditorToolkit.h"
 #include "IMaterialEditor.h"
 #include "Private/MaterialEditor.h"
 #include "Materials/MaterialExpressionTextureSample.h"
@@ -26,7 +28,7 @@
 #include "Particles/Size/ParticleModuleSize.h"
 
 //Blueprints
-#include "EdGraphSchema_K2_Actions.h"
+#include "BlueprintGraphDefinitions.h"
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
 #include "CompilerResultsLog.h"
@@ -34,6 +36,7 @@
 #include "KismetDebugUtilities.h"
 #include "Engine/Breakpoint.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "BlueprintEditorUtils.h"
 
 //Utils
 #include "EditorBuildUtils.h"
@@ -48,6 +51,10 @@
 //Lighting
 #include "LightingBuildOptions.h"
 #include "../Private/StaticLightingSystem/StaticLightingPrivate.h"
+
+#include "ScopedTransaction.h"
+#include "LevelEditor.h"
+#include "ObjectTools.h"
 
 #define LOCTEXT_NAMESPACE "EditorBuildPromotionTests"
 
@@ -1086,8 +1093,8 @@ namespace EditorBuildPromotionTestUtils
 	*/
 	static UObject* ImportAsset(UFactory* ImportFactory, const FString& ImportPath)
 	{
-		FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(ImportPath));
-		FString PackageName = FString::Printf(TEXT("%s/%s"), *GetGamePath(), *Name);
+		const FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(ImportPath));
+		const FString PackageName = FString::Printf(TEXT("%s/%s"), *GetGamePath(), *Name);
 
 		UObject* ImportedAsset = AutomationEditorCommonUtils::ImportAssetUsingFactory(ImportFactory,Name,PackageName,ImportPath);
 
@@ -1474,7 +1481,7 @@ namespace BuildPromotionTestHelper
 					FAssetEditorManager::Get().FindEditorForAsset(CurrentAsset, true);
 				}
 
-				UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Opened asset (%s)"), *CurrentAsset->GetClass()->GetName());
+				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Opened asset (%s)"), *CurrentAsset->GetClass()->GetName());
 
 				CurrentStage = EState::ChangeProperty;
 			}
@@ -1503,7 +1510,7 @@ namespace BuildPromotionTestHelper
 
 			FString OldPropertyValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
 			EditorBuildPromotionTestUtils::SetPropertyByName(CurrentAsset, PropertyName, NewPropertyValue);
-			UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Modified asset.  %s = %s"), *PropertyName, *NewPropertyValue);
+			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Modified asset.  %s = %s"), *PropertyName, *NewPropertyValue);
 
 			//Get the property again and use that to compare the redo action.  Parsing the new value may change the formatting a bit. ie) 100 becomes 100.0000
 			FString ParsedNewValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
@@ -1512,7 +1519,7 @@ namespace BuildPromotionTestHelper
 			FString CurrentValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
 			if (CurrentValue == OldPropertyValue)
 			{
-				UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Undo %s change successful"), *PropertyName);
+				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Undo %s change successful"), *PropertyName);
 			}
 			else
 			{
@@ -1523,7 +1530,7 @@ namespace BuildPromotionTestHelper
 			CurrentValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
 			if (CurrentValue == ParsedNewValue)
 			{
-				UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Redo %s change successful"), *PropertyName);
+				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Redo %s change successful"), *PropertyName);
 			}
 			else
 			{
@@ -1551,11 +1558,11 @@ namespace BuildPromotionTestHelper
 					FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*PackageFileName, false);
 					if (UPackage::SavePackage(AssetPackage, NULL, RF_Standalone, *PackageFileName, GError, nullptr, false, true, SAVE_NoError))
 					{
-						UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Saved asset"));
+						UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Saved asset"));
 					}
 					else
 					{
-						UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Unable to save asset"));
+						UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Unable to save asset"));
 					}
 				}
 			}
@@ -1582,7 +1589,7 @@ namespace BuildPromotionTestHelper
 				AActor* PlacedActor = FActorFactoryAssetProxy::AddActorForAsset(CurrentAsset);
 				if (PlacedActor)
 				{
-					UE_LOG(LogEditorAssetAutomationTests, Display, TEXT("Placed %s in the level"), *CurrentAsset->GetName());
+					UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Placed %s in the level"), *CurrentAsset->GetName());
 					PlacedActor->SetActorLocation(PlaceLocation);
 				}
 				else
