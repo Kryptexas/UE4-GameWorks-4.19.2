@@ -2686,6 +2686,8 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 	// Let listeners know whether the reimport was successful or not
 	PostReimport.Broadcast( Obj, bSuccess );
 
+	GEditor->RedrawAllViewports();
+
 	return bSuccess;
 }
 
