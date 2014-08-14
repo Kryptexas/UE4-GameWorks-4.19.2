@@ -98,13 +98,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 		//FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local); 
 		ExecuteInner(CmdList);
 	}
-
-#if !UE_BUILD_SHIPPING
-	if (GRHICommandList.OutstandingCmdListCount.GetValue() == 1)
-	{
-		LatchBypass();
-	}
-#endif
 }
 
 
