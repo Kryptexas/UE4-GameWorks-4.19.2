@@ -137,7 +137,6 @@ UObject* UActorFactory::GetAssetFromActorInstance(AActor* ActorInstance)
 	return NULL;
 }
 
-/** Return a rotator which aligns this actor type to the specified surface normal */
 FQuat UActorFactory::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
 {
 	if (bUseSurfaceOrientation)

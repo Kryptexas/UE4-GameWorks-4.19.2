@@ -60,7 +60,7 @@ class UNREALED_API UActorFactory : public UObject
 	/** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor */
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance);
 
-	/** Return a rotator which aligns this actor type to the specified surface normal */
+	/** Return a quaternion which aligns this actor type to the specified surface normal */
 	virtual FQuat AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation = FQuat::Identity) const;
 
 protected:
