@@ -290,7 +290,7 @@ FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				//Replace literal node's object reference
 				LiteralNode->SetObjectRef( DragConnectionOp->Actors[ 0 ].Get() );
 
-				UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+				UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(CastChecked<UEdGraph>(GraphNode->GetOuter()));
 				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 			}
 		}
