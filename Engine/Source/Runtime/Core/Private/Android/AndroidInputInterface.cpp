@@ -32,16 +32,16 @@ TSharedRef< FAndroidInputInterface > FAndroidInputInterface::Create(  const TSha
 FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
 {
-	ButtonMapping[ 0] = EControllerButtons::FaceButtonBottom;
-	ButtonMapping[ 1] = EControllerButtons::FaceButtonRight;
-	ButtonMapping[ 2] = EControllerButtons::FaceButtonLeft;
-	ButtonMapping[ 3] = EControllerButtons::FaceButtonTop;
-	ButtonMapping[ 4] = EControllerButtons::LeftShoulder;
-	ButtonMapping[ 5] = EControllerButtons::RightShoulder;
-	ButtonMapping[ 6] = EControllerButtons::SpecialRight;
-	ButtonMapping[ 7] = EControllerButtons::SpecialLeft;
-	ButtonMapping[ 8] = EControllerButtons::LeftThumb;
-	ButtonMapping[ 9] = EControllerButtons::RightThumb;
+	ButtonMapping[0] = EControllerButtons::FaceButtonBottom;
+	ButtonMapping[1] = EControllerButtons::FaceButtonRight;
+	ButtonMapping[2] = EControllerButtons::FaceButtonLeft;
+	ButtonMapping[3] = EControllerButtons::FaceButtonTop;
+	ButtonMapping[4] = EControllerButtons::LeftShoulder;
+	ButtonMapping[5] = EControllerButtons::RightShoulder;
+	ButtonMapping[6] = EControllerButtons::SpecialRight;
+	ButtonMapping[7] = EControllerButtons::SpecialLeft;
+	ButtonMapping[8] = EControllerButtons::LeftThumb;
+	ButtonMapping[9] = EControllerButtons::RightThumb;
 	ButtonMapping[10] = EControllerButtons::LeftTriggerThreshold;
 	ButtonMapping[11] = EControllerButtons::RightTriggerThreshold;
 	ButtonMapping[12] = EControllerButtons::DPadUp;
@@ -254,18 +254,18 @@ void FAndroidInputInterface::JoystickButtonEvent(int32 deviceId, int32 buttonId,
 	switch (buttonId)
 	{
 		case AKEYCODE_BUTTON_A:
-		case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[ 0] = buttonDown; break;
-		case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[ 1] = buttonDown; break;
-		case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[ 2] = buttonDown; break;
-		case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[ 3] = buttonDown; break;
-		case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[ 4] = buttonDown; break;
-		case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[ 5] = buttonDown; break;
+		case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[0] = buttonDown; break;
+		case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break;
+		case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break;
+		case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break;
+		case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[4] = buttonDown; break;
+		case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[5] = buttonDown; break;
 		case AKEYCODE_BUTTON_START:
-		case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[ 6] = buttonDown; break;
+		case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[6] = buttonDown; break;
 		case AKEYCODE_BUTTON_SELECT: 
 		case AKEYCODE_BACK:          NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break;
-		case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[ 8] = buttonDown; break;
-		case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[ 9] = buttonDown; break;
+		case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[8] = buttonDown; break;
+		case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[9] = buttonDown; break;
 		case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[10] = buttonDown; break;
 		case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[11] = buttonDown; break;
 		case AKEYCODE_DPAD_UP:       NewControllerData[deviceId].ButtonStates[12] = buttonDown; break;
