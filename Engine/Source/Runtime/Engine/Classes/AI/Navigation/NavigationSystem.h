@@ -411,12 +411,12 @@ protected:
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
 
+public:
 	void ReleaseInitialBuildingLock();
 
 	//----------------------------------------------------------------------//
 	// navigation octree related functions
 	//----------------------------------------------------------------------//
-public:
 	FSetElementId RegisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
 	void UnregisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
 
