@@ -31,6 +31,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _ScrollbarVisibility(EVisibility::Visible)
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -54,6 +55,8 @@ public:
 		SLATE_ARGUMENT ( bool, ClearSelectionOnClick )
 
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+
+		SLATE_ATTRIBUTE(EVisibility, ScrollbarVisibility)
 
 	SLATE_END_ARGS()
 
@@ -104,6 +107,10 @@ public:
 		{
 			// Make the TableView
 			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar);
+			if (ScrollBar.IsValid())
+			{
+				ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
+			}
 		}
 	}
 
