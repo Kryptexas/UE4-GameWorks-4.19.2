@@ -513,6 +513,21 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+		if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3))
+		{
+
+		}
+		else
+		{
+			return (Material->IsSpecialEngineMaterial()
+				// Only compile for masked or lit translucent materials
+				|| Material->IsMasked())
+				&& ShaderMode == PixelShadowDepth_NonPerspectiveCorrect
+				// Don't render ShadowDepth for translucent unlit materials
+				&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
+				&& !bRenderReflectiveShadowMap;
+		}
+
 		if ( bRenderReflectiveShadowMap )
 		{
 			//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!

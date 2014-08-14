@@ -526,13 +526,14 @@ private:
 	DataType Data;  
 };
 
-/** Vertex factory with vertex stream components for GPU-skinned streams, enabled for passthrough mode when vertices have been pre-skinned */
-template<bool bExtraBoneInfluencesT>
-class TGPUSkinPassthroughVertexFactory : public TGPUSkinVertexFactory<bExtraBoneInfluencesT>
+/** 
+ * Vertex factory with vertex stream components for GPU-skinned streams, enabled for passthrough mode when vertices have been pre-skinned 
+ */
+class FGPUSkinPassthroughVertexFactory : public TGPUSkinVertexFactory<false>
 {
-	DECLARE_VERTEX_FACTORY_TYPE(TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>);
+	DECLARE_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory);
 
-	typedef TGPUSkinVertexFactory<bExtraBoneInfluencesT> Super;
+	typedef TGPUSkinVertexFactory<false> Super;
 
 public:
 	/**
@@ -540,8 +541,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices)
+	FGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
+		: TGPUSkinVertexFactory<false>(InBoneMatrices)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);

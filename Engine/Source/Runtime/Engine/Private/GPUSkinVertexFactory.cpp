@@ -513,29 +513,26 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
-TGPUSkinPassthroughVertexFactory
+FGPUSkinPassthroughVertexFactory
 -----------------------------------------------------------------------------*/
-template <bool bExtraBoneInfluencesT>
-void TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
+void FGPUSkinPassthroughVertexFactory::ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
 {
 	Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_PASS_THROUGH"),TEXT("1"));
 }
 
-template <bool bExtraBoneInfluencesT>
-bool TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FGPUSkinPassthroughVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	// Passhrough is only valid on platforms with Compute Shader support
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType);
+	return GEnableGPUSkinCache && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType);
 }
 
-template <bool bExtraBoneInfluencesT>
-FVertexFactoryShaderParameters* TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
+FVertexFactoryShaderParameters* FGPUSkinPassthroughVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	return (ShaderFrequency == SF_Vertex) ? new FGPUSkinVertexPassthroughFactoryShaderParameters() : nullptr;
 }
 
-IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinPassthroughVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
 
 /*-----------------------------------------------------------------------------
 TGPUSkinMorphVertexFactory

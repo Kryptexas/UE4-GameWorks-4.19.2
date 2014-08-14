@@ -762,12 +762,12 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
 				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
-				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinPassthroughVertexFactory<true> >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
+				CreateVertexFactory< FGPUBaseSkinVertexFactory, FGPUSkinPassthroughVertexFactory >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
 			}
 			else
 			{
 				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
-				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinPassthroughVertexFactory<false> >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
+				CreateVertexFactory< FGPUBaseSkinVertexFactory, FGPUSkinPassthroughVertexFactory >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
 			}
 		}
 	}

@@ -21,8 +21,9 @@ static FAutoConsoleVariableRef CVarEnableGPUSkinCache(
 	GEnableGPUSkinCache,
 	TEXT("Whether or not to use the GPU compute skinning cache.\n")
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
+	TEXT("GPUSkinVertexFactory.usf needs to be touched to cause a recompile if this changes.\n")
 	TEXT("0 is off(default), 1 is on"),
-	ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
 int32 GMaxGPUSkinCacheElementsPerFrame = 1000;
