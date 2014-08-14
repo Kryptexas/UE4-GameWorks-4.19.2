@@ -85,8 +85,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	SAssignNew(WarningMessageText, SErrorText);
 
-	TSharedRef<SBorder> CurveSelector = SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+	TSharedRef<SBox> CurveSelector = SNew(SBox)
 		.Visibility(this, &SCurveEditor::GetControlVisibility)
 		[
 			CreateCurveSelectionWidget()
@@ -105,14 +104,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 			.Visibility( this, &SCurveEditor::GetCurveAreaVisibility )
 
 			+ SHorizontalBox::Slot()
-			.Padding(FMargin(20, 12, 0, 0))
-			[
-				SNew(SSpacer)
-			]
-			
-			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(FMargin(2, 12, 0, 0))
+			.Padding(FMargin(30, 12, 0, 0))
 			[
 				CurveSelector
 			]
@@ -363,7 +356,7 @@ EVisibility SCurveEditor::GetCurveAreaVisibility() const
 
 EVisibility SCurveEditor::GetControlVisibility() const
 {
-	return (IsHovered() || (false == bHideUI)) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (IsHovered() || (false == bHideUI)) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 EVisibility SCurveEditor::GetEditVisibility() const

@@ -409,7 +409,7 @@ protected:
 private:
 
 	/** Curve selection*/
-	TWeakPtr<SBorder>		CurveSelectionWidget;
+	TWeakPtr<SBox>		CurveSelectionWidget;
 
 	/** Text block used to display warnings related to curves */
 	TSharedPtr< SErrorText > WarningMessageText;
