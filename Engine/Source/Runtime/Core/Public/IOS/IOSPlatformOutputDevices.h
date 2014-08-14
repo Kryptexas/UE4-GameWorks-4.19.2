@@ -8,7 +8,6 @@
 
 struct CORE_API FIOSPlatformOutputDevices : public FGenericPlatformOutputDevices
 {
-//	static class FOutputDevice*			GetLog();
 	static class FOutputDeviceError*	GetError();
 };
 

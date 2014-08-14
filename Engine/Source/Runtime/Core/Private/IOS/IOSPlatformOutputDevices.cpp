@@ -19,23 +19,6 @@ class FOutputDeviceError* FIOSPlatformOutputDevices::GetError()
 	return &Singleton;
 }
 
-/*class FOutputDevice* FIOSPlatformOutputDevices::GetLog()
-{
-	static FOutputDeviceIOSDebug Singleton;
-
-	// Don't use the dummy Debug log if the engine is going to add a proper Debug output device anyway.
-	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || GIsBuildMachine)
-	{
-		return NULL;
-	}
-	else
-	{
-		//@todo-mobile: Use a real log-to-disk system instead?
-		return &Singleton;
-	}
-}*/
-
-
 //class FFeedbackContext*				FIOSPlatformOutputDevices::GetWarn()
 //{
 //	static FOutputDeviceIOSDebug Singleton;
