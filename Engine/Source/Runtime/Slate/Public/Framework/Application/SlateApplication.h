@@ -458,6 +458,11 @@ public:
 	bool IsUsingTrackpad() const { return PlatformApplication.IsValid() ? PlatformApplication->IsUsingTrackpad() : false; }
 
 	/**
+	 * @return True if there is a mouse device attached
+	 */
+	bool IsMouseAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsMouseAttached() : false; }
+
+	/**
 	 * Sets the widget reflector.
 	 *
 	 * @param WidgetReflector The widget reflector to set.
