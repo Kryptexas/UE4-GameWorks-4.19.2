@@ -29,11 +29,11 @@ public:
 
 	/** Initialization constructor. */
 	FDiagnoseReportWorker( FText* InDiagnosticText, const FString InMachineId, const FString InEpicAccountId, const FString InUserNameNoDot, const FPlatformErrorReport* InErrorReport )
-		: DiagnosticText( *InDiagnosticText )
-		, MachineId( InMachineId )
-		, EpicAccountId( InEpicAccountId )
-		, UserNameNoDot( InUserNameNoDot )
+		: DiagnosticText( *InDiagnosticText )		
 		, ErrorReport( *InErrorReport )
+		, MachineId(InMachineId)
+		, EpicAccountId(InEpicAccountId)
+		, UserNameNoDot(InUserNameNoDot)
 	{}
 
 	/**
