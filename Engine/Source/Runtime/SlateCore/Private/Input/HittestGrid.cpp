@@ -39,7 +39,7 @@ FHittestGrid::FHittestGrid()
 
 TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus )
 {
-	if (WidgetsCachedThisFrame->Num() > 0)
+	if (WidgetsCachedThisFrame->Num() > 0 && Cells.Num() > 0)
 	{
 		const FVector2D CursorPositionInGrid = DesktopSpaceCoordinate - GridOrigin;
 		const FIntPoint CellCoordinate = FIntPoint(
