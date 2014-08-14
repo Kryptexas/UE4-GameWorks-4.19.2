@@ -2050,12 +2050,15 @@ bool GameProjectUtils::WriteOutputFile(const FString& OutputFilename, const FStr
 
 FString GameProjectUtils::MakeCopyrightLine()
 {
-	if(FEngineBuildSettings::IsInternalBuild())
+	const FString CopyrightNotice = GetDefault<UGeneralProjectSettings>()->CopyrightNotice;
+	if (!CopyrightNotice.IsEmpty())
 	{
-		return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+		return FString(TEXT("// ")) + CopyrightNotice;
 	}
-
-	return "";
+	else
+	{
+		return FString();
+	}
 }
 
 FString GameProjectUtils::MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement)
