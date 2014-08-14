@@ -771,6 +771,10 @@ namespace UnrealBuildTool
 					{
 						VCSolutionOptions Options = new VCSolutionOptions();
 						Options.SolutionConfiguration.Add(new VCBinarySetting("ActiveCfg", DefaultConfig.VCSolutionConfigAndPlatformName));
+						if(DefaultProject != null)
+						{
+							Options.SolutionConfiguration.Add(new VCBinarySetting("StartupProject", ((MSBuildProjectFile)DefaultProject).ProjectGUID.ToString("B")));
+						}
 						Options.Write(SolutionOptionsFileName);
 					}
 				}
