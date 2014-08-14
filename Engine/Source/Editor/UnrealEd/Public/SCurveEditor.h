@@ -93,6 +93,7 @@ public:
 		, _AlwaysDisplayColorCurves(false)
 		, _ZoomToFitVertical(true)
 		, _ZoomToFitHorizontal(true)
+		, _ShowZoomButtons(true)
 		{}
 
 		SLATE_ATTRIBUTE( float, ViewMinInput )
@@ -109,6 +110,7 @@ public:
 		SLATE_ARGUMENT( bool, AlwaysDisplayColorCurves )
 		SLATE_ARGUMENT( bool, ZoomToFitVertical )
 		SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
+		SLATE_ARGUMENT( bool, ShowZoomButtons )
 		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 		SLATE_EVENT( FSimpleDelegate, OnCreateAsset )
 	SLATE_END_ARGS()
@@ -147,6 +149,9 @@ public:
 	 * @param Ar The archive to serialize with
 	 */
 	UNREALED_API virtual void AddReferencedObjects( FReferenceCollector& Collector );
+
+	/** Gets a list of the commands handled by this control */
+	UNREALED_API TSharedPtr<FUICommandList> GetCommands();
 
 private:
 	/** Used to track a key and the curve that owns it */
@@ -253,9 +258,11 @@ private:
 	/* Get the curves to will be used during a fit operation */
 	TArray<FRichCurve*> GetCurvesToFit()const;
 
-	FReply ZoomToFitHorizontal();
-	FReply ZoomToFitVertical();
+	void ZoomToFitHorizontal();
+	void ZoomToFitVertical();
 
+	FReply ZoomToFitHorizontalClicked();
+	FReply ZoomToFitVerticalClicked();
 
 	TOptional<float> OnGetTime() const;
 	void OnTimeComitted(float NewValue, ETextCommit::Type CommitType);
@@ -272,6 +279,7 @@ private:
 	EVisibility GetControlVisibility() const;
 	EVisibility GetEditVisibility() const;
 	EVisibility GetColorGradientVisibility() const;
+	EVisibility GetZoomButtonVisibility() const;
 
 	bool GetInputEditEnabled() const;
 
@@ -494,6 +502,9 @@ protected:
 
 	/** True if the sliders are being used to adjust point values **/
 	bool bIsUsingSlider;
+
+	/** True if the internal zoom buttons should be visible. */
+	bool bShowZoomButtons;
 };
 
 #endif // __SCurveEditor_h__

@@ -56,6 +56,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	bHideUI = InArgs._HideUI;
 	bAllowZoomOutput = InArgs._AllowZoomOutput;
 	bAlwaysDisplayColorCurves = InArgs._AlwaysDisplayColorCurves;
+	bShowZoomButtons = InArgs._ShowZoomButtons;
 
 	OnCreateAsset = InArgs._OnCreateAsset;
 
@@ -70,16 +71,22 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	TransactionIndex = -1;
 
-	Commands->MapAction( FGenericCommands::Get().Undo,
-		FExecuteAction::CreateSP( this, &SCurveEditor::UndoAction ));
+	Commands->MapAction(FGenericCommands::Get().Undo,
+		FExecuteAction::CreateSP(this, &SCurveEditor::UndoAction));
 
-	Commands->MapAction( FGenericCommands::Get().Redo,
-		FExecuteAction::CreateSP( this, &SCurveEditor::RedoAction ));
+	Commands->MapAction(FGenericCommands::Get().Redo,
+		FExecuteAction::CreateSP(this, &SCurveEditor::RedoAction));
 
-	SAssignNew(WarningMessageText, SErrorText );
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitHorizontal,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical));
+
+	SAssignNew(WarningMessageText, SErrorText);
 
 	TSharedRef<SBorder> CurveSelector = SNew(SBorder)
-		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 		.Visibility(this, &SCurveEditor::GetControlVisibility)
 		[
 			CreateCurveSelectionWidget()
@@ -122,13 +129,14 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 				.Padding(FMargin(2, 12, 0, 0))
 				[
 					SNew(SHorizontalBox)
-					
+
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew(SButton)
 						.ToolTipText(LOCTEXT("ZoomToFitHorizontal", "Zoom To Fit Horizontal"))
-						.OnClicked(this, &SCurveEditor::ZoomToFitHorizontal)
+						.Visibility(this, &SCurveEditor::GetZoomButtonVisibility)
+						.OnClicked(this, &SCurveEditor::ZoomToFitHorizontalClicked)
 						.ContentPadding(1)
 						[
 							SNew(SImage) 
@@ -142,7 +150,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 					[
 						SNew(SButton)
 						.ToolTipText(LOCTEXT("ZoomToFitVertical", "Zoom To Fit Vertical"))
-						.OnClicked(this, &SCurveEditor::ZoomToFitVertical)
+						.Visibility(this, &SCurveEditor::GetZoomButtonVisibility)
+						.OnClicked(this, &SCurveEditor::ZoomToFitVerticalClicked)
 						.ContentPadding(1)
 						[
 							SNew(SImage) 
@@ -365,6 +374,11 @@ EVisibility SCurveEditor::GetEditVisibility() const
 EVisibility SCurveEditor::GetColorGradientVisibility() const
 {
 	return bIsGradientEditorVisible && IsLinearColorCurve() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SCurveEditor::GetZoomButtonVisibility() const
+{
+	return bShowZoomButtons ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SCurveEditor::GetInputEditEnabled() const
@@ -1475,7 +1489,7 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 }
 
 
-FReply SCurveEditor::ZoomToFitHorizontal()
+void SCurveEditor::ZoomToFitHorizontal()
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -1516,6 +1530,11 @@ FReply SCurveEditor::ZoomToFitHorizontal()
 
 		SetInputMinMax(InMin, InMax);
 	}
+}
+
+FReply SCurveEditor::ZoomToFitHorizontalClicked()
+{
+	ZoomToFitHorizontal();
 	return FReply::Handled();
 }
 
@@ -1526,7 +1545,7 @@ void SCurveEditor::SetDefaultOutput(const float MinZoomRange)
 	ViewMaxOutput = (ViewMaxOutput + (0.5f*MinZoomRange));
 }
 
-FReply SCurveEditor::ZoomToFitVertical()
+void SCurveEditor::ZoomToFitVertical()
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -1560,6 +1579,11 @@ FReply SCurveEditor::ZoomToFitVertical()
 		ViewMinOutput = (ViewMinOutput - CONST_FitMargin*Size);
 		ViewMaxOutput = (ViewMaxOutput + CONST_FitMargin*Size);
 	}
+}
+
+FReply SCurveEditor::ZoomToFitVerticalClicked()
+{
+	ZoomToFitVertical();
 	return FReply::Handled();
 }
 
@@ -1655,6 +1679,11 @@ bool SCurveEditor::IsEditingEnabled() const
 void SCurveEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( CurveFactory );
+}
+
+TSharedPtr<FUICommandList> SCurveEditor::GetCommands()
+{
+	return Commands;
 }
 
 bool SCurveEditor::IsValidCurve( FRichCurve* Curve ) const

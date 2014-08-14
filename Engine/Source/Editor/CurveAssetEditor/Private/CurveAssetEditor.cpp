@@ -4,6 +4,7 @@
 
 #include "CurveAssetEditor.h"
 #include "SCurveEditor.h"
+#include "RichCurveEditorCommands.h"
 //#include "Toolkits/IToolkitHost.h"
 #include "WorkspaceMenuStructureModule.h"
 
@@ -55,6 +56,7 @@ void FCurveAssetEditor::InitCurveAssetEditor( const EToolkitMode::Type Mode, con
 	
 	FCurveAssetEditorModule& CurveAssetEditorModule = FModuleManager::LoadModuleChecked<FCurveAssetEditorModule>( "CurveAssetEditor" );
 	AddMenuExtender(CurveAssetEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddToolbarExtender(GetToolbarExtender());
 
 	// @todo toolkit world centric editing
 	/*// Setup our tool's layout
@@ -64,7 +66,10 @@ void FCurveAssetEditor::InitCurveAssetEditor( const EToolkitMode::Type Mode, con
 		SpawnToolkitTab( CurveTabId, TabInitializationPayload, EToolkitTabSpot::Details );
 	}*/
 
-	// NOTE: Could fill in asset editor commands here!
+	if (TrackWidget.IsValid())
+	{
+		RegenerateMenusAndToolbars();
+	}
 }
 
 FName FCurveAssetEditor::GetToolkitFName() const
@@ -110,6 +115,7 @@ TSharedRef<SDockTab> FCurveAssetEditor::SpawnTab_CurveAsset( const FSpawnTabArgs
 				.OnSetInputViewRange(this, &FCurveAssetEditor::SetInputViewRange)
 				.HideUI(false)
 				.AlwaysDisplayColorCurves(true)
+				.ShowZoomButtons(false)
 			]
 		];
 
@@ -138,7 +144,7 @@ TSharedRef<SDockTab> FCurveAssetEditor::SpawnTab_CurveAsset( const FSpawnTabArgs
 		// Set this curve as the SCurveEditor's selected curve
 		TrackWidget->SetCurveOwner(CurveOwner);
 	}
-	
+
 	return NewDockTab;
 }
 
@@ -151,6 +157,33 @@ void FCurveAssetEditor::SetInputViewRange(float InViewMinInput, float InViewMaxI
 {
 	ViewMaxInput = InViewMaxInput;
 	ViewMinInput = InViewMinInput;
+}
+
+TSharedPtr<FExtender> FCurveAssetEditor::GetToolbarExtender()
+{
+	struct Local
+	{
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
+		{
+			ToolbarBuilder.BeginSection("Curve");
+			{
+				ToolbarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ZoomToFitHorizontal);
+				ToolbarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ZoomToFitVertical);
+			}
+			ToolbarBuilder.EndSection();
+		}
+	};
+
+	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		TrackWidget->GetCommands(),
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+		);
+
+	return ToolbarExtender;
 }
 
 #undef LOCTEXT_NAMESPACE

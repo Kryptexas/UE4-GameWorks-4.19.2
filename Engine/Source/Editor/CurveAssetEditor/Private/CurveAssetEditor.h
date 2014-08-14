@@ -34,6 +34,8 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
+	TSharedPtr<FExtender> GetToolbarExtender();
+
 private:
 
 	float GetViewMinInput() const { return ViewMinInput; }
