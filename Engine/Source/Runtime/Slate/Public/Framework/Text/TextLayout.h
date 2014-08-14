@@ -126,6 +126,7 @@ public:
 };
 
 class SLATE_API FTextLayout
+	: public TSharedFromThis<FTextLayout>
 {
 public:
 
@@ -337,6 +338,10 @@ public:
 	virtual void UpdateLayout();
 
 	virtual void UpdateHighlights();
+
+	void DirtyRunLayout(const TSharedRef<const IRun>& Run);
+
+	void DirtyLayout();
 
 	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
 

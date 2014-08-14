@@ -219,5 +219,9 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 	TextLayout->SetRunRenderers( TextHighlights );
 }
 
+void SRichTextBlock::Refresh()
+{
+	TextLayout->DirtyLayout();
+}
 
 #endif //WITH_FANCY_TEXT

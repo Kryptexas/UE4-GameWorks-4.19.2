@@ -23,7 +23,7 @@ bool FWidgetDecorator::Supports( const FTextRunParseResults& RunParseResult, con
 	return ( RunParseResult.Name == RunName );
 }
 
-TSharedRef< ISlateRun > FWidgetDecorator::Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style )
+TSharedRef< ISlateRun > FWidgetDecorator::Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style)
 {
 	FTextRange ModelRange;
 	ModelRange.BeginIndex = InOutModelText->Len();
@@ -56,7 +56,7 @@ bool FImageDecorator::Supports( const FTextRunParseResults& RunParseResult, cons
 	return ( RunParseResult.Name == RunName );
 }
 
-TSharedRef< ISlateRun > FImageDecorator::Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style )
+TSharedRef< ISlateRun > FImageDecorator::Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style)
 {
 	const FTextRange* const BrushNameRange = RunParseResult.MetaData.Find( TEXT("src") );
 
@@ -117,7 +117,7 @@ bool FHyperlinkDecorator::Supports( const FTextRunParseResults& RunParseResult, 
 	return (RunParseResult.Name == TEXT("a") && MetaDataId == Id);
 }
 
-TSharedRef< ISlateRun > FHyperlinkDecorator::Create( const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style )
+TSharedRef< ISlateRun > FHyperlinkDecorator::Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style)
 {
 	FString StyleName = TEXT("Hyperlink");
 

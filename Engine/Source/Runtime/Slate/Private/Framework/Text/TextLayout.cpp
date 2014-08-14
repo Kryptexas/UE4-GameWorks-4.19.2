@@ -617,6 +617,46 @@ void FTextLayout::UpdateHighlights()
 	DirtyFlags &= ~EDirtyState::Highlights;
 }
 
+void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
+{
+	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	{
+		FLineModel& LineModel = LineModels[LineModelIndex];
+
+		if (LineModel.HasWrappingInformation)
+		{
+			for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+			{
+				if (LineModel.Runs[RunIndex].GetRun() == Run)
+				{
+					LineModel.Runs[RunIndex].ClearCache();
+					break;
+				}
+			}
+		}
+	}
+
+	DirtyFlags |= EDirtyState::Layout;
+}
+
+void FTextLayout::DirtyLayout()
+{
+	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	{
+		FLineModel& LineModel = LineModels[LineModelIndex];
+
+		if (LineModel.HasWrappingInformation)
+		{
+			for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+			{
+				LineModel.Runs[RunIndex].ClearCache();
+			}
+		}
+	}
+
+	DirtyFlags |= EDirtyState::Layout;
+}
+
 void FTextLayout::ClearRunRenderers()
 {
 	for (int32 Index = 0; Index < LineModels.Num(); Index++)

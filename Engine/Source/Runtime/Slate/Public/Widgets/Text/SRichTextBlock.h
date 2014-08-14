@@ -128,6 +128,10 @@ public:
 
 	void SetHighlightText( const FText& InHighlightText );
 
+	/**
+	 * Causes the text to reflow it's layout
+	 */
+	void Refresh();
 
 private:
 

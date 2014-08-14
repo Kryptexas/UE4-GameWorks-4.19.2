@@ -41,7 +41,7 @@ void FRichTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout
 			if (Decorator.IsValid())
 			{
 				// Create run and update model string.
-				Run = Decorator->Create(RunParseResult, ProcessedString, ModelString, DecoratorStyleSet);
+				Run = Decorator->Create(TargetTextLayout.AsShared(), RunParseResult, ProcessedString, ModelString, DecoratorStyleSet);
 			}
 			else
 			{

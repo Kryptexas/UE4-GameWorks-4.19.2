@@ -68,7 +68,7 @@ public:
 
 	virtual bool Supports( const FTextRunParseResults& RunInfo, const FString& Text ) const = 0;
 
-	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& ModelText, const ISlateStyle* Style ) = 0;
+	virtual TSharedRef< ISlateRun > Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& ModelText, const ISlateStyle* Style ) = 0;
 };
 
 #endif //WITH_FANCY_TEXT
