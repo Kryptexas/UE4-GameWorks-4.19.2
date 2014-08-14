@@ -13,11 +13,14 @@ namespace ETutorialContent
 		/** Blank - displays no content */
 		None,
 
-		/** Text content */
+		/** Plain text content */
 		Text,
 
 		/** Content from a UDN excerpt */
 		UDNExcerpt,
+
+		/** Rich text content */
+		RichText,
 	};
 }
 
@@ -67,6 +70,11 @@ struct INTROTUTORIALS_API FTutorialContent
 {
 	GENERATED_USTRUCT_BODY()
 
+	FTutorialContent()
+	{
+		Type = ETutorialContent::Text;
+	}
+
 	/** The type of this content */
 	UPROPERTY(EditAnywhere, Category="Content")
 	TEnumAsByte<ETutorialContent::Type> Type;
@@ -93,6 +101,7 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 	FTutorialContentAnchor()
 	{
 		 Type = ETutorialAnchorIdentifier::None;
+		 bDrawHighlight = true;
 	}
 
 	UPROPERTY(EditAnywhere, Category="Anchor")
@@ -105,6 +114,10 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 	/** If reference is an asset, we use this to resolve it */
 	UPROPERTY(EditAnywhere, Category="Anchor")
 	FStringAssetReference Asset;
+
+	/** Whether to draw an animated highlight around the widget */
+	UPROPERTY(EditAnywhere, Category="Anchor")
+	bool bDrawHighlight;
 };
 
 /** Content that is displayed relative to a widget */
@@ -120,27 +133,27 @@ struct INTROTUTORIALS_API FTutorialWidgetContent
 		VerticalAlignment = VAlign_Bottom;
 	}
 
+	/** Content to associate with widget */
+	UPROPERTY(EditAnywhere, EditInline, Category="Widget")
+	FTutorialContent Content;
+
 	/** Anchor for content widget to highlight */
 	UPROPERTY(EditAnywhere, Category="Widget")
 	FTutorialContentAnchor WidgetAnchor;
 
-	UPROPERTY(EditAnywhere, Category="Widget")
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Widget")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
-	UPROPERTY(EditAnywhere, Category="Widget")
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Widget")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** Custom offset from widget */
-	UPROPERTY(EditAnywhere, Category="Widget")
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Widget")
 	FVector2D Offset;
 
 	/** Content width - text will be wrapped at this point */
-	UPROPERTY(EditAnywhere, Category="Widget", meta=(UIMin="10.0", UIMax="600.0"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Widget", meta=(UIMin="10.0", UIMax="600.0"))
 	float ContentWidth;
-
-	/** Content to associate with widget */
-	UPROPERTY(EditAnywhere, EditInline, Category="Widget")
-	FTutorialContent Content;
 };
 
 /** A single tutorial stage, containing the optional main content & a number of widgets with content attached */

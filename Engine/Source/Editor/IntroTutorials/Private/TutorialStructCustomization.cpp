@@ -3,6 +3,7 @@
 #include "IntroTutorialsPrivatePCH.h"
 #include "TutorialStructCustomization.h"
 #include "EditorTutorial.h"
+#include "STutorialEditableText.h"
 
 #define LOCTEXT_NAMESPACE "TutorialStructCustomization"
 
@@ -62,6 +63,42 @@ void FTutorialContentCustomization::CustomizeHeader( TSharedRef<class IPropertyH
 
 			return EVisibility::Collapsed;
 		}
+
+		static EVisibility GetRichTextVisibility(TSharedPtr<IPropertyHandle> InPropertyHandle)
+		{
+			check(InPropertyHandle.IsValid());
+
+			uint8 Value = 0;
+			if(InPropertyHandle->GetValue(Value) == FPropertyAccess::Success)
+			{
+				const ETutorialContent::Type EnumValue = (ETutorialContent::Type)Value;
+				return (EnumValue == ETutorialContent::RichText) ? EVisibility::Visible : EVisibility::Collapsed;
+			}
+
+			return EVisibility::Collapsed;
+		}
+
+		static FText GetValueAsText(TSharedPtr<IPropertyHandle> InPropertyHandle)
+		{
+			FText Text;
+
+			if( InPropertyHandle->GetValueAsFormattedText( Text ) == FPropertyAccess::MultipleValues )
+			{
+				Text = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
+			}
+
+			return Text;
+		}
+
+		static void OnTextCommitted( const FText& NewText, ETextCommit::Type /*CommitInfo*/, TSharedPtr<IPropertyHandle> InPropertyHandle )
+		{
+			InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+		}
+
+		static void OnTextChanged( const FText& NewText, TSharedPtr<IPropertyHandle> InPropertyHandle )
+		{
+			InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+		}
 	};
 
 	HeaderRow
@@ -110,6 +147,20 @@ void FTutorialContentCustomization::CustomizeHeader( TSharedRef<class IPropertyH
 			+SHorizontalBox::Slot()
 			[
 				TextProperty->CreatePropertyValueWidget()
+			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.0f, 2.0f)
+		[
+			SNew(SHorizontalBox)
+			.Visibility_Static(&Local::GetRichTextVisibility, TypeProperty)
+			+SHorizontalBox::Slot()
+			[
+				SNew(STutorialEditableText)
+				.Text_Static(&Local::GetValueAsText, TextProperty)
+				.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::OnTextCommitted, TextProperty))
+				.OnTextChanged(FOnTextChanged::CreateStatic(&Local::OnTextChanged, TextProperty))
 			]
 		]
 	];

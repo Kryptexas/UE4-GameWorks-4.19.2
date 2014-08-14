@@ -16,6 +16,7 @@ public:
 		, NumberedContentStyleName(TEXT("Documentation.NumberedContent"))
 		, Header1StyleName(TEXT("Documentation.Header1"))
 		, Header2StyleName(TEXT("Documentation.Header2"))
+		, HyperlinkStyleName(TEXT("Documentation.Hyperlink"))
 		, HyperlinkButtonStyleName(TEXT("Documentation.Hyperlink.Button"))
 		, HyperlinkTextStyleName(TEXT("Documentation.Hyperlink.Text"))
 		, SeparatorStyleName(TEXT("Documentation.Separator"))
@@ -92,6 +93,9 @@ public:
 
 	/** Header2 text style */
 	FName Header2StyleName;
+
+	/** Hyperlink style */
+	FName HyperlinkStyleName;
 
 	/** Hyperlink button style */
 	FName HyperlinkButtonStyleName;

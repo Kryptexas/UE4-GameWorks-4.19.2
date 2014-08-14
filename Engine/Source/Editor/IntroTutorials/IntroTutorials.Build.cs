@@ -34,7 +34,12 @@ namespace UnrealBuildTool.Rules
                     "PlacementMode",
 					"SlateCore",
 					"Settings",
-					"PropertyEditor"
+					"PropertyEditor",
+					"DesktopPlatform",
+					"AssetTools",
+					"SourceCodeAccess",
+					"ContentBrowser",
+					"LevelEditor"
 				}
 			);
 

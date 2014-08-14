@@ -23,6 +23,7 @@ bool FDocumentationPage::GetExcerptContent( FExcerpt& Excerpt )
 		{
 			Parser->GetExcerptContent( Link, StoredExcerpts[ Index ] );
 			Excerpt.Content = StoredExcerpts[ Index ].Content;
+			Excerpt.RichText = StoredExcerpts[ Index ].RichText;
 			return true;
 		}
 	}

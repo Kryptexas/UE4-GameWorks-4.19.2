@@ -14,6 +14,19 @@
 
 FName UDNParseErrorLog("UDNParser");
 
+namespace LinkPrefixes
+{
+
+static const FString DocLinkSpecifier( TEXT( "DOCLINK:" ) );
+static const FString TutorialLinkSpecifier( TEXT( "TUTORIALLINK:" ) );
+static const FString HttpLinkSpecifier( TEXT( "http://" ) );
+static const FString HttpsLinkSpecifier( TEXT( "https://" ) );
+
+static const FString CodeLinkSpecifier(TEXT("CODELINK:"));
+static const FString AssetLinkSpecifier(TEXT("ASSETLINK:"));
+
+}
+
 TSharedRef< FUDNParser > FUDNParser::Create( const TSharedPtr< FParserConfiguration >& ParserConfig, const FDocumentationStyle& Style ) 
 {
 	TSharedPtr< FParserConfiguration > FinalParserConfig = ParserConfig;
@@ -689,7 +702,16 @@ void FUDNParser::AppendExcerpt(TSharedPtr<SVerticalBox> Box, TSharedRef<SWidget>
 	];
 }
 
-void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource)
+static void AddLineSeperator(FExcerpt& Excerpt)
+{
+	if(!Excerpt.RichText.IsEmpty())
+	{
+		Excerpt.RichText += LINE_TERMINATOR;
+		Excerpt.RichText += LINE_TERMINATOR;
+	}
+}
+
+void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource, FExcerpt& Excerpt)
 {
 	if ( !ContentSource.IsEmpty() )
 	{
@@ -699,6 +721,9 @@ void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString
 			.TextStyle(FEditorStyle::Get(), Style.ContentStyleName)
 			.WrapTextAt(WrapAt)
 		);
+
+		AddLineSeperator(Excerpt);
+		Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Regular\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *ContentSource);
 	}
 }
 
@@ -744,7 +769,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 			if ( ExcerptStack.Num() == 0 )
 			{
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				break;
 			}
 		}
@@ -817,14 +842,14 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 			{
 			case FUDNLine::Whitespace:
 				// Will only apply whitespace for the first empty line
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 				break;
 			case FUDNLine::Content:
 				CurrentStringContent += Line.AdditionalContent[0];
 				break;
 			case FUDNLine::BoldContent:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				AppendExcerpt(Box,
@@ -832,17 +857,20 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					.Text(Line.AdditionalContent[0])
 					.TextStyle(FEditorStyle::Get(), Style.BoldContentStyleName)
 					);
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::NumberedContent:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent = FString::Printf(TEXT("%i. %s"), CurrentNumbering, *Line.AdditionalContent[0]);
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				++CurrentNumbering;
 				break;
 			case FUDNLine::HorizontalRule:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				Box->AddSlot()
@@ -856,9 +884,12 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 							.SeparatorImage(FEditorStyle::GetBrush(Style.SeparatorStyleName))
 						]
 					];
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += TEXT("<hr></>");
 				break;
 			case FUDNLine::Header1:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				AppendExcerpt(Box,
@@ -866,9 +897,12 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					.Text(Line.AdditionalContent[0])
 					.TextStyle(FEditorStyle::Get(), Style.Header1StyleName)
 					);
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"32\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::Header2:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				AppendExcerpt(Box,
@@ -876,9 +910,12 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					.Text(Line.AdditionalContent[0])
 					.TextStyle(FEditorStyle::Get(), Style.Header2StyleName)
 					);
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"24\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::Link:
-				AddContentToExcerpt(Box, CurrentStringContent);
+				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 				CurrentStringContent.Empty();
 
 				AppendExcerpt(Box,
@@ -888,13 +925,40 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					.UnderlineStyle(FEditorStyle::Get(), Style.HyperlinkButtonStyleName)
 					.OnNavigate( this, &FUDNParser::HandleHyperlinkNavigate, Line.AdditionalContent[1])
 					);
+
+				AddLineSeperator(Excerpt);
+
+				if(Line.AdditionalContent[1].Contains(LinkPrefixes::DocLinkSpecifier))
+				{
+					const FString Link = Line.AdditionalContent[1].RightChop(LinkPrefixes::DocLinkSpecifier.Len());
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"udn\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+				}
+				else if(Line.AdditionalContent[1].Contains(LinkPrefixes::AssetLinkSpecifier))
+				{
+					const FString Link = Line.AdditionalContent[1].RightChop(LinkPrefixes::AssetLinkSpecifier.Len());
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"asset\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+				}
+				else if(Line.AdditionalContent[1].Contains(LinkPrefixes::CodeLinkSpecifier))
+				{
+					const FString Link = Line.AdditionalContent[1].RightChop(LinkPrefixes::CodeLinkSpecifier.Len());
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"code\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+				}
+				else if(Line.AdditionalContent[1].Contains(LinkPrefixes::TutorialLinkSpecifier))
+				{
+					const FString Link = Line.AdditionalContent[1].RightChop(LinkPrefixes::TutorialLinkSpecifier.Len());
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"tutorial\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+				}
+				else
+				{
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"browser\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+				}
 				break;
 			case FUDNLine::Image:
 				ConcatenatedPath = FullPath / TEXT("Images") / Line.AdditionalContent[1];
 				DynamicBrush = GetDynamicBrushFromImagePath(ConcatenatedPath);
 				if (DynamicBrush.IsValid())
 				{
-					AddContentToExcerpt(Box, CurrentStringContent);
+					AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 					CurrentStringContent.Empty();
 
 					AppendExcerpt(Box,
@@ -905,13 +969,16 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 					DynamicBrushesUsed.AddUnique(DynamicBrush);
 				}
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += FString::Printf(TEXT("<img src=\"%s\"></>"), *ConcatenatedPath);
 				break;
 			case FUDNLine::ImageLink:
 				ConcatenatedPath = FullPath / TEXT("Images") / Line.AdditionalContent[1];
 				DynamicBrush = GetDynamicBrushFromImagePath(ConcatenatedPath);
 				if (DynamicBrush.IsValid())
 				{
-					AddContentToExcerpt(Box, CurrentStringContent);
+					AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
 					CurrentStringContent.Empty();
 
 					AppendExcerpt(Box,
@@ -928,6 +995,9 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 					DynamicBrushesUsed.AddUnique(DynamicBrush);
 				}
+
+				AddLineSeperator(Excerpt);
+				Excerpt.RichText += FString::Printf(TEXT("<img src=\"%s\" href=\"%s\"></>"), *ConcatenatedPath, *Line.AdditionalContent[2]);
 				break;
 			default: break;
 			}

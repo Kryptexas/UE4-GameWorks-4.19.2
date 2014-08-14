@@ -2,6 +2,9 @@
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialContent.h"
+#include "STutorialEditableText.h"
+
+#define LOCTEXT_NAMESPACE "STutorialContent"
 
 namespace TutorialConstants
 {
@@ -48,6 +51,7 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 		.Padding(Anchor.Type != ETutorialAnchorIdentifier::None ? 18.0f : 24.0f)
 		.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
 		.Visibility(this, &STutorialContent::GetVisibility)
+		.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -97,7 +101,7 @@ static void GetAnimationValues(bool bIsIntro, float InAnimationProgress, float& 
 
 int32 STutorialContent::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	if(bIsVisible && Anchor.Type != ETutorialAnchorIdentifier::None)
+	if(bIsVisible && Anchor.Type != ETutorialAnchorIdentifier::None && Anchor.bDrawHighlight)
 	{
 		float AlphaFactor;
 		float PulseFactor;
@@ -174,12 +178,12 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 		.HyperlinkTextStyle(TEXT("Tutorials.Hyperlink.Text"))
 		.SeparatorStyle(TEXT("Tutorials.Separator"));
 
+	OutDocumentationPage = nullptr;
+
 	switch(InContent.Type)
 	{
 	case ETutorialContent::Text:
 		{
-			OutDocumentationPage = nullptr;
-
 			return SNew(STextBlock)
 				.Visibility(EVisibility::SelfHitTestInvisible)
 				.WrapTextAt(WrapTextAt)
@@ -209,6 +213,37 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 						Excerpt.Content.ToSharedRef()
 					];
 			}
+		}
+		break;
+
+	case ETutorialContent::RichText:
+		{
+			FTextStyles TextStyles;
+			TextStyles.AvailableFontFamilies.Emplace(MakeShareable(new FTextStyles::FFontFamily(
+				LOCTEXT("RobotoFontFamily", "Roboto"), 
+				TEXT("Roboto"), 
+				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"))),
+				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"))),
+				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Italic.ttf"))),
+				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldItalic.ttf")))
+				)));
+
+			TArray< TSharedRef< class ITextDecorator > > Decorators;
+			Decorators.Add(FHyperlinkDecorator::Create(TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnBrowserLinkClicked)));
+			Decorators.Add(FHyperlinkDecorator::Create(TEXT("udn"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnDocLinkClicked)));
+			Decorators.Add(FHyperlinkDecorator::Create(TEXT("tutorial"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnTutorialLinkClicked)));
+			Decorators.Add(FHyperlinkDecorator::Create(TEXT("code"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnCodeLinkClicked)));
+			Decorators.Add(FHyperlinkDecorator::Create(TEXT("asset"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnAssetLinkClicked)));
+			Decorators.Add(FTextStyleDecorator::Create(&TextStyles));
+
+			return SNew(SRichTextBlock)
+					.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Editor.Text")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.Decorators(Decorators)
+					.Text(InContent.Text)
+					.WrapTextAt(WrapTextAt)
+					.Margin(4)
+					.LineHeightPercentage(1.1f);
 		}
 		break;
 	}
@@ -307,3 +342,5 @@ EVisibility STutorialContent::GetVisibility() const
 {
 	return bIsVisible || Anchor.Type == ETutorialAnchorIdentifier::None ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
+
+#undef LOCTEXT_NAMESPACE

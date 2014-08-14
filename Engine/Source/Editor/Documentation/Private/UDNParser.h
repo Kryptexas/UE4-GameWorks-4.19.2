@@ -138,7 +138,7 @@ private:
 	FReply OnImageLinkClicked(FString Payload);
 	
 	/** Adds the content text source to the scrollbox */
-	void AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource);
+	void AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource, FExcerpt& Excerpt);
 	
 	/** Gets the dynamic brush for the given filename */
 	TSharedPtr<FSlateDynamicImageBrush> GetDynamicBrushFromImagePath(FString Filename);

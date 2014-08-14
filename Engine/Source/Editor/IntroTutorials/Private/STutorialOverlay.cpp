@@ -5,6 +5,7 @@
 #include "STutorialContent.h"
 #include "EditorTutorial.h"
 #include "IntroTutorials.h"
+#include "LevelEditor.h"
 
 void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const InStage)
 {
@@ -53,29 +54,33 @@ void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const
 			// now add canvas slots for widget-bound content
 			for(const FTutorialWidgetContent& WidgetContent : InStage->WidgetContent)
 			{
-				if(WidgetContent.Content.Type != ETutorialContent::None)
+				if(WidgetContent.Content.Type != ETutorialContent::None )
 				{
-					TSharedPtr<STutorialContent> ContentWidget = 
-						SNew(STutorialContent, WidgetContent.Content)
-						.HAlign(WidgetContent.HorizontalAlignment)
-						.VAlign(WidgetContent.VerticalAlignment)
-						.Offset(WidgetContent.Offset)
-						.IsStandalone(bIsStandalone)
-						.OnClosed(OnClosed)
-						.WrapTextAt(WidgetContent.ContentWidth)
-						.Anchor(WidgetContent.WidgetAnchor);
-					OpenBrowserForWidgetAnchor(WidgetContent);
+					const bool bEmptyText = (WidgetContent.Content.Type == ETutorialContent::Text || WidgetContent.Content.Type == ETutorialContent::RichText) && WidgetContent.Content.Text.IsEmpty();
+					if(!bEmptyText)
+					{
+						TSharedPtr<STutorialContent> ContentWidget = 
+							SNew(STutorialContent, WidgetContent.Content)
+							.HAlign(WidgetContent.HorizontalAlignment)
+							.VAlign(WidgetContent.VerticalAlignment)
+							.Offset(WidgetContent.Offset)
+							.IsStandalone(bIsStandalone)
+							.OnClosed(OnClosed)
+							.WrapTextAt(WidgetContent.ContentWidth)
+							.Anchor(WidgetContent.WidgetAnchor);
+						OpenBrowserForWidgetAnchor(WidgetContent);
 
-					OverlayCanvas->AddSlot()
-					.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetPosition)))
-					.Size(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetSize)))
-					[
-						ContentWidget.ToSharedRef()
-					];
+						OverlayCanvas->AddSlot()
+						.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetPosition)))
+						.Size(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetSize)))
+						[
+							ContentWidget.ToSharedRef()
+						];
 
-					OnPaintNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandlePaintNamedWidget);
-					OnResetNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandleResetNamedWidget);
-					OnCacheWindowSize.AddSP(ContentWidget.Get(), &STutorialContent::HandleCacheWindowSize);
+						OnPaintNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandlePaintNamedWidget);
+						OnResetNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandleResetNamedWidget);
+						OnCacheWindowSize.AddSP(ContentWidget.Get(), &STutorialContent::HandleCacheWindowSize);
+					}
 				}
 			}
 		}

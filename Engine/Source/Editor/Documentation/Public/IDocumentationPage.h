@@ -24,6 +24,8 @@ struct FExcerpt
 	TSharedPtr<SWidget> Content;
 	TMap< FString, FString > Variables;
 	int32 LineNumber;
+	/** Rich text version of the excerpt */
+	FString RichText;
 };
 
 class IDocumentationPage
