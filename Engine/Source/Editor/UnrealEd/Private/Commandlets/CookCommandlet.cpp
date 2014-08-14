@@ -759,50 +759,44 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
+	TArray<FString> CmdLineCultEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
 		const FString& Switch = Switches[SwitchIdx];
 
-		// Check for -MAP=<name of map> entries
-		if (Switch.StartsWith(TEXT("MAP=")) == true)
+		auto GetSwitchValueElements = [&Switch](const FString SwitchKey) -> TArray<FString>
 		{
-			FString MapToCook = Switch.Right(Switch.Len() - 4);
-			
-			// Allow support for -MAP=Map1+Map2+Map3 as well as -MAP=Map1 -MAP=Map2
-			for (int32 PlusIdx = MapToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = MapToCook.Find(TEXT("+")))
+			TArray<FString> ValueElements;
+			if (Switch.StartsWith(SwitchKey + TEXT("=")) == true)
 			{
-				FString MapName = MapToCook.Left(PlusIdx);
-				CmdLineMapEntries.Add(MapName);
+				FString ValuesList = Switch.Right(Switch.Len() - (SwitchKey + TEXT("=")).Len());
 
-				MapToCook = MapToCook.Right(MapToCook.Len() - (PlusIdx + 1));
+				// Allow support for -KEY=Value1+Value2+Value3 as well as -KEY=Value1 -KEY=Value2
+				for (int32 PlusIdx = ValuesList.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = ValuesList.Find(TEXT("+")))
+				{
+					const FString ValueElement = ValuesList.Left(PlusIdx);
+					ValueElements.Add(ValueElement);
+
+					ValuesList = ValuesList.Right(ValuesList.Len() - (PlusIdx + 1));
+				}
+				ValueElements.Add(ValuesList);
 			}
+			return ValueElements;
+		};
 
-			CmdLineMapEntries.Add(MapToCook);
-		}
+		// Check for -MAP=<name of map> entries
+		CmdLineMapEntries = GetSwitchValueElements(TEXT("MAP"));
 
 		// Check for -COOKDIR=<path to directory> entries
-		if (Switch.StartsWith(TEXT("COOKDIR=")) == true)
+		CmdLineDirEntries = GetSwitchValueElements(TEXT("COOKDIR"));
+		for(FString& Entry : CmdLineDirEntries)
 		{
-			FString DirToCook = Switch.Right(Switch.Len() - 8);
-			
-			// Allow support for -COOKDIR=Dir1+Dir2+Dir3 as well as -COOKDIR=Dir1 -COOKDIR=Dir2
-			for (int32 PlusIdx = DirToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = DirToCook.Find(TEXT("+")))
-			{
-				FString DirName = DirToCook.Left(PlusIdx);
-				
-				// The dir may be contained within quotes
-				DirName = DirName.TrimQuotes();
-				FPaths::NormalizeDirectoryName(DirName);
-				CmdLineDirEntries.Add(DirName);
-
-				DirToCook = DirToCook.Right(DirToCook.Len() - (PlusIdx + 1));
-			}
-			
-			// The dir may be contained within quotes
-			DirToCook = DirToCook.TrimQuotes();
-			FPaths::NormalizeDirectoryName(DirToCook);
-			CmdLineDirEntries.Add(DirToCook);
+			Entry = Entry.TrimQuotes();
+			FPaths::NormalizeDirectoryName(Entry);
 		}
+
+		// Check for -COOKCULTURES=<culture name> entries
+		CmdLineCultEntries = GetSwitchValueElements(TEXT("COOKCULTURES"));
 	}
 
 	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory

@@ -179,6 +179,7 @@ namespace AutomationTool
 			this.RawProjectPath = InParams.RawProjectPath;
 			this.MapsToCook = InParams.MapsToCook;
 			this.DirectoriesToCook = InParams.DirectoriesToCook;
+            this.CulturesToCook = InParams.CulturesToCook;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
 			this.ServerCookedTargets = InParams.ServerCookedTargets;
 			this.EditorTargets = InParams.EditorTargets;
@@ -279,6 +280,7 @@ namespace AutomationTool
 			List<UnrealTargetConfiguration> ServerConfigsToBuild = null,
 			ParamList<string> MapsToCook = null,
 			ParamList<string> DirectoriesToCook = null,
+            ParamList<string> CulturesToCook = null,
 			ParamList<string> ClientCookedTargets = null,
 			ParamList<string> EditorTargets = null,
 			ParamList<string> ServerCookedTargets = null,
@@ -346,6 +348,10 @@ namespace AutomationTool
 			if (DirectoriesToCook != null)
 			{
 				this.DirectoriesToCook = DirectoriesToCook;
+			}
+            if (CulturesToCook != null)
+			{
+                this.CulturesToCook = CulturesToCook;
 			}
 			if (ClientCookedTargets != null)
 			{
@@ -824,6 +830,11 @@ namespace AutomationTool
 		/// Cook: List of directories to cook.
 		/// </summary>
 		public ParamList<string> DirectoriesToCook = new ParamList<string>();
+
+        /// <summary>
+        /// Cook: List of cultures to cook.
+        /// </summary>
+        public ParamList<string> CulturesToCook = new ParamList<string>();
 
         /// <summary>
         /// Compress packages during cook.
@@ -1354,6 +1365,11 @@ namespace AutomationTool
 			get { return !CommandUtils.IsNullOrEmpty(DirectoriesToCook); }
 		}
 
+        public bool HasCulturesToCook
+        {
+            get { return !CommandUtils.IsNullOrEmpty(CulturesToCook); }
+        }
+
 		public bool HasGameTargetDetected
 		{
 			get { return ProjectTargets.ContainsKey(TargetRules.TargetType.Game); }
@@ -1618,6 +1634,7 @@ namespace AutomationTool
 				CommandUtils.Log("CookOnTheFly={0}", CookOnTheFly);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());
+                CommandUtils.Log("CulturesToCook={0}", CulturesToCook.ToString());
 				CommandUtils.Log("EditorTargets={0}", EditorTargets.ToString());
 				CommandUtils.Log("Foreign={0}", Foreign);
 				CommandUtils.Log("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());

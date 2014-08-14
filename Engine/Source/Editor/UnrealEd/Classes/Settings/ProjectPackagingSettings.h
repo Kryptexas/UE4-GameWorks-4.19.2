@@ -61,10 +61,16 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
 
-
 	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
 	UPROPERTY(config, EditAnywhere, Category = Packaging)
 	bool UseOBB_InAPK;
+
+	/**
+	 * ISO codes of cultures whose data should be packaged to be cooked, staged, and packaged.
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cultures to Package"))
+	TArray<FString> CulturesToStage;
 
 	/**
 	 * Directories containing .uasset files that should always be cooked regardless of whether they're referenced by anything in your project

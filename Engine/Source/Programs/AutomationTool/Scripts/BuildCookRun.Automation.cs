@@ -102,6 +102,12 @@ public class BuildCookRun : BuildCommand
 			Params.DirectoriesToCook = new ParamList<string>(DirectoriesToCook.Split('+'));
 		}
 
+        var CulturesToCook = ParseParamValue("cookcultures");
+        if (!String.IsNullOrEmpty(CulturesToCook))
+        {
+            Params.CulturesToCook = new ParamList<string>(CulturesToCook.Split('+'));
+        }
+
 		if (Params.DedicatedServer)
 		{
 			foreach ( var ServerPlatformInstance in Params.ServerTargetPlatformInstances )

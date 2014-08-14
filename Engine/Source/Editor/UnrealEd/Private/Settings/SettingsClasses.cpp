@@ -277,6 +277,7 @@ UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstruct
 	FullRebuild = true;
 	UsePakFile = true;
 	UseOBB_InAPK = false;
+	CulturesToStage.Add("en");
 }
 
 

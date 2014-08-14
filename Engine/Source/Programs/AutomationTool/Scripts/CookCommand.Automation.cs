@@ -68,6 +68,12 @@ public partial class Project : CommandUtils
 			Dirs = Params.DirectoriesToCook.ToArray();
 		}
 
+        string[] Cultures = null;
+        if (Params.HasCulturesToCook)
+        {
+            Cultures = Params.CulturesToCook.ToArray();
+        }
+
 		try
 		{
 			var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
@@ -83,7 +89,7 @@ public partial class Project : CommandUtils
 			{
 				CommandletParams += " -iterate";
 			}
-			CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
+			CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
 		}
 		catch (Exception Ex)
 		{

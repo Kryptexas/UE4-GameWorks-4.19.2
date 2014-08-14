@@ -175,6 +175,29 @@ public partial class Project : CommandUtils
 
 		if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
 		{
+            ConfigCacheIni PlatformGameConfig = null;
+            Params.GameConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig);
+
+            // Initialize cultures to stage.
+            List<string> CulturesToStage = null;
+            if (PlatformGameConfig != null)
+            {
+                PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "CulturesToStage", out CulturesToStage);
+            }
+            if (CulturesToStage != null)
+            {
+                CulturesToStage.AddRange(Params.CulturesToCook);
+            }
+            else
+            {
+                CulturesToStage = new List<string>(Params.CulturesToCook);
+            }
+
+            if (CulturesToStage == null || CulturesToStage.Count == 0)
+            {
+                throw new AutomationException("No cultures were specified for cooking and packaging. This will lead to fatal errors when launching. Specify culture codes via commandline (-CookCultures=) or using project packaging settings.");
+            }
+
 			// Engine ufs (content)
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.Pak); // TODO: Exclude localization data generation config files.
 
@@ -188,18 +211,24 @@ public partial class Project : CommandUtils
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.Pak);
 
 			}
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), "*.locres", true, null, null, false, !Params.Pak);
+            foreach (string Culture in CulturesToStage)
+            {
+                SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine", Culture), "*.locres", true, null, null, true, !Params.Pak);
+            }
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "*.uplugin", true, null, null, true, !Params.Pak);
 
 			// Game ufs (content)
+            
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.Pak);
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Config"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Config"), true, !Params.Pak); // TODO: Exclude localization data generation config files.
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins"), "*.uplugin", true, null, null, true, !Params.Pak);
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Game"), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game"), true, !Params.Pak);
+            foreach (string Culture in CulturesToStage)
+            {
+                SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Game", Culture), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game", Culture), true, !Params.Pak);
+            }
 
 			// Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
-			ConfigCacheIni PlatformGameConfig = null;
-			if (Params.GameConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
+            if (PlatformGameConfig != null)
 			{
 				var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
 				var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
