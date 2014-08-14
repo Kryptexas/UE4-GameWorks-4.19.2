@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "Kismet"
+
 //////////////////////////////////////////////////////////////////////////
 // UKismetTextLibrary
 
@@ -85,15 +87,33 @@ bool UKismetTextLibrary::NotEqual_TextText(const FText& A, const FText& B)
 	return !A.EqualTo( B );
 }
 
-FText UKismetTextLibrary::Conv_IntToText(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
+FText UKismetTextLibrary::Conv_BoolToText(bool InBool)
+{
+	return InBool ? LOCTEXT("True", "true") : LOCTEXT("False", "false");
+}
+
+FText UKismetTextLibrary::Conv_ByteToText(uint8 Value)
+{
+	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.UseGrouping = true;
+	NumberFormatOptions.RoundingMode = ERoundingMode::ToZero;
+	NumberFormatOptions.MinimumIntegralDigits = 1;
+	NumberFormatOptions.MaximumIntegralDigits = 3;
+	NumberFormatOptions.MinimumFractionalDigits = 0;
+	NumberFormatOptions.MaximumFractionalDigits = 0;
+
+	return FText::AsNumber(Value, &NumberFormatOptions);
+}
+
+FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/)
 {
 	FNumberFormattingOptions NumberFormatOptions;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
-	NumberFormatOptions.RoundingMode = RoundingMode;
+	NumberFormatOptions.RoundingMode = ERoundingMode::FromZero;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;
 	NumberFormatOptions.MaximumIntegralDigits = MaximumIntegralDigits;
-	NumberFormatOptions.MinimumFractionalDigits = MinimumFractionalDigits;
-	NumberFormatOptions.MaximumFractionalDigits = MaximumFractionalDigits;
+	NumberFormatOptions.MinimumFractionalDigits = 0;
+	NumberFormatOptions.MaximumFractionalDigits = 0;
 
 	return FText::AsNumber(Value, &NumberFormatOptions);
 }
@@ -164,3 +184,5 @@ FText UKismetTextLibrary::Format(FText InPattern, TArray<FFormatTextArgument> In
 
 	return FText::Format(InPattern, Arguments);
 }
+
+#undef LOCTEXT_NAMESPACE

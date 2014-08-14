@@ -105,10 +105,18 @@ class UKismetTextLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual, Case Insensitive (text)", CompactNodeTitle = "!="), Category="Utilities|Text")
 	static bool NotEqual_IgnoreCase_TextText(const FText& A, const FText& B);
 
+	/** Converts a boolean value to text, either 'true' or 'false' */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (boolean)", CompactNodeTitle = "->"), Category="Utilities|Text")
+	static FText Conv_BoolToText(bool InBool);
+
+	/** Converts a byte value to text */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (byte)", CompactNodeTitle = "->"), Category="Utilities|Text")
+	static FText Conv_ByteToText(uint8 Value);
+
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in integer to a text based on formatting options */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (int)", AdvancedDisplay = "1"), Category="Utilities|Text")
-	static FText Conv_IntToText(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
+	static FText Conv_IntToText(int32 Value, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324);
 
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in float to a text based on formatting options */
