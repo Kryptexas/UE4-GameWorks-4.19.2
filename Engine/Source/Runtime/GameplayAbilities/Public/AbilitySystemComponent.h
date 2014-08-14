@@ -295,6 +295,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	
 	 */
 
+	UGameplayAbility* GiveAbility(UGameplayAbility* Ability);
+
 	UGameplayAbility* CreateNewInstanceOfAbility(UGameplayAbility* Ability);
 
 	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);

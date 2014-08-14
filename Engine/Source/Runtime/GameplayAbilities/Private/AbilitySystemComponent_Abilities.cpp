@@ -29,13 +29,10 @@ void UAbilitySystemComponent::InitializeComponent()
 	GetObjectsWithOuter(Owner, ChildObjects, false, RF_PendingKill);
 	for (UObject * Obj : ChildObjects)
 	{
-		UAttributeSet * Set = Cast<UAttributeSet>(Obj);
+		UAttributeSet* Set = Cast<UAttributeSet>(Obj);
 		if (Set)  
 		{
-			UObject * AT = Set->GetArchetype();
-
-			//ensure(SpawnedAttributes.Contains(Set) == false);
-			//ensure(Set->IsDefaultSubobject());
+			UObject * AT = Set->GetArchetype();	
 			SpawnedAttributes.Add(Set);
 		}
 	}
@@ -55,7 +52,39 @@ void UAbilitySystemComponent::InitAbilityActorInfo()
 	}
 }
 
-UGameplayAbility * UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
+UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability)
+{
+	check(Ability);
+	UGameplayAbility* OutAbility = Ability; // We may instance this ability
+	
+	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	{
+		Ability = CreateNewInstanceOfAbility(Ability);
+	}
+
+	ActivatableAbilities.Add(Ability);
+	
+
+	for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
+	{
+		FGameplayTag EventTag = TriggerData.TriggerTag;
+
+		if (GameplayEventTriggeredAbilities.Contains(EventTag))
+		{
+			GameplayEventTriggeredAbilities[EventTag].Add(Ability);
+		}
+		else
+		{
+			TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
+			Triggers.Add(Ability);
+			GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
+		}
+	}
+
+	return OutAbility;
+}
+
+UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
 {
 	check(Ability);
 	check(Ability->HasAllFlags(RF_ClassDefaultObject));
@@ -271,7 +300,6 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 
 	// Fixme: We need a better way to link up/reconcile preditive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
-	// 
 
 	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
 

@@ -58,32 +58,10 @@ void UGameplayAbilitySet::InitializeAbilities(UAbilitySystemComponent *AbilitySy
 {
 	for (const FGameplayAbilityBindInfo &BindInfo : this->Abilities)
 	{
-		UGameplayAbility * Ability = BindInfo.GameplayAbilityClass ? BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>() : NULL;
+		UGameplayAbility* Ability = BindInfo.GameplayAbilityClass ? BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>() : NULL;
 		if (Ability)
 		{
-			if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
-			{
-				Ability = AbilitySystemComponent->CreateNewInstanceOfAbility(Ability);
-			}
-
-			AbilitySystemComponent->ActivatableAbilities.Add(Ability);
-		}
-
-		for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
-		{
-			FGameplayTag EventTag = TriggerData.TriggerTag;
-
-			if (AbilitySystemComponent->GameplayEventTriggeredAbilities.Contains(EventTag))
-			{
-				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers = AbilitySystemComponent->GameplayEventTriggeredAbilities[EventTag];
-				Triggers.Add(Ability);
-			}
-			else
-			{
-				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
-				Triggers.Add(Ability);
-				AbilitySystemComponent->GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
-			}
+			AbilitySystemComponent->GiveAbility(Ability);
 		}
 	}
 }
