@@ -10,6 +10,7 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintVariableNodeSpawner.h"
 #include "Stats.h"					// for RETURN_QUICK_DECLARE_CYCLE_STAT()
 #include "ScopedTimers.h"			// for FScopedDurationTimer
 #include "CallbackDevice.h"			// for FCoreDelegates::OnAssetLoaded
@@ -261,34 +262,6 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNo
 	// @TODO: it'd be awesome to have both nodes spawned by this available for 
 	//        context pin matching (the delegate inputs and the event outputs)
 	return UBlueprintPropertyNodeSpawner::Create<UK2Node_AssignDelegate>(DelegateProperty);
-// 	// using the event spawner as
-// 	UBlueprintNodeSpawner* EventNodeSpawner = UBlueprintEventNodeSpawner::Create(UK2Node_CustomEvent::StaticClass(), FName());
-// 	check(EventNodeSpawner != nullptr);
-// 
-// 	auto SetupDelegateEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr)
-// 	{
-// 		UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
-// 		if (DelegatePropPtr.IsValid())
-// 		{
-// 			UMulticastDelegateProperty* DelegateProp = DelegatePropPtr.Get();		
-// 			// don't needlessly spend unique blueprint names
-// 			if (!bIsTemplateNode)
-// 			{
-// 				UBlueprint* Blueprint = EventNode->GetBlueprint();
-// 
-// 				FText DelegateName = FText::FromName(DelegateProp->GetFName());
-// 				FText DesiredEventName = FText::Format(LOCTEXT("BindedEventName", "{0}_Event"), DelegateName);
-// 				EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, DesiredEventName.ToString());
-// 			}
-// 		}
-// 	};
-// 
-// 	TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr = DelegateProperty;
-// 	EventNodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupDelegateEventNodeLambda, DelegatePropPtr);
-// 
-// 	// the bound spawner should conform the event node to match the delegate's 
-// 	// signature
-// 	return UBlueprintBoundNodeSpawner::Create(EventNodeSpawner, DelegateProperty);
 }
 
 /*******************************************************************************
@@ -734,22 +707,25 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UClass const* 
 			ActionListOut.Add(MakeMacroNodeSpawner(*GraphIt));
 		}
 
-		// @TODO: local variables
-// 		for (auto GraphIt = Blueprint->FunctionGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
-// 		{
-// 			UEdGraph* FunctionGraph = (*GraphIt);
-// 
-// 			TArray<UK2Node_FunctionEntry*> GraphEntryNodes;
-// 			FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphEntryNodes);
-// 
-// 			for (UK2Node_FunctionEntry* FunctionEntry : GraphEntryNodes)
-// 			{
-// 				for (FBPVariableDescription const& LocalVar : FunctionEntry->LocalVariables)
-// 				{
-// 					ActionListOut.Add(MakeLocalVarNodeSpawner(LocalVar, VT_Getter));
-// 				}
-// 			}
-// 		}
+		// local variables
+		for (auto GraphIt = Blueprint->FunctionGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
+		{
+			UEdGraph* FunctionGraph = (*GraphIt);
+
+			TArray<UK2Node_FunctionEntry*> GraphEntryNodes;
+			FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphEntryNodes);
+
+			for (UK2Node_FunctionEntry* FunctionEntry : GraphEntryNodes)
+			{
+				for (FBPVariableDescription const& LocalVar : FunctionEntry->LocalVariables)
+				{
+					UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), FunctionGraph, LocalVar);
+					ActionListOut.Add(GetVarSpawner);
+					UBlueprintNodeSpawner* SetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), FunctionGraph, LocalVar);
+					ActionListOut.Add(SetVarSpawner);
+				}
+			}
+		}
 	}	
 }
 

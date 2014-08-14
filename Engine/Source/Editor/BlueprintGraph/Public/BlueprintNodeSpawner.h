@@ -178,5 +178,5 @@ protected:
 template<class NodeType>
 UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(UObject* Outer, FCustomizeNodeDelegate PostSpawnDelegate)
 {
-	Create(NodeType::StaticClass(), Outer, PostSpawnDelegate);
+	return Create(NodeType::StaticClass(), Outer, PostSpawnDelegate);
 }
