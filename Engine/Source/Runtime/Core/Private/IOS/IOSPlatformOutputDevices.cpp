@@ -19,7 +19,7 @@ class FOutputDeviceError* FIOSPlatformOutputDevices::GetError()
 	return &Singleton;
 }
 
-class FOutputDevice* FIOSPlatformOutputDevices::GetLog()
+/*class FOutputDevice* FIOSPlatformOutputDevices::GetLog()
 {
 	static FOutputDeviceIOSDebug Singleton;
 
@@ -33,7 +33,7 @@ class FOutputDevice* FIOSPlatformOutputDevices::GetLog()
 		//@todo-mobile: Use a real log-to-disk system instead?
 		return &Singleton;
 	}
-}
+}*/
 
 
 //class FFeedbackContext*				FIOSPlatformOutputDevices::GetWarn()
