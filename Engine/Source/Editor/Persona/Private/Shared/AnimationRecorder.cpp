@@ -2,6 +2,7 @@
 
 
 #include "PersonaPrivatePCH.h"
+#include "AnimationRecorder.h"
 
 #define LOCTEXT_NAMESPACE "FAnimationRecorder"
 

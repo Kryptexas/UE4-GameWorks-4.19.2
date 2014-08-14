@@ -4,6 +4,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphNodeComment.h"
 //#include "TextWrapperHelpers.h"
+#include "BlueprintEditorUtils.h"
 
 namespace SCommentNodeDefs
 {

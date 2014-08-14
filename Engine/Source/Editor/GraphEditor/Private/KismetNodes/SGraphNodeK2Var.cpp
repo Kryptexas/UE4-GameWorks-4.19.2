@@ -7,6 +7,7 @@
 #include "SGraphNodeK2Var.h"
 #include "ClassIconFinder.h"
 #include "IDocumentation.h"
+#include "BlueprintEditorUtils.h"
 
 void SGraphNodeK2Var::Construct( const FArguments& InArgs, UK2Node* InNode )
 {
