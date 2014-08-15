@@ -483,7 +483,7 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 	FIndirectLightingCacheAllocation* PrimitiveAllocation = PrimitiveAllocationPtr != NULL ? *PrimitiveAllocationPtr : NULL;
 
 	if (PrimitiveSceneProxy->WillEverBeLit()
-		&& (bAllowUnbuiltPreview && PrimitiveSceneProxy->HasStaticLighting() && PrimitiveAllocation && PrimitiveAllocation->bIsDirty
+		&& ((bAllowUnbuiltPreview && PrimitiveSceneProxy->HasStaticLighting() && PrimitiveAllocation && PrimitiveAllocation->bIsDirty)
 		|| (PrimitiveSceneProxy->IsMovable() && PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off)))
 	{
 		const FIndirectLightingCacheAllocation* AttachmentParentAllocation = NULL;
