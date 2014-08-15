@@ -121,6 +121,13 @@ struct FLightmassWorldInfoSettings
 	UPROPERTY(EditAnywhere, Category=LightmassDebug, AdvancedDisplay)
 	uint32 bVisualizeAmbientOcclusion:1;
 
+	/** 
+	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
+	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay, meta=(UIMin = "0.1", UIMax = "100.0"))
+	float VolumeLightSamplePlacementScale;
+
 	FLightmassWorldInfoSettings()
 		: StaticLightingLevelScale(1)
 		, NumIndirectLightingBounces(3)
@@ -138,6 +145,7 @@ struct FLightmassWorldInfoSettings
 		, MaxOcclusionDistance(200.0f)
 		, bVisualizeMaterialDiffuse(false)
 		, bVisualizeAmbientOcclusion(false)
+		, VolumeLightSamplePlacementScale(1)
 	{
 	}
 };
