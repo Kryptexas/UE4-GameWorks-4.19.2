@@ -609,7 +609,7 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 						if(KeyAnimLength != 0.0)
 						{
 							// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
-							int32 NewRate = static_cast<int32>((KeyCount-1) / KeyAnimLength);
+							int32 NewRate = FPlatformMath::RoundToInt((KeyCount-1) / KeyAnimLength);
 							MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
 						}
 					}
