@@ -54,12 +54,12 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
 
 //------------------------------------------------------------------------------
 FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
-	: Action(NodeSpawner)
+	: IconBrush(MenuIcon)
+	, IconTint(IconTintIn)
+	, Action(NodeSpawner)
 {
 	check(Action != nullptr);
 	Grouping  = MenuGrouping;
-	IconBrush = MenuIcon;
-	IconTint  = IconTintIn;
 }
 
 //------------------------------------------------------------------------------
