@@ -145,63 +145,55 @@ void FPhysicsSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		.Padding(5)
 		.AutoHeight()
 		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-			.Padding(10.f)
-			[
-				SNew(STextBlock)
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.ToolTip(PhysicalSurfaceTooltip)
-				.Text(LOCTEXT("PhysicalSurface_Menu_Description", " You can have up to 62 custom surface types for your project. \nOnce you name each type, they will show up as surface type in the physical material."))
-			]
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.ToolTip(PhysicalSurfaceTooltip)
+			.AutoWrapText(true)
+			.Text(LOCTEXT("PhysicalSurface_Menu_Description", " You can have up to 62 custom surface types for your project. \nOnce you name each type, they will show up as surface type in the physical material."))
 		]
 
 		+SVerticalBox::Slot()
 		.Padding(5)
 		.FillHeight(1)
 		[
-			SNew(SBorder)
-			.Padding(2.0)
-			.Content()
-			[
-				SAssignNew(PhysicalSurfaceListView, SPhysicalSurfaceListView)
-				.ItemHeight(15.f)
-				.ListItemsSource(&PhysicalSurfaceList)
-				.OnGenerateRow(this, &FPhysicsSettingsDetails::HandleGenerateListWidget)
-				.SelectionMode(ESelectionMode::None)
+			SAssignNew(PhysicalSurfaceListView, SPhysicalSurfaceListView)
+			.ItemHeight(15.f)
+			.ListItemsSource(&PhysicalSurfaceList)
+			.OnGenerateRow(this, &FPhysicsSettingsDetails::HandleGenerateListWidget)
+			.SelectionMode(ESelectionMode::None)
 
-				.HeaderRow(
-					SNew(SHeaderRow)
-					+ SHeaderRow::Column("Type")
-					.HAlignCell(HAlign_Left)
+			.HeaderRow(
+				SNew(SHeaderRow)
+				+ SHeaderRow::Column("Type")
+				.HAlignCell(HAlign_Left)
+				.FillWidth(1)
+				.HeaderContentPadding(FMargin(0, 3))
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
 					.FillWidth(1)
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.FillWidth(1)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("CPhysicalSurfaceListHeader_Type", "Type"))
-							.Font(IDetailLayoutBuilder::GetDetailFont())
-						]
+						SNew(STextBlock)
+						.Text(LOCTEXT("CPhysicalSurfaceListHeader_Type", "Type"))
+						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]
-					// Name
-					+ SHeaderRow::Column("Name")
-					.HAlignCell(HAlign_Left)
+				]
+				// Name
+				+ SHeaderRow::Column("Name")
+				.HAlignCell(HAlign_Left)
+				.FillWidth(1)
+				.HeaderContentPadding(FMargin(0, 3))
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
 					.FillWidth(1)
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.FillWidth(1)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("PhysicalSurfaceListHeader_Name", "Name"))
-							.Font(IDetailLayoutBuilder::GetDetailFont())
-						]
+						SNew(STextBlock)
+						.Text(LOCTEXT("PhysicalSurfaceListHeader_Name", "Name"))
+						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]
-				)
-			]
+				]
+			)
 		]
 	];
 }
