@@ -46,15 +46,28 @@ void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* Ow
 
 void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	// force dropping all pending latent actions associated with this blueprint
-	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
-
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
-	if (bImplementsReceiveDeactivation)
+	if (OwnerComp && !OwnerComp->HasAnyFlags(RF_BeginDestroyed) && OwnerComp->GetOwner())
 	{
-		ReceiveDeactivation(OwnerComp->GetOwner());
+		// force dropping all pending latent actions associated with this blueprint
+		// we can't have those resuming activity when node is/was aborted
+		BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+
+		if (bImplementsReceiveDeactivation)
+		{
+			ReceiveDeactivation(OwnerComp->GetOwner());
+		}
+	}
+	else
+	{
+		UE_LOG(LogBehaviorTree, Warning,
+			TEXT("OnCeaseRelevant called on Blueprint service %s with invalid owner.  OwnerComponent: %s, OwnerComponent Owner: %s.  %s"),
+			*GetNameSafe(this),
+			*GetNameSafe(OwnerComp),
+			OwnerComp ? *GetNameSafe(OwnerComp->GetOwner()) : TEXT("<None>"),
+			OwnerComp && OwnerComp->HasAnyFlags(RF_BeginDestroyed) ? TEXT("OwnerComponent has BeginDestroyed flag") : TEXT("")
+			  );
 	}
 }
 
