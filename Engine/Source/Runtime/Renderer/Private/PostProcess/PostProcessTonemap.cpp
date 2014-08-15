@@ -36,7 +36,7 @@ typedef enum {
 	TonemapperMosaic            = (1<<12),
 	TonemapperColorFringe       = (1<<13),
 	TonemapperColorGrading      = (1<<14),
-
+	TonemapperMsaa              = (1<<15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -58,6 +58,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperMosaic
 	1, //TonemapperColorFringe
 	1, //TonemapperColorGrading
+	1, //TonemapperMsaa
 };
 
 // Edit the following to add and remove configurations.
@@ -244,7 +245,7 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 };
 
 // List of configurations compiled for Mobile.
-static uint32 TonemapperConfBitmaskMobile[29] = { 
+static uint32 TonemapperConfBitmaskMobile[39] = { 
 
 	// 
 	//  15 for NON-MOSAIC 
@@ -461,6 +462,83 @@ static uint32 TonemapperConfBitmaskMobile[29] = {
 	TonemapperGrainIntensity +
 	0,
 
+
+	// 
+	//  10 for MSAA
+	//
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	0,
+
+	// Same with grain.
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperGrainIntensity +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperGrainIntensity +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperGrainIntensity +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperGrainIntensity +
+	0,
+
+	TonemapperMsaa +
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperGrainIntensity +
+	0,
+
 };
 
 // Returns 1 if option is defined otherwise 0.
@@ -476,6 +554,7 @@ static uint32 TonemapperFindLeastExpensive(uint32* RESTRICT Table, uint32 TableE
 	uint32 MustNotHaveBitmask = 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperDOF) == 0) ? TonemapperDOF : 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMosaic) == 0) ? TonemapperMosaic : 0;
+	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMsaa) == 0) ? TonemapperMsaa : 0;
 
 	// Search for exact match first.
 	uint32 Index;
@@ -642,6 +721,12 @@ static uint32 TonemapperGenerateBitmaskMobile(const FRenderingCompositePassConte
 	if(bUseMosaic)
 	{
 		return Bitmask + TonemapperMosaic;
+	}
+
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
+	{
+		Bitmask += TonemapperMsaa;
 	}
 
 	// Only add mobile post if FP16 is supported.
@@ -1256,6 +1341,7 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
 		OutEnvironment.SetDefine(TEXT("USE_LIGHT_SHAFTS"),       TonemapperIsDefined(ConfigBitmask, TonemapperLightShafts));
 		OutEnvironment.SetDefine(TEXT("USE_DOF"),                TonemapperIsDefined(ConfigBitmask, TonemapperDOF));
+		OutEnvironment.SetDefine(TEXT("USE_MSAA"),               TonemapperIsDefined(ConfigBitmask, TonemapperMsaa));
 
 		//Need to hack in exposure scale for < SM5
 		OutEnvironment.SetDefine(TEXT("NO_EYEADAPTATION_EXPOSURE_FIX"), 1);
@@ -1403,7 +1489,9 @@ public:
 
 	VARIATION2(0)  VARIATION2(1)  VARIATION2(2)  VARIATION2(3)	VARIATION2(4)  VARIATION2(5)  VARIATION2(6)  VARIATION2(7)  VARIATION2(8)  VARIATION2(9)  
 	VARIATION2(10) VARIATION2(11) VARIATION2(12) VARIATION2(13)	VARIATION2(14) VARIATION2(15) VARIATION2(16) VARIATION2(17) VARIATION2(18) VARIATION2(19)  
-	VARIATION2(20) VARIATION2(21) VARIATION2(22) VARIATION2(23)	VARIATION2(24) VARIATION2(25) VARIATION2(26) VARIATION2(27) VARIATION2(28)
+	VARIATION2(20) VARIATION2(21) VARIATION2(22) VARIATION2(23)	VARIATION2(24) VARIATION2(25) VARIATION2(26) VARIATION2(27) VARIATION2(28) VARIATION2(29)
+	VARIATION2(30) VARIATION2(31) VARIATION2(32) VARIATION2(33)	VARIATION2(34) VARIATION2(35) VARIATION2(36) VARIATION2(37) VARIATION2(38)
+
 
 #undef VARIATION2
 	
@@ -1542,6 +1630,16 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		case 26: SetShaderTemplES2<26>(Context, bUsedFramebufferFetch); break;
 		case 27: SetShaderTemplES2<27>(Context, bUsedFramebufferFetch); break;
 		case 28: SetShaderTemplES2<28>(Context, bUsedFramebufferFetch); break;
+		case 29: SetShaderTemplES2<29>(Context, bUsedFramebufferFetch); break;
+		case 30: SetShaderTemplES2<30>(Context, bUsedFramebufferFetch); break;
+		case 31: SetShaderTemplES2<31>(Context, bUsedFramebufferFetch); break;
+		case 32: SetShaderTemplES2<32>(Context, bUsedFramebufferFetch); break;
+		case 33: SetShaderTemplES2<33>(Context, bUsedFramebufferFetch); break;
+		case 34: SetShaderTemplES2<34>(Context, bUsedFramebufferFetch); break;
+		case 35: SetShaderTemplES2<35>(Context, bUsedFramebufferFetch); break;
+		case 36: SetShaderTemplES2<36>(Context, bUsedFramebufferFetch); break;
+		case 37: SetShaderTemplES2<37>(Context, bUsedFramebufferFetch); break;
+		case 38: SetShaderTemplES2<38>(Context, bUsedFramebufferFetch); break;
 		default:
 			check(0);
 	}

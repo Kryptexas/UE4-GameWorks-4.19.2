@@ -407,6 +407,9 @@ void MainPS_ES2(
 	half4 SceneColor = PostprocessInput0.Sample(PostprocessInput0Sampler, UV);
 
 	#if USE_GAMMA_ONLY
+		#if USE_MSAA
+			SceneColor.rgb *= rcp(SceneColor.r*(-0.299) + SceneColor.g*(-0.587) + SceneColor.b*(-0.114) + 1.0);
+		#endif
 		OutColor.rgb = sqrt(SceneColor.rgb);
 	#else
 
@@ -445,6 +448,11 @@ void MainPS_ES2(
 					SceneColor.rgb = lerp(SceneColor.rgb, DofFine.rgb, (1.0-Grain*Grain) * GrainScaleBiasJitter.z);
 				#endif
 			#endif
+		#endif
+
+		#if USE_MSAA
+			// Do after jitter for grain as an optimization.
+			SceneColor.rgb *= rcp(SceneColor.r*(-0.299) + SceneColor.g*(-0.587) + SceneColor.b*(-0.114) + 1.0);
 		#endif
 
 		#if USE_HDR_MOSAIC

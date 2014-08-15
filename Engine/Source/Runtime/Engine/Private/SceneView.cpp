@@ -827,6 +827,16 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 void FSceneView::EndFinalPostprocessSettings()
 {
 	{
+		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
+		{
+			// Turn off various features which won't work with mobile MSAA.
+			FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
+			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
 
 		int Value = CVar->GetValueOnGameThread();

@@ -135,6 +135,11 @@ void BloomPS_ES2(
 	// Output color is average.
 	OutColor.rgb = (C0.rgb * 0.25) + (C1.rgb * 0.25) + (C2.rgb * 0.25) + (C3.rgb * 0.25);
 
+	#if ES2_USE_MSAA
+		// This should really happen before the average, instead doing after average as optimization.
+		OutColor.rgb *= rcp(OutColor.r*(-0.299) + OutColor.g*(-0.587) + OutColor.b*(-0.114) + 1.0);
+	#endif
+
 	// Try to kill negatives and NaNs here
 	OutColor.rgb = max(OutColor.rgb, 0);
 
