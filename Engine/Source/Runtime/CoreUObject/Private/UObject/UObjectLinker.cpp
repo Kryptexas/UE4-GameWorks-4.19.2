@@ -110,10 +110,14 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShoul
 		PostLinkerChange();
 #else
 		UE_CLOG(Existing.Linker && LinkerLoad, LogUObjectLinker, Fatal,
-			TEXT("It is only legal to change linkers in the editor. Trying to change linker on %s from %s to %s"),
+			TEXT("It is only legal to change linkers in the editor. Trying to change linker on %s from %s (%s->LinkerRoot=%s) to %s (%s->LinkerRoot=%s)"),
 			*GetFullName(),
-			Existing.Linker ? *Existing.Linker->Filename : TEXT("NULL"),
-			LinkerLoad ? *LinkerLoad->Filename : TEXT("NULL"));
+			*Existing.Linker->Filename,
+			*Existing.Linker->GetName(),
+			*GetNameSafe(Existing.Linker->LinkerRoot),
+			*LinkerLoad->Filename,
+			*LinkerLoad->GetName(),
+			*GetNameSafe(LinkerLoad->LinkerRoot));
 #endif
 	}
 }
