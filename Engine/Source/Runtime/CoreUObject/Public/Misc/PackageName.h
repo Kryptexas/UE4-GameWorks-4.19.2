@@ -281,6 +281,11 @@ public:
 	static FString ExportTextPathToObjectPath(const FString& InExportTextPath);
 
 	/** 
+	 * Returns the name of the package referred to by the specified object path
+	 */
+	static FString ObjectPathToPackageName(const FString& InObjectPath);
+
+	/** 
 	 * Returns the name of the object referred to by the specified object path
 	 */
 	static FString ObjectPathToObjectName(const FString& InObjectPath);

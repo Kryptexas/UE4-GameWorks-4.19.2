@@ -809,6 +809,19 @@ FString FPackageName::ExportTextPathToObjectPath(const FString& InExportTextPath
 	return InExportTextPath;
 }
 
+FString FPackageName::ObjectPathToPackageName(const FString& InObjectPath)
+{
+	// Check for package delimiter
+	int32 ObjectDelimiterIdx;
+	if (InObjectPath.FindChar('.', ObjectDelimiterIdx))
+	{
+		return InObjectPath.Mid(0, ObjectDelimiterIdx);
+	}
+
+	// No object delimiter. The path must refer to the package name directly.
+	return InObjectPath;
+}
+
 FString FPackageName::ObjectPathToObjectName(const FString& InObjectPath)
 {
 	// Check for a subobject
