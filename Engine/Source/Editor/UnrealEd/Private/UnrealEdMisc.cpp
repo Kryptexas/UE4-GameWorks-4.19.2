@@ -6,6 +6,7 @@
 #include "Kismet2/DebuggerCommands.h"
 #include "Toolkits/AssetEditorCommonCommands.h"
 #include "SoundCueGraphEditorCommands.h"
+#include "RichCurveEditorCommands.h"
 #include "FileHelpers.h"
 #include "EditorBuildUtils.h"
 #include "AssetToolsModule.h"
@@ -111,6 +112,9 @@ void FUnrealEdMisc::OnInit()
 
 	// Register navigation commands for all viewports
 	FViewportNavigationCommands::Register();
+
+	// Register curve editor commands.
+	FRichCurveEditorCommands::Register();
 
 	FEditorModeRegistry::Initialize();
 	GLevelEditorModeTools().ActivateDefaultMode();
