@@ -417,7 +417,7 @@ void FHttpRequestWinInet::SetContent(const TArray<uint8>& ContentPayload)
 void FHttpRequestWinInet::SetContentAsString(const FString& ContentString)
 {
 	FTCHARToUTF8 Converter(*ContentString);
-	RequestPayload.SetNumUninitialized(ContentString.Len());
+	RequestPayload.SetNumUninitialized(Converter.Length());
 	FMemory::Memcpy(RequestPayload.GetTypedData(), (const uint8*)Converter.Get(), RequestPayload.Num());
 }
 
