@@ -50,6 +50,9 @@ private:
 	
 	/** Critical section for Serialize() */
 	FCriticalSection CriticalSection;
+	
+	/** Number of outstanding dispatched Cocoa tasks */
+	uint64 OutstandingTasks;
 		
 	/**
 	 * Saves the console window's position and size to the game .ini
