@@ -283,7 +283,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return false;
 	}
 
-	virtual const FHitResult * GetHitResult() const
+	virtual const FHitResult* GetHitResult() const
 	{
 		return NULL;
 	}
@@ -295,20 +295,145 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return false;
 	}
 
-	virtual FTransform* GetOrigin() const
+	virtual FTransform GetOrigin() const
 	{
-		return nullptr;
+		return FTransform::Identity;
 	}
 
 	// -------------------------------------
 
-	virtual UScriptStruct * GetScriptStruct()
+	virtual bool HasEndPoint() const
+	{
+		return false;
+	}
+
+	virtual FVector GetEndPoint() const
+	{
+		return FVector::ZeroVector;
+	}
+
+	// -------------------------------------
+
+	virtual UScriptStruct* GetScriptStruct()
 	{
 		return FGameplayAbilityTargetData::StaticStruct();
 	}
 
 	virtual FString ToString() const;
 };
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayAbilityTargetData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityTargetData_Mesh()
+	: bUseTargetPoint(false)
+	, SourceActor(NULL)
+	, AimDirection(FVector::ZeroVector)
+	{}
+
+
+	//UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Projectile)
+
+	/** If this is valid, projectile will spawn StartPoint will be based on this actor. */
+	UPROPERTY()
+	AActor* SourceActor;
+
+	/** If SourceActor is valid, this will allow a socket to be used instead of the actor's location. */
+	UPROPERTY()
+		FName SourceSocketName;
+
+	/** Projectile will be spawned here if SourceActor is NULL or invalid. */
+	UPROPERTY()
+		FVector_NetQuantize StartPoint;
+
+	/** Projectile will be fired in this direction. */
+	UPROPERTY()
+		FVector_NetQuantizeNormal AimDirection;
+
+	/** Projectile will be aimed from its spawn point toward this point if UseTargetPoint is true. */
+	UPROPERTY()
+		FVector_NetQuantize TargetPoint;
+
+	/** If this is true, AimDirection will be ignored, and the projectile will be aimed at TargetPoint. */
+	UPROPERTY()
+		bool bUseTargetPoint;
+
+
+
+	//virtual TArray<AActor*>	GetActors() const
+
+	// -------------------------------------
+
+	//virtual bool HasHitResult() const
+	//virtual const FHitResult* GetHitResult() const
+
+	// -------------------------------------
+
+	virtual bool HasOrigin() const
+	{
+		return (SourceActor != NULL);
+	}
+
+	virtual FTransform GetOrigin() const
+	{
+		if (SourceActor)
+		{
+			FTransform ReturnTransform = SourceActor->GetTransform();
+			if (bUseTargetPoint)
+			{
+				ReturnTransform.SetRotation((TargetPoint - ReturnTransform.GetLocation()).SafeNormal().Rotation().Quaternion());
+			}
+			else
+			{
+				ReturnTransform.SetRotation(AimDirection.Rotation().Quaternion());
+			}
+			return ReturnTransform;
+		}
+		return FTransform::Identity;
+	}
+
+	// -------------------------------------
+
+	virtual bool HasEndPoint() const
+	{
+		return false;
+	}
+
+	virtual FVector GetEndPoint() const
+	{
+		if (bUseTargetPoint)
+		{
+			return TargetPoint;
+		}
+		return FVector::ZeroVector;
+	}
+
+	// -------------------------------------
+
+	virtual UScriptStruct* GetScriptStruct()
+	{
+		return FGameplayAbilityTargetData_Mesh::StaticStruct();
+	}
+
+	virtual FString ToString() const
+	{
+		return TEXT("FGameplayAbilityTargetData_Mesh");
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_Mesh> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true	// For now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
+	};
+};
+
 
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
@@ -341,7 +466,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		return true;
 	}
 
-	virtual const FHitResult * GetHitResult() const
+	virtual const FHitResult* GetHitResult() const
 	{
 		return &HitResult;
 	}
@@ -353,7 +478,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
-	virtual UScriptStruct * GetScriptStruct()
+	virtual UScriptStruct* GetScriptStruct()
 	{
 		return FGameplayAbilityTargetData_SingleTargetHit::StaticStruct();
 	}

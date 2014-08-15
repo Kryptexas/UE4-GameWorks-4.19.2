@@ -706,6 +706,31 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 	return true;
 }
 
+bool FGameplayAbilityTargetData_Mesh::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << SourceActor;
+	if (SourceActor)
+	{
+		Ar << SourceSocketName;
+	}
+	else
+	{
+		StartPoint.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	Ar << bUseTargetPoint;
+	if (bUseTargetPoint)
+	{
+		TargetPoint.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	else
+	{
+		AimDirection.NetSerialize(Ar, Map, bOutSuccess);
+	}
+
+	bOutSuccess = true;
+	return true;
+}
+
 bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	Ar << HitResult.Actor;

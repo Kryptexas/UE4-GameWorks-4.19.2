@@ -158,7 +158,15 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::MakeTargetData(FHitResult HitResult) const
 {
 	/** Note this is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-	ReturnData->HitResult = HitResult;
+	
+	//FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
+	//ReturnData->HitResult = HitResult;
+	//return FGameplayAbilityTargetDataHandle(ReturnData);
+
+	FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
+	ReturnData->SourceActor = SourceActor;
+	ReturnData->AimDirection = (HitResult.Location - SourceActor->GetActorLocation()).SafeNormal();
+	ReturnData->TargetPoint = HitResult.Location;
+	ReturnData->bUseTargetPoint = true;
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
