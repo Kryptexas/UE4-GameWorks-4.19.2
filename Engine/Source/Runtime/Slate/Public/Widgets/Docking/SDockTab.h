@@ -187,7 +187,7 @@ public:
 	bool CanCloseTab() const;
 
 	/** Requests that the tab be closed.  Tabs may prevent closing depending on their state */	
-	void RequestCloseTab();
+	bool RequestCloseTab();
 
 	/** A chance for the tab's content to save any internal layout info */
 	void PersistVisualState();
@@ -287,6 +287,9 @@ protected:
 
 	/** Specify the TabId that was used to spawn this tab. */
 	void SetLayoutIdentifier( const FTabId& TabId );
+
+	/** @return if the close button should be visible. */
+	EVisibility HandleIsCloseButtonVisible() const;
 
 protected:
 
