@@ -1043,4 +1043,15 @@ FBlueprintActionDatabase::FClassActionMap const& FBlueprintActionDatabase::GetAl
 	return ClassActions;
 }
 
+//------------------------------------------------------------------------------
+int32 FBlueprintActionDatabase::Size() const
+{
+	int32 TotalSize = sizeof(*this);
+	for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
+	{
+		TotalSize += sizeof(**NodeSpawnerIt);
+	}
+	return TotalSize;
+}
+
 #undef LOCTEXT_NAMESPACE

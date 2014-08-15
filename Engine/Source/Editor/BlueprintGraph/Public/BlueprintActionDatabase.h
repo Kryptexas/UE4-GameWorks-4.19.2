@@ -82,6 +82,11 @@ public:
 	 */
 	FClassActionMap const& GetAllActions();
 
+	/**
+	 * @return An estimated memory footprint of this database (in bytes).
+	 */
+	int32 Size() const;
+
 private:
 	/** Private constructor for singleton purposes. */
 	FBlueprintActionDatabase();
