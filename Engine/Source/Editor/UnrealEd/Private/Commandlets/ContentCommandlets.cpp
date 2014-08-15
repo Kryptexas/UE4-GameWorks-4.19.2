@@ -325,6 +325,12 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 				}
 			}
 
+			if (bStripEditorOnlyContent)
+			{
+				UE_LOG(LogContentCommandlet, Log, TEXT("Removing editor only data"));
+				Package->PackageFlags |= PKG_FilterEditorOnly;
+			}
+
 			// Now based on the computation above we will see if we should actually attempt
 			// to save this package
 			if (bSavePackage == true)
@@ -425,6 +431,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	// Ensure source control is initialized and shut down properly
 	FScopedSourceControl SourceControl;
 
+	// strip editor only content
+	bStripEditorOnlyContent = Switches.Contains(TEXT("STRIPEDITORONLY"));
 	// skip the assert when a package can not be opened
 	bCanIgnoreFails = Switches.Contains(TEXT("SKIPFAILS"));
 	/** load all packages, and display warnings for those packages which would have been resaved but were read-only */

@@ -49,6 +49,9 @@ class UResavePackagesCommandlet : public UCommandlet
 	// If non-empty, this substring has to be present in the package name for the commandlet to process it
 	FString PackageSubstring;
 
+	// strip editor only content
+	bool bStripEditorOnlyContent;
+
 	// skip the assert when a package can not be opened
 	bool bCanIgnoreFails;
 
