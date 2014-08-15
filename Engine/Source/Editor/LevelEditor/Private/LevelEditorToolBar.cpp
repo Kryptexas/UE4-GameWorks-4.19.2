@@ -16,7 +16,7 @@
 #include "EngineBuildSettings.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
-
+#include "Settings.h"
 
 /**
  * Static: Creates a widget for the level editor tool bar
@@ -62,8 +62,14 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions")
 			);
 
-		ToolbarBuilder.AddToolBarButton( FLevelEditorCommands::Get().WorldProperties, NAME_None, LOCTEXT( "WorldProperties_Override", "World Settings" ), LOCTEXT( "WorldProperties_ToolTipOverride", "Displays the world settings" ), TAttribute<FSlateIcon>(), "LevelToolbarWorldSettings" );
-
+		ToolbarBuilder.AddComboButton(
+			FUIAction(),
+			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateOpenGameSettingsMenu, InCommandList ),
+			LOCTEXT( "OpenConfiguration_Label", "Game Settings" ),
+			LOCTEXT( "OpenConfiguration_ToolTip", "Open game settings windows" ),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.GameSettings")/*,
+			"LevelToolbarWorldSettings"*/
+			);
 	}
 	ToolbarBuilder.EndSection();
 
@@ -489,6 +495,8 @@ static void MakeScalabilityMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.AddWidget(SNew(SScalabilitySettings), FText(), true);
 }
 
+
+
 TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef<FUICommandList> InCommandList )
 {
 #define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
@@ -607,6 +615,34 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleHideViewportUI );
 	}
 	MenuBuilder.EndSection();
+
+#undef LOCTEXT_NAMESPACE
+
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenGameSettingsMenu( TSharedRef<FUICommandList> InCommandList )
+{
+#define LOCTEXT_NAMESPACE "OpenGameSettingsMenu"
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList );
+
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().WorldProperties );
+
+	struct Local
+	{
+		static void OpenSettings( FName ContainerName, FName CategoryName, FName SectionName )
+		{
+			FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(ContainerName, CategoryName, SectionName);
+		}
+	};
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
+		LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Game"), FName("General")))
+	);
 
 #undef LOCTEXT_NAMESPACE
 
