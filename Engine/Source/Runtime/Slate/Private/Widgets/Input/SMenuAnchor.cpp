@@ -179,7 +179,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			// other pop-up menus are currently auto-sized
 			const FVector2D DesiredContentSize = MenuContentRef->GetDesiredSize();  // @todo: This is ignoring any window border size!
 			const EMenuPlacement PlacementMode = Placement.Get();
-			bool bShouldAutoSize = PlacementMode != MenuPlacement_ComboBox;
+			bool bShouldAutoSize = (PlacementMode != MenuPlacement_ComboBox);
 
 			const FVector2D NewPosition = MyGeometry.AbsolutePosition;
 			FVector2D NewWindowSize = DesiredContentSize;

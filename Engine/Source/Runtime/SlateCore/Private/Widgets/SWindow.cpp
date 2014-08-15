@@ -181,7 +181,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	const bool bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
 	FVector2D WindowSize = InArgs._ClientSize;
 
-	// Do not adjust the client size if we have an OS border.  
+	// If the window has no OS border, simulate it ourselves, enlarging window by the size that OS border would have.
 	if (!HasOSWindowBorder())
 	{
 		const FMargin BorderSize = GetWindowBorderSize();
@@ -628,7 +628,11 @@ FSlateRect SWindow::GetClippingRectangleInWindow() const
 FMargin SWindow::GetWindowBorderSize() const
 {
 // Mac didn't want a window border, and consoles don't either, so only do this in Windows
-#if PLATFORM_WINDOWS || PLATFORM_LINUX
+
+// @TODO This is not working for Linux. The window is not yet valid when this gets
+// called from SWindow::Construct which is causing a default border to be retured even when the
+// window is borderless. This causes problems for menu positioning.
+#if PLATFORM_WINDOWS // || PLATFORM_LINUX
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
 		int32 OSWindowBorderSize = NativeWindow->GetWindowBorderSize();
