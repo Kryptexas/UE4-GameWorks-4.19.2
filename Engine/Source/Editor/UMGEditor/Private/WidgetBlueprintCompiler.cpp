@@ -7,8 +7,6 @@
 #include "Kismet2NameValidators.h"
 #include "KismetReinstanceUtilities.h"
 #include "MovieScene.h"
-
-#include "BlueprintPropertyNodeSpawner.h"
 #include "K2Node_FunctionEntry.h"
 
 

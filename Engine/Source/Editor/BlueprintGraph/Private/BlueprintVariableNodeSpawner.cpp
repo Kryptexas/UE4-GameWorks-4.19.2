@@ -7,6 +7,7 @@
 #include "Editor/EditorEngine.h"	// for GetFriendlyName()
 #include "ObjectEditorUtils.h"		// for GetCategory()
 #include "EdGraphSchema_K2.h"		// for ConvertPropertyToPinType()
+#include "EditorCategoryUtils.h"	// for BuildCategoryString()
 
 #define LOCTEXT_NAMESPACE "BlueprintVariableNodeSpawner"
 
@@ -15,7 +16,7 @@
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf<UK2Node_Variable> NodeClass, UProperty* VarProperty, UObject* Outer/*= nullptr*/)
+UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf<UK2Node_Variable> NodeClass, UProperty const* VarProperty, UObject* Outer/*= nullptr*/)
 {
 	check(VarProperty != nullptr);
 	if (Outer == nullptr)
@@ -121,7 +122,7 @@ FText UBlueprintVariableNodeSpawner::GetDefaultMenuCategory() const
 	{
 		VarSubCategory = FText::FromString(FObjectEditorUtils::GetCategory(MemberVariable.Get()));
 	}
-	return FText::Format(LOCTEXT("VariableCategory", "Variables|{0}"), VarSubCategory);
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarSubCategory);
 }
 
 //------------------------------------------------------------------------------
@@ -157,12 +158,8 @@ UObject const* UBlueprintVariableNodeSpawner::GetVarOuter() const
 //------------------------------------------------------------------------------
 UProperty const* UBlueprintVariableNodeSpawner::GetVarProperty() const
 {
-	UProperty const* VarProperty = nullptr;
-	if (MemberVariable.IsValid())
-	{
-		VarProperty = MemberVariable.Get();
-	}
-	return VarProperty;
+	// Get() does IsValid() checks for us
+	return MemberVariable.Get();
 }
 
 //------------------------------------------------------------------------------

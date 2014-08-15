@@ -3,7 +3,6 @@
 #pragma once
 
 #include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
-#include "BlueprintEditor.h"       // for FNodeCreationAnalytic
 #include "SlateColor.h"
 #include "BlueprintActionMenuItem.generated.h"
 
@@ -28,7 +27,7 @@ public:
 	
 	/** Constructors */
 	FBlueprintActionMenuItem() : Action(nullptr), IconBrush(nullptr), IconTint(FLinearColor::White) {}
-	FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
 	
 	// FEdGraphSchemaAction interface
 	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }
@@ -38,28 +37,19 @@ public:
 	// End FEdGraphSchemaAction interface
 
 	/**
-	 * Retrieves the icon brush for this menu entry.
+	 * Retrieves the icon brush for this menu entry (to be displayed alongside
+	 * in the menu).
+	 *
+	 * @param  ColorOut	An output parameter that's filled in with the color to tint the brush with.
 	 * @return An slate brush to be used for this menu item in the action menu.
 	 */
 	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
-
-	/**
-	 * Attempts to create a specific drag/drop action for this menu entry 
-	 * (certain menu entries require unique drag/drop handlers... like property
-	 * placeholders, where a drop action spawns a sub-menu for the user to pick
-	 * a node type from).
-	 * 
-	 * @param  AnalyticsDelegate	The analytics callback to assign the drag/drop operation.
-	 * @return An empty TSharedPtr if this menu item doesn't require a unique one, else a newly instantiated drag/drop op.
-	 */
-	TSharedPtr<FDragDropOperation> OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const;
-
-	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
-	UBlueprintNodeSpawner const* Action;
 
 private:
 	/** Brush that should be used for the icon on this menu item. */
 	FSlateBrush const* IconBrush;
 	/** Tint to return along with the icon brush. */
 	FSlateColor IconTint;
+	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
+	UBlueprintNodeSpawner const* Action;
 };

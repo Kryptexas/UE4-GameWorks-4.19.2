@@ -6,10 +6,6 @@
 #include "KismetEditorUtilities.h"	// for BringKismetToFocusAttentionOnObject()
 #include "BlueprintEditorUtils.h"	// for AnalyticsTrackNewNode(), MarkBlueprintAsModified(), etc.
 #include "ScopedTransaction.h"
-#include "BlueprintPropertyNodeSpawner.h"
-#include "BPVariableDragDropAction.h"
-#include "BPDelegateDragDropAction.h"
-#include "BlueprintEditor.h"		// for GetVarIconAndColor()
 #include "SNodePanel.h"				// for GetSnapGridSize()
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
@@ -57,7 +53,7 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
 	: Action(NodeSpawner)
 {
 	check(Action != nullptr);
@@ -160,49 +156,8 @@ void FBlueprintActionMenuItem::AddReferencedObjects(FReferenceCollector& Collect
 //------------------------------------------------------------------------------
 FSlateBrush const* FBlueprintActionMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
-	// if this brush is invalid
-	if (IconBrush == nullptr)
-	{
-		if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
-		{
-			UProperty const* Property = PropertySpawner->GetProperty();
-			FName const PropertyName = Property->GetFName();
-			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-
-			IconBrush = FBlueprintEditor::GetVarIconAndColor(PropertyOwner, PropertyName, IconTint);
-		}
-	}
-
 	ColorOut = IconTint;
 	return IconBrush;
-}
-
-//------------------------------------------------------------------------------
-TSharedPtr<FDragDropOperation> FBlueprintActionMenuItem::OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const
-{
-	TSharedPtr<FDragDropOperation> DragDropAction = nullptr;
-
-	if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
-	{
-		if (PropertySpawner->NodeClass == nullptr)
-		{
-			UProperty const* Property = PropertySpawner->GetProperty();
-			FName const PropertyName = Property->GetFName();
-			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-
-			if (PropertySpawner->IsDelegateProperty())
-			{
-				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
-				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
-			}
-			else
-			{
-				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetVariableDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
-				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
-			}
-		}
-	}
-	return DragDropAction;
 }
 
 #undef LOCTEXT_NAMESPACE

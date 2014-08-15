@@ -27,6 +27,7 @@
 #include "AnimStateConduitNode.h"
 #include "AnimationTransitionGraph.h"
 #include "BlueprintActionMenuItem.h"
+#include "BlueprintDragDropMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
@@ -360,6 +361,11 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	{
 		FBlueprintActionMenuItem* NodeSpawnerAction = (FBlueprintActionMenuItem*)ActionIn.Get();
 		BrushOut = NodeSpawnerAction->GetMenuIcon(ColorOut);
+	}
+	else if (ActionIn->GetTypeId() == FBlueprintDragDropMenuItem::StaticGetTypeId())
+	{
+		FBlueprintDragDropMenuItem* DragDropAction = (FBlueprintDragDropMenuItem*)ActionIn.Get();
+		BrushOut = DragDropAction->GetMenuIcon(ColorOut);
 	}
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2AddDocumentation::StaticGetTypeId())
 	{

@@ -6,7 +6,7 @@
 #include "KismetEditorUtilities.h"	// for IsClassABlueprintSkeleton(), IsClassABlueprintInterface(), GetBoundsForSelectedNodes(), etc.
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
-#include "BlueprintPropertyNodeSpawner.h"
+#include "BlueprintDelegateNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
@@ -261,7 +261,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNo
 {
 	// @TODO: it'd be awesome to have both nodes spawned by this available for 
 	//        context pin matching (the delegate inputs and the event outputs)
-	return UBlueprintPropertyNodeSpawner::Create<UK2Node_AssignDelegate>(DelegateProperty);
+	return UBlueprintDelegateNodeSpawner::Create(UK2Node_AssignDelegate::StaticClass(), DelegateProperty);
 }
 
 /*******************************************************************************
@@ -496,7 +496,7 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 			UMulticastDelegateProperty* DelegateProperty = CastChecked<UMulticastDelegateProperty>(Property);
 			if (DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintAssignable))
 			{
-				UBlueprintNodeSpawner* AddSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_AddDelegate>(DelegateProperty);
+				UBlueprintNodeSpawner* AddSpawner = UBlueprintDelegateNodeSpawner::Create(UK2Node_AddDelegate::StaticClass(), DelegateProperty);
 				ActionListOut.Add(AddSpawner);
 				
 				UBlueprintNodeSpawner* AssignSpawner = MakeAssignDelegateNodeSpawner(DelegateProperty);
@@ -505,13 +505,13 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 			
 			if (DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintCallable))
 			{
-				UBlueprintNodeSpawner* CallSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_CallDelegate>(DelegateProperty);
+				UBlueprintNodeSpawner* CallSpawner = UBlueprintDelegateNodeSpawner::Create(UK2Node_CallDelegate::StaticClass(), DelegateProperty);
 				ActionListOut.Add(CallSpawner);
 			}
 			
-			UBlueprintNodeSpawner* RemoveSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_RemoveDelegate>(DelegateProperty);
+			UBlueprintNodeSpawner* RemoveSpawner = UBlueprintDelegateNodeSpawner::Create(UK2Node_RemoveDelegate::StaticClass(), DelegateProperty);
 			ActionListOut.Add(RemoveSpawner);
-			UBlueprintNodeSpawner* ClearSpawner  = UBlueprintPropertyNodeSpawner::Create<UK2Node_ClearDelegate>(DelegateProperty);
+			UBlueprintNodeSpawner* ClearSpawner = UBlueprintDelegateNodeSpawner::Create(UK2Node_ClearDelegate::StaticClass(), DelegateProperty);
 			ActionListOut.Add(ClearSpawner);
 
 			// @TODO: AddBoundEventActionsForClass()
@@ -519,14 +519,14 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
  		}
 		else
 		{
-			if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Property))
-			{
-				AddComponentBoundActions(ObjProperty, ActionListOut);
-			}
+// 			if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Property))
+// 			{
+// 				AddComponentBoundActions(ObjProperty, ActionListOut);
+// 			}
 
-			UBlueprintPropertyNodeSpawner* GetterSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_VariableGet>(Property);
+			UBlueprintVariableNodeSpawner* GetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), Property);
 			ActionListOut.Add(GetterSpawner);
-			UBlueprintPropertyNodeSpawner* SetterSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_VariableSet>(Property);
+			UBlueprintVariableNodeSpawner* SetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), Property);
 			ActionListOut.Add(SetterSpawner);
 		}
 	}
@@ -549,8 +549,8 @@ static void BlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectPropert
 				continue;
 			}
 
-			UBlueprintPropertyNodeSpawner* PropertySpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_ComponentBoundEvent>(Property);
-			UBlueprintBoundNodeSpawner* BoundEventSpawner = UBlueprintBoundNodeSpawner::Create(PropertySpawner, ComponentProperty);
+			UBlueprintDelegateNodeSpawner* DelegateSpawner = UBlueprintDelegateNodeSpawner::Create(/*NodeClass =*/nullptr, Property);
+			DelegateSpawner->NodeClass = UK2Node_ComponentBoundEvent::StaticClass();
 
 			auto BindComponentLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UObjectProperty> ComponentProp, TWeakObjectPtr<UMulticastDelegateProperty> DelegateProp)
 			{
@@ -561,6 +561,7 @@ static void BlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectPropert
 				}
 			};
 
+			UBlueprintBoundNodeSpawner* BoundEventSpawner = UBlueprintBoundNodeSpawner::Create(DelegateSpawner, ComponentProperty);
 			TWeakObjectPtr<UObjectProperty> ComponentPropPtr = ComponentProperty;
 			TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr = Property;
 			BoundEventSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(BindComponentLambda, ComponentPropPtr, DelegatePropPtr);

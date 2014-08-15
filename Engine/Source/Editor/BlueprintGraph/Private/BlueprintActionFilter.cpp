@@ -6,7 +6,7 @@
 #include "BlueprintFunctionNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
-#include "BlueprintPropertyNodeSpawner.h"
+#include "BlueprintDelegateNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
@@ -366,7 +366,7 @@ static UProperty const* BlueprintActionFilterImpl::GetAssociatedProperty(UBluepr
 {
 	UProperty const* Property = nullptr;
 
-	if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(BlueprintAction))
+	if (UBlueprintDelegateNodeSpawner const* PropertySpawner = Cast<UBlueprintDelegateNodeSpawner>(BlueprintAction))
 	{
 		Property = PropertySpawner->GetProperty();
 	}

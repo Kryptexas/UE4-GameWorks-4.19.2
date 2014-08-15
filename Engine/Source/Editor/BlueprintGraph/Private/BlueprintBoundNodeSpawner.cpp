@@ -2,9 +2,10 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintBoundNodeSpawner.h"
-#include "K2Node_ComponentBoundEvent.h"
-#include "BlueprintPropertyNodeSpawner.h"
+#include "BlueprintVariableNodeSpawner.h"
+#include "BlueprintDelegateNodeSpawner.h"
 #include "K2Node_AddComponent.h"
+#include "K2Node_ComponentBoundEvent.h"
 #include "K2Node_CallFunction.h"
 #include "ComponentAssetBroker.h"
 #include "Editor/EditorEngine.h"	// for GetFriendlyName()
@@ -34,16 +35,7 @@ namespace BlueprintBoundNodeSpawnerImpl
 	 * @param  NewNode		The newly spawned node that needs to be bound.
 	 * @param  PropertyObj	The property object you want bound to the node.
 	 */
-	static void BindFunctionNodeWithProperty(UEdGraphNode* NewNode, UObject* PropertyObj);
-
-	/**
-	 * 
-	 * 
-	 * @param  NewNode	
-	 * @param  DelegateProperty	
-	 * @return 
-	 */
-	static void BindEventNodeToDelegate(UEdGraphNode* NewNode, UObject* DelegateProperty);
+	static void BindFunctionNodeWithVariable(UEdGraphNode* NewNode, UObject* VariableObj);
 };
 
 //------------------------------------------------------------------------------
@@ -59,13 +51,13 @@ static void BlueprintBoundNodeSpawnerImpl::BindAddComponentNodeWithAsset(UEdGrap
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithProperty(UEdGraphNode* NewNode, UObject* PropertyObj)
+static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithVariable(UEdGraphNode* NewNode, UObject* PropertyObj)
 {
 	UK2Node_CallFunction* FuncNode = CastChecked<UK2Node_CallFunction>(NewNode);
 	if (UProperty const* BindingProperty = Cast<UProperty>(PropertyObj))
 	{
 		// @TODO: unnecessary allocation, could do this all by hand, or with a local
-		UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_VariableGet>(BindingProperty);
+		UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BindingProperty);
 		
 		float const EstimatedVarNodeWidth = 224.0f;
 		FVector2D VarNodePos;
@@ -89,42 +81,6 @@ static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithProperty(UEdGraph
 		if ((LiteralOutput != nullptr) && (CallSelfInput != nullptr))
 		{
 			LiteralOutput->MakeLinkTo(CallSelfInput);
-		}
-	}
-}
-
-//------------------------------------------------------------------------------
-static void BlueprintBoundNodeSpawnerImpl::BindEventNodeToDelegate(UEdGraphNode* NewNode, UObject* InDelegateProperty)
-{
-	UMulticastDelegateProperty* DelegateProperty = CastChecked<UMulticastDelegateProperty>(InDelegateProperty);
-	if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(NewNode))
-	{
-		FVector2D const SpawnLocation(EventNode->NodePosX, EventNode->NodePosY);
-		FVector2D const EventNodeOffset(-150.f, -150.f);
-		EventNode->NodePosX += EventNodeOffset.X;
-		EventNode->NodePosY += EventNodeOffset.Y;
-
-		// @TODO: unnecessary allocation, could do this all by hand, or with a local
-		UBlueprintNodeSpawner* DelegateNodeSpawner = UBlueprintPropertyNodeSpawner::Create<UK2Node_AddDelegate>(DelegateProperty);
-
-		UEdGraph* ParentGraph = EventNode->GetGraph();
-		UK2Node_AddDelegate* DelegateNode = CastChecked<UK2Node_AddDelegate>(DelegateNodeSpawner->Invoke(ParentGraph, SpawnLocation));
-
-		ParentGraph->Modify();
-		ParentGraph->AddNode(DelegateNode, /*bFromUI =*/false, /*bSelectNewNode =*/false);
-
-		UEdGraphPin* DelegateInputPin = DelegateNode->GetDelegatePin();
-		UEdGraphPin* EventDelegatePin = EventNode->FindPinChecked(UK2Node_Event::DelegateOutputName);
-
-		if ((DelegateInputPin != nullptr) && (EventDelegatePin != nullptr))
-		{
-			UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			if (K2Schema->TryCreateConnection(EventDelegatePin, DelegateInputPin))
-			{
-				// refresh the node once connected to the delegate (it should
-				// conform it's pins to match the delegate signature)
-				EventNode->ReconstructNode();
-			}
 		}
 	}
 }
@@ -180,22 +136,17 @@ UEdGraphNode* UBlueprintBoundNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 	}
 	
 	bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
-	if (!bIsTemplateNode && NewNode->IsA<UK2Node_AddComponent>())
+	if (!bIsTemplateNode)
 	{
-		BindAddComponentNodeWithAsset(NewNode, BoundObj);
-	}
-	else if (NewNode->IsA<UK2Node_CallFunction>())
-	{
-		BindFunctionNodeWithProperty(NewNode, BoundObj);
-	}
-	else if (BoundObj != nullptr)
-	{
-		if (!bIsTemplateNode && BoundObj->IsA<UMulticastDelegateProperty>())
+		if (NewNode->IsA<UK2Node_AddComponent>())
 		{
-			BindEventNodeToDelegate(NewNode, BoundObj);
+			BindAddComponentNodeWithAsset(NewNode, BoundObj);
+		}
+		else if (NewNode->IsA<UK2Node_CallFunction>())
+		{
+			BindFunctionNodeWithVariable(NewNode, BoundObj);
 		}
 	}
-	
 	return NewNode;
 }
 
@@ -209,18 +160,11 @@ FText UBlueprintBoundNodeSpawner::GetDefaultMenuName() const
 	FText MenuName;
 	if (NodeClass == UK2Node_ComponentBoundEvent::StaticClass())
 	{
-		if (UBlueprintPropertyNodeSpawner* PropSpawner = Cast<UBlueprintPropertyNodeSpawner>(SubSpawner))
+		if (UBlueprintDelegateNodeSpawner* PropSpawner = Cast<UBlueprintDelegateNodeSpawner>(SubSpawner))
 		{
 			FText const PropertyName = FText::FromName(PropSpawner->GetProperty()->GetFName());
 			MenuName = FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), PropertyName);
 		}
-	}
-	else if (BoundObjPtr.IsValid() && BoundObjPtr->IsA<UMulticastDelegateProperty>())
-	{
-		UMulticastDelegateProperty* DelegateProperty = CastChecked<UMulticastDelegateProperty>(BoundObjPtr.Get());
-		FText const PropertyName = FText::FromString(bShowFriendlyNames ? UEditorEngine::GetFriendlyName(DelegateProperty) : DelegateProperty->GetName());
-
-		MenuName = FText::Format(LOCTEXT("ComponentEventName", "Assign {0}"), PropertyName);
 	}
 	else
 	{
@@ -246,14 +190,6 @@ FText UBlueprintBoundNodeSpawner::GetDefaultMenuCategory() const
 	{
 		FText const PropertyName = FText::FromName(BoundObjPtr->GetFName());
 		DefaultCategory = FText::Format(LOCTEXT("ComponentEventCategory", "Call Function on {0}|{1}"), PropertyName, DefaultCategory);
-	}
-	else if (UMulticastDelegateProperty* DelegateProperty = Cast<UMulticastDelegateProperty>(BoundObjPtr.Get()))
-	{
-		DefaultCategory = FText::FromString(FObjectEditorUtils::GetCategory(DelegateProperty));
-		if (DefaultCategory.IsEmpty())
-		{
-			DefaultCategory = LOCTEXT("BoundDelegateCategory", "Event Dispatchers");
-		}
 	}	
 	return DefaultCategory;
 }
