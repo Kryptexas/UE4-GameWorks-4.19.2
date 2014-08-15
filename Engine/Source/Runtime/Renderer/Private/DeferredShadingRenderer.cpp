@@ -816,8 +816,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		InjectAmbientCubemapTranslucentVolumeLighting(RHICmdList);
 
-		CompositeIndirectTranslucentVolumeLighting(RHICmdList);
-
 		// Filter the translucency lighting volume now that it is complete
 		FilterTranslucentVolumeLighting(RHICmdList);
 

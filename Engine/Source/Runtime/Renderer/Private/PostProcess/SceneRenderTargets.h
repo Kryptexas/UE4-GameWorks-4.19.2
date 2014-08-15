@@ -74,9 +74,6 @@ inline int SelectTranslucencyVolumeTarget(ETranslucencyVolumeCascade InCascade)
 /** Number of surfaces used for translucent shadows. */
 static const int32 NumTranslucencyShadowSurfaces = 2;
 
-/** Downsample factor to use on the volume texture used for computing GI on translucency. */
-static const int32 TranslucentVolumeGISratchDownsampleFactor = 1;
-
 BEGIN_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferATexture )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferBTexture )
@@ -461,9 +458,6 @@ public:
 	/** Volume textures used for lighting translucency. */
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeDirectional[NumTranslucentVolumeRenderTargetSets];
-
-	/** Volume texture used to gather GI at a lower resolution than the rest of translucent lighting. */
-	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeGIScratch;
 
 	/** Color and opacity for editor primitives (i.e editor gizmos). */
 	TRefCountPtr<IPooledRenderTarget> EditorPrimitivesColor;

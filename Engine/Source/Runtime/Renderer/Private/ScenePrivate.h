@@ -883,14 +883,9 @@ private:
 	void UpdateCacheAllocation(
 		const FBoxSphereBounds& Bounds, 
 		int32 BlockSize,
-		bool bOpaqueRelevance,
+		bool bPointSample,
 		FIndirectLightingCacheAllocation*& Allocation, 
 		TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate,
-		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
-
-	void UpdateTranslucentVolumeCache(
-		FViewInfo& View, 
-		TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, 
 		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
 
 	/** 
@@ -912,7 +907,7 @@ private:
 	void UpdateTransitionsOverTime(const TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate, float DeltaWorldTime) const;
 
 	/** Creates an allocation to be used outside the indirect lighting cache and a block to be used internally. */
-	FIndirectLightingCacheAllocation* CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bOpaqueRelevance);
+	FIndirectLightingCacheAllocation* CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample);
 
 	/** Block accessors. */
 	FIndirectLightingCacheBlock& FindBlock(FIntVector TexelMin);

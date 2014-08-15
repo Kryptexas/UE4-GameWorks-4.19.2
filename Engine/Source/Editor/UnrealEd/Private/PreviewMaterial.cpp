@@ -80,10 +80,7 @@ public:
 		{
 			bShaderTypeMatches = true;
 		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFCachedVolumeIndirectLightingPolicy")))
+		else if (FCString::Stristr(ShaderType->GetName(), TEXT("CachedPointIndirectLightingPolicy")))
 		{
 			bShaderTypeMatches = true;
 		}

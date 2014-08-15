@@ -918,23 +918,36 @@ void ProcessBasePassMesh(
 							}
 							else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 								&& Action.AllowIndirectLightingCache()
-								&& Parameters.PrimitiveSceneProxy
+								&& Parameters.PrimitiveSceneProxy)
+							{
+								const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+								const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
+
 								// Use the indirect lighting cache shaders if the object has a cache allocation
 								// This happens for objects with unbuilt lighting
-								&& ((Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
-									&& Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid())
+								if (IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid()
 									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
-									|| Parameters.PrimitiveSceneProxy->IsMovable()))
-							{
-								if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
+									// And movable objects are sometimes rendered in the static draw lists
+									|| bPrimitiveIsMovable)
 								{
-									// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-									Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters, FCachedVolumeIndirectLightingPolicy(), FCachedVolumeIndirectLightingPolicy::ElementDataType());
+									if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) 
+										// Translucency forces point sample for pixel performance
+										&& Action.AllowIndirectLightingCacheVolumeTexture()
+										&& (IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample
+											|| bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume))
+									{
+										// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
+										Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters, FCachedVolumeIndirectLightingPolicy(), FCachedVolumeIndirectLightingPolicy::ElementDataType());
+									}
+									else
+									{
+										// Use a lightmap policy that supports reading indirect lighting from a single SH sample
+										Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FCachedPointIndirectLightingPolicy(), FCachedPointIndirectLightingPolicy::ElementDataType(false));
+									}
 								}
 								else
 								{
-									// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-									Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FCachedPointIndirectLightingPolicy(), FCachedPointIndirectLightingPolicy::ElementDataType(false));
+									Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 								}
 							}
 							else

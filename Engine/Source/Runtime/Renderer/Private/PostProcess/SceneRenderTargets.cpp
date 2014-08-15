@@ -1146,24 +1146,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 					);
 			}
 		}
-
-		extern int32 GUseIndirectLightingCacheInLightingVolume;
-
-		if (GUseIndirectLightingCacheInLightingVolume && GSupportsVolumeTextureRendering)
-		{
-			GRenderTargetPool.FindFreeElement(
-				FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(
-					GTranslucencyLightingVolumeDim / TranslucentVolumeGISratchDownsampleFactor,
-					GTranslucencyLightingVolumeDim / TranslucentVolumeGISratchDownsampleFactor,
-					GTranslucencyLightingVolumeDim / TranslucentVolumeGISratchDownsampleFactor,
-					PF_FloatRGB,
-					0,
-					TexCreate_ShaderResource | TexCreate_RenderTargetable,
-					false)),
-				TranslucencyLightingVolumeGIScratch,
-				TEXT("TranslucentVolumeGIScratch")
-				);
-		}
 	}
 
 	extern ENGINE_API int32 GReflectionCaptureSize;
@@ -1331,8 +1313,6 @@ void FSceneRenderTargets::ReleaseAllTargets()
 		TranslucencyLightingVolumeDirectional[RTSetIndex].SafeRelease();
 	}
 
-	TranslucencyLightingVolumeGIScratch.SafeRelease();
-	
 	EditorPrimitivesColor.SafeRelease();
 	EditorPrimitivesDepth.SafeRelease();
 }

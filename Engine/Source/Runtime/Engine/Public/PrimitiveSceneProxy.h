@@ -334,6 +334,7 @@ public:
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool AffectsDynamicIndirectLighting() const { return bAffectDynamicIndirectLighting; }
 	inline float GetLpvBiasMultiplier() const { return LpvBiasMultiplier; }
+	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
 	inline bool CastsHiddenShadow() const { return bCastHiddenShadow; }
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
@@ -540,9 +541,6 @@ private:
 	/** If this is True, this primitive can be selected in the editor. */
 	uint32 bSelectable : 1;
 
-	/** Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. **/
-	uint32 bAllowShadowFade : 1;
-
 	/** If this primitive has per-instance hit proxies. */
 	uint32 bHasPerInstanceHitProxies : 1;
 
@@ -552,6 +550,9 @@ private:
 protected:
 	/** The bias applied to LPV injection */
 	float LpvBiasMultiplier;
+
+	/** Quality of interpolated indirect lighting for Movable components. */
+	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
 
 private:
 	/** The primitive's local to world transform. */

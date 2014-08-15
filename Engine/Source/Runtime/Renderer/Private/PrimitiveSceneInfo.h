@@ -28,7 +28,7 @@ public:
 		CurrentDirectionalShadowing(1),
 		CurrentSkyBentNormal(FVector4(0, 0, 1, 1)),
 		bHasEverUpdatedSingleSample(false),
-		bOpaqueRelevance(true),
+		bPointSample(true),
 		bIsDirty(false)
 	{
 		for (int32 VectorIndex = 0; VectorIndex < ARRAY_COUNT(TargetSamplePacked); VectorIndex++)
@@ -83,8 +83,8 @@ public:
 	/** Whether SingleSamplePacked has ever been populated with valid results, used to initialize. */
 	bool bHasEverUpdatedSingleSample;
 
-	/** Whether the primitive this allocation is used for has opaque relevance. */
-	bool bOpaqueRelevance;
+	/** Whether this allocation is a point sample and therefore was not put into the volume texture atlas. */
+	bool bPointSample;
 
 	/** Whether the primitive allocation is dirty and should be updated regardless of having moved. */
 	bool bIsDirty;
@@ -99,7 +99,7 @@ public:
 		return MinTexel.X >= 0 && MinTexel.Y >= 0 && MinTexel.Z >= 0 && AllocationTexelSize > 0;
 	}
 
-	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInOpaqueRelevance)
+	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInPointSample)
 	{
 		Add = InAdd;
 		Scale = InScale;
@@ -108,7 +108,7 @@ public:
 		MinTexel = InMinTexel;
 		AllocationTexelSize = InAllocationTexelSize;
 		bIsDirty = false;
-		bOpaqueRelevance = bInOpaqueRelevance;
+		bPointSample = bInPointSample;
 	}
 };
 

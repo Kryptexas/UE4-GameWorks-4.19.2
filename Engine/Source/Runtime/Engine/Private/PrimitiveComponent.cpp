@@ -79,10 +79,10 @@ UPrimitiveComponent::UPrimitiveComponent(const class FPostConstructInitializePro
 	LpvBiasMultiplier = 1.0f;
 	bCastStaticShadow = true;
 	bCastVolumetricTranslucentShadow = false;
+	IndirectLightingCacheQuality = ILCQ_Point;
 	bSelectable = true;
 	AlwaysLoadOnClient = true;
 	AlwaysLoadOnServer = true;
-	bAllowShadowFade = true;
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bAlwaysCreatePhysicsState = false;
@@ -553,6 +553,11 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == TEXT("LightmassSettings"))
 		{
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
+		}
+
+		if (PropertyName == TEXT("IndirectLightingCacheQuality"))
+		{
+			return Mobility == EComponentMobility::Movable;
 		}
 	}
 

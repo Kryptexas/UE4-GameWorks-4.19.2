@@ -215,7 +215,7 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bRenderInMainPass:1;
 
-	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow, and does not affect voxel lighting. */
+	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow. */
 	UPROPERTY()
 	uint32 HiddenGame_DEPRECATED:1;
 
@@ -320,6 +320,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint32 bLightAttachmentsAsGroup:1;
 
+	/** Quality of indirect lighting for Movable primitives.  This has a large effect on Indirect Lighting Cache update time. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
+
 	UPROPERTY()
 	bool bHasCachedStaticLighting;
 
@@ -346,10 +350,6 @@ public:
 	/** If this is True, this component must always be loaded on servers, even if Hidden and CollisionEnabled is NoCollision */
 	UPROPERTY()
 	uint32 AlwaysLoadOnServer:1;
-
-	/** Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. **/
-	UPROPERTY()
-	uint32 bAllowShadowFade:1;
 
 	/** Composite the drawing of this component onto the scene after post processing (only applies to editor drawing) */
 	UPROPERTY()

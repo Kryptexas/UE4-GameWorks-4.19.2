@@ -240,35 +240,6 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 	#endif
 
-	#if CACHED_POINT_INDIRECT_LIGHTING 
-		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
-
-			FTwoBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
-			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
-			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
-
-			// Compute diffuse lighting which takes the normal into account
-			float3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
-			IndirectIrradiance += Luminance(DiffuseGI);
-
-			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
-
-		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
-
-			FOneBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0].x;
-			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
-			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
-
-			float3 DiffuseGI = DotSH1(PointIndirectLighting, DiffuseTransferSH);
-			IndirectIrradiance += Luminance(DiffuseGI);
-
-			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
-
-		#endif
-	#endif
-
 	#if TRANSLUCENCY_LIGHTING_SURFACE
 		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, IndirectIrradiance);
 	#endif
@@ -299,7 +270,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 
 #if ENABLE_SKY_LIGHT
 
-	float SkyOcclusion = 1;
+	float SkyVisibility = 1;
 	float3 SkyLightingNormal = WorldNormal;
 	
 	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
@@ -312,13 +283,13 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 				float4 WorldSkyBentNormalAndOcclusion = GetSkyBentNormalAndOcclusion(LightmapUV * float2(1, 2));
 				// Renormalize as vector was quantized and compressed
 				float3 NormalizedBentNormal = normalize(WorldSkyBentNormalAndOcclusion.xyz);
-				SkyOcclusion = WorldSkyBentNormalAndOcclusion.w;
+				SkyVisibility = WorldSkyBentNormalAndOcclusion.w;
 
 			#elif CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
 
 				// Bent normal from the indirect lighting cache - one value for the whole object
 				float3 NormalizedBentNormal = PointSkyBentNormal.xyz;
-				SkyOcclusion = PointSkyBentNormal.w;
+				SkyVisibility = PointSkyBentNormal.w;
 
 			#endif
 
@@ -328,7 +299,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 			#else
 				
 				// Weight toward the material normal to increase directionality
-				float BentNormalWeightFactor = 1 - (1 - SkyOcclusion) * (1 - SkyOcclusion);
+				float BentNormalWeightFactor = 1 - (1 - SkyVisibility) * (1 - SkyVisibility);
 
 				// We are lerping between the inputs of two lighting scenarios based on occlusion
 				// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
@@ -338,7 +309,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 
 				float DotProductFactor = lerp(saturate(dot(NormalizedBentNormal, WorldNormal)), 1, BentNormalWeightFactor);
 				// Account for darkening due to the geometry term
-				SkyOcclusion *= DotProductFactor;
+				SkyVisibility *= DotProductFactor;
 			#endif
 		}
 	#endif
@@ -347,13 +318,13 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
-	Lighting += DiffuseLookup * SkyOcclusion;
+	Lighting += DiffuseLookup * SkyVisibility;
 #endif
 
 	return Lighting;
 }
 
-/** Calculates indirect lighting contribution on this object. */
+/** Calculates indirect lighting contribution on this object from precomputed data. */
 float3 GetPrecomputedIndirectLighting(
 	FMaterialPixelParameters MaterialParameters, 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
@@ -364,8 +335,7 @@ float3 GetPrecomputedIndirectLighting(
 	float3 Lighting = 0;
 	float2 SkyOcclusionUV = 0;
 
-	#define AMBIENTONLY 0
-
+	// Method for movable components which want to use a volume texture of interpolated SH samples
 	#if CACHED_VOLUME_INDIRECT_LIGHTING
 	
 		// Compute volume teture UVs from world position
@@ -375,6 +345,8 @@ float3 GetPrecomputedIndirectLighting(
 		VolumeUVs = clamp(VolumeUVs, IndirectlightingCacheMinUV, IndirectlightingCacheMaxUV);
 		float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture0, IndirectLightingCacheTextureSampler0, VolumeUVs);
 
+		// For debugging
+		#define AMBIENTONLY 0
 		#if AMBIENTONLY
 
 			Lighting = Vector0.rgb / SHAmbientFunction() / PI;
@@ -396,6 +368,32 @@ float3 GetPrecomputedIndirectLighting(
 
 		#endif
 
+	// Method for movable components which want to use a single interpolated SH sample
+	#elif CACHED_POINT_INDIRECT_LIGHTING 
+		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
+
+			FOneBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0].x;
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
+
+			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
+			Lighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
+
+		#else
+
+			FTwoBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
+
+			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+			// Compute diffuse lighting which takes the normal into account
+			Lighting = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+
+		#endif
+
+	// High quality texture lightmaps
 	#elif HQ_TEXTURE_LIGHTMAP
 
 		float2 LightmapUV0, LightmapUV1;
@@ -403,6 +401,7 @@ float3 GetPrecomputedIndirectLighting(
 		SkyOcclusionUV = LightmapUV0;
 		Lighting = GetLightMapColorHQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal).rgb;
 
+	// Low quality texture lightmaps
 	#elif LQ_TEXTURE_LIGHTMAP
 
 		float2 LightmapUV0, LightmapUV1;

@@ -26,15 +26,6 @@ FAutoConsoleVariableRef CVarUseTranslucentLightingVolumes(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
-int32 GUseIndirectLightingCacheInLightingVolume = 0;
-FAutoConsoleVariableRef CUseIndirectLightingCacheInLightingVolume(
-	TEXT("r.IndirectLightingCacheInLightingVolume"),
-	GUseIndirectLightingCacheInLightingVolume,
-	TEXT("Whether to use the indirect lighting cache to inject GI into the translucency lighting volume.  Causes extreme hitching at the moment."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
-	);
-
-
 float GTranslucentVolumeMinFOV = 45;
 static FAutoConsoleVariableRef CVarTranslucentVolumeMinFOV(
 	TEXT("r.TranslucentVolumeMinFOV"),
@@ -146,9 +137,9 @@ void FViewInfo::CalcTranslucencyLightingVolumeBounds(FBox* InOutCascadeBoundsArr
 		FSphere SphereBounds(Center, FMath::Sqrt(RadiusSquared));
 
 		// Snap the center to a multiple of the volume dimension for stability
-		SphereBounds.Center.X = SphereBounds.Center.X - FMath::Fmod(SphereBounds.Center.X, SphereBounds.W * 2 * TranslucentVolumeGISratchDownsampleFactor / GTranslucencyLightingVolumeDim);
-		SphereBounds.Center.Y = SphereBounds.Center.Y - FMath::Fmod(SphereBounds.Center.Y, SphereBounds.W * 2 * TranslucentVolumeGISratchDownsampleFactor / GTranslucencyLightingVolumeDim);
-		SphereBounds.Center.Z = SphereBounds.Center.Z - FMath::Fmod(SphereBounds.Center.Z, SphereBounds.W * 2 * TranslucentVolumeGISratchDownsampleFactor / GTranslucencyLightingVolumeDim);
+		SphereBounds.Center.X = SphereBounds.Center.X - FMath::Fmod(SphereBounds.Center.X, SphereBounds.W * 2 / GTranslucencyLightingVolumeDim);
+		SphereBounds.Center.Y = SphereBounds.Center.Y - FMath::Fmod(SphereBounds.Center.Y, SphereBounds.W * 2 / GTranslucencyLightingVolumeDim);
+		SphereBounds.Center.Z = SphereBounds.Center.Z - FMath::Fmod(SphereBounds.Center.Z, SphereBounds.W * 2 / GTranslucencyLightingVolumeDim);
 
 		InOutCascadeBoundsArray[CascadeIndex] = FBox(SphereBounds.Center - SphereBounds.W, SphereBounds.Center + SphereBounds.W);
 	}
@@ -1223,173 +1214,6 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 			
 			RHICmdList.CopyToResolveTarget(GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
 				GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-		}
-	}
-}
-
-
-/** Pixel shader used to filter a single volume lighting cascade. */
-class FCompositeGIForTranslucencyPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FCompositeGIForTranslucencyPS,Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) 
-	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
-	}
-
-	FCompositeGIForTranslucencyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FGlobalShader(Initializer)
-	{
-		IndirectLightingCacheTexture.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTexture"));
-		IndirectLightingCacheTexture1.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTexture1"));
-		IndirectLightingCacheTexture2.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTexture2"));
-		IndirectLightingCacheTextureSampler.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTextureSampler"));
-		IndirectLightingCacheTexture1Sampler.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTexture1Sampler"));
-		IndirectLightingCacheTexture2Sampler.Bind(Initializer.ParameterMap, TEXT("IndirectLightingCacheTexture2Sampler"));
-		IndirectlightingCacheAdd.Bind(Initializer.ParameterMap, TEXT("IndirectlightingCacheAdd"));
-		IndirectlightingCacheScale.Bind(Initializer.ParameterMap, TEXT("IndirectlightingCacheScale"));
-		VolumeCascadeIndex.Bind(Initializer.ParameterMap,TEXT("VolumeCascadeIndex"));
-	}
-	FCompositeGIForTranslucencyPS() {}
-
-	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FSceneViewState* ViewState, int32 VolumeCascadeIndexValue)
-	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		SetShaderValue(RHICmdList, ShaderRHI, VolumeCascadeIndex, VolumeCascadeIndexValue);
-
-		const FIndirectLightingCacheAllocation* LightingAllocation = ViewState->TranslucencyLightingCacheAllocations[VolumeCascadeIndexValue];
-
-		if (LightingAllocation && LightingAllocation->IsValid())
-		{
-			SetShaderValue(RHICmdList, ShaderRHI, IndirectlightingCacheAdd, LightingAllocation->Add);
-			SetShaderValue(RHICmdList, ShaderRHI, IndirectlightingCacheScale, LightingAllocation->Scale);
-
-			FScene* Scene = (FScene*)View.Family->Scene;
-			FIndirectLightingCache& LightingCache = Scene->IndirectLightingCache;
-
-			if (LightingCache.IsInitialized())
-			{
-				SetTextureParameter(
-					RHICmdList, 
-					ShaderRHI,
-					IndirectLightingCacheTexture,
-					IndirectLightingCacheTextureSampler,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					LightingCache.GetTexture0().ShaderResourceTexture
-					);
-
-				SetTextureParameter(
-					RHICmdList, 
-					ShaderRHI,
-					IndirectLightingCacheTexture1,
-					IndirectLightingCacheTexture1Sampler,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					LightingCache.GetTexture1().ShaderResourceTexture
-					);
-
-				SetTextureParameter(
-					RHICmdList, 
-					ShaderRHI,
-					IndirectLightingCacheTexture2,
-					IndirectLightingCacheTexture2Sampler,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					LightingCache.GetTexture2().ShaderResourceTexture
-					);
-			}
-		}
-	}
-
-	virtual bool Serialize(FArchive& Ar)
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << IndirectLightingCacheTexture;
-		Ar << IndirectLightingCacheTexture1;
-		Ar << IndirectLightingCacheTexture2;
-		Ar << IndirectLightingCacheTextureSampler;
-		Ar << IndirectLightingCacheTexture1Sampler;
-		Ar << IndirectLightingCacheTexture2Sampler;
-		Ar << IndirectlightingCacheAdd;
-		Ar << IndirectlightingCacheScale;
-		Ar << VolumeCascadeIndex;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-	FShaderResourceParameter IndirectLightingCacheTexture;
-	FShaderResourceParameter IndirectLightingCacheTexture1;
-	FShaderResourceParameter IndirectLightingCacheTexture2;
-	FShaderResourceParameter IndirectLightingCacheTextureSampler;
-	FShaderResourceParameter IndirectLightingCacheTexture1Sampler;
-	FShaderResourceParameter IndirectLightingCacheTexture2Sampler;
-	FShaderParameter IndirectlightingCacheAdd;
-	FShaderParameter IndirectlightingCacheScale;
-	FShaderParameter VolumeCascadeIndex;
-};
-
-IMPLEMENT_SHADER_TYPE(,FCompositeGIForTranslucencyPS,TEXT("TranslucentLightingShaders"),TEXT("CompositeGIMainPS"),SF_Pixel);
-
-void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting(FRHICommandList& RHICmdList)
-{
-	bool bAnyViewAllowsIndirectLightingCache = false;
-
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{
-		bAnyViewAllowsIndirectLightingCache |= Views[ViewIndex].Family->EngineShowFlags.IndirectLightingCache;
-	}
-
-	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering
-		&& GUseIndirectLightingCacheInLightingVolume
-		&& bAnyViewAllowsIndirectLightingCache)
-	{
-		SCOPED_DRAW_EVENT(CompositeIndirectTranslucentVolumeLighting, DEC_SCENE_ITEMS);
-
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
-
-		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
-
-		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
-		{
-			FTextureRHIParamRef RenderTargets[2];
-			RenderTargets[0] = GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture;
-			RenderTargets[1] = GSceneRenderTargets.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture;
-
-			SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIRef(), 0, NULL);
-
-
-			//@todo - support multiple views
-			const FViewInfo& View = Views[0];
-			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
-
-			if (ViewState 
-				&& View.Family->EngineShowFlags.IndirectLightingCache
-				&& View.Family->EngineShowFlags.GlobalIllumination)
-			{
-				TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
-				TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
-				TShaderMapRef<FCompositeGIForTranslucencyPS> PixelShader(GetGlobalShaderMap());
-
-				static FGlobalBoundShaderState BoundShaderState;
-				
-				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
-
-				PixelShader->SetParameters(RHICmdList, View, ViewState, VolumeCascadeIndex);
-				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
-
-				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
-
-				RHICmdList.CopyToResolveTarget(GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
-					GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-				RHICmdList.CopyToResolveTarget(GSceneRenderTargets.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
-					GSceneRenderTargets.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-			}
 		}
 	}
 }

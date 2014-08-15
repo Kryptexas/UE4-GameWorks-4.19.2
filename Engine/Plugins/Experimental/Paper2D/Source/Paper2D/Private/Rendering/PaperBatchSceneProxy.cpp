@@ -10,6 +10,7 @@
 FPaperBatchSceneProxy::FPaperBatchSceneProxy(const UPrimitiveComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
 {
+	bWillEverBeLit = false;
 }
 
 uint32 FPaperBatchSceneProxy::GetMemoryFootprint() const

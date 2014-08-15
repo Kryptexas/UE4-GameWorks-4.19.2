@@ -109,24 +109,17 @@ static FAutoConsoleVariableRef CVarLightingCacheMovableObjectAllocationSize(
 	TEXT("r.Cache.LightingCacheMovableObjectAllocationSize"),
 	GLightingCacheMovableObjectAllocationSize,
 	TEXT("Resolution of the interpolation sample volume used to light a dynamic object.  \n")
-	TEXT("Values of 1 or 2 will result in a single interpolation sample per object which does not provide continuous lighting under movement, so interpolation over time is done.  \n")
+	TEXT("Values of 1 or 2 will result in a single interpolation sample per object which does not provide continuous lighting under movement, so interpolation is done over time.  \n")
 	TEXT("Values of 3 or more support the necessary padding to provide continuous results under movement."),
 	ECVF_ReadOnly
 	);
 
+// PS4 wants multiple of 16 for fast RHIUpdateTexture3D
 int32 GLightingCacheDimension = 64;
 static FAutoConsoleVariableRef CVarLightingCacheDimension(
 	TEXT("r.Cache.LightingCacheDimension"),
 	GLightingCacheDimension,
 	TEXT("Dimensions of the lighting cache.  This should be a multiple of r.LightingCacheMovableObjectAllocationSize for least waste."),
-	ECVF_ReadOnly
-	);
-
-int32 GLightingCacheUnbuiltPreviewAllocationSize = 1;
-static FAutoConsoleVariableRef CVarLightingCacheUnbuiltPreviewAllocationSize(
-	TEXT("r.Cache.LightingCacheUnbuiltPreviewAllocationSize"),
-	GLightingCacheUnbuiltPreviewAllocationSize,
-	TEXT("Resolution of the interpolation sample volume used to light an object due to unbuilt lighting."),
 	ECVF_ReadOnly
 	);
 
@@ -234,22 +227,33 @@ void FIndirectLightingCache::CalculateBlockPositionAndSize(const FBoxSphereBound
 	const FVector CellSize = RoundedBoundsSize / (EffectiveTexelSize - 2);
 	const FVector BoundsMin = Bounds.Origin - Bounds.BoxExtent;
 
-	FVector SnappedMin;
-	SnappedMin.X = CellSize.X * FMath::FloorToFloat(BoundsMin.X / CellSize.X);
-	SnappedMin.Y = CellSize.Y * FMath::FloorToFloat(BoundsMin.Y / CellSize.Y);
-	SnappedMin.Z = CellSize.Z * FMath::FloorToFloat(BoundsMin.Z / CellSize.Z);
-
 	if (TexelSize > 2)
 	{
+		FVector SnappedMin;
+		SnappedMin.X = CellSize.X * FMath::FloorToFloat(BoundsMin.X / CellSize.X);
+		SnappedMin.Y = CellSize.Y * FMath::FloorToFloat(BoundsMin.Y / CellSize.Y);
+		SnappedMin.Z = CellSize.Z * FMath::FloorToFloat(BoundsMin.Z / CellSize.Z);
+
 		// Shift the min down so that the center of the voxel is at the min
 		// This is necessary so that all pixels inside the bounds only interpolate from valid voxels
 		SnappedMin -= CellSize * .5f;
+
+		const FVector SnappedSize = TexelSize * CellSize;
+
+		OutMin = SnappedMin;
+		OutSize = SnappedSize;
 	}
+	else
+	{
+		FVector SnappedCenter;
+		SnappedCenter.X = CellSize.X * FMath::FloorToFloat((Bounds.Origin.X + .5f * CellSize.X) / CellSize.X);
+		SnappedCenter.Y = CellSize.Y * FMath::FloorToFloat((Bounds.Origin.Y + .5f * CellSize.Y) / CellSize.Y);
+		SnappedCenter.Z = CellSize.Z * FMath::FloorToFloat((Bounds.Origin.Z + .5f * CellSize.Z) / CellSize.Z);
 
-	const FVector SnappedSize = TexelSize * CellSize;
-
-	OutMin = SnappedMin;
-	OutSize = TexelSize > 2 ? SnappedSize : FVector(0);
+		// Place the min at the snapped center of the object, which will be most representative for single sample lighting
+		OutMin = SnappedCenter;
+		OutSize = FVector(0);
+	}
 }
 
 void FIndirectLightingCache::CalculateBlockScaleAndAdd(FIntVector InTexelMin, int32 AllocationTexelSize, FVector InMin, FVector InSize, FVector& OutScale, FVector& OutAdd, FVector& OutMinUV, FVector& OutMaxUV) const
@@ -294,15 +298,17 @@ void FIndirectLightingCache::CalculateBlockScaleAndAdd(FIntVector InTexelMin, in
 
 FIndirectLightingCacheAllocation* FIndirectLightingCache::AllocatePrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bUnbuiltPreview)
 {
-	const int32 BlockSize = bUnbuiltPreview ? GLightingCacheUnbuiltPreviewAllocationSize : GLightingCacheMovableObjectAllocationSize;
-	return PrimitiveAllocations.Add(PrimitiveSceneInfo->PrimitiveComponentId, CreateAllocation(BlockSize, PrimitiveSceneInfo->Proxy->GetBounds(), true));
+	const bool bPointSample = PrimitiveSceneInfo->Proxy->GetIndirectLightingCacheQuality() == ILCQ_Point || bUnbuiltPreview;
+	const int32 BlockSize = bPointSample ? 1 : GLightingCacheMovableObjectAllocationSize;
+	return PrimitiveAllocations.Add(PrimitiveSceneInfo->PrimitiveComponentId, CreateAllocation(BlockSize, PrimitiveSceneInfo->Proxy->GetBounds(), bPointSample));
 }
 
-FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bOpaqueRelevance)
+FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample)
 {
 	FIndirectLightingCacheAllocation* NewAllocation = new FIndirectLightingCacheAllocation();
 	FIndirectLightingCacheBlock NewBlock;
 
+	//@todo - don't allocate point samples from the layout, they don't go through the volume texture
 	if (AllocateBlock(BlockSize, NewBlock.MinTexel))
 	{
 		NewBlock.TexelSize = BlockSize;
@@ -315,7 +321,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32
 		CalculateBlockScaleAndAdd(NewBlock.MinTexel, NewBlock.TexelSize, NewBlock.Min, NewBlock.Size, Scale, Add, MinUV, MaxUV);
 
 		VolumeBlocks.Add(NewBlock.MinTexel, NewBlock);
-		NewAllocation->SetParameters(NewBlock.MinTexel, NewBlock.TexelSize, Scale, Add, MinUV, MaxUV, bOpaqueRelevance);
+		NewAllocation->SetParameters(NewBlock.MinTexel, NewBlock.TexelSize, Scale, Add, MinUV, MaxUV, bPointSample);
 	}
 
 	return NewAllocation;
@@ -389,8 +395,6 @@ void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer
 						UpdateCachePrimitive(Scene, PrimitiveSceneInfo, bAllowUnbuiltPreview, PrimitiveRelevance.bOpaqueRelevance, BlocksToUpdate, TransitionsOverTimeToUpdate);
 					}
 				}
-
-				UpdateTranslucentVolumeCache(View, BlocksToUpdate, TransitionsOverTimeToUpdate);
 			}
 
 			UpdateBlocks(Scene, Renderer.Views.GetTypedData(), BlocksToUpdate);
@@ -417,7 +421,7 @@ void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer
 void FIndirectLightingCache::UpdateCacheAllocation(
 	const FBoxSphereBounds& Bounds, 
 	int32 BlockSize,
-	bool bOpaqueRelevance,
+	bool bPointSample,
 	FIndirectLightingCacheAllocation*& Allocation, 
 	TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate,
 	TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate)
@@ -444,7 +448,7 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 			FVector MaxUV;
 			CalculateBlockScaleAndAdd(Allocation->MinTexel, Allocation->AllocationTexelSize, NewMin, NewSize, NewScale, NewAdd, MinUV, MaxUV);
 
-			Allocation->SetParameters(Allocation->MinTexel, Allocation->AllocationTexelSize, NewScale, NewAdd, MinUV, MaxUV, bOpaqueRelevance);
+			Allocation->SetParameters(Allocation->MinTexel, Allocation->AllocationTexelSize, NewScale, NewAdd, MinUV, MaxUV, bPointSample);
 			BlocksToUpdate.Add(Block.MinTexel, FBlockUpdateInfo(Block, Allocation));
 		}
 
@@ -456,30 +460,12 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 	else
 	{
 		delete Allocation;
-		Allocation = CreateAllocation(BlockSize, Bounds, bOpaqueRelevance);
+		Allocation = CreateAllocation(BlockSize, Bounds, bPointSample);
 
 		if (Allocation->IsValid())
 		{
 			// Must interpolate lighting for this new block
 			BlocksToUpdate.Add(Allocation->MinTexel, FBlockUpdateInfo(VolumeBlocks.FindChecked(Allocation->MinTexel), Allocation));
-		}
-	}
-}
-
-void FIndirectLightingCache::UpdateTranslucentVolumeCache(FViewInfo& View, TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate)
-{
-	extern int32 GUseIndirectLightingCacheInLightingVolume;
-
-	if (View.State && GUseIndirectLightingCacheInLightingVolume && GSupportsVolumeTextureRendering)
-	{
-		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(ViewState->TranslucencyLightingCacheAllocations); CascadeIndex++)
-		{
-			FIndirectLightingCacheAllocation*& Allocation = ViewState->TranslucencyLightingCacheAllocations[CascadeIndex];
-			const FBoxSphereBounds Bounds(FBox(View.TranslucencyLightingVolumeMin[CascadeIndex], View.TranslucencyLightingVolumeMin[CascadeIndex] + View.TranslucencyLightingVolumeSize[CascadeIndex]));
-
-			UpdateCacheAllocation(Bounds, GTranslucencyLightingVolumeDim / 4, true, Allocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
 		}
 	}
 }
@@ -496,9 +482,9 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 	FIndirectLightingCacheAllocation** PrimitiveAllocationPtr = PrimitiveAllocations.Find(PrimitiveSceneInfo->PrimitiveComponentId);
 	FIndirectLightingCacheAllocation* PrimitiveAllocation = PrimitiveAllocationPtr != NULL ? *PrimitiveAllocationPtr : NULL;
 
-	if (PrimitiveSceneProxy->WillEverBeLit() 
-		&& ((bAllowUnbuiltPreview && PrimitiveSceneProxy->HasStaticLighting() && PrimitiveAllocation && PrimitiveAllocation->bIsDirty)
-		|| PrimitiveSceneProxy->IsMovable()))
+	if (PrimitiveSceneProxy->WillEverBeLit()
+		&& (bAllowUnbuiltPreview && PrimitiveSceneProxy->HasStaticLighting() && PrimitiveAllocation && PrimitiveAllocation->bIsDirty
+		|| (PrimitiveSceneProxy->IsMovable() && PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off)))
 	{
 		const FIndirectLightingCacheAllocation* AttachmentParentAllocation = NULL;
 
@@ -521,10 +507,11 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 		{
 			FIndirectLightingCacheAllocation* OriginalAllocation = PrimitiveAllocation;
 			const bool bUnbuiltPreview = bAllowUnbuiltPreview && !PrimitiveSceneProxy->IsMovable();
-			const int32 BlockSize = bUnbuiltPreview ? GLightingCacheUnbuiltPreviewAllocationSize : GLightingCacheMovableObjectAllocationSize;
+			const bool bPointSample = PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Point || bUnbuiltPreview || !bOpaqueRelevance;
+			const int32 BlockSize = bPointSample ? 1 : GLightingCacheMovableObjectAllocationSize;
 
 			// Light with the cumulative bounds of the entire attachment group
-			UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bOpaqueRelevance, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
+			UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bPointSample, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
 
 			// Cache the primitive allocation pointer on the FPrimitiveSceneInfo for base pass rendering
 			PrimitiveSceneInfo->IndirectLightingCacheAllocation = PrimitiveAllocation;
@@ -609,7 +596,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	float DirectionalShadowing = 1;
 	FVector SkyBentNormal(0, 0, 1);
 
-	if (CanIndirectLightingCacheUseVolumeTexture(GetFeatureLevel()) && BlockInfo.Allocation->bOpaqueRelevance)
+	if (CanIndirectLightingCacheUseVolumeTexture(GetFeatureLevel()) && !BlockInfo.Allocation->bPointSample)
 	{
 		static TArray<float> AccumulatedWeight;
 		AccumulatedWeight.Reset(NumSamplesPerBlock);
@@ -640,6 +627,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 		check(FormatSize == sizeof(FFloat16Color));
 
 		// Encode the SH samples into a texture format
+		// Note the single sample is updated even if this is a volume allocation, because translucent materials only use the single sample
 		EncodeBlock(DebugDrawingView, BlockInfo.Block, AccumulatedWeight, AccumulatedIncidentRadiance, AccumulatedSkyBentNormal, Texture0Data, Texture1Data, Texture2Data, SingleSample, SkyBentNormal);
 
 		// Setup an update region
@@ -662,6 +650,13 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	else
 	{
 		InterpolatePoint(Scene, BlockInfo.Block, DirectionalShadowing, SingleSample, SkyBentNormal);
+
+		if (GCacheDrawInterpolationPoints != 0 && DebugDrawingView)
+		{
+			FViewElementPDI DebugPDI(DebugDrawingView, NULL);
+			const FVector WorldPosition = BlockInfo.Block.Min;
+			DebugPDI.DrawPoint(WorldPosition, FLinearColor(0, 0, 1), 10, SDPG_World);
+		}
 	}
 
 	// Record the position that the sample was taken at

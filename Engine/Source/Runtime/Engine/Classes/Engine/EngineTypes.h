@@ -64,6 +64,17 @@ enum ESceneDepthPriorityGroup
 	SDPG_MAX,
 };
 
+UENUM()
+enum EIndirectLightingCacheQuality
+{
+	/** The indirect lighting cache will be disabled for this object, so no GI from stationary lights on movable objects. */
+	ILCQ_Off,
+	/** A single indirect lighting sample computed at the bounds origin will be interpolated which fades over time to newer results. */
+	ILCQ_Point,
+	/** The object will get a 5x5x5 stable volume of interpolated indirect lighting, which allows gradients of lighting intensity across the receiving object. */
+	ILCQ_Volume
+};
+
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
 // Note: Check UMaterialInstance::Serialize if changed!!
 UENUM(BlueprintType)
