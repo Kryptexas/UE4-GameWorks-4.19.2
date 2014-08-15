@@ -158,10 +158,13 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetParentClass, Package, FName(*Name), BPTYPE_Normal, TargetParentBP->GetClass(), UBlueprintGeneratedClass::StaticClass());
 			if (NewBP)
 			{
-				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
-
 				// Notify the asset registry
 				FAssetRegistryModule::AssetCreated(NewBP);
+
+				// the editor should be opened AFTER being added to the asset 
+				// registry (some systems could queue off of the asset registry 
+				// add event, and already having that blueprint open can be odd)
+				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
 
 				// Mark the package dirty...
 				Package->MarkPackageDirty();
