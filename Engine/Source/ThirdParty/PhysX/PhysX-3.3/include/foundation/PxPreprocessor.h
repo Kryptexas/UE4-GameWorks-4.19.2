@@ -131,7 +131,7 @@ Platform define
 #   elif defined(__ppc64__)
 #       define PX_PPC
 #	define PX_PPC64
-#	elif defined (HTML5)
+#	elif defined (EMSCRIPTEN)
 #       define PX_HTML5
 #   else
 #	error "Unknown platform"
