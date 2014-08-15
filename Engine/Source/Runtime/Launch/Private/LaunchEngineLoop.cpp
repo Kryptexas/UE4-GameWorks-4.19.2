@@ -2584,7 +2584,7 @@ void FEngineLoop::PreInitHMDDevice()
 #if WITH_ENGINE
 	if (!GIsEditor)
 	{
-#if 0	//@todo vr: only preinit first valid hmd
+		//@todo vr: only preinit first valid hmd?
 		if (!FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
 		{
 			// Get a list of plugins that implement this feature
@@ -2594,7 +2594,6 @@ void FEngineLoop::PreInitHMDDevice()
 				(*HMDModuleIt)->PreInit();
 			}
 		}
-#endif
 	}
 #endif // #if WITH_ENGINE
 }

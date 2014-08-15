@@ -149,8 +149,8 @@ public:
     virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) = 0;
 
 	/**
-	* Returns true, if HMD allows fullscreen mode.
-	*/
+	 * Returns true, if HMD allows fullscreen mode.
+	 */
 	virtual bool IsFullScreenAllowed() const { return true; }
 
 	/**
@@ -215,10 +215,10 @@ public:
 	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) {}
 
 	/**
-	* Passing key events to HMD.
-	* If returns 'false' then key will be handled by PlayerController;
-	* otherwise, key won't be handled by the PlayerController.
-	*/
+	 * Passing key events to HMD.
+	 * If returns 'false' then key will be handled by PlayerController;
+	 * otherwise, key won't be handled by the PlayerController.
+	 */
 	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
 
 	/** 

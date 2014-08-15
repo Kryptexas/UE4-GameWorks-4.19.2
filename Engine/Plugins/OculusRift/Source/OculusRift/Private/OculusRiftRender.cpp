@@ -173,22 +173,6 @@ void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFami
 		RenderParams_RenderThread.pDistortionMesh[1] = pDistortionMesh[1];
 		RenderParams_RenderThread.bTimeWarp = bTimeWarp;
 	}
-	RenderParams_RenderThread.bFrameBegun = true;
-
-	// get latest orientation/position and cache it
-	if (bUpdateOnRT)
-	{
-		Lock::Locker lock(&UpdateOnRTLock);
-		if (!RenderParams_RenderThread.bTimeWarp)
-		{
-			GetCurrentOrientationAndPosition(CurHmdOrientation, CurHmdPosition);
-			RenderParams_RenderThread.CurHmdOrientation = CurHmdOrientation;
-			RenderParams_RenderThread.CurHmdPosition = CurHmdPosition;
-		}
-
-		RenderParams_RenderThread.LastHmdPosition = LastHmdPosition;
-		RenderParams_RenderThread.DeltaControlOrientation = DeltaControlOrientation;
-	}
 #else
 	{
 		// make a copy of StereoParams to access from the RenderThread.
@@ -199,6 +183,7 @@ void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFami
 		RenderParams_RenderThread.EyeFov[1] = EyeFov[1];
 		RenderParams_RenderThread.bTimeWarp = bTimeWarp;
 	}
+#endif
 	// get latest orientation/position and cache it
 	if (bUpdateOnRT)
 	{
@@ -208,7 +193,6 @@ void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFami
 	}
 
 	BeginRendering_RenderThread();
-#endif
 }
 
 void FOculusRiftHMD::PreRenderView_RenderThread(FSceneView& View)
@@ -219,37 +203,13 @@ void FOculusRiftHMD::PreRenderView_RenderThread(FSceneView& View)
 		return;
 
 	const ovrEyeType eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
-#ifdef OVR_DIRECT_RENDERING
-	FQuat		CurrentHmdOrientation;
-	FVector		CurrentHmdPosition;
-	if (RenderParams_RenderThread.bFrameBegun)
-	{
-		// Get new predicted pose to corresponding eye.
-		RenderParams_RenderThread.EyeRenderPose[eyeIdx] = ovrHmd_BeginEyeRender(Hmd, eyeIdx);
-		PoseToOrientationAndPosition(RenderParams_RenderThread.EyeRenderPose[eyeIdx], CurrentHmdOrientation, CurrentHmdPosition);
-	}
-	else
-	{
-		CurrentHmdOrientation = FQuat::Identity;
-		CurrentHmdPosition    = FVector::ZeroVector;
-	}
-#else
 	FQuat	CurrentHmdOrientation;
 	FVector	CurrentHmdPosition;
 
-	if (RenderParams_RenderThread.bTimeWarp)
-	{
-		// Get new predicted pose to corresponding eye.
-		ovrPosef eyeRenderPose = ovrHmd_GetEyePose(Hmd, eyeIdx);
-		PoseToOrientationAndPosition(eyeRenderPose, CurrentHmdOrientation, CurrentHmdPosition);
-		RenderParams_RenderThread.EyeRenderPose[eyeIdx] = eyeRenderPose;
-	}
-	else
-	{
-		CurrentHmdOrientation = RenderParams_RenderThread.CurHmdOrientation;
-		CurrentHmdPosition    = RenderParams_RenderThread.CurHmdPosition;
-	}
-#endif
+	// Get new predicted pose to corresponding eye.
+	ovrPosef eyeRenderPose = ovrHmd_GetEyePose(Hmd, eyeIdx);
+	PoseToOrientationAndPosition(eyeRenderPose, CurrentHmdOrientation, CurrentHmdPosition);
+	RenderParams_RenderThread.EyeRenderPose[eyeIdx] = eyeRenderPose;
 
 	if (bUpdateOnRT)
 	{
@@ -261,6 +221,29 @@ void FOculusRiftHMD::PreRenderView_RenderThread(FSceneView& View)
 		View.UpdateViewMatrix();
 	}
 }
+
+void FOculusRiftHMD::BeginRendering_RenderThread()
+{
+	check(IsInRenderingThread());
+	if (RenderParams_RenderThread.bFrameBegun)
+	{
+		return;
+	}
+
+#ifdef OVR_DIRECT_RENDERING 
+	{
+		Lock::Locker lock(&StereoParamsLock);
+
+		GetActiveRHIBridgeImpl()->BeginRendering();
+	}
+
+	ovrHmd_BeginFrame(Hmd, 0);
+#else
+	ovrHmd_BeginFrameTiming(Hmd, 0);
+#endif
+	RenderParams_RenderThread.bFrameBegun = true;
+}
+
 
 #ifdef OVR_DIRECT_RENDERING 
 FOculusRiftHMD::BridgeBaseImpl* FOculusRiftHMD::GetActiveRHIBridgeImpl()
@@ -278,35 +261,6 @@ FOculusRiftHMD::BridgeBaseImpl* FOculusRiftHMD::GetActiveRHIBridgeImpl()
 	}
 #endif
 	return nullptr;
-}
-
-void FOculusRiftHMD::BeginRendering_RenderThread()
-{
-	check(IsInRenderingThread());
-	{
-		Lock::Locker lock(&StereoParamsLock);
-
-		GetActiveRHIBridgeImpl()->BeginRendering();
-	}
-
-	ovrHmd_BeginFrame(Hmd, 0);
-	RenderParams_RenderThread.bFrameBegun = true;
-}
-
-void FOculusRiftHMD::FinishRendering_RenderThread()
-{
-	check(IsInRenderingThread())
-
-	if (RenderParams_RenderThread.bFrameBegun)
-	{
-		// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
-		ovrHmd_EndFrame(Hmd); // This function will present
-		RenderParams_RenderThread.bFrameBegun = false;
-	}
-	else
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
-	}
 }
 
 void FOculusRiftHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const
@@ -526,7 +480,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		Str = FString::Printf(TEXT("W-to-m scale: %.2f uu/m"), WorldToMetersScale);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
-		if ((HmdDesc.HmdCaps & ovrHmdCap_LatencyTest) != 0)
+		if ((SupportedHmdCaps & ovrHmdCap_DynamicPrediction) != 0)
 		{
 			float latencies[3] = { 0.0f, 0.0f, 0.0f };
 			if (ovrHmd_GetFloatArray(Hmd, "DK2Latency", latencies, 3) == 3)
@@ -550,7 +504,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		X = (int32)LeftPos + 200;
 		Y = (int32)TopPos;
 
-		StatusStr = ((SupportedSensorCaps & ovrSensorCap_Position) != 0) ?
+		StatusStr = ((SupportedTrackingCaps & ovrTrackingCap_Position) != 0) ?
 			((bHmdPosTracking) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
 		Str = FString::Printf(TEXT("PosTr: %s"), *StatusStr);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
@@ -569,8 +523,67 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		Str = FString::Printf(TEXT("LowPers: %s"), *StatusStr);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		Y += RowHeight;
+
+		StatusStr = ((SupportedDistortionCaps & ovrDistortionCap_Overdrive) != 0) ?
+			((bOverdrive) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
+		Str = FString::Printf(TEXT("Overdrive: %s"), *StatusStr);
+		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
+		Y += RowHeight;
 	}
 #endif // #if !UE_BUILD_SHIPPING
+}
+
+void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport)
+{
+	check(IsInGameThread());
+
+	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
+
+	if (!IsStereoEnabled())
+	{
+		if (!bUseSeparateRenderTarget)
+		{
+			ViewportRHI->SetCustomPresent(nullptr);
+		}
+#if PLATFORM_WINDOWS
+		if (OSWindowHandle)
+		{
+			ovrHmd_AttachToWindow(Hmd, NULL, NULL, NULL);
+			OSWindowHandle = nullptr;
+		}
+#endif
+		return;
+	}
+
+#if PLATFORM_WINDOWS
+	void *wnd = ViewportRHI->GetNativeWindow();
+	if (wnd && wnd != OSWindowHandle)
+	{
+		OSWindowHandle = wnd;
+		HWND Window = *(HWND*)wnd;
+		ovrHmd_AttachToWindow(Hmd, Window, NULL, NULL);
+	}
+#endif
+
+#ifdef OVR_DIRECT_RENDERING
+
+	check(GetActiveRHIBridgeImpl());
+
+	const FTexture2DRHIRef& RT = InViewport.GetRenderTargetTexture();
+	check(IsValidRef(RT));
+	const FIntPoint NewEyeRTSize = FIntPoint((RT->GetSizeX() + 1) / 2, RT->GetSizeY());
+	if (EyeViewportSize != NewEyeRTSize)
+	{
+		EyeViewportSize.X = NewEyeRTSize.X;
+		EyeViewportSize.Y = NewEyeRTSize.Y;
+		bNeedUpdateStereoRenderingParams = true;
+	}
+	if (bNeedUpdateStereoRenderingParams)
+	{
+		UpdateStereoRenderingParams();
+	}
+	GetActiveRHIBridgeImpl()->UpdateViewport(InViewport, ViewportRHI);
+#endif // #ifdef OVR_DIRECT_RENDERING
 }
 
 #ifdef OVR_DIRECT_RENDERING
@@ -595,36 +608,6 @@ void FOculusRiftHMD::ShutdownRendering()
 	Hmd = nullptr;
 }
 
-void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport)
-{
-	check(IsInGameThread());
-
-	FRHIViewport* const ViewportRHI = Viewport.GetViewportRHI().GetReference();
-	
-	if (!bUseSeparateRenderTarget || !IsStereoEnabled())
-	{
-		ViewportRHI->SetCustomPresent(nullptr);
-		return;
-	}
-
-	check(GetActiveRHIBridgeImpl());
-
-	const FTexture2DRHIRef& RT   = Viewport.GetRenderTargetTexture();
-	check(IsValidRef(RT));
-	const FIntPoint NewEyeRTSize = FIntPoint((RT->GetSizeX() + 1)/2, RT->GetSizeY());
-	if (EyeViewportSize != NewEyeRTSize)
-	{
-		EyeViewportSize.X = NewEyeRTSize.X;
-		EyeViewportSize.Y = NewEyeRTSize.Y;
-		bNeedUpdateStereoRenderingParams = true;
-	}
-	if (bNeedUpdateStereoRenderingParams)
-	{
-		UpdateStereoRenderingParams();
-	}
-	GetActiveRHIBridgeImpl()->UpdateViewport(Viewport, ViewportRHI);
-}
-
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 FOculusRiftHMD::D3D11Bridge::D3D11Bridge(FOculusRiftHMD* plugin):
 	BridgeBaseImpl(plugin), 
@@ -644,7 +627,7 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering()
 		{
 			OVR::Lock::Locker lock(&ModifyLock);
 			check(Cfg.D3D11.pSwapChain); // make sure Config is initialized
-			(Plugin->bTimeWarp) ? Plugin->DistortionCaps |= ovrDistortionCap_TimeWarp : Plugin->DistortionCaps &= ~ovrDistortionCap_TimeWarp;
+			Plugin->UpdateDistortionCaps();
 			if (!ovrHmd_ConfigureRendering(Plugin->Hmd, &Cfg.Config, Plugin->DistortionCaps, 
 				Plugin->RenderParams_RenderThread.EyeFov, Plugin->RenderParams_RenderThread.EyeRenderDesc))
 			{
@@ -707,11 +690,14 @@ void FOculusRiftHMD::D3D11Bridge::FinishRendering()
 	check(IsInRenderingThread());
 	if (Plugin->RenderParams_RenderThread.bFrameBegun)
 	{
-		if (Plugin->RenderParams_RenderThread.ShowFlags.Rendering)
-		{
-			ovrHmd_EndEyeRender(Plugin->Hmd, ovrEye_Left, Plugin->RenderParams_RenderThread.EyeRenderPose[0], &EyeTexture_RenderThread[0].Texture);
-			ovrHmd_EndEyeRender(Plugin->Hmd, ovrEye_Right, Plugin->RenderParams_RenderThread.EyeRenderPose[1], &EyeTexture_RenderThread[1].Texture);
-		}
+		// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
+		const ovrTexture eyeTextures[2] = { EyeTexture_RenderThread[0].Texture, EyeTexture_RenderThread[1].Texture };
+		ovrHmd_EndFrame(Plugin->Hmd, Plugin->RenderParams_RenderThread.EyeRenderPose, eyeTextures); // This function will present
+		Plugin->RenderParams_RenderThread.bFrameBegun = false;
+	}
+	else
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
 	}
 }
 
@@ -914,8 +900,6 @@ bool FOculusRiftHMD::D3D11Bridge::Present(int SyncInterval)
 
 	FinishRendering();
 
-	Plugin->FinishRendering_RenderThread();
-
 	return false; // indicates that we are presenting here, UE shouldn't do Present.
 }
 #endif // #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
@@ -939,9 +923,7 @@ void FOculusRiftHMD::OGLBridge::BeginRendering()
 		if (bNeedReinitRendererAPI)
 		{
 			OVR::Lock::Locker lock(&ModifyLock);
-			Plugin->DistortionCaps &= ~ovrDistortionCap_SRGB;
-			Plugin->DistortionCaps |= ovrDistortionCap_FlipInput;
-			(Plugin->bTimeWarp) ? Plugin->DistortionCaps |= ovrDistortionCap_TimeWarp : Plugin->DistortionCaps &= ~ovrDistortionCap_TimeWarp;
+			Plugin->UpdateDistortionCaps();
 			if (!ovrHmd_ConfigureRendering(Plugin->Hmd, &Cfg.Config, Plugin->DistortionCaps, 
 				Plugin->RenderParams_RenderThread.EyeFov, Plugin->RenderParams_RenderThread.EyeRenderDesc))
 			{
@@ -963,13 +945,18 @@ void FOculusRiftHMD::OGLBridge::BeginRendering()
 
 void FOculusRiftHMD::OGLBridge::FinishRendering()
 {
+	check(IsInRenderingThread());
+
 	if (Plugin->RenderParams_RenderThread.bFrameBegun)
 	{
-		if (Plugin->RenderParams_RenderThread.ShowFlags.Rendering)
-		{
-			ovrHmd_EndEyeRender(Plugin->Hmd, ovrEye_Left, Plugin->RenderParams_RenderThread.EyeRenderPose[0], &EyeTexture_RenderThread[0].Texture);
-			ovrHmd_EndEyeRender(Plugin->Hmd, ovrEye_Right, Plugin->RenderParams_RenderThread.EyeRenderPose[1], &EyeTexture_RenderThread[1].Texture);
-		}
+		// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
+		const ovrTexture eyeTextures[2] = { EyeTexture_RenderThread[0].Texture, EyeTexture_RenderThread[1].Texture };
+		ovrHmd_EndFrame(Plugin->Hmd, Plugin->RenderParams_RenderThread.EyeRenderPose, eyeTextures); // This function will present
+		Plugin->RenderParams_RenderThread.bFrameBegun = false;
+	}
+	else
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
 	}
 }
 
@@ -1067,8 +1054,6 @@ bool FOculusRiftHMD::OGLBridge::Present(int SyncInterval)
 	check(IsInRenderingThread());
 
 	FinishRendering();
-
-	Plugin->FinishRendering_RenderThread();
 
 	return false; // indicates that we are presenting here, UE shouldn't do Present.
 }
