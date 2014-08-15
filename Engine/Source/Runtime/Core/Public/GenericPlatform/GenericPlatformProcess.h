@@ -322,6 +322,8 @@ struct CORE_API FGenericPlatformProcess
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	/** Returns the Name of process given by the PID.  Returns Empty string "" if PID not found. */
 	static FString GetApplicationName( uint32 ProcessId );
+	/** Outputs the virtual memory usage, of the process with the specified PID */
+	static bool GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage);
 	/** Returns true if the specified application has a visible window, and that window is active/has focus/is selected */
 	static bool IsThisApplicationForeground();	
 

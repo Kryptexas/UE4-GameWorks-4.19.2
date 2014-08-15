@@ -181,6 +181,12 @@ bool FGenericPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32
 	return false;
 }
 
+bool FGenericPlatformProcess::GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::GetApplicationMemoryUsage: not implemented on this platform"));
+	return false;
+}
+
 bool FGenericPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::IsApplicationRunning not implemented on this platform"));

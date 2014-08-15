@@ -13,10 +13,7 @@
 	#include <shlobj.h>
 	#include <LM.h>
 	#include <tlhelp32.h>
-
-#if WINVER == 0x0502
 	#include <Psapi.h>
-#endif
 
 	namespace ProcessConstants
 	{
@@ -29,9 +26,7 @@
 #include "HideWindowsPlatformTypes.h"
 #include "WindowsPlatformMisc.h"
 
-#if WINVER == 0x0502
-	#pragma comment(lib, "psapi.lib")
-#endif
+#pragma comment(lib, "psapi.lib")
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
@@ -375,6 +370,27 @@ void FWindowsPlatformProcess::SetThreadAffinityMask( uint64 AffinityMask )
 bool FWindowsPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode )
 {
 	return ::GetExitCodeProcess( ProcHandle.Get(), (::DWORD *)ReturnCode ) && *((uint32*)ReturnCode) != ProcessConstants::WIN_STILL_ACTIVE;
+}
+
+bool FWindowsPlatformProcess::GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage)
+{
+	bool bSuccess = false;
+	HANDLE ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, ProcessId);
+
+	if (ProcessHandle != NULL)
+	{
+		PROCESS_MEMORY_COUNTERS_EX MemoryInfo;
+
+		if (GetProcessMemoryInfo(ProcessHandle, (PROCESS_MEMORY_COUNTERS*)&MemoryInfo, sizeof(MemoryInfo)))
+		{
+			*OutMemoryUsage = MemoryInfo.PrivateUsage;
+			bSuccess = true;
+		}
+
+		::CloseHandle(ProcessHandle);
+	}
+
+	return bSuccess;
 }
 
 bool FWindowsPlatformProcess::IsApplicationRunning( uint32 ProcessId )
