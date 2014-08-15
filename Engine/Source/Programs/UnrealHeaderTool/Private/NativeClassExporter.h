@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Class.h"
+#include "ParserClass.h"
 #include "Classes.h"
 
 //

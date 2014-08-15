@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
-#include "Class.h"
+#include "ParserClass.h"
 #include "Classes.h"
 #include "ClassMaps.h"
 
