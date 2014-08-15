@@ -79,6 +79,9 @@ public:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
 	uint32 bHasBeenCreated:1;
 
+	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
+	uint32 bHasBeenInitialized:1;
+
 	UFUNCTION()
 	void OnRep_IsActive();
 
@@ -253,6 +256,12 @@ public:
 	 * Requires component to be registered, and bWantsInitializeComponent to be TRUE.
 	 */
 	virtual void InitializeComponent();
+
+	/**
+	 * Ends gameplay for this component.
+	 * Called from AActor::EndPlay only if bHasBeenInitialized is true
+	 */
+	virtual void UninitializeComponent();
 
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions

@@ -1551,6 +1551,9 @@ public:
 	/** Iterate over components array and call InitializeComponent */
 	void InitializeComponents();
 
+	/** Iterate over components array and call UninitializeComponent */
+	void UninitializeComponents();
+
 	/** Debug rendering to visualize the component tree for this actor. */
 	void DrawDebugComponents(FColor const& BaseColor=FColor::White) const;
 

@@ -283,6 +283,12 @@ FString UActorComponent::GetReadableName() const
 
 void UActorComponent::BeginDestroy()
 {
+	// Ensure that we call UninitializeComponent before we destroy this component
+	if (bHasBeenInitialized)
+	{
+		UninitializeComponent();
+	}
+
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if(bHasBeenCreated)
 	{
@@ -437,13 +443,19 @@ void UActorComponent::OnRegister()
 void UActorComponent::OnUnregister()
 {
 	check(bRegistered);
-
 	bRegistered = false;
 }
 
 void UActorComponent::InitializeComponent()
 {
 	check(bRegistered);
+	bHasBeenInitialized = true;
+}
+
+void UActorComponent::UninitializeComponent()
+{
+	check(bHasBeenInitialized);
+	bHasBeenInitialized = false;
 }
 
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)

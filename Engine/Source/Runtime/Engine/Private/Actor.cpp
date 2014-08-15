@@ -1481,6 +1481,8 @@ void AActor::OnRep_Instigator() {}
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	UninitializeComponents();
+
 	// Dispatch the blueprint events
 	ReceiveEndPlay(EndPlayReason);
 	OnEndPlay.Broadcast(EndPlayReason);
@@ -3129,9 +3131,8 @@ void AActor::InitializeComponents()
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
 
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : Components)
 	{
-		UActorComponent* ActorComp = Components[Idx];
 		if (ActorComp->bWantsInitializeComponent && ActorComp->IsRegistered())
 		{
 			ActorComp->InitializeComponent();
@@ -3139,6 +3140,19 @@ void AActor::InitializeComponents()
 	}
 }
 
+void AActor::UninitializeComponents()
+{
+	TArray<UActorComponent*> Components;
+	GetComponents(Components);
+
+	for (UActorComponent* ActorComp : Components)
+	{
+		if (ActorComp->bHasBeenInitialized)
+		{
+			ActorComp->UninitializeComponent();
+		}
+	}
+}
 
 void AActor::DrawDebugComponents(FColor const& BaseColor) const
 {
