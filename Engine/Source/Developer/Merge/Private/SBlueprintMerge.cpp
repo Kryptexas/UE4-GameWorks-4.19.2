@@ -4,18 +4,18 @@
 
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
+#include "IDiffControl.h"
 #include "ISourceControlModule.h"
 #include "SBlueprintEditorToolbar.h"
 #include "SBlueprintMerge.h"
+#include "SMergeDetailsView.h"
 #include "SMergeGraphView.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
 SBlueprintMerge::SBlueprintMerge()
 	: Data()
-	, GraphView()
-	, ComponentsView()
-	, DefaultsView()
+	, CurrentDiffControl( NULL )
 {
 }
 
@@ -25,9 +25,65 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 
 	Data = InData;
 
-	GraphView = SNew( SMergeGraphView, InData );
-	ComponentsView = SNew(SBorder);
-	DefaultsView = SNew(SBorder);
+	TSharedPtr<SMergeGraphView> GraphView = SNew( SMergeGraphView, InData );
+	GraphControl.Widget = GraphView;
+	GraphControl.DiffControl = GraphView.Get();
+
+	TreeControl.Widget = SNew(SBorder);
+
+	auto DetailsView = SNew( SMergeDetailsView, InData );
+	DetailsControl.Widget = DetailsView;
+	DetailsControl.DiffControl = &DetailsView.Get();
+
+	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
+	ToolbarBuilder.AddToolBarButton( 
+		FUIAction( FExecuteAction::CreateSP(this, &SBlueprintMerge::PrevDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::CanCycleDiffs) )
+		, NAME_None
+		, LOCTEXT("PrevMergeLabel", "Prev")
+		, LOCTEXT("PrevMergeTooltip", "Go to previous difference")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.PrevDiff")
+	);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::NextDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::CanCycleDiffs))
+		, NAME_None
+		, LOCTEXT("NextMergeLabel", "Next")
+		, LOCTEXT("NextMergeTooltip", "Go to next difference")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.NextDiff") 
+	);
+	ToolbarBuilder.AddSeparator();
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptResultClicked) )
+		, NAME_None
+		, LOCTEXT("FinishMergeLabel", "Finish Merge")
+		, LOCTEXT("FinishMergeTooltip", "Complete the merge operation - saves the blueprint and resolves the conflict with the SCC provider")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.Finish")
+	);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnCancelClicked))
+		, NAME_None
+		, LOCTEXT("CancelMergeLabel", "Cancel")
+		, LOCTEXT("CancelMergeTooltip", "Abort the merge operation")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.Cancel")
+	);
+
+	ChildSlot [
+		SNew( SVerticalBox )
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( SHorizontalBox )
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				ToolbarBuilder.MakeWidget()
+			]
+		]
+		+ SVerticalBox::Slot()
+		[
+			SAssignNew(MainView, SBorder)
+			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+		]
+	];
 
 	InData.OwningEditor.Pin()->OnModeSet().AddSP( this, &SBlueprintMerge::OnModeChanged );
 	OnModeChanged( InData.OwningEditor.Pin()->GetCurrentMode() );
@@ -61,11 +117,26 @@ UBlueprint* SBlueprintMerge::GetTargetBlueprint()
 	return Data.OwningEditor.Pin()->GetBlueprintObj();
 }
 
-FReply SBlueprintMerge::OnAcceptResultClicked()
+void SBlueprintMerge::NextDiff()
+{
+	CurrentDiffControl->NextDiff();
+}
+
+void SBlueprintMerge::PrevDiff()
+{
+	CurrentDiffControl->PrevDiff();
+}
+
+bool SBlueprintMerge::CanCycleDiffs() const
+{
+	return CurrentDiffControl && CurrentDiffControl->HasDifferences();
+}
+
+void SBlueprintMerge::OnAcceptResultClicked()
 {
 	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
 	const FString BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
-	WriteBackup(*Data.BlueprintNew->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension() );
+	WriteBackup(*Data.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension() );
 	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension() );
 	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
@@ -87,14 +158,11 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 	}
 
 	Data.OwningEditor.Pin()->CloseMergeTool();
-
-	return FReply::Handled();
 }
 
-FReply SBlueprintMerge::OnCancelClicked()
+void SBlueprintMerge::OnCancelClicked()
 {
 	Data.OwningEditor.Pin()->CloseMergeTool();
-	return FReply::Handled();
 }
 
 void SBlueprintMerge::OnModeChanged(FName NewMode)
@@ -102,25 +170,19 @@ void SBlueprintMerge::OnModeChanged(FName NewMode)
 	if (NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ||
 		NewMode == FBlueprintEditorApplicationModes::BlueprintMacroMode)
 	{
-		this->ChildSlot
-			[
-				GraphView.ToSharedRef()
-			];
+		MainView->SetContent( GraphControl.Widget.ToSharedRef() );
+		CurrentDiffControl = GraphControl.DiffControl;
 	}
-	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
+	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 	{
-		this->ChildSlot
-			[
-				DefaultsView.ToSharedRef()
-			];
+		MainView->SetContent(TreeControl.Widget.ToSharedRef());
+		CurrentDiffControl = TreeControl.DiffControl;
 	}
-	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode ||
-			 NewMode == FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
+	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode ||
+			NewMode == FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
 	{
-		this->ChildSlot
-			[
-				ComponentsView.ToSharedRef()
-			];
+		MainView->SetContent(DetailsControl.Widget.ToSharedRef());
+		CurrentDiffControl = DetailsControl.DiffControl;
 	}
 	else
 	{

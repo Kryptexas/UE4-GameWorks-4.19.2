@@ -12,8 +12,8 @@ struct FBlueprintMergeData
 		, BlueprintLocal(NULL)
 		, BlueprintBase(NULL)
 		, RevisionBase()
-		, BlueprintNew(NULL)
-		, RevisionNew()
+		, BlueprintRemote(NULL)
+		, RevisionRemote()
 	{
 	}
 
@@ -22,15 +22,15 @@ struct FBlueprintMergeData
 		, const class UBlueprint*			InBlueprintLocal
 		, const class UBlueprint*			InBlueprintBase
 		, FRevisionInfo						InRevisionBase
-		, const class UBlueprint*			InBlueprintNew
-		, FRevisionInfo						InRevisionNew
+		, const class UBlueprint*			InBlueprintRemote
+		, FRevisionInfo						InRevisionRemote
 	)
-		: OwningEditor(		InOwningEditor	)
-		, BlueprintLocal(	InBlueprintLocal)
-		, BlueprintBase(	InBlueprintBase	)
-		, RevisionBase(		InRevisionBase	)
-		, BlueprintNew(		InBlueprintNew	)
-		, RevisionNew(		InRevisionNew	)
+		: OwningEditor(		InOwningEditor		)
+		, BlueprintLocal(	InBlueprintLocal	)
+		, BlueprintBase(	InBlueprintBase		)
+		, RevisionBase(		InRevisionBase		)
+		, BlueprintRemote(	InBlueprintRemote	)
+		, RevisionRemote(		InRevisionRemote)
 	{
 	}
 
@@ -40,6 +40,16 @@ struct FBlueprintMergeData
 	const class UBlueprint*				BlueprintBase;
 	FRevisionInfo						RevisionBase;
 
-	const class UBlueprint*				BlueprintNew;
-	FRevisionInfo						RevisionNew;
+	const class UBlueprint*				BlueprintRemote;
+	FRevisionInfo						RevisionRemote;
 };
+
+namespace EMergeParticipant
+{
+	enum Type
+	{
+		MERGE_PARTICIPANT_REMOTE,
+		MERGE_PARTICIPANT_BASE,
+		MERGE_PARTICIPANT_LOCAL,
+	};
+}

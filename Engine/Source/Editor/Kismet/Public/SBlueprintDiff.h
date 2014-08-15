@@ -30,6 +30,19 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
 
+namespace DiffUtils
+{
+	KISMET_API TMap< FName, const UProperty* > GetProperties( const UObject* ForObj );
+	KISMET_API const UObject* GetCDO( const UBlueprint* ForBlueprint );
+	KISMET_API void CompareUnrelatedObjects( UObject const* A, const TMap< FName, const UProperty* >& PropertyMapA, UObject const* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties );
+}
+
+namespace DiffWidgetUtils
+{
+	KISMET_API void SelectNextRow(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource );
+	KISMET_API void SelectPrevRow(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource );
+}
+
 /*panel used to display the blueprint*/
 struct KISMET_API FDiffPanel
 {
@@ -182,7 +195,7 @@ protected:
 	TSharedPtr< FUICommandList > KeyCommands;
 
 	/** Helper class for highlighting diffs in different types of controls (graph view, details view, etc) */
-	TSharedPtr< class IDiffHighlighter > DiffHighlighter;
+	TSharedPtr< class IDiffControl > DiffControl;
 };
 
 

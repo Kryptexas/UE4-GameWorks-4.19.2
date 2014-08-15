@@ -34,7 +34,7 @@ struct FDetailsViewArgs
 	/** True if you want to show the actor label */
 	uint32 bShowActorLabel : 1;
 	/** Bind this delegate to hide differing properties */
-	uint32 bShowDifferingPeropertiesOption : 1;
+	uint32 bShowDifferingPropertiesOption : 1;
 
 	/** Default constructor */
 	FDetailsViewArgs( const bool InUpdateFromSelection = false
@@ -57,7 +57,7 @@ struct FDetailsViewArgs
 		, bShowOptions( true )
 		, bShowModifiedPropertiesOption(true)
 		, bShowActorLabel(true)
-		, bShowDifferingPeropertiesOption(false)
+		, bShowDifferingPropertiesOption(false)
 	{
 	}
 };
@@ -177,5 +177,5 @@ public:
 	/**
 	 * Sets the set of properties that are considered identical, used when filtering out identical properties (showing only differing properties)
 	 */
-	virtual void UpdateIdenticalProperties(const TSet<FString> IdenticalProperties) = 0;
+	virtual void UpdateIdenticalProperties(const TSet<FName> IdenticalProperties) = 0;
 };

@@ -21,15 +21,34 @@ private:
 	UBlueprint* GetTargetBlueprint();
 
 	/** Event handlers */
-	FReply OnAcceptResultClicked();
-	FReply OnCancelClicked();
+	void NextDiff();
+	void PrevDiff();
+	bool CanCycleDiffs() const;
+	void OnAcceptResultClicked();
+	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);
 
 	FBlueprintMergeData Data;
 
-	TSharedPtr<SWidget>		GraphView;
-	TSharedPtr<SWidget>		ComponentsView;
-	TSharedPtr<SWidget>		DefaultsView;
+	TSharedPtr<SBorder>		MainView;
+
+	struct FDiffControl
+	{
+		FDiffControl()
+			: Widget()
+			, DiffControl(NULL)
+		{
+		}
+
+		TSharedPtr<SWidget> Widget;
+		class IDiffControl* DiffControl;
+	};
+
+	FDiffControl GraphControl;
+	FDiffControl TreeControl;
+	FDiffControl DetailsControl;
+
+	class IDiffControl* CurrentDiffControl;
 
 	// This has to be allocated here because SListView cannot own the list
 	// that it is displaying. It also seems like the display list *has*

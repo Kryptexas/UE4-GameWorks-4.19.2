@@ -114,6 +114,11 @@ void SDetailsViewBase::HighlightProperty(const UProperty* Property)
 			{
 				(*PropertyNode)->SetIsHighlighted( true );
 				PrevHighlightedProperty = *PropertyNode;
+				auto TreeNodePtr = (*PropertyNode)->GetTreeNode();
+				if ( TreeNodePtr.IsValid() )
+				{
+					DetailTree->RequestScrollIntoView(TreeNodePtr.ToSharedRef());
+				}
 			}
 		}
 	}

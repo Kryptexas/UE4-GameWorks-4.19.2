@@ -71,7 +71,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			);
 		}
 
-		if( DetailsViewArgs.bShowDifferingPeropertiesOption )
+		if( DetailsViewArgs.bShowDifferingPropertiesOption )
 		{
 			DetailViewOptions.AddMenuEntry(
 				LOCTEXT("ShowOnlyDiffering", "Show Only Differing Properties"),

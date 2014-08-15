@@ -208,10 +208,11 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 {
 	Data = InData;
 	bViewsAreLocked = true;
+	DiffResultsListData = NULL;
 
 	TArray<FBlueprintRevPair> BlueprintsForDisplay;
 	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
-	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintNew, InData.RevisionNew));
+	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintRemote, InData.RevisionRemote));
 	// EMergeParticipant::MERGE_PARTICIPANT_BASE
 	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintBase, InData.RevisionBase));
 	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
@@ -356,6 +357,24 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		];
 }
 
+void SMergeGraphView::NextDiff()
+{
+	check(DiffResultList.Pin().IsValid() && DiffResultsListData);
+	DiffWidgetUtils::SelectNextRow( *DiffResultList.Pin(), *DiffResultsListData );
+}
+
+void SMergeGraphView::PrevDiff()
+{
+	check(DiffResultList.Pin().IsValid() && DiffResultsListData);
+	DiffWidgetUtils::SelectPrevRow( *DiffResultList.Pin(), *DiffResultsListData );
+}
+
+bool SMergeGraphView::HasDifferences() const
+{
+	auto DiffResultListPtr = DiffResultList.Pin();
+	return DiffResultListPtr.IsValid() && DiffResultListPtr->GetNumItemsBeingObserved() > 0;
+}
+
 void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType)
 {
 	if (SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
@@ -375,29 +394,30 @@ void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry
 
 	LockViews(DiffPanels, bViewsAreLocked);
 
+	DiffResultsListData = &(Item->LocalDifferences);
 	DiffResultsWidget->SetContent(
-		SNew(SListView< TSharedPtr<FDiffSingleResult> >)
+		SAssignNew(DiffResultList, SListView< TSharedPtr<FDiffSingleResult> >)
 		.ItemHeight(24)
 		.ListItemsSource(&Item->LocalDifferences)
 		.OnGenerateRow(SListView< TSharedPtr<FDiffSingleResult> >::FOnGenerateRow::CreateStatic(
-		[](TSharedPtr<FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
-	{
-		FDiffResultItem WidgetGenerator(*ParamItem);
-		return SNew(STableRow< TSharedPtr<FDiffSingleResult> >, OwnerTable)
-			.Content()
-			[
-				WidgetGenerator.GenerateWidget()
-			];
-	}
-	))
+			[](TSharedPtr<FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
+			{
+				FDiffResultItem WidgetGenerator(*ParamItem);
+				return SNew(STableRow< TSharedPtr<FDiffSingleResult> >, OwnerTable)
+					.Content()
+					[
+						WidgetGenerator.GenerateWidget()
+					];
+			}
+		))
 		.SelectionMode(ESelectionMode::Single)
 		.OnSelectionChanged(this, &SMergeGraphView::OnDiffListSelectionChanged)
-		);
+	);
 }
 
 void SMergeGraphView::OnDiffListSelectionChanged(TSharedPtr<FDiffSingleResult> Item, ESelectInfo::Type SelectionType)
 {
-	if (SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
+	if (!Item.IsValid())
 	{
 		return;
 	}

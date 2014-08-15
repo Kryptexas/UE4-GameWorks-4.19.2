@@ -655,6 +655,12 @@ public:
 	/** Sets the highlighted flag to the requested value */
 	void SetIsHighlighted( bool bInIsHighlighted ) { bIsHighlighted = bInIsHighlighted; }
 
+	/** Returns the IDetailTreeNode associated with this property node */
+	TSharedPtr< class IDetailTreeNode > GetTreeNode() { return TreeNode.Pin(); }
+
+	/** Sets the IDetailTreeNode associated with this property node */
+	void SetTreeNode( TSharedPtr< class IDetailTreeNode > InTreeNode ) { TreeNode = InTreeNode; }
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -774,6 +780,9 @@ protected:
 
 	/** An array of restrictions limiting this property's potential values in property editors.*/
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
+
+	/** Optional reference to a tree node that is displaying this property */
+	TWeakPtr< class IDetailTreeNode > TreeNode;
 };
 
 class FComplexPropertyNode : public FPropertyNode
