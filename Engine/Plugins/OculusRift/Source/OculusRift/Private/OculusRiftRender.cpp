@@ -5,16 +5,7 @@
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
-#ifdef __clang__ // @todo: ThirdParty/Oculus/LibOVR/Include/../Src/OVR_DeviceMessages.h:227:46: warning: field 'CameraHandle' will be initialized after field 'pFrameData' [-Wreorder]
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wreorder"
-#endif
-
 #include "../Src/OVR_Stereo.h"
-
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#endif
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
