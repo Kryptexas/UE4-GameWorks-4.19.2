@@ -35,7 +35,10 @@
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
+#include "Slate.h"  // For AddNotification
 #endif
+
+#define LOCTEXT_NAMESPACE "Material"
 
 #if WITH_EDITOR
 const FMaterialsWithDirtyUsageFlags FMaterialsWithDirtyUsageFlags::DefaultAnnotation;
@@ -521,6 +524,7 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	bEnableResponsiveAA = false;
 	bTangentSpaceNormal = true;
 	bUseLightmapDirectionality = true;
+	bAutomaticallySetUsageInEditor = true;
 
 	bUseMaterialAttributes = false;
 	bUseTranslucencyVertexFog = true;
@@ -908,7 +912,7 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	{
 		// For materials which do not have their bUsedWith____ correctly set the DefaultMaterial<type> should be used in game
 		// Leaving this GIsEditor ensures that in game on PC will not look different than on the Consoles as we will not be compiling shaders on the fly
-		if( GIsEditor && !FApp::IsGame() )
+		if( GIsEditor && !FApp::IsGame() && bAutomaticallySetUsageInEditor )
 		{
 			check(IsInGameThread());
 			UE_LOG(LogMaterial, Warning, TEXT("Material %s needed to have new flag set %s !"), *GetPathName(), *GetUsageName(Usage));
@@ -929,14 +933,34 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 			CacheResourceShadersForRendering(true);
 
 			// Mark the package dirty so that hopefully it will be saved with the new usage flag.
+			// This is important because the only way an artist can fix an infinite 'compile on load' scenario is by saving with the new usage flag
 			MarkPackageDirty();
 		}
 		else
 		{
 			uint32 UsageFlagBit = (1 << (uint32)Usage);
-			if ((UsageFlagWarnings  & UsageFlagBit) == 0)
+			if ((UsageFlagWarnings & UsageFlagBit) == 0)
 			{
 				UE_LOG(LogMaterial, Warning, TEXT("Material %s missing %s=True! Default Material will be used in game."), *GetPathName(), *GetUsageName(Usage));
+				
+				if (bAutomaticallySetUsageInEditor)
+				{
+					UE_LOG(LogMaterial, Warning, TEXT("     The material will recompile every editor launch until resaved."));
+				}
+				else
+				{
+#if WITH_EDITOR
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("UsageName"), FText::FromString(GetUsageName(Usage)));
+					FNotificationInfo Info(FText::Format(LOCTEXT("CouldntSetMaterialUsage","Material didn't allow automatic setting of usage flag {UsageName} needed to render on this component, using Default Material instead."), Args));
+					Info.ExpireDuration = 5.0f;
+					Info.bUseSuccessFailIcons = true;
+
+					// Give the user feedback as to why they are seeing the default material
+					FSlateNotificationManager::Get().AddNotification(Info);
+#endif
+				}
+
 				UsageFlagWarnings |= UsageFlagBit;
 			}
 
@@ -3669,3 +3693,5 @@ bool UMaterial::HasFlippedCoordinates()
 	return ReversedInputCount > StandardInputCount;
 }
 #endif //WITH_EDITORONLY_DATA
+
+#undef LOCTEXT_NAMESPACE

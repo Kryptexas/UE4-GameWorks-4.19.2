@@ -593,6 +593,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithUI:1;
 
+	/** 
+	 * Whether to automatically set usage flags based on what the material is applied to in the editor.
+	 * It can be useful to disable this on a base material with many instances, where adding another usage flag accidentally (eg bUsedWithSkeletalMeshes) can add a lot of shader permutations.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage, AdvancedDisplay)
+	uint32 bAutomaticallySetUsageInEditor:1;
+
 	/* Forces the material to be completely rough. Saves a number of instructions and one sampler. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bFullyRough:1;
