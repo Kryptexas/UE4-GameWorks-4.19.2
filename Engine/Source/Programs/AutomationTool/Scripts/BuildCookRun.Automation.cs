@@ -107,6 +107,10 @@ public class BuildCookRun : BuildCommand
         {
             Params.CulturesToCook = new ParamList<string>(CulturesToCook.Split('+'));
         }
+		else
+		{
+			Params.CulturesToCook = new ParamList<string>(new string[] { "en" });
+		}
 
 		if (Params.DedicatedServer)
 		{
