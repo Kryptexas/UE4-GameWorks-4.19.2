@@ -173,6 +173,7 @@ namespace UnrealBuildTool
 		public static bool bCompileForSize;
 
 		/** True if hot-reload from IDE is allowed */
+		[XmlConfig]
 		public static bool bAllowHotReloadFromIDE;
 
 		/** True if performing hot-reload from IDE */
