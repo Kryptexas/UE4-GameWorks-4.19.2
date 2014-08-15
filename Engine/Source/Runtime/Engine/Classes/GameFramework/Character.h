@@ -431,6 +431,7 @@ protected:
 	 * @param	bReplayingMoves: true if this is being done as part of replaying moves on a locally controlled client after a server correction.
 	 * @return	True if the jump was allowed by CanJump() and if CharacterMovement->Jump() succeeded.
 	 **/ 
+	DEPRECATED(4.5, "Character::DoJump() will be removed, use CharacterMovementComponent::DoJump() instead.")
 	virtual bool DoJump(bool bReplayingMoves);
 
 public:

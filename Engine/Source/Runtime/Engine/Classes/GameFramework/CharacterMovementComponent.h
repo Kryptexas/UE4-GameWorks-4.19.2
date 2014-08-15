@@ -743,8 +743,13 @@ public:
 	/** changes physics based on MovementMode */
 	virtual void StartNewPhysics(float deltaTime, int32 Iterations);
 	
-	/** Perform jump. Note that you should usually trigger a jump through Character::Jump() instead. */
-	virtual bool DoJump();
+	/**
+	 * Perform jump. Called by Character when a jump has been detected because Character->bPressedJump was true. Checks CanJump().
+	 * Note that you should usually trigger a jump through Character::Jump() instead.
+	 * @param	bReplayingMoves: true if this is being done as part of replaying moves on a locally controlled client after a server correction.
+	 * @return	True if the jump was triggered successfully.
+	 */
+	virtual bool DoJump(bool bReplayingMoves);
 
 	/** Queue a pending launch with velocity LaunchVel. */
 	virtual void Launch(FVector const& LaunchVel);

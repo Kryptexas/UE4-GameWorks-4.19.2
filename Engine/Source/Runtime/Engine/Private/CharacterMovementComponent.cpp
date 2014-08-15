@@ -427,9 +427,9 @@ FVector UCharacterMovementComponent::GetPawnCapsuleExtent(const EShrinkCapsuleEx
 }
 
 
-bool UCharacterMovementComponent::DoJump()
+bool UCharacterMovementComponent::DoJump(bool bReplayingMoves)
 {
-	if ( CharacterOwner )
+	if ( CharacterOwner && CharacterOwner->CanJump() )
 	{
 		// Don't jump if we can't move up/down.
 		if (!bConstrainToPlane || FMath::Abs(PlaneConstraintNormal.Z) != 1.f)

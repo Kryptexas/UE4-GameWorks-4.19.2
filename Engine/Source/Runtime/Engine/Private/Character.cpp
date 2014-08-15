@@ -221,9 +221,10 @@ bool ACharacter::IsJumpProvidingForce() const
 	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
+// Deprecated
 bool ACharacter::DoJump( bool bReplayingMoves )
 {
-	return CanJump() && CharacterMovement->DoJump();
+	return CanJump() && CharacterMovement->DoJump(bReplayingMoves);
 }
 
 
@@ -818,8 +819,8 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 	{
 		// Increment our timer first so calls to IsJumpProvidingForce() will return true
 		JumpKeyHoldTime += DeltaTime;
-		const bool bDidJump = DoJump(bClientUpdating);
-		if(!bWasJumping && bDidJump)
+		const bool bDidJump = CanJump() && CharacterMovement && CharacterMovement->DoJump(bClientUpdating);
+		if (!bWasJumping && bDidJump)
 		{
 			OnJumped();
 		}
