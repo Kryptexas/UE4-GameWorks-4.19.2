@@ -237,6 +237,8 @@ public:
 	{
 		TSharedRef<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
 		
+		GlobalTabManager->SetMainTab(MainTab.ToSharedRef());
+
 		// Persistent layouts should get stored using the specified method.
 		GlobalTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FMainFrameHandler::HandleTabManagerPersistLayout));
 		

@@ -457,15 +457,14 @@ void SDockingTabStack::CloseAllButForegroundTab(ETabsToClose TabsToClose)
 		{
 			const TSharedRef<SDockTab>& Tab = TabWell->GetTabs()[DestroyIndex];
 
-			const bool bCanClose = (TabsToClose == CloseDocumentsAndTools) || (Tab->GetTabRole() == ETabRole::DocumentTab);
+			const bool bCanClose = 
+				(TabsToClose == CloseAllTabs) ||
+				(TabsToClose == CloseDocumentTabs && Tab->GetTabRole() == ETabRole::DocumentTab) ||
+				(TabsToClose == CloseDocumentAndMajorTabs && (Tab->GetTabRole() == ETabRole::DocumentTab || Tab->GetTabRole() == ETabRole::MajorTab));
 
-			if ((Tab == ForegroundTab) || !bCanClose)
+			if ((Tab == ForegroundTab) || !bCanClose || !Tab->RequestCloseTab())
 			{
 				++DestroyIndex;
-			}
-			else
-			{
-				Tab->RequestCloseTab();
 			}
 		}
 	}
@@ -538,9 +537,9 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 
 			// If the active tab is a document tab, and there is more than one open in this tab well, offer to close the others
 			TSharedPtr<SDockTab> ForegroundTabPtr = TabWell->GetForegroundTab();
-			if (ForegroundTabPtr.IsValid() && (ForegroundTabPtr->GetTabRole() == ETabRole::DocumentTab) && (TabWell->GetNumTabs() > 1))
+			if (ForegroundTabPtr.IsValid() && (ForegroundTabPtr->GetTabRole() == ETabRole::DocumentTab || ForegroundTabPtr->GetTabRole() == ETabRole::MajorTab) && (TabWell->GetNumTabs() > 1))
 			{
-				const ETabsToClose TabsToClose = CloseDocumentTabs;
+				const ETabsToClose TabsToClose = CloseDocumentAndMajorTabs;
 
 				MenuBuilder.AddMenuEntry(
 					LOCTEXT("CloseOtherTabs", "Close Other Tabs"),

@@ -492,6 +492,16 @@ void FTabManager::UpdateMainMenu(bool const bForce)
 #endif
 }
 
+void FTabManager::SetMainTab(const TSharedRef<const SDockTab>& InTab)
+{
+	MainNonCloseableTab = InTab;
+}
+
+bool FTabManager::IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const
+{
+	return !(MainNonCloseableTab.Pin() == InTab);
+}
+
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()
 {
 	return TSharedPtr<FTabManager::FStack>();

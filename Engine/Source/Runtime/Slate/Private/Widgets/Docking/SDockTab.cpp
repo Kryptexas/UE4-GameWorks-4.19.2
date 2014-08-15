@@ -525,6 +525,7 @@ void SDockTab::Construct( const FArguments& InArgs )
 					.ButtonStyle( CloseButtonStyle )
 					.OnClicked( this, &SDockTab::OnCloseButtonClicked )
 					.ContentPadding( 0 )
+					.Visibility(this, &SDockTab::HandleIsCloseButtonVisible)
 					[
 						SNew(SSpacer)
 						.Size( CloseButtonStyle->Normal.ImageSize )
@@ -714,13 +715,18 @@ FReply SDockTab::OnCloseButtonClicked()
 	return FReply::Handled();
 }
 
+EVisibility SDockTab::HandleIsCloseButtonVisible() const
+{
+	return MyTabManager.Pin()->IsTabCloseable(SharedThis(this)) ? EVisibility::Visible : EVisibility::Hidden;
+}
+
 bool SDockTab::CanCloseTab() const
 {
-	const bool bCanCloseTabNow = !OnCanCloseTab.IsBound() || OnCanCloseTab.Execute(); 
+	const bool bCanCloseTabNow = MyTabManager.Pin()->IsTabCloseable(SharedThis(this)) && (!OnCanCloseTab.IsBound() || OnCanCloseTab.Execute());
 	return bCanCloseTabNow;
 }
 
-void SDockTab::RequestCloseTab()
+bool SDockTab::RequestCloseTab()
 {	
 	this->PersistVisualState();
 	// The tab can be closed if the delegate is not bound or if the delegate call indicates we cannot close it
@@ -729,6 +735,7 @@ void SDockTab::RequestCloseTab()
 	{
 		RemoveTabFromParent();
 	}
+	return bCanCloseTabNow;
 }
 
 void SDockTab::PersistVisualState()

@@ -114,7 +114,8 @@ protected:
 	enum ETabsToClose
 	{
 		CloseDocumentTabs,
-		CloseDocumentsAndTools
+		CloseDocumentAndMajorTabs,
+		CloseAllTabs
 	};
 	/**
 	 * Close all the background tabs.
