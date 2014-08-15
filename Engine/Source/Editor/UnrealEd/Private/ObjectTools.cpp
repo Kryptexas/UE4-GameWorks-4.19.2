@@ -1563,6 +1563,10 @@ namespace ObjectTools
 			return false;
 		}
 
+		// let systems clean up any unnecessary references that they may have 
+		// (so that they're not flagged in the dialog)
+		FEditorDelegates::OnAssetsPreDelete.Broadcast(ObjectsToDelete);
+
 		TSharedRef<FAssetDeleteModel> DeleteModel = MakeShareable(new FAssetDeleteModel(ObjectsToDelete));
 
 		if ( bShowConfirmation )

@@ -421,12 +421,28 @@ namespace BlueprintActionDatabaseImpl
 	static void OnAssetAdded(FAssetData const& NewAssetInfo);
 
 	/**
+	 * Callback to clear out object references so that a object can be deleted 
+	 * without resistance from the actions cached here. Objects passed here
+	 * won't necessarily be deleted (the user could still choose to cancel).
+	 * 
+	 * @param  ObjectsForDelete	A list of objects that MIGHT be deleted.
+	 */
+	static void OnAssetsPendingDelete(TArray<UObject*> const& ObjectsForDelete);
+
+	/**
 	 * Callback to refresh the database when an object has been delete (to clear 
 	 * any related classes that were stored in the database) 
 	 * 
 	 * @param  AssetInfo	Data regarding the freshly removed asset.
 	 */
 	static void OnAssetRemoved(FAssetData const& AssetInfo);
+
+	/** 
+	 * Classes that we cleared from the database (to remove references, and make 
+	 * way for a delete), but in-case the class wasn't deleted we need them 
+	 * tracked here so we can add them back in.
+	 */
+	TSet<UClass*> PendingDelete;
 }
 
 //------------------------------------------------------------------------------
@@ -792,19 +808,42 @@ static void BlueprintActionDatabaseImpl::OnAssetAdded(FAssetData const& NewAsset
 }
 
 //------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnAssetsPendingDelete(TArray<UObject*> const& ObjectsForDelete)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	for (UObject* DeletingObject : ObjectsForDelete)
+	{
+		if (UBlueprint* NewBlueprint = Cast<UBlueprint>(DeletingObject))
+		{
+			// have to temporarily remove references (so that this delete isn't 
+			// blocked by dangling references)
+			ActionDatabase.ClearClassActions(NewBlueprint->GeneratedClass);
+			ActionDatabase.ClearClassActions(NewBlueprint->SkeletonGeneratedClass);
+
+			// in case they choose not to delete the object, we need to add 
+			// these back in to the database, soi we track them here
+			PendingDelete.Add(NewBlueprint->GeneratedClass);
+			PendingDelete.Add(NewBlueprint->SkeletonGeneratedClass);
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::OnAssetRemoved(FAssetData const& AssetInfo)
 {
 	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
 
-	UClass* AssetClass = AssetInfo.GetClass();
-	ActionDatabase.ClearClassActions(AssetClass);
-
 	if (AssetInfo.IsAssetLoaded())
 	{
+		UClass* AssetClass = AssetInfo.GetClass();
 		if (AssetClass->IsChildOf<UBlueprint>())
 		{
 			UBlueprint* BlueprintAsset = CastChecked<UBlueprint>(AssetInfo.GetAsset());
 			BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+
+			// the delete went through, so we don't need to track these for re-add
+			PendingDelete.Remove(BlueprintAsset->GeneratedClass);
+			PendingDelete.Remove(BlueprintAsset->SkeletonGeneratedClass);
 		}
 	}
 }
@@ -838,6 +877,8 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
 	AssetRegistry.OnAssetAdded().AddStatic(&BlueprintActionDatabaseImpl::OnAssetAdded);
 	AssetRegistry.OnAssetRemoved().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRemoved);
+
+	FEditorDelegates::OnAssetsPreDelete.AddStatic(&BlueprintActionDatabaseImpl::OnAssetsPendingDelete);
 }
 
 //------------------------------------------------------------------------------
@@ -853,6 +894,14 @@ void FBlueprintActionDatabase::AddReferencedObjects(FReferenceCollector& Collect
 void FBlueprintActionDatabase::Tick(float DeltaTime)
 {
 	const double DurationThreshold = FMath::Min(0.003, DeltaTime * 0.01);
+
+	// entries that were removed from the database, in preparation for a delete
+	// (but the user ended up not deleting the object)
+	for (UClass* Class : BlueprintActionDatabaseImpl::PendingDelete)
+	{
+		RefreshClassActions(Class);
+	}
+	BlueprintActionDatabaseImpl::PendingDelete.Empty();
 
 	double TotalFrameDuration = 0.0;
 	while ((ActionPrimingQueue.Num() > 0) && (TotalFrameDuration < DurationThreshold))
