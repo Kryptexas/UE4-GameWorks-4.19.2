@@ -295,8 +295,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows
 		/// platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the
-		/// /analyze option.  The compiler included with the Windows SDK supports this, as well as Team Edition
-		/// versions of Visual Studio.
+		/// /analyze option, such as Visual Studio 2013
 		/// </summary>
 		[XmlConfig]
 		public static bool bEnableCodeAnalysis;
