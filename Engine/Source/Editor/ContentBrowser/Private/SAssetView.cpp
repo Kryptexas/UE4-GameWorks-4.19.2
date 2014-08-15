@@ -26,9 +26,6 @@ namespace
 }
 
 #define MAX_THUMBNAIL_SIZE 4096
-#define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
-
-#define MAX_PROJECTED_COOKING_PATH 165
 
 SAssetView::~SAssetView()
 {
@@ -3216,115 +3213,15 @@ bool SAssetView::AssetVerifyRenameCommit(const TSharedPtr<FAssetViewItem>& Item,
 
 	if ( bIsAssetType )
 	{
-		// Make sure the name is not already a class or otherwise invalid for saving
-		if ( !FEditorFileUtils::IsFilenameValidForSaving(NewNameString, OutErrorMessage) )
-		{
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-
-		// Make sure the new name only contains valid characters
-		if ( !FName(*NewNameString).IsValidXName( INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
-		{
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-
 		const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(Item);
-
-		// Prepare the object path for the new name
-		const FString NewPackageName = FString::Printf(TEXT("%s/%s"), *ItemAsAsset->Data.PackagePath.ToString(), *NewNameString);
-		FString ObjectPathStr = NewPackageName + TEXT(".");
-		if ( ItemAsAsset->Data.GroupNames != NAME_None )
-		{
-			ObjectPathStr += ItemAsAsset->Data.GroupNames.ToString() + TEXT(".");
-		}
-		ObjectPathStr += NewNameString;
-
-		// Make sure we are not creating an FName that is too large
-		if ( ObjectPathStr.Len() > NAME_SIZE )
-		{
-			// This asset already exists at this location, inform the user and continue
-			OutErrorMessage = LOCTEXT("AssetNameTooLong", "This asset name is too long. Please choose a shorter name.");
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-
-		// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
-		// The BuildFarm buildmachines use a verbose path to encode extra information to provide more information when things fail, however
-		// this makes the path limitation (260 chars on Windows) a problem. It doubles up the GGameName and does the cooking in another
-		// sub-folder, one of the "saved/sandboxes", with folder duplication.
-
-		// Get the SubPath containing folders without the "game name" folder itself
-		const FString GameNameStr(GGameName);
-		FString SubPath = FPaths::GameDir();
-		FPaths::NormalizeDirectoryName(SubPath);
-		SubPath = SubPath.Replace(*(FString(TEXT("../../../")) + GameNameStr), TEXT(""));
-		FPaths::RemoveDuplicateSlashes(SubPath);
-
-		// Calculate the maximum path length this will generate when doing a cooked build.
-		const int32 PathCalcLen = SubPath.Len() + (2 * GameNameStr.Len()) + (NewPackageName + FPackageName::GetAssetPackageExtension()).Len();
-		if ( PathCalcLen >= MAX_PROJECTED_COOKING_PATH )
-		{
-			// The projected length of the path for cooking is too long
-			OutErrorMessage = FText::Format( LOCTEXT("AssetCookingPathTooLong", 
-				"The path to the asset is too long for cooking, the maximum is '{0}' characters.\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names."),
-				FText::FromString(FString::Printf(TEXT("%d"), MAX_PROJECTED_COOKING_PATH)) );
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-
-		// Make sure we are not creating an path that is too long for the OS
-		const FString RelativePathFilename = FPackageName::LongPackageNameToFilename(NewPackageName, FPackageName::GetAssetPackageExtension());	// full relative path with name + extension
-		const FString FullPath = FPaths::ConvertRelativePathToFull(RelativePathFilename);	// path to file on disk
-		if ( ObjectPathStr.Len() > (PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH) || FullPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH )
-		{
-			// The full path for the asset is too long
-			OutErrorMessage = FText::Format( LOCTEXT("AssetPathTooLong", 
-				"The full path for the asset is too deep, the maximum is '{0}'. \nPlease choose a shorter name for the asset or create it in a shallower folder structure."), 
-				FText::FromString(FString::Printf(TEXT("%d"), PLATFORM_MAX_FILEPATH_LENGTH)) );
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-
-		FName NewObjectPath = FName(*ObjectPathStr);
-
-		// Check if the input is valid before we proceed with the rename.
-		if ( IsPathInAssetItemsList(NewObjectPath) )
-		{
-			// This asset already exists at this location, inform the user and continue
-			OutErrorMessage = FText::Format( LOCTEXT("RenameAssetAlreadyExists", "An asset already exists at this location with the name '{0}'."), FText::FromString( NewNameString ) );
-
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
+		const FString NewObjectPath = ItemAsAsset->Data.PackagePath.ToString() / NewNameString + TEXT(".") + NewNameString;
+		return ContentBrowserUtils::IsValidObjectPathForCreate(NewObjectPath, OutErrorMessage);
 	}
 	else
 	{
 		const TSharedPtr<FAssetViewFolder>& ItemAsFolder = StaticCastSharedPtr<FAssetViewFolder>(Item);
-
-		if ( !ContentBrowserUtils::IsValidFolderName(NewName.ToString(), OutErrorMessage) )
-		{
-			return false;
-		}
-
-		const FString NewPath = FPaths::GetPath(ItemAsFolder->FolderPath) / NewName.ToString();
-		if ( ContentBrowserUtils::DoesFolderExist(NewPath) )
-		{
-			OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
-			return false;		
-		}
-
-		// Make sure we are not creating a folder path that is too long
-		if ( NewPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH )
-		{
-			// The full path for the folder is too long
-			OutErrorMessage = FText::Format( LOCTEXT("RenameFolderPathTooLong", 
-				"The full path for the folder is too deep, the maximum is '{0}'. Please choose a shorter name for the folder or create it in a shallower folder structure."), 
-				FText::FromString(FString::Printf(TEXT("%d"), PLATFORM_MAX_FILEPATH_LENGTH)) );
-			// Return false to indicate that the user should enter a new name for the folder
-			return false;
-		}
+		const FString NewFolderPath = FPaths::GetPath(ItemAsFolder->FolderPath) / NewNameString;
+		return ContentBrowserUtils::IsValidFolderPathForCreate(NewFolderPath, OutErrorMessage);
 	}
 
 	return true;
@@ -3657,19 +3554,6 @@ void SAssetView::OnSortColumnHeader(const EColumnSortPriority::Type SortPriority
 	SortManager.SetSortColumnId(SortPriority, ColumnId);
 	SortManager.SetSortMode(SortPriority, NewSortMode);
 	SortList();
-}
-
-bool SAssetView::IsPathInAssetItemsList(const FName& ObjectPath) const
-{
-	for ( auto AssetIt = AssetItems.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		if ( (*AssetIt).ObjectPath == ObjectPath )
-		{
-			return true;
-		}
-	}
-
-	return false;
 }
 
 EVisibility SAssetView::IsAssetShowWarningTextVisible() const

@@ -12,6 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+#define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
+
 namespace ContentBrowserUtils
 {
 	// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
@@ -1276,6 +1278,117 @@ FText ContentBrowserUtils::GetExploreFolderText()
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
 	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+}
+
+bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, FText& OutErrorMessage)
+{
+	const FString ObjectName = FPackageName::ObjectPathToObjectName(ObjectPath);
+
+	// Make sure the name is not already a class or otherwise invalid for saving
+	if ( !FEditorFileUtils::IsFilenameValidForSaving(ObjectName, OutErrorMessage) )
+	{
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Make sure the new name only contains valid characters
+	if ( !FName(*ObjectName).IsValidXName( INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
+	{
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Make sure we are not creating an FName that is too large
+	if ( ObjectPath.Len() > NAME_SIZE )
+	{
+		// This asset already exists at this location, inform the user and continue
+		OutErrorMessage = LOCTEXT("AssetNameTooLong", "This asset name is too long. Please choose a shorter name.");
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	const FString PackageName = FPackageName::ObjectPathToPackageName(ObjectPath);
+
+	// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
+	// The BuildFarm buildmachines use a verbose path to encode extra information to provide more information when things fail, however
+	// this makes the path limitation (260 chars on Windows) a problem. It doubles up the GGameName and does the cooking in another
+	// sub-folder, one of the "saved/sandboxes", with folder duplication.
+
+	// Get the SubPath containing folders without the "game name" folder itself
+	const FString GameNameStr(GGameName);
+	FString SubPath = FPaths::GameDir();
+	FPaths::NormalizeDirectoryName(SubPath);
+	SubPath = SubPath.Replace(*(FString(TEXT("../../../")) + GameNameStr), TEXT(""));
+	FPaths::RemoveDuplicateSlashes(SubPath);
+
+	// Calculate the maximum path length this will generate when doing a cooked build.
+	const int32 MaxProjectedCookingPath = 165;
+	const int32 PathCalcLen = SubPath.Len() + (2 * GameNameStr.Len()) + (PackageName + FPackageName::GetAssetPackageExtension()).Len();
+	if ( PathCalcLen >= MaxProjectedCookingPath )
+	{
+		// The projected length of the path for cooking is too long
+		OutErrorMessage = FText::Format( LOCTEXT("AssetCookingPathTooLong", 
+			"The path to the asset is too long for cooking, the maximum is '{0}' characters.\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names."),
+			FText::AsNumber(MaxProjectedCookingPath) );
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Make sure we are not creating an path that is too long for the OS
+	const FString RelativePathFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());	// full relative path with name + extension
+	const FString FullPath = FPaths::ConvertRelativePathToFull(RelativePathFilename);	// path to file on disk
+	if ( ObjectPath.Len() > (PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH) || FullPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH )
+	{
+		// The full path for the asset is too long
+		OutErrorMessage = FText::Format( LOCTEXT("AssetPathTooLong", 
+			"The full path for the asset is too deep, the maximum is '{0}'. \nPlease choose a shorter name for the asset or create it in a shallower folder structure."), 
+			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH) );
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Check if the input is valid before we proceed with the rename.
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	FAssetData ExistingAsset = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*ObjectPath));
+	if (ExistingAsset.IsValid())
+	{
+		// This asset already exists at this location, inform the user and continue
+		OutErrorMessage = FText::Format( LOCTEXT("RenameAssetAlreadyExists", "An asset already exists at this location with the name '{0}'."), FText::FromString( ObjectName ) );
+
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	return true;
+}
+
+bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& FolderPath, FText& OutErrorMessage)
+{
+	const FString FolderName = FPackageName::ObjectPathToObjectName(FolderPath);
+
+	if (!ContentBrowserUtils::IsValidFolderName(FolderName, OutErrorMessage))
+	{
+		return false;
+	}
+
+	if (ContentBrowserUtils::DoesFolderExist(FolderPath))
+	{
+		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
+		return false;
+	}
+
+	// Make sure we are not creating a folder path that is too long
+	if (FolderPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH)
+	{
+		// The full path for the folder is too long
+		OutErrorMessage = FText::Format(LOCTEXT("RenameFolderPathTooLong",
+			"The full path for the folder is too deep, the maximum is '{0}'. Please choose a shorter name for the folder or create it in a shallower folder structure."),
+			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH));
+		// Return false to indicate that the user should enter a new name for the folder
+		return false;
+	}
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

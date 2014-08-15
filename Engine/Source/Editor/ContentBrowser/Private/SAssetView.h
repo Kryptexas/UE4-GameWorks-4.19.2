@@ -525,9 +525,6 @@ private:
 	/** Handler for when a column header is clicked */
 	void OnSortColumnHeader(const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type NewSortMode);
 
-	/** Handler for when a column header is clicked */
-	bool IsPathInAssetItemsList(const FName& ObjectPath) const;
-
 	/** Returns the state of the is working progress bar */
 	TOptional< float > GetIsWorkingProgressBarState() const;
 
