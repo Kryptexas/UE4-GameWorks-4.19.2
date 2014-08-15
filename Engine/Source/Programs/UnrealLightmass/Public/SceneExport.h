@@ -768,7 +768,6 @@ enum EDawnLightFlags
 	// maps to ULightComponent::CastStaticShadows
 	GI_LIGHT_CASTSTATICSHADOWS		= 0x00000010,
 	GI_LIGHT_USESIGNEDDISTANCEFIELDSHADOWS = 0x00000020,
-	GI_LIGHT_DOMINANT				= 0x00000040,
 	GI_LIGHT_INVERSE_SQUARED		= 0x00000080,
 	GI_LIGHT_USE_LIGHTPROFILE		= 0x00000100
 };
@@ -948,8 +947,6 @@ struct FStaticLightingMeshInstanceData
 	bool bCastShadowAsTwoSided;
 	/** Whether the mesh can be moved in game or not. */
 	bool bMovable;
-	/** Whether this is an instanced static mesh */
-	bool bInstancedStaticMesh;
 	/** The lights which affect the mesh's primitive. */
 	int32 NumRelevantLights;
 	/** The bounding box of the mesh. */

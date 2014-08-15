@@ -542,28 +542,6 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 		// Release corner information as it is no longer needed
 		TexelToCornersMap.Empty();
 
-		int32 NumAffectingDominantLights = 0;
-		for (TMap<const FLight*,FSignedDistanceFieldShadowMapData2D*>::TIterator It(SignedDistanceFieldShadowMaps); It; ++It)
-		{
-			if (It.Key()->LightFlags & GI_LIGHT_DOMINANT)
-			{
-				NumAffectingDominantLights++;
-			}
-		}
-
-		for (TMap<const FLight*,FShadowMapData2D*>::TIterator It(ShadowMaps); It; ++It)
-		{
-			if (It.Key()->LightFlags & GI_LIGHT_DOMINANT)
-			{
-				NumAffectingDominantLights++;
-			}
-		}
-
-		if (NumAffectingDominantLights > 1) 
-		{
-			GSwarm->SendAlertMessage(NSwarm::ALERT_LEVEL_ERROR, TextureMapping->Guid, SOURCEOBJECTTYPE_Mapping, TEXT("LightmassError_ObjectMultipleDominantLights"));
-		}
-
 		if (bDebugThisMapping)
 		{
 			int32 asdf = 0;
@@ -1199,7 +1177,7 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingFiltered(
 		}
 	}
 
-	if(bIsCompletelyOccluded && !TextureMapping->Mesh->bInstancedStaticMesh)
+	if(bIsCompletelyOccluded) 
 	{
 		// If the light is completely occluded, discard the shadow-map.
 		delete FilteredShadowMapData;
@@ -1643,7 +1621,7 @@ void FStaticLightingSystem::CalculateDirectAreaLightingTextureMapping(
 	}
 	else if (ShadowMapData)
 	{
-		if ((bIsCompletelyOccluded || NumUnoccludedTexels < NumMappedTexels * ShadowSettings.MinUnoccludedFraction) && !TextureMapping->Mesh->bInstancedStaticMesh)
+		if (bIsCompletelyOccluded || NumUnoccludedTexels < NumMappedTexels * ShadowSettings.MinUnoccludedFraction)
 		{
 			delete ShadowMapData;
 		}
@@ -1941,7 +1919,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 	}
 	FirstPassSourceTimer.Stop();
 
-	if ( (!bIsCompletelyOccluded && NumUnoccludedTexels > NumMappedTexels * ShadowSettings.MinUnoccludedFraction) || TextureMapping->Mesh->bInstancedStaticMesh)
+	if (!bIsCompletelyOccluded && NumUnoccludedTexels > NumMappedTexels * ShadowSettings.MinUnoccludedFraction)
 	{
 		LIGHTINGSTAT(FManualRDTSCTimer SecondPassSourceTimer(MappingContext.Stats.SignedDistanceFieldSourceSecondPassThreadTime));
 		check(UpsampleFactor % 2 == 1 && UpsampleFactor >= 1);
