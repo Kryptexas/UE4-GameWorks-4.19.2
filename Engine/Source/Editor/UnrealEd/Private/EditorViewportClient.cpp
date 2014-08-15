@@ -406,6 +406,13 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 	const FVector Position = BoundingBox.GetCenter();
 	float Radius = BoundingBox.GetExtent().Size();
 
+	float AspectToUse = AspectRatio;
+	FIntPoint ViewportSize = Viewport->GetSizeXY();
+	if(!bUseControllingActorViewInfo && ViewportSize.X > 0 && ViewportSize.Y > 0)
+	{
+		AspectToUse = Viewport->GetDesiredAspectRatio();
+	}
+
 	const bool bEnable=false;
 	ToggleOrbitCamera(bEnable);
 
@@ -417,9 +424,9 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 			* than the width of the viewport, we scale the radius by the aspect ratio in order to compensate for the fact that we have
 			* less visible vertically than horizontally.
 			*/
-			if( AspectRatio > 1.0f )
+			if( AspectToUse > 1.0f )
 			{
-				Radius *= AspectRatio;
+				Radius *= AspectToUse;
 			}
 
 			/** 
@@ -451,7 +458,7 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 				* to find the new OrthoZoom value for the viewport. The 15.0f is a fudge factor.
 				*/
 				float NewOrthoZoom;
-				uint32 MinAxisSize = (AspectRatio > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
+				uint32 MinAxisSize = (AspectToUse > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
 				float Zoom = Radius / (MinAxisSize / 2);
 
 				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);

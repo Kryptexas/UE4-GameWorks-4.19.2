@@ -75,6 +75,7 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	, GravityScaleSliderValue(0.25f)
 	, PrevWindStrength(0.0f)
 	, SelectedWindActor(NULL)
+	, bFocusOnDraw(false)
 	, BodyTraceDistance(100000.0f)
 {
 	// load config
@@ -507,6 +508,12 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				Node->Draw(PDI, PreviewSkelMeshComp.Get());
 			}
 		}
+
+		if(bFocusOnDraw)
+		{
+			bFocusOnDraw = false;
+			FocusViewportOnPreviewMesh();
+		}
 	}
 }
 
@@ -616,7 +623,7 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 		// Handle updating the preview component to represent the effects of root motion	
 		FBoxSphereBounds Bounds = EditorFloorComp->CalcBounds(EditorFloorComp->GetRelativeTransform());
 		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
-	}
+	}	
 }
 
 void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds)
@@ -1781,7 +1788,7 @@ void FAnimationViewportClient::UpdateCameraSetup()
 
 void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere )
 {
-	FBox Box( Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W) );
+	FBox Box( Sphere.Center - FVector(Sphere.W, 0.0f, 0.0f), Sphere.Center + FVector(Sphere.W, 0.0f, 0.0f) );
 
 	bool bInstant = false;
 	FocusViewportOnBox( Box, bInstant );
@@ -1791,6 +1798,14 @@ void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere )
 
 void FAnimationViewportClient::FocusViewportOnPreviewMesh()
 {
+	FIntPoint ViewportSize = Viewport->GetSizeXY();
+
+	if(!(ViewportSize.SizeSquared() > 0))
+	{
+		// We cannot focus fully right now as the viewport does not know its size
+		// and we must have the aspect to correctly focus on the component,
+		bFocusOnDraw = true;
+	}
 	FSphere Sphere = GetCameraTarget();
 	FocusViewportOnSphere(Sphere);
 }
