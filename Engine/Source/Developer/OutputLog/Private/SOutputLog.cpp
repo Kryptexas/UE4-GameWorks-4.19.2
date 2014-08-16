@@ -475,9 +475,14 @@ void SOutputLog::Construct( const FArguments& InArgs )
 				+SHorizontalBox::Slot()
 				.FillWidth(1)
 				[
-					SNew(SScrollBorder, MessageListView.ToSharedRef())
+					SNew( SScrollBox )
+					.Orientation( Orient_Horizontal )
+					+ SScrollBox::Slot()
 					[
-						MessageListView.ToSharedRef()
+						SNew(SScrollBorder, MessageListView.ToSharedRef())
+						[
+							MessageListView.ToSharedRef()
+						]
 					]
 				]
 				+SHorizontalBox::Slot()
