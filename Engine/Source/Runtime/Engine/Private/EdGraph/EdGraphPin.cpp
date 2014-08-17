@@ -161,9 +161,7 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 	// TODO: Better less hacky way of this?
 	if (PinType.PinCategory == TEXT("wildcard"))
 	{
-		PinType.PinCategory = SourcePin.PinType.PinCategory;
-		PinType.PinSubCategory = SourcePin.PinType.PinSubCategory;
-		PinType.PinSubCategoryObject = SourcePin.PinType.PinSubCategoryObject;
+		PinType = SourcePin.PinType;
 	}
 
 	// Copy the links
