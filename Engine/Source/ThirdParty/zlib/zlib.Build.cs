@@ -49,8 +49,7 @@ public class zlib : ModuleRules
             }
             else
             {
-                PublicLibraryPaths.Add(zlibPath + "Lib/Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("z");
+                PublicAdditionalLibraries.Add(zlibPath + "Lib/Linux/" + Target.Architecture + "/libz_fPIC.a");
             }
         }
     }
