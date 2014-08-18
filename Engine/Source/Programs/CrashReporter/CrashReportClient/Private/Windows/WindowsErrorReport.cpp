@@ -104,7 +104,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 		}
 	}
 
-	// Don't write a Diagnostics.txt to disk in rocket. It will be displayed in the UI but not sent to the server.
+	// Don't write a Diagnostics.txt to disk in UE4 release build. It will be displayed in the UI but not sent to the server.
 	if ( !FRocketSupport::IsRocket() )
 	{
 		// There's a callstack, so write it out to save the server trying to do it

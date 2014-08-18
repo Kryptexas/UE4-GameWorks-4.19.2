@@ -78,7 +78,7 @@ TArray<FString> FGenericErrorReport::GetFilesToUpload() const
 	{
 		if (FRocketSupport::IsRocket() && Filename.EndsWith(TEXT(".log")))
 		{
-			// Temporarily side-step privacy concerns by not uploading Rocket logs
+			// Temporarily side-step privacy concerns by not uploading UE4 release builds' logs
 			continue;
 		}
 
