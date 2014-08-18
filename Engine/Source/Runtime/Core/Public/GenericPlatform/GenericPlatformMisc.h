@@ -391,7 +391,7 @@ struct CORE_API FGenericPlatformMisc
 
 	FORCEINLINE static void RaiseException( uint32 ExceptionCode )
 	{
-#if HACK_HEADER_GENERATOR
+#if HACK_HEADER_GENERATOR && !PLATFORM_EXCEPTIONS_DISABLED
 		// We want Unreal Header Tool to throw an exception but in normal runtime code 
 		// we don't support exception handling
 		throw( ExceptionCode );

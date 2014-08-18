@@ -4464,15 +4464,19 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 	FString ModuleInfoPath = FPaths::GetPath(ModuleInfoFilename);
 
 	// Load the manifest file, giving a list of all modules to be processed, pre-sorted by dependency ordering
+#if !PLATFORM_EXCEPTIONS_DISABLED
 	try
+#endif
 	{
 		GManifest = FManifest::LoadFromFile(ModuleInfoFilename);
 	}
+#if !PLATFORM_EXCEPTIONS_DISABLED
 	catch (const TCHAR* Ex)
 	{
 		UE_LOG(LogCompile, Error, TEXT("Failed to load manifest file '%s': %s"), *ModuleInfoFilename, Ex);
 		return GCompilationResult;
 	}
+#endif
 
 	// Load classes for editing.
 	int32 NumFailures = 0;
