@@ -2,6 +2,17 @@
 
 #pragma once
 
+namespace SequencerSectionConstants
+{
+	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
+	const float SectionDragStartDistance = 5.0f;
+
+	/** The size of each key */
+	const FVector2D KeySize(11.0f, 11.0f);
+
+	const float SectionGripSize = 7.0f;
+}
+
 class SSection : public SCompoundWidget
 {
 public:
@@ -91,6 +102,11 @@ private:
 	 * @param LayerId			The starting draw area
 	 */
 	void PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle ) const;
+
+	/**
+	 * Draw the borders around each section.  The borders are the areas which can be used to expand or collapse the size of the section.
+	 */
+	void DrawSectionBorders( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
 
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );

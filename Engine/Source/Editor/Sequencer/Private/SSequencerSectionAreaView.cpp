@@ -35,19 +35,16 @@ namespace SequencerSectionUtils
 		float StartX =  TimeToPixelConverter.TimeToPixel( Section->GetStartTime() );
 		// Where to stop drawing the section
 		float EndX = TimeToPixelConverter.TimeToPixel( Section->GetEndTime() );
+		
+		// Actual section length without grips.
+		float SectionLengthActual = EndX-StartX;
 
-		if( StartX == EndX )
-		{
-			// Section is a single point in time
-			// extend it out a bit so it is visible
-			StartX-=1.0f;
-			EndX+=1.0f;
-		}
+		float SectionLengthWithGrips = SectionLengthActual+SequencerSectionConstants::SectionGripSize*2;
 
 		float ActualHeight = NodeHeight / MaxTracks;
 
 		// Compute allotted geometry area that can be used to draw the section
-		return AllottedGeometry.MakeChild( FVector2D( StartX, ActualHeight * RowIndex ), FVector2D( EndX - StartX, ActualHeight ) );
+		return AllottedGeometry.MakeChild( FVector2D( StartX-SequencerSectionConstants::SectionGripSize, ActualHeight * RowIndex ), FVector2D( SectionLengthWithGrips, ActualHeight ) );
 	}
 
 }

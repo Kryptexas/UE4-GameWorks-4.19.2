@@ -10,16 +10,7 @@
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 
-namespace SequencerSectionConstants
-{
-	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
-	const float SectionDragStartDistance = 5.0f;
 
-	/** The size of each key */
-	const FVector2D KeySize( 11.0f, 11.0f );
-
-	const float SectionEdgeSize = 15.0f;
-}
 
 void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 InSectionIndex )
 {
@@ -142,11 +133,11 @@ void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const F
 	// Make areas to the left and right of the geometry.  We will use these areas to determine if someone dragged the left or right edge of a section
 	FGeometry SectionRectLeft = SectionGeometry.MakeChild(
 		FVector2D::ZeroVector,
-		FVector2D( SequencerSectionConstants::SectionEdgeSize, SectionGeometry.Size.Y )
+		FVector2D( SequencerSectionConstants::SectionGripSize, SectionGeometry.Size.Y )
 		);
 
 	FGeometry SectionRectRight = SectionGeometry.MakeChild(
-		FVector2D( SectionGeometry.Size.X - SequencerSectionConstants::SectionEdgeSize, 0 ), 
+		FVector2D( SectionGeometry.Size.X - SequencerSectionConstants::SectionGripSize, 0 ), 
 		SectionGeometry.Size 
 		);
 
@@ -214,21 +205,19 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 {
 	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
-	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
+	DrawSectionBorders( AllottedGeometry, MyClippingRect, OutDrawElements, StartLayer );
 
-	const bool bSelected = ParentSectionArea->GetSequencer().IsSectionSelected( SectionObject );
+	FGeometry SectionGeometry = AllottedGeometry.MakeChild( FVector2D( SequencerSectionConstants::SectionGripSize, 0 ), AllottedGeometry.GetDrawSize() - FVector2D( SequencerSectionConstants::SectionGripSize*2, 0.0f ) );
+
 
 	// Ask the interface to draw the section
-	int32 PostSectionLayer = SectionInterface->OnPaintSection( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled );
+	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled );
 
 	// @todo Sequencer - Temp indicators of the area of a section which can be dragged.
 
-	PaintKeys( AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
+	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
 
-	FLinearColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor( InWidgetStyle );
-	FLinearColor TransparentSelectionColor = SelectionColor;
-	TransparentSelectionColor.A = .5f;
-		
+	
 	// Section name with drop shadow
 	FText SectionTitle = SectionInterface->GetSectionTitle();
 	if (!SectionTitle.IsEmpty())
@@ -236,17 +225,18 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			PostSectionLayer+1,
-			AllottedGeometry.ToOffsetPaintGeometry(FVector2D(6, 6)),
+			SectionGeometry.ToOffsetPaintGeometry(FVector2D(6, 6)),
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black
 			);
+
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			PostSectionLayer+2,
-			AllottedGeometry.ToOffsetPaintGeometry(FVector2D(5, 5)),
+			SectionGeometry.ToOffsetPaintGeometry(FVector2D(5, 5)),
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
@@ -255,48 +245,8 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 			);
 	}
 
-	// draw selection box
-	if (bSelected)
-	{
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			PostSectionLayer+3,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("PlainBorder"),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			SelectionColor
-			);
-	}
 	
 
-	if( bLeftEdgePressed || bLeftEdgeHovered )
-	{
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements, 
-			PostSectionLayer+3,
-			AllottedGeometry.ToPaintGeometry( FVector2D::ZeroVector, FVector2D( 5.0f, AllottedGeometry.Size.Y ) ),
-			FEditorStyle::GetBrush( "WhiteBrush" ),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			TransparentSelectionColor
-			);
-
-	}
-
-	if( bRightEdgePressed || bRightEdgeHovered )
-	{
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements, 
-			PostSectionLayer+3,
-			AllottedGeometry.ToPaintGeometry( FVector2D( AllottedGeometry.Size.X - 5.0f, 0 ), AllottedGeometry.Size ),
-			FEditorStyle::GetBrush( "WhiteBrush" ),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			TransparentSelectionColor
-			);
-
-	}
 
 	return LayerId;
 }
@@ -388,6 +338,56 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 			}
 		}
 	}
+}
+
+void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+{
+	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
+
+	const bool bSelected = ParentSectionArea->GetSequencer().IsSectionSelected(SectionObject);
+
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor(FWidgetStyle());
+	FLinearColor TransparentSelectionColor = SelectionColor;
+
+	// Left Grip
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId,
+		// Center the key along Y.  Ensure the middle of the key is at the actual key time
+		AllottedGeometry.ToPaintGeometry( FVector2D( 0.0f, 0.0f ), FVector2D( SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y) ) ,
+		FEditorStyle::GetBrush("Sequencer.SectionGripLeft"),
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
+	);
+
+	// Right Grip
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId,
+		// Center the key along Y.  Ensure the middle of the key is at the actual key time
+		AllottedGeometry.ToPaintGeometry( FVector2D( AllottedGeometry.Size.X-SequencerSectionConstants::SectionGripSize, 0.0f), FVector2D(SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y)),
+		FEditorStyle::GetBrush("Sequencer.SectionGripRight"),
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
+		);
+
+
+	// draw selection box
+	if(bSelected)
+	{
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId,
+			AllottedGeometry.ToPaintGeometry(),
+			FEditorStyle::GetBrush("PlainBorder"),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			SelectionColor
+			);
+	}
+
 }
 
 TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
