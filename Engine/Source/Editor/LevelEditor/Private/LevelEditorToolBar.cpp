@@ -59,7 +59,9 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			FOnGetContent::CreateStatic(&FLevelEditorToolBar::GenerateQuickSettingsMenu, InCommandList),
 			LOCTEXT("QuickSettingsCombo", "Quick Settings"),
 			LOCTEXT("QuickSettingsCombo_ToolTip", "Quick level editor settings"),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions")
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions"),
+			false,
+			"LevelToolbarQuickSettings"
 			);
 
 		ToolbarBuilder.AddComboButton(
@@ -67,8 +69,9 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateOpenGameSettingsMenu, InCommandList ),
 			LOCTEXT( "OpenConfiguration_Label", "Game Settings" ),
 			LOCTEXT( "OpenConfiguration_ToolTip", "Open game settings windows" ),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.GameSettings")/*,
-			"LevelToolbarWorldSettings"*/
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.GameSettings"),
+			false,
+			"LevelToolbarWorldSettings"
 			);
 	}
 	ToolbarBuilder.EndSection();
