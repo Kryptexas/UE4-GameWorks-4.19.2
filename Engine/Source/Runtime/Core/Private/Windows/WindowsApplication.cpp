@@ -45,12 +45,12 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, bUsingHighPrecisionMouseInput( false )
 	, bIsMouseAttached( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
+	, bHasLoadedInputPlugins( false )
 	, CVarDeferMessageProcessing( 
 		TEXT( "Slate.DeferWindowsMessageProcessing" ),
 		bAllowedToDeferMessageProcessing,
 		TEXT( "Whether windows message processing is deferred until tick or if they are processed immediately" ) )
 	, bAllowedToDeferMessageProcessing( true )
-	, bHasLoadedInputPlugins( false )
 	, bInModalSizeLoop( false )
 
 {
