@@ -96,7 +96,7 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI,IDXGISwapChain* Sw
 	// create the render target view
 	TRefCountPtr<ID3D11RenderTargetView> BackBufferRenderTargetView;
 	D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
-	RTVDesc.Format = (DXGI_FORMAT)FD3D11Viewport::GetBackBufferFormat();
+	RTVDesc.Format = DXGI_FORMAT_UNKNOWN;
 	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	RTVDesc.Texture2D.MipSlice = 0;
 	VERIFYD3D11RESULT(D3DRHI->GetDevice()->CreateRenderTargetView(BackBufferResource,&RTVDesc,BackBufferRenderTargetView.GetInitReference()));
@@ -110,7 +110,7 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI,IDXGISwapChain* Sw
 	// create a shader resource view to allow using the backbuffer as a texture
 	TRefCountPtr<ID3D11ShaderResourceView> BackBufferShaderResourceView;
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	SRVDesc.Format = (DXGI_FORMAT)FD3D11Viewport::GetBackBufferFormat();
+	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
 	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;

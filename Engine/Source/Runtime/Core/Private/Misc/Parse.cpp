@@ -1069,6 +1069,11 @@ bool FParse::Resolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, i
 					WindowMode = EWindowMode::WindowedFullscreen;
 					StringTripLen = 2;
 				}
+				else if (WindowFullScreenChars == TEXT("wm"))
+				{
+					WindowMode = EWindowMode::WindowedMirror;
+					StringTripLen = 2;
+				}
 				else if (FullScreenChar == TEXT("f"))
 				{
 					WindowMode = EWindowMode::Fullscreen;

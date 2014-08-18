@@ -9841,6 +9841,10 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 		{
 			WindowModeSuffix = TEXT("w");
 		} break;
+		case EWindowMode::WindowedMirror:
+		{
+			WindowModeSuffix = TEXT("wm");
+		} break;
 		case EWindowMode::WindowedFullscreen:
 		{
 			WindowModeSuffix = TEXT("wf");

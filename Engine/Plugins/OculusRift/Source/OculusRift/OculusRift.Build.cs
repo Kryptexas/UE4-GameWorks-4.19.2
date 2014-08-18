@@ -10,8 +10,6 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"OculusRift/Private",
  					"../../../Source/Runtime/Renderer/Private",
-// 					"../../../Runtime/Windows/D3D11RHI/Private",
-// 					"Runtime/OpenGLDrv/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -22,6 +20,7 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
+					"InputCore",
 					"RHI",
 					"RenderCore",
 					"Renderer",
@@ -39,6 +38,10 @@ namespace UnrealBuildTool.Rules
                 if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
                 {
                     PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });
+                }
+                if (Target.Platform == UnrealTargetPlatform.Mac)
+                {
+               		AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
                 }
             }
 		}

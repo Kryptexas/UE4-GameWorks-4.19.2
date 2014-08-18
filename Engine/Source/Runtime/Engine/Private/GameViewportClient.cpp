@@ -2398,12 +2398,24 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		const TCHAR* CmdTemp = FCString::Strchr(Cmd,'x') ? FCString::Strchr(Cmd,'x')+1 : FCString::Strchr(Cmd,'X') ? FCString::Strchr(Cmd,'X')+1 : TEXT("");
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
-		EWindowMode::Type WindowMode = Viewport->IsFullscreen() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
+		EWindowMode::Type WindowMode;
+		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullScreenAllowed())
+		{
+			WindowMode = Viewport->IsFullscreen() ? EWindowMode::WindowedMirror : EWindowMode::Windowed;
+		}
+		else
+		{
+			WindowMode = Viewport->IsFullscreen() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
+		}
 		if(FCString::Strchr(Cmd,'w') || FCString::Strchr(Cmd,'W'))
 		{
 			if(FCString::Strchr(Cmd, 'f') || FCString::Strchr(Cmd, 'F'))
 			{
 				WindowMode = EWindowMode::WindowedFullscreen;
+			}
+			else if (FCString::Strchr(Cmd, 'm') || FCString::Strchr(Cmd, 'M'))
+			{
+				WindowMode = EWindowMode::WindowedMirror;
 			}
 			else
 			{
