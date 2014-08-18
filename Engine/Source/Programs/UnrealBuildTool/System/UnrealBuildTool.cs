@@ -2075,11 +2075,6 @@ namespace UnrealBuildTool
 							Log.TraceInformation("UBTMakefile is older than generated game project files, ignoring it" );
 						}
                     }	
-                    else
-                    {
-                        // Game project files folder is missing, so force outdatedness
-						bForceOutOfDate = true;
-                    }
                 }
 			}
 			else
