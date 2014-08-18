@@ -41,6 +41,12 @@ public:
 		Length = InTimerInfo.Length;
 	}
 
+	FTimerInfo( const FTimerInfo &InTimerInfo )
+	{
+		Name = InTimerInfo.Name;
+		Length = InTimerInfo.Length;
+	}
+
 	FTimerInfo( FString &&InName, double InLength ) : Name(MoveTemp(InName)), Length(InLength) { }
 
 	FString Name;
