@@ -326,7 +326,7 @@ namespace UnrealBuildTool
          */
         public override void ValidateUEBuildConfiguration()
         {
-            UEBuildConfiguration.bCompileICU &= !bCompileWithClang;	// @todo clang: ICU causes STL link errors when using Clang on Windows.  Needs debugging.
+            UEBuildConfiguration.bCompileICU = true;
         }
 
         public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)

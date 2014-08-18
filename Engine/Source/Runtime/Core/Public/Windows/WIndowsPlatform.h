@@ -36,13 +36,10 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 
 #define PLATFORM_LITTLE_ENDIAN								1
 #if defined(__clang__)
-	// @todo Clang Clang emits a compile error on Windows when __try/__except blocks are used (missing functionality in Clang.)
-	//             After Clang adds proper support for SEH exceptions, we should delete this definition and all use cases of it!
+	// @todo clang: Clang compiler on Windows doesn't support SEH exception handling yet (__try/__except)
 	#define PLATFORM_SEH_EXCEPTIONS_DISABLED				1
 
-	// @todo clang: This is needed because of a bug in Clang with RTTI and exceptions (even when RTTI is disabled!)  This manifests as a 
-	// compile error whenever try/catch/throw is used.  See http://llvm.org/bugs/show_bug.cgi?id=17403.  This code should be removed 
-	// after the bug is fixed in Clang!
+	// @todo clang: Clang compiler on Windows doesn't support C++ exception handling yet (try/throw/catch)
 	#define PLATFORM_EXCEPTIONS_DISABLED					1
 #endif
 
