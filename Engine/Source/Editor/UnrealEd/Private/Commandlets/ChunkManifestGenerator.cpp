@@ -211,7 +211,7 @@ void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const
 		}
 
 		// Collect all chunk IDs associated with this package from the asset registry
-		TArray<int32> RegistryChunkIDs = GetAssetRegistryChunkAssignments(PackageFName);
+		TArray<int32> RegistryChunkIDs = GetAssetRegistryChunkAssignments(Package);
 		ExistingChunkIDs = GetExistingPackageChunkAssignments(PackageFName);
 
 		// Try to call game-specific delegate to determine the target chunk ID

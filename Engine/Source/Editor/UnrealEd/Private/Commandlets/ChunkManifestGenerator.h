@@ -134,20 +134,25 @@ class FChunkManifestGenerator
 	}
 
 	/**
-	* Returns an array of chunks ID for a package name that have been assigned in the editor.
+	* Returns an array of chunks IDs for a package that have been assigned in the editor.
 	*/
-	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(FName PackageFName)
+	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(UPackage* Package)
 	{
 		TArray<int32> RegistryChunkIDs;
-		TArray<FAssetData> PkgAssets;
-		AssetRegistry.GetAssetsByPackageName(PackageFName, PkgAssets);
-		for (const auto& Asset : PkgAssets)
+		TArray<UObject*> ObjectsInPackage;
+		GetObjectsWithOuter(Package, ObjectsInPackage, false);
+		for (const auto* Object : ObjectsInPackage)
 		{
-			for (const auto& AssetChunk : Asset.ChunkIDs)
+			if (Object && Object->IsAsset())
 			{
-				RegistryChunkIDs.AddUnique(AssetChunk);
+				FAssetData Asset(Object);
+				for (auto AssetChunk : Asset.ChunkIDs)
+				{
+					RegistryChunkIDs.AddUnique(AssetChunk);
+				}
 			}
 		}
+
 		return RegistryChunkIDs;
 	}
 
