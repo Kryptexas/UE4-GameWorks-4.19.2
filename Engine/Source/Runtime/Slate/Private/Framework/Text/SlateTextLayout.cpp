@@ -27,11 +27,11 @@ FChildren* FSlateTextLayout::GetChildren()
 
 void FSlateTextLayout::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	for (int LineIndex = 0; LineIndex < LineViews.Num(); LineIndex++)
+	for (int32 LineIndex = 0; LineIndex < LineViews.Num(); LineIndex++)
 	{
 		const FTextLayout::FLineView& LineView = LineViews[ LineIndex ];
 
-		for (int BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
+		for (int32 BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
 		{
 			const TSharedRef< ILayoutBlock > Block = LineView.Blocks[ BlockIndex ];
 			const TSharedRef< ISlateRun > Run = StaticCastSharedRef< ISlateRun >( Block->GetRun() );
@@ -51,6 +51,14 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& 
 
 	for (const FTextLayout::FLineView& LineView : LineViews)
 	{
+		// Is this line visible?
+		const FSlateRect LineViewRect(AllottedGeometry.AbsolutePosition + LineView.Offset, AllottedGeometry.AbsolutePosition + LineView.Offset + LineView.Size);
+		const FSlateRect VisibleLineView = ClippingRect.IntersectionWith(LineViewRect);
+		if (VisibleLineView.IsEmpty())
+		{
+			continue;
+		}
+
 		// Render any underlays for this line
 		const int32 HighestUnderlayLayerId = OnPaintHighlights( Args, LineView, LineView.UnderlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
@@ -126,16 +134,16 @@ void FSlateTextLayout::AggregateChildren()
 {
 	Children.Empty();
 	const TArray< FLineModel >& LineModels = GetLineModels();
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		const FLineModel& LineModel = LineModels[ LineModelIndex ];
-		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			const FRunModel& LineRun = LineModel.Runs[ RunIndex ];
 			const TSharedRef< ISlateRun > SlateRun = StaticCastSharedRef< ISlateRun >( LineRun.GetRun() );
 
 			const TArray< TSharedRef<SWidget> >& RunChildren = SlateRun->GetChildren();
-			for (int ChildIndex = 0; ChildIndex < RunChildren.Num(); ChildIndex++)
+			for (int32 ChildIndex = 0; ChildIndex < RunChildren.Num(); ChildIndex++)
 			{
 				const TSharedRef< SWidget >& Child = RunChildren[ ChildIndex ];
 				Children.Add( Child );

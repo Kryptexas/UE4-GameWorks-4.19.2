@@ -158,8 +158,8 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute<bool> AutoWrapText;
 
-	/** The last known width of the control from the previous OnPaint, used to recalculate wrapping. */
-	mutable float CachedAutoWrapTextWidth;
+	/** The last known size of the control from the previous OnPaint, used to recalculate wrapping. */
+	mutable FVector2D CachedSize;
 
 	TAttribute< FMargin > Margin;
 	TAttribute< ETextJustify::Type > Justification; 

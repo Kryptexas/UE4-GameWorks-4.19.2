@@ -849,16 +849,17 @@ class SMultiLineEditingTest : public SCompoundWidget
 	{
 		MultilineEditableText = LOCTEXT( "MultiLineTextTest", "He has refused his Assent to Laws, the most wholesome and necessary for the public good.\nHe has forbidden his Governors to pass Laws of immediate and pressing importance, unless suspended in their operation till his Assent should be obtained; and when so suspended, he has utterly neglected to attend to them.\nHe has refused to pass other Laws for the accommodation of large districts of people, unless those people would relinquish the right of Representation in the Legislature, a right inestimable to them and formidable to tyrants only.\n\nHe has called together legislative bodies at places unusual, uncomfortable, and distant from the depository of their public Records, for the sole purpose of fatiguing them into compliance with his measures.\nHe has dissolved Representative Houses repeatedly, for opposing with manly firmness his invasions on the rights of the people.\nHe has refused for a long time, after such dissolutions, to cause others to be elected; whereby the Legislative powers, incapable of Annihilation, have returned to the People at large for their exercise; the State remaining in the mean time exposed to all the dangers of invasion from without, and convulsions within.\nHe has endeavoured to prevent the population of these States; for that purpose obstructing the Laws for Naturalization of Foreigners; refusing to pass others to encourage their migrations hither, and raising the conditions of new Appropriations of Lands.\n" );
 
-		TSharedRef<SScrollBar> FirstScrollBar = SNew( SScrollBar );
-		TSharedRef<SScrollBar> SecondScrollBar = SNew( SScrollBar );
-
 		this->ChildSlot
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot().FillHeight( 1 )
+			+SVerticalBox::Slot()
+			.FillHeight( 1 )
 			[
 				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot().AutoWidth().VAlign( VAlign_Top ).Padding( 2 )
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign( VAlign_Top )
+				.Padding( 2 )
 				[
 					SNew( SVerticalBox )
 					+ SVerticalBox::Slot()
@@ -869,24 +870,18 @@ class SMultiLineEditingTest : public SCompoundWidget
 					]
 					+ SVerticalBox::Slot()
 					[
-						SNew( SHorizontalBox )
-						+ SHorizontalBox::Slot()
-						[
-							SNew( SMultiLineEditableTextBox )
-							.Text( this, &SMultiLineEditingTest::GetMultilineEditableText )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
-							.Justification( ETextJustify::Center )
-							.LineHeightPercentage( 2.0f )
-							.OnTextCommitted( this, &SMultiLineEditingTest::HandleMultilineEditableTextCommitted )
-							.WrapTextAt( 600.0f )
-						]
-						+ SHorizontalBox::Slot().AutoWidth()
-						[
-							FirstScrollBar
-						]
+						SNew( SMultiLineEditableTextBox )
+						.Text( this, &SMultiLineEditingTest::GetMultilineEditableText )
+						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+						.Justification( ETextJustify::Center )
+						.LineHeightPercentage( 2.0f )
+						.OnTextCommitted( this, &SMultiLineEditingTest::HandleMultilineEditableTextCommitted )
+						.WrapTextAt( 600.0f )
 					]
 				]
-				+ SHorizontalBox::Slot().FillWidth( 1 ).Padding( 2 )
+				+ SHorizontalBox::Slot()
+				.FillWidth( 1 )
+				.Padding( 2 )
 				[
 					SNew( SVerticalBox )
 					+ SVerticalBox::Slot()
@@ -896,29 +891,24 @@ class SMultiLineEditingTest : public SCompoundWidget
 						.Text( LOCTEXT( "MultiLineTextAutoWrap", "Multi-line editable text auto-wrapping" ) )
 					]
 					+ SVerticalBox::Slot()
-						[
-							SNew( SHorizontalBox )
-							+ SHorizontalBox::Slot()
-							[
-								SNew( SMultiLineEditableTextBox )
-								.Margin( 10 )
-								.Text( MultilineEditableText )
-								//.Justification(ETextJustify::Right)
-								.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
-								.AutoWrapText( true )
-								.HintText( LOCTEXT( "TypehereTextHint", "Type Here" ) )
-							]
-							+ SHorizontalBox::Slot().AutoWidth()
-								[
-									SecondScrollBar
-								]
-						]
+					[
+						SNew( SMultiLineEditableTextBox )
+						.Margin( 10 )
+						.Text( MultilineEditableText )
+						//.Justification(ETextJustify::Right)
+						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+						.AutoWrapText( true )
+						.HintText( LOCTEXT( "TypehereTextHint", "Type Here" ) )
+					]
 				]
 			]
-			+ SVerticalBox::Slot().AutoHeight()
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
 				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot().AutoWidth().VAlign( VAlign_Top ).Padding( 2 )
+				+ SHorizontalBox::Slot()
+				.VAlign( VAlign_Top )
+				.Padding( 2 )
 				[
 					SNew( SVerticalBox )
 					+ SVerticalBox::Slot()
@@ -928,16 +918,17 @@ class SMultiLineEditingTest : public SCompoundWidget
 						.Text( LOCTEXT( "MultiLineTextNoWrap", "Multi-line editable text without wrapping" ) )
 					]
 					+ SVerticalBox::Slot()
-						.AutoHeight()
+					.AutoHeight()
+					[
+						SNew( SHorizontalBox )
+						+ SHorizontalBox::Slot()
 						[
-							SNew( SHorizontalBox )
-							+ SHorizontalBox::Slot()
-							[
-								SNew( SMultiLineEditableTextBox )
-								.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
-								//.WrapTextAt(300.0f)
-							]
+							SNew( SMultiLineEditableTextBox )
+							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+							//.WrapTextAt(300.0f)
+							//.Justification( ETextJustify::Right )
 						]
+					]
 				]
 			]
 		];
@@ -1155,7 +1146,7 @@ public:
 						.BorderImage( FTestStyle::Get().GetBrush( "RichText.Tagline.Background" ) )
 						.Padding(0)
 						[
-							SNew( SRichTextBlock)
+							SNew( SRichTextBlock )
 							.Text( LOCTEXT("RichTextHeader05", "This is a text heavy page that has been created to show the performance and capabilities of Slate's <RichText.Tagline.TextHighlight>SRichTextBlock</>.") )
 							.TextStyle( FTestStyle::Get(), "RichText.Tagline.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )
@@ -1167,7 +1158,7 @@ public:
 
 					+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .Padding(20)			
 					[
-						SNew( SRichTextBlock)
+						SNew( SRichTextBlock )
 						.Text( LOCTEXT("RichText.HowItWorks", "<RichText.Header>What does it do?</>\n\nThe SRichTextBlock uses a concept called Decorators to introduce new font styles, images, animation and even whole interactive widgets inline with the text.\n\nSlate comes with a couple Decorators out of the box:\n\n        \u2022  <RichText.Text.Fancy>Text</> Decorator\n        \u2022  <img src=\"RichText.ImageDecorator\"/> Image Decorator\n        \u2022  <RichText.WidgetDecorator>Widget</> Decorator\n        \u2022  <a id=\"HyperlinkDecorator\" style=\"RichText.Hyperlink\">Hyperlink</> Decorator\n\n<RichText.Header>What about options?</>\n\nOf course you can always introduce your own Decorators by implementing ITextDecorator. This will give you full customization in how your text or widget is styled. \n\nBesides the power of Decorators the SRichTextBlock comes equipped with Margin support, Left-Center-Right Text Justification, a Line Height Scalar and Highlighting.\n\n<RichText.Header>How does the markup work?</>\n\nWell the markup parser is customizable so you can adjust the markup anyway you'd like by providing your own parser.  The parser that comes with Slate though uses a syntax very similar to xml.\n\n        \u2022  &lt;TextBlockStyleName>Your text content&lt;/>\n        \u2022  &lt;img src=\"SlateBrushStyleName\"/>\n        \u2022  &lt;a id=\"YourCustomId\"/>Your hyperlink text&lt;/>\n\nIf you ever want to use the markup syntax as actual text you can escape the markup using xml style escapes. For example:\n\n        \u2022  <    &amp;lt;\n        \u2022  >    &amp;gt;\n        \u2022  \"     &amp;quot;\n\nBut you only need to escape these characters when a set of them match actual syntax so this isn't generally an issue.\n\n<RichText.Header>Are there any catches?</>\n\nThere are still plenty of things the SRichTextBlock doesn't currently support. The most notable lacking feature is not having the ability to flow text around images or widgets. ") )
 						.TextStyle( FTestStyle::Get(), "RichText.Text" )
 						.DecoratorStyleSet( &FTestStyle::Get() )
@@ -1183,7 +1174,7 @@ public:
 						.BorderImage( FTestStyle::Get().GetBrush( "RichText.Tagline.Background" ) )
 						.Padding(0)
 						[
-							SNew( SRichTextBlock)
+							SNew( SRichTextBlock )
 							.Text( LOCTEXT("RichTextHeader01", "Here is an <RichText.Tagline.TextHighlight>interactive example</> of the different <RichText.Tagline.TextHighlight>SRichTextBlock</> features in action!") )
 							.TextStyle( FTestStyle::Get(), "RichText.Tagline.Text" )
 							.DecoratorStyleSet( &FTestStyle::Get() )

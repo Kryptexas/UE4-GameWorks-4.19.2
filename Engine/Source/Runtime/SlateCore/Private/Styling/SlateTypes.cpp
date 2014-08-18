@@ -233,6 +233,8 @@ void FEditableTextBoxStyle::GetResources( TArray< const FSlateBrush* >& OutBrush
 	OutBrushes.Add( &BackgroundImageHovered );
 	OutBrushes.Add( &BackgroundImageFocused );
 	OutBrushes.Add( &BackgroundImageReadOnly );
+
+	ScrollBarStyle.GetResources(OutBrushes);
 }
 
 const FName FEditableTextBoxStyle::TypeName( TEXT("FEditableTextBoxStyle") );

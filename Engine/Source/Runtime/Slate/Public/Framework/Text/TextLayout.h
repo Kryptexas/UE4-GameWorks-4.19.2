@@ -182,9 +182,9 @@ public:
 
 		uint8 GetKerning( int32 CurrentIndex, float Scale );
 
-		static int BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex );
+		static int32 BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex );
 
-		static int BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex );
+		static int32 BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex );
 
 		TSharedRef< ILayoutBlock > CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const;
 
@@ -292,6 +292,8 @@ public:
 
 	FMargin GetMargin() const;
 	void SetMargin( const FMargin& InMargin );
+
+	void SetVisibleRegion( const FVector2D& InViewSize, const FVector2D& InScrollOffset );
 
 	/** Set the iterator to use to detect appropriate soft-wrapping points for lines (or null to go back to using the default) */
 	void SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator );
@@ -420,8 +422,6 @@ private:
 
 	void JustifyLayout();
 
-	void JustifyHighlights();
-
 	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
 	FBreakCandidate CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak );
@@ -467,6 +467,12 @@ protected:
 
 	/** The final size of the text layout on screen. */
 	FVector2D DrawSize;
+
+	/** The size of the text layout that can actually be seen from the parent widget */
+	FVector2D ViewSize;
+
+	/** The scroll offset of the text layout from the parent widget */
+	FVector2D ScrollOffset;
 
 	/** The iterator to use to detect appropriate soft-wrapping points for lines */
 	TSharedPtr<IBreakIterator> LineBreakIterator;

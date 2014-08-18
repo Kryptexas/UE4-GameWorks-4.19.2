@@ -82,6 +82,18 @@ public:
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
 
+		/** The horizontal scroll bar widget, or null to create one internally */
+		SLATE_ARGUMENT( TSharedPtr< SScrollBar >, HScrollBar )
+
+		/** The vertical scroll bar widget, or null to create one internally */
+		SLATE_ARGUMENT( TSharedPtr< SScrollBar >, VScrollBar )
+
+		/** Padding around the horizontal scrollbar (overrides Style) */
+		SLATE_ATTRIBUTE( FMargin, HScrollBarPadding )
+
+		/** Padding around the vertical scrollbar (overrides Style) */
+		SLATE_ATTRIBUTE( FMargin, VScrollBarPadding )
+
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT( FOnTextChanged, OnTextChanged )
 

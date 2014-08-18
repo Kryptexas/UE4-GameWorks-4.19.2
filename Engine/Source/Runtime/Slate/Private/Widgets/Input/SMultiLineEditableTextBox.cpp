@@ -18,25 +18,66 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	BorderImageFocused = &InArgs._Style->BackgroundImageFocused;
 	BorderImageReadOnly = &InArgs._Style->BackgroundImageReadOnly;
 	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
+	TAttribute<FMargin> HScrollBarPadding = InArgs._HScrollBarPadding.IsSet() ? InArgs._HScrollBarPadding : InArgs._Style->HScrollBarPadding;
+	TAttribute<FMargin> VScrollBarPadding = InArgs._VScrollBarPadding.IsSet() ? InArgs._VScrollBarPadding : InArgs._Style->VScrollBarPadding;
 	TAttribute<FSlateFontInfo> Font = InArgs._Font.IsSet() ? InArgs._Font : InArgs._Style->Font;
 	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
 	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
 
+	TSharedPtr<SWidget> HScrollBarWidget;
+	TSharedPtr<SScrollBar> HScrollBar = InArgs._HScrollBar;
+	if (!HScrollBar.IsValid())
+	{
+		// Create and use our own scrollbar
+		HScrollBar = SNew(SScrollBar)
+			.Style(&InArgs._Style->ScrollBarStyle)
+			.Orientation(Orient_Horizontal)
+			.Thickness(FVector2D(5.0f, 5.0f));
+		HScrollBarWidget = HScrollBar;
+	}
+	else
+	{
+		// User provided an external scrollbar, use a null widget
+		HScrollBarWidget = SNullWidget::NullWidget;
+	}
+
+	TSharedPtr<SWidget> VScrollBarWidget;
+	TSharedPtr<SScrollBar> VScrollBar = InArgs._VScrollBar;
+	if (!VScrollBar.IsValid())
+	{
+		// Create and use our own scrollbar
+		VScrollBar = SNew(SScrollBar)
+			.Style(&InArgs._Style->ScrollBarStyle)
+			.Orientation(Orient_Vertical)
+			.Thickness(FVector2D(5.0f, 5.0f));
+		VScrollBarWidget = VScrollBar;
+	}
+	else
+	{
+		// User provided an external scrollbar, use a null widget
+		VScrollBarWidget = SNullWidget::NullWidget;
+	}
+
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage( this, &SMultiLineEditableTextBox::GetBorderImage )
 		.BorderBackgroundColor( BackgroundColor )
 		.ForegroundColor( ForegroundColor )
-		.Padding( 0 )
+		.Padding( Padding )
 		[
 			SAssignNew( Box, SHorizontalBox)
+
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
 			.FillWidth(1)
 			[
-				SNew( SBox )
-				.Padding( Padding )
+				SNew(SVerticalBox)
+
+				+SVerticalBox::Slot()
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				.FillHeight(1)
 				[
 					SAssignNew( EditableText, SMultiLineEditableText )
 					.Text( InArgs._Text )
@@ -51,7 +92,23 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.Margin(InArgs._Margin)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.AutoWrapText(InArgs._AutoWrapText)
+					.HScrollBar(HScrollBar)
+					.VScrollBar(VScrollBar)
 				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding((InArgs._HScrollBar.IsValid()) ? FMargin(0) : HScrollBarPadding)
+				[
+					HScrollBarWidget.ToSharedRef()
+				]
+			]
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding((InArgs._VScrollBar.IsValid()) ? FMargin(0) : VScrollBarPadding)
+			[
+				VScrollBarWidget.ToSharedRef()
 			]
 		]
 	);

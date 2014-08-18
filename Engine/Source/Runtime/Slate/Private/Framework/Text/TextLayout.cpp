@@ -217,12 +217,14 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 	}
 
 	FVector2D LineSize( ForceInitToZero );
-	FVector2D CurrentOffset( Margin.Left, Margin.Top + DrawSize.Y );
+	
+	// Use a negative scroll offset since positive scrolling moves things negatively in screen space
+	FVector2D CurrentOffset( Margin.Left - ScrollOffset.X, Margin.Top + DrawSize.Y - ScrollOffset.Y );
 
 	if ( OutSoftLine.Num() > 0 )
 	{
 		float CurrentHorizontalPos = 0.0f;
-		for (int Index = 0; Index < OutSoftLine.Num(); Index++)
+		for (int32 Index = 0; Index < OutSoftLine.Num(); Index++)
 		{
 			const TSharedRef< ILayoutBlock > Block = OutSoftLine[ Index ];
 			const TSharedRef< IRun > Run = Block->GetRun();
@@ -263,63 +265,27 @@ void FTextLayout::JustifyLayout()
 		return;
 	}
 
-	const float LayoutWidthNoMargin = DrawSize.X - Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale;
+	const float LayoutWidthNoMargin = FMath::Max(DrawSize.X - Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale, ViewSize.X);
 
-	for (int LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
+	for (FLineView& LineView : LineViews)
 	{
-		FLineView& LineView = LineViews[ LineViewIndex ];
 		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
 
-		FVector2D BlockOffset( ForceInitToZero );
+		FVector2D OffsetAdjustment( ForceInitToZero );
 		if ( Justification == ETextJustify::Center )
 		{
-			BlockOffset = FVector2D( ExtraSpace / 2, 0 );
+			OffsetAdjustment = FVector2D( ExtraSpace * 0.5f, 0 );
 		}
 		else if ( Justification == ETextJustify::Right )
 		{
-			BlockOffset = FVector2D( ExtraSpace, 0 );
+			OffsetAdjustment = FVector2D( ExtraSpace, 0 );
 		}
 
-		for (int BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
+		LineView.Offset += OffsetAdjustment;
+
+		for (const TSharedRef< ILayoutBlock >& Block : LineView.Blocks)
 		{
-			const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[ BlockIndex ];
-			Block->SetLocationOffset( Block->GetLocationOffset() + BlockOffset );
-		}
-	}
-}
-
-void FTextLayout::JustifyHighlights()
-{
-	if ( Justification == ETextJustify::Left )
-	{
-		return;
-	}
-
-	const float LayoutWidthNoMargin = DrawSize.X - Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale;
-
-	for (int LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
-	{
-		FLineView& LineView = LineViews[ LineViewIndex ];
-		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
-
-		float HighlightOffset = 0;
-		if ( Justification == ETextJustify::Center )
-		{
-			HighlightOffset = ExtraSpace / 2;
-		}
-		else if ( Justification == ETextJustify::Right )
-		{
-			HighlightOffset = ExtraSpace;
-		}
-
-		for (FLineViewHighlight& Highlight : LineView.UnderlayHighlights)
-		{
-			Highlight.OffsetX += HighlightOffset;
-		}
-
-		for (FLineViewHighlight& Highlight : LineView.OverlayHighlights)
-		{
-			Highlight.OffsetX += HighlightOffset;
+			Block->SetLocationOffset( Block->GetLocationOffset() + OffsetAdjustment );
 		}
 	}
 }
@@ -334,7 +300,7 @@ void FTextLayout::FlowLayout()
 
 	TArray< TSharedRef< ILayoutBlock > > SoftLine;
 
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		const FLineModel& LineModel = LineModels[ LineModelIndex ];
 
@@ -359,7 +325,7 @@ void FTextLayout::FlowLayout()
 		}
 		else
 		{
-			for (int BreakIndex = 0; BreakIndex < LineModel.BreakCandidates.Num(); BreakIndex++)
+			for (int32 BreakIndex = 0; BreakIndex < LineModel.BreakCandidates.Num(); BreakIndex++)
 			{
 				const FBreakCandidate& Break = LineModel.BreakCandidates[ BreakIndex ];
 
@@ -487,10 +453,10 @@ void FTextLayout::FlowHighlights()
 
 void FTextLayout::EndLayout()
 {
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[ LineModelIndex ];
-		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			LineModel.Runs[ RunIndex ].EndLayout();
 		}
@@ -499,10 +465,10 @@ void FTextLayout::EndLayout()
 
 void FTextLayout::BeginLayout()
 {
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[ LineModelIndex ];
-		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			LineModel.Runs[ RunIndex ].BeginLayout();
 		}
@@ -523,7 +489,7 @@ void FTextLayout::CreateWrappingCache()
 		LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
 	}
 
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[ LineModelIndex ];
 
@@ -532,7 +498,7 @@ void FTextLayout::CreateWrappingCache()
 			LineModel.BreakCandidates.Empty();
 			LineModel.HasWrappingInformation = true;
 
-			for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+			for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 			{
 				LineModel.Runs[ RunIndex ].ClearCache();
 			}
@@ -556,7 +522,7 @@ void FTextLayout::CreateWrappingCache()
 
 void FTextLayout::ClearWrappingCache()
 {
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[ LineModelIndex ];
 		LineModel.HasWrappingInformation = false;
@@ -570,8 +536,11 @@ FTextLayout::FTextLayout()
 	, Scale( 1.0f )
 	, WrappingWidth( 0 )
 	, Margin()
+	, Justification( ETextJustify::Left )
 	, LineHeightPercentage( 1.0f )
 	, DrawSize( ForceInitToZero )
+	, ViewSize( ForceInitToZero )
+	, ScrollOffset( ForceInitToZero )
 	, LineBreakIterator() // Initialized in FTextLayout::CreateWrappingCache if no custom iterator is provided
 	, WordBreakIterator(FBreakIterator::CreateWordBreakIterator())
 {
@@ -612,7 +581,6 @@ void FTextLayout::UpdateLayout()
 void FTextLayout::UpdateHighlights()
 {
 	FlowHighlights();
-	JustifyHighlights();
 
 	DirtyFlags &= ~EDirtyState::Highlights;
 }
@@ -673,7 +641,7 @@ void FTextLayout::SetRunRenderers( const TArray< FTextRunRenderer >& Renderers )
 {
 	ClearRunRenderers();
 
-	for (int Index = 0; Index < Renderers.Num(); Index++)
+	for (int32 Index = 0; Index < Renderers.Num(); Index++)
 	{
 		AddRunRenderer( Renderers[ Index ] );
 	}
@@ -687,7 +655,7 @@ void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 
 	// Renderers needs to be in order and not overlap
 	bool bWasInserted = false;
-	for (int Index = 0; Index < LineModel.RunRenderers.Num() && !bWasInserted; Index++)
+	for (int32 Index = 0; Index < LineModel.RunRenderers.Num() && !bWasInserted; Index++)
 	{
 		if ( LineModel.RunRenderers[ Index ].Range.BeginIndex > Renderer.Range.BeginIndex )
 		{
@@ -727,7 +695,7 @@ void FTextLayout::SetLineHighlights( const TArray< FTextLineHighlight >& Highlig
 {
 	ClearLineHighlights();
 
-	for (int Index = 0; Index < Highlights.Num(); Index++)
+	for (int32 Index = 0; Index < Highlights.Num(); Index++)
 	{
 		AddLineHighlight( Highlights[ Index ] );
 	}
@@ -742,7 +710,7 @@ void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 
 	// Try and maintain a stable sorted z-order - highlights with the same z-order should just render in the order they were added
 	bool bWasInserted = false;
-	for (int Index = 0; Index < LineModel.LineHighlights.Num() && !bWasInserted; Index++)
+	for (int32 Index = 0; Index < LineModel.LineHighlights.Num() && !bWasInserted; Index++)
 	{
 		if ( LineModel.LineHighlights[ Index ].ZOrder > Highlight.ZOrder )
 		{
@@ -1089,7 +1057,7 @@ bool FTextLayout::JoinLineWithNextLine(int32 LineIndex)
 	LineModel.HasWrappingInformation = false;
 
 	//Iterate through all of the next lines runs and bring them over to the current line
-	for (int RunIndex = 0; RunIndex < NextLineModel.Runs.Num(); RunIndex++)
+	for (int32 RunIndex = 0; RunIndex < NextLineModel.Runs.Num(); RunIndex++)
 	{
 		const TSharedRef<IRun> Run = NextLineModel.Runs[RunIndex].GetRun();
 		FTextRange NewRange = Run->GetTextRange();
@@ -1128,7 +1096,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 	check(LeftLineModel.Text->Len() == BreakLocation);
 
 	bool RunIsToTheLeftOfTheBreakLocation = true;
-	for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
 		const TSharedRef<IRun> Run = LineModel.Runs[RunIndex].GetRun();
 		const FTextRange& RunRange = Run->GetTextRange();
@@ -1272,7 +1240,7 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 {
 	FLineModel LineModel( Text );
 
-	for (int Index = 0; Index < Runs.Num(); Index++)
+	for (int32 Index = 0; Index < Runs.Num(); Index++)
 	{
 		LineModel.Runs.Add( FRunModel( Runs[ Index ] ) );
 	}
@@ -1318,7 +1286,7 @@ void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffset
 		OutTextOffsetLocations->OffsetData.Reserve(LineModels.Num());
 	}
 
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		const FLineModel& LineModel = LineModels[LineModelIndex];
 
@@ -1333,7 +1301,7 @@ void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffset
 		}
 
 		int32 LineLength = 0;
-		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			const FRunModel& Run = LineModel.Runs[RunIndex];
 			if (OutDisplayText)
@@ -1354,7 +1322,7 @@ void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffset
 
 void GetRangeAsTextFromLine(FString& DisplayText, const FTextLayout::FLineModel& LineModel, const FTextRange& Range)
 {
-	for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
 		const FTextLayout::FRunModel& Run = LineModel.Runs[RunIndex];
 		const FTextRange& RunRange = Run.GetTextRange();
@@ -1392,7 +1360,7 @@ void FTextLayout::GetSelectionAsText(FString& DisplayText, const FTextSelection&
 		}
 		else
 		{
-			for (int LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
+			for (int32 LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
 			{
 				if (LineIndex == SelectionBeginningLineIndex)
 				{
@@ -1472,10 +1440,47 @@ FTextSelection FTextLayout::GetWordAt(const FTextLocation& Location) const
 	return FTextSelection(FTextLocation(LineIndex, CurrentBreak), FTextLocation(LineIndex, PreviousBreak));
 }
 
+void FTextLayout::SetVisibleRegion( const FVector2D& InViewSize, const FVector2D& InScrollOffset )
+{
+	if (ViewSize != InViewSize)
+	{
+		ViewSize = InViewSize;
+
+		if (Justification != ETextJustify::Left)
+		{
+			// If the view size has changed, we may need to update our positions based on our justification
+			DirtyFlags |= EDirtyState::Layout;
+		}
+	}
+	
+	if (ScrollOffset != InScrollOffset)
+	{
+		const FVector2D PreviousScrollOffset = ScrollOffset;
+		ScrollOffset = InScrollOffset;
+
+		// Use a negative scroll offset since positive scrolling moves things negatively in screen space
+		const FVector2D OffsetAdjustment = -(ScrollOffset - PreviousScrollOffset);
+
+		for (FLineView& LineView : LineViews)
+		{
+			LineView.Offset += OffsetAdjustment;
+
+			for (const TSharedRef< ILayoutBlock >& Block : LineView.Blocks)
+			{
+				Block->SetLocationOffset( Block->GetLocationOffset() + OffsetAdjustment );
+			}
+		}
+	}
+}
+
 void FTextLayout::SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator )
 {
 	LineBreakIterator = InLineBreakIterator;
 	DirtyFlags |= EDirtyState::Layout;
+
+	// Changing the line break iterator will affect the wrapping information for *all lines*
+	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
+	ClearWrappingCache();
 }
 
 void FTextLayout::SetMargin( const FMargin& InMargin )
@@ -1497,11 +1502,11 @@ void FTextLayout::SetMargin( const FMargin& InMargin )
 	{
 		FVector2D OffsetAdjustment( Margin.Left - PreviousMargin.Left, Margin.Top - PreviousMargin.Top );
 		OffsetAdjustment *= Scale;
-		for (int LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
+		for (int32 LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
 		{
 			FLineView& LineView = LineViews[ LineViewIndex ];
 
-			for (int BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
+			for (int32 BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
 			{
 				const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[ BlockIndex ];
 				Block->SetLocationOffset( Block->GetLocationOffset() + OffsetAdjustment );
@@ -1719,7 +1724,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 			BlockSize += Run->Measure( SizeRange.BeginIndex, MeasuredRanges[ StartRangeIndex ].EndIndex, Scale );
 		}
 
-		for (int Index = StartRangeIndex + 1; Index < EndRangeIndex; Index++)
+		for (int32 Index = StartRangeIndex + 1; Index < EndRangeIndex; Index++)
 		{
 			BlockSize.X += MeasuredRangeSizes[ Index ].X;
 			BlockSize.Y = FMath::Max( MeasuredRangeSizes[ Index ].Y, BlockSize.Y );
@@ -1741,7 +1746,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 	return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, BlockSize, BlockDefine.Renderer );
 }
 
-int FTextLayout::FRunModel::BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex )
+int32 FTextLayout::FRunModel::BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex )
 {
 	int32 Min = RangeBeginIndex;
 	int32 Mid = 0;
@@ -1766,7 +1771,7 @@ int FTextLayout::FRunModel::BinarySearchForEndIndex( const TArray< FTextRange >&
 	return Mid;
 }
 
-int FTextLayout::FRunModel::BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex )
+int32 FTextLayout::FRunModel::BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex )
 {
 	int32 Min = 0;
 	int32 Mid = 0;

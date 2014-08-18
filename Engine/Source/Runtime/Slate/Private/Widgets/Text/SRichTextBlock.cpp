@@ -20,7 +20,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
 
-	CachedAutoWrapTextWidth = 0.0f;
+	CachedSize = FVector2D(ForceInitToZero);
 
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
@@ -72,33 +72,19 @@ void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		SetText(TextToSet);
 	}
+
+	TextLayout->SetVisibleRegion(AllottedGeometry.Size, FVector2D(ForceInitToZero));
 }
 
 int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SRichTextBlock );
 
-	// Cache the last known size in case we need it for performing auto-wrap.
-	CachedAutoWrapTextWidth = AllottedGeometry.Size.X;
+	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
+	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
+	CachedSize = AllottedGeometry.Size;
 
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else
-	{
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
+	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
 }
@@ -107,17 +93,18 @@ void SRichTextBlock::CacheDesiredSize()
 {
 	float WrappingWidth = WrapTextAt.Get();
 
-	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText and CachedAutoWrapTextWidth), 
+	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText and CachedSize), 
 	// or a mixture of both.  Take whichever has the smallest value (>1)
-	if ( AutoWrapText.Get() && CachedAutoWrapTextWidth >= 1.0f )
+	if ( AutoWrapText.Get() && CachedSize.X >= 1.0f )
 	{
-		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedAutoWrapTextWidth) : CachedAutoWrapTextWidth;
+		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedSize.X) : CachedSize.X;
 	}
 
 	TextLayout->SetWrappingWidth( WrappingWidth );
 	TextLayout->SetMargin( Margin.Get() );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
+	TextLayout->SetVisibleRegion( CachedSize, FVector2D(ForceInitToZero) );
 	TextLayout->UpdateIfNeeded();
 
 	SWidget::CacheDesiredSize();
@@ -142,24 +129,7 @@ FChildren* SRichTextBlock::GetChildren()
 
 void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else
-	{
-		TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
-	}
+	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
 void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )

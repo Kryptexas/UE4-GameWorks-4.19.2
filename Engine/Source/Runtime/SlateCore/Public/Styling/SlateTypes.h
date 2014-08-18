@@ -492,6 +492,53 @@ struct SLATECORE_API FEditableTextStyle : public FSlateWidgetStyle
 	FEditableTextStyle& SetCaretImage( const FSlateBrush& InCaretImage ){ CaretImage = InCaretImage; return *this; }
 };
 
+
+/**
+ * Represents the appearance of an SScrollBar
+ */
+USTRUCT()
+struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FScrollBarStyle();
+
+	virtual ~FScrollBarStyle() {}
+
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
+
+	static const FName TypeName;
+	virtual const FName GetTypeName() const override { return TypeName; };
+
+	static const FScrollBarStyle& GetDefault();
+
+	/** Background image to use when the scrollbar is oriented horizontally */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush HorizontalBackgroundImage;
+	FScrollBarStyle& SetHorizontalBackgroundImage( const FSlateBrush& InHorizontalBackgroundImage ){ HorizontalBackgroundImage = InHorizontalBackgroundImage; return *this; }
+
+	/** Background image to use when the scrollbar is oriented vertically */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush VerticalBackgroundImage;
+	FScrollBarStyle& SetVerticalBackgroundImage( const FSlateBrush& InVerticalBackgroundImage ){ VerticalBackgroundImage = InVerticalBackgroundImage; return *this; }
+
+	/** Image to use when the scrollbar thumb is in its normal state */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush NormalThumbImage;
+	FScrollBarStyle& SetNormalThumbImage( const FSlateBrush& InNormalThumbImage ){ NormalThumbImage = InNormalThumbImage; return *this; }
+
+	/** Image to use when the scrollbar thumb is in its hovered state */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush HoveredThumbImage;
+	FScrollBarStyle& SetHoveredThumbImage( const FSlateBrush& InHoveredThumbImage ){ HoveredThumbImage = InHoveredThumbImage; return *this; }
+
+	/** Image to use when the scrollbar thumb is in its dragged state */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush DraggedThumbImage;
+	FScrollBarStyle& SetDraggedThumbImage( const FSlateBrush& InDraggedThumbImage ){ DraggedThumbImage = InDraggedThumbImage; return *this; }
+};
+
+
 /**
  * Represents the appearance of an SEditableTextBox
  */
@@ -556,6 +603,21 @@ struct SLATECORE_API FEditableTextBoxStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateColor ReadOnlyForegroundColor;
 	FEditableTextBoxStyle& SetReadOnlyForegroundColor(const FSlateColor& InReadOnlyForegroundColor) { ReadOnlyForegroundColor = InReadOnlyForegroundColor; return *this; }
+
+	/** Padding around the horizontal scrollbar */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FMargin HScrollBarPadding;
+	FEditableTextBoxStyle& SetHScrollBarPadding( const FMargin& InPadding ){ HScrollBarPadding = InPadding; return *this; }
+
+	/** Padding around the vertical scrollbar */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FMargin VScrollBarPadding;
+	FEditableTextBoxStyle& SetVScrollBarPadding( const FMargin& InPadding ){ VScrollBarPadding = InPadding; return *this; }
+
+	/** Style used for the scrollbars */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FScrollBarStyle ScrollBarStyle;
+	FEditableTextBoxStyle& SetScrollBarStyle( const FScrollBarStyle& InScrollBarStyle ){ ScrollBarStyle = InScrollBarStyle; return *this; }
 };
 
 
@@ -623,52 +685,6 @@ struct SLATECORE_API FProgressBarStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush MarqueeImage;
 	FProgressBarStyle& SetMarqueeImage( const FSlateBrush& InMarqueeImage ){ MarqueeImage = InMarqueeImage; return *this; }
-};
-
-
-/**
- * Represents the appearance of an SScrollBar
- */
-USTRUCT()
-struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FScrollBarStyle();
-
-	virtual ~FScrollBarStyle() {}
-
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
-
-	static const FName TypeName;
-	virtual const FName GetTypeName() const override { return TypeName; };
-
-	static const FScrollBarStyle& GetDefault();
-
-	/** Background image to use when the scrollbar is oriented horizontally */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush HorizontalBackgroundImage;
-	FScrollBarStyle& SetHorizontalBackgroundImage( const FSlateBrush& InHorizontalBackgroundImage ){ HorizontalBackgroundImage = InHorizontalBackgroundImage; return *this; }
-
-	/** Background image to use when the scrollbar is oriented vertically */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush VerticalBackgroundImage;
-	FScrollBarStyle& SetVerticalBackgroundImage( const FSlateBrush& InVerticalBackgroundImage ){ VerticalBackgroundImage = InVerticalBackgroundImage; return *this; }
-
-	/** Image to use when the scrollbar thumb is in its normal state */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush NormalThumbImage;
-	FScrollBarStyle& SetNormalThumbImage( const FSlateBrush& InNormalThumbImage ){ NormalThumbImage = InNormalThumbImage; return *this; }
-
-	/** Image to use when the scrollbar thumb is in its hovered state */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush HoveredThumbImage;
-	FScrollBarStyle& SetHoveredThumbImage( const FSlateBrush& InHoveredThumbImage ){ HoveredThumbImage = InHoveredThumbImage; return *this; }
-
-	/** Image to use when the scrollbar thumb is in its dragged state */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush DraggedThumbImage;
-	FScrollBarStyle& SetDraggedThumbImage( const FSlateBrush& InDraggedThumbImage ){ DraggedThumbImage = InDraggedThumbImage; return *this; }
 };
 
 

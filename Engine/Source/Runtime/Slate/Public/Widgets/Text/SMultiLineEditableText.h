@@ -7,6 +7,7 @@
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
 #include "ITextLayoutMarshaller.h"
+#include "SScrollBar.h"
 
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
 class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget
@@ -62,6 +63,12 @@ public:
 
 		/** Sets whether this text box can actually be modified interactively by the user */
 		SLATE_ATTRIBUTE(bool, IsReadOnly)
+
+		/** The horizontal scroll bar widget */
+		SLATE_ARGUMENT(TSharedPtr< SScrollBar >, HScrollBar)
+
+		/** The vertical scroll bar widget */
+		SLATE_ARGUMENT(TSharedPtr< SScrollBar >, VScrollBar)
 
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT(FOnTextChanged, OnTextChanged)
@@ -368,6 +375,7 @@ private:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	// END SWidget interface
@@ -467,6 +475,9 @@ private:
 	 */
 	void ForceRefreshTextLayout(const FText& CurrentText);
 
+	void OnHScrollBarMoved(const float InScrollOffsetFraction);
+	void OnVScrollBarMoved(const float InScrollOffsetFraction);
+
 private:
 
 	/** The text displayed in this text block */
@@ -490,8 +501,11 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute< bool > AutoWrapText;
 
-	/** Cached auto-wrap width that this text is using. This is used when determining if the cached string size should be updated */
-	mutable float CachedAutoWrapTextWidth;
+	/** The last known size of the control from the previous OnPaint, used to recalculate wrapping. */
+	mutable FVector2D CachedSize;
+
+	/** The scroll offset (in Slate units) for this text */
+	FVector2D ScrollOffset;
 
 	TAttribute< FMargin > Margin;
 	TAttribute< ETextJustify::Type > Justification; 
@@ -522,6 +536,9 @@ private:
 	/** True if characters were selected by dragging since the last keyboard focus.  Used for text selection. */
 	bool bHasDragSelectedSinceFocused;
 
+	/** True if we're pending a check to ensure the cursor is currently scrolled into view */
+	bool bPendingScrollCursorIntoView;
+
 	/** Undo states */
 	TArray< FUndoState > UndoStates;
 
@@ -548,6 +565,12 @@ private:
 
 	/** Called when the cursor is moved within the text area */
 	FOnCursorMoved OnCursorMoved;
+
+	/** The horizontal scroll bar widget */
+	TSharedPtr< SScrollBar > HScrollBar;
+
+	/** The vertical scroll bar widget */
+	TSharedPtr< SScrollBar > VScrollBar;
 
 	/** Menu extender for right-click context menu */
 	TSharedPtr<FExtender> MenuExtender;

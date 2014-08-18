@@ -186,6 +186,7 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, bIsDragSelecting(false)
 	, bWasFocusedByLastMouseDown(false)
 	, bHasDragSelectedSinceFocused(false)
+	, bPendingScrollCursorIntoView(false)
 	, CurrentUndoLevel(INDEX_NONE)
 	, bIsChangingText(false)
 	, IsReadOnly(false)
@@ -211,7 +212,21 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
-	CachedAutoWrapTextWidth = 0.0f;
+	CachedSize = FVector2D(ForceInitToZero);
+
+	ScrollOffset = FVector2D::ZeroVector;
+
+	HScrollBar = InArgs._HScrollBar;
+	if (HScrollBar.IsValid())
+	{
+		HScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnHScrollBarMoved));
+	}
+
+	VScrollBar = InArgs._VScrollBar;
+	if (VScrollBar.IsValid())
+	{
+		VScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnVScrollBarMoved));
+	}
 
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
@@ -377,6 +392,16 @@ void SMultiLineEditableText::ForceRefreshTextLayout(const FText& CurrentText)
 	SelectionStart = OldSelectionStart;
 	CursorInfo = OldCursorInfo;
 	UpdateCursorHighlight();
+}
+
+void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
+{
+	ScrollOffset.X = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().X;
+}
+
+void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFraction)
+{
+	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
 }
 
 FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
@@ -890,6 +915,8 @@ FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 
 void SMultiLineEditableText::UpdateCursorHighlight()
 {
+	bPendingScrollCursorIntoView = true;
+
 	RemoveCursorHighlight();
 
 	static const int32 CompositionRangeZOrder = 1; // draw above the text
@@ -947,7 +974,7 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 		{
 			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 
-			for (int LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
+			for (int32 LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
 			{
 				if ( LineIndex == SelectionBeginningLineIndex )
 				{
@@ -1866,42 +1893,100 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 			ForceRefreshTextLayout(TextToSet);
 		}
 	}
+
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
+	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
+
+	// Try and make sure that the line containing the cursor is in view
+	if (bPendingScrollCursorIntoView)
+	{
+		bPendingScrollCursorIntoView = false;
+
+		const TArray<FTextLayout::FLineView>& LineViews = TextLayout->GetLineViews();
+		const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
+		if (LineViews.IsValidIndex(LineViewIndex))
+		{
+			const FTextLayout::FLineView& LineView = LineViews[LineViewIndex];
+			const FSlateRect LocalLineViewRect(LineView.Offset / TextLayout->GetScale(), (LineView.Offset + LineView.Size) / TextLayout->GetScale());
+
+			const FVector2D LocalCursorLocation = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right) / TextLayout->GetScale();
+			const FSlateRect LocalCursorRect(LocalCursorLocation, FVector2D(LocalCursorLocation.X + CaretWidth, LocalCursorLocation.Y + FontMaxCharHeight));
+
+			if (LocalCursorRect.Left < 0.0f)
+			{
+				ScrollOffset.X += LocalCursorRect.Left;
+			}
+			else if (LocalCursorRect.Right > AllottedGeometry.Size.X)
+			{
+				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.Size.X);
+			}
+
+			if (LocalLineViewRect.Top < 0.0f)
+			{
+				ScrollOffset.Y += LocalLineViewRect.Top;
+			}
+			else if (LocalLineViewRect.Bottom > AllottedGeometry.Size.Y)
+			{
+				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.Size.Y);
+			}
+		}
+	}
+
+	{
+		// Need to account for the caret width too
+		const float ContentSize = TextLayout->GetSize().X + CaretWidth;
+		const float VisibleSize = AllottedGeometry.Size.X;
+
+		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
+		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
+		const float ViewOffset = (ContentSize > 0.0f) ? FMath::Clamp<float>(ScrollOffset.X / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+	
+		// Update the scrollbar with the clamped version of the offset
+		ScrollOffset.X = ViewOffset * ContentSize;
+	
+		if (HScrollBar.IsValid())
+		{
+			HScrollBar->SetState(ViewOffset, ViewFraction);
+			if (!HScrollBar->IsNeeded())
+			{
+				// We cannot scroll, so ensure that there is no offset
+				ScrollOffset.X = 0.0f;
+			}
+		}
+	}
+
+	{
+		const float ContentSize = TextLayout->GetSize().Y;
+		const float VisibleSize = AllottedGeometry.Size.Y;
+
+		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
+		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
+		const float ViewOffset = (ContentSize > 0.0f) ? FMath::Clamp<float>(ScrollOffset.Y / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+	
+		// Update the scrollbar with the clamped version of the offset
+		ScrollOffset.Y = ViewOffset * ContentSize;
+	
+		if (VScrollBar.IsValid())
+		{
+			VScrollBar->SetState(ViewOffset, ViewFraction);
+			if (!VScrollBar->IsNeeded())
+			{
+				// We cannot scroll, so ensure that there is no offset
+				ScrollOffset.Y = 0.0f;
+			}
+		}
+	}
+
+	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset);
 }
 
 int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
-	if ( AutoWrapText.Get() )
-	{
-		CachedAutoWrapTextWidth = AllottedGeometry.Size.X;
-	}
+	CachedSize = AllottedGeometry.Size;
 
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		FVector2D TextLayoutSize = TextLayout->GetSize();
-		float LayoutWidth = TextLayoutSize.X;
-		if (TextLayoutSize.X == 0)
-		{
-			const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-			TextLayoutSize.X = FontMeasureService->Measure(FString(TEXT("  ")), TextStyle.Font).X;
-		}
-
-		const FVector2D Offset((AllottedGeometry.Size.X - TextLayoutSize.X) / 2, 0);
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else
-	{
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
+	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
 }
@@ -1915,15 +2000,16 @@ void SMultiLineEditableText::CacheDesiredSize()
 
 	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText), or a mixture of both
 	// Take whichever has the smallest value (>1)
-	if(AutoWrapText.Get() && CachedAutoWrapTextWidth >= 1.0f)
+	if(AutoWrapText.Get() && CachedSize.X >= 1.0f)
 	{
-		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedAutoWrapTextWidth) : CachedAutoWrapTextWidth;
+		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedSize.X) : CachedSize.X;
 	}
 
 	TextLayout->SetWrappingWidth( WrappingWidth );
 	TextLayout->SetMargin( OurMargin );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
+	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset );
 	TextLayout->UpdateIfNeeded();
 
 	SWidget::CacheDesiredSize();
@@ -1931,15 +2017,13 @@ void SMultiLineEditableText::CacheDesiredSize()
 
 FVector2D SMultiLineEditableText::ComputeDesiredSize() const
 {
-	const FSlateFontInfo& FontInfo = TextStyle.Font;
-	
-	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
 	// The layouts current margin size. We should not report a size smaller then the margins.
 	const FMargin Margin = TextLayout->GetMargin();
 	const FVector2D TextLayoutSize = TextLayout->GetSize();
-	const float WrappingWidth = WrapTextAt.Get();
+	const float WrappingWidth = TextLayout->GetWrappingWidth();
 
 	// If a wrapping width has been provided that should be reported as the desired width.
 	float DesiredWidth = WrappingWidth > 0 ? WrappingWidth : TextLayoutSize.X;
@@ -1959,24 +2043,7 @@ FChildren* SMultiLineEditableText::GetChildren()
 
 void SMultiLineEditableText::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else
-	{
-		TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
-	}
+	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
 bool SMultiLineEditableText::SupportsKeyboardFocus() const
@@ -2023,6 +2090,26 @@ FReply SMultiLineEditableText::OnMouseMove( const FGeometry& MyGeometry, const F
 {
 	FReply Reply = FTextEditHelper::OnMouseMove( MyGeometry, MouseEvent, SharedThis( this ) );
 	return Reply;
+}
+
+FReply SMultiLineEditableText::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (VScrollBar.IsValid() && VScrollBar->IsNeeded())
+	{
+		const float PreviousScrollOffset = ScrollOffset.Y;
+
+		const float ScrollAmount = -MouseEvent.GetWheelDelta() * WheelScrollAmount;
+		ScrollOffset.Y += ScrollAmount;
+
+		const float ContentSize = TextLayout->GetSize().Y;
+		const float ScrollMin = 0.0f;
+		const float ScrollMax = ContentSize - MyGeometry.Size.Y;
+		ScrollOffset.Y = FMath::Clamp(ScrollOffset.Y, ScrollMin, ScrollMax);
+
+		return (PreviousScrollOffset != ScrollOffset.Y) ? FReply::Handled() : FReply::Unhandled();
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply SMultiLineEditableText::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -2411,6 +2498,5 @@ void SMultiLineEditableText::FTextInputMethodContext::EndComposition()
 		IsComposing = false;
 	}
 }
-
 
 #endif //WITH_FANCY_TEXT
