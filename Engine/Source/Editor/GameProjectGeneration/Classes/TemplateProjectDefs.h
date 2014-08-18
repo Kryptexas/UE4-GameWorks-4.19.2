@@ -87,6 +87,9 @@ class UTemplateProjectDefs : public UObject
 	UPROPERTY(config)
 	FString SortKey;
 
+	UPROPERTY(config)
+	FName Category;
+
 	/** Fixes up all strings in this definitions object to replace %TEMPLATENAME% with the supplied template name and %PROJECTNAME% with the supplied project name */
 	void FixupStrings(const FString& TemplateName, const FString& ProjectName);
 

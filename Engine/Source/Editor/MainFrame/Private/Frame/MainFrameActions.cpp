@@ -381,8 +381,8 @@ void FMainFrameActionCallbacks::NewProject( bool bAllowProjectOpening, bool bAll
 	TSharedRef<SWindow> NewProjectWindow =
 		SNew(SWindow)
 		.Title(LOCTEXT( "SelectProjectWindowHeader", "Select Project"))
-		.ClientSize( FVector2D(1280, 720) )
-		.SizingRule( ESizingRule::FixedSize )
+		.ClientSize( FMainFrameModule::GetProjectBrowserWindowSize() )
+		.SizingRule( ESizingRule::UserSized )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 
 	NewProjectWindow->SetContent( FGameProjectGenerationModule::Get().CreateGameProjectDialog(bAllowProjectOpening, bAllowProjectCreate) );

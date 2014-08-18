@@ -1,0 +1,20 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+struct FTemplateCategory
+{
+	static FName BlueprintCategoryName, CodeCategoryName;
+
+	/** Localised name of this category */
+	FText Name;
+	
+	/** A description of the templates contained within this category */
+	FText Description;
+
+	/** A thumbnail to help identify this category */
+	const FSlateBrush* Thumbnail;
+
+	/** A unique name for this category */
+	FName Type;
+};

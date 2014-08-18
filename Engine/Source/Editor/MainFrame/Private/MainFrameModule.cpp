@@ -58,7 +58,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			// Do not maximize the window initially. Keep a small dialog feel.
 			DefaultWindowLocation.InitiallyMaximized = false;
 
-			DefaultWindowLocation.WindowSize = FVector2D(920, 700);
+			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
 
 			// Do not let the user adjust the fixed size
 			bIsUserSizable = true;

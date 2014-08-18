@@ -3,17 +3,33 @@
 #include "GameProjectGenerationPrivatePCH.h"
 #include "ModuleManager.h"
 #include "GameProjectGenerationModule.h"
-
-
+#include "TemplateCategory.h"
+#include "SourceCodeNavigation.h"
 
 IMPLEMENT_MODULE( FGameProjectGenerationModule, GameProjectGeneration );
 DEFINE_LOG_CATEGORY(LogGameProjectGeneration);
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 
+FName FTemplateCategory::BlueprintCategoryName = "Blueprint";
+FName FTemplateCategory::CodeCategoryName = "C++";
+
 void FGameProjectGenerationModule::StartupModule()
 {
-	
+	RegisterTemplateCategory(
+		FTemplateCategory::BlueprintCategoryName,
+		LOCTEXT("BlueprintCategory_Name", "Blueprint"),
+		LOCTEXT("BlueprintCategory_Description", "Blueprint templates require no programming knowledge.\nAll game mechanics can be implemented using Blueprint visual scripting.\nEach template includes a basic set of blueprints to use as a starting point for your game."),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintImage"));
+
+	RegisterTemplateCategory(
+		FTemplateCategory::CodeCategoryName,
+		LOCTEXT("CodeCategory_Name", "C++"),
+		FText::Format(
+			LOCTEXT("CodeCategory_Description", "C++ templates offer a good example of how to work with some of the core concepts of the Engine from code.\nYou still have the option of adding your own blueprints to the project at a later date if you want.\nChoosing this template type requires you to have {0} installed."),
+			FSourceCodeNavigation::GetSuggestedSourceCodeIDE()
+		),
+		FEditorStyle::GetBrush("GameProjectDialog.CodeImage"));
 }
 
 
@@ -96,6 +112,23 @@ void FGameProjectGenerationModule::UpdateSupportedTargetPlatforms(const FName& I
 void FGameProjectGenerationModule::ClearSupportedTargetPlatforms()
 {
 	GameProjectUtils::ClearSupportedTargetPlatforms();
+}
+
+bool FGameProjectGenerationModule::RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Thumbnail)
+{
+	if (TemplateCategories.Contains(Type))
+	{
+		return false;
+	}
+
+	FTemplateCategory Category = { Name, Description, Thumbnail, Type };
+	TemplateCategories.Add(Type, MakeShareable(new FTemplateCategory(Category)));
+	return true;
+}
+
+void FGameProjectGenerationModule::UnRegisterTemplateCategory(FName Type)
+{
+	TemplateCategories.Remove(Type);
 }
 
 #undef LOCTEXT_NAMESPACE
