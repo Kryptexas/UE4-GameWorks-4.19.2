@@ -46,7 +46,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	 */
 	virtual UAbilitySystemComponent * GetAbilitySystemComponentFromActor(AActor *Actor) const;
 
-	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo(AActor *Actor) const;
+	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for dellocation */
+	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
 
 	UFunction* GetGameplayCueFunction(const FGameplayTag &Tag, UClass* Class, FName &MatchedTag);
 

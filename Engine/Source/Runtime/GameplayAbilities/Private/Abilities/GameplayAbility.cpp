@@ -364,14 +364,14 @@ void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo* Ac
 	CallActivateAbility(ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::InputPressed(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility::InputPressed(const FGameplayAbilityActorInfo* ActorInfo)
 {
 	TryActivateAbility(ActorInfo);
 }
 
-void UGameplayAbility::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility::InputReleased(const FGameplayAbilityActorInfo* ActorInfo)
 {
-	ABILITY_LOG(Log, TEXT("InputReleased: %d"), InputID);
+	
 }
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -529,13 +529,13 @@ void UGameplayAbility::TaskEnded(UAbilityTask* Task)
 
 //----------------------------------------------------------------------
 
-void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
+void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor, UAbilitySystemComponent* InAbilitySystemComponent)
 {
 	check(InActor);
-	Actor = InActor;
+	check(InAbilitySystemComponent);
 
-	UStruct * Struct = FGameplayAbilityActorInfo::StaticStruct();
-	UScriptStruct * ScriptStruct = FGameplayAbilityActorInfo::StaticStruct();
+	Actor = InActor;
+	AbilitySystemComponent = InAbilitySystemComponent;
 
 	// Look for a player controller or pawn in the owner chain.
 	AActor *TestActor = InActor;
@@ -562,8 +562,6 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 	{
 		this->AnimInstance = SkelMeshComponent->GetAnimInstance();
 	}
-
-	AbilitySystemComponent = InActor->FindComponentByClass<UAbilitySystemComponent>();
 
 	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
 }
@@ -683,7 +681,7 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 			//	1) we have to manually crawl through the topmost struct's fields since we don't have a UStructProperty for it (just the UScriptProperty)
 			//	2) if there are any UStructProperties in the topmost struct's fields, we will assert in UStructProperty::NetSerializeItem.
 			
-			ABILITY_LOG(Fatal, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize called on data struct %s without a native NetSerilaize"), *ScriptStruct->GetName());
+			ABILITY_LOG(Fatal, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize called on data struct %s without a native NetSerialize"), *ScriptStruct->GetName());
 
 			for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
 			{

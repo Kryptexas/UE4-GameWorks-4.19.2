@@ -76,6 +76,10 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 				return HitResultPtr->TraceEnd;
 			}
 		}
+		else if(Data->HasEndPoint())
+		{
+			return Data->GetEndPoint();
+		}
 	}
 
 	return FVector();

@@ -295,7 +295,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	
 	 */
 
-	UGameplayAbility* GiveAbility(UGameplayAbility* Ability);
+	UGameplayAbility* GiveAbility(UGameplayAbility* Ability, int32 InputID);
+
+	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
+	void OnGiveAbility(UGameplayAbility* Ability, int32 InputID);
 
 	UGameplayAbility* CreateNewInstanceOfAbility(UGameplayAbility* Ability);
 
@@ -321,7 +324,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */ 
 	UPROPERTY(ReplicatedUsing = OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
-	TArray<UGameplayAbility*>	ActivatableAbilities;
+	TArray<FGameplayAbilityInputIDPair>	ActivatableAbilities;
+
 	
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
@@ -352,7 +356,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	// ----------------------------------------------------------------------------------------------------------------
 
-	virtual void BindToInputComponent(UInputComponent *InputComponent);
+	virtual void BindToInputComponent(UInputComponent* InputComponent);
+	
+	virtual void BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo);
+
+	void AbilityInputPressed(int32 InputID);
+
+	void AbilityInputReleased(int32 InputID);
 
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputConfirm();
@@ -403,7 +413,18 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	/** Cached off data about the owning actor that abilities will need to frequently access (movement component, mesh component, anim instance, etc) */
 	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
 
-	void InitAbilityActorInfo();
+
+	/**
+	 *	Initialized the Abilities' ActorInfo - the structure that holds information about who we are acting on and who controls us.
+	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc.
+	 */
+	void InitAbilityActorInfo(AActor* AvatarActor);
+
+	/**
+	 *	This will refresh the Ability's ActorInfo structure based on the current ActorInfo. That is, AvatarActor will be the same but we will look for new
+	 *	AnimInstance, MovementComponent, PlayerController, etc.
+	 */	
+	void RefreshAbilityActorInfo();
 
 	// -----------------------------------------------------------------------------
 

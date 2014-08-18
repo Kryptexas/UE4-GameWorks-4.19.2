@@ -136,7 +136,7 @@ bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(
 		Instigator.GetOwnedGameplayTags(InstigatorTags);
 
 		FGameplayTagContainer TargetTags;
-		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(GetOwner());
+		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(AbilityActorInfo->Actor.Get());
 		if (OwnerGTA)
 		{
 			OwnerGTA->GetOwnedGameplayTags(TargetTags);
@@ -172,7 +172,7 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffe
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
 	// Fixme: we should build a map and cache these off. We can invalidate the map when an OutgoingGE modifier is applied or removed from us.
 
-	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, GetOwner(), FGameplayEffectLevelSpec::INVALID_LEVEL, GetCurveDataOverride());
+	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, AbilityActorInfo->Actor.Get(), FGameplayEffectLevelSpec::INVALID_LEVEL, GetCurveDataOverride());
 	if (ActiveGameplayEffects.ApplyActiveEffectsTo(*NewSpec, FModifierQualifier().Type(EGameplayMod::OutgoingGE)))
 	{
 		return FGameplayEffectSpecHandle(NewSpec);
@@ -185,7 +185,7 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffe
 FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext() const
 {
 	FGameplayEffectInstigatorContext Context;
-	Context.AddInstigator(GetOwner());
+	Context.AddInstigator(AbilityActorInfo->Actor.Get());
 	return Context;
 }
 
@@ -194,7 +194,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
 	
 	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 }
@@ -435,7 +435,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	}
 
 
-	AActor *ActorOwner = GetOwner();
+	AActor *ActorOwner = AbilityActorInfo->Actor.Get();
 	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
@@ -601,7 +601,7 @@ void UAbilitySystemComponent::DispatchBlueprintCustomHandler(AActor* Actor, UFun
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
 	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
-	ABILITY_LOG(Log, TEXT("Owner: %s"), *GetOwner()->GetName());
+	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->Actor->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
 

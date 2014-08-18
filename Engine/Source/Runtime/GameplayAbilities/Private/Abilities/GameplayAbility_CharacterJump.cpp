@@ -30,7 +30,7 @@ void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilityActor
 	}
 }
 
-void UGameplayAbility_CharacterJump::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilityActorInfo* ActorInfo)
 {
 	// This is the 'top' of the ability execution code path. We don't have an ActivationInfo yet.
 	// Normally for InputPressed, we do a bunch of stuff (for clients): predict, tell the server, wait for confirm, rollback, etc.

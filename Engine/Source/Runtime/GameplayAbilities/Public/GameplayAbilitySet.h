@@ -4,53 +4,62 @@
 
 #include "GameplayAbilitySet.generated.h"
 
-USTRUCT()
-struct FGameplayAbilityBindInfoCommandIDPair
+class UGameplayAbility;
+class UAbilitySystemComponent;
+
+/**
+ *	This is an example input binding enum for GameplayAbilities. Your project may want to create its own.
+ *	The MetaData default bind keys (LMB, RMB, Q, E, etc) are a convenience for designers setting up abilities sets
+ *	or whatever other data you have that gives an ability with a default key binding. Actual key binding is up to DefaultInput.ini
+ *	
+ *	E.g., "Ability1" is the command string that is bound to AbilitySystemComponent::ActivateAbility(1). The Meta data only *suggests*
+ *	that you are binding "Ability1" to LMB by default in your projects DefaultInput.ini.
+ */
+UENUM(BlueprintType)
+namespace EGameplayAbilityInputBinds
 {
-	GENERATED_USTRUCT_BODY()
+	enum Type
+	{
+		Ability1				UMETA(DisplayName = "Ability1 (LMB)"),
+		Ability2				UMETA(DisplayName = "Ability2 (RMB)"),
+		Ability3				UMETA(DisplayName = "Ability3 (Q)"),
+		Ability4				UMETA(DisplayName = "Ability4 (E)"),
+		Ability5				UMETA(DisplayName = "Ability5 (R)"),
+		Ability6				UMETA(DisplayName = "Ability6 (Shift)"),
+		Ability7				UMETA(DisplayName = "Ability7 (Space)"),
+		Ability8				UMETA(DisplayName = "Ability7 (B)"),
+	};
+}
 
-	// We want this to be a drop down of valid lists but needs to be defined per game
-	UPROPERTY(EditAnywhere, Category = BindInfo)
-	FString		CommandString;
-
-	UPROPERTY(EditAnywhere, Category = BindInfo)
-	int32		InputID;
-};
-
+/**
+ *	Example struct that pairs a enum input command to a GameplayAbilityClass.6
+ */
 USTRUCT()
 struct FGameplayAbilityBindInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=BindInfo)
-	TArray<FGameplayAbilityBindInfoCommandIDPair>	CommandBindings;
+	UPROPERTY(EditAnywhere, Category = BindInfo)
+	TEnumAsByte<EGameplayAbilityInputBinds::Type>	Command;
 
-	UPROPERTY(EditAnywhere, Category=BindInfo)
+	UPROPERTY(EditAnywhere, Category = BindInfo)
 	TSubclassOf<UGameplayAbility>	GameplayAbilityClass;
 };
 
 /**
- * UGameplayAbilitySet
- *	This contains a list of abilities along with key bindings. This will be very game specific, so it is expected for games to override this class or create their own.
+ *	This is an example DataAsset that could be used for defining a set of abilities to give to an AbilitySystemComponent and bind to an input command.
+ *	Your project is free to implement this however it wants!
  *	
- *	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the AbilitySystemComponent (rather than AbilitySystemComponent processing the ability set).
- *	Ideally this avoids games having to implement their own UAbilitySystemComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
  *	
- *	In the end, this class just facilitates adding stuff to AbilitySystemComponent::ActivatableAbilities. Games are free to do this however they want.
  */
-UCLASS(Blueprintable)
+UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbilitySet : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
-public:
-
-	UPROPERTY(EditAnywhere, Category=AbilitySet)
+	
+	UPROPERTY(EditAnywhere, Category = AbilitySet)
 	TArray<FGameplayAbilityBindInfo>	Abilities;
 
-	/** Give all of the abilities in this set to given AbilitySystemComponent */
-	virtual void InitializeAbilities(UAbilitySystemComponent *AbilitySystemComponent) const;
-
-	/** Binds the ability set directly to this inputcomponent and AbilitySystemComponent. This is a convenience method, not all games will want to bind input directly to abilities. */
-	virtual void BindInputComponentToAbilities(UInputComponent *InputComponent, UAbilitySystemComponent *AbilitySystemComponent) const;
+	void GiveAbilities(UAbilitySystemComponent* AbilitySystemComponent) const;
 };

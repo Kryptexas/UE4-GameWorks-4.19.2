@@ -19,7 +19,7 @@ public:
 	
 	virtual void ActivateAbility(const FGameplayAbilityActorInfo* OwnerInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
 
-	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo) override;
+	virtual void InputReleased(const FGameplayAbilityActorInfo* ActorInfo) override;
 
 	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
 };

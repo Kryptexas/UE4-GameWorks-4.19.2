@@ -10,27 +10,25 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstr
 
 void UAbilityTask_MoveToLocation::InterpolatePosition()
 {
-	if (Ability.IsValid())
+	AActor* MyActor = GetActor();
+	if (MyActor)
 	{
-		if (AActor* ActorOwner = Cast<AActor>(Ability->GetOuter()))
-		{
-			float CurrentTime = ActorOwner->GetWorld()->GetTimeSeconds();
+		float CurrentTime = GetWorld()->GetTimeSeconds();
 
-			if (CurrentTime >= TimeMoveWillEnd)
+		if (CurrentTime >= TimeMoveWillEnd)
+		{
+			MyActor->SetActorLocation(TargetLocation);
+			OnTargetLocationReached.Broadcast();
+			EndTask();
+		}
+		else
+		{
+			float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
+			if (LerpCurve.IsValid())
 			{
-				ActorOwner->SetActorLocation(TargetLocation);
-				OnTargetLocationReached.Broadcast();
-				EndTask();
+				MoveFraction = LerpCurve.Get()->GetFloatValue(MoveFraction);
 			}
-			else
-			{
-				float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
-				if (LerpCurve.IsValid())
-				{
-					MoveFraction = LerpCurve.Get()->GetFloatValue(MoveFraction);
-				}
-				ActorOwner->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));				
-			}
+			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
 		}
 	}
 }

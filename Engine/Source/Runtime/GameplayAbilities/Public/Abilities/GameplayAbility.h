@@ -107,10 +107,10 @@ public:
 	// ----------------------------------------------------------------------------------------------------------------
 	
 	/** Input binding. Base implementation calls TryActivateAbility */
-	virtual void InputPressed(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo);
+	virtual void InputPressed(const FGameplayAbilityActorInfo* ActorInfo);
 
 	/** Input binding. Base implementation does nothing */
-	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo);
+	virtual void InputReleased(const FGameplayAbilityActorInfo* ActorInfo);
 	
 	/**
 	 * Attempts to activate the ability.

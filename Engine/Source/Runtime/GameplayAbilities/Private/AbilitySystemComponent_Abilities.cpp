@@ -20,9 +20,10 @@ void UAbilitySystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	InitAbilityActorInfo();
+	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
+	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
 	
-	// Look for DSO AttributeSets
+	// Look for DSO AttributeSets (note we are currently requiring all attribute sets to be subobjects of the same owner. This doesn't *have* to be the case forever.
 	AActor *Owner = GetOwner();
 
 	TArray<UObject*> ChildObjects;
@@ -38,40 +39,44 @@ void UAbilitySystemComponent::InitializeComponent()
 	}
 }
 
-void UAbilitySystemComponent::InitAbilityActorInfo()
+void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
 {
-	if (!AbilityActorInfo.IsValid())
-	{
-		// Alloc (and init) a new actor info
-		AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo(GetOwner()));
-	}
-	else
-	{
-		// We already have a valid actor info, just reinit it.
-		AbilityActorInfo->InitFromActor(GetOwner());
-	}
+	check(AbilityActorInfo.IsValid());
+	AbilityActorInfo->InitFromActor(AvatarActor, this);
 }
 
-UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability)
+void UAbilitySystemComponent::RefreshAbilityActorInfo()
+{
+	check(AbilityActorInfo.IsValid());
+	AbilityActorInfo->InitFromActor(AbilityActorInfo->Actor.Get(), this);
+}
+
+UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability, int32 InputID)
 {
 	check(Ability);
-	UGameplayAbility* OutAbility = Ability; // We may instance this ability
+	check(IsOwnerActorAuthoritative());	// Should be called on authority
 	
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
 	{
 		Ability = CreateNewInstanceOfAbility(Ability);
 	}
 
-	ActivatableAbilities.Add(Ability);
-	
+	ActivatableAbilities.Add(FGameplayAbilityInputIDPair(Ability, InputID));
 
+	OnGiveAbility(Ability, InputID);
+
+	return Ability;
+}
+
+void UAbilitySystemComponent::OnGiveAbility(UGameplayAbility* Ability, int32 InputID)
+{
 	for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
 	{
 		FGameplayTag EventTag = TriggerData.TriggerTag;
 
 		if (GameplayEventTriggeredAbilities.Contains(EventTag))
 		{
-			GameplayEventTriggeredAbilities[EventTag].Add(Ability);
+			GameplayEventTriggeredAbilities[EventTag].AddUnique(Ability);
 		}
 		else
 		{
@@ -80,8 +85,6 @@ UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability
 			GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
 		}
 	}
-
-	return OutAbility;
 }
 
 UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
@@ -135,12 +138,9 @@ bool UAbilitySystemComponent::ActivateAbility(TWeakObjectPtr<UGameplayAbility> A
 {
 	check(AbilityActorInfo.IsValid());
 
-	AActor * OwnerActor = GetOwner();
-	check(OwnerActor);
-
 	if (Ability.IsValid())
 	{
-		Ability.Get()->InputPressed(0, AbilityActorInfo.Get());
+		Ability.Get()->InputPressed(AbilityActorInfo.Get());
 	}
 
 	return false;
@@ -159,20 +159,23 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 
 	struct local
 	{
-		static void CancelAbilitiesWithTags(const FGameplayTagContainer InTags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo* InActorInfo, const FGameplayAbilityActivationInfo InActivationInfo, UGameplayAbility* InIgnore)
+		static void CancelAbilitiesWithTags(const FGameplayTagContainer InTags, TArray<FGameplayAbilityInputIDPair> Abilities, const FGameplayAbilityActorInfo* InActorInfo, const FGameplayAbilityActivationInfo InActivationInfo, UGameplayAbility* InIgnore)
 		{
 			for (int32 idx=0; idx < Abilities.Num(); ++idx)
 			{
-				UGameplayAbility *Ability = Abilities[idx];
+				UGameplayAbility *Ability = Abilities[idx].Ability;
 				if (Ability && (Ability != InIgnore) && Ability->AbilityTags.MatchesAny(InTags, false))
 				{
 					Ability->CancelAbility(InActorInfo, InActivationInfo);
+
+					/*
 					if (!Ability->HasAnyFlags(RF_ClassDefaultObject) && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 					{
-						Ability->MarkPendingKill();
+						Ability->EndAbility();
 						Abilities.RemoveAtSwap(idx);
 						idx--;
 					}
+					*/
 				}
 			}
 		}
@@ -196,23 +199,12 @@ TEXT("AbilitySystem.DenyClientActivations"),
 
 void UAbilitySystemComponent::OnRep_ActivateAbilities()
 {
-	for (UGameplayAbility * Ability : ActivatableAbilities)
+	for (FGameplayAbilityInputIDPair& Pair : ActivatableAbilities)
 	{
-		for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
+		UGameplayAbility* Ability = Pair.Ability;
+		if (Ability)
 		{
-			FGameplayTag EventTag = TriggerData.TriggerTag;
-
-			if (GameplayEventTriggeredAbilities.Contains(EventTag))
-			{
-				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers = GameplayEventTriggeredAbilities[EventTag];
-				Triggers.Add(Ability);
-			}
-			else
-			{
-				TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
-				Triggers.Add(Ability);
-				GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
-			}
+			OnGiveAbility(Ability, Pair.InputID);
 		}
 	}
 }
@@ -230,9 +222,6 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
-
-	AActor * OwnerActor = GetOwner();
-	check(OwnerActor);
 
 	UGameplayAbility *InstancedAbility = NULL;
 
@@ -295,9 +284,6 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
-	AActor * OwnerActor = GetOwner();
-	check(OwnerActor);
-
 	// Fixme: We need a better way to link up/reconcile preditive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
 
@@ -343,12 +329,6 @@ void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStop()
 {
 	if (AnimatingAbility)
 	{
-		AActor * OwnerActor = GetOwner();
-		check(OwnerActor);
-
-		FGameplayAbilityActorInfo	ActorInfo;
-		ActorInfo.InitFromActor(OwnerActor);
-
 		AnimatingAbility->MontageBranchPoint_AbilityDecisionStop(AbilityActorInfo.Get());
 	}
 }
@@ -357,9 +337,6 @@ void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStart()
 {
 	if (AnimatingAbility)
 	{
-		AActor * OwnerActor = GetOwner();
-		check(OwnerActor);
-
 		AnimatingAbility->MontageBranchPoint_AbilityDecisionStart(AbilityActorInfo.Get());
 	}
 }
@@ -409,9 +386,12 @@ void UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, FGamepl
 	}
 }
 
-// --------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+//								Input 
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-void UAbilitySystemComponent::BindToInputComponent(UInputComponent *InputComponent)
+
+void UAbilitySystemComponent::BindToInputComponent(UInputComponent* InputComponent)
 {
 	static const FName ConfirmBindName(TEXT("AbilityConfirm"));
 	static const FName CancelBindName(TEXT("AbilityCancel"));
@@ -428,6 +408,71 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent *InputCompone
 		FInputActionBinding AB(CancelBindName, IE_Pressed);
 		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
 		InputComponent->AddActionBinding(AB);
+	}
+}
+
+void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo)
+{
+	UEnum* EnumBinds = BindInfo.GetBindEnum();
+
+	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
+	{
+		FString FullStr = EnumBinds->GetEnum(idx).ToString();
+		FString BindStr;
+
+		FullStr.Split(TEXT("::"), nullptr, &BindStr);
+
+		// Pressed event
+		{
+			FInputActionBinding AB(FName(*BindStr), IE_Pressed);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputPressed, idx);
+			InputComponent->AddActionBinding(AB);
+		}
+
+		// Released event
+		{
+			FInputActionBinding AB(FName(*BindStr), IE_Released);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputReleased, idx);
+			InputComponent->AddActionBinding(AB);
+		}
+	}
+
+	// Bind Confirm/Cancel. Note: these have to come last!
+	{
+		FInputActionBinding AB(FName(*BindInfo.ConfirmTargetCommand), IE_Pressed);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
+		InputComponent->AddActionBinding(AB);
+	}
+	
+	{
+		FInputActionBinding AB(FName(*BindInfo.CancelTargetCommand), IE_Pressed);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
+		InputComponent->AddActionBinding(AB);
+	}
+
+}
+
+void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
+{
+	// FIXME: Maps or multicast delegate to actually do this
+	for (FGameplayAbilityInputIDPair& Pair: ActivatableAbilities)
+	{
+		if (Pair.InputID == InputID)
+		{
+			Pair.Ability->InputPressed(AbilityActorInfo.Get());
+		}
+	}
+}
+
+void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
+{
+	// FIXME: Maps or multicast delegate to actually do this
+	for (FGameplayAbilityInputIDPair& Pair : ActivatableAbilities)
+	{
+		if (Pair.InputID == InputID)
+		{
+			Pair.Ability->InputReleased(AbilityActorInfo.Get());
+		}
 	}
 }
 

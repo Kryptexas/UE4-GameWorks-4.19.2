@@ -106,23 +106,23 @@ private:
 	int32 Handle;
 };
 
-/**
-*	Not implemented yet, but we will need something like this to track ability + levels if we choose to support ability leveling in the base classes.
-*/
 
 USTRUCT()
-struct FGameplayAbilitySpec
+struct FGameplayAbilityInputIDPair
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	int32	Level;
+	FGameplayAbilityInputIDPair()
+	: Ability(nullptr), InputID(-1) { }
+
+	FGameplayAbilityInputIDPair(UGameplayAbility* InAbility, int32 InInputID)
+	: Ability(InAbility), InputID(InInputID) { }
 
 	UPROPERTY()
-	class UGameplayAbility * Ability;
+	UGameplayAbility* Ability;
 
 	UPROPERTY()
-	FGameplayAbilityHandle	Handle;
+	int32	InputID;
 };
 
 
@@ -176,7 +176,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	bool IsNetAuthority() const;
 
-	virtual void InitFromActor(AActor *Actor);
+	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
 };
 
 /**
@@ -577,6 +577,30 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	float Var2;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float Var3;
+};
+
+/** 
+ *	Structure that tells AbilitySystemComponent what to bind to an InputComponent (see BindAbilityActivationToInputComponent) 
+ *	
+ */
+struct FGameplayAbiliyInputBinds
+{
+	FGameplayAbiliyInputBinds(FString InConfirmTargetCommand, FString InCancelTargetCommand, FString InEnumName)
+	: ConfirmTargetCommand(InConfirmTargetCommand)
+	, CancelTargetCommand(InCancelTargetCommand)
+	, EnumName(InEnumName)
+	{ }
+
+	/** Defines command string that will be bound to Confirm Targeting */
+	FString ConfirmTargetCommand;
+
+	/** Defines command string that will be bound to Cancel Targeting */
+	FString CancelTargetCommand;
+
+	/** Returns enum to use for ability bings. E.g., "Ability1"-"Ability8" input commands will be bound to ability activations inside the AbiltiySystemComponent */
+	FString	EnumName;
+
+	UEnum* GetBindEnum() { return FindObject<UEnum>(ANY_PACKAGE, *EnumName); }
 };
 
 /** Generic callback for returning when target data is available */

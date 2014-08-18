@@ -77,11 +77,9 @@ UAbilitySystemComponent * UAbilitySystemGlobals::GetAbilitySystemComponentFromAc
 	return NULL;
 }
 
-FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo(AActor *Actor) const
+FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 {
-	FGameplayAbilityActorInfo * Info = new FGameplayAbilityActorInfo();
-	Info->InitFromActor(Actor);
-	return Info;
+	return new FGameplayAbilityActorInfo();
 }
 
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
