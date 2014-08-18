@@ -83,6 +83,9 @@ public:
 	 */
 	virtual void ProcessInput( float DeltaTime ) override;
 
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override;
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override;
+
 	/**
 	 * Called when the viewport should be invalidated and redrawn                   
 	 */

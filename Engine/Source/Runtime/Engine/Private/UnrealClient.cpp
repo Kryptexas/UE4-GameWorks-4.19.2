@@ -716,6 +716,8 @@ public:
 	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
 	virtual void	SetMouse(int32 x, int32 y) { }
 	virtual void	ProcessInput( float DeltaTime ) { }
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override { return FVector2D::ZeroVector; }
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override { return FIntPoint::ZeroValue; }
 	virtual void InvalidateDisplay() { }
 	virtual void DeferInvalidateHitProxy() { }
 	virtual FViewportFrame* GetViewportFrame() { return 0; }

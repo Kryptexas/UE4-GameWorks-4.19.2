@@ -285,6 +285,24 @@ public:
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**
+	 * Transforms a virtual desktop pixel (the origin is in the primary screen's top left corner) to the local space of this viewport
+	 *
+	 * @param VirtualDesktopPointPx   Coordinate on the virtual desktop in pixel units. Desktop is considered virtual because multiple monitors are supported.
+	 *
+	 * @return The transformed pixel. It is normalized to the range [0, 1]
+	 */
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const = 0;
+
+	/**
+	 * Transforms a coordinate in the local space of this viewport into a virtual desktop pixel.
+	 *
+	 * @param ViewportCoordiante    Normalized coordniate in the rate [0..1]; (0,0) is upper left and (1,1) is lower right.
+	 *
+	 * @return the transformed coordinate. It is in virtual desktop pixels.
+	 */
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const = 0;
+
+	/**
 	 * @return A canvas that can be used while this viewport is being drawn to render debug elements on top of everything else
 	 */
 	virtual FCanvas* GetDebugCanvas() { return NULL; };
