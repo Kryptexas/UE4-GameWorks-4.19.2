@@ -237,6 +237,7 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 			Decorators.Add(FTextStyleDecorator::Create(&TextStyles));
 
 			return SNew(SRichTextBlock)
+					.Visibility(EVisibility::HitTestInvisible)
 					.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Editor.Text")
 					.DecoratorStyleSet(&FEditorStyle::Get())
 					.Decorators(Decorators)

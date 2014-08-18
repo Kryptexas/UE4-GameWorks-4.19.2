@@ -408,16 +408,42 @@ TSharedRef<IPropertyTypeCustomization> FTutorialContentAnchorCustomization::Make
 
 void FTutorialContentAnchorCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
+	TSharedPtr<IPropertyHandle> DrawHighlightProperty = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, bDrawHighlight));
+
 	HeaderRow
 	.NameContent()
 	[
-		InStructPropertyHandle->CreatePropertyNameWidget()
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.0f, 2.0f)
+		[
+			InStructPropertyHandle->CreatePropertyNameWidget()
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.0f, 2.0f)
+		[
+			DrawHighlightProperty->CreatePropertyNameWidget()
+		]
 	]
 	.ValueContent()
 	.MinDesiredWidth(250.0f)
 	.MaxDesiredWidth(500.0f)
 	[
-		SNew(SWidgetPicker, InStructPropertyHandle, &StructCustomizationUtils)
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.0f, 2.0f)
+		[
+			SNew(SWidgetPicker, InStructPropertyHandle, &StructCustomizationUtils)
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0.0f, 2.0f)
+		[
+			DrawHighlightProperty->CreatePropertyValueWidget()
+		]
 	];
 }
 
