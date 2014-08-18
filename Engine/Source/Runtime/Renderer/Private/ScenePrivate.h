@@ -72,6 +72,7 @@ extern bool ShouldUseGetDynamicMeshElements();
 #if WITH_SLI || PLATFORM_PS4
 #define BUFFERED_OCCLUSION_QUERIES 1
 #endif
+
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
 
@@ -436,11 +437,11 @@ public:
     };
 
 	int32 NumBufferedFrames;
-	typedef TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef> ShadowOcclusionQueryMap;
+	typedef TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef> ShadowKeyOcclusionQueryMap;
 #if BUFFERED_OCCLUSION_QUERIES
-	TArray<ShadowOcclusionQueryMap> ShadowOcclusionQueryMaps;
+	TArray<ShadowKeyOcclusionQueryMap> ShadowOcclusionQueryMaps;
 #else
-	ShadowOcclusionQueryMap ShadowOcclusionQueryMap;
+	ShadowKeyOcclusionQueryMap ShadowOcclusionQueryMap;
 #endif
 
 	/** The view's occlusion query pool. */

@@ -232,7 +232,7 @@ bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPr
 #if BUFFERED_OCCLUSION_QUERIES
 	// Get the oldest occlusion query	
 	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(PendingPrevFrameNumber, NumBufferedFrames);
-	FSceneViewState::ShadowOcclusionQueryMap ShadowOcclusionQueryMap = ShadowOcclusionQueryMaps[QueryIndex];	
+	FSceneViewState::ShadowKeyOcclusionQueryMap ShadowOcclusionQueryMap = ShadowOcclusionQueryMaps[QueryIndex];	
 #endif
 
 
@@ -408,9 +408,9 @@ static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdL
 
 #if BUFFERED_OCCLUSION_QUERIES		
 	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
-	FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+	FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
 #else
-	FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+	FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
 #endif
 
 	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to
@@ -1008,9 +1008,9 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
 #if BUFFERED_OCCLUSION_QUERIES				
 			const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
-			FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+			FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
 #else
-			FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+			FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
 #endif			
 
 			// Clear primitives which haven't been visible recently out of the occlusion history, and reset old pending occlusion queries.
