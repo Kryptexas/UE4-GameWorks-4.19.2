@@ -897,7 +897,7 @@ namespace UnrealBuildTool
 			string UProjectPath = "";
 			if (IsForeignProject)
 			{
-				UProjectPath = "\"$(SolutionDir)$(SolutionName).uproject\"";
+				UProjectPath = "\"$(SolutionDir)$(ProjectName).uproject\"";
 			}
 
 			string ProjectConfigName = StubProjectConfigurationName;
