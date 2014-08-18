@@ -1836,7 +1836,7 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 
 	if( NotifyClass )
 	{
-		class UObject * AnimNotifyClass = NewObject<UObject>(Sequence, NotifyClass);
+		class UObject* AnimNotifyClass = ConstructObject<UObject>(NotifyClass, Sequence, NAME_None, RF_Transactional);
 		NewEvent.NotifyStateClass = Cast<UAnimNotifyState>(AnimNotifyClass);
 		NewEvent.Notify = Cast<UAnimNotify>(AnimNotifyClass);
 

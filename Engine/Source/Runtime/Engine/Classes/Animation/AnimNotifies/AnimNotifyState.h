@@ -63,6 +63,10 @@ class ENGINE_API UAnimNotifyState : public UObject
 	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
 	 */
 	virtual void AnimNotifyEventChanged(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent) {}
+
+	/** UObject Interface */
+	virtual void PostLoad();
+	/** End UObject Interface */
 };
 
 

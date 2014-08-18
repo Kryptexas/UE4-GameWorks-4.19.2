@@ -105,14 +105,17 @@ FString UAnimNotifyState_TimedParticleEffect::GetNotifyName_Implementation() con
 #if WITH_EDITORONLY_DATA
 void UAnimNotifyState_TimedParticleEffect::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, PSTemplate) && PSTemplate != NULL)
+	if(PropertyAboutToChange)
 	{
-		PreviousPSTemplates.Add(PSTemplate);
-	}
+		if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, PSTemplate) && PSTemplate != NULL)
+		{
+			PreviousPSTemplates.Add(PSTemplate);
+		}
 
-	if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, SocketName) && SocketName != FName(TEXT("None")))
-	{
-		PreviousSocketNames.Add(SocketName);
+		if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, SocketName) && SocketName != FName(TEXT("None")))
+		{
+			PreviousSocketNames.Add(SocketName);
+		}
 	}
 }
 #endif
