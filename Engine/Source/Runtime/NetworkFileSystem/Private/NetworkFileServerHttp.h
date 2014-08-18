@@ -43,11 +43,11 @@ private:
 	virtual void Stop();
 	virtual void Exit();
 
-	static void Process (FArchive&, FArchive&, FNetworkFileServerHttp* );
+	static void Process (FArchive&, TArray<uint8>&, FNetworkFileServerHttp* );
 
 
 	// factory method for creating a new Client Connection. 
-	FNetworkFileServerClientConnection* CreateNewConnection(); 
+	class FNetworkFileServerClientConnectionHTTP* CreateNewConnection(); 
 
 	// Holds a delegate to be invoked on every sync request.
 	FFileRequestDelegate FileRequestDelegate;
@@ -74,7 +74,7 @@ private:
 	FThreadSafeCounter Ready; 
 
 	// Clients being served.
-	TMap< FGuid, FNetworkFileServerClientConnection* > RequestHandlers; 
+	TMap< FGuid, FNetworkFileServerClientConnectionHTTP* > RequestHandlers; 
 };
 
 #endif

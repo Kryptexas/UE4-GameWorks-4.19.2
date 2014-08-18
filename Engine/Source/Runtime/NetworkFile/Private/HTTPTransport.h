@@ -17,7 +17,7 @@ public:
 	// ITransport Interface.
 	virtual bool Initialize(const TCHAR* HostIp) override;
 	virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out) override;
-	virtual bool ReceiveResponse(TArray<uint8> &Out) override { return false; } // unsupported for now :(
+	virtual bool ReceiveResponse(TArray<uint8> &Out) override; 
 
 private: 
 
@@ -27,6 +27,9 @@ private:
 
 	FGuid Guid; 
 	TCHAR Url[1048];
+
+	TArray<uint8> RecieveBuffer; 
+	uint32 ReadPtr; 
 
 };
 #endif

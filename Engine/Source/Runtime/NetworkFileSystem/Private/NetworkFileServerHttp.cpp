@@ -8,6 +8,44 @@
 #include "AllowWindowsPlatformTypes.h"
 	#include "libwebsockets.h"
 #include "HideWindowsPlatformTypes.h"
+
+
+
+class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientConnection 
+{
+
+public: 
+	FNetworkFileServerClientConnectionHTTP(const FFileRequestDelegate& InFileRequestDelegate, 
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate,InActiveTargetPlatforms)
+	{
+	} 
+
+	bool SendPayload( TArray<uint8> &Out )
+	{
+		// Make Boundaries between payloads, add a visual marker for easier debugging.
+
+		uint32 Marker = 0xDeadBeef; 
+		uint32 Size = Out.Num(); 
+
+		OutBuffer.Append((uint8*)&Marker,sizeof(uint32));
+		OutBuffer.Append((uint8*)&Size,sizeof(uint32));
+		OutBuffer.Append(Out);
+
+		return true; 
+	}
+
+private:  
+
+	TArray<uint8>& GetOutBuffer() { return OutBuffer; }
+	void ResetBuffer() { OutBuffer.Reset(); }
+
+	TArray<uint8> OutBuffer; 
+
+    friend class FNetworkFileServerHttp;  
+};
+
+
 ////////////////////////////////////////////////////////////////////////// 
 // LibWebsockets specific structs. 
 
@@ -207,13 +245,13 @@ FNetworkFileServerHttp::~FNetworkFileServerHttp()
 	check( Context == NULL ); 
 }
 
-FNetworkFileServerClientConnection* FNetworkFileServerHttp::CreateNewConnection()
+FNetworkFileServerClientConnectionHTTP* FNetworkFileServerHttp::CreateNewConnection()
 {
-	return new FNetworkFileServerClientConnection (FileRequestDelegate,RecompileShadersDelegate,ActiveTargetPlatforms); 
+	return new FNetworkFileServerClientConnectionHTTP(FileRequestDelegate,RecompileShadersDelegate,ActiveTargetPlatforms); 
 }
 
 // Have a similar process function for the normal tcp connection. 
-void FNetworkFileServerHttp::Process(FArchive& In, FArchive&Out, FNetworkFileServerHttp* Server)
+void FNetworkFileServerHttp::Process(FArchive& In, TArray<uint8>&Out, FNetworkFileServerHttp* Server)
 {
 	int loops = 0; 
 	while(!In.AtEnd())
@@ -225,7 +263,7 @@ void FNetworkFileServerHttp::Process(FArchive& In, FArchive&Out, FNetworkFileSer
 
 		UE_LOG(LogFileServer, Log, TEXT("Recieved GUID %s"), *ClientGuid.ToString());
 
-		FNetworkFileServerClientConnection* Connection = NULL; 
+		FNetworkFileServerClientConnectionHTTP* Connection = NULL; 
 		if (Server->RequestHandlers.Contains(ClientGuid))
 		{
 			UE_LOG(LogFileServer, Log, TEXT("Picking up an existing handler" ));
@@ -238,7 +276,9 @@ void FNetworkFileServerHttp::Process(FArchive& In, FArchive&Out, FNetworkFileSer
 			Server->RequestHandlers.Add(ClientGuid,Connection);
 		}
 
-		// Connection->ProcessPayload(In, Out);
+	    Connection->ProcessPayload(In);
+		Out.Append(Connection->GetOutBuffer());
+		Connection->ResetBuffer(); 
 	}
 }
 
@@ -371,7 +411,7 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 			// create archives and process them. 
 			UE_LOG(LogFileServer, Log, TEXT("Incoming HTTP total size  %d"), BufferInfo->In.Num());
 			FMemoryReader Reader(BufferInfo->In);
-			FBufferArchive Writer;
+			TArray<uint8> Writer;
 
 			FNetworkFileServerHttp::Process(Reader,Writer,Server);
 

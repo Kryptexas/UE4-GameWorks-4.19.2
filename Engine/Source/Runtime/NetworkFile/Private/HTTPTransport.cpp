@@ -59,6 +59,9 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 
 bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out)
 {
+	RecieveBuffer.Empty();
+	ReadPtr = 0; 
+
 #if !PLATFORM_HTML5
 	
 	if (GIsRequestingExit) // We have already lost HTTP Module. 
@@ -80,7 +83,7 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 		TArray<uint8>& Out; 
 	};
 
-	HTTPRequestHandler Handler(Out);
+	HTTPRequestHandler Handler(RecieveBuffer);
 
 	HttpRequest->OnProcessRequestComplete().BindRaw(&Handler,&HTTPRequestHandler::HttpRequestComplete );
 	if ( In.Num() )
@@ -128,31 +131,58 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 	unsigned char *OutData = NULL; 
 	unsigned int OutSize= 0; 
 
+	bool RetVal = true; 
+
 #if PLATFORM_HTML5_WIN32
-
-
-	bool RetVal = HTML5Win32::NFSHttp::SendPayLoadAndRecieve(Ar.GetData(), Ar.Num(), &OutData, OutSize);
-	if (OutSize)
-	{
-		Out.Append(OutData,OutSize); 
-		free (OutData); 
-	}
-
-	return RetVal; 
+	RetVal = HTML5Win32::NFSHttp::SendPayLoadAndRecieve(Ar.GetData(), Ar.Num(), &OutData, OutSize);
 #endif 
-
 #if PLATFORM_HTML5_BROWSER
 	UE_SendAndRecievePayLoad(TCHAR_TO_ANSI(Url),(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
+#endif 
+
+	if (!Ar.Num())
+	{
+		uint32 Size = OutSize;
+		uint32 Marker = 0xDeadBeef; 
+		RecieveBuffer.Append((uint8*)&Marker,sizeof(uint32));
+		RecieveBuffer.Append((uint8*)&Size,sizeof(uint32));
+	}
+
+
 	if (OutSize)
 	{
-		Out.Append(OutData,OutSize); 
-		// don't go through the Unreal Memory system. 
-		::free (OutData); 
-	}
-	return true; 
-#endif 
-#endif
+		RecieveBuffer.Append(OutData,OutSize); 
 
+#if PLATFORM_HTML5_WIN32
+		free (OutData); 
+#endif 
+#if PLATFORM_HTML5_BROWSER
+		// don't go through the Unreal Memory system. 
+		::free(OutData);
+#endif 
+
+	}
+
+	return RetVal & ReceiveResponse(Out); 
+#endif 
+}
+
+bool FHTTPTransport::ReceiveResponse(TArray<uint8> &Out)
+{
+	// Read one Packet from Receive Buffer.
+	// read the size. 
+
+	uint32 Marker = *(uint32*)(RecieveBuffer.GetData() + ReadPtr); 
+	uint32 Size = *(uint32*)(RecieveBuffer.GetData() + ReadPtr + sizeof(uint32));
+
+	// make sure we have the right amount of data available in the buffer. 
+	check( (ReadPtr + Size + 2*sizeof(uint32)) <= RecieveBuffer.Num());
+
+	Out.Append(RecieveBuffer.GetData() + ReadPtr + 2*sizeof(uint32),Size);
+
+	ReadPtr += 2*sizeof(uint32) + Size; 
+
+	return true;
 }
 
 #endif 
