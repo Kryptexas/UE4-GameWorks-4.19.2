@@ -475,6 +475,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		ProcessNavAreaPendingRegistration();
 	}
 
+#if WITH_NAVIGATION_GENERATOR
 	if (PendingNavVolumeUpdates.Num() > 0)
 	{
 		for (auto Volume : PendingNavVolumeUpdates)
@@ -486,6 +487,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		}
 		PendingNavVolumeUpdates.Reset();
 	}
+#endif // WITH_NAVIGATION_GENERATOR
 
 	if (PendingOctreeUpdates.Num() > 0)
 	{
