@@ -706,24 +706,11 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 
 bool FGameplayAbilityTargetData_Mesh::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
+	//SourceActor can be used as a backup if the component isn't found.
 	Ar << SourceActor;
-	if (SourceActor)
-	{
-		Ar << SourceSocketName;
-	}
-	else
-	{
-		StartPoint.NetSerialize(Ar, Map, bOutSuccess);
-	}
-	Ar << bUseTargetPoint;
-	if (bUseTargetPoint)
-	{
-		TargetPoint.NetSerialize(Ar, Map, bOutSuccess);
-	}
-	else
-	{
-		AimDirection.NetSerialize(Ar, Map, bOutSuccess);
-	}
+	Ar << SourceComponent;
+	Ar << SourceSocketName;
+	TargetPoint.NetSerialize(Ar, Map, bOutSuccess);
 
 	bOutSuccess = true;
 	return true;
