@@ -64,6 +64,12 @@ FSceneViewState::FSceneViewState()
 	{
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
+
+#if BUFFERED_OCCLUSION_QUERIES
+	NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
+	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
+#endif
 }
 
 /**

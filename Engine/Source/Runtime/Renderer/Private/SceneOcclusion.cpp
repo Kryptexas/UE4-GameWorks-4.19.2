@@ -228,6 +228,14 @@ bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPr
 {
 	// Find the shadow's occlusion query from the previous frame.
 	const FSceneViewState::FProjectedShadowKey Key(PrimitiveId, Light, SplitIndex, bTranslucentShadow);
+
+#if BUFFERED_OCCLUSION_QUERIES
+	// Get the oldest occlusion query	
+	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(PendingPrevFrameNumber, NumBufferedFrames);
+	FSceneViewState::ShadowOcclusionQueryMap ShadowOcclusionQueryMap = ShadowOcclusionQueryMaps[QueryIndex];	
+#endif
+
+
 	const FRenderQueryRHIRef* Query = ShadowOcclusionQueryMap.Find(Key);
 
 	// Read the occlusion query results.
@@ -267,8 +275,18 @@ void FSceneViewState::Destroy()
 
 SIZE_T FSceneViewState::GetSizeBytes() const
 {
+#if BUFFERED_OCCLUSION_QUERIES
+	uint32 ShadowOcclusionQuerySize = ShadowOcclusionQueryMaps.GetAllocatedSize();
+	for (int32 i = 0; i < ShadowOcclusionQueryMaps.Num(); ++i)
+	{
+		ShadowOcclusionQuerySize += ShadowOcclusionQueryMaps[i].GetAllocatedSize();
+	}
+#else
+	uint32 ShadowOcclusionQuerySize = ShadowOcclusionQueryMap.GetAllocatedSize();
+#endif
+
 	return sizeof(*this) 
-		+ ShadowOcclusionQueryMap.GetAllocatedSize() 
+		+ ShadowOcclusionQuerySize
 		+ ParentPrimitives.GetAllocatedSize() 
 		+ PrimitiveFadingStates.GetAllocatedSize()
 		+ PrimitiveOcclusionHistorySet.GetAllocatedSize();
@@ -385,9 +403,15 @@ FRenderQueryRHIParamRef FOcclusionQueryBatcher::BatchPrimitive(const FVector& Bo
 }
 
 static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader)
-{
+{	
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+
+#if BUFFERED_OCCLUSION_QUERIES		
+	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
+	FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+#else
+	FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+#endif
 
 	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to
 	// be translated.
@@ -982,7 +1006,12 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			VertexShader->SetParameters(RHICmdList, View);
 
 			// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
-			TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+#if BUFFERED_OCCLUSION_QUERIES				
+			const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
+			FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+#else
+			FSceneViewState::ShadowOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
+#endif			
 
 			// Clear primitives which haven't been visible recently out of the occlusion history, and reset old pending occlusion queries.
 			ViewState->TrimOcclusionHistory(RHICmdList, ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime, ViewFamily.CurrentRealTime, FrameNumber);

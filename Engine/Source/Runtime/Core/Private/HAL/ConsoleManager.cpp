@@ -1575,6 +1575,14 @@ static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
 	TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+
+static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
+	TEXT("r.NumBufferedOcclusionQueries"),
+	1,
+	TEXT("Number of frames to buffer occlusion queries (including the current renderthread frame).\n")
+	TEXT("More frames reduces the chance of stalling the CPU waiting for results, but increases out of date query artifacts."),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarDistField(
 	TEXT("r.AllowMeshDistanceFieldRepresentations"),
 	0,	
