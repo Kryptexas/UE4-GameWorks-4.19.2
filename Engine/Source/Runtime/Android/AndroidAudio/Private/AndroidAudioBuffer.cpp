@@ -103,7 +103,6 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
  */
 FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioDevice, USoundWave* InWave )
 {
-#if WITH_OGGVORBIS
 	// Check to see if thread has finished decompressing on the other thread
 	if( InWave->AudioDecompressor != NULL )
 	{
@@ -113,7 +112,6 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 		delete InWave->AudioDecompressor;
 		InWave->AudioDecompressor = NULL;
 	}
-#endif	//WITH_OGGVORBIS
 
 	FSLESSoundBuffer* Buffer = NULL;
 
@@ -216,5 +214,16 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 bool FSLESSoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping )
 {
 	ensure( DecompressionState);
-	return( DecompressionState->ReadCompressedData( Destination, bLooping, MONO_PCM_BUFFER_SIZE * NumChannels ) );
+	return(DecompressionState->ReadCompressedData(Destination, bLooping, DecompressionState->GetStreamBufferSize() * NumChannels));
+}
+
+/**
+* Returns the size for a real time/streaming buffer based on decompressor
+*
+* @return Size of buffer in bytes for a single channel or 0 if no decompression state
+*/
+int FSLESSoundBuffer::GetRTBufferSize(void)
+{
+	check(DecompressionState != NULL);
+	return DecompressionState ? DecompressionState->GetStreamBufferSize() : 0;
 }

@@ -596,6 +596,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ENUM_CLASS_SUPPORT,
 	// Fixup widget animation class
 	VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS,
+	// USoundWave objects now contain details about compression scheme used.
+	VER_UE4_SOUND_COMPRESSION_TYPE_ADDED,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

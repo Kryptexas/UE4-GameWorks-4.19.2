@@ -97,6 +97,11 @@ public:
 		return( BufferSize ); 
 	}
 
+	/**
+	 * Returns the size for a real time/streaming buffer based on decompressor
+	 */
+	int GetRTBufferSize(void);
+		
 	/** Audio device this buffer is attached to */
 	FSLESAudioDevice*			AudioDevice;
 	/** Data */
@@ -222,8 +227,19 @@ public:
 
 	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
-		static FName NAME_OGG(TEXT("OGG"));
-		return NAME_OGG;
+		
+		if (SoundWave->CompressionName.IsNone())
+		{
+#if WITH_OGGVORBIS
+			static FName NAME_OGG(TEXT("OGG"));		//@todo android: probably not ogg
+			return NAME_OGG;
+#else
+			static FName NAME_ADPCM(TEXT("ADPCM"));
+			return NAME_ADPCM;
+#endif
+		}
+
+		return SoundWave->CompressionName;
 	}
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;

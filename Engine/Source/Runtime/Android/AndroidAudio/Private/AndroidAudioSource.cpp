@@ -118,7 +118,7 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 		result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, OpenSLBufferQueueCallback, (void*)this);
 		if(result != SL_RESULT_SUCCESS) { UE_LOG( LogAndroidAudio, Fatal,TEXT("FAILED OPENSL BUFFER QUEUE RegisterCallback 0x%x "), result); return false;}
 	}
-		
+	
 	result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer->AudioData, Buffer->GetSize() );
 	if(result != SL_RESULT_SUCCESS) { UE_LOG( LogAndroidAudio, Fatal,TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize())); return false;}
 
@@ -138,11 +138,13 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	FMemory::Memzero( AudioBuffers, sizeof( SLESAudioBuffer ) * 2 );
 
 	// Set up double buffer area to decompress to
-	AudioBuffers[0].AudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	AudioBuffers[0].AudioDataSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	const int bufferSize = Buffer->GetRTBufferSize() * Buffer->NumChannels;
 
-	AudioBuffers[1].AudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	AudioBuffers[1].AudioDataSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	AudioBuffers[0].AudioData = (uint8*)FMemory::Malloc(bufferSize);
+	AudioBuffers[0].AudioDataSize = bufferSize;
+
+	AudioBuffers[1].AudioData = (uint8*)FMemory::Malloc(bufferSize);
+	AudioBuffers[1].AudioDataSize = bufferSize;
 
 	// Decompress two buffers worth of data to fill up the queue
 	Buffer->ReadCompressedData( AudioBuffers[0].AudioData, bLoop );

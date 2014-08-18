@@ -7,6 +7,7 @@
 
 #include "AndroidAudioDevice.h"
 #include "VorbisAudioInfo.h"
+#include "ADPCMAudioInfo.h"
 #include "AudioEffect.h"
 #include "Engine.h"
 
@@ -157,17 +158,34 @@ FSoundSource* FSLESAudioDevice::CreateSoundSource()
 bool FSLESAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	return true;
-#else
-	return false;
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("OGG"))
+	{
+		return true;
+	}
 #endif
+
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("ADPCM"))
+	{
+		return true;
+	}
+
+	return false;
+
 }
 
 class ICompressedAudioInfo* FSLESAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	return new FVorbisAudioInfo();
-#else
-	return NULL;
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("OGG"))
+	{
+		return new FVorbisAudioInfo();
+	}
 #endif
+
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("ADPCM"))
+	{
+		return new FADPCMAudioInfo();
+	}
+
+	return NULL;
 }

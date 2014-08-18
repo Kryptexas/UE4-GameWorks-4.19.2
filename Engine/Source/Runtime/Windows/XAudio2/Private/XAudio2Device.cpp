@@ -244,11 +244,21 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 	{
 		return new FOpusAudioInfo();
 	}
+
 #if WITH_OGGVORBIS
-	return new FVorbisAudioInfo();
+	if (SoundWave->CompressionName.IsNone() || SoundWave->CompressionName == TEXT("OGG"))
+	{
+
+		return new FVorbisAudioInfo();
+	}
+	else
+	{
+		return NULL;
+	}
 #else
 	return NULL;
 #endif
+	
 }
 
 /**  

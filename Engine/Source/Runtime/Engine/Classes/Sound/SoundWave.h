@@ -256,6 +256,9 @@ public:
 	/** cooked streaming platform data for this sound */
 	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
 
+	/** Codec used to compress/encode this audio data */
+	FName CompressionName;
+
 	// Begin UObject interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;

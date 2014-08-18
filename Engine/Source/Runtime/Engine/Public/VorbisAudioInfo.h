@@ -80,6 +80,7 @@ public:
 	virtual uint32 GetSourceBufferSize() const { return SrcBufferDataSize;}
 
 	virtual bool UsesVorbisChannelOrdering() const override { return true; }
+	virtual int GetStreamBufferSize() const { return MONO_PCM_BUFFER_SIZE; }
 
 	struct FVorbisFileWrapper* VFWrapper;
 	const uint8*		SrcBufferData;

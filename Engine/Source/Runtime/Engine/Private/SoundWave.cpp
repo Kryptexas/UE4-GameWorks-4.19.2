@@ -145,6 +145,16 @@ void USoundWave::Serialize( FArchive& Ar )
 		UE_LOG(LogAudio, Fatal, TEXT("This platform requires cooked packages, and audio data was not cooked into %s."), *GetFullName());
 	}
 
+	if (Ar.IsCooking())
+	{
+		CompressionName = Ar.CookingTarget()->GetWaveFormat(this);
+	}
+	
+	if (Ar.UE4Ver() >= VER_UE4_SOUND_COMPRESSION_TYPE_ADDED)
+	{
+		Ar << CompressionName;
+	}
+
 	if (bCooked)
 	{
 		// Only want to cook/load full data if we don't support streaming
