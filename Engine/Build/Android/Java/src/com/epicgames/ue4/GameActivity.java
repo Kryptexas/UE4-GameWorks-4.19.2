@@ -1067,6 +1067,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	static
 	{
+		System.loadLibrary("gnustl_shared");
 		System.loadLibrary("UE4");
 	}
 }
