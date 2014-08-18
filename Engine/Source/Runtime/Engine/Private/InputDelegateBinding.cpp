@@ -15,7 +15,7 @@ UInputDelegateBinding::UInputDelegateBinding(const class FPostConstructInitializ
 {
 }
 
-void UInputDelegateBinding::BindInputDelegates(UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent)
+void UInputDelegateBinding::BindInputDelegates(const UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent)
 {
 	static UClass* InputBindingClasses[] = { 
 												UInputActionDelegateBinding::StaticClass(), 

@@ -33,5 +33,5 @@ class ENGINE_API UInputDelegateBinding : public UDynamicBlueprintBinding
 
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const { };
 
-	static void BindInputDelegates(UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent);
+	static void BindInputDelegates(const UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent);
 };

@@ -699,6 +699,11 @@ bool UBlueprint::AllowsDynamicBinding() const
 	return FBlueprintEditorUtils::IsActorBased(this);
 }
 
+bool UBlueprint::SupportsInputEvents() const
+{
+	return FBlueprintEditorUtils::IsActorBased(this);
+}
+
 struct FBlueprintInnerHelper
 {
 	template<typename TOBJ, typename TARR>

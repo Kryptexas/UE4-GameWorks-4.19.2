@@ -841,7 +841,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 		{
 			AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
 
-			if (Class->IsChildOf(AActor::StaticClass()))
+			if ( Blueprint->SupportsInputEvents() )
 			{
 				GetInputNodes(ContextMenuBuilder, true);
 			}

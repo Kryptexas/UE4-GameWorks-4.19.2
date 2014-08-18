@@ -517,6 +517,9 @@ public:
 	/** @return true if the blueprint supports event binding for multicast delegates */
 	virtual bool AllowsDynamicBinding() const;
 
+	/** @return true if the blueprint supports event binding for input events */
+	virtual bool SupportsInputEvents() const;
+
 	bool ChangeOwnerOfTemplates();
 
 #endif	//#if WITH_EDITOR
