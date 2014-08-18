@@ -665,7 +665,7 @@ HRESULT STDCALL FWindowsWindow::QueryInterface( REFIID iid, void ** ppvObject )
 	if ( IID_IDropTarget == iid || IID_IUnknown == iid )
 	{
 		AddRef();
-		*ppvObject = this;
+		*ppvObject = (IDropTarget*)(this);
 		return S_OK;
 	}
 	else
