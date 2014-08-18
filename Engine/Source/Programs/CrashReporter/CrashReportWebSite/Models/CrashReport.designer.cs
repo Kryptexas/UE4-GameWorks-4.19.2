@@ -180,8 +180,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _Pattern;
 		
-		private string _Type;
-		
 		private System.Nullable<int> _NumberOfCrashes;
 		
 		private System.Nullable<int> _NumberOfUsers;
@@ -202,6 +200,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _BuildVersion;
 		
+		private System.Nullable<short> _CrashType;
+		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
     #region Extensibility Method Definitions
@@ -220,8 +220,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnPriorityChanged();
     partial void OnPatternChanging(string value);
     partial void OnPatternChanged();
-    partial void OnTypeChanging(string value);
-    partial void OnTypeChanged();
     partial void OnNumberOfCrashesChanging(System.Nullable<int> value);
     partial void OnNumberOfCrashesChanged();
     partial void OnNumberOfUsersChanging(System.Nullable<int> value);
@@ -242,6 +240,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnGameChanged();
     partial void OnBuildVersionChanging(string value);
     partial void OnBuildVersionChanged();
+    partial void OnCrashTypeChanging(System.Nullable<short> value);
+    partial void OnCrashTypeChanged();
     #endregion
 		
 		public Bugg()
@@ -366,26 +366,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._Pattern = value;
 					this.SendPropertyChanged("Pattern");
 					this.OnPatternChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Type", DbType="VarChar(50)")]
-		public string Type
-		{
-			get
-			{
-				return this._Type;
-			}
-			set
-			{
-				if ((this._Type != value))
-				{
-					this.OnTypeChanging(value);
-					this.SendPropertyChanging();
-					this._Type = value;
-					this.SendPropertyChanged("Type");
-					this.OnTypeChanged();
 				}
 			}
 		}
@@ -586,6 +566,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._BuildVersion = value;
 					this.SendPropertyChanged("BuildVersion");
 					this.OnBuildVersionChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_CrashType", DbType="SmallInt")]
+		public System.Nullable<short> CrashType
+		{
+			get
+			{
+				return this._CrashType;
+			}
+			set
+			{
+				if ((this._CrashType != value))
+				{
+					this.OnCrashTypeChanging(value);
+					this.SendPropertyChanging();
+					this._CrashType = value;
+					this.SendPropertyChanged("CrashType");
+					this.OnCrashTypeChanged();
 				}
 			}
 		}

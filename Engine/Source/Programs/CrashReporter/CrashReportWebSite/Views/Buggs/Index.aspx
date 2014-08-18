@@ -23,7 +23,6 @@
 			.datepicker({ maxDate: '+0D' })
 			.datepicker('setDate', new Date(parseInt($('#dateTo').val())));
 
-		//$("#BuildVersionVisible").val($('#BuildVersion').val());
 	});
 
 	$.datepicker.setDefaults({
@@ -31,7 +30,6 @@
 		{
 			$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 			$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
-			//$('#BuildVersion').val($("#BuildVersionVisible").val());
 			$("#FilterBuggsForm").submit();
 		}
 	});
@@ -44,6 +42,11 @@
 		//Zebrastripes
 		$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
 		$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
+
+		$(".CrashType").click(function ()
+		{
+			$("#FilterBuggsForm").submit();
+		});
 	});
 </script>
 </asp:Content>
@@ -55,6 +58,14 @@
 	<%=Html.HiddenFor( u => u.UserGroup )%>
 	<%=Html.Hidden( "SortTerm", Model.SortTerm )%>
 	<%=Html.Hidden( "SortOrder", Model.SortOrder )%>
+
+	<span style="float:left;">
+			<input type="radio" name="CrashType" class="CrashType" value="CrashesAsserts" <%=( Model.CrashType == "CrashesAsserts" ) ? "checked='checked'" : "" %> /> <span title='All Crashes Except Ensures'>Crashes+Asserts</span>
+			<input type="radio" name="CrashType" class="CrashType" value="Ensure" <%=( Model.CrashType == "Ensure" ) ? "checked='checked'" : "" %>/> <span title='Only Ensures'>Ensures</span>
+			<input type="radio" name="CrashType" class="CrashType" value="Assert" <%=( Model.CrashType == "Assert" ) ? "checked='checked'" : "" %>/> <span title='Only Asserts'>Asserts</span>
+			<input type="radio" name="CrashType" class="CrashType" value="Crashes" <%=( Model.CrashType == "Crashes" ) ? "checked='checked'" : "" %>/> <span title='Crashes Except Ensures and Asserts'>Crashes</span>
+			<input type="radio" name="CrashType" class="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %>/> <span title='All Crashes'>All</span>
+	</span>
 
 	<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.SearchQuery, new { width = "1000" })%><input type="submit" value="Search" class='SearchButton' /></div>
 
@@ -114,7 +125,8 @@
 								UserGroup = Model.UserGroup, 
 								DateFrom = Model.DateFrom, 
 								DateTo = Model.DateTo, 
-								BuildVersion = Model.BuildVersion 
+								BuildVersion = Model.BuildVersion,
+								CrashType = Model.CrashType
 							}
 							, 
 							new { style = "color:black; text-decoration:none;" } )%></span>
@@ -129,7 +141,8 @@
 								UserGroup = Model.UserGroup, 
 								DateFrom = Model.DateFrom, 
 								DateTo = Model.DateTo, 
-								BuildVersion = Model.BuildVersion 
+								BuildVersion = Model.BuildVersion,
+								CrashType = Model.CrashType
 							}
 							, 
 							new { style = "color:black; text-decoration:none;" } )%></span>
@@ -150,7 +163,8 @@
 				UserGroup = Model.UserGroup, 
 				DateFrom = Model.DateFrom, 
 				DateTo = Model.DateTo, 
-				BuildVersion = Model.BuildVersion 
+				BuildVersion = Model.BuildVersion,
+				CrashType = Model.CrashType
 			} 
 		) )%>
 		<div id="clear"></div>

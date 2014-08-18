@@ -367,6 +367,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Results = Search( Results, FormData.SearchQuery );
 			}
 
+			// Filter by Crash Type
+			if( FormData.CrashType != "All" )
+			{
+				switch( FormData.CrashType )
+				{
+					case "Crashes":
+						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 );
+						break;
+					case "Assert":
+						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 2 );
+						break;
+					case "Ensure":
+						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 3 );
+						break;
+					case "CrashesAsserts":
+						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 || BuggInstance.CrashType == 2 );
+						break;
+				}
+			}
+
 			// Get UserGroup ResultCounts
 			Dictionary<string, int> GroupCounts = GetCountsByGroup( Results );
 
@@ -386,6 +406,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				SortTerm = FormData.SortTerm,
 				SortOrder = FormData.SortOrder,
 				UserGroup = FormData.UserGroup,
+				CrashType = FormData.CrashType,
 				SearchQuery = FormData.SearchQuery,
 				DateFrom = (long)(FormData.DateFrom - CrashesViewModel.Epoch).TotalMilliseconds,
 				DateTo = (long)(FormData.DateTo - CrashesViewModel.Epoch).TotalMilliseconds,

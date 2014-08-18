@@ -59,6 +59,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return Crashes;
 		}
 
+		/// <summary></summary>
+		public string CrashTypeAsString
+		{
+			get
+			{
+				if( CrashType == 1 )
+				{
+					return "Crash";
+				}
+				else if( CrashType == 2 )
+				{
+					return "Assert";
+				}
+				else if( CrashType == 3 )
+				{
+					return "Ensure";
+				}
+				return "Unknown";
+			}
+		}
+
 		/// <summary>
 		/// Return the top lines of a callstack.
 		/// </summary>
@@ -210,6 +231,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			return Results;
+		}
+
+		/// <summary></summary>
+		public string CrashTypeAsString
+		{
+			get
+			{
+				if( CrashType == 0 )
+				{
+					return "Crash";
+				}
+				else if( CrashType == 1 )
+				{
+					return "Assert";
+				}
+				else if( CrashType == 2 )
+				{
+					return "Ensure";
+				}
+				return "Unknown";
+			}
 		}
 
 		/// <summary>

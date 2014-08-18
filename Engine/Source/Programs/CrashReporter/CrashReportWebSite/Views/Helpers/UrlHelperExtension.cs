@@ -151,7 +151,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
-														BuildVersion = Model.BuildVersion
+														BuildVersion = Model.BuildVersion,
+														CrashType = Model.CrashType,
 													} );
 
 			Tag.MergeAttribute( "href", URL );
@@ -198,7 +199,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														SearchQuery = CallStack,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
-														BuildVersion = Model.BuildVersion
+														BuildVersion = Model.BuildVersion,
+														CrashType = Model.CrashType,
 													} );
 
 			Tag.MergeAttribute( "href", URL );
@@ -228,7 +230,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														SearchQuery = Model.SearchQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
-														BuildVersion = Model.BuildVersion
+														BuildVersion = Model.BuildVersion,
+														CrashType = Model.CrashType,
 													} );
 
 			Tag.MergeAttribute( "href", URL );

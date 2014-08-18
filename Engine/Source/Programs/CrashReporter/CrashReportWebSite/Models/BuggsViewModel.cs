@@ -10,6 +10,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// <summary>
 	/// The view model for the Bugg index page.
 	/// </summary>
+	/// // @TODO yrx 2014-08-14 Add base class
 	public class BuggsViewModel
 	{
 		/// <summary>Tooltip for "Crash Groups" tab</summary>
@@ -29,6 +30,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		/// <summary>The current user group name.</summary>
 		public string UserGroup { get; set; }
+
+		/// <summary>The type of report to filter by. e.g. Asserts.</summary>
+		public string CrashType { get; set; }
 		
 		/// <summary>The query that filtered the results.</summary>
 		public string SearchQuery { get; set; }

@@ -8,7 +8,6 @@
       <Column Name="Summary" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
       <Column Name="Priority" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Pattern" Type="System.String" DbType="VarChar(800) NOT NULL" CanBeNull="false" />
-      <Column Name="Type" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
       <Column Name="NumberOfCrashes" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="NumberOfUsers" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="TimeOfFirstCrash" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
@@ -19,6 +18,7 @@
       <Column Name="ReproSteps" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
       <Column Name="Game" Type="System.String" DbType="VarChar(120)" CanBeNull="true" />
       <Column Name="BuildVersion" Type="System.String" DbType="VarChar(128)" CanBeNull="true" />
+      <Column Name="CrashType" Type="System.Int16" DbType="SmallInt" CanBeNull="true" />
       <Association Name="Bugg_Buggs_Crash" Member="Buggs_Crashes" ThisKey="Id" OtherKey="BuggId" Type="Buggs_Crash" />
     </Type>
   </Table>

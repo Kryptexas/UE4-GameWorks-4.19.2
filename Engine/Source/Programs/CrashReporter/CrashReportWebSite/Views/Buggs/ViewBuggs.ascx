@@ -21,6 +21,7 @@
 					DateFrom = Model.DateFrom, 
 					DateTo = Model.DateTo,
 					BuildVersion = Model.BuildVersion,
+					CrashType = Model.CrashType
 				} 
 			) )%>
 			</div>
