@@ -21,6 +21,11 @@ void UKismetInputLibrary::CalibrateTilt()
 	GEngine->Exec(NULL, TEXT("CALIBRATEMOTION"));
 }
 
+FKey UKismetInputLibrary::GetKey(const FKeyboardEvent& Input)
+{
+	return Input.GetKey();
+}
+
 bool UKismetInputLibrary::EqualEqual_KeyKey(FKey A, FKey B)
 {
 	return A == B;

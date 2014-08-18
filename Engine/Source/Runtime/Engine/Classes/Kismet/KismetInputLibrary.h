@@ -16,6 +16,14 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 	static void CalibrateTilt();
 
 	/**
+	 * Returns the key for this event.
+	 *
+	 * @return  Key name
+	 */
+	UFUNCTION(BlueprintCallable, Category="Keyboard")
+	static FKey GetKey(const FKeyboardEvent& Input);
+
+	/**
 	 * Test if the input key are equal (A == B)
 	 * @param A - The key to compare against
 	 * @param B - The key to compare
