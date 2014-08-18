@@ -134,43 +134,147 @@ public:
 		 */
 	};
 
+	template<typename Type>
+	struct FLookupQueue
+	{
+	private:
+		TSet<Type> Set;
+		FQueue<Type> Queue;
+
+	public:
+		void Enqueue(const Type& Item)
+		{
+			Set.Add(Item);
+			Queue.Enqueue(Item);
+		}
+		void EnqueueUnique( const Type& Item )
+		{
+			if ( Set.Find(Item) == NULL )
+			{
+				Enqueue( Item );
+			}
+		}
+
+		bool Dequeue(Type* Result)
+		{
+			if (Queue.Num())
+			{
+				Queue.Dequeue(Result);
+				Set.Remove(*Result);
+				return true;
+			}
+			return false;
+		}
+		void DequeueAll(TArray<Type>& Results)
+		{
+			Queue.DequeueAll(Results);
+			Set.Empty();
+		}
+
+		bool HasItems() const
+		{
+			return Queue.Num() > 0;
+		}
+
+		void Remove( const Type& Item ) 
+		{
+			Queue.Remove( Item );
+			Set.Remove(Item);
+		}
+
+		int Num() const 
+		{
+			return Queue.Num();
+		}
+
+	};
+
 public:
 	/** cooked file requests which includes platform which file is requested for */
 	struct FFilePlatformRequest
 	{
+	private:
+		FName Filename;
+		FName Platformname;
+		uint32 CachedHash;
 	public:
-		FFilePlatformRequest() { }
-		FFilePlatformRequest( const FString &InFilename, const FName &InPlatformname ) : Filename( InFilename ), Platformname( InPlatformname ) 
+		FFilePlatformRequest() : CachedHash(0) { }
+
+		FFilePlatformRequest( const FName &InFilename, const FName &InPlatformname ) : Filename( InFilename ), Platformname( InPlatformname ) 
 		{
+			UpdateHash();
 		}
 
-		FString Filename;
-		FName Platformname;
+		FFilePlatformRequest( const FString &InFilename, const FName &InPlatformname ) : Filename( *InFilename ), Platformname( InPlatformname ) 
+		{
+			UpdateHash();
+		}
+
+		FFilePlatformRequest( const FFilePlatformRequest &InFilePlatformRequest ) : Filename( InFilePlatformRequest.Filename ), Platformname( InFilePlatformRequest.Platformname ), CachedHash( InFilePlatformRequest.CachedHash )
+		{
+#if DO_CHECK
+			uint32 OldHash = CachedHash;
+			UpdateHash();
+			check( OldHash == CachedHash );
+#endif
+		}
+
+		void SetFilename( const FString &InFilename ) 
+		{
+			Filename = FName(*InFilename);
+			UpdateHash();
+		}
+
+		const FName &GetFilename() const
+		{
+			return Filename;
+		}
+
+		const FName &GetPlatformname() const
+		{
+			return Platformname;
+		}
+
+		void UpdateHash()
+		{
+			CachedHash = GetTypeHash(Filename) ^ GetTypeHash(Platformname);
+		}
+
+		uint32 GetCachedHash() const
+		{
+			return CachedHash;
+		}
 
 		bool IsValid()  const
 		{
-			return Filename.Len() > 0;
+			return Filename != NAME_None;
 		}
 
 		void Clear()
 		{
 			Filename = TEXT("");
 			Platformname = TEXT("");
+			UpdateHash();
 		}
 
 		bool operator ==( const FFilePlatformRequest &InFileRequest ) const
 		{
-			if ( InFileRequest.Filename == Filename )
+			if ( CachedHash == InFileRequest.CachedHash )
 			{
-				if ( InFileRequest.Platformname == Platformname )
-					return true;
+				if ( InFileRequest.Filename == Filename )
+				{
+					if ( InFileRequest.Platformname == Platformname )
+					{
+						return true;
+					}
+				}
 			}
 			return false;
 		}
 
-		FORCEINLINE FString ToString() const
+		FORCEINLINE FString &&ToString() const
 		{
-			return FString::Printf( TEXT("%s %s"), *Filename, *Platformname.ToString() );
+			return MoveTemp( FString::Printf( TEXT("%s %s"), *Filename.ToString(), *Platformname.ToString() ) );
 		}
 
 	};
@@ -178,7 +282,7 @@ public:
 private:
 
 	FThreadSafeQueue<FFilePlatformRequest> FileRequests; // list of requested files
-	FQueue<FFilePlatformRequest> UnsolicitedFileRequests; // list of files which haven't been requested but we think should cook based on previous requests
+	FLookupQueue<FFilePlatformRequest> UnsolicitedFileRequests; // list of files which haven't been requested but we think should cook based on previous requests
 	FThreadSafeQueue<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which weren't requested but were cooked (based on UnsolicitedFileRequests)
 
 
@@ -189,6 +293,16 @@ private:
 		mutable FCriticalSection	SynchronizationObject;
 		TSet<FFilePlatformRequest> FilesProcessed;
 	public:
+
+		void Lock()
+		{
+			SynchronizationObject.Lock();
+		}
+		void Unlock()
+		{
+			SynchronizationObject.Unlock();
+		}
+
 		void Add(const FFilePlatformRequest &Filename)
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
@@ -200,14 +314,14 @@ private:
 			FScopeLock ScopeLock(&SynchronizationObject);
 			return FilesProcessed.Contains(Filename);
 		}
-		int RemoveAll( const FString &Filename )
+		int RemoveAll( const FName &Filename )
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			int NumRemoved = 0;
 			// for ( TSet<FFilePlatformRequest>::TIterator It( FilesProcessed ); It; ++It )
 			for ( auto It = FilesProcessed.CreateIterator(); It; ++It )
 			{
-				if ( It->Filename == Filename )
+				if ( It->GetFilename() == Filename )
 				{
 					It.RemoveCurrent();
 					++NumRemoved;
@@ -399,6 +513,7 @@ private:
 
 FORCEINLINE uint32 GetTypeHash(const UCookOnTheFlyServer::FFilePlatformRequest &Key)
 {
-	return GetTypeHash( Key.Filename ) ^ GetTypeHash( Key.Platformname );
+	//return GetTypeHash( Key.Filename ) ^ GetTypeHash( Key.Platformname );
+	return Key.GetCachedHash();
 }
 
