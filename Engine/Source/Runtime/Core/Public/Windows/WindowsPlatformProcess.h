@@ -8,7 +8,11 @@
 #pragma once
 
 /** Windows implementation of the process handle. */
+#if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
+struct FProcHandle : public TProcHandle<HANDLE>
+#else
 struct FProcHandle : public TProcHandle<HANDLE, nullptr>
+#endif
 {
 public:
 	/** Default constructor. */
