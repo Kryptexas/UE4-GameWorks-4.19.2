@@ -45,7 +45,9 @@ TSharedPtr< class IHeadMountedDisplay > FOculusRiftPlugin::CreateHeadMountedDisp
 
 void FOculusRiftPlugin::PreInit()
 {
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	FOculusRiftHMD::PreInit();
+#endif//OCULUS_RIFT_SUPPORTED_PLATFORMS
 }
 
 //---------------------------------------------------
