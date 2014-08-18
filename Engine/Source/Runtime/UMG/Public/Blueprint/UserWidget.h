@@ -154,72 +154,72 @@ public:
 
 	//TODO UMG HitTest
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	FSReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
 	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	//void OnKeyboardFocusChanging(FWeakWidgetPath PreviousFocusPath, FWidgetPath NewWidgetPath);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	FSReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	FSReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	FSReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	FSReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	//UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	//FCursorReply OnCursorQuery(FGeometry MyGeometry, const FPointerEvent& CursorEvent) const;
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	FSReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent, UDragDropOperation*& Operation);
 	
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
 	FSReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
 	FSReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
 	FSReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FSReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FSReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FSReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FSReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 	UFUNCTION(BlueprintCallable, Category="User Interface|Drag and Drop")
@@ -250,7 +250,7 @@ public:
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor);
+	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
@@ -271,15 +271,20 @@ public:
 #endif
 
 public:
+
+	/** Called when the visibility changes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
+	bool bSupportsKeyboardFocus;
+
 	/** Called when the visibility changes. */
 	UPROPERTY(BlueprintAssignable)
 	FOnVisibilityChangedEvent OnVisibilityChanged;
 
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY()
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY()
 	FSlateChildSize Size;
 
 	/**
@@ -294,7 +299,7 @@ public:
 	*
 	*  Note: FILL is NOT supported in absolute layout
 	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY()
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/**
@@ -310,7 +315,7 @@ public:
 	*
 	*  Note: FILL is NOT supported in absolute layout
 	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY()
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** The components contained in this user widget. */
@@ -328,6 +333,10 @@ public:
 	/** List of sequence players to cache and clean up when safe */
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
+
+	UPROPERTY(Transient)
+	UInputComponent* InputComponent;
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 

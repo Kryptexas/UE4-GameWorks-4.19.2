@@ -58,6 +58,16 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	return MaxLayer;
 }
 
+bool SObjectWidget::SupportsKeyboardFocus() const
+{
+	if ( WidgetObject && !WidgetObject->IsDesignTime() )
+	{
+		return WidgetObject->bSupportsKeyboardFocus;
+	}
+
+	return false;
+}
+
 FReply SObjectWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )

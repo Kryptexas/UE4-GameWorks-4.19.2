@@ -52,11 +52,17 @@ public:
 	/** Sets the currently selected set of widgets */
 	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
 
+	/** Sets the currently selected set of objects */
+	void SelectObjects(const TSet<UObject*>& Objects);
+
 	/** Removes removed widgets from the selection set. */
 	void CleanSelection();
 
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
+
+	/** @return The selected set of Objects */
+	const TSet< TWeakObjectPtr<UObject> >& GetSelectedObjects() const;
 
 	/** @return Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
@@ -135,6 +141,9 @@ private:
 
 	/** The currently selected preview widgets in the preview GUI */
 	TSet<FWidgetReference> SelectedWidgets;
+
+	/** The currently selected objects in the designer */
+	TSet< TWeakObjectPtr<UObject> > SelectedObjects;
 
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetPtr;

@@ -851,8 +851,8 @@ SDesignerView::DragHandle SDesignerView::HitTestDragHandles(const FGeometry& All
 		FVector2D WidgetLocalPosition = AllottedGeometry.AbsoluteToLocal(ArrangedWidget.Geometry.AbsolutePosition);
 		float X = WidgetLocalPosition.X;
 		float Y = WidgetLocalPosition.Y;
-		float Width = ArrangedWidget.Geometry.Size.X;
-		float Height = ArrangedWidget.Geometry.Size.Y;
+		float Width = ArrangedWidget.Geometry.Size.X * GetZoomAmount();
+		float Height = ArrangedWidget.Geometry.Size.Y * GetZoomAmount();
 
 		TArray<FVector2D> Handles;
 		Handles.Add(FVector2D(X, Y));					// Top - Left
@@ -923,7 +923,8 @@ void SDesignerView::UpdatePreviewWidget()
 			const bool bAbsoluteLayout = false;
 			const bool bModal = false;
 			const bool bShowCursor = false;
-			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor);
+			TSharedPtr<SWidget> OutUserWidget;
+			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor, OutUserWidget);
 			CurrentWidget->SlatePrepass();
 
 			if ( CurrentWidget != PreviewSlateWidget.Pin() )

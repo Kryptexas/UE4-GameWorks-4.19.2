@@ -86,7 +86,6 @@ UClass* UWidgetBlueprint::GetBlueprintClass() const
 	return UWidgetBlueprintGeneratedClass::StaticClass();
 }
 
-
 bool UWidgetBlueprint::AllowsDynamicBinding() const
 {
 	return true;

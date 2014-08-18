@@ -134,7 +134,24 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 	// to ensure values that are pending are committed on focus loss, and migrated properly
 	// to the old selected widgets.
 	SelectedWidgets.Empty();
+	SelectedObjects.Empty();
+
 	SelectedWidgets.Append(TempSelection);
+
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
+void FWidgetBlueprintEditor::SelectObjects(const TSet<UObject*>& Objects)
+{
+	OnSelectedWidgetsChanging.Broadcast();
+
+	SelectedWidgets.Empty();
+	SelectedObjects.Empty();
+
+	for ( UObject* Obj : Objects )
+	{
+		SelectedObjects.Add(Obj);
+	}
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -167,6 +184,11 @@ void FWidgetBlueprintEditor::CleanSelection()
 const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 {
 	return SelectedWidgets;
+}
+
+const TSet< TWeakObjectPtr<UObject> >& FWidgetBlueprintEditor::GetSelectedObjects() const
+{
+	return SelectedObjects;
 }
 
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)

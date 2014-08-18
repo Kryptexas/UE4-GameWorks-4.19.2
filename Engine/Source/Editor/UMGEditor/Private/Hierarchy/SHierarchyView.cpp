@@ -31,10 +31,10 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddRaw(this, &SHierarchyView::OnBlueprintChanged);
 
-	FilterHandler = MakeShareable(new TreeFilterHandler<UWidget*>());
+	FilterHandler = MakeShareable(new TreeFilterHandler< TSharedPtr<FHierarchyModel> >());
 	FilterHandler->SetFilter(SearchBoxWidgetFilter.Get());
 	FilterHandler->SetRootItems(&RootWidgets, &TreeRootWidgets);
-	FilterHandler->SetGetChildrenDelegate(TreeFilterHandler<UWidget*>::FOnGetChildren::CreateRaw(this, &SHierarchyView::WidgetHierarchy_OnGetChildren));
+	FilterHandler->SetGetChildrenDelegate(TreeFilterHandler< TSharedPtr<FHierarchyModel> >::FOnGetChildren::CreateRaw(this, &SHierarchyView::WidgetHierarchy_OnGetChildren));
 
 	ChildSlot
 	[
@@ -113,9 +113,9 @@ FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEve
 	return FReply::Unhandled();
 }
 
-void SHierarchyView::TransformWidgetToString(UWidget* Widget, OUT TArray< FString >& Array)
+void SHierarchyView::TransformWidgetToString(TSharedPtr<FHierarchyModel> Item, OUT TArray< FString >& Array)
 {
-	Array.Add( Widget->GetLabel() );
+	Array.Add( Item->GetText().ToString() );
 }
 
 void SHierarchyView::OnSearchChanged(const FText& InFilterText)
@@ -144,28 +144,43 @@ void SHierarchyView::OnEditorSelectionChanged()
 
 		if ( TemplateWidget )
 		{
-			WidgetTreeView->SetItemSelection(TemplateWidget, true);
+			TArray< UWidget* > Widgets;
+			Widgets.Add(TemplateWidget);
 
-			// Attempt to scroll the first widget we find into view.
-			if ( bFirst )
+			UWidget* Parent = TemplateWidget->GetParent();
+			while ( Parent != NULL )
 			{
-				bFirst = false;
-				WidgetTreeView->RequestScrollIntoView(TemplateWidget);
+				Widgets.Add(Parent);
+				Parent = Parent->GetParent();
 			}
 
-			ExpandPathToWidget(TemplateWidget);
-		}
-	}
-}
+			TSharedPtr<FHierarchyModel> CurrentItem = RootWidgets[0];
+			WidgetTreeView->SetItemExpansion(CurrentItem, true);
 
-void SHierarchyView::ExpandPathToWidget(UWidget* TemplateWidget)
-{
-	// Expand the path leading to this widget in the tree.
-	UWidget* Parent = TemplateWidget->GetParent();
-	while ( Parent != NULL )
-	{
-		WidgetTreeView->SetItemExpansion(Parent, true);
-		Parent = Parent->GetParent();
+			for ( int32 WidgetIndex = Widgets.Num() - 1; WidgetIndex >= 0; WidgetIndex-- )
+			{
+				UWidget* WidgetItem = Widgets[WidgetIndex];
+
+				TArray< TSharedPtr<FHierarchyModel> > Children;
+				CurrentItem->GatherChildren(Children);
+
+				for ( auto C : Children )
+				{
+					if ( C->IsModel(WidgetItem) )
+					{
+						WidgetTreeView->SetItemExpansion(C, true);
+						CurrentItem = C;
+
+						if ( WidgetIndex == 0 )
+						{
+							WidgetTreeView->SetItemSelection(CurrentItem, true, ESelectInfo::Direct);
+						}
+					}
+				}
+			}
+
+			WidgetTreeView->RequestScrollIntoView(CurrentItem);
+		}
 	}
 }
 
@@ -188,18 +203,6 @@ void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SHierarchyView::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
-{
-	TSet<FWidgetReference> SelectedWidgets;
-	for ( UWidget* TemplateWidget : TemplateWidgets )
-	{
-		FWidgetReference Selection = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), TemplateWidget);
-		SelectedWidgets.Add(Selection);
-	}
-
-	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
-}
-
 TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
@@ -209,39 +212,24 @@ TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 	return MenuBuilder.MakeWidget();
 }
 
-void SHierarchyView::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
+void SHierarchyView::WidgetHierarchy_OnGetChildren(TSharedPtr<FHierarchyModel> InParent, TArray< TSharedPtr<FHierarchyModel> >& OutChildren)
 {
 	VisibleItems.Add(InParent);
 
-	UPanelWidget* Widget = Cast<UPanelWidget>(InParent);
-	if ( Widget )
-	{
-		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
-		{
-			UWidget* Child = Widget->GetChildAt(i);
-			if ( Child )
-			{
-				OutChildren.Add(Child);
-			}
-		}
-	}
+	InParent->GatherChildren(OutChildren);
 }
 
-TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(TSharedPtr<FHierarchyModel> InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	FWidgetReference WidgetRef = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), InItem);
-
-	return SNew(SHierarchyViewItem, OwnerTable, BlueprintEditor.Pin(), WidgetRef)
+	return SNew(SHierarchyViewItem, OwnerTable, InItem)
 		.HighlightText(this, &SHierarchyView::GetSearchText);
 }
 
-void SHierarchyView::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)
+void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo)
 {
 	if ( SelectInfo != ESelectInfo::Direct )
 	{
-		TArray<UWidget*> Items;
-		Items.Add(SelectedItem);
-		ShowDetailsForObjects(Items);
+		SelectedItem->OnSelection();
 	}
 }
 
@@ -252,7 +240,7 @@ FReply SHierarchyView::HandleDeleteSelected()
 	// Remove the selected items from the filter cache
 	for (FWidgetReference& Item : SelectedWidgets)
 	{
-		FilterHandler->RemoveCachedItem(Item.GetTemplate());
+//		FilterHandler->RemoveCachedItem(Item.GetTemplate());
 	}
 
 	FWidgetBlueprintEditorUtils::DeleteWidgets(GetBlueprint(), SelectedWidgets);
@@ -265,20 +253,17 @@ void SHierarchyView::RefreshTree()
 	VisibleItems.Empty();
 
 	RootWidgets.Empty();
-	UWidgetBlueprint* Blueprint = GetBlueprint();
-	if (Blueprint->WidgetTree->RootWidget)
-	{
-		RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
-	}
+	RootWidgets.Add( MakeShareable(new FHierarchyRoot(BlueprintEditor.Pin())) );
+
 	FilterHandler->RefreshAndFilterTree();
 }
 
 void SHierarchyView::RebuildTreeView()
 {
-	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
+	SAssignNew(WidgetTreeView, STreeView< TSharedPtr<FHierarchyModel> >)
 		.ItemHeight(20.0f)
 		.SelectionMode(ESelectionMode::Single)
-		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler<UWidget*>::OnGetFilteredChildren)
+		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler< TSharedPtr<FHierarchyModel> >::OnGetFilteredChildren)
 		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
 		.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
@@ -297,9 +282,9 @@ void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 {
 	if ( !bRebuildTreeRequested )
 	{
-		for ( UWidget* Widget : VisibleItems )
+		for ( TSharedPtr<FHierarchyModel> Widget : VisibleItems )
 		{
-			if ( ReplacementMap.Contains(Widget) )
+			//if ( ReplacementMap.Contains(Widget) )
 			{
 				bRefreshRequested = true;
 				bRebuildTreeRequested = true;

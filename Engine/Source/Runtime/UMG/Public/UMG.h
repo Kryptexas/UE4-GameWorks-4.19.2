@@ -32,6 +32,8 @@
 
 #include "Widget.h"
 
+#include "NamedSlotInterface.h"
+
 #include "PanelWidget.h"
 #include "ContentWidget.h"
 

@@ -123,12 +123,25 @@ void SWidgetDetailsView::OnEditorSelectionChanging()
 
 void SWidgetDetailsView::OnEditorSelectionChanged()
 {
-	TSet< FWidgetReference > SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-
 	SelectedObjects.Empty();
-	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	PropertyView->SetObjects(SelectedObjects);
+
+	TSet< FWidgetReference > SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	if ( SelectedWidgets.Num() > 0 )
 	{
-		SelectedObjects.Add(WidgetRef.GetPreview());
+		for ( FWidgetReference& WidgetRef : SelectedWidgets )
+		{
+			SelectedObjects.Add(WidgetRef.GetPreview());
+		}
+	}
+
+	TSet< TWeakObjectPtr<UObject> > Selection = BlueprintEditor.Pin()->GetSelectedObjects();
+	for ( TWeakObjectPtr<UObject> Selected : Selection )
+	{
+		if ( UObject* S = Selected.Get() )
+		{
+			SelectedObjects.Add(S);
+		}
 	}
 
 	const bool bForceRefresh = false;
@@ -155,7 +168,11 @@ EVisibility SWidgetDetailsView::GetNameAreaVisibility() const
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
-		return EVisibility::Visible;
+		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
+		if ( Widget && !Widget->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return EVisibility::Visible;
+		}
 	}
 	
 	return EVisibility::Collapsed;

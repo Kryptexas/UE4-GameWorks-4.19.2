@@ -20,9 +20,10 @@ class SViewportWidgetHost : public SCompoundWidget
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, bool bInModal)
+	void Construct(const FArguments& InArgs, TSharedPtr<SWidget> InUserWidget, bool bInModal)
 	{
 		bModal = bInModal;
+		UserWidget = InUserWidget;
 
 		SetVisibility(bModal ? EVisibility::Visible : EVisibility::SelfHitTestInvisible);
 
@@ -40,9 +41,9 @@ class SViewportWidgetHost : public SCompoundWidget
 	FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override
 	{
 		// if we support focus, release the focus captures and lock the focus to this widget 
-		if ( SupportsKeyboardFocus() )
+		if ( bModal )
 		{
-			return FReply::Handled().ReleaseMouseCapture().ReleaseJoystickCapture();// .LockMouseToWidget(SharedThis(this));
+			return FReply::Handled();// .ReleaseMouseCapture().ReleaseJoystickCapture();// .LockMouseToWidget(SharedThis(this));
 		}
 		else
 		{
@@ -65,48 +66,92 @@ class SViewportWidgetHost : public SCompoundWidget
 
 	virtual FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyChar(MyGeometry, InCharacterEvent);
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
-			   
+
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+		FReply Result = UserWidget->OnKeyDown(MyGeometry, InKeyboardEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled();
+		}
+
+		return Result;
 	}
-		   
+	
 	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyUp(MyGeometry, InKeyboardEvent);
+		FReply Result = UserWidget->OnKeyUp(MyGeometry, InKeyboardEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled();
+		}
+
+		return Result;
 	}
-		   
+
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		return bModal ? FReply::Handled().CaptureMouse(AsShared()) : SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+		FReply Result = UserWidget->OnMouseButtonDown(MyGeometry, MouseEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled().CaptureMouse(AsShared());
+		}
+
+		return Result;
 	}
-		   
+
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		return bModal ? FReply::Handled().ReleaseMouseCapture() : SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
+		FReply Result = UserWidget->OnMouseButtonUp(MyGeometry, MouseEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+
+		return Result;
 	}
 
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseButtonDoubleClick(MyGeometry, MouseEvent);
+		FReply Result = UserWidget->OnMouseButtonDoubleClick(MyGeometry, MouseEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled();
+		}
+
+		return Result;
 	}
 
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseMove(MyGeometry, MouseEvent);
+		FReply Result = UserWidget->OnMouseMove(MyGeometry, MouseEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled();
+		}
+
+		return Result;
 	}
 
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
+		FReply Result = UserWidget->OnMouseWheel(MyGeometry, MouseEvent);
+		if ( bModal && !Result.IsEventHandled() )
+		{
+			return FReply::Handled();
+		}
+
+		return Result;
 	}
 
 	bool IsModal() const { return bModal; }
 
 protected:
 	bool bModal;
+
+	TSharedPtr<SWidget> UserWidget;
 };
 
 
@@ -123,11 +168,14 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 
 	bInitialized = false;
 	CachedWorld = NULL;
+
+	bSupportsKeyboardFocus = true;
 }
 
 void UUserWidget::Initialize()
 {
-	if ( !bInitialized )
+	// If it's not initialized initialize it, as long as it's not the CDO, we never initialize the CDO.
+	if ( !bInitialized && !HasAnyFlags(RF_ClassDefaultObject) )
 	{
 		bInitialized = true;
 
@@ -335,8 +383,10 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 	Tick( MyGeometry, InDeltaTime );
 }
 
-TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
+TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget)
 {
+	UserSlateWidget = TakeWidget();
+
 	if ( bAbsoluteLayout )
 	{
 		//BIND_UOBJECT_ATTRIBUTE
@@ -349,7 +399,7 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool b
 			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
 			.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 			[
-				TakeWidget()
+				UserSlateWidget.ToSharedRef()
 			];
 	}
 	else
@@ -361,7 +411,7 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool b
 			.HAlign(HorizontalAlignment)
 			.VAlign(VerticalAlignment)
 			[
-				TakeWidget()
+				UserSlateWidget.ToSharedRef()
 			];
 
 		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
@@ -384,9 +434,10 @@ void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCur
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
-		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor);
+		TSharedPtr<SWidget> OutUserSlateWidget;
+		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor, OutUserSlateWidget);
 
-		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, (bool)bModal)
+		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, OutUserSlateWidget, bModal)
 			[
 				RootWidget
 			];
@@ -407,8 +458,8 @@ void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCur
 				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
 				if ( GameViewportWidget.IsValid() )
 				{
-					GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(RootWidget);
-					FSlateApplication::Get().SetKeyboardFocus(RootWidget);
+					GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
+					FSlateApplication::Get().SetKeyboardFocus(OutUserSlateWidget);
 				}
 			}
 		}
@@ -419,16 +470,16 @@ void UUserWidget::RemoveFromViewport()
 {
 	if ( FullScreenWidget.IsValid() )
 	{
-		TSharedPtr<SViewportWidgetHost> RootWidget = FullScreenWidget.Pin();
+		TSharedPtr<SViewportWidgetHost> WidgetHost = FullScreenWidget.Pin();
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
 		if ( World && World->IsGameWorld() )
 		{
 			UGameViewportClient* Viewport = World->GetGameViewport();
-			Viewport->RemoveViewportWidgetContent(RootWidget.ToSharedRef());
+			Viewport->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
 
-			if ( RootWidget->IsModal() )
+			if ( WidgetHost->IsModal() )
 			{
 				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
 				if ( GameViewportWidget.IsValid() )
