@@ -57,6 +57,16 @@ struct ENGINE_API FLocalPlayerContext
 		return CastChecked<T>(GetPlayerState(), ECastCheckedType::NullAllowed);
 	}
 
+	/** Getter for this player's HUD */
+	class AHUD* GetHUD() const;
+
+	/** Templated Getter for the HUD */
+	template<class T>
+	FORCEINLINE T* GetHUD() const
+	{
+		return CastChecked<T>(GetHUD(), ECastCheckedType::NullAllowed);
+	}
+
 private:	
 
 	/* Set the local player. */

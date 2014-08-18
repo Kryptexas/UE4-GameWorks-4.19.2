@@ -110,6 +110,13 @@ APlayerState* FLocalPlayerContext::GetPlayerState() const
 	return PC ? PC->PlayerState : NULL;
 }
 
+AHUD* FLocalPlayerContext::GetHUD() const
+{
+	check(LocalPlayer.IsValid())
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->MyHUD : NULL;
+}
+
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
 {
 	LocalPlayer = InLocalPlayer;
