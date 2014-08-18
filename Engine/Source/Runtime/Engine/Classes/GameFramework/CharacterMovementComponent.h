@@ -519,8 +519,8 @@ public:
 	UPROPERTY()
 	uint32 bCheatFlying:1;
 
-	/** If true, try to crouch (or keep crouching). If false, stop crouching if crouched. */
-	UPROPERTY()
+	/** If true, try to crouch (or keep crouching) on next update. If false, try to stop crouching on next update. */
+	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadOnly)
 	uint32 bWantsToCrouch:1;
 
 	/**

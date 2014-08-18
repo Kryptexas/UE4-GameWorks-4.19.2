@@ -405,7 +405,10 @@ protected:
 
 public:
 
-	/** True if jump is actively providing a force; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime. */
+	/**
+	 * True if jump is actively providing a force; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime.
+	 * @see CharacterMovement->IsFalling
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual bool IsJumpProvidingForce() const;
 
@@ -477,11 +480,21 @@ public:
 		@PARAM Impact describes the blocking hit. */
 	virtual void MoveBlockedBy(const FHitResult& Impact) {};
 
-	/** Make the character start crouching.	 */
+	/**
+	 * Request the character to start crouching. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartCrouch
+	 * @see IsCrouched
+	 * @see CharacterMovement->WantsToCrouch
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(HidePin="bClientSimulation"))
 	virtual void Crouch(bool bClientSimulation = false);
 
-	/** Make the character stop crouching.	 */
+	/**
+	 * Request the character to stop crouching. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndCrouch
+	 * @see IsCrouched
+	 * @see CharacterMovement->WantsToCrouch
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(HidePin="bClientSimulation"))
 	virtual void UnCrouch(bool bClientSimulation = false);
 

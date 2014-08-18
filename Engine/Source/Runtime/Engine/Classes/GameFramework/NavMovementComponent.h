@@ -18,8 +18,8 @@ class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Properties that define how navigation can interact with this component. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent)
+	/** Properties that define how the component can move. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent, meta=(DisplayName="Movement Capabilities", Keywords="Nav Agent"))
 	FNavAgentProperties NavAgentProps;
 
 protected:
