@@ -300,4 +300,7 @@ private:
 
 	/** An array of frame rate samples used by the performance survey */
 	TArray<float> FrameRateSamples;
+
+	/** handler to notify about navigation building process */
+	TSharedPtr<FTickableEditorObject> NavigationBuildingNotificationHandler;
 };

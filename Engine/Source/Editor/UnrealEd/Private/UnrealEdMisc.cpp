@@ -33,6 +33,7 @@
 #include "Slate.h"
 #include "DesktopPlatformModule.h"
 #include "ShaderCompiler.h"
+#include "NavigationBuildingNotification.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -50,7 +51,8 @@ FUnrealEdMisc::FUnrealEdMisc() :
 	bInitialized( false ),
 	bSaveLayoutOnClose( true ),
 	bDeletePreferences( false ),
-	bIsAssetAnalyticsPending( false )
+	bIsAssetAnalyticsPending( false ),
+	NavigationBuildingNotificationHandler(NULL)
 {
 }
 
@@ -325,6 +327,8 @@ void FUnrealEdMisc::OnInit()
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
 	GEditor->GetTimerManager()->SetTimer( Delegate, Seconds, true );
 
+	// add handler to notify about navmesh building process
+	NavigationBuildingNotificationHandler = MakeShareable(new FNavigationBuildingNotificationImpl());
 }
 
 void FUnrealEdMisc::InitEngineAnalytics()
@@ -508,6 +512,11 @@ void FUnrealEdMisc::OnExit()
 	if (bIsSurveyingPerformance)
 	{
 		CancelPerformanceSurvey();
+	}
+
+	if (NavigationBuildingNotificationHandler.IsValid())
+	{
+		NavigationBuildingNotificationHandler = NULL;
 	}
 
 	// Report session maximum window and tab counts to engine analytics, if available
