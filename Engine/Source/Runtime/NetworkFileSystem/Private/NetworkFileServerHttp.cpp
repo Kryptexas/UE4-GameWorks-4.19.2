@@ -70,7 +70,7 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 
 	// spin up the worker thread, this will block till Init has executed on the freshly spinned up thread, Ready will have appropriate value 
 	// set by the end of this function. 
-	WorkerThread = FRunnableThread::Create(this,TEXT("FNetworkFileServer"), 8 * 1024, TPri_AboveNormal);
+	WorkerThread = FRunnableThread::Create(this,TEXT("FNetworkFileServerHttp"), 8 * 1024, TPri_AboveNormal);
 }
 
 
