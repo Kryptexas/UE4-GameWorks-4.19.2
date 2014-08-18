@@ -724,7 +724,7 @@ static uint32 TonemapperGenerateBitmaskMobile(const FRenderingCompositePassConte
 	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
+	if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false)
 	{
 		Bitmask += TonemapperMsaa;
 	}
