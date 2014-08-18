@@ -110,7 +110,7 @@ public:
 	UBrainComponent* BrainComponent;
 
 	UPROPERTY()
-	TSubobjectPtr<UAIPerceptionComponent> PerceptionComponent;
+	UAIPerceptionComponent* PerceptionComponent;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void OnPossess(APawn* PossessedPawn);
