@@ -3220,8 +3220,8 @@ bool SAssetView::AssetVerifyRenameCommit(const TSharedPtr<FAssetViewItem>& Item,
 	else
 	{
 		const TSharedPtr<FAssetViewFolder>& ItemAsFolder = StaticCastSharedPtr<FAssetViewFolder>(Item);
-		const FString NewFolderPath = FPaths::GetPath(ItemAsFolder->FolderPath) / NewNameString;
-		return ContentBrowserUtils::IsValidFolderPathForCreate(NewFolderPath, OutErrorMessage);
+		const FString FolderPath = FPaths::GetPath(ItemAsFolder->FolderPath);
+		return ContentBrowserUtils::IsValidFolderPathForCreate(FolderPath, NewNameString, OutErrorMessage);
 	}
 
 	return true;

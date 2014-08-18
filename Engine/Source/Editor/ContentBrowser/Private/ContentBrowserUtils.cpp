@@ -1362,23 +1362,23 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 	return true;
 }
 
-bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& FolderPath, FText& OutErrorMessage)
+bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath, const FString& NewFolderName, FText& OutErrorMessage)
 {
-	const FString FolderName = FPackageName::ObjectPathToObjectName(FolderPath);
-
-	if (!ContentBrowserUtils::IsValidFolderName(FolderName, OutErrorMessage))
+	if (!ContentBrowserUtils::IsValidFolderName(NewFolderName, OutErrorMessage))
 	{
 		return false;
 	}
 
-	if (ContentBrowserUtils::DoesFolderExist(FolderPath))
+	const FString NewFolderPath = InFolderPath / NewFolderName;
+
+	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
 	{
 		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
 		return false;
 	}
 
 	// Make sure we are not creating a folder path that is too long
-	if (FolderPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH)
+	if (NewFolderPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH)
 	{
 		// The full path for the folder is too long
 		OutErrorMessage = FText::Format(LOCTEXT("RenameFolderPathTooLong",
