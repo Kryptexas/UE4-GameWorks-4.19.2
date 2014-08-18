@@ -77,13 +77,6 @@ void USkeleton::PostLoad()
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
-
-#if WITH_EDITOR
-	if ( GIsEditor )
-	{
-		CollectAnimationNotifies();
-	}
-#endif
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)

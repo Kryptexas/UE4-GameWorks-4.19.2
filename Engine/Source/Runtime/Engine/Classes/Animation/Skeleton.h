@@ -278,7 +278,7 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	// @todo document
-	void CollectAnimationNotifies();
+	ENGINE_API void CollectAnimationNotifies();
 
 	// @todo document
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);

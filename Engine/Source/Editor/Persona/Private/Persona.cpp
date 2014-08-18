@@ -612,6 +612,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	ObjectsBeingEdited.Add(TargetSkeleton);
 	check(TargetSkeleton);
 
+	TargetSkeleton->CollectAnimationNotifies();
+
 	TargetSkeleton->RegisterOnSkeletonHierarchyChanged( USkeleton::FOnSkeletonHierarchyChanged::CreateSP( this, &FPersona::OnSkeletonHierarchyChanged ) );
 
 	// We could modify the skeleton within Persona (add/remove sockets), so we need to enable undo/redo on it
