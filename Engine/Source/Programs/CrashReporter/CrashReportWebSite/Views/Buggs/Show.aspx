@@ -107,7 +107,7 @@
 			<dd style='width:8em'><%=Model.Bugg.TimeOfFirstCrash%></dd>
 
 		<dt>Crash type</dt> 
-			<dd class='even' style='width:8em'><%=Model.Bugg.CrashTypeAsString%></dd>
+			<dd class='even' style='width:8em'><%=Model.Bugg.GetCrashTypeAsString()%></dd>
 
 		<dt>Number of Users</dt>
 			<dd class='even'><%=Html.DisplayFor( m => Model.Bugg.NumberOfUsers )%></dd>

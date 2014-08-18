@@ -165,7 +165,7 @@
 				<%=Model.Crash.GetTimeOfCrash()[1] %>
 
 			<dt>Crash type</dt> 
-				<dd class='even' style='width:8em'><%=Model.Crash.CrashTypeAsString%></dd>
+				<dd class='even' style='width:8em'><%=Model.Crash.GetCrashTypeAsString()%></dd>
 
 			<dt>User</dt>
 				<dd><%=Html.DisplayFor(m => Model.Crash.User.UserName) %></dd>

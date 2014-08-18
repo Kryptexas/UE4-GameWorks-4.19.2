@@ -60,24 +60,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary></summary>
-		public string CrashTypeAsString
+		public string GetCrashTypeAsString()
 		{
-			get
+			if( CrashType == 1 )
 			{
-				if( CrashType == 1 )
-				{
-					return "Crash";
-				}
-				else if( CrashType == 2 )
-				{
-					return "Assert";
-				}
-				else if( CrashType == 3 )
-				{
-					return "Ensure";
-				}
-				return "Unknown";
+				return "Crash";
 			}
+			else if( CrashType == 2 )
+			{
+				return "Assert";
+			}
+			else if( CrashType == 3 )
+			{
+				return "Ensure";
+			}
+			return "Unknown";
 		}
 
 		/// <summary>
@@ -219,7 +216,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return a display friendly version of the time of crash.
 		/// </summary>
-		/// <returns>A pair of strings represening the date and time of the crash.</returns>
+		/// <returns>A pair of strings representing the date and time of the crash.</returns>
 		public string[] GetTimeOfCrash()
 		{
 			string[] Results = new string[2];
@@ -234,24 +231,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary></summary>
-		public string CrashTypeAsString
+		public string GetCrashTypeAsString()
 		{
-			get
+			if( CrashType == 1 )
 			{
-				if( CrashType == 1 )
-				{
-					return "Crash";
-				}
-				else if( CrashType == 2 )
-				{
-					return "Assert";
-				}
-				else if( CrashType == 3 )
-				{
-					return "Ensure";
-				}
-				return "Unknown";
+				return "Crash";
 			}
+			else if( CrashType == 2 )
+			{
+				return "Assert";
+			}
+			else if( CrashType == 3 )
+			{
+				return "Ensure";
+			}
+			return "Unknown";
 		}
 
 		/// <summary>
