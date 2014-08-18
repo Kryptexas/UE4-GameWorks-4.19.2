@@ -119,6 +119,10 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	else if (SpawnedNode != nullptr)
 	{
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(SpawnedNode);
+		if (FromPin != nullptr)
+		{
+			SpawnedNode->AutowireNewNode(FromPin);
+		}
 	}
 	
 	return SpawnedNode;

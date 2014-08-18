@@ -4,9 +4,7 @@
 #include "BlueprintFunctionNodeSpawner.h"
 #include "EdGraphSchema_K2.h"	// for FBlueprintMetadata
 
-/*******************************************************************************
- * UBlueprintFunctionNodeSpawner
- ******************************************************************************/
+#define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
 //------------------------------------------------------------------------------
 // Evolved from FK2ActionMenuBuilder::AddSpawnInfoForFunction()
@@ -19,31 +17,47 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(UFunction c
 	bool const bIsCommutativeAssociativeBinaryOp = Function->HasMetaData(FBlueprintMetadata::MD_CommutativeAssociativeBinaryOperator);
 	bool const bIsMaterialParamCollectionFunc = Function->HasMetaData(FBlueprintMetadata::MD_MaterialParameterCollectionFunction);
 
-	if (Outer == nullptr)
-	{
-		Outer = GetTransientPackage();
-	}
-	UBlueprintFunctionNodeSpawner* NodeSpawner = NewObject<UBlueprintFunctionNodeSpawner>(Outer);
-	NodeSpawner->Function  = Function;
-
+	TSubclassOf<UK2Node_CallFunction> NodeClass;
 	if (bIsCommutativeAssociativeBinaryOp && bIsPure)
 	{
-		NodeSpawner->NodeClass = UK2Node_CommutativeAssociativeBinaryOperator::StaticClass();
+		NodeClass = UK2Node_CommutativeAssociativeBinaryOperator::StaticClass();
 	}
 	else if (bIsMaterialParamCollectionFunc)
 	{
-		NodeSpawner->NodeClass = UK2Node_CallMaterialParameterCollectionFunction::StaticClass();
+		NodeClass = UK2Node_CallMaterialParameterCollectionFunction::StaticClass();
 	}
 	// @TODO:
 	//   else if CallOnMember => UK2Node_CallFunctionOnMember
 	//   else if bIsParentContext => UK2Node_CallParentFunction
 	else if (bHasArrayPointerParms)
 	{
-		NodeSpawner->NodeClass = UK2Node_CallArrayFunction::StaticClass();
+		NodeClass = UK2Node_CallArrayFunction::StaticClass();
 	}
 	else
 	{
+		NodeClass = UK2Node_CallFunction::StaticClass();
+	}
+
+	return Create(NodeClass, Function, Outer);
+}
+
+//------------------------------------------------------------------------------
+UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf<UK2Node_CallFunction> NodeClass, UFunction const* const Function, UObject* Outer/* = nullptr*/)
+{
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+	UBlueprintFunctionNodeSpawner* NodeSpawner = NewObject<UBlueprintFunctionNodeSpawner>(Outer);
+	NodeSpawner->Function = Function;
+
+	if (NodeClass == nullptr)
+	{
 		NodeSpawner->NodeClass = UK2Node_CallFunction::StaticClass();
+	}
+	else
+	{
+		NodeSpawner->NodeClass = NodeClass;
 	}
 
 	return NodeSpawner;
@@ -108,3 +122,5 @@ UFunction const* UBlueprintFunctionNodeSpawner::GetFunction() const
 {
 	return Function;
 }
+
+#undef LOCTEXT_NAMESPACE

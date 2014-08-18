@@ -195,6 +195,15 @@ namespace BlueprintActionFilterImpl
 	static bool IsExternalField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsUneededMessageNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
 	 * Rejection test that checks to see if the node-spawner is associated with 
 	 * a field that is hidden from the specified blueprint (via metadata).
 	 * 
@@ -626,13 +635,15 @@ static bool BlueprintActionFilterImpl::IsExternalField(FBlueprintActionFilter co
 	if (UField const* ClassField = GetAssociatedField(BlueprintAction))
 	{
 		UClass* FieldClass = Cast<UClass>(ClassField->GetOuter());
+		bool const bIsInterfaceMethod = FieldClass->IsChildOf<UInterface>();
+
 		// global (and static library) fields can stay (unless explicitly
 		// excluded... save that for a separate test)
 		if ((FieldClass != nullptr) && !IsGlobal(ClassField))
 		{
 			for (UClass const* Class : Filter.OwnerClasses)
 			{
-				bool const bIsInternalFunc = Class->IsChildOf(FieldClass);	
+				bool const bIsInternalFunc = Class->IsChildOf(FieldClass) || (bIsInterfaceMethod && Class->ImplementsInterface(FieldClass));
 				if (!bIsInternalFunc)
 				{
 					bIsFilteredOut = true;
@@ -642,6 +653,30 @@ static bool BlueprintActionFilterImpl::IsExternalField(FBlueprintActionFilter co
 		}
 	}
 	
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsUneededMessageNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+	if (BlueprintAction->NodeClass->IsChildOf<UK2Node_Message>())
+	{
+		UFunction const* const InterfaceFunc = GetAssociatedFunction(BlueprintAction);
+		checkSlow(InterfaceFunc != nullptr);
+		checkSlow(InterfaceFunc->GetOuterUClass()->IsChildOf<UInterface>());
+
+		bIsFilteredOut = (Filter.Context.Pins.Num() > 0);
+		for (UEdGraphPin const* ContextPin : Filter.Context.Pins)
+		{
+			if (!IsPinCompatibleWithTargetSelf(ContextPin, InterfaceFunc, BlueprintAction))
+			{
+				bIsFilteredOut = false;
+				break;
+			}
+		}
+
+	}
 	return bIsFilteredOut;
 }
 
@@ -865,11 +900,23 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 	if ((Pin->Direction == EGPD_Output) && (OwnerClass != nullptr))
 	{
 		FEdGraphPinType const& PinType = Pin->PinType;
-		if (PinType.PinSubCategoryObject.IsValid())
+		UEdGraphSchema const* const PinSchema = Pin->GetSchema();
+		checkSlow(PinSchema != nullptr);
+
+		UClass const* PinObjClass = nullptr;
+		if (PinSchema->IsSelfPin(*Pin))
 		{
-			// if PC_Object/PC_Interface
-			UClass const* const PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
-			if ((PinObjClass != nullptr) && PinObjClass->IsChildOf(OwnerClass))
+			UBlueprint const* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Pin->GetOwningNode());
+			PinObjClass = GetBlueprintClass(Blueprint);
+		}
+		else if (PinType.PinSubCategoryObject.IsValid()) // if PC_Object/PC_Interface
+		{
+			PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
+		}
+		
+		if (PinObjClass != nullptr)
+		{
+			if (PinObjClass->IsChildOf(OwnerClass) || PinObjClass->ImplementsInterface(OwnerClass))
 			{
 				bIsCompatible = true;
 				if (PinType.bIsArray)
@@ -878,7 +925,8 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 					{
 						// @TODO: duplicated from UK2Node_CallFunction::AllowMultipleSelfs()... 
 						//        move into a shared resource (don't want to call 
-						//        AllowMultipleSelfs()  to save on perf)
+						//        GetTemplateNode() to get at AllowMultipleSelfs() 
+						//        for perf reasons)
 						bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
 						bool const bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) == false);
 						bool const bIsLatent = (Function->HasMetaData(FBlueprintMetadata::MD_Latent) != false);
@@ -1056,7 +1104,6 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissingMatchingPinParam));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissmatchedPropertyType));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFunctionMissingPinParam));
-
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
 	
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));	
@@ -1172,5 +1219,6 @@ bool FBlueprintActionFilter::IsFilteredByThis(UBlueprintNodeSpawner const* Bluep
 			break;
 		}
 	}
+
 	return bIsFiltered;
 }

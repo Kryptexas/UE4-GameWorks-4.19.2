@@ -478,6 +478,10 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 		
 		if (UEdGraphSchema_K2::CanUserKismetCallFunction(Function))
 		{
+			// @TODO: if this is a Blueprint, and this function is from a 
+			//        Blueprint "implemented interface", then we don't need to 
+			//        include it (the function is accounted for in from the 
+			//        interface class).
 			if (UBlueprintFunctionNodeSpawner* NodeSpawner = UBlueprintFunctionNodeSpawner::Create(Function))
 			{
 				ActionListOut.Add(NodeSpawner);
