@@ -2023,7 +2023,7 @@ FVector2D SMultiLineEditableText::ComputeDesiredSize() const
 	// The layouts current margin size. We should not report a size smaller then the margins.
 	const FMargin Margin = TextLayout->GetMargin();
 	const FVector2D TextLayoutSize = TextLayout->GetSize();
-	const float WrappingWidth = TextLayout->GetWrappingWidth();
+	const float WrappingWidth = WrapTextAt.Get();
 
 	// If a wrapping width has been provided that should be reported as the desired width.
 	float DesiredWidth = WrappingWidth > 0 ? WrappingWidth : TextLayoutSize.X;
