@@ -53,6 +53,9 @@ namespace UnrealBuildTool
 				Arguments.Append(" /D_MSC_FULL_VER=" + VersionString + "00000");
 			}
 
+			// @todo clang: Clang on Windows doesn't respect "#pragma warning (error: ####)", and we're not passing "/WX", so warnings are not
+			// treated as errors when compiling on Windows using Clang right now.
+
 
 			if( BuildConfiguration.bEnableCodeAnalysis )
 			{
@@ -75,8 +78,6 @@ namespace UnrealBuildTool
 			// Enable intrinsic functions.
 			Arguments.Append(" /Oi");
 
-			// Enable for static code analysis (where supported). Not treating analysis warnings as errors.
-			// Arguments.Append(" /analyze:WX-");
 			
 			if( WindowsPlatform.bCompileWithClang )
 			{

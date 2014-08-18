@@ -257,7 +257,8 @@ DWORD FWindowsNativeFeedbackContext::SlowTaskThreadProc(void* ThreadParam)
 	WindowRect.bottom = WindowRect.top + Params.StandardH;
 	AdjustWindowRectEx(&WindowRect, WindowStyle, 0, 0);
 
-	HWND hWnd = CreateWindow((TCHAR*)WndClassAtom, TEXT("Unreal Engine"), WindowStyle, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, WindowRect.bottom - WindowRect.top, NULL, NULL, hInstance, NULL);
+	const TCHAR* WindowClassName = MAKEINTATOM( WndClassAtom );
+	HWND hWnd = CreateWindow(WindowClassName, TEXT("Unreal Engine"), WindowStyle, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, WindowRect.bottom - WindowRect.top, NULL, NULL, hInstance, NULL);
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)&Params);
 	SendMessage(hWnd, WM_SETFONT, (WPARAM)hFont, 0);
 
@@ -325,7 +326,7 @@ DWORD FWindowsNativeFeedbackContext::SlowTaskThreadProc(void* ThreadParam)
 	DestroyWindow(hWnd);
 	DeleteObject(hLogFont);
 	DeleteObject(hFont);
-	UnregisterClass((TCHAR*)WndClassAtom, hInstance);
+	UnregisterClass(WindowClassName, hInstance);
 
 	return 0;
 }
