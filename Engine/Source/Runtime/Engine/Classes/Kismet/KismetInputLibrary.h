@@ -16,14 +16,6 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 	static void CalibrateTilt();
 
 	/**
-	 * Returns the key for this event.
-	 *
-	 * @return  Key name
-	 */
-	UFUNCTION(BlueprintCallable, Category="Keyboard")
-	static FKey GetKey(const FKeyboardEvent& Input);
-
-	/**
 	 * Test if the input key are equal (A == B)
 	 * @param A - The key to compare against
 	 * @param B - The key to compare
@@ -135,4 +127,77 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "IsRightCommandDown" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRightCommandDown(const FInputEvent& Input);
+
+
+	/**
+	 * Returns the key for this event.
+	 *
+	 * @return  Key name
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|KeyboardEvent")
+	static FKey GetKey(const FKeyboardEvent& Input);
+
+
+	/** @return The position of the cursor in screen space */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetScreenSpacePosition" ), Category="Utilities|PointerEvent")
+	static FVector2D PointerEvent_GetScreenSpacePosition(const FPointerEvent& Input);
+
+	/** @return The position of the cursor in screen space last time we handled an input event */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetLastScreenSpacePosition" ), Category="Utilities|PointerEvent")
+	static FVector2D PointerEvent_GetLastScreenSpacePosition(const FPointerEvent& Input);
+
+	/** @return the distance the mouse traveled since the last event was handled. */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetCursorDelta" ), Category="Utilities|PointerEvent")
+	static FVector2D PointerEvent_GetCursorDelta(const FPointerEvent& Input);
+
+	/** Mouse buttons that are currently pressed */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "IsMouseButtonDown" ), Category="Utilities|PointerEvent")
+		static bool PointerEvent_IsMouseButtonDown(const FPointerEvent& Input, FKey MouseButton);
+
+	/** Mouse button that caused this event to be raised (possibly EB_None) */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetEffectingButton" ), Category="Utilities|PointerEvent")
+	static FKey PointerEvent_GetEffectingButton(const FPointerEvent& Input);
+
+	/** How much did the mouse wheel turn since the last mouse event */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetWheelDelta" ), Category="Utilities|PointerEvent")
+	static float PointerEvent_GetWheelDelta(const FPointerEvent& Input);
+
+	/** @return The index of the user that caused the event */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetUserIndex" ), Category="Utilities|PointerEvent")
+	static int32 PointerEvent_GetUserIndex(const FPointerEvent& Input);
+
+	/** @return The unique identifier of the pointer (e.g., finger index) */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetPointerIndex" ), Category="Utilities|PointerEvent")
+	static uint32 PointerEvent_GetPointerIndex(const FPointerEvent& Input);
+
+	/** @return The index of the touch pad that generated this event (for platforms with multiple touch pads per user) */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetTouchpadIndex" ), Category="Utilities|PointerEvent")
+	static uint32 PointerEvent_GetTouchpadIndex(const FPointerEvent& Input);
+
+	/** @return Is this event a result from a touch (as opposed to a mouse) */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "IsTouchEvent" ), Category="Utilities|PointerEvent")
+	static uint32 PointerEvent_IsTouchEvent(const FPointerEvent& Input);
+
+	//TODO UMG Support GetGestureType()
+
+	///** @return The type of touch gesture */
+	//UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetGestureType" ), Category="Utilities|PointerEvent")
+	//static EGestureEvent::Type PointerEvent_GetGestureType(const FPointerEvent& Input);
+
+	/** @return The change in gesture value since the last gesture event of the same type. */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetGestureDelta" ), Category="Utilities|PointerEvent")
+	static FVector2D PointerEvent_GetGestureDelta(const FPointerEvent& Input);
+
+
+	/** @return The controller button that caused this event */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetEffectingButton" ), Category="Utilities|ControllerEvent")
+	static FKey ControllerEvent_GetEffectingButton(const FControllerEvent& Input);
+
+	/** @return The index of the user that caused the event */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetUserIndex" ), Category="Utilities|ControllerEvent")
+	static uint32 ControllerEvent_GetUserIndex(const FControllerEvent& Input);
+
+	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
+	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetAnalogValue" ), Category="Utilities|ControllerEvent")
+	static float ControllerEvent_GetAnalogValue(const FControllerEvent& Input);
 };

@@ -71,79 +71,37 @@ class SViewportWidgetHost : public SCompoundWidget
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
-		FReply Result = UserWidget->OnKeyDown(MyGeometry, InKeyboardEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
 	
 	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
-		FReply Result = UserWidget->OnKeyUp(MyGeometry, InKeyboardEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		FReply Result = UserWidget->OnMouseButtonDown(MyGeometry, MouseEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled().CaptureMouse(AsShared());
-		}
-
-		return Result;
+		return bModal ? FReply::Handled().CaptureMouse(AsShared()) : FReply::Unhandled();
 	}
 
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		FReply Result = UserWidget->OnMouseButtonUp(MyGeometry, MouseEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled().ReleaseMouseCapture();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled().ReleaseMouseCapture() : FReply::Unhandled();
 	}
 
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		FReply Result = UserWidget->OnMouseButtonDoubleClick(MyGeometry, MouseEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
 
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		FReply Result = UserWidget->OnMouseMove(MyGeometry, MouseEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
 
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		FReply Result = UserWidget->OnMouseWheel(MyGeometry, MouseEvent);
-		if ( bModal && !Result.IsEventHandled() )
-		{
-			return FReply::Handled();
-		}
-
-		return Result;
+		return bModal ? FReply::Handled() : FReply::Unhandled();
 	}
 
 	bool IsModal() const { return bModal; }

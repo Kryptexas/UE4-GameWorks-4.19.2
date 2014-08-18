@@ -21,10 +21,6 @@ void UKismetInputLibrary::CalibrateTilt()
 	GEngine->Exec(NULL, TEXT("CALIBRATEMOTION"));
 }
 
-FKey UKismetInputLibrary::GetKey(const FKeyboardEvent& Input)
-{
-	return Input.GetKey();
-}
 
 bool UKismetInputLibrary::EqualEqual_KeyKey(FKey A, FKey B)
 {
@@ -94,6 +90,89 @@ bool UKismetInputLibrary::InputEvent_IsLeftCommandDown(const FInputEvent& Input)
 bool UKismetInputLibrary::InputEvent_IsRightCommandDown(const FInputEvent& Input)
 {
 	return Input.IsRightCommandDown();
+}
+
+
+FKey UKismetInputLibrary::GetKey(const FKeyboardEvent& Input)
+{
+	return Input.GetKey();
+}
+
+
+FVector2D UKismetInputLibrary::PointerEvent_GetScreenSpacePosition(const FPointerEvent& Input)
+{
+	return Input.GetScreenSpacePosition();
+}
+
+FVector2D UKismetInputLibrary::PointerEvent_GetLastScreenSpacePosition(const FPointerEvent& Input)
+{
+	return Input.GetLastScreenSpacePosition();
+}
+
+FVector2D UKismetInputLibrary::PointerEvent_GetCursorDelta(const FPointerEvent& Input)
+{
+	return Input.GetCursorDelta();
+}
+
+bool UKismetInputLibrary::PointerEvent_IsMouseButtonDown(const FPointerEvent& Input, FKey MouseButton)
+{
+	return Input.IsMouseButtonDown(MouseButton);
+}
+
+FKey UKismetInputLibrary::PointerEvent_GetEffectingButton(const FPointerEvent& Input)
+{
+	return Input.GetEffectingButton();
+}
+
+float UKismetInputLibrary::PointerEvent_GetWheelDelta(const FPointerEvent& Input)
+{
+	return Input.GetWheelDelta();
+}
+
+int32 UKismetInputLibrary::PointerEvent_GetUserIndex(const FPointerEvent& Input)
+{
+	return Input.GetUserIndex();
+}
+
+uint32 UKismetInputLibrary::PointerEvent_GetPointerIndex(const FPointerEvent& Input)
+{
+	return Input.GetPointerIndex();
+}
+
+uint32 UKismetInputLibrary::PointerEvent_GetTouchpadIndex(const FPointerEvent& Input)
+{
+	return Input.GetTouchpadIndex();
+}
+
+uint32 UKismetInputLibrary::PointerEvent_IsTouchEvent(const FPointerEvent& Input)
+{
+	return Input.IsTouchEvent();
+}
+
+//EGestureEvent::Type UKismetInputLibrary::PointerEvent_GetGestureType(const FPointerEvent& Input)
+//{
+//	return Input.GetGestureType();
+//}
+
+FVector2D UKismetInputLibrary::PointerEvent_GetGestureDelta(const FPointerEvent& Input)
+{
+	return Input.GetGestureDelta();
+}
+
+
+FKey UKismetInputLibrary::ControllerEvent_GetEffectingButton(const FControllerEvent& Input)
+{
+	return Input.GetEffectingButton();
+}
+
+uint32 UKismetInputLibrary::ControllerEvent_GetUserIndex(const FControllerEvent& Input)
+{
+	return Input.GetUserIndex();
+}
+
+float UKismetInputLibrary::ControllerEvent_GetAnalogValue(const FControllerEvent& Input)
+{
+	return Input.GetAnalogValue();
 }
 
 #undef LOCTEXT_NAMESPACE
