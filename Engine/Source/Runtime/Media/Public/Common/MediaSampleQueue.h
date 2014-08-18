@@ -19,7 +19,10 @@ class FMediaSampleQueue
 {
 public:
 
-	virtual ~FMediaSampleQueue() {}
+	/** Virtual destructor. */
+	virtual ~FMediaSampleQueue( ) { }
+
+public:
 
 	// IMediaSink interface
 
