@@ -17,7 +17,7 @@ public:
 
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
-		if (FParse::Command(&Cmd, TEXT("MOVIE")))
+		if (FParse::Command(&Cmd, TEXT("MEDIA")))
 		{
 			FString MovieCmd = FParse::Token(Cmd, 0);
 
@@ -35,14 +35,6 @@ public:
 				{
 					UMediaAsset* MediaAsset = *It;
 					MediaAsset->Pause();
-				}
-			}
-			else if (MovieCmd.Contains(TEXT("STOP")))
-			{
-				for (TObjectIterator<UMediaAsset> It; It; ++It)
-				{
-					UMediaAsset* MediaAsset = *It;
-					MediaAsset->Stop();
 				}
 			}
 

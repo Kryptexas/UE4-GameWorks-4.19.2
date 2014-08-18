@@ -48,7 +48,7 @@ public:
 	 * Playback can be paused if the media supports pausing and if it is currently playing.
 	 *
 	 * @return true if pausing playback can be paused, false otherwise.
-	 * @see CanPlay, CanStop, Pause
+	 * @see CanPlay, Pause
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool CanPause( ) const;
@@ -57,19 +57,10 @@ public:
 	 * Checks whether media playback can be started right now.
 	 *
 	 * @return true if playback can be started, false otherwise.
-	 * @see CanPause, CanStop, Play
+	 * @see CanPause, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool CanPlay( ) const;
-
-	/**
-	 * Checks whether playback can be stopped.
-	 *
-	 * @return true if stopping is supported, false otherwise.
-	 * @see CanPause, CanPlay, Stop
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
-	bool CanStop( ) const;
 
 	/**
 	 * Gets the media's duration.
@@ -137,7 +128,7 @@ public:
 	 * Checks whether playback has stopped.
 	 *
 	 * @return true if playback has stopped, false otherwise.
-	 * @see CanStop, IsPaused, IsPlaying, Stop
+	 * @see IsPaused, IsPlaying, Stop
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool IsStopped( ) const;
@@ -208,14 +199,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool SetRate( float InRate );
-
-	/**
-	 * Stops movie playback.
-	 *
-	 * @see CanStop, IsStopped, Pause, Play, Seek
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
-	void Stop( );
 
 	/**
 	 * Checks whether the specified playback rate is supported.

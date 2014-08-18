@@ -210,11 +210,6 @@ void FMediaAssetEditorToolkit::BindCommands( )
 		Commands.RewindMedia,
 		FExecuteAction::CreateSP(this, &FMediaAssetEditorToolkit::HandleRewindMediaActionExecute),
 		FCanExecuteAction::CreateSP(this, &FMediaAssetEditorToolkit::HandleRewindMediaActionCanExecute));
-
-	ToolkitCommands->MapAction(
-		Commands.StopMedia,
-		FExecuteAction::CreateSP(this, &FMediaAssetEditorToolkit::HandleStopMediaActionExecute),
-		FCanExecuteAction::CreateSP(this, &FMediaAssetEditorToolkit::HandleStopMediaActionCanExecute));
 }
 
 
@@ -231,7 +226,6 @@ void FMediaAssetEditorToolkit::ExtendToolBar( )
 				ToolbarBuilder.AddToolBarButton(FMediaAssetEditorCommands::Get().ReverseMedia);
 				ToolbarBuilder.AddToolBarButton(FMediaAssetEditorCommands::Get().PlayMedia);
 				ToolbarBuilder.AddToolBarButton(FMediaAssetEditorCommands::Get().PauseMedia);
-				ToolbarBuilder.AddToolBarButton(FMediaAssetEditorCommands::Get().StopMedia);
 				ToolbarBuilder.AddToolBarButton(FMediaAssetEditorCommands::Get().ForwardMedia);
 			}
 			ToolbarBuilder.EndSection();
@@ -339,19 +333,6 @@ bool FMediaAssetEditorToolkit::HandleRewindMediaActionCanExecute( ) const
 void FMediaAssetEditorToolkit::HandleRewindMediaActionExecute( )
 {
 	MediaAsset->Rewind();
-}
-
-
-bool FMediaAssetEditorToolkit::HandleStopMediaActionCanExecute( ) const
-{
-	return false;
-//	return MediaAsset->CanStop();
-}
-
-
-void FMediaAssetEditorToolkit::HandleStopMediaActionExecute( )
-{
-	MediaAsset->Stop();
 }
 
 

@@ -31,12 +31,6 @@ bool UMediaAsset::CanPlay( ) const
 }
 
 
-bool UMediaAsset::CanStop( ) const
-{
-	return MediaPlayer.IsValid() && MediaPlayer->IsReady();
-}
-
-
 FTimespan UMediaAsset::GetDuration( ) const
 {
 	if (MediaPlayer.IsValid())
@@ -149,16 +143,6 @@ bool UMediaAsset::SetRate( float InRate )
 bool UMediaAsset::Seek( const FTimespan& InTime )
 {
 	return MediaPlayer.IsValid() && MediaPlayer->Seek(InTime);
-}
-
-
-void UMediaAsset::Stop( )
-{
-	if (MediaPlayer.IsValid())
-	{
-		Rewind();
-		Pause();
-	}
 }
 
 

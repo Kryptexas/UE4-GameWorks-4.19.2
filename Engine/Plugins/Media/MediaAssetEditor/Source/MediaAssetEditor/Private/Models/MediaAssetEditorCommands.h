@@ -40,7 +40,4 @@ public:
 
 	/** Rewinds the media to the beginning. */
 	TSharedPtr<FUICommandInfo> RewindMedia;
-
-	/** Stops media playback. */
-	TSharedPtr<FUICommandInfo> StopMedia;
 };

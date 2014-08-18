@@ -126,12 +126,6 @@ private:
 	// Callback for executing the ReverseMedia action.
 	void HandleRewindMediaActionExecute( );
 
-	// Callback for determining whether the StopMedia action can execute.
-	bool HandleStopMediaActionCanExecute( ) const;
-
-	// Callback for executing the StopMedia action.
-	void HandleStopMediaActionExecute( );
-
 	// Callback for spawning the Properties tab.
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab( const FSpawnTabArgs& Args, FName TabIdentifier );
 

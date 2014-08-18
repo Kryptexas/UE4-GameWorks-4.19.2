@@ -50,16 +50,6 @@ void FMediaAssetActions::GetActions( const TArray<UObject*>& InObjects, FMenuBui
 		)
 	);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MediaAsset_StopMovie", "Stop Movie"),
-		LOCTEXT("MediaAsset_StopMovieToolTip", "Stops playback of the media."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FMediaAssetActions::HandleStopMovieActionExecute, MediaAssets),
-			FCanExecuteAction()
-		)
-	);
-
 	MenuBuilder.AddMenuSeparator();
 
 	MenuBuilder.AddMenuEntry(
@@ -275,18 +265,6 @@ void FMediaAssetActions::HandlePlayMovieActionExecute( TArray<TWeakObjectPtr<UMe
 		if (MediaAsset.IsValid())
 		{
 			MediaAsset->Play();
-		}
-	}
-}
-
-
-void FMediaAssetActions::HandleStopMovieActionExecute( TArray<TWeakObjectPtr<UMediaAsset>> Objects )
-{
-	for (auto MediaAsset : Objects)
-	{
-		if (MediaAsset.IsValid())
-		{
-			MediaAsset->Stop();
 		}
 	}
 }

@@ -48,9 +48,6 @@ private:
 	// Callback for executing the 'Play Movie' action.
 	void HandlePlayMovieActionExecute( TArray<TWeakObjectPtr<UMediaAsset>> Objects );
 
-	// Callback for executing the 'Play Movie' action.
-	void HandleStopMovieActionExecute( TArray<TWeakObjectPtr<UMediaAsset>> Objects );
-
 private:
 
 	// Pointer to the style set to use for toolkits.
