@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2ActionMenuBuilder.h"
 #include "Kismet2NameValidators.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 
@@ -39,6 +40,10 @@ FText UK2Node_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return FText::FromString(NodeComment);
+	}
+	else if (TitleType == ENodeTitleType::ListView)
+	{
+		return LOCTEXT("KnotListTitle", "Add Reroute Node...");
 	}
 	else
 	{
@@ -138,6 +143,14 @@ void UK2Node_Knot::PostReconstructNode()
 			break;
 		}
 	}
+}
+
+void UK2Node_Knot::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
 }
 
 bool UK2Node_Knot::ShouldOverridePinNames() const
