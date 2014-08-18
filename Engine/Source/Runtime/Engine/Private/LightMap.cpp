@@ -115,7 +115,7 @@ FString ULightMapTexture2D::GetDesc()
 	return FString::Printf( TEXT("Lightmap: %dx%d [%s]"), GetSizeX(), GetSizeY(), GPixelFormats[GetPixelFormat()].Name );
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 static void DumpLightmapSizeOnDisk()
 {
 	UE_LOG(LogLightMap,Log,TEXT("Lightmap size on disk"));
@@ -137,7 +137,7 @@ static FAutoConsoleCommand CmdDumpLightmapSizeOnDisk(
 	TEXT("Dumps the size of all loaded lightmaps on disk (source and platform data)"),
 	FConsoleCommandDelegate::CreateStatic(DumpLightmapSizeOnDisk)
 	);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /** Lightmap resolution scaling factors for debugging.  The defaults are to use the original resolution unchanged. */
 float TextureMappingDownsampleFactor0 = 1.0f;

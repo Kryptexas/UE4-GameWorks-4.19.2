@@ -716,11 +716,13 @@ FStaticMeshRenderData::FStaticMeshRenderData()
 
 void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCooked)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.IsSaving())
 	{
 		ResolveSectionInfo(Owner);
 	}
+#endif
+#if WITH_EDITORONLY_DATA
 	if (!bCooked)
 	{
 		Ar << WedgeMap;
@@ -751,9 +753,9 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 
 void FStaticMeshRenderData::InitResources(UStaticMesh* Owner)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	ResolveSectionInfo(Owner);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	for (int32 LODIndex = 0; LODIndex < LODResources.Num(); ++LODIndex)
 	{
@@ -778,7 +780,7 @@ void FStaticMeshRenderData::AllocateLODResources(int32 NumLODs)
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /**
  * Calculates the view distance that a mesh should be displayed at.
  * @param MaxDeviation - The maximum surface-deviation between the reduced geometry and the original. This value should be acquired from Simplygon
@@ -1235,7 +1237,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1-T0);
 	}
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*-----------------------------------------------------------------------------
 UStaticMesh
@@ -1567,13 +1569,13 @@ FStaticMeshSourceModel::~FStaticMeshSourceModel()
 #endif // #if WITH_EDITOR
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void FStaticMeshSourceModel::SerializeBulkData(FArchive& Ar, UObject* Owner)
 {
 	check(RawMeshBulkData != NULL);
 	RawMeshBulkData->Serialize(Ar, Owner);
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*------------------------------------------------------------------------------
 	FMeshSectionInfoMap
@@ -1668,7 +1670,7 @@ void FMeshSectionInfoMap::Serialize(FArchive& Ar)
 
 #endif // #if WITH_EDITORONLY_DATA
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh, const ITargetPlatform* Platform)
 {
 	check(Mesh && Mesh->RenderData);
@@ -1754,7 +1756,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << NavCollision;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
 	{
 		int64 StartCycles = FPlatformTime::Cycles();
@@ -1767,7 +1769,9 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			FPlatformTime::ToSeconds(EndCycles - StartCycles)
 			);
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )
 	{
 		if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_DEPRECATED_STATIC_MESH_THUMBNAIL_PROPERTIES_REMOVED )
@@ -1836,7 +1840,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << Sockets;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR && !StripFlags.IsEditorDataStripped())
 	{
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
@@ -1850,7 +1854,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		// created until postload and it is needed for bounding information
 		bRequiresLODDistanceConversion = Ar.UE4Ver() < VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS;
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Inline the derived data for cooked builds. Never include render data when
 	// counting memory as it is included by GetResourceSize.
@@ -1862,7 +1866,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			RenderData->Serialize(Ar, this, bCooked);
 		}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		else if (Ar.IsSaving())
 		{
 			FStaticMeshRenderData& PlatformRenderData = GetPlatformStaticMeshRenderData(this, Ar.CookingTarget());
@@ -1912,7 +1916,7 @@ void UStaticMesh::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Needs to happen before 'CacheDerivedData'
 	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
 	{
@@ -1937,7 +1941,7 @@ void UStaticMesh::PostLoad()
 	{
 		FixupZeroTriangleSections();
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	EnforceLightmapRestrictions();
 	
@@ -2163,7 +2167,7 @@ void UStaticMesh::CreateNavCollision()
 void UStaticMesh::GetVertexColorData(TMap<FVector, FColor>& VertexColorData)
 {
 	VertexColorData.Empty();
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// What LOD to get vertex colors from.  
 	// Currently mesh painting only allows for painting on the first lod.
 	const uint32 PaintingMeshLODIndex = 0;
@@ -2201,7 +2205,7 @@ void UStaticMesh::GetVertexColorData(TMap<FVector, FColor>& VertexColorData)
  */
 void UStaticMesh::SetVertexColorData(const TMap<FVector, FColor>& VertexColorData)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// What LOD to get vertex colors from.  
 	// Currently mesh painting only allows for painting on the first lod.
 	const uint32 PaintingMeshLODIndex = 0;
@@ -2238,7 +2242,7 @@ void UStaticMesh::SetVertexColorData(const TMap<FVector, FColor>& VertexColorDat
 		SourceModels[PaintingMeshLODIndex].RawMeshBulkData->SaveRawMesh(Mesh);
 	}
 	// TODO_STATICMESH: Build?
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 void UStaticMesh::EnforceLightmapRestrictions()
@@ -2527,7 +2531,7 @@ FStaticMeshLODResources& UStaticMesh::GetLODForExport( int32 LODIndex )
 	return RenderData->LODResources[LODIndex];
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 bool UStaticMesh::CanLODsShareStaticLighting() const
 {
 	bool bCanShareData = true;

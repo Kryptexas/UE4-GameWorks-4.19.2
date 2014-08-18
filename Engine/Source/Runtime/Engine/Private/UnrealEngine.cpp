@@ -1192,7 +1192,7 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 		// to set the bit
 		else if (!Material->bUsedAsSpecialEngineMaterial && bCheckUsage) 
 		{
-#if !WITH_EDITORONLY_DATA
+#if !WITH_EDITOR
 			// consoles must have the flag set properly in the editor
 			UE_LOG(LogEngine, Fatal,TEXT("The special material (%s) was not marked with bUsedAsSpecialEngineMaterial. Make sure this flag is set in the editor, save the package, and compile shaders for this platform"), *MaterialName);
 #else
@@ -4754,7 +4754,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				for ( TFieldIterator<UProperty> It(Obj->GetClass()); It; ++It )
 				{
 					Value.Empty();
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 					if ( HiddenCategories.Num() )
 					{
 						const FString Category = FObjectEditorUtils::GetCategory(*It);
@@ -4799,7 +4799,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 							continue;
 						}
 					}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 					if ( LastOwnerClass != It->GetOwnerClass() )
 					{
 						LastOwnerClass = It->GetOwnerClass();

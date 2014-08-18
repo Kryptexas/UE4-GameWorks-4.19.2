@@ -75,9 +75,9 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 		FixHasBeenUsedArray();  // for now prob need this until resave packages has occurred
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) && ActiveSound.World != NULL);
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 	// Pick a random child node and save the index.
 	if( *RequiresInitialization )
@@ -85,7 +85,7 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 		NodeIndex = 0;
 		float WeightSum = 0.0f;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		if (bIsPIESound)
 		{
 			// Find the first available index - needed if there is only one
@@ -94,14 +94,14 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 				NodeIndex++;
 			}
 		}
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 		// only calculate the weights that have not been used and use that set for the random choice
 		for( int32 i = 0; i < Weights.Num(); ++i )
 		{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 			if (!bIsPIESound || !PIEHiddenNodes.Contains(i))
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 			{
 				if( ( bRandomizeWithoutReplacement == false ) ||  ( HasBeenUsed[ i ] != true ) )
 				{
@@ -113,9 +113,9 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 		float Weight = FMath::FRand() * WeightSum;
 		for( int32 i = 0; i < ChildNodes.Num() && i < Weights.Num(); ++i )
 		{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 			if(!bIsPIESound || !PIEHiddenNodes.Contains(i) )
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 			{
 				if( bRandomizeWithoutReplacement && ( Weights[ i ] >= Weight ) && ( HasBeenUsed[ i ] != true ) )
 				{
@@ -143,9 +143,9 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 
 	// check to see if we have used up our random sounds
 	if( bRandomizeWithoutReplacement && ( HasBeenUsed.Num() > 0 ) && ( NumRandomUsed >= HasBeenUsed.Num()
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		|| (bIsPIESound && NumRandomUsed >= (HasBeenUsed.Num() - PIEHiddenNodes.Num()))
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 		)	)
 	{
 		// reset all of the children nodes

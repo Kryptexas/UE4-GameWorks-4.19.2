@@ -799,7 +799,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 
 void UParticleLODLevel::ConvertToSpawnModule()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Move the required module SpawnRate and Burst information to a new SpawnModule.
 	if (SpawnModule)
 	{
@@ -833,7 +833,7 @@ void UParticleLODLevel::ConvertToSpawnModule()
 	}
 
 	MarkPackageDirty();
-#endif	//#if WITH_EDITORONLY_DATA
+#endif	//#if WITH_EDITOR
 }
 
 

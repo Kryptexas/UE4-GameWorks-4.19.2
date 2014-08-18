@@ -13,7 +13,7 @@ class PAPER2D_API UPaperTerrainSplineComponent : public USplineComponent
 
 public:
 	// UObject interface
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface

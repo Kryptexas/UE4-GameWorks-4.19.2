@@ -175,7 +175,7 @@ struct FStaticMeshSourceModel
 #if WITH_EDITOR
 	/** Imported raw mesh data. Optional for all but the first LOD. */
 	class FRawMeshBulkData* RawMeshBulkData;
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	/** Settings applied when building the mesh. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -198,8 +198,10 @@ struct FStaticMeshSourceModel
 	/** Destructor. */
 	ENGINE_API ~FStaticMeshSourceModel();
 
+#if WITH_EDITOR
 	/** Serializes bulk data. */
 	void SerializeBulkData(FArchive& Ar, UObject* Owner);
+#endif
 };
 
 /**
@@ -618,7 +620,7 @@ public:
 
 	void EnforceLightmapRestrictions();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 	/**
 	 * Returns true if LODs of this static mesh may share texture lightmaps.
@@ -655,5 +657,5 @@ private:
 	 * Caches derived renderable data.
 	 */
 	void CacheDerivedData();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 };

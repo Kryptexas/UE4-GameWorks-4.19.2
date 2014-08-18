@@ -44,7 +44,10 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 
 	UPROPERTY(transient)
 	TArray<FName> PreviousSocketNames;
+	
+#endif
 
+#if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 

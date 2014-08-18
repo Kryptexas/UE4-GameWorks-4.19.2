@@ -13,7 +13,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogBrushComponent, Log, All);
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 struct FModelWireVertex
 {
 	FVector Position;
@@ -30,11 +30,13 @@ public:
 	FModelWireVertexBuffer(UModel* InModel):
 		NumVertices(0)
 	{
+#if WITH_EDITOR
 		Polys.Append(InModel->Polys->Element);
 		for(int32 PolyIndex = 0;PolyIndex < InModel->Polys->Element.Num();PolyIndex++)
 		{
 			NumVertices += InModel->Polys->Element[PolyIndex].Vertices.Num();
 		}
+#endif
 	}
 
 	// FRenderResource interface.
@@ -81,11 +83,13 @@ public:
 	FModelWireIndexBuffer(UModel* InModel):
 		NumEdges(0)
 	{
+#if WITH_EDITOR
 		Polys.Append(InModel->Polys->Element);
 		for(int32 PolyIndex = 0;PolyIndex < InModel->Polys->Element.Num();PolyIndex++)
 		{
 			NumEdges += InModel->Polys->Element[PolyIndex].Vertices.Num();
 		}
+#endif
 	}
 
 	// FRenderResource interface.
@@ -119,7 +123,7 @@ private:
 	TArray<FPoly> Polys;
 	uint32 NumEdges;
 };
-#endif // WITH_EDITOR
+#endif // WITH_EDITORONLY_DATA
 
 class FBrushSceneProxy : public FPrimitiveSceneProxy
 {

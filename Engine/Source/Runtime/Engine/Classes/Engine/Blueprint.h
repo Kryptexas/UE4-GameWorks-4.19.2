@@ -545,7 +545,7 @@ public:
 	 */
 	static bool GetBlueprintHierarchyFromClass(const UClass* InClass, TArray<UBlueprint*>& OutBlueprintParents);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	template<class TFieldType>
 	static FName GetFieldNameFromClassByGuid(const UClass* InClass, const FGuid VarGuid)
 	{
@@ -632,7 +632,7 @@ public:
 
 };
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 template<>
 inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* InClass, const FGuid FunctionGuid)
 {
@@ -644,4 +644,4 @@ inline bool UBlueprint::GetGuidFromClassByFieldName<UFunction>(const UClass* InC
 {
 	return GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

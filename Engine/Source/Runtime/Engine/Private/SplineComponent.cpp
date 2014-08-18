@@ -438,7 +438,7 @@ void USplineComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceD
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void USplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property != nullptr)

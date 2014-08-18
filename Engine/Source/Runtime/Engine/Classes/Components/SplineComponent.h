@@ -123,7 +123,7 @@ class ENGINE_API USplineComponent : public USceneComponent
 	// UObject interface
 	virtual void PostLoad() override;
 	virtual void PostEditImport() override;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 #endif

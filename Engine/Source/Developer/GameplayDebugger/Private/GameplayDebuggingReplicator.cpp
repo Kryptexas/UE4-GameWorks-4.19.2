@@ -27,10 +27,12 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	SetTickableWhenPaused(true);
 	SetIsTemporarilyHiddenInEditor(false);
 	SetActorHiddenInGame(false);
+#endif
+#if WITH_EDITORONLY_DATA
 	bHiddenEdLevel = false;
 	bHiddenEdLayer = false;
 	bHiddenEd = false;

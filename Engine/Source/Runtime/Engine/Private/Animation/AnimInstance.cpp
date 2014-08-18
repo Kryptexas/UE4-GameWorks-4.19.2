@@ -321,7 +321,7 @@ bool UAnimInstance::UpdateSnapshotAndSkipRemainingUpdate()
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		// Reset the anim graph visualization

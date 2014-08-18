@@ -1384,7 +1384,7 @@ bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAn
 
 bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Abort if source == destination.
 	if( SourceAnimSeq == DestAnimSeq )
 	{
@@ -1493,7 +1493,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		FMessageDialog::Open( EAppMsgType::Ok, FText::Format(
 			NSLOCTEXT("UnrealEd", "SomeNotifiesWereNotCopiedF", "Because the destination sequence was shorter, {0} notifies were not copied."), FText::AsNumber(SourceAnimSeq->Notifies.Num() - NewNotifyIndices.Num())) );
 	}
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 
 	return true;
 }

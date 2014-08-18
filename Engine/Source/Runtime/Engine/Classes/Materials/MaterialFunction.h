@@ -81,7 +81,7 @@ public:
 	/** Appends textures referenced by the expressions in this function. */
 	ENGINE_API void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	ENGINE_API UMaterial* GetPreviewMaterial();
 
 	void UpdateInputOutputTypes();
@@ -90,7 +90,9 @@ public:
 	 * Checks whether a Material Function is arranged in the old style, with inputs flowing from right to left
 	 */
 	bool HasFlippedCoordinates() const;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(AssetRegistrySearchable)
 	uint32 CombinedInputTypes;
 

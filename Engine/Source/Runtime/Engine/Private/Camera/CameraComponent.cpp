@@ -32,7 +32,7 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 
 void UCameraComponent::OnRegister()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (ProxyMeshComponent == NULL)
 	{
 		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
@@ -86,7 +86,7 @@ void UCameraComponent::OnUnregister()
 #endif
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != NULL)

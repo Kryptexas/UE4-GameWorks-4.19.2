@@ -128,7 +128,7 @@ FString UTextureRenderTarget2D::GetDesc()
 UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FString& NewTexName, EObjectFlags ObjectFlags, uint32 Flags, TArray<uint8>* AlphaOverride)
 {
 	UTexture2D* Result = NULL;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Check render target size is valid and power of two.
 	const bool bIsValidSize = (SizeX != 0 && !(SizeX & (SizeX - 1)) &&
 		SizeY != 0 && !(SizeY & (SizeY - 1)));

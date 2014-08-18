@@ -100,7 +100,7 @@ public:
 	T* ConstructSoundNode(TSubclassOf<USoundNode> SoundNodeClass = T::StaticClass(), bool bSelectNewNode = true)
 	{
 		T* SoundNode = ConstructObject<T>(SoundNodeClass, this);
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		AllNodes.Add(SoundNode);
 		SetupSoundNode(SoundNode, bSelectNewNode);
 #endif // WITH_EDITORONLY_DATA
@@ -137,7 +137,7 @@ public:
 	 */
 	ENGINE_API void RecursiveFindAttenuation( USoundNode* Node, TArray<class USoundNodeAttenuation*> &OutNodes );
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/** Create the basic sound graph */
 	ENGINE_API void CreateGraph();
 

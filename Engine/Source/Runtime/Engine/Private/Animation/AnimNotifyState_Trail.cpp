@@ -189,7 +189,7 @@ void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, 
 
 bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshComp, bool bReportErrors/* =false */)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	bool bError = false;
 	FText FirstSocketEqualsNoneErrorText = FText::Format( LOCTEXT("NoneFirstSocket", "{0}: Must set First Socket Name."), FText::FromString(GetName()));
 	FText SecondSocketEqualsNoneErrorText = FText::Format( LOCTEXT("NoneSecondSocket", "{0}: Must set Second Socket Name."), FText::FromString(GetName()));
@@ -241,7 +241,7 @@ bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshCo
 	return bError;
 #else
 	return false;
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 }
 
 #undef  LOCTEXT_NAMESPACE

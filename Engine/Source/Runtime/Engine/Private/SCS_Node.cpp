@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
 #include "DeferRegisterComponents.h"

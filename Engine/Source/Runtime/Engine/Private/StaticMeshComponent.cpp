@@ -884,7 +884,7 @@ bool UStaticMeshComponent::FixupOverrideColorsIfNecessary( bool bRebuildingStati
 
 void UStaticMeshComponent::PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate )
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	UE_LOG(LogStaticMesh,Verbose,TEXT("Fixing up override colors for %s [%s]"),*GetPathName(),*StaticMesh->GetPathName());
 	for ( TArray<int32>::TConstIterator LODIdxIter( LODsToUpdate ); LODIdxIter; ++LODIdxIter )
 	{
@@ -911,7 +911,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors( const TArray<int32>& LODs
 		BeginInitResource( CurCompLODInfo.OverrideVertexColors );
 	}
 	StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 }
 
 void UStaticMeshComponent::InitResources()

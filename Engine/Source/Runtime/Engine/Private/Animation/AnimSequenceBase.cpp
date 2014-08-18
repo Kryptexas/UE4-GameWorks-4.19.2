@@ -240,7 +240,7 @@ void UAnimSequenceBase::PostLoad()
 	// Ensure notifies are sorted.
 	SortNotifies();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	InitializeNotifyTrack();
 	UpdateAnimNotifyTrackCache();
 

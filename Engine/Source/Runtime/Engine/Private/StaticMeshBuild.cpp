@@ -7,16 +7,16 @@
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "TargetPlatform.h"
 #include "GenericOctree.h"
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /**
  * Check the render data for the provided mesh and return true if the mesh
  * contains degenerate tangent bases.
@@ -46,11 +46,11 @@ static bool HasBadTangents(UStaticMesh* Mesh)
 	}
 	return bHasBadTangents;
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 void UStaticMesh::Build(bool bSilent)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (IsTemplate())
 		return;
 
@@ -155,7 +155,7 @@ void UStaticMesh::Build(bool bSilent)
 	Remapping of painted vertex colors.
 ------------------------------------------------------------------------------*/
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /** Helper struct for the mesh component vert position octree */
 struct FStaticMeshComponentVertPosOctreeSemantics
 {
@@ -335,13 +335,13 @@ void RemapPaintedVertexColors(
 		}
 	}
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*------------------------------------------------------------------------------
 	Conversion of legacy source data.
 ------------------------------------------------------------------------------*/
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 struct FStaticMeshTriangle
 {
@@ -1067,6 +1067,6 @@ void UStaticMesh::FixupZeroTriangleSections()
 	}
 }
 
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE

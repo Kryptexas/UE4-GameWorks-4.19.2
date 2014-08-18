@@ -96,7 +96,7 @@ void AAmbientSound::PostRegisterAllComponents()
 FString AAmbientSound::GetInternalSoundCueName()
 {
 	FString CueName;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	CueName = GetActorLabel();
 #endif
 	if (CueName.Len() == 0)
@@ -242,7 +242,7 @@ void AAmbientSound::MigrateSoundNodeInstance()
 #endif //WITH_EDITOR
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	SoundCue->LinkGraphNodesFromSoundNodes();
 #endif //WITH_EDITORONLY_DATA
 }

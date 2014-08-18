@@ -123,7 +123,7 @@ void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FCol
  */
 UTexture2D* FImageUtils::CreateTexture2D(int32 SrcWidth, int32 SrcHeight, const TArray<FColor> &SrcData, UObject* Outer, const FString& Name, const EObjectFlags &Flags, const FCreateTexture2DParameters& InParams)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	UTexture2D* Tex2D;
 
 	Tex2D = CastChecked<UTexture2D>( StaticConstructObject(UTexture2D::StaticClass(), Outer, FName(*Name), Flags) );

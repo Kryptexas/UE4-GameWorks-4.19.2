@@ -111,7 +111,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 )
 {
 	UTextureCube* Result = NULL;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Check render target size is valid and power of two.
 	if (SizeX != 0 && !(SizeX & (SizeX - 1)))
 	{
@@ -183,7 +183,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 			Result->PostEditChange();
 		}
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	return Result;
 }
 

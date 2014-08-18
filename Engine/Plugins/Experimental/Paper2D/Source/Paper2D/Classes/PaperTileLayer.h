@@ -93,7 +93,7 @@ public:
 	void ConvertToTileSetPerCell();
 
 	// UObject interface
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface

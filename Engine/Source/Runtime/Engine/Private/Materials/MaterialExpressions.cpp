@@ -6144,7 +6144,7 @@ UMaterialFunction::UMaterialFunction(const class FPostConstructInitializePropert
 
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 UMaterial* UMaterialFunction::GetPreviewMaterial()
 {
 	if( NULL == PreviewMaterial )
@@ -6249,13 +6249,12 @@ void UMaterialFunction::PostLoad()
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (CombinedOutputTypes == 0)
 	{
 		UpdateInputOutputTypes();
 	}
-#endif
-#if WITH_EDITOR
+
 	if (GIsEditor)
 	{
 		// Clean up any removed material expression classes	
@@ -6617,7 +6616,7 @@ void UMaterialFunction::AppendReferencedTextures(TArray<UTexture*>& InOutTexture
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 bool UMaterialFunction::HasFlippedCoordinates() const
 {
 	uint32 ReversedInputCount = 0;

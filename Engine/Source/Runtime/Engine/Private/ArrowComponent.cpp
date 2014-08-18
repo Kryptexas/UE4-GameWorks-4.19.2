@@ -304,7 +304,7 @@ public:
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && (View->Family->EngineShowFlags.BillboardSprites);
 		Result.bDynamicRelevance = true;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		if (bTreatAsASprite)
 		{
 			if ( GIsEditor && SpriteCategoryIndex != INDEX_NONE && SpriteCategoryIndex < View->SpriteCategoryVisibility.Num() && !View->SpriteCategoryVisibility[ SpriteCategoryIndex ] )

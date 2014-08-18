@@ -175,7 +175,7 @@ bool UTexture2D::GetResourceMemSettings(int32 FirstMipIdx, int32& OutSizeX, int3
 	return false;
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UTexture2D::LegacySerialize(FArchive& Ar, FStripDataFlags& StripDataFlags)
 {
 	check(Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR);
@@ -272,7 +272,7 @@ void UTexture2D::LegacySerialize(FArchive& Ar, FStripDataFlags& StripDataFlags)
 		SRGB = false;
 	}
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 void UTexture2D::Serialize(FArchive& Ar)
 {
@@ -288,19 +288,19 @@ void UTexture2D::Serialize(FArchive& Ar)
 	}
 
 	/** Legacy serialization. */
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
 	{
 		UTexture2D::LegacySerialize(Ar, StripDataFlags);
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	if (Ar.IsCooking() || bCooked)
 	{
 		SerializeCookedPlatformData(Ar);
 	}
 
-#if WITH_EDITORONLY_DATA	
+#if WITH_EDITOR	
 	if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !(GetOutermost()->PackageFlags & PKG_ReloadingForCooker))
 	{
 		// The composite texture may not have been loaded yet. We have to defer caching platform
@@ -310,7 +310,7 @@ void UTexture2D::Serialize(FArchive& Ar)
 			BeginCachePlatformData();
 		}
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 float UTexture2D::GetLastRenderTimeForStreaming()
@@ -365,7 +365,7 @@ void UTexture2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale)
 {
 	float AvgBrightness = -1.0f;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TArray<uint8> RawData;
 	// use the source art if it exists
 	if (Source.IsValid() && Source.GetFormat() == TSF_BGRA8)
@@ -424,7 +424,7 @@ float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale
 			AvgBrightness = PixelSum / Divisor;
 		}
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	return AvgBrightness;
 }
 
@@ -457,14 +457,14 @@ void UTexture2D::CancelPendingTextureStreaming()
 
 void UTexture2D::PostLoad()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	ImportedSize = FIntPoint(Source.GetSizeX(),Source.GetSizeY());
 
 	if (FApp::CanEverRender())
 	{
 		FinishCachePlatformData();
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Route postload, which will update bIsStreamable as UTexture::PostLoad calls UpdateResource.
 	Super::PostLoad();
@@ -483,7 +483,7 @@ void UTexture2D::PreSave()
 }
 void UTexture2D::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	int32 SizeX = Source.GetSizeX();
 	int32 SizeY = Source.GetSizeY();
 #else
@@ -508,10 +508,10 @@ void UTexture2D::UpdateResource()
 		FPlatformProcess::Sleep(0);
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Recache platform data if the source has changed.
 	CachePlatformData();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Route to super.
 	Super::UpdateResource();
@@ -555,9 +555,9 @@ FString UTexture2D::GetDesc()
 	uint32 EffectiveSizeX;
 	uint32 EffectiveSizeY;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	UpdateCachedLODBias();
-#endif //#if WITH_EDITORONLY_DATA
+#endif //#if WITH_EDITOR
 
 	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
 
@@ -675,7 +675,7 @@ bool UTexture2D::UpdateStreamingStatus( bool bWaitForMipFading /*= false*/ )
 			}
 			bHasPendingRequestInFlight = false;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 			if ( Texture2DResource && Texture2DResource->DidDerivedDataRequestFail() )
 			{
 				// A streaming request to the derived data cache failed. That means the texture itself needs to be updated.
@@ -689,7 +689,7 @@ bool UTexture2D::UpdateStreamingStatus( bool bWaitForMipFading /*= false*/ )
 					ForceRebuildPlatformData();
 				}
 			}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 		}
 	}
 	return bHasPendingRequestInFlight;
@@ -766,7 +766,7 @@ bool UTexture2D::GetSourceArtCRC(uint32& OutSourceCRC)
 {
 	bool bResult = false;
 	TArray<uint8> RawData;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// use the source art if it exists
 	if (Source.IsValid())
 	{
@@ -783,14 +783,14 @@ bool UTexture2D::GetSourceArtCRC(uint32& OutSourceCRC)
 		OutSourceCRC = FCrc::MemCrc_DEPRECATED((void*)(RawData.GetData()), RawData.Num());
 		bResult = true;
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	return bResult;
 }
 
 bool UTexture2D::HasSameSourceArt(UTexture2D* InTexture)
 {
 	bool bResult = false;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TArray<uint8> RawData1;
 	TArray<uint8> RawData2;
 	int32 SizeX = 0;
@@ -814,7 +814,7 @@ bool UTexture2D::HasSameSourceArt(UTexture2D* InTexture)
 			bResult = true;
 		}
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	return bResult;
 }
 

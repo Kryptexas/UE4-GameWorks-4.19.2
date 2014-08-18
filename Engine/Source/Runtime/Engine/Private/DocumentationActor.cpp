@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/DocumentationActor.h"
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "Components/MaterialBillboardComponent.h"
 #include "IDocumentation.h"
 #endif
@@ -28,9 +28,9 @@ bool ADocumentationActor::OpenDocumentLink() const
 {
 	bool bOpened = false;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	bOpened = IDocumentation::Get()->Open(DocumentLink);
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 	return bOpened;
 }

@@ -496,7 +496,7 @@ bool CreateSubmeshFromSMSection(FStaticMeshLODResources& RenderMesh, int32 Subme
 
 bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticMesh)
 {
-#if WITH_APEX && WITH_EDITORONLY_DATA
+#if WITH_APEX && WITH_EDITOR
 	// Make sure we have the authoring data container
 	CreateFractureSettings();
 
@@ -576,14 +576,14 @@ bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticM
 
 	FractureSettings->SetRootMesh(Triangles, Materials, Submeshes, MeshPartitions, true);
 	return true;
-#else // WITH_APEX && WITH_EDITORONLY_DATA
+#else // WITH_APEX && WITH_EDITOR
 	return false;
-#endif // WITH_APEX && WITH_EDITORONLY_DATA
+#endif // WITH_APEX && WITH_EDITOR
 }
 
 ENGINE_API bool UDestructibleMesh::BuildFromStaticMesh( UStaticMesh& StaticMesh )
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	PreEditChange(NULL);
 
 	// Import the StaticMesh
@@ -604,13 +604,13 @@ ENGINE_API bool UDestructibleMesh::BuildFromStaticMesh( UStaticMesh& StaticMesh 
 
 	PostEditChange();
 	MarkPackageDirty();
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 	return true;
 }
 
 ENGINE_API bool UDestructibleMesh::SetupChunksFromStaticMeshes( const TArray<UStaticMesh*>& ChunkMeshes )
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (SourceStaticMesh == NULL)
 	{
 		UE_LOG(LogDestructible, Warning, TEXT("Unable to import FBX as level 1 chunks if the DM was not created from a static mesh."));
@@ -637,6 +637,6 @@ ENGINE_API bool UDestructibleMesh::SetupChunksFromStaticMeshes( const TArray<USt
 
 	PostEditChange();
 	MarkPackageDirty();
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 	return true;
 }

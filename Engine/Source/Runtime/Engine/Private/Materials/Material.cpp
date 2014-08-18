@@ -2511,9 +2511,9 @@ void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression*
 			UMaterialExpressionDynamicParameter* CheckParam = Cast<UMaterialExpressionDynamicParameter>(Expressions[ExpIndex]);
 			if (CheckParam->CopyDynamicParameterNames(DynParam))
 			{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 				CheckParam->GraphNode->ReconstructNode();
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 			}
 		}
 	}

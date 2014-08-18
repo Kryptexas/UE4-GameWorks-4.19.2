@@ -65,11 +65,10 @@ public:
 	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-#if WITH_EDITORONLY_DATA
+
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 	// End UObject Interface
 
 	//

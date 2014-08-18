@@ -129,7 +129,7 @@ public:
 		HeightmapRenderProxy(NULL),
 		GizmoRenderProxy(NULL)
 	{
-#if WITH_EDITORONLY_DATA	
+#if WITH_EDITOR	
 		ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(InComponent->GetOwner());
 		if (Gizmo && Gizmo->GizmoMeshMaterial && Gizmo->GizmoDataMaterial && Gizmo->GetRootComponent())
 		{

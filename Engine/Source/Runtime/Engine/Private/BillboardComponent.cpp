@@ -288,11 +288,11 @@ private:
 	FLinearColor Color;
 	const uint32 bIsScreenSizeScaled : 1;
 	uint32 bIsActorLocked : 1;
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	int32 SpriteCategoryIndex;
 	bool bUseInEditorScaling;
 	float EditorScale;
-#endif // #if WITH_EDITOR
+#endif // #if WITH_EDITORONLY_DATA
 };
 
 UBillboardComponent::UBillboardComponent(const class FPostConstructInitializeProperties& PCIP)

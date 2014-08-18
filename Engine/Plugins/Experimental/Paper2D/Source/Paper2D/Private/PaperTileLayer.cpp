@@ -65,7 +65,7 @@ void UPaperTileLayer::ReallocateAndCopyMap()
 //	BakeMap();
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UPaperTileLayer::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;

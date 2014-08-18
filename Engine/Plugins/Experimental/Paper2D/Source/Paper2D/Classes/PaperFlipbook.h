@@ -87,7 +87,7 @@ public:
 	void InvalidateCachedData();
 
 	// UObject interface
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

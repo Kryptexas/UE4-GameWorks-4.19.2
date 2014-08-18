@@ -111,7 +111,7 @@ void UAtmosphericFogComponent::PostLoad()
 
 	if ( !IsTemplate() )
 	{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		if (TransmittanceTexture_DEPRECATED)
 		{
 			// Copy data from Previous data
@@ -173,7 +173,7 @@ void UAtmosphericFogComponent::PostLoad()
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "UnrealEd.h"
 
 class FAtmospherePrecomputeDataHandler : public FTickableEditorObject
@@ -238,7 +238,7 @@ void UAtmosphericFogComponent::InitResource()
 			BeginInitResource( InscatterResource );
 		}
 	}
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	else if (!PrecomputeDataHandler)
 	{
 		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
@@ -293,7 +293,7 @@ void UAtmosphericFogComponent::ReleaseResource()
 		InscatterResource = NULL;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (PrecomputeDataHandler)
 	{
 		delete PrecomputeDataHandler;
@@ -527,7 +527,7 @@ void UAtmosphericFogComponent::PostInterpChange(UProperty* PropertyThatChanged)
 
 void UAtmosphericFogComponent::StartPrecompute()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		PrecomputeCounter.Reset();

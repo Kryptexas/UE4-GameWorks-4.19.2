@@ -1188,7 +1188,7 @@ bool UBlueprint::Modify(bool bAlwaysMarkDirty)
 
 #endif
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
@@ -1200,4 +1200,4 @@ bool UBlueprint::GetFunctionGuidFromClassByFieldName(const UClass* InClass, cons
 	return FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
 
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR

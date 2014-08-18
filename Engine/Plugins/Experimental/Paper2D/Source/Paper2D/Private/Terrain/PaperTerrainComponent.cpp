@@ -95,7 +95,7 @@ const UObject* UPaperTerrainComponent::AdditionalStatObject() const
 	return TerrainMaterial;
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UPaperTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property != nullptr)

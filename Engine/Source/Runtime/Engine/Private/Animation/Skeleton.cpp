@@ -685,7 +685,7 @@ void USkeleton::CollectAnimationNotifies()
 	//AnimationNotifies.Empty();
 	TArray<FAssetData> AssetList;
 	AssetRegistryModule.Get().GetAssetsByClass(UAnimSequenceBase::StaticClass()->GetFName(), AssetList, true);
-
+#if WITH_EDITOR
 	// do not clear AnimationNotifies. We can't remove old ones yet. 
 	FString CurrentSkeletonName = FAssetData(this).GetExportTextName();
 	for (auto Iter = AssetList.CreateConstIterator(); Iter; ++Iter)
@@ -706,6 +706,7 @@ void USkeleton::CollectAnimationNotifies()
 			}
 		}
 	}
+#endif
 }
 
 void USkeleton::AddNewAnimationNotify(FName NewAnimNotifyName)
@@ -833,6 +834,8 @@ void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
 	}
 }
 
+#if WITH_EDITOR
+
 void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )
 {
 	TArray<int32> BonesRemoved = ReferenceSkeleton.RemoveBonesByName(BonesToRemove);
@@ -874,6 +877,8 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
 {
 	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
 }
+
+#endif
 
 void USkeleton::AddSlotNodeName(FName SlotNodeName)
 {

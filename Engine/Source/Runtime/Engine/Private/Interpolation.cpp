@@ -8027,7 +8027,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	bool bJump = !( MatineeActor->bIsPlaying );
 	UpdateTrack(NewPosition, TrInst, bJump);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	bool bTimeChangedDrastically = !FMath::IsNearlyEqual(NewPosition, MatineeActor->InterpPosition);
 	if ( bTimeChangedDrastically && MatineeActor->bIsScrubbing )
 	{

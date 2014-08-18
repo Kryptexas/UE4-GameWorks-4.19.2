@@ -20,7 +20,7 @@ void UTextureCube::Serialize(FArchive& Ar)
 
 	bool bCooked = false;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Handle legacy serialization.
 	if (Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
 	{
@@ -40,7 +40,7 @@ void UTextureCube::Serialize(FArchive& Ar)
 		Source.UseHashAsGuid();
 	}
 	else
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	{
 		FStripDataFlags StripFlags(Ar);
 		bCooked = Ar.IsCooking();
@@ -52,26 +52,26 @@ void UTextureCube::Serialize(FArchive& Ar)
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked)
 	{
 		BeginCachePlatformData();
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 void UTextureCube::PostLoad()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	FinishCachePlatformData();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	Super::PostLoad();
 }
 
 void UTextureCube::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	int32 SizeX = Source.GetSizeX();
 	int32 SizeY = Source.GetSizeY();
 #else
@@ -87,10 +87,10 @@ void UTextureCube::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) cons
 
 void UTextureCube::UpdateResource()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Recache platform data if the source has changed.
 	CachePlatformData();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Route to super.
 	Super::UpdateResource();
@@ -371,9 +371,9 @@ SIZE_T UTextureCube::GetResourceSize(EResourceSizeMode::Type Mode)
 	return CalcTextureMemorySizeEnum(TMC_ResidentMips);
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 uint32 UTextureCube::GetMaximumDimension() const
 {
 	return GetMaxCubeTextureDimension();
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

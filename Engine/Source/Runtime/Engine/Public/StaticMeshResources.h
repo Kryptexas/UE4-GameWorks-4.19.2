@@ -779,7 +779,8 @@ private:
 #if WITH_EDITORONLY_DATA
 	/** Allow the editor to explicitly update section information. */
 	friend class FLevelOfDetailSettingsLayout;
-
+#endif // #if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/** Resolve all per-section settings. */
 	ENGINE_API void ResolveSectionInfo(UStaticMesh* Owner);
 #endif // #if WITH_EDITORONLY_DATA
@@ -1008,7 +1009,7 @@ protected:
 	float GetScreenSize(int32 LODIndex) const;
 };
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /**
  * Remaps painted vertex colors when the renderable mesh has changed.
  * @param InPaintedVertices - The original position and normal for each painted vertex.
@@ -1024,4 +1025,4 @@ ENGINE_API void RemapPaintedVertexColors(
 	const FStaticMeshVertexBuffer* OptionalVertexBuffer,
 	TArray<FColor>& OutOverrideColors
 	);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

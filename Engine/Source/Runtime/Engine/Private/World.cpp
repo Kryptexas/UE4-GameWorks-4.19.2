@@ -2901,7 +2901,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	NetworkActors.Empty();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// If we're server traveling, we need to break the reference dependency here (caused by levelscript)
 	// to avoid a GC crash for not cleaning up the gameinfo referenced by levelscript
 	if( IsGameWorld() && !GIsEditor && !IsRunningCommandlet() && bSessionEnded && bCleanupResources )
@@ -2919,7 +2919,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		}
 	}
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 #if ENABLE_VISUAL_LOG
 	FVisualLog::Get().Cleanup();

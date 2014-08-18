@@ -102,7 +102,7 @@ FString UAnimNotifyState_TimedParticleEffect::GetNotifyName_Implementation() con
 	return UAnimNotifyState::GetNotifyName_Implementation();
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UAnimNotifyState_TimedParticleEffect::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	if(PropertyAboutToChange)

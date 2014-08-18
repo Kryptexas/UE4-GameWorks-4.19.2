@@ -5,7 +5,7 @@
 #include "Sound/SoundNode.h"
 #include "Sound/SoundCue.h"
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
 
@@ -17,7 +17,7 @@ USoundNode::USoundNode(const class FPostConstructInitializeProperties& PCIP)
 {
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void USoundNode::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -36,7 +36,7 @@ void USoundNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 
 	Super::AddReferencedObjects(InThis, Collector);
 }
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 UPTRINT USoundNode::GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex)
 {
@@ -85,7 +85,7 @@ void USoundNode::InsertChildNode( int32 Index )
 	if (MaxChildNodes > ChildNodes.Num())
 	{
 		ChildNodes.InsertZeroed( Index );
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		GraphNode->CreateInputPin();
 #endif //WITH_EDITORONLY_DATA
 	}

@@ -10,7 +10,7 @@ UPaperTerrainSplineComponent::UPaperTerrainSplineComponent(const FPostConstructI
 {
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UPaperTerrainSplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	OnSplineEdited.ExecuteIfBound();

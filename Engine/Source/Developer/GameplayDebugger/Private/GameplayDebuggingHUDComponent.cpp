@@ -24,9 +24,11 @@ AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPost
 	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
 	World = NULL;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	SetIsTemporarilyHiddenInEditor(true);
 	SetActorHiddenInGame(false);
+#endif
+#if WITH_EDITORONLY_DATA
 	bHiddenEdLevel = true;
 	bHiddenEdLayer = true;
 	bHiddenEd = true;

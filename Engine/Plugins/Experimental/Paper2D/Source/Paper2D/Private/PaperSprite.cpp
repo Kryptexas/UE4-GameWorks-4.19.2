@@ -5,7 +5,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperCustomVersion.h"
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 #include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
@@ -257,7 +257,7 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 	
 	AlternateMaterialSplitIndex = INDEX_NONE;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	PivotMode = ESpritePivotMode::Center_Center;
 	bSnapPivotToPixelGrid = true;
 
@@ -277,7 +277,7 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 	AlternateMaterial = OpaqueMaterialRef.Object;
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	//@TODO: Determine when these are really needed, as they're seriously expensive!
@@ -1306,7 +1306,7 @@ void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& Ou
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UPaperSprite::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

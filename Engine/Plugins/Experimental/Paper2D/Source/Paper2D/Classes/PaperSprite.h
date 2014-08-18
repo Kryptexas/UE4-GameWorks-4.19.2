@@ -155,7 +155,7 @@ public:
 
 public:
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void Serialize(FArchive& Ar) override;
