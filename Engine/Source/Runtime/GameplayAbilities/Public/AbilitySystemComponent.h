@@ -17,7 +17,7 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category="AttributeTest")
-	TSubclassOf<class UAttributeSet> Attributes;
+	TSubclassOf<UAttributeSet> Attributes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AttributeTest")
 	class UDataTable*	DefaultStartingTable;
