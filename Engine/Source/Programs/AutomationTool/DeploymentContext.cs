@@ -26,10 +26,20 @@ public class DeploymentContext //: ProjectParams
 	/// </summary>
 	public bool bStageCrashReporter;
 
+    /// <summary>
+    ///  CookPlatform, where to get the cooked data from and use for sandboxes
+    /// </summary>
+    public string CookPlatform;
+
 	/// <summary>
-	///  CookPlatform, used for sandboxes and stage directory names
+    ///  FinalCookPlatform, directory to stage and archive the final result to
 	/// </summary>
-	public string CookPlatform;
+    public string FinalCookPlatform;
+
+    /// <summary>
+    ///  Source platform to get the cooked data from
+    /// </summary>
+    public Platform CookSourcePlatform;
 
 	/// <summary>
 	///  Target platform used for sandboxes and stage directory names
@@ -85,6 +95,11 @@ public class DeploymentContext //: ProjectParams
 	///  This is what you use to test the engine which uproject you want. Many cases.
 	/// </summary>
 	public string ProjectArgForCommandLines;
+
+    /// <summary>
+    ///  This is the root that the cook source platform would run from
+    /// </summary>
+    public string CookSourceRuntimeRootDir;
 
 	/// <summary>
 	///  This is the root that we are going to run from. Many cases.
@@ -178,7 +193,8 @@ public class DeploymentContext //: ProjectParams
 		string BaseStageDirectory,
 		string BaseArchiveDirectory,
 		string CookFlavor,
-		Platform InTargetPlatform,
+		Platform InSourcePlatform,
+        Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
 		List<String> InStageExecutables,
 		bool InServer,
@@ -195,6 +211,7 @@ public class DeploymentContext //: ProjectParams
 		RawProjectPath = RawProjectPathOrName;
 		DedicatedServer = InServer;
 		LocalRoot = CommandUtils.CombinePaths(InLocalRoot);
+        CookSourcePlatform = InSourcePlatform;
 		StageTargetPlatform = InTargetPlatform;
 		StageTargetConfigurations = new List<UnrealTargetConfiguration>(InTargetConfigurations);
 		StageExecutables = InStageExecutables;
@@ -203,23 +220,36 @@ public class DeploymentContext //: ProjectParams
 		Stage = InStage;
 		Archive = InArchive;
 
+        if (CookSourcePlatform != null && InCooked)
+        {
+            CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+        }
+        else if (CookSourcePlatform != null && InProgram)
+        {
+            CookPlatform = CookSourcePlatform.GetCookPlatform(false, false, "");
+        }
+        else
+        {
+            CookPlatform = "";
+        }
+
 		if (StageTargetPlatform != null && InCooked)
 		{
-			CookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
 		}
 		else if (StageTargetPlatform != null && InProgram)
 		{
-			CookPlatform = StageTargetPlatform.GetCookPlatform(false, false, "");
+            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(false, false, "");
 		}
 		else
 		{
-			CookPlatform = "";
+            FinalCookPlatform = "";
 		}
 
 		PlatformDir = StageTargetPlatform.PlatformType.ToString();
 
-		StageDirectory = CommandUtils.CombinePaths(BaseStageDirectory, CookPlatform);
-		ArchiveDirectory = CommandUtils.CombinePaths(BaseArchiveDirectory, CookPlatform);
+        StageDirectory = CommandUtils.CombinePaths(BaseStageDirectory, FinalCookPlatform);
+        ArchiveDirectory = CommandUtils.CombinePaths(BaseArchiveDirectory, FinalCookPlatform);
 
 		if (!CommandUtils.FileExists(RawProjectPath))
 		{
@@ -236,7 +266,7 @@ public class DeploymentContext //: ProjectParams
         RelativeProjectRootForStage = ShortProjectName;
 
 		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath);
-		RuntimeRootDir = LocalRoot;
+		CookSourceRuntimeRootDir = RuntimeRootDir = LocalRoot;
 		RuntimeProjectRootDir = ProjectRoot;
 
         RelativeProjectRootForUnrealPak = CommandUtils.CombinePaths(RelativeProjectRootForStage).Replace("\\", "/");
@@ -262,6 +292,7 @@ public class DeploymentContext //: ProjectParams
             StageProjectRoot = CommandUtils.CombinePaths(StageDirectory, RelativeProjectRootForStage);
 
 			RuntimeRootDir = StageDirectory;
+            CookSourceRuntimeRootDir = CommandUtils.CombinePaths(BaseStageDirectory, CookPlatform);
 			RuntimeProjectRootDir = StageProjectRoot;
 			ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(UProjectCommandLineArgInternalRoot + RelativeProjectRootForStage + "/" + ShortProjectName + ".uproject");
 		}

@@ -12,10 +12,10 @@ using UnrealBuildTool;
 
 public class AndroidPlatform : Platform
 {
-    private const int DeployMaxParallelCommands = 6;
+	private const int DeployMaxParallelCommands = 6;
 
 	public AndroidPlatform()
-		:base(UnrealTargetPlatform.Android)
+		: base(UnrealTargetPlatform.Android)
 	{
 	}
 
@@ -32,20 +32,20 @@ public class AndroidPlatform : Platform
 
 	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game)
 	{
-        string ProjectDir = Path.Combine( Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)),  "Binaries/Android" );
-        
-        if (Params.Prebuilt)
-        {
-            ProjectDir = Path.Combine( Params.BaseStageDirectory, "Android" );
-        }
+		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)), "Binaries/Android");
 
-        // Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
-        string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + GetArchitecture(Params) + ".apk";
+		if (Params.Prebuilt)
+		{
+			ProjectDir = Path.Combine(Params.BaseStageDirectory, "Android");
+		}
+
+		// Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
+		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + GetArchitecture(Params) + ".apk";
 
 		/*string ProjectDir = Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath));
 		// Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
 		string ApkName = Path.Combine(ProjectDir, "Binaries/Android", DecoratedExeName) + GetArchitecture(Params) + ".apk";*/
-		
+
 		// if the source binary was UE4Game, handle using it or switching to project name
 		if (Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename) == "UE4Game")
 		{
@@ -114,18 +114,18 @@ public class AndroidPlatform : Platform
 		string BatchName = GetFinalBatchName(ApkName, Params);
 
 		// packaging just takes a pak file and makes it the .obb
-        UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
-        var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
-        if (!Params.Prebuilt)
-        {
-            string CookFlavor = SC.CookPlatform.IndexOf("_") > 0 ? SC.CookPlatform.Substring(SC.CookPlatform.IndexOf("_")) : "";
-            Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
-        }
-        
+		UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
+		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		if (!Params.Prebuilt)
+		{
+			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
+			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
+		}
+
 		// first, look for a .pak file in the staged directory
 		string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
 
-        bool bHasPakFile = PakFiles.Length >= 1;
+		bool bHasPakFile = PakFiles.Length >= 1;
 
 		// for now, we only support 1 pak/obb file
 		if (PakFiles.Length > 1)
@@ -136,19 +136,19 @@ public class AndroidPlatform : Platform
 		string LocalObbName = GetFinalObbName(ApkName);
 		string DeviceObbName = GetDeviceObbName(ApkName);
 
-        // Always delete the target OBB file if it exists
-        if (File.Exists(LocalObbName))
-        {
-            File.Delete(LocalObbName);
-        }
+		// Always delete the target OBB file if it exists
+		if (File.Exists(LocalObbName))
+		{
+			File.Delete(LocalObbName);
+		}
 
-        if (!Params.OBBinAPK && bHasPakFile)
-        {
-            Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
-            File.Copy(PakFiles[0], LocalObbName);
-        }
+		if (!Params.OBBinAPK && bHasPakFile)
+		{
+			Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
+			File.Copy(PakFiles[0], LocalObbName);
+		}
 
-        Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
+		Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
 		string PackageName = GetPackageInfo(ApkName, false);
 		// make a batch file that can be used to install the .apk and .obb files
 		string[] BatchLines = new string[] {
@@ -177,7 +177,7 @@ public class AndroidPlatform : Platform
 		};
 		File.WriteAllLines(BatchName, BatchLines);
 
- 		PrintRunTime();
+		PrintRunTime();
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
@@ -202,10 +202,10 @@ public class AndroidPlatform : Platform
 		}
 
 		SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
-        if(!Params.OBBinAPK)
+		if (!Params.OBBinAPK)
 		{
-            SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
-        }
+			SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
+		}
 
 		SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
 	}
@@ -226,82 +226,82 @@ public class AndroidPlatform : Platform
 		return Environment.ExpandEnvironmentVariables("/c %ANDROID_HOME%/platform-tools/adb.exe" + SerialNumber + " ");
 	}
 
-    public override void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
-    {
-        Devices = new List<string>();
-        string AdbCommand = GetAdbCommand(Params);
-        ProcessResult Result = Run(CmdEnv.CmdExe, AdbCommand + "devices");
+	public override void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
+	{
+		Devices = new List<string>();
+		string AdbCommand = GetAdbCommand(Params);
+		ProcessResult Result = Run(CmdEnv.CmdExe, AdbCommand + "devices");
 
-        if (Result.Output.Length > 0)
-        {
-            string[] LogLines = Result.Output.Split(new char [] { '\n', '\r' });
-            bool FoundList = false;
-            for ( int i = 0; i < LogLines.Length; ++i )
-            {
-                if (FoundList == false)
-                {
-                    if (LogLines[i].StartsWith("List of devices attached"))
-                    {
-                        FoundList = true;
-                    }
-                    continue;
-                }
+		if (Result.Output.Length > 0)
+		{
+			string[] LogLines = Result.Output.Split(new char[] { '\n', '\r' });
+			bool FoundList = false;
+			for (int i = 0; i < LogLines.Length; ++i)
+			{
+				if (FoundList == false)
+				{
+					if (LogLines[i].StartsWith("List of devices attached"))
+					{
+						FoundList = true;
+					}
+					continue;
+				}
 
-                string[] DeviceLine = LogLines[i].Split(new char[] { '\t' });
+				string[] DeviceLine = LogLines[i].Split(new char[] { '\t' });
 
-                if (DeviceLine.Length == 2)
-                {
-                    // the second param should be "device"
-                    // if it's not setup correctly it might be "unattached" or "powered off" or something like that
-                    // warning in that case
-                    if (DeviceLine[1] == "device")
-                    {
-                        Devices.Add("@" + DeviceLine[0] );
-                    }
-                    else
-                    {
-                        CommandUtils.LogWarning("Device attached but in bad state {0}:{1}", DeviceLine[0], DeviceLine[1]);
-                    }
-                }
-                
-                
-            }
-        }
-    }
+				if (DeviceLine.Length == 2)
+				{
+					// the second param should be "device"
+					// if it's not setup correctly it might be "unattached" or "powered off" or something like that
+					// warning in that case
+					if (DeviceLine[1] == "device")
+					{
+						Devices.Add("@" + DeviceLine[0]);
+					}
+					else
+					{
+						CommandUtils.LogWarning("Device attached but in bad state {0}:{1}", DeviceLine[0], DeviceLine[1]);
+					}
+				}
 
-    /*
-    private class TimeRegion : System.IDisposable
-    {
-        private System.DateTime StartTime { get; set; }
 
-        private string Format { get; set; }
+			}
+		}
+	}
 
-        private System.Collections.Generic.List<object> FormatArgs { get; set; }
+	/*
+	private class TimeRegion : System.IDisposable
+	{
+		private System.DateTime StartTime { get; set; }
 
-        public TimeRegion(string format, params object[] format_args)
-        {
-            Format = format;
-            FormatArgs = new List<object>(format_args);
-            StartTime = DateTime.UtcNow;
-        }
+		private string Format { get; set; }
 
-        public void Dispose()
-        {
-            double total_time = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000.0;
-            FormatArgs.Insert(0, total_time);
-            CommandUtils.Log(Format, FormatArgs.ToArray());
-        }
-    }
-    */
+		private System.Collections.Generic.List<object> FormatArgs { get; set; }
 
-    internal class LongestFirst : IComparer<string>
-    {
-        public int Compare(string a, string b)
-        {
-            if (a.Length == b.Length) return a.CompareTo(b);
-            else return b.Length - a.Length;
-        }
-    }
+		public TimeRegion(string format, params object[] format_args)
+		{
+			Format = format;
+			FormatArgs = new List<object>(format_args);
+			StartTime = DateTime.UtcNow;
+		}
+
+		public void Dispose()
+		{
+			double total_time = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000.0;
+			FormatArgs.Insert(0, total_time);
+			CommandUtils.Log(Format, FormatArgs.ToArray());
+		}
+	}
+	*/
+
+	internal class LongestFirst : IComparer<string>
+	{
+		public int Compare(string a, string b)
+		{
+			if (a.Length == b.Length) return a.CompareTo(b);
+			else return b.Length - a.Length;
+		}
+	}
 
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
 	{
@@ -310,20 +310,20 @@ public class AndroidPlatform : Platform
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
 
 		// make sure APK is up to date (this is fast if so)
-        var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
-        if (!Params.Prebuilt)
-        {
-            string CookFlavor = SC.CookPlatform.IndexOf("_") > 0 ? SC.CookPlatform.Substring(SC.CookPlatform.IndexOf("_")) : "";
-            Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
-        }
+		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		if (!Params.Prebuilt)
+		{
+			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
+			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
+		}
 
 		// now we can use the apk to get more info
 		string DeviceObbName = GetDeviceObbName(ApkName);
 		string PackageName = GetPackageInfo(ApkName, false);
 
 		// install the apk
-        string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
-        RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline);
+		string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
+		RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline);
 
 		string InstallCommandline = AdbCommand + "install \"" + ApkName + "\"";
 		RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline);
@@ -347,154 +347,154 @@ public class AndroidPlatform : Platform
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm -r " + RemoteDir);
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm -r " + UE4GameRemoteDir);
 
-            // Copy UFS files..
+			// Copy UFS files..
 			string[] Files = Directory.GetFiles(SC.StageDirectory, "*", SearchOption.AllDirectories);
-            System.Array.Sort(Files);
+			System.Array.Sort(Files);
 
-            // Find all the files we exclude from copying. And include
-            // the directories we need to individually copy.
-            HashSet<string> ExcludedFiles = new HashSet<string>();
-            SortedSet<string> IndividualCopyDirectories
-                = new SortedSet<string>((IComparer<string>)new LongestFirst());
-            foreach (string Filename in Files)
-            {
-                bool Exclude = false;
-                // Don't push the apk, we install it
-                Exclude |= Path.GetExtension(Filename).Equals(".apk", StringComparison.InvariantCultureIgnoreCase);
-                // For excluded files we add the parent dirs to our
-                // tracking of stuff to individually copy.
-                if (Exclude)
-                {
-                    ExcludedFiles.Add(Filename);
-                    // We include all directories up to the stage root in having
-                    // to individually copy the files.
-                    for (string FileDirectory = Path.GetDirectoryName(Filename);
-                        !FileDirectory.Equals(SC.StageDirectory);
-                        FileDirectory = Path.GetDirectoryName(FileDirectory))
-                    {
-                        if (!IndividualCopyDirectories.Contains(FileDirectory))
-                        {
-                            IndividualCopyDirectories.Add(FileDirectory);
-                        }
-                    }
-                    if (!IndividualCopyDirectories.Contains(SC.StageDirectory))
-                    {
-                        IndividualCopyDirectories.Add(SC.StageDirectory);
-                    }
-                }
-            }
+			// Find all the files we exclude from copying. And include
+			// the directories we need to individually copy.
+			HashSet<string> ExcludedFiles = new HashSet<string>();
+			SortedSet<string> IndividualCopyDirectories
+				= new SortedSet<string>((IComparer<string>)new LongestFirst());
+			foreach (string Filename in Files)
+			{
+				bool Exclude = false;
+				// Don't push the apk, we install it
+				Exclude |= Path.GetExtension(Filename).Equals(".apk", StringComparison.InvariantCultureIgnoreCase);
+				// For excluded files we add the parent dirs to our
+				// tracking of stuff to individually copy.
+				if (Exclude)
+				{
+					ExcludedFiles.Add(Filename);
+					// We include all directories up to the stage root in having
+					// to individually copy the files.
+					for (string FileDirectory = Path.GetDirectoryName(Filename);
+						!FileDirectory.Equals(SC.StageDirectory);
+						FileDirectory = Path.GetDirectoryName(FileDirectory))
+					{
+						if (!IndividualCopyDirectories.Contains(FileDirectory))
+						{
+							IndividualCopyDirectories.Add(FileDirectory);
+						}
+					}
+					if (!IndividualCopyDirectories.Contains(SC.StageDirectory))
+					{
+						IndividualCopyDirectories.Add(SC.StageDirectory);
+					}
+				}
+			}
 
-            // The directories are sorted above in "deepest" first. We can
-            // therefore start copying those individual dirs which will
-            // recreate the tree. As the subtrees will get copied at each
-            // possible individual level.
-            HashSet<string> EntriesToDeploy = new HashSet<string>();
-            foreach (string DirectoryName in IndividualCopyDirectories)
-            {
-                string[] Entries
-                    = Directory.GetFileSystemEntries(DirectoryName, "*", SearchOption.TopDirectoryOnly);
-                foreach (string Entry in Entries)
-                {
-                    // We avoid excluded files and the individual copy dirs
-                    // (the individual copy dirs will get handled as we iterate).
-                    if (ExcludedFiles.Contains(Entry) || IndividualCopyDirectories.Contains(Entry))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        EntriesToDeploy.Add(Entry);
-                    }
-                }
-            }
-            if (EntriesToDeploy.Count == 0)
-            {
-                EntriesToDeploy.Add(SC.StageDirectory);
-            }
+			// The directories are sorted above in "deepest" first. We can
+			// therefore start copying those individual dirs which will
+			// recreate the tree. As the subtrees will get copied at each
+			// possible individual level.
+			HashSet<string> EntriesToDeploy = new HashSet<string>();
+			foreach (string DirectoryName in IndividualCopyDirectories)
+			{
+				string[] Entries
+					= Directory.GetFileSystemEntries(DirectoryName, "*", SearchOption.TopDirectoryOnly);
+				foreach (string Entry in Entries)
+				{
+					// We avoid excluded files and the individual copy dirs
+					// (the individual copy dirs will get handled as we iterate).
+					if (ExcludedFiles.Contains(Entry) || IndividualCopyDirectories.Contains(Entry))
+					{
+						continue;
+					}
+					else
+					{
+						EntriesToDeploy.Add(Entry);
+					}
+				}
+			}
+			if (EntriesToDeploy.Count == 0)
+			{
+				EntriesToDeploy.Add(SC.StageDirectory);
+			}
 
-            // We now have a minimal set of file & dir entries we need
-            // to deploy. Files we deploy will get individually copied
-            // and dirs will get the tree copies by default (that's
-            // what ADB does).
-            HashSet<ProcessResult> DeployCommands = new HashSet<ProcessResult>();
-            foreach (string Entry in EntriesToDeploy)
-            {
+			// We now have a minimal set of file & dir entries we need
+			// to deploy. Files we deploy will get individually copied
+			// and dirs will get the tree copies by default (that's
+			// what ADB does).
+			HashSet<ProcessResult> DeployCommands = new HashSet<ProcessResult>();
+			foreach (string Entry in EntriesToDeploy)
+			{
 				string FinalRemoteDir = RemoteDir;
 				string RemotePath = Entry.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
- 				string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, Entry, RemotePath);
-                // We run deploy commands in parallel to maximize the connection
-                // throughput.
-                DeployCommands.Add(
-                    Run(CmdEnv.CmdExe, Commandline, null,
-                        ERunOptions.Default | ERunOptions.NoWaitForExit));
-                // But we limit the parallel commands to avoid overwhelming
-                // memory resources.
-                if (DeployCommands.Count == DeployMaxParallelCommands)
-                {
-                    while (DeployCommands.Count > DeployMaxParallelCommands / 2)
-                    {
-                        Thread.Sleep(10);
-                        DeployCommands.RemoveWhere(
-                            delegate(ProcessResult r)
-                            {
-                                return r.HasExited;
-                            });
-                    }
-                }
-            }
-            foreach (ProcessResult deploy_result in DeployCommands)
-            {
-                deploy_result.WaitForExit();
-            }
+				string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, Entry, RemotePath);
+				// We run deploy commands in parallel to maximize the connection
+				// throughput.
+				DeployCommands.Add(
+					Run(CmdEnv.CmdExe, Commandline, null,
+						ERunOptions.Default | ERunOptions.NoWaitForExit));
+				// But we limit the parallel commands to avoid overwhelming
+				// memory resources.
+				if (DeployCommands.Count == DeployMaxParallelCommands)
+				{
+					while (DeployCommands.Count > DeployMaxParallelCommands / 2)
+					{
+						Thread.Sleep(10);
+						DeployCommands.RemoveWhere(
+							delegate(ProcessResult r)
+							{
+								return r.HasExited;
+							});
+					}
+				}
+			}
+			foreach (ProcessResult deploy_result in DeployCommands)
+			{
+				deploy_result.WaitForExit();
+			}
 
 			// delete the .obb file, since it will cause nothing we just deployed to be used
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm " + DeviceObbName);
-        }
-        else if (SC.Archive)
-        {
-            // deploy the obb if there is one
-            string ObbPath = Path.Combine(SC.StageDirectory, GetFinalObbName(ApkName));
-            if (File.Exists(ObbPath))
-            {
-                // cache some strings
-                string BaseCommandline = AdbCommand + "push";
+		}
+		else if (SC.Archive)
+		{
+			// deploy the obb if there is one
+			string ObbPath = Path.Combine(SC.StageDirectory, GetFinalObbName(ApkName));
+			if (File.Exists(ObbPath))
+			{
+				// cache some strings
+				string BaseCommandline = AdbCommand + "push";
 
-                string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, ObbPath, DeviceObbName);
-                Run(CmdEnv.CmdExe, Commandline);
-            }
-        }
-        else
-        {
-            // cache some strings
-            string BaseCommandline = AdbCommand + "push";
-            string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
+				string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, ObbPath, DeviceObbName);
+				Run(CmdEnv.CmdExe, Commandline);
+			}
+		}
+		else
+		{
+			// cache some strings
+			string BaseCommandline = AdbCommand + "push";
+			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
 
-            string FinalRemoteDir = RemoteDir;
-            /*
-            // handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
-            if (!Params.IsCodeBasedProject)
-            {
-                FinalRemoteDir = "/mnt/sdcard/UE4Game";
-            }
-            */
+			string FinalRemoteDir = RemoteDir;
+			/*
+			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
+			if (!Params.IsCodeBasedProject)
+			{
+				FinalRemoteDir = "/mnt/sdcard/UE4Game";
+			}
+			*/
 
-            string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
-            string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);
-            Run(CmdEnv.CmdExe, Commandline);
-        }
-    }
+			string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
+			string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);
+			Run(CmdEnv.CmdExe, Commandline);
+		}
+	}
 
 	/** Internal usage for GetPackageName */
 	private static string PackageLine = null;
-    private static Mutex PackageInfoMutex = new Mutex();
+	private static Mutex PackageInfoMutex = new Mutex();
 
 	/** Run an external exe (and capture the output), given the exe path and the commandline. */
 	private static string GetPackageInfo(string ApkName, bool bRetrieveVersionCode)
 	{
 		// we expect there to be one, so use the first one
 		string AaptPath = GetAaptPath();
-        
-        PackageInfoMutex.WaitOne();
+
+		PackageInfoMutex.WaitOne();
 
 		var ExeInfo = new ProcessStartInfo(AaptPath, "dump badging \"" + ApkName + "\"");
 		ExeInfo.UseShellExecute = false;
@@ -507,7 +507,7 @@ public class AndroidPlatform : Platform
 			GameProcess.WaitForExit();
 		}
 
-        PackageInfoMutex.ReleaseMutex();
+		PackageInfoMutex.ReleaseMutex();
 
 		string ReturnValue = null;
 		if (PackageLine != null)
@@ -553,7 +553,7 @@ public class AndroidPlatform : Platform
 		return Path.Combine(Subdirs[0], "aapt.exe");
 	}
 
-    public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		string ApkName = ClientApp + GetArchitecture(Params) + ".apk";
 		if (!File.Exists(ApkName))
@@ -573,62 +573,62 @@ public class AndroidPlatform : Platform
 		string AdbCommand = GetAdbCommand(Params);
 		string CommandLine = "shell am start -n " + PackageName + "/com.epicgames.ue4.GameActivity";
 
-        if (Params.Prebuilt)
-        {
-            // clear the log
-            Run(CmdEnv.CmdExe, AdbCommand + "logcat -c");
-        }
-        
-        // Send a command to unlock the device before we try to run it
-        string UnlockCommandLine = "shell input keyevent 82";
-        Run(CmdEnv.CmdExe, AdbCommand + UnlockCommandLine, null);
+		if (Params.Prebuilt)
+		{
+			// clear the log
+			Run(CmdEnv.CmdExe, AdbCommand + "logcat -c");
+		}
+
+		// Send a command to unlock the device before we try to run it
+		string UnlockCommandLine = "shell input keyevent 82";
+		Run(CmdEnv.CmdExe, AdbCommand + UnlockCommandLine, null);
 
 		// start the app on device!
 		ProcessResult ClientProcess = Run(CmdEnv.CmdExe, AdbCommand + CommandLine, null, ClientRunFlags);
 
 
-        if (Params.Prebuilt)
-        {
-            // save the output to the staging directory
-            string LogPath = Path.Combine(Params.BaseStageDirectory, "Android\\logs");
-            string LogFilename = Path.Combine(LogPath, "devicelog" + Params.Device + ".log");
-            string ServerLogFilename = Path.Combine( CmdEnv.LogFolder, "devicelog" + Params.Device + ".log");
+		if (Params.Prebuilt)
+		{
+			// save the output to the staging directory
+			string LogPath = Path.Combine(Params.BaseStageDirectory, "Android\\logs");
+			string LogFilename = Path.Combine(LogPath, "devicelog" + Params.Device + ".log");
+			string ServerLogFilename = Path.Combine(CmdEnv.LogFolder, "devicelog" + Params.Device + ".log");
 
-            Directory.CreateDirectory(LogPath);
+			Directory.CreateDirectory(LogPath);
 
-            // check if the game is still running 
-            // time out if it takes to long
-            DateTime StartTime = DateTime.Now;
-            int TimeOutSeconds = Params.RunTimeoutSeconds;
+			// check if the game is still running 
+			// time out if it takes to long
+			DateTime StartTime = DateTime.Now;
+			int TimeOutSeconds = Params.RunTimeoutSeconds;
 
-            while (true)
-            {
-                ProcessResult ProcessesResult = Run(CmdEnv.CmdExe, AdbCommand + "shell ps", null, ERunOptions.SpewIsVerbose);
+			while (true)
+			{
+				ProcessResult ProcessesResult = Run(CmdEnv.CmdExe, AdbCommand + "shell ps", null, ERunOptions.SpewIsVerbose);
 
-                string RunningProcessList = ProcessesResult.Output;
-                if (!RunningProcessList.Contains(PackageName))
-                {
-                    break;
-                }
-                Thread.Sleep(10);
+				string RunningProcessList = ProcessesResult.Output;
+				if (!RunningProcessList.Contains(PackageName))
+				{
+					break;
+				}
+				Thread.Sleep(10);
 
-                TimeSpan DeltaRunTime = DateTime.Now - StartTime;
-                if ((DeltaRunTime.TotalSeconds > TimeOutSeconds) && (TimeOutSeconds != 0))
-                {
-                    Log("Device: " + Params.Device + " timed out while waiting for run to finish");
-                    break;
-                }
-            }
+				TimeSpan DeltaRunTime = DateTime.Now - StartTime;
+				if ((DeltaRunTime.TotalSeconds > TimeOutSeconds) && (TimeOutSeconds != 0))
+				{
+					Log("Device: " + Params.Device + " timed out while waiting for run to finish");
+					break;
+				}
+			}
 
-            // this is just to get the ue4 log to go to the output
-            Run(CmdEnv.CmdExe, AdbCommand + "logcat -d -s UE4");
+			// this is just to get the ue4 log to go to the output
+			Run(CmdEnv.CmdExe, AdbCommand + "logcat -d -s UE4");
 
-            // get the log we actually want to save
-            ProcessResult LogFileProcess = Run(CmdEnv.CmdExe, AdbCommand + "logcat -d", null, ERunOptions.AppMustExist);
-            
-            File.WriteAllText(LogFilename, LogFileProcess.Output);
-            File.WriteAllText(ServerLogFilename, LogFileProcess.Output);
-        }
+			// get the log we actually want to save
+			ProcessResult LogFileProcess = Run(CmdEnv.CmdExe, AdbCommand + "logcat -d", null, ERunOptions.AppMustExist);
+
+			File.WriteAllText(LogFilename, LogFileProcess.Output);
+			File.WriteAllText(ServerLogFilename, LogFileProcess.Output);
+		}
 
 
 		return ClientProcess;
@@ -636,23 +636,23 @@ public class AndroidPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-// 		if (SC.StageExecutables.Count != 1 && Params.Package)
-// 		{
-// 			throw new AutomationException("Exactly one executable expected when staging Android. Had " + SC.StageExecutables.Count.ToString());
-// 		}
-// 
-// 		// stage all built executables
-// 		foreach (var Exe in SC.StageExecutables)
-// 		{
-// 			string ApkName = Exe + GetArchitecture(Params) + ".apk";
-// 
-// 			SC.StageFiles(StagedFileType.NonUFS, Params.ProjectBinariesFolder, ApkName);
-// 		}
+		// 		if (SC.StageExecutables.Count != 1 && Params.Package)
+		// 		{
+		// 			throw new AutomationException("Exactly one executable expected when staging Android. Had " + SC.StageExecutables.Count.ToString());
+		// 		}
+		// 
+		// 		// stage all built executables
+		// 		foreach (var Exe in SC.StageExecutables)
+		// 		{
+		// 			string ApkName = Exe + GetArchitecture(Params) + ".apk";
+		// 
+		// 			SC.StageFiles(StagedFileType.NonUFS, Params.ProjectBinariesFolder, ApkName);
+		// 		}
 
-        if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
-        {
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
-        }
+		if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
+		{
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
+		}
 	}
 
 	/// <summary>
@@ -660,13 +660,13 @@ public class AndroidPlatform : Platform
 	/// </summary>
 	/// <param name="CookFlavor">Additional parameter used to indicate special sub-target platform.</param>
 	/// <returns>Cook platform string.</returns>
-	public override string GetCookPlatform( bool bDedicatedServer, bool bIsClientOnly, string CookFlavor ) 
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-		if( CookFlavor.Length > 0 )
+		if (CookFlavor.Length > 0)
 		{
 			return "Android_" + CookFlavor;
 		}
-		else 
+		else
 		{
 			return "Android";
 		}
@@ -719,8 +719,8 @@ public class AndroidPlatform : Platform
 	}
 	#endregion
 
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> { };
-    }
+	public override List<string> GetDebugFileExtentions()
+	{
+		return new List<string> { };
+	}
 }

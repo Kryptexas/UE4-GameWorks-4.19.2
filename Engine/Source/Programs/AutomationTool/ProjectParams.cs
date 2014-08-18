@@ -108,12 +108,14 @@ namespace AutomationTool
 		/// <summary>
 		/// Sets up platforms
 		/// </summary>
-		/// <param name="Command"></param>
-		/// <param name="OverrideTargetPlatforms"></param>
-		/// <param name="AllowPlatformParams"></param>
-		/// <param name="PlatformParamNames"></param>
+        /// <param name="DependentPlatformMap">Set with a mapping from source->destination if specified on command line</param>
+		/// <param name="Command">The command line to parse</param>
+		/// <param name="OverrideTargetPlatforms">If passed use this always</param>
+        /// <param name="DefaultTargetPlatforms">Use this if nothing is passed on command line</param>
+		/// <param name="AllowPlatformParams">Allow raw -platform options</param>
+		/// <param name="PlatformParamNames">Possible -parameters to check for</param>
 		/// <returns>List of platforms parsed from the command line</returns>
-		private List<UnrealTargetPlatform> SetupTargetPlatforms(CommandUtils Command, List<UnrealTargetPlatform> OverrideTargetPlatforms, List<UnrealTargetPlatform> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
+		private List<UnrealTargetPlatform> SetupTargetPlatforms(ref Dictionary<UnrealTargetPlatform,UnrealTargetPlatform> DependentPlatformMap, CommandUtils Command, List<UnrealTargetPlatform> OverrideTargetPlatforms, List<UnrealTargetPlatform> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
 		{
 			List<UnrealTargetPlatform> TargetPlatforms = null;
 			if (CommandUtils.IsNullOrEmpty(OverrideTargetPlatforms))
@@ -141,7 +143,20 @@ namespace AutomationTool
 						var Platforms = new List<string>(CmdLinePlatform.Split('+'));
 						foreach (var PlatformName in Platforms)
 						{
-							TargetPlatforms.Add((UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), PlatformName, true));
+                            // Look for dependent platforms, Source_1.Dependent_1+Source_2.Dependent_2+Standalone_3
+                            var SubPlatforms = new List<string>(PlatformName.Split('.'));
+
+                            foreach (var SubPlatformName in SubPlatforms)
+                            {
+                                UnrealTargetPlatform NewPlatform = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformName, true);
+                                TargetPlatforms.Add(NewPlatform);
+
+                                if (SubPlatformName != SubPlatforms[0])
+                                {
+                                    // We're a dependent platform so add ourselves to the map, pointing to the first element in the list
+                                    DependentPlatformMap.Add(NewPlatform, (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatforms[0], true));
+                                }
+                            }
 						}
 					}
 					else if (AllowPlatformParams)
@@ -185,7 +200,9 @@ namespace AutomationTool
 			this.EditorTargets = InParams.EditorTargets;
 			this.ProgramTargets = InParams.ProgramTargets;
 			this.ClientTargetPlatforms = InParams.ClientTargetPlatforms;
+            this.ClientDependentPlatformMap = InParams.ClientDependentPlatformMap;
 			this.ServerTargetPlatforms = InParams.ServerTargetPlatforms;
+            this.ServerDependentPlatformMap = InParams.ServerDependentPlatformMap;
 			this.Build = InParams.Build;
 			this.Run = InParams.Run;
 			this.Cook = InParams.Cook;
@@ -285,7 +302,9 @@ namespace AutomationTool
 			ParamList<string> EditorTargets = null,
 			ParamList<string> ServerCookedTargets = null,
 			List<UnrealTargetPlatform> ClientTargetPlatforms = null,
-			List<UnrealTargetPlatform> ServerTargetPlatforms = null,	
+            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = null,
+			List<UnrealTargetPlatform> ServerTargetPlatforms = null,
+            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = null,
 			bool? Build = null,
 			bool? Cook = null,
 			string CookFlavor = null,
@@ -370,11 +389,19 @@ namespace AutomationTool
 				this.ProgramTargets = ProgramTargets;
 			}
 
-			// Parse command line params for client platforms "-TargetPlatform=", "-Platform=" and also "-Win64", "-Mac" etc.
-			this.ClientTargetPlatforms = SetupTargetPlatforms(Command, ClientTargetPlatforms, new ParamList<UnrealTargetPlatform>() {HostPlatform.Current.HostEditorPlatform}, true, "TargetPlatform", "Platform");
+			// Parse command line params for client platforms "-TargetPlatform=Win64+Mac", "-Platform=Win64+Mac" and also "-Win64", "-Mac" etc.
+            if (ClientDependentPlatformMap != null)
+            {
+                this.ClientDependentPlatformMap = ClientDependentPlatformMap;
+            }
+			this.ClientTargetPlatforms = SetupTargetPlatforms(ref this.ClientDependentPlatformMap, Command, ClientTargetPlatforms, new ParamList<UnrealTargetPlatform>() {HostPlatform.Current.HostEditorPlatform}, true, "TargetPlatform", "Platform");
 
-			// Parse command line params for server paltforms "-ServerTargetPlatform", "-ServerPlatform"; "-Win64" etc is not allowed here
-			this.ServerTargetPlatforms = SetupTargetPlatforms(Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
+            // Parse command line params for server platforms "-ServerTargetPlatform=Win64+Mac", "-ServerPlatform=Win64+Mac". "-Win64" etc is not allowed here
+            if (ServerDependentPlatformMap != null)
+            {
+                this.ServerDependentPlatformMap = ServerDependentPlatformMap;
+            }
+            this.ServerTargetPlatforms = SetupTargetPlatforms(ref this.ServerDependentPlatformMap, Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
 
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
@@ -625,14 +652,24 @@ namespace AutomationTool
 		public bool Unattended { private set; get; }
 
 		/// <summary>
-		/// Shared: True if win32 binaries should be built, commandline: -win32
+        /// Shared: Sets platforms to build for non-dedicated servers. commandline: -TargetPlatform
 		/// </summary>
 		public List<UnrealTargetPlatform> ClientTargetPlatforms = new List<UnrealTargetPlatform>();
 
+        /// <summary>
+        /// Shared: Dictionary that maps client dependent platforms to "source" platforms that it should copy data from. commandline: -TargetPlatform=source.dependent
+        /// </summary>
+        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
+
 		/// <summary>
-		/// Shared: True if win32 binaries should be built, commandline: -win32
+        /// Shared: Sets platforms to build for dedicated servers. commandline: -ServerTargetPlatform
 		/// </summary>
 		public List<UnrealTargetPlatform> ServerTargetPlatforms = new List<UnrealTargetPlatform>();
+
+        /// <summary>
+        /// Shared: Dictionary that maps server dependent platforms to "source" platforms that it should copy data from: -ServerTargetPlatform=source.dependent
+        /// </summary>
+        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
 
 		/// <summary>
 		/// Shared: True if pak file should be generated.
@@ -1464,6 +1501,15 @@ namespace AutomationTool
 			}
 		}
 
+        public UnrealTargetPlatform GetCookedDataPlatformForClientTarget(UnrealTargetPlatform TargetPlatformType)
+        {
+            if (ClientDependentPlatformMap.ContainsKey(TargetPlatformType))
+            {
+                return ClientDependentPlatformMap[TargetPlatformType];
+            }
+            return TargetPlatformType;
+        }
+
 		public List<Platform> ServerTargetPlatformInstances
 		{
 			get
@@ -1476,6 +1522,15 @@ namespace AutomationTool
 				return ServerPlatformInstances;
 			}
 		}
+
+        public UnrealTargetPlatform GetCookedDataPlatformForServerTarget(UnrealTargetPlatform TargetPlatformType)
+        {
+            if (ServerDependentPlatformMap.ContainsKey(TargetPlatformType))
+            {
+                return ServerDependentPlatformMap[TargetPlatformType];
+            }
+            return TargetPlatformType;
+        }
 
 		/// <summary>
 		/// All auto-detected targets for this project

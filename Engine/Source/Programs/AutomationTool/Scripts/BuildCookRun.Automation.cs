@@ -114,14 +114,14 @@ public class BuildCookRun : BuildCommand
 
 		if (Params.DedicatedServer)
 		{
-			foreach ( var ServerPlatformInstance in Params.ServerTargetPlatformInstances )
+			foreach (var ServerPlatformInstance in Params.ServerTargetPlatformInstances)
 			{
 				ServerPlatformInstance.PlatformSetupParams(ref Params);
 			}
 		}
 		else
 		{
-			foreach ( var ClientPlatformInstance in Params.ClientTargetPlatformInstances )
+			foreach (var ClientPlatformInstance in Params.ClientTargetPlatformInstances)
 			{
 				ClientPlatformInstance.PlatformSetupParams(ref Params);
 			}
@@ -172,10 +172,10 @@ public class BuildCookRun : BuildCommand
 		{
 			Log("Looking for DefaultMap in {0}", DefaultGameEngineConfig);
 			DefaultMap = GetDefaultMapFromIni(DefaultGameEngineConfig, Params.DedicatedServer);
-            if (DefaultMap == null && Params.DedicatedServer)
-            {
-                DefaultMap = GetDefaultMapFromIni(DefaultGameEngineConfig, false);
-            }
+			if (DefaultMap == null && Params.DedicatedServer)
+			{
+				DefaultMap = GetDefaultMapFromIni(DefaultGameEngineConfig, false);
+			}
 		}
 		else
 		{
@@ -183,12 +183,12 @@ public class BuildCookRun : BuildCommand
 			if (FileExists(BaseEngineConfig))
 			{
 				Log("Looking for DefaultMap in {0}", BaseEngineConfig);
-                DefaultMap = GetDefaultMapFromIni(BaseEngineConfig, Params.DedicatedServer);
-                if (DefaultMap == null && Params.DedicatedServer)
-                {
-                    DefaultMap = GetDefaultMapFromIni(BaseEngineConfig, false);
-                }
-            }
+				DefaultMap = GetDefaultMapFromIni(BaseEngineConfig, Params.DedicatedServer);
+				if (DefaultMap == null && Params.DedicatedServer)
+				{
+					DefaultMap = GetDefaultMapFromIni(BaseEngineConfig, false);
+				}
+			}
 		}
 		// We check for null here becase null == not found
 		if (DefaultMap == null)
@@ -203,7 +203,7 @@ public class BuildCookRun : BuildCommand
 		return DefaultMap;
 	}
 
-    private string GetDefaultMapFromIni(string IniFilename, bool DedicatedServer)
+	private string GetDefaultMapFromIni(string IniFilename, bool DedicatedServer)
 	{
 		var IniLines = ReadAllLines(IniFilename);
 		string DefaultMap = null;
@@ -269,45 +269,45 @@ public class BuildCookRun : BuildCommand
 		}
 
 		var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
-        Log("Make a foreign sample {0} -> {1}", Src, Dest);
+		Log("Make a foreign sample {0} -> {1}", Src, Dest);
 
 		CloneDirectory(Src, Dest);
 
-        DeleteDirectory_NoExceptions(CombinePaths(Dest, "Intermediate"));
-        DeleteDirectory_NoExceptions(CombinePaths(Dest, "Saved"));
+		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Intermediate"));
+		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Saved"));
 
 		RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
 		var Ini = new VersionFileUpdater(IniFile);
 		Ini.ReplaceLine("GameName=", DestSample);
-        Ini.Commit();
+		Ini.Commit();
 	}
 
 	private void MakeForeignCodeSample()
 	{
 		string Sample = "PlatformerGame";
-        string DestSample = "PlatformerGame";
-        var Src = CombinePaths(CmdEnv.LocalRoot, Sample);
+		string DestSample = "PlatformerGame";
+		var Src = CombinePaths(CmdEnv.LocalRoot, Sample);
 		if (!DirectoryExists(Src))
 		{
 			throw new AutomationException("Can't find source directory to make foreign sample {0}.", Src);
 		}
 
-        var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
-        Log("Make a foreign sample {0} -> {1}", Src, Dest);
+		var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
+		Log("Make a foreign sample {0} -> {1}", Src, Dest);
 
 		CloneDirectory(Src, Dest);
-        DeleteDirectory_NoExceptions(CombinePaths(Dest, "Intermediate"));
-        DeleteDirectory_NoExceptions(CombinePaths(Dest, "Saved"));
-        DeleteDirectory_NoExceptions(CombinePaths(Dest, "Plugins", "FootIK", "Intermediate"));
+		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Intermediate"));
+		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Saved"));
+		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Plugins", "FootIK", "Intermediate"));
 
 		//RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
 		var Ini = new VersionFileUpdater(IniFile);
 		Ini.ReplaceLine("GameName=", DestSample);
-        Ini.Commit();
+		Ini.Commit();
 	}
 
 	private string ProjectFullPath;
@@ -322,41 +322,41 @@ public class BuildCookRun : BuildCommand
 				if (bForeign)
 				{
 					var DestSample = ParseParamValue("DestSample", "CopiedHoverShip");
-                    var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
+					var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
 					ProjectFullPath = CombinePaths(Dest, DestSample + ".uproject");
 				}
 				else if (bForeignCode)
 				{
 					var DestSample = ParseParamValue("DestSample", "PlatformerGame");
-                    var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
+					var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
 					ProjectFullPath = CombinePaths(Dest, DestSample + ".uproject");
 				}
 				else
 				{
-                    var OriginalProjectName = ParseParamValue("project", CombinePaths("Samples", "Sandbox", "BlankProject", "BlankProject.uproject"));
-                    var ProjectName = OriginalProjectName;
-					ProjectName = ProjectName.Trim (new char[]{ '\"' });
-                    if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)
-                    {
-                        ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName, ProjectName + ".uproject");
-                    }
-                    else if (!FileExists_NoExceptions(ProjectName))
-                    {
-                        ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName);
-                    }
-                    if (!FileExists_NoExceptions(ProjectName))
-                    {
-                        var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64 });
-                        var GameProj = Branch.FindGame(OriginalProjectName);
-                        if (GameProj != null)
-                        {
-                            ProjectName = GameProj.FilePath;
-                        }
-                    }
-                    if (!FileExists_NoExceptions(ProjectName))
-                    {
-                        throw new AutomationException("Could not find a project file {0}.", ProjectName);
-                    }
+					var OriginalProjectName = ParseParamValue("project", CombinePaths("Samples", "Sandbox", "BlankProject", "BlankProject.uproject"));
+					var ProjectName = OriginalProjectName;
+					ProjectName = ProjectName.Trim(new char[] { '\"' });
+					if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)
+					{
+						ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName, ProjectName + ".uproject");
+					}
+					else if (!FileExists_NoExceptions(ProjectName))
+					{
+						ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName);
+					}
+					if (!FileExists_NoExceptions(ProjectName))
+					{
+						var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64 });
+						var GameProj = Branch.FindGame(OriginalProjectName);
+						if (GameProj != null)
+						{
+							ProjectName = GameProj.FilePath;
+						}
+					}
+					if (!FileExists_NoExceptions(ProjectName))
+					{
+						throw new AutomationException("Could not find a project file {0}.", ProjectName);
+					}
 					ProjectFullPath = Path.GetFullPath(ProjectName);
 				}
 			}

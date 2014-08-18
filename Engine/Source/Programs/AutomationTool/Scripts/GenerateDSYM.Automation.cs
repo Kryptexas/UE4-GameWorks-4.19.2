@@ -12,17 +12,17 @@ using UnrealBuildTool;
 [Help("config=Configuration", @"Project configuration (required), i.e: -config=Development")]
 public class GenerateDSYM : BuildCommand
 {
-    #region BaseCommand interface
+	#region BaseCommand interface
 
 	public override void ExecuteBuild()
-    {
-        var ProjectName = ParseParamValue("project");
-        var Config = ParseParamValue("config");
+	{
+		var ProjectName = ParseParamValue("project");
+		var Config = ParseParamValue("config");
 
-        var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
+		var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
-        RunAndLog(CmdEnv, IPPExe, "RPC " + ProjectName + " -config " + Config + " GenDSYM");
-    }
+		RunAndLog(CmdEnv, IPPExe, "RPC " + ProjectName + " -config " + Config + " GenDSYM");
+	}
 
-    #endregion
+	#endregion
 }

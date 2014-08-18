@@ -11,20 +11,20 @@ public class MacPlatform : Platform
 {
 	public MacPlatform()
 		: base(UnrealTargetPlatform.Mac)
-	{ 
+	{
 	}
 
-    public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
-    {
-        const string ClientCookPlatform = "MacNoEditor";
-        const string ServerCookPlatform = "MacServer";
-        return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
-    }
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	{
+		const string ClientCookPlatform = "MacNoEditor";
+		const string ServerCookPlatform = "MacServer";
+		return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
+	}
 
-    public override string GetEditorCookPlatform()
-    {
-        return "Mac";
-    }
+	public override string GetEditorCookPlatform()
+	{
+		return "Mac";
+	}
 
 	private void StageAppBundle(DeploymentContext SC, string InPath, string NewName)
 	{
@@ -49,8 +49,8 @@ public class MacPlatform : Platform
 		// Copy the splash screen, Mac specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
-        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
-    }
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
+	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
@@ -143,23 +143,23 @@ public class MacPlatform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-    public override bool ShouldUseManifestForUBTBuilds(string AddArgs)
+	public override bool ShouldUseManifestForUBTBuilds(string AddArgs)
 	{
 		// don't use the manifest to set up build products if we are compiling Mac under Windows and we aren't going to copy anything back to the PC
 		bool bIsBuildingRemotely = UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;
-        bool bUseManifest = !bIsBuildingRemotely || AddArgs.IndexOf("-CopyAppBundleBackToDevice", StringComparison.InvariantCultureIgnoreCase) > 0;
+		bool bUseManifest = !bIsBuildingRemotely || AddArgs.IndexOf("-CopyAppBundleBackToDevice", StringComparison.InvariantCultureIgnoreCase) > 0;
 		return bUseManifest;
 	}
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> {".dsym"};
-    }
-    public override bool CanHostPlatform(UnrealTargetPlatform Platform)
-    {
-        if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac)
-        {
-            return true;
-        }
-        return false;
-    }
+	public override List<string> GetDebugFileExtentions()
+	{
+		return new List<string> { ".dsym" };
+	}
+	public override bool CanHostPlatform(UnrealTargetPlatform Platform)
+	{
+		if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac)
+		{
+			return true;
+		}
+		return false;
+	}
 }

@@ -36,8 +36,8 @@ public partial class Project : CommandUtils
 
 	#region Run Command
 
-    // debug commands for the engine to crash
-    public static string[] CrashCommands = 
+	// debug commands for the engine to crash
+	public static string[] CrashCommands = 
     {
         "crash",
         "CHECK",
@@ -58,8 +58,8 @@ public partial class Project : CommandUtils
 	/// <returns></returns>
 	private static string GetLogFolderOutsideOfSandbox()
 	{
-		return GlobalCommandLine.Installed ? 
-			CmdEnv.LogFolder : 
+		return GlobalCommandLine.Installed ?
+			CmdEnv.LogFolder :
 			CombinePaths(Path.GetTempPath(), CommandUtils.EscapePath(CmdEnv.LocalRoot), "Logs");
 	}
 
@@ -192,34 +192,34 @@ public partial class Project : CommandUtils
 	{
 		if (Params.Unattended)
 		{
-            string LookFor = "Bringing up level for play took";
-            if (Params.RunAutomationTest != "")
-            {
-                LookFor = "Automation Test Succeeded";
-            }
-            else if (Params.RunAutomationTests)
-            {
-                LookFor = "Automation Test Queue Empty";
-            }
-            else if (Params.EditorTest)
-            {
-                LookFor = "Asset discovery search completed in";
-            }
+			string LookFor = "Bringing up level for play took";
+			if (Params.RunAutomationTest != "")
+			{
+				LookFor = "Automation Test Succeeded";
+			}
+			else if (Params.RunAutomationTests)
+			{
+				LookFor = "Automation Test Queue Empty";
+			}
+			else if (Params.EditorTest)
+			{
+				LookFor = "Asset discovery search completed in";
+			}
 			{
 
-                string AllClientOutput = "";
-                int LastAutoFailIndex = -1;
-                ProcessResult ClientProcess = null;
+				string AllClientOutput = "";
+				int LastAutoFailIndex = -1;
+				ProcessResult ClientProcess = null;
 				FileStream ClientProcessLog = null;
 				StreamReader ClientLogReader = null;
 				Log("Starting Client for unattended test....");
-                ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH -testexit=\"" + LookFor + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
+				ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH -testexit=\"" + LookFor + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
 				while (!FileExists(ClientLogFile) && !ClientProcess.HasExited)
 				{
 					Log("Waiting for client logging process to start...{0}", ClientLogFile);
 					Thread.Sleep(2000);
 				}
-                if (FileExists(ClientLogFile))
+				if (FileExists(ClientLogFile))
 				{
 					Thread.Sleep(2000);
 					Log("Client logging process started...{0}", ClientLogFile);
@@ -232,79 +232,79 @@ public partial class Project : CommandUtils
 				}
 				bool bKeepReading = true;
 				bool WelcomedCorrectly = false;
-                bool bClientExited = false;
-                DateTime ExitTime = DateTime.UtcNow;
+				bool bClientExited = false;
+				DateTime ExitTime = DateTime.UtcNow;
 
-                while (bKeepReading)
+				while (bKeepReading)
 				{
-                    if (!bClientExited && ClientProcess.HasExited)
-                    {
-                        ExitTime = DateTime.UtcNow;
-                        bClientExited = true;
-                    }
+					if (!bClientExited && ClientProcess.HasExited)
+					{
+						ExitTime = DateTime.UtcNow;
+						bClientExited = true;
+					}
 					string ClientOutput = ClientLogReader.ReadToEnd();
 					if (!String.IsNullOrEmpty(ClientOutput))
 					{
-                        if (bClientExited)
-                        {
-                            ExitTime = DateTime.UtcNow; // as long as it is spewing, we reset the timer
-                        }
-                        AllClientOutput += ClientOutput;
+						if (bClientExited)
+						{
+							ExitTime = DateTime.UtcNow; // as long as it is spewing, we reset the timer
+						}
+						AllClientOutput += ClientOutput;
 						Console.Write(ClientOutput);
 
-                        if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
+						if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
 						{
 							WelcomedCorrectly = true;
 							Log("Test complete...");
 							bKeepReading = false;
 						}
-                        else if (Params.RunAutomationTests)
-                        {
-                            int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
-                            int ParenIndex = AllClientOutput.LastIndexOf(")");
-                            if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
-                            {
-                                string Tail = AllClientOutput.Substring(FailIndex);
-                                int CloseParenIndex = Tail.IndexOf(")");
-                                int OpenParenIndex = Tail.IndexOf("(");
-                                string Test = "";
-                                if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
-                                {
-                                    Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
-                                    Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
-                                    LastAutoFailIndex = FailIndex;
-                                }
-                            }
-                        }
-                    }
-                    else if (bClientExited && (DateTime.UtcNow - ExitTime).TotalSeconds > 30)
-                    {
-                        Log("Client exited and has been quiet for 30 seconds...exiting");
-                        bKeepReading = false;
-                    }
+						else if (Params.RunAutomationTests)
+						{
+							int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
+							int ParenIndex = AllClientOutput.LastIndexOf(")");
+							if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
+							{
+								string Tail = AllClientOutput.Substring(FailIndex);
+								int CloseParenIndex = Tail.IndexOf(")");
+								int OpenParenIndex = Tail.IndexOf("(");
+								string Test = "";
+								if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
+								{
+									Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
+									Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+									LastAutoFailIndex = FailIndex;
+								}
+							}
+						}
+					}
+					else if (bClientExited && (DateTime.UtcNow - ExitTime).TotalSeconds > 30)
+					{
+						Log("Client exited and has been quiet for 30 seconds...exiting");
+						bKeepReading = false;
+					}
 				}
-                if (ClientProcess != null && !ClientProcess.HasExited)
-                {
-                    Log("Client is supposed to exit, lets wait a while for it to exit naturally...");
-                    for (int i = 0 ; i < 120 && !ClientProcess.HasExited; i++)
-                    {
-                        Thread.Sleep(1000);
-                    }
-                }
+				if (ClientProcess != null && !ClientProcess.HasExited)
+				{
+					Log("Client is supposed to exit, lets wait a while for it to exit naturally...");
+					for (int i = 0; i < 120 && !ClientProcess.HasExited; i++)
+					{
+						Thread.Sleep(1000);
+					}
+				}
 				if (ClientProcess != null && !ClientProcess.HasExited)
 				{
 					Log("Stopping client...");
 					ClientProcess.StopProcess();
-                    Thread.Sleep(10000);
-                }
-                while (ClientLogReader != null && !ClientLogReader.EndOfStream)
-                {
-                    string ClientOutput = ClientLogReader.ReadToEnd();
-                    if (!String.IsNullOrEmpty(ClientOutput))
-                    {
-                        Console.Write(ClientOutput);
-                    }
-                }
+					Thread.Sleep(10000);
+				}
+				while (ClientLogReader != null && !ClientLogReader.EndOfStream)
+				{
+					string ClientOutput = ClientLogReader.ReadToEnd();
+					if (!String.IsNullOrEmpty(ClientOutput))
+					{
+						Console.Write(ClientOutput);
+					}
+				}
 
 				if (!WelcomedCorrectly)
 				{
@@ -347,24 +347,24 @@ public partial class Project : CommandUtils
 
 		bool WelcomedCorrectly = false;
 		int NumClients = Params.NumClients;
-        string AllClientOutput = "";
-        int LastAutoFailIndex = -1;
+		string AllClientOutput = "";
+		int LastAutoFailIndex = -1;
 
-        if (Params.Unattended)
+		if (Params.Unattended)
 		{
-            string LookFor = "Bringing up level for play took";
-            if (Params.DedicatedServer)
-            {
-                LookFor = "Welcomed by server";
-            }
-            else if (Params.RunAutomationTest != "")
-            {
-                LookFor = "Automation Test Succeeded";
-            }
-            else if (Params.RunAutomationTests)
-            {
-                LookFor = "Automation Test Queue Empty";
-            }
+			string LookFor = "Bringing up level for play took";
+			if (Params.DedicatedServer)
+			{
+				LookFor = "Welcomed by server";
+			}
+			else if (Params.RunAutomationTest != "")
+			{
+				LookFor = "Automation Test Succeeded";
+			}
+			else if (Params.RunAutomationTests)
+			{
+				LookFor = "Automation Test Queue Empty";
+			}
 			{
 				while (!FileExists(ServerLogFile) && !ServerProcess.HasExited)
 				{
@@ -373,8 +373,8 @@ public partial class Project : CommandUtils
 				}
 				Thread.Sleep(1000);
 
-                string AllServerOutput = "";
-                using (FileStream ProcessLog = File.Open(ServerLogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+				string AllServerOutput = "";
+				using (FileStream ProcessLog = File.Open(ServerLogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
 				{
 					StreamReader LogReader = new StreamReader(ProcessLog);
 					bool bKeepReading = true;
@@ -390,9 +390,9 @@ public partial class Project : CommandUtils
 							string Output = LogReader.ReadToEnd();
 							if (!String.IsNullOrEmpty(Output))
 							{
-                                AllServerOutput += Output;
+								AllServerOutput += Output;
 								if (ClientProcess == null &&
-                                        (AllServerOutput.Contains("Game Engine Initialized") || AllServerOutput.Contains("Unreal Network File Server is ready")))
+										(AllServerOutput.Contains("Game Engine Initialized") || AllServerOutput.Contains("Unreal Network File Server is ready")))
 								{
 									Log("Starting Client for unattended test....");
 									ClientProcess = Run(ClientApp, ClientCmdLine + " -FORCELOGFLUSH -testexit=\"" + LookFor + "\"", null, ClientRunFlags | ERunOptions.NoWaitForExit);
@@ -444,11 +444,11 @@ public partial class Project : CommandUtils
 									string ClientOutput = ClientLogReader.ReadToEnd();
 									if (!String.IsNullOrEmpty(ClientOutput))
 									{
-                                        AllClientOutput += ClientOutput;
+										AllClientOutput += ClientOutput;
 										Console.Write(ClientOutput);
 
-                                        if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
-                                        {
+										if (AllClientOutput.LastIndexOf(LookFor) > AllClientOutput.IndexOf(LookFor))
+										{
 											if (Params.FakeClient)
 											{
 												Log("Welcomed by server or client loaded, lets wait ten minutes...");
@@ -462,24 +462,24 @@ public partial class Project : CommandUtils
 											WelcomedCorrectly = true;
 											bKeepReading = false;
 										}
-                                        else if (Params.RunAutomationTests)
-                                        {
-                                            int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
-                                            int ParenIndex = AllClientOutput.LastIndexOf(")");
-                                            if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
-                                            {
-                                                string Tail = AllClientOutput.Substring(FailIndex);
-                                                int CloseParenIndex = Tail.IndexOf(")");
-                                                int OpenParenIndex = Tail.IndexOf("(");
-                                                string Test = "";
-                                                if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
-                                                {
-                                                    Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
-                                                    Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
-                                                    LastAutoFailIndex = FailIndex;
-                                                }
-                                            }
-                                        }
+										else if (Params.RunAutomationTests)
+										{
+											int FailIndex = AllClientOutput.LastIndexOf("Automation Test Failed");
+											int ParenIndex = AllClientOutput.LastIndexOf(")");
+											if (FailIndex >= 0 && ParenIndex > FailIndex && FailIndex > LastAutoFailIndex)
+											{
+												string Tail = AllClientOutput.Substring(FailIndex);
+												int CloseParenIndex = Tail.IndexOf(")");
+												int OpenParenIndex = Tail.IndexOf("(");
+												string Test = "";
+												if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
+												{
+													Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
+													Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+													LastAutoFailIndex = FailIndex;
+												}
+											}
+										}
 									}
 								}
 							}
@@ -494,22 +494,22 @@ public partial class Project : CommandUtils
 			LogFileReaderProcess(ServerLogFile, ServerProcess, (string Output) =>
 			{
 				bool bKeepReading = true;
-                if (ClientProcess == null && !String.IsNullOrEmpty(Output))
+				if (ClientProcess == null && !String.IsNullOrEmpty(Output))
 				{
-                    AllClientOutput += Output;
-                    if (ClientProcess == null && (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready")))
-                    {
-					    Log("Starting Client....");
-					    ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
-					    if (NumClients > 1 && NumClients < 9)
-					    {
-						    for (int i = 1; i < NumClients; i++)
-						    {
-							    Log("Starting Extra Client....");
-							    OtherClients.Add(Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit));
-						    }
-					    }
-                    }
+					AllClientOutput += Output;
+					if (ClientProcess == null && (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready")))
+					{
+						Log("Starting Client....");
+						ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+						if (NumClients > 1 && NumClients < 9)
+						{
+							for (int i = 1; i < NumClients; i++)
+							{
+								Log("Starting Extra Client....");
+								OtherClients.Add(Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit));
+							}
+						}
+					}
 				}
 				else if (ClientProcess == null && !ServerProcess.HasExited)
 				{
@@ -547,10 +547,10 @@ public partial class Project : CommandUtils
 		}
 		if (Params.Unattended)
 		{
-            if (!WelcomedCorrectly)
-            {
-			    throw new AutomationException("Server or client exited before we asked it to.");
-            }
+			if (!WelcomedCorrectly)
+			{
+				throw new AutomationException("Server or client exited before we asked it to.");
+			}
 		}
 	}
 
@@ -589,41 +589,41 @@ public partial class Project : CommandUtils
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
 				TempCmdLine += "-filehostip=";
-                bool FirstParam = true;
+				bool FirstParam = true;
 				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 				{
-					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces ();
+					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
 					foreach (NetworkInterface adapter in Interfaces)
 					{
 						if (adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
 						{
-							IPInterfaceProperties IP = adapter.GetIPProperties ();
+							IPInterfaceProperties IP = adapter.GetIPProperties();
 							for (int Index = 0; Index < IP.UnicastAddresses.Count; ++Index)
 							{
-								if (IP.UnicastAddresses [Index].IsDnsEligible && IP.UnicastAddresses [Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-                                    if (Params.Port != null)
-                                    {
-                                        foreach (var Port in Params.Port)
-                                        {
-                                            if (!FirstParam)
-                                            {
-                                                TempCmdLine += "+";
-                                            }
-                                            FirstParam = false;
-                                            string[] PortProtocol = Port.Split(new char[] { ':' });
-                                            if (PortProtocol.Length > 1)
-                                            {
-                                                TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
-                                            }
-                                            else
-                                            {
-                                                TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
-                                                TempCmdLine += ":";
-                                                TempCmdLine += Params.Port;
-                                            }
-                                        }
-                                    }
+									if (Params.Port != null)
+									{
+										foreach (var Port in Params.Port)
+										{
+											if (!FirstParam)
+											{
+												TempCmdLine += "+";
+											}
+											FirstParam = false;
+											string[] PortProtocol = Port.Split(new char[] { ':' });
+											if (PortProtocol.Length > 1)
+											{
+												TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+											}
+											else
+											{
+												TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
+												TempCmdLine += ":";
+												TempCmdLine += Params.Port;
+											}
+										}
+									}
 								}
 							}
 						}
@@ -631,7 +631,7 @@ public partial class Project : CommandUtils
 				}
 				else
 				{
-					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces ();
+					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
 					foreach (NetworkInterface adapter in Interfaces)
 					{
 						if (adapter.OperationalStatus == OperationalStatus.Up)
@@ -641,59 +641,59 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-                                    if (Params.Port != null)
-                                    {
-                                        foreach (var Port in Params.Port)
-                                        {
-                                            if (!FirstParam)
-                                            {
-                                                TempCmdLine += "+";
-                                            }
-                                            FirstParam = false;
-                                            string[] PortProtocol = Port.Split(new char[] { ':' });
-                                            if (PortProtocol.Length > 1)
-                                            {
-                                                TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
-                                            }
-                                            else
-                                            {
-                                                TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
-                                                TempCmdLine += ":";
-                                                TempCmdLine += Params.Port;
-                                            }
-                                        }
-                                    }
+									if (Params.Port != null)
+									{
+										foreach (var Port in Params.Port)
+										{
+											if (!FirstParam)
+											{
+												TempCmdLine += "+";
+											}
+											FirstParam = false;
+											string[] PortProtocol = Port.Split(new char[] { ':' });
+											if (PortProtocol.Length > 1)
+											{
+												TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+											}
+											else
+											{
+												TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
+												TempCmdLine += ":";
+												TempCmdLine += Params.Port;
+											}
+										}
+									}
 								}
 							}
 						}
 					}
 				}
-				
-                const string LocalHost = "127.0.0.1";
 
-                if (Params.Port != null)
-                {
-                    foreach (var Port in Params.Port)
-                    {
-                        if (!FirstParam)
-                        {
-                            TempCmdLine += "+";
-                        }
-                        FirstParam = false;
-                        string[] PortProtocol = Port.Split(new char[] { ':' });
-                        if (PortProtocol.Length > 1)
-                        {
-                            TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], LocalHost, PortProtocol[1]);
-                        }
-                        else
-                        {
-                            TempCmdLine += LocalHost;
-                            TempCmdLine += ":";
-                            TempCmdLine += Params.Port;
-                        }
+				const string LocalHost = "127.0.0.1";
 
-                    }
-                }
+				if (Params.Port != null)
+				{
+					foreach (var Port in Params.Port)
+					{
+						if (!FirstParam)
+						{
+							TempCmdLine += "+";
+						}
+						FirstParam = false;
+						string[] PortProtocol = Port.Split(new char[] { ':' });
+						if (PortProtocol.Length > 1)
+						{
+							TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], LocalHost, PortProtocol[1]);
+						}
+						else
+						{
+							TempCmdLine += LocalHost;
+							TempCmdLine += ":";
+							TempCmdLine += Params.Port;
+						}
+
+					}
+				}
 				TempCmdLine += " ";
 
 				if (!Params.Stage)
@@ -733,11 +733,11 @@ public partial class Project : CommandUtils
 		else
 		{
 			ClientApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries", PlatformName, "UE4Editor.exe");
-            TempCmdLine += SC.ProjectArgForCommandLines + " ";
-            if (!Params.EditorTest)
-            {
-                TempCmdLine += "-game " + Params.MapToRun + " ";
-            }
+			TempCmdLine += SC.ProjectArgForCommandLines + " ";
+			if (!Params.EditorTest)
+			{
+				TempCmdLine += "-game " + Params.MapToRun + " ";
+			}
 		}
 		if (Params.LogWindow)
 		{
@@ -753,30 +753,30 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-unattended ";
 		}
-        if (IsBuildMachine || Params.Unattended)
-        {
-            TempCmdLine += "-buildmachine ";
-        }
-        if (Params.CrashIndex > 0)
-        {
-            int RealIndex = Params.CrashIndex - 1;
-            if (RealIndex < 0 || RealIndex >= CrashCommands.Count())
-            {
-                throw new AutomationException("CrashIndex {0} is out of range...max={1}", Params.CrashIndex, CrashCommands.Count());
-            }
-            TempCmdLine += String.Format("-execcmds=\"debug {0}\" ", CrashCommands[RealIndex]);
-        }
-        else if (Params.RunAutomationTest != "")
-        {
-            TempCmdLine += "-execcmds=\"automation list, automation run " + Params.RunAutomationTest + "\" ";
-        }
-        else if (Params.RunAutomationTests)
-        {
-            TempCmdLine += "-execcmds=\"automation list, automation runall\" ";
-        }
-        if (!SC.StageTargetPlatform.LaunchViaUFE)
+		if (IsBuildMachine || Params.Unattended)
 		{
-			TempCmdLine += "-abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ClientLogFile) + " ";	
+			TempCmdLine += "-buildmachine ";
+		}
+		if (Params.CrashIndex > 0)
+		{
+			int RealIndex = Params.CrashIndex - 1;
+			if (RealIndex < 0 || RealIndex >= CrashCommands.Count())
+			{
+				throw new AutomationException("CrashIndex {0} is out of range...max={1}", Params.CrashIndex, CrashCommands.Count());
+			}
+			TempCmdLine += String.Format("-execcmds=\"debug {0}\" ", CrashCommands[RealIndex]);
+		}
+		else if (Params.RunAutomationTest != "")
+		{
+			TempCmdLine += "-execcmds=\"automation list, automation run " + Params.RunAutomationTest + "\" ";
+		}
+		else if (Params.RunAutomationTests)
+		{
+			TempCmdLine += "-execcmds=\"automation list, automation runall\" ";
+		}
+		if (!SC.StageTargetPlatform.LaunchViaUFE)
+		{
+			TempCmdLine += "-abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ClientLogFile) + " ";
 		}
 		if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.IOS)
 		{
@@ -787,11 +787,11 @@ public partial class Project : CommandUtils
 			// skip arguments which don't make sense for iOS
 			TempCmdLine += "-Messaging -nomcp ";
 		}
-        if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
+		if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
 		{
 			TempCmdLine += "-nullrhi ";
 		}
-        TempCmdLine += "-CrashForUAT ";
+		TempCmdLine += "-CrashForUAT ";
 		TempCmdLine += Params.RunCommandline;
 
 		// todo: move this into the platform
@@ -902,12 +902,12 @@ public partial class Project : CommandUtils
 				Args += " -pak";
 			}
 		}
-        if (IsBuildMachine || Params.Unattended)
-        {
-            Args += " -buildmachine"; 
-        }
-        Args += " -CrashForUAT"; 
-        Args += " " + AdditionalCommandLine;
+		if (IsBuildMachine || Params.Unattended)
+		{
+			Args += " -buildmachine";
+		}
+		Args += " -CrashForUAT";
+		Args += " " + AdditionalCommandLine;
 
 
 		if (ServerParams.Cook && ServerPlatform == UnrealTargetPlatform.Linux && !String.IsNullOrEmpty(ServerParams.ServerDeviceAddress))
@@ -925,17 +925,17 @@ public partial class Project : CommandUtils
 	private static ProcessResult RunCookOnTheFlyServer(string ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
 	{
 		var ServerApp = HostPlatform.Current.GetUE4ExePath("UE4Editor.exe");
-        var Args = String.Format("{0} -run=cook -targetplatform={1} -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
+		var Args = String.Format("{0} -run=cook -targetplatform={1} -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
 			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),
 			TargetPlatform);
 		if (!String.IsNullOrEmpty(ServerLogFile))
 		{
 			Args += " -abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile);
 		}
-        if (IsBuildMachine)
-        {
-            Args += " -buildmachine";
-        }
+		if (IsBuildMachine)
+		{
+			Args += " -buildmachine";
+		}
 		Args += " " + AdditionalCommandLine;
 
 		// Run the server (Without NoStdOutRedirect -log doesn't log anything to the window)
@@ -971,15 +971,15 @@ public partial class Project : CommandUtils
 		var UnrealFileServerExe = HostPlatform.Current.GetUE4ExePath("UnrealFileServer.exe");
 
 		Log("Running UnrealFileServer *******");
-        var Args = String.Format("{0} -abslog={1} -unattended -CrashForUAT -FORCELOGFLUSH -log {2}",
+		var Args = String.Format("{0} -abslog={1} -unattended -CrashForUAT -FORCELOGFLUSH -log {2}",
 						CommandUtils.MakePathSafeToUseWithCommandLine(Params.RawProjectPath),
 						CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile),
 						AdditionalCommandLine);
-        if (IsBuildMachine)
-        {
-            Args += " -buildmachine";
-        }
-        PushDir(Path.GetDirectoryName(UnrealFileServerExe));
+		if (IsBuildMachine)
+		{
+			Args += " -buildmachine";
+		}
+		PushDir(Path.GetDirectoryName(UnrealFileServerExe));
 		var Result = Run(UnrealFileServerExe, Args, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 		PopDir();
 		return Result;

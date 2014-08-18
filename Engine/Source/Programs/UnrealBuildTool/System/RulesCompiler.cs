@@ -671,6 +671,15 @@ namespace UnrealBuildTool
             return Result;
         }
         /// <summary>
+        /// Return a list of target platforms for the monolithic without cook
+        /// </summary>
+        /// <returns>a list of target platforms for the monolithic without cook</returns>        
+        public virtual List<UnrealTargetPlatform> GUBP_GetBuildOnlyPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+        {
+            var Result = new List<UnrealTargetPlatform> {};            
+            return Result;
+        }
+        /// <summary>
         /// Return a list of configs for target platforms for the monolithic
         /// </summary>
         /// <returns>a list of configs for a target platforms for the monolithic</returns>        
