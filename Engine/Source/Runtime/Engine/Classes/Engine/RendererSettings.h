@@ -177,6 +177,11 @@ class ENGINE_API URendererSettings
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
+	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
+		DisplayName="DPI Curve",
+		ToolTip="Controls how the UI is scaled at different resolutions based on the shortest side" ))
+	FRuntimeFloatCurve UIScaleCurve;
+
 public:
 
 	// Begin UObject interface
@@ -187,4 +192,7 @@ public:
 #endif
 
 	// End UObject interface
+
+	/** Gets the current scale of the UI based on the size */
+	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
 };

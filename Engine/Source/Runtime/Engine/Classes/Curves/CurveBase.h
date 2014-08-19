@@ -419,6 +419,9 @@ public:
 
 	/** Called to make curve owner transactional */
 	virtual void MakeTransactional() = 0;
+
+	/** Called when the curve has been changed */
+	virtual void OnCurveChanged() = 0;
 };
 
 
@@ -465,6 +468,7 @@ public:
 
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged() override;
 	// End FCurveOwnerInterface
 
 	// Begin UCurveBase interface

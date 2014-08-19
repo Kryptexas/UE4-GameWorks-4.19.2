@@ -135,5 +135,8 @@ public:
 	 * in order to properly support multiple concurrent UWorlds.
 	 */
 	UWorld* GetGameWorld();
+
+protected:
+	float GetGameViewportDPIScale() const;
 };
 

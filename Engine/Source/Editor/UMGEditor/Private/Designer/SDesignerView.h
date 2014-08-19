@@ -49,9 +49,14 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
+	/** The width of the preview screen for the UI */
 	FOptionalSize GetPreviewWidth() const;
 
+	/** The height of the preview screen for the UI */
 	FOptionalSize GetPreviewHeight() const;
+
+	/** Gets the DPI scale that would be applied given the current preview width and height */
+	float GetPreviewDPIScale() const;
 
 	virtual FSlateRect ComputeAreaBounds() const override;
 
@@ -141,7 +146,7 @@ private:
 	UPanelWidget* DropPreviewParent;
 
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
-	TSharedPtr<SBox> PreviewSurface;
+	TSharedPtr<SDPIScaler> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 
 	DragHandle CurrentHandle;

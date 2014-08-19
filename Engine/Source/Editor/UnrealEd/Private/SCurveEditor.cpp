@@ -891,6 +891,8 @@ void SCurveEditor::DeleteSelectedKeys()
 			Key.Curve->DeleteKey(Key.KeyHandle);
 		}
 	}
+
+	CurveOwner->OnCurveChanged();
 }
 
 
@@ -1035,6 +1037,8 @@ void SCurveEditor::AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition)
 			AddToSelection(FSelectedCurveKey(SelectedCurve, NewKeyHandle));
 		}
 	}
+
+	CurveOwner->OnCurveChanged();
 }
 
 void SCurveEditor::ResetDragValues()
@@ -1230,6 +1234,7 @@ void SCurveEditor::OnTimeComitted(float NewTime, ETextCommit::Type CommitType)
 				CurveOwner->ModifyOwner();
 				Key.Curve->SetKeyTime(Key.KeyHandle, NewTime);
 			}
+			CurveOwner->OnCurveChanged();
 		}
 
 		FSlateApplication::Get().DismissAllMenus();
@@ -1248,6 +1253,7 @@ void SCurveEditor::OnTimeChanged(float NewTime)
 				CurveOwner->ModifyOwner();
 				Key.Curve->SetKeyTime(Key.KeyHandle, NewTime);
 			}
+			CurveOwner->OnCurveChanged();
 		}
 	}
 }
@@ -1293,6 +1299,8 @@ void SCurveEditor::OnValueComitted(float NewValue, ETextCommit::Type CommitType)
 			}
 		}
 
+		CurveOwner->OnCurveChanged();
+
 		FSlateApplication::Get().DismissAllMenus();
 	}
 }
@@ -1315,6 +1323,8 @@ void SCurveEditor::OnValueChanged(float NewValue)
 				Key.Curve->SetKeyValue(Key.KeyHandle, NewValue);
 			}
 		}
+
+		CurveOwner->OnCurveChanged();
 	}
 }
 
@@ -1948,6 +1958,7 @@ void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ER
 		}
 	}
 
+	CurveOwner->OnCurveChanged();
 }
 
 /* Given a tangent value for a key, calculates the 2D delta vector from that key in curve space */
@@ -2040,8 +2051,10 @@ void SCurveEditor::EndDragTransaction()
 {
 	if ( TransactionIndex >= 0 )
 	{
-		GEditor->EndTransaction( );
+		GEditor->EndTransaction();
 		TransactionIndex = -1;
+
+		CurveOwner->OnCurveChanged();
 	}
 }
 

@@ -541,7 +541,7 @@ public:
 	FOnEndTransformObject& OnEndObjectMovement() { return OnEndObjectTransformEvent; }
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
-	    be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
+		be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
 		should be set to true if recording features are needed. */
 	DECLARE_EVENT_OneParam( UEditorEngine, FGetActorRecordingState, bool& /* bIsRecordingActive */ );
 	FGetActorRecordingState& GetActorRecordingState() { return GetActorRecordingStateEvent; }
@@ -2214,7 +2214,7 @@ public:
 	/** @return true if the editor is able to launch PIE with online platform support */
 	bool SupportsOnlinePIE() const;
 
-    /** @return true if there are active PIE instances logged into an online platform */
+	/** @return true if there are active PIE instances logged into an online platform */
 	bool IsPlayingWithOnlinePIE() const { return NumOnlinePIEInstances > 0; }
 
 	/**
@@ -2333,6 +2333,9 @@ public:
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
 private:
+	/** Gets the DPI Scale for the game viewport in the editor. */
+	float GetGameViewportDPIScale() const;
+
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
 	 *
@@ -2506,7 +2509,7 @@ private:
 	FOnEndTransformObject OnEndObjectTransformEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
-	    be able to capture state for simulating actor (for Sequencer recording features) */
+		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
 
 	/** Reference to owner of the current popup */

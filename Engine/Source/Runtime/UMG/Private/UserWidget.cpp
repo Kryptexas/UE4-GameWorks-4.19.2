@@ -406,18 +406,20 @@ void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCur
 		UWorld* World = GetWorld();
 		if ( World && World->IsGameWorld() )
 		{
-			UGameViewportClient* Viewport = World->GetGameViewport();
-			Viewport->AddViewportWidgetContent(WidgetHost);
-
-			//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-			// the Widget stack, and the dialog stack.
-			if ( bModal )
+			if ( UGameViewportClient* Viewport = World->GetGameViewport() )
 			{
-				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-				if ( GameViewportWidget.IsValid() )
+				Viewport->AddViewportWidgetContent(WidgetHost);
+
+				//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+				// the Widget stack, and the dialog stack.
+				if ( bModal )
 				{
-					GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
-					FSlateApplication::Get().SetKeyboardFocus(OutUserSlateWidget);
+					TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+					if ( GameViewportWidget.IsValid() )
+					{
+						GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
+						FSlateApplication::Get().SetKeyboardFocus(OutUserSlateWidget);
+					}
 				}
 			}
 		}
@@ -434,21 +436,23 @@ void UUserWidget::RemoveFromViewport()
 		UWorld* World = GetWorld();
 		if ( World && World->IsGameWorld() )
 		{
-			UGameViewportClient* Viewport = World->GetGameViewport();
-			Viewport->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
-
-			if ( WidgetHost->IsModal() )
+			if ( UGameViewportClient* Viewport = World->GetGameViewport() )
 			{
-				TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-				if ( GameViewportWidget.IsValid() )
-				{
-					//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-					// the Widget stack, and the dialog stack.
-					GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
-					FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+				Viewport->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
 
-					FSlateApplication::Get().SetFocusToGameViewport();
-					FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+				if ( WidgetHost->IsModal() )
+				{
+					TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
+					if ( GameViewportWidget.IsValid() )
+					{
+						//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+						// the Widget stack, and the dialog stack.
+						GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
+						FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+
+						FSlateApplication::Get().SetFocusToGameViewport();
+						FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+					}
 				}
 			}
 		}

@@ -78,3 +78,11 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	}
 }
 #endif // #if WITH_EDITOR
+
+float URendererSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
+{
+	int32 ShortestSide = FMath::Min(Size.X, Size.Y);
+	const FRichCurve* DPICurve = UIScaleCurve.GetRichCurveConst();
+	float Scale = DPICurve->Eval((float)ShortestSide, 1.0f);
+	return FMath::Max(Scale, 0.01f);
+}

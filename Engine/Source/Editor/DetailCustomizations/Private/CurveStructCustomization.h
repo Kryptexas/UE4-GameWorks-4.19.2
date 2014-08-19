@@ -27,6 +27,7 @@ public:
 	virtual UObject* GetOwner() override;
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged() override;
 
 private:
 	/**
@@ -57,7 +58,7 @@ private:
 	/**
 	 * Called when RuntimeFloatCurve's External Curve is changed
 	 */
-	void OnExternalCurveChanged();
+	void OnExternalCurveChanged(TSharedRef<class IPropertyHandle> CurvePropertyHandle);
 
 	/**
 	 * Called when button clicked to create an External Curve

@@ -24,6 +24,7 @@ private:
 		virtual UObject* GetOwner() override;
 		virtual void ModifyOwner() override;
 		virtual void MakeTransactional() override;
+		virtual void OnCurveChanged() override { }
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;
@@ -40,6 +41,7 @@ private:
 		virtual UObject* GetOwner() override;
 		virtual void ModifyOwner() override;
 		virtual void MakeTransactional() override;
+		virtual void OnCurveChanged() override { }
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;

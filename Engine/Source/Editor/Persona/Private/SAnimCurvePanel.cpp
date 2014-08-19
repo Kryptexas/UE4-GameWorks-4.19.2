@@ -97,6 +97,10 @@ public:
 		}
 		return FText::GetEmpty();
 	}
+
+	virtual void OnCurveChanged() override
+	{
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////

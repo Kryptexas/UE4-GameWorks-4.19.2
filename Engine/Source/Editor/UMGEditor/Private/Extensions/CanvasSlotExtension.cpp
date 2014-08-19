@@ -133,9 +133,11 @@ FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPo
 {
 	if ( bDragging )
 	{
+		float InverseScale = ( 1.0f / Geometry.Scale );
+
 		for ( FWidgetReference& Selection : SelectionCache )
 		{
-			MoveByAmount(Selection, Event.GetCursorDelta());
+			MoveByAmount(Selection, Event.GetCursorDelta() * InverseScale);
 		}
 
 		return FReply::Handled();

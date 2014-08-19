@@ -55,25 +55,20 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
 			]
 			.ValueContent()
-			.MinDesiredWidth(0.f)
-			.MaxDesiredWidth(0.f)
+			.HAlign(HAlign_Fill)
+			.MinDesiredWidth(200)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SBorder)
+				.VAlign(VAlign_Fill)
+				.OnMouseDoubleClick(this, &FCurveStructCustomization::OnCurvePreviewDoubleClick)
 				[
-					SNew(SBorder)
-					.VAlign(VAlign_Fill)
-					.OnMouseDoubleClick(this, &FCurveStructCustomization::OnCurvePreviewDoubleClick)
-					[
-						SAssignNew(CurveWidget, SCurveEditor)
-						.ViewMinInput(this, &FCurveStructCustomization::GetViewMinInput)
-						.ViewMaxInput(this, &FCurveStructCustomization::GetViewMaxInput)
-						.TimelineLength(this, &FCurveStructCustomization::GetTimelineLength)
-						.OnSetInputViewRange(this, &FCurveStructCustomization::SetInputViewRange)
-						.HideUI(false)
-						.DesiredSize(FVector2D(128, 128))
-					]
+					SAssignNew(CurveWidget, SCurveEditor)
+					.ViewMinInput(this, &FCurveStructCustomization::GetViewMinInput)
+					.ViewMaxInput(this, &FCurveStructCustomization::GetViewMaxInput)
+					.TimelineLength(this, &FCurveStructCustomization::GetTimelineLength)
+					.OnSetInputViewRange(this, &FCurveStructCustomization::SetInputViewRange)
+					.HideUI(false)
+					.DesiredSize(FVector2D(300, 150))
 				]
 			];
 
@@ -119,7 +114,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHan
 		{
 			ExternalCurveHandle = Child;
 
-			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged );
+			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
 			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
@@ -223,6 +218,11 @@ void FCurveStructCustomization::MakeTransactional()
 	}
 }
 
+void FCurveStructCustomization::OnCurveChanged()
+{
+	StructPropertyHandle->NotifyPostChange();
+}
+
 float FCurveStructCustomization::GetTimelineLength() const
 {
 	return 0.f;
@@ -234,7 +234,7 @@ void FCurveStructCustomization::SetInputViewRange(float InViewMinInput, float In
 	ViewMinInput = InViewMinInput;
 }
 
-void FCurveStructCustomization::OnExternalCurveChanged()
+void FCurveStructCustomization::OnExternalCurveChanged(TSharedRef<class IPropertyHandle> CurvePropertyHandle)
 {
 	if (RuntimeCurve)
 	{
@@ -246,6 +246,8 @@ void FCurveStructCustomization::OnExternalCurveChanged()
 		{
 			CurveWidget->SetCurveOwner(this);
 		}
+
+		CurvePropertyHandle->NotifyPostChange();
 	}
 }
 

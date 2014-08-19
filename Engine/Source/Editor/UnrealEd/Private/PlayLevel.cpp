@@ -2403,7 +2403,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
 						[
-							ViewportOverlayWidgetRef
+							SNew(SDPIScaler)
+							.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UEditorEngine::GetGameViewportDPIScale)))
+							[
+								ViewportOverlayWidgetRef
+							]
 						];
 
 				// Create a viewport widget for the game to render in.
@@ -2522,6 +2526,12 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	GEngine->BroadcastLevelActorListChanged();
 
 	return GameInstance;
+}
+
+float UEditorEngine::GetGameViewportDPIScale() const
+{
+	UGameUserSettings* UserSettings = GEngine->GetGameUserSettings();
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( UserSettings->GetScreenResolution() );
 }
 
 FViewport* UEditorEngine::GetActiveViewport()

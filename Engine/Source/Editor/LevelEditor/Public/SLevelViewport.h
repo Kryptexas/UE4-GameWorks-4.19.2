@@ -643,6 +643,10 @@ private:
 	void HideMouseCaptureLabel();
 
 private:
+	/** Returns the DPI scaler that should be used for game UI in the viewport */
+	float GetGameViewportDPIScale() const;
+
+private:
 	/** Tab which this viewport is located in */
 	TWeakPtr<class FLevelViewportLayout> ParentLayout;
 

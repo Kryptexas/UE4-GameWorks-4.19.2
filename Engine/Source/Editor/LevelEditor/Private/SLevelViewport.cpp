@@ -158,7 +158,11 @@ void SLevelViewport::ConstructViewportOverlayContent()
 #if ALLOW_PLAY_IN_VIEWPORT_GAMEUI
 		ViewportOverlay->AddSlot( SlotIndex )
 		[
-			PIEViewportOverlayWidget.ToSharedRef()
+			SNew(SDPIScaler)
+			.DPIScale(this, &SLevelViewport::GetGameViewportDPIScale)
+			[
+				PIEViewportOverlayWidget.ToSharedRef()
+			]
 		];
 
 		++SlotIndex;
@@ -346,6 +350,16 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives = true;
 
 	LevelViewportClient->SetViewModes(ViewportInstanceSettings.PerspViewModeIndex, ViewportInstanceSettings.OrthoViewModeIndex );
+}
+
+float SLevelViewport::GetGameViewportDPIScale() const
+{
+	if ( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
+	{
+		return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( ActiveViewport->GetSize() );
+	}
+
+	return 1.0f;
 }
 
 FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )

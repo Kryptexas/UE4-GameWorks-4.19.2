@@ -150,12 +150,17 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				.ZoomAmount(this, &SDesignerView::GetZoomAmount)
 				.ViewOffset(this, &SDesignerView::GetViewOffset)
 				[
-					SAssignNew(PreviewSurface, SBox)
+					SNew(SBox)
 					.WidthOverride(this, &SDesignerView::GetPreviewWidth)
 					.HeightOverride(this, &SDesignerView::GetPreviewHeight)
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
 					.Visibility(EVisibility::SelfHitTestInvisible)
+					[
+						SAssignNew(PreviewSurface, SDPIScaler)
+						.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+						.Visibility(EVisibility::SelfHitTestInvisible)
+					]
 				]
 			]
 
@@ -247,6 +252,11 @@ FOptionalSize SDesignerView::GetPreviewHeight() const
 	return (float)PreviewHeight;
 }
 
+float SDesignerView::GetPreviewDPIScale() const
+{
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(PreviewWidth, PreviewHeight));
+}
+
 FSlateRect SDesignerView::ComputeAreaBounds() const
 {
 	return FSlateRect(0, 0, PreviewWidth, PreviewHeight);
@@ -329,7 +339,7 @@ void SDesignerView::CreateExtensionWidgetsForSelection()
 FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const
 {
 	const FVector2D TopLeft = CachedDesignerWidgetLocation;
-	const FVector2D Size = CachedDesignerWidgetSize * GetZoomAmount();
+	const FVector2D Size = CachedDesignerWidgetSize * GetZoomAmount() * GetPreviewDPIScale();
 
 	FVector2D FinalPosition(0, 0);
 
@@ -851,8 +861,8 @@ SDesignerView::DragHandle SDesignerView::HitTestDragHandles(const FGeometry& All
 		FVector2D WidgetLocalPosition = AllottedGeometry.AbsoluteToLocal(ArrangedWidget.Geometry.AbsolutePosition);
 		float X = WidgetLocalPosition.X;
 		float Y = WidgetLocalPosition.Y;
-		float Width = ArrangedWidget.Geometry.Size.X * GetZoomAmount();
-		float Height = ArrangedWidget.Geometry.Size.Y * GetZoomAmount();
+		float Width = ArrangedWidget.Geometry.Size.X * GetZoomAmount() * GetPreviewDPIScale();
+		float Height = ArrangedWidget.Geometry.Size.Y * GetZoomAmount() * GetPreviewDPIScale();
 
 		TArray<FVector2D> Handles;
 		Handles.Add(FVector2D(X, Y));					// Top - Left

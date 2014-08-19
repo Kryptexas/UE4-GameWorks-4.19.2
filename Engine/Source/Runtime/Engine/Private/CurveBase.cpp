@@ -843,6 +843,11 @@ void UCurveBase::MakeTransactional()
 	SetFlags(GetFlags() | RF_Transactional);
 }
 
+void UCurveBase::OnCurveChanged()
+{
+
+}
+
 void UCurveBase::ResetCurve()
 {
 	TArray<FRichCurveEditInfo> Curves = GetCurves();

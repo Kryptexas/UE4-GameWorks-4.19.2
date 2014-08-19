@@ -113,7 +113,11 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 			// @todo TEMP
 			.RenderDirectlyToWindow( !GEngine->bStartWithMatineeCapture && GIsDumpingMovie == 0 )
 			[
-				ViewportOverlayWidgetRef
+				SNew(SDPIScaler)
+				.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UGameEngine::GetGameViewportDPIScale)) )
+				[
+					ViewportOverlayWidgetRef
+				]
 			];
 
 	GameViewportWidget = GameViewportWidgetRef;
@@ -162,6 +166,13 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 	FViewportFrame* ViewportFrame = SceneViewport.Get();
 
 	GameViewport->SetViewportFrame(ViewportFrame);
+}
+
+float UGameEngine::GetGameViewportDPIScale() const
+{
+	UGameUserSettings* UserSettings = GEngine->GetGameUserSettings();
+	FIntPoint ScreenRes = UserSettings->GetScreenResolution();
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( ScreenRes );
 }
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)
@@ -435,7 +446,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
 		ViewportClient->Init(*GameInstance->GetWorldContext(), GameInstance);
 		GameViewport = ViewportClient;
- 		GameInstance->GetWorldContext()->GameViewport = ViewportClient;
+		GameInstance->GetWorldContext()->GameViewport = ViewportClient;
 	}
 
 	bCheckForMovieCapture = true;
@@ -1062,8 +1073,8 @@ UWorld* UGameEngine::GetGameWorld()
 	for (auto It = WorldList.CreateConstIterator(); It; ++It)
 	{
 		const FWorldContext& Context = *It;
-        // Explicitly not checking for PIE worlds here, this should only 
-        // be called outside of editor (and thus is in UGameEngine
+		// Explicitly not checking for PIE worlds here, this should only 
+		// be called outside of editor (and thus is in UGameEngine
 		if (Context.WorldType == EWorldType::Game && Context.World())
 		{
 			return Context.World();
