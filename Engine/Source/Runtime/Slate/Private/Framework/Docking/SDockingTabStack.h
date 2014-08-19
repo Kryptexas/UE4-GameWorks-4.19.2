@@ -175,6 +175,12 @@ private:
 	/** Only allow hiding the tab well when there is a single tab in it. */
 	bool CanHideTabWell() const;
 
+	/** Only allow closing the tab well when the tab allows it. */
+	bool CanCloseForegroundTab() const;
+
+	/** Only allow closing all other tabs when there are more then one tab open and the tab is of type Document or Major. */
+	bool CanCloseAllButForegroundTab() const;
+
 	/** Keep around our geometry from the last frame so that we can resize the preview windows correctly */
 	FGeometry TabStackGeometry;
 
