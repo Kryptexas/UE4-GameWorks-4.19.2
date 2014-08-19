@@ -708,6 +708,21 @@ public:
 	/** Is component (not including attachments) relevant for navigation updates? */
 	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
 
+#if WITH_BODY_WELDING
+
+	/**
+	* Attempts to weld/unweld the child component to this component in a physically correct way. This re-calculates mass distribution and geometry to achieve correct physics.
+	* This function assumes ChildComponent has already been attached to this component and is now doing the physics fix-up.
+	* The function uses the attachment hierarchy to easily attach/detach multiple components together
+	* @param ChildComponent the component to be physically attached - assumed to already be attached in the scene hierarchy
+	* @param bWeld determines whether to weld or unweld. This flag is used for creating or breaking welded pieces at runtime
+	* @param ParentBoneName potentially used by skeletal mesh to weld child to specific bone on this component
+	* @param ChildBoneName potentially used by skeletal mesh to weld this component to specific bone in child
+	* @return whether or not the weld/unweld was succesfull
+	*/
+	virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) { return false;  }
+#endif
+
 protected:
 	/**
 	 * Called after a child scene component is attached to this component.

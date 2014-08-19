@@ -327,6 +327,7 @@ void UPrimitiveComponent::OnAttachmentChanged()
 void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
 {
 	Super::OnChildAttached(ChildComponent);
+	/*
 #if WITH_BODY_WELDING
 	//We want to support attaching physically simulated rigid bodies to create a single rigid body.
 	if (UPrimitiveComponent * PrimitiveChild = Cast<UPrimitiveComponent>(ChildComponent))
@@ -343,7 +344,53 @@ void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
 		}
 	}
 #endif
+	*/
 }
+
+#if WITH_BODY_WELDING
+bool UPrimitiveComponent::WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld, FName ParentBoneName, FName ChildBoneName)
+{
+	//assumes that child is already attached
+	if (ChildComponent->AttachParent != this)
+	{
+		return false;
+	}
+
+	if (UPrimitiveComponent * ChildPrim = Cast<UPrimitiveComponent>(ChildComponent))
+	{
+		//traverse the hierarchy to weld/unweld from root
+		USceneComponent * RootComponent = this;
+		FTransform RelativeTM = FTransform(ChildComponent->RelativeRotation, ChildComponent->RelativeLocation, ChildComponent->RelativeScale3D);
+
+		for (; RootComponent->AttachParent; RootComponent = RootComponent->AttachParent)
+		{
+			RelativeTM = RelativeTM * FTransform(RootComponent->RelativeRotation, RootComponent->RelativeLocation, RootComponent->RelativeScale3D);
+		}
+
+		if (UPrimitiveComponent * RootPrim = Cast<UPrimitiveComponent>(RootComponent))
+		{
+			//we support welding of kinematic actors to simulated parents.
+			//welding simulated to anything doesn't make sense and we'd rather use a physical constraint
+			//welding kinematic to kinematic is not needed as the attachment hierarchy already handles moving the object around
+			if (RootPrim->IsSimulatingPhysics())
+			{
+				FBodyInstance * RootBody = RootPrim->GetBodyInstance(ParentBoneName);
+				FBodyInstance * ChildBody = ChildPrim->GetBodyInstance(ChildBoneName);
+
+				if (RootBody && ChildBody && bWeld)
+				{
+
+					RootBody->Weld(ChildBody, RelativeTM);
+					return true;
+				}
+			}
+		}
+	}
+
+	
+	return false;
+}
+#endif
 
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
 {

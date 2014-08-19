@@ -1001,6 +1001,11 @@ public:
 	/** Called when a component is 'damaged', allowing for component class specific behaviour */
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
+#if WITH_BODY_WELDING
+	/** Used to physically weld objects at runtime. See decleration in USceneComponent for full description */
+	virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) override;
+#endif
+
 protected:
 
 	/** Give the static mesh component recreate render state context access to Create/DestroyRenderState_Concurrent(). */

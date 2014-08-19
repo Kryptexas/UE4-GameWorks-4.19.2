@@ -899,6 +899,26 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	// whenever update filter, this check will trigger, it seems it's best to know when we initialize body instead. 
 	check(BodySetup.IsValid());
 
+#if WITH_BODY_WELDING
+	{
+		UPrimitiveComponent * ParentPrimComponent = PrimComp ? Cast<UPrimitiveComponent>(PrimComp->AttachParent) : NULL;
+		
+		//if we have a parent we will now do the weld and exit any further initialization
+		if (ParentPrimComponent && PrimComp->GetWorld() && PrimComp->GetWorld()->IsGameWorld())
+		{
+			/*FTransform RelativeTM = FTransform(PrimComp->RelativeRotation, PrimComp->RelativeLocation, PrimComp->RelativeScale3D);
+			FBodyInstance * OwnerBody = ParentPrimComponent->GetBodyInstance();
+			OwnerBody->Weld(this, RelativeTM);*/
+			if (ParentPrimComponent->WeldPhysicsBody(PrimComp))
+			{
+				//welded so stop any further initialization
+				return;
+			}
+			
+		}
+	}
+#endif
+
 	USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
 	if (SkelMeshComp != nullptr)
 	{
