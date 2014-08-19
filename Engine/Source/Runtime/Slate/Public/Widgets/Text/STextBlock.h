@@ -35,6 +35,7 @@ public:
 		, _HighlightText()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
+		, _MinDesiredWidth(0.0f)
 		{}
 
 		/** The text displayed in this text block */
@@ -71,6 +72,9 @@ public:
 		    in visual artifacts, as the the wrapped size will computed be at least one frame late!  Consider using WrapTextAt instead.  The initial 
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
+
+		/** Minimum width that a text block should be */
+		SLATE_ATTRIBUTE( float, MinDesiredWidth )
 
 		/** Called when this text is double clicked */
 		SLATE_EVENT( FOnClicked, OnDoubleClicked )
@@ -241,4 +245,7 @@ private:
 
 	/** If a request to cache the string size occurred and we should recache the text */
 	mutable bool bRequestCache;
+
+	/** Prevents the text block from being smaller than desired in certain cases (e.g. when it is empty) */
+	TAttribute<float> MinDesiredWidth;
 };

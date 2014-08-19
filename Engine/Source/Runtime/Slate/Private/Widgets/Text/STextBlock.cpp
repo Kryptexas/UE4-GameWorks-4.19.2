@@ -18,6 +18,7 @@ void STextBlock::Construct( const FArguments& InArgs )
 	HighlightText = InArgs._HighlightText;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
+	MinDesiredWidth = InArgs._MinDesiredWidth;
 
 	CachedWrapTextWidth = 0.0f;
 	CachedAutoWrapTextWidth = 0.0f;
@@ -271,6 +272,8 @@ void STextBlock::CacheDesiredSize()
 		{
 			TextMeasurement.X = FMath::Min(TextMeasurement.X, WrappingWidth);
 		}
+
+		TextMeasurement.X = FMath::Max(TextMeasurement.X, MinDesiredWidth.Get());
 
 		const FVector2D CurrentShadowOffset = GetShadowOffset();
 		const FVector2D AbsoluteShadowOffset(FMath::Abs(CurrentShadowOffset.X), FMath::Abs(CurrentShadowOffset.Y));

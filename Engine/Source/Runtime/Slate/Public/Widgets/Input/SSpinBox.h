@@ -33,6 +33,7 @@ public:
 		, _OnValueCommitted()
 		, _ClearKeyboardFocusOnCommit( false )
 		, _SelectAllTextOnCommit( true )
+		, _MinDesiredWidth(0.0f)
 		{}
 	
 		/** The style used to draw this spinbox */
@@ -68,6 +69,8 @@ public:
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
+		/** Minimum width that a spin box should be */
+		SLATE_ATTRIBUTE( float, MinDesiredWidth )
 
 	SLATE_END_ARGS()
 
@@ -90,6 +93,8 @@ public:
 		OnValueCommitted = InArgs._OnValueCommitted;
 		OnBeginSliderMovement = InArgs._OnBeginSliderMovement;
 		OnEndSliderMovement = InArgs._OnEndSliderMovement;
+		MinDesiredWidth = InArgs._MinDesiredWidth;
+		ArrowImageWidth = InArgs._Style->ArrowsImage.ImageSize.X;
 	
 		MinValue = InArgs._MinValue;
 		MaxValue = InArgs._MaxValue;
@@ -130,6 +135,7 @@ public:
 				SAssignNew(TextBlock, STextBlock)
 				.Font(InArgs._Font)
 				.Text( this, &SSpinBox<NumericType>::GetValueAsString )
+				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 			]
 			+SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -146,6 +152,7 @@ public:
 				.OnTextCommitted( this, &SSpinBox<NumericType>::TextField_OnTextCommitted )
 				.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
+				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 			]			
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -655,6 +662,11 @@ private:
 	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
 	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
 
+	float GetTextMinDesiredWidth() const
+	{
+		return FMath::Max(0.0f, MinDesiredWidth.Get() - ArrowImageWidth);
+	}
+
 	TAttribute<float> SliderExponent;
 
 	bool bDragging;
@@ -673,4 +685,10 @@ private:
 	/** This is the cached value the user believes it to be (usually different due to truncation to an int). Used for identifying 
 		external forces on the spinbox and syncing the internal value to them. Synced when a value is committed to the spinbox. */
 	NumericType CachedExternalValue;
+
+	/** Prevents the spinbox from being smaller than desired in certain cases (e.g. when it is empty) */
+	TAttribute<float> MinDesiredWidth;
+
+	/** The width of the arrow image, used for calculating the min desired width of the internal text controls. */
+	float ArrowImageWidth;
 };
