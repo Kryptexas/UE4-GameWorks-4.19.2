@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	UnSkeletalAnim.cpp: Skeletal mesh animation functions.
+	Skeleton.cpp: Skeleton features
 =============================================================================*/ 
 
 #include "EnginePrivate.h"

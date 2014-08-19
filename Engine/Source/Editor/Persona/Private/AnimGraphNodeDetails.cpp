@@ -427,6 +427,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	StructPropertyHandle->GetOuterObjects(Objects);
 	UAnimGraphNode_Base* AnimGraphNode = NULL;
 	USkeletalMesh* SkeletalMesh = NULL;
+	UAnimationAsset * AnimationAsset = NULL;
 	TargetSkeleton = NULL;
 
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
@@ -441,6 +442,12 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		if (SkeletalMesh)
 		{
 			TargetSkeleton = SkeletalMesh->Skeleton;
+			break;
+		}
+		AnimationAsset = Cast<UAnimationAsset>(*OuterIter);
+		if(AnimationAsset)
+		{
+			TargetSkeleton = AnimationAsset->GetSkeleton();
 			break;
 		}
 	}
