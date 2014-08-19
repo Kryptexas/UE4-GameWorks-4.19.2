@@ -2538,6 +2538,11 @@ bool FEngineLoop::AppInit( )
 	// Init list of common colors.
 	GColorList.CreateColorMap();
 
+	bool bForceSmokeTests = false;
+	GConfig->GetBool(TEXT("AutomationTesting"), TEXT("bForceSmokeTests"), bForceSmokeTests, GEngineIni);
+	bForceSmokeTests |= FParse::Param(FCommandLine::Get(), TEXT("bForceSmokeTests"));
+	FAutomationTestFramework::GetInstance().SetForceSmokeTests(bForceSmokeTests);
+
 	// Init other systems.
 	FCoreDelegates::OnInit.Broadcast();
 	return true;

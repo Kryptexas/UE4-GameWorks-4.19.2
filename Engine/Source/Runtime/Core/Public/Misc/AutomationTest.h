@@ -520,6 +520,13 @@ public:
 	 */
 	bool ShouldUseFullSizeScreenshots() const;
 
+	/**
+	 * Sets forcing smoke tests.
+	 */
+	void SetForceSmokeTests(bool bForceSmokeTests)
+	{
+		this->bForceSmokeTests = bForceSmokeTests;
+	}
 private:
 
 	/** Special feedback context used exclusively while automation testing */
@@ -671,6 +678,9 @@ private:
 
 	/** Delegate called at the end of the frame when a screenshot is captured and a .png is requested */
 	FOnTestScreenshotCaptured TestScreenshotCapturedDelegate;
+
+	/** Forces running smoke tests */
+	bool bForceSmokeTests;
 };
 
 
