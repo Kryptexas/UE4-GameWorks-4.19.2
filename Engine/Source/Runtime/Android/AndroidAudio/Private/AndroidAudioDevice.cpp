@@ -158,13 +158,14 @@ FSoundSource* FSLESAudioDevice::CreateSoundSource()
 bool FSLESAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("OGG"))
+	static FName NAME_OGG(TEXT("OGG"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_OGG)
 	{
 		return true;
 	}
 #endif
-
-	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("ADPCM"))
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_ADPCM)
 	{
 		return true;
 	}
@@ -176,13 +177,14 @@ bool FSLESAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 class ICompressedAudioInfo* FSLESAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("OGG"))
+	static FName NAME_OGG(TEXT("OGG"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_OGG)
 	{
 		return new FVorbisAudioInfo();
 	}
 #endif
-
-	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == TEXT("ADPCM"))
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_ADPCM)
 	{
 		return new FADPCMAudioInfo();
 	}
