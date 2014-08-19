@@ -781,10 +781,11 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "CurveEd.TimelineArea", new IMAGE_BRUSH( "Old/White", Icon16x16, FLinearColor(1,1,1,0.25f) ) );
 		Set( "CurveEd.FitHorizontal", new IMAGE_BRUSH( "Icons/FitHorz_16x", Icon16x16 ) );
 		Set( "CurveEd.FitVertical", new IMAGE_BRUSH( "Icons/FitVert_16x", Icon16x16 ) );
-		Set( "CurveEd.CurveKey", new IMAGE_BRUSH( "Icons/CurveKey_8x", Icon8x8 ) );
-		Set( "CurveEd.CurveKeySelected", new IMAGE_BRUSH( "Icons/CurveKey_8x", Icon8x8, SelectionColor ) );
+		Set( "CurveEd.CurveKey", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f) ) );
+		Set( "CurveEd.CurveKeySelected", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f), SelectionColor ) );
 		Set( "CurveEd.InfoFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
-		Set( "CurveEd.Tangent", new IMAGE_BRUSH( "Icons/Tangente_8x", Icon8x8 ) );
+		Set( "CurveEd.Tangent", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f), FLinearColor(0.0f, 0.66f, 0.7f) ) );
+		Set( "CurveEd.TangentColor", FLinearColor(0.0f, 0.66f, 0.7f) );
 	}
 	
 	// Scrub control buttons
@@ -1398,7 +1399,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.Timeline.ScrubHandleWhole", new BOX_BRUSH( "Sequencer/ScrubHandleWhole", FMargin( 6.f/13.f, 10/24.f, 6/13.f, 10/24.f  ) ) );
 		Set( "Sequencer.Timeline.NotifyAlignmentMarker", new IMAGE_BRUSH( "Sequencer/NotifyAlignmentMarker", FVector2D(10,19) ) );
 		Set( "Sequencer.NotificationImage_AddedPlayMovieSceneEvent", new IMAGE_BRUSH( "Old/Checkbox_checked", Icon16x16 ) );
-		Set( "Sequencer.Key", new IMAGE_BRUSH( "Sequencer/Key", FVector2D(7.0f,12.0f) ) );
+		Set( "Sequencer.Key", new IMAGE_BRUSH( "Common/Key", FVector2D(7.0f,12.0f) ) );
 		Set( "Sequencer.GenericSection.Background", new BOX_BRUSH( "Sequencer/GenericSectionBackground", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.SectionGripLeft", new BOX_BRUSH( "Sequencer/SectionGripLeft", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.SectionGripRight", new BOX_BRUSH( "Sequencer/SectionGripRight", FMargin(5.f/16.f) ) );

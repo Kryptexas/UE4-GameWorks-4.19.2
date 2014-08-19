@@ -7,7 +7,9 @@
 //////////////////////////////////////////////////////////////////////////
 // FTrackScaleInfo
 
-/** Utility struct for converting between curve space and local/absolute screen space */
+/** Utility struct for converting between curve space and local/absolute screen space.  The input domain is traditionally
+ *  the time axis of the curve, and the output domain is traditionally the value axis.
+ */
 struct FTrackScaleInfo
 {
 	float ViewMinInput;
@@ -79,6 +81,25 @@ class SCurveEditor :
 	public FGCObject,
 	public FEditorUndoClient
 {
+private:
+
+	/** Represents the different states of a drag operation */
+	enum class EDragState
+	{
+		/** The user has clicked a mouse button, but hasn't moved more then the drag threshold. */
+		PreDrag,
+		/** The user is dragging the selected keys. */
+		DragKey,
+		/** The user is dragging a selected tangent handle. */
+		DragTangent,
+		/** The user is performing a marquee selection of keys. */
+		MarqueeSelect,
+		/** The user is panning the curve view. */
+		Pan,
+		/** There is no active drag operation. */
+		None
+	};
+
 public:
 	SLATE_BEGIN_ARGS( SCurveEditor )
 		: _ViewMinInput(0.0f)
@@ -233,6 +254,9 @@ private:
 	/** Get screen space tangent positions for a given key */
 	void GetTangentPoints( FTrackScaleInfo &ScaleInfo,const FSelectedCurveKey &Key, FVector2D& Arrive, FVector2D& Leave) const;
 
+	/** Get the set of keys within a rectangle in local space */
+	TArray<FSelectedCurveKey> GetKeysWithinMarquee(const FGeometry& InMyGeometry, FVector2D MarqueeTopLeft, FVector2D MarqueeBottomRight) const;
+
 	/** Empy key selecttion set */
 	void EmptySelection();
 	/** Add a key to the selection set */
@@ -315,6 +339,9 @@ private:
 	/** Paint Grid lines, these make it easier to visualize relative distance */
 	void PaintGridLines( const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects )const;
 
+	/** Paints the marquee for selection */
+	void PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+
 	// SWidget interface
 	UNREALED_API virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -322,6 +349,18 @@ private:
 	UNREALED_API virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	UNREALED_API virtual void   OnMouseCaptureLost() override;
+
+	/** Attempts to start a drag operation when the mouse moves. */
+	void TryStartDrag(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	/** Processes an ongoing drag operation when the mouse moves. */
+	void ProcessDrag(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	/** Completes an ongoing drag operation on mouse up. */
+	void EndDrag(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	/** Handles a mouse click operation on mouse up. */
+	void ProcessClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	virtual bool SupportsKeyboardFocus() const override
 	{
@@ -371,9 +410,6 @@ private:
 
 	/** End a transaction for dragging a key or tangent */
 	void	EndDragTransaction();
-
-	/** Resets values to indicate dragging is not occurring */
-	void	ResetDragValues();
 
 	/** Calculate the distance between grid lines: determines next lowest power of 2, works with fractional numbers */
 	static float CalcGridLineStepDistancePow2(double RawValue);
@@ -438,16 +474,6 @@ private:
 	/** Currently selected tangent */
 	FSelectedTangent	SelectedTangent;
 
-	/** If we are currently moving the selected key set */
-	bool				bMovingKeys;
-	/** If we are currently panning the timeline */
-	bool				bPanning;
-	/** If we are currently moving a tangent */
-	bool				bMovingTangent;
-
-	/** Total distance we moved the mouse while button down */
-	float				TotalDragDist;
-
 	/** Minimum input of data range  */
 	TAttribute< TOptional<float> >	DataMinInput;
 	/** Maximum input of data range  */
@@ -505,6 +531,18 @@ protected:
 
 	/** True if the internal zoom buttons should be visible. */
 	bool bShowZoomButtons;
+
+	/** The location of mouse during the last OnMouseButtonDown callback in widget local coordinates. */
+	FVector2D MouseDownLocation;
+
+	/** The location of the mouse during the last OnMouseMove callback in widget local coordinates. */
+	FVector2D MouseMoveLocation;
+
+	/** The state of the current drag operation happening with the widget, if any. */
+	EDragState DragState;
+
+	/** The number of pixels which the mouse must move before a drag operation starts. */
+	float DragThreshold;
 };
 
 #endif // __SCurveEditor_h__
