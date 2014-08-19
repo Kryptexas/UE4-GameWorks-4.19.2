@@ -2397,18 +2397,21 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 				FSlateApplication::Get().AddWindow( PieWindow );
 
+				TSharedPtr<SDPIScaler> PIEDPIScaler;
+
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
 				PieViewportWidget = 
 					SNew( SViewport )
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
 						[
-							SNew(SDPIScaler)
-							.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UEditorEngine::GetGameViewportDPIScale)))
+							SAssignNew(PIEDPIScaler, SDPIScaler)
 							[
 								ViewportOverlayWidgetRef
 							]
 						];
+
+				PIEDPIScaler->SetDPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UEditorEngine::GetGameViewportDPIScale, ViewportClient)));
 
 				// Create a viewport widget for the game to render in.
 				PieWindow->SetContent( PieViewportWidget.ToSharedRef() );
@@ -2528,10 +2531,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	return GameInstance;
 }
 
-float UEditorEngine::GetGameViewportDPIScale() const
+float UEditorEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
 {
-	UGameUserSettings* UserSettings = GEngine->GetGameUserSettings();
-	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( UserSettings->GetScreenResolution() );
+	FVector2D ViewportSize;
+	ViewportClient->GetViewportSize(ViewportSize);
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 }
 
 FViewport* UEditorEngine::GetActiveViewport()

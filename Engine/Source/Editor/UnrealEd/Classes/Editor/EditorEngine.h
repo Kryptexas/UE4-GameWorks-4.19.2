@@ -2334,7 +2334,7 @@ public:
 
 private:
 	/** Gets the DPI Scale for the game viewport in the editor. */
-	float GetGameViewportDPIScale() const;
+	float GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const;
 
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required

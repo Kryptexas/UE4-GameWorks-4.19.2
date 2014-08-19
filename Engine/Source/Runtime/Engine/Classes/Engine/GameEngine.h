@@ -137,6 +137,6 @@ public:
 	UWorld* GetGameWorld();
 
 protected:
-	float GetGameViewportDPIScale() const;
+	float GetGameViewportDPIScale(UGameViewportClient* GameViewportClient) const;
 };
 
