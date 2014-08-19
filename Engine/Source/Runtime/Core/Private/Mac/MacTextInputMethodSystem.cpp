@@ -5,6 +5,7 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
+#include "CocoaThread.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 
@@ -49,11 +50,13 @@ namespace
 		if(ContextWindow.IsValid())
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
-			if(CocoaWindow && [CocoaWindow openGLView])
-			{
-				FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-				[[TextView inputContext] invalidateCharacterCoordinates];
-			}
+			MainThreadCall(^{
+				if(CocoaWindow && [CocoaWindow openGLView])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+					[[TextView inputContext] invalidateCharacterCoordinates];
+				}
+			}, true);
 		}
 	}
 	
@@ -62,11 +65,13 @@ namespace
 		if(ContextWindow.IsValid())
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
-			if(CocoaWindow && [CocoaWindow openGLView])
-			{
-				FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-				[[TextView inputContext] invalidateCharacterCoordinates];
-			}
+			MainThreadCall(^{
+				if(CocoaWindow && [CocoaWindow openGLView])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+					[[TextView inputContext] invalidateCharacterCoordinates];
+				}
+			}, true);
 		}
 	}
 	
@@ -75,11 +80,13 @@ namespace
 		if(ContextWindow.IsValid())
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
-			if(CocoaWindow && [CocoaWindow openGLView])
-			{
-				FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-				[[TextView inputContext] invalidateCharacterCoordinates];
-			}
+			MainThreadCall(^{
+				if(CocoaWindow && [CocoaWindow openGLView])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+					[[TextView inputContext] invalidateCharacterCoordinates];
+				}
+			}, true);
 		}
 	}
 	
@@ -88,12 +95,14 @@ namespace
 		if(ContextWindow.IsValid())
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
-			if(CocoaWindow && [CocoaWindow openGLView])
-			{
-				FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-				[[TextView inputContext] discardMarkedText];
-				[TextView unmarkText];
-			}
+			MainThreadCall(^{
+				if(CocoaWindow && [CocoaWindow openGLView])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+					[[TextView inputContext] discardMarkedText];
+					[TextView unmarkText];
+				}
+			}, true);
 		}
 	}
 }
@@ -142,22 +151,30 @@ void FMacTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputMetho
 	TSharedPtr<ITextInputMethodChangeNotifier> Notifier(NotifierRef.Pin());
 	FTextInputMethodChangeNotifier* MacNotifier = (FTextInputMethodChangeNotifier*)Notifier.Get();
 	TSharedPtr<FGenericWindow> GenericWindow = Context->GetWindow();
+	bool bActivatedContext = false;
 	if(GenericWindow.IsValid())
 	{
 		MacNotifier->SetContextWindow(GenericWindow);
 		FCocoaWindow* CocoaWindow = (FCocoaWindow*)GenericWindow->GetOSWindowHandle();
-		if(CocoaWindow && [CocoaWindow openGLView])
-		{
-			NSView* GLView = [CocoaWindow openGLView];
-			if([GLView isKindOfClass:[FCocoaTextView class]])
+		bActivatedContext = MainThreadReturn(^{
+			bool bSuccess = false;
+			if(CocoaWindow && [CocoaWindow openGLView])
 			{
-				FCocoaTextView* TextView = (FCocoaTextView*)GLView;
-				[TextView activateInputMethod:Context];
-				return;
+				NSView* GLView = [CocoaWindow openGLView];
+				if([GLView isKindOfClass:[FCocoaTextView class]])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)GLView;
+					[TextView activateInputMethod:Context];
+					bSuccess = true;
+				}
 			}
-		}
+			return bSuccess;
+		});
 	}
-	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Activating a context failed when its window couldn't be found."));
+	if(!bActivatedContext)
+	{
+		UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Activating a context failed when its window couldn't be found."));
+	}
 }
 
 void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context)
@@ -172,20 +189,28 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 	TSharedPtr<ITextInputMethodChangeNotifier> Notifier(NotifierRef.Pin());
 	FTextInputMethodChangeNotifier* MacNotifier = (FTextInputMethodChangeNotifier*)Notifier.Get();
 	TSharedPtr<FGenericWindow> GenericWindow = MacNotifier->GetContextWindow();
+	bool bDeactivatedContext = false;
 	if(GenericWindow.IsValid())
 	{
 		FCocoaWindow* CocoaWindow = (FCocoaWindow*)GenericWindow->GetOSWindowHandle();
-		if(CocoaWindow && [CocoaWindow openGLView])
-		{
-			NSView* GLView = [CocoaWindow openGLView];
-			if([GLView isKindOfClass:[FCocoaTextView class]])
+		bDeactivatedContext = MainThreadReturn(^{
+			bool bSuccess = false;
+			if(CocoaWindow && [CocoaWindow openGLView])
 			{
-				FCocoaTextView* TextView = (FCocoaTextView*)GLView;
-				[TextView deactivateInputMethod];
-				return;
+				NSView* GLView = [CocoaWindow openGLView];
+				if([GLView isKindOfClass:[FCocoaTextView class]])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)GLView;
+					[TextView deactivateInputMethod];
+					bSuccess = true;
+				}
 			}
-		}
+			return bSuccess;
+		});
 	}
-	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Deactivating a context failed when its window couldn't be found."));
+	if(!bDeactivatedContext)
+	{
+		UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Deactivating a context failed when its window couldn't be found."));
+	}
 }
 // ITextInputMethodSystem Interface End

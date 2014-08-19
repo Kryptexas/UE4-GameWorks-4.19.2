@@ -10,6 +10,7 @@
 #include "MacApplication.h"
 #include "MacPlatformOutputDevicesPrivate.h"
 #include "MacPlatformFeedbackContextPrivate.h"
+#include "CocoaThread.h"
 
 //////////////////////////////////
 // FMacPlatformOutputDevices
@@ -152,6 +153,7 @@ FOutputDeviceConsoleMac::FOutputDeviceConsoleMac()
 	, TextView(NULL)
 	, ScrollView(NULL)
 	, TextViewTextColor(NULL)
+	, OutstandingTasks(0)
 {
 }
 
@@ -330,7 +332,8 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 					[AttributeKeys addObject:NSForegroundColorAttributeName];
 					[AttributeKeys addObject:NSBackgroundColorAttributeName];
 					
-					dispatch_block_t Block = ^{
+					OutstandingTasks++;
+					MainThreadCall(^{
 						if( TextViewTextColor )
 							[TextViewTextColor release];
 						
@@ -339,17 +342,7 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 						[Colors release];
 						[AttributeKeys release];
 						OutstandingTasks--;
-					};
-					
-					OutstandingTasks++;
-					if([NSThread isMainThread])
-					{
-						Block();
-					}
-					else
-					{
-						dispatch_async(dispatch_get_main_queue(), Block);
-					}
+					}, false);
 				}
 			}
 			else
@@ -361,24 +354,15 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 
 				CFStringRef CocoaText = FPlatformString::TCHARToCFString(OutputString);
 				
-				dispatch_block_t Block = ^{
+				OutstandingTasks++;
+				MainThreadCall(^{
 					NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:(NSString*)CocoaText attributes:TextViewTextColor];
 					[[TextView textStorage] appendAttributedString:AttributedString];
 					[TextView scrollRangeToVisible:NSMakeRange([[TextView string] length], 0)];
 					[AttributedString release];
 					CFRelease(CocoaText);
 					OutstandingTasks--;
-				};
-				
-				OutstandingTasks++;
-				if([NSThread isMainThread])
-				{
-					Block();
-				}
-				else
-				{
-					dispatch_async(dispatch_get_main_queue(), Block);
-				}
+				}, false);
 				
 				if(!MacApplication)
 				{
@@ -415,7 +399,8 @@ void FOutputDeviceConsoleMac::SetDefaultTextColor()
 	[AttributeKeys addObject:NSForegroundColorAttributeName];
 	[AttributeKeys addObject:NSBackgroundColorAttributeName];
 
-	dispatch_block_t Block = ^{
+	OutstandingTasks++;
+	MainThreadCall(^{
 		if( TextViewTextColor )
 			[TextViewTextColor release];
 		
@@ -424,15 +409,5 @@ void FOutputDeviceConsoleMac::SetDefaultTextColor()
 		[Colors release];
 		[AttributeKeys release];
 		OutstandingTasks--;
-	};
-	
-	OutstandingTasks++;
-	if([NSThread isMainThread])
-	{
-		Block();
-	}
-	else
-	{
-		dispatch_async(dispatch_get_main_queue(), Block);
-	}
+	}, false);
 }

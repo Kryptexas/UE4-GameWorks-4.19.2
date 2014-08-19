@@ -9,6 +9,7 @@
 #endif
 
 #include <signal.h>
+#include "CocoaThread.h"
 
 
 static FString GSavedCommandLine;
@@ -92,24 +93,26 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 - (IBAction)requestQuit:(id)Sender
 {
-	if (GEngine)
-	{
-		if (GIsEditor)
+	GameThreadCall(^{
+		if (GEngine)
 		{
-			if (IsRunningCommandlet())
+			if (GIsEditor)
 			{
-				GIsRequestingExit = true;
+				if (IsRunningCommandlet())
+				{
+					GIsRequestingExit = true;
+				}
+				else
+				{
+					GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
+				}
 			}
 			else
 			{
-				GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
+				GEngine->DeferredCommands.Add(TEXT("EXIT"));
 			}
 		}
-		else
-		{
-			GEngine->DeferredCommands.Add(TEXT("EXIT"));
-		}
-	}
+	}, false);
 }
 
 - (IBAction)showAboutWindow:(id)Sender
@@ -138,6 +141,53 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
     [self requestQuit:self];
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
+{
+	if(!GIsRequestingExit)
+	{
+		[self requestQuit:self];
+		return NSTerminateCancel;
+	}
+	return NSTerminateNow;
+}
+
+- (void) runGameThread:(id)Arg
+{
+	bool bIsBuildMachine = false;
+#if !UE_BUILD_SHIPPING
+	if (FParse::Param(*GSavedCommandLine, TEXT("BUILDMACHINE")))
+	{
+		bIsBuildMachine = true;
+	}
+#endif
+	
+#if UE_BUILD_DEBUG
+	if( true && !GAlwaysReportCrash )
+#else
+	if( FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash )
+#endif
+	{
+		// Don't use exception handling when a debugger is attached to exactly trap the crash. This does NOT check
+		// whether we are the first instance or not!
+		GuardedMain( *GSavedCommandLine );
+	}
+	else
+	{
+		if (!bIsBuildMachine)
+		{
+			FPlatformMisc::SetCrashHandler(EngineCrashHandler);
+		}
+		GIsGuarded = 1;
+		// Run the guarded code.
+		GuardedMain( *GSavedCommandLine );
+		GIsGuarded = 0;
+	}
+
+	FEngineLoop::AppExit();
+
+	[NSApp terminate: nil];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -178,40 +228,8 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		GSavedCommandLine += Argument;
 	}
 #endif
-
-	bool bIsBuildMachine = false;
-#if !UE_BUILD_SHIPPING
-	if (FParse::Param(*GSavedCommandLine, TEXT("BUILDMACHINE")))
-	{
-		bIsBuildMachine = true;
-	}
-#endif
-
-#if UE_BUILD_DEBUG
-	if( true && !GAlwaysReportCrash )
-#else
-	if( FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash )
-#endif
-	{
-		// Don't use exception handling when a debugger is attached to exactly trap the crash. This does NOT check
-		// whether we are the first instance or not!
-		GuardedMain( *GSavedCommandLine );
-	}
-	else
-	{
-		if (!bIsBuildMachine)
-		{
-			FPlatformMisc::SetCrashHandler(EngineCrashHandler);
-		}
-		GIsGuarded = 1;
-		// Run the guarded code.
-		GuardedMain( *GSavedCommandLine );
-		GIsGuarded = 0;
-	}
-
-	FEngineLoop::AppExit();
 	
-	[NSApp terminate: nil];
+	RunGameThread(self, @selector(runGameThread:));
 }
 
 @end

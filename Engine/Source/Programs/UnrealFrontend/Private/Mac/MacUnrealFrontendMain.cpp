@@ -3,6 +3,7 @@
 #include "UnrealFrontendMain.h"
 #include "ExceptionHandling.h"
 #include "RequiredProgramMainCPPInclude.h"
+#include "CocoaThread.h"
 
 
 static FString GSavedCommandLine;
@@ -23,14 +24,15 @@ static FString GSavedCommandLine;
     [self requestQuit:self];
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)Notification
+- (IBAction)requestQuit:(id)Sender
 {
-	//install the custom quit event handler
-    NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
-    [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
-	
+	GIsRequestingExit = true;
+}
+
+- (void) runGameThread:(id)Arg
+{
 	FPlatformMisc::SetGracefulTerminationHandler();
-	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetCrashHandler(nullptr);
 	
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(*GSavedCommandLine,TEXT("crashreports")))
@@ -42,26 +44,40 @@ static FString GSavedCommandLine;
 #if UE_BUILD_DEBUG
 	if (!GAlwaysReportCrash)
 #else
-	if (FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash)
+		if (FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash)
 #endif
-	{
-		UnrealFrontendMain(*GSavedCommandLine);
-	}
-	else
-	{
-		GIsGuarded = 1;
-		UnrealFrontendMain(*GSavedCommandLine);
-		GIsGuarded = 0;
-	}
-
+		{
+			UnrealFrontendMain(*GSavedCommandLine);
+		}
+		else
+		{
+			GIsGuarded = 1;
+			UnrealFrontendMain(*GSavedCommandLine);
+			GIsGuarded = 0;
+		}
+	
 	FEngineLoop::AppExit();
-
+	
 	[NSApp terminate: self];
 }
 
-- (IBAction)requestQuit:(id)Sender
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
 {
-	GIsRequestingExit = true;
+	if(!GIsRequestingExit)
+	{
+		[self requestQuit:self];
+		return NSTerminateCancel;
+	}
+	return NSTerminateNow;
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)Notification
+{
+	//install the custom quit event handler
+    NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
+    [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
+	
+	RunGameThread(self, @selector(runGameThread:));
 }
 
 @end

@@ -4,6 +4,7 @@
 #include "MacApplication.h"
 #include "FeedbackContextMarkup.h"
 #include "MacNativeFeedbackContext.h"
+#include "CocoaThread.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 
@@ -223,99 +224,107 @@ bool FDesktopPlatformMac::SaveFileDialog(const void* ParentWindowHandle, const F
 
 bool FDesktopPlatformMac::OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
 
-	NSOpenPanel* Panel = [NSOpenPanel openPanel];
-	[Panel setCanChooseFiles: false];
-	[Panel setCanChooseDirectories: true];
-	[Panel setAllowsMultipleSelection: false];
-	[Panel setCanCreateDirectories: true];
+	bool bSuccess = MainThreadReturn(^{
+		SCOPED_AUTORELEASE_POOL;
+		FCocoaScopeContext ContextGuard;
 
-	CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
-	[Panel setTitle: (NSString*)Title];
-	CFRelease(Title);
+		NSOpenPanel* Panel = [NSOpenPanel openPanel];
+		[Panel setCanChooseFiles: false];
+		[Panel setCanChooseDirectories: true];
+		[Panel setAllowsMultipleSelection: false];
+		[Panel setCanCreateDirectories: true];
 
-	CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
-	NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
-	[Panel setDirectoryURL: DefaultPathURL];
-	CFRelease(DefaultPathCFString);
+		CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
+		[Panel setTitle: (NSString*)Title];
+		CFRelease(Title);
 
-	bool bSuccess = false;
+		CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
+		NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
+		[Panel setDirectoryURL: DefaultPathURL];
+		CFRelease(DefaultPathCFString);
 
-	{
-		FScopedSystemModalMode SystemModalScope;
-		NSInteger Result = [Panel runModal];
+		bool bSuccess = false;
 
-		if (Result == NSFileHandlingPanelOKButton)
 		{
-			NSURL *FolderURL = [[Panel URLs] objectAtIndex: 0];
-			TCHAR FolderPath[MAX_PATH];
-			FPlatformString::CFStringToTCHAR((CFStringRef)[FolderURL path], FolderPath);
-			OutFolderName = FolderPath;
-			FPaths::NormalizeFilename(OutFolderName);
+			FScopedSystemModalMode SystemModalScope;
+			NSInteger Result = [Panel runModal];
 
-			bSuccess = true;
+			if (Result == NSFileHandlingPanelOKButton)
+			{
+				NSURL *FolderURL = [[Panel URLs] objectAtIndex: 0];
+				TCHAR FolderPath[MAX_PATH];
+				FPlatformString::CFStringToTCHAR((CFStringRef)[FolderURL path], FolderPath);
+				OutFolderName = FolderPath;
+				FPaths::NormalizeFilename(OutFolderName);
+
+				bSuccess = true;
+			}
 		}
-	}
 
-	[Panel close];
+		[Panel close];
 
+		return bSuccess;
+	});
+	
 	MacApplication->ResetModifierKeys();
-
+	
 	return bSuccess;
 }
 
 bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
+	
+	bool bSuccess = MainThreadReturn(^{
+		SCOPED_AUTORELEASE_POOL;
+		FCocoaScopeContext ContextGuard;
 
-	NSFontPanel* Panel = [NSFontPanel sharedFontPanel];
-	[Panel setFloatingPanel: false];
-	[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: false];
-	FFontDialogAccessoryView* AccessoryView = [[FFontDialogAccessoryView alloc] initWithFrame: NSMakeRect(0.0, 0.0, 190.0, 80.0)];
-	[Panel setAccessoryView: AccessoryView];
+		NSFontPanel* Panel = [NSFontPanel sharedFontPanel];
+		[Panel setFloatingPanel: false];
+		[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: false];
+		FFontDialogAccessoryView* AccessoryView = [[FFontDialogAccessoryView alloc] initWithFrame: NSMakeRect(0.0, 0.0, 190.0, 80.0)];
+		[Panel setAccessoryView: AccessoryView];
 
-	{
-		FScopedSystemModalMode SystemModalScope;
-		[NSApp runModalForWindow: Panel];
-	}
-
-	[Panel close];
-
-	bool bSuccess = [AccessoryView result];
-
-	[Panel setAccessoryView: NULL];
-	[AccessoryView release];
-	[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: true];
-
-	if( bSuccess )
-	{
-		NSFont* Font = [Panel panelConvertFont: [NSFont userFontOfSize: 0]];
-
-		TCHAR FontName[MAX_PATH];
-		FPlatformString::CFStringToTCHAR((CFStringRef)[Font fontName], FontName);
-
-		OutFontName = FontName;
-		OutHeight = [Font pointSize];
-
-		auto FontFlags = EFontImportFlags::None;
-
-		if( [Font underlineThickness] >= 1.0 )
 		{
-			FontFlags |= EFontImportFlags::EnableUnderline;
+			FScopedSystemModalMode SystemModalScope;
+			[NSApp runModalForWindow: Panel];
 		}
 
-		OutFlags = FontFlags;
-	}
+		[Panel close];
 
+		bool bSuccess = [AccessoryView result];
+
+		[Panel setAccessoryView: NULL];
+		[AccessoryView release];
+		[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: true];
+
+		if( bSuccess )
+		{
+			NSFont* Font = [Panel panelConvertFont: [NSFont userFontOfSize: 0]];
+
+			TCHAR FontName[MAX_PATH];
+			FPlatformString::CFStringToTCHAR((CFStringRef)[Font fontName], FontName);
+
+			OutFontName = FontName;
+			OutHeight = [Font pointSize];
+
+			auto FontFlags = EFontImportFlags::None;
+
+			if( [Font underlineThickness] >= 1.0 )
+			{
+				FontFlags |= EFontImportFlags::EnableUnderline;
+			}
+
+			OutFlags = FontFlags;
+		}
+
+		return bSuccess;
+	});
+	
 	MacApplication->ResetModifierKeys();
-
+	
 	return bSuccess;
 }
 
@@ -397,102 +406,106 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 
 bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
 
-	NSSavePanel* Panel = bSave ? [NSSavePanel savePanel] : [NSOpenPanel openPanel];
+	bool bSuccess = MainThreadReturn(^{
+		SCOPED_AUTORELEASE_POOL;
+		FCocoaScopeContext ContextGuard;
 
-	if (!bSave)
-	{
-		NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
-		[OpenPanel setCanChooseFiles: true];
-		[OpenPanel setCanChooseDirectories: false];
-		[OpenPanel setAllowsMultipleSelection: Flags & EFileDialogFlags::Multiple];
-	}
+		NSSavePanel* Panel = bSave ? [NSSavePanel savePanel] : [NSOpenPanel openPanel];
 
-	[Panel setCanCreateDirectories: bSave];
-
-	CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
-	[Panel setTitle: (NSString*)Title];
-	CFRelease(Title);
-
-	CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
-	NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
-	[Panel setDirectoryURL: DefaultPathURL];
-	CFRelease(DefaultPathCFString);
-
-	CFStringRef FileNameCFString = FPlatformString::TCHARToCFString(*DefaultFile);
-	[Panel setNameFieldStringValue: (NSString*)FileNameCFString];
-	CFRelease(FileNameCFString);
-
-	FFileDialogAccessoryView* AccessoryView = [[FFileDialogAccessoryView alloc] initWithFrame: NSMakeRect( 0.0, 0.0, 250.0, 85.0 ) dialogPanel: Panel];
-	[Panel setAccessoryView: AccessoryView];
-
-	TArray<FString> FileTypesArray;
-	int32 NumFileTypes = FileTypes.ParseIntoArray(&FileTypesArray, TEXT("|"), true);
-
-	NSMutableArray* AllowedFileTypes = [NSMutableArray arrayWithCapacity: NumFileTypes];
-
-	if( NumFileTypes > 0 )
-	{
-		for( int32 Index = 0; Index < NumFileTypes; ++Index )
+		if (!bSave)
 		{
-			CFStringRef Type = FPlatformString::TCHARToCFString(*FileTypesArray[Index]);
-			[AllowedFileTypes addObject: (NSString*)Type];
-			CFRelease(Type);
+			NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
+			[OpenPanel setCanChooseFiles: true];
+			[OpenPanel setCanChooseDirectories: false];
+			[OpenPanel setAllowsMultipleSelection: Flags & EFileDialogFlags::Multiple];
 		}
-	}
 
-	[AccessoryView AddAllowedFileTypes:AllowedFileTypes];
+		[Panel setCanCreateDirectories: bSave];
 
-	bool bSuccess = false;
-	NSWindow* FocusWindow = [[NSApplication sharedApplication] keyWindow];
+		CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
+		[Panel setTitle: (NSString*)Title];
+		CFRelease(Title);
 
-	{
-		FScopedSystemModalMode SystemModalScope;
+		CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
+		NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
+		[Panel setDirectoryURL: DefaultPathURL];
+		CFRelease(DefaultPathCFString);
 
-		NSInteger Result = [Panel runModal];
-		[AccessoryView release];
+		CFStringRef FileNameCFString = FPlatformString::TCHARToCFString(*DefaultFile);
+		[Panel setNameFieldStringValue: (NSString*)FileNameCFString];
+		CFRelease(FileNameCFString);
 
-		if (Result == NSFileHandlingPanelOKButton)
+		FFileDialogAccessoryView* AccessoryView = [[FFileDialogAccessoryView alloc] initWithFrame: NSMakeRect( 0.0, 0.0, 250.0, 85.0 ) dialogPanel: Panel];
+		[Panel setAccessoryView: AccessoryView];
+
+		TArray<FString> FileTypesArray;
+		int32 NumFileTypes = FileTypes.ParseIntoArray(&FileTypesArray, TEXT("|"), true);
+
+		NSMutableArray* AllowedFileTypes = [NSMutableArray arrayWithCapacity: NumFileTypes];
+
+		if( NumFileTypes > 0 )
 		{
-			if (bSave)
+			for( int32 Index = 0; Index < NumFileTypes; ++Index )
 			{
-				TCHAR FilePath[MAX_PATH];
-				FPlatformString::CFStringToTCHAR((CFStringRef)[[Panel URL] path], FilePath);
-				new(OutFilenames) FString(FilePath);
+				CFStringRef Type = FPlatformString::TCHARToCFString(*FileTypesArray[Index]);
+				[AllowedFileTypes addObject: (NSString*)Type];
+				CFRelease(Type);
 			}
-			else
+		}
+
+		[AccessoryView AddAllowedFileTypes:AllowedFileTypes];
+
+		bool bSuccess = false;
+		NSWindow* FocusWindow = [[NSApplication sharedApplication] keyWindow];
+
+		{
+			FScopedSystemModalMode SystemModalScope;
+
+			NSInteger Result = [Panel runModal];
+			[AccessoryView release];
+
+			if (Result == NSFileHandlingPanelOKButton)
 			{
-				NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
-				for (NSURL *FileURL in [OpenPanel URLs])
+				if (bSave)
 				{
 					TCHAR FilePath[MAX_PATH];
-					FPlatformString::CFStringToTCHAR((CFStringRef)[FileURL path], FilePath);
+					FPlatformString::CFStringToTCHAR((CFStringRef)[[Panel URL] path], FilePath);
 					new(OutFilenames) FString(FilePath);
 				}
-			}
+				else
+				{
+					NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
+					for (NSURL *FileURL in [OpenPanel URLs])
+					{
+						TCHAR FilePath[MAX_PATH];
+						FPlatformString::CFStringToTCHAR((CFStringRef)[FileURL path], FilePath);
+						new(OutFilenames) FString(FilePath);
+					}
+				}
 
-			// Make sure all filenames gathered have their paths normalized
-			for (auto FilenameIt = OutFilenames.CreateIterator(); FilenameIt; ++FilenameIt)
-			{
-				FPaths::NormalizeFilename(*FilenameIt);
-			}
+				// Make sure all filenames gathered have their paths normalized
+				for (auto FilenameIt = OutFilenames.CreateIterator(); FilenameIt; ++FilenameIt)
+				{
+					FPaths::NormalizeFilename(*FilenameIt);
+				}
 
-			bSuccess = true;
+				bSuccess = true;
+			}
 		}
-	}
 
-	[Panel close];
+		[Panel close];
+		
+		if(FocusWindow)
+		{
+			[FocusWindow makeKeyWindow];
+		}
 
-	MacApplication->ResetModifierKeys();
+		return bSuccess;
+	});
 	
-	if(FocusWindow)
-	{
-		[FocusWindow makeKeyWindow];
-	}
+	MacApplication->ResetModifierKeys();
 
 	return bSuccess;
 }

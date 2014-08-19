@@ -64,6 +64,7 @@ private:
 	FMacNativeFeedbackContextWindowController* WindowController;
 	NSDictionary* TextViewTextColor;
 	FContextSupplier* Context;
+	uint64 OutstandingTasks;
 	int32 SlowTaskCount;
 	bool bShowingConsoleForSlowTask;
 };

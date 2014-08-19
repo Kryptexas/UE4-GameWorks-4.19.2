@@ -2,6 +2,7 @@
 
 #include "SlateViewerApp.h"
 #include "ExceptionHandling.h"
+#include "CocoaThread.h"
 
 static FString GSavedCommandLine;
 
@@ -19,18 +20,33 @@ static FString GSavedCommandLine;
     [NSApp terminate:self];
 }
 
+- (void) runGameThread:(id)Arg
+{
+	FPlatformMisc::SetGracefulTerminationHandler();
+	FPlatformMisc::SetCrashHandler(nullptr);
+	
+	RunSlateViewer(*GSavedCommandLine);
+	
+	[NSApp terminate: self];
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
+{
+	if(!GIsRequestingExit)
+	{
+		GIsRequestingExit = true;
+		return NSTerminateCancel;
+	}
+	return NSTerminateNow;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
 {
 	//install the custom quit event handler
     NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
-	FPlatformMisc::SetGracefulTerminationHandler();
-	FPlatformMisc::SetCrashHandler(nullptr);
-	
-	RunSlateViewer(*GSavedCommandLine);
-
-	[NSApp terminate: self];
+	RunGameThread(self, @selector(runGameThread:));
 }
 
 @end

@@ -6,6 +6,7 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 
+class FMacEvent;
 
 /**
  * Mac-specific application implementation.
@@ -61,6 +62,8 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
+	void ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindow > CurrentEventWindow, FVector2D const MousePosition);
+
 	void ProcessEvent(NSEvent* Event);
 
 	void OnWindowDraggingFinished();
@@ -103,6 +106,9 @@ public:
 
 	void OnMouseCursorLock( bool bLockEnabled );
 
+	static FCocoaWindow* FindMacEventWindow( NSEvent* CocoaEvent );
+	static TSharedPtr< FMacWindow > FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle );
+	static void ProcessEvent(FMacEvent const* const Event);
 
 private:
 	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
@@ -138,6 +144,7 @@ private:
 
 	EMouseButtons::Type LastPressedMouseButton;
 
+	FCriticalSection WindowsMutex;
 	TArray< TSharedRef< FMacWindow > > Windows;
 
 	TSharedRef< class HIDInputInterface > HIDInput;
@@ -173,6 +180,8 @@ private:
 	/** Stores the number of times a gesture has been used for analytics */
 	int32 GestureUsage[EGestureEvent::Count];
 #endif
+
+	void* EventMonitor;
 
 	friend class FMacWindow;
 };

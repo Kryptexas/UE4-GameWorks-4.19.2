@@ -4,6 +4,7 @@
 #include "MacWindow.h"
 #include "MacApplication.h"
 #include "CocoaTextView.h"
+#include "CocoaThread.h"
 
 TArray< FCocoaWindow* > FMacWindow::RunningModalWindows;
 
@@ -84,7 +85,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		WindowStyle &= ~(NSTexturedBackgroundWindowMask);
 	}
 
-	WindowHandle = [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO];
+	WindowHandle = MainThreadReturn(^{ return [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO]; });
 
 	if( WindowHandle == NULL )
 	{
@@ -94,77 +95,79 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		return;
 	}
 
-	// Disable automatic release on close - explicit retain/release makes the Destroy() logic much easier to follow
-	[WindowHandle setReleasedWhenClosed: NO];
-	
-	[WindowHandle setWindowMode: WindowMode];
-	[WindowHandle setAcceptsInput: Definition->AcceptsInput];
-	[WindowHandle setDisplayReconfiguring: false];
-	[WindowHandle setAcceptsMouseMovedEvents: YES];
-	[WindowHandle setDelegate: WindowHandle];
+	MainThreadCall(^{
+		// Disable automatic release on close - explicit retain/release makes the Destroy() logic much easier to follow
+		[WindowHandle setReleasedWhenClosed: NO];
+		
+		[WindowHandle setWindowMode: WindowMode];
+		[WindowHandle setAcceptsInput: Definition->AcceptsInput];
+		[WindowHandle setDisplayReconfiguring: false];
+		[WindowHandle setAcceptsMouseMovedEvents: YES];
+		[WindowHandle setDelegate: WindowHandle];
 
-	// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
-	if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
-	{
-		[WindowHandle setLevel: NSNormalWindowLevel];
-	}
-	else
-	{
-		[WindowHandle setLevel: NSFloatingWindowLevel];
-		[WindowHandle setHidesOnDeactivate: YES];
-	}
-	
-	// Use of rounded corners will always render with system values for rounding
-	[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
-	
-	if( !Definition->HasOSWindowBorder )
-	{
-		[WindowHandle setBackgroundColor: [NSColor darkGrayColor]];
-		[WindowHandle setHasShadow: YES];
-	}
-
-	[WindowHandle setOpaque: NO];
-
-	ReshapeWindow( X, Y, SizeX, SizeY );
-
-	if( Definition->IsRegularWindow )
-	{
-		CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
-		[WindowHandle setTitle: ( NSString *)CFName];
-		CFRelease( CFName );
-
-		[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
-
-		// Tell Cocoa that we are opting into drag and drop.
-		// Only makes sense for regular windows (windows that last a while.)
-		[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
-
-		if( Definition->HasOSWindowBorder )
+		// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
+		if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
 		{
-			[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+			[WindowHandle setLevel: NSNormalWindowLevel];
 		}
 		else
 		{
-			[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+			[WindowHandle setLevel: NSFloatingWindowLevel];
+			[WindowHandle setHidesOnDeactivate: YES];
 		}
-	}
-	else if(Definition->AppearsInTaskbar)
-	{
-		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
-	}
-	else
-	{
-		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
-	}
+		
+		// Use of rounded corners will always render with system values for rounding
+		[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
+		
+		if( !Definition->HasOSWindowBorder )
+		{
+			[WindowHandle setBackgroundColor: [NSColor darkGrayColor]];
+			[WindowHandle setHasShadow: YES];
+		}
 
-	if( Definition->SupportsTransparency )
-	{
-		SetOpacity( Definition->Opacity );
-	}
-	else
-	{
-		SetOpacity( 1.0f );
-	}
+		[WindowHandle setOpaque: NO];
+
+		ReshapeWindow( X, Y, SizeX, SizeY );
+
+		if( Definition->IsRegularWindow )
+		{
+			CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
+			[WindowHandle setTitle: ( NSString *)CFName];
+			CFRelease( CFName );
+
+			[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
+
+			// Tell Cocoa that we are opting into drag and drop.
+			// Only makes sense for regular windows (windows that last a while.)
+			[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+
+			if( Definition->HasOSWindowBorder )
+			{
+				[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+			}
+			else
+			{
+				[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+			}
+		}
+		else if(Definition->AppearsInTaskbar)
+		{
+			[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+		}
+		else
+		{
+			[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
+		}
+
+		if( Definition->SupportsTransparency )
+		{
+			SetOpacity( Definition->Opacity );
+		}
+		else
+		{
+			SetOpacity( 1.0f );
+		}
+	}, true);
 }
 
 FMacWindow::FMacWindow()
@@ -190,26 +193,28 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 
 	if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
 	{
-		BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
-		
-		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
-		if (Definition->HasOSWindowBorder)
-		{
-			[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
-		}
-		else
-		{
-			[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
-		}
-		
-		// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
-		// have to subvert the OS X or UE fullscreen handling events elsewhere.
-		if(WindowMode != EWindowMode::Windowed)
-		{
-			[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
-		}
-		
-		WindowHandle->bZoomed = [WindowHandle isZoomed];
+		MainThreadCall(^{
+			BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+			
+			const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
+			if (Definition->HasOSWindowBorder)
+			{
+				[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
+			}
+			else
+			{
+				[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
+			}
+			
+			// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
+			// have to subvert the OS X or UE fullscreen handling events elsewhere.
+			if(WindowMode != EWindowMode::Windowed)
+			{
+				[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
+			}
+			
+			WindowHandle->bZoomed = [WindowHandle isZoomed];
+		}, true);
 	}
 	
 	MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
@@ -229,18 +234,21 @@ bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Hei
 
 void FMacWindow::MoveWindowTo( int32 X, int32 Y )
 {
-	SCOPED_AUTORELEASE_POOL;
-
-	const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - [WindowHandle frame].size.height + 1;
-	[WindowHandle setFrameOrigin: NSMakePoint(X, InvertedY)];
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - [WindowHandle frame].size.height + 1;
+		[WindowHandle setFrameOrigin: NSMakePoint(X, InvertedY)];
+	}, true);
 }
 
 void FMacWindow::BringToFront( bool bForce )
 {
 	if (bIsVisible)
 	{
-		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+			[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
+		}, true);
 	}
 }
 
@@ -271,7 +279,9 @@ void FMacWindow::Destroy()
 			}
 
 			// Close the window, but don't destruct it...
-			[Window performClose:nil];
+			MainThreadCall(^{
+				[Window performClose:nil];
+			}, true);
 			
 			// Since event handling of the change in focus may try to communicate with this window,
 			// dispatch a call to release it which should be handled afterward.
@@ -285,33 +295,39 @@ void FMacWindow::Destroy()
 
 void FMacWindow::Minimize()
 {
-	SCOPED_AUTORELEASE_POOL;
-	[WindowHandle miniaturize:nil];
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		[WindowHandle miniaturize:nil];
+	}, true);
 }
 
 void FMacWindow::Maximize()
 {
-	SCOPED_AUTORELEASE_POOL;
-	if( ![WindowHandle isZoomed] )
-	{
-		WindowHandle->bZoomed = true;
-		[WindowHandle zoom:nil];
-	}
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		if( ![WindowHandle isZoomed] )
+		{
+			WindowHandle->bZoomed = true;
+			[WindowHandle zoom:nil];
+		}
+	}, true);
 }
 
 void FMacWindow::Restore()
 {
-	SCOPED_AUTORELEASE_POOL;
-	if( [WindowHandle isZoomed] )
-	{
-		WindowHandle->bZoomed = !WindowHandle->bZoomed;
-		[WindowHandle zoom:nil];
-	}
-	else
-	{
-		WindowHandle->bZoomed = false;
-		[WindowHandle deminiaturize:nil];
-	}
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		if( [WindowHandle isZoomed] )
+		{
+			WindowHandle->bZoomed = !WindowHandle->bZoomed;
+			[WindowHandle zoom:nil];
+		}
+		else
+		{
+			WindowHandle->bZoomed = false;
+			[WindowHandle deminiaturize:nil];
+		}
+	}, true);
 }
 
 void FMacWindow::Show()
@@ -323,8 +339,12 @@ void FMacWindow::Show()
 		{
 			AddModalWindow(WindowHandle);
 		}
+		
 		bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
-		[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
+		
+		MainThreadCall(^{
+			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
+		}, true);
 		
 		bIsVisible = [WindowHandle isVisible];
 		static bool bCannotRecurse = false;
@@ -355,7 +375,9 @@ void FMacWindow::Hide()
 		{
 			RemoveModalWindow(WindowHandle);
 		}
-		[WindowHandle orderOut:nil];
+		MainThreadCall(^{
+			[WindowHandle orderOut:nil];
+		}, true);
 	}
 }
 
@@ -378,8 +400,6 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			Behaviour |= NSWindowCollectionBehaviorFullScreenPrimary;
 		}
 		
-		[WindowHandle setCollectionBehavior: Behaviour];
-		
 		if(!bIsFullscreen)
 		{
 			PreFullscreenWindowRect = [WindowHandle openGLFrame];
@@ -387,7 +407,12 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		}
 		
 		WindowHandle.TargetWindowMode = NewWindowMode;
-		[WindowHandle toggleFullScreen:nil];
+		
+		MainThreadCall(^{
+			[WindowHandle setCollectionBehavior: Behaviour];
+			[WindowHandle toggleFullScreen:nil];
+		}, true);
+		
 		// Ensure that the window has transitioned BEFORE leaving this function
 		// this prevents problems with failure to correctly update mouse locks
 		// and OpenGL contexts due to bad event ordering.
@@ -439,20 +464,26 @@ bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& 
 
 void FMacWindow::SetWindowFocus()
 {
-	SCOPED_AUTORELEASE_POOL;
-	[WindowHandle orderFrontAndMakeMain:true andKey:true];
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		[WindowHandle orderFrontAndMakeMain:true andKey:true];
+	}, true);
 }
 
 void FMacWindow::SetOpacity( const float InOpacity )
 {
-	SCOPED_AUTORELEASE_POOL;
-	[WindowHandle setAlphaValue:InOpacity];
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		[WindowHandle setAlphaValue:InOpacity];
+	}, true);
 }
 
 void FMacWindow::Enable( bool bEnable )
 {
-	SCOPED_AUTORELEASE_POOL;
-	[WindowHandle setIgnoresMouseEvents: !bEnable];
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		[WindowHandle setIgnoresMouseEvents: !bEnable];
+	}, true);
 }
 
 bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
@@ -509,12 +540,14 @@ void FMacWindow::SetText(const TCHAR* const Text)
 {
 	SCOPED_AUTORELEASE_POOL;
 	CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
-	[WindowHandle setTitle: (NSString*)CFName];
-	if(IsRegularWindow())
-	{
-		[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
-	}
-	CFRelease( CFName );
+	MainThreadCall(^{
+		[WindowHandle setTitle: (NSString*)CFName];
+		if(IsRegularWindow())
+		{
+			[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
+		}
+		CFRelease( CFName );
+	}, true);
 }
 
 bool FMacWindow::IsRegularWindow() const
@@ -531,17 +564,19 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 {
 	if(WindowHandle)
 	{
-		if(Flags & kCGDisplayBeginConfigurationFlag)
-		{
-			[WindowHandle setMovable: YES];
-			[WindowHandle setMovableByWindowBackground: NO];
-			
-			[WindowHandle setDisplayReconfiguring: true];
-		}
-		else if(Flags & kCGDisplayDesktopShapeChangedFlag)
-		{
-			[WindowHandle setDisplayReconfiguring: false];
-		}
+		MainThreadCall(^{
+			if(Flags & kCGDisplayBeginConfigurationFlag)
+			{
+				[WindowHandle setMovable: YES];
+				[WindowHandle setMovableByWindowBackground: NO];
+				
+				[WindowHandle setDisplayReconfiguring: true];
+			}
+			else if(Flags & kCGDisplayDesktopShapeChangedFlag)
+			{
+				[WindowHandle setDisplayReconfiguring: false];
+			}
+		}, true);
 	}
 }
 
@@ -549,8 +584,10 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 {
 	if(WindowHandle && [WindowHandle openGLView])
 	{
-		FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
-		return View && [View imkKeyDown:Event];
+		return MainThreadReturn(^{
+			FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
+			return View && [View imkKeyDown:Event];
+		});
 	}
 	else
 	{

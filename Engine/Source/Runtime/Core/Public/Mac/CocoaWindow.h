@@ -82,6 +82,12 @@
 
 @end
 
+extern NSString* NSWindowRedrawContents;
+extern NSString* NSDraggingExited;
+extern NSString* NSDraggingUpdated;
+extern NSString* NSPrepareForDragOperation;
+extern NSString* NSPerformDragOperation;
+
 #else // __OBJC__
 
 class FCocoaWindow;

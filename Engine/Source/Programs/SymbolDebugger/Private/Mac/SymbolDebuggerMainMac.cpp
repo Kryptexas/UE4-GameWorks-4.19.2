@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SymbolDebuggerApp.h"
+#include "CocoaThread.h"
 
 static FString GSavedCommandLine;
 
@@ -12,11 +13,39 @@ static FString GSavedCommandLine;
 
 @implementation UE4AppDelegate
 
+//handler for the quit apple event used by the Dock menu
+- (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
+{
+    [NSApp terminate:self];
+}
+
+- (void) runGameThread:(id)Arg
+{
+	FPlatformMisc::SetGracefulTerminationHandler();
+	FPlatformMisc::SetCrashHandler(nullptr);
+	
+	RunSymbolDebugger(*GSavedCommandLine);
+	
+	[NSApp terminate: self];
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
+{
+	if(!GIsRequestingExit)
+	{
+		GIsRequestingExit = true;
+		return NSTerminateCancel;
+	}
+	return NSTerminateNow;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
 {
-	RunSymbolDebugger(*GSavedCommandLine);
-
-	[NSApp terminate: self];
+	//install the custom quit event handler
+    NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
+    [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
+	
+	RunGameThread(self, @selector(runGameThread:));
 }
 
 @end

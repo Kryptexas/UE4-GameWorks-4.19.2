@@ -2,9 +2,18 @@
 
 #include "Core.h"
 #include "CocoaWindow.h"
-#include "CocoaTextView.h"
 #include "MacApplication.h"
-#include "MacWindow.h"
+#include "CocoaTextView.h"
+#include "MacEvent.h"
+#include "CocoaThread.h"
+
+TArray< FCocoaWindow* > GRunningModalWindows;
+
+NSString* NSWindowRedrawContents = @"NSWindowRedrawContents";
+NSString* NSDraggingExited = @"NSDraggingExited";
+NSString* NSDraggingUpdated = @"NSDraggingUpdated";
+NSString* NSPrepareForDragOperation = @"NSPrepareForDragOperation";
+NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 /**
  * Custom window class used for input handling
@@ -157,7 +166,8 @@
 {
 	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
-		MacApplication->OnWindowRedrawContents( self );
+		NSNotification* Notification = [NSNotification notificationWithName:NSWindowRedrawContents object:self];
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Sync);
 	}
 	bNeedsRedraw = false;
 }
@@ -273,7 +283,8 @@
 		DeferFrame = FrameRect;
 		if(self.bForwardEvents)
 		{
-			MacApplication->OnWindowDidResize( self );
+			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidResizeNotification object:self];
+			FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 		}
 	}
 }
@@ -283,7 +294,9 @@
 	NSSize Size = [self frame].size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1)))
 	{
-		[super setFrameOrigin:Point];
+		MainThreadCall(^{
+			[super setFrameOrigin:Point];
+		}, true);
 		bDeferSetOrigin = false;
 	}
 	else
@@ -297,7 +310,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -305,7 +318,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -324,7 +337,7 @@
 	WindowMode = self.TargetWindowMode;
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidResize( self );
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -334,7 +347,7 @@
 	self.TargetWindowMode = EWindowMode::Windowed;
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidResize( self );
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -354,7 +367,7 @@
 	
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidBecomeKey( self );
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -365,7 +378,7 @@
 	
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidResignKey( self );
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -373,7 +386,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowWillMove( self );
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -386,7 +399,7 @@
 	
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidMove( self );
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -458,7 +471,7 @@
 	bZoomed = [self isZoomed];
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnWindowDidResize( self );
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 	bNeedsRedraw = true;
 }
@@ -467,7 +480,7 @@
 {
 	if(self.bForwardEvents && MacApplication)
 	{
-		MacApplication->OnWindowDidClose( self );
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -475,7 +488,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -490,7 +503,7 @@
 	
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -498,7 +511,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -506,7 +519,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -514,7 +527,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -522,7 +535,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->ProcessEvent( Event );
+		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 	}
 }
 
@@ -535,7 +548,8 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnDragOut( self );
+		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingExited object:Sender];
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 }
 
@@ -543,7 +557,8 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnDragOver( self );
+		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingUpdated object:Sender];
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 	return NSDragOperationGeneric;
 }
@@ -552,7 +567,8 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnDragEnter( self, [Sender draggingPasteboard] );
+		NSNotification* Notification = [NSNotification notificationWithName:NSPrepareForDragOperation object:Sender];
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 	return YES;
 }
@@ -561,7 +577,8 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->OnDragDrop( self );
+		NSNotification* Notification = [NSNotification notificationWithName:NSPerformDragOperation object:Sender];
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
 	return YES;
 }
@@ -571,7 +588,7 @@
 	BOOL Movable = [super isMovable];
 	if(Movable && bRenderInitialised && MacApplication)
 	{
-		Movable &= MacApplication->IsWindowMovable(self, NULL);
+		Movable &= (BOOL)(GameThreadReturn(^{ return MacApplication->IsWindowMovable(self, NULL); }));
 	}
 	return Movable;
 }
@@ -610,32 +627,32 @@
 
 - (void)mouseDown:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 - (void)otherMouseDown:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 - (void)mouseUp:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 - (void)rightMouseUp:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 - (void)otherMouseUp:(NSEvent*)Event
 {
-	MacApplication->ProcessEvent( Event );
+	FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 }
 
 @end

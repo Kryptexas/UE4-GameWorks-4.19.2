@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "CocoaTextView.h"
 #include "CocoaWindow.h"
+#include "CocoaThread.h"
 
 @implementation FCocoaTextView
 
@@ -163,7 +164,8 @@
 {
 	if (IMMContext.IsValid() && [self hasMarkedText])
 	{
-		uint32 SelectionLocation, SelectionLength;
+		__block uint32 SelectionLocation;
+		__block uint32 SelectionLength;
 		if (replacementRange.location == NSNotFound)
 		{
 			if (markedRange.location != NSNotFound)
@@ -173,8 +175,10 @@
 			}
 			else
 			{
-				ITextInputMethodContext::ECaretPosition CaretPosition;
-				IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+				GameThreadCall(^{
+					ITextInputMethodContext::ECaretPosition CaretPosition;
+					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+				}, true);
 			}
 		}
 		else
@@ -193,9 +197,11 @@
 			TheString = (NSString*)aString;
 		}
 		
-		FString TheFString(TheString);
-		IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
-		IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+		GameThreadCall(^{
+			FString TheFString(TheString);
+			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
+			IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+		}, true);
 		
 		[self unmarkText];
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
@@ -219,7 +225,8 @@
 {
 	if (IMMContext.IsValid())
 	{
-		uint32 SelectionLocation, SelectionLength;
+		__block uint32 SelectionLocation;
+		__block uint32 SelectionLength;
 		if (replacementRange.location == NSNotFound)
 		{
 			if (markedRange.location != NSNotFound)
@@ -229,8 +236,10 @@
 			}
 			else
 			{
-				ITextInputMethodContext::ECaretPosition CaretPosition;
-				IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+				GameThreadCall(^{
+					ITextInputMethodContext::ECaretPosition CaretPosition;
+					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+				}, true);
 			}
 		}
 		else
@@ -241,14 +250,18 @@
 		
 		if ([aString length] == 0)
 		{
-			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, FString());
+			GameThreadCall(^{
+				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, FString());
+			}, true);
 			[self unmarkText];
 		}
 		else
 		{
 			if(markedRange.location == NSNotFound)
 			{
-				IMMContext->BeginComposition();
+				GameThreadCall(^{
+					IMMContext->BeginComposition();
+				}, true);
 			}
 			markedRange = NSMakeRange(SelectionLocation, [aString length]);
 			
@@ -284,10 +297,12 @@
 				TheString = (NSString*)aString;
 			}
 			
-			FString TheFString(TheString);
-			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
-			IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
-			IMMContext->SetSelectionRange(markedRange.location + selectedRange.location, 0, ITextInputMethodContext::ECaretPosition::Ending);
+			GameThreadCall(^{
+				FString TheFString(TheString);
+				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
+				IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
+				IMMContext->SetSelectionRange(markedRange.location + selectedRange.location, 0, ITextInputMethodContext::ECaretPosition::Ending);
+			}, true);
 		}
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
 	}
@@ -306,8 +321,10 @@
 		markedRange = {NSNotFound, 0};
 		if (IMMContext.IsValid())
 		{
-			IMMContext->UpdateCompositionRange(0, 0);
-			IMMContext->EndComposition();
+			GameThreadCall(^{
+				IMMContext->UpdateCompositionRange(0, 0);
+				IMMContext->EndComposition();
+			}, true);
 		}
 	}
 }
@@ -318,10 +335,12 @@
 {
 	if (IMMContext.IsValid())
 	{
-		uint32 SelectionLocation, SelectionLength;
-		ITextInputMethodContext::ECaretPosition CaretPosition;
-		IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
-		
+		__block uint32 SelectionLocation;
+		__block uint32 SelectionLength;
+		__block ITextInputMethodContext::ECaretPosition CaretPosition;
+		GameThreadCall(^{
+			IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+		}, true);
 		return {SelectionLocation, SelectionLength};
 	}
 	else
@@ -358,8 +377,10 @@
 	NSAttributedString* AttributedString = nil;
 	if (IMMContext.IsValid())
 	{
-		FString String;
-		IMMContext->GetTextInRange(aRange.location, aRange.length, String);
+		__block FString String;
+		GameThreadCall(^{
+			IMMContext->GetTextInRange(aRange.location, aRange.length, String);
+		}, true);
 		CFStringRef CFString = FPlatformString::TCHARToCFString(*String);
 		if(CFString)
 		{
@@ -390,8 +411,11 @@
 {
 	if (IMMContext.IsValid())
 	{
-		FVector2D Position, Size;
-		IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
+		__block FVector2D Position;
+		__block FVector2D Size;
+		GameThreadCall(^{
+			IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
+		}, true);
 		
 		if(actualRange)
 		{
@@ -419,7 +443,7 @@
 	if (IMMContext.IsValid())
 	{
 		FVector2D Pos(aPoint.x, aPoint.y);
-		int32 Index = IMMContext->GetCharacterIndexFromPoint(Pos);
+		int32 Index = GameThreadReturn(^{ return IMMContext->GetCharacterIndexFromPoint(Pos); });
 		NSUInteger Idx = Index == INDEX_NONE ? NSNotFound : (NSUInteger)Index;
 		return Idx;
 	}

@@ -10,6 +10,7 @@
 #include "VarargsHelper.h"
 #include "MacApplication.h"
 #include "MacCursor.h"
+#include "CocoaThread.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineVersion.h"
 
@@ -466,30 +467,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
 	{
-		SCOPED_AUTORELEASE_POOL;
-
-		while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
-		{
-			const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
-										 || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-										 || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
-										 || [Event type] == NSKeyDown || ([Event type] == NSKeyUp && !([Event modifierFlags] & NSCommandKeyMask));
-
-			if( MacApplication )
-			{
-				if( !bIsMouseClickOrKeyEvent || [Event window] == NULL )
-				{
-					MacApplication->ProcessEvent( Event );
-				}
-
-				if( [Event type] == NSLeftMouseUp )
-				{
-					MacApplication->OnWindowDraggingFinished();
-				}
-			}
-
-			[NSApp sendEvent: Event];
-		}
+		ProcessGameThreadEvents();
 	}
 }
 

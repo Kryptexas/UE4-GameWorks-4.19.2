@@ -3,6 +3,7 @@
 #include "DesktopPlatformPrivatePCH.h"
 #include "MacNativeFeedbackContext.h"
 #include "MacApplication.h"
+#include "CocoaThread.h"
 
 @implementation FMacNativeFeedbackContextWindowController
 
@@ -254,17 +255,26 @@ FMacNativeFeedbackContext::FMacNativeFeedbackContext()
 	: FFeedbackContext()
 	, WindowController(nil)
 	, Context( NULL )
+	, OutstandingTasks(0)
 	, SlowTaskCount( 0 )
 	, bShowingConsoleForSlowTask( false )
 {
-	WindowController = [[FMacNativeFeedbackContextWindowController alloc] init];
-	
+	MainThreadCall(^{
+		WindowController = [[FMacNativeFeedbackContextWindowController alloc] init];
+	}, true);
 	SetDefaultTextColor();
 }
 
 FMacNativeFeedbackContext::~FMacNativeFeedbackContext()
 {
-	[WindowController release];
+	do
+	{
+		FPlatformMisc::PumpMessages( true );
+	} while(OutstandingTasks);
+	
+	MainThreadCall(^{
+		[WindowController release];
+	}, true);
 }
 
 void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
@@ -306,24 +316,31 @@ void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Typ
 						*S -= '0';
 					}
 					
-					NSColor* Colors[2];
-					NSString* AttributeKeys[2];
+					NSMutableArray* Colors = [[NSMutableArray alloc] init];
+					NSMutableArray* AttributeKeys = [[NSMutableArray alloc] init];
 					
 					// Get FOREGROUND_INTENSITY and calculate final color
 					CGFloat Intensity = String[3] ? 1.0 : 0.5;
-					Colors[0] = [NSColor colorWithSRGBRed:(String[0] ? 1.0 * Intensity : 0.0) green:(String[1] ? 1.0 * Intensity : 0.0) blue:(String[2] ? 1.0 * Intensity : 0.0) alpha:1.0];
+					[Colors addObject:[NSColor colorWithSRGBRed:(String[0] ? 1.0 * Intensity : 0.0) green:(String[1] ? 1.0 * Intensity : 0.0) blue:(String[2] ? 1.0 * Intensity : 0.0) alpha:1.0]];
 					
 					// Get BACKGROUND_INTENSITY and calculate final color
 					Intensity = String[7] ? 1.0 : 0.5;
-					Colors[1] = [NSColor colorWithSRGBRed:(String[4] ? 1.0 * Intensity : 0.0) green:(String[5] ? 1.0 * Intensity : 0.0) blue:(String[6] ? 1.0 * Intensity : 0.0) alpha:1.0];
+					[Colors addObject:[NSColor colorWithSRGBRed:(String[4] ? 1.0 * Intensity : 0.0) green:(String[5] ? 1.0 * Intensity : 0.0) blue:(String[6] ? 1.0 * Intensity : 0.0) alpha:1.0]];
 					
-					AttributeKeys[0] = NSForegroundColorAttributeName;
-					AttributeKeys[1] = NSBackgroundColorAttributeName;
+					[AttributeKeys addObject:NSForegroundColorAttributeName];
+					[AttributeKeys addObject:NSBackgroundColorAttributeName];
 					
-					if( TextViewTextColor )
-					[TextViewTextColor release];
-					
-					TextViewTextColor = [[NSDictionary alloc] initWithObjects:(id *)Colors forKeys:(id *)AttributeKeys count:2];
+					OutstandingTasks++;
+					MainThreadCall(^{
+						if( TextViewTextColor )
+							[TextViewTextColor release];
+						
+						TextViewTextColor = [[NSDictionary alloc] initWithObjects:Colors forKeys:AttributeKeys];
+						
+						[Colors release];
+						[AttributeKeys release];
+						OutstandingTasks--;
+					}, false);
 				}
 			}
 			else
@@ -334,11 +351,16 @@ void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Typ
 				FCString::Sprintf(OutputString,TEXT("%s%s"),*FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes),LINE_TERMINATOR);
 				
 				CFStringRef CocoaText = FPlatformString::TCHARToCFString(OutputString);
-				NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:(NSString*)CocoaText attributes:TextViewTextColor];
-				[[WindowController->TextView textStorage] appendAttributedString:AttributedString];
-				[WindowController->TextView scrollRangeToVisible:NSMakeRange([[WindowController->TextView string] length], 0)];
-				CFRelease(CocoaText);
-				[AttributedString release];
+				
+				OutstandingTasks++;
+				MainThreadCall(^{
+					NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:(NSString*)CocoaText attributes:TextViewTextColor];
+					[[WindowController->TextView textStorage] appendAttributedString:AttributedString];
+					[WindowController->TextView scrollRangeToVisible:NSMakeRange([[WindowController->TextView string] length], 0)];
+					[AttributedString release];
+					CFRelease(CocoaText);
+					OutstandingTasks--;
+				}, false);
 				
 				if(!MacApplication)
 				{
@@ -382,18 +404,20 @@ void FMacNativeFeedbackContext::BeginSlowTask( const FText& Task, bool bShowProg
 
 	if(SlowTaskCount > 0 && bShowProgressDialog && WindowController != NULL && !bShowingConsoleForSlowTask)
 	{
-		[WindowController setTitleText:Task.ToString().GetNSString()];
-		[WindowController setStatusText:@"Progress:"];
-		[WindowController setShowCancelButton:bInShowCancelButton];
-		[WindowController setShowProgress:true];
-		[WindowController setProgress:0 total:100];
-		[WindowController setShowProgress:false];
-		
-		SetDefaultTextColor();
-		
-		[WindowController showWindow];
-		
-		bShowingConsoleForSlowTask = true;
+		MainThreadCall(^{
+			[WindowController setTitleText:Task.ToString().GetNSString()];
+			[WindowController setStatusText:@"Progress:"];
+			[WindowController setShowCancelButton:bInShowCancelButton];
+			[WindowController setShowProgress:true];
+			[WindowController setProgress:0 total:100];
+			[WindowController setShowProgress:false];
+			
+			SetDefaultTextColor();
+			
+			[WindowController showWindow];
+			
+			bShowingConsoleForSlowTask = true;
+		}, true);
 	}
 }
 
@@ -404,8 +428,13 @@ void FMacNativeFeedbackContext::EndSlowTask()
 
 	if(SlowTaskCount == 0 && bShowingConsoleForSlowTask)
 	{
-		if(WindowController != NULL) [WindowController hideWindow];
-		bShowingConsoleForSlowTask = false;
+		MainThreadCall(^{
+			if(WindowController != NULL)
+			{
+				[WindowController hideWindow];
+			}
+			bShowingConsoleForSlowTask = false;
+		}, true);
 	}
 }
 
@@ -413,7 +442,9 @@ bool FMacNativeFeedbackContext::StatusUpdate( int32 Numerator, int32 Denominator
 {
 	if(WindowController != NULL && bShowingConsoleForSlowTask)
 	{
-		[WindowController setStatusText:NewStatus.ToString().GetNSString()];
+		MainThreadCall(^{
+			[WindowController setStatusText:NewStatus.ToString().GetNSString()];
+		}, true);
 		UpdateProgress(Numerator, Denominator);
 	}
 	return true;
@@ -426,11 +457,13 @@ bool FMacNativeFeedbackContext::StatusForceUpdate( int32 Numerator, int32 Denomi
 
 void FMacNativeFeedbackContext::UpdateProgress(int32 Numerator, int32 Denominator)
 {
-	if(WindowController != NULL && bShowingConsoleForSlowTask)
-	{
-		[WindowController setShowProgress:true];
-		[WindowController setProgress:Numerator total:Denominator];
-	}
+	MainThreadCall(^{
+		if(WindowController != NULL && bShowingConsoleForSlowTask)
+		{
+			[WindowController setShowProgress:true];
+			[WindowController setProgress:Numerator total:Denominator];
+		}
+	}, true);
 }
 
 FContextSupplier* FMacNativeFeedbackContext::GetContext() const
@@ -446,18 +479,26 @@ void FMacNativeFeedbackContext::SetContext( FContextSupplier* InSupplier )
 void FMacNativeFeedbackContext::SetDefaultTextColor()
 {
 	SCOPED_AUTORELEASE_POOL;
+	FScopeLock ScopeLock( &CriticalSection );
 	
-	NSColor* Colors[2];
-	NSString* AttributeKeys[2];
+	NSMutableArray* Colors = [[NSMutableArray alloc] init];
+	NSMutableArray* AttributeKeys = [[NSMutableArray alloc] init];
 	
-	Colors[0] = [NSColor grayColor];
-	Colors[1] = [NSColor blackColor];
+	[Colors addObject:[NSColor grayColor]];
+	[Colors addObject:[NSColor blackColor]];
 	
-	AttributeKeys[0] = NSForegroundColorAttributeName;
-	AttributeKeys[1] = NSBackgroundColorAttributeName;
+	[AttributeKeys addObject:NSForegroundColorAttributeName];
+	[AttributeKeys addObject:NSBackgroundColorAttributeName];
 	
-	if( TextViewTextColor )
-	[TextViewTextColor release];
-	
-	TextViewTextColor = [[NSDictionary alloc] initWithObjects:(id *)Colors forKeys:(id *)AttributeKeys count:2];
+	OutstandingTasks++;
+	MainThreadCall(^{
+		if( TextViewTextColor )
+			[TextViewTextColor release];
+		
+		TextViewTextColor = [[NSDictionary alloc] initWithObjects:Colors forKeys:AttributeKeys];
+		
+		[Colors release];
+		[AttributeKeys release];
+		OutstandingTasks--;
+	}, false);
 }
