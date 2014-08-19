@@ -66,7 +66,7 @@ public:
 	 * Gets the nominal playback rate, i.e. 1.0 for real time.
 	 *
 	 * @return Playback rate.
-	 * @see Play
+	 * @see Pause, Play, SetRate, SupportsRate
 	 */
 	virtual float GetRate( ) const = 0;
 
@@ -148,20 +148,6 @@ public:
 	virtual bool Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl ) = 0;
 
 	/**
-	 * Starts media playback at the specified rate.
-	 *
-	 * A playback rate of 1.0 will play the media normally at real-time.
-	 * A rate of 0.0 corresponds to pausing playback. A negative rate, if
-	 * supported, plays the media in reverse, and a rate larger than 1.0
-	 * fast forwards playback.
-	 *
-	 * @param Rate The playback rate to use.
-	 * @return true if the media will be played, false otherwise.
-	 * @see GetRate, Pause, Stop
-	 */
-	virtual bool Play( float Rate ) = 0;
-
-	/**
 	 * Changes the media's playback time.
 	 *
 	 * @param Time The playback time to set.
@@ -179,12 +165,26 @@ public:
 	virtual bool SetLooping( bool Looping ) = 0;
 
 	/**
+	 * Sets the current playback rate.
+	 *
+	 * A playback rate of 1.0 will play the media normally at real-time.
+	 * A rate of 0.0 corresponds to pausing playback. A negative rate, if
+	 * supported, plays the media in reverse, and a rate larger than 1.0
+	 * fast forwards playback.
+	 *
+	 * @param Rate The playback rate to set.
+	 * @return true on success, false otherwise.
+	 * @see GetRate, Pause, Play, SupportsRate
+	 */
+	virtual bool SetRate( float Rate ) = 0;
+
+	/**
 	 * Checks whether the specified playback rate is supported.
 	 *
 	 * @param Rate The rate to check (can be negative for reverse play).
 	 * @param Unthinned Whether no frames should be dropped at the given rate.
 	 * @return true if the rate is supported, false otherwise.
-	 * @see SupportsScrubbing, SupportsSeeking
+	 * @see GetRate, SetRate, SupportsScrubbing, SupportsSeeking
 	 */
 	virtual bool SupportsRate( float Rate, bool Unthinned ) const = 0;
 
@@ -243,25 +243,27 @@ public:
 	/**
 	 * Pauses media playback.
 	 *
+	 * This is the same as setting the playback rate to 0.0.
+	 *
 	 * @return true if the media is being paused, false otherwise.
 	 * @see Play, Stop
 	 */
 	FORCEINLINE bool Pause( )
 	{
-		return Play(0.0f);
+		return SetRate(0.0f);
 	}
 
 	/**
 	 * Starts media playback at the default rate of 1.0.
 	 *
-	 * This method is equivalent to setting the playback rate to 1.0.
+	 * This is the same as setting the playback rate to 1.0.
 	 *
 	 * @return true if playback is starting, false otherwise.
 	 * @see Pause, Stop
 	 */
 	FORCEINLINE bool Play( )
 	{
-		return Play(1.0f);
+		return SetRate(1.0f);
 	}
 
 	/**

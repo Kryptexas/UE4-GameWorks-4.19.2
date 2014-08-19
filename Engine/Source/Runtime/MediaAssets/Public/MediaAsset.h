@@ -34,7 +34,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaAssetMediaOpened, FString, O
  * This class is represents a media URL along with a corresponding media player
  * for exposing media playback functionality to the Engine and to Blueprints.
  */
-UCLASS(hidecategories=(Object))
+UCLASS(BlueprintType, hidecategories=(Object))
 class MEDIAASSETS_API UMediaAsset
 	: public UObject
 {
@@ -66,7 +66,7 @@ public:
 	 * Gets the media's duration.
 	 *
 	 * @return A time span representing the duration.
-	 * @see GetPosition
+	 * @see GetTime, Seek
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	FTimespan GetDuration( ) const;
@@ -75,6 +75,7 @@ public:
 	 * Gets the media's current playback rate.
 	 *
 	 * @return The playback rate.
+	 * @see SetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	float GetRate( ) const;
@@ -146,36 +147,42 @@ public:
 	/**
 	 * Pauses media playback.
 	 *
+	 * This is the same as setting the playback rate to 0.0.
+	 *
 	 * @return true if playback is being paused, false otherwise.
-	 * @see CanPause, Play, Rewind, Seek, Stop
+	 * @see CanPause, Play, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool Pause( );
-	
+
 	/**
 	 * Starts media playback.
 	 *
-	 * @return true if rewinding, false otherwise.
-	 * @see GetTime, Pause, Play, Seek, Stop
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
-	bool Rewind( );
-
-	/**
-	 * Rewinds the media.
+	 * This is the same as setting the playback rate to 1.0.
 	 *
 	 * @return true if playback is starting, false otherwise.
-	 * @see CanPlay, Pause, Rewind, Seek, Stop
+	 * @see CanPlay, Pause, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool Play( );
+
+	/**
+	 * Rewinds the media to the beginning.
+	 *
+	 * This is the same as seeking to zero time.
+	 *
+	 * @return true if rewinding, false otherwise.
+	 * @see GetTime, Pause, Play, Seek
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
+	bool Rewind( );
 
 	/**
 	 * Seeks to the specified playback time.
 	 *
 	 * @param InTime The playback time to set.
 	 * @return true on success, false otherwise.
-	 * @see GetTime
+	 * @see GetTime, Rewind
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool Seek( const FTimespan& InTime );
@@ -195,7 +202,7 @@ public:
 	 *
 	 * @param Rate The playback rate to set.
 	 * @return true on success, false otherwise.
-	 * @see GetRate
+	 * @see GetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
 	bool SetRate( float InRate );
@@ -276,10 +283,6 @@ protected:
 	/** Whether playback should loop when it reaches the end. */
 	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 Looping:1;
-
-	/** The media's playback rate (1.0 = real time) */
-	UPROPERTY(EditAnywhere, Category=Playback)
-	float PlaybackRate;
 
 	/** Select where to stream the media from, i.e. file or memory. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaSource)

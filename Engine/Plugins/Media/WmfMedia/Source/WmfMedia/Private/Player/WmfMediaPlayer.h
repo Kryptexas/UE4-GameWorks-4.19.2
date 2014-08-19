@@ -39,9 +39,9 @@ public:
 	virtual bool IsReady( ) const override;
 	virtual bool Open( const FString& Url ) override;
 	virtual bool Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl ) override;
-	virtual bool Play( float Rate ) override;
 	virtual bool Seek( const FTimespan& Time ) override;
 	virtual bool SetLooping( bool Looping ) override;
+	virtual bool SetRate( float Rate ) override;
 	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
 	virtual bool SupportsScrubbing( ) const override;
 	virtual bool SupportsSeeking( ) const override;

@@ -171,7 +171,26 @@ bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>>& Buffer, const FStri
 }
 
 
-bool FWmfMediaPlayer::Play( float Rate )
+bool FWmfMediaPlayer::Seek( const FTimespan& Time )
+{
+	return ((MediaSession != NULL) && MediaSession->SetPosition(Time));
+}
+
+
+bool FWmfMediaPlayer::SetLooping( bool Looping )
+{
+	if (MediaSession == NULL)
+	{
+		return false;
+	}
+
+	MediaSession->SetLooping(Looping);
+
+	return true;
+}
+
+
+bool FWmfMediaPlayer::SetRate( float Rate )
 {
 	if (MediaSession == NULL)
 	{
@@ -189,25 +208,6 @@ bool FWmfMediaPlayer::Play( float Rate )
 	}
 
 	return MediaSession->SetRate(Rate) && MediaSession->SetState(EMediaStates::Playing);
-}
-
-
-bool FWmfMediaPlayer::Seek( const FTimespan& Time )
-{
-	return ((MediaSession != NULL) && MediaSession->SetPosition(Time));
-}
-
-
-bool FWmfMediaPlayer::SetLooping( bool Looping )
-{
-	if (MediaSession == NULL)
-	{
-		return false;
-	}
-
-	MediaSession->SetLooping(Looping);
-
-	return true;
 }
 
 

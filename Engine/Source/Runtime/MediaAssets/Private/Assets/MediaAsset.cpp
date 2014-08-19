@@ -10,7 +10,6 @@ UMediaAsset::UMediaAsset( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, AutoPlay(false)
 	, Looping(true)
-	, PlaybackRate(1.0f)
 	, StreamMode(MASM_FromUrl)
 	, MediaPlayer(nullptr)
 { }
@@ -27,7 +26,7 @@ bool UMediaAsset::CanPause( ) const
 
 bool UMediaAsset::CanPlay( ) const
 {
-	return MediaPlayer.IsValid() && !MediaPlayer->IsPlaying() && MediaPlayer->IsReady();
+	return MediaPlayer.IsValid() && MediaPlayer->IsReady();
 }
 
 
@@ -105,19 +104,19 @@ bool UMediaAsset::OpenUrl( const FString& NewUrl )
 
 bool UMediaAsset::Pause( )
 {
-	return MediaPlayer.IsValid() && MediaPlayer->Pause();
+	return SetRate(0.0f);
 }
 
 
 bool UMediaAsset::Play( )
 {
-	return MediaPlayer.IsValid() && MediaPlayer->Play();
+	return SetRate(1.0f);
 }
 
 
 bool UMediaAsset::Rewind( )
 {
-	return MediaPlayer.IsValid() && MediaPlayer->Seek(FTimespan::Zero());
+	return Seek(FTimespan::Zero());
 }
 
 
@@ -129,14 +128,7 @@ bool UMediaAsset::SetLooping( bool InLooping )
 
 bool UMediaAsset::SetRate( float InRate )
 {
-	PlaybackRate = InRate;
-
-	if (!MediaPlayer.IsValid() || !MediaPlayer->IsPlaying())
-	{
-		return false;
-	}
-
-	return MediaPlayer->Play(InRate);
+	return MediaPlayer.IsValid() && MediaPlayer->SetRate(InRate);
 }
 
 

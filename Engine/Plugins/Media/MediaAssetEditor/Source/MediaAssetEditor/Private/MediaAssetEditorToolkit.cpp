@@ -266,7 +266,7 @@ float FMediaAssetEditorToolkit::GetReverseRate( ) const
 
 	if (Rate > -1.0f)
 	{
-		Rate = -1.0f;
+		return -1.0f;
 	}
 
 	return 2.0f * Rate;
@@ -302,7 +302,7 @@ void FMediaAssetEditorToolkit::HandlePauseMediaActionExecute( )
 
 bool FMediaAssetEditorToolkit::HandlePlayMediaActionCanExecute( ) const
 {
-	return MediaAsset->CanPlay() && !FMath::IsNearlyEqual(MediaAsset->GetRate(), 1.0f);
+	return MediaAsset->CanPlay() && (MediaAsset->GetRate() != 1.0f);
 }
 
 
