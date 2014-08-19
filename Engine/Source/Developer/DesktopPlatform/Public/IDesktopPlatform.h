@@ -124,6 +124,14 @@ public:
 	virtual bool OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags) = 0;
 
 	/**
+	 * Determines whether the launcher can be opened.
+	 *
+	 * @param Install					Whether to include the possibility of installing the launcher in the check.
+	 * @return true if the launcher can be opened (or installed).
+	 */
+	virtual bool CanOpenLauncher(bool Install) = 0;
+
+	/**
 	 * Opens the marketplace user interface.
 	 *
 	 * @param Install					Whether to install the marketplace if it is missing.

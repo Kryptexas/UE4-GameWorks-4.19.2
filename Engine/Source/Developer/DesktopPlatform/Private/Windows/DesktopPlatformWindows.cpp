@@ -141,55 +141,84 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 	return bSuccess;
 }
 
+bool FDesktopPlatformWindows::CanOpenLauncher(bool Install)
+{
+	// Check if the launcher exists, or (optionally) if the installer exists
+	FString Path;
+	return GetLauncherPath(Path) || (Install && GetLauncherInstallerPath(Path));
+}
+
 bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString CommandLineParams )
 {
-	FString LaunchPath;
+	// Try to launch it directly
+	FString LauncherPath;
+	if(GetLauncherPath(LauncherPath))
+	{
+		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+		{
+			CommandLineParams += TEXT(" -noselfupdate");
+		}
+		return FPlatformProcess::CreateProc(*LauncherPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LauncherPath), NULL).IsValid();
+	}
 
+	// Otherwise see if we can install it
+	FString InstallerPath;
+	if(Install && GetLauncherInstallerPath(InstallerPath))
+	{
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
+		return true;
+	}
+
+	return false;
+}
+
+bool FDesktopPlatformWindows::GetLauncherPath(FString& OutLauncherPath)
+{
+	// Try the default executable in the binaries directory
 	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
-		CommandLineParams += TEXT(" -noselfupdate");
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
 	}
 	else
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("../../Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("../../Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
 	}
 
-	// if the Launcher doesn't exist locally...
-	if (!FPaths::FileExists(LaunchPath))
+	// Otherwise locate it in the Registry...
+	FString InstallDir;
+	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\EpicGames\\Unreal Engine"), TEXT("InstallDir"), InstallDir) && (InstallDir.Len() > 0))
 	{
-		FString InstallDir;
-
-		// ... locate it in the Registry...
-		if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\EpicGames\\Unreal Engine"), TEXT("InstallDir"), InstallDir) && (InstallDir.Len() > 0))
+		FString LauncherPath = FPaths::Combine(*InstallDir, TEXT("Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		if(FPaths::FileExists(LauncherPath))
 		{
-			LaunchPath = FPaths::Combine(*InstallDir, TEXT("Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
-		}
-		else
-		{
-			LaunchPath.Empty();
-		}
-
-		if (LaunchPath.IsEmpty() || !FPaths::FileExists(LaunchPath))
-		{
-			if (Install)
-			{
-				// ... or run the installer if desired
-				LaunchPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngineInstaller.msi")));
-
-				if (FPaths::FileExists(LaunchPath))
-				{
-					FPlatformProcess::LaunchFileInDefaultExternalApplication(*LaunchPath);
-
-					return true;
-				}
-			}
-
-			return false;
+			OutLauncherPath = LauncherPath;
+			return true;
 		}
 	}
 
-	return FPlatformProcess::CreateProc(*LaunchPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LaunchPath), NULL).IsValid();
+	// Otherwise fail
+	return false;
+}
+
+bool FDesktopPlatformWindows::GetLauncherInstallerPath(FString& OutInstallerPath)
+{
+	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngineInstaller.msi")));
+	if(FPaths::FileExists(InstallerPath))
+	{
+		OutInstallerPath = InstallerPath;
+		return true;
+	}
+	return false;
 }
 
 bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)

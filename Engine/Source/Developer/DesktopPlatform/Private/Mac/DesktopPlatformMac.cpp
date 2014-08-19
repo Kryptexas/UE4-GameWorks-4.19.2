@@ -355,6 +355,12 @@ void OpenLauncherCommandLine( const FString& InCommandLine )
 	
 }
 
+bool FDesktopPlatformMac::CanOpenLauncher(bool Install)
+{
+	FString Path;
+	return GetLauncherPath(Path) || (Install && GetLauncherInstallerPath(Path));
+}
+
 bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	// If the launcher is already running, bring it to front
@@ -367,61 +373,26 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 		return true;
 	}
 
-	FString LaunchPath;
-
-	bool bWasLaunched = false;
-	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	// Try to start a new instance
+	FString LauncherPath;
+	if(GetLauncherPath(LauncherPath))
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
-		CommandLineParams += TEXT(" -noselfupdate");
-	}
-	else
-	{
-		LaunchPath = TEXT("/Applications/Unreal Engine.app/Contents/MacOS/UnrealEngineLauncher-Mac-Shipping");
-	}
-
-	if( !FPaths::FileExists(LaunchPath) )
-	{
-		// The app could have been installed manually from the dmg, launch it where ever it is
-		NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
-		NSString* Path = [Workspace fullPathForApplication:@"Unreal Engine"];
-		if( Path )
+		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 		{
-			NSURL* URL = [NSURL fileURLWithPath:Path];
-			if( URL )
-			{
-				NSArray* Arguments = [NSArray arrayWithObjects:CommandLineParams.GetNSString(),nil];
-				bWasLaunched = [Workspace launchApplicationAtURL:URL options:0 configuration:[NSDictionary dictionaryWithObject:Arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:nil];
-				
-				OpenLauncherCommandLine(CommandLineParams);
-			}
+			CommandLineParams += TEXT(" -noselfupdate");
 		}
+		return FPlatformProcess::CreateProc(*LauncherPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LauncherPath), NULL).IsValid();
 	}
 
-	if( !bWasLaunched )
+	// Try to install it
+	FString InstallerPath;
+	if(GetLauncherInstallerPath(InstallerPath))
 	{
-		if( FPaths::FileExists(LaunchPath) )
-		{
-			bWasLaunched = FPlatformProcess::CreateProc(*LaunchPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LaunchPath), NULL).IsValid();
-		}
-		else if (Install)
-		{
-			// ... or run the installer if desired
-			LaunchPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngine.dmg")));
-
-			if (FPaths::FileExists(LaunchPath))
-			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication(*LaunchPath);
-				bWasLaunched = true;
-			}
-			else
-			{
-				bWasLaunched = false;
-			}
-		}
-
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
+		return true;
 	}
-	return bWasLaunched;
+
+	return false;
 }
 
 bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
@@ -663,6 +634,53 @@ bool FDesktopPlatformMac::RunUnrealBuildTool(const FText& Description, const FSt
 	// Spawn it
 	int32 ExitCode = 0;
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, TEXT("/bin/sh"), CmdLineParams, Warn, &ExitCode) && ExitCode == 0;
+}
+
+
+bool FDesktopPlatformMac::GetLauncherPath(FString& OutLauncherPath) const
+{
+	// Try the default executable in the binaries directory
+	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	{
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
+	}
+	else
+	{
+		FString LauncherPath = TEXT("/Applications/Unreal Engine.app/Contents/MacOS/UnrealEngineLauncher-Mac-Shipping");
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
+	}
+
+	// Otherwise search for it...
+	NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
+	NSString* Path = [Workspace fullPathForApplication:@"Unreal Engine"];
+	if( Path )
+	{
+		OutLauncherPath = FString(Path);
+		return true;
+	}
+
+	return false;
+}
+
+bool FDesktopPlatformMac::GetLauncherInstallerPath(FString& OutInstallerPath) const
+{
+	// Check if the installer exists
+	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngine.dmg")));
+	if (FPaths::FileExists(InstallerPath))
+	{
+		OutInstallerPath = InstallerPath;
+		return true;
+	}
+	return false;
 }
 
 FFeedbackContext* FDesktopPlatformMac::GetNativeFeedbackContext()

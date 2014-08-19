@@ -123,7 +123,7 @@ void SGameProjectDialog::Construct( const FArguments& InArgs )
 											.Padding(3)
 											[
 												SAssignNew(MarketplaceButton, SButton)
-													.Visibility( (FEngineBuildSettings::IsPerforceBuild() && !FEngineBuildSettings::IsInternalBuild()) ? EVisibility::Collapsed : EVisibility::Visible )
+													.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Collapsed : EVisibility::Visible )
 													.ForegroundColor(this, &SGameProjectDialog::HandleMarketplaceTabButtonForegroundColor)
 													.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 													.OnClicked(this, &SGameProjectDialog::HandleMarketplaceTabButtonClicked)

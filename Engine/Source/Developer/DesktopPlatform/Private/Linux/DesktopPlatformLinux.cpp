@@ -87,6 +87,12 @@ bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FStri
 	return false;
 }
 
+bool FDesktopPlatformLinux::CanOpenLauncher(bool Install)
+{
+	// TODO: no launcher support at the moment
+	return false;
+}
+
 bool FDesktopPlatformLinux::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	// TODO: support launcher for realz

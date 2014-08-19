@@ -43,9 +43,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 	ToolbarBuilder.BeginSection("Content");
 	{
 		ToolbarBuilder.AddToolBarButton( FLevelEditorCommands::Get().OpenContentBrowser, NAME_None, LOCTEXT( "ContentBrowser_Override", "Content" ), TAttribute<FText>(), TAttribute<FSlateIcon>(), "LevelToolbarContent" );
-
-		// Internal builds and external builds should see the marketplace by default, perforce builds should not.
-		if (FEngineBuildSettings::IsInternalBuild() || !FEngineBuildSettings::IsPerforceBuild()) 
+		if (FDesktopPlatformModule::Get()->CanOpenLauncher(true)) 
 		{
 			ToolbarBuilder.AddToolBarButton(FLevelEditorCommands::Get().OpenMarketplace, NAME_None, LOCTEXT("Marketplace_Override", "Marketplace"), TAttribute<FText>(), TAttribute<FSlateIcon>(), "LevelToolbarMarketplace");
 		}
