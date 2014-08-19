@@ -491,7 +491,7 @@ public:
 	void UpdatePhysicalMaterials();
 
 	/** Update the instances collision filtering data */
-	void UpdatePhysicsFilterData();
+	void UpdatePhysicsFilterData(bool bForceSimpleAsComplex = false);
 
 	friend FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst);
 
