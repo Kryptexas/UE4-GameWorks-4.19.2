@@ -45,7 +45,7 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 
 			if (Hit.IsValidBlockingHit())
 			{
-				HandleImpact(Hit);
+				HandleImpact(Hit, DeltaTime, Delta);
 				// Try to slide the remaining distance along the surface.
 				SlideAlongSurface(Delta, 1.f-Hit.Time, Hit.Normal, Hit, true);
 			}
