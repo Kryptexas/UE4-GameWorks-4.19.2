@@ -8,6 +8,7 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintDelegateNodeSpawner.h"
 
 //------------------------------------------------------------------------------
 UClass* FBlueprintNodeSpawnerUtils::GetAssociatedClass(UBlueprintNodeSpawner const* BlueprintAction)
