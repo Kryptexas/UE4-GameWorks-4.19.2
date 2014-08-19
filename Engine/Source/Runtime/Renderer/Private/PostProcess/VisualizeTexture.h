@@ -86,6 +86,9 @@ private:
 	// Flag to determine whether texture visualization is enabled, currently based on the feature level we are rendering with
 	bool bEnabled;
 
+	// Store feature level that we're currently using
+	ERHIFeatureLevel::Type FeatureLevel;
+
 	// is called by FPooledRenderTarget
 
 	void GenerateContent(FRHICommandListImmediate& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc);

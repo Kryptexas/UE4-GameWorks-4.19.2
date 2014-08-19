@@ -282,7 +282,7 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& 
 		TShaderMapRef<FHeightFogVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(RHICmdList, ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
 		VertexShader->SetParameters(RHICmdList, View);
 		ExponentialHeightFogPixelShader->SetParameters(RHICmdList, View, LightShaftsOutput);
 	}

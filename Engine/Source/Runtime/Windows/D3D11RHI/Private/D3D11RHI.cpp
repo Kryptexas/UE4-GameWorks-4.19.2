@@ -212,7 +212,7 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 			TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FLongGPUTaskPS> PixelShader(GetGlobalShaderMap());
 
-			SetGlobalBoundShaderState(RHICmdList, LongGPUTaskBoundShaderState, GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, LongGPUTaskBoundShaderState, GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			// Draw a fullscreen quad
 			FVector4 Vertices[4];

@@ -272,7 +272,7 @@ public:
 	 * @param InTextureToOverride The texture to override
 	 * @param OverrideTexture The new texture to use
 	 */
-	virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) PURE_VIRTUAL(UMaterialInterface::OverrideTexture,return;);
+	virtual void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 
 	/**
 	 * Checks if the material can be used with the given usage flag.  

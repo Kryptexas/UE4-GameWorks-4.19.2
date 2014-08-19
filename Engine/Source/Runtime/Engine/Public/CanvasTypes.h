@@ -47,12 +47,12 @@ public:
 	/** 
 	* Constructor.
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** 
 	* Constructor. For situations where a world is not available, but time information is
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** 
 	* Destructor.
@@ -298,6 +298,20 @@ public:
 	 */
 	bool HasBatchesToRender() const;
 
+	/**
+	* Access current feature level
+	*
+	* @return feature level that this canvas is rendering at
+	*/
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+
+	/**
+	* Access current shader platform
+	*
+	* @return shader platform that this canvas is rendering at
+	*/
+	EShaderPlatform GetShaderPlatform() const { return ShaderPlatform; }
+
 public:
 	float AlphaModulate;
 
@@ -368,6 +382,10 @@ private:
 	float CurrentDeltaWorldTime;
 	/** true, if Canvas should be scaled to whole render target */
 	bool bScaledToRenderTarget;
+	/** Feature level that we are currently rendering with */
+	ERHIFeatureLevel::Type FeatureLevel;
+	/** Shader platform that we are currently rendering with */
+	EShaderPlatform ShaderPlatform;
 
 	/** 
 	* Shared construction function

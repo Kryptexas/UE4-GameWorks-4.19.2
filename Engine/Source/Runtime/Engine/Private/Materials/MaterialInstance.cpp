@@ -746,13 +746,15 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 
 
-void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture )
+void UMaterialInstance::OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel)
 {
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
-	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	//ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
+	//int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[1] = { InFeatureLevel };
+	int32 NumFeatureLevelsToUpdate = 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
 	{

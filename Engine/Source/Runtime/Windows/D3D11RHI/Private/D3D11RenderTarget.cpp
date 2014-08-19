@@ -251,7 +251,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	// Set the vertex and pixel shader
 	TShaderMapRef<FResolveVS> ResolveVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<TPixelShader> ResolvePixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(RHICmdList, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
+	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
 	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.

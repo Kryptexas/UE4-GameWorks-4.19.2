@@ -223,7 +223,7 @@ inline FMatrix AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 }
 
 /** Current shader platform. */
-extern RHI_API EShaderPlatform GRHIShaderPlatform;
+
 
 /** Finds a corresponding ERHIFeatureLevel::Type given an FName, or returns false if one could not be found. */
 extern RHI_API bool GetFeatureLevelFromName(FName Name, ERHIFeatureLevel::Type& OutFeatureLevel);
@@ -234,19 +234,26 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
-extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
-extern RHI_API ERHIFeatureLevel::Type GCurrentRHIFeatureLevel;
+extern RHI_API ERHIFeatureLevel::Type GRHIFeatureLevelValue;
+extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue;
+extern RHI_API EShaderPlatform GRHIShaderPlatformValue;
 
 /** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
 extern RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel();
+extern RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel();
+extern RHI_API EShaderPlatform GetCurrentRHIShaderPlatform();
 
 /** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
 #define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
 #if RHI_FEATURE_LEVEL_AS_FUNCTION
 	#define GRHIFeatureLevel GetCurrentRHIFeatureLevel()
+	#define GMaxRHIFeatureLevel GetMaxRHIFeatureLevel()
+	#define GRHIShaderPlatform GetCurrentRHIShaderPlatform()
 #else
-	#define GRHIFeatureLevel GCurrentRHIFeatureLevel
+	#define GRHIFeatureLevel GRHIFeatureLevelValue
+	#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
+	#define GRHIShaderPlatform GRHIShaderPlatformValue
 #endif
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */

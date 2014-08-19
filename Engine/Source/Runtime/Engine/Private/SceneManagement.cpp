@@ -111,6 +111,7 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 	// Draw the batched elements.
 	BatchedElements.Draw(
 		RHICmdList,
+		View.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
 		View.ViewProjectionMatrix,
 		View.ViewRect.Width(),

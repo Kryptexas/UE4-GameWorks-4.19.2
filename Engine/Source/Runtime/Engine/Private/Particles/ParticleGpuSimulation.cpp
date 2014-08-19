@@ -1223,6 +1223,7 @@ struct FSimulationCommandGPU
 template <bool bUseDepthBufferCollision>
 void ExecuteSimulationCommands(
 	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	const FParticleStateTextures& TextureResources,
 	const FParticleAttributesTexture& AttributeTexture,
@@ -1241,6 +1242,7 @@ void ExecuteSimulationCommands(
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
 		RHICmdList,
+		FeatureLevel,
 		BoundShaderState,
 		GParticleTileVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
@@ -1273,7 +1275,7 @@ void ExecuteSimulationCommands(
  * Invokes the clear simulation shader for each particle in each tile.
  * @param Tiles - The list of tiles to clear.
  */
-void ClearTiles(FRHICommandList& RHICmdList, const TArray<uint32>& Tiles)
+void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
 {
 	SCOPED_DRAW_EVENT(ClearTiles, DEC_PARTICLE);
 
@@ -1297,6 +1299,7 @@ void ClearTiles(FRHICommandList& RHICmdList, const TArray<uint32>& Tiles)
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
 		RHICmdList,
+		FeatureLevel,
 		BoundShaderState,
 		GParticleTileVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
@@ -1514,7 +1517,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  * Injects new particles in to the GPU simulation.
  * @param NewParticles - A list of particles to inject in to the simulation.
  */
-void InjectNewParticles(FRHICommandList& RHICmdList, const TArray<FNewParticle>& NewParticles)
+void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
 {
 	const int32 MaxParticlesPerDrawCall = GParticleScratchVertexBufferSize / sizeof(FNewParticle);
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
@@ -1542,6 +1545,7 @@ void InjectNewParticles(FRHICommandList& RHICmdList, const TArray<FNewParticle>&
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
 			RHICmdList,
+			FeatureLevel,
 			BoundShaderState,
 			GParticleInjectionVertexDeclaration.VertexDeclarationRHI,
 			*VertexShader,
@@ -1731,6 +1735,7 @@ TGlobalResource<FParticleSimVisualizeVertexDeclaration> GParticleSimVisualizeVer
  */
 static void VisualizeGPUSimulation(
 	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel,
 	int32 VisualizationMode,
 	FRenderTarget* RenderTarget,
 	const FParticleStateTextures& StateTextures,
@@ -1763,6 +1768,7 @@ static void VisualizeGPUSimulation(
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
 		RHICmdList,
+		FeatureLevel,
 		BoundShaderState,
 		GParticleSimVisualizeVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
@@ -4259,6 +4265,7 @@ void FFXSystem::SimulateGPUParticles(
 			/// ?
 			ExecuteSimulationCommands<true>(
 				RHICmdList,
+				FeatureLevel,
 				SimulationCommands,
 				PrevStateTextures,
 				ParticleSimulationResources->SimulationAttributesTexture,
@@ -4273,6 +4280,7 @@ void FFXSystem::SimulateGPUParticles(
 			/// ?
 			ExecuteSimulationCommands<false>(
 				RHICmdList,
+				FeatureLevel,
 				SimulationCommands,
 				PrevStateTextures,
 				ParticleSimulationResources->SimulationAttributesTexture,
@@ -4287,7 +4295,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Clear any newly allocated tiles.
 	if (TilesToClear.Num())
 	{
-		ClearTiles(RHICmdList, TilesToClear);
+		ClearTiles(RHICmdList, FeatureLevel, TilesToClear);
 	}
 
 	// Inject any new particles that have spawned into the simulation.
@@ -4306,7 +4314,7 @@ void FFXSystem::SimulateGPUParticles(
 		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 
 		// Inject particles.
-		InjectNewParticles(RHICmdList, NewParticles);
+		InjectNewParticles(RHICmdList, FeatureLevel, NewParticles);
 
 		// Resolve attributes textures. State textures are resolved later.
 		RHICmdList.CopyToResolveTarget(
@@ -4343,15 +4351,16 @@ void FFXSystem::SimulateGPUParticles(
 
 void FFXSystem::VisualizeGPUParticles(FCanvas* Canvas)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		FVisualizeGPUParticlesCommand,
 		FFXSystem*, FXSystem, this,
 		int32, VisualizationMode, FXConsoleVariables::VisualizeGPUSimulation,
 		FRenderTarget*, RenderTarget, Canvas->GetRenderTarget(),
+		ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 	{
 		FParticleSimulationResources* Resources = FXSystem->GetParticleSimulationResources();
 		FParticleStateTextures& CurrentStateTextures = Resources->GetCurrentStateTextures();
-		VisualizeGPUSimulation(RHICmdList, VisualizationMode, RenderTarget, CurrentStateTextures, GParticleCurveTexture.GetCurveTexture());
+		VisualizeGPUSimulation(RHICmdList, FeatureLevel, VisualizationMode, RenderTarget, CurrentStateTextures, GParticleCurveTexture.GetCurveTexture());
 	});
 }
 

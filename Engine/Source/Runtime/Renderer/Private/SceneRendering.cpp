@@ -627,9 +627,9 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	FeatureLevel = Scene->GetFeatureLevel();
 }
 
-bool FSceneRenderer::DoOcclusionQueries() const
+bool FSceneRenderer::DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	return !IsES2Platform(GRHIShaderPlatform)
+	return !(InFeatureLevel == ERHIFeatureLevel::ES2)
 		&& CVarAllowOcclusionQueries.GetValueOnRenderThread() != 0;
 }
 
@@ -726,7 +726,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				// create a temporary FCanvas object with the temp render target
 				// so it can get the screen size
 				int32 Y = 130;
-				FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
+				FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, FeatureLevel);
 				if (bViewParentOrFrozen)
 				{
 					const FText StateText =
@@ -838,7 +838,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
-	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
+	if(FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		// not yet supported on lower end platforms
 		return;

@@ -576,7 +576,7 @@ public:
 	}
 
 	// call only if not yet created
-	void CreateLightPropagationVolumeIfNeeded();
+	void CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// @return can return 0 (if globally disabled)
 	FLightPropagationVolume* GetLightPropagationVolume() const { return LightPropagationVolume; }
@@ -713,7 +713,7 @@ public:
 
 		if(!(CurrentView.FinalPostProcessSettings.IndirectLightingColor * CurrentView.FinalPostProcessSettings.IndirectLightingIntensity).IsAlmostBlack())
 		{
-			CreateLightPropagationVolumeIfNeeded();
+			CreateLightPropagationVolumeIfNeeded(CurrentView.GetFeatureLevel());
 		}
 	}
 

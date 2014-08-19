@@ -2067,7 +2067,6 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 	}
 
 	const auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
-	const auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
 	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
 
 	int32 ParticleCount = Source.ActiveParticleCount;
@@ -2188,7 +2187,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					if (bIsWireframe)
 					{
 						if( LODModel.WireframeIndexBuffer.IsInitialized()
-							&& !(RHISupportsTessellation(ShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
+							&& !(RHISupportsTessellation(GShaderPlatformForFeatureLevel[FeatureLevel]) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
 							)
 						{
 							Mesh.Type = PT_LineList;

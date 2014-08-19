@@ -191,7 +191,7 @@ public:
 IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
 
 
-template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
+template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
 	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
@@ -199,7 +199,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	PixelShader->SetParameters(RHICmdList, Data);
 
 	DrawRectangle(
@@ -220,7 +220,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 		EDRF_UseTriangleOptimization);
 }
 
-void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, const FVisualizeTextureData& Data)
+void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
 	if(Data.Desc.Is2DTexture())
 	{
@@ -228,30 +228,30 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, const FVisuali
 		if(Data.Desc.NumSamples > 1)
 		{
 			// MSAA
-			VisualizeTextureForTextureType<5>(RHICmdList, Data);
+			VisualizeTextureForTextureType<5>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			// non MSAA
-			VisualizeTextureForTextureType<2>(RHICmdList, Data);
+			VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
 	{
 		// Volume
-		VisualizeTextureForTextureType<3>(RHICmdList, Data);
+		VisualizeTextureForTextureType<3>(RHICmdList, FeatureLevel, Data);
 	}
 	else if(Data.Desc.IsCubemap())
 	{
 		if(Data.Desc.IsArray())
 		{
 			// Cube[]
-			VisualizeTextureForTextureType<4>(RHICmdList, Data);
+			VisualizeTextureForTextureType<4>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			// Cube
-			VisualizeTextureForTextureType<0>(RHICmdList, Data);
+			VisualizeTextureForTextureType<0>(RHICmdList, FeatureLevel, Data);
 		}
 	}
 }
@@ -418,7 +418,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	{	
 		SCOPED_DRAW_EVENT(VisualizeTexture, DEC_SCENE_ITEMS);
 		// continue rendering to HDR if necessary
-		RenderVisualizeTexture(RHICmdList, VisualizeTextureData);
+		RenderVisualizeTexture(RHICmdList, FeatureLevel, VisualizeTextureData);
 	}
 
 	{
@@ -512,7 +512,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	PixelShader->SetParameters(RHICmdList, View, *VisualizeTextureContent);
@@ -555,7 +555,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 		}
 	} TempRenderTarget(View);
 
-	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
+	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
 
 	float X = 100 + View.ViewRect.Min.X;
 	float Y = 160 + View.ViewRect.Min.Y;
@@ -905,7 +905,8 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
-	bEnabled = GMaxRHIFeatureLevel >= ERHIFeatureLevel::ES2;
+	FeatureLevel = View.GetFeatureLevel();
+	bEnabled = FeatureLevel >= ERHIFeatureLevel::ES2;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

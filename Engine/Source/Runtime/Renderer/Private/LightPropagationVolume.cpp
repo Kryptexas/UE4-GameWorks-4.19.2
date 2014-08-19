@@ -1250,9 +1250,9 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 
 
 // use for render thread only
-bool UseLightPropagationVolumeRT()
+bool UseLightPropagationVolumeRT(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
+	if (InFeatureLevel < ERHIFeatureLevel::SM5)
 	{
 		return false;
 	}
@@ -1266,7 +1266,7 @@ bool UseLightPropagationVolumeRT()
 // ----------------------------------------------------------------------------
 // FSceneViewState
 // ----------------------------------------------------------------------------
-void FSceneViewState::CreateLightPropagationVolumeIfNeeded()
+void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(IsInRenderingThread());
 
@@ -1276,7 +1276,7 @@ void FSceneViewState::CreateLightPropagationVolumeIfNeeded()
 		return;
 	}
 
-	bool bLPV = UseLightPropagationVolumeRT();
+	bool bLPV = UseLightPropagationVolumeRT(InFeatureLevel);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
 	if (bLPV && !IsOpenGLPlatform(GRHIShaderPlatform))

@@ -452,6 +452,9 @@ public:
 
 	/** Get the feature level for this view **/
 	ERHIFeatureLevel::Type GetFeatureLevel() const;
+
+	/** Get the feature level for this view **/
+	EShaderPlatform GetShaderPlatform() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

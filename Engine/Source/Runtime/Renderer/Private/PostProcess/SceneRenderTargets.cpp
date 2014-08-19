@@ -149,6 +149,9 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 
+	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
+	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+
 	FIntPoint DesiredBufferSize = GetSceneRenderTargetSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
 	QuantizeBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
@@ -178,9 +181,9 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	int32 MobileMSAA = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA->GetValueOnRenderThread();
+	int32 MobileMSAA = GShaderPlatformForFeatureLevel[NewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA->GetValueOnRenderThread();
 
-	bool bLightPropagationVolume = UseLightPropagationVolumeRT();
+	bool bLightPropagationVolume = UseLightPropagationVolumeRT(NewFeatureLevel);
 
 	uint32 MinShadowResolution;
 	{
@@ -188,9 +191,6 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 
 		MinShadowResolution = CVar->GetValueOnRenderThread();
 	}
-
-	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
-	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 
 	if( (BufferSize.X != DesiredBufferSize.X) ||
 		(BufferSize.Y != DesiredBufferSize.Y) ||

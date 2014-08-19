@@ -226,12 +226,12 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	}
 #undef CASE_COUNT
 	check(LocalBoundShaderState != NULL);
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
 		TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
 		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
@@ -240,7 +240,7 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	{
 		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
-		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
 
 		VertexShader->SetParameters(Context);
 	}
@@ -396,7 +396,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	}
 
 	// for a 3D texture, the viewport is 16x16 (per slice), for a 2D texture, it's unwrapped to 256x16
-	FIntPoint DestSize(UseVolumeTextureLUT(GRHIShaderPlatform) ? 16 : 256, 16);
+	FIntPoint DestSize(UseVolumeTextureLUT(ShaderPlatform) ? 16 : 256, 16);
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -413,7 +413,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 	SetLUTBlenderShader(Context, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
 
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if (UseVolumeTextureLUT(ShaderPlatform))
 	{
 		// use volume texture 16x16x16
 		RasterizeToVolumeTexture(Context.RHICmdList, VolumeBounds);
@@ -442,7 +442,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 {
 	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(256, 16), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
 
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if(UseVolumeTextureLUT(ShaderPlatform))
 	{
 		Ret.Extent = FIntPoint(16, 16);
 		Ret.Depth = 16;

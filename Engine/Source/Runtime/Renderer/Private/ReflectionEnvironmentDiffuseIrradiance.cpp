@@ -235,7 +235,7 @@ IMPLEMENT_SHADER_TYPE(,FAccumulateCubeFacesPS,TEXT("ReflectionEnvironmentShaders
 
 FGlobalBoundShaderState AccumulateCubeFacesBoundShaderState;
 
-void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
+void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {
 	for (int32 CoefficientIndex = 0; CoefficientIndex < FSHVector3::MaxSHBasis; CoefficientIndex++)
 	{
@@ -258,7 +258,7 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIR
 				TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
 				TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
 
-				SetGlobalBoundShaderState(RHICmdList, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 				// Draw each face with a geometry shader that routes to the correct render target slice
 				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -295,7 +295,7 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIR
 					TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
 					TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
 					
-					SetGlobalBoundShaderState(RHICmdList, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 					
 					PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
 					
@@ -341,7 +341,7 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIR
 					TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
 					TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
 
-					SetGlobalBoundShaderState(RHICmdList, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 					// Draw each face with a geometry shader that routes to the correct render target slice
 					for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -378,7 +378,7 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIR
 						TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
 						TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
 						
-						SetGlobalBoundShaderState(RHICmdList, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 						
 						PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
 						
@@ -411,7 +411,7 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIR
 
 			TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FAccumulateCubeFacesPS> PixelShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(RHICmdList, AccumulateCubeFacesBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AccumulateCubeFacesBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			const int32 SourceMipIndex = NumMips - 1;
 			const int32 MipSize = 1;

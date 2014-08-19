@@ -475,6 +475,7 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
+		ERHIFeatureLevel::Type InFeatureLevel,
 		LightMapPolicyType InLightMapPolicy,
 		EBlendMode InBlendMode,
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
@@ -498,7 +499,7 @@ public:
 	
 		const EMaterialTessellationMode MaterialTessellationMode = InMaterialResource.GetTessellationMode();
 
-		if (RHISupportsTessellation(GRHIShaderPlatform)
+		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{

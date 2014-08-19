@@ -12,7 +12,8 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 {
 	if(View)
 	{
-		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) && !IsMobileHDR();
+		const auto ShaderPlatform = View->GetShaderPlatform();
+		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(ShaderPlatform) && !IsMobileHDR();
 
 		// Determine whether or not to depth test simple batched elements manually (msaa only)
 		// We need to read from the scene depth in the pixel shader to do manual depth testing
@@ -26,6 +27,7 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 		// Draw the batched elements.
 		BatchedElements.Draw(
 			RHICmdList,
+			View->GetFeatureLevel(),
 			bNeedToSwitchVerticalAxis,
 			View->ViewProjectionMatrix,
 			View->ViewRect.Width(),

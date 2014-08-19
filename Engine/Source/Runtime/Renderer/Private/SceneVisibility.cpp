@@ -334,7 +334,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	
 	// Disable HZB on OpenGL platforms to avoid rendering artefacts
-	bool bHZBOcclusion = !IsOpenGLPlatform(GRHIShaderPlatform) && GHZBOcclusion;
+	bool bHZBOcclusion = !IsOpenGLPlatform(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()]) && GHZBOcclusion;
 
 	// Use precomputed visibility data if it is available.
 	if (View.PrecomputedVisibilityData)
@@ -1042,7 +1042,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		// HighResScreenshot should get best results so we don't do the occlusion optimization based on the former frame
 		extern bool GIsHighResScreenshot;
 		const bool bIsHitTesting = ViewFamily.EngineShowFlags.HitProxies;
-		if (GIsHighResScreenshot || !DoOcclusionQueries() || bIsHitTesting)
+		if (GIsHighResScreenshot || !DoOcclusionQueries(FeatureLevel) || bIsHitTesting)
 		{
 			View.bDisableQuerySubmissions = true;
 			View.bIgnoreExistingQueries = true;

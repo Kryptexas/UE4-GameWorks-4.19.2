@@ -988,8 +988,8 @@ void FSceneView::EndFinalPostprocessSettings()
 
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
-			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue == 2 || MSAAValue == 4)) )
+			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
+			|| (FeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue == 2 || MSAAValue == 4)))
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
@@ -1143,6 +1143,11 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
 { 
 	return Family->GetFeatureLevel();
+}
+
+EShaderPlatform FSceneView::GetShaderPlatform() const
+{
+	return GShaderPlatformForFeatureLevel[GetFeatureLevel()];
 }
 
 FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )

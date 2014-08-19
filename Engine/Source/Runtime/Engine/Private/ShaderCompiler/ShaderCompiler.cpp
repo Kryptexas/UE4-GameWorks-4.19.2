@@ -2281,7 +2281,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 
 				// Kick off global shader recompiles
 				BeginRecompileGlobalShaders(OutdatedShaderTypes);
-				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes);
+				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
 
 				GWarn->StatusUpdate(0, 1, NSLOCTEXT("ShaderCompilingManager", "CompilingGlobalShaderStatus", "Compiling global shaders..."));
 
@@ -2355,7 +2355,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				TArray<const FVertexFactoryType*> FactoryTypes;
 
 				BeginRecompileGlobalShaders(ShaderTypes);
-				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes);
+				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, GRHIShaderPlatform);
 				FinishRecompileGlobalShaders();
 			}
 		}

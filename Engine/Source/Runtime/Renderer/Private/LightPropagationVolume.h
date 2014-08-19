@@ -225,4 +225,4 @@ public:
 
 
 // use for render thread only
-bool UseLightPropagationVolumeRT();
+bool UseLightPropagationVolumeRT(ERHIFeatureLevel::Type InFeatureLevel);

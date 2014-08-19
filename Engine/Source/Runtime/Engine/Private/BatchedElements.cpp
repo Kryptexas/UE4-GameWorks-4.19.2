@@ -363,6 +363,7 @@ float GBatchedElementSmoothWidth = 12;
  */
 void FBatchedElements::PrepareShaders(
 	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel,
 	ESimpleElementBlendMode BlendMode,
 	const FMatrix& Transform,
 	bool bSwitchVerticalAxis,
@@ -442,7 +443,7 @@ void FBatchedElements::PrepareShaders(
 	if( BatchedElementParameters != NULL )
 	{
 		// Use the vertex/pixel shader that we were given
-		BatchedElementParameters->BindShaders(RHICmdList, Transform, Gamma, ColorWeights, Texture );
+		BatchedElementParameters->BindShaders(RHICmdList, FeatureLevel, Transform, Gamma, ColorWeights, Texture);
 	}
 	else
 	{
@@ -451,7 +452,7 @@ void FBatchedElements::PrepareShaders(
 	    if (bHitTesting)
 	    {
 		    TShaderMapRef<FSimpleElementHitProxyPS> HitTestingPixelShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(RHICmdList, HitTestingBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, HitTestingBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 				*VertexShader, *HitTestingPixelShader);
 
 			HitTestingPixelShader->SetParameters(RHICmdList, Texture);
@@ -467,7 +468,7 @@ void FBatchedElements::PrepareShaders(
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			    TShaderMapRef<FSimpleElementMaskedGammaPS> MaskedPixelShader(GetGlobalShaderMap());
-				SetGlobalBoundShaderState(RHICmdList, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *MaskedPixelShader);
 
 				MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture );
@@ -495,7 +496,7 @@ void FBatchedElements::PrepareShaders(
 			    }
 			    
 			    TShaderMapRef<FSimpleElementDistanceFieldGammaPS> DistanceFieldPixelShader(GetGlobalShaderMap());			
-				SetGlobalBoundShaderState(RHICmdList, DistanceFieldBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DistanceFieldBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *DistanceFieldPixelShader );			
 
 			    // @todo - expose these as options for batch rendering
@@ -525,7 +526,7 @@ void FBatchedElements::PrepareShaders(
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap());
-				SetGlobalBoundShaderState(RHICmdList, ColorChannelMaskShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *ColorChannelMaskPixelShader );
 			
 				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
@@ -537,7 +538,7 @@ void FBatchedElements::PrepareShaders(
 			    if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 			    {
 				    TShaderMapRef<FSimpleElementPS> RegularPixelShader(GetGlobalShaderMap());
-					SetGlobalBoundShaderState(RHICmdList, SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *RegularPixelShader );
 
 					RegularPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -546,7 +547,7 @@ void FBatchedElements::PrepareShaders(
 			    else
 			    {
 				    TShaderMapRef<FSimpleElementGammaPS> RegularPixelShader(GetGlobalShaderMap());
-					SetGlobalBoundShaderState(RHICmdList, RegularBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, RegularBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *RegularPixelShader );
 
 				    RegularPixelShader->SetParameters(RHICmdList, Texture,Gamma,BlendMode);
@@ -608,7 +609,7 @@ void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMat
 }
 
 
-bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
 	if( HasPrimsToDraw() )
 	{
@@ -626,7 +627,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 			FBatchedElementParameters* BatchedElementParameters = NULL;
 
 			// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
-			PrepareShaders(RHICmdList, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
 
 			// Draw the line elements.
 			if( LineVertices.Num() > 0 )
@@ -842,7 +843,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 						//New batch, draw previous and clear
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
-						PrepareShaders(RHICmdList, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
 						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
@@ -882,7 +883,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 					//Draw last batch
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
-					PrepareShaders(RHICmdList, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
 					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
 				}
 			}
@@ -900,7 +901,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 				if (Filter & MeshFilter)
 				{
 					// Set the appropriate pixel shader for the mesh.
-					PrepareShaders(RHICmdList, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo);
+					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo);
 
 					// Draw the mesh.
 					DrawIndexedPrimitiveUP(
@@ -930,7 +931,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerti
 					FBatchedElementParameters* BatchedElementParameters = NULL;
 
 					// Set the appropriate pixel shader for the mesh.
-					PrepareShaders(RHICmdList, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma);
+					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma);
 
 					// Draw the mesh.
 					DrawPrimitiveUP(

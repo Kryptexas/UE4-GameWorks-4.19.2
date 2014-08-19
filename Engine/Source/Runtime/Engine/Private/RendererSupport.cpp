@@ -154,7 +154,7 @@ void RestoreReferencesToRendererModuleClasses(
 
 	// Recompile any missing shaders
 	BeginRecompileGlobalShaders(OutdatedShaderTypes);
-	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes);
+	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
 
 	// Block on global shader jobs
 	FinishRecompileGlobalShaders();

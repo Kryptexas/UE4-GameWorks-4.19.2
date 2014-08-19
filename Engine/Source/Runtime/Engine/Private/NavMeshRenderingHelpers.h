@@ -295,10 +295,12 @@ public:
 
 		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform);
 		const FTexture2DRHIRef DepthTexture;
+		const auto FeatureLevel = View->GetFeatureLevel();
 			
 		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		BatchedElements.Draw(
 			RHICmdList,
+			FeatureLevel,
 			bNeedToSwitchVerticalAxis,
 			View->ViewProjectionMatrix,
 			View->ViewRect.Width(),
@@ -311,6 +313,7 @@ public:
 
 		ProxyData.BatchedElements.Draw(
 			RHICmdList,
+			FeatureLevel,
 			bNeedToSwitchVerticalAxis,
 			View->ViewProjectionMatrix,
 			View->ViewRect.Width(),

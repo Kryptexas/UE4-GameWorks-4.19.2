@@ -4355,6 +4355,8 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	}
 #endif // #if WITH_EDITOR
 
+	const auto FeatureLevel = View->GetFeatureLevel();
+
 	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
 
 	if(Section.bDisabled)
@@ -4381,7 +4383,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 
 	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), View->GetFeatureLevel());
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), FeatureLevel);
 	if ( bRequiresAdjacencyInformation )
 	{
 		check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
@@ -4437,7 +4439,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.NumPrimitives = Section.NumTriangles;
 	if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 	{
-		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
 		{
 			BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 			if( BatchElement.NumPrimitives == 0 )

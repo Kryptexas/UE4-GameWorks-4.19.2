@@ -608,7 +608,7 @@ public:
 
 	/** The current renderer feature level of this world */
 	ERHIFeatureLevel::Type						FeatureLevel;
-
+	
 	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
 	FLevelViewportInfo							EditorViews[4];
 

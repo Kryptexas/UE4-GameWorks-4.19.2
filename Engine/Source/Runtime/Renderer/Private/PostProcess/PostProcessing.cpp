@@ -147,7 +147,7 @@ static FRenderingCompositeOutputRef RenderBloom(
 static FRenderingCompositeOutputRef CombineColorGradingLUTs(
 	FPostprocessContext& Context)
 {
-	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs());
+	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
 
 	return FRenderingCompositeOutputRef(Pass);
 }

@@ -44,9 +44,9 @@ class FMeshPaintBatchedElementParameters : public FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
+	virtual void BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
-		MeshPaintRendering::SetMeshPaintShaders(RHICmdList, InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintShaders(RHICmdList, InFeatureLevel, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -63,9 +63,9 @@ class FMeshPaintDilateBatchedElementParameters : public FBatchedElementParameter
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
+	virtual void BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
-		MeshPaintRendering::SetMeshPaintDilateShaders(RHICmdList, InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintDilateShaders(RHICmdList, InFeatureLevel, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -1894,6 +1894,8 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 	check( InStaticMeshComponent != NULL );
 	check( TexturePaintingStaticMeshComponent == NULL );
 	check( PaintingTexture2D == NULL );
+
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
 	
 	UTexture2D* Texture2D = GetSelectedTexture();
 	if( Texture2D == NULL )
@@ -2027,7 +2029,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 		if( bIsTextureUsed == true && bStartedPainting == true && TextureData->PaintingMaterials.Contains( MaterialToCheck ) == false)
 		{
 			TextureData->PaintingMaterials.AddUnique( MaterialToCheck ); 
-			MaterialToCheck->OverrideTexture( Texture2D, TextureData->PaintRenderTargetTexture );
+			MaterialToCheck->OverrideTexture(Texture2D, TextureData->PaintRenderTargetTexture, FeatureLevel);
 		}
 
 		MaterialIndex++;
@@ -2062,6 +2064,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 	FStaticMeshLODResources& LODModel = TexturePaintingStaticMeshComponent->StaticMesh->RenderData->LODResources[ PaintingMeshLODIndex ];
 	FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 	const uint32 PaintUVCoordinateIndex = InParams.UVChannel;
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
 
 	// Check to see if the UV set is available on the LOD model, if not then there is no point in continuing.
 	if( PaintUVCoordinateIndex >= LODModel.VertexBuffer.GetNumTexCoords() )
@@ -2076,7 +2079,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 	// Copy the current image to the brush rendertarget texture.
 	{
 		check( BrushRenderTargetTexture != NULL );
-		CopyTextureToRenderTargetTexture( TextureData->PaintRenderTargetTexture, BrushRenderTargetTexture );
+		CopyTextureToRenderTargetTexture( TextureData->PaintRenderTargetTexture, BrushRenderTargetTexture, FeatureLevel );
 	}
 
 	const bool bEnableSeamPainting = FMeshPaintSettings::Get().bEnableSeamPainting;
@@ -2089,7 +2092,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 	check( BrushRenderTargetResource != NULL );
 	
 	// Create a canvas for the brush render target.
-	FCanvas BrushPaintCanvas( BrushRenderTargetResource, NULL, 0, 0, 0 );
+	FCanvas BrushPaintCanvas(BrushRenderTargetResource, NULL, 0, 0, 0, FeatureLevel);
 
 	// Parameters for brush paint
 	TRefCountPtr< FMeshPaintBatchedElementParameters > MeshPaintBatchedElementParameters( new FMeshPaintBatchedElementParameters() );
@@ -2127,7 +2130,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 		check( BrushMaskRenderTargetResource != NULL );
 
 		// Create a canvas for the brush mask rendertarget and clear it to black.
-		BrushMaskCanvas = TSharedPtr<FCanvas>( new FCanvas( BrushMaskRenderTargetResource, NULL, 0, 0, 0 ) );
+		BrushMaskCanvas = TSharedPtr<FCanvas>(new FCanvas(BrushMaskRenderTargetResource, NULL, 0, 0, 0, FeatureLevel));
 		BrushMaskCanvas->Clear( FLinearColor::Black );
 
 		// Parameters for the mask
@@ -2303,7 +2306,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 	if( !bEnableSeamPainting )
 	{
 		// Seam painting is not enabled so we just copy our delta paint info to the paint target.
-		CopyTextureToRenderTargetTexture( BrushRenderTargetTexture, TextureData->PaintRenderTargetTexture );
+		CopyTextureToRenderTargetTexture(BrushRenderTargetTexture, TextureData->PaintRenderTargetTexture, FeatureLevel);
 	}
 	else
 	{
@@ -2331,7 +2334,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 		// Dilate the paint stroke into the texture seams.
 		{
 			// Create a canvas for the render target.
-			FCanvas Canvas3( RenderTargetResource, NULL, 0, 0, 0 );
+			FCanvas Canvas3(RenderTargetResource, NULL, 0, 0, 0, FeatureLevel);
 
 
 			TRefCountPtr< FMeshPaintDilateBatchedElementParameters > MeshPaintDilateBatchedElementParameters( new FMeshPaintDilateBatchedElementParameters() );
@@ -2491,6 +2494,8 @@ void FEdModeMeshPaint::ClearStaticMeshTextureOverrides(UStaticMeshComponent* InS
 		return;
 	}
 
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
+
 	TArray<UMaterialInterface*> UsedMaterials;
 
 	// Get all the used materials for this StaticMeshComponent
@@ -2503,12 +2508,12 @@ void FEdModeMeshPaint::ClearStaticMeshTextureOverrides(UStaticMeshComponent* InS
 		if( Material != NULL )
 		{
 			TArray<UTexture*> UsedTextures;
-			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
+			Material->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 
 			for( int32 UsedIndex = 0; UsedIndex < UsedTextures.Num(); UsedIndex++ )
 			{
 				//Reset the texture to it's default.
-				Material->OverrideTexture( UsedTextures[ UsedIndex ], NULL );
+				Material->OverrideTexture(UsedTextures[UsedIndex], NULL, FeatureLevel);
 			}		
 		}
 	}
@@ -2524,7 +2529,7 @@ void FEdModeMeshPaint::ClearAllTextureOverrides()
 		for( int32 MaterialIndex = 0; MaterialIndex < TextureData->PaintingMaterials.Num(); MaterialIndex++)
 		{
 			UMaterialInterface* PaintingMaterialInterface = TextureData->PaintingMaterials[MaterialIndex];
-			PaintingMaterialInterface->OverrideTexture( TextureData->PaintingTexture2D, NULL );
+			PaintingMaterialInterface->OverrideTexture( TextureData->PaintingTexture2D, NULL, GetWorld()->FeatureLevel );
 		}
 
 		TextureData->PaintingMaterials.Empty();
@@ -2538,6 +2543,8 @@ void FEdModeMeshPaint::SetAllTextureOverrides(UStaticMeshComponent* InStaticMesh
 	{
 		return;
 	}
+
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
 
 	TArray<UMaterialInterface*> UsedMaterials;
 
@@ -2553,7 +2560,7 @@ void FEdModeMeshPaint::SetAllTextureOverrides(UStaticMeshComponent* InStaticMesh
 		if( Material != NULL )
 		{
 			TArray<UTexture*> UsedTextures;
-			Material->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
+			Material->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 
 			for( int32 UsedIndex = 0; UsedIndex < UsedTextures.Num(); UsedIndex++ )
 			{
@@ -2562,7 +2569,7 @@ void FEdModeMeshPaint::SetAllTextureOverrides(UStaticMeshComponent* InStaticMesh
 
 				if(TextureData)
 				{
-					Material->OverrideTexture( UsedTextures[ UsedIndex ], TextureData->PaintRenderTargetTexture );
+					Material->OverrideTexture(UsedTextures[UsedIndex], TextureData->PaintRenderTargetTexture, FeatureLevel);
 				}
 			}		
 		}
@@ -2574,6 +2581,8 @@ void FEdModeMeshPaint::SetAllTextureOverrides(UStaticMeshComponent* InStaticMesh
 void FEdModeMeshPaint::SetSpecificTextureOverrideForMesh(UStaticMeshComponent* InStaticMeshComponent, UTexture* Texture)
 {
 	PaintTexture2DData* TextureData = GetPaintTargetData( (UTexture2D*)Texture );
+
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
 
 	// Check all the materials on the mesh to see if the user texture is there
 	int32 MaterialIndex = 0;
@@ -2587,14 +2596,14 @@ void FEdModeMeshPaint::SetSpecificTextureOverrideForMesh(UStaticMeshComponent* I
 			if(TextureData && TextureData->PaintingMaterials.Num() > 0)
 			{
 				// If there is texture data, that means we have an override ready, so set it. 
-				MaterialToCheck->OverrideTexture( Texture, TextureData->PaintRenderTargetTexture );
+				MaterialToCheck->OverrideTexture(Texture, TextureData->PaintRenderTargetTexture, FeatureLevel);
 			}
 			else
 			{
 				// If there is no data, then remove the override so we can at least see the texture without the changes to the other texture.
 					// This is important because overrides are shared between material instances with the same parent. We want to disable a override in place,
 					// making the action more comprehensive to the user.
-				MaterialToCheck->OverrideTexture( Texture, NULL );
+				MaterialToCheck->OverrideTexture(Texture, NULL, FeatureLevel);
 			}
 		}
 
@@ -2832,7 +2841,7 @@ void FEdModeMeshPaint::SaveSettingsForActor( AActor* InActor )
 				}
 
 				TArray<UTexture*> UsedTextures;
-				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
+				UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
 
 				for( int32 TexIndex = 0; TexIndex < UsedTextures.Num(); TexIndex++ )
 				{
@@ -2882,7 +2891,7 @@ void FEdModeMeshPaint::UpdateSettingsForStaticMeshComponent( UStaticMeshComponen
 			}
 
 			TArray<UTexture*> UsedTextures;
-			UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+			UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
 
 			for( int32 TexIndex = 0; TexIndex < UsedTextures.Num(); TexIndex++ )
 			{
@@ -3147,7 +3156,7 @@ void FEdModeMeshPaint::SetupInitialRenderTargetData( UTexture2D* InTextureSource
 			check( TempSourceArtTexture != NULL );
 
 			// Copy the texture to the render target using the GPU
-			CopyTextureToRenderTargetTexture( TempSourceArtTexture, InRenderTarget );
+			CopyTextureToRenderTargetTexture(TempSourceArtTexture, InRenderTarget, GetWorld()->FeatureLevel);
 
 			// NOTE: TempSourceArtTexture is no longer needed (will be GC'd)
 		}
@@ -3157,7 +3166,7 @@ void FEdModeMeshPaint::SetupInitialRenderTargetData( UTexture2D* InTextureSource
 		// Just copy (render) the texture in GPU memory to our render target.  Hopefully it's not
 		// compressed already!
 		check( InTextureSource->IsFullyStreamedIn() );
-		CopyTextureToRenderTargetTexture( InTextureSource, InRenderTarget );
+		CopyTextureToRenderTargetTexture(InTextureSource, InRenderTarget, GetWorld()->FeatureLevel);
 	}
 
 }
@@ -3214,7 +3223,7 @@ UTexture2D* FEdModeMeshPaint::CreateTempUncompressedTexture( UTexture2D* SourceT
 
 
 /** Static: Copies a texture to a render target texture */
-void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture, UTextureRenderTarget2D* RenderTargetTexture )
+void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture, UTextureRenderTarget2D* RenderTargetTexture, ERHIFeatureLevel::Type FeatureLevel )
 {	
 	check( SourceTexture != NULL );
 	check( RenderTargetTexture != NULL );
@@ -3228,7 +3237,7 @@ void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture
 
 	{
 		// Create a canvas for the render target and clear it to black
-		FCanvas Canvas( RenderTargetResource, NULL, 0, 0, 0 );
+		FCanvas Canvas(RenderTargetResource, NULL, 0, 0, 0, FeatureLevel);
 
 		const uint32 Width = RenderTargetTexture->GetSurfaceWidth();
 		const uint32 Height = RenderTargetTexture->GetSurfaceHeight();
@@ -3407,7 +3416,7 @@ bool FEdModeMeshPaint::GenerateSeamMask(UStaticMeshComponent* StaticMeshComponen
 
 	{
 		// Create a canvas for the render target and clear it to white
-		FCanvas Canvas( RenderTargetResource, NULL, 0, 0, 0 );
+		FCanvas Canvas(RenderTargetResource, NULL, 0, 0, 0, GetWorld()->FeatureLevel);
 		Canvas.Clear( FLinearColor::White);
 		
 		TArray<FCanvasUVTri> TriList;

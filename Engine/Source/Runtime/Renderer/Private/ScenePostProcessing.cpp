@@ -124,7 +124,7 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 
 	static FGlobalBoundShaderState PostProcessBoundShaderState;
 	
-	SetGlobalBoundShaderState(RHICmdList, PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	float InvDisplayGamma = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 

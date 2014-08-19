@@ -27,7 +27,7 @@ class FCanvasProxy
 {
 public:
 	FCanvasProxy( FRenderTarget* RenderTarget, UWorld* InWorld )
-		: Canvas( RenderTarget, NULL, InWorld )
+		: Canvas(RenderTarget, NULL, InWorld, InWorld->FeatureLevel)
 	{
 		// Do not allow the canvas to be flushed outside of our debug rendering path
 		Canvas.SetAllowedModes( 0 );

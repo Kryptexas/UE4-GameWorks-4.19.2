@@ -260,7 +260,7 @@ void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FScen
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
 
-	SetGlobalBoundShaderState(RHICmdList, LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	GeometryShader->SetParameters(RHICmdList, View);

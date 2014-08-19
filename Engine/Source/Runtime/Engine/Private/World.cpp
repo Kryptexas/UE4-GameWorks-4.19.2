@@ -5168,8 +5168,9 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 
 		FGlobalComponentReregisterContext RecreateComponents;
 
-		GCurrentRHIFeatureLevel = InFeatureLevel;
-		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+		// TODO: Remove these
+		GRHIFeatureLevelValue = InFeatureLevel;
+		GRHIShaderPlatformValue = GShaderPlatformForFeatureLevel[InFeatureLevel];
 
 		UMaterial::AllMaterialsCacheResourceShadersForRendering();
 		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
@@ -5211,8 +5212,8 @@ void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
 
 		FGlobalComponentReregisterContext RecreateComponents;
 
-		GCurrentRHIFeatureLevel = InFeatureLevel;
-		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+		GRHIFeatureLevelValue = InFeatureLevel;
+		GRHIShaderPlatformValue = GShaderPlatformForFeatureLevel[InFeatureLevel];
 
 		UMaterial::AllMaterialsCacheResourceShadersForRendering();
 		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();

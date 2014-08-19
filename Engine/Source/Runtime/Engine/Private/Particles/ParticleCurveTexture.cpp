@@ -229,6 +229,7 @@ static void InjectCurves(
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
 			RHICmdList,
+			GMaxRHIFeatureLevel,
 			BoundShaderState,
 			GParticleCurveInjectionVertexDeclaration.VertexDeclarationRHI,
 			*VertexShader,

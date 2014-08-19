@@ -548,7 +548,7 @@ public:
 	/** Creates a scene renderer based on the current feature level. */
 	static FSceneRenderer* CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer);
 
-	bool DoOcclusionQueries() const;
+	bool DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 protected:
 

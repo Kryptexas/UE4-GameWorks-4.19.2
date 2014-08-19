@@ -689,7 +689,7 @@ class FDummyViewport : public FViewport
 public:
 	FDummyViewport(FViewportClient* InViewportClient)
 		: FViewport(InViewportClient)
-		, DebugCanvas( this, NULL, InViewportClient->GetWorld() )
+		, DebugCanvas(this, NULL, InViewportClient->GetWorld(), InViewportClient->GetWorld()->FeatureLevel)
 	{
 		DebugCanvas.SetAllowedModes(0);
 	}
@@ -805,7 +805,7 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->HighResScreenshotMask = GetHighResScreenshotConfig().bMaskEnabled ? 1 : 0;
 	ViewportClient->GetEngineShowFlags()->MotionBlur = 0;
 
-	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld());
+	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 	{
 		ViewportClient->Draw(DummyViewport, &Canvas);
 	}
@@ -1070,7 +1070,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 					GameThread.Waits = 0;
 				}
 
-				FCanvas Canvas(this, NULL, ViewportClient->GetWorld());
+				FCanvas Canvas(this, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 				{
 					ViewportClient->Draw(this, &Canvas);
 				}
@@ -1173,7 +1173,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 		});
 
 		// Let the viewport client draw its hit proxies.
-		FCanvas Canvas(&HitProxyMap, &HitProxyMap, ViewportClient->GetWorld());
+		FCanvas Canvas(&HitProxyMap, &HitProxyMap, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 		{
 			ViewportClient->Draw(this, &Canvas);
 		}

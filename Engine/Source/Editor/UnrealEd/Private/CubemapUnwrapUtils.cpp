@@ -45,7 +45,7 @@ namespace CubemapHelpers
 		RenderTargetLongLat->TargetGamma = 0;
 		FRenderTarget* RenderTarget = RenderTargetLongLat->GameThread_GetRenderTargetResource();
 
-		FCanvas* Canvas = new FCanvas(RenderTarget, NULL, 0, 0, 0);
+		FCanvas* Canvas = new FCanvas(RenderTarget, NULL, 0, 0, 0, GMaxRHIFeatureLevel);
 		Canvas->SetRenderTarget_GameThread(RenderTarget);
 
 		// Clear the render target to black
@@ -124,27 +124,27 @@ void FCubemapTexturePropertiesPS<bHDROutput>::SetParameters( FRHICommandList& RH
 	SetShaderValue(RHICmdList, GetPixelShader(), Gamma, GammaValue);
 }
 
-void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
+void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
 {
 	if(bHDROutput)
 	{
-		BindShaders<FCubemapTexturePropertiesPS<true> >(RHICmdList, InTransform, InGamma, ColorWeights, Texture);
+		BindShaders<FCubemapTexturePropertiesPS<true> >(RHICmdList, InFeatureLevel, InTransform, InGamma, ColorWeights, Texture);
 	}
 	else
 	{
-		BindShaders<FCubemapTexturePropertiesPS<false> >(RHICmdList, InTransform, InGamma, ColorWeights, Texture);
+		BindShaders<FCubemapTexturePropertiesPS<false> >(RHICmdList, InFeatureLevel, InTransform, InGamma, ColorWeights, Texture);
 	}
 }
 
 template<typename TPixelShader>
-void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
+void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
 {
 	TShaderMapRef<FCubemapTexturePropertiesVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<TPixelShader> PixelShader(GetGlobalShaderMap());
 	
 
 	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, InFeatureLevel, BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(RHICmdList, InTransform);
 
@@ -161,14 +161,14 @@ void FIESLightProfilePS::SetParameters( FRHICommandList& RHICmdList, const FText
 	SetShaderValue(RHICmdList, ShaderRHI, BrightnessInLumens, InBrightnessInLumens);
 }
 
-void FIESLightProfileBatchedElementParameters::BindShaders( FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
+void FIESLightProfileBatchedElementParameters::BindShaders( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
 {
 	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FIESLightProfilePS> PixelShader(GetGlobalShaderMap());
 
 	
 	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, InFeatureLevel, BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	VertexShader->SetParameters(RHICmdList, InTransform);

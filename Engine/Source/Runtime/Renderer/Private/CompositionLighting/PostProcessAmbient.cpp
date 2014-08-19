@@ -110,7 +110,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 		if(i == 0)
 		{
 			// call it once after setting up the shader data to avoid the warnings in the function
-			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		}
 
 		

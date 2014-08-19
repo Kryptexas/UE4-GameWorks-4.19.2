@@ -188,7 +188,7 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 		float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
 		float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
 
-		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime);
+		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime, GMaxRHIFeatureLevel);
 		{
 			Canvas.SetAllowedModes( 0 );
 			Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );

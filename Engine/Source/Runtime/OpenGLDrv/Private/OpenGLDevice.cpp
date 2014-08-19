@@ -606,8 +606,8 @@ static void InitRHICapabilitiesForGL()
 	const GLint MinorVersion = FOpenGL::GetMinorVersion();
 
 	// Shader platform & RHI feature level
-	GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = FOpenGL::GetFeatureLevel();
-	GRHIShaderPlatform = FOpenGL::GetShaderPlatform();
+	GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = FOpenGL::GetFeatureLevel();
+	GRHIShaderPlatformValue = FOpenGL::GetShaderPlatform();
 
 	FString FeatureLevelName;
 	GetFeatureLevelName(GMaxRHIFeatureLevel, FeatureLevelName);

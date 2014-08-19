@@ -176,7 +176,7 @@ extern ENGINE_API FString SaveGlobalShaderFile(EShaderPlatform Platform, FString
  * @param bRefreshShaderMap If true, the existing global shader map will be tossed first
  * @return A reference to the global shader map.
  */
-extern ENGINE_API TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform=GRHIShaderPlatform, bool bRefreshShaderMap=false);
+extern ENGINE_API TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform = GRHIShaderPlatform, bool bRefreshShaderMap = false);
 
 /**
  * Forces a recompile of the global shaders.

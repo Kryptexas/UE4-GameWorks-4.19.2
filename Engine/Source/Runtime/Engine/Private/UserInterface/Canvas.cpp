@@ -24,7 +24,7 @@ DEFINE_STAT(STAT_Canvas_GetBatchElementsTime);
 DEFINE_STAT(STAT_Canvas_AddTileRenderTime);
 DEFINE_STAT(STAT_Canvas_NumBatchesCreated);
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
@@ -33,9 +33,11 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentRealTime(0)
 ,	CurrentWorldTime(0)
 ,	CurrentDeltaWorldTime(0)
+,	FeatureLevel(InFeatureLevel)
 {
 	Construct();
 
+	check(InWorld);
 	if (InWorld)
 	{
 		CurrentRealTime = InWorld->GetRealTimeSeconds();
@@ -44,7 +46,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 	}
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
@@ -53,6 +55,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentRealTime(InRealTime)
 ,	CurrentWorldTime(InWorldTime)
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
+,	FeatureLevel(InFeatureLevel)
 {
 	Construct();
 }
@@ -176,6 +179,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 		// draw batched items
 		Data->BatchedElements.Draw(
 			RHICmdList,
+			Canvas->GetFeatureLevel(),
 			bNeedsToSwitchVerticalAxis,
 			Data->Transform.GetMatrix(),
 			CanvasRenderTarget->GetSizeXY().X,
@@ -197,7 +201,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 	return bDirty;
 }
 
-bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
+bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 {	
 	checkSlow(Data);
 	bool bDirty=false;		
@@ -222,6 +226,8 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
 			uint32 ViewportSizeY;
 			float DisplayGamma;
 			uint32 AllowedCanvasModes;
+			ERHIFeatureLevel::Type FeatureLevel;
+			EShaderPlatform ShaderPlatform;
 		};
 		// all the parameters needed for rendering
 		FBatchedDrawParameters DrawParameters =
@@ -231,7 +237,9 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
 			(uint32)CanvasRenderTarget->GetSizeXY().X,
 			(uint32)CanvasRenderTarget->GetSizeXY().Y,
 			Gamma,
-			Canvas->GetAllowedModes()
+			Canvas->GetAllowedModes(),
+			Canvas->GetFeatureLevel(),
+			Canvas->GetShaderPlatform()
 		};
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			BatchedDrawCommand,
@@ -242,6 +250,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
 			// draw batched items
 			Parameters.RenderData->BatchedElements.Draw(
 				RHICmdList,
+				Parameters.FeatureLevel,
 				bNeedsToSwitchVerticalAxis,
 				Parameters.RenderData->Transform.GetMatrix(),
 				Parameters.ViewportSizeX,

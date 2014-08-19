@@ -1318,7 +1318,7 @@ bool GenerateExportMaterialPropertyData(
 			RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			RenderTarget->InitCustomFormat(InOutSizeX, InOutSizeY, Format, bForceLinear);
 
-			Canvas = new FCanvas(RenderTarget->GetRenderTargetResource(), NULL, 0, 0, 0);
+			Canvas = new FCanvas(RenderTarget->GetRenderTargetResource(), NULL, 0, 0, 0, GMaxRHIFeatureLevel);
 			check(Canvas);
 		}
 
@@ -2610,7 +2610,7 @@ namespace MaterialExportUtils
 
 		{
 			// Create a canvas for the render target and clear it to black
-			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel);
 			Canvas.Clear(FLinearColor::Black);
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
@@ -2773,7 +2773,7 @@ namespace MaterialExportUtils
 
 				ViewFamily.Views.Add(new FSceneView(ViewInitOptions));
 					
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 
@@ -2857,7 +2857,7 @@ namespace MaterialExportUtils
 				NewView->CurrentBufferVisualizationMode = FName("WorldNormal");
 				ViewFamily.Views.Add(NewView);
 										
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 

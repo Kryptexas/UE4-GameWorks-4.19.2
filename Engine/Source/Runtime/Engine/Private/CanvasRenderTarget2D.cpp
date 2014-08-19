@@ -50,7 +50,7 @@ void UCanvasRenderTarget2D::UpdateResource()
 	);
 
 	// Create the FCanvas which does the actual rendering.
-	FCanvas RenderCanvas(GameThread_GetRenderTargetResource(), nullptr, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+	FCanvas RenderCanvas(GameThread_GetRenderTargetResource(), nullptr, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GetWorld()->FeatureLevel);
 	Canvas->Canvas = &RenderCanvas;
 
 	if (!IsPendingKill() && OnCanvasRenderTargetUpdate.IsBound())
