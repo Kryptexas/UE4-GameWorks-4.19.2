@@ -49,7 +49,7 @@ FName FXCodeSourceCodeAccessor::GetFName() const
 
 FText FXCodeSourceCodeAccessor::GetNameText() const
 {
-	return LOCTEXT("XCodeDisplayName", "Visual Studio");
+	return LOCTEXT("XCodeDisplayName", "Xcode");
 }
 
 FText FXCodeSourceCodeAccessor::GetDescriptionText() const
