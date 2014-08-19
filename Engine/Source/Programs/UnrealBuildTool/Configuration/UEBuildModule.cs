@@ -1536,6 +1536,11 @@ namespace UnrealBuildTool
 
 		public static FileItem CachePCHUsageForModuleSourceFile(UEBuildTarget Target, CPPEnvironment ModuleCompileEnvironment, FileItem CPPFile)
 		{
+			if( !CPPFile.bExists )
+			{
+				throw new BuildException( "Required source file not found: " + CPPFile.AbsolutePath );
+			}
+
 			var PCHCacheTimerStart = DateTime.UtcNow;
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform( ModuleCompileEnvironment.Config.Target.Platform );
