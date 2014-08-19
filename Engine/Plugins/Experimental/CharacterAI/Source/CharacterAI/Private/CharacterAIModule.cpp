@@ -2,6 +2,7 @@
 
 #include "CharacterAIPrivatePCH.h"
 #include "CharacterAIModule.h"
+#include "ModuleManager.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FCharacterAIModule

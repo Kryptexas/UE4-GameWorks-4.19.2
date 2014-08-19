@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
 #define CHARACTERAI_MODULE_NAME "CharacterAI"
 
 //////////////////////////////////////////////////////////////////////////
