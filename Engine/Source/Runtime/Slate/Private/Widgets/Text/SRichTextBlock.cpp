@@ -20,7 +20,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
 
-	CachedSize = FVector2D(ForceInitToZero);
+	CachedSize = FVector2D::ZeroVector;
 
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
@@ -73,7 +73,7 @@ void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCur
 		SetText(TextToSet);
 	}
 
-	TextLayout->SetVisibleRegion(AllottedGeometry.Size, FVector2D(ForceInitToZero));
+	TextLayout->SetVisibleRegion(AllottedGeometry.Size, FVector2D::ZeroVector);
 }
 
 int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -104,7 +104,7 @@ void SRichTextBlock::CacheDesiredSize()
 	TextLayout->SetMargin( Margin.Get() );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
-	TextLayout->SetVisibleRegion( CachedSize, FVector2D(ForceInitToZero) );
+	TextLayout->SetVisibleRegion( CachedSize, FVector2D::ZeroVector );
 	TextLayout->UpdateIfNeeded();
 
 	SWidget::CacheDesiredSize();

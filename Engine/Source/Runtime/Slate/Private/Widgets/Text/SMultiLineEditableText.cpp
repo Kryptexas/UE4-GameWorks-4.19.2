@@ -212,7 +212,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
-	CachedSize = FVector2D(ForceInitToZero);
+	CachedSize = FVector2D::ZeroVector;
 
 	ScrollOffset = FVector2D::ZeroVector;
 
