@@ -28,11 +28,11 @@ public:
 	 * object.
 	 *
 	 * @param  NodeClass	The event node type that you want this to spawn.
-	 * @param  BoundObject	The object you want spawned nodes bound to.
+	 * @param  BoundObjType	The type of object you want spawned nodes bound to.
 	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintBoundNodeSpawner* Create(TSubclassOf<UEdGraphNode> NodeClass, UObject* BoundObject, UObject* Outer = nullptr);
+	static UBlueprintBoundNodeSpawner* Create(TSubclassOf<UEdGraphNode> NodeClass, UClass* BoundObjType, UObject* Outer = nullptr);
 
 	/**
 	 * Creates a new UBlueprintBoundNodeSpawner that is charged with using the 
@@ -42,23 +42,31 @@ public:
 	 * in charge of binding.
 	 *
 	 * @param  SubSpawner	The spawner that will instantiate the node.
-	 * @param  BoundObject	The object you want spawned nodes bound to.
+	 * @param  BoundObjType	The type of object you want spawned nodes bound to.
 	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintBoundNodeSpawner* Create(UBlueprintNodeSpawner* SubSpawner, UObject* BoundObject, UObject* Outer = nullptr);
+	static UBlueprintBoundNodeSpawner* Create(UBlueprintNodeSpawner* SubSpawner, UClass* BoundObjType, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	// End UBlueprintNodeSpawner interface
+
+
+	bool IsOfBindingType(UObject const* BindingCandidate) const;
 	
+
+	bool SetBoundObject(UObject const* Object);
+
 	/**
  	 * Retrieves the object that this binds to spawned nodes.
 	 * @return The object that this class was initialized with.
 	 */
 	UObject const* GetBoundObject() const;
+
+	
 	
 	/**
 	 * Retrieves the sub-spawner that this wraps (which is actually in-charge of
@@ -69,6 +77,10 @@ public:
 	UBlueprintNodeSpawner const* GetSubSpawner() const;
 
 private:
+	/** This denotes the type of object this is allowed to bind to. */
+	UPROPERTY()
+	UClass* BoundObjClass;
+
 	/** This object that this spawner attempts to bind new nodes with. */
 	UPROPERTY()
 	TWeakObjectPtr<UObject> BoundObjPtr;

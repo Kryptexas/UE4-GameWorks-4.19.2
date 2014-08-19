@@ -69,7 +69,10 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 	}
 	else
 	{
-		Message_Warn(*FString::Printf(TEXT("CreatePinForVariable: '%s' variable not found. Base class was probably changed."), *GetVarNameString()));
+		if (!VariableReference.IsLocalScope())
+		{
+			Message_Warn(*FString::Printf(TEXT("CreatePinForVariable: '%s' variable not found. Base class was probably changed."), *GetVarNameString()));
+		}
 		return false;
 	}
 

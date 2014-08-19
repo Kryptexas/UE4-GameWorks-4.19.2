@@ -21,7 +21,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintDragDropMenuItem, Log, All);
 
 //------------------------------------------------------------------------------
-FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner* SampleActionIn, int32 MenuGrouping/* = 0*/)
+FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleActionIn, int32 MenuGrouping/* = 0*/)
 	: SampleAction(SampleActionIn)
 {
 	check(SampleAction != nullptr);

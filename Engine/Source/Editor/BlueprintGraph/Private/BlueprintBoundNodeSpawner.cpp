@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintNodeSpawnerUtils.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
 #include "K2Node_AddComponent.h"
@@ -19,6 +20,17 @@
 
 namespace BlueprintBoundNodeSpawnerImpl
 {
+
+	/**
+	 * 
+	 * 
+	 * @param  NewNode	
+	 * @param  NodeSpawner	
+	 * @param  BindingObj	
+	 * @return 
+	 */
+	static bool BindComponentEventNode(UK2Node_ComponentBoundEvent* NewNode, UBlueprintNodeSpawner const* NodeSpawner, UObject* BindingObj);
+
 	/**
 	 * For UK2Node_AddComponent nodes. Spawns the component with a certain 
 	 * asset (mesh, child-actor, etc.).
@@ -26,7 +38,7 @@ namespace BlueprintBoundNodeSpawnerImpl
 	 * @param  NewNode	The newly spawned node that needs to be bound.
 	 * @param  AssetObj	The asset object you want bound to the node.
 	 */
-	static void BindAddComponentNodeWithAsset(UEdGraphNode* NewNode, UObject* AssetObj);
+	static bool BindAddComponentNodeWithAsset(UK2Node_AddComponent* NewNode, UObject* AssetObj);
 
 	/**
 	 * Binds function nodes to specific properties. Results in a call to a 
@@ -35,54 +47,84 @@ namespace BlueprintBoundNodeSpawnerImpl
 	 * @param  NewNode		The newly spawned node that needs to be bound.
 	 * @param  PropertyObj	The property object you want bound to the node.
 	 */
-	static void BindFunctionNodeWithVariable(UEdGraphNode* NewNode, UObject* VariableObj);
+	static bool BindFunctionNodeWithVariable(UK2Node_CallFunction* NewNode, UObject* PropertyObj);
 };
 
 //------------------------------------------------------------------------------
-static void BlueprintBoundNodeSpawnerImpl::BindAddComponentNodeWithAsset(UEdGraphNode* NewNode, UObject* AssetObj)
+static bool BlueprintBoundNodeSpawnerImpl::BindComponentEventNode(UK2Node_ComponentBoundEvent* NewNode, UBlueprintNodeSpawner const* NodeSpawner, UObject* BindingObj)
 {
-	// @TODO: assert the UObject is an asset
-	UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
-	
-	if (UActorComponent* ComponentTemplate = AddCompNode->GetTemplateFromNode())
+	bool bSuccessfulBinding = false;
+	if (UObjectProperty* ComponentProperty = Cast<UObjectProperty>(BindingObj))
 	{
-		FComponentAssetBrokerage::AssignAssetToComponent(ComponentTemplate, AssetObj);
+		UProperty const* ActionProperty = FBlueprintNodeSpawnerUtils::GetAssociatedProperty(NodeSpawner);
+		if (UMulticastDelegateProperty const* DelegateProperty = Cast<UMulticastDelegateProperty>(ActionProperty))
+		{
+			NewNode->InitializeComponentBoundEventParams(ComponentProperty, DelegateProperty);
+			bSuccessfulBinding = true;
+		}
 	}
+
+	return bSuccessfulBinding;
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithVariable(UEdGraphNode* NewNode, UObject* PropertyObj)
+static bool BlueprintBoundNodeSpawnerImpl::BindAddComponentNodeWithAsset(UK2Node_AddComponent* NewNode, UObject* AssetObj)
 {
-	UK2Node_CallFunction* FuncNode = CastChecked<UK2Node_CallFunction>(NewNode);
-	if (UProperty const* BindingProperty = Cast<UProperty>(PropertyObj))
+	bool bSuccessfulBinding = false;
+
+	bool const bIsTemplateNode = (NewNode->GetOutermost() == GetTransientPackage());
+	if (!bIsTemplateNode)
+	{
+		if (UActorComponent* ComponentTemplate = NewNode->GetTemplateFromNode())
+		{
+			// @TODO: ensure the UObject is an asset
+			bSuccessfulBinding = FComponentAssetBrokerage::AssignAssetToComponent(ComponentTemplate, AssetObj);
+		}
+	}	
+	return bSuccessfulBinding;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithVariable(UK2Node_CallFunction* NewNode, UObject* PropertyObj)
+{
+	bool bSuccessfulBinding = false;
+	UProperty const* BindingProperty = Cast<UProperty>(PropertyObj);
+
+	bool const bIsTemplateNode = (NewNode->GetOutermost() == GetTransientPackage());
+	// @TODO: if we get it so pins can be matched with connected nodes, then we
+	//        should forgo the bIsTemplateNode check and let it bind.
+	if ((BindingProperty != nullptr) && bIsTemplateNode)
 	{
 		// @TODO: unnecessary allocation, could do this all by hand, or with a local
 		UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BindingProperty);
 		
 		float const EstimatedVarNodeWidth = 224.0f;
 		FVector2D VarNodePos;
-		VarNodePos.X = FuncNode->NodePosX - EstimatedVarNodeWidth;
-		VarNodePos.Y = FuncNode->NodePosY;
+		VarNodePos.X = NewNode->NodePosX - EstimatedVarNodeWidth;
+		VarNodePos.Y = NewNode->NodePosY;
 		
 		float const EstimatedVarNodeHeight  = 48.0f;
-		float const EstimatedFuncNodeHeight = UEdGraphSchema_K2::EstimateNodeHeight(FuncNode);
-		float const FuncNodeMidYCoordinate  = FuncNode->NodePosY + (EstimatedFuncNodeHeight / 2.0f);
+		float const EstimatedFuncNodeHeight = UEdGraphSchema_K2::EstimateNodeHeight(NewNode);
+		float const FuncNodeMidYCoordinate = NewNode->NodePosY + (EstimatedFuncNodeHeight / 2.0f);
 		VarNodePos.Y = FuncNodeMidYCoordinate - (EstimatedVarNodeWidth / 2.0f);
 		
-		UEdGraph* ParentGraph = FuncNode->GetGraph();
+		UEdGraph* ParentGraph = NewNode->GetGraph();
 		UK2Node_VariableGet* GetVarNode = CastChecked<UK2Node_VariableGet>(TempNodeSpawner->Invoke(ParentGraph, VarNodePos));
 
 		ParentGraph->Modify();
 		ParentGraph->AddNode(GetVarNode, /*bFromUI =*/false, /*bSelectNewNode =*/false); 
 		
 		UEdGraphPin* LiteralOutput = GetVarNode->GetValuePin();
-		UEdGraphPin* CallSelfInput = FuncNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);
+		UEdGraphPin* CallSelfInput = NewNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);
 		// connect the new "get-var" node with the spawned function node
 		if ((LiteralOutput != nullptr) && (CallSelfInput != nullptr))
 		{
 			LiteralOutput->MakeLinkTo(CallSelfInput);
+			bSuccessfulBinding = true;
 		}
 	}
+
+	return bSuccessfulBinding;
 }
 
 /*******************************************************************************
@@ -90,26 +132,26 @@ static void BlueprintBoundNodeSpawnerImpl::BindFunctionNodeWithVariable(UEdGraph
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(TSubclassOf<UEdGraphNode> NodeClass, UObject* BoundObject, UObject* Outer/*= nullptr*/)
+UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(TSubclassOf<UEdGraphNode> NodeClass, UClass* BoundObjType, UObject* Outer/*= nullptr*/)
 {
 	UBlueprintNodeSpawner* SubSpawner = UBlueprintNodeSpawner::Create(NodeClass);
-	return Create(SubSpawner, BoundObject, Outer);
+	return Create(SubSpawner, BoundObjType, Outer);
 }
 
 //------------------------------------------------------------------------------
-UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(UBlueprintNodeSpawner* SubSpawner, UObject* BoundObject, UObject* Outer/*= nullptr*/)
+UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(UBlueprintNodeSpawner* SubSpawner, UClass* BoundObjType, UObject* Outer/*= nullptr*/)
 {
 	if (Outer == nullptr)
 	{
 		Outer = GetTransientPackage();
 	}
 	check(SubSpawner != nullptr);
+	check(BoundObjType != nullptr);
 
 	UBlueprintBoundNodeSpawner* NodeSpawner = NewObject<UBlueprintBoundNodeSpawner>(Outer);
-	NodeSpawner->NodeClass   = SubSpawner->NodeClass;
-	NodeSpawner->SubSpawner  = DuplicateObject(SubSpawner, NodeSpawner);
-	NodeSpawner->SubSpawner->CustomizeNodeDelegate = SubSpawner->CustomizeNodeDelegate;
-	NodeSpawner->BoundObjPtr = BoundObject;
+	NodeSpawner->NodeClass     = SubSpawner->NodeClass;
+	NodeSpawner->SubSpawner    = SubSpawner;
+	NodeSpawner->BoundObjClass = BoundObjType;
 
 	return NodeSpawner;
 }
@@ -118,6 +160,7 @@ UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(UBlueprintNodeSpa
 UBlueprintBoundNodeSpawner::UBlueprintBoundNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
 	: Super(PCIP)
 	, BoundObjPtr(nullptr)
+	, BoundObjClass(UObject::StaticClass())
 {
 }
 
@@ -127,25 +170,39 @@ UEdGraphNode* UBlueprintBoundNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 	using namespace BlueprintBoundNodeSpawnerImpl;
 	check(SubSpawner != nullptr);
 
+	FCustomizeNodeDelegate UserNodeSetup = SubSpawner->CustomizeNodeDelegate;
+	// some binding is important to do before the node is fully formed, so we 
+	// have to construct this callback for our sub-spawner to use when spawning
+	// the node.
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UObject* BoundObject, UBlueprintNodeSpawner* NodeSpawner, FCustomizeNodeDelegate UserDelegate)
+	{
+		// user could have changed the node class (to something like
+		// UK2Node_BaseAsyncTask, which also wraps a function)
+		if (UK2Node_ComponentBoundEvent* ComponentEventNode = Cast<UK2Node_ComponentBoundEvent>(NewNode))
+		{
+			BindComponentEventNode(ComponentEventNode, NodeSpawner, BoundObject);
+		}
+		else if (UK2Node_AddComponent* AddComponentNode = Cast<UK2Node_AddComponent>(NewNode))
+		{
+			BindAddComponentNodeWithAsset(AddComponentNode, BoundObject);
+		}
+
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+	};
+
+	UObject* BoundObj = BoundObjPtr.Get();
+	SubSpawner->CustomizeNodeDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BoundObj, SubSpawner, UserNodeSetup);
+
 	UEdGraphNode* NewNode = SubSpawner->Invoke(ParentGraph, Location);
-	
-	UObject* BoundObj = nullptr;
-	if (BoundObjPtr.IsValid())
+	// restore the old custom delegate on the sub-spawner
+	SubSpawner->CustomizeNodeDelegate = UserNodeSetup;
+
+	// this simply spawns an additional node and attaches it, so it is ok if 
+	// we bind this after the sub-spawner's Invoke() (it doesn't affect the 
+	// initial node setup).
+	if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
 	{
-		BoundObj = BoundObjPtr.Get();
-	}
-	
-	bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
-	if (!bIsTemplateNode)
-	{
-		if (NewNode->IsA<UK2Node_AddComponent>())
-		{
-			BindAddComponentNodeWithAsset(NewNode, BoundObj);
-		}
-		else if (NewNode->IsA<UK2Node_CallFunction>())
-		{
-			BindFunctionNodeWithVariable(NewNode, BoundObj);
-		}
+		BindFunctionNodeWithVariable(FuncNode, BoundObj);
 	}
 	return NewNode;
 }
@@ -195,14 +252,51 @@ FText UBlueprintBoundNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
+bool UBlueprintBoundNodeSpawner::IsOfBindingType(UObject const* BindingCandidate) const
+{
+	bool bIsCompatible = false;
+	if (BindingCandidate == nullptr)
+	{
+		bIsCompatible = (BoundObjClass == nullptr);
+	}
+	else if (BoundObjClass != nullptr)
+	{
+		UClass* ObjectClass = BindingCandidate->GetClass();
+		bIsCompatible = ObjectClass->IsChildOf(BoundObjClass);
+
+		if (UObjectProperty const* ObjProperty = Cast<UObjectProperty>(BindingCandidate))
+		{
+			if (UField const* AssociatedField = FBlueprintNodeSpawnerUtils::GetAssociatedField(this))
+			{
+				AssociatedField->GetOwnerClass()->IsChildOf(ObjProperty->PropertyClass);
+			}
+		}
+	}
+
+	return bIsCompatible;
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintBoundNodeSpawner::SetBoundObject(UObject const* Object)
+{ 
+	bool bSuccess = false;
+	if ((Object == nullptr) || IsOfBindingType(Object))
+	{	
+		bSuccess = true;
+		BoundObjPtr = Object;
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("Cannot bind object (%s) with this node-spawner, it is not a '%s'"), *Object->GetName(), BoundObjClass->GetName());
+	}
+	return bSuccess;
+}
+
+//------------------------------------------------------------------------------
 UObject const* UBlueprintBoundNodeSpawner::GetBoundObject() const
 {
-	UObject* RawBoundObj = nullptr;
-	if (BoundObjPtr.IsValid())
-	{
-		RawBoundObj = BoundObjPtr.Get();
-	}
-	return RawBoundObj;
+	// Get() does IsValid() checks internally for us
+	return BoundObjPtr.Get();
 }
 
 //------------------------------------------------------------------------------

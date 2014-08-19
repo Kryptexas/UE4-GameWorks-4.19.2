@@ -117,6 +117,14 @@ namespace FBlueprintNodeSpawnerFactory
 	 * @return A new node-spawner, setup to spawn a UK2Node_AssignDelegate.
 	 */
 	static UBlueprintNodeSpawner* MakeAssignDelegateNodeSpawner(UMulticastDelegateProperty* DelegateProperty);
+
+	/**
+	 * 
+	 * 
+	 * @param  DelegateProperty	
+	 * @return 
+	 */
+	static UBlueprintNodeSpawner* MakeComponentBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty);
 };
 
 //------------------------------------------------------------------------------
@@ -264,6 +272,20 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNo
 	return UBlueprintDelegateNodeSpawner::Create(UK2Node_AssignDelegate::StaticClass(), DelegateProperty);
 }
 
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeComponentBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty)
+{
+	// BoundEventSpawner does the binding, we need a sub-spawner to lay the node
+	// ... we choose UBlueprintDelegateNodeSpawner because we need it to hold on
+	// to the UMulticastDelegateProperty
+	UBlueprintDelegateNodeSpawner* DelegateSpawner = UBlueprintDelegateNodeSpawner::Create(/*NodeClass =*/nullptr, DelegateProperty);
+	// UK2Node_ComponentBoundEvent is not a UK2Node_BaseMCDelegate so we have to
+	// set it this way
+	DelegateSpawner->NodeClass = UK2Node_ComponentBoundEvent::StaticClass(); 
+
+	return UBlueprintBoundNodeSpawner::Create(DelegateSpawner, UObjectProperty::StaticClass());
+}
+
 /*******************************************************************************
  * Static FBlueprintActionDatabase Helpers
  ******************************************************************************/
@@ -307,16 +329,6 @@ namespace BlueprintActionDatabaseImpl
 	 * @param  ActionListOut	The list you want populated with the new spawners.
 	 */
 	static void AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut);
-
-	/**
-	 * Loops over all of the property's class properties and creates bound 
-	 * actions for any that are viable for blueprint use. Evolved from certain
-	 * parts of FK2ActionMenuBuilder::AddBoundEventActionsForClass().
-	 *
-	 * @param  Property			The component property that you want node-spawners for.
-	 * @param  ActionListOut	The list you want populated with the new spawners.
-	 */
-	static void AddComponentBoundActions(UObjectProperty* Property, FActionList& ActionListOut);
 
 	/**
 	 * Evolved from FClassDynamicCastHelper::GetClassDynamicCastNodes(). If the
@@ -462,6 +474,8 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMessageNodeSpawner()
 	check(Class != nullptr);
 
+	bool const bIsComponent = Class->IsChildOf<UActorComponent>();
+
 	// loop over all the functions in the specified class; exclude-super because 
 	// we can always get the super functions by looking up that class separately 
 	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
@@ -482,14 +496,26 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 			//        Blueprint "implemented interface", then we don't need to 
 			//        include it (the function is accounted for in from the 
 			//        interface class).
-			if (UBlueprintFunctionNodeSpawner* NodeSpawner = UBlueprintFunctionNodeSpawner::Create(Function))
-			{
-				ActionListOut.Add(NodeSpawner);
-			}
+			UBlueprintFunctionNodeSpawner* FuncSpawner = UBlueprintFunctionNodeSpawner::Create(Function);
+			ActionListOut.Add(FuncSpawner);
 
 			if (FKismetEditorUtilities::IsClassABlueprintInterface(Class))
 			{
 				ActionListOut.Add(MakeMessageNodeSpawner(Function));
+			}
+
+			// bindable function calls (for component properties)
+			if (bIsComponent)
+			{
+				bool const bIsPublic = !Function->HasMetaData(FBlueprintMetadata::MD_Protected) &&
+					!Function->HasMetaData(FBlueprintMetadata::MD_Private);
+				// may have to move the bIsPublic check from here into 
+				// BlueprintActionFilter, once we have blueprintable components?
+				if (bIsPublic)
+				{
+					// bound function for component property
+					ActionListOut.Add(UBlueprintBoundNodeSpawner::Create(FuncSpawner, UObjectProperty::StaticClass()));
+				}
 			}
 		}
 	}
@@ -499,6 +525,8 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeDelegateNodeSpawner()
+
+	bool const bIsComponent = Class->IsChildOf<UActorComponent>();
 	
 	// loop over all the properties in the specified class; exclude-super because 
 	// we can always get the super properties by looking up that class separately 
@@ -510,7 +538,7 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 			continue;
 		}
 
- 		bool bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
+ 		bool const bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
  		if (bIsDelegate)
  		{
 			UMulticastDelegateProperty* DelegateProperty = CastChecked<UMulticastDelegateProperty>(Property);
@@ -536,78 +564,18 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 
 			// @TODO: AddBoundEventActionsForClass()
 			//   UK2Node_ActorBoundEvent
+
+			if (bIsComponent)
+			{
+				ActionListOut.Add(MakeComponentBoundEventSpawner(DelegateProperty));
+			}
  		}
 		else
 		{
-// 			if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Property))
-// 			{
-// 				AddComponentBoundActions(ObjProperty, ActionListOut);
-// 			}
-
 			UBlueprintVariableNodeSpawner* GetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), Property);
 			ActionListOut.Add(GetterSpawner);
 			UBlueprintVariableNodeSpawner* SetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), Property);
 			ActionListOut.Add(SetterSpawner);
-		}
-	}
-}
-
-//------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::AddComponentBoundActions(UObjectProperty* ComponentProperty, FActionList& ActionListOut)
-{
-	check(ComponentProperty != nullptr);
-
-	bool const bIsComponentProperty = ComponentProperty->PropertyClass->IsChildOf<UActorComponent>();
-	if (bIsComponentProperty)
-	{
-		// evolved from FK2ActionMenuBuilder::GetBoundEventsFromComponentSelection()
-		for (TFieldIterator<UMulticastDelegateProperty> PropertyIt(ComponentProperty->PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			UMulticastDelegateProperty* Property = *PropertyIt;
-			if (!IsPropertyBlueprintVisible(Property))
-			{
-				continue;
-			}
-
-			UBlueprintDelegateNodeSpawner* DelegateSpawner = UBlueprintDelegateNodeSpawner::Create(/*NodeClass =*/nullptr, Property);
-			DelegateSpawner->NodeClass = UK2Node_ComponentBoundEvent::StaticClass();
-
-			auto BindComponentLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UObjectProperty> ComponentProp, TWeakObjectPtr<UMulticastDelegateProperty> DelegateProp)
-			{
-				UK2Node_ComponentBoundEvent* BoundNode = CastChecked<UK2Node_ComponentBoundEvent>(NewNode);
-				if (ComponentProp.IsValid() && DelegateProp.IsValid())
-				{
-					BoundNode->InitializeComponentBoundEventParams(ComponentProp.Get(), DelegateProp.Get());
-				}
-			};
-
-			UBlueprintBoundNodeSpawner* BoundEventSpawner = UBlueprintBoundNodeSpawner::Create(DelegateSpawner, ComponentProperty);
-			TWeakObjectPtr<UObjectProperty> ComponentPropPtr = ComponentProperty;
-			TWeakObjectPtr<UMulticastDelegateProperty> DelegatePropPtr = Property;
-			BoundEventSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(BindComponentLambda, ComponentPropPtr, DelegatePropPtr);
-			
-			ActionListOut.Add(BoundEventSpawner);
-		}
-		
-		// evolved from FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents()
-		for (TFieldIterator<UFunction> FuncIt(ComponentProperty->PropertyClass, EFieldIteratorFlags::IncludeSuper); FuncIt; ++FuncIt)
-		{
-			UFunction* ComponentFunc = *FuncIt;
-			if (!UEdGraphSchema_K2::CanUserKismetCallFunction(ComponentFunc))
-			{
-				continue;
-			}
-			
-			bool const bIsPure  = (ComponentFunc->HasAnyFunctionFlags(FUNC_BlueprintPure) != false);
-			bool const bIsConst = (ComponentFunc->HasAnyFunctionFlags(FUNC_Const) != false);
-			
-			// don't know why we only allow impure ("imperitive") and const functions,
-			// but this mimics legacy functionality in GetFunctionCallsOnSelectedComponents()
-			if (!bIsPure || bIsConst)
-			{
-				UBlueprintFunctionNodeSpawner* FuncSpawner = UBlueprintFunctionNodeSpawner::Create(ComponentFunc);
-				ActionListOut.Add(UBlueprintBoundNodeSpawner::Create(FuncSpawner, ComponentProperty));
-			}
 		}
 	}
 }
@@ -923,7 +891,8 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 				{
 					FScopedDurationTimer ScopedTimer(TotalFrameDuration);
 
-					UEdGraphNode* TemplateNode = (*ClassActionList)[ActionListIndex]->GetTemplateNode();
+					UBlueprintNodeSpawner* Action = (*ClassActionList)[ActionListIndex];
+					UEdGraphNode* TemplateNode = Action->GetTemplateNode();
 					// since we're doing this incrementally, someone could have 
 					// already requested this template, and allocated its pins 
 					// (don't need to do redundant work)
