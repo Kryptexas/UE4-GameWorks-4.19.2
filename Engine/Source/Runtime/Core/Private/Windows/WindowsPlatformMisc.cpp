@@ -1871,7 +1871,7 @@ void FWindowsPlatformMisc::CoUninitialize()
 }
 
 #if !UE_BUILD_SHIPPING
-static TCHAR GErrorRemoteDebugPromptMessage[4096];
+static TCHAR GErrorRemoteDebugPromptMessage[MAX_SPRINTF];
 
 void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 {
