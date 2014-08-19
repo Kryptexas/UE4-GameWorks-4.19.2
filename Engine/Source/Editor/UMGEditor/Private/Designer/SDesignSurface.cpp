@@ -403,6 +403,16 @@ void SDesignSurface::ZoomToFit(bool bInstantZoom)
 	bTeleportInsteadOfScrollingWhenZoomingToFit = bInstantZoom;
 }
 
+FText SDesignSurface::GetZoomText() const
+{
+	return ZoomLevels->GetZoomText(ZoomLevel);
+}
+
+FSlateColor SDesignSurface::GetZoomTextColorAndOpacity() const
+{
+	return FLinearColor(1, 1, 1, 1.25f - ZoomLevelFade.GetLerp());
+}
+
 FSlateRect SDesignSurface::ComputeAreaBounds() const
 {
 	return FSlateRect(0, 0, 0, 0);

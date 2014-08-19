@@ -133,7 +133,7 @@ FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPo
 {
 	if ( bDragging )
 	{
-		float InverseScale = ( 1.0f / Geometry.Scale );
+		float InverseScale = ( 1.0f / Designer->GetPreviewScale() );
 
 		for ( FWidgetReference& Selection : SelectionCache )
 		{

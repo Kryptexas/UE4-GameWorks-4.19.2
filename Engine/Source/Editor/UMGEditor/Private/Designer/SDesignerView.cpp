@@ -175,10 +175,27 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 
 			// Top bar with buttons for changing the designer
 			+ SOverlay::Slot()
-			.HAlign(HAlign_Right)
+			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Top)
 			[
 				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(6, 2, 0, 0)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+					.Text(this, &SDesignerView::GetZoomText)
+					.ColorAndOpacity(this, &SDesignerView::GetZoomTextColorAndOpacity)
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNew(SSpacer)
+					.Size(FVector2D(1, 1))
+				]
 
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -240,6 +257,11 @@ SDesignerView::~SDesignerView()
 	{
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
 	}
+}
+
+float SDesignerView::GetPreviewScale() const
+{
+	return GetZoomAmount() * GetPreviewDPIScale();
 }
 
 FOptionalSize SDesignerView::GetPreviewWidth() const
@@ -400,7 +422,7 @@ UWidgetBlueprint* SDesignerView::GetBlueprint() const
 
 void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
 {
-	Extension->Initialize(GetBlueprint());
+	Extension->Initialize(this, GetBlueprint());
 	DesignerExtensions.Add(Extension);
 }
 
@@ -554,12 +576,12 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 
 			if ( Preview->Slot )
 			{
-				Preview->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
+				Preview->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta() * ( 1.0f / GetPreviewScale() ));
 			}
 
 			if ( Template->Slot )
 			{
-				Template->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
+				Template->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta() * ( 1.0f / GetPreviewScale() ));
 			}
 
 			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());

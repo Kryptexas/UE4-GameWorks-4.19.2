@@ -9,5 +9,6 @@
 class UMGEDITOR_API IUMGDesigner
 {
 public:
-
+	/** @return the effective preview scale after both the DPI and Zoom scale has been applied. */
+	virtual float GetPreviewScale() const = 0;
 };

@@ -49,6 +49,9 @@ protected:
 
 	void ZoomToFit(bool bInstantZoom);
 
+	FText GetZoomText() const;
+	FSlateColor GetZoomTextColorAndOpacity() const;
+
 	FVector2D GetViewOffset() const;
 
 	virtual FSlateRect ComputeAreaBounds() const;

@@ -48,6 +48,10 @@ public:
 
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
+	// IUMGDesigner interface
+	float GetPreviewScale() const override;
+	// End of IUMGDesigner interface
+
 private:
 	/** The width of the preview screen for the UI */
 	FOptionalSize GetPreviewWidth() const;

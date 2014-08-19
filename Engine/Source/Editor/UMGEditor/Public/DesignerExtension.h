@@ -3,6 +3,7 @@
 #pragma once
 
 #include "WidgetReference.h"
+#include "IUMGDesigner.h"
 
 class UWidget;
 class SWidget;
@@ -87,7 +88,7 @@ public:
 	FDesignerExtension();
 
 	/** Initializes the designer extension, this is called the first time a designer extension is registered */
-	virtual void Initialize(UWidgetBlueprint* InBlueprint);
+	virtual void Initialize(IUMGDesigner* InDesigner, UWidgetBlueprint* InBlueprint);
 
 	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const
 	{
@@ -118,6 +119,7 @@ protected:
 protected:
 	FName ExtensionId;
 	UWidgetBlueprint* Blueprint;
+	IUMGDesigner* Designer;
 
 	TArray< FWidgetReference > SelectionCache;
 
