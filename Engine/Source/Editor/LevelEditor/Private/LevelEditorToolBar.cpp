@@ -17,6 +17,7 @@
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Settings.h"
+#include "DesktopPlatformModule.h"
 
 /**
  * Static: Creates a widget for the level editor tool bar
