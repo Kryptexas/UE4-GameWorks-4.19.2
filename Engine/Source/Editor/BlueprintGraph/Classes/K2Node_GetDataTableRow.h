@@ -34,10 +34,10 @@ class UK2Node_GetDataTableRow : public UK2Node
 	// End UK2Node interface
 
 
-	/** Create new pins to show properties on archetype */
+	/** Set the return type of our struct */
 	void SetReturnTypeForStruct(UScriptStruct* InClass);
-	/** See if this is a spawn variable pin, or a 'default' pin */
-	bool IsDataTablePin(UEdGraphPin* Pin);
+	/** Get the return type of our struct */
+	UScriptStruct* GetReturnTypeForStruct();
 
 	/** Get the then output pin */
 	UEdGraphPin* GetThenPin() const;
