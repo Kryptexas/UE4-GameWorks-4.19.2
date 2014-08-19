@@ -211,6 +211,7 @@ bool FOpusAudioInfo::ReadCompressedData(uint8* Destination, bool bLooping, uint3
 		if (DecodedSamples < 0)
 		{
 			LastPCMByteSize = 0;
+			ZeroBuffer(Destination + RawPCMOffset, BufferSize - RawPCMOffset);
 			return false;
 		}
 		else
@@ -339,6 +340,7 @@ bool FOpusAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, uin
 		if (DecodedSamples < 0)
 		{
 			LastPCMByteSize = 0;
+			ZeroBuffer(Destination + RawPCMOffset, BufferSize - RawPCMOffset);
 			return false;
 		}
 		else
@@ -399,7 +401,11 @@ bool FOpusAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, uin
 
 int32 FOpusAudioInfo::DecompressToPCMBuffer(uint16 FrameSize)
 {
-	check(SrcBufferOffset + FrameSize <= SrcBufferDataSize);
+	if (SrcBufferOffset + FrameSize > SrcBufferDataSize)
+	{
+		// if frame size is too large, something has gone wrong
+		return -1;
+	}
 
 	const uint8* SrcPtr = SrcBufferData + SrcBufferOffset;
 	SrcBufferOffset += FrameSize;

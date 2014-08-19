@@ -7,6 +7,7 @@
 #include "SourceCodeNavigation.h"
 #include "SScrollBorder.h"
 #include "TemplateCategory.h"
+#include "GameProjectGenerationModule.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 

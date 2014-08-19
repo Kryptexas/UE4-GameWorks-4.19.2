@@ -2,9 +2,6 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SoundWaveDetails.h"
-//#include "EditorExperimentalSettings.h"
-
-#define LOCTEXT_NAMESPACE "AmbientSoundDetails"
 
 TSharedRef<IDetailCustomization> FSoundWaveDetails::MakeInstance()
 {
@@ -19,5 +16,3 @@ void FSoundWaveDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(USoundWave, StreamingPriority));
 	}
 }
-
-#undef LOCTEXT_NAMESPACE

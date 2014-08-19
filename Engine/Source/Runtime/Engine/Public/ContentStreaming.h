@@ -492,6 +492,8 @@ struct IAudioStreamingManager : public IStreamingManager
 	/** Returns true if this Sound Wave is currently streaming a chunk. */
 	virtual bool IsStreamingInProgress(const USoundWave* SoundWave) = 0;
 
+	virtual bool CanCreateSoundSource(const FWaveInstance* WaveInstance) const = 0;
+
 	/** Adds a new Sound Source to the streaming manager. */
 	virtual void AddStreamingSoundSource(FSoundSource* SoundSource) = 0;
 

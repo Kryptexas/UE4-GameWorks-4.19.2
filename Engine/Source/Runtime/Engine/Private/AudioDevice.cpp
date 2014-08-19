@@ -1773,7 +1773,9 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 		if(	bGameTicking || WaveInstance->bIsUISound )
 		{
 			FSoundSource* Source = WaveInstanceSourceMap.FindRef( WaveInstance );
-			if( !Source )
+			if( !Source &&
+			  ( !WaveInstance->IsStreaming() ||
+				IStreamingManager::Get().GetAudioStreamingManager().CanCreateSoundSource(WaveInstance) ) )
 			{
 				check( FreeSources.Num() );
 				Source = FreeSources.Pop();
@@ -1798,9 +1800,15 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 					FreeSources.Add( Source );
 				}
 			}
-			else
+			else if (Source)
 			{
 				Source->Update();
+			}
+			else
+			{
+				// This can happen if the streaming manager determines that this sound should not be started.
+				// We stop the wave instance to prevent it from attempting to initialize every frame
+				WaveInstance->StopWithoutNotification();
 			}
 		}
 	}

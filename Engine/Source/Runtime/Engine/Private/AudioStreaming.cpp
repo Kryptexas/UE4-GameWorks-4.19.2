@@ -8,6 +8,7 @@ AudioStreaming.cpp: Implementation of audio streaming classes.
 #include "AudioStreaming.h"
 #include "Sound/SoundWave.h"
 #include "DerivedDataCacheInterface.h"
+#include "Sound/AudioSettings.h"
 
 /*------------------------------------------------------------------------------
 	Streaming chunks from the derived data cache.
@@ -476,14 +477,68 @@ bool FAudioStreamingManager::IsStreamingInProgress(const USoundWave* SoundWave)
 	return false;
 }
 
+bool FAudioStreamingManager::CanCreateSoundSource(const FWaveInstance* WaveInstance) const
+{
+	if (WaveInstance && WaveInstance->IsStreaming())
+	{
+		int32 MaxStreams = GetDefault<UAudioSettings>()->MaximumConcurrentStreams;
+
+		if ( StreamingSoundSources.Num() < MaxStreams )
+		{
+			return true;
+		}
+		else
+		{
+			for (int32 Index = 0; Index < StreamingSoundSources.Num(); ++Index)
+			{
+				const FSoundSource* ExistingSource = StreamingSoundSources[Index];
+				const FWaveInstance* ExistingWaveInst = ExistingSource->GetWaveInstance();
+				if (!ExistingWaveInst || !ExistingWaveInst->WaveData
+					|| ExistingWaveInst->WaveData->StreamingPriority < WaveInstance->WaveData->StreamingPriority)
+				{
+					return Index < MaxStreams;
+				}
+			}
+
+			return false;
+		}
+	}
+	return true;
+}
+
 void FAudioStreamingManager::AddStreamingSoundSource(FSoundSource* SoundSource)
 {
-	if (FPlatformProperties::SupportsAudioStreaming())
+	const FWaveInstance* WaveInstance = SoundSource->GetWaveInstance();
+	if (WaveInstance && WaveInstance->IsStreaming())
 	{
-		const FWaveInstance* WaveInstance = SoundSource->GetWaveInstance();
-		if (WaveInstance && WaveInstance->WaveData && WaveInstance->WaveData->IsStreaming())
+		int32 MaxStreams = GetDefault<UAudioSettings>()->MaximumConcurrentStreams;
+
+		// Add source sorted by priority so we can easily iterate over the amount of streams
+		// that are allowed
+		int32 OrderedIndex = -1;
+		for (int32 Index = 0; Index < StreamingSoundSources.Num() && Index < MaxStreams; ++Index)
+		{
+			const FSoundSource* ExistingSource = StreamingSoundSources[Index];
+			const FWaveInstance* ExistingWaveInst = ExistingSource->GetWaveInstance();
+			if (!ExistingWaveInst || !ExistingWaveInst->WaveData
+				|| ExistingWaveInst->WaveData->StreamingPriority < WaveInstance->WaveData->StreamingPriority)
+			{
+				OrderedIndex = Index;
+				break;
+			}
+		}
+		if (OrderedIndex != -1)
+		{
+			StreamingSoundSources.Insert(SoundSource, OrderedIndex);
+		}
+		else if (StreamingSoundSources.Num() < MaxStreams)
 		{
 			StreamingSoundSources.AddUnique(SoundSource);
+		}
+
+		for (int32 Index = StreamingSoundSources.Num()-1; Index >= MaxStreams; --Index)
+		{
+			StreamingSoundSources[Index]->Stop();
 		}
 	}
 }
