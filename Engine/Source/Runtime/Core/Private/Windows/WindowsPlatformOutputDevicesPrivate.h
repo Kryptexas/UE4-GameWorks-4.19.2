@@ -134,9 +134,6 @@ public:
 	 * error handler, e.g. using structured exception handling on the PC.
 	 */
 	void HandleError();
-
-private:
-	int32	ErrorPos;
 };
 
 /**

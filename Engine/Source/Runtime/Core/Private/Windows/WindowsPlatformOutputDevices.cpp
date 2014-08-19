@@ -60,7 +60,6 @@ class FFeedbackContext*				FWindowsPlatformOutputDevices::GetWarn()
 //////////////////////////////////
 
 FOutputDeviceWindowsError::FOutputDeviceWindowsError()
-	: ErrorPos(0)
 {
 }
 
@@ -94,7 +93,6 @@ void FOutputDeviceWindowsError::Serialize( const TCHAR* Msg, ELogVerbosity::Type
 
 		FCString::Strncpy( GErrorHist, Msg, ARRAY_COUNT(GErrorHist) - 5 );
 		FCString::Strncat( GErrorHist, TEXT("\r\n\r\n"), ARRAY_COUNT(GErrorHist) - 1  );
-		ErrorPos = FCString::Strlen(GErrorHist);
 	}
 	else
 	{
