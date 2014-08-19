@@ -165,8 +165,12 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::Ma
 
 	FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
 	ReturnData->SourceActor = SourceActor;
+#if 0
 	ReturnData->AimDirection = (HitResult.Location - SourceActor->GetActorLocation()).SafeNormal();
+#endif
 	ReturnData->TargetPoint = HitResult.Location;
+#if 0
 	ReturnData->bUseTargetPoint = true;
+#endif
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
