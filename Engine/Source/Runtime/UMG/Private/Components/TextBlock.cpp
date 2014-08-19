@@ -99,6 +99,7 @@ void UTextBlock::SynchronizeProperties()
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
 	MyTextBlock->SetAutoWrapText(AutoWrapText);
 	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
+	MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
 
 #if WITH_EDITOR
 	MyEditorTextBlock->SetText(TextBinding);

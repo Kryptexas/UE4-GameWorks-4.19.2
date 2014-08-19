@@ -81,6 +81,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool AutoWrapText;
 
+	/** The minimum desired size for the text */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	float MinDesiredWidth;
+
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 

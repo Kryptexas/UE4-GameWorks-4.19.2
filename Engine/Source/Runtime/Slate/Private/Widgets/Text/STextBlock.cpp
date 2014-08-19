@@ -331,3 +331,8 @@ void STextBlock::SetShadowColorAndOpacity(const TAttribute<FLinearColor>& InShad
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
 }
+
+void STextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
+}
