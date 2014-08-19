@@ -3506,7 +3506,16 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(const TArray<UFunction*>
 
 					ParameterList += PropertyText;
 				}
-				DestinationForDecl.Logf( TEXT("%sbool %s(%s);\r\n"), FCString::Spc( 4 ), *FunctionData.CppValidationImplName, *ParameterList );
+
+				// this is not an event, the function is not a static function and the function is not marked final
+				if (!FunctionData.FunctionReference->HasAnyFunctionFlags(FUNC_Static) && !(FunctionData.FunctionExportFlags & FUNCEXPORT_Final))
+				{
+					DestinationForDecl.Logf(TEXT("%s virtual bool %s(%s);\r\n"), FCString::Spc(4), *FunctionData.CppValidationImplName, *ParameterList);
+				}
+				else
+				{
+					DestinationForDecl.Logf(TEXT("%s bool %s(%s);\r\n"), FCString::Spc(4), *FunctionData.CppValidationImplName, *ParameterList);
+				}
 			}
 
 			ExportNativeFunctionHeader(FunctionData, DestinationForDecl, EExportFunctionType::Function, EExportFunctionHeaderStyle::Declaration);
