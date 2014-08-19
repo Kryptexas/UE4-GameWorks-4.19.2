@@ -32,6 +32,14 @@ void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAb
 	}
 }
 
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data)
+{
+	FGameplayAbilityTargetData_Mesh*	NewData = new FGameplayAbilityTargetData_Mesh(Data);
+	FGameplayAbilityTargetDataHandle	Handle;
+	Handle.Data = TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData);
+	return Handle;
+}
+
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
 {
 	// Construct TargetData
@@ -42,6 +50,16 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	Handle.Data = TSharedPtr<FGameplayAbilityTargetData>(TargetData);
 
 	return Handle;
+}
+
+bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	if (Data)
+	{
+		return Data->HasHitResult();
+	}
+	return false;
 }
 
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
@@ -59,9 +77,20 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 	return FHitResult();
 }
 
+bool UAbilitySystemBlueprintLibrary::TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	if (Data)
+	{
+		const FHitResult* HitResultPtr = Data->GetHitResult();
+		return (Data->HasHitResult() || Data->HasEndPoint());
+	}
+	return false;
+}
+
 FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData)
 {
-	FGameplayAbilityTargetData * Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
 	if (Data)
 	{
 		const FHitResult* HitResultPtr = Data->GetHitResult();
@@ -76,7 +105,7 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 				return HitResultPtr->TraceEnd;
 			}
 		}
-		else if(Data->HasEndPoint())
+		else if (Data->HasEndPoint())
 		{
 			return Data->GetEndPoint();
 		}

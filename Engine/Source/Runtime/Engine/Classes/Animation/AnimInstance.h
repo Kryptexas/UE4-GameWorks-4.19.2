@@ -310,7 +310,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Animation")
 	virtual APawn* TryGetPawnOwner();
 
-protected:
+public:
 	/** Returns the owning actor of this AnimInstance */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	AActor* GetOwningActor();
