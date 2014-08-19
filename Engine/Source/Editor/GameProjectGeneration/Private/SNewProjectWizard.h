@@ -33,8 +33,9 @@ private:
 	TSharedPtr<FTemplateItem> GetSelectedTemplateItem() const;
 
 	/** Helper function to allow direct lookup of the selected item's properties on a delegate */
-	template<typename T, typename TRet = T>
-	TRet GetSelectedTemplateProperty(T FTemplateItem::*Prop) const
+	/** TRet should be defaulted but VS2012 doesn't allow default template arguments on non-class templates */
+	template<typename T>
+	T GetSelectedTemplateProperty(T FTemplateItem::*Prop) const
 	{
 		TSharedPtr<FTemplateItem> SelectedItem = GetSelectedTemplateItem();
 		if ( SelectedItem.IsValid() )
@@ -42,7 +43,7 @@ private:
 			return (*SelectedItem).*Prop;
 		}
 
-		return TRet();
+		return T();
 	}
 
 	/** Accessor for the project name text */
