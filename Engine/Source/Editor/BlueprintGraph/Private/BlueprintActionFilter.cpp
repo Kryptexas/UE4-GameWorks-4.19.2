@@ -203,6 +203,15 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
+	static bool IsBoundFunctionImpure(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
 	static bool IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
@@ -706,10 +715,10 @@ static bool BlueprintActionFilterImpl::IsBoundFunctionImpure(FBlueprintActionFil
 	bool bIsFilteredOut = false;
 	if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
 	{
-		if (UFunction* BoundFunction = FBlueprintEditorUtils::GetAssociatedFunction(BoundSpawner))
+		if (UFunction const* BoundFunction = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(BoundSpawner))
 		{
 			bIsFilteredOut = !BoundFunction->HasAnyFunctionFlags(FUNC_BlueprintPure) && 
-				!Function->HasAnyFunctionFlags(FUNC_Const);
+				!BoundFunction->HasAnyFunctionFlags(FUNC_Const);
 		}
 	}
 	return bIsFilteredOut;
