@@ -93,6 +93,10 @@ namespace VectorVM
 			lengthi,
 			sin4, 
 			sin4i,
+			addii,
+			subii,
+			mulii,
+			noise,
 			NumOpcodes
 		};
 	} // namespace EOp
@@ -169,5 +173,8 @@ namespace VectorVM
 		FVector4 const* ConstantTable,
 		int32 NumVectors
 		);
+
+	VECTORVM_API void Init();
+
 
 } // namespace VectorVM

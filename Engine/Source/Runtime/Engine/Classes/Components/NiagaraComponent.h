@@ -1,8 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 #include "NiagaraComponent.generated.h"
+
+UENUM()
+enum ERenderModuleType
+{
+	Sprites = 0,
+	Ribbon
+};
+
 
 UCLASS()
 class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
@@ -17,6 +24,10 @@ class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 	class UNiagaraScript* UpdateScript;
 	UPROPERTY(EditAnywhere, Category = NiagaraComponent)
 	class UNiagaraScript* SpawnScript;
+
+	/** The method for rendering the simulated data */
+	UPROPERTY(EditAnywhere, Category=Rendering)
+	TEnumAsByte<ERenderModuleType> RenderModuleType;
 
 	/** Material with which to render particles. */
 	UPROPERTY(EditAnywhere, Category=Rendering)
@@ -55,3 +66,48 @@ public:
 
 
 
+
+
+
+/**
+* Scene proxy for drawing niagara particle simulations.
+*/
+class FNiagaraSceneProxy : public FPrimitiveSceneProxy
+{
+public:
+
+	FNiagaraSceneProxy(const UNiagaraComponent* InComponent);
+	~FNiagaraSceneProxy();
+
+	/** Called on render thread to assign new dynamic data */
+	void SetDynamicData_RenderThread(struct FNiagaraDynamicDataBase* NewDynamicData);
+	class NiagaraEffectRenderer *GetEffectRenderer() { return EffectRenderer; }
+
+private:
+	void ReleaseRenderThreadResources();
+
+	// FPrimitiveSceneProxy interface.
+	virtual void CreateRenderThreadResources() override;
+
+	virtual void OnActorPositionChanged() override;
+	virtual void OnTransformChanged() override;
+
+	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override;
+	/*
+	virtual bool CanBeOccluded() const override
+	{
+	return !MaterialRelevance.bDisableDepthTest;
+	}
+	*/
+	virtual uint32 GetMemoryFootprint() const override;
+
+	uint32 GetAllocatedSize() const;
+
+
+private:
+	class NiagaraEffectRenderer *EffectRenderer;
+};

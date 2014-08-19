@@ -19,6 +19,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 #define SRCOP_CCR 0x06
 #define SRCOP_CCC 0x07
 
+
 /**
  * Context information passed around during VM execution.
  */
@@ -338,15 +339,15 @@ struct FVectorKernelSin : public TUnaryVectorKernel<FVectorKernelSin>
 	}
 };
 
-struct FVectorKernelSin4 : public TUnaryVectorKernel<FVectorKernelSin>
+struct FVectorKernelSin4 : public TUnaryVectorKernel<FVectorKernelSin4>
 {
 	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
 		float const* FloatSrc0 = reinterpret_cast<float const*>(&Src0);
-		float sn1 = FMath::Sin(*FloatSrc0++ * 3.14f);		// [0;1] takes us through half a period
-		float sn2 = FMath::Sin(*FloatSrc0++ * 3.14f);		// [0;1] takes us through half a period
-		float sn3 = FMath::Sin(*FloatSrc0++ * 3.14f);		// [0;1] takes us through half a period
-		float sn4 = FMath::Sin(*FloatSrc0++ * 3.14f);		// [0;1] takes us through half a period
+		float sn1 = FMath::Sin(FloatSrc0[0] * 3.14f);		// [0;1] takes us through half a period
+		float sn2 = FMath::Sin(FloatSrc0[1] * 3.14f);		// [0;1] takes us through half a period
+		float sn3 = FMath::Sin(FloatSrc0[2] * 3.14f);		// [0;1] takes us through half a period
+		float sn4 = FMath::Sin(FloatSrc0[3] * 3.14f);		// [0;1] takes us through half a period
 		*Dst = MakeVectorRegister(sn1, sn2, sn3, sn4);
 	}
 };
@@ -430,7 +431,91 @@ struct FVectorKernelPow : public TBinaryVectorKernel<FVectorKernelPow>
 };
 
 
+struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
+{
+	static VectorRegister RandomTable[10][10][10];
 
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	{
+		const VectorRegister One = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
+		const VectorRegister OneHalf = MakeVectorRegister(0.5f, 0.5f, 0.5f, 0.5f);
+		VectorRegister RndVals[2][2][2];
+		*Dst = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
+
+		float const* FloatSrc = reinterpret_cast<float const*>(&Src0);
+
+		for (uint32 i = 1; i < 2; i++)
+		{
+			float FX = FloatSrc[0] / 5 / (1<<i);
+			float FY = FloatSrc[1] / 5 / (1<<i);
+			float FZ = FloatSrc[2] / 5 / (1<<i);
+			uint32 X = FMath::Abs((int32)(FX) % 8);
+			uint32 Y = FMath::Abs( (int32)(FY) % 8 );
+			uint32 Z = FMath::Abs( (int32)(FZ) % 8 );
+
+			for (int32 z = 0; z < 2; z++)
+			{
+				for (int32 y = 0; y < 2; y++)
+				{
+					for (int32 x = 0; x < 2; x++)
+					{
+						RndVals[x][y][z] = RandomTable[X+x][Y+y][Z+z];
+					}
+				}
+			}
+
+			const uint32 IntCoords[3] = { FX, FY, FZ };
+			const float Fractionals[3] = { FX - IntCoords[0], FY - IntCoords[1], FZ - IntCoords[2] };
+			VectorRegister Alpha = MakeVectorRegister(Fractionals[0], Fractionals[0], Fractionals[0], Fractionals[0]);
+
+			VectorRegister OneMinusAlpha = VectorSubtract(One, Alpha);
+			VectorRegister XV1 = VectorAdd(VectorMultiply(RndVals[0][0][0], Alpha), VectorMultiply(RndVals[1][0][0], OneMinusAlpha));
+			VectorRegister XV2 = VectorAdd(VectorMultiply(RndVals[0][1][0], Alpha), VectorMultiply(RndVals[1][1][0], OneMinusAlpha));
+			VectorRegister XV3 = VectorAdd(VectorMultiply(RndVals[0][0][1], Alpha), VectorMultiply(RndVals[1][0][1], OneMinusAlpha));
+			VectorRegister XV4 = VectorAdd(VectorMultiply(RndVals[0][1][1], Alpha), VectorMultiply(RndVals[1][1][1], OneMinusAlpha));
+
+			Alpha = MakeVectorRegister(Fractionals[1], Fractionals[1], Fractionals[1], Fractionals[1]);
+			OneMinusAlpha = VectorSubtract(One, Alpha);
+			VectorRegister YV1 = VectorAdd(VectorMultiply(XV1, Alpha), VectorMultiply(XV2, OneMinusAlpha));
+			VectorRegister YV2 = VectorAdd(VectorMultiply(XV3, Alpha), VectorMultiply(XV4, OneMinusAlpha));
+
+
+			Alpha = MakeVectorRegister(Fractionals[2], Fractionals[2], Fractionals[2], Fractionals[2]);
+			OneMinusAlpha = VectorSubtract(One, Alpha);
+			VectorRegister ZV = VectorAdd(VectorMultiply(YV1, Alpha), VectorMultiply(YV2, OneMinusAlpha));
+
+			*Dst = VectorAdd(*Dst, ZV);
+		}
+	}
+};
+
+VectorRegister FVectorKernelNoise::RandomTable[10][10][10];
+
+
+void VectorVM::Init()
+{
+	static bool Inited = false;
+	if (Inited == false)
+	{
+		for (int z = 0; z < 10; z++)
+		{
+			for (int y = 0; y < 10; y++)
+			{
+				for (int x = 0; x < 10; x++)
+				{
+					float f1 = ((float)FMath::Rand() / (float)RAND_MAX) * 2 - 1;
+					float f2 = ((float)FMath::Rand() / (float)RAND_MAX) * 2 - 1;
+					float f3 = ((float)FMath::Rand() / (float)RAND_MAX) * 2 - 1;
+					float f4 = ((float)FMath::Rand() / (float)RAND_MAX) * 2 - 1;
+
+					FVectorKernelNoise::RandomTable[x][y][z] = MakeVectorRegister(f1, f2, f3, f4);
+				}
+			}
+		}
+
+		Inited = true;
+	}
+}
 
 void VectorVM::Exec(
 	uint8 const* Code,
@@ -498,6 +583,7 @@ void VectorVM::Exec(
 			case EOp::cross: FVectorKernelCross::Exec(Context); break;
 			case EOp::normalize: FVectorKernelNormalize::Exec(Context); break;
 			case EOp::random: FVectorKernelRandom::Exec(Context); break;
+			case EOp::noise: FVectorKernelNoise::Exec(Context); break;
 
 			// Execution always terminates with a "done" opcode.
 			case EOp::done:
@@ -598,6 +684,11 @@ namespace VectorVM
 
 		FVectorVMOpInfo(EOp::sin4, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Sin4")),
 		FVectorVMOpInfo(EOp::sin4, EOpFlags::None, EOpSrc::Const, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("sin4i")),
+
+		FVectorVMOpInfo(EOp::add, EOpFlags::None, EOpSrc::Const, EOpSrc::Const, EOpSrc::Invalid, TEXT("addii")),
+		FVectorVMOpInfo(EOp::sub, EOpFlags::None, EOpSrc::Const, EOpSrc::Const, EOpSrc::Invalid, TEXT("subii")),
+		FVectorVMOpInfo(EOp::mul, EOpFlags::None, EOpSrc::Const, EOpSrc::Const, EOpSrc::Invalid, TEXT("mulii")),
+		FVectorVMOpInfo(EOp::noise, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Noise")),
 
 		FVectorVMOpInfo(EOp::add, EOpFlags::None, EOpSrc::Invalid, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("invalid"))
 	};

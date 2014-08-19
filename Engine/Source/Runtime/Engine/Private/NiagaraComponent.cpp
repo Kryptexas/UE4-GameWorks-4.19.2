@@ -7,371 +7,111 @@
 #include "ParticleHelper.h"
 #include "Particles/ParticleResources.h"
 #include "Engine/NiagaraConstants.h"
+#include "Engine/NiagaraEffectRenderer.h"
 
 DECLARE_CYCLE_STAT(TEXT("Tick"),STAT_NiagaraTick,STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Simulate"),STAT_NiagaraSimulate,STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Spawn + Kill"),STAT_NiagaraSpawnAndKill,STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
-DECLARE_CYCLE_STAT(TEXT("PreRenderView"),STAT_NiagaraPreRenderView,STATGROUP_Niagara);
-DECLARE_CYCLE_STAT(TEXT("Render"),STAT_NiagaraRender,STATGROUP_Niagara);
 DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraComponent, All, All);
 
-/** Struct used to pass dynamic data from game thread to render thread */
-struct FNiagaraDynamicData
-{
-	/** Vertex data */
-	TArray<FParticleSpriteVertex> VertexData;
-};
 
-class FNiagaraMeshCollectorResources : public FOneFrameResource
-{
-public:
-	FParticleSpriteVertexFactory VertexFactory;
-	FParticleSpriteUniformBufferRef UniformBuffer;
-
-	virtual ~FNiagaraMeshCollectorResources()
-	{
-		VertexFactory.ReleaseResource();
-	}
-};
-
-/**
- * Scene proxy for drawing niagara particle simulations.
- */
-class FNiagaraSceneProxy : public FPrimitiveSceneProxy
-{
-public:
-
-	FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
+FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
-		,	DynamicData(NULL)
-		, VertexFactory(PVFT_Sprite, InComponent->GetWorld()->FeatureLevel)
+{
+	if (InComponent->RenderModuleType == Sprites)
 	{
-		Material = InComponent->Material;
-		if (!Material || !Material->CheckMaterialUsage(MATUSAGE_ParticleSprites))
-		{
-			Material = UMaterial::GetDefaultMaterial(MD_Surface);
-		}
-		check(Material);
-		MaterialRelevance = Material->GetRelevance();
+		EffectRenderer = new NiagaraEffectRendererSprites(InComponent, this);
+	}
+	else  if (InComponent->RenderModuleType == Ribbon)
+	{
+		EffectRenderer = new NiagaraEffectRendererRibbon(InComponent, this);
 	}
 
-	~FNiagaraSceneProxy()
-	{
-		ReleaseRenderThreadResources();
-	}
+}
 
-	/** Called on render thread to assign new dynamic data */
-	void SetDynamicData_RenderThread(FNiagaraDynamicData* NewDynamicData)
-	{
-		check(IsInRenderingThread());
+FNiagaraSceneProxy::~FNiagaraSceneProxy()
+{
+	ReleaseRenderThreadResources();
+}
 
-		if(DynamicData)
-		{
-			delete DynamicData;
-			DynamicData = NULL;
-		}
+/** Called on render thread to assign new dynamic data */
+void FNiagaraSceneProxy::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData)
+{
+	EffectRenderer->SetDynamicData_RenderThread(NewDynamicData);
+	return;
+}
 
-		DynamicData = NewDynamicData;
-	}
 
-private:
-	void ReleaseRenderThreadResources()
-	{
-		VertexFactory.ReleaseResource();
-		PerViewUniformBuffers.Empty();
-		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
-	}
+void FNiagaraSceneProxy::ReleaseRenderThreadResources()
+{
+	EffectRenderer->ReleaseRenderThreadResources();
+	return;
+}
 
-	// FPrimitiveSceneProxy interface.
-	virtual void CreateRenderThreadResources() override
-	{
-		VertexFactory.InitResource();
+// FPrimitiveSceneProxy interface.
+void FNiagaraSceneProxy::CreateRenderThreadResources()
+{
+	EffectRenderer->CreateRenderThreadResources();
+	return;
+}
 
-		UniformParameters.AxisLockRight = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-		UniformParameters.AxisLockUp = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-		UniformParameters.RotationScale = 1.0f;
-		UniformParameters.RotationBias = 0.0f;
-		UniformParameters.TangentSelector = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-		UniformParameters.InvDeltaSeconds = 0.0f;
-		UniformParameters.SubImageSize = FVector4(1.0f,1.0f,1.0f,1.0f);
-		UniformParameters.NormalsType = 0;
-		UniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-		UniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
-		UniformParameters.PivotOffset = FVector2D(0.0f, 0.0f);
-	}
+void FNiagaraSceneProxy::OnActorPositionChanged()
+{
+	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
+}
 
-	virtual void OnActorPositionChanged() override
-	{
-		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
-	}
+void FNiagaraSceneProxy::OnTransformChanged()
+{
+	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
+}
 
-	virtual void OnTransformChanged() override
-	{
-		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
-	}
+void FNiagaraSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
+{
+	EffectRenderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber);
+	return;
 
-	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
-
-		check(DynamicData && DynamicData->VertexData.Num());
-
-		const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
-		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(IsSelected(),IsHovered());
-
-		int32 SizeInBytes = DynamicData->VertexData.GetTypeSize() * DynamicData->VertexData.Num();
-		FGlobalDynamicVertexBuffer::FAllocation LocalDynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(SizeInBytes);
-
-		if (LocalDynamicVertexAllocation.IsValid())
-		{
-			// Update the primitive uniform buffer if needed.
-			if (!WorldSpacePrimitiveUniformBuffer.IsInitialized())
-			{
-				FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(
-					FMatrix::Identity,
-					GetActorPosition(),
-					GetBounds(),
-					GetLocalBounds(),
-					ReceivesDecals(),
-					false,
-					UseEditorDepthTest()
-					);
-				WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
-				WorldSpacePrimitiveUniformBuffer.InitResource();
-			}
-
-			// Copy the vertex data over.
-			FMemory::Memcpy(LocalDynamicVertexAllocation.Buffer, DynamicData->VertexData.GetData(), SizeInBytes);
-
-			// Compute the per-view uniform buffers.
-			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-			{
-				if (VisibilityMap & (1 << ViewIndex))
-				{
-					const FSceneView* View = Views[ViewIndex];
-
-					FNiagaraMeshCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FNiagaraMeshCollectorResources>();
-					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
-
-					// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
-					CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
-					CollectorResources.VertexFactory.SetParticleFactoryType(PVFT_Sprite);
-
-					PerViewUniformParameters.MacroUVParameters = FVector4(0.0f,0.0f,1.0f,1.0f);
-					CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
-
-					CollectorResources.VertexFactory.InitResource();
-					CollectorResources.VertexFactory.SetSpriteUniformBuffer(CollectorResources.UniformBuffer);
-					CollectorResources.VertexFactory.SetInstanceBuffer(
-						LocalDynamicVertexAllocation.VertexBuffer,
-						LocalDynamicVertexAllocation.VertexOffset,
-						sizeof(FParticleSpriteVertex),
-						true
-						);
-					CollectorResources.VertexFactory.SetDynamicParameterBuffer(NULL,0,0,true);
-
-					FMeshBatch& MeshBatch = Collector.AllocateMesh();
-					MeshBatch.VertexFactory = &CollectorResources.VertexFactory;
-					MeshBatch.CastShadow = CastsDynamicShadow();
-					MeshBatch.bUseAsOccluder = false;
-					MeshBatch.ReverseCulling = IsLocalToWorldDeterminantNegative();
-					MeshBatch.Type = PT_TriangleList;
-					MeshBatch.DepthPriorityGroup = GetDepthPriorityGroup(View);
-					MeshBatch.bCanApplyViewModeOverrides = true;
-					MeshBatch.bUseWireframeSelectionColoring = IsSelected();
-
-					if (bIsWireframe)
-					{
-						MeshBatch.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(IsSelected(),IsHovered());
-					}
-					else
-					{
-						MeshBatch.MaterialRenderProxy = MaterialRenderProxy;
-					}
-
-					FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
-					MeshElement.IndexBuffer = &GParticleIndexBuffer;
-					MeshElement.FirstIndex = 0;
-					MeshElement.NumPrimitives = 2;
-					MeshElement.NumInstances = DynamicData->VertexData.Num();
-					MeshElement.MinVertexIndex = 0;
-					MeshElement.MaxVertexIndex = MeshElement.NumInstances * 4 - 1;
-					MeshElement.PrimitiveUniformBufferResource = &WorldSpacePrimitiveUniformBuffer;
-
-					Collector.AddMesh(ViewIndex, MeshBatch);
-				}
-			}
-		}
-	}
-
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraPreRenderView);
-		
-		check(DynamicData && DynamicData->VertexData.Num());
-
-		int32 SizeInBytes = DynamicData->VertexData.GetTypeSize() * DynamicData->VertexData.Num();
-		DynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(SizeInBytes);
-		if (DynamicVertexAllocation.IsValid())
-		{
-			// Copy the vertex data over.
-			FMemory::Memcpy(DynamicVertexAllocation.Buffer, DynamicData->VertexData.GetData(), SizeInBytes);
-			VertexFactory.SetInstanceBuffer(
-				DynamicVertexAllocation.VertexBuffer,
-				DynamicVertexAllocation.VertexOffset,
-				sizeof(FParticleSpriteVertex),
-				true
-				);
-			VertexFactory.SetDynamicParameterBuffer(NULL, 0, 0, true);
-			// Compute the per-view uniform buffers.
-			const int32 NumViews = ViewFamily->Views.Num();
-			uint32 ViewBit = 1;
-			for (int32 ViewIndex = 0; ViewIndex < NumViews; ++ViewIndex, ViewBit <<= 1)
-			{
-				FParticleSpriteUniformBufferRef* SpriteViewUniformBufferPtr = new(PerViewUniformBuffers) FParticleSpriteUniformBufferRef();
-				if (VisibilityMap & ViewBit)
-				{
-					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
-					PerViewUniformParameters.MacroUVParameters = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
-					*SpriteViewUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
-				}
-			}
-
-			// Update the primitive uniform buffer if needed.
-			if (!WorldSpacePrimitiveUniformBuffer.IsInitialized())
-			{
-				FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(
-					FMatrix::Identity,
-					GetActorPosition(),
-					GetBounds(),
-					GetLocalBounds(),
-					ReceivesDecals(),
-					false,
-					UseEditorDepthTest()
-					);
-				WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
-				WorldSpacePrimitiveUniformBuffer.InitResource();
-			}
-		}
-	}
+}
 		  
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
+void FNiagaraSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) 
+{
+	EffectRenderer->DrawDynamicElements(PDI, View);
+	return;
+}
 
-		check(DynamicData && DynamicData->VertexData.Num());
+FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
+{
+	return EffectRenderer->GetViewRelevance(View);
+}
+/*
+virtual bool CanBeOccluded() const override
+{
+	return !MaterialRelevance.bDisableDepthTest;
+}
+*/
 
-		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(IsSelected(),IsHovered());
+uint32 FNiagaraSceneProxy::GetMemoryFootprint() const
+{ 
+	return (sizeof(*this) + GetAllocatedSize()); 
+}
 
-		if (DynamicVertexAllocation.IsValid()
-			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy, View->GetFeatureLevel())))
-		{
-			SCOPED_DRAW_EVENT(NiagaraRender, DEC_SCENE_ITEMS);
+uint32 FNiagaraSceneProxy::GetAllocatedSize() const
+{ 
+	uint32 DynamicDataSize = 0;
+	return FPrimitiveSceneProxy::GetAllocatedSize() + EffectRenderer->GetDynamicDataSize();
+}
 
-			FMeshBatch MeshBatch;
-			MeshBatch.VertexFactory = &VertexFactory;
-			MeshBatch.CastShadow = CastsDynamicShadow();
-			MeshBatch.bUseAsOccluder = false;
-			MeshBatch.ReverseCulling = IsLocalToWorldDeterminantNegative();
-			MeshBatch.Type = PT_TriangleList;
-			MeshBatch.DepthPriorityGroup = GetDepthPriorityGroup(View);
-			MeshBatch.LCI = NULL;
-			if (bIsWireframe)
-			{
-				MeshBatch.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(IsSelected(),IsHovered());
-			}
-			else
-			{
-				MeshBatch.MaterialRenderProxy = MaterialRenderProxy;
-			}
 
-			FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
-			MeshElement.IndexBuffer = &GParticleIndexBuffer;
-			MeshElement.FirstIndex = 0;
-			MeshElement.NumPrimitives = 2;
-			MeshElement.NumInstances = DynamicData->VertexData.Num();
-			MeshElement.MinVertexIndex = 0;
-			MeshElement.MaxVertexIndex = MeshElement.NumInstances * 4 - 1;
-			MeshElement.PrimitiveUniformBufferResource = &WorldSpacePrimitiveUniformBuffer;
+void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	EffectRenderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector);
+}
 
-			int32 ViewIndex = View->Family->Views.Find(View);
-			check(PerViewUniformBuffers.IsValidIndex(ViewIndex) && PerViewUniformBuffers[ViewIndex]);
-			VertexFactory.SetSpriteUniformBuffer(PerViewUniformBuffers[ViewIndex]);
 
-			DrawRichMesh(
-				PDI, 
-				MeshBatch, 
-				FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-				FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-				FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-				this,
-				GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false,
-				bIsWireframe
-				);
-		}
 
-		/*
-		for(int32 i=0; i<DynamicData->VertexData.Num(); i++)
-		{
-			FParticleSpriteVertex& Vertex = DynamicData->VertexData[i];
-			PDI->DrawPoint(Vertex.Position, Vertex.Color, 1.0f, SDPG_World);
-		}
-		*/
-	}
-
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
-	{
-		FPrimitiveViewRelevance Result;
-		bool bHasDynamicData = DynamicData && DynamicData->VertexData.Num() > 0;
-
-		Result.bDrawRelevance = bHasDynamicData && IsShown(View) && View->Family->EngineShowFlags.Particles;
-		Result.bShadowRelevance = bHasDynamicData && IsShadowCast(View);
-		Result.bDynamicRelevance = bHasDynamicData;
-		Result.bNeedsPreRenderView = Result.bDrawRelevance || Result.bShadowRelevance;
-		if (bHasDynamicData && View->Family->EngineShowFlags.Bounds)
-		{
-			Result.bOpaqueRelevance = true;
-		}
-		MaterialRelevance.SetPrimitiveViewRelevance(Result);
-
-		return Result;
-	}
-
-	virtual bool CanBeOccluded() const override
-	{
-		return !MaterialRelevance.bDisableDepthTest;
-	}
-
-	virtual uint32 GetMemoryFootprint() const override 
-	{ 
-		return (sizeof(*this) + GetAllocatedSize()); 
-	}
-
-	uint32 GetAllocatedSize() const 
-	{ 
-		uint32 DynamicDataSize = 0;
-		if (DynamicData)
-		{
-			DynamicDataSize = sizeof(FNiagaraDynamicData) + DynamicData->VertexData.GetAllocatedSize();
-		}
-		return FPrimitiveSceneProxy::GetAllocatedSize() + DynamicDataSize;
-	}
-
-private:
-	UMaterialInterface* Material;
-	FNiagaraDynamicData* DynamicData;
-	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	FParticleSpriteVertexFactory VertexFactory;
-	FParticleSpriteUniformParameters UniformParameters;
-	TArray<FParticleSpriteUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
-	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
-	FMaterialRelevance MaterialRelevance;
-};
 
 namespace ENiagaraVectorAttr
 {
@@ -471,15 +211,12 @@ public:
 		INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, NumParticles);
 	}
 
-	FNiagaraDynamicData* GetDynamicData()
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraGenerateVertices);
-		FNiagaraDynamicData* DynamicData = new FNiagaraDynamicData;
-		GenerateVertexData(DynamicData->VertexData);
-		return DynamicData;
-	}
-
 	FBox GetBounds() const { return CachedBounds; }
+
+
+	int GetNumParticles() const { return NumParticles; }
+	int GetNumVectorsPerAttribute() const { return NumVectorsPerAttribute; }
+	const TArray<FVector4> &GetParticles() { return ParticleBuffers[BufferIndex]; }
 
 	void SetConstant(int Idx, const FVector4 &Value)
 	{
@@ -675,35 +412,6 @@ private:
 		}
 	}
 
-	/** Update render data buffer from attributes */
-	void GenerateVertexData(TArray<FParticleSpriteVertex>& RenderData)
-	{
-		RenderData.Reset(NumParticles);
-		CachedBounds.Init();
-
-
-		float MaxSize = 0.0f;
-		FVector4* Particles = ParticleBuffers[BufferIndex].GetTypedData();
-		int32 AttrStride = NumVectorsPerAttribute;
-		for (int32 ParticleIndex = 0; ParticleIndex < NumParticles; ParticleIndex++)
-		{
-			FVector4* Particle = Particles + ParticleIndex;
-
-			FParticleSpriteVertex& NewVertex = *new(RenderData)FParticleSpriteVertex;
-			NewVertex.Position = Particle[AttrStride*ENiagaraVectorAttr::Position];
-			NewVertex.OldPosition = NewVertex.Position;
-			CachedBounds += NewVertex.Position;
-			NewVertex.Color = FLinearColor(Particle[AttrStride*ENiagaraVectorAttr::Color]);
-			NewVertex.ParticleId = static_cast<float>(ParticleIndex) / NumParticles;
-			NewVertex.RelativeTime = Particle[AttrStride*ENiagaraVectorAttr::RelativeTime].X;
-			NewVertex.Size = FVector2D(1.0f, 1.0f);
-			MaxSize = FMath::Max(MaxSize, NewVertex.Size.X);
-			MaxSize = FMath::Max(MaxSize, NewVertex.Size.Y);
-			NewVertex.Rotation = Particle[AttrStride*ENiagaraVectorAttr::Rotation].X;
-			NewVertex.SubImageIndex = 0.f;
-		}
-		CachedBounds.ExpandBy(MaxSize);
-	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -713,8 +421,9 @@ UNiagaraComponent::UNiagaraComponent(const class FPostConstructInitializePropert
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
-
+	RenderModuleType = ERenderModuleType::Sprites;
 	SpawnRate = 20.f;
+	Simulation = nullptr;
 }
 
 
@@ -747,6 +456,7 @@ void UNiagaraComponent::OnRegister()
 	{
 		Simulation = new FNiagaraSimulation(this);
 	}
+	VectorVM::Init();
 }
 
 
@@ -765,25 +475,29 @@ void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
 	if (Simulation && SceneProxy)
 	{
-		FNiagaraDynamicData* DynamicData = Simulation->GetDynamicData();
+		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
+		FNiagaraDynamicDataBase* DynamicData = NiagaraProxy->GetEffectRenderer()->GenerateVertexData(Simulation->GetNumVectorsPerAttribute(), Simulation->GetParticles());
+		//FNiagaraDynamicDataBase* DynamicData = Simulation->GetDynamicData();
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FSendNiagaraDynamicData,
-			FNiagaraSceneProxy*,NiagaraSceneProxy,(FNiagaraSceneProxy*)SceneProxy,
-			FNiagaraDynamicData*,DynamicData,DynamicData,
+			NiagaraEffectRenderer*, EffectRenderer, (NiagaraEffectRenderer*)NiagaraProxy->GetEffectRenderer(),
+			FNiagaraDynamicDataBase*,DynamicData,DynamicData,
 		{
-			NiagaraSceneProxy->SetDynamicData_RenderThread(DynamicData);
+			EffectRenderer->SetDynamicData_RenderThread(DynamicData);
 		});
 	}
 }
 
 int32 UNiagaraComponent::GetNumMaterials() const
 {
-	return 1;
+	return 0;
 }
 
 UMaterialInterface* UNiagaraComponent::GetMaterial(int32 ElementIndex) const
 {
+	return NULL;
+
 	UMaterialInterface* RequestedMaterial = NULL;
 	if (ElementIndex == 0)
 	{

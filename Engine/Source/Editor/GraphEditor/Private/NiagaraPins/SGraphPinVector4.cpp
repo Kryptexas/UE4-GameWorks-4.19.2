@@ -248,7 +248,7 @@ void SGraphPinVector4::OnChangedValueTextBox_0(float NewValue, ETextCommit::Type
 
 	FString DefaultValue;
 	//Update X value
-	DefaultValue = ValueStr + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + GetValue(TextBox_2) + GetValue(TextBox_3);
+	DefaultValue = ValueStr + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + GetValue(TextBox_2) + FString(TEXT(",")) + GetValue(TextBox_3);
 	//Set new default value
 	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
 }

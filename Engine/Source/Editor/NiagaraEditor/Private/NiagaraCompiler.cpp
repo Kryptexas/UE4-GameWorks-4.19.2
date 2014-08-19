@@ -162,33 +162,14 @@ static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
 						{
 							UEdGraphPin* SrcPin = OpNode->FindPinChecked(UNiagaraNodeOp::InPinNames[SrcIndex]);
 							NewOp.Src[SrcIndex] = EvaluateGraph(Context,SrcPin);
+							if (NewOp.Src[SrcIndex] & 0x40000000)
+							{
+								NewOp.SrcOperandTypeVector |= (1 << SrcIndex);
+							}
 						}
 					}
 
-					while (!IsValidOp(Context, NewOp) && VectorVM::GetOpCodeInfo(NewOp.OpIndex).BaseOpcode == OpInfo.BaseOpcode)
-					{
-						NewOp.OpIndex++;
-					}
-
-
-					if (OpInfo.IsCommutative() && !IsValidOp(Context, NewOp))
-					{
-						int32 Temp = NewOp.Src[0];
-						NewOp.Src[0] = NewOp.Src[1];
-						NewOp.Src[1] = Temp;
-						NewOp.OpIndex = OpNode->OpIndex;
-						while (!IsValidOp(Context, NewOp) && VectorVM::GetOpCodeInfo(NewOp.OpIndex).BaseOpcode == OpInfo.BaseOpcode)
-						{
-							NewOp.OpIndex++;
-						}
-					}
-					check(NewOp.OpIndex < VectorVM::EOp::NumOpcodes);
-
-
-					if (IsValidOp(Context, NewOp))
-					{
-						ExpressionIndex = Context.Expressions.Add(NewOp);
-					}
+					ExpressionIndex = Context.Expressions.Add(NewOp);
 				}
 				else if (Node->IsA(UNiagaraNodeGetAttr::StaticClass()))
 				{
@@ -295,10 +276,11 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 		{
 			// Generate a pass-thru op.
 			FNiagaraExpr PassThru;
-			PassThru.OpIndex = VectorVM::EOp::addi;
+			PassThru.OpIndex = VectorVM::EOp::add;
 			PassThru.Src[0] = AttrIndex | 0x80000000;
 			PassThru.Src[1] = 0 | 0x40000000;
 			PassThru.Src[2] = INDEX_NONE;
+			PassThru.SrcOperandTypeVector = 0x2;
 			OutputExpressions[AttrIndex] = Context.Expressions.Add(PassThru);
 		}
 	}
@@ -313,7 +295,8 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 		VectorVM::FVectorVMOpInfo const& OpInfo = VectorVM::GetOpCodeInfo(Expr.OpIndex);
 		for (int32 k = 0; k < 3; ++k)
 		{
-			if (OpInfo.SrcTypes[k] == VectorVM::EOpSrc::Register
+			//if (OpInfo.SrcTypes[k] == VectorVM::EOpSrc::Register
+			if ((Expr.SrcOperandTypeVector & (1 << k)) == 0 && OpInfo.SrcTypes[k] != VectorVM::EOpSrc::Invalid
 				&& !IsAttrIndex(Expr.Src[k]))
 			{
 				check(Context.Expressions.IsValidIndex(Expr.Src[k]));
@@ -335,7 +318,8 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 
 		for (int32 j = 0; j < 3; ++j)
 		{
-			if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Register)
+			//if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Register)
+			if ((Expr.SrcOperandTypeVector & (1 << j)) == 0 && OpInfo.SrcTypes[j] != VectorVM::EOpSrc::Invalid)
 			{
 				if (IsAttrIndex(Expr.Src[j]))
 				{
@@ -346,11 +330,12 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 					Expr.Src[j] = RegisterAssignments[Expr.Src[j]];
 				}
 			}
-			else if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Const)
+			//else if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Const)
+			else if ((Expr.SrcOperandTypeVector & (1 << j)) == 1)
 			{
 				// VectorVM::EOpSrc::Const.
 				Expr.Src[j] = ConstIndexFromExpressionIndex(Expr.Src[j]);
-				Expr.SrcOperandTypeVector |= 1<<j;
+				//Expr.SrcOperandTypeVector |= 1<<j;
 			}
 		}
 
@@ -417,7 +402,7 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 			{
 				if (OutputExpressions[j] == i)
 				{
-					Code.Add(VectorVM::EOp::addi);
+					Code.Add(VectorVM::EOp::add);
 					Code.Add(VectorVM::FirstOutputRegister + j);
 					Code.Add(0x0);	// all inputs are registers
 					Code.Add(DestRegister);
