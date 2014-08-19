@@ -461,7 +461,7 @@ public:
 	{
 		DestructItems(GetTypedData(), ArrayNum);
 
-		#if defined(_MSC_VER)
+		#if defined(_MSC_VER) && !defined(__clang__)	// Relies on MSVC-specific lazy template instantiation to support arrays of incomplete types
 			// ensure that DebugGet gets instantiated.
 			//@todo it would be nice if we had a cleaner solution for DebugGet
 			volatile const ElementType* Dummy = &DebugGet(0);
@@ -1594,7 +1594,7 @@ public:
 		::StableSort(GetTypedData(), Num(), Predicate);
 	}
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)	// Relies on MSVC-specific lazy template instantiation to support arrays of incomplete types
 private:
 	/**
 	* Helper function that can be used inside the debuggers watch window to debug TArrays. E.g. "*Class->Defaults.DebugGet(5)". 

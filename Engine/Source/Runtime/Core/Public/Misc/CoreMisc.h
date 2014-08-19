@@ -262,7 +262,7 @@ FORCEINLINE bool IsRunningDedicatedServer()
 	}
 
 #if UE_EDITOR
-	extern int32 StaticDedicatedServerCheck();
+	extern CORE_API int32 StaticDedicatedServerCheck();
 	return (StaticDedicatedServerCheck() == 1);
 #else
 	return false;
@@ -287,7 +287,7 @@ FORCEINLINE bool IsRunningGame()
 	}
 
 #if UE_EDITOR
-	extern int32 StaticGameCheck();
+	extern CORE_API int32 StaticGameCheck();
 	return (StaticGameCheck() == 1);
 #else
 	return false;
@@ -307,7 +307,7 @@ FORCEINLINE bool IsRunningClientOnly()
 	}
 
 #if UE_EDITOR
-	extern int32 StaticClientOnlyCheck();
+	extern CORE_API int32 StaticClientOnlyCheck();
 	return (StaticClientOnlyCheck() == 1);
 #else
 	return false;

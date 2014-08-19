@@ -141,8 +141,8 @@ bool JunkFunc(const volatile T&);
 	((void)sizeof(JunkFunc(((ClassName*)0)->MemberName)), TEXT(#MemberName))
 
 // Returns FName(TEXT("FunctionName")), while statically verifying that the function exists in ClassName
-// &((ClassName*)0)->FunctionName will generate 'error: cannot create a non-constant pointer to member function' on the Mac
-#if PLATFORM_WINDOWS
+// &((ClassName*)0)->FunctionName will generate 'error: cannot create a non-constant pointer to member function' on non-MSVC compilers
+#if PLATFORM_WINDOWS && !defined(__clang__)
 	#define GET_FUNCTION_NAME_CHECKED(ClassName, FunctionName) \
 		((void)sizeof(&((ClassName*)0)->FunctionName), FName(TEXT(#FunctionName)))
 #else
