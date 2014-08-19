@@ -36,6 +36,12 @@ public:
 
 	virtual FChildren* GetChildren() override;
 
+	/** See the Content attribute */
+	void SetContent(TSharedRef<SWidget> InContent);
+
+	/** See the DPIScale attribute */
+	void SetDPIScale(TAttribute<float> InDPIScale);
+
 protected:
 
 	/**

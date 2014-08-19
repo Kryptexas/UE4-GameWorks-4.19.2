@@ -9,11 +9,12 @@ SDPIScaler::SDPIScaler()
 
 void SDPIScaler::Construct( const FArguments& InArgs )
 {
-	this->ChildSlot
+	ChildSlot
 	[
 		InArgs._Content.Widget
 	];
-	this->DPIScale = InArgs._DPIScale;
+	
+	DPIScale = InArgs._DPIScale;
 }
 
 void SDPIScaler::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
@@ -41,4 +42,17 @@ FVector2D SDPIScaler::ComputeDesiredSize() const
 FChildren* SDPIScaler::GetChildren()
 {
 	return &ChildSlot;
+}
+
+void SDPIScaler::SetContent(TSharedRef<SWidget> InContent)
+{
+	ChildSlot
+	[
+		InContent
+	];
+}
+
+void SDPIScaler::SetDPIScale(TAttribute<float> InDPIScale)
+{
+	DPIScale = InDPIScale;
 }
