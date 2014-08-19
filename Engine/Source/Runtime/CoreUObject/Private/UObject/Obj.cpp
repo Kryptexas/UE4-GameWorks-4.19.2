@@ -2338,7 +2338,8 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_BlueprintCallable"),
 		TEXT("CPF_BlueprintAuthorityOnly"),
 		TEXT("CPF_TextExportTransient"),
-		TEXT("CPF_NonPIETransient"),
+		TEXT("CPF_NonPIEDuplicateTransient"),
+		TEXT("CPF_ExposeOnSpawn"),
 	};
 
 	for (const TCHAR* FlagName : PropertyFlags)

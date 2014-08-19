@@ -2116,7 +2116,7 @@ void FPostConstructInitializeProperties::InitProperties(UObject* Obj, UClass* De
 				bNeedInitialize = InitNonNativeProperty(P, Obj);
 			}
 
-			if (bCopyTransientsFromClassDefaults && P->HasAnyPropertyFlags(CPF_Transient|CPF_DuplicateTransient|CPF_NonPIETransient))
+			if (bCopyTransientsFromClassDefaults && P->HasAnyPropertyFlags(CPF_Transient|CPF_DuplicateTransient|CPF_NonPIEDuplicateTransient))
 			{
 				// This is a duplicate. The value for all transient or non-duplicatable properties should be copied
 				// from the source class's defaults.

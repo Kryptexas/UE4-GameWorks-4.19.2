@@ -326,8 +326,12 @@ typedef uint64 EClassCastFlags;
 #define CPF_BlueprintCallable				DECLARE_UINT64(0x0000100000000000)		// MC Delegates only.  Property should be exposed for calling in blueprint code
 #define CPF_BlueprintAuthorityOnly			DECLARE_UINT64(0x0000200000000000)		// MC Delegates only.  This delegate accepts (only in blueprint) only events with BlueprintAuthorityOnly.
 #define CPF_TextExportTransient				DECLARE_UINT64(0x0000400000000000)		// Property shouldn't be exported to text format (e.g. copy/paste)
-#define CPF_NonPIETransient					DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
+#define CPF_NonPIEDuplicateTransient		DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
 #define CPF_ExposeOnSpawn					DECLARE_UINT64(0x0001000000000000)		// Property is exposed on spawn
+
+#define CPF_NonPIETransient \
+	EMIT_DEPRECATED_WARNING_MESSAGE("CPF_NonPIETransient is deprecated. Please use CPF_NonPIEDuplicateTransient instead.") \
+	CPF_NonPIEDuplicateTransient
 
 /** @name Combinations flags */
 //@{
@@ -725,8 +729,11 @@ namespace UP
 		/// Property should always be reset to the default value during any type of duplication (copy/paste, binary duplication, etc.)
 		DuplicateTransient,
 
-		/// Property should always be reset to the default value unless it's being duplicated for a PIE session
+		/// Property should always be reset to the default value unless it's being duplicated for a PIE session - deprecated, use NonPIEDuplicateTransient instead
 		NonPIETransient,
+
+		/// Property should always be reset to the default value unless it's being duplicated for a PIE session
+		NonPIEDuplicateTransient,
 
 		/// Value is copied out after function call. Only valid on function param declaration.
 		Ref,

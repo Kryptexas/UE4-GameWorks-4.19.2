@@ -2482,7 +2482,12 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("NonPIETransient"))
 			{
-				Flags |= CPF_NonPIETransient;
+				UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+				Flags |= CPF_NonPIEDuplicateTransient;
+			}
+			else if (Specifier == TEXT("NonPIEDuplicateTransient"))
+			{
+				Flags |= CPF_NonPIEDuplicateTransient;
 			}
 			else if (Specifier == TEXT("Export"))
 			{
@@ -3295,7 +3300,7 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Check for invalid transients
-	uint64 Transients = VarProperty.PropertyFlags & (CPF_DuplicateTransient | CPF_TextExportTransient | CPF_NonPIETransient);
+	uint64 Transients = VarProperty.PropertyFlags & (CPF_DuplicateTransient | CPF_TextExportTransient | CPF_NonPIEDuplicateTransient);
 	if (Transients && !Cast<UClass>(Scope))
 	{
 		TArray<const TCHAR*> FlagStrs = ParsePropertyFlags(Transients);

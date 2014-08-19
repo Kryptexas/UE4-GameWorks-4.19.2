@@ -5245,7 +5245,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 		// Now Copy the light component properties.
 		for( UProperty* Property = CommonLightComponentClass->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext )
 		{
-			bool bIsTransient = !!(Property->PropertyFlags & (CPF_Transient | CPF_DuplicateTransient | CPF_NonPIETransient));
+			bool bIsTransient = !!(Property->PropertyFlags & (CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient));
 			// Properties are identical if they have not changed from the light component on the default source actor
 			bool bIsIdentical = Property->Identical_InContainer(LightComponentToCopy, DefaultLightComponent);
 			bool bIsComponent = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));

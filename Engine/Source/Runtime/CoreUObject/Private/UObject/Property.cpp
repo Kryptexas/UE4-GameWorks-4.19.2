@@ -600,14 +600,14 @@ bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 	if (Ar.IsSaveGame() && !(PropertyFlags & CPF_SaveGame))
 		return false;
 
-	static uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIETransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets;
+	static uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets;
 	if (!(PropertyFlags & SkipFlags))
 		return true;
 
 	bool Skip =
 			((PropertyFlags & CPF_Transient) && Ar.IsPersistent() && !Ar.IsSerializingDefaults())
 		||	((PropertyFlags & CPF_DuplicateTransient) && (Ar.GetPortFlags() & PPF_Duplicate))
-		||	((PropertyFlags & CPF_NonPIETransient) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE))
+		||	((PropertyFlags & CPF_NonPIEDuplicateTransient) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE) && (Ar.GetPortFlags() & PPF_Duplicate))
 		||  (Ar.IsFilterEditorOnly() && IsEditorOnlyProperty())
 		||	((PropertyFlags & CPF_NonTransactional) && Ar.IsTransacting())
 		||	((PropertyFlags & CPF_Deprecated) && (Ar.IsSaving() || Ar.IsTransacting() || Ar.WantBinaryPropertySerialization()));
@@ -651,7 +651,7 @@ bool UProperty::ShouldPort( uint32 PortFlags/*=0*/ ) const
 		return false;
 
 	// if we're not copying for PIE and NonPIETransient is set, don't export
-	if (!(PortFlags & PPF_DuplicateForPIE) && HasAnyPropertyFlags(CPF_NonPIETransient))
+	if (!(PortFlags & PPF_DuplicateForPIE) && HasAnyPropertyFlags(CPF_NonPIEDuplicateTransient))
 		return false;
 
 	// if we're only supposed to export components and this isn't a component property, don't export
