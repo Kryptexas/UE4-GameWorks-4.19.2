@@ -65,7 +65,7 @@ public:
 
 	void OnWindowDraggingFinished();
 
-	bool IsWindowMovable(FSlateCocoaWindow* Win, bool* OutMovableByBackground);
+	bool IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground);
 
 	void ResetModifierKeys() { ModifierKeysFlags = 0; }
 
@@ -87,19 +87,19 @@ public:
 
 public:
 
-	void OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard );
-	void OnDragOver( FSlateCocoaWindow* Window );
-	void OnDragOut( FSlateCocoaWindow* Window );
-	void OnDragDrop( FSlateCocoaWindow* Window );
+	void OnDragEnter( FCocoaWindow* Window, void *InPasteboard );
+	void OnDragOver( FCocoaWindow* Window );
+	void OnDragOut( FCocoaWindow* Window );
+	void OnDragDrop( FCocoaWindow* Window );
 
-	void OnWindowDidBecomeKey( FSlateCocoaWindow* Window );
-	void OnWindowDidResignKey( FSlateCocoaWindow* Window );
-	void OnWindowWillMove( FSlateCocoaWindow* Window );
-	void OnWindowDidMove( FSlateCocoaWindow* Window );
-	void OnWindowDidResize( FSlateCocoaWindow* Window );
-	void OnWindowRedrawContents( FSlateCocoaWindow* Window );
-	void OnWindowDidClose( FSlateCocoaWindow* Window );
-	bool OnWindowDestroyed( FSlateCocoaWindow* Window );
+	void OnWindowDidBecomeKey( FCocoaWindow* Window );
+	void OnWindowDidResignKey( FCocoaWindow* Window );
+	void OnWindowWillMove( FCocoaWindow* Window );
+	void OnWindowDidMove( FCocoaWindow* Window );
+	void OnWindowDidResize( FCocoaWindow* Window );
+	void OnWindowRedrawContents( FCocoaWindow* Window );
+	void OnWindowDidClose( FCocoaWindow* Window );
+	bool OnWindowDestroyed( FCocoaWindow* Window );
 
 	void OnMouseCursorLock( bool bLockEnabled );
 
@@ -113,12 +113,12 @@ private:
 	TCHAR ConvertChar( TCHAR Character );
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
-	FSlateCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
+	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
 	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
-	void UpdateMouseCaptureWindow( FSlateCocoaWindow* TargetWindow );
+	void UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow );
 
 	void HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
@@ -142,7 +142,7 @@ private:
 
 	TSharedRef< class HIDInputInterface > HIDInput;
 
-	FSlateCocoaWindow* DraggedWindow;
+	FCocoaWindow* DraggedWindow;
 
 	FMouseCaptureWindow* MouseCaptureWindow;
 	bool bIsMouseCaptureEnabled;

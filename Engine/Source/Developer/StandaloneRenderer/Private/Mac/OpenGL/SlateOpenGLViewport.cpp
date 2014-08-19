@@ -129,7 +129,7 @@ void FSlateOpenGLViewport::SwapBuffers()
 	}
 	
 	NSWindow* Window = [[RenderingContext.Context view] window];
-	FSlateCocoaWindow* SlateCocoaWindow = [Window isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)Window : nil;
+	FCocoaWindow* SlateCocoaWindow = [Window isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)Window : nil;
 	if(SlateCocoaWindow)
 	{
 		[SlateCocoaWindow performDeferredOrderFront];

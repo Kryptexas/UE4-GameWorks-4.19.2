@@ -172,7 +172,7 @@ void FMacApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMe
 	HIDInput->SetMessageHandler( InMessageHandler );
 }
 
-static TSharedPtr< FMacWindow > FindWindowByNSWindow( const TArray< TSharedRef< FMacWindow > >& WindowsToSearch, FSlateCocoaWindow* const WindowHandle )
+static TSharedPtr< FMacWindow > FindWindowByNSWindow( const TArray< TSharedRef< FMacWindow > >& WindowsToSearch, FCocoaWindow* const WindowHandle )
 {
 	for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
 	{
@@ -200,14 +200,14 @@ void FMacApplication::OnWindowDraggingFinished()
 	}
 }
 
-bool FMacApplication::IsWindowMovable(FSlateCocoaWindow* Win, bool* OutMovableByBackground)
+bool FMacApplication::IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground)
 {
 	if(OutMovableByBackground)
 	{
 		*OutMovableByBackground = false;
 	}
 
-	FSlateCocoaWindow* NativeWindow = (FSlateCocoaWindow*)Win;
+	FCocoaWindow* NativeWindow = (FCocoaWindow*)Win;
 	TSharedPtr< FMacWindow > CurrentEventWindow = FindWindowByNSWindow( Windows, NativeWindow );
 	if( CurrentEventWindow.IsValid() )
 	{
@@ -278,7 +278,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 
 	const NSEventType EventType = [Event type];
 
-	FSlateCocoaWindow* NativeWindow = FindEventWindow( Event );
+	FCocoaWindow* NativeWindow = FindEventWindow( Event );
 	TSharedPtr< FMacWindow > CurrentEventWindow = FindWindowByNSWindow( Windows, NativeWindow );
 	if( NativeWindow && !CurrentEventWindow.IsValid() && LastEventWindow.IsValid() )
 	{
@@ -409,6 +409,14 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseDown:
 		case NSOtherMouseDown:
 		{
+			if( CurrentEventWindow.IsValid() && CurrentEventWindow->IsRegularWindow() )
+			{
+				bool IsMouseOverTitleBar = false;
+				bool IsMovable = IsWindowMovable(NativeWindow, &IsMouseOverTitleBar);
+				[NativeWindow setMovable: IsMovable];
+				[NativeWindow setMovableByWindowBackground: IsMouseOverTitleBar];
+			}
+			
 			EMouseButtons::Type Button = [Event type] == NSLeftMouseDown ? EMouseButtons::Left : EMouseButtons::Right;
 			if ([Event type] == NSOtherMouseDown)
 			{
@@ -614,7 +622,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 	}
 }
 
-FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
+FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -636,7 +644,7 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 			break;
 	}
 
-	FSlateCocoaWindow* EventWindow = (FSlateCocoaWindow*)[Event window];
+	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event window];
 
 	if ([Event type] == NSMouseMoved)
 	{
@@ -690,7 +698,7 @@ TSharedPtr<FGenericWindow> FMacApplication::LocateWindowUnderCursor( const FVect
 	for (int32 Index = 0; Index < [AllWindows count]; Index++)
 	{
 		NSWindow* NativeWindow = (NSWindow*)[AllWindows objectAtIndex: Index];
-		if ([NativeWindow isMiniaturized] || ![NativeWindow isVisible] || ![NativeWindow isOnActiveSpace] || ![NativeWindow isKindOfClass: [FSlateCocoaWindow class]])
+		if ([NativeWindow isMiniaturized] || ![NativeWindow isVisible] || ![NativeWindow isOnActiveSpace] || ![NativeWindow isKindOfClass: [FCocoaWindow class]])
 		{
 			continue;
 		}
@@ -719,7 +727,7 @@ TSharedPtr<FGenericWindow> FMacApplication::LocateWindowUnderCursor( const FVect
 
 		if (NSPointInRect(Position, VisibleFrame))
 		{
-			TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(Windows, (FSlateCocoaWindow*)NativeWindow);
+			TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(Windows, (FCocoaWindow*)NativeWindow);
 			return MacWindow;
 		}
 	}
@@ -765,7 +773,7 @@ void FMacApplication::UseMouseCaptureWindow( bool bUseMouseCaptureWindow )
 	}
 }
 
-void FMacApplication::UpdateMouseCaptureWindow( FSlateCocoaWindow* TargetWindow )
+void FMacApplication::UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -782,9 +790,9 @@ void FMacApplication::UpdateMouseCaptureWindow( FSlateCocoaWindow* TargetWindow 
 			{
 				TargetWindow = [MouseCaptureWindow targetWindow];
 			}
-			else if( [[NSApp keyWindow] isKindOfClass: [FSlateCocoaWindow class]] )
+			else if( [[NSApp keyWindow] isKindOfClass: [FCocoaWindow class]] )
 			{
-				TargetWindow = (FSlateCocoaWindow*)[NSApp keyWindow];
+				TargetWindow = (FCocoaWindow*)[NSApp keyWindow];
 			}
 		}
 
@@ -913,7 +921,7 @@ void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) co
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
 }
 
-void FMacApplication::OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard )
+void FMacApplication::OnDragEnter( FCocoaWindow* Window, void *InPasteboard )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -956,7 +964,7 @@ void FMacApplication::OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard
 	}
 }
 
-void FMacApplication::OnDragOver( FSlateCocoaWindow* Window )
+void FMacApplication::OnDragOver( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -965,7 +973,7 @@ void FMacApplication::OnDragOver( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnDragOut( FSlateCocoaWindow* Window )
+void FMacApplication::OnDragOut( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -974,7 +982,7 @@ void FMacApplication::OnDragOut( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnDragDrop( FSlateCocoaWindow* Window )
+void FMacApplication::OnDragDrop( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -983,7 +991,7 @@ void FMacApplication::OnDragDrop( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidBecomeKey( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowDidBecomeKey( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -993,7 +1001,7 @@ void FMacApplication::OnWindowDidBecomeKey( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidResignKey( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowDidResignKey( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -1002,14 +1010,14 @@ void FMacApplication::OnWindowDidResignKey( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowWillMove( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowWillMove( FCocoaWindow* Window )
 {
 	SCOPED_AUTORELEASE_POOL;
 
 	DraggedWindow = Window;
 }
 
-void FMacApplication::OnWindowDidMove( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowDidMove( FCocoaWindow* Window )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -1028,7 +1036,7 @@ void FMacApplication::OnWindowDidMove( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidResize( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowDidResize( FCocoaWindow* Window )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -1052,7 +1060,7 @@ void FMacApplication::OnWindowDidResize( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowRedrawContents( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowRedrawContents( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -1062,7 +1070,7 @@ void FMacApplication::OnWindowRedrawContents( FSlateCocoaWindow* Window )
 	}
 }
 
-void FMacApplication::OnWindowDidClose( FSlateCocoaWindow* Window )
+void FMacApplication::OnWindowDidClose( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )
@@ -1075,7 +1083,7 @@ void FMacApplication::OnWindowDidClose( FSlateCocoaWindow* Window )
 	}
 }
 
-bool FMacApplication::OnWindowDestroyed( FSlateCocoaWindow* Window )
+bool FMacApplication::OnWindowDestroyed( FCocoaWindow* Window )
 {
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, Window );
 	if( EventWindow.IsValid() )

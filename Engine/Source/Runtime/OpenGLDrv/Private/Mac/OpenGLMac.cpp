@@ -4,6 +4,8 @@
 
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
+#include "CocoaTextView.h"
+#include "CocoaWindow.h"
 
 /*------------------------------------------------------------------------------
  OpenGL static variables.
@@ -209,7 +211,7 @@ bool GMacEnableCocoaScreenUpdates = true;
 /**
  * Custom view class
  */
-@interface FCocoaOpenGLView : FSlateTextView
+@interface FCocoaOpenGLView : FCocoaTextView
 {
 }
 @property (atomic) bool bNeedsUpdate;
@@ -245,10 +247,10 @@ bool GMacEnableCocoaScreenUpdates = true;
 {
 	SCOPED_AUTORELEASE_POOL;
 	
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
+	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
+	if (CocoaWindow)
 	{
-		[SlateCocoaWindow redrawContents];
+		[CocoaWindow redrawContents];
 	}
 }
 
@@ -744,12 +746,12 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 				
 				NSWindow* Window  = [Context->OpenGLView window];
 				NSView* SuperView = [[Window contentView] superview];
-				FSlateCocoaWindow* SlateCocoaWindow = [Window isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)Window : nil;
-				if([SuperView respondsToSelector:@selector(roundedCornerRadius)] && SlateCocoaWindow)
+				FCocoaWindow* CocoaWindow = [Window isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)Window : nil;
+				if([SuperView respondsToSelector:@selector(roundedCornerRadius)] && CocoaWindow)
 				{
-					bool bRoundedCorners = [SlateCocoaWindow roundedCorners];
-					bool bFullWindowRendering = ([SlateCocoaWindow styleMask] & (NSTexturedBackgroundWindowMask));
-					EWindowMode::Type WindowMode = [SlateCocoaWindow windowMode];
+					bool bRoundedCorners = [CocoaWindow roundedCorners];
+					bool bFullWindowRendering = ([CocoaWindow styleMask] & (NSTexturedBackgroundWindowMask));
+					EWindowMode::Type WindowMode = [CocoaWindow windowMode];
 					bRoundedBlit = (WindowMode == EWindowMode::Windowed && bRoundedCorners && bFullWindowRendering);
 				}
 				
@@ -871,12 +873,12 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 				REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //				INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 				
-				if(SlateCocoaWindow)
+				if(CocoaWindow)
 				{
 					// Using dispatch was safer - but during loading we aren't responsive on the main thread
 					// this makes it impossible to open the window & so it never appears to play the loading screen.
 					// Just hope that this will work OK...
-					[SlateCocoaWindow performDeferredOrderFront];
+					[CocoaWindow performDeferredOrderFront];
 				}
 			}
 		}
