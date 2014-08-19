@@ -538,7 +538,7 @@ FDiffPanel::FDiffPanel()
 	LastFocusedPin = NULL;
 }
 
-void DiffUtils::CompareUnrelatedObjects( UObject const* A, const FNamePropertyMap& PropertyMapA, UObject const* B, const FNamePropertyMap& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties )
+void DiffUtils::CompareUnrelatedObjects( UObject const* A, const TMap< FName, const UProperty* >& PropertyMapA, UObject const* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties )
 {
 	TSet<FName> PropertiesInA, PropertiesInB;
 	if( A )

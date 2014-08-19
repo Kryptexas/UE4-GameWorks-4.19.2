@@ -4,10 +4,7 @@
 #include "SUserWidgetTest.h"
 
 
-namespace Implementation
-{
-	
-class SUserWidgetExample : public ::SUserWidgetExample
+class SUserWidgetExampleImpl : public SUserWidgetExample
 {
 public:
 
@@ -27,10 +24,8 @@ public:
 	}
 };
 
-}
-
 
 TSharedRef<SUserWidgetExample> SUserWidgetExample::New()
 {
-	return MakeShareable(new Implementation::SUserWidgetExample()); 
+	return MakeShareable(new SUserWidgetExampleImpl()); 
 }
