@@ -2110,6 +2110,11 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
+	if (IsDeferringMovementUpdates())
+	{
+		return;
+	}
+
 	// first, dispatch any pending overlaps
 	if (bGenerateOverlapEvents && IsCollisionEnabled())
 	{

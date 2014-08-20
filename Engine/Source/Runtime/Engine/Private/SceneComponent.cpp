@@ -173,10 +173,9 @@ class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const
 
 bool USceneComponent::IsDeferringMovementUpdates() const
 {
-	FScopedMovementUpdate* CurrentScopedUpdate = GetCurrentScopedMovement();
-	if (CurrentScopedUpdate)
+	if (ScopedMovementStack.Num() > 0)
 	{
-		checkSlow(CurrentScopedUpdate->IsDeferringUpdates());
+		checkSlow(ScopedMovementStack.Last()->IsDeferringUpdates());
 		return true;
 	}
 	
@@ -1211,6 +1210,11 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
+	if (IsDeferringMovementUpdates())
+	{
+		return;
+	}
+	
 	if (bShouldUpdatePhysicsVolume)
 	{
 		UpdatePhysicsVolume(bDoNotifies);
@@ -1596,7 +1600,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 			FScopedMovementUpdate* OuterScope = Component->GetCurrentScopedMovement();
 			if (OuterScope && OuterScope->bDeferUpdates)
 			{
-				if (s_ScopedWarningCount < 100)
+				if (s_ScopedWarningCount < 100 || (GFrameCounter & 31) == 0)
 				{
 					s_ScopedWarningCount++;
 					UE_LOG(LogSceneComponent, Error, TEXT("FScopedMovementUpdate attempting to use immediate updates within deferred scope, will use deferred updates instead."));
