@@ -1151,7 +1151,7 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 			if( PhysicsVolume )
 			{
 				PhysicsVolume->ActorLeavingVolume(A);
-				PhysicsVolumeChangedDelegate.ExecuteIfBound(NewVolume);
+				PhysicsVolumeChangedDelegate.Broadcast(NewVolume);
 			}
 			PhysicsVolume = NewVolume;
 			if( PhysicsVolume )
@@ -1168,7 +1168,7 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 
 void USceneComponent::BeginDestroy()
 {
-	PhysicsVolumeChangedDelegate.Unbind();
+	PhysicsVolumeChangedDelegate.Clear();
 
 	Super::BeginDestroy();
 }

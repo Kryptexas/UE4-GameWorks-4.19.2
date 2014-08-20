@@ -39,7 +39,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = false;
 		UpdatedComponent->SetPhysicsVolume(NULL, true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.Unbind();
+		UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
 
 		// remove from tick prerequisite
 		UpdatedComponent->PrimaryComponentTick.RemovePrerequisite(this, PrimaryComponentTick); 
@@ -51,7 +51,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->UpdatePhysicsVolume(true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.BindUObject(this, &UMovementComponent::PhysicsVolumeChanged);
+		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
 		
 		// force ticks after movement component updates
 		UpdatedComponent->PrimaryComponentTick.AddPrerequisite(this, PrimaryComponentTick); 

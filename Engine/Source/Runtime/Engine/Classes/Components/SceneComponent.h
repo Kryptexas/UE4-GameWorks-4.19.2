@@ -67,11 +67,11 @@ FORCEINLINE EMoveComponentFlags operator&(EMoveComponentFlags Arg1,EMoveComponen
 FORCEINLINE void operator&=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest & Arg); }
 FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest | Arg); }
 
-DECLARE_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*, NewVolume);
 
 
 /** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */
-UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -113,8 +113,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Rendering)
 	uint32 bHiddenInGame:1;
 
-	/** Whether or not it should update PhysicsVolume. **/
-	UPROPERTY()
+	/** Whether or not PhysicsVolume should be updated when the component is moved. For PrimitiveComponents, bGenerateOverlapEvents must be true as well. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PhysicsVolume)
 	uint32 bShouldUpdatePhysicsVolume:1;
 
 	/** If true, a change in the bounds of this component will call trigger a streaming data rebuild */
@@ -433,7 +433,8 @@ public:
 	virtual void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false);
 
 public:
-	/** Will be called when PhysicsVolume has been changed **/
+	/** Delegate that will be called when PhysicsVolume has been changed **/
+	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume)
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
@@ -476,7 +477,7 @@ public:
 	 * Assumes that the level's Dynamics member is locked, which will always be the case during
 	 * a call to UWorld::Tick; if not locked, no actor-actor collision checking is performed.
 	 *
-	 * Updates actor's PhysicsVolume and touching interactions.
+	 * Updates actor's PhysicsVolume and touching interactions (if bShouldUpdatePhysicsVolume is true).
 	 * 
 	 * @param Delta			The desired location change in world space.
 	 * @param NewRotation	The new desired rotation in world space.
@@ -598,6 +599,7 @@ public:
 	/** 
 	 * Get the PhysicsVolume overlapping this component.
 	 */
+	UFUNCTION(BlueprintCallable, Category=PhysicsVolume)
 	APhysicsVolume* GetPhysicsVolume() const;
 
 

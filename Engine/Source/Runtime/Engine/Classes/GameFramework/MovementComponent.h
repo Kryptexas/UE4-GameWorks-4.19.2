@@ -133,6 +133,7 @@ public:
 	virtual APhysicsVolume* GetPhysicsVolume() const;
 
 	/** Delegate when PhysicsVolume of UpdatedComponent has been changed **/
+	UFUNCTION()
 	virtual void PhysicsVolumeChanged(class APhysicsVolume* NewVolume);
 
 	/** add updated component to physics volume */
