@@ -35,6 +35,7 @@ public:
 
 	FVector4 *GetAttributeData(FName Name)
 	{
+		return nullptr
 	}
 
 	void AddAttribute(FName NewAttrName)
