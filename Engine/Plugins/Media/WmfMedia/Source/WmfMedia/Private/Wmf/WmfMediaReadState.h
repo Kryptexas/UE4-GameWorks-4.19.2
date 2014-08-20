@@ -30,6 +30,11 @@ public:
 		, RefCount(1)
 	{ }
 
+	/** Virtual destructor */
+	virtual ~FWmfMediaReadState()
+	{
+	}
+
 public:
 
 	/**

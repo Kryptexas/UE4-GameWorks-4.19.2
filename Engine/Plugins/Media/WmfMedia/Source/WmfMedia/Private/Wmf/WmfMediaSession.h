@@ -51,6 +51,11 @@ public:
 	 */
 	FWmfMediaSession( const TComPtr<IMFTopology>& InTopology );
 
+	/** Virtual destructor */
+	virtual ~FWmfMediaSession()
+	{
+	}
+
 public:
 
 	/**

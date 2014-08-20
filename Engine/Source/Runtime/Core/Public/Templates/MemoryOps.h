@@ -156,7 +156,7 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 	}
 
 	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, ElementType* Source, int32 Count)
+	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, const ElementType* Source, int32 Count)
 	{
 		FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 	}
@@ -181,7 +181,7 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 	}
 
 	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, ElementType* Source, int32 Count)
+	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
 	{
 		FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 	}
@@ -189,13 +189,13 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 #else
 
 	template <typename ElementType>
-	FORCEINLINE void MoveConstructItems(void* Dest, ElementType* Source, int32 Count)
+	FORCEINLINE void MoveConstructItems(void* Dest, const ElementType* Source, int32 Count)
 	{
 		CopyConstructItems(Dest, Source, Count);
 	}
 
 	template <typename ElementType>
-	FORCEINLINE void MoveAssignItems(ElementType* Dest, ElementType* Source, int32 Count)
+	FORCEINLINE void MoveAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
 	{
 		CopyAssignItems(Dest, Source, Count);
 	}

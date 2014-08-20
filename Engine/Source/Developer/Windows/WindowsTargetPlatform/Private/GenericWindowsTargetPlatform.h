@@ -19,7 +19,7 @@ class TGenericWindowsTargetPlatform
 {
 public:
 
-	typedef public TTargetPlatformBase<FWindowsPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	typedef TTargetPlatformBase<FWindowsPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
 
 	/**
 	 * Default constructor.

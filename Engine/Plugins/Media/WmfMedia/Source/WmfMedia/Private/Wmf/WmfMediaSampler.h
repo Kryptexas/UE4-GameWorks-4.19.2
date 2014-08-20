@@ -22,6 +22,11 @@ public:
 		: RefCount(1)
 	{ }
 
+	/** Virtual destructor */
+	virtual ~FWmfMediaSampler()
+	{
+	}
+
 public:
 
 	/**

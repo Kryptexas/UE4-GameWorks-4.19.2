@@ -36,7 +36,9 @@ bool FD3D9MeshUtilities::IsValid() const
 }
 
 FD3D9MeshUtilities::FD3D9MeshUtilities()
-	: DummyWindowHandle(0), Direct3D(0), Device(0)
+	: DummyWindowHandle(0),
+	  Device(0),
+	  Direct3D(0)
 {
 	Direct3D = Direct3DCreate9(D3D_SDK_VERSION);
 

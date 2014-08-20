@@ -68,7 +68,7 @@ static void D3D11FilterShaderCompileWarnings(const FString& CompileWarnings, TAr
 }
 
 // @return 0 if not recognized
-static TCHAR* GetShaderProfileName(FShaderTarget Target)
+static const TCHAR* GetShaderProfileName(FShaderTarget Target)
 {
 	if(Target.Platform == SP_PCD3D_SM5)
 	{
@@ -311,7 +311,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 {
 	FString PreprocessedShaderSource;
 	FString CompilerPath;
-	TCHAR* ShaderProfile = GetShaderProfileName(Input.Target);
+	const TCHAR* ShaderProfile = GetShaderProfileName(Input.Target);
 
 	if(!ShaderProfile)
 	{
