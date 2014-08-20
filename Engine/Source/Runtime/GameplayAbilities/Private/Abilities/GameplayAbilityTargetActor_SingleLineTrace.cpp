@@ -27,6 +27,8 @@ void AGameplayAbilityTargetActor_SingleLineTrace::GetLifetimeReplicatedProps(TAr
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, bDebug);
 	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceActor);
+	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceComponent);
+	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceSocketName);
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -40,7 +42,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::EndPlay(const EEndPlayReason::
 }
 
 
-FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InSourceActor) const
+FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InSourceActor, USkeletalMeshComponent* InSourceComponent, FName InSourceSocketName) const
 {
 	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_SingleLineTrace"));
 	bool bTraceComplex = false;
@@ -68,6 +70,13 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor *InS
 	FVector TraceStart = InSourceActor->GetActorLocation();
 	FVector TraceEnd = TraceStart + (AimDirection * 3000.f);
 
+	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
+	if (InSourceComponent)
+	{
+		TraceStart = InSourceComponent->GetSocketLocation(InSourceSocketName);		//If socket name is invalid, this just gets the location of the component.
+		AimDirection = (TraceEnd - TraceStart).SafeNormal();
+	}
+
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
@@ -83,14 +92,18 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::St
 {
 	AActor* StaticSourceActor = ActorInfo->Actor.Get();
 	check(StaticSourceActor);
-	
-	return MakeTargetData(PerformTrace(StaticSourceActor));
+	UAnimInstance* AnimInstance = ActorInfo->AnimInstance.Get();
+	USkeletalMeshComponent* StaticSourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
+
+	return MakeTargetData(PerformTrace(StaticSourceActor, StaticSourceComponent, SourceSocketName));
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbility* InAbility)
 {
 	Ability = InAbility;
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
+	UAnimInstance* AnimInstance = InAbility->GetCurrentActorInfo()->AnimInstance.Get();
+	SourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
 
 	// We can bind directly to our ASC's confirm/cancel events, or wait to be told from an outside source to confirm or cancel
 	if (bBindToConfirmCancelInputs && (MasterPC && MasterPC->IsLocalController()))
@@ -117,7 +130,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 	// very temp - do a mostly hardcoded trace from the source actor
 	if (SourceActor)
 	{
-		FHitResult HitResult = PerformTrace(SourceActor);
+		FHitResult HitResult = PerformTrace(SourceActor, SourceComponent, SourceSocketName);
 		FVector EndPoint = HitResult.Component.IsValid() ? HitResult.ImpactPoint : HitResult.TraceEnd;
 
 		if (bDebug)
@@ -148,7 +161,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 	{
 		bDebug = false;
 		bAutoFire = false;
-		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor));
+		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor, SourceComponent, SourceSocketName));
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}
 
@@ -157,9 +170,20 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::MakeTargetData(FHitResult HitResult) const
 {
-	/** Note this is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-	
-	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-	ReturnData->HitResult = HitResult;
-	return FGameplayAbilityTargetDataHandle(ReturnData);
+	/** Note these are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
+	if (SourceComponent)
+	{
+		FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
+		ReturnData->SourceActor = SourceActor;
+		ReturnData->SourceComponent = SourceComponent;
+		ReturnData->SourceSocketName = SourceSocketName;
+		ReturnData->TargetPoint = HitResult.Location;
+		return FGameplayAbilityTargetDataHandle(ReturnData);
+	}
+	else
+	{
+		FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
+		ReturnData->HitResult = HitResult;
+		return FGameplayAbilityTargetDataHandle(ReturnData);
+	}
 }

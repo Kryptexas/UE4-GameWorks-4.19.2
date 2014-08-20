@@ -27,9 +27,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	bool bDebug;
 
-	//For remote clients, the actor who starts the trace (also gives us trace direction)
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
-	AActor* SourceActor;		//Maybe add a socket to this?
+	AActor* SourceActor;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	USkeletalMeshComponent* SourceComponent;
+
+	UPROPERTY(EditDefaultsOnly, Replicated, Category = Targeting)
+	FName SourceSocketName;
 
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
@@ -47,7 +52,7 @@ public:
 	TSubclassOf<AGameplayAbilityWorldReticle> ReticleClass;		//Using a special class for replication purposes
 
 protected:
-	virtual FHitResult PerformTrace(AActor *SourceActor) const;
+	virtual FHitResult PerformTrace(AActor* InSourceActor, USkeletalMeshComponent* InSourceComponent, FName InSourceSocketName) const;
 
 	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
 

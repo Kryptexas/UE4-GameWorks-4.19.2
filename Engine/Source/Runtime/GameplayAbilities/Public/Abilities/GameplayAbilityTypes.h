@@ -352,7 +352,6 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayA
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
 	FVector_NetQuantize TargetPoint;
 
-
 	//virtual TArray<AActor*>	GetActors() const
 
 	// -------------------------------------
@@ -386,7 +385,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayA
 
 	virtual bool HasEndPoint() const
 	{
-		return false;
+		return true;
 	}
 
 	virtual FVector GetEndPoint() const
@@ -396,17 +395,17 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayA
 
 	// -------------------------------------
 
-	virtual UScriptStruct* GetScriptStruct()
-	{
-		return FGameplayAbilityTargetData_Mesh::StaticStruct();
-	}
-
 	virtual FString ToString() const
 	{
 		return TEXT("FGameplayAbilityTargetData_Mesh");
 	}
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	virtual UScriptStruct* GetScriptStruct()
+	{
+		return FGameplayAbilityTargetData_Mesh::StaticStruct();
+	}
 };
 
 template<>
@@ -419,7 +418,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_Mesh> : public TStructOps
 };
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
 {
 	GENERATED_USTRUCT_BODY()
