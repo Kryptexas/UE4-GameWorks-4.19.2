@@ -124,7 +124,10 @@ public:
 		UEdGraphPin* OutPin = Node->FindPinChecked(Schema->PN_ReturnValue);
 		if (ensure(Context.NetMap.Find(OutPin) == NULL))
 		{
-			Context.NetMap.Add(OutPin, *ValueSource);
+			// We need to copy here to avoid passing in a reference to an element inside the map. The array
+			// that owns the map members could be reallocated, causing the reference to become stale.
+			FBPTerminal* ValueSourceCopy = *ValueSource;
+			Context.NetMap.Add(OutPin, ValueSourceCopy);
 		}
 	}
 };
