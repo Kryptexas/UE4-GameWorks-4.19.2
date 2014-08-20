@@ -1194,10 +1194,12 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 	if(RootComponent)
 	{
 		USceneComponent * RootComponent = GetRootComponent();
+#if WITH_BODY_WELDING
 		if (RootComponent->AttachParent)
 		{
 			RootComponent->AttachParent->WeldPhysicsBody(RootComponent, false);
 		}
+#endif
 
 		GetRootComponent()->DetachFromParent(bMaintainWorldPosition);
 
