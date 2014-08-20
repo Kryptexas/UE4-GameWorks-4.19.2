@@ -6,7 +6,7 @@
 class FSlateUTextureResource : public TSlateTexture<FTexture2DRHIRef>
 {
 public:
-	static TSharedPtr<FSlateUTextureResource> FSlateUTextureResource::NullResource;
+	static TSharedPtr<FSlateUTextureResource> NullResource;
 
 	FSlateUTextureResource(UTexture2D* InTexture);
 	~FSlateUTextureResource();
