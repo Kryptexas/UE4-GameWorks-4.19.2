@@ -572,6 +572,20 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 
 	// Synchronize the actor with the view target results
 	SetActorLocationAndRotation(OutVT.POV.Location, OutVT.POV.Rotation, false);
+
+	UpdateCameraLensEffects(OutVT);
+}
+
+
+void APlayerCameraManager::UpdateCameraLensEffects(const FTViewTarget& OutVT)
+{
+	for (int32 Idx=0; Idx<CameraLensEffects.Num(); ++Idx)
+	{
+		if (CameraLensEffects[Idx] != NULL)
+		{
+			CameraLensEffects[Idx]->UpdateLocation(OutVT.POV.Location, OutVT.POV.Rotation, OutVT.POV.FOV);
+		}
+	}
 }
 
 

@@ -710,6 +710,10 @@ public:
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
 	void ClientSpawnCameraLensEffect(TSubclassOf<class AEmitterCameraLensEffectBase>  LensEffectEmitterClass);
 
+	/** Removes all Camera Lens Effects. */
+	UFUNCTION(reliable, client, BlueprintCallable, Category="Game|Feedback")
+	virtual void ClientClearCameraLensEffects();
+
 	/** Stop camera animation on client. */
 	UFUNCTION(reliable, client)
 	void ClientStopCameraAnim(class UCameraAnim* AnimToStop);

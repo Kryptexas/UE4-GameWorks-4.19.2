@@ -3573,6 +3573,14 @@ void APlayerController::ClientSpawnCameraLensEffect_Implementation( TSubclassOf<
 	}
 }
 
+void APlayerController::ClientClearCameraLensEffects_Implementation()
+{
+	if (PlayerCameraManager != NULL)
+	{
+		PlayerCameraManager->ClearCameraLensEffects();
+	}
+}
+
 void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameMode> GameModeClass)
 {
 }

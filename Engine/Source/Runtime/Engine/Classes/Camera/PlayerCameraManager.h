@@ -518,6 +518,9 @@ protected:
 	 */
 	virtual void UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime);
 
+	/** Update any attached camera lens effects **/
+	virtual void UpdateCameraLensEffects( const FTViewTarget& OutVT );
+
 public:
 	/** Set a new ViewTarget with optional transition time */
 	void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
@@ -529,12 +532,15 @@ public:
 	virtual class AEmitterCameraLensEffectBase* FindCameraLensEffect(TSubclassOf<class AEmitterCameraLensEffectBase> LensEffectEmitterClass);
 	
 	/** Initiates a camera lens effect of the given class on this camera. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	virtual AEmitterCameraLensEffectBase* AddCameraLensEffect(TSubclassOf<class AEmitterCameraLensEffectBase> LensEffectEmitterClass);
 	
 	/** Removes this particular lens effect from the camera. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	virtual void RemoveCameraLensEffect(class AEmitterCameraLensEffectBase* Emitter);
 	
 	/** Removes all Camera Lens Effects. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	virtual void ClearCameraLensEffects();
 
 	//

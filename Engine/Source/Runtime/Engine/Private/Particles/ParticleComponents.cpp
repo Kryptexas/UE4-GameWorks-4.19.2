@@ -6010,8 +6010,7 @@ void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const F
 
 	//UE_LOG(LogParticles, Warning, TEXT("DistAdjustedForFOV: %f  BaseFOV: %f  CamFOVDeg: %f"), DistAdjustedForFOV, BaseFOV, CamFOVDeg );
 
-	SetActorLocation( CamLoc + X * DistAdjustedForFOV, false );
-	SetActorRotation( NewRot );
+	SetActorLocationAndRotation( CamLoc + X * DistAdjustedForFOV, NewRot, false );
 }
 
 void AEmitterCameraLensEffectBase::Destroyed()
