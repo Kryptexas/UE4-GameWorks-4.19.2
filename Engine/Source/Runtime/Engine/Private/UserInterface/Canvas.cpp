@@ -37,7 +37,6 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 {
 	Construct();
 
-	check(InWorld);
 	if (InWorld)
 	{
 		CurrentRealTime = InWorld->GetRealTimeSeconds();
