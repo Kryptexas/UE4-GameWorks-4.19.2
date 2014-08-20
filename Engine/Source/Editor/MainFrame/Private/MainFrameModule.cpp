@@ -3,6 +3,7 @@
 #include "MainFramePrivatePCH.h"
 #include "CompilerResultsLog.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
+#include "Developer/HotReload/Public/IHotReload.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -292,6 +293,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 			// Inform the user of the result of the operation
 			FNotificationInfo Info( VideoSaveResultText );
 			Info.ExpireDuration = 5.0f;
+			Info.FadeOutDuration = 0.5f;
 			Info.bUseSuccessFailIcons = false;
 			Info.bUseLargeFont = false;
 			if( HyperLinkText != "" )
@@ -598,6 +600,9 @@ void FMainFrameModule::StartupModule( )
 	FModuleManager::Get().OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
 	FModuleManager::Get().OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
 
+	// Register to find out about when hot reload completes, so we can show a notification
+	IHotReloadModule::Get().OnHotReload().AddRaw( this, &FMainFrameModule::HandleHotReloadFinished );
+
 #if WITH_EDITOR
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
 	SourceCodeAccessModule.OnLaunchingCodeAccessor().AddRaw( this, &FMainFrameModule::HandleCodeAccessorLaunching );
@@ -632,6 +637,11 @@ void FMainFrameModule::ShutdownModule( )
 	MainFrameHandler.Reset();
 
 	FMainFrameCommands::Unregister();
+
+	if( IHotReloadModule::IsAvailable() )
+	{
+		IHotReloadModule::Get().OnHotReload().RemoveAll( this );
+	}
 
 	FModuleManager::Get().OnModuleCompilerStarted().RemoveAll( this );
 	FModuleManager::Get().OnModuleCompilerFinished().RemoveAll( this );
@@ -741,6 +751,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 		{
 			GEditor->PlayPreviewSound(CompileSuccessSound);
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
+			NotificationItem->SetExpireDuration( 1.5f );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		}
 		else
@@ -771,6 +782,31 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 		NotificationItem->ExpireAndFadeout();
 
 		CompileNotificationPtr.Reset();
+	}
+}
+
+
+void FMainFrameModule::HandleHotReloadFinished( bool bWasTriggeredAutomatically )
+{
+	// Only play the notification for hot reloads that were triggered automatically.  If the user triggered the hot reload, they'll
+	// have a different visual cue for that, such as the "Compiling Complete!" notification
+	if( bWasTriggeredAutomatically )
+	{
+		FNotificationInfo Info( LOCTEXT("HotReloadFinished", "Hot Reload Complete!") );
+		Info.Image = FEditorStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
+		Info.FadeInDuration = 0.1f;
+		Info.FadeOutDuration = 0.5f;
+		Info.ExpireDuration = 1.5f;
+		Info.bUseThrobber = false;
+		Info.bUseSuccessFailIcons = true;
+		Info.bUseLargeFont = true;
+		Info.bFireAndForget = false;
+		Info.bAllowThrottleWhenFrameRateIsLow = false;
+		auto NotificationItem = FSlateNotificationManager::Get().AddNotification( Info );
+		NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+		NotificationItem->ExpireAndFadeout();
+	
+		GEditor->PlayPreviewSound(CompileSuccessSound);
 	}
 }
 

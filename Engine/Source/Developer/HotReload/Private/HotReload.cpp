@@ -84,10 +84,14 @@ private:
 	 */
 	void OnHotReloadBinariesChanged(const TArray<struct FFileChangeData>& FileChanges);
 
-	/**	Broadcasts that a hot reload just finished. */
-	void BroadcastHotReload() 
+	/**
+	 * Broadcasts that a hot reload just finished. 
+	 *
+	 * @param	bWasTriggeredAutomatically	True if the hot reload was invoked automatically by the hot reload system after detecting a changed DLL
+	 */
+	void BroadcastHotReload( bool bWasTriggeredAutomatically ) 
 	{ 
-		HotReloadEvent.Broadcast(); 
+		HotReloadEvent.Broadcast( bWasTriggeredAutomatically ); 
 	}
 
 	/**
@@ -181,14 +185,8 @@ void FHotReloadModule::DoHotReloadFromEditor()
 
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
-		GWarn->BeginSlowTask(LOCTEXT("CompilingGameCode", "Compiling Game Code"), true);
-
 		const bool bWaitForCompletion = false;	// Don't wait -- we want compiling to happen asynchronously
 		Result = RebindPackagesInternal(PackagesToRebind, DependentModules, bWaitForCompletion, *GLog);
-
-		GWarn->EndSlowTask();
-
-		BroadcastHotReload();
 	}
 
 	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
@@ -309,6 +307,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 			HotReloadFunctionRemap.Empty();
 			Result = ECompilationResult::Succeeded;
 		}
+
+
+		const bool bWasTriggeredAutomatically = !bIsHotReloadingFromEditor;
+		BroadcastHotReload( bWasTriggeredAutomatically );
 	}
 	else if (bRecompileFinished)
 	{
@@ -566,7 +568,6 @@ void FHotReloadModule::DoHotReloadFromIDE()
 		}
 
 		GWarn->EndSlowTask();
-		BroadcastHotReload();		
 	}
 
 	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());

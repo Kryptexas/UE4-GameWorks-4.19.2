@@ -382,6 +382,9 @@ private:
 	 */	
 	void AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName,FAssetData>& BlueprintPackageToAssetDataMap );
 
+	/** Called when hot reload has finished */
+	void OnHotReload( bool bWasTriggeredAutomatically );
+
 	/** Finds the node, recursively going deeper into the hierarchy. Does so by comparing generated class package names.
 	 *	@param InGeneratedClassPackageName			The name of the generated class package to find the node for.
 	 *
@@ -1587,7 +1590,7 @@ FClassHierarchy::FClassHierarchy()
 
 	// Register to have Populate called when doing a Hot Reload.
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-	HotReloadSupport.OnHotReload().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	HotReloadSupport.OnHotReload().AddRaw( this, &FClassHierarchy::OnHotReload );
 
 	// Register to have Populate called when a Blueprint is compiled.
 	GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
@@ -1608,7 +1611,7 @@ FClassHierarchy::~FClassHierarchy()
 
 		// Unregister to have Populate called when doing a Hot Reload.
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.OnHotReload().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+		HotReloadSupport.OnHotReload().RemoveAll( this );
 
 		// Unregister to have Populate called when a Blueprint is compiled.
 		GEditor->OnBlueprintCompiled().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
@@ -1646,6 +1649,11 @@ static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TM
 	}
 
 	return NewNode;
+}
+
+void FClassHierarchy::OnHotReload( bool bWasTriggeredAutomatically )
+{
+	ClassViewer::Helpers::RequestPopulateClassHierarchy();
 }
 
 void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap )

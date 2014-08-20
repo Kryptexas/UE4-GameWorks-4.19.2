@@ -30,8 +30,11 @@ public:
 	*/
 	virtual void RebindPackages(TArray<UPackage*> Packages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) = 0;
 
-	/** Called when a Hot Reload event has completed. */
-	DECLARE_MULTICAST_DELEGATE(FHotReloadEvent);
+	/** Called when a Hot Reload event has completed. 
+	 * 
+	 * @param	bWasTriggeredAutomatically	True if the hot reload was invoked automatically by the hot reload system after detecting a changed DLL
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FHotReloadEvent, bool /* bWasTriggeredAutomatically */ );
 	virtual FHotReloadEvent& OnHotReload() = 0;
 };
 

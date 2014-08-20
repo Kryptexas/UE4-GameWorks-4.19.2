@@ -146,7 +146,7 @@ FClassBrowseHelper::FClassBrowseHelper()
 
 	// Register to have Populate called when doing a Hot Reload.
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-	HotReloadSupport.OnHotReload().AddRaw(this, &FClassBrowseHelper::InvalidateCache);
+	HotReloadSupport.OnHotReload().AddRaw(this, &FClassBrowseHelper::OnHotReload);
 
 	// Register to have Populate called when a Blueprint is compiled.
 	GEditor->OnBlueprintCompiled().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
@@ -305,6 +305,11 @@ void FClassBrowseHelper::InvalidateCache()
 	RootNode.Reset();
 
 	UpdateAvailableNodeClasses();
+}
+
+void FClassBrowseHelper::OnHotReload( bool bWasTriggeredAutomatically )
+{
+	InvalidateCache();
 }
 
 TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class FAssetData& AssetData)

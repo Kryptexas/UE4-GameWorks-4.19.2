@@ -74,7 +74,8 @@ public class MainFrame : ModuleRules
 				"SuperSearch",
                 "TranslationEditor",
 				"SourceCodeAccess",
-				"EditorLiveStreaming"
+				"EditorLiveStreaming",
+				"HotReload"
 			}
 		);
 	}
