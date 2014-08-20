@@ -48,7 +48,7 @@ namespace UnrealBuildTool
 				string DistccExecutable = BuildConfiguration.DistccExecutablesPath + "/distcc";
 				string GetHostExecutable = BuildConfiguration.DistccExecutablesPath + "/gethost";
 
-				Log.TraceInformation("Performing {0} actions (max {1} parallel jobs)", Actions.Count, MaxActionsToExecuteInParallel, DistccExecutable, GetHostExecutable);
+				Log.TraceInformation("Performing {0} actions ({1} in parallel)", Actions.Count, MaxActionsToExecuteInParallel, DistccExecutable, GetHostExecutable);
 
 				Dictionary<Action, ActionThread> ActionThreadDictionary = new Dictionary<Action, ActionThread>();
 				int JobNumber = 1;

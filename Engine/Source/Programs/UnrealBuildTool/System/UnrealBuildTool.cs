@@ -1316,7 +1316,7 @@ namespace UnrealBuildTool
                 // If UBT is being used to build something different than it did last time
                 if( !ProjectFileGenerator.bGenerateProjectFiles )
                 {
-                    bool bIsBuildingSameTargetsAsLastTime = false;
+					if( BuildConfiguration.bUseExperimentalFastDependencyScan )
                     {
                         // If we're building UHT without a Mutex, we'll need to assume that we're building the same targets and that no caches
                         // should be invalidated for this run.  This is important when UBT is invoked from within UBT in order to compile
@@ -1332,6 +1332,7 @@ namespace UnrealBuildTool
                             }
                         }
 
+	                    bool bIsBuildingSameTargetsAsLastTime = false;
                         if( bMustAssumeSameTargets )
                         {
                             bIsBuildingSameTargetsAsLastTime = true;
@@ -1425,7 +1426,7 @@ namespace UnrealBuildTool
                     UEBuildConfiguration.bHotReloadFromIDE = UEBuildConfiguration.bAllowHotReloadFromIDE && !Target.bEditorRecompile && ShouldDoHotReload(Target);
                     if (UEBuildConfiguration.bHotReloadFromIDE)
                     {
-                        Log.TraceInformation("Compiling game modules for Hot-Reload.");
+                        Log.TraceInformation("Compiling game modules for hot reload");
                     }
 
                     // When in 'assembler only' mode, we'll load this cache later on a worker thread.  It takes a long time to load!
