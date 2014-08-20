@@ -1475,7 +1475,7 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 					SNew(SVerticalBox)
 					+SVerticalBox::Slot()
 					[
-						TooltipWidget->GetContent()
+						TooltipWidget->GetContentWidget()
 					]
 					+SVerticalBox::Slot()
 						.AutoHeight()

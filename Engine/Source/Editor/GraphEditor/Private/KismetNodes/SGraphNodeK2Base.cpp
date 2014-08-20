@@ -194,7 +194,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 		+SVerticalBox::Slot()
 			.AutoHeight()
 		[
-			DefaultToolTip->GetContent()
+			DefaultToolTip->GetContentWidget()
 		]
 	];
 

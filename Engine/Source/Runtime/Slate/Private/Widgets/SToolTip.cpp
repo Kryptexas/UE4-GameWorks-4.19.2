@@ -15,46 +15,49 @@ float SToolTip::GetToolTipWrapWidth()
 }
 
 
-/**
- * Construct this widget
- *
- * @param	InArgs	The declaration data for this widget
- */
 void SToolTip::Construct( const FArguments& InArgs )
 {
 	TextContent = InArgs._Text;
 	bIsInteractive = InArgs._IsInteractive;
-	if( InArgs._Content.Widget != SNullWidget::NullWidget )
-	{
-		// Widget content argument takes precedence
-		// overrides the text content.
-		WidgetContent = InArgs._Content.Widget;
-	}
-
-	TSharedRef<SWidget> ToolTipContent = ( !WidgetContent.IsValid() )
-		? StaticCastSharedRef<SWidget>(
-			SNew( STextBlock )
-			.Text( TextContent )
-			.Font( InArgs._Font )
-			.ColorAndOpacity( InArgs._ColorAndOpacity )
-			.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth )
-		)
-		: InArgs._Content.Widget;
-
-	SBorder::Construct(
-		SBorder::FArguments()
-		.BorderImage(InArgs._BorderImage)
-		.Padding(InArgs._TextMargin)
-		[
-			ToolTipContent
-		]	
-	);
-
+	Font = InArgs._Font;
+	ColorAndOpacity = InArgs._ColorAndOpacity;
+	TextMargin = InArgs._TextMargin;
+	BorderImage = InArgs._BorderImage;
 	
+	SetContentWidget(InArgs._Content.Widget);
 }
 
 
-/** @return True if the tool tip has no content to display at this particular moment (remember, attribute callbacks can change this at any time!) */
+void SToolTip::SetContentWidget(const TSharedRef<SWidget>& InContentWidget)
+{
+	if (InContentWidget != SNullWidget::NullWidget)
+	{
+		// Widget content argument takes precedence over the text content.
+		WidgetContent = InContentWidget;
+	}
+
+	ToolTipContent = (!WidgetContent.IsValid())
+		? StaticCastSharedRef<SWidget>(
+		SNew(STextBlock)
+		.Text(TextContent)
+		.Font(Font)
+		.ColorAndOpacity(ColorAndOpacity)
+		.WrapTextAt_Static(&SToolTip::GetToolTipWrapWidth)
+		)
+		: InContentWidget;
+
+	ChildSlot
+	[
+		SNew(SBorder)
+		.BorderImage(BorderImage)
+		.Padding(TextMargin)
+		[
+			ToolTipContent.ToSharedRef()
+		]
+	];
+}
+
+
 bool SToolTip::IsEmpty() const
 {
 	return !WidgetContent.IsValid() && TextContent.Get().IsEmpty();

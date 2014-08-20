@@ -7,7 +7,7 @@
  * Slate tool tip widget
  */
 class SLATE_API SToolTip
-	: public SBorder
+	: public SCompoundWidget
 	, public IToolTip
 {
 public:
@@ -61,10 +61,12 @@ public:
 		return AsShared();
 	}
 
-	virtual const TSharedRef<SWidget>& GetContentWidget( ) override
+	virtual TSharedRef<SWidget> GetContentWidget( ) override
 	{
-		return GetContent();
+		return ToolTipContent.ToSharedRef();
 	}
+
+	virtual void SetContentWidget(const TSharedRef<SWidget>& InContentWidget) override;
 
 	virtual bool IsEmpty( ) const override;
 	virtual bool IsInteractive( ) const override;
@@ -81,6 +83,21 @@ private:
 	// Content widget.
 	TWeakPtr<SWidget> WidgetContent;
 
+	// Wrapped content within the widget;
+	TSharedPtr<SWidget> ToolTipContent;
+
+	// Font used for the text displayed (where applicable)
+	TAttribute<FSlateFontInfo> Font;
+	
+	// Color and opacity used for the text displayed (where applicable)
+	TAttribute<FSlateColor> ColorAndOpacity;
+
+	// Margin between the tool tip border and the text content
+	TAttribute<FMargin> TextMargin;
+
+	// The background/border image to display
+	TAttribute<const FSlateBrush*> BorderImage;
+	
 	// Whether the tooltip should be considered interactive.
 	TAttribute<bool> bIsInteractive;
 };
