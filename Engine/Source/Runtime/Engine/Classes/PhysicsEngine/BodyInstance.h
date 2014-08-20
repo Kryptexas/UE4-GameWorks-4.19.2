@@ -313,10 +313,23 @@ public:
 
 
 #if WITH_BODY_WELDING
+
+#if WITH_PHYSX
+	TMap<physx::PxShape*, class UPrimitiveComponent*> ShapeToComponentMap;
+#endif
+
 	/** 
-	 * Takes two body instances and welds them together to create a single simulated rigid body
+	 * Takes two body instances and welds them together to create a single simulated rigid body. Returns true if success.
 	 */
-	void Weld(FBodyInstance* Body, const FTransform& RelativeTM);
+	bool Weld(FBodyInstance* Body, const FTransform& RelativeTM);
+
+	/** 
+	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
+	void UnWeld(class UPrimitiveComponent * Body);
+
+	/**
+	 * After adding/removing shapes call this function to update mass distribution etc... */
+	void PostShapeChange();
 #endif
 
 	/**

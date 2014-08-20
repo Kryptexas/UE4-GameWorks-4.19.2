@@ -1451,29 +1451,107 @@ void FBodyInstance::TermBody()
 }
 
 #if WITH_BODY_WELDING
-void FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
+bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 {
 	check(TheirBody);
+	if (TheirBody->BodySetup.IsValid() == false)	//attach actor can be called before body has been initialized. In this case just return false
+	{
+		return false;
+	}
 
 	//@TODO: BOX2D: Implement Weld
 
 #if WITH_PHYSX
 	
-	//UBodySetup* LocalSpaceSetup = TheirBody->BodySetup->CreateSpaceCopy(RelativeTM);
+	//first time we're welding with root so we need to grab the shapes
+	if (ShapeToComponentMap.Num() == 0)
+	{
+		int32 NumSyncShapes = 0;
+		TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
+
+		for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ++ShapeIdx)
+		{
+			PxShape* PShape = PShapes[ShapeIdx];
+			UPrimitiveComponent *& PrimComp = ShapeToComponentMap.FindOrAdd(PShape);
+			PrimComp = OwnerComponent.Get();
+		}
+	}
+
+	TArray<PxShape *> PNewShapes;
+
 
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
 	{
-		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM, &PNewShapes);
 	}
 
 	if (PxRigidActor* MyBody = RigidActorAsync)
 	{
-		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM, &PNewShapes);
 	}
 
 
-	
+	for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)
+	{
+		PxShape* PShape = PNewShapes[ShapeIdx];
+		UPrimitiveComponent *& PrimComp = ShapeToComponentMap.FindOrAdd(PShape);
+		PrimComp = TheirBody->OwnerComponent.Get();
+	}
+
+	PostShapeChange();
+
+	//remove their body from scenes
+	TermBodyHelper(TheirBody->SceneIndexSync, TheirBody->RigidActorSync, TheirBody);
+	TermBodyHelper(TheirBody->SceneIndexAsync, TheirBody->RigidActorAsync, TheirBody);
+
+	return true;
+#endif
+
+	return false;
+}
+
+void FBodyInstance::UnWeld(UPrimitiveComponent* ChildComponent)
+{
+	check(ChildComponent);
+
+	//@TODO: BOX2D: Implement Weld
+
+#if WITH_PHYSX
+
+	int32 NumSyncShapes = 0;
+	TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
+
+	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
+	{
+		PxShape* PShape = PShapes[ShapeIdx];
+		if (UPrimitiveComponent ** PrimCompPtrPtr = ShapeToComponentMap.Find(PShape))
+		{
+			if (*PrimCompPtrPtr == ChildComponent)
+			{
+				RigidActorSync->detachShape(*PShape);
+			}
+		}
+	}
+
+	for (int32 ShapeIdx = NumSyncShapes; ShapeIdx < PShapes.Num(); ++ShapeIdx)
+	{
+		PxShape* PShape = PShapes[ShapeIdx];
+		if (UPrimitiveComponent ** PrimCompPtrPtr = ShapeToComponentMap.Find(PShape))
+		{
+			if (*PrimCompPtrPtr == ChildComponent)
+			{
+				RigidActorAsync->detachShape(*PShape);
+			}
+		}
+	}
+
+	PostShapeChange();
+#endif
+}
+
+void FBodyInstance::PostShapeChange()
+{
 	// Apply correct physical materials to shape we created.
 	UpdatePhysicalMaterials();
 
@@ -1483,11 +1561,6 @@ void FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 	UpdateMassProperties();
 	// Update damping
 	UpdateDampingProperties();
-
-	//remove their body from scenes
-	TermBodyHelper(TheirBody->SceneIndexSync, TheirBody->RigidActorSync, TheirBody);
-	TermBodyHelper(TheirBody->SceneIndexAsync, TheirBody->RigidActorAsync, TheirBody);
-#endif
 }
 #endif
 
