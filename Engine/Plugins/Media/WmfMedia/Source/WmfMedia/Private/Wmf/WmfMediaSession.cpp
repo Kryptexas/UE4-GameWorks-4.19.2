@@ -4,7 +4,7 @@
 #include "AllowWindowsPlatformTypes.h"
 
 
-/* FWmfAsyncCallback structors
+/* FWmfMediaSession structors
  *****************************************************************************/
 
 FWmfMediaSession::FWmfMediaSession( const TComPtr<IMFTopology>& InTopology )
@@ -56,7 +56,7 @@ FWmfMediaSession::FWmfMediaSession( const TComPtr<IMFTopology>& InTopology )
 }
 
 
-/* FWmfAsyncCallback interface
+/* FWmfMediaSession interface
  *****************************************************************************/
 
 FTimespan FWmfMediaSession::GetPosition( ) const
@@ -72,6 +72,33 @@ FTimespan FWmfMediaSession::GetPosition( ) const
 	}
 	
 	return GetInternalPosition();
+}
+
+
+TRange<float> FWmfMediaSession::GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const
+{
+	if (RateSupport == NULL)
+	{
+		return TRange<float>(0.0f);
+	}
+
+	float MaxRate = 0.0f;
+	float MinRate = 0.0f;
+
+	switch (Direction)
+	{
+	case EMediaPlaybackDirections::Forward:
+		RateSupport->GetSlowestRate(MFRATE_FORWARD, !Unthinned, &MinRate);
+		RateSupport->GetFastestRate(MFRATE_FORWARD, !Unthinned, &MaxRate);
+		break;
+
+	case EMediaPlaybackDirections::Reverse:
+		RateSupport->GetSlowestRate(MFRATE_REVERSE, !Unthinned, &MinRate);
+		RateSupport->GetFastestRate(MFRATE_REVERSE, !Unthinned, &MaxRate);
+		break;
+	}
+
+	return TRange<float>(MinRate, MaxRate);
 }
 
 

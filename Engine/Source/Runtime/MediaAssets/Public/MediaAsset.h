@@ -285,11 +285,11 @@ protected:
 	uint32 Looping:1;
 
 	/** Select where to stream the media from, i.e. file or memory. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaSource)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Source)
 	TEnumAsByte<enum EMediaAssetStreamModes> StreamMode;
 
 	/** The URL to the media file to be played. */
-	UPROPERTY(EditAnywhere, Category=MediaSource)
+	UPROPERTY(EditAnywhere, Category=Source)
 	FFilePath URL;
 
 private:

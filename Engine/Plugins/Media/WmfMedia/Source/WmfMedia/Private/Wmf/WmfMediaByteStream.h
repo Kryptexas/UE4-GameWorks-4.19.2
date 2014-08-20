@@ -21,10 +21,8 @@ public:
 	 */
 	FWmfMediaByteStream( const TSharedRef<TArray<uint8>>& InBuffer );
 
-	/** Virtual destructor */
-	virtual ~FWmfMediaByteStream()
-	{
-	}
+	/** Virtual destructor. */
+	virtual ~FWmfMediaByteStream( ) { }
 
 public:
 

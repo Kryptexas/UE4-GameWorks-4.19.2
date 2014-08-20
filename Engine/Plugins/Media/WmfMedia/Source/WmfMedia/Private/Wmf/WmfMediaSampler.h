@@ -15,17 +15,13 @@ class FWmfMediaSampler
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FWmfMediaSampler( )
 		: RefCount(1)
 	{ }
 
-	/** Virtual destructor */
-	virtual ~FWmfMediaSampler()
-	{
-	}
+	/** Virtual destructor. */
+	virtual ~FWmfMediaSampler( ) { }
 
 public:
 

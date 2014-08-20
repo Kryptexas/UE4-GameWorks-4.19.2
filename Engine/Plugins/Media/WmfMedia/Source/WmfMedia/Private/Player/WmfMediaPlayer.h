@@ -9,7 +9,8 @@
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FWmfMediaPlayer
-	: public IMediaPlayer
+	: public IMediaInfo
+	, public IMediaPlayer
 {
 public:
 
@@ -25,14 +26,24 @@ public:
 
 public:
 
+	// IMediaInfo interface
+
+	virtual FTimespan GetDuration( ) const override;
+	virtual TRange<float> GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const override;
+	virtual FString GetUrl( ) const override;
+	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
+	virtual bool SupportsScrubbing( ) const override;
+	virtual bool SupportsSeeking( ) const override;
+
+public:
+
 	// IMediaPlayer interface
 
 	virtual void Close( ) override;
-	virtual FTimespan GetDuration( ) const override;
+	virtual const IMediaInfo& GetMediaInfo( ) const override;
 	virtual float GetRate( ) const override;
 	virtual FTimespan GetTime( ) const override;
 	virtual const TArray<IMediaTrackRef>& GetTracks( ) const override;
-	virtual FString GetUrl( ) const override;
 	virtual bool IsLooping( ) const override;
 	virtual bool IsPaused( ) const override;
 	virtual bool IsPlaying( ) const override;
@@ -42,9 +53,6 @@ public:
 	virtual bool Seek( const FTimespan& Time ) override;
 	virtual bool SetLooping( bool Looping ) override;
 	virtual bool SetRate( float Rate ) override;
-	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
-	virtual bool SupportsScrubbing( ) const override;
-	virtual bool SupportsSeeking( ) const override;
 
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosing, FOnMediaClosing);
 	virtual FOnMediaClosing& OnClosing( ) override

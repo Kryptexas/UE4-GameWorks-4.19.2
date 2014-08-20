@@ -48,14 +48,6 @@ public:
 	virtual void Close( ) = 0;
 
 	/**
-	 * Gets the media's duration.
-	 *
-	 * @return A time span representing the duration.
-	 * @see GetTime, Seek
-	 */
-	virtual FTimespan GetDuration( ) const = 0;
-
-	/**
 	 * Gets the last error that occurred during media loading or playback.
 	 *
 	 * @return The error string, or an empty string if no error occurred.
@@ -63,10 +55,17 @@ public:
 //	virtual FString GetLastError( ) const = 0;
 
 	/**
+	 * Gets information about the currently loaded media.
+	 *
+	 * @return Interface to media information.
+	 */
+	virtual const IMediaInfo& GetMediaInfo( ) const = 0;
+
+	/**
 	 * Gets the nominal playback rate, i.e. 1.0 for real time.
 	 *
 	 * @return Playback rate.
-	 * @see Pause, Play, SetRate, SupportsRate
+	 * @see Pause, Play, SetRate
 	 */
 	virtual float GetRate( ) const = 0;
 
@@ -74,7 +73,7 @@ public:
 	 * Gets the player's current playback time.
 	 *
 	 * @return Playback time.
-	 * @see GetDuration, Seek
+	 * @see Seek
 	 */
 	virtual FTimespan GetTime( ) const = 0;
 
@@ -84,13 +83,6 @@ public:
 	 * @return Media tracks interface.
 	 */
 	virtual const TArray<IMediaTrackRef>& GetTracks( ) const = 0;
-
-	/**
-	 * Gets the URL of the currently loaded media.
-	 *
-	 * @return Media URL.
-	 */
-	virtual FString GetUrl( ) const = 0;
 
 	/**
 	 * Checks whether playback is currently looping.
@@ -152,7 +144,7 @@ public:
 	 *
 	 * @param Time The playback time to set.
 	 * @return true on success, false otherwise.
-	 * @see GetDuration, GetTime
+	 * @see GetTime
 	 */
 	virtual bool Seek( const FTimespan& Time ) = 0;
 
@@ -174,37 +166,9 @@ public:
 	 *
 	 * @param Rate The playback rate to set.
 	 * @return true on success, false otherwise.
-	 * @see GetRate, Pause, Play, SupportsRate
+	 * @see GetRate, Pause, Play
 	 */
 	virtual bool SetRate( float Rate ) = 0;
-
-	/**
-	 * Checks whether the specified playback rate is supported.
-	 *
-	 * @param Rate The rate to check (can be negative for reverse play).
-	 * @param Unthinned Whether no frames should be dropped at the given rate.
-	 * @return true if the rate is supported, false otherwise.
-	 * @see GetRate, SetRate, SupportsScrubbing, SupportsSeeking
-	 */
-	virtual bool SupportsRate( float Rate, bool Unthinned ) const = 0;
-
-	/**
-	 * Checks whether scrubbing is supported.
-	 *
-	 * Scrubbing is the ability to decode video frames while seeking in a media item at a playback rate of 0.0.
-	 *
-	 * @return true if scrubbing is supported, false otherwise.
-	 * @see SupportsRate, SupportsSeeking
-	 */
-	virtual bool SupportsScrubbing( ) const = 0;
-
-	/**
-	 * Checks whether the currently loaded media can jump to certain times.
-	 *
-	 * @return true if seeking is supported, false otherwise.
-	 * @see SupportsRate, SupportsScrubbing
-	 */
-	virtual bool SupportsSeeking( ) const = 0;
 
 public:
 
@@ -280,10 +244,21 @@ public:
 
 		switch (Direction)
 		{
-		case EMediaSeekDirection::Backward: SeekTime = GetTime() - TimeOffset; break;
-		case EMediaSeekDirection::Beginning: SeekTime = TimeOffset; break;
-		case EMediaSeekDirection::End: SeekTime = GetDuration() - TimeOffset; break;
-		case EMediaSeekDirection::Forward: SeekTime = GetTime() + TimeOffset; break;
+		case EMediaSeekDirection::Backward:
+			SeekTime = GetTime() - TimeOffset;
+			break;
+
+		case EMediaSeekDirection::Beginning:
+			SeekTime = TimeOffset;
+			break;
+
+		case EMediaSeekDirection::End:
+			SeekTime = GetMediaInfo().GetDuration() - TimeOffset;
+			break;
+
+		case EMediaSeekDirection::Forward:
+			SeekTime = GetTime() + TimeOffset;
+			break;
 		}
 
 		return Seek(SeekTime);

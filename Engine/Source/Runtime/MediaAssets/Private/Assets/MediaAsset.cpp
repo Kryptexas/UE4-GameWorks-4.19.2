@@ -34,7 +34,7 @@ FTimespan UMediaAsset::GetDuration( ) const
 {
 	if (MediaPlayer.IsValid())
 	{
-		return MediaPlayer->GetDuration();
+		return MediaPlayer->GetMediaInfo().GetDuration();
 	}
 
 	return FTimespan::Zero();
@@ -140,19 +140,19 @@ bool UMediaAsset::Seek( const FTimespan& InTime )
 
 bool UMediaAsset::SupportsRate( float Rate, bool Unthinned ) const
 {
-	return MediaPlayer.IsValid() && MediaPlayer->SupportsRate(Rate, Unthinned);
+	return MediaPlayer.IsValid() && MediaPlayer->GetMediaInfo().SupportsRate(Rate, Unthinned);
 }
 
 
 bool UMediaAsset::SupportsScrubbing( ) const
 {
-	return MediaPlayer.IsValid() && MediaPlayer->SupportsScrubbing();
+	return MediaPlayer.IsValid() && MediaPlayer->GetMediaInfo().SupportsScrubbing();
 }
 
 
 bool UMediaAsset::SupportsSeeking( ) const
 {
-	return MediaPlayer.IsValid() && MediaPlayer->SupportsSeeking();
+	return MediaPlayer.IsValid() && MediaPlayer->GetMediaInfo().SupportsSeeking();
 }
 
 

@@ -17,6 +17,7 @@
 #include "IMediaTrackCaptionDetails.h"
 #include "IMediaTrackVideoDetails.h"
 #include "IMediaTrack.h"
+#include "IMediaInfo.h"
 #include "IMediaPlayer.h"
 #include "IMediaPlayerFactory.h"
 #include "IMediaModule.h"

@@ -51,10 +51,8 @@ public:
 	 */
 	FWmfMediaSession( const TComPtr<IMFTopology>& InTopology );
 
-	/** Virtual destructor */
-	virtual ~FWmfMediaSession()
-	{
-	}
+	/** Virtual destructor .*/
+	virtual ~FWmfMediaSession( ) { }
 
 public:
 
@@ -106,6 +104,15 @@ public:
 	{
 		return CurrentState;
 	}
+
+	/**
+	 * Gets the supported playback rate for the specified rate type.
+	 *
+	 * @param Direction The playback direction.
+	 * @param Unthinned Whether the rates are for unthinned playback.
+	 * @return The supported playback rate.
+	 */
+	TRange<float> GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const;
 
 	/**
 	 * Checks whether playback is currently looping.

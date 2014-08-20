@@ -19,6 +19,54 @@ FWmfMediaPlayer::~FWmfMediaPlayer( )
 }
 
 
+/* IMediaInfo interface
+ *****************************************************************************/
+
+FTimespan FWmfMediaPlayer::GetDuration( ) const
+{
+	return Duration;
+}
+
+
+TRange<float> FWmfMediaPlayer::GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const
+{
+	if (MediaSession != NULL)
+	{
+		return MediaSession->GetSupportedRates(Direction, Unthinned);
+	}
+
+	return TRange<float>(0.0f);
+}
+
+
+FString FWmfMediaPlayer::GetUrl( ) const
+{
+	return MediaUrl;
+}
+
+
+bool FWmfMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
+{
+	return (MediaSession != NULL)
+		? MediaSession->IsRateSupported(Rate, Unthinned)
+		: false;
+}
+
+
+bool FWmfMediaPlayer::SupportsScrubbing( ) const
+{
+	return ((MediaSession != NULL) && MediaSession->SupportsScrubbing());
+}
+
+
+bool FWmfMediaPlayer::SupportsSeeking( ) const
+{
+	return ((MediaSession != NULL) &&
+			((MediaSession->GetCapabilities() & MFSESSIONCAP_SEEK) != 0) &&
+			(Duration > FTimespan::Zero()));
+}
+
+
 /* IMediaPlayer interface
  *****************************************************************************/
 
@@ -42,9 +90,9 @@ void FWmfMediaPlayer::Close( )
 }
 
 
-FTimespan FWmfMediaPlayer::GetDuration( ) const
+const IMediaInfo& FWmfMediaPlayer::GetMediaInfo( ) const 
 {
-	return Duration;
+	return *this;
 }
 
 
@@ -67,12 +115,6 @@ FTimespan FWmfMediaPlayer::GetTime( ) const
 const TArray<IMediaTrackRef>& FWmfMediaPlayer::GetTracks( ) const
 {
 	return Tracks;
-}
-
-
-FString FWmfMediaPlayer::GetUrl( ) const
-{
-	return MediaUrl;
 }
 
 
@@ -210,27 +252,6 @@ bool FWmfMediaPlayer::SetRate( float Rate )
 	return MediaSession->SetRate(Rate) && MediaSession->SetState(EMediaStates::Playing);
 }
 
-
-bool FWmfMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
-{
-	return (MediaSession != NULL)
-		? MediaSession->IsRateSupported(Rate, Unthinned)
-		: false;
-}
-
-
-bool FWmfMediaPlayer::SupportsScrubbing( ) const
-{
-	return ((MediaSession != NULL) && MediaSession->SupportsScrubbing());
-}
-
-
-bool FWmfMediaPlayer::SupportsSeeking( ) const
-{
-	return ((MediaSession != NULL) &&
-			((MediaSession->GetCapabilities() & MFSESSIONCAP_SEEK) != 0) &&
-			(Duration > FTimespan::Zero()));
-}
 
 
 /* FWmfMediaPlayer implementation
