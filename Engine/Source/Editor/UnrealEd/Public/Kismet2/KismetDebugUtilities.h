@@ -186,7 +186,7 @@ public:
 	static bool HasDebuggingData(const UBlueprint* Blueprint);
 
 	/** Returns the breakpoint associated with a node, or NULL */
-	static UBreakpoint* FindBreakpointForNode(const UBlueprint* Blueprint, const UEdGraphNode* Node, bool bCheckSubLocations = false);
+	static UBreakpoint* FindBreakpointForNode(UBlueprint* Blueprint, const UEdGraphNode* Node, bool bCheckSubLocations = false);
 
 	/** Deletes all breakpoints in this blueprint */
 	static void ClearBreakpoints(UBlueprint* Blueprint);
