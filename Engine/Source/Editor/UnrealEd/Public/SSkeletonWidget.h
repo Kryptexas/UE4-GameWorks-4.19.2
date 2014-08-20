@@ -270,6 +270,7 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
 		SLATE_ARGUMENT( FText, WarningMessage )
 		SLATE_ARGUMENT( bool, ShowRemapOption )
+		SLATE_ARGUMENT( bool, ShowConvertSpacesOption )
 
 	SLATE_END_ARGS()	
 
@@ -333,7 +334,7 @@ public:
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool & bConvertSpace, bool * bRemapReferencedAssets=NULL);
+	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool * bConvertSpace = NULL, bool * bRemapReferencedAssets=NULL);
 };
 
 ////////////////////////////////////////////////////

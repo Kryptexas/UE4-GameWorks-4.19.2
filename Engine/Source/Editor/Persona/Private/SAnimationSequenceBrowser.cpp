@@ -297,7 +297,7 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 		const FText Message = LOCTEXT("RemapSkeleton_Warning", "This will duplicate the asset and convert to new skeleton.");
 
 		// ask user what they'd like to change to 
-		if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, bConvertSpaces, &bRemapReferencedAssets))
+		if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, &bConvertSpaces, &bRemapReferencedAssets))
 		{
 			UObject* AssetToOpen = EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, Selected, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 

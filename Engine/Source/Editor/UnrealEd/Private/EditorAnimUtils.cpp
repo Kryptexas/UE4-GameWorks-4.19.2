@@ -141,7 +141,7 @@ namespace EditorAnimUtils
 
 	void FAnimationRetargetContext::RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton)
 	{
-		check (OldSkeleton);
+		check (!bConvertAnimationDataInComponentSpaces || OldSkeleton);
 		check (NewSkeleton);
 
 		if (bConvertAnimationDataInComponentSpaces)

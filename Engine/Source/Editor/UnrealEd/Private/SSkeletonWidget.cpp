@@ -355,18 +355,21 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 		];
 	}
 
-	TSharedPtr<SToolTip> ConvertSpaceTooltip = IDocumentation::Get()->CreateToolTip(FText::FromString("Check if you'd like to convert animation data to new skeleton space. If this is false, it won't convert any animation data to new space."), 
-											NULL, FString("Shared/Editors/Persona"), FString("AnimRemapSkeleton_ConvertSpace"));
-	Widget->AddSlot()
-	[
-		SNew(SCheckBox)
-		.IsChecked(this, &SAnimationRemapSkeleton::IsConvertSpacesChecked)
-		.OnCheckStateChanged(this, &SAnimationRemapSkeleton::OnConvertSpacesCheckChanged)
-		[
-			SNew(STextBlock).Text(LOCTEXT("RemapSkeleton_ConvertSpaces", "Convert Spaces to new Skeleton"))
-			.ToolTip(ConvertSpaceTooltip)
-		]
-	];
+	if (InArgs._ShowConvertSpacesOption)
+	{
+		TSharedPtr<SToolTip> ConvertSpaceTooltip = IDocumentation::Get()->CreateToolTip(FText::FromString("Check if you'd like to convert animation data to new skeleton space. If this is false, it won't convert any animation data to new space."),
+			NULL, FString("Shared/Editors/Persona"), FString("AnimRemapSkeleton_ConvertSpace"));
+		Widget->AddSlot()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SAnimationRemapSkeleton::IsConvertSpacesChecked)
+				.OnCheckStateChanged(this, &SAnimationRemapSkeleton::OnConvertSpacesCheckChanged)
+				[
+					SNew(STextBlock).Text(LOCTEXT("RemapSkeleton_ConvertSpaces", "Convert Spaces to new Skeleton"))
+					.ToolTip(ConvertSpaceTooltip)
+				]
+			];
+	}
 
 	TSharedPtr<SToolTip> SkeletonTooltip = IDocumentation::Get()->CreateToolTip(FText::FromString("Pick a skeleton for this mesh"), NULL, FString("Shared/Editors/Persona"), FString("Skeleton"));
 
@@ -542,7 +545,7 @@ void SAnimationRemapSkeleton::CloseWindow()
 	}
 }
 
-bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool & bConvertSpace, bool * bRemapReferencedAssets)
+bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool * bConvertSpace, bool * bRemapReferencedAssets)
 {
 	TSharedPtr<class SAnimationRemapSkeleton> DialogWidget;
 
@@ -561,6 +564,7 @@ bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & N
 			.WidgetWindow(DialogWindow)
 			.WarningMessage(WarningMessage)
 			.ShowRemapOption(bRemapReferencedAssets != NULL)
+			.ShowConvertSpacesOption(bConvertSpace != NULL)
 		];
 
 	DialogWindow->SetContent(DialogWrapper.ToSharedRef());
@@ -574,7 +578,10 @@ bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & N
 		*bRemapReferencedAssets = DialogWidget.Get()->bRemapReferencedAssets;
 	}
 
-	bConvertSpace = DialogWidget.Get()->bConvertSpaces;
+	if (bConvertSpace)
+	{
+		*bConvertSpace = DialogWidget.Get()->bConvertSpaces;
+	}
 
 	return (NewSkeleton != NULL && NewSkeleton != OldSkeleton);
 }

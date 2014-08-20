@@ -156,7 +156,6 @@ void FAssetTypeActions_AnimationAsset::ExecuteFindSkeleton(TArray<TWeakObjectPtr
 void FAssetTypeActions_AnimationAsset::RetargetAssets(const TArray<UObject*> InAnimAssets, bool bDuplicateAssets)
 {
 	bool bRemapReferencedAssets = false;
-	bool bConvertSpaces = true;
 	USkeleton * NewSkeleton = NULL;
 	USkeleton * OldSkeleton = NULL;
 	if(InAnimAssets.Num() > 0)
@@ -164,9 +163,12 @@ void FAssetTypeActions_AnimationAsset::RetargetAssets(const TArray<UObject*> InA
 		UAnimationAsset * AnimAsset = CastChecked<UAnimationAsset>(InAnimAssets[0]);
 		OldSkeleton = AnimAsset->GetSkeleton();
 	}
+
+	bool bConvertSpaces = OldSkeleton != NULL;
+
 	const FText Message = LOCTEXT("SelectSkeletonToRemap", "Select the skeleton to remap this asset to.");
 
-	if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, bConvertSpaces, &bRemapReferencedAssets))
+	if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, OldSkeleton ? &bConvertSpaces : NULL, &bRemapReferencedAssets))
 	{
 		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimAssets, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}
