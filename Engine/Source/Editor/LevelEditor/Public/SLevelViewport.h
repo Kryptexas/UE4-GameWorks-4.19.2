@@ -783,6 +783,12 @@ private:
 	/** Whether the PIE view has focus so we can track when to reshow the mouse control label */
 	bool bPIEHasFocus;
 
+	/** Whether the PIE view contains focus (even if not captured), if so we disable throttling. */
+	bool bPIEContainsFocus;
+
+	/** The users value for allowing throttling, we restore this value when we lose focus. */
+	int32 UserAllowThrottlingValue;
+
 protected:
 	void LockActorInternal(AActor* NewActorToLock);
 
