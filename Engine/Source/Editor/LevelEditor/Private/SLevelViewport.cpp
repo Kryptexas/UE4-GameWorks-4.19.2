@@ -60,8 +60,8 @@ SLevelViewport::SLevelViewport()
 	, bViewTransitionAnimPending( false )
 	, DeviceProfile("Default")
 	, PIEOverlaySlotIndex(0)
-	, bPIEContainsFocus(false)
 	, bPIEHasFocus(false)
+	, bPIEContainsFocus(false)
 	, UserAllowThrottlingValue(0)
 {
 }
