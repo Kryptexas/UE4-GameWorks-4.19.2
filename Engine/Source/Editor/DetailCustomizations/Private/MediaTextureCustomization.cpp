@@ -14,34 +14,35 @@
 void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	DetailBuilder.GetObjectsBeingCustomized(CustomizedMediaTextures);
-
-	IDetailCategoryBuilder& MediaAssetCategory = DetailBuilder.EditCategory(TEXT("MediaAsset"));
-	
 	MediaAssetProperty = DetailBuilder.GetProperty("MediaAsset");
 	VideoTrackIndexProperty = DetailBuilder.GetProperty("VideoTrackIndex");
 
-	// customize video track index	
-	IDetailPropertyRow& VideoTrackIndexRow = MediaAssetCategory.AddProperty(VideoTrackIndexProperty);
+	// customize MediaAsset category
+	IDetailCategoryBuilder& MediaAssetCategory = DetailBuilder.EditCategory(TEXT("MediaAsset"));
+	{
+		// video track index
+		IDetailPropertyRow& VideoTrackIndexRow = MediaAssetCategory.AddProperty(VideoTrackIndexProperty);
 
-	VideoTrackIndexRow.DisplayName(TEXT("Video Track"));
-	VideoTrackIndexRow.CustomWidget()
-		.NameContent()
-		[
-			VideoTrackIndexProperty->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		.MaxDesiredWidth(0)
-		[
-			SNew(SComboButton)
-				.OnGetMenuContent(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonMenuContent)
- 				.ContentPadding(FMargin( 2.0f, 2.0f ))
-				.ButtonContent()
-				[
-					SNew(STextBlock) 
-						.Text(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonText)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-		];
+		VideoTrackIndexRow.DisplayName(TEXT("Video Track"));
+		VideoTrackIndexRow.CustomWidget()
+			.NameContent()
+			[
+				VideoTrackIndexProperty->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			.MaxDesiredWidth(0.0f)
+			[
+				SNew(SComboButton)
+					.OnGetMenuContent(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonMenuContent)
+ 					.ContentPadding(FMargin( 2.0f, 2.0f ))
+					.ButtonContent()
+					[
+						SNew(STextBlock) 
+							.Text(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonText)
+							.Font(IDetailLayoutBuilder::GetDetailFont())
+					]
+			];
+	}
 }
 
 
