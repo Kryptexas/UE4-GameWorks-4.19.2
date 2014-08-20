@@ -28,10 +28,6 @@ class UEditorTutorialSettings : public UObject
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials")
 	TArray<FTutorialCategory> Categories;
 
-	/** The tutorials available in the editor */
-	UPROPERTY(Config, EditAnywhere, Category="Tutorials", meta=(MetaClass="EditorTutorial"))
-	TArray<FStringClassReference> Tutorials;
-
 	UPROPERTY(Config)
 	TArray<FTutorialProgress> TutorialsProgress;
 

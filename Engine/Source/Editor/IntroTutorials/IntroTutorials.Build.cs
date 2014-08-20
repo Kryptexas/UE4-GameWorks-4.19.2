@@ -39,7 +39,8 @@ namespace UnrealBuildTool.Rules
 					"AssetTools",
 					"SourceCodeAccess",
 					"ContentBrowser",
-					"LevelEditor"
+					"LevelEditor",
+                    "AssetRegistry"
 				}
 			);
 

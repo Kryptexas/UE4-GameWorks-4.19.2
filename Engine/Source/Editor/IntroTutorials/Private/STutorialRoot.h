@@ -36,6 +36,12 @@ public:
 	/** Reload tutorials that we know about */
 	void ReloadTutorials();
 
+	/** Got to the previous stage in the current tutorial */
+	void GoToPreviousStage();
+
+	/** Got to the next stage in the current tutorial */
+	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
+
 private:
 	/** Handle when the next button is clicked - forward navigation to other overlays */
 	void HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow);
@@ -51,12 +57,6 @@ private:
 
 	/** Handle retrieving the current tutorial stage */
 	int32 HandleGetCurrentTutorialStage();
-
-	/** Got to the previous stage in the current tutorial */
-	void GoToPreviousStage();
-
-	/** Got to the next stage in the current tutorial */
-	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
 
 	/** Function called on Tick() to check active windows for whether they need an overlay adding */
 	void MaybeAddOverlay(TSharedRef<SWindow> InWindow);

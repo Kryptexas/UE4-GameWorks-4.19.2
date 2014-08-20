@@ -6,6 +6,7 @@
 #include "STutorialContent.h"
 #include "TutorialSettings.h"
 #include "EditorTutorialSettings.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
 
@@ -63,7 +64,7 @@ public:
 				]
 				+SHorizontalBox::Slot()
 				.FillWidth(1.0f)
-				.MaxWidth(400.0f)
+				.MaxWidth(600.0f)
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
 				[
@@ -84,7 +85,7 @@ public:
 					.FillHeight(1.0f)
 					[
 						SNew(STextBlock)
-						.WrapTextAt(350.0f)
+						.AutoWrapText(true)
 						.Text(Category.Description)
 						.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryText"))
 						.HighlightText(HighlightText)
@@ -205,8 +206,7 @@ public:
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth(1.0f)
-					.MaxWidth(400.0f)
-					.HAlign(HAlign_Left)
+					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SVerticalBox)
@@ -251,10 +251,9 @@ public:
 							]
 						]
 						+SVerticalBox::Slot()
-						.HAlign(HAlign_Left)
 						.FillHeight(1.0f)
 						[
-							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 350.0f, false, DocumentationPage)
+							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, false, DocumentationPage)
 						]
 					]
 				]
@@ -387,8 +386,8 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				[
 					SNew(SBox)
-					.HeightOverride(400.0f)
-					.WidthOverride(400.0f)
+					.HeightOverride(600.0f)
+					.WidthOverride(600.0f)
 					[
 						SNew(SScrollBox)
 						+SScrollBox::Slot()
@@ -505,21 +504,22 @@ void STutorialsBrowser::RebuildTutorials(TSharedPtr<FTutorialListEntry_Category>
 	TArray<TSharedPtr<FTutorialListEntry_Tutorial>> Tutorials;
 
 	// rebuild tutorials
-	for(const auto& TutorialReference : GetDefault<UTutorialSettings>()->Tutorials)
-	{
-		TSubclassOf<UEditorTutorial> TutorialClass = LoadClass<UEditorTutorial>(NULL, *TutorialReference.AssetLongPathname, NULL, LOAD_None, NULL);
-		if(TutorialClass != nullptr)
-		{
-			Tutorials.Add(MakeShareable(new FTutorialListEntry_Tutorial(TutorialClass->GetDefaultObject<UEditorTutorial>(), FOnTutorialSelected::CreateSP(this, &STutorialsBrowser::OnTutorialSelected), TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &STutorialsBrowser::GetSearchText)))));
-		}
-	}
+	FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
-	for(const auto& TutorialReference : GetDefault<UEditorTutorialSettings>()->Tutorials)
+	FARFilter Filter;
+	Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
+	Filter.bRecursiveClasses = true;
+	Filter.TagsAndValues.Add(TEXT("ParentClass"), FString::Printf(TEXT("%s'%s'"), *UClass::StaticClass()->GetName(), *UEditorTutorial::StaticClass()->GetPathName()));
+
+	TArray<FAssetData> AssetData;
+	AssetRegistry.Get().GetAssets(Filter, AssetData);
+
+	for (const auto& TutorialAsset : AssetData)
 	{
-		TSubclassOf<UEditorTutorial> TutorialClass = LoadClass<UEditorTutorial>(NULL, *TutorialReference.AssetLongPathname, NULL, LOAD_None, NULL);
-		if(TutorialClass != nullptr)
+		UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *TutorialAsset.ObjectPath.ToString());
+		if (Blueprint && Blueprint->GeneratedClass)
 		{
-			Tutorials.Add(MakeShareable(new FTutorialListEntry_Tutorial(TutorialClass->GetDefaultObject<UEditorTutorial>(), FOnTutorialSelected::CreateSP(this, &STutorialsBrowser::OnTutorialSelected), TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &STutorialsBrowser::GetSearchText)))));
+			Tutorials.Add(MakeShareable(new FTutorialListEntry_Tutorial(Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>(), FOnTutorialSelected::CreateSP(this, &STutorialsBrowser::OnTutorialSelected), TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &STutorialsBrowser::GetSearchText)))));
 		}
 	}
 

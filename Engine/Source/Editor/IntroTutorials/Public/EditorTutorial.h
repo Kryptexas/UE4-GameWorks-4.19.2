@@ -205,24 +205,35 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	/** A standalone tutorial displays no navigation buttons and each content widget has a close button */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	bool bIsStandalone;
+	
+public:
+	/** Called when a tutorial stage is started */
+	void HandleTutorialStageStarted(FName StageName);
 
+	/** Called when a tutorial stage ends */
+	void HandleTutorialStageEnded(FName StageName);
+
+	/** Called each tick so the Blueprint can optionally complete or skip stages */
+	void HandleTickCurrentStage(FName StageName);
+
+private:
 	/** Event fired when a tutorial stage begins */
 	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
 	void OnTutorialStageStarted(FName StageName) const;
 
 	/** Event fired when a tutorial stage ends */
 	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
-	void OnTutorialStageCompleted(FName StageName) const;
+	void OnTutorialStageEnded(FName StageName) const;
 
 	/** Advance to the next stage of a tutorial */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
-	static void GotoNextTutorialStage();
+	static void GoToNextTutorialStage();
 
 	/** Advance to the previous stage of a tutorial */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
-	static void GotoPreviousTutorialStage();
+	static void GoToPreviousTutorialStage();
 
 	/** Begin a tutorial. Note that this will end the current tutorial that is in progress, if any */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
-	static void BeginTutorial(UEditorTutorial* TutorialToStart);
+	static void BeginTutorial(UEditorTutorial* TutorialToStart, bool bRestart);
 };

@@ -65,6 +65,11 @@ void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	{
 		MaybeAddOverlay(Window);
 	}
+
+	if (CurrentTutorial != nullptr)
+	{
+		CurrentTutorial->HandleTickCurrentStage(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+	}
 }
 
 void STutorialRoot::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter)
@@ -90,7 +95,15 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 		{
 			if(TutorialWidget.Value.IsValid())
 			{
-				bool bIsNavigationWindow = InNavigationWindow.IsValid() && TutorialWidget.Value.Pin()->GetParentWindow() == InNavigationWindow.Pin();
+				bool bIsNavigationWindow = false;
+				if (!InNavigationWindow.IsValid())
+				{
+					bIsNavigationWindow = TutorialWidget.Value.Pin()->IsNavigationVisible();
+				}
+				else
+				{
+					bIsNavigationWindow = (TutorialWidget.Value.Pin()->GetParentWindow() == InNavigationWindow.Pin());
+				}
 				TutorialWidget.Value.Pin()->LaunchTutorial(bIsNavigationWindow);
 			}
 		}
@@ -168,7 +181,18 @@ void STutorialRoot::GoToPreviousStage()
 {
 	if(CurrentTutorial != nullptr)
 	{
+		int32 PreviousTutorialStage = CurrentTutorialStage;
+		if (CurrentTutorialStage > 0)
+		{
+			CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
+
 		CurrentTutorialStage = FMath::Max(0, CurrentTutorialStage - 1);
+
+		if (PreviousTutorialStage != CurrentTutorialStage)
+		{
+			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
 	}
 }
 
@@ -176,6 +200,10 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 {
 	if(CurrentTutorial != nullptr)
 	{
+		UEditorTutorial* PreviousTutorial = CurrentTutorial;
+		int32 PreviousTutorialStage = CurrentTutorialStage;
+		CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+
 		if(CurrentTutorialStage + 1 >= CurrentTutorial->Stages.Num() && FName(*CurrentTutorial->NextTutorial.AssetLongPathname) != NAME_None)
 		{
 			TSubclassOf<UEditorTutorial> NextTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->NextTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
@@ -192,6 +220,11 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 		{
 			CurrentTutorialStage = FMath::Min(CurrentTutorialStage + 1, CurrentTutorial->Stages.Num() - 1);
 			GetMutableDefault<UEditorTutorialSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+		}
+
+		if (CurrentTutorial != nullptr && (CurrentTutorial != PreviousTutorial || CurrentTutorialStage != PreviousTutorialStage))
+		{
+			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}
 	}
 }

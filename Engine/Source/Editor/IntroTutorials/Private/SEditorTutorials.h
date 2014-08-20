@@ -48,8 +48,11 @@ class SEditorTutorials : public SCompoundWidget
 	/** Get parent window for this widget */
 	TSharedPtr<SWindow> GetParentWindow() const;
 
-	/** Rebuild content according ot the current tutorial state */
+	/** Rebuild content according to the current tutorial state */
 	void RebuildCurrentContent();
+	
+	/** @return whether the navigation controls are currently visible */
+	bool IsNavigationVisible() const;
 
 private:
 	/** Handle whether we should display the browser */

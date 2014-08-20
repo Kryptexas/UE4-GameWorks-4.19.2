@@ -748,4 +748,21 @@ void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestar
 	}
 }
 
+void FIntroTutorials::GoToPreviousStage()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->GoToPreviousStage();
+	}
+}
+
+void FIntroTutorials::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->GoToNextStage(InNavigationWindow);
+	}
+}
+
+
 #undef LOCTEXT_NAMESPACE

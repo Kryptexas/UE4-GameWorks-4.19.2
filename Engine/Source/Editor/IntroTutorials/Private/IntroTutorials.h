@@ -68,6 +68,10 @@ public:
 	/** Get the delegate used to check for whether we are picking widgets */
 	FOnIsPicking& OnIsPicking();
 
+	void GoToPreviousStage();
+
+	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
+
 private:
 
 	/** IModuleInterface implementation */

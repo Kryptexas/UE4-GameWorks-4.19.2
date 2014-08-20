@@ -93,6 +93,11 @@ void SEditorTutorials::ShowBrowser(const FString& InFilter)
 	HandleHomeClicked();
 }
 
+bool SEditorTutorials::IsNavigationVisible() const
+{
+	return bShowNavigation;
+}
+
 EVisibility SEditorTutorials::GetBrowserVisibility() const
 {
 	return bBrowserVisible && OnGetCurrentTutorial.Execute() == nullptr ? EVisibility::Visible : EVisibility::Collapsed;

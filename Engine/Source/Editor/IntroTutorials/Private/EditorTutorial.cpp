@@ -9,19 +9,38 @@ UEditorTutorial::UEditorTutorial(const class FPostConstructInitializeProperties&
 }
 
 
-void UEditorTutorial::GotoNextTutorialStage()
+void UEditorTutorial::GoToNextTutorialStage()
 {
-
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.GoToNextStage(nullptr);
 }
 
 
-void UEditorTutorial::GotoPreviousTutorialStage()
+void UEditorTutorial::GoToPreviousTutorialStage()
 {
-
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.GoToPreviousStage();
 }
 
 
-void UEditorTutorial::BeginTutorial(UEditorTutorial* TutorialToStart)
+void UEditorTutorial::BeginTutorial(UEditorTutorial* TutorialToStart, bool bRestart)
 {
-
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.LaunchTutorial(TutorialToStart, bRestart);
 }
+
+
+void UEditorTutorial::HandleTutorialStageStarted(FName StageName)
+{
+	FEditorScriptExecutionGuard ScriptGuard;
+	OnTutorialStageStarted(StageName);
+}
+
+
+void UEditorTutorial::HandleTutorialStageEnded(FName StageName)
+{
+	FEditorScriptExecutionGuard ScriptGuard;
+	OnTutorialStageEnded(StageName);
+}
+
+
