@@ -1973,7 +1973,7 @@ bool FPerformUVTestCommand::Update()
 /**
  * StaticMeshUVsTest
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Editor.Content.Static Mesh UVs", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Tools.Static Mesh.Static Mesh UVs Check", EAutomationTestFlags::ATF_Editor )
 
 /**
  * Find all static meshes and check the lightmap UVs
