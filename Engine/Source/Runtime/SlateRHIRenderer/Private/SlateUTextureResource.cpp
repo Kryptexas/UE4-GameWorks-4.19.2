@@ -26,7 +26,7 @@ FSlateUTextureResource::~FSlateUTextureResource()
 
 void FSlateUTextureResource::UpdateRenderResource(FTexture* InFTexture)
 {
-	ShaderResource = InFTexture ? InFTexture->TextureRHI->GetTexture2D() : FTexture2DRHIRef();
+	ShaderResource = InFTexture ? FTexture2DRHIRef(InFTexture->TextureRHI->GetTexture2D()) : FTexture2DRHIRef();
 }
 
 uint32 FSlateUTextureResource::GetWidth() const
