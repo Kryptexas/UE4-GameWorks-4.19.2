@@ -5,7 +5,7 @@
 #include "BlueprintCore.generated.h"
 
 UCLASS()
-class UBlueprintCore : public UObject
+class ENGINE_API UBlueprintCore : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
