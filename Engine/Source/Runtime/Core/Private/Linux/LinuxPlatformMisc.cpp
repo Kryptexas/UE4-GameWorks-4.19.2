@@ -122,6 +122,11 @@ void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 	}
 }
 
+namespace
+{
+	bool GInitializedSDL = false;
+}
+
 void FLinuxPlatformMisc::PlatformInit()
 {
 	// install a platform-specific signal handler
@@ -146,6 +151,39 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -httpproxy=ADDRESS:PORT - redirects HTTP requests to a proxy (only supported if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
+
+	// skip for servers and programs, unless they request later
+	if (!UE_SERVER && !IS_PROGRAM)
+	{
+		PlatformInitMultimedia();
+	}
+}
+
+void FLinuxPlatformMisc::PlatformInitMultimedia()
+{
+	if (!GInitializedSDL)
+	{
+		UE_LOG(LogInit, Log, TEXT("Initializing SDL."));
+		if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) != 0)
+		{
+			const char * SDLError = SDL_GetError();
+			UE_LOG(LogInit, Fatal, TEXT("Could not initialize SDL: %s"), SDLError);
+			// unreachable
+			return;
+		}
+
+		GInitializedSDL = true;
+	}
+}
+
+void FLinuxPlatformMisc::PlatformTearDown()
+{
+	if (GInitializedSDL)
+	{
+		UE_LOG(LogInit, Log, TEXT("Tearing down SDL."));
+		SDL_Quit();
+		GInitializedSDL = false;
+	}
 }
 
 GenericApplication* FLinuxPlatformMisc::CreateApplication()
@@ -240,10 +278,12 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 {
 	int NumberOfButtons = 0;
 
-	if (SDL_WasInit(SDL_INIT_VIDEO) == 0)
-	{
-		SDL_InitSubSystem(SDL_INIT_VIDEO);
-	}
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_VIDEO);
+#endif // DO_CHECK
 
 	SDL_MessageBoxButtonData *Buttons = nullptr;
 
@@ -375,12 +415,10 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 	{
 		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
 		// unreachable
-		SDL_Quit();
 		return EAppReturnType::Cancel;
 	}
 
 	delete[] Buttons;
-	SDL_Quit();
 
 	return ButtonPressed == -1 ? EAppReturnType::Cancel : static_cast<EAppReturnType::Type>(ButtonPressed);
 }

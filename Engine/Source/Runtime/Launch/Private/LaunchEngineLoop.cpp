@@ -2589,6 +2589,8 @@ void FEngineLoop::AppExit( )
 {
 	UE_LOG(LogExit, Log, TEXT("Exiting."));
 
+	FPlatformMisc::PlatformTearDown();
+
 	if (GConfig)
 	{
 		GConfig->Exit();

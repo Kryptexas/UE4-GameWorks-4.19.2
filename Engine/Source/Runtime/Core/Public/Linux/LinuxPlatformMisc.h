@@ -86,6 +86,7 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+	static void PlatformTearDown();
 	static void SetGracefulTerminationHandler();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
 	static class GenericApplication* CreateApplication();
@@ -162,6 +163,11 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	{
 		return TEXT("../../../Engine/");
 	}
+
+	/**
+	 * Linux-specific function initializing video (and not only) subsystem.
+	 */
+	static void PlatformInitMultimedia();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

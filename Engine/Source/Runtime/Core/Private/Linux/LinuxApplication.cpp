@@ -32,28 +32,14 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
 	LinuxApplication = new FLinuxApplication();
 	
-	//	init the sdl here
-	if	( SDL_WasInit( 0 ) == 0 )
-	{
-		SDL_Init( SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER );
-	}
-	else
-	{
-		Uint32 subsystem_init = SDL_WasInit( SDL_INIT_EVERYTHING );
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
 
-		if	( !(subsystem_init & SDL_INIT_EVENTS) )
-		{
-			SDL_InitSubSystem( SDL_INIT_EVENTS );
-		}
-		if	( !(subsystem_init & SDL_INIT_JOYSTICK) )
-		{
-			SDL_InitSubSystem( SDL_INIT_JOYSTICK );
-		}
-		if	( !(subsystem_init & SDL_INIT_GAMECONTROLLER) )
-		{
-			SDL_InitSubSystem( SDL_INIT_GAMECONTROLLER );
-		}
-	}
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_EVENTS);
+	check(InitializedSubsystems & SDL_INIT_JOYSTICK);
+	check(InitializedSubsystems & SDL_INIT_GAMECONTROLLER);
+#endif // DO_CHECK
 
 	SDLControllerState *controllerState = LinuxApplication->ControllerStates;
 	for (int i = 0; i < SDL_NumJoysticks(); ++i) {

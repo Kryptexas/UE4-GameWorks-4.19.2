@@ -5,7 +5,12 @@
 
 static SDL_Window* CreateDummyGLWindow()
 {
-	SDL_Init( SDL_INIT_VIDEO );
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_VIDEO);
+#endif // DO_CHECK
 
 	// Create a dummy window.
 	SDL_Window *h_wnd = SDL_CreateWindow(	NULL,
@@ -66,7 +71,7 @@ void FSlateOpenGLContext::Destroy()
 		if	( bReleaseWindowOnDestroy )
 		{
 			SDL_DestroyWindow( WindowHandle );
-			SDL_Quit();
+			// we will tear down SDL in PlatformTearDown()
 		}
 		WindowHandle = NULL;
 

@@ -7,20 +7,12 @@
 
 FLinuxCursor::FLinuxCursor() : bHidden(false)
 {
-	//	init the sdl here
-	if	( SDL_WasInit( 0 ) == 0 )
-	{
-		SDL_Init( SDL_INIT_VIDEO );
-	}
-	else
-	{
-		Uint32 subsystem_init = SDL_WasInit( SDL_INIT_EVERYTHING );
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
 
-		if	( !(subsystem_init & SDL_INIT_VIDEO) )
-		{
-			SDL_InitSubSystem( SDL_INIT_VIDEO );
-		}
-	}
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_VIDEO);
+#endif // DO_CHECK
 
 	// Load up cursors that we'll be using
 	for( int32 CurCursorIndex = 0; CurCursorIndex < EMouseCursor::TotalCursorCount; ++CurCursorIndex )

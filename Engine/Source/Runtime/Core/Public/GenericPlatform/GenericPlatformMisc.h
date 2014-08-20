@@ -197,8 +197,8 @@ struct CORE_API FGenericMemoryWarningContext
 struct CORE_API FGenericPlatformMisc
 {
 	/**
-	* Called during appInit() after cmd line setup
-	*/
+	 * Called during appInit() after cmd line setup
+	 */
 	static void PlatformPreInit()
 	{
 	}
@@ -206,6 +206,13 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 	static void PlatformPostInit(bool IsMoviePlaying = false)
+	{
+	}
+
+	/**
+	* Called during AppExit(). Log, Config still exist at this point, but not much else does.
+	*/
+	static void PlatformTearDown()
 	{
 	}
 
