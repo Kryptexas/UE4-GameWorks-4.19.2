@@ -958,8 +958,10 @@ bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& In
 }
 
 
-void FLinuxApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+
 	SDL_Rect bounds;
 	SDL_GetDisplayBounds( 0, &bounds );
 

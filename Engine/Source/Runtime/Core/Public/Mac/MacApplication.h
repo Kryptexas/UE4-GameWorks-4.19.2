@@ -50,8 +50,6 @@ public:
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
-
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override
 	{
 		return EWindowTitleAlignment::Center;

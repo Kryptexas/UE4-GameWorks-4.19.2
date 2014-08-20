@@ -25,9 +25,6 @@ public:
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDesktopMetrics ) const override;
-
-
 	TSharedRef< FGenericWindow > MakeWindow();
 private:
 

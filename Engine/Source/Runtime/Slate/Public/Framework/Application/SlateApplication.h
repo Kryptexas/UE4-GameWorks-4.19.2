@@ -938,12 +938,7 @@ public:
 	virtual FVector2D GetCursorPos( ) const override;
 
 	virtual FVector2D GetCursorSize( ) const override;
-
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override
-	{
-		PlatformApplication->GetDisplayMetrics( OutDisplayMetrics );
-	}
-
+	
 	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
 
 	virtual TSharedPtr<SWidget> GetMouseCaptor( ) const override;

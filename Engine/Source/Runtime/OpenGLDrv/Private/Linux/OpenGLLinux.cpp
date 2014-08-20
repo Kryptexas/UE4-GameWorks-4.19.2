@@ -684,7 +684,7 @@ void PlatformRestoreDesktopDisplayMode()
 }
 
 
-bool PlatformInitOpenGL()
+bool	PlatformInitOpenGL()
 {
 	static bool bInitialized = false;
 	static bool bOpenGLSupported = false;

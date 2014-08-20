@@ -118,7 +118,7 @@ public:
 	 *
 	 * @param OutDisplayMetrics Will contain the display metrics.
 	 */
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const = 0;
+	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
 
 	/**
 	 * Gets the widget that currently has keyboard focus, if any.

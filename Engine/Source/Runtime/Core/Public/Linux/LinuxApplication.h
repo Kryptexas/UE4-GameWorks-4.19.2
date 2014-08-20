@@ -50,8 +50,6 @@ public:
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 	//	X
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;
-	//	
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
 	void AddPendingEvent( SDL_Event event );
 

@@ -276,6 +276,8 @@ struct FDisplayMetrics
 
 	/** The safe area for less important spill over on TVs (see TitleSafePaddingSize) */
 	FVector2D ActionSafePaddingSize;
+
+	CORE_API static void GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics);
 };
 
 
@@ -358,10 +360,8 @@ public:
 	
 	/** Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged. */
 	FOnDisplayMetricsChanged& OnDisplayMetricsChanged(){ return OnDisplayMetricsChangedEvent; }
-	
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { }
 
-	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { GetDisplayMetrics(OutDisplayMetrics); }
+	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
 
 	/** Gets the horizontal alignment of the window title bar's title text. */
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const

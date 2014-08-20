@@ -61,7 +61,7 @@ FPlatformRect FHTML5Application::GetWorkArea( const FPlatformRect& CurrentWindow
 	return  FHTML5Window::GetScreenRect();
 }
 
-void FHTML5Application::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FHTML5Window::GetScreenRect();
 	OutDisplayMetrics.VirtualDisplayRect    =	OutDisplayMetrics.PrimaryDisplayWorkAreaRect;

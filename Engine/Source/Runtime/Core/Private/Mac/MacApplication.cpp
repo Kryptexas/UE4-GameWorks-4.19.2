@@ -1033,7 +1033,7 @@ NSScreen* FMacApplication::FindScreenByPoint( int32 X, int32 Y ) const
 	return TargetScreen;
 }
 
-void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	SCOPED_AUTORELEASE_POOL;
 

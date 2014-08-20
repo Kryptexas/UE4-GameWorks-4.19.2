@@ -34,7 +34,7 @@ FPlatformRect FAndroidApplication::GetWorkArea( const FPlatformRect& CurrentWind
 	return FAndroidWindow::GetScreenRect();
 }
 
-void FAndroidApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics )
 {
 	// Get screen rect
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FAndroidWindow::GetScreenRect();

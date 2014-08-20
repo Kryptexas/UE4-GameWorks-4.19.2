@@ -323,7 +323,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 		{
 			// Grab display metrics so we can get the primary display output size.
 			FDisplayMetrics DisplayMetrics;
-			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 
 			ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;

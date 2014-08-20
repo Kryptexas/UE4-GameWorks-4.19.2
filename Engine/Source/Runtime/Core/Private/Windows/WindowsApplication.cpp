@@ -73,7 +73,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	}
 
 	// Get initial display metrics. (display information for existing desktop, before we start changing resolutions)
-	GetDisplayMetrics(InitialDisplayMetrics);
+	FDisplayMetrics::GetDisplayMetrics(InitialDisplayMetrics);
 
 	// Save the current sticky/toggle/filter key settings so they can be restored them later
 	// If there are .ini settings, use them instead of the current system settings.
@@ -521,7 +521,7 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 	}
 }
 
-void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics)
 {
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ::GetSystemMetrics( SM_CXSCREEN );
@@ -1025,7 +1025,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				// Slate needs to know when desktop size changes.
 				FDisplayMetrics DisplayMetrics;
-				GetDisplayMetrics( DisplayMetrics );
+				FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 				BroadcastDisplayMetricsChanged(DisplayMetrics);
 			}
 			break;
