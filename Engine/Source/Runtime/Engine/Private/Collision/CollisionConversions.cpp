@@ -579,7 +579,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 		OutResult.PenetrationDepth = 0.f;
 		if (!bFiniteNormal)
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("ConvertOverlappedShapeToImpactHit: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
+			UE_LOG(LogPhysics, Verbose, TEXT("ConvertOverlappedShapeToImpactHit: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
 		}
 	}
 
