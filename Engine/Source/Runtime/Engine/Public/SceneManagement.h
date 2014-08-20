@@ -1012,7 +1012,7 @@ public:
 
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) = 0;
 
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) = 0;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) = 0;
 
 	virtual void DrawSprite(
 		const FVector& Position,
@@ -1111,7 +1111,7 @@ public:
 	~FSimpleElementCollector();
 
 	virtual void SetHitProxy(HHitProxy* HitProxy);
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) {}
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) {}
 
 	virtual void DrawSprite(
 		const FVector& Position,

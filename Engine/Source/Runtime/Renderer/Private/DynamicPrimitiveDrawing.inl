@@ -160,11 +160,11 @@ void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::DrawSprite(
 }
 
 template<typename DrawingPolicyFactoryType>
-void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased)
+void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased, bool bThickLines)
 {
 	if (DrawingPolicyFactoryType::bAllowSimpleElements)
 	{
-		BatchedElements.AddReserveLines(NumLines, bDepthBiased);
+		BatchedElements.AddReserveLines(NumLines, bDepthBiased, bThickLines);
 	}
 }
 
@@ -463,11 +463,11 @@ inline void FViewElementPDI::DrawSprite(
 	);
 }
 
-inline void FViewElementPDI::AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased)
+inline void FViewElementPDI::AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased, bool bThickLines)
 {
 	FBatchedElements& Elements = GetElements(DepthPriorityGroup);
 
-	Elements.AddReserveLines( NumLines, bDepthBiased );
+	Elements.AddReserveLines(NumLines, bDepthBiased, bThickLines);
 }
 
 inline void FViewElementPDI::DrawLine(

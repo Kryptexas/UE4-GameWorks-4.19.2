@@ -56,7 +56,7 @@ public:
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
 	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const override;
 	virtual int32 DrawMesh(const FMeshBatch& Mesh) override;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,
@@ -216,7 +216,7 @@ public:
 	virtual bool IsHitTesting() override;
 	virtual void SetHitProxy(HHitProxy* HitProxy) override;
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,

@@ -147,8 +147,9 @@ public:
 	 * 
 	 * @param NumLines - number of lines to reserve space for
 	 * @param bDepthBiased - whether reserving depth-biased lines or non-biased lines
+	 * @param bThickLines - whether reserving regular lines or thick lines
 	 */
-	void AddReserveLines(int32 NumLines, bool bDepthBiased = false);
+	void AddReserveLines(int32 NumLines, bool bDepthBiased = false, bool bThickLines = false);
 
 	/** Adds a sprite to the batch. */
 	void AddSprite(

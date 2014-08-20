@@ -5,9 +5,13 @@
 #include "DynamicMeshBuilder.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "BatchedElements.h"
+#include "MeshBatch.h"
+#include "Engine/TextureDefines.h"
+#include "SceneManagement.h"
 #include "AI/Navigation/NavMeshRenderingComponent.h"
 #include "Materials/Material.h"
 #include "MaterialShared.h"
+
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);
@@ -92,6 +96,19 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	};
 	TArray<FDebugMeshData> MeshBuilders;
 
+	struct FDebugThickLine : FDebugRenderSceneProxy::FDebugLine
+	{
+		FDebugThickLine(const FVector &InStart, const FVector &InEnd, const FColor &InColor, float InThickness)
+			: FDebugLine(InStart, InEnd, InColor)
+			, Thickness(InThickness)
+		{
+
+		}
+
+		float Thickness;
+	};
+	TArray<FDebugThickLine> ThickLineItems;;
+
 	struct FDebugText
 	{
 		const FVector Location;
@@ -146,6 +163,93 @@ FORCEINLINE bool LineInCorrectDistance(const FVector& Start, const FVector& End,
 	return true;
 }
 
+class FNavMeshIndexBuffer : public FIndexBuffer
+{
+public:
+	TArray<int32> Indices;
+
+	virtual void InitRHI() override
+	{
+		if (Indices.Num() > 0)
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo);
+
+			// Write the indices to the index buffer.
+			void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
+			FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(int32));
+			RHIUnlockIndexBuffer(IndexBufferRHI);
+		}
+	}
+};
+
+/** Vertex Buffer */
+class FNavMeshVertexBuffer : public FVertexBuffer
+{
+public:
+	TArray<FDynamicMeshVertex> Vertices;
+
+	virtual void InitRHI() override
+	{
+		if (Vertices.Num() > 0)
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
+
+			// Copy the vertex data into the vertex buffer.
+			void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+			FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+			RHIUnlockVertexBuffer(VertexBufferRHI);
+		}
+	}
+
+};
+
+/** Vertex Factory */
+class FNavMeshVertexFactory : public FLocalVertexFactory
+{
+public:
+
+	FNavMeshVertexFactory()
+	{}
+
+
+	/** Initialization */
+	void Init(const FNavMeshVertexBuffer* VertexBuffer)
+	{
+		if (IsInRenderingThread())
+		{
+			// Initialize the vertex factory's stream components.
+			DataType NewData;
+			NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
+			NewData.TextureCoordinates.Add(
+				FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
+				);
+			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
+			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
+			SetData(NewData);
+		}
+		else
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				InitNavMeshVertexFactory,
+				FNavMeshVertexFactory*, VertexFactory, this,
+				const FNavMeshVertexBuffer*, VertexBuffer, VertexBuffer,
+				{
+				// Initialize the vertex factory's stream components.
+				DataType NewData;
+				NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
+				NewData.TextureCoordinates.Add(
+					FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
+					);
+				NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
+				NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
+				VertexFactory->SetData(NewData);
+				});
+		}
+	}
+};
+
 
 class FRecastRenderingSceneProxy : public FDebugRenderSceneProxy
 {
@@ -161,10 +265,65 @@ public:
 			ProxyData = *InProxyData;
 		}
 		RenderingComponent = Cast<const UNavMeshRenderingComponent>(InComponent);
+
+		const int32 NumberOfMeshes = ProxyData.MeshBuilders.Num();
+		if (!NumberOfMeshes)
+		{
+			return;
+		}
+
+		MeshColors.Reserve(NumberOfMeshes);
+		const FMaterialRenderProxy* ParentMaterial = GEngine->DebugMeshMaterial->GetRenderProxy(false);
+		for (int32 Index = 0; Index < NumberOfMeshes; ++Index)
+		{
+			const auto& CurrentMeshBuilder = ProxyData.MeshBuilders[Index];
+
+			FMeshBatchElement Element;
+			Element.FirstIndex = IndexBuffer.Indices.Num();
+			Element.NumPrimitives = CurrentMeshBuilder.Indices.Num() / 3;
+			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
+			Element.MaxVertexIndex = Element.MinVertexIndex + CurrentMeshBuilder.Vertices.Num() - 1;
+			Element.IndexBuffer = &IndexBuffer;
+			MeshBatchElements.Add(Element);
+
+			MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, CurrentMeshBuilder.ClusterColor));
+
+			VertexBuffer.Vertices.Append( CurrentMeshBuilder.Vertices );
+			IndexBuffer.Indices.Append( CurrentMeshBuilder.Indices );
+		}
+
+		if (ProxyData.bDrawPathCollidingGeometry && ProxyData.PathCollidingGeomVerts.Num() > 0)
+		{
+			FMeshBatchElement Element;
+			Element.FirstIndex = IndexBuffer.Indices.Num();
+			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
+			Element.IndexBuffer = &IndexBuffer;
+
+			for (const auto& CurrentLoc : ProxyData.PathCollidingGeomVerts)
+			{
+				VertexBuffer.Vertices.Add(FDynamicMeshVertex(CurrentLoc));
+			}
+			IndexBuffer.Indices.Append(ProxyData.PathCollidingGeomIndices);
+
+			Element.NumPrimitives = ProxyData.PathCollidingGeomIndices.Num() / 3;
+			Element.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+			MeshBatchElements.Add(Element);
+
+			MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
+		}
+
+		VertexFactory.Init(&VertexBuffer);
+
+		BeginInitResource(&IndexBuffer);
+		BeginInitResource(&VertexBuffer);
+		BeginInitResource(&VertexFactory);
 	}
 
 	virtual ~FRecastRenderingSceneProxy() 
 	{
+		VertexBuffer.ReleaseResource();
+		IndexBuffer.ReleaseResource();
+		VertexFactory.ReleaseResource();
 		ProxyData.Reset();
 	}
 
@@ -325,6 +484,146 @@ public:
 			);
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastRenderingSceneProxy_GetDynamicMeshElements);
+
+		if (!ProxyData.bEnableDrawing) //check if we have any data to render
+		{
+			return;
+		}
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+				const bool bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
+
+				// Draw Mesh
+				for (int32 Index = 0; Index < MeshBatchElements.Num(); ++Index)
+				{
+					if (MeshBatchElements[Index].NumPrimitives == 0)
+					{
+						continue;
+					}
+
+					FMeshBatch& Mesh = Collector.AllocateMesh();
+					FMeshBatchElement& BatchElement = Mesh.Elements[0];
+					BatchElement = MeshBatchElements[Index];
+					BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false, UseEditorDepthTest());
+
+					Mesh.bWireframe = false;
+					Mesh.VertexFactory = &VertexFactory;
+					Mesh.MaterialRenderProxy = &MeshColors[Index];
+					Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+					Mesh.Type = PT_TriangleList;
+					Mesh.DepthPriorityGroup = SDPG_World;
+					Mesh.bCanApplyViewModeOverrides = false;
+					Collector.AddMesh(ViewIndex, Mesh);
+				}
+
+				int32 Num = ProxyData.NavMeshEdgeLines.Num();
+				PDI->AddReserveLines(SDPG_World, Num, false, false);
+				PDI->AddReserveLines(SDPG_Foreground, Num, false, true);
+				for (int32 Index = 0; Index < Num; ++Index)
+				{
+					const FDebugLine &Line = ProxyData.NavMeshEdgeLines[Index];
+					if (LineInView(Line.Start, Line.End, View, false))
+					{
+						if (LineInCorrectDistance(Line.Start, Line.End, View))
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World, NavMeshEdges_LineThickness, 0, true);
+						}
+						else if (GIsEditor)
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_Foreground, DefaultEdges_LineThickness, 0, true);
+						}
+					}
+				}
+
+
+				Num = ProxyData.ClusterLinkLines.Num();
+				PDI->AddReserveLines(SDPG_World, Num, false, false);
+				PDI->AddReserveLines(SDPG_Foreground, Num, false, true);
+				for (int32 Index = 0; Index < Num; ++Index)
+				{
+					const FDebugLine &Line = ProxyData.ClusterLinkLines[Index];
+					if (LineInView(Line.Start, Line.End, View, false))
+					{
+						if (LineInCorrectDistance(Line.Start, Line.End, View))
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World, ClusterLinkLines_LineThickness, 0, true);
+						}
+						else if (GIsEditor)
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_Foreground, DefaultEdges_LineThickness, 0, true);
+						}
+					}
+				}
+
+				Num = ProxyData.TileEdgeLines.Num();
+				PDI->AddReserveLines(SDPG_World, Num, false, false);
+				PDI->AddReserveLines(SDPG_Foreground, Num, false, true);
+				for (int32 Index = 0; Index < Num; ++Index)
+				{
+					const FDebugLine &Line = ProxyData.TileEdgeLines[Index];
+					if (LineInView(Line.Start, Line.End, View, false))
+					{
+						if (LineInCorrectDistance(Line.Start, Line.End, View))
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World, PolyEdges_LineThickness, 0, true);
+						}
+						else if (GIsEditor)
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_Foreground, DefaultEdges_LineThickness, 0, true);
+						}
+					}
+				}
+
+				Num = ProxyData.NavLinkLines.Num();
+				PDI->AddReserveLines(SDPG_World, Num, false, false);
+				PDI->AddReserveLines(SDPG_Foreground, Num, false, true);
+				for (int32 Index = 0; Index < Num; ++Index)
+				{
+					const FDebugLine &Line = ProxyData.NavLinkLines[Index];
+					if (LineInView(Line.Start, Line.End, View, false))
+					{
+						if (LineInCorrectDistance(Line.Start, Line.End, View))
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World, LinkLines_LineThickness, 0, true);
+						}
+						else if (GIsEditor)
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_Foreground, DefaultEdges_LineThickness, 0, true);
+						}
+					}
+				}
+
+				Num = ProxyData.ThickLineItems.Num();
+				PDI->AddReserveLines(SDPG_Foreground, Num, false, true);
+				for (int32 Index = 0; Index < Num; ++Index)
+				{
+					const auto &Line = ProxyData.ThickLineItems[Index];
+					if (LineInView(Line.Start, Line.End, View, false))
+					{
+						if (LineInCorrectDistance(Line.Start, Line.End, View))
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World, Line.Thickness, 0, true);
+						}
+						else if (GIsEditor)
+						{
+							PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_Foreground, DefaultEdges_LineThickness, 0, true);
+						}
+					}
+				}
+
+			}
+		}
+	}
+
 	FORCEINLINE bool PointInView(const FVector& Location, const FSceneView* View)
 	{
 		return View->ViewFrustum.IntersectBox(Location, FVector::ZeroVector);
@@ -372,11 +671,18 @@ public:
 			+ ProxyData.TileEdgeLines.GetAllocatedSize() + ProxyData.NavMeshEdgeLines.GetAllocatedSize() + ProxyData.NavLinkLines.GetAllocatedSize()
 			+ ProxyData.PathCollidingGeomIndices.GetAllocatedSize() + ProxyData.PathCollidingGeomVerts.GetAllocatedSize()
 			+ ProxyData.DebugLabels.GetAllocatedSize() + ProxyData.ClusterLinkLines.GetAllocatedSize() + ProxyData.MeshBuilders.GetAllocatedSize()
-			+ ProxyData.BatchedElements.GetAllocatedSize());
+			+ ProxyData.BatchedElements.GetAllocatedSize() + IndexBuffer.Indices.GetAllocatedSize() + VertexBuffer.Vertices.GetAllocatedSize() + MeshColors.GetAllocatedSize() + MeshBatchElements.GetAllocatedSize());
 	}
 
 private:
 	FNavMeshSceneProxyData ProxyData;
+	
+	FNavMeshIndexBuffer IndexBuffer;
+	FNavMeshVertexBuffer VertexBuffer;
+	FNavMeshVertexFactory VertexFactory;
+	TArray <FColoredMaterialRenderProxy> MeshColors;
+	TArray<FMeshBatchElement> MeshBatchElements;
+
 	FDebugDrawDelegate DebugTextDrawingDelegate;
 	TWeakObjectPtr<UNavMeshRenderingComponent> RenderingComponent;
 	uint32 bRequestedData : 1;

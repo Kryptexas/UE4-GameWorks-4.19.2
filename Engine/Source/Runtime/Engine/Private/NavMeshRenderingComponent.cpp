@@ -86,6 +86,9 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 	CurrentData->bEnableDrawing = NavMesh->bEnableDrawing;
 	CurrentData->bNeedsNewData = false;
 
+	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
+	const bool bUseGetMeshElements = !GRHICommandList.Bypass() || CVarUseGetMeshElements->GetValueOnGameThread() != 0;
+
 	if (CurrentData && NavMesh && NavMesh->bEnableDrawing)
 	{
 		FHitProxyId HitProxyId = FHitProxyId();
@@ -117,9 +120,18 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				const TArray<int32>& MeshIndices = CurrentData->NavMeshGeometry.AreaIndices[AreaIdx];
 				for (int32 Idx=0; Idx<MeshIndices.Num(); Idx += 3)
 				{
-					CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx+0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx+1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges,HitProxyId,DefaultEdges_LineThickness, 0, true);
-					CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx+1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx+2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges,HitProxyId,DefaultEdges_LineThickness, 0, true);
-					CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx+2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx+0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges,HitProxyId,DefaultEdges_LineThickness, 0, true);
+					if (bUseGetMeshElements)
+					{
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
+					}
+					else
+					{
+						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
+						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
+						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
+					}
 				}
 			}
 		}
@@ -156,23 +168,47 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			FVector UR(OuterBBox.Max.X, OuterBBox.Max.Y, DrawZ);
 			FVector UL(LL.X, UR.Y, DrawZ);
 			FVector LR(UR.X, LL.Y, DrawZ);
-			CurrentData->BatchedElements.AddLine(LL, UL, NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
-			CurrentData->BatchedElements.AddLine(UL, UR, NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
-			CurrentData->BatchedElements.AddLine(UR, LR, NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
-			CurrentData->BatchedElements.AddLine(LR, LL, NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
+			if (bUseGetMeshElements)
+			{
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LL, UL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UL, UR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UR, LR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LR, LL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+			}
+			else
+			{
+				CurrentData->BatchedElements.AddLine(LL, UL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(UL, UR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(UR, LR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(LR, LL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+			}
 
 			float const TileSizeX = (LL.X - LR.X) / NumTilesX;
 			float const TileSizeY = (LL.Y - UL.Y) / NumTilesY;
 
-			for (int32 Idx=1; Idx<NumTilesX; ++Idx)
+			for (int32 Idx = 1; Idx < NumTilesX; ++Idx)
 			{
-				float const DrawX = FMath::Lerp(LL.X, LR.X, (float)Idx/(float)NumTilesX);
-				CurrentData->BatchedElements.AddLine(FVector(DrawX, LL.Y, DrawZ), FVector(DrawX, UL.Y, DrawZ), NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
+				float const DrawX = FMath::Lerp(LL.X, LR.X, (float)Idx / (float)NumTilesX);
+				if (bUseGetMeshElements)
+				{
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(FVector(DrawX, LL.Y, DrawZ), FVector(DrawX, UL.Y, DrawZ), NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				}
+				else
+				{
+					CurrentData->BatchedElements.AddLine(FVector(DrawX, LL.Y, DrawZ), FVector(DrawX, UL.Y, DrawZ), NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				}
 			}
 			for (int32 Idx=1; Idx<NumTilesY; ++Idx)
 			{
 				float const DrawY = FMath::Lerp(LL.Y, UL.Y, (float)Idx/(float)NumTilesY);
-				CurrentData->BatchedElements.AddLine(FVector(LL.X, DrawY, DrawZ), FVector(LR.X, DrawY, DrawZ), NavMeshRenderColor_TileBounds,HitProxyId,DefaultEdges_LineThickness, 0, true);
+				if (bUseGetMeshElements)
+				{
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(FVector(LL.X, DrawY, DrawZ), FVector(LR.X, DrawY, DrawZ), NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				}
+				else
+				{
+					CurrentData->BatchedElements.AddLine(FVector(LL.X, DrawY, DrawZ), FVector(LR.X, DrawY, DrawZ), NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				}
 			}
 		}
 
@@ -328,16 +364,16 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				}
 
 				FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
+				DebugMeshData.ClusterColor = GetClusterColor(Idx);
 				for (int32 VertIdx=0; VertIdx < MeshVerts.Num(); ++VertIdx)
 				{
-					AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset);
+					AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset, DebugMeshData.ClusterColor);
 				}
 				for (int32 TriIdx=0; TriIdx < MeshIndices.Num(); TriIdx+=3)
 				{
 					AddTriangleHelper(DebugMeshData, MeshIndices[TriIdx], MeshIndices[TriIdx+1], MeshIndices[TriIdx+2]);
 				}
 
-				DebugMeshData.ClusterColor = GetClusterColor(Idx);
 				CurrentData->MeshBuilders.Add(DebugMeshData);
 			}
 		}
@@ -355,7 +391,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
 				for (int32 VertIdx=0; VertIdx < MeshVerts.Num(); ++VertIdx)
 				{
-					AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset);
+					AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset, CurrentData->NavMeshColors[AreaType]);
 				}
 				for (int32 TriIdx=0; TriIdx < MeshIndices.Num(); TriIdx+=3)
 				{
@@ -373,7 +409,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
 			for (int32 VertIdx=0; VertIdx < CurrentData->PathCollidingGeomVerts.Num(); ++VertIdx)
 			{
-				AddVertexHelper(DebugMeshData, CurrentData->PathCollidingGeomVerts[VertIdx]);
+				AddVertexHelper(DebugMeshData, CurrentData->PathCollidingGeomVerts[VertIdx], NavMeshRenderColor_PathCollidingGeom);
 			}
 			DebugMeshData.Indices.Append(CurrentData->PathCollidingGeomIndices);
 			DebugMeshData.ClusterColor = NavMeshRenderColor_PathCollidingGeom;
@@ -385,7 +421,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
 			for (int32 VertIdx=0; VertIdx < MeshVerts.Num(); ++VertIdx)
 			{
-				AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset);
+				AddVertexHelper(DebugMeshData, MeshVerts[VertIdx] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_RecastTileBeingRebuilt);
 			}
 			DebugMeshData.Indices.Append(CurrentData->NavMeshGeometry.BuiltMeshIndices);
 			DebugMeshData.ClusterColor = NavMeshRenderColor_RecastTileBeingRebuilt;

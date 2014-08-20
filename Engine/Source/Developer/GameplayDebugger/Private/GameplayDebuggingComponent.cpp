@@ -735,7 +735,7 @@ namespace NavMeshDebug
 
 	struct FAreaPolys
 	{
-		TArray<int16> Indices;
+		TArray<int32> Indices;
 		FColor Color;
 	};
 

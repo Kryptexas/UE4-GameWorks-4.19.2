@@ -221,17 +221,26 @@ void FBatchedElements::AddReserveVertices(int32 NumMeshVerts)
  * Reserves space in line vertex array
  * 
  * @param NumLines - number of lines to reserve space for
+ * @param bDepthBiased - whether reserving depth-biased lines or non-biased lines
+ * @param bThickLines - whether reserving regular lines or thick lines
  */
-void FBatchedElements::AddReserveLines(int32 NumLines, bool bDepthBiased)
+void FBatchedElements::AddReserveLines(int32 NumLines, bool bDepthBiased, bool bThickLines)
 {
-	if (!bDepthBiased)
+	if (!bThickLines)
 	{
-		LineVertices.Reserve( LineVertices.Num() + NumLines * 2 );
+		if (!bDepthBiased)
+		{
+			LineVertices.Reserve(LineVertices.Num() + NumLines * 2);
+		}
+		else
+		{
+			WireTris.Reserve(WireTris.Num() + NumLines);
+			WireTriVerts.Reserve(WireTriVerts.Num() + NumLines * 3);
+		}
 	}
 	else
 	{
-		WireTris.Reserve( WireTris.Num() + NumLines );
-		WireTriVerts.Reserve( WireTriVerts.Num() + NumLines * 3 );
+		ThickLines.Reserve(ThickLines.Num() + NumLines * 2);
 	}
 }
 

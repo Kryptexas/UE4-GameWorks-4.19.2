@@ -32,6 +32,7 @@ namespace UnrealBuildTool.Rules
 					"Engine",    
                     "RenderCore",
                     "RHI",
+                    "ShaderCore",
                     "AIModule",  // it have to be here for now. It'll be changed to remove any dependency to AIModule in future
 				}
                 );
