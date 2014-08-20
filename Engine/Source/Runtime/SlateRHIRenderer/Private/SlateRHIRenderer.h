@@ -19,7 +19,7 @@ const uint32 NumDrawBuffers = 3;
 class FSlateBackBuffer : public FRenderTarget
 {
 public:
-	FSlateBackBuffer(FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY)
+	FSlateBackBuffer(FTexture2DRHIRef InRenderTargetTexture, FIntPoint InSizeXY)
 		: SizeXY(InSizeXY)
 	{
 		RenderTargetTextureRHI = InRenderTargetTexture;
@@ -135,13 +135,17 @@ private:
 		void RecreateDepthBuffer_RenderThread();
 	};
 public:
-	/** 
-	 * Constructor. Initializes all rendering resources
-	 * 
-	 * @param InStyle	A style used when rendering elements.  The renderer loads textures from information in this style
-	 */
-	FSlateRHIRenderer();
+	FSlateRHIRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, TSharedPtr<FSlateFontMeasure> InFontMeasure );
 	~FSlateRHIRenderer();
+
+	/**
+	 * Creates a projection matrix for use when rendering an SWindow
+	 *
+	 * @param Width 	The width of the window
+	 * @param Height	The height of the window
+	 * @return The created projection matrix
+	 */
+	static FMatrix CreateProjectionMatrix( uint32 Width, uint32 Height );
 
 	/** FSlateRenderer interface */
 	virtual void Initialize() override;

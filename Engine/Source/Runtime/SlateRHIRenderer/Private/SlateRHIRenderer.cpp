@@ -3,6 +3,7 @@
 #include "SlateRHIRendererPrivatePCH.h"
 #include "StereoRendering.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
+#include "SlateNativeTextureResource.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
@@ -12,27 +13,6 @@ DECLARE_CYCLE_STAT(TEXT("Unmap Staging Buffer"),STAT_UnmapStagingBuffer,STATGROU
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
-static FMatrix CreateProjectionMatrix( uint32 Width, uint32 Height )
-{
-	
-	float PixelOffset = GPixelCenterOffset;
-
-	// Create ortho projection matrix
-	const float Left = PixelOffset;
-	const float Right = Left+Width;
-	const float Top = PixelOffset;
-	const float Bottom = Top+Height;
-	const float ZNear = -100.0f;
-	const float ZFar = 100.0f;
-	return AdjustProjectionMatrixForRHI(
-		FMatrix(
-			FPlane(2.0f/(Right-Left),			0,							0,					0 ),
-			FPlane(0,							2.0f/(Top-Bottom),			0,					0 ),
-			FPlane(0,							0,							1/(ZNear-ZFar),		0 ),
-			FPlane((Left+Right)/(Left-Right),	(Top+Bottom)/(Bottom-Top),	ZNear/(ZNear-ZFar), 1 )
-			)
-		);
-}
 
 
 void FSlateCrashReportResource::InitDynamicRHI()
@@ -120,12 +100,18 @@ void FSlateRHIRenderer::FViewportInfo::RecreateDepthBuffer_RenderThread()
 	}
 }
 
-FSlateRHIRenderer::FSlateRHIRenderer()
+
+
+FSlateRHIRenderer::FSlateRHIRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, TSharedPtr<FSlateFontMeasure> InFontMeasure )
 #if USE_MAX_DRAWBUFFERS
 	: EnqueuedWindowDrawBuffer(NULL)
 	, FreeBufferIndex(1)
 #endif
 {
+	ResourceManager = InResourceManager;
+	FontCache = InFontCache;
+	FontMeasure = InFontMeasure;
+
 	CrashTrackerResource = NULL;
 	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
 							FPlane(0,	1,	0,	0),
@@ -140,40 +126,31 @@ FSlateRHIRenderer::~FSlateRHIRenderer()
 {
 }
 
-class FSlateRHIFontAtlasFactory : public ISlateFontAtlasFactory
+FMatrix FSlateRHIRenderer::CreateProjectionMatrix(uint32 Width, uint32 Height)
 {
-public:
-	FSlateRHIFontAtlasFactory()
-	{
-		/** Size of each font texture, width and height */
-		AtlasSize = 1024;
-		if( !GIsEditor && GConfig )
-		{
-			GConfig->GetInt( TEXT("SlateRenderer"), TEXT("FontAtlasSize"), AtlasSize, GEngineIni );
-			AtlasSize = FMath::Clamp( AtlasSize, 0, 2048 );
-		}
-	}
 
-	virtual ~FSlateRHIFontAtlasFactory()
-	{
-	}
+	float PixelOffset = GPixelCenterOffset;
 
-
-	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
-	{
-		return MakeShareable( new FSlateFontAtlasRHI( AtlasSize, AtlasSize ) );
-	}
-private:
-	int32 AtlasSize;
-};
+	// Create ortho projection matrix
+	const float Left = PixelOffset;
+	const float Right = Left + Width;
+	const float Top = PixelOffset;
+	const float Bottom = Top + Height;
+	const float ZNear = -100.0f;
+	const float ZFar = 100.0f;
+	return AdjustProjectionMatrixForRHI(
+		FMatrix(
+		FPlane(2.0f / (Right - Left), 0, 0, 0),
+		FPlane(0, 2.0f / (Top - Bottom), 0, 0),
+		FPlane(0, 0, 1 / (ZNear - ZFar), 0),
+		FPlane((Left + Right) / (Left - Right), (Top + Bottom) / (Bottom - Top), ZNear / (ZNear - ZFar), 1)
+		)
+		);
+}
 
 void FSlateRHIRenderer::Initialize()
 {
-	ResourceManager = MakeShareable( new FSlateRHIResourceManager );
 	LoadUsedTextures();
-
-	FontCache = MakeShareable( new FSlateFontCache( MakeShareable( new FSlateRHIFontAtlasFactory ) ) );
-	FontMeasure = FSlateFontMeasure::Create( FontCache.ToSharedRef() );
 
 	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) ); 
 
@@ -453,7 +430,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			RenderingPolicy->DrawElements
 			(
 				RHICmdList,
-				FIntPoint(ViewportWidth, ViewportHeight),
 				BackBufferTarget,
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
 				WindowElementList.GetRenderBatches()
@@ -953,7 +929,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(RHICmdList, Context.ViewportSize, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
 		}
 	});
 
@@ -1027,7 +1003,20 @@ void FSlateRHIRenderer::UnmapVirtualScreenBuffer()
 FIntPoint FSlateRHIRenderer::GenerateDynamicImageResource(const FName InTextureName)
 {
 	check( IsInGameThread() );
-	TSharedPtr<FDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource(false, true, InTextureName.ToString(), InTextureName, NULL);
+
+	uint32 Width = 0;
+	uint32 Height = 0;
+	TArray<uint8> RawData;
+
+	// Load the image from disk
+	bool bSucceeded = ResourceManager->LoadTexture(InTextureName, InTextureName.ToString(), Width, Height, RawData);
+
+	TSharedPtr<FSlateDynamicTextureResource> TextureResource;
+	if( bSucceeded )
+	{
+		TextureResource = ResourceManager->MakeDynamicTextureResource(InTextureName, Width, Height, RawData);
+	}
+
 	return TextureResource.IsValid() ? TextureResource->Proxy->ActualSize : FIntPoint( 0, 0 );
 }
 
@@ -1035,7 +1024,7 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 {
 	check( IsInGameThread() );
 
-	TSharedPtr<FDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
+	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
 	return TextureResource.IsValid();
 }
 

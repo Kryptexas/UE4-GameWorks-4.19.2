@@ -6,23 +6,10 @@
 #include "SlateShaders.h"
 #include "SlateMaterialShader.h"
 #include "SlateRHIResourceManager.h"
-#include "TileRendering.h"
 #include "PreviewScene.h"
 #include "EngineModule.h"
-
-static EPrimitiveType GetRHIPrimitiveType( ESlateDrawPrimitive::Type SlateType )
-{
-	switch( SlateType )
-	{
-	case ESlateDrawPrimitive::LineList:
-		return PT_LineList;
-	case ESlateDrawPrimitive::TriangleList:
-	default:
-		return PT_TriangleList;
-	}
-
-};
-
+#include "SlateUTextureResource.h"
+#include "SlateMaterialResource.h"
 
 FSlateElementIndexBuffer::FSlateElementIndexBuffer()
 	: BufferSize(0)	 
@@ -264,7 +251,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	return *View;
 }
 
-void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, const FIntPoint& InViewportSize, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches)
+void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawTime );
 
@@ -321,7 +308,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 		if( !RenderBatch.CustomDrawer.IsValid() )
 		{
-			if( !ShaderResource || ShaderResource->GetType() == ESlateShaderResource::Texture ) 
+			if( !ShaderResource || ShaderResource->GetType() != ESlateShaderResource::Material ) 
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
 
@@ -341,7 +328,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				RHICmdList.SetBlendState(
 					(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
 					? TStaticBlendState<>::GetRHI()
-					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI()
+					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
 					);
 #else
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
@@ -359,33 +346,18 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, true>::GetRHI());
 				}
 
+				FTexture2DRHIRef TextureRHI;
+				if(ShaderResource)
+				{
+					TextureRHI = ShaderResource->GetType() == ESlateShaderResource::NativeTexture ? ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource() :  ((FSlateUTextureResource*)ShaderResource)->GetTypedResource();
+				}
 
 				if (ShaderType == ESlateShader::LineSegment)
 				{
-					// Generally looks better without stencil testing although there is minor overdraw on splines
-#if 0
-					// Enable stencil testing for anti-aliased line segments to reduce artifacts from overlapping segments
-					 FDepthStencilStateRHIRef DSLineSegment =
-						TStaticDepthStencilState < false
-						, CF_Always
-						, true
-						, CF_Greater
-						, SO_Keep
-						, SO_SaturatedIncrement
-						, SO_SaturatedIncrement
-						, true
-						, CF_Greater
-						, SO_Keep
-						, SO_SaturatedIncrement
-						, SO_SaturatedIncrement>::GetRHI();
-
-					RHICmdList.SetDepthStencilState( DSLineSegment, 0x01 );
-#endif
-
 					// The lookup table used for splines should clamp when sampling otherwise the results are wrong
-					PixelShader->SetTexture(RHICmdList, ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), BilinearClamp );
+					PixelShader->SetTexture(RHICmdList, TextureRHI, BilinearClamp );
 				}
-				else if( ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Texture && IsValidRef( ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource() ) )
+				else if( ShaderResource && IsValidRef( TextureRHI ) )
 				{
 					FSamplerStateRHIRef SamplerState; 
 
@@ -405,7 +377,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					{
 						SamplerState = BilinearClamp;
 					}
-					PixelShader->SetTexture(RHICmdList, ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), SamplerState);
+					PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
 				}
 				else
 				{
@@ -439,7 +411,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					SceneView = &CreateSceneView(SceneViewContext, BackBuffer, ViewProjectionMatrix);
 				}
 
-				FMaterialRenderProxy* MaterialRenderProxy = ((FSlateMaterial*)ShaderResource)->GetRenderProxy();
+				FMaterialRenderProxy* MaterialRenderProxy = ((FSlateMaterialResource*)ShaderResource)->GetRenderProxy();
 
 				const FMaterial* Material = MaterialRenderProxy->GetMaterial(SceneView->GetFeatureLevel());
 
@@ -610,6 +582,19 @@ FSlateMaterialShaderPS* FSlateRHIRenderingPolicy::GetMaterialPixelShader( const 
 
 	return FoundShader ? (FSlateMaterialShaderPS*)FoundShader->GetShaderChecked() : nullptr;
 }
+
+EPrimitiveType FSlateRHIRenderingPolicy::GetRHIPrimitiveType(ESlateDrawPrimitive::Type SlateType)
+{
+	switch(SlateType)
+	{
+	case ESlateDrawPrimitive::LineList:
+		return PT_LineList;
+	case ESlateDrawPrimitive::TriangleList:
+	default:
+		return PT_TriangleList;
+	}
+
+};
 
 
 

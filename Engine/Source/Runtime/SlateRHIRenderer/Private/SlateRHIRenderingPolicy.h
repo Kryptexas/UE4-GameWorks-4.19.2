@@ -177,7 +177,7 @@ public:
 	~FSlateRHIRenderingPolicy();
 	
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
-	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, const FIntPoint& InViewportSize, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches);
+	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches);
 
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return ResourceManager; }
@@ -198,6 +198,8 @@ private:
 	class FSlateElementPS* GetTexturePixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects );
 	class FSlateMaterialShaderPS* GetMaterialPixelShader( const class FMaterial* Material, ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects );
 
+	/** @return The RHI primitive type from the Slate primitive type */
+	EPrimitiveType GetRHIPrimitiveType(ESlateDrawPrimitive::Type SlateType);
 private:
 	/** Buffers used for rendering */
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers[2];

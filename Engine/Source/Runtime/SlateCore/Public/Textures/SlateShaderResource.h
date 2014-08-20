@@ -11,7 +11,10 @@ namespace ESlateShaderResource
 	enum Type
 	{
 		/** Texture resource. */
-		Texture,
+		NativeTexture,
+
+		/** UTexture object resource */
+		TextureObject,
 
 		/** Material resource. */
 		Material
@@ -124,10 +127,9 @@ public:
 public:
 
 	// FSlateShaderResource interface
-
 	virtual ESlateShaderResource::Type GetType() const override
 	{
-		return ESlateShaderResource::Texture;
+		return ESlateShaderResource::NativeTexture;
 	}
 
 protected:
