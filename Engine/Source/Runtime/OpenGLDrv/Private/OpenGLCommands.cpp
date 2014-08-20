@@ -1486,7 +1486,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 
 	FOpenGLTextureBase* NewDepthStencilRT = GetOpenGLTextureFromRHITexture(NewDepthStencilTargetRHI);
 
-	if (IsES2Platform(GRHIShaderPlatform))
+	if (IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform))
 	{
 		// @todo-mobile
 
@@ -2079,13 +2079,13 @@ void FOpenGLDynamicRHI::CommitNonComputeShaderConstants()
 	VERIFY_GL_SCOPE();
 
 	FOpenGLLinkedProgram* LinkedProgram = PendingState.BoundShaderState->LinkedProgram;
-	if (IsES2Platform(GRHIShaderPlatform))
+	if (GUseEmulatedUniformBuffers)
 	{
 		PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_VERTEX, PendingState.BoundUniformBuffers[SF_Vertex], PendingState.BoundShaderState->VertexShader->UniformBuffersCopyInfo);
 	}
 	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedGlobals(LinkedProgram, CrossCompiler::SHADER_STAGE_VERTEX);
 
-	if (IsES2Platform(GRHIShaderPlatform))
+	if (GUseEmulatedUniformBuffers)
 	{
 		PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_PIXEL, PendingState.BoundUniformBuffers[SF_Pixel], PendingState.BoundShaderState->PixelShader->UniformBuffersCopyInfo);
 	}
@@ -2093,7 +2093,7 @@ void FOpenGLDynamicRHI::CommitNonComputeShaderConstants()
 
 	if (PendingState.BoundShaderState->GeometryShader)
 	{
-		if (IsES2Platform(GRHIShaderPlatform))
+		if (GUseEmulatedUniformBuffers)
 		{
 			PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_GEOMETRY, PendingState.BoundUniformBuffers[SF_Geometry], PendingState.BoundShaderState->GeometryShader->UniformBuffersCopyInfo);
 		}

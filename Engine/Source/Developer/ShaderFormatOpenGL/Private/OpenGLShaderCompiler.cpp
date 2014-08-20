@@ -1611,14 +1611,11 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms | HLSLCC_DX11ClipSpace;
-		if (IsES2Platform(Version))
+		if (IsES2Platform(Version) && !IsPCES2Platform(Version))
 		{
 			CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
 			// Currently only enabled for ES2, as there are still features to implement for SM4+ (atomics, global store, UAVs, etc)
-			if (!IsPCES2Platform(Version))
-			{
-				CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
-			}
+			CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
 		}
 
 		if (bDumpDebugInfo)

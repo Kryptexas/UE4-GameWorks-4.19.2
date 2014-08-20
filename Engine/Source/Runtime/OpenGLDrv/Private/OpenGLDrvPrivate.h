@@ -481,4 +481,6 @@ public:
 
 extern TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
 
+extern bool GUseEmulatedUniformBuffers;
+
 #endif // __OPENGLDRVPRIVATE_H__

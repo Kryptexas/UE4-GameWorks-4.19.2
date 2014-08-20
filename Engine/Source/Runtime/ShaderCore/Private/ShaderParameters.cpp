@@ -231,7 +231,7 @@ static void CreateHLSLUniformBufferStructMembersDeclaration(FUniformBufferDecl& 
 				{
 					if(bExplicitPadding)
 					{
-						Decl.ConstantBufferMembers += FString::Printf(TEXT("\tfloat1 _%s_PrePadding%u;\r\n"), *NamePrefix, HLSLBaseOffset);
+						Decl.ConstantBufferMembers += FString::Printf(TEXT("\tfloat1 _%sPrePadding%u;\r\n"), *NamePrefix, HLSLBaseOffset);
 					}
 					HLSLBaseOffset += 4;
 				};

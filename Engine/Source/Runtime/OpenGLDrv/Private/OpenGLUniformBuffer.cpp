@@ -60,7 +60,7 @@ static TArray<uint32> UniformBufferSizeBuckets;
 static inline bool IsSuballocatingUBOs()
 {
 #if SUBALLOCATED_CONSTANT_BUFFER
-	if (!IsES2Platform(GRHIShaderPlatform))
+	if (!GUseEmulatedUniformBuffers)
 	{
 		return OpenGLConsoleVariables::RequestedUBOPoolSize != 0;
 	}
@@ -205,7 +205,6 @@ void BeginFrame_UniformBufferPoolCleanup()
 	if (!IsSuballocatingUBOs())
 	{
 	// Clean a limited number of old entries to reduce hitching when leaving a large level
-	const bool bIsES2 = IsES2Platform(GRHIShaderPlatform);
 	for( int32 StreamedIndex = 0; StreamedIndex < 2; ++StreamedIndex)
 	{
 			for (int32 BucketIndex = 0; BucketIndex < UniformBufferSizeBuckets.Num(); BucketIndex++)
@@ -222,7 +221,7 @@ void BeginFrame_UniformBufferPoolCleanup()
 					DEC_DWORD_STAT(STAT_OpenGLNumFreeUniformBuffers);
 					DEC_MEMORY_STAT_BY(STAT_OpenGLFreeUniformBufferMemory, PoolEntry.CreatedSize);
 					DecrementBufferMemory(GL_UNIFORM_BUFFER, /*bIsStructuredBuffer=*/ false, PoolEntry.CreatedSize);
-					if (bIsES2)
+					if (GUseEmulatedUniformBuffers)
 					{
 						UniformBufferDataFactory.Destroy(PoolEntry.Buffer);
 					}
@@ -485,7 +484,7 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 				AllocatedResource = FreeBufferEntry.Buffer;
 				AllocatedSize = FreeBufferEntry.CreatedSize;
 
-				if (IsES2Platform(GRHIShaderPlatform))
+				if (GUseEmulatedUniformBuffers)
 				{
 					EmulatedUniformDataRef = UniformBufferDataFactory.Get(AllocatedResource);
 				}
@@ -507,7 +506,7 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 			AllocatedSize = (SizeOfBufferToAllocate > 0) ? SizeOfBufferToAllocate : Layout.ConstantBufferSize;
 
 			// Nothing usable was found in the free pool, or we're not pooling, so create a new uniform buffer
-			if (IsES2Platform(GRHIShaderPlatform))
+			if (GUseEmulatedUniformBuffers)
 			{
 				EmulatedUniformDataRef = UniformBufferDataFactory.Create(AllocatedSize, AllocatedResource);
 			}
@@ -525,7 +524,7 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 			IncrementBufferMemory(GL_UNIFORM_BUFFER, /*bIsStructuredBuffer=*/ false, AllocatedSize);
 		}
 
-		check(!IsES2Platform(GRHIShaderPlatform) || (IsValidRef(EmulatedUniformDataRef) && (EmulatedUniformDataRef->Data.Num() * EmulatedUniformDataRef->Data.GetTypeSize() == AllocatedSize)));
+		check(!GUseEmulatedUniformBuffers || (IsValidRef(EmulatedUniformDataRef) && (EmulatedUniformDataRef->Data.Num() * EmulatedUniformDataRef->Data.GetTypeSize() == AllocatedSize)));
 
 		// Copy the contents of the uniform buffer.
 		if (IsValidRef(EmulatedUniformDataRef))

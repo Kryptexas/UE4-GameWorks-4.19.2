@@ -1596,7 +1596,7 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 #endif
 	}
 
-	if (!IsES2Platform(GRHIShaderPlatform))
+	if (!GUseEmulatedUniformBuffers)
 	{
 		int32 NextUniformBufferIndex = OGL_FIRST_UNIFORM_BUFFER;
 
@@ -1736,7 +1736,7 @@ void FOpenGLDynamicRHI::BindPendingComputeShaderState(FOpenGLContextState& Conte
 		ForceUniformBindingUpdate = true;
 	}
 
-	if (!IsES2Platform(GRHIShaderPlatform))
+	if (!GUseEmulatedUniformBuffers)
 	{
 		BindUniformBufferBase(
 			ContextState,

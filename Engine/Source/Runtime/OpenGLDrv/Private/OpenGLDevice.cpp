@@ -19,6 +19,9 @@ FOpenGLTextureFormat GOpenGLTextureFormats[PF_MAX];
 /** Device is necessary for vertex buffers, so they can reach the global device on destruction, and tell it to reset vertex array caches */
 static FOpenGLDynamicRHI* PrivateOpenGLDevicePtr = NULL;
 
+/** true if we're not using UBOs. (ES2) */
+bool GUseEmulatedUniformBuffers;
+
 void OnQueryCreation( FOpenGLRenderQuery* Query )
 {
 	check(PrivateOpenGLDevicePtr);
@@ -608,6 +611,9 @@ static void InitRHICapabilitiesForGL()
 	// Shader platform & RHI feature level
 	GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = FOpenGL::GetFeatureLevel();
 	GRHIShaderPlatformValue = FOpenGL::GetShaderPlatform();
+
+	// Emulate uniform buffers on ES2, unless we're on a desktop platform emulating ES2.
+	GUseEmulatedUniformBuffers = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
 	FString FeatureLevelName;
 	GetFeatureLevelName(GMaxRHIFeatureLevel, FeatureLevelName);
