@@ -1142,7 +1142,7 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 
 ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
 { 
-	return Family->GetFeatureLevel();
+	return (Family != nullptr) ? Family->GetFeatureLevel() : GRHIFeatureLevel;
 }
 
 EShaderPlatform FSceneView::GetShaderPlatform() const
