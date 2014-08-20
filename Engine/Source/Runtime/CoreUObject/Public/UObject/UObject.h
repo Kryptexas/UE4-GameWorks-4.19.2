@@ -92,7 +92,7 @@ public:
 	 *
 	 * @warning: Objects created from within PreSave will NOT have PreSave called on them!!!
 	 */
-	virtual void PreSave() {}
+	virtual void PreSave();
 
 	/**
 	 * Note that the object will be modified.  If we are currently recording into the 

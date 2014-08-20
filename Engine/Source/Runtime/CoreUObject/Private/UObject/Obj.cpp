@@ -683,6 +683,13 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 	CheckDefaultSubobjects();
 }
 
+void UObject::PreSave()
+{
+#if WITH_EDITOR
+	FCoreDelegates::OnObjectSaved.Broadcast(this);
+#endif
+}
+
 bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	bool bSavedToTransactionBuffer = false;

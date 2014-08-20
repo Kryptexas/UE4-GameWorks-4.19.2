@@ -84,6 +84,9 @@ void FUnrealEdMisc::OnInit()
 	FEditorSupportDelegates::RedrawAllViewports.AddRaw(this, &FUnrealEdMisc::CB_RedrawAllViewports);
 	GEngine->OnLevelActorAdded().AddRaw( this, &FUnrealEdMisc::CB_LevelActorsAdded );
 
+	FCoreDelegates::OnObjectSaved.AddRaw(this, &FUnrealEdMisc::OnObjectSaved);
+	FEditorDelegates::PreSaveWorld.AddRaw(this, &FUnrealEdMisc::OnWorldSaved);
+
 #if USE_UNIT_TESTS
 	FAutomationTestFramework::GetInstance().PreTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PreAutomationTesting);
 	FAutomationTestFramework::GetInstance().PostTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PostAutomationTesting);
@@ -533,6 +536,14 @@ void FUnrealEdMisc::OnExit()
 		
 		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
 
+		// Report asset updates (to reflect forward progress made by the user)
+		TArray<FAnalyticsEventAttribute> AssetUpdateCountAttribs;
+		for (auto& UpdatedAssetPair : NumUpdatesByAssetName)
+		{
+			AssetUpdateCountAttribs.Add(FAnalyticsEventAttribute(UpdatedAssetPair.Key.ToString(), UpdatedAssetPair.Value));
+		}
+		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.AssetsSaved"), AssetUpdateCountAttribs);
+
 		FEditorViewportStats::SendUsageData();
 	}
 
@@ -607,7 +618,7 @@ void FUnrealEdMisc::OnExit()
 		if( !Handle.IsValid() )
 		{
 			// We were not able to spawn the new project exe.
-			// Its likely that the exe doesnt exist.
+			// Its likely that the exe doesn't exist.
 			// Skip shutting down the editor if this happens
 			UE_LOG(LogUnrealEdMisc, Warning, TEXT("Could not restart the editor") );
 
@@ -1130,6 +1141,33 @@ void FUnrealEdMisc::OnGotoAsset(const FString& InAssetPath) const
 		
 		GEditor->SyncBrowserToObjects(AssetDataToSync);
 	}	
+}
+
+void FUnrealEdMisc::OnObjectSaved(UObject* SavedObject)
+{
+	// Ensure the saved object is a non-UWorld asset (UWorlds are handled separately)
+	if (!SavedObject->IsA<UWorld>() && SavedObject->IsAsset())
+	{
+		LogAssetUpdate(SavedObject);
+	}
+}
+
+void FUnrealEdMisc::OnWorldSaved(uint32 SaveFlags, UWorld* SavedWorld)
+{
+	LogAssetUpdate(SavedWorld);
+}
+
+void FUnrealEdMisc::LogAssetUpdate(UObject* UpdatedAsset)
+{
+	UPackage* AssetPackage = UpdatedAsset->GetOutermost();
+	const bool bIsPIESave = AssetPackage->RootPackageHasAnyFlags(PKG_PlayInEditor);
+	const bool bIsAutosave = GUnrealEd->GetPackageAutoSaver().IsAutoSaving();
+
+	if (!bIsPIESave && !bIsAutosave && !GIsAutomationTesting)
+	{
+		uint32& NumUpdates = NumUpdatesByAssetName.FindOrAdd(UpdatedAsset->GetClass()->GetFName());
+		NumUpdates++;
+	}
 }
 
 void FUnrealEdMisc::SwitchProject(const FString& GameOrProjectFileName, bool bWarn)

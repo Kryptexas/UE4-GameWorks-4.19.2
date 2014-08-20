@@ -260,6 +260,15 @@ private:
 	/** Delegate used to go to assets in the content browser */
 	void OnGotoAsset(const FString& InAssetPath) const;
 
+	/** Delegate used to update the map of asset update counts */
+	void OnObjectSaved(UObject* SavedObject);
+
+	/** Delegate used to update the map of asset update counts (for UWorlds specifically) */
+	void OnWorldSaved(uint32 SaveFlags, UWorld* SavedWorld);
+
+	/** Logs an update to an asset */
+	void LogAssetUpdate(UObject* UpdatedAsset);
+
 	/** Initialize engine analytics */
 	void InitEngineAnalytics();
 
@@ -303,4 +312,7 @@ private:
 
 	/** handler to notify about navigation building process */
 	TSharedPtr<FTickableEditorObject> NavigationBuildingNotificationHandler;
+
+	/** Package names and the number of times they have been updated */
+	TMap<FName, uint32> NumUpdatesByAssetName;
 };

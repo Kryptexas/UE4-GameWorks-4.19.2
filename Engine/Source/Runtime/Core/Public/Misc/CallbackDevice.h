@@ -59,6 +59,9 @@ public:
 
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
+	
+	// Callback for when an asset is saved (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
 	#endif	//WITH_EDITOR
 
 	// delegate type for prompting the pak system to mount a new pak
@@ -132,6 +135,9 @@ public:
 	// Called when an asset is loaded
 	static FOnAssetLoaded OnAssetLoaded;
 
+	// Called when an asset is saved
+	static FOnObjectSaved OnObjectSaved;
+
 	// Called before the editor displays a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PreModal;
 
@@ -142,7 +148,7 @@ public:
 	// Called when SetCurrentCulture is called.
 	static FSimpleMulticastDelegate OnCultureChanged;
 
-	// Called when an error occured.
+	// Called when an error occurred.
 	static FSimpleMulticastDelegate OnShutdownAfterError;
 
 	// Called when appInit is called.
@@ -181,7 +187,7 @@ public:
 	/** requests to open a message box */
 	static FOnModalMessageBox ModalErrorMessage;
 
-	/** querries whether an object should be loaded on top ( replace ) an already existing one */
+	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
 	/** called when loading a string asset reference */
