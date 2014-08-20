@@ -6,8 +6,8 @@
 TSharedPtr<FSlateUTextureResource> FSlateUTextureResource::NullResource = MakeShareable( new FSlateUTextureResource(nullptr) );
 
 FSlateUTextureResource::FSlateUTextureResource(UTexture2D* InTexture)
-	: TextureObject(InTexture)
-	, Proxy(new FSlateShaderResourceProxy)
+	: Proxy(new FSlateShaderResourceProxy)
+	, TextureObject(InTexture)
 {
 	if(TextureObject)
 	{
