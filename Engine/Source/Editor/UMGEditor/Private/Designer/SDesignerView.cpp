@@ -225,18 +225,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					]
 				]
 			]
-
-			// Bottom-right corner text indicating the experimental nature of umg
-			+ SOverlay::Slot()
-			.Padding(10)
-			.VAlign(VAlign_Bottom)
-			.HAlign(HAlign_Right)
-			[
-				SNew(STextBlock)
-				.Visibility( EVisibility::HitTestInvisible )
-				.TextStyle( FEditorStyle::Get(), "Graph.CornerText" )
-				.Text(LOCTEXT("ExperimentalWarning", "Experimental"))
-			]
 		]
 	);
 
