@@ -170,8 +170,7 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->ParentComponentActor = GetOwner();
 
 					// Parts that we deferred from SpawnActor
-					ChildActor->ExecuteConstruction(ComponentToWorld, NULL);
-					ChildActor->PostActorConstruction();
+					ChildActor->FinishSpawning(ComponentToWorld);
 
 					// attach new actor to this component
 					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);

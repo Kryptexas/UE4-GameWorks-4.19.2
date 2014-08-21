@@ -98,10 +98,9 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 	{
 		check(MyTargetActor == SpawnedActor);
 
-		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
 
-		SpawnedActor->ExecuteConstruction(SpawnTransform, NULL);
-		SpawnedActor->PostActorConstruction();
+		SpawnedActor->FinishSpawning(SpawnTransform);
 
 		// User ability activation is inhibited while this is active
 		AbilitySystemComponent->SetUserAbilityActivationInhibited(true);

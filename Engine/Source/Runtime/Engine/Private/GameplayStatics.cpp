@@ -313,8 +313,7 @@ AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& S
 {
 	if (Actor)
 	{
-		Actor->ExecuteConstruction(SpawnTransform, NULL);
-		Actor->PostActorConstruction();
+		Actor->FinishSpawning(SpawnTransform);
 	}
 
 	return Actor;

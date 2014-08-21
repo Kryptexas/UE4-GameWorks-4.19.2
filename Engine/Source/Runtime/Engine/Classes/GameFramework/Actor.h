@@ -160,6 +160,9 @@ private:
 	/** True if this actor is currently running user construction script (used to defer component registration) */
 	uint32 bRunningUserConstructionScript:1;
 
+	/** Whether FinishSpawning has been called for this Actor.  If it has not, the Actor is in a mal-formed state */
+	uint32 bHasFinishedSpawning:1;
+
 protected:
 	// This actor will replicate to remote machines
 	UPROPERTY(Category = Replication, EditDefaultsOnly, BlueprintReadOnly)
@@ -1470,9 +1473,14 @@ public:
 	/** Called after the actor is spawned in the world.  Responsible for setting up actor for play. */
 	void PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
 
+        /** Called to finish the spawning process, generally in the case of deferred spawning */
+	void FinishSpawning(const FTransform& Transform);
+
+private:
 	/** Called after the actor has run its construction. Responsible for finishing the actor spawn process. */
 	void PostActorConstruction();
 
+public:
 	/** Called immediately before gameplay begins. */
 	virtual void PreInitializeComponents();
 

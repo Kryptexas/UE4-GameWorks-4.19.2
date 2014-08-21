@@ -33,10 +33,9 @@ void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, A
 {
 	if (SpawnedActor)
 	{
-		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
 
-		SpawnedActor->ExecuteConstruction(SpawnTransform, NULL);
-		SpawnedActor->PostActorConstruction();
+		SpawnedActor->FinishSpawning(SpawnTransform);
 
 		Success.Broadcast(SpawnedActor);
 	}
