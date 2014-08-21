@@ -90,6 +90,7 @@ namespace APIDocTool
 			"NO_API= ",
 			"OVERRIDE= ",
 			"CDECL= ",
+			"DEPRECATED(X,Y)= ",
 
 			// Platform
 			"PLATFORM_SUPPORTS_DRAW_MESH_EVENTS=1",
@@ -378,6 +379,12 @@ namespace APIDocTool
 				IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
 				IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
 
+				// Find all the metadata pages
+				AddMetadataKeyword(UdnDir, "UCLASS", "Programming/UnrealArchitecture/Reference/Classes#classdeclaration", "Programming/UnrealArchitecture/Reference/Classes/Specifiers");
+				AddMetadataKeyword(UdnDir, "UFUNCTION", "Programming/UnrealArchitecture/Reference/Functions", "Programming/UnrealArchitecture/Reference/Functions/Specifiers");
+				AddMetadataKeyword(UdnDir, "UPROPERTY", "Programming/UnrealArchitecture/Reference/Properties", "Programming/UnrealArchitecture/Reference/Properties/Specifiers");
+				AddMetadataKeyword(UdnDir, "USTRUCT", "Programming/UnrealArchitecture/Reference/Structs", "Programming/UnrealArchitecture/Reference/Structs/Specifiers");
+
 				// Clean the output folders
 				if (bCleanTargetInfo)
 				{
@@ -445,6 +452,17 @@ namespace APIDocTool
 				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
 				Console.WriteLine("                                       Entities: -filter=Core/TArray");
 			}
+		}
+
+		static void AddMetadataKeyword(string BaseDir, string Name, string TypeUrl, string SpecifierBaseUrl)
+		{
+			MetadataKeyword Keyword = new MetadataKeyword();
+			Keyword.Url = TypeUrl;
+			foreach (DirectoryInfo Specifier in new DirectoryInfo(Path.Combine(BaseDir, SpecifierBaseUrl.Replace('/', '\\'))).EnumerateDirectories())
+			{
+				Keyword.NodeUrls.Add(Specifier.Name, SpecifierBaseUrl.TrimEnd('/') + "/" + Specifier.Name);
+			}
+			MetadataDirective.AllKeywords.Add(Name, Keyword);
 		}
 
 		static void CleanTargetInfo(string TargetInfoPath)

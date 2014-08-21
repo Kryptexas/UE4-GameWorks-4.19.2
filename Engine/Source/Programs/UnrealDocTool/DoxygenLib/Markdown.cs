@@ -11,7 +11,7 @@ namespace DoxygenLib
 {
 	public static class Markdown
 	{
-		const bool bDocToolCanParseExternalLinks = false;
+		const bool bDocToolCanParseExternalLinks = true;
 
 		public delegate string ResolveLinkDelegate(string Id);
 
@@ -57,7 +57,22 @@ namespace DoxygenLib
 					case "ulink":
 						if (bDocToolCanParseExternalLinks)
 						{
-							output += Indent + String.Format("[{0}]({1})", ParseChildren(child, Indent, ResolveLink), child.Attributes.GetNamedItem("url").InnerText);
+							string LinkText = ParseChildren(child, Indent, ResolveLink);
+							string LinkUrl = child.Attributes.GetNamedItem("url").InnerText;
+
+							const string WebPrefix = "docs.unrealengine.com/latest/INT/";
+							int WebPrefixIdx = LinkUrl.IndexOf(WebPrefix);
+							if(WebPrefixIdx != -1 && LinkText.Contains("docs.unrealengine.com"))
+							{
+								LinkText = "";
+								LinkUrl = LinkUrl.Substring(WebPrefixIdx + WebPrefix.Length);
+								if(LinkUrl.EndsWith(".html"))
+								{
+									LinkUrl = LinkUrl.Substring(0, LinkUrl.LastIndexOf('/') + 1);
+								}
+							}
+
+							output += Indent + String.Format("[{0}]({1})", LinkText, LinkUrl);
 						}
 						else
 						{
@@ -103,6 +118,11 @@ namespace DoxygenLib
 					case "parameternamelist":
 						break;
 					case "simplesect":
+						XmlAttribute KindAttribute = child.Attributes["kind"];
+						if (KindAttribute != null && KindAttribute.Value == "see")
+						{
+							output += "  \n  \nFor more information, see " + ParseChildren(child, Indent + "\t", ResolveLink) + ".";
+						}
 						break;
 					case "xrefsect":
 						break;
@@ -247,5 +267,100 @@ namespace DoxygenLib
 			}
 			return Result.ToString();
 		}
+
+		/** 
+		 * Truncates a line to a given width, respecting embedded links.
+         * 
+		 * @param Text			Text to truncate
+         * @param MaxLength     Maximum number of characters in the output
+         * @param Suffix        Suffix to append if the string is truncated
+         * @return				Truncated string
+		 */
+        public static string Truncate(string Text, int MaxLength, string Suffix)
+        {
+            StringBuilder Output = new StringBuilder();
+            
+            int RemainingCharacters = MaxLength;
+            for (int Idx = 0; Idx < Text.Length; )
+            {
+                int NextIdx = TruncateEscapedCharacter(Text, Idx, ref RemainingCharacters, Output);
+                if(NextIdx == -1)
+                {
+                    NextIdx = TruncateLink(Text, Idx, ref RemainingCharacters, Output);
+                    if(NextIdx == -1)
+                    {
+                        NextIdx = Idx + 1;
+                        if(RemainingCharacters > 0)
+                        {
+                            Output.Append(Text[Idx]);
+                        }
+                        RemainingCharacters--;
+                    }
+                }
+                Idx = NextIdx;
+            }
+            if(RemainingCharacters < 0)
+            {
+                Output.Append(Suffix);
+            }
+
+            return Output.ToString();
+        }
+
+        private static int TruncateEscapedCharacter(string Text, int Idx, ref int RemainingCharacters, StringBuilder Output)
+        {
+            // Check it starts with an ampersand
+            if (Text[Idx] == '&')
+            {
+                // Skip past any sequence of letters
+                int NewIdx = Idx + 1;
+                while (NewIdx < Text.Length && Char.IsLetter(Text[NewIdx]))
+                {
+                    NewIdx++;
+                }
+
+                // Check the whole thing is valid
+                if (NewIdx != Idx + 1 && NewIdx < Text.Length && Text[NewIdx] == ';')
+                {
+                    // Append the markdown
+                    if (RemainingCharacters > 0)
+                    {
+                        Output.Append(Text.Substring(Idx, NewIdx + 1 - Idx));
+                    }
+
+                    // Move to the next character
+                    RemainingCharacters--;
+                    return NewIdx + 1;
+                }
+            }
+            return -1;
+        }
+
+        private static int TruncateLink(string Text, int Idx, ref int RemainingCharacters, StringBuilder Output)
+        {
+            // Check if starts with a bracket
+            if(Text[Idx] == '[')
+            {
+                // Find the end of the description
+                int LabelStart = Idx + 1;
+                int LabelEnd = Text.IndexOf(']', LabelStart);
+                if(LabelEnd != -1 && LabelEnd + 1 < Text.Length && Text[LabelEnd + 1] == '(')
+                {
+                    // Find the end of the link
+                    int LinkStart = LabelEnd + 2;
+                    int LinkEnd = Text.IndexOf(')', LinkStart);
+                    if(LinkEnd != -1)
+                    {
+                        if(RemainingCharacters > 0)
+                        {
+                            Output.AppendFormat("[{0}]({1})", Text.Substring(LabelStart, Math.Min(LabelEnd - LabelStart, RemainingCharacters)), Text.Substring(LinkStart, LinkEnd - LinkStart));
+                        }
+                        RemainingCharacters -= LabelEnd - LabelStart;
+                        return LinkEnd + 1;
+                    }
+                }
+            }
+            return -1;
+        }
 	}
 }

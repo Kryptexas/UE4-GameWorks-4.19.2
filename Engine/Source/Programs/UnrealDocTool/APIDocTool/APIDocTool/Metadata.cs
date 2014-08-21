@@ -226,9 +226,16 @@ namespace APIDocTool
 		public string Description;
 	}
 
+	public class MetadataKeyword
+	{
+		public string Url;
+		public Dictionary<string, string> NodeUrls = new Dictionary<string,string>();
+	}
+
 	public class MetadataDirective
 	{
 		public static Dictionary<string, Dictionary<string, int>> AllTags = new Dictionary<string, Dictionary<string, int>>();
+		public static Dictionary<string, MetadataKeyword> AllKeywords = new Dictionary<string, MetadataKeyword>();
 
 		public readonly SourceFile File;
 		public readonly string Type;
@@ -265,9 +272,55 @@ namespace APIDocTool
 			}
 		}
 
-		public string ToMarkdown()
+		public IEnumerable<string> ToMarkdown()
 		{
-			return Utility.EscapeText(ToString());
+			MetadataKeyword Keyword;
+			if(AllKeywords.TryGetValue(Type, out Keyword))
+			{
+				StringBuilder Output = new StringBuilder();
+				Output.AppendFormat("[{0}]({1})", Type, Keyword.Url);
+				Output.Append(Utility.EscapeText("("));
+
+				int Indent = Type.Length + 1;
+				int HangingIndent = Indent;
+
+				List<string> Lines = new List<string>();
+				for(int Idx = 0; Idx < NodeList.Count; Idx++)
+				{
+					string NodeText = NodeList[Idx].ToString();
+
+					if (Indent + NodeText.Length + 3 > 100)
+					{
+						yield return Output.ToString();
+						Output.Clear();
+						Output.Append(String.Concat(Enumerable.Repeat("&nbsp;", HangingIndent)));
+						Indent = HangingIndent;
+					}
+
+					string NodeUrl;
+					if(Keyword.NodeUrls.TryGetValue(NodeList[Idx].TagText, out NodeUrl))
+					{
+						Output.AppendFormat("[{0}]({1})", Utility.EscapeText(NodeText), NodeUrl);
+					}
+					else
+					{
+						Output.Append(Utility.EscapeText(NodeText));
+					}
+					Indent += NodeText.Length;
+
+					if(Idx + 1 < NodeList.Count)
+					{
+						Output.Append(", ");
+						Indent += 2;
+					}
+				}
+				Output.Append(Utility.EscapeText(")"));
+				yield return Output.ToString();
+			}
+			else
+			{
+				yield return Utility.EscapeText(ToString());
+			}
 		}
 
 		public IEnumerable<Icon> Icons

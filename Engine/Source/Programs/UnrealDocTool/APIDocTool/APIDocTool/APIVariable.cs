@@ -40,6 +40,11 @@ namespace APIDocTool
 			AddRefLink(Node.Attributes["id"].InnerText, this);
 		}
 
+		public bool IsDeprecated()
+		{
+			return Name.EndsWith("_DEPRECATED");
+		}
+
 		public override void Link()
 		{
 			// Parse the metadata
@@ -81,24 +86,33 @@ namespace APIDocTool
 			IsStatic = Node.Attributes.GetNamedItem("static").InnerText == "yes";
         }
 
+		private void WriteDefinition(UdnWriter Writer)
+		{
+			List<string> Lines = new List<string>();
+
+			if (MetadataDirective != null)
+			{
+				Lines.AddRange(MetadataDirective.ToMarkdown());
+			}
+
+			StringBuilder Definition = new StringBuilder();
+			if (IsStatic) Definition.Append("static ");
+			if (IsMutable) Definition.Append("mutable ");
+			Definition.Append(Type + " " + Name);
+			if (Bitfield != "") Definition.Append(": " + Bitfield);
+			Definition.Append("  ");
+			Lines.Add(Definition.ToString());
+
+			WriteNestedSimpleCode(Writer, Lines);
+		}
+
 		public override void WritePage(UdnManifest Manifest, string OutputPath)
         {
 			using (UdnWriter Writer = new UdnWriter(OutputPath))
 			{
 				Writer.WritePageHeader(Name, PageCrumbs, BriefDescription);
 
-				Writer.EnterTag("[OBJECT:Variable]");
-
-				// Write the brief description
-				Writer.EnterTag("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.LeaveTag("[/PARAM]");
-
 				// Write the warnings
-				Writer.EnterTag("[PARAM:warnings]");
 				if (Warnings.Count > 0)
 				{
 					Writer.EnterTag("[REGION:warning]");
@@ -109,42 +123,26 @@ namespace APIDocTool
 					}
 					Writer.LeaveTag("[/REGION]");
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the syntax
-				Writer.EnterTag("[PARAM:syntax]");
 				Writer.EnterSection("syntax", "Syntax");
-				Writer.EnterTag("[REGION:simplecode_api]");
-				if (MetadataDirective != null) Writer.WriteLine(MetadataDirective.ToMarkdown() + "  ");
-				if (IsStatic) Writer.Write("static ");
-				if (IsMutable) Writer.Write("mutable ");
-				Writer.Write(Type + " " + Name);
-				if (Bitfield != "") Writer.Write(": " + Bitfield);
-				Writer.WriteLine("  ");
-				Writer.LeaveTag("[/REGION]");
+				WriteDefinition(Writer);
 				Writer.LeaveSection();
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the metadata
-				Writer.EnterTag("[PARAM:meta]");
-				if (MetadataDirective != null)
-				{
-					MetadataDirective.WriteListSection(Writer, "metadata", "Metadata", MetadataLookup.PropertyTags);
-				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the description
-				Writer.EnterTag("[PARAM:description]");
-				if (!Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					Writer.WriteLine(FullDescription);
+					if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
+					{
+						Writer.WriteLine(BriefDescription);
+					}
+					if (!Utility.IsNullOrWhitespace(FullDescription))
+					{
+						Writer.WriteLine(FullDescription);
+					}
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
-
-				// Leave the object tag
-				Writer.LeaveTag("[/OBJECT]");
 			}
         }
 

@@ -44,7 +44,7 @@ namespace APIDocTool
 
 		public void ReplaceMarkdownVariables(ref string Text)
 		{
-			Text = Text.Replace("&#123;&#123; typedef-type &#125;&#125;", Type);
+			Text = Text.Replace("&#123;&#123; typedef&#45;type &#125;&#125;", Type);
 		}
 
 		public override void WritePage(UdnManifest Manifest, string Path)
@@ -53,40 +53,28 @@ namespace APIDocTool
 			{
 				Writer.WritePageHeader(Name, PageCrumbs, BriefDescription);
 
-				Writer.EnterTag("[OBJECT:Typedef]");
-
-				// Write the brief description
-				Writer.EnterTag("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.LeaveTag("[/PARAM]");
-
 				// Write the type
-				Writer.EnterTag("[PARAM:type]");
 				Writer.EnterSection("type", "Type");
 				WriteNestedSimpleCode(Writer, new List<string> { "typedef " + Type + " " + Name });
 				Writer.LeaveSection();
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the description
-				Writer.EnterTag("[PARAM:description]");
-				if (!Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					Writer.WriteLine(FullDescription);
+					if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
+					{
+						Writer.WriteLine(BriefDescription);
+					}
+					if (!Utility.IsNullOrWhitespace(FullDescription))
+					{
+						Writer.WriteLine(FullDescription);
+					}
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the references
-				Writer.EnterTag("[PARAM:references]");
 				WriteReferencesSection(Writer, Entity);
-				Writer.LeaveTag("[/PARAM]");
-
-				// Leave the object tag
-				Writer.LeaveTag("[/OBJECT]");
 			}
 		}
     }

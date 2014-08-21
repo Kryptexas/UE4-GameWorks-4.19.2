@@ -32,38 +32,28 @@ namespace APIDocTool
 			{
 				Writer.WritePageHeader(Name, PageCrumbs, BriefDescription);
 
-				Writer.EnterTag("[OBJECT:Constant]");
-
-				Writer.EnterTag("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription))
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.LeaveTag("[/PARAM]");
-
 				// Write the syntax
-				Writer.EnterTag("[PARAM:syntax]");
 				Writer.EnterSection("syntax", "Syntax");
 				WriteDefinition(Writer);
 				Writer.LeaveSection();
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the description
-				Writer.EnterTag("[PARAM:description]");
-				if (!Utility.IsNullOrWhitespace(FullDescription) && FullDescription != BriefDescription)
+				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					Writer.WriteLine(FullDescription);
+					if (!Utility.IsNullOrWhitespace(BriefDescription) && FullDescription != BriefDescription)
+					{
+						Writer.WriteLine(BriefDescription);
+					}
+					if(!Utility.IsNullOrWhitespace(FullDescription))
+					{
+						Writer.WriteLine(FullDescription);
+					}
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the references
-				Writer.EnterParam("references");
 				WriteReferencesSection(Writer, Entity);
-				Writer.LeaveParam();
-
-				Writer.LeaveTag("[/OBJECT]");
 			}
 		}
 

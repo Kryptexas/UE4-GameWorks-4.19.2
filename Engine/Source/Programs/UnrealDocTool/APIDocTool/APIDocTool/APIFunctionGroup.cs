@@ -47,6 +47,11 @@ namespace APIDocTool
 			get { return Children.OfType<APIFunction>().OrderBy(x => x.LinkPath); }
 		}
 
+		public bool IsDeprecated()
+		{
+			return Name.EndsWith("_DEPRECATED");
+		}
+
 		public override void Link()
 		{
 		}

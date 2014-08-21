@@ -83,7 +83,8 @@ namespace APIDocTool
 				{
 					foreach (string SubDir in Directory.EnumerateDirectories(Dir))
 					{
-						Directory.Delete(SubDir, true);
+						SafeDeleteDirectoryContents(SubDir, true);
+//						Directory.Delete(SubDir, true);
 					}
 				}
 			}

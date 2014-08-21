@@ -275,7 +275,7 @@ namespace APIDocTool
 
 			if (MetadataDirective != null)
 			{
-				Lines.Add(MetadataDirective.ToMarkdown());
+				Lines.AddRange(MetadataDirective.ToMarkdown());
 			}
 			if (TemplateSignature != null)
 			{
@@ -283,7 +283,7 @@ namespace APIDocTool
 			}
 			if(BaseDefinitions.Count == 0)
 			{
-				Lines.Add(Definition);
+				Lines.Add("<span style=\"color:blue\">" + Definition + "</span>");
 			}
 			else if(BaseDefinitions.Count == 1)
 			{
@@ -320,23 +320,28 @@ namespace APIDocTool
 			return false;
 		}
 
+		private void FindAllBaseRecords(List<APIRecord> Records)
+		{
+			if(!Records.Contains(this))
+			{
+				Records.Add(this);
+				foreach(KeyValuePair<XmlNode, APIRecord> BaseRecord in BaseRecords)
+				{
+					if(BaseRecord.Value != null)
+					{
+						BaseRecord.Value.FindAllBaseRecords(Records);
+					}
+				}
+			}
+		}
+
 		public override void WritePage(UdnManifest Manifest, string OutputPath)
         {
 			using (UdnWriter Writer = new UdnWriter(OutputPath))
 			{
 				Writer.WritePageHeader(Name, PageCrumbs, BriefDescription);
-				Writer.EnterTag("[OBJECT:Class]");
-
-				// Write the brief description
-				Writer.WriteLine("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription))
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.WriteLine("[/PARAM]");
 
 				// Write the hierarchy
-				Writer.EnterTag("[PARAM:hierarchy]");
 				if (HierarchyNode != null)
 				{
 					Writer.EnterSection("hierarchy", "Inheritance Hierarchy");
@@ -345,34 +350,40 @@ namespace APIDocTool
 					Writer.LeaveTag("[/REGION]");
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the record definition
-				Writer.EnterTag("[PARAM:syntax]");
 				if (!Utility.IsNullOrWhitespace(Definition))
 				{
 					Writer.EnterSection("syntax", "Syntax");
 					WriteDefinition(Writer);
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
-				// Write the metadata section
-				Writer.WriteLine("[PARAM:meta]");
-				if (MetadataDirective != null)
+				// Write the class description
+				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
 				{
-					MetadataDirective.WriteListSection(Writer, "metadata", "Metadata", MetadataLookup.ClassTags);
+					Writer.EnterSection("description", "Remarks");
+					if (!Utility.IsNullOrWhitespace(BriefDescription))
+					{
+						Writer.WriteLine(BriefDescription);
+					}
+					if (!Utility.IsNullOrWhitespace(FullDescription))
+					{
+						Writer.WriteLine(FullDescription);
+					}
+					Writer.LeaveSection();
 				}
-				Writer.WriteLine("[/PARAM]");
+
+				// Write the main body section
+				Writer.EnterRegion("syntax");
 
 				// Build a list of all the functions
 				List<APIFunction> AllFunctions = new List<APIFunction>();
-				AllFunctions.AddRange(Children.OfType<APIFunction>().Where(x => x.Protection != APIProtection.Private));
-				AllFunctions.AddRange(Children.OfType<APIFunctionGroup>().SelectMany(x => x.Children.OfType<APIFunction>()).Where(x => x.Protection != APIProtection.Private));
+				AllFunctions.AddRange(Children.OfType<APIFunction>().Where(x => x.Protection != APIProtection.Private && !x.IsDeprecated()));
+				AllFunctions.AddRange(Children.OfType<APIFunctionGroup>().SelectMany(x => x.Children.OfType<APIFunction>()).Where(x => x.Protection != APIProtection.Private && !x.IsDeprecated()));
 				AllFunctions.Sort((x, y) => String.Compare(x.Name, y.Name));
 
 				// Write all the specializations
-				Writer.EnterTag("[PARAM:specializations]");
 				if (TemplateSpecializations.Count > 0)
 				{
 					Writer.EnterSection("specializations", "Specializations");
@@ -382,89 +393,78 @@ namespace APIDocTool
 					}
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
-				// Write all the typedefs
-				Writer.EnterTag("[PARAM:typedefs]");
-				Writer.WriteListSection("typedefs", "Typedefs", "Name", "Description", Children.OfType<APITypeDef>().Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
+				// Write all the variables
+				Writer.WriteListSection("variables", "Variables", "Name", "Description", Children.OfType<APIVariable>().Where(x => x.Protection != APIProtection.Private && !x.IsDeprecated()).OrderBy(x => x.Name).Select(x => x.GetListItem()));
 
 				// Write all the constructors
-				Writer.EnterTag("[PARAM:constructors]");
 				if (!APIFunction.WriteListSection(Writer, "constructor", "Constructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Constructor).OrderBy(x => x.LinkPath)) && HasAnyPrivateFunction(Name))
 				{
 					Writer.EnterSection("constructor", "Constructors");
 					Writer.WriteLine("No constructors are accessible with public or protected access.");
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write all the destructors
-				Writer.EnterTag("[PARAM:destructors]");
 				if (!APIFunction.WriteListSection(Writer, "destructor", "Destructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Destructor)) && HasAnyPrivateFunction("~" + Name))
 				{
 					Writer.EnterSection("destructors", "Destructors");
 					Writer.WriteLine("No destructors are accessible with public or protected access.");
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
-				// Write all the enums
-				Writer.EnterTag("[PARAM:enums]");
-				Writer.WriteListSection("enums", "Enums", "Name", "Description", Children.OfType<APIEnum>().OrderBy(x => x.Name).Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
+				// Find a list of base classes
+				List<APIRecord> AllBaseRecords = new List<APIRecord>();
+				FindAllBaseRecords(AllBaseRecords);
 
-				// Write all the inner structures
-				Writer.EnterTag("[PARAM:classes]");
-				Writer.WriteListSection("classes", "Classes", "Name", "Description", Children.OfType<APIRecord>().Where(x => x.Protection != APIProtection.Private).OrderBy(x => x.Name).Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write all the constants
-				Writer.EnterTag("[PARAM:constants]");
-				Writer.WriteListSection("constants", "Constants", "Name", "Description", Children.OfType<APIConstant>().Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write all the variables
-				Writer.EnterTag("[PARAM:variables]");
-				Writer.WriteListSection("variables", "Variables", "Name", "Description", Children.OfType<APIVariable>().Where(x => x.Protection != APIProtection.Private).OrderBy(x => x.Name).Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
+				// Build a list of functions for each base record
+				List<APIFunction>[] AllBaseFunctions = AllBaseRecords.Select(x => new List<APIFunction>()).ToArray();
+				foreach(APIFunction Function in AllFunctions.Where(x =>x.FunctionType == APIFunctionType.Normal && !x.IsExecFunction()))
+				{
+					int BaseRecordIdx = AllBaseRecords.IndexOf(Function.GetBaseImplementation().FindParent<APIRecord>());
+					AllBaseFunctions[Math.Max(0, BaseRecordIdx)].Add(Function);
+				}
 
 				// Write the functions
-				Writer.EnterTag("[PARAM:methods]");
-				APIFunction.WriteListSection(Writer, "methods", "Methods", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Normal));
-				Writer.LeaveTag("[/PARAM]");
+				for (int Idx = 0; Idx < AllBaseFunctions.Length; Idx++)
+				{
+					List<APIFunction> BaseFunctions = AllBaseFunctions[Idx];
+					if (BaseFunctions.Count > 0)
+					{
+						string Id = String.Format("methods_{0}", Idx);
+						string Label = (Idx == 0) ? "Methods" : String.Format("Overridden from {0}", AllBaseRecords[Idx].Name);
+						APIFunction.WriteListSection(Writer, Id, Label, AllBaseFunctions[Idx]);
+					}
+				}
 
 				// Write the operator list
-				Writer.EnterTag("[PARAM:operators]");
 				APIFunction.WriteListSection(Writer, "operators", "Operators", AllFunctions.Where(x => x.FunctionType == APIFunctionType.UnaryOperator || x.FunctionType == APIFunctionType.BinaryOperator));
-				Writer.LeaveTag("[/PARAM]");
 
-				// Write class description
-				Writer.EnterTag("[PARAM:description]");
-				if (!Utility.IsNullOrWhitespace(FullDescription) && FullDescription != BriefDescription)
-				{
-					Writer.EnterSection("description", "Remarks");
-					Writer.WriteLine(FullDescription);
-					Writer.LeaveSection();
-				}
-				Writer.LeaveTag("[/PARAM]");
+				// Write all the inner structures
+				Writer.WriteListSection("classes", "Classes", "Name", "Description", Children.OfType<APIRecord>().Where(x => x.Protection != APIProtection.Private).OrderBy(x => x.Name).Select(x => x.GetListItem()));
+
+				// Write all the enums
+				Writer.WriteListSection("enums", "Enums", "Name", "Description", Children.OfType<APIEnum>().OrderBy(x => x.Name).Select(x => x.GetListItem()));
+
+				// Write all the typedefs
+				Writer.WriteListSection("typedefs", "Typedefs", "Name", "Description", Children.OfType<APITypeDef>().Select(x => x.GetListItem()));
+
+				// Write all the constants
+				Writer.WriteListSection("constants", "Constants", "Name", "Description", Children.OfType<APIConstant>().Select(x => x.GetListItem()));
+
+				// Leave the body
+				Writer.LeaveRegion();
 
 				// Write the marshalling parameters
-				Writer.EnterTag("[PARAM:marshalling]");
 				if (DelegateEventParameters != null)
 				{
 					Writer.EnterSection("marshalling", "Marshalling");
 					Writer.WriteLine("Parameters are marshalled using [{0}]({1})", DelegateEventParameters.FullName, DelegateEventParameters.LinkPath);
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the references
-				Writer.EnterTag("[PARAM:references]");
 				WriteReferencesSection(Writer, Entity);
-				Writer.LeaveTag("[/PARAM]");
-
-				Writer.LeaveTag("[/OBJECT]");
 			}
         }
 
