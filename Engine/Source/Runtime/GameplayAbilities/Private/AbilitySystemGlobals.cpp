@@ -70,19 +70,6 @@ void UAbilitySystemGlobals::OnTableReimported(UObject* InObject)
 
 #endif
 
-
-UAbilitySystemComponent * UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor *Actor) const
-{
-	if (Actor)
-	{
-		return Actor->FindComponentByClass<UAbilitySystemComponent>();
-	}
-
-	// Caller should check this
-	ensure(false);
-	return NULL;
-}
-
 FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 {
 	return new FGameplayAbilityActorInfo();
@@ -98,6 +85,25 @@ UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 	return *GlobalPtr;
 }
 
+/** Helping function to avoid having to manually cast */
+UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return nullptr;
+	}
+
+	IAbilitySystemInterface* ASI = InterfaceCast<IAbilitySystemInterface>(Actor);
+	if (ASI)
+	{
+		return ASI->GetAbilitySystemComponent();
+	}
+
+	/** This is slow and not desirable */
+	ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on Actor that is not IAbilitySystemInterface. This slow!"));
+
+	return Actor->FindComponentByClass<UAbilitySystemComponent>();
+}
 
 // --------------------------------------------------------------------
 

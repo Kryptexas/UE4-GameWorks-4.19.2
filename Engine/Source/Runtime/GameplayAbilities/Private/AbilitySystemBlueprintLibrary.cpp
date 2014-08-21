@@ -3,6 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
@@ -17,11 +18,7 @@ UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const class FPost
 
 UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AActor *Actor)
 {
-	/**
-	 *	Fixme: This is supposed to be a small optimization but here we are going through module code, then a global uobject, then finally a virtual function - yuck!
-	 *		-think of a better way to have a global, overridable per project function. Thats it!
-	 */
-	return UAbilitySystemGlobals::Get().GetAbilitySystemComponentFromActor(Actor);
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
 }
 
 void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)

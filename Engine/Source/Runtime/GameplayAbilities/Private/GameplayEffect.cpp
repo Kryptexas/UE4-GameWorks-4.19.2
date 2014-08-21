@@ -2057,16 +2057,16 @@ float FGameplayEffectLevelSpec::GetLevel() const
 		UClass * SetClass = Attribute.GetAttributeSetClass();
 		check(SetClass);
 
-		TArray<UObject*> ChildObjects;
-		GetObjectsWithOuter(Source.Get(), ChildObjects);
-
-		for (int32 ChildIndex = 0; ChildIndex < ChildObjects.Num(); ++ChildIndex)
+		UAbilitySystemComponent* Component = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Source.Get());
+		if (Component)
 		{
-			UObject *Obj = ChildObjects[ChildIndex];
-			if (Obj->GetClass()->IsChildOf(SetClass))
+			for (const UAttributeSet* Set : Component->SpawnedAttributes)
 			{
-				CachedLevel = Attribute.GetNumericValueChecked(CastChecked<UAttributeSet>(Obj));
-				return CachedLevel;
+				if (Set->GetClass()->IsChildOf(SetClass))
+				{
+					CachedLevel = Attribute.GetNumericValueChecked(CastChecked<UAttributeSet>(Set));
+					return CachedLevel;
+				}
 			}
 		}
 	}

@@ -38,8 +38,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
 
-	
-
 	void AutomationTestOnly_SetGlobalCurveTable(class UCurveTable *InTable)
 	{
 		GlobalCurveTable = InTable;
@@ -52,11 +50,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	static UAbilitySystemGlobals& Get();
 
-	/**
-	 *	Games may want to override this in a UMyProjectAbilitySystemsGlobals class and provide
-	 *	a faster lookup for attribute compnents (E.g. Cast<MyProjPawn>(Actor)->AbilitySystemComponent; etc)
-	 */
-	virtual UAbilitySystemComponent * GetAbilitySystemComponentFromActor(AActor *Actor) const;
+	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor);
 
 	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for dellocation */
 	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
