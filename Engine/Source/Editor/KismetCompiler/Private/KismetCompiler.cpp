@@ -3439,9 +3439,19 @@ void FKismetCompilerContext::Compile()
 		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
 		for (auto CurrentBP : DependentBlueprints)
 		{
+			// Get the current dirty state of the package
+			UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+			const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
+
 			CurrentBP->Status = BS_Dirty;
 			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, NewClass);
 			CurrentBP->BroadcastChanged();
+
+			// Clear the package dirty state if it did not initially have any unsaved changes to begin with
+			if(Package != nullptr && Package->IsDirty() && !bStartedWithUnsavedChanges)
+			{
+				Package->SetDirtyFlag(false);
+			}
 		}
 	}
 
