@@ -479,6 +479,7 @@ FBlueprintPaletteListBuilder::FBlueprintPaletteListBuilder(UBlueprint const* Blu
 	if (Blueprint != NULL)
 	{
 		OwnerOfTemporaries = NewObject<UEdGraph>((UObject*)Blueprint);
+		OwnerOfTemporaries->Schema = UEdGraphSchema_K2::StaticClass();
 		OwnerOfTemporaries->SetFlags(RF_Transient);
 	}
 }
