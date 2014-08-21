@@ -6159,14 +6159,17 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 {
-	check(CharacterOwner && CharacterOwner->Mesh)
+	check(CharacterOwner && CharacterOwner->Mesh);
 
 	CharacterOwner->Mesh->TickPose(DeltaTime);
 
 	// Grab root motion now that we have ticked the pose
-	if (UAnimInstance* AnimInstance = CharacterOwner->Mesh->GetAnimInstance())
+	if (CharacterOwner->IsPlayingRootMotion())
 	{
-		RootMotionParams.Accumulate(AnimInstance->ConsumeExtractedRootMotion());
+		if (UAnimInstance * AnimInstance = CharacterOwner->Mesh->GetAnimInstance())
+		{
+			RootMotionParams.Accumulate(AnimInstance->ConsumeExtractedRootMotion());
+		}
 	}
 }
 

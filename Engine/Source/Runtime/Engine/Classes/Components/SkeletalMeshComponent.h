@@ -474,6 +474,11 @@ public:
 	 * Misc 
 	 */
 	
+	/** If true TickPose() will not be called from the Component's TickComponent function.
+	* It will instead be called from Autonomous networking updates. See ACharacter. */
+	UPROPERTY(Transient)
+	uint32 bAutonomousTickPose : 1;
+
 	/** If true, force the mesh into the reference pose - is an optimization. */
 	UPROPERTY()
 	uint32 bForceRefpose:1;

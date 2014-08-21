@@ -19,16 +19,26 @@ APaperCharacter::APaperCharacter(const class FPostConstructInitializeProperties&
 		Sprite->bOwnerNoSee = false;
 		Sprite->bAffectDynamicIndirectLighting = true;
 		Sprite->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-
-		// force tick after movement component updates
-		if (CharacterMovement)
-		{
-			Sprite->PrimaryComponentTick.AddPrerequisite(this, CharacterMovement->PrimaryComponentTick);
-		}
-
 		Sprite->AttachParent = CapsuleComponent;
 		static FName CollisionProfileName(TEXT("CharacterMesh"));
 		Sprite->SetCollisionProfileName(CollisionProfileName);
 		Sprite->bGenerateOverlapEvents = false;
+	}
+}
+
+void APaperCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (!IsPendingKill())
+	{
+		if (Sprite)
+		{
+			// force animation tick after movement component updates
+			if (Sprite->PrimaryComponentTick.bCanEverTick && CharacterMovement.IsValid())
+			{
+				Sprite->PrimaryComponentTick.AddPrerequisite(CharacterMovement, CharacterMovement->PrimaryComponentTick);
+			}
+		}
 	}
 }

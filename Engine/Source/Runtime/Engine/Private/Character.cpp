@@ -89,11 +89,6 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 		Mesh->bCastDynamicShadow = true;
 		Mesh->bAffectDynamicIndirectLighting = true;
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-		// force tick after movement component updates
-		if( CharacterMovement )
-		{
-			Mesh->PrimaryComponentTick.AddPrerequisite(this, CharacterMovement->PrimaryComponentTick); 
-		}
 		Mesh->bChartDistanceFactor = true;
 		Mesh->AttachParent = CapsuleComponent;
 		static FName CollisionProfileName(TEXT("CharacterMesh"));
@@ -112,6 +107,12 @@ void ACharacter::PostInitializeComponents()
 		if (Mesh)
 		{
 			BaseTranslationOffset = Mesh->RelativeLocation;
+
+			// force animation tick after movement component updates
+			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement.IsValid())
+			{
+				Mesh->PrimaryComponentTick.AddPrerequisite(CharacterMovement, CharacterMovement->PrimaryComponentTick);
+			}
 		}
 
 		if (CharacterMovement.IsValid() && CapsuleComponent.IsValid())
@@ -678,6 +679,17 @@ void ACharacter::PawnClientRestart()
 	Super::PawnClientRestart();
 }
 
+void ACharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// If we are controlled remotely, set animation timing to be driven by client's network updates. So timing and events remain in sync.
+	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy))
+	{
+		Mesh->bAutonomousTickPose = true;
+	}
+}
+
 void ACharacter::UnPossessed()
 {
 	Super::UnPossessed();
@@ -686,6 +698,12 @@ void ACharacter::UnPossessed()
 	{
 		CharacterMovement->ResetPredictionData_Client();
 		CharacterMovement->ResetPredictionData_Server();
+	}
+
+	// We're no longer controlled remotely, resume regular ticking of animations.
+	if (Mesh)
+	{
+		Mesh->bAutonomousTickPose = false;
 	}
 }
 
@@ -698,6 +716,12 @@ void ACharacter::TornOff()
 	{
 		CharacterMovement->ResetPredictionData_Client();
 		CharacterMovement->ResetPredictionData_Server();
+	}
+
+	// We're no longer controlled remotely, resume regular ticking of animations.
+	if (Mesh)
+	{
+		Mesh->bAutonomousTickPose = false;
 	}
 }
 

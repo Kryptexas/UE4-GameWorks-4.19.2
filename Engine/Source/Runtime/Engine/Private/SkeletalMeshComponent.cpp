@@ -16,7 +16,6 @@
 #include "AnimTree.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
-#include "GameFramework/Character.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
@@ -510,18 +509,10 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 
 bool USkeletalMeshComponent::ShouldTickPose() const
 {
-	// Characters playing Root Motion will tick pose themselves before physics.
-	ACharacter * CharacterOwner = Cast<ACharacter>(GetOwner());
-	const bool bSkipBecauseOfRootMotion = CharacterOwner && CharacterOwner->IsPlayingRootMotion();
-
 	// When we stop root motion we go back to ticking after CharacterMovement. Unfortunately that means that we could tick twice that frame.
 	// So only enforce a single tick per frame.
 	const bool bAlreadyTickedThisFrame = (LastTickTime == GetWorld()->TimeSeconds);
-
-	// Remote Clients on the Server will always tick animations as updates from the client comes in. To use Client's delta time.
-	const bool bRemoteClientOnServer = CharacterOwner && (CharacterOwner->Role == ROLE_Authority) && CharacterOwner->Controller && !CharacterOwner->Controller->IsLocalController();
-
-	return (Super::ShouldTickPose() && IsRegistered() && AnimScriptInstance && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bSkipBecauseOfRootMotion && !bRemoteClientOnServer && !bAlreadyTickedThisFrame);
+	return (Super::ShouldTickPose() && IsRegistered() && AnimScriptInstance && !bAutonomousTickPose && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bAlreadyTickedThisFrame);
 }
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)

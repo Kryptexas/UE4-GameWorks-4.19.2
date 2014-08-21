@@ -348,6 +348,7 @@ public:
 	virtual void TurnOff() override;
 	virtual void Restart() override;
 	virtual void PawnClientRestart() override;
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;

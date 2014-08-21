@@ -17,4 +17,6 @@ class PAPER2D_API APaperCharacter : public ACharacter
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UPaperFlipbookComponent> Sprite;
+
+	virtual void PostInitializeComponents() override;
 };
