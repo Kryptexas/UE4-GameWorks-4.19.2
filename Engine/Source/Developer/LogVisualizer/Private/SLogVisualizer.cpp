@@ -2197,12 +2197,17 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			{
 				const FName TagName = CurrentData.TagName;
 				const bool bIsValidByFilter = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
-				if (!bIsValidByFilter)
+				FVisualLogExtensionInterface* Extension = FVisualLog::Get().GetExtensionForTag(TagName);
+				if (!Extension)
 				{
 					continue;
 				}
 
-				if (FVisualLogExtensionInterface* Extension = FVisualLog::Get().GetExtensionForTag(TagName))
+				if (!bIsValidByFilter)
+				{
+					Extension->DisableDrawingForData(World, Canvas, HelperActor, TagName, CurrentData, Entry->TimeStamp);
+				}
+				else
 				{
 					Extension->DrawData(World, Canvas, HelperActor, TagName, CurrentData, Entry->TimeStamp);
 				}

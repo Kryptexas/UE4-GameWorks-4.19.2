@@ -17,6 +17,10 @@ public:
 	FVisualLoggerExtension();
 	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor);
 	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const struct FVisLogEntry::FDataBlock& DataBlock, float Timestamp);
+	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp);
+
+private:
+	void DisableEQSRendering(class AActor* HelperActor);
 
 protected:
 	uint32 CachedEQSId;
