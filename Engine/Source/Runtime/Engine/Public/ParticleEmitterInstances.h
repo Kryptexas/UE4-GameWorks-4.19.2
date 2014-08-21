@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Distributions.h"
+#include "ParticleHelper.h"
 #include "Distributions/DistributionFloat.h"
 #include "Distributions/DistributionVector.h"
 #include "ParticleHelper.h"
@@ -33,19 +34,12 @@ class UParticleModuleBeamTarget;
 class UParticleModuleBeamNoise;
 
 class UParticleModuleTrailSource;
-class UParticleModuleTrailSpawn;
-class UParticleModuleTrailTaper;
 
 class UParticleModuleSpawnPerUnit;
 
 class UParticleModuleOrientationAxisLock;
 
 class UParticleLODLevel;
-
-class FParticleSystemSceneProxy;
-class FParticleDynamicData;
-struct FDynamicBeam2EmitterData;
-struct FDynamicTrail2EmitterData;
 
 struct FLODBurstFired
 {

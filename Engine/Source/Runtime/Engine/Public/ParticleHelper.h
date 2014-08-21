@@ -7,7 +7,6 @@
 #pragma once
 
 #include "ParticleVertexFactory.h"
-#include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"
 #include "MaterialShared.h"
 #include "Materials/MaterialInterface.h"
@@ -129,7 +128,6 @@ class UParticleLODLevel;
 class USkeletalMeshComponent;
 
 class FParticleSystemSceneProxy;
-class FParticleDynamicData;
 struct FDynamicBeam2EmitterData;
 struct FDynamicTrail2EmitterData;
 

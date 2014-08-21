@@ -4,6 +4,7 @@
 NiagaraEffectRenderer.h: Base class for Niagara render modules
 ==============================================================================*/
 #include "SceneUtils.h"
+#include "ParticleBeamTrailVertexFactory.h"
 
 DECLARE_CYCLE_STAT(TEXT("PreRenderView"), STAT_NiagaraPreRenderView, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);
