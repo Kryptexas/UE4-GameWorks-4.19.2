@@ -9,6 +9,7 @@
 UMediaAsset::UMediaAsset( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, AutoPlay(false)
+	, AutoPlayRate(1.0f)
 	, Looping(true)
 	, StreamMode(MASM_FromUrl)
 	, MediaPlayer(nullptr)
@@ -287,7 +288,7 @@ void UMediaAsset::InitializePlayer( )
     
 	if (AutoPlay)
 	{
-		MediaPlayer->Play();
+		MediaPlayer->SetRate(AutoPlayRate);
 	}
 }
 
