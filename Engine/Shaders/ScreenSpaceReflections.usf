@@ -297,13 +297,25 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	OutColor = 0;
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+	
+	float Roughness = GBuffer.Roughness;
+
+	BRANCH
+	if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
+	{
+		const float ClearCoat			= GBuffer.CustomData.x;
+		const float ClearCoatRoughness	= GBuffer.CustomData.y;
+
+		Roughness = lerp( Roughness, ClearCoatRoughness, ClearCoat );
+	}
 
 	// mask SSR to reduce noise and for better performance, roughness of 0 should have SSR, at MaxRoughness we fade to 0
-	float RoughnessFade = saturate(ScreenSpaceData.GBuffer.Roughness * SSRParams.y + 2);
+	float RoughnessFade = saturate(Roughness * SSRParams.y + 2);
 
 #if 1
 	// Early out
-	BRANCH if( RoughnessFade == 0 || ScreenSpaceData.GBuffer.ShadingModelID == 0 )
+	BRANCH if( RoughnessFade == 0 || GBuffer.ShadingModelID == 0 )
 	{
 		return;
 	}
@@ -318,9 +330,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	return;
 #endif
 
-	float Roughness = ScreenSpaceData.GBuffer.Roughness;
-
-	float3 N = ScreenSpaceData.GBuffer.WorldNormal;
+	float3 N = GBuffer.WorldNormal;
 	float SceneDepth = CalcSceneDepth(UV);
 
 	float3 PositionTranslatedWorld = mul( float3( ScreenPos * SceneDepth, SceneDepth ), (float3x3)View.ScreenToTranslatedWorld );

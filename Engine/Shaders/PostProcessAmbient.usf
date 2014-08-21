@@ -372,7 +372,24 @@ float2 IntegrateBRDF( uint2 Random, float Roughness, float NoV )
 
 		if( NoL > 0 )
 		{
-			float Vis = Vis_Schlick( Roughness, NoV, NoL );
+			//float Vis = Vis_Schlick( Roughness, NoV, NoL );
+
+			float a = Square( Roughness );
+			float a2 = a*a;
+
+#if 1
+			float Vis_SchlickV = NoL * ( NoV * ( 1 - a ) + a );
+			float Vis_SchlickL = NoV * ( NoL * ( 1 - a ) + a );
+			float Vis = 0.5 * rcp( Vis_SchlickV + Vis_SchlickL );
+#elif 0
+			float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
+			float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
+			float Vis = rcp( Vis_SmithV * Vis_SmithL );
+#else
+			float Vis_SmithV = NoL * sqrt( NoV * (NoV - NoV * a2) + a2 );
+			float Vis_SmithL = NoV * sqrt( NoL * (NoL - NoL * a2) + a2 );
+			float Vis = 0.5 * rcp( Vis_SmithV + Vis_SmithL );
+#endif
 
 			// Incident light = NoL
 			// pdf = D * NoH / (4 * VoH)
@@ -442,11 +459,12 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 		{
 			float ClearCoat = GBuffer.CustomData.x;
 			float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
-			SpecularContribution += SampleColor * GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat);
+			SpecularContribution += SampleColor * ( GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat) );
 		}
 		else
 		{
 			SpecularContribution += SampleColor * EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
+			//SpecularContribution += ApproximateSpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
 		}
 	}
 
