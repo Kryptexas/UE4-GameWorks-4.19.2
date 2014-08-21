@@ -249,6 +249,13 @@ protected:
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor;
 
+private:
+
+	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
+	bool CanUseInertialScroll( float ScrollAmount ) const;
+
+protected:
+
 	struct SLATE_API FOverscroll
 	{
 	public:
