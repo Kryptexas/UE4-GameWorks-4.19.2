@@ -26,8 +26,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Material->IsUsedWithSplineMeshes() || Material->IsSpecialEngineMaterial())
-			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType)
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}
 
 	/** Modify compile environment to enable spline deformation */
