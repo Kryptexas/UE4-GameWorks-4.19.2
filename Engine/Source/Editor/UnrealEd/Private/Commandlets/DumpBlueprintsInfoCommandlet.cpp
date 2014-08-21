@@ -24,6 +24,7 @@
 #include "ModuleManager.h"
 #include "AssetToolsModule.h"
 #include "BlueprintNodeSpawner.h"
+#include "AnimationGraphSchema.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -689,8 +690,10 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 			GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
 
 			UAnimBlueprintFactory* BlueprintFactory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
-			BlueprintFactory->ParentClass   = ParentClass;
-			BlueprintFactory->BlueprintType = BlueprintType;
+			BlueprintFactory->ParentClass    = ParentClass;
+			BlueprintFactory->BlueprintType  = BlueprintType;
+			BlueprintFactory->TargetSkeleton = (USkeleton*)StaticLoadObject(USkeleton::StaticClass(), /*Outer =*/nullptr, TEXT("/Engine/NotForLicensees/Automation/QAAutomationtest_Assets/TEST_SkeletalMesh_Skeleton.TEST_SkeletalMesh_Skeleton"));
+
 			AssetFactory = BlueprintFactory;
 		}
 		else if (bIsLevelBlueprint)
@@ -1529,11 +1532,14 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 		}
 		else if (UScriptStruct* StructType = FindObject<UScriptStruct>(ANY_PACKAGE, *CommandOptions.PinType))
 		{
+			PinType.PinCategory = K2Schema->PC_Struct;
+			PinType.PinSubCategoryObject = StructType;
 			bIsValidPinType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(StructType);
-			if (bIsValidPinType)
+
+			UEdGraphSchema const* Schema = Graph->GetSchema();
+			if (UAnimationGraphSchema const* AnimSchema = Cast<UAnimationGraphSchema>(Schema))
 			{
-				PinType.PinCategory = K2Schema->PC_Struct;
-				PinType.PinSubCategoryObject = StructType;
+				bIsValidPinType |= AnimSchema->IsPosePin(PinType);
 			}
 		}
 		else if (!CommandOptions.PinType.Compare("self", ESearchCase::IgnoreCase))

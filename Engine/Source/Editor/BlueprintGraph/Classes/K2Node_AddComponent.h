@@ -25,6 +25,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface

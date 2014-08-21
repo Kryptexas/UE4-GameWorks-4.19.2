@@ -29,6 +29,15 @@ void UK2Node_BaseMCDelegate::ValidateNodeDuringCompilation(class FCompilerResult
 	}
 }
 
+bool UK2Node_BaseMCDelegate::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	UEdGraphSchema const* Schema = TargetGraph->GetSchema();
+	EGraphType GraphType = Schema->GetGraphType(TargetGraph);
+
+	bool const bIsCompatible = (GraphType == GT_Ubergraph) || (GraphType == GT_Function);
+	return bIsCompatible&& Super::IsCompatibleWithGraph(TargetGraph);
+}
+
 UK2Node::ERedirectType UK2Node_BaseMCDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType OrginalResult = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);

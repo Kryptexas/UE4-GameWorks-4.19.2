@@ -20,6 +20,7 @@ class UAnimGraphNode_Root : public UAnimGraphNode_Base
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual bool CanDuplicateNode() const override { return false; }
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
 	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface

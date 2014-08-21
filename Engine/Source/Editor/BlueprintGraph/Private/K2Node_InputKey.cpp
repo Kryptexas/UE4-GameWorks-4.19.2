@@ -6,6 +6,8 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintEditorUtils.h"
+#include "EdGraphSchema_K2.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputKey"
 
@@ -266,6 +268,16 @@ FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
 	{
 		return TEXT("GraphEditor.KeyEvent_16x");
 	}
+}
+
+bool UK2Node_InputKey::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+
+	UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
+	bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+
+	return (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
 }
 
 UEdGraphPin* UK2Node_InputKey::GetPressedPin() const

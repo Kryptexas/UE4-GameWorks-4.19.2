@@ -21,7 +21,12 @@ class UAnimGraphNode_SaveCachedPose : public UAnimGraphNode_Base
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
+	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
 	// End of UEdGraphNode interface
+
+	// UK2Node interface.
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;

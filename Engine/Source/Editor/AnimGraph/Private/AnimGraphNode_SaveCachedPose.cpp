@@ -7,6 +7,7 @@
 #include "Kismet2NameValidators.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "AnimGraphNode_SaveCachedPose.h"
+#include "BlueprintNodeSpawner.h"
 
 /////////////////////////////////////////////////////
 // FCachedPoseNameValidator
@@ -36,7 +37,6 @@ UAnimGraphNode_SaveCachedPose::UAnimGraphNode_SaveCachedPose(const FPostConstruc
 	: Super(PCIP)
 {
 	bCanRenameNode = true;
-	CacheName = TEXT("SavedPose");
 }
 
 FString UAnimGraphNode_SaveCachedPose::GetTooltip() const
@@ -49,6 +49,10 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return FText::FromString(CacheName);
+	}
+	else if ((TitleType == ENodeTitleType::ListView) && CacheName.IsEmpty())
+	{
+		return LOCTEXT("NewSaveCachedPose", "New Save cached pose...");
 	}
 	else
 	{
@@ -75,12 +79,40 @@ void UAnimGraphNode_SaveCachedPose::GetMenuEntries(FGraphContextMenuBuilder& Con
 		{
 			// Offer save cached pose
 			UAnimGraphNode_SaveCachedPose* SaveCachedPose = NewObject<UAnimGraphNode_SaveCachedPose>();
-			SaveCachedPose->CacheName += FString::FromInt(FMath::Rand());
+			SaveCachedPose->CacheName = TEXT("SavedPose") + FString::FromInt(FMath::Rand());
 
 			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SaveCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), LOCTEXT("NewSaveCachedPose", "New Save cached pose..."), SaveCachedPose->GetTooltip(), 0, SaveCachedPose->GetKeywords());
 			SaveCachedPoseAction->NodeTemplate = SaveCachedPose;
 		}
 	}
+}
+
+void UAnimGraphNode_SaveCachedPose::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	{
+		UAnimGraphNode_SaveCachedPose* CachedPoseNode = CastChecked<UAnimGraphNode_SaveCachedPose>(NewNode);
+		// we use an empty CacheName in GetNodeTitle() to relay the proper menu title
+		if (!bIsTemplateNode)
+		{
+			// @TODO: is the idea that this name is unique? what if Rand() hit twice? why not MakeUniqueObjectName()?			
+			CachedPoseNode->CacheName = TEXT("SavedPose") + FString::FromInt(FMath::Rand());
+		}
+	};
+
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+bool UAnimGraphNode_SaveCachedPose::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	//EGraphType GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+	//bool const bIsNotStateMachine = (GraphType != GT_StateMachine);
+
+	bool const bIsNotStateMachine = TargetGraph->GetOuter()->IsA(UAnimBlueprint::StaticClass());
+	return bIsNotStateMachine && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 void UAnimGraphNode_SaveCachedPose::OnRenameNode(const FString& NewName)

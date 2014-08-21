@@ -26,4 +26,8 @@ class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 	virtual FString GetNodeCategory() const override;
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UAnimGraphNode_Base interface
+
+	// UK2Node interface.
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	// End of UK2Node interface
 };

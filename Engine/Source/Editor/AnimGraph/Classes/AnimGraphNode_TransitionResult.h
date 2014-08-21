@@ -22,6 +22,10 @@ class UAnimGraphNode_TransitionResult : public UAnimGraphNode_Base
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UEdGraphNode interface
 
+	// UK2Node interface.
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	// End of UK2Node interface
+
 	// UAnimGraphNode_Base interface
 	virtual bool IsSinkNode() const override { return true; }
 	// End of UAnimGraphNode_Base interface

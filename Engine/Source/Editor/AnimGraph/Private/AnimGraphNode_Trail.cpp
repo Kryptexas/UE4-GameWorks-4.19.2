@@ -31,7 +31,11 @@ FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 	if (TitleType == ENodeTitleType::ListView)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_Trail_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		if (Node.TrailBone.BoneName == NAME_None)
+		{
+			return FText::Format(LOCTEXT("AnimGraphNode_Trail_MenuTitle", "{ControllerDescription}"), Args);
+		}
+		return FText::Format(LOCTEXT("AnimGraphNode_Trail_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
 	}
 	else
 	{

@@ -29,7 +29,24 @@ FText UAnimGraphNode_CopyBone::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
 	Args.Add(TEXT("SourceBoneName"), FText::FromName(Node.SourceBone.BoneName));
 	Args.Add(TEXT("TargetBoneName"), FText::FromName(Node.TargetBone.BoneName));
-	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args);
+
+	FText NodeTitle;
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None))
+		{
+			NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_MenuTitle", "{ControllerDescription}"), Args);
+		}
+		else
+		{
+			NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_ListTitle", "{ControllerDescription} - Source Bone: {SourceBoneName} - Target Bone: {TargetBoneName}"), Args);
+		}
+	}
+	else
+	{
+		NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args);
+	}
+	return NodeTitle;
 }
 
 #undef LOCTEXT_NAMESPACE

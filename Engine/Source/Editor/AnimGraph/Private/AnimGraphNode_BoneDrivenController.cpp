@@ -20,20 +20,30 @@ FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type Tit
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ControllerDesc"), GetControllerDescription());
+	Args.Add(TEXT("SourceBone"), FText::FromName(Node.SourceBone.BoneName));
+	Args.Add(TEXT("TargetBone"), FText::FromName(Node.TargetBone.BoneName));
 
-	if(TitleType == ENodeTitleType::ListView)
+	FText NodeTitle;
+	if (TitleType == ENodeTitleType::ListView)
 	{
 		Args.Add(TEXT("Delim"), FText::FromString(TEXT(" - ")));
+
+		if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None))
+		{
+			NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_BoneDrivenController_MenuTitle", "{ControllerDesc}"), Args);
+		}
 	}
 	else
 	{
 		Args.Add(TEXT("Delim"), FText::FromString(TEXT("\n")));
 	}
 
-	Args.Add(TEXT("SourceBone"), FText::FromName(Node.SourceBone.BoneName));
-	Args.Add(TEXT("TargetBone"), FText::FromName(Node.TargetBone.BoneName));
-
-	return FText::Format(LOCTEXT("AnimGraphNode_BoneDrivenController_Title", "{ControllerDesc}{Delim}Driving Bone: {SourceBone}{Delim}Driven Bone: {TargetBone}"), Args);
+	if (NodeTitle.IsEmpty())
+	{
+		NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_BoneDrivenController_Title", "{ControllerDesc}{Delim}Driving Bone: {SourceBone}{Delim}Driven Bone: {TargetBone}"), Args);
+	}
+	
+	return NodeTitle;
 }
 
 FText UAnimGraphNode_BoneDrivenController::GetControllerDescription() const

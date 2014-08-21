@@ -36,7 +36,11 @@ FText UAnimGraphNode_LookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 	if(TitleType == ENodeTitleType::ListView)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_LookAt_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		if (Node.BoneToModify.BoneName == NAME_None)
+		{
+			return FText::Format(LOCTEXT("AnimGraphNode_LookAt_MenuTitle", "{ControllerDescription}"), Args);
+		}
+		return FText::Format(LOCTEXT("AnimGraphNode_LookAt_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
 	}
 	else
 	{

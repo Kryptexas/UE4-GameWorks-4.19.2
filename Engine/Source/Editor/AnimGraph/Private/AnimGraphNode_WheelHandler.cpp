@@ -31,9 +31,19 @@ FString UAnimGraphNode_WheelHandler::GetTooltip() const
 
 FText UAnimGraphNode_WheelHandler::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	// we don't have any run-time information, so it's limited to print anymore than whaat it is
-	// it would be nice to print more data such as name of bones for wheels, but it's not available in Persona
-	return FText(LOCTEXT("AnimGraphNode_WheelHandler_Title", "Wheel Handler"));
+	FText NodeTitle;
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		NodeTitle = GetControllerDescription();
+	}
+	else
+	{
+		// we don't have any run-time information, so it's limited to print  
+		// anymore than what it is it would be nice to print more data such as 
+		// name of bones for wheels, but it's not available in Persona
+		NodeTitle = FText(LOCTEXT("AnimGraphNode_WheelHandler_Title", "Wheel Handler"));
+	}	
+	return NodeTitle;
 }
 
 void UAnimGraphNode_WheelHandler::ValidateAnimNodePostCompile(class FCompilerResultsLog& MessageLog, class UAnimBlueprintGeneratedClass* CompiledClass, int32 CompiledNodeIndex)
@@ -55,6 +65,12 @@ void UAnimGraphNode_WheelHandler::GetMenuEntries(FGraphContextMenuBuilder& Conte
 	}
 
 	// else we don't show
+}
+
+bool UAnimGraphNode_WheelHandler::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+	return (Blueprint != nullptr) && Blueprint->ParentClass->IsChildOf<UVehicleAnimInstance>() && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 #undef LOCTEXT_NAMESPACE

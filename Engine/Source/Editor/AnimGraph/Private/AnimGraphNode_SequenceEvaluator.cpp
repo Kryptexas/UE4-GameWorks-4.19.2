@@ -70,6 +70,11 @@ void UAnimGraphNode_SequenceEvaluator::GetMenuEntries(FGraphContextMenuBuilder& 
 	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.
 }
 
+void UAnimGraphNode_SequenceEvaluator::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.
+}
+
 void UAnimGraphNode_SequenceEvaluator::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.Sequence == NULL)

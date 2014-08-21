@@ -31,7 +31,11 @@ FText UAnimGraphNode_SpringBone::GetNodeTitle(ENodeTitleType::Type TitleType) co
 
 	if(TitleType == ENodeTitleType::ListView)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_SpringBone_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		if (Node.SpringBone.BoneName == NAME_None)
+		{
+			return FText::Format(LOCTEXT("AnimGraphNode_SpringBone_MenuTitle", "{ControllerDescription}"), Args);
+		}
+		return FText::Format(LOCTEXT("AnimGraphNode_SpringBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
 	}
 	else
 	{

@@ -7,6 +7,7 @@
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 
@@ -393,6 +394,12 @@ FString UK2Node_AddComponent::GetDocumentationExcerptName() const
 	}
 
 	return Super::GetDocumentationExcerptName();
+}
+
+bool UK2Node_AddComponent::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+	return (Blueprint != nullptr) && FBlueprintEditorUtils::IsActorBased(Blueprint) && Super::IsCompatibleWithGraph(Graph);
 }
 
 FNodeHandlingFunctor* UK2Node_AddComponent::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

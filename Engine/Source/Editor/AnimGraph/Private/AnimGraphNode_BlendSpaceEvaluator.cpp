@@ -54,6 +54,12 @@ void UAnimGraphNode_BlendSpaceEvaluator::GetMenuEntries(FGraphContextMenuBuilder
 	// You can convert a regular blend space player to an evaluator via the right click context menu
 }
 
+void UAnimGraphNode_BlendSpaceEvaluator::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	// Intentionally empty so that we don't get duplicate blend space entries.
+	// You can convert a regular blend space player to an evaluator via the right click context menu
+}
+
 void UAnimGraphNode_BlendSpaceEvaluator::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.BlendSpace == NULL)

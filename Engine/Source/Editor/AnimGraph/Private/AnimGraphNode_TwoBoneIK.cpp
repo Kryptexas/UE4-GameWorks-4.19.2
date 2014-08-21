@@ -31,7 +31,11 @@ FText UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 	if(TitleType == ENodeTitleType::ListView)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		if (Node.IKBone.BoneName == NAME_None)
+		{
+			return FText::Format(LOCTEXT("AnimGraphNode_IKBone_MenuTitle", "{ControllerDescription}"), Args);
+		}
+		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
 	}
 	else
 	{

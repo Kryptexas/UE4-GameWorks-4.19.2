@@ -124,7 +124,7 @@ FBlueprintNodeTemplateCache::FBlueprintNodeTemplateCache()
 	using namespace BlueprintNodeTemplateCacheImpl; // for MakeCompatibleBlueprint()
 
 	TemplateOuters.Add(MakeCompatibleBlueprint(UBlueprint::StaticClass(), AActor::StaticClass(), UBlueprintGeneratedClass::StaticClass()));
-	//TemplateOuters.Add(MakeCompatibleBlueprint(UAnimBlueprint::StaticClass(), UAnimInstance::StaticClass(), UAnimBlueprintGeneratedClass::StaticClass()));
+	TemplateOuters.Add(MakeCompatibleBlueprint(UAnimBlueprint::StaticClass(), UAnimInstance::StaticClass(), UAnimBlueprintGeneratedClass::StaticClass()));
 }
 
 //------------------------------------------------------------------------------
@@ -150,11 +150,14 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 		{
 			// by the time we're asking for a prototype for this spawner, we should
 			// be sure that it is compatible with the TargetGraph
-			check(IsCompatible(NodeCDO, TargetGraph));
+			//check(IsCompatible(NodeCDO, TargetGraph));
 
-			UBlueprint* TargetBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+			TargetBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
 			check(TargetBlueprint != nullptr);
-			TSubclassOf<UBlueprint> BlueprintClass = TargetBlueprint->GetClass();
+			BlueprintClass = TargetBlueprint->GetClass();
+
+			TargetGraph = FindCompatibleGraph(TargetBlueprint, NodeCDO);
+			check(TargetGraph != nullptr);
 		}		
 
 		UBlueprint* CompatibleBlueprint = nullptr;

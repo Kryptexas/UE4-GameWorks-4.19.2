@@ -60,7 +60,11 @@ FString UAnimGraphNode_StateMachineBase::GetTooltip() const
 FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const FText FirstLine = (EditorStateMachineGraph != NULL) ? FText::FromString(EditorStateMachineGraph->GetName()) : LOCTEXT("ErrorNoGraph", "Error: No Graph");
-	if(TitleType == ENodeTitleType::FullTitle)
+	if ((TitleType == ENodeTitleType::ListView) && (EditorStateMachineGraph == nullptr))
+	{
+		return LOCTEXT("AddNewStateMachine", "Add New State Machine...");
+	}
+	else if(TitleType == ENodeTitleType::FullTitle)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Title"), FirstLine);

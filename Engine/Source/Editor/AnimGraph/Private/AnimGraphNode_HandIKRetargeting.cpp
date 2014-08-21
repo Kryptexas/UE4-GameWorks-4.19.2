@@ -25,9 +25,7 @@ FString UAnimGraphNode_HandIKRetargeting::GetTooltip() const
 
 FText UAnimGraphNode_HandIKRetargeting::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}"), Args);
+	return GetControllerDescription();
 }
 
 #undef LOCTEXT_NAMESPACE
