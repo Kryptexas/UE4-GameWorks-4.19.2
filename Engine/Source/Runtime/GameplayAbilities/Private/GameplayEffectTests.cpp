@@ -6049,7 +6049,7 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 #if WITH_EDITOR
 
 	UCurveTable *CurveTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
-	UDataTable *DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeDataTable();
+	UDataTable *DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeMetaDataTable();
 
 	// setup required GameplayTags
 	UDataTable* TagTable = CreateGameplayDataTable();

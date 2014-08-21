@@ -6,14 +6,20 @@
 
 class AActor;
 class UAbilitySystemComponent;
+class UCurveTable;
+class UDataTable;
+
 struct FGameplayAbilityActorInfo;
 struct FGameplayTag;
+struct FAttributeSetInitter;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
 UCLASS(config=Game)
 class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+	virtual void InitGlobalData();
 	
 
 	/** Holds all of the valid gameplay-related tags that can be applied to assets */
@@ -22,11 +28,17 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	/** Holds information about the valid attributes' min and max values and stacking rules */
 	UPROPERTY(config)
-	FString GlobalAttributeDataTableName;
+	FString GlobalAttributeMetaDataTableName;
 
-	class UCurveTable *	GetGlobalCurveTable();
+	/** Holds default values for attribute sets, keyed off of Name/Levels. */
+	UPROPERTY(config)
+	FString GlobalAttributeSetDefaultsTableName;
+	
+	UCurveTable* GetGlobalCurveTable();
 
-	class UDataTable * GetGlobalAttributeDataTable();
+	UDataTable* GetGlobalAttributeMetaDataTable();
+
+	
 
 	void AutomationTestOnly_SetGlobalCurveTable(class UCurveTable *InTable)
 	{
@@ -35,7 +47,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	void AutomationTestOnly_SetGlobalAttributeDataTable(class UDataTable *InTable)
 	{
-		GlobalAttributeDataTable = InTable;
+		GlobalAttributeMetaDataTable = InTable;
 	}
 
 	static UAbilitySystemGlobals& Get();
@@ -51,15 +63,32 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	UFunction* GetGameplayCueFunction(const FGameplayTag &Tag, UClass* Class, FName &MatchedTag);
 
+	FAttributeSetInitter* GetAttributeSetInitter() const;
+
+protected:
+
+	virtual void InitAtributeDefaults();
+	virtual void AllocAttributeSetInitter();
+
 private:
 
-	class UCurveTable* GlobalCurveTable;
+	UCurveTable* GlobalCurveTable;
 
-	class UDataTable* GlobalAttributeDataTable;
+	UCurveTable* GlobalAttributeDefaultsTable;
+
+	UDataTable* GlobalAttributeMetaDataTable;
+
+	TSharedPtr<FAttributeSetInitter> GlobalAttributeSetInitter;
+
+	template <class T>
+	T* InternalGetLoadTable(T*& Table, FString TableName);
 
 #if WITH_EDITOR
-	void OnCurveTableReimported(UObject* InObject);
-	void OnDataTableReimported(UObject* InObject);
+	void OnTableReimported(UObject* InObject);
+#endif
+
+#if WITH_EDITORONLY_DATA
+	bool RegisteredReimportCallback;
 #endif
 
 };

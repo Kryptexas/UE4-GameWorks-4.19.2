@@ -79,7 +79,7 @@ void UGameplayEffect::ValidateStacking()
 			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 		}
 
-		UDataTable* DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeDataTable();
+		UDataTable* DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeMetaDataTable();
 
 		if (DataTable && DataTable->RowMap.Contains(StackedAttribName))
 		{

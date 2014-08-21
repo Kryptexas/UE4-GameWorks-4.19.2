@@ -92,80 +92,6 @@ FAttributeMetaData::FAttributeMetaData()
 
 }
 
-UProperty* FAttributeModifierTest::GetUProperty()
-{
-	if (!CachedUProperty)
-	{
-		FString ClassName;
-		FString ThisPropertyName;
-
-		PropertyName.Split( TEXT("."), &ClassName, &ThisPropertyName);
-
-		UClass *FoundClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
-		if (FoundClass)
-		{
-			CachedUProperty = FindField<UProperty>(FoundClass, *ThisPropertyName);
-		}
-	}
-
-	return CachedUProperty;
-}
-
-void FAttributeModifierTest::ApplyModifier(UAttributeSet *Object)
-{
-	UProperty *TheProperty = GetUProperty();
-	if (TheProperty)
-	{
-		void * ValuePtr = TheProperty->ContainerPtrToValuePtr<void>(Object);
-		switch( ModifierType)
-		{
-			case EAttributeModifierType::EATTRMOD_Add:
-			{
-				UNumericProperty *NumericProperty = Cast<UNumericProperty>(TheProperty);
-				if (NumericProperty)
-				{
-					float CurrentValue = NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
-					float AdditionalValue = 0.f;
-					TTypeFromString<float>::FromString(AdditionalValue, *this->NewValue);
-					
-					float FinalValue = CurrentValue + AdditionalValue;
-					NumericProperty->SetFloatingPointPropertyValue(ValuePtr, FinalValue);
-
-					UE_LOG(LogActorComponent, Warning, TEXT("FAttributeModifierTest::ApplyModifier - %s. EATTRMOD_Add - CurrentValue: %.2f AdditionalValue: %.2f -> FinalValue: %.2f"), *TheProperty->GetName(),
-						CurrentValue, AdditionalValue, FinalValue );
-				}
-			}
-			break;
-
-			case EAttributeModifierType::EATTRMOD_Multiple:
-			{
-				UNumericProperty *NumericProperty = Cast<UNumericProperty>(TheProperty);
-				if (NumericProperty)
-				{
-					float CurrentValue = NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
-					float Factor = 0.f;
-					TTypeFromString<float>::FromString(Factor, *this->NewValue);
-
-					float FinalValue = CurrentValue * Factor;
-					NumericProperty->SetFloatingPointPropertyValue(ValuePtr, FinalValue);
-
-					UE_LOG(LogActorComponent, Warning, TEXT("FAttributeModifierTest::ApplyModifier - %s. EATTRMOD_Multiple - CurrentValue: %.2f Factor: %.2f -> FinalValue: %.2f"), *TheProperty->GetName(),
-						CurrentValue, Factor, FinalValue );
-				}
-			}
-			break;
-
-			case EAttributeModifierType::EATTRMOD_Override:
-				TheProperty->ImportText(*this->NewValue, ValuePtr, 0, Object); // Not sure if the 4th parameter is right
-
-				UE_LOG(LogActorComponent, Warning, TEXT("FAttributeModifierTest::ApplyModifier - %s. EATTRMOD_Override - %s"), *TheProperty->GetName(), *this->NewValue );
-				break;
-		}
-	}
-
-	Object->PrintDebug();
-}
-
 void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides)
 {
 	static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
@@ -237,4 +163,176 @@ bool FScalableFloat::operator==(const FScalableFloat& Other) const
 bool FScalableFloat::operator!=(const FScalableFloat& Other) const
 {
 	return ((Other.Curve != Curve) || (Other.Value != Value));
+}
+
+// ------------------------------------------------------------------------------------
+//
+// ------------------------------------------------------------------------------------
+TSubclassOf<UAttributeSet> FindBestAttributeClass(TArray<TSubclassOf<UAttributeSet> >& ClassList, FString PartialName)
+{
+	for (auto Class : ClassList)
+	{
+		if (Class->GetName().Contains(PartialName))
+		{
+			return Class;
+		}
+	}
+
+	return nullptr;
+}
+
+/**
+ *	Transforms CurveTable data into format more effecient to read at runtime.
+ *	UCurveTable requires string parsing to map to GroupName/AttributeSet/Attribute
+ *	Each curve in the table represents a *single attribute's values for all levels*.
+ *	At runtime, we want *all attribute values at given level*.
+ */
+void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
+{
+	if(!ensure(CurveData))
+	{
+		return;
+	}
+
+	/**
+	 *	Get list of AttributeSet classes loaded
+	 */
+
+	TArray<TSubclassOf<UAttributeSet> >	ClassList;
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		UClass* TestClass = *ClassIt;
+		if (TestClass->IsChildOf(UAttributeSet::StaticClass()))
+		{
+			ClassList.Add(TestClass);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// This can only work right now on POD attribute sets. If we ever support FStrings or TArrays in AttributeSets
+			// we will need to update this code to not use memcpy etc.
+			for (TFieldIterator<UProperty> PropIt(TestClass, EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt)
+			{
+				if (!PropIt->HasAllPropertyFlags(CPF_IsPlainOldData))
+				{
+					ABILITY_LOG(Error, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to Handle AttributeClass %s because it has a non POD property: %s"),
+						*TestClass->GetName(), *PropIt->GetName());
+					return;
+				}
+			}
+#endif
+		}
+	}
+
+	/**
+	 *	Loop through CurveData table and build sets of Defaults that keyed off of Name + Level
+	 */
+
+	for (auto It = CurveData->RowMap.CreateConstIterator(); It; ++It)
+	{
+		FString RowName = It.Key().ToString();
+		FString ClassName;
+		FString SetName;
+		FString AttributeName;
+		FString Temp;
+
+		RowName.Split(TEXT("."), &ClassName, &Temp);
+		Temp.Split(TEXT("."), &SetName, &AttributeName);
+
+		if (!ensure(!ClassName.IsEmpty() && !SetName.IsEmpty() && !AttributeName.IsEmpty()))
+		{
+			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to parse row %s in %s"), *RowName, *CurveData->GetName());
+			continue;
+		}
+
+		// Find the AttributeSet
+
+		TSubclassOf<UAttributeSet> Set = FindBestAttributeClass(ClassList, SetName);
+		if (!Set)
+		{
+			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match AttributeSet from %s (row: %s)"), *SetName, *RowName);
+			continue;
+		}
+
+		// Find the UProperty
+
+		UNumericProperty* Property = FindField<UNumericProperty>(*Set, *AttributeName);
+		if (!Property)
+		{
+			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match Attribute from %s (row: %s)"), *AttributeName, *RowName);
+			continue;
+		}
+
+		FRichCurve* Curve = It.Value();
+		FName ClassFName = FName(*ClassName);
+		FAttributeSetDefaulsCollection& DefaultCollection = Defaults.FindOrAdd(ClassFName);
+
+		int32 LastLevel = Curve->GetLastKey().Time;
+		DefaultCollection.LevelData.SetNum(FMath::Max(LastLevel, DefaultCollection.LevelData.Num()));
+
+		
+		//At this point we know the Name of this "class"/"group", the AttributeSet, and the Property Name. Now loop through the values on the curve to get the attribute default value at each level.
+		for (auto KeyIter = Curve->GetKeyIterator(); KeyIter; ++KeyIter)
+		{
+			const FRichCurveKey& CurveKey = *KeyIter;
+
+			int32 Level = CurveKey.Time;
+			float Value = CurveKey.Value;
+
+			FAttributeSetDefaults& SetDefaults = DefaultCollection.LevelData[Level-1];
+
+			FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(Set);
+			if (DefaultDataList == nullptr)
+			{
+				ABILITY_LOG(Verbose, TEXT("Initializing new default set for %s[%d]. PropertySize: %d.. DefaultSize: %d"), *Set->GetName(), Level, Set->GetPropertiesSize(), UAttributeSet::StaticClass()->GetPropertiesSize());
+				
+				DefaultDataList = &SetDefaults.DataMap.Add(Set);
+			}
+
+			// Import curve value into default data
+
+			check(DefaultDataList);
+			DefaultDataList->AddPair(Property, Value);
+		}
+
+
+	}
+}
+
+void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
+	
+	const FAttributeSetDefaulsCollection* Collection = Defaults.Find(GroupName);
+	if (!Collection)
+	{
+		ABILITY_LOG(Warning, TEXT("Unable to find DefaultAttributeSet Group %s. Failing back to Defaults"), *GroupName.ToString());
+		Collection = Defaults.Find(FName(TEXT("Default")));
+		if (!Collection)
+		{
+			ABILITY_LOG(Error, TEXT("FAttributeSetInitter::InitAttributeSetDefaults Default DefaultAttributeSet not found! Skipping Initialization"));
+			return;
+		}
+	}
+
+	if (!Collection->LevelData.IsValidIndex(Level))
+	{
+		// We could eventually extrapolate values outside of the max defined levels
+		ABILITY_LOG(Warning, TEXT("Attribute defaults for Level %d are not defined! Skipping"), Level);
+		return;
+	}
+
+	const FAttributeSetDefaults& SetDefaults = Collection->LevelData[Level];
+	for (const UAttributeSet* Set : AbilitySystemComponent->SpawnedAttributes)
+	{
+		const FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(Set->GetClass());
+		if (DefaultDataList)
+		{
+			ABILITY_LOG(Warning, TEXT("Initializing Set %s"), *Set->GetName());
+
+			for (auto& DataPair : DefaultDataList->List)
+			{
+				check(DataPair.Property);
+
+				DataPair.Property->SetFloatingPointPropertyValue(DataPair.Property->ContainerPtrToValuePtr<void>(const_cast<UAttributeSet*>(Set)), DataPair.Value);
+			}
+		}		
+	}
 }
