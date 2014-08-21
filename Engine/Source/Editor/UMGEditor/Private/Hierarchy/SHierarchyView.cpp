@@ -227,7 +227,7 @@ TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(TSharedPtr
 
 void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo)
 {
-	if ( SelectInfo != ESelectInfo::Direct )
+	if ( SelectedItem.IsValid() && SelectInfo != ESelectInfo::Direct )
 	{
 		SelectedItem->OnSelection();
 	}

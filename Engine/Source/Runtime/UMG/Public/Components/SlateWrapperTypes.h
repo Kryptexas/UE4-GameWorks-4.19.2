@@ -43,41 +43,37 @@ namespace ESlateSizeRule
 	};
 }
 
-/** A struct exposing FReply options in a UStruct compatible way. */
-USTRUCT()
-struct FSReply
+/**
+ * Allows users to handle events and return information to the underlying UI layer.
+ */
+USTRUCT(BlueprintType)
+struct FEventReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=User)
-	uint32 bIsHandled : 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=User)
-	uint32 bCaptureMouse : 1;
-
-	FSReply()
-		: bIsHandled(false)
-		, bCaptureMouse(false)
+	FEventReply(bool IsHandled = false)
+	: NativeReply(IsHandled ? FReply::Handled() : FReply::Unhandled())
 	{
-
 	}
 
-	FReply ToReply( TSharedRef<SWidget> Widget ) const
+	FReply ToReply(TSharedRef<SWidget> Widget) const
 	{
-		FReply Reply = FReply::Unhandled();
+		//FReply Reply = FReply::Unhandled();
 
-		if ( bIsHandled )
-		{
-			Reply = FReply::Handled();
-		}
+		//if ( bIsHandled )
+		//{
+		//	Reply = FReply::Handled();
+		//}
 
-		if ( bCaptureMouse )
-		{
-			Reply = Reply.CaptureMouse(Widget);
-		}
+		//if ( bCaptureMouse )
+		//{
+		//	Reply = Reply.CaptureMouse(Widget);
+		//}
 
-		return Reply;
+		return NativeReply;
 	}
+
+	FReply NativeReply;
 };
 
 /** A struct exposing size param related properties to UMG. */

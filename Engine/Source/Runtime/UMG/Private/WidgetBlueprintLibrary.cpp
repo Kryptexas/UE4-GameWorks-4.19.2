@@ -86,4 +86,94 @@ void UWidgetBlueprintLibrary::DrawText(UPARAM(ref) FPaintContext& Context, const
 		Tint);
 }
 
+FEventReply UWidgetBlueprintLibrary::Handled()
+{
+	FEventReply Reply;
+	Reply.NativeReply = FReply::Handled();
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::Unhandled()
+{
+	FEventReply Reply;
+	Reply.NativeReply = FReply::Unhandled();
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::CaptureMouse(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget)
+{
+	if ( CapturingWidget )
+	{
+		TSharedPtr<SWidget> CapturingSlateWidget = CapturingWidget->GetCachedWidget();
+		if ( CapturingSlateWidget.IsValid() )
+		{
+			Reply.NativeReply = Reply.NativeReply.CaptureMouse(CapturingSlateWidget.ToSharedRef());
+		}
+	}
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::ReleaseMouseCapture(UPARAM(ref) FEventReply& Reply)
+{
+	Reply.NativeReply = Reply.NativeReply.ReleaseMouseCapture();
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks/* = false*/)
+{
+	if ( CapturingWidget )
+	{
+		TSharedPtr<SWidget> CapturingSlateWidget = CapturingWidget->GetCachedWidget();
+		if ( CapturingSlateWidget.IsValid() )
+		{
+			Reply.NativeReply = Reply.NativeReply.CaptureJoystick(CapturingSlateWidget.ToSharedRef(), bInAllJoysticks);
+		}
+	}
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks /*= false*/)
+{
+	Reply.NativeReply = Reply.NativeReply.ReleaseJoystickCapture(bInAllJoysticks);
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::DetectDrag(UPARAM(ref) FEventReply& Reply, UWidget* WidgetDetectingDrag, FKey DragKey)
+{
+	if ( WidgetDetectingDrag )
+	{
+		TSharedPtr<SWidget> SlateWidgetDetectingDrag = WidgetDetectingDrag->GetCachedWidget();
+		if ( SlateWidgetDetectingDrag.IsValid() )
+		{
+			Reply.NativeReply = Reply.NativeReply.DetectDrag(SlateWidgetDetectingDrag.ToSharedRef(), DragKey);
+		}
+	}
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::IfKeyPressedDetectDrag(const FPointerEvent& PointerEvent, UWidget* WidgetDetectingDrag, FKey DragKey)
+{
+	if ( PointerEvent.GetEffectingButton() == DragKey )
+	{
+		FEventReply Reply = UWidgetBlueprintLibrary::Handled();
+		return UWidgetBlueprintLibrary::DetectDrag(Reply, WidgetDetectingDrag, DragKey);
+	}
+
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UWidgetBlueprintLibrary::EndDragDrop(UPARAM(ref) FEventReply& Reply)
+{
+	Reply.NativeReply = Reply.NativeReply.EndDragDrop();
+
+	return Reply;
+}
+
 #undef LOCTEXT_NAMESPACE

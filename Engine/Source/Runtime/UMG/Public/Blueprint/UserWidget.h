@@ -158,39 +158,39 @@ public:
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
-	FSReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
+	FEventReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
 	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
 	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	//void OnKeyboardFocusChanging(FWeakWidgetPath PreviousFocusPath, FWidgetPath NewWidgetPath);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
-	FSReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
+	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
-	FSReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
-	FSReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
-	FSReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 	//UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
 	//FCursorReply OnCursorQuery(FGeometry MyGeometry, const FPointerEvent& CursorEvent) const;
 	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	FSReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
+	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent, UDragDropOperation*& Operation);
@@ -205,22 +205,22 @@ public:
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
-	FSReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
-	FSReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
-	FSReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
-	FSReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
+	FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
-	FSReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
-	FSReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
-	FSReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
-	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
+	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 	UFUNCTION(BlueprintCallable, Category="User Interface|Drag and Drop")
 	UDragDropOperation* CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation);

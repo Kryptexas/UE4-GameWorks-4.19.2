@@ -146,6 +146,11 @@ bool UPanelWidget::RemoveChild(UWidget* Content)
 	return false;
 }
 
+bool UPanelWidget::HasAnyChildren() const
+{
+	return GetChildrenCount() > 0;
+}
+
 void UPanelWidget::ClearChildren()
 {
 	int32 Children = GetChildrenCount();

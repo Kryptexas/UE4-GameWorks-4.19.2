@@ -41,4 +41,41 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Painting")
 	static void DrawText(UPARAM(ref) FPaintContext& Context, const FString& InString, FVector2D Position, FLinearColor Tint = FLinearColor::White);
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply Handled();
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply Unhandled();
+
+	UFUNCTION(BlueprintPure, meta=( HidePin="CapturingWidget", DefaultToSelf="CapturingWidget" ), Category="Widget|Event Reply")
+	static FEventReply CaptureMouse(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget);
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply ReleaseMouseCapture(UPARAM(ref) FEventReply& Reply);
+
+	UFUNCTION(BlueprintPure, meta=( HidePin="CapturingWidget", DefaultToSelf="CapturingWidget" ), Category="Widget|Event Reply")
+	static FEventReply CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks = false);
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks = false);
+
+	/**
+	 * Ask Slate to detect if a user started dragging in this widget.
+	 * If a drag is detected, Slate will send an OnDragDetected event.
+	 *
+	 * @param WidgetDetectingDrag  Detect dragging in this widget
+	 * @param DragKey		       This button should be pressed to detect the drag
+	 */
+	UFUNCTION(BlueprintPure, meta=( HidePin="WidgetDetectingDrag", DefaultToSelf="WidgetDetectingDrag" ), Category="Widget|Event Reply")
+	static FEventReply DetectDrag(UPARAM(ref) FEventReply& Reply, UWidget* WidgetDetectingDrag, FKey DragKey);
+
+	UFUNCTION(BlueprintCallable, meta=( HidePin="WidgetDetectingDrag", DefaultToSelf="WidgetDetectingDrag" ), Category="Widget|Event Reply")
+	static FEventReply IfKeyPressedDetectDrag(const FPointerEvent& PointerEvent, UWidget* WidgetDetectingDrag, FKey DragKey);
+
+	/**
+	 * An event should return FReply::Handled().EndDragDrop() to request that the current drag/drop operation be terminated.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply EndDragDrop(UPARAM(ref) FEventReply& Reply);
 };

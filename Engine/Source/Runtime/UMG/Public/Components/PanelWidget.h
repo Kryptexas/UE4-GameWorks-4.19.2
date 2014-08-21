@@ -19,42 +19,46 @@ public:
 public:
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	int32 GetChildrenCount() const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UWidget* GetChildAt(int32 Index) const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	int32 GetChildIndex(UWidget* Content) const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	bool RemoveChildAt(int32 Index);
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UPanelSlot* AddChild(UWidget* Content);
 
 	/** Swaps the widget out of the slot at the given index, replacing it with a different widget. */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void ReplaceChildAt(int32 Index, UWidget* Content);
 
 	/** Inserts a widget at a specific index */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void InsertChildAt(int32 Index, UWidget* Content);
 
 	/**
 	 * Removes a specific widget from the container.
 	 * @return true if the widget was found and removed.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	bool RemoveChild(UWidget* Content);
 
+	/** @return true if there are any child widgets in the panel */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
+	bool HasAnyChildren() const;
+
 	/** Remove all child widgets from the panel widget. */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void ClearChildren();
 
 	/** @returns true if the panel supports more than one child. */

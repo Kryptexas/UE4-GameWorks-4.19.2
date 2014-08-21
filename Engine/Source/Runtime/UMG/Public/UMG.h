@@ -99,9 +99,6 @@
 #include "ListView.h"
 #include "TileView.h"
 
-#include "DragPanel.h"
-#include "DropPanel.h"
-
 #include "Viewport.h"
 
 #include "NativeWidgetHost.h"
