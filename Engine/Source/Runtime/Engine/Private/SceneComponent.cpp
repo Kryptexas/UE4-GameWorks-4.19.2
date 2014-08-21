@@ -37,34 +37,33 @@ USceneComponent::USceneComponent(const class FPostConstructInitializeProperties&
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
 {
-	// With no attachment
-	FTransform ParentToWorld = FTransform::Identity;
-
 	Parent = Parent ? Parent : AttachParent;
-
 	if (Parent != NULL)
 	{
-		ParentToWorld = Parent->GetSocketTransform(AttachSocketName);
+		const FTransform ParentToWorld = Parent->GetSocketTransform(AttachSocketName);
+		FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
+
+		if(bAbsoluteLocation)
+		{
+			NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+		}
+
+		if(bAbsoluteRotation)
+		{
+			NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
+		}
+
+		if(bAbsoluteScale)
+		{
+			NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
+		}
+
+		return NewCompToWorld;
 	}
-
-	FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
-
-	if(bAbsoluteLocation)
+	else
 	{
-		NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+		return NewRelativeTransform;
 	}
-
-	if(bAbsoluteRotation)
-	{
-		NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
-	}
-
-	if(bAbsoluteScale)
-	{
-		NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
-	}
-
-	return NewCompToWorld;
 }
 
 void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
