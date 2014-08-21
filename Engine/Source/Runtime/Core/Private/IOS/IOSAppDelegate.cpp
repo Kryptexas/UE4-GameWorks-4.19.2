@@ -417,6 +417,10 @@ void InstallSignalHandlers()
     {
         [path setString: [path stringByAppendingPathComponent:@"Default-Portrait.png"]];
     }
+    else if (MainFrame.size.height == 768 && !self.bDeviceInPortraitMode)
+    {
+        [path setString: [path stringByAppendingPathComponent:@"Default-Landscape.png"]];
+    }
     UIImage* image = [[UIImage alloc] initWithContentsOfFile: path];
     [path release];
     UIImage* imageToDisplay = [UIImage imageWithCGImage: [image CGImage] scale: 1.0 orientation: orient];

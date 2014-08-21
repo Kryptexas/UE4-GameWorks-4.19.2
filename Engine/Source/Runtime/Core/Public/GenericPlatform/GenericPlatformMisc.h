@@ -205,7 +205,7 @@ struct CORE_API FGenericPlatformMisc
 	static void PlatformInit()
 	{
 	}
-	static void PlatformPostInit(bool IsMoviePlaying = false)
+	static void PlatformPostInit(bool ShowSplashScreen = false)
 	{
 	}
 

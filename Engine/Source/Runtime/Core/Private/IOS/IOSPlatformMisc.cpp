@@ -58,9 +58,9 @@ void FIOSPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
 }
 
-void FIOSPlatformMisc::PlatformPostInit(bool IsMoviePlaying)
+void FIOSPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 {
-    GShowSplashScreen = !IsMoviePlaying;
+    GShowSplashScreen = ShowSplashScreen;
 }
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()

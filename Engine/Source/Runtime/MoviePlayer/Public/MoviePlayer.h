@@ -48,7 +48,7 @@ public:
 	 * Initializes this movie streamer with all the movie paths (ordered) we want to play
 	 * Movie paths are local to the current game's Content/Movies/ directory.
 	 */
-	virtual void Init(const TArray<FString>& MoviePaths) = 0;
+	virtual bool Init(const TArray<FString>& MoviePaths) = 0;
 	
 	/** Forces the movie streamer to cancel what it's streaming and close */
 	virtual void ForceCompletion() = 0;

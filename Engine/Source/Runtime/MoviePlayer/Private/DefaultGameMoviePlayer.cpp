@@ -131,17 +131,21 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		LoadingIsDone.Set(0);
 		bUserCalledFinish = false;
 		
+        bool bInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
-			MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
+			bInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-		LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
-		LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
+        if (bInitialized)
+        {
+            LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
+            LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
-		SyncMechanism = new FSlateLoadingSynchronizationMechanism();
-		SyncMechanism->Initialize();
+            SyncMechanism = new FSlateLoadingSynchronizationMechanism();
+            SyncMechanism->Initialize();
 
-		bBeganPlaying = true;
+            bBeganPlaying = true;
+        }
 	}
 
 	return bBeganPlaying;
