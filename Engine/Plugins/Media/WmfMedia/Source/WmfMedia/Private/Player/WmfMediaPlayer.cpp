@@ -452,13 +452,13 @@ bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FStr
 
 	UE_LOG(LogWmfMedia, Verbose, TEXT("Added a total of %i tracks"), Tracks.Num());
 
-	// create session
-	MediaSession = new FWmfMediaSession(Topology);
-	MediaUrl = SourceUrl;
-
 	UINT64 PresentationDuration = 0;
 	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);
 	Duration = FTimespan(PresentationDuration);
+
+	// create session
+	MediaSession = new FWmfMediaSession(Duration, Topology);
+	MediaUrl = SourceUrl;
 
 	OpenedEvent.Broadcast(SourceUrl);
 

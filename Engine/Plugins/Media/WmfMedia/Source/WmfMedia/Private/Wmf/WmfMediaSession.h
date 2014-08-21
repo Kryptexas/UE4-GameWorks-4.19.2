@@ -47,9 +47,10 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
+	 * @param InDuration The duration of the media.
 	 * @param InTopology The playback topology to use.
 	 */
-	FWmfMediaSession( const TComPtr<IMFTopology>& InTopology );
+	FWmfMediaSession( const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology );
 
 	/** Virtual destructor .*/
 	virtual ~FWmfMediaSession( ) { }
@@ -227,6 +228,9 @@ private:
 
 	// The current playback state.
 	EMediaStates CurrentState;
+
+	// The duration of the media.
+	FTimespan Duration;
 
 	// The media session that handles all playback.
 	TComPtr<IMFMediaSession> MediaSession;

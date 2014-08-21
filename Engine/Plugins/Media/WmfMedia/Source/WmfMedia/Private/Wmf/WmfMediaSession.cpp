@@ -7,10 +7,11 @@
 /* FWmfMediaSession structors
  *****************************************************************************/
 
-FWmfMediaSession::FWmfMediaSession( const TComPtr<IMFTopology>& InTopology )
+FWmfMediaSession::FWmfMediaSession( const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology )
 	: Capabilities(0)
 	, ChangeRequested(false)
 	, CurrentRate(0.0f)
+	, Duration(InDuration)
 	, LastError(S_OK)
 	, Looping(false)
 	, RefCount(1)
@@ -140,7 +141,11 @@ bool FWmfMediaSession::SetRate( float Rate )
 
 	RequestedRate = Rate;
 
-	if (!FMath::IsNearlyZero(Rate))
+	if (FMath::IsNearlyZero(Rate))
+	{
+		RequestedState = EMediaStates::Paused;
+	}
+	else
 	{
 		RequestedState = EMediaStates::Playing;
 	}
@@ -221,6 +226,11 @@ STDMETHODIMP FWmfMediaSession::Invoke( IMFAsyncResult* AsyncResult )
 				}
 				else if (EventType == MESessionEnded)
 				{
+					if (Looping && (CurrentRate < 0.0f))
+					{
+						RequestedPosition = Duration;
+					}
+
 					UpdateState(EMediaStates::Stopped);
 				}
 				else if (EventType == MESessionPaused)
@@ -377,6 +387,7 @@ bool FWmfMediaSession::ChangeState( )
 			{
 				StateChangePending = true;
 				StateChangeFailed = FAILED(MediaSession->Pause());
+				RequestedPosition = GetPosition();
 			}
 		}
 		else if (RequestedState == EMediaStates::Playing)
@@ -389,7 +400,6 @@ bool FWmfMediaSession::ChangeState( )
 				{
 					StartPosition.vt = VT_I8;
 					StartPosition.hVal.QuadPart = RequestedPosition.GetTicks();
-					RequestedPosition = FTimespan::MinValue();
 				}
 				else
 				{
@@ -438,6 +448,11 @@ FTimespan FWmfMediaSession::GetInternalPosition( ) const
 void FWmfMediaSession::UpdateState( EMediaStates CompletedState )
 {
 	CurrentState = CompletedState;
+
+	if (CompletedState == EMediaStates::Playing)
+	{
+		RequestedPosition = FTimespan::MinValue();
+	}
 
 	if (CompletedState == RequestedState)
 	{
