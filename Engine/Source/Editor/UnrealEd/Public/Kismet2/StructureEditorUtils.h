@@ -138,6 +138,10 @@ public:
 	/** Can the structure be a member variable for a BPGClass or BPGStruct */
 	static EStructureError IsStructureValid(const UScriptStruct* Struct, const UStruct* RecursionParent = NULL, FString* OutMsg = NULL);
 
+	/** called after UDS was changed by editor*/
 	static void OnStructureChanged(UUserDefinedStruct* Struct);
+
+	static void BroadcastPreChange(UUserDefinedStruct* Struct);
+	static void BroadcastPostChange(UUserDefinedStruct* Struct);
 };
 

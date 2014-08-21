@@ -121,6 +121,14 @@ class UDataTable : public UObject
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
 
+private:
+	//when RowStruct is being modified, row data is stored serialized with tags
+	TArray<uint8> RowsSerializedWithTags;
+
+public:
+	ENGINE_API void CleanBeforeStructChange();
+	ENGINE_API void RestoreAfterStructChange();
+
 	/** Output entire contents of table as a string */
 	ENGINE_API FString GetTableAsString();
 
@@ -164,6 +172,10 @@ class UDataTable : public UObject
 	ENGINE_API static bool IsSupportedTableProperty(const UProperty* InProp);
 
 	// End UDataTable interface
+
+private:
+	void SaveStructData(FArchive& Ar);
+	void LoadStructData(FArchive& Ar);
 };
 
 /** Handle to a particular row in a table*/

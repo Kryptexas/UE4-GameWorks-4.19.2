@@ -3,6 +3,10 @@
 #include "EnginePrivate.h"
 #include "Json.h"
 
+#if WITH_EDITOR
+#include "StructureEditorUtils.h"
+#endif //WITH_EDITOR
+
 DEFINE_LOG_CATEGORY(LogDataTable);
 
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
@@ -93,58 +97,68 @@ TArray<FName> UDataTable::GetStructPropertyNames(UStruct* InStruct)
 
 //////////////////////////////////////////////////////////////////////////
 
+void UDataTable::LoadStructData(FArchive& Ar)
+{
+	UScriptStruct* LoadUsingStruct = RowStruct;
+	if (LoadUsingStruct == NULL)
+	{
+		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
+		LoadUsingStruct = FTableRowBase::StaticStruct();
+	}
+
+	int32 NumRows;
+	Ar << NumRows;
+
+	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
+	{
+		// Load row name
+		FName RowName;
+		Ar << RowName;
+
+		// Load row data
+		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
+		LoadUsingStruct->InitializeScriptStruct(RowData);
+		// And be sure to call DestroyScriptStruct later
+		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
+
+		// Add to map
+		RowMap.Add(RowName, RowData);
+	}
+}
+
+void UDataTable::SaveStructData(FArchive& Ar)
+{
+	// Don't even try to save rows if no RowStruct
+	if (RowStruct != NULL)
+	{
+		int32 NumRows = RowMap.Num();
+		Ar << NumRows;
+
+		// Now iterate over rows in the map
+		for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+		{
+			// Save out name
+			FName RowName = RowIt.Key();
+			Ar << RowName;
+
+			// Save out data
+			uint8* RowData = RowIt.Value();
+			RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
+		}
+	}
+}
+
 void UDataTable::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar); // When loading, this should load our RowStruct!	
 
 	if(Ar.IsLoading())
 	{
-		UScriptStruct* LoadUsingStruct = RowStruct;
-		if(LoadUsingStruct == NULL)
-		{
-			UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
-			LoadUsingStruct = FTableRowBase::StaticStruct();
-		}
-
-		int32 NumRows;
-		Ar << NumRows;
-
-		for(int32 RowIdx=0; RowIdx<NumRows; RowIdx++)
-		{
-			// Load row name
-			FName RowName;
-			Ar << RowName;
-
-			// Load row data
-			uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-			LoadUsingStruct->InitializeScriptStruct(RowData);
-			// And be sure to call DestroyScriptStruct later
-			LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
-
-			// Add to map
-			RowMap.Add(RowName, RowData);
-		}
+		LoadStructData(Ar);
 	}
 	else if(Ar.IsSaving())
 	{
-		// Don't even try to save rows if no RowStruct
-		if(RowStruct != NULL)
-		{
-			int32 NumRows = RowMap.Num();
-			Ar << NumRows;
-
-			// Now iterate over rows in the map
-			for ( auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt )
-			{
-				// Save out name
-				FName RowName = RowIt.Key();
-				Ar << RowName;
-
-				// Save out data
-				uint8* RowData = RowIt.Value();
-				RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
-			}
-		}
+		SaveStructData(Ar);
 	}
 }
 
@@ -224,6 +238,36 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 }
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
+
+struct FPropertyDisplayNameHelper
+{
+	static inline FString Get(const UProperty* Prop, const FString& DefaultName)
+	{
+		static const FName DisplayNameKey(TEXT("DisplayName"));
+		return (Prop && Prop->HasMetaData(DisplayNameKey)) ? Prop->GetMetaData(DisplayNameKey) : DefaultName;
+	}
+};
+
+void UDataTable::CleanBeforeStructChange()
+{
+	RowsSerializedWithTags.Reset();
+	{
+		FMemoryWriter MemoryWriter(RowsSerializedWithTags);
+		SaveStructData(MemoryWriter);
+	}
+	EmptyTable();
+	Modify();
+}
+
+void UDataTable::RestoreAfterStructChange()
+{
+	EmptyTable();
+	{
+		FMemoryReader MemoryReader(RowsSerializedWithTags);
+		LoadStructData(MemoryReader);
+	}
+	RowsSerializedWithTags.Empty();
+}
 
 FString UDataTable::GetTableAsString()
 {
@@ -349,8 +393,6 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 /** Get array of UProperties that corresponds to columns in the table */
 TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
-	static const FName DisplayNameKey(TEXT("DisplayName"));
-
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
@@ -380,7 +422,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 
 				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
 				{
-					const FString DisplayName = *It ? (*It)->GetMetaData(DisplayNameKey) : FString();
+					const auto DisplayName = FPropertyDisplayNameHelper::Get(*It, FString());
 					ColumnProp = (!DisplayName.IsEmpty() && (DisplayName == ColumnNameStrings[ColIdx])) ? *It : NULL;
 				}
 
@@ -419,9 +461,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 	for(int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
 	{
 		const UProperty* const ColumnProp = FindField<UProperty>(InRowStruct, ExpectedPropNames[PropIdx]);
-		const FString DisplayName = (ColumnProp && ColumnProp->HasMetaData(DisplayNameKey))
-			? ColumnProp->GetMetaData(DisplayNameKey) 
-			: ExpectedPropNames[PropIdx].ToString();
+		const FString DisplayName = FPropertyDisplayNameHelper::Get(ColumnProp, ExpectedPropNames[PropIdx].ToString());
 		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *DisplayName));
 	}
 
@@ -499,6 +539,10 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		RowStruct->InitializeScriptStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 
+#if WITH_EDITOR
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(RowStruct), RowData);
+#endif // WITH_EDITOR
+
 		// Add to row map
 		RowMap.Add(RowName, RowData);
 
@@ -512,7 +556,9 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 			// If we failed, output a problem string
 			if(Error.Len() > 0)
 			{
-				FString ColumnName = (ColumnProp != NULL) ? ColumnProp->GetName() : FString(TEXT("NONE"));
+				FString ColumnName = (ColumnProp != NULL) 
+					? FPropertyDisplayNameHelper::Get(ColumnProp, ColumnProp->GetName())
+					: FString(TEXT("NONE"));
 				OutProblems.Add(FString::Printf(TEXT("Problem assigning string '%s' to property '%s' on row '%s' : %s"), *CellStrings[CellIdx], *ColumnName, *RowName.ToString(), *Error));
 			}
 		}
@@ -541,16 +587,13 @@ TArray<FString> UDataTable::CreateTableFromJSONString(const FString& InString)
 
 TArray<FString> UDataTable::GetColumnTitles() const
 {
-	static const FName DisplayNameKey(TEXT("DisplayName"));
 	TArray<FString> Result;
 	Result.Add(TEXT("Name"));
 	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
 	{
 		UProperty* Prop = *It;
 		check(Prop != NULL);
-		const FString DisplayName = Prop->HasMetaData(DisplayNameKey)
-			? Prop->GetMetaData(DisplayNameKey)
-			: Prop->GetName();
+		const FString DisplayName = FPropertyDisplayNameHelper::Get(Prop, Prop->GetName());
 		Result.Add(DisplayName);
 	}
 	return Result;

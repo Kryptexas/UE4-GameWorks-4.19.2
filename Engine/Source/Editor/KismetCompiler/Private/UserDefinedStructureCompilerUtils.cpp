@@ -282,7 +282,7 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			UUserDefinedStruct* ChangedStruct = ChangedStructs[StructIdx];
 			if (ChangedStruct)
 			{
-				FStructureEditorUtils::FStructEditorManager::Get().PreChange(ChangedStruct);
+				FStructureEditorUtils::BroadcastPreChange(ChangedStruct);
 				FUserDefinedStructureCompilerInner::ReplaceStructWithTempDuplicate(ChangedStruct, BlueprintsToRecompile, ChangedStructs);
 				ChangedStruct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
 			}
@@ -350,12 +350,11 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(*BPIter);
 		}
 
-		// UPDATE UI
 		for (auto ChangedStruct : ChangedStructs)
 		{
 			if (ChangedStruct)
 			{
-				FStructureEditorUtils::FStructEditorManager::Get().PostChange(ChangedStruct);
+				FStructureEditorUtils::BroadcastPostChange(ChangedStruct);
 				ChangedStruct->MarkPackageDirty();
 			}
 		}

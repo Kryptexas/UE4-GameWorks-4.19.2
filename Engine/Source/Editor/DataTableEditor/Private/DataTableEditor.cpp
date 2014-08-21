@@ -211,6 +211,8 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 
 void FDataTableEditor::OnDataTableReloaded() 
 {
+	CachedDataTable.Reset();
+
 	TSharedRef<SVerticalBox> ContentBox = CreateContentBox();
 	
 	GridPanelOwner->SetContent(ContentBox);

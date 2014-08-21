@@ -10,6 +10,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/UnrealEd/Public/EditorModes.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 
@@ -708,6 +710,54 @@ bool FStructureEditorUtils::SetNativeBase(UUserDefinedStruct* Struct, UScriptStr
 		bResult = true;
 	}
 	return bResult;
+}
+
+struct FReinstanceDataTableHelper
+{
+	// TODO: shell we cache the dependency?
+	static TArray<UDataTable*> GetTablesDependentOnStruct(UUserDefinedStruct* Struct)
+	{
+		TArray<UDataTable*> Result;
+		if (Struct && (Struct->GetSuperStruct() == FTableRowBase::StaticStruct()))
+		{
+			TArray<UObject*> DataTables;
+			GetObjectsOfClass(UDataTable::StaticClass(), DataTables);
+			for (auto DataTableObj : DataTables)
+			{
+				auto DataTable = Cast<UDataTable>(DataTableObj);
+				if (DataTable && (Struct == DataTable->RowStruct))
+				{
+					Result.Add(DataTable);
+				}
+			}
+		}
+		return Result;
+	}
+};
+
+void FStructureEditorUtils::BroadcastPreChange(UUserDefinedStruct* Struct)
+{
+	FStructureEditorUtils::FStructEditorManager::Get().PreChange(Struct);
+	auto DataTables = FReinstanceDataTableHelper::GetTablesDependentOnStruct(Struct);
+	for (auto DataTable : DataTables)
+	{
+		DataTable->CleanBeforeStructChange();
+	}
+}
+
+void FStructureEditorUtils::BroadcastPostChange(UUserDefinedStruct* Struct)
+{
+	FStructureEditorUtils::FStructEditorManager::Get().PostChange(Struct);
+	auto DataTables = FReinstanceDataTableHelper::GetTablesDependentOnStruct(Struct);
+	for (auto DataTable : DataTables)
+	{
+		DataTable->RestoreAfterStructChange();
+		auto DataTableEditor = static_cast<IDataTableEditor*>(FAssetEditorManager::Get().FindEditorForAsset(DataTable, false));
+		if (DataTableEditor)
+		{
+			DataTableEditor->OnDataTableReloaded();
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
