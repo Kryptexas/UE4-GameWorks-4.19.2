@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericWindowsTargetPlatform.h: Declares the TGenericWindowsTargetPlatform class template.
-=============================================================================*/
-
 #pragma once
 
+
 #if WITH_ENGINE
-#include "StaticMeshResources.h"
+	#include "StaticMeshResources.h"
 #endif // WITH_ENGINE
+
 
 /**
  * Template for Windows target platforms
@@ -85,7 +83,7 @@ public:
 			return LocalDevice;
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual bool IsRunningPlatform( ) const override
