@@ -139,11 +139,11 @@ public:
 
 	/** Gets the local player associated with this UI. */
 	UFUNCTION(BlueprintCallable, Category="Player")
-	class ULocalPlayer* GetLocalPlayer() const;
+	class ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/** Gets the player controller associated with this UI. */
 	UFUNCTION(BlueprintCallable, Category="Player")
-	class APlayerController* GetPlayerController() const;
+	class APlayerController* GetOwningPlayer() const;
 
 	/** Called when the widget is constructed */
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")

@@ -48,3 +48,6 @@
 #include "WidgetTemplateDragDropOp.h"
 
 #include "WidgetBlueprintEditorUtils.h"
+
+#include "WidgetBlueprintLibrary.h"
+

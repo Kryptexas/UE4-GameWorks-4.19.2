@@ -488,13 +488,13 @@ const FLocalPlayerContext& UUserWidget::GetPlayerContext() const
 	return PlayerContext;
 }
 
-ULocalPlayer* UUserWidget::GetLocalPlayer() const
+ULocalPlayer* UUserWidget::GetOwningLocalPlayer() const
 {
 	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 	return PC ? Cast<ULocalPlayer>(PC->Player) : NULL;
 }
 
-APlayerController* UUserWidget::GetPlayerController() const
+APlayerController* UUserWidget::GetOwningPlayer() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 }
