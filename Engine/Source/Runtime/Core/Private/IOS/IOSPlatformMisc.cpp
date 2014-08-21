@@ -339,13 +339,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		// get major revision number
 		int Major = [DeviceIDString characterAtIndex:4] - '0';
 
-		// iPod4,1 is iPod Touch 4th gen
-		if (Major == 4)
-		{
-			DeviceType = IOS_IPodTouch4;
-		}
-		// iPod5 is iPod Touch 5th gen, anything higher will use 5th gen settings until released
-		else if (Major >= 5)
+		if (Major >= 5)
 		{
 			DeviceType = IOS_IPodTouch5;
 		}

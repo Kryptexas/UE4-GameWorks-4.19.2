@@ -81,7 +81,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPhone4S,
 		IOS_IPhone5, // also the IPhone5C
 		IOS_IPhone5S,
-		IOS_IPodTouch4,
 		IOS_IPodTouch5,
 		IOS_IPad2,
 		IOS_IPad3,
@@ -102,7 +101,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPhone4S",
 			L"IPhone5",
 			L"IPhone5S",
-			L"IPodTouch4",
 			L"IPodTouch5",
 			L"IPad2",
 			L"IPad3",
