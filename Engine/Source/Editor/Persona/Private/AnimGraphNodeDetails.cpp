@@ -19,6 +19,7 @@
 #include "AnimGraphNode_Base.h"
 #include "GraphEditor.h"
 #include "Persona.h"
+#include "BoneSelectionWidget.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -428,7 +429,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	UAnimGraphNode_Base* AnimGraphNode = NULL;
 	USkeletalMesh* SkeletalMesh = NULL;
 	UAnimationAsset * AnimationAsset = NULL;
-	TargetSkeleton = NULL;
+	USkeleton * TargetSkeleton = NULL;
 
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
 	{
@@ -459,20 +460,13 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 			StructPropertyHandle->CreatePropertyNameWidget()
 		];
 
-		FString DefaultTooltip = StructPropertyHandle->GetToolTipText();
-		FText FinalTooltip = FText::Format(LOCTEXT("BoneClickToolTip", "{0}\nClick to choose a different bone"), FText::FromString(DefaultTooltip));
-
 		HeaderRow.ValueContent()
 		[
-			SAssignNew(BonePickerButton, SComboButton)
-				.OnGetMenuContent(FOnGetContent::CreateSP(this, &FBoneReferenceCustomization::CreateSkeletonWidgetMenu, StructPropertyHandle))
-				.ContentPadding(0)
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.Text(this, &FBoneReferenceCustomization::GetCurrentBoneName)
-					.ToolTipText(FinalTooltip)
-				]
+			SNew(SBoneSelectionWidget)
+			.Skeleton(TargetSkeleton)
+			.Tooltip(FText::FromString(StructPropertyHandle->GetToolTipText()))
+			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
+			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];
 	}
 }
@@ -483,159 +477,17 @@ void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle>
 	// No child customisations as the properties are shown in the header
 }
 
-TSharedRef<SWidget> FBoneReferenceCustomization::CreateSkeletonWidgetMenu( TSharedRef<IPropertyHandle> TargetPropertyHandle)
+void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
 {
-	SAssignNew(TreeView, STreeView<TSharedPtr<FBoneNameInfo>>)
-		.TreeItemsSource(&SkeletonTreeInfo)
-		.OnGenerateRow(this, &FBoneReferenceCustomization::MakeTreeRowWidget)
-		.OnGetChildren(this, &FBoneReferenceCustomization::GetChildrenForInfo)
-		.OnSelectionChanged(this, &FBoneReferenceCustomization::OnSelectionChanged)
-		.SelectionMode(ESelectionMode::Single);
-
-	RebuildBoneList();
-
-	TSharedPtr<SSearchBox> SearchWidgetToFocus = NULL;
-	TSharedRef<SBorder> MenuWidget = SNew(SBorder)
-		.Padding(6)
-		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-		.Content()
-		[
-			SNew(SBox)
-			.WidthOverride(300)
-			.HeightOverride(512)
-			.Content()
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STextBlock)
-						.Font(FEditorStyle::GetFontStyle("BoldFont"))
-						.Text(LOCTEXT("BonePickerTitle", "Pick Bone..."))
-				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SSeparator)
-						.SeparatorImage(FEditorStyle::GetBrush("Menu.Separator"))
-						.Orientation(Orient_Horizontal)
-				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SAssignNew(SearchWidgetToFocus, SSearchBox)
-					.SelectAllTextWhenFocused(true)
-					.OnTextChanged(this, &FBoneReferenceCustomization::OnFilterTextChanged)
-					.OnTextCommitted(this, &FBoneReferenceCustomization::OnFilterTextCommitted)
-					.HintText(NSLOCTEXT("BonePicker", "Search", "Search..."))
-				]
-				+SVerticalBox::Slot()
-					[
-						TreeView->AsShared()
-					]
-			]
-		];
-
-	BonePickerButton->SetMenuContentWidgetToFocus(SearchWidgetToFocus);
-
-	return MenuWidget;
+	BoneRefProperty->SetValue(Name);
 }
-
-TSharedRef<ITableRow> FBoneReferenceCustomization::MakeTreeRowWidget( TSharedPtr<FBoneNameInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable )
-{
-	return SNew(STableRow<TSharedPtr<FBoneNameInfo>>, OwnerTable)
-		.Content()
-		[
-			SNew(STextBlock)
-				.HighlightText(FilterText)
-				.Text(InInfo->BoneName.ToString())
-		];
-}
-
-void FBoneReferenceCustomization::GetChildrenForInfo( TSharedPtr<FBoneNameInfo> InInfo, TArray< TSharedPtr<FBoneNameInfo> >& OutChildren )
-{
-	OutChildren = InInfo->Children;
-}
-
-void FBoneReferenceCustomization::OnFilterTextChanged( const FText& InFilterText )
-{
-	FilterText = InFilterText;
-
-	RebuildBoneList();
-}
-
-void FBoneReferenceCustomization::OnFilterTextCommitted( const FText& SearchText, ETextCommit::Type CommitInfo )
-{
-	// Already committed as the text was typed
-}
-
-void FBoneReferenceCustomization::RebuildBoneList()
-{
-	SkeletonTreeInfo.Empty();
-	SkeletonTreeInfoFlat.Empty();
-	const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
-	for(int32 BoneIdx = 0 ; BoneIdx < RefSkeleton.GetNum() ; ++BoneIdx)
-	{
-		TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(RefSkeleton.GetBoneName(BoneIdx)));
-
-		// Filter if Necessary
-		if(!FilterText.IsEmpty() && !BoneInfo->BoneName.ToString().Contains(FilterText.ToString()))
-		{
-			continue;
-		}
-
-		int32 ParentIdx = RefSkeleton.GetParentIndex(BoneIdx);
-		bool bAddToParent = false;
-
-		if(ParentIdx != INDEX_NONE && FilterText.IsEmpty())
-		{
-			// We have a parent, search for it in the flat list
-			FName ParentName = RefSkeleton.GetBoneName(ParentIdx);
-
-			for(int32 FlatListIdx = 0 ; FlatListIdx < SkeletonTreeInfoFlat.Num() ; ++FlatListIdx)
-			{
-				TSharedPtr<FBoneNameInfo> InfoEntry = SkeletonTreeInfoFlat[FlatListIdx];
-				if(InfoEntry->BoneName == ParentName)
-				{
-					bAddToParent = true;
-					ParentIdx = FlatListIdx;
-					break;
-				}
-			}
-
-			if(bAddToParent)
-			{
-				SkeletonTreeInfoFlat[ParentIdx]->Children.Add(BoneInfo);
-			}
-			else
-			{
-				SkeletonTreeInfo.Add(BoneInfo);
-			}
-		}
-		else
-		{
-			SkeletonTreeInfo.Add(BoneInfo);
-		}
-
-		SkeletonTreeInfoFlat.Add(BoneInfo);
-		TreeView->SetItemExpansion(BoneInfo, true);
-	}
-
-	TreeView->RequestTreeRefresh();
-}
-
-void FBoneReferenceCustomization::OnSelectionChanged( TSharedPtr<FBoneNameInfo> BoneInfo, ESelectInfo::Type SelectInfo )
-{
-	FilterText = FText::FromString("");
-	BoneRefProperty->SetValue(BoneInfo->BoneName);
-	BonePickerButton->SetIsOpen(false);
-}
-
-FString FBoneReferenceCustomization::GetCurrentBoneName() const
+FName FBoneReferenceCustomization::GetSelectedBone() const
 {
 	FString OutText;
+	
 	BoneRefProperty->GetValueAsFormattedString(OutText);
-	return OutText;
+
+	return FName(*OutText);
 }
 
 TSharedRef<IDetailCustomization> FAnimGraphParentPlayerDetails::MakeInstance(TWeakPtr<FPersona> InPersona)
