@@ -1036,7 +1036,7 @@ bool FDelayLatentCommand::Update()
 }
 
 /************************************************************************/
-/*
+/**
  * Uses test maps in Engine and/or game content folder which are populated with a few blueprint instances
  * See InstanceTestMaps entries in the [Automation.Blueprint] config sections
  * For all blueprint instances in the map:

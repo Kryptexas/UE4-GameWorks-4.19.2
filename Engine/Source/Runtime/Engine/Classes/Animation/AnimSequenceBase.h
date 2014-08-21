@@ -28,7 +28,7 @@ namespace EAnimEventTriggerOffsets
 
 ENGINE_API float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType);
 
-/*
+/**
  * Triggers an animation notify.  Each AnimNotifyEvent contains an AnimNotify object
  * which has its Notify method called and passed to the animation.
  */
@@ -289,7 +289,7 @@ struct FRawCurveTracks
 	 * bVectorInterpCurve == true, then it will create FVectorCuve, otherwise, FFloatCurve
 	 */
 	ENGINE_API bool AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags = ACF_DefaultCurve);
-	/*
+	/**
 	 * Delete curve data 
 	 */
 	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid);

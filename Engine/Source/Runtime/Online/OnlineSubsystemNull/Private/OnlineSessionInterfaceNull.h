@@ -117,7 +117,7 @@ private:
 	 */
 	void ReadSettingsFromPacket(class FNboSerializeFromBufferNull& Packet, FOnlineSessionSettings& SessionSettings);
 
-	/*
+	/**
 	 * Delegate triggered when the LAN beacon has detected a valid client request has been received
 	 *
 	 * @param PacketData packet data sent by the requesting client with header information removed
@@ -126,7 +126,7 @@ private:
 	 */
 	void OnValidQueryPacketReceived(uint8* PacketData, int32 PacketLength, uint64 ClientNonce);
 
-	/*
+	/**
 	 * Delegate triggered when the LAN beacon has detected a valid host response to a client request has been received
 	 *
 	 * @param PacketData packet data sent by the requesting client with header information removed
@@ -134,7 +134,7 @@ private:
 	 */
 	void OnValidResponsePacketReceived(uint8* PacketData, int32 PacketLength);
 
-	/*
+	/**
 	 * Delegate triggered when the LAN beacon has finished searching (some time after last received host packet)
 	 */
 	void OnLANSearchTimeout();

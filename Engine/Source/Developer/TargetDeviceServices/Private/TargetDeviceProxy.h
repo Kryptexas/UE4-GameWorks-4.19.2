@@ -51,7 +51,7 @@ public:
 		return LastUpdateTime;
 	}
 
-	/*
+	/**
 	 * Updates the proxy's information from the given device service response.
 	 *
 	 * @param Message The message containing the response.

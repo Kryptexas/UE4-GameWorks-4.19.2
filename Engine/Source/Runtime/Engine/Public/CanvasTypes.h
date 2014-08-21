@@ -394,22 +394,22 @@ private:
 
 public:	
 
-	/*
+	/**
 	 * Access current real time 
 	 */
 	float GetCurrentRealTime() const { return CurrentRealTime; }
 
-	/*
+	/**
 	 * Access current world time 
 	 */
 	float GetCurrentWorldTime() const { return CurrentWorldTime; }
 
-	/*
+	/**
 	 * Access current delta time 
 	 */
 	float GetCurrentDeltaWorldTime() const { return CurrentDeltaWorldTime; }
 
-	/* 
+	/** 
 	 * Draw a CanvasItem
 	 *
 	 * @param Item			Item to draw
@@ -418,7 +418,7 @@ public:
 	{
 		Item.Draw( this );
 	}
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw
@@ -429,7 +429,7 @@ public:
 		Item.Draw( this, InPosition );
 	}
 	
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw

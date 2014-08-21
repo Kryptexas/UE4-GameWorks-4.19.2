@@ -327,7 +327,7 @@ protected:
 	/** Called by STreeView to generate a table row for the specified item. */
 	TSharedRef< ITableRow > GroupAndStatTree_OnGenerateRow( FGroupOrStatNodePtr TreeNode, const TSharedRef< STableViewBase >& OwnerTable );
 
-	/*
+	/**
 	 * Called by STreeView to retrieves the children for the specified parent item.
 	 * @param InParent		- The parent node to retrieve the children from.
 	 * @param out_Children	- List of children for the parent node.

@@ -125,7 +125,7 @@ public:
 	 */
 	void InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<class UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
-	/*
+	/**
 	 * Set transactional flag on SCSNodes and its children.
 	 *
 	 * @param: Node reference to set transactional flag.
@@ -420,7 +420,7 @@ public:
 	/** Handles spawning a graph node in the current graph using the passed in gesture */
 	FReply OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph);
 
-	/* 
+	/** 
 	 * Perform the actual promote to variable action on the given pin in the given blueprint.
 	 *
 	 * @param	InBlueprint	The blueprint in which to create the variable.

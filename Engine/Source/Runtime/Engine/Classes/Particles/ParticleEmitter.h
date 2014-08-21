@@ -304,7 +304,7 @@ class UParticleEmitter : public UObject
 	 */
 	void Build();
 
-	/*
+	/**
 	 *   Calculate spawn rate multiplier based on global effects quality level and emitter's quality scale
  	 */
 	FORCEINLINE float GetQualityLevelSpawnRateMult()

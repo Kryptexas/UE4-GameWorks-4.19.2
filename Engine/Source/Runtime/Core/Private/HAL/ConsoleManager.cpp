@@ -16,7 +16,7 @@ static inline bool IsWhiteSpace(TCHAR Value) { return Value == TCHAR(' '); }
 class FConsoleVariableBase : public IConsoleVariable
 {
 public:
-	/*
+	/**
 	 * Constructor
 	 * @param InHelp must not be 0, must not be empty
 	 */
@@ -114,7 +114,7 @@ protected: // -----------------------------------------
 class FConsoleCommandBase : public IConsoleCommand
 {
 public:
-	/*
+	/**
 	 * Constructor
 	 * @param InHelp must not be 0, must not be empty
 	 */

@@ -70,7 +70,7 @@ class FAutoDeleteAsyncTask : private FQueuedWork
 		}
 	}
 
-	/* 
+	/** 
 	* Tells the user job to do the work, sometimes called synchronously, sometimes from the thread pool. Calls the event tracker.
 	**/
 	void DoWork()
@@ -79,7 +79,7 @@ class FAutoDeleteAsyncTask : private FQueuedWork
 		delete this;
 	}
 
-	/* 
+	/** 
 	* Always called from the thread pool. Just passes off to DoWork
 	**/
 	virtual void DoThreadedWork()
@@ -165,7 +165,7 @@ public:
 	}
 
 
-	/* 
+	/** 
 	* Run this task on this thread, now. Will end up destroying myself, so it is not safe to use this object after this call.
 	**/
 	void StartSynchronousTask()
@@ -173,7 +173,7 @@ public:
 		Start(true);
 	}
 
-	/* 
+	/** 
 	* Run this task on the lo priority thread pool. It is not safe to use this object after this call.
 	**/
 	void StartBackgroundTask()
@@ -287,7 +287,7 @@ class FAsyncTask : private FQueuedWork
 		}
 	}
 
-	/* 
+	/** 
 	* Tells the user job to do the work, sometimes called synchronously, sometimes from the thread pool. Calls the event tracker.
 	**/
 	void DoWork()
@@ -297,7 +297,7 @@ class FAsyncTask : private FQueuedWork
 		WorkNotFinishedCounter.Decrement();
 	}
 
-	/* 
+	/** 
 	* Triggers the work completion event, only called from a pool thread
 	**/
 	void FinishThreadedWork()
@@ -309,7 +309,7 @@ class FAsyncTask : private FQueuedWork
 		}
 	}
 
-	/* 
+	/** 
 	* Performs the work, this is only called from a pool thread.
 	**/
 	virtual void DoThreadedWork()
@@ -337,7 +337,7 @@ class FAsyncTask : private FQueuedWork
 		FinishThreadedWork();
 	}
 
-	/* 
+	/** 
 	* Internal call to assert that we are idle
 	**/
 	void CheckIdle() const
@@ -346,7 +346,7 @@ class FAsyncTask : private FQueuedWork
 		check(!QueuedPool);
 	}
 
-	/* 
+	/** 
 	* Internal call to synchronize completion between threads, never called from a pool thread
 	**/
 	void SyncCompletion()
@@ -361,7 +361,7 @@ class FAsyncTask : private FQueuedWork
 		CheckIdle();
 	}
 
-	/* 
+	/** 
 	* Internal call to intialize internal variables
 	**/
 	void Init()
@@ -466,7 +466,7 @@ public:
 		return Task;
 	}
 
-	/* 
+	/** 
 	* Run this task on this thread
 	* @param bDoNow if true then do the job now instead of at EnsureCompletion
 	**/
@@ -475,7 +475,7 @@ public:
 		Start(true);
 	}
 
-	/* 
+	/** 
 	* Queue this task for processing by the background thread pool
 	**/
 	void StartBackgroundTask()
@@ -483,7 +483,7 @@ public:
 		Start(false);
 	}
 
-	/* 
+	/** 
 	* Wait until the job is complete
 	* @param bDoWorkOnThisThreadIfNotStarted if true and the work has not been started, retract the async task and do it now on this thread
 	**/

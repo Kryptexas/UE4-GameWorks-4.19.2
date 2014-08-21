@@ -24,7 +24,7 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 	uint32 UniqueNameIndex;
 #endif //WITH_EDITORONLY_DATA
 
-	/*
+	/**
 	 * Names stored in "DisplayName" meta data. They are duplicated here, 
 	 * so functions like UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName can use them
 	 * outside the editor. (When meta data are not loaded).

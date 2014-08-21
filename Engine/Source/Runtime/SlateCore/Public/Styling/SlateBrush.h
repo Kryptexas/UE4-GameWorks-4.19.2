@@ -77,7 +77,7 @@ namespace ESlateBrushMirrorType
 }
 
 
-/*
+/**
  * Enumerates brush image types.
  */
 UENUM()

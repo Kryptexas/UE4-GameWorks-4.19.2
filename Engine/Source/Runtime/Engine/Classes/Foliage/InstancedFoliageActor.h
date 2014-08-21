@@ -93,7 +93,7 @@ public:
 	// Transforms Editor specific data which is stored in world space
 	ENGINE_API void ApplyLevelTransform(const FTransform& LevelTransform);
 
-	/*
+	/**
 	* Get the instanced foliage actor for the current streaming level.
 	*
 	* @param InCreationWorldIfNone			World to create the foliage instance in

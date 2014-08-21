@@ -308,7 +308,7 @@ private:
 	/** bound shader state for color masked elements */
 	static FGlobalBoundShaderState ColorChannelMaskShaderState;
 
-	/*
+	/**
 	 * Sets the appropriate vertex and pixel shader.
 	 */
 	void PrepareShaders(

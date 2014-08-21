@@ -329,7 +329,7 @@ void SystemResolutionSinkCallback()
 	}
 }
 
-/*
+/**
  * if we need to update the sample states
 */
 void RefreshSamplerStatesCallback()

@@ -16,7 +16,7 @@ public:
 	/** Delegate for when menu is about to open. */
 	DECLARE_DELEGATE(FOnMenuOpening);
 
-	/* 
+	/** 
 	 * Initialize the menu page widget and set this menu as root. 
 	 * @param	InPCOwner		Player controller that owns this menu.
 	 * @param	InStyleName		Name of the menu style to use.
@@ -48,7 +48,7 @@ public:
 	/** The menu title. */
 	FText MenuTitle;
 
-	/* 
+	/** 
 	 * Add a menu item.
 	 *
 	 * @param	Text		The string for the item (EG START GAME)
@@ -75,7 +75,7 @@ public:
 		return Item.ToSharedRef();
 	}
 
-	/*
+	/**
 	 * Add a menu entry with a variable number of selectable options
 	 *
 	 * @param	Text		Label of the menu item
@@ -93,7 +93,7 @@ public:
 		return Item.ToSharedRef();
 	}
 
-	/*
+	/**
 	* Add a handler for the menu being canceled.
 	*
 	* @param	InObj		Menu page object
@@ -105,7 +105,7 @@ public:
 		OnGoBackCancel.BindSP(InObj, InMethod);
 	}
 	
-	/*
+	/**
 	* Add a handler for the menu being canceled.
 	*
 	* @param	InObj		Menu page object
@@ -117,7 +117,7 @@ public:
 		OnMenuHidden.BindSP(InObj, InMethod);
 	}
 
-	/*
+	/**
 	* Add a handler for the menu being accepted.
 	*
 	* @param	InObj		Menu page object
@@ -129,7 +129,7 @@ public:
 		OnGoBack.BindSP(InObj, InMethod);
 	}
 
-	/*
+	/**
 	* Add a handler for the menu being opened.
 	*
 	* @param	InObj		Menu page object
@@ -141,7 +141,7 @@ public:
 		OnMenuOpening.BindSP(InObj, InMethod);
 	}
 
-	/*
+	/**
 	 * Lock/Unlock the menu and prevent user interaction.
 	 *
 	 * @param		bLockState	true to lock

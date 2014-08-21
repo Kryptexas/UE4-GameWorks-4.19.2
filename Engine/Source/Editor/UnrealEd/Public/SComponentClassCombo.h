@@ -67,7 +67,7 @@ public:
 	/** Clear the current combo list selection */
 	void ClearSelection();
 
-	/*
+	/**
 	 * Updates the filtered list of component names.
 	 * @param InSearchText The search text from the search control.
 	 */
@@ -75,7 +75,7 @@ public:
 
 	FText GetCurrentSearchString() const;
 
-	/*
+	/**
 	 * Called when the user changes the text in the search box.
 	 * @param InSearchText The new search string.
 	 */

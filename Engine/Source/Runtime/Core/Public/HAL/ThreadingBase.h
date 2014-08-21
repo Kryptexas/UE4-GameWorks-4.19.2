@@ -629,7 +629,7 @@ public:
 };
 
 
-/*
+/**
  *  Global thread pool for shared async operations
  */
 extern CORE_API FQueuedThreadPool* GThreadPool;

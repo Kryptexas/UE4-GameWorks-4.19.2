@@ -6,7 +6,7 @@
 
 class UMovieSceneSection;
 
-/*
+/**
  * Base class for a track in a Movie Scene
  */
 UCLASS( abstract, MinimalAPI )

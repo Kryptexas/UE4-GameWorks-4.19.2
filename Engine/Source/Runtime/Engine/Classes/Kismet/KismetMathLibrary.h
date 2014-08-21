@@ -510,7 +510,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Math|Random")
 	static FVector RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent);
 
-	/* 
+	/** 
 	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
 	 * @param ConeDir	The base "center" direction of the cone.
 	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in degrees.
@@ -1048,7 +1048,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Geometry
 	//
 
-	/*  
+	/**  
 	 * Finds the minimum area rectangle that encloses all of the points in InVerts
 	 * Uses algorithm found in http://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
 	 *	

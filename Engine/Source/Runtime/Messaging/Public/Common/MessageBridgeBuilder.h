@@ -18,7 +18,7 @@ public:
 		, Transport(nullptr)
 	{ }
 
-	/*
+	/**
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InBus The message bus to attach the bridge to.

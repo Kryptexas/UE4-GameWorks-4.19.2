@@ -112,7 +112,7 @@ struct FMath : public FPlatformMath
 	/** Return a uniformly distributed random unit length vector = point on the unit sphere surface. */
 	static FVector VRand();
 	
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone
 	 * ConeHalfAngleRad is the half-angle of cone, in radians.  Returns a normalized vector. 
 	 */
@@ -870,7 +870,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool Eval( FString Str, float& OutValue );
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point in a triangle - simpler version
 	 *
 	 * @param	Point			point to convert to barycentric coordinates (in plane of ABC)
@@ -881,7 +881,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector GetBaryCentric2D(const FVector& Point, const FVector& A, const FVector& B, const FVector& C);
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point in a triangle
 	 *
 	 * @param	Point			point to convert to barycentric coordinates (in plane of ABC)
@@ -892,7 +892,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector ComputeBaryCentric2D(const FVector& Point, const FVector& A, const FVector& B, const FVector& C);
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point on a tetrahedron (3D)
 	 *
 	 * @param	Point			point to convert to barycentric coordinates

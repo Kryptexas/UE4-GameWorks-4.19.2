@@ -162,7 +162,7 @@ private:
 	/** Event for importing the light map channel to a static mesh from an intermediate file from Max/Maya */
 	void OnImportLightmapMesh( bool IsFBX );
 
-	/*
+	/**
 	* Quick and dirty way of creating box vertices from a box collision representation
 	* Grossly inefficient, but not time critical
 	* @param BoxElem - Box collision to get the vertices for

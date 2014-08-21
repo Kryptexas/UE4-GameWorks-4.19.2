@@ -1423,7 +1423,7 @@ public:
 	void RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate );
 	FEndStreamingPauseDelegate* EndStreamingPauseDelegate;
 
-	/* 
+	/** 
 	 * Error message event relating to server travel failures 
 	 * 
 	 * @param Type type of travel failure
@@ -1432,7 +1432,7 @@ public:
 	DECLARE_EVENT_ThreeParams(UEngine, FOnTravelFailure, UWorld*, ETravelFailure::Type, const FString&);
 	FOnTravelFailure TravelFailureEvent;
 
-	/* 
+	/** 
 	 * Error message event relating to network failures 
 	 * 
 	 * @param Type type of network failure
@@ -1959,7 +1959,7 @@ private:
 
 protected:
 
-	/*
+	/**
 	 * Handles freezing/unfreezing of rendering 
 	 * 
 	 * @param InWorld	World context
@@ -2002,7 +2002,7 @@ public:
 	 */
 	void AddTextureStreamingSlaveLoc(FVector InLoc, float BoostFactor, bool bOverrideLocation, float OverrideDuration);
 
-	/* 
+	/** 
 	 * Obtain a world object pointer from an object with has a world context.
 	 * This should be be overridden to cater for game specific object types that do not derive from the Actor class.
 	 *

@@ -238,7 +238,7 @@ public:
 	 */
 	static void RemoveGraph( UBlueprint* Blueprint, class UEdGraph* GraphToRemove, EGraphRemoveFlags::Type Flags = EGraphRemoveFlags::Default );
 
-	/*
+	/**
 	 * Tries to rename the supplied graph.
 	 * Cleans up function entry node if one exists and marks objects for modification
 	 *
@@ -247,7 +247,7 @@ public:
 	 */
 	static void RenameGraph(class UEdGraph* Graph, const FString& NewName );
 
-	/*
+	/**
 	 * Renames the graph of the supplied node with a valid name based off of the suggestion.
 	 *
 	 * @param GraphNode			The node of the graph to rename.

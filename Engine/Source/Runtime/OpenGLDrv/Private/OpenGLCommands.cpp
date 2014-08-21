@@ -3101,7 +3101,7 @@ void FOpenGLDynamicRHI::RHIBlockUntilGPUIdle()
 	// Not really supported
 }
 
-/*
+/**
  * Returns the total GPU time taken to render the last frame. Same metric as FPlatformTime::Cycles().
  */
 uint32 FOpenGLDynamicRHI::RHIGetGPUFrameCycles()

@@ -27,7 +27,7 @@ public:
 	{}
 
 protected:
-	/*
+	/**
 	 * Method for creating a duplicated copy of this data provider instance with a particular group of frames.
 	 * Data is stored in the instance of FArrayDataProvider class.
 	 * Data source for the SEventGraph widget.
@@ -163,7 +163,7 @@ public:
 		return FIntPoint( StartIndex, FMath::Min(ElapsedFrameTimes.Num(),EndIndex+1) );
 	}
 
-	/*
+	/**
 	 * @return An instance of FIntPoint 
 	 * where X is an index of first sample in the frame, and 
 	 * where Y is an index of last sample in the frame + 1. 

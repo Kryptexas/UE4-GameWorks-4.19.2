@@ -33,7 +33,7 @@ public:
 
 	TSharedPtr<FEditorViewportClient> GetViewportClient() const { return Client; }
 
-	/*
+	/**
 	 * Controls the visibility of the widget transform toolbar, if there is an associated toolbar
 	 */
 	virtual EVisibility GetTransformToolbarVisibility() const;

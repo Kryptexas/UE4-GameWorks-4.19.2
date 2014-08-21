@@ -20,7 +20,7 @@ protected:
 protected:
 	GLuint ShaderID;
 };
-/*
+/**
  * Represents an OpenGL vertex shader.  Do not inherit from this for specific shaders.  Inherit from FSlateOpenGLProgram
  */
 class FSlateOpenGLVS : public FSlateOpenGLShader
@@ -31,7 +31,7 @@ public:
 	virtual void Create( const FString& Filename );
 };
 
-/*
+/**
  * Represents an OpenGL vertex shader.  Do not inherit from this for specific shaders.  Inherit from FSlateOpenGLProgram
  */
 class FSlateOpenGLPS : public FSlateOpenGLShader

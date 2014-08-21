@@ -2,7 +2,7 @@
 
 #pragma once
 
-/*
+/**
  * Base class for an animated type instance in a Movie Scene
  */
 class IMovieSceneTrackInstance

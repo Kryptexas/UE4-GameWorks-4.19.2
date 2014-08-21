@@ -124,7 +124,7 @@ FSelectedActorInfo FLevelEditorContextMenuImpl::SelectionInfo;
 
 struct FLevelScriptEventMenuHelper
 {
-	/*
+	/**
 	* Fills in menu options for events that can be associated with that actors's blueprint in the level script blueprint
 	*
 	* @param MenuBuilder	The menu to add items to

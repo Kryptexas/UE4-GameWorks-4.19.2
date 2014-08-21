@@ -608,7 +608,7 @@ protected:
 		return FMath::Clamp<double>(Result, TNumericLimits<NumericType>::Lowest(), TNumericLimits<NumericType>::Max());
 	}
 	
-	/*
+	/**
 	 * Helper structure to check if a given character is supported by underlying numeric type
 	 */
 	template<typename T, typename U = void>

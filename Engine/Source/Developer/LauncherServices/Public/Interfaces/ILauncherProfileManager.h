@@ -53,7 +53,7 @@ public:
 	 */
 	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
-	/*
+	/**
 	 * Create a new device group and maintains a reference for its future usage.
 	 *
 	 * @return The device group created.

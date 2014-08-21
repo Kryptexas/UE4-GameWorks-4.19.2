@@ -187,7 +187,7 @@ public:
 		return GetUnitVector();
 	}
 
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone.
 	 *
 	 * @param Dir The center direction of the cone
@@ -231,7 +231,7 @@ public:
 		}
 	}
 
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone.
 	 *
 	 * @param Dir The center direction of the cone

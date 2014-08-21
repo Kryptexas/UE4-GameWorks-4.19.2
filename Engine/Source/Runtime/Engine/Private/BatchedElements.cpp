@@ -367,7 +367,7 @@ float GBatchedElementAlphaRefVal = 128.f;
 /** Global smoothing width for rendering batched elements with distance field blend modes */
 float GBatchedElementSmoothWidth = 12;
 
-/*
+/**
  * Sets the appropriate vertex and pixel shader.
  */
 void FBatchedElements::PrepareShaders(

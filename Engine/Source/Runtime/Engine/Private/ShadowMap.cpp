@@ -110,7 +110,7 @@ struct FShadowMapPendingTexture : FTextureLayout
 
 	bool AddElement(FShadowMapAllocation& Allocation, const bool bForceIntoThisTexture = false);
 
-	/*
+	/**
 	 * Begin encoding the textures
 	 *
 	 * @param	InWorld	World in which the textures exist

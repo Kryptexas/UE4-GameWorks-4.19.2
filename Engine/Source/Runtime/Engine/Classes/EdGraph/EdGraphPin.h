@@ -239,7 +239,7 @@ public:
 	/** Break a link to the specified pin (if present) */
 	ENGINE_API void BreakLinkTo(UEdGraphPin* ToPin);
 
-	/*
+	/**
 	 * Generate a string detailing the link this pin has to another pin.
 	 * 
 	 * @Param	InFunctionName	String with function name requesting the info

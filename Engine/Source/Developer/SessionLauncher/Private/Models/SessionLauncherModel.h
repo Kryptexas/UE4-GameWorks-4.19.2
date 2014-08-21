@@ -172,7 +172,7 @@ public:
 
 protected:
 
-	/*
+	/**
 	 * Load all profiles from disk.
 	 */
 	void LoadConfig( )
@@ -209,7 +209,7 @@ protected:
 		SelectProfile(LoadedSelectedProfile);
 	}
 
-	/*
+	/**
 	 * Saves all profiles to disk.
 	 */
 	void SaveConfig( )

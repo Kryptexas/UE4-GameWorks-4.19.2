@@ -167,7 +167,7 @@ private:
 	void NavigateToLink( FString AdditionalContent );
 
 private:
-	/* 
+	/** 
 	 * Parses a code link embedded in the doc.
 	 * Allows us to specify files in code to link to in one of 2 ways. In both cases the last 2 parameters are line and column.
 	 * [Project based link](CODELINK:Private/[PROJECT]File.cpp, 29, 5)
@@ -179,7 +179,7 @@ private:
 	 */
 	bool ParseCodeLink(FString &InternalLink);
 		
-	/* 
+	/** 
 	 * Parses an asset link embedded in the doc.
 	 * Allows us to specify assets to either highlight or edit in the editor
 	 * (ASSETLINK:SELECT,MyCharacter)

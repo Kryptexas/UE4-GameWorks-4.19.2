@@ -477,7 +477,7 @@ private:
 
 static float DebugLineLifetime = 2.f;
 
-/* 
+/** 
  * Type of query for object type or trace type
  * Trace queries correspond to trace functions with TravelChannel/ResponseParams
  * Object queries correspond to trace functions with Object types 

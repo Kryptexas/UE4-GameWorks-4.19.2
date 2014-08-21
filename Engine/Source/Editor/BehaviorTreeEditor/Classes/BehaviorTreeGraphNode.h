@@ -61,7 +61,7 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 
 	virtual bool IsSubNode() const { return false; }
 
-	/*
+	/**
 	 * Finds the difference in Behavior Tree properties
 	 * 
 	 * @param Struct The struct of the class we are looking at

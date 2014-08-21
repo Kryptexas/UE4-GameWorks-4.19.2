@@ -423,14 +423,14 @@ public:
 	 */
 	virtual void DrawDebugGraph(const FString& Title, float ValueX, float ValueY, float UL_X, float UL_Y, float W, float H, FVector2D RangeX, FVector2D RangeY);
 
-	/* 
+	/** 
 	 * Draw a CanvasItem
 	 *
 	 * @param Item			Item to draw
 	 */
 	void DrawItem( FCanvasItem& Item );
 
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw
@@ -438,7 +438,7 @@ public:
 	 */
 	void DrawItem( FCanvasItem& Item, const FVector2D& InPosition );
 	
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw

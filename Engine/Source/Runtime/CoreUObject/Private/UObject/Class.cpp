@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnClass.cpp: Object class implementation.
@@ -95,7 +95,7 @@ FString FPropertySpecifier::ConvertToString() const
 
 //////////////////////////////////////////////////////////////////////////
 
-/*
+/**
  * Shared function called from the various InitializePrivateStaticClass functions generated my the IMPLEMENT_CLASS macro.
  */
 COREUOBJECT_API void InitializePrivateStaticClass(

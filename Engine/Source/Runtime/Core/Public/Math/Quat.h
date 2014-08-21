@@ -35,7 +35,7 @@ public:
 
 public:
 
-	/*
+	/**
 	 * Default constructor (no initialization).
 	 */
 	FORCEINLINE FQuat( ) { }
@@ -154,14 +154,14 @@ public:
 	 */
 	FORCEINLINE FQuat operator*=(const FQuat& Q);
 
-	/*
+	/**
 	 * This transforms vector, not dot product
 	 *
 	 * @param V
 	 */
 	FVector operator*( const FVector& V ) const;
 
-	/* 
+	/** 
 	 * This matrix conversion came from
 	 * http://www.m-hikari.com/ija/ija-password-2008/ija-password17-20-2008/aristidouIJA17-20-2008.pdf
 	 * used for non-uniform scaling transform.

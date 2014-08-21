@@ -321,7 +321,7 @@ public:
 		];
 	}
 	
-	/*
+	/**
 	 * Returns the internals of the notification
 	 */
 	TSharedRef<SHorizontalBox> ConstructInternals( const FArguments& InArgs ) 

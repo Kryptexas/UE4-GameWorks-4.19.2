@@ -896,7 +896,7 @@ public:
 	 */
 	void CloneViaPBO( TOpenGLTexture* Src, uint32 NumMips, int32 SrcOffset, int32 DstOffset);
 
-	/*
+	/**
 	 * Resolved the specified face for a read Lock, for non-renderable, CPU readable surfaces this eliminates the readback inside Lock itself.
 	 */
 	void Resolve(uint32 MipIndex,uint32 ArrayIndex);

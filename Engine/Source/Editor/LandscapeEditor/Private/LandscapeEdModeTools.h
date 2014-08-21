@@ -1212,7 +1212,7 @@ public:
 };
 
 
-/*
+/**
  * FLandscapeToolPaintBase - base class for painting tools
  *		ToolTarget - the target for the tool (weight or heightmaap)
  *		StrokeClass - the class that implements the behavior for a mouse stroke applying the tool.

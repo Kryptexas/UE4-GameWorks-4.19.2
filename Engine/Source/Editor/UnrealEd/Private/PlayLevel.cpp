@@ -679,7 +679,7 @@ void GetWindowSizeForInstanceType(FIntPoint &WindowSize, const ULevelEditorPlayS
 	}
 }
 
-/* 
+/** 
  * Generate the command line for pie instance. Window position, size etc. 
  *
  * @param	WinX			Window X position. This will contain the X position to use for the next window. (Not changed for dedicated server window).

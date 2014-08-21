@@ -36,7 +36,7 @@ public:
 
 	bool ApplyRatioAdjustment();
 
-	/* 
+	/** 
 	* Add levels in a world to an array based on the LevelOptions setting
 	*
 	* @param InLevelOptions	Level options used to decided whether to add levels to the array

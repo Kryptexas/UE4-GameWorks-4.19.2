@@ -146,7 +146,7 @@ public:
 	 */
 	void SavePreset( const AutomationPresetRef Preset);
 
-	/*
+	/**
 	* Load all Presets from disk.
 	*/
 	void LoadPresets( );

@@ -1592,7 +1592,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 	}
 }
 
-/*
+/**
  * Helper function to obtain the display name for an enum property
  * @param InEnum		The enum whose metadata to pull from
  * @param DisplayName	The name of the enum value to adjust

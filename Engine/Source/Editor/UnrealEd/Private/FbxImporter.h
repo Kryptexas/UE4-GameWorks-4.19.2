@@ -1001,7 +1001,7 @@ private:
 	bool ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
 
 
-	/*
+	/**
 	 * Import FbxCurve to anim sequence
 	 */
 	bool ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString & CurveName, const FbxAnimCurve * FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale = 1.f) const;

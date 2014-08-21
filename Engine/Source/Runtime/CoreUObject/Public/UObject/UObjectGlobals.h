@@ -230,7 +230,7 @@ COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParam
  * Performs UObject system pre-initialization. Depracated, do not use.
  */
 COREUOBJECT_API void PreInitUObject();
-/* 
+/** 
  *   Iterate over all objects considered part of the root to setup GC optimizations
  */
 COREUOBJECT_API void MarkObjectsToDisregardForGC();

@@ -407,7 +407,7 @@ public:
 	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
 
 
-	/*
+	/**
 	 * Returns the array of actors inside a selection rectangle, with a class filter.
 	 *
 	 * Sample usage:

@@ -647,17 +647,17 @@ public:
 	/** @todo document */
 	ENGINE_API TArray<FVector> const* GetStaticNavigableGeometry() const { return &StaticNavigableGeometry;}
 
-	/* 
+	/** 
 	* Is this the persistent level 
 	*/
 	ENGINE_API bool IsPersistentLevel() const;
 
-	/* 
+	/** 
 	* Is this the current level in the world it is owned by
 	*/
 	ENGINE_API bool IsCurrentLevel() const;
 	
-	/* 
+	/** 
 	 * Shift level actors by specified offset
 	 * The offset vector will get subtracted from all actors positions and corresponding data structures
 	 *

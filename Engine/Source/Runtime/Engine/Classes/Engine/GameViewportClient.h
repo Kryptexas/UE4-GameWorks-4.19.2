@@ -569,7 +569,7 @@ public:
 	/** The platform-specific viewport frame which this viewport is contained by. */
 	FViewportFrame* ViewportFrame;
 
-	/*
+	/**
  	 * Controls supression of the blue transition text messages 
 	 * 
 	 * @param bSuppress	Pass true to supress messages

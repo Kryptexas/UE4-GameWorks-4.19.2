@@ -55,7 +55,7 @@ namespace EAnalyticsErrorCodes
 class FEditorAnalytics
 {
 public:
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled
 	*
 	* @param EventName - name of the event
@@ -63,7 +63,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode);
 
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled with some extra parameters
 	*
 	* @param EventName - name of the event
@@ -72,7 +72,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode, TArray<FAnalyticsEventAttribute>& ExtraParams);
 
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled with some extra parameters with an error code
 	*
 	* @param EventName - name of the event
@@ -82,7 +82,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode, int32 ErrorCode, TArray<FAnalyticsEventAttribute>& ExtraParams);
 
-	/*
+	/**
 	* Reports an event to the analytics system of a build requirements failure
 	*
 	* @param EventName - name of the event

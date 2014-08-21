@@ -24,7 +24,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
  */
 #define INDEFINITELY_LOOPING_DURATION	10000.0f
 
-/*
+/**
  * Some defaults to help cross platform consistency
  */
 #define SPEAKER_COUNT					6

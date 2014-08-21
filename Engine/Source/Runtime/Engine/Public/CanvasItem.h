@@ -18,7 +18,7 @@ class FTexture;
 class FCanvasItem
 {
 public:
-	/* 
+	/** 
 	 * Basic render item.
 	 *
 	 * @param	InPosition		Draw position
@@ -32,7 +32,7 @@ public:
 
 	virtual void Draw( FCanvas* InCanvas ) = 0;
 
-	/* 
+	/** 
 	 * Draw this item (this will affect the items position for future draw calls that do no specify a position)
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -44,7 +44,7 @@ public:
 		Draw( InCanvas );
 	}
 
-	/* 
+	/** 
 	 * Draw this item (this will affect the items position for future draw calls that do no specify a position)
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -84,7 +84,7 @@ protected:
 class ENGINE_API FCanvasTileItem : public FCanvasItem
 {
 public:
-	/* 
+	/** 
 	 * Tile item using size from texture.
 	 *
 	 * @param	InPosition		Draw position
@@ -92,7 +92,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FLinearColor& InColor );
 
-	/* 
+	/** 
 	 * Tile item with texture using given size. 
 	 *
 	 * @param	InPosition		Draw position
@@ -101,7 +101,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FLinearColor& InColor );
 
-	/* 
+	/** 
 	 * Tile item which uses the default white texture using given size. 
 	 *
 	 * @param	InPosition		Draw position
@@ -109,7 +109,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FVector2D& InSize, const FLinearColor& InColor );
 
-	/* 
+	/** 
 	 * Tile item with texture using size from texture specific UVs. 
 	 *
 	 * @param	InPosition		Draw position
@@ -119,7 +119,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor );
 
-	/* 
+	/** 
 	 * Tile item with texture using given size and specific UVs.
 	 *
 	 * @param	InPosition		Draw position
@@ -130,7 +130,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor );
 
-	/* 
+	/** 
 	 * Tile item with FMaterialRenderProxy using given size. 
 	 *
 	 * @param	InPosition				Draw position
@@ -139,7 +139,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize );
 
-	/* 
+	/** 
 	 * Tile item with FMaterialRenderProxy using given size and UVs.
 	 *
 	 * @param	InPosition				Draw position
@@ -150,7 +150,7 @@ public:
 	 */
 	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1 );
 
-	/* 
+	/** 
 	 * Draw the item at the given coordinates.
 	 *
 	 * @param	InPosition		Draw position.
@@ -194,7 +194,7 @@ class ENGINE_API FCanvasBorderItem : public FCanvasItem
 {
 public:
 
-	/* 
+	/** 
 	 * 3x3 grid border with tiled frame and tiled interior. 
 	 *
 	 * @param	InPosition		    Draw position
@@ -228,7 +228,7 @@ public:
 		check( InBackgroundTexture );
 	}
 
-	/* 
+	/** 
 	 * Draw the item at the given coordinates.
 	 *
 	 * @param	InPosition		Draw position.
@@ -288,7 +288,7 @@ public:
 class ENGINE_API FCanvasTextItem : public FCanvasItem
 {
 public:
-	/* 	 
+	/** 	 
 	 * Text item
 	 *
 	 * @param	InPosition		Draw position
@@ -317,7 +317,7 @@ public:
 		BlendMode = SE_BLEND_Translucent;
 	};
 		
-	/* 
+	/** 
 	 * Set the shadow offset and color. 
 	 *
 	 * @param	InColor			Shadow color
@@ -329,7 +329,7 @@ public:
 		ShadowColor = InColor;		
 	}
 	
-	/* 
+	/** 
 	 * Disable the shadow
 	 */
 	void DisableShadow() 
@@ -337,7 +337,7 @@ public:
 		ShadowOffset = FVector2D::ZeroVector;
 	}
 
-	/* 
+	/** 
 	 * Draw the item at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -395,14 +395,14 @@ protected:
 	/* Background tile used to fixup 3d text issues. */
 	FCanvasTileItem	TileItem;
 
-	/* 
+	/** 
 	 * Internal string draw
 	 *
 	 * In a method to make it simpler to do effects like shadow, outline
 	 */
 	void DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
 
-	/* 
+	/** 
 	 * These are used bye the DrawStringInternal function. 
 	 */
 	/* String char length. */
@@ -442,7 +442,7 @@ public:
 		EndPos.Y = 0.0f;
 		EndPos.Z = 0.0f;
 	}
-	/* 
+	/** 
 	 * A Line. 
 	 * 
 	 * @param	InPosition		Start position
@@ -460,7 +460,7 @@ public:
 		EndPos.Z = 0.0f;
 	}
 	
-	/* 
+	/** 
 	 * A Line. 
 	 * 
 	 * @param	InPosition		Start position
@@ -474,14 +474,14 @@ public:
 		EndPos = InEndPos;
 	}
 
-	/* 
+	/** 
 	 * Draw line at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
 	 */
 	virtual void Draw( FCanvas* InCanvas ) override;
 	
-	/* 
+	/** 
 	 * Draw line at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -493,7 +493,7 @@ public:
 		Origin.Y = InPosition.Y;
 		Draw( InCanvas );
 	}
-	/* 
+	/** 
 	 * Draw line using the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -508,7 +508,7 @@ public:
 		EndPos.Y = InEndPos.Y;
 		Draw( InCanvas );
 	}
-	/* 
+	/** 
 	 * Draw line at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -522,7 +522,7 @@ public:
 		Draw( InCanvas );
 	}
 		
-	/* 
+	/** 
 	 * Draw line at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -534,7 +534,7 @@ public:
 		Draw( InCanvas );
 	}
 
-	/* 
+	/** 
 	 * Draw line at the given coordinates.
 	 *
 	 * @param	InCanvas		Canvas on which to draw
@@ -550,7 +550,7 @@ public:
 		Draw( InCanvas );
 	}
 
-	/* 
+	/** 
 	 * Set the line end position.
 	 *
 	 * @param	InEndPos		End position of the line
@@ -598,7 +598,7 @@ private:
 class ENGINE_API FCanvasTriangleItem : public FCanvasItem
 {
 public:	
-	/* 	 
+	/** 	 
 	 * Triangle item (no texture)
 	 *
 	 * @param	InPointA		Point A of triangle
@@ -626,7 +626,7 @@ public:
 		TriangleList.Add( SingleTri );
 	};
 
-	/* 	 
+	/** 	 
 	 * Triangle item
 	 *
 	 * @param	InPointA		Point A of triangle
@@ -657,7 +657,7 @@ public:
 		TriangleList.Add( SingleTri );
 	};
 
-	/* 	 
+	/** 	 
 	 * Triangle item
 	 *
 	 * @param	InSingleTri		Triangle struct
@@ -671,7 +671,7 @@ public:
 		TriangleList.Add( InSingleTri );
 	};
 
-	/* 	 
+	/** 	 
 	 * Triangle item
 	 *
 	 * @param	InTriangleList	List of triangles
@@ -720,7 +720,7 @@ public:
 class ENGINE_API FCanvasNGonItem :  public FCanvasItem
 {
 public:	
-	/* 	 
+	/** 	 
 	 * NGon item Several texture tris with a common central point with a fixed radius. 
 	 *
 	 * @param	InPosition	List of triangles
@@ -740,7 +740,7 @@ public:
 		 SetupPosition( InPosition, InRadius );
 	 }
 
-	 /* 	 
+	 /** 	 
 	 * NGon item Several tris with a common central point with a fixed radius. 
 	 *
 	 * @param	InPosition	List of triangles
@@ -756,7 +756,7 @@ public:
 	 }
 	 virtual void Draw( FCanvas* InCanvas ) override;
 
-	 /* 	 
+	 /** 	 
 	 * Regenerates the tri list for the object with a new central point and radius
 	 *
 	 * @param	InPosition	List of triangles

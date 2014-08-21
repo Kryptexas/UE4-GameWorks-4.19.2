@@ -437,7 +437,7 @@ public:
 /**	Type definition for type of the cached values. */
 typedef float TGraphDataType;
 
-/* 
+/** 
  * A specialized view of the a data provider. Provides access only to the specified group of data. 
  * This class allows accessing data in linear way which may be used to draw a line graph.
  */
@@ -531,7 +531,7 @@ protected:
 
 class FGraphDataSourceVerticalAggregate;
 
-/* 
+/** 
  * A specialized view of a few data providers. Provides access only to the specified group of data. 
  * Data is interpolated for 60 frames per second.
  * This class allows accessing data in linear way which may be used to draw a combined line graph with min, max and average values.
@@ -958,7 +958,7 @@ struct FEventGraphConsts
 };
 
 // TODO: Rename to FProfilerEvent
-/*
+/**
  * Contains the same data as the profiler sample with some additions, doesn't depend on the other classes like profiler metadata or profiler aggregates.
  * Modeled to be Slate compatible, thus it inherits from TSharedFromThis.
  */
@@ -2192,7 +2192,7 @@ public:
 	TMap<FGuid,FEventGraphDataProperties> EventGraphProperties;
 };
 
-/* 
+/** 
  * Provides access only to the profiler samples specified by a frame index or frame indices.
  * This class allows accessing root and child samples which may be used to create an event graph.
  */

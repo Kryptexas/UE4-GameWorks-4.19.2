@@ -468,14 +468,14 @@ public:
 	/** Select the given tree node */
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
 
-	/*
+	/**
 	 * Function to save current state of SimpleConstructionScript and nodes associated with it.
 	 *
 	 * @param: SimpleContructionScript object reference.
 	 */
 	static void SaveSCSCurrentState( USimpleConstructionScript* SCSObj );
 
-	/*
+	/**
 	 * Function to save the current state of SCS_Node and its children
 	 *
 	 * @param: Reference of the SCS_Node to be saved

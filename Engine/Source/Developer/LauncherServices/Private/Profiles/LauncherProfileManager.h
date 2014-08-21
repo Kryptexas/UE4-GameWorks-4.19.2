@@ -73,12 +73,12 @@ public:
 
 protected:
 
-	/*
+	/**
 	 * Loads all the device groups from a config file
 	 */
 	void LoadDeviceGroups( );
 
-	/*
+	/**
 	 * Load all profiles from disk.
 	 */
 	void LoadProfiles( );
@@ -92,12 +92,12 @@ protected:
 	 */
 	ILauncherDeviceGroupPtr ParseDeviceGroup( const FString& GroupString );
 
-	/*
+	/**
 	 * Saves all the device groups to a config file
 	 */
 	void SaveDeviceGroups( );
 
-	/*
+	/**
 	 * Saves all profiles to disk.
 	 */
 	void SaveProfiles( );

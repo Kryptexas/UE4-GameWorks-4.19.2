@@ -48,7 +48,7 @@ public:
 	 */
 	virtual UProperty* GetProperty() const = 0;
 
-	/*
+	/**
 	 * Gets the property we should use to read meta-data
 	 */
 	virtual UProperty* GetMetaDataProperty() const = 0;

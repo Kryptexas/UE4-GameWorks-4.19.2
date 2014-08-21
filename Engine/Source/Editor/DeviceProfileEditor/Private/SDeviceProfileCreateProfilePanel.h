@@ -59,7 +59,7 @@ public:
 	 */
 	void HandleBaseProfileSelectionChanged( UDeviceProfile* NewSelection, ESelectInfo::Type SelectInfo );
 
-	/*
+	/**
 	 * Set the base combo box content.
 	 *
 	 * @return The device profile parent name
@@ -86,7 +86,7 @@ public:
 	 */
 	void HandleProfileTypeChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo );
 	
-	/*
+	/**
 	 * Set the profile type combo box content.
 	 *
 	 * @return The name of the class the created profile will be.
