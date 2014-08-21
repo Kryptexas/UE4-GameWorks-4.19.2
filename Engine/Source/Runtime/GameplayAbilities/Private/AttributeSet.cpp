@@ -2,6 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
+#include "AbilitySystemComponent.h"
 #include "HAL/OutputDevices.h"
 
 #include "ComponentReregisterContext.h"	
