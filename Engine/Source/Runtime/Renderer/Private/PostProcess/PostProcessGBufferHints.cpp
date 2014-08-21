@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing eye adaptation pixel shader. */
 class FPostProcessGBufferHintsPS : public FGlobalShader

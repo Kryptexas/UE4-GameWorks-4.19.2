@@ -10,6 +10,7 @@
 #include "PostProcessBokehDOF.h"
 #include "PostProcessDOF.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 
 /** Encapsulates the DOF setup pixel shader. */

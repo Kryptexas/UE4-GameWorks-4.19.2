@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "LightRendering.h"
+#include "SceneUtils.h"
 
 /**
  * A vertex shader for projecting a light function onto the scene.

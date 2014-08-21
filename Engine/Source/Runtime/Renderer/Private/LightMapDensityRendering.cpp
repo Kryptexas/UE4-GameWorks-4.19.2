@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "SceneUtils.h"
 
 //-----------------------------------------------------------------------------
 

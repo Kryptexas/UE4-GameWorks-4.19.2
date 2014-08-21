@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "ReflectionEnvironment.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 // for LightPropagationVolume feature, could be exposed
 const int ReflectiveShadowMapResolution = 256;

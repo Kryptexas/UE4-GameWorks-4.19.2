@@ -8,7 +8,7 @@
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
-
+#include "SceneUtils.h"
 
 /** Pixel shader used to copy scene color into another texture so that materials can read from scene color with a node. */
 class FForwardCopySceneAlphaPS : public FGlobalShader

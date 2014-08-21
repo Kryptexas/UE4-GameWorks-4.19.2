@@ -10,6 +10,7 @@
 #include "PostProcessCombineLUTs.h"
 #include "PostProcessing.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 
 // CVars

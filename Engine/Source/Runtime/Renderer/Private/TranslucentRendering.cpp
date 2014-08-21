@@ -9,6 +9,7 @@
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, const FViewInfo& View, bool bSeparateTranslucencyPass)
 {

@@ -15,6 +15,8 @@
 #include "OneColorShader.h"
 #include "CompositionLighting/PostProcessDeferredDecals.h"
 #include "LightPropagationVolume.h"
+#include "DeferredShadingRenderer.h"
+#include "SceneUtils.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),

@@ -17,6 +17,7 @@
 #include "ReflectionEnvironment.h"
 #include "ShaderParameterUtils.h"
 #include "LightRendering.h"
+#include "SceneUtils.h"
 
 /** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
 const int32 GReflectionEnvironmentTileSizeX = 16;

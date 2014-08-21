@@ -11,6 +11,7 @@
 #include "ShaderParameters.h"
 #include "LightRendering.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 /** 
  * Maximum number of lights that can be handled by tiled deferred in a single compute shader pass.

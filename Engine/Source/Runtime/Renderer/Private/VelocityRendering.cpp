@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
+#include "SceneUtils.h"
 
 //=============================================================================
 /** Encapsulates the Velocity vertex shader. */

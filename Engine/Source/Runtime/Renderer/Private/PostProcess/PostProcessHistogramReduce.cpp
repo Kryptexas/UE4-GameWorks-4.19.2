@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessHistogramReduce.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing histogram reduce compute shader. */
 class FPostProcessHistogramReducePS : public FGlobalShader

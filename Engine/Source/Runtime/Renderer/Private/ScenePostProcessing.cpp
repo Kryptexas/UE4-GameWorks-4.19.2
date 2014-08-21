@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the gamma correction pixel shader. */
 class FGammaCorrectionPS : public FGlobalShader

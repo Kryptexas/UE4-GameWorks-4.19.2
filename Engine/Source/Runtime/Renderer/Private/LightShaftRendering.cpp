@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessTemporalAA.h"
+#include "SceneUtils.h"
 
 
 /** Tweaked values from UE3 implementation **/

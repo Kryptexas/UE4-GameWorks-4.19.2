@@ -10,6 +10,7 @@
 #include "PostProcessAA.h"
 #include "PostProcessing.h"
 #include "PostProcessSceneColorFringe.h"
+#include "SceneUtils.h"
 
 
 /*-----------------------------------------------------------------------------

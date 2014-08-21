@@ -11,7 +11,7 @@
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessMobile.h"
-
+#include "SceneUtils.h"
 
 FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	:	FSceneRenderer(InViewFamily, HitProxyConsumer)

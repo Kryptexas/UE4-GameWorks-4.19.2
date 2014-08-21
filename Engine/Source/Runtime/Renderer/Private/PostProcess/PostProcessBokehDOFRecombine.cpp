@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessBokehDOFRecombine.h"
 #include "PostProcessBokehDOF.h"
+#include "SceneUtils.h"
 
 
 /**

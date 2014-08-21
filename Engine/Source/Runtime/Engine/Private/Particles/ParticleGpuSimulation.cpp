@@ -28,6 +28,8 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "VectorField/VectorField.h"
+#include "SceneUtils.h"
+#include "MeshBatch.h"
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.

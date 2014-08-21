@@ -20,6 +20,7 @@
 #include "PostProcessWeightedSampleSum.h"
 #include "PostProcessTemporalAA.h"
 #include "PostProcessSubsurface.h"
+#include "SceneUtils.h"
 
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;

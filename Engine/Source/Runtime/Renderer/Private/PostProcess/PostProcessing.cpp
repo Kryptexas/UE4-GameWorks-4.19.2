@@ -45,6 +45,7 @@
 
 #include "PostProcessMorpheus.h"
 #include "IHeadMountedDisplay.h"
+#include "BufferVisualizationData.h"
 
 
 /** The global center for all post processing activities. */

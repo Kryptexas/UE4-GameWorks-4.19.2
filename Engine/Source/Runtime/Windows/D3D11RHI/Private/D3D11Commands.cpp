@@ -17,6 +17,7 @@
 #include "RHICommandList.h"
 #include "RHIStaticStates.h"
 #include "ShaderParameterUtils.h"
+#include "SceneUtils.h"
 
 #if PLATFORM_DESKTOP
 // For Depth Bounds Test interface

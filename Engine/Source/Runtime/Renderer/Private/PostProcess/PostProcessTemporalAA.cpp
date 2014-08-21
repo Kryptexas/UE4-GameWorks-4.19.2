@@ -11,6 +11,7 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 static float TemporalHalton( int32 Index, int32 Base )
 {

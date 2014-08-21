@@ -14,6 +14,7 @@
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<int32> CVarLightPropagationVolume(
 	TEXT("r.LightPropagationVolume"),

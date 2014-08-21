@@ -16,6 +16,7 @@
 #include "EngineModule.h"
 #include "EngineModule.h"
 #include "ContentStreaming.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 

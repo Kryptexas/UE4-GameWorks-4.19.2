@@ -12,6 +12,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 #include "PostProcessTonemap.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing eye adaptation pixel shader. */
 class FPostProcessVisualizeHDRPS : public FGlobalShader

@@ -17,6 +17,7 @@
 #include "PostProcessLpvIndirect.h"
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
+#include "SceneUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));
 typedef TUniformBufferRef<FLpvReadUniformBufferParameters> FLpvReadUniformBufferRef;

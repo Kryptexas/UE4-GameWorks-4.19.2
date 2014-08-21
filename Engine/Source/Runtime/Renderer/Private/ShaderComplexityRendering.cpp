@@ -8,6 +8,7 @@ ShaderComplexityRendering.cpp: Contains definitions for rendering the shader com
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessVisualizeComplexity.h"
+#include "SceneUtils.h"
 
 /**
  * Gets the maximum shader complexity count from the ini settings.

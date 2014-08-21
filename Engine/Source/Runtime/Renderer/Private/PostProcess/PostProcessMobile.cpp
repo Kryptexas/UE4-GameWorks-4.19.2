@@ -12,6 +12,7 @@
 #include "PostProcessing.h"
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 //
 // BLOOM SETUP

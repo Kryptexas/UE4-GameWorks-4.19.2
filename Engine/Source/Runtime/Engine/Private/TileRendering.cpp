@@ -8,6 +8,8 @@
 #include "TileRendering.h"
 #include "EngineModule.h"
 #include "LocalVertexFactory.h"
+#include "MeshBatch.h"
+#include "RendererInterface.h"
 
 /** 
 * vertex data for a screen quad 

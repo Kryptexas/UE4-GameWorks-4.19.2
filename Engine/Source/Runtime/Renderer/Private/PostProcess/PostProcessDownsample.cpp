@@ -10,6 +10,7 @@
 #include "PostProcessDownsample.h"
 #include "PostProcessing.h"
 #include "PostProcessWeightedSampleSum.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 Method>

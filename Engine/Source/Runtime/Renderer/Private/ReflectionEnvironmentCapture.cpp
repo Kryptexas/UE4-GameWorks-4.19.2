@@ -13,6 +13,7 @@
 #include "ScreenRendering.h"
 #include "ReflectionEnvironment.h"
 #include "ReflectionEnvironmentCapture.h"
+#include "SceneUtils.h"
 
 /** Near plane to use when capturing the scene. */
 float GReflectionCaptureNearPlane = 5;

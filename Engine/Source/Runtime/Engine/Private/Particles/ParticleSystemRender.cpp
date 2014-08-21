@@ -18,6 +18,8 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "ParticleBeamTrailVertexFactory.h"
+#include "MeshBatch.h"
 
 /** 
  * Whether to track particle rendering stats.  

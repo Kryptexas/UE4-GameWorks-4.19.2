@@ -9,6 +9,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessing.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 
 /** Encapsulates the post processing histogram compute shader. */

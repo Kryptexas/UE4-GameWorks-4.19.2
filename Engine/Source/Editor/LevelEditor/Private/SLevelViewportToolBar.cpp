@@ -20,6 +20,7 @@
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarButton.h"
 #include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
 #include "StatsData.h"
+#include "BufferVisualizationData.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportToolBar"
 

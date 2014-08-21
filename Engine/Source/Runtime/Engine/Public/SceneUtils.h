@@ -50,7 +50,13 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 		/**
 		 * Terminate the event based upon scope
 		 */
-		 ~FDrawEvent();
+		~FDrawEvent()
+		{
+			if (bDrawEventHasBeenEmitted)
+			{
+				GDynamicRHI->PopEvent();
+			}
+		}
 
 		/**
 		 * Function for logging a PIX event with var args

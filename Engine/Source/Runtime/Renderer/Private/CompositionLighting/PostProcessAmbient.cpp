@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessAmbient.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing ambient pixel shader. */
 class FPostProcessAmbientPS : public FGlobalShader

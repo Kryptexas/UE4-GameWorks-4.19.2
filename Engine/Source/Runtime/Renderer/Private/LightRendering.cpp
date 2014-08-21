@@ -11,6 +11,7 @@
 #include "ShaderParameters.h"
 #include "LightRendering.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 

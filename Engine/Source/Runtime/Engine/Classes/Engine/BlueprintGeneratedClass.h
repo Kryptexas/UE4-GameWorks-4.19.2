@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "MeshBatch.h"
 #include "BlueprintGeneratedClass.generated.h"
 
 class UEdGraphPin;
@@ -146,6 +147,9 @@ struct ENGINE_API FBlueprintDebugData
 	FBlueprintDebugData()
 	{
 	}
+
+	~FBlueprintDebugData()
+	{ }
 #if WITH_EDITORONLY_DATA
 
 protected:

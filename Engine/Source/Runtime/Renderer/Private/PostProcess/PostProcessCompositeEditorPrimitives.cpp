@@ -5,6 +5,7 @@
 #include "PostProcessCompositeEditorPrimitives.h"
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
+#include "SceneUtils.h"
 
 
 // temporary

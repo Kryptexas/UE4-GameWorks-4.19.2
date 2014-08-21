@@ -7,6 +7,8 @@
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
+#include "ShaderCompiler.h"
 
 UMaterialFunctionThumbnailRenderer::UMaterialFunctionThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

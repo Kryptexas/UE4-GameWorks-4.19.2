@@ -5,6 +5,9 @@
 #include "SceneManagement.h"
 #include "StaticMeshResources.h"
 #include "EngineModule.h"
+#include "SceneUtils.h"
+#include "MeshBatch.h"
+#include "RendererInterface.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
 void EmitMeshDrawEvents(const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh)

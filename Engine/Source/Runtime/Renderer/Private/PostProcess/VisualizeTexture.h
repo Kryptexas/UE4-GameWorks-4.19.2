@@ -6,6 +6,8 @@
 
 #pragma once
 
+struct IPooledRenderTarget;
+
 class FVisualizeTexture
 {
 public:

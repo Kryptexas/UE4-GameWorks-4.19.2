@@ -10,6 +10,7 @@
 #include "SceneOcclusion.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
+#include "SceneUtils.h"
 
 /*-----------------------------------------------------------------------------
 	Globals

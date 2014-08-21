@@ -11,6 +11,7 @@
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTemporalAA.h"
 #include "PostProcessAmbientOcclusion.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),

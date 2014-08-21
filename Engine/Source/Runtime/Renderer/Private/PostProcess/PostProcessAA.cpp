@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessAA.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing anti aliasing pixel shader. */
 // Quality 1..6

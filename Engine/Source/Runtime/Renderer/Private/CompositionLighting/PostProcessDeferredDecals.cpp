@@ -10,6 +10,7 @@
 #include "PostProcessing.h"
 #include "PostProcessDeferredDecals.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("r.Decal.StencilSizeThreshold"),

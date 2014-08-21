@@ -10,6 +10,7 @@
 #include "PostProcessPassThrough.h"
 #include "PostProcessing.h"
 #include "PostProcessLensBlur.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing vertex shader. */
 class FPostProcessLensBlurVS : public FGlobalShader

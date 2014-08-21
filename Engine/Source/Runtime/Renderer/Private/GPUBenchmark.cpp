@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "GPUBenchmark.h"
+#include "SceneUtils.h"
 
 static uint32 GBenchmarkResolution = 512;
 

@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessPassThrough.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessPassThroughPS : public FGlobalShader

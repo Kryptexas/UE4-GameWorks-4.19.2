@@ -11,6 +11,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGPUSort, Log, All);
 

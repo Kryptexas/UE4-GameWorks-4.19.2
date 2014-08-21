@@ -12,6 +12,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "GPUSkinCache.h"
 #include "ShaderParameterUtils.h"
+#include "SceneUtils.h"
 
 #define GPUSKINCACHE_FRAMES	3
 

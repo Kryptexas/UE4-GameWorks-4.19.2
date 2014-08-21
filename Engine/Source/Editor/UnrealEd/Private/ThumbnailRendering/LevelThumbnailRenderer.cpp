@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 ULevelThumbnailRenderer::ULevelThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

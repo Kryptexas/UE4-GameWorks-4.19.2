@@ -27,6 +27,7 @@
 #include "SCaptureRegionWidget.h"
 #include "Settings.h"
 #include "SceneOutlinerTreeItems.h"
+#include "BufferVisualizationData.h"
 
 static const FName LevelEditorName("LevelEditor");
 

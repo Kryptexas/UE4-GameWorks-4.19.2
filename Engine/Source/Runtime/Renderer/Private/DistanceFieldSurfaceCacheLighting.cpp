@@ -15,6 +15,7 @@
 #include "DistanceFieldLightingShared.h"
 #include "PostProcessAmbientOcclusion.h"
 #include "RHICommandList.h"
+#include "SceneUtils.h"
 
 int32 GDistanceFieldAO = 1;
 FAutoConsoleVariableRef CVarDistanceFieldAO(

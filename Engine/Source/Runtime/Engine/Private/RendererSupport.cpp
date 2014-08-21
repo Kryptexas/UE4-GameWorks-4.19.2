@@ -11,6 +11,7 @@
 #include "GlobalShader.h"
 #include "Slate.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 /** Clears and optionally backs up all references to renderer module classes in other modules, particularly engine. */
 void ClearReferencesToRendererModuleClasses(

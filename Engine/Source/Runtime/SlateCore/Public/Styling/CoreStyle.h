@@ -2,6 +2,7 @@
 
 #pragma once
 
+struct FSlateDynamicImageBrush;
 
 /**
  * Core slate style

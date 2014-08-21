@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessEyeAdaptation.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing eye adaptation pixel shader. */
 class FPostProcessEyeAdaptationPS : public FGlobalShader

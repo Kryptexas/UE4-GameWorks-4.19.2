@@ -53,6 +53,7 @@
 
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE

@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessLensFlares.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessLensFlareBasePS : public FGlobalShader

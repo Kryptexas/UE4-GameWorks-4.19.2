@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessMotionBlur.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(

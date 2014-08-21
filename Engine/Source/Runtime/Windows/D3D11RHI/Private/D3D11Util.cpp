@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #define D3DERR(x) case x: ErrorCodeText = TEXT(#x); break;
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"

@@ -7,34 +7,21 @@
 #pragma once
 
 // Includes the draw mesh macros
-#include "SceneUtils.h"
 #include "UniformBuffer.h"
-#include "BufferVisualizationData.h"
 #include "ConvexVolume.h"
-#include "SystemSettings.h"
 #include "Engine/TextureLightProfile.h"
-#include "Engine/World.h"
-#include "RendererInterface.h"
-#include "Engine/GameViewportClient.h"
 #include "SceneTypes.h"
 #include "SceneView.h"
-#include "FinalPostProcessSettings.h"
-#include "PrimitiveUniformShaderParameters.h"
-#include "MeshBatch.h"
-#include "PrimitiveViewRelevance.h"
-#include "SceneInterface.h"
 #include "RHIDefinitions.h"
 #include "ChunkedArray.h"
 #include "BatchedElements.h"
+#include "MeshBatch.h"
+#include "RendererInterface.h"
 
 // Forward declarations.
-class FSceneViewFamily;
 class FLightSceneInfo;
 class ULightComponent;
 class UDecalComponent;
-class FIndexBuffer;
-class FVertexFactory;
-class ISceneViewExtension;
 class HHitProxy;
 struct FDynamicMeshVertex;
 

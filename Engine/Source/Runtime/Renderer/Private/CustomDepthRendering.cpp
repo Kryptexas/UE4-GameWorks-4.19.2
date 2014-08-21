@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "RenderingCompositionGraph.h"
 #include "SceneFilterRendering.h"
+#include "SceneUtils.h"
 
 /*-----------------------------------------------------------------------------
 	FCustomDepthPrimSet

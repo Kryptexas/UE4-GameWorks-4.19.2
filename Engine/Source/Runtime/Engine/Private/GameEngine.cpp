@@ -27,6 +27,7 @@
 #include "SynthBenchmark.h"
 
 #include "IHeadMountedDisplay.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

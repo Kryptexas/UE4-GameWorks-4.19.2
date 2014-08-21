@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessEyeAdaptation.h"
 #include "../../../Engine/Public/TileRendering.h"
+#include "SceneUtils.h"
 
 class FPostProcessMaterialVS : public FMaterialShader
 {

@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "TextureLayout.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarCSMShadowDepthBias(
 	TEXT("r.Shadow.CSMDepthBias"),

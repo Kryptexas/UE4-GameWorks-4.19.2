@@ -12,6 +12,7 @@
 
 #include "IHeadMountedDisplay.h"
 #include "Debug/ReporterGraph.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 

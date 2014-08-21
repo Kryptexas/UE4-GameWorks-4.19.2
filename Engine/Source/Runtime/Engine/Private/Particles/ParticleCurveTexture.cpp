@@ -14,6 +14,7 @@
 #include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
+#include "SceneUtils.h"
 
 /** The texture size allocated for particle curves. */
 extern const int32 GParticleCurveTextureSizeX = 256;

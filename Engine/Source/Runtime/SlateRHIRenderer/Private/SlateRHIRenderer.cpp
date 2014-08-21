@@ -4,6 +4,7 @@
 #include "StereoRendering.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
 #include "SlateNativeTextureResource.h"
+#include "SceneUtils.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);

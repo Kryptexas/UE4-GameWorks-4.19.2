@@ -14,7 +14,7 @@
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
 #include "RHICommandList.h"
-
+#include "SceneUtils.h"
 
 /** The filter vertex declaration resource type. */
 class FDistortionVertexDeclaration : public FRenderResource

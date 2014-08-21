@@ -11,6 +11,7 @@
 #include "VisualizeTexture.h"
 #include "PostProcessing.h"
 #include "PostProcessWeightedSampleSum.h"
+#include "SceneUtils.h"
 
 
 /** A pixel shader which filters a texture. */

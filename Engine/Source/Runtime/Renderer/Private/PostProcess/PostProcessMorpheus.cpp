@@ -12,6 +12,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorpheusHMDPostProcess, All, All);
 

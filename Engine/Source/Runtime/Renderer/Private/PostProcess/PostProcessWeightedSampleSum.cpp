@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessWeightedSampleSum.h"
+#include "SceneUtils.h"
 
 /**
  * A pixel shader which filters a texture.

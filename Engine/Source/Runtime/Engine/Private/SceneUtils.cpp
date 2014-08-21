@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "DynamicRHI.h"
+#include "SceneUtils.h"
 
 #if WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS
 
@@ -10,15 +11,7 @@ bool FDrawEvent::IsInRenderingThread_Internal()
 	return IsInRenderingThread();
 }
 
-FDrawEvent::~FDrawEvent()
-{
-	if (bDrawEventHasBeenEmitted)
-	{
-		GDynamicRHI->PopEvent();
-	}
-}
-
-void FDrawEvent::Start(const FColor& Color, const TCHAR* Fmt, ...)
+ENGINE_API void FDrawEvent::Start(const FColor& Color, const TCHAR* Fmt, ...)
 {
 	if (GRHICommandList.Bypass()) // todo interleave draw evens into command buffers
 	{

@@ -11,6 +11,7 @@
 #include "SceneFilterRendering.h"
 #include "ScreenRendering.h"
 #include "AmbientCubemapParameters.h"
+#include "SceneUtils.h"
 
 class FMaterial;
 

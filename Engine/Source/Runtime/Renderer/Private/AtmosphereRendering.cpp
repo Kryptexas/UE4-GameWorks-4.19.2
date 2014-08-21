@@ -10,6 +10,8 @@
 #include "AtmosphereRendering.h"
 #include "../../Engine/Private/Atmosphere/Atmosphere.h"
 #include "AtmosphereTextures.h"
+#include "ShowFlags.h"
+#include "SceneUtils.h"
 
 class FAtmosphereShaderPrecomputeTextureParameters
 {

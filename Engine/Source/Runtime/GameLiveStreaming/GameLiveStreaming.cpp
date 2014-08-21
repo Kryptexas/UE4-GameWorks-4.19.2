@@ -7,6 +7,7 @@
 #include "ScreenRendering.h"
 #include "RenderCore.h"
 #include "RHIStaticStates.h"
+#include "RendererInterface.h"
 
 IMPLEMENT_MODULE( FGameLiveStreaming, GameLiveStreaming );
 

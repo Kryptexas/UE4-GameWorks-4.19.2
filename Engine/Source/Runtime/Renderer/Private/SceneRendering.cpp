@@ -15,6 +15,7 @@
 #include "FXSystem.h"
 #include "SceneViewExtension.h"
 #include "PostProcessBusyWait.h"
+#include "SceneUtils.h"
 
 /*-----------------------------------------------------------------------------
 	Globals

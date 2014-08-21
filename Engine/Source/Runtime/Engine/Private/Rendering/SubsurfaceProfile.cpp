@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "SeparableSSS.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSubsurfaceProfile, Log, All);
 

@@ -79,6 +79,7 @@
 #include "UnrealExporter.h"
 #include "ComponentReregisterContext.h"
 #include "ContentStreaming.h"
+#include "BufferVisualizationData.h"
 
 #include "Engine/GameInstance.h"
 #include "HotReloadInterface.h"

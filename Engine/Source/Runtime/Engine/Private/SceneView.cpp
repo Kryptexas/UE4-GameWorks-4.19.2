@@ -11,6 +11,8 @@
 #include "StereoRendering.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
+#include "RendererInterface.h"
+#include "BufferVisualizationData.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 

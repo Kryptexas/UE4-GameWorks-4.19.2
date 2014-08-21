@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Runtime/Engine/Public/EngineModule.h"
-#include "Runtime/Engine/Public/ContentStreaming.h"
-
+#include "EngineModule.h"
+#include "ContentStreaming.h"
+#include "RendererInterface.h"
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessUIBlur.h"
+#include "SceneUtils.h"
 
 
 /** Encapsulates the post processing eye adaptation pixel shader. */

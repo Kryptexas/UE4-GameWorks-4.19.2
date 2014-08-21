@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessAmbientOcclusion.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
 	TEXT("r.AmbientOcclusionSampleSetQuality"),

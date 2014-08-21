@@ -13,6 +13,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 // ----------------------------------------------------------------------------
 

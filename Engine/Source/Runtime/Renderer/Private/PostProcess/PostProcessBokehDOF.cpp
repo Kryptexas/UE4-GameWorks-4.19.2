@@ -10,6 +10,7 @@
 #include "PostProcessPassThrough.h"
 #include "PostProcessing.h"
 #include "PostProcessBokehDOF.h"
+#include "SceneUtils.h"
 
 
 

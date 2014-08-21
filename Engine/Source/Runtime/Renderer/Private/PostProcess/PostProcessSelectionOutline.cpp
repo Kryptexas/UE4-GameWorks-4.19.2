@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessSelectionOutline.h"
 #include "OneColorShader.h"
+#include "SceneUtils.h"
 
 ///////////////////////////////////////////
 // FRCPassPostProcessSelectionOutlineColor
