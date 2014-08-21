@@ -828,6 +828,12 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		// calculate transform with new attachment condition
 		UpdateComponentToWorld();
+
+		// Update overlaps, in case location changed or overlap state depends on attachment.
+		if (IsRegistered())
+		{
+			UpdateOverlaps();
+		}
 	}
 }
 
@@ -875,6 +881,12 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 
 		// calculate transform with new attachment condition
 		UpdateComponentToWorld();
+
+		// Update overlaps, in case location changed or overlap state depends on attachment.
+		if (IsRegistered())
+		{
+			UpdateOverlaps();
+		}
 	}
 }
 

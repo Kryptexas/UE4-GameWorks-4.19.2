@@ -1212,53 +1212,83 @@ static void PullBackHit(FHitResult& Hit, const FVector& Start, const FVector& En
 const static float PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME_AMOUNT = 2.0f; // modify this value to look at larger or smaller sets of "bad" actors
 
 
-static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestHit, FVector const& MovementDirDenormalized, AActor* MovingActor, EMoveComponentFlags MoveFlags)
+static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestHit, FVector const& MovementDirDenormalized, const AActor* MovingActor, EMoveComponentFlags MoveFlags)
 {
-	// check "ignore bases" functionality
-	if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor && TestHit.bBlockingHit )	//we let overlap components go through because their overlap is still needed and will cause beginOverlap/endOverlap events
+	if (TestHit.bBlockingHit)
 	{
-		// ignore if there's a base relationship between moving actor and hit actor
-		AActor const* const HitActor = TestHit.GetActor();
-		if (HitActor)
+		// check "ignore bases" functionality
+		if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor )	//we let overlap components go through because their overlap is still needed and will cause beginOverlap/endOverlap events
 		{
-			if (MovingActor->IsBasedOnActor(HitActor) || HitActor->IsBasedOnActor(MovingActor))
+			// ignore if there's a base relationship between moving actor and hit actor
+			AActor const* const HitActor = TestHit.GetActor();
+			if (HitActor)
+			{
+				if (MovingActor->IsBasedOnActor(HitActor) || HitActor->IsBasedOnActor(MovingActor))
+				{
+					return true;
+				}
+			}
+		}
+	
+		// If we started penetrating, we may want to ignore it if we are moving out of penetration.
+		// This helps prevent getting stuck in walls.
+		if ( TestHit.bStartPenetrating && !(MoveFlags & MOVECOMP_NeverIgnoreBlockingOverlaps) )
+		{
+			const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
+
+			// Dot product of movement direction against 'exit' direction
+			const FVector MovementDir = MovementDirDenormalized.SafeNormal();
+			const float MoveDot = (TestHit.ImpactNormal | MovementDir);
+
+			const bool bMovingOut = MoveDot > DotTolerance;
+
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			{
+				if(CVarShowInitialOverlaps.GetValueOnGameThread() != 0)
+				{
+					UE_LOG(LogTemp, Log, TEXT("Overlapping %s Dir %s Dot %f Normal %s Depth %f"), *GetNameSafe(TestHit.Component.Get()), *MovementDir.ToString(), MoveDot, *TestHit.ImpactNormal.ToString(), TestHit.PenetrationDepth);
+					DrawDebugDirectionalArrow(InWorld, TestHit.TraceStart, TestHit.TraceStart + 30.f * TestHit.ImpactNormal, 5.f, bMovingOut ? FColor(64,128,255) : FColor(255,64,64), true, 4.f);
+					if (TestHit.PenetrationDepth > KINDA_SMALL_NUMBER)
+					{
+						DrawDebugDirectionalArrow(InWorld, TestHit.TraceStart, TestHit.TraceStart + TestHit.PenetrationDepth * TestHit.Normal, 5.f, FColor(64,255,64), true, 4.f);
+					}
+				}
+			}
+	#endif
+
+			// If we are moving out, ignore this result!
+			if (bMovingOut)
 			{
 				return true;
 			}
 		}
 	}
-	
-	// If we started penetrating, we may want to ignore it if we are moving out of penetration.
-	// This helps prevent getting stuck in walls.
-	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit && !(MoveFlags & MOVECOMP_NeverIgnoreBlockingOverlaps) )
+
+	return false;
+}
+
+static bool ShouldIgnoreOverlapResult(const UWorld* World, const AActor* ThisActor, const UPrimitiveComponent& ThisComponent, const AActor* OtherActor, const UPrimitiveComponent& OtherComponent)
+{
+	// Don't overlap with self
+	if (&ThisComponent == &OtherComponent)
 	{
-		const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
+		return true;
+	}
 
-		// Dot product of movement direction against 'exit' direction
-		const FVector MovementDir = MovementDirDenormalized.SafeNormal();
-		const float MoveDot = (TestHit.ImpactNormal | MovementDir);
+	// Both components must set bGenerateOverlapEvents
+	if (!ThisComponent.bGenerateOverlapEvents || !OtherComponent.bGenerateOverlapEvents)
+	{
+		return true;
+	}
 
-		const bool bMovingOut = MoveDot > DotTolerance;
+	if (!ThisActor || !OtherActor)
+	{
+		return true;
+	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		{
-			if(CVarShowInitialOverlaps.GetValueOnGameThread() != 0)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Overlapping %s Dir %s Dot %f Normal %s Depth %f"), *GetNameSafe(TestHit.Component.Get()), *MovementDir.ToString(), MoveDot, *TestHit.ImpactNormal.ToString(), TestHit.PenetrationDepth);
-				DrawDebugDirectionalArrow(InWorld, TestHit.TraceStart, TestHit.TraceStart + 30.f * TestHit.ImpactNormal, 5.f, bMovingOut ? FColor(64,128,255) : FColor(255,64,64), true, 4.f);
-				if (TestHit.PenetrationDepth > KINDA_SMALL_NUMBER)
-				{
-					DrawDebugDirectionalArrow(InWorld, TestHit.TraceStart, TestHit.TraceStart + TestHit.PenetrationDepth * TestHit.Normal, 5.f, FColor(64,255,64), true, 4.f);
-				}
-			}
-		}
-#endif
-
-		// If we are moving out, ignore this result!
-		if (bMovingOut)
-		{
-			return true;
-		}
+	if (!World || OtherActor == World->GetWorldSettings() || !OtherActor->bActorInitialized)
+	{
+		return true;
 	}
 
 	return false;
@@ -1441,22 +1471,25 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 						else if (bGenerateOverlapEvents)
 						{
 							UPrimitiveComponent * OverlapComponent = TestHit.Component.Get();
-							if (OverlapComponent && OverlapComponent->bGenerateOverlapEvents)	//only register overlap if both components have set bGenerateOverlapEvents
+							if (OverlapComponent && OverlapComponent->bGenerateOverlapEvents)
 							{
-								// don't process touch events after initial blocking hits
-								if (BlockingHitIndex >= 0 && TestHit.Time > Hits[BlockingHitIndex].Time)
+								if (!ShouldIgnoreOverlapResult(GetWorld(), Actor, *this, TestHit.GetActor(), *OverlapComponent))
 								{
-									break;
-								}
+									// don't process touch events after initial blocking hits
+									if (BlockingHitIndex >= 0 && TestHit.Time > Hits[BlockingHitIndex].Time)
+									{
+										break;
+									}
 
-								if (FirstNonInitialOverlapIdx == INDEX_NONE && TestHit.Time > 0.f)
-								{
-									// We are about to add the first non-initial overlap.
-									FirstNonInitialOverlapIdx = PendingOverlaps.Num();
-								}
+									if (FirstNonInitialOverlapIdx == INDEX_NONE && TestHit.Time > 0.f)
+									{
+										// We are about to add the first non-initial overlap.
+										FirstNonInitialOverlapIdx = PendingOverlaps.Num();
+									}
 
-								// cache touches
-								PendingOverlaps.AddUnique(FOverlapInfo(TestHit));
+									// cache touches
+									PendingOverlaps.AddUnique(FOverlapInfo(TestHit));
+								}
 							}
 						}
 					}
@@ -1498,7 +1531,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			// However any rotation was set at the end and not swept, so we can't assume the overlaps at the end location are correct if rotation changed.
 			if (PendingOverlaps.Num() == 0 && CVarAllowCachedOverlaps->GetInt())
 			{
-				if (Actor->GetRootComponent() == this && AreSymmetricRotations(NewRotation.Quaternion(), ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()))
+				if (Actor && Actor->GetRootComponent() == this && AreSymmetricRotations(NewRotation.Quaternion(), ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()))
 				{
 					// We know we are not overlapping any new components at the end location.
 					// Keep known overlapping child components, as long as we know their overlap status could not have changed (ie they are positioned relative to us).
@@ -1514,7 +1547,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			if ( (BlockingHit.Time < 1.f) && !IsZeroExtent() )
 			{
 				// this is sole debug purpose to find how capsule trace information was when hit 
-				// to resolve stuck or improve our movement system - To turn this on, use DebugCapsuleTracePawn
+				// to resolve stuck or improve our movement system - To turn this on, use DebugCapsuleSweepPawn
 				APawn const* const ActorPawn = (Actor ? Cast<APawn>(Actor) : NULL);
 				if (ActorPawn && ActorPawn->Controller && ActorPawn->Controller->IsLocalPlayerController())
 				{
@@ -1538,7 +1571,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		{
 			// We didn't move, and any rotation that doesn't change our overlap bounds means we already know what we are overlapping at this point.
 			// Can only do this if current known overlaps are valid (not deferring updates)
-			if (CVarAllowCachedOverlaps->GetInt() && Actor->GetRootComponent() == this && !IsDeferringMovementUpdates())
+			if (CVarAllowCachedOverlaps->GetInt() && Actor && Actor->GetRootComponent() == this && !IsDeferringMovementUpdates())
 			{
 				// Only if we know that we won't change our overlap status with children by moving.
 				if (AreSymmetricRotations(NewRotation.Quaternion(), ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
@@ -1598,7 +1631,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		}
 		else
 		{
-			UE_LOG(LogPrimitiveComponent, Log, TEXT("%10f executing MoveComponent for %s"), MSec, *GetFullName(), *Actor->GetFullName() );
+			UE_LOG(LogPrimitiveComponent, Log, TEXT("%10f executing MoveComponent for %s"), MSec, *GetFullName() );
 		}
 	}
 #endif
@@ -2095,14 +2128,33 @@ const TArray<FOverlapInfo>& UPrimitiveComponent::GetOverlapInfos() const
 
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)
 {
-	if(bShouldIgnore)
+	// Clean up stale references
+	MoveIgnoreActors.RemoveSwap(NULL);
+
+	// Add/Remove the actor from the list
+	if (Actor)
 	{
-		MoveIgnoreActors.AddUnique(Actor);
+		if (bShouldIgnore)
+		{
+			MoveIgnoreActors.AddUnique(Actor);
+		}
+		else
+		{
+			MoveIgnoreActors.RemoveSingleSwap(Actor);
+		}
 	}
-	else
-	{
-		MoveIgnoreActors.Remove(Actor);
-	}
+}
+
+TArray<TWeakObjectPtr<AActor> > & UPrimitiveComponent::GetMoveIgnoreActors()
+{
+	// Clean up stale references
+	MoveIgnoreActors.RemoveSwap(NULL);
+	return MoveIgnoreActors;
+}
+
+void UPrimitiveComponent::ClearMoveIgnoreActors()
+{
+	MoveIgnoreActors.Empty();
 }
 
 
@@ -2160,14 +2212,13 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 					{
 						const FOverlapResult& Result = Overlaps[ResultIdx];
 
-						UPrimitiveComponent const* const HitComp = Result.Component.Get();
+						UPrimitiveComponent* const HitComp = Result.Component.Get();
 						if (!Result.bBlockingHit && HitComp && (HitComp != this) && HitComp->bGenerateOverlapEvents)
 						{
-							AActor* const ResultActor = Result.GetActor();
-							if ( (ResultActor != NULL) && !ResultActor->IsAttachedTo(MyActor) && !MyActor->IsAttachedTo(ResultActor) && ResultActor != MyWorld->GetWorldSettings() && ResultActor->bActorInitialized)
+							if (!ShouldIgnoreOverlapResult(MyWorld, MyActor, *this, Result.GetActor(), *HitComp))
 							{
-								NewOverlappingComponents.Add(FOverlapInfo(Result.Component.Get(), Result.ItemIndex));		// don't need to add unique unless the overlap check can return dupes
-							}						
+								NewOverlappingComponents.Add(FOverlapInfo(HitComp, Result.ItemIndex));		// don't need to add unique unless the overlap check can return dupes
+							}
 						}
 					}
 				}

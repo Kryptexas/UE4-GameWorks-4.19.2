@@ -1037,12 +1037,7 @@ void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
-		// Remove dead references first
-		RootPrimitiveComponent->MoveIgnoreActors.Remove(NULL);
-		if( ActorToIgnore )
-		{
-			RootPrimitiveComponent->MoveIgnoreActors.AddUnique(ActorToIgnore);
-		}
+		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, true);
 	}
 }
 
@@ -1051,12 +1046,7 @@ void APawn::MoveIgnoreActorRemove(AActor * ActorToIgnore)
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
-		// Remove dead references first
-		RootPrimitiveComponent->MoveIgnoreActors.Remove(NULL);
-		if( ActorToIgnore )
-		{
-			RootPrimitiveComponent->MoveIgnoreActors.Remove(ActorToIgnore);
-		}
+		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, false);
 	}
 }
 

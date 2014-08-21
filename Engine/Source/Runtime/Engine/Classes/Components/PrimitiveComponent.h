@@ -443,8 +443,33 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Base)
 	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
-	/** Set of actors to ignore during component sweeps in MoveComponent() */
+	/**
+	 * Set of actors to ignore during component sweeps in MoveComponent().
+	 * All components owned by these actors will be ignored when this component moves or updates overlaps.
+	 * Components on the other Actor may also need to be told to do the same when they move.
+	 * @see IgnoreActorWhenMoving
+	 */
 	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
+
+	/**
+	 * Tells this component whether to ignore collision with all components of a specific Actor when this component is moved.
+	 * Components on the other Actor may also need to be told to do the same when they move.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
+
+	/**
+	 * Returns the list of actors we currently ignore when moving.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	TArray<TWeakObjectPtr<AActor> > & GetMoveIgnoreActors();
+
+	/**
+	 * Clear the list of actors we ignore when moving.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void ClearMoveIgnoreActors();
+
 
 #if WITH_EDITOR
 	/** Override delegate used for checking the selection state of a component */
@@ -508,10 +533,6 @@ public:
 	 *									Generally this should only be used if this component is the RootComponent of the owning actor and overlaps with other descendant components have been verified.
 	 */
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
-
-	/** Tells this component to ignore collision with the specified actor when being moved. */
-	UFUNCTION(BlueprintCallable, Category = "Collision")
-	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
 
 	/** Overridden to use the overlaps to find the physics volume. */
 	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) override;
