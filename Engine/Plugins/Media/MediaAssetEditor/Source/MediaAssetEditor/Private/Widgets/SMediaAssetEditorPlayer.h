@@ -66,6 +66,18 @@ private:
 	// Callback for getting the text of the playback state overlay.
 	FText HandleOverlayStateText( ) const;
 
+	// Callback for getting the maximum value of the playback rate spin box.
+	TOptional<float> HandlePlaybackRateBoxMaxValue( ) const;
+
+	// Callback for getting the minimum value of the playback rate spin box.
+	TOptional<float> HandlePlaybackRateBoxMinValue( ) const;
+
+	// Callback for getting the current value of the playback rate spin box.
+	TOptional<float> HandlePlaybackRateSpinBoxValue( ) const;
+
+	// Callback for committing a new value to the playback rate spin box.
+	void HandlePlaybackRateBoxValueChanged( float NewValue );
+
 	// Callback for getting the enabled state of the position slider.
 	bool HandlePositionSliderIsEnabled( ) const;
 

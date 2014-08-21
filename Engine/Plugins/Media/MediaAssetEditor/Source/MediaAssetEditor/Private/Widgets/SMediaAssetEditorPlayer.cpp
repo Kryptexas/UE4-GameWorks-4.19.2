@@ -34,8 +34,7 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 				SNew(SHorizontalBox)
 
 				+ SHorizontalBox::Slot()
-					.FillWidth(0.33f)
-					.HAlign(HAlign_Left)
+					.AutoWidth()
 					[
 						// video track selector
 						SNew(SHorizontalBox)
@@ -66,8 +65,8 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 					]
 
 				+ SHorizontalBox::Slot()
-					.FillWidth(0.33f)
-					.HAlign(HAlign_Left)
+					.AutoWidth()
+					.Padding(16.0f, 0.0f, 0.0f, 0.0f)
 					[
 						// audio track selector
 						SNew(SHorizontalBox)
@@ -82,7 +81,7 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 
 						+ SHorizontalBox::Slot()
 							.FillWidth(1.0f)
-							.Padding(4.0f, 0.0f)
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 							.VAlign(VAlign_Center)
 							[
 								SAssignNew(AudioTrackComboBox, SComboBox<IMediaTrackPtr>)
@@ -98,8 +97,8 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 					]
 
 				+ SHorizontalBox::Slot()
-					.FillWidth(0.33f)
-					.HAlign(HAlign_Left)
+					.AutoWidth()
+					.Padding(16.0f, 0.0f, 0.0f, 0.0f)
 					[
 						// caption track selector
 						SNew(SHorizontalBox)
@@ -114,7 +113,7 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 
 						+ SHorizontalBox::Slot()
 							.FillWidth(1.0f)
-							.Padding(4.0f, 0.0f)
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 							.VAlign(VAlign_Center)
 							[
 								SAssignNew(CaptionTrackComboBox, SComboBox<IMediaTrackPtr>)
@@ -126,6 +125,36 @@ void SMediaAssetEditorPlayer::Construct( const FArguments& InArgs, UMediaAsset* 
 										SNew(STextBlock)
 											.Text(this, &SMediaAssetEditorPlayer::HandleCaptionTrackComboBoxText)
 									]
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Right)
+					.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+					[
+						// playback rate spin box
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("CaptionTrackLabel", "Playback Rate:"))
+							]
+
+						+ SHorizontalBox::Slot()
+							.FillWidth(1.0f)
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SNumericEntryBox<float>)
+									.Delta(1.0f)
+									.MaxValue(this, &SMediaAssetEditorPlayer::HandlePlaybackRateBoxMaxValue)
+									.MinValue(this, &SMediaAssetEditorPlayer::HandlePlaybackRateBoxMinValue)
+									.Value(this, &SMediaAssetEditorPlayer::HandlePlaybackRateSpinBoxValue)
+									.OnValueChanged(this, &SMediaAssetEditorPlayer::HandlePlaybackRateBoxValueChanged)
 							]
 					]
 			]
@@ -423,6 +452,44 @@ FText SMediaAssetEditorPlayer::HandleOverlayStateText( ) const
 	}
 
 	return FText::Format(LOCTEXT("StateOverlayForwardFormat", "Forward ({0}x)"), FText::AsNumber(Rate));
+}
+
+
+TOptional<float> SMediaAssetEditorPlayer::HandlePlaybackRateBoxMaxValue( ) const
+{
+	IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+
+	if (MediaPlayer.IsValid())
+	{
+		return MediaPlayer->GetMediaInfo().GetSupportedRates(EMediaPlaybackDirections::Forward, false).GetUpperBoundValue();
+	}
+
+	return 0.0f;
+}
+
+
+TOptional<float> SMediaAssetEditorPlayer::HandlePlaybackRateBoxMinValue( ) const
+{
+	IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+
+	if (MediaPlayer.IsValid())
+	{
+		return MediaPlayer->GetMediaInfo().GetSupportedRates(EMediaPlaybackDirections::Reverse, false).GetLowerBoundValue();
+	}
+
+	return 0.0f;
+}
+
+
+TOptional<float> SMediaAssetEditorPlayer::HandlePlaybackRateSpinBoxValue( ) const
+{
+	return MediaAsset->GetRate();
+}
+
+
+void SMediaAssetEditorPlayer::HandlePlaybackRateBoxValueChanged( float NewValue )
+{
+	MediaAsset->SetRate(NewValue);
 }
 
 
