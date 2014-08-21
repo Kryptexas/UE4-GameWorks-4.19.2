@@ -7,9 +7,6 @@
 #include "EnginePrivate.h"
 #include "ShowFlags.h"
 
-#define STRINGIFY(s) JOINSTRING(s)
-#define JOINSTRING(s) #s
-
 static bool IsValidNameChar(TCHAR c)
 {
 	return (c >= (TCHAR)'a' && c <= (TCHAR)'z')
@@ -166,7 +163,7 @@ int32 FEngineShowFlags::FindIndexByName(const TCHAR* Name, const TCHAR *CommaSep
 		// search through all defined showflags.
 		FString Search = Name;
 
-		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if(Search == STRINGIFY(a)) { return (int32)SF_##a; }
+		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if(Search == PREPROCESSOR_TO_STRING(a)) { return (int32)SF_##a; }
 
 		#include "ShowFlagsValues.inl"
 
@@ -205,7 +202,7 @@ FString FEngineShowFlags::FindNameByIndex(uint32 InIndex)
 {
 	FString Name;
 
-	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Name = STRINGIFY(a); break;
+	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Name = PREPROCESSOR_TO_STRING(a); break;
 
 	switch (InIndex)
 	{
@@ -219,7 +216,7 @@ FString FEngineShowFlags::FindNameByIndex(uint32 InIndex)
 
 void FEngineShowFlags::AddNameByIndex(uint32 InIndex, FString& Out)
 {
-	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Out += STRINGIFY(a); break;
+	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Out += PREPROCESSOR_TO_STRING(a); break;
 	switch (InIndex)
 	{
 		#include "ShowFlagsValues.inl"

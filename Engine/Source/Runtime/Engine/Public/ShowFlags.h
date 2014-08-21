@@ -66,9 +66,6 @@ struct FEngineShowFlags
 	};
 	// ---------------------------------------------------------
 
-	#define STRINGIFY(s) JOINSTRING(s)
-	#define JOINSTRING(s) #s
-
 	// namespace to match the original in the old loc system
 	#define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -79,8 +76,8 @@ struct FEngineShowFlags
 
 		if (LocNames.Num() == 0)
 		{
-			#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,b,c) LocNames.Add( TEXT(STRINGIFY(a)), c);
-			#define SHOWFLAG_FIXED_IN_SHIPPING(a,b,c,d) LocNames.Add( TEXT(STRINGIFY(a)), d);
+			#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,b,c) LocNames.Add( TEXT(PREPROCESSOR_TO_STRING(a)), c);
+			#define SHOWFLAG_FIXED_IN_SHIPPING(a,b,c,d) LocNames.Add( TEXT(PREPROCESSOR_TO_STRING(a)), d);
 			#include "ShowFlagsValues.inl"
 
 			// Additional strings that don't correspond to a showflag variable:
@@ -319,7 +316,7 @@ struct FEngineShowFlags
 	 */
 	template <class T> static void IterateAllFlags(T& Sink)
 	{
-		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if( !Sink.OnEngineShowFlag((uint32)SF_##a, TEXT(STRINGIFY(a))) ) { return; }
+		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if( !Sink.OnEngineShowFlag((uint32)SF_##a, TEXT(PREPROCESSOR_TO_STRING(a))) ) { return; }
 		#include "ShowFlagsValues.inl"
 	}
 
@@ -388,6 +385,3 @@ ENGINE_API EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags);
 
 /** @return 0 if outside of the range, e.g. TEXT("LightingOnly") for EVM_LightingOnly */
 const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex);
-
-#undef STRINGIFY
-#undef JOINSTRING

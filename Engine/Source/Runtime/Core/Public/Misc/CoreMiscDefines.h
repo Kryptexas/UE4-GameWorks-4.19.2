@@ -6,6 +6,15 @@
 
 #pragma once
 
+// This file is included in some resource files, which issue a warning:
+//
+// warning RC4011: identifier truncated to 'PLATFORM_CAN_SUPPORT_EDITORONLY'
+//
+// due to limitations of resource compiler. The only thing needed from this file
+// for resource compilation is PREPROCESSOR_TO_STRING macro at the end, so we take
+// rest of code out for resource compilation.
+#ifndef RC_INVOKED
+
 #define LOCALIZED_SEEKFREE_SUFFIX	TEXT("_LOC")
 #define PLAYWORLD_PACKAGE_PREFIX TEXT("UEDPIE")
 #define PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX TEXT("UED")
@@ -84,13 +93,15 @@
 enum {INDEX_NONE	= -1				};
 enum {UNICODE_BOM   = 0xfeff			};
 
-// helpers to turn an preprocessor token into a real string (see UBT_COMPILED_PLATFORM)
-#define PREPROCESSOR_TO_STRING_INNER(x) #x
-#define PREPROCESSOR_TO_STRING(x) PREPROCESSOR_TO_STRING_INNER(x)
-
 enum EForceInit 
 {
 	ForceInit,
 	ForceInitToZero
 };
 enum ENoInit {NoInit};
+
+#endif // RC_INVOKED
+
+// helpers to turn an preprocessor token into a real string (see UBT_COMPILED_PLATFORM)
+#define PREPROCESSOR_TO_STRING_INNER(x) #x
+#define PREPROCESSOR_TO_STRING(x) PREPROCESSOR_TO_STRING_INNER(x)
