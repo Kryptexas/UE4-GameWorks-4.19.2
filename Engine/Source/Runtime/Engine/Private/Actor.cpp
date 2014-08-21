@@ -2328,6 +2328,8 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 
 void AActor::BeginPlay()
 {
+	SetLifeSpan( InitialLifeSpan );
+
 	ReceiveBeginPlay();
 }
 
@@ -3338,7 +3340,6 @@ void AActor::PostInitializeComponents()
 
 		UpdateNavigationRelevancy();
 	}
-	SetLifeSpan( InitialLifeSpan );
 }
 
 void AActor::PreInitializeComponents()
