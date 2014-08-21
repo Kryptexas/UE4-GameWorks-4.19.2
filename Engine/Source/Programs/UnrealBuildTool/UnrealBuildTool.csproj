@@ -38,8 +38,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -69,6 +68,11 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\x86\Debug\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -131,7 +135,7 @@
     <When Condition="Exists('Android\UEBuildAndroid.cs')">
       <ItemGroup>
         <Compile Include="Android\UEBuildAndroid.cs" />
-		<Compile Include="Android\UEDeployAndroid.cs" />
+        <Compile Include="Android\UEDeployAndroid.cs" />
         <Compile Include="Android\AndroidToolChain.cs" />
         <Compile Include="Android\AndroidProjectGenerator.cs" />
       </ItemGroup>
