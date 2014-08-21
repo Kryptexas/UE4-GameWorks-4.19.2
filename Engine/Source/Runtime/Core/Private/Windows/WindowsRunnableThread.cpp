@@ -32,8 +32,8 @@ uint32 FRunnableThreadWin::GuardedRun()
 			GWarn->Flush();
 
 			// Append the thread name at the end of the error report.
-			FCString::Strncat(GErrorHist, TEXT("\r\nCrash in runnable thread "), ARRAY_COUNT(GErrorHist) - 1);
-			FCString::Strncat(GErrorHist, *ThreadName, ARRAY_COUNT(GErrorHist) - 1);
+			FCString::Strncat( GErrorHist, LINE_TERMINATOR TEXT( "Crash in runnable thread " ), ARRAY_COUNT( GErrorHist ) );
+			FCString::Strncat( GErrorHist, *ThreadName, ARRAY_COUNT( GErrorHist ) );
 
 			ExitCode = 1;
 			// Generate status report.				
@@ -47,6 +47,10 @@ uint32 FRunnableThreadWin::GuardedRun()
 	{
 		ExitCode = Run();
 	}
+
+#if STATS
+	FThreadStats::Shutdown();
+#endif
 
 	return ExitCode;
 }
