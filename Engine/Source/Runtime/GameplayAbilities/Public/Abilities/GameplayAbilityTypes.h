@@ -59,6 +59,21 @@ namespace EGameplayAbilityReplicationPolicy
 	};
 }
 
+UENUM(BlueprintType)
+namespace EGameplayAbilityTargetingLocationType
+{
+	/**
+	*	What type of location calculation to use when an ability asks for our transform.
+	*/
+
+	enum Type
+	{
+		LiteralTransform		UMETA(DisplayName = "Literal Transform"),		// We report an actual raw transform. This is also the final fallback if other methods fail.
+		ActorTransform			UMETA(DisplayName = "Actor Transform"),			// We pull the transform from an associated actor directly.
+		SocketTransform			UMETA(DisplayName = "Socket Transform"),		// We aim from a named socket on the player's skeletal mesh component.
+	};
+}
+
 USTRUCT(BlueprintType)
 struct FGameplayAbilityHandle
 {
@@ -179,6 +194,90 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
 };
+
+/**
+*	FGameplayAbilityActorInfo
+*
+*	Contains data used to determine locations for targeting systems.
+*
+*/
+
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityTargetingLocationInfo()
+	{
+	};
+
+	//Not sure if we want to distinguish between where we actually aim from (should probably always be the user's camera or actor origin) and where we trace from.
+	FTransform GetTargetingTransform(const FGameplayAbilityActorInfo* ActorInfo) const
+	{
+		//Return or calculate based on LocationType.
+		switch (LocationType)
+		{
+		case EGameplayAbilityTargetingLocationType::ActorTransform:
+			check(ActorInfo);
+			if (ActorInfo->Actor.IsValid())
+			{
+				return ActorInfo->Actor.Get()->GetTransform();
+			}
+			return LiteralTransform;		//Fallback
+		case EGameplayAbilityTargetingLocationType::SocketTransform:
+			check(ActorInfo);
+			check(ActorInfo->AnimInstance.IsValid());
+			if (ActorInfo->AnimInstance.Get()->GetOwningComponent())
+			{
+				return ActorInfo->AnimInstance.Get()->GetOwningComponent()->GetSocketTransform(SourceSocketName);		//Bad socket name will just return component transform anyway, so we're safe
+			}
+			if (ActorInfo->Actor.IsValid())
+			{
+				return ActorInfo->Actor->GetTransform();		//First fallback
+			}
+			return LiteralTransform;		//Second fallback, but not really acceptable since it will almost surely be Identity
+		case EGameplayAbilityTargetingLocationType::LiteralTransform:
+			return LiteralTransform;
+		default:
+			check(false);		//This case should not happen
+			return LiteralTransform;		//Fallback
+		}
+	}
+
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
+	TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
+
+	/** A literal world transform can be used, if one has been calculated outside of the actor using the ability. */
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
+	FTransform LiteralTransform;
+
+	/** Actor who owns the named component. Actor's location is used as start point if component cannot be found. */
+	//UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
+	//AActor* SourceActor;
+
+	/** Local skeletal mesh component that holds the socket. */
+	//UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
+	//USkeletalMeshComponent* SourceComponent;
+
+	/** If SourceActor and SourceComponent are valid, this is the name of the socket that will be used instead of the actor's location. */
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
+	FName SourceSocketName;
+
+	// -------------------------------------
+
+	virtual FString ToString() const
+	{
+		return TEXT("FGameplayAbilityTargetingLocationInfo");
+	}
+
+	//bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	virtual UScriptStruct* GetScriptStruct()
+	{
+		return FGameplayAbilityTargetingLocationInfo::StaticStruct();
+	}
+};
+
 
 /**
 *	FGameplayAbilityActivationInfo

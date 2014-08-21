@@ -30,12 +30,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
-	USkeletalMeshComponent* SourceComponent;
-
-	UPROPERTY(EditDefaultsOnly, Replicated, Category = Targeting)
-	FName SourceSocketName;
-
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
 
@@ -52,7 +46,7 @@ public:
 	TSubclassOf<AGameplayAbilityWorldReticle> ReticleClass;		//Using a special class for replication purposes
 
 protected:
-	virtual FHitResult PerformTrace(AActor* InSourceActor, USkeletalMeshComponent* InSourceComponent, FName InSourceSocketName) const;
+	virtual FHitResult PerformTrace(AActor* InSourceActor) const;
 
 	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
 

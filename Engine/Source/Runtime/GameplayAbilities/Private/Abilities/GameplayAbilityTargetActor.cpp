@@ -15,6 +15,12 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstr
 	StaticTargetFunction = false;
 }
 
+void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AGameplayAbilityTargetActor, StartLocation);
+}
+
 void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 {
 }

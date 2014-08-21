@@ -16,6 +16,11 @@ public:
 	UPROPERTY()
 	bool StaticTargetFunction;
 
+	/** Describes where the targeting action starts, usually the player character or a socket on the player character. */
+	//UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Targeting)
+	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn = true), Replicated, Category = Targeting)
+	FGameplayAbilityTargetingLocationInfo StartLocation;
+
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const;
 	
 	/** Initialize and begin targeting logic  */
