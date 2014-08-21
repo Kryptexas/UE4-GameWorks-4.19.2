@@ -41,16 +41,18 @@ FMediaFoundationMovieStreamer::~FMediaFoundationMovieStreamer()
 	TextureFreeList.Empty();
 }
 
-void FMediaFoundationMovieStreamer::Init(const TArray<FString>& MoviePaths)
+bool FMediaFoundationMovieStreamer::Init(const TArray<FString>& MoviePaths)
 {
 	if (MoviePaths.Num() == 0)
 	{
-		return;
+		return false;
 	}
 
 	StoredMoviePaths = MoviePaths;
 
 	OpenNextMovie();
+
+	return true;
 }
 
 void FMediaFoundationMovieStreamer::ForceCompletion()

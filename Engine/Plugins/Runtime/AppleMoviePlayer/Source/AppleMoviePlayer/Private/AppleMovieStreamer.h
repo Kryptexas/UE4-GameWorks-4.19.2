@@ -17,7 +17,7 @@ public:
 	FAVPlayerMovieStreamer();
 	virtual ~FAVPlayerMovieStreamer();
 
-	virtual void Init(const TArray<FString>& MoviePaths) override;
+	virtual bool Init(const TArray<FString>& MoviePaths) override;
 	virtual void ForceCompletion() override;
 	virtual bool Tick(float DeltaTime) override;
 	virtual TSharedPtr<class ISlateViewport> GetViewportInterface() override;
