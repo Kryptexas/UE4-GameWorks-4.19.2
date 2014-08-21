@@ -249,29 +249,32 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			)
 		);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AssignAssetChunk", "Assign to Chunk..."),
-		LOCTEXT("AssignAssetChunkTooltip", "Assign this asset to a specific Chunk"),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteAssignChunkID)
-		)
-	);
+	if (GetDefault<UEditorExperimentalSettings>()->bContextMenuChunkAssignments)
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("AssignAssetChunk","Assign to Chunk..."),
+			LOCTEXT("AssignAssetChunkTooltip","Assign this asset to a specific Chunk"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this,&FAssetContextMenu::ExecuteAssignChunkID)
+			)
+		);
 
-	MenuBuilder.AddSubMenu(
-		LOCTEXT("RemoveAssetFromChunk", "Remove from Chunk..."),
-		LOCTEXT("RemoveAssetFromChunkTooltip", "Removed an asset from a Chunk it's assigned to."),
-		FNewMenuDelegate::CreateRaw(this, &FAssetContextMenu::MakeChunkIDListMenu)
-	);
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("RemoveAssetFromChunk","Remove from Chunk..."),
+			LOCTEXT("RemoveAssetFromChunkTooltip","Removed an asset from a Chunk it's assigned to."),
+			FNewMenuDelegate::CreateRaw(this,&FAssetContextMenu::MakeChunkIDListMenu)
+		);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("RemoveAllChunkAssignments", "Remove from all Chunks"),
-		LOCTEXT("RemoveAllChunkAssignmentsTooltip", "Removed an asset from all Chunks it's assigned to."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteRemoveAllChunkID)
-		)
-	);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("RemoveAllChunkAssignments","Remove from all Chunks"),
+			LOCTEXT("RemoveAllChunkAssignmentsTooltip","Removed an asset from all Chunks it's assigned to."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this,&FAssetContextMenu::ExecuteRemoveAllChunkID)
+			)
+		);
+	}
 
 	if (CanExecuteDiffSelected())
 	{

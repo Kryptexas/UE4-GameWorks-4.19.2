@@ -63,6 +63,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;
 
+	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
+	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
+	bool bContextMenuChunkAssignments;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
