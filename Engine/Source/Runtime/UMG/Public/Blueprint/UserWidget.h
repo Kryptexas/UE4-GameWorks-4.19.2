@@ -222,9 +222,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
-	UFUNCTION(BlueprintCallable, Category="User Interface|Drag and Drop")
-	UDragDropOperation* CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation);
-
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
 	/**

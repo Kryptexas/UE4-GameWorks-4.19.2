@@ -27,6 +27,18 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 	}
 }
 
+UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation)
+{
+	if ( Operation )
+	{
+		return ConstructObject<UDragDropOperation>(Operation);
+	}
+	else
+	{
+		return ConstructObject<UDragDropOperation>(UDragDropOperation::StaticClass());
+	}
+}
+
 void UWidgetBlueprintLibrary::SetFocusToGameViewport()
 {
 	FSlateApplication::Get().SetFocusToGameViewport();

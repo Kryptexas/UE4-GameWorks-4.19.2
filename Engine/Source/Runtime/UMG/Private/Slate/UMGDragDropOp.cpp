@@ -60,6 +60,8 @@ TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New(UDragDropOperation* InOperation, 
 		Operation->DecoratorWidget = InOperation->DefaultDragVisual->TakeWidget();
 	}
 
+	Operation->DecoratorWidget->SlatePrepass();
+
 	Operation->Construct();
 
 	return Operation;

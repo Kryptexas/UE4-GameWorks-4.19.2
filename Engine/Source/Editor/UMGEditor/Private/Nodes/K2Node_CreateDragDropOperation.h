@@ -1,0 +1,29 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "K2Node.h"
+#include "K2Node_CreateDragDropOperation.generated.h"
+
+UCLASS()
+class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructObjectFromClass
+{
+	GENERATED_UCLASS_BODY()
+
+	// Begin UEdGraphNode interface.
+	virtual void AllocateDefaultPins() override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	// End UEdGraphNode interface.
+
+	// Begin UK2Node interface
+	void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const;
+	// End UK2Node interface.
+
+protected:
+	/** Gets the default node title when no class is selected */
+	virtual FText GetBaseNodeTitle() const;
+	/** Gets the node title when a class has been selected. */
+	virtual FText GetNodeTitleFormat() const;
+	/** Gets base class to use for the 'class' pin.  UObject by default. */
+	virtual UClass* GetClassPinBaseClass() const;
+};

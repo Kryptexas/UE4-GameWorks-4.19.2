@@ -59,7 +59,7 @@ void UK2Node_CreateWidget::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuB
 {
 	UK2Node_CreateWidget* TemplateNode = NewObject<UK2Node_CreateWidget>(GetTransientPackage(), GetClass());
 
-	const FString Category = TEXT("");
+	const FString Category = TEXT("User Interface");
 	const FText   MenuDesc = LOCTEXT("CreateWidgetMenuOption", "Create Widget...");
 	const FString Tooltip  = TEXT("Create a new UI widget");
 
@@ -143,7 +143,7 @@ void UK2Node_CreateWidget::ExpandNode(class FKismetCompilerContext& CompilerCont
 		// Copy the 'Owning Player' connection from the spawn node to 'UWidgetBlueprintLibrary::Create'
 		CompilerContext.MovePinLinksToIntermediate(*SpawnOwningPlayerPin, *CallCreateOwningPlayerPin);
 
-		// Move result connection from spawn node to 'finish spawn'
+		// Move result connection from spawn node to 'UWidgetBlueprintLibrary::Create'
 		CallCreateResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
 		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallCreateResult);
 

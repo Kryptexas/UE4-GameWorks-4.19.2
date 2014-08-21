@@ -556,11 +556,6 @@ int32 UUserWidget::GetFullScreenZOrder() const
 	return ViewportZOrder;
 }
 
-UDragDropOperation* UUserWidget::CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation)
-{
-	return ConstructObject<UDragDropOperation>(Operation);
-}
-
 #if WITH_EDITOR
 
 const FSlateBrush* UUserWidget::GetEditorIcon()
