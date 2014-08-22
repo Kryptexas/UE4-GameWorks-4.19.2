@@ -179,6 +179,8 @@ private:
 	TArray<class FSlateTexture2DRHIRef*> NonAtlasedTextures;
 	/** The size of each texture atlas (square) */
 	uint32 AtlasSize;
+	/** This max size of each texture in an atlas */
+	FIntPoint MaxAltasedTextureSize;
 
 };
 
