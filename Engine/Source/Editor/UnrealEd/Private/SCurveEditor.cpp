@@ -37,6 +37,10 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	ViewMinOutput = InArgs._ViewMinOutput;
 	ViewMaxOutput = InArgs._ViewMaxOutput;
 
+	InputSnap = InArgs._InputSnap;
+	OutputSnap = InArgs._OutputSnap;
+	bSnappingEnabled = InArgs._SnappingEnabled;
+
 	bZoomToFitVertical = InArgs._ZoomToFitVertical;
 	bZoomToFitHorizontal = InArgs._ZoomToFitHorizontal;
 	DesiredSize = InArgs._DesiredSize;
@@ -80,6 +84,11 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
 		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsSnappingEnabled));
 
 	SAssignNew(WarningMessageText, SErrorText);
 
@@ -1040,7 +1049,7 @@ FReply SCurveEditor::OnMouseMove( const FGeometry& InMyGeometry, const FPointerE
 		{
 			TryStartDrag(InMyGeometry, InMouseEvent);
 		}
-		else if (DragState != EDragState::None)
+		if (DragState != EDragState::None)
 		{
 			ProcessDrag(InMyGeometry, InMouseEvent);
 		}
@@ -1119,6 +1128,16 @@ void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEve
 
 				BeginDragTransaction();
 				DragState = EDragState::DragKey;
+				DraggedKeyHandle = HitKey.KeyHandle;
+				PreDragKeyLocations.Empty();
+				for (auto selectedKey : SelectedKeys)
+				{
+					PreDragKeyLocations.Add(selectedKey.KeyHandle, FVector2D
+					(
+						selectedKey.Curve->GetKeyTime(selectedKey.KeyHandle),
+						selectedKey.Curve->GetKeyValue(selectedKey.KeyHandle)
+					));
+				}
 			}
 			else
 			{
@@ -1159,7 +1178,8 @@ void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEven
 
 	if (DragState == EDragState::DragKey)
 	{
-		MoveSelectedKeysByDelta(InputDelta);
+		FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		MoveSelectedKeys(FVector2D(ScaleInfo.LocalXToInput(MousePosition.X), ScaleInfo.LocalYToOutput(MousePosition.Y)));
 	}
 	else if (DragState == EDragState::DragTangent)
 	{
@@ -1481,7 +1501,7 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 	return SelectedKey;
 }
 
-void SCurveEditor::MoveSelectedKeysByDelta(FVector2D InputDelta)
+void SCurveEditor::MoveSelectedKeys(FVector2D NewLocation)
 {
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
 	CurveOwner->ModifyOwner();
@@ -1489,29 +1509,35 @@ void SCurveEditor::MoveSelectedKeysByDelta(FVector2D InputDelta)
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
 
-	for(int32 i=0; i<SelectedKeys.Num(); i++)
+	FVector2D SnappedNewLocation = SnapLocation(NewLocation);
+
+	// The total move distance for all keys is the difference between the current snapped location
+	// and the start location of the key which was actually dragged.
+	FVector2D TotalMoveDistance = SnappedNewLocation - PreDragKeyLocations[DraggedKeyHandle];
+
+	for (int32 i = 0; i < SelectedKeys.Num(); i++)
 	{
 		FSelectedCurveKey OldKey = SelectedKeys[i];
 
-		if(!IsValidCurve(OldKey.Curve))
+		if (!IsValidCurve(OldKey.Curve))
 		{
 			continue;
 		}
 
-		FKeyHandle OldKeyHandle	= OldKey.KeyHandle;
-		FRichCurve* Curve		= OldKey.Curve;
+		FKeyHandle OldKeyHandle = OldKey.KeyHandle;
+		FRichCurve* Curve = OldKey.Curve;
 
-		// Update output - easy
-		float OldOutput = Curve->GetKeyValue(OldKeyHandle);
-		// set the key value, but don't update the tangents yet
-		Curve->SetKeyValue(OldKeyHandle, OldOutput + InputDelta.Y, false);
+		FVector2D PreDragLocation = PreDragKeyLocations[OldKeyHandle];
+		FVector2D NewLocation = PreDragLocation + TotalMoveDistance;
 
-		// Update input - hard
-		float OldInput = Curve->GetKeyTime(OldKeyHandle);
-		FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, OldInput + InputDelta.X);
+		// Update the key's value without updating the tangents.
+		Curve->SetKeyValue(OldKeyHandle, NewLocation.Y, false);
 
-		// Update this key
+		// Changing the time of a key returns a new handle, so make sure to update existing references.
+		FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, NewLocation.X);
 		SelectedKeys[i] = FSelectedCurveKey(Curve, KeyHandle);
+		PreDragKeyLocations.Remove(OldKeyHandle);
+		PreDragKeyLocations.Add(KeyHandle, PreDragLocation);
 
 		UniqueCurves.Add(Curve);
 	}
@@ -1685,6 +1711,16 @@ FReply SCurveEditor::ZoomToFitVerticalClicked()
 {
 	ZoomToFitVertical();
 	return FReply::Handled();
+}
+
+void SCurveEditor::ToggleSnapping()
+{
+	bSnappingEnabled = !bSnappingEnabled;
+}
+
+bool SCurveEditor::IsSnappingEnabled()
+{
+	return bSnappingEnabled;
 }
 
 void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FVector2D& ScreenPosition)
@@ -2217,6 +2253,16 @@ void SCurveEditor::PostUndo(bool bSuccess)
 bool SCurveEditor::IsLinearColorCurve() const 
 {
 	return CurveOwner && CurveOwner->GetOwner() && CurveOwner->GetOwner()->IsA<UCurveLinearColor>();
+}
+
+FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)
+{
+	if (bSnappingEnabled)
+	{
+		InLocation.X = InputSnap != 0 ? FMath::RoundToInt(InLocation.X / InputSnap.Get()) * InputSnap.Get() : InLocation.X;
+		InLocation.Y = OutputSnap != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnap.Get()) * OutputSnap.Get() : InLocation.Y;
+	}
+	return InLocation;
 }
 
 FText SCurveEditor::GetInterpolationModeText() const

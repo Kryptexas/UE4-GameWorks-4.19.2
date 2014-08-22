@@ -47,6 +47,28 @@ private:
 	/**	Spawns the tab with the curve asset inside */
 	TSharedRef<SDockTab> SpawnTab_CurveAsset( const FSpawnTabArgs& Args );
 
+	/** Get the snapping value for the input domain. */
+	float GetInputSnap() const;
+	/** Gets the snapping value for the input domain as text. */
+	FText GetInputSnapText() const;
+	/** Get set the snapping value for the input domain. */
+	void SetInputSnap(float value);
+	/** Callback for setting the snapping value for the input domain from a text value. */
+	void InputSnapTextComitted(const FText& InNewText, ETextCommit::Type InTextCommit);
+	/** Builds a menu widget with options for snapping in the input domain. */
+	TSharedRef<SWidget> BuildInputSnapMenu();
+
+	/** Get the snapping value for the output domain. */
+	float GetOutputSnap() const;
+	/** Gets the snapping value for the output domain as text. */
+	FText GetOutputSnapText() const;
+	/** Get set the snapping value for the output domain. */
+	void SetOutputSnap(float value);
+	/** Callback for setting the snapping value for the output domain from a text value. */
+	void OutputSnapTextComitted(const FText& InNewText, ETextCommit::Type InTextCommit);
+	/** Builds a menu widget with options for snapping in the output domain. */
+	TSharedRef<SWidget> BuildOutputSnapMenu();
+
 	TSharedPtr<class SCurveEditor> TrackWidget;
 
 	/**	The tab id for the curve asset tab */
@@ -54,4 +76,9 @@ private:
 
 	float ViewMinInput;
 	float ViewMaxInput;
+
+	/** The snapping value for the input domain. */
+	float InputSnap;
+	/** The snapping value for the output domain. */
+	float OutputSnap;
 };

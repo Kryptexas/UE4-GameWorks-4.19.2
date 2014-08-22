@@ -19,12 +19,8 @@ public:
 
 	TSharedPtr<FUICommandInfo> ZoomToFitHorizontal;
 	TSharedPtr<FUICommandInfo> ZoomToFitVertical;
+	TSharedPtr<FUICommandInfo> ToggleSnapping;
 
 public:
 	virtual void RegisterCommands() override;
-
-	~FRichCurveEditorCommands()
-	{
-		int i = 0;
-	}
 };

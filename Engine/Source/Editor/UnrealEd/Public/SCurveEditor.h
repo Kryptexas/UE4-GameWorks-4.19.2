@@ -106,6 +106,9 @@ public:
 		, _ViewMaxInput(10.0f)
 		, _ViewMinOutput(0.0f)
 		, _ViewMaxOutput(1.0f)
+		, _InputSnap(0.1f)
+		, _OutputSnap(0.05f)
+		, _SnappingEnabled(false)
 		, _TimelineLength(5.0f)
 		, _DesiredSize(FVector2D::ZeroVector)
 		, _DrawCurve(true)
@@ -123,6 +126,9 @@ public:
 		SLATE_ATTRIBUTE( TOptional<float>, DataMaxInput )
 		SLATE_ARGUMENT( float, ViewMinOutput )
 		SLATE_ARGUMENT( float, ViewMaxOutput )
+		SLATE_ATTRIBUTE( float, InputSnap )
+		SLATE_ATTRIBUTE( float, OutputSnap )
+		SLATE_ARGUMENT( bool, SnappingEnabled )
 		SLATE_ATTRIBUTE( float, TimelineLength )
 		SLATE_ATTRIBUTE( FVector2D, DesiredSize )
 		SLATE_ARGUMENT( bool, DrawCurve )
@@ -273,8 +279,8 @@ private:
 	/** Get the time of the desired key */
 	TOptional<float> GetKeyTime(FSelectedCurveKey Key) const;
 
-	/** Move the selected keys by the supplied change in input (X) */
-	void MoveSelectedKeysByDelta(FVector2D InputDelta);
+	/** Move the selected keys */
+	void MoveSelectedKeys(FVector2D NewLocation);
 
 	/** Function to check whether the current track is editable */
 	bool IsEditingEnabled() const;
@@ -287,6 +293,9 @@ private:
 
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();
+
+	void ToggleSnapping();
+	bool IsSnappingEnabled();
 
 	TOptional<float> OnGetTime() const;
 	void OnTimeComitted(float NewValue, ETextCommit::Type CommitType);
@@ -428,6 +437,8 @@ private:
 	bool IsGradientEditorVisible() const { return bIsGradientEditorVisible; }
 	bool IsLinearColorCurve() const;
 
+	FVector2D SnapLocation(FVector2D InLocation);
+
 protected:
 
 	/** Set Default output values when range is too small **/
@@ -520,6 +531,15 @@ protected:
 	/** Min output view range */
 	float				ViewMaxOutput;
 
+	/** The snapping value for the input domain. */
+	TAttribute<float> InputSnap;
+
+	/** The snapping value for the output domain. */
+	TAttribute<float> OutputSnap;
+
+	/** Whether or not snapping is enabled. */
+	bool bSnappingEnabled;
+
 	/** True if you want the curve editor to fit to zoom **/
 	bool				bZoomToFitVertical;
 
@@ -543,6 +563,12 @@ protected:
 
 	/** The number of pixels which the mouse must move before a drag operation starts. */
 	float DragThreshold;
+
+	/** A handle to the key which was clicked to start a key drag operation. */
+	FKeyHandle DraggedKeyHandle;
+
+	/** A map of selected key handle to their starting locations at the beginning of a drag operation. */
+	TMap<FKeyHandle, FVector2D> PreDragKeyLocations;
 };
 
 #endif // __SCurveEditor_h__
