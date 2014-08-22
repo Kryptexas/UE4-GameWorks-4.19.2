@@ -43,6 +43,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Interaction")
 	TEnumAsByte<EButtonTouchMethod::Type> TouchMethod;
 
+	/** Sometimes a button should only be mouse-clickable and never keyboard focusable. */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	bool IsFocusable;
+
 	/** The sound made when the user 'clicks' the button */
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound PressedSound;

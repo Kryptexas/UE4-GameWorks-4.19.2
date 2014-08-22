@@ -363,12 +363,12 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
-		return NULL;
+		return nullptr;
 	}
 
 	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
 
-	UObject* Outer = ( Player == NULL ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
+	UObject* Outer = ( Player == nullptr ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
 	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
 	NewWidget->Initialize();
@@ -382,7 +382,7 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
-		return NULL;
+		return nullptr;
 	}
 
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningPlayer);

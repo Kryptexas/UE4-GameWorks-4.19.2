@@ -23,6 +23,8 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 
 	ClickMethod = EButtonClickMethod::DownAndUp;
 	TouchMethod = EButtonTouchMethod::DownAndUp;
+
+	IsFocusable = true;
 }
 
 void UButton::ReleaseNativeWidget()
@@ -36,7 +38,8 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton)
 		.ClickMethod(ClickMethod)
-		.TouchMethod(TouchMethod);
+		.TouchMethod(TouchMethod)
+		.IsFocusable(IsFocusable);
 
 	if ( GetChildrenCount() > 0 )
 	{
