@@ -117,11 +117,15 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Using only view 0 to check to do on-chip transform of alpha.
 		FViewInfo& View = Views[0];
 
+		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+
 		bool bOnChipSunMask = 
 			GSupportsRenderTargetFormat_PF_FloatRGBA && 
 			GSupportsShaderFramebufferFetch &&
 			ViewFamily.EngineShowFlags.PostProcessing &&
-			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0));
+			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) || 
+			((GRHIShaderPlatform == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+			);
 
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.
 		// This is done before resolve on hardware with framebuffer fetch.

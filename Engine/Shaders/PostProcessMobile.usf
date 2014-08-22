@@ -52,6 +52,7 @@ half2 SunConstDepthMaskScaleBias()
 
 //
 // Convert depth in alpha into combined circle of confusion and sun intensity.
+// Or pre-tonemap before hardware box-filtered resolve.
 //
 
 void SunMaskVS_ES2(
@@ -76,26 +77,31 @@ void SunMaskPS_ES2(
 		OutColor = PostprocessInput0.Sample(PostprocessInput0Sampler, InUVPos.xy);
 	#endif
 
-	half InDepth = OutColor.a;
-
-	#if ES2_USE_SUN
-		half2 DepthMaskScaleBias = SunConstDepthMaskScaleBias();
-		half FarAmount = saturate(InDepth * DepthMaskScaleBias.x + DepthMaskScaleBias.y);
-		half3 SunAmount = OutColor.rgb * SunColorApertureDiv2.rgb;
-
-		half2 Pos = InUVPos.zw * 0.5 + 0.5;
-		half EdgeMask = 1.0f - Pos.x * (1.0f - Pos.x) * Pos.y * (1.0f - Pos.y) * 8.0f;
-		EdgeMask = EdgeMask * EdgeMask;
-
-		FarAmount *= 1.0-EdgeMask;
-
-		OutColor.a = min(min(SunAmount.r, SunAmount.g), SunAmount.b) * FarAmount;
+	#if ES2_USE_MSAA
+		// On-chip pre-tonemap before MSAA resolve.
+		OutColor.rgb *= rcp(OutColor.r*0.299 + OutColor.g*0.587 + OutColor.b*0.114 + 1.0);
 	#else
-		OutColor.a = 0.0;
-	#endif
+		half InDepth = OutColor.a;
 	
-	#if ES2_USE_DOF
-		OutColor.a += Coc(InDepth);
+		#if ES2_USE_SUN
+			half2 DepthMaskScaleBias = SunConstDepthMaskScaleBias();
+			half FarAmount = saturate(InDepth * DepthMaskScaleBias.x + DepthMaskScaleBias.y);
+			half3 SunAmount = OutColor.rgb * SunColorApertureDiv2.rgb;
+	
+			half2 Pos = InUVPos.zw * 0.5 + 0.5;
+			half EdgeMask = 1.0f - Pos.x * (1.0f - Pos.x) * Pos.y * (1.0f - Pos.y) * 8.0f;
+			EdgeMask = EdgeMask * EdgeMask;
+	
+			FarAmount *= 1.0-EdgeMask;
+	
+			OutColor.a = min(min(SunAmount.r, SunAmount.g), SunAmount.b) * FarAmount;
+		#else
+			OutColor.a = 0.0;
+		#endif
+		
+		#if ES2_USE_DOF
+			OutColor.a += Coc(InDepth);
+		#endif
 	#endif
 }
 
