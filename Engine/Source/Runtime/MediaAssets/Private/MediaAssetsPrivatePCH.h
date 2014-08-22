@@ -10,8 +10,6 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 #include "Media.h"
-
-#include "MaterialExpressionTextureSampleParameterMedia.h"
 #include "MediaAsset.h"
 #include "MediaSoundWave.h"
 #include "MediaTexture.h"
