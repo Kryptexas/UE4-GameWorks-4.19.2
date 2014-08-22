@@ -3220,6 +3220,23 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 	GEngine->BroadcastLevelActorListChanged();
 }
 
+EVisibility SLevelViewport::GetMouseCaptureLabelVisibility() const
+{
+	EVisibility visibility = EVisibility::Collapsed;
+
+	if (GEditor->PlayWorld)
+	{
+		// Show the label if the local player's PC isn't set to show the cursor
+		auto const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GEditor->PlayWorld, 0);
+		if (TargetPlayer && TargetPlayer->PlayerController && !TargetPlayer->PlayerController->bShowMouseCursor)
+		{
+			visibility = EVisibility::Visible;
+		}
+	}
+
+	return visibility;
+}
+
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
 {
 	FSlateColor SlateColor = FEditorStyle::GetSlateColor("DefaultForeground");
@@ -3296,6 +3313,7 @@ void SLevelViewport::ShowMouseCaptureLabel(ELabelAnchorMode AnchorMode)
 	[
 		SNew( SBorder )
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+		.Visibility(this, &SLevelViewport::GetMouseCaptureLabelVisibility)
 		.ColorAndOpacity( this, &SLevelViewport::GetMouseCaptureLabelColorAndOpacity )
 		.ForegroundColor( FLinearColor::White )
 		.Padding(15.0f)

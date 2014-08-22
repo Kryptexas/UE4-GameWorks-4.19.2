@@ -630,6 +630,9 @@ private:
 	/** @return Whether or not redo can be executed */
 	bool CanExecuteRedo() const;
 
+	/** @return Whether the mouse capture label is visible */
+	EVisibility GetMouseCaptureLabelVisibility() const;
+
 	/** @return The current color & opacity for the mouse capture label */
 	FLinearColor GetMouseCaptureLabelColorAndOpacity() const;
 
