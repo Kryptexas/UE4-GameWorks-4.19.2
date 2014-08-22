@@ -231,7 +231,7 @@ FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 		FVector2D ScreenCursorPos = PointerEvent.GetScreenSpacePosition();
 		FVector2D ScreenDrageePosition = MyGeometry.AbsolutePosition;
 
-		return FReply::Handled().BeginDragDrop(FUMGDragDropOp::New(Operation, ScreenCursorPos, ScreenDrageePosition));
+		return FReply::Handled().BeginDragDrop(FUMGDragDropOp::New(Operation, ScreenCursorPos, ScreenDrageePosition, SharedThis(this)));
 	}
 
 	return FReply::Unhandled();
@@ -281,6 +281,15 @@ FReply SObjectWidget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	}
 
 	return FReply::Unhandled();
+}
+
+void SObjectWidget::OnDragCancelled(const FDragDropEvent& DragDropEvent, UDragDropOperation* Operation)
+{
+	TSharedPtr<FUMGDragDropOp> NativeOp = DragDropEvent.GetOperationAs<FUMGDragDropOp>();
+	if ( NativeOp.IsValid() )
+	{
+		WidgetObject->OnDragCancelled(DragDropEvent, NativeOp->GetOperation());
+	}
 }
 
 FReply SObjectWidget::OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)

@@ -17,7 +17,12 @@ void FUMGDragDropOp::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEve
 		}
 		else
 		{
-			OperationObject->DropCanceled(MouseEvent);
+			if ( SourceUserWidget.IsValid() )
+			{
+				SourceUserWidget->OnDragCancelled(FDragDropEvent(MouseEvent, AsShared()), OperationObject);
+			}
+
+			OperationObject->DragCancelled(MouseEvent);
 		}
 	}
 	
@@ -42,11 +47,12 @@ TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
 	return DecoratorWidget;
 }
 
-TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New(UDragDropOperation* InOperation, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfDragee)
+TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New(UDragDropOperation* InOperation, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfDragee, TSharedPtr<SObjectWidget> SourceUserWidget)
 {
 	TSharedRef<FUMGDragDropOp> Operation = MakeShareable(new FUMGDragDropOp);
 	Operation->Offset = ScreenPositionOfDragee - CursorPosition;
 	Operation->StartingScreenPos = ScreenPositionOfDragee;
+	Operation->SourceUserWidget = SourceUserWidget;
 
 	Operation->DragOperation = InOperation;
 

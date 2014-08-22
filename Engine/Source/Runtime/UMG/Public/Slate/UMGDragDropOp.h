@@ -13,7 +13,7 @@ class FUMGDragDropOp : public FDragDropOperation
 public:
 	DRAG_DROP_OPERATOR_TYPE(FUMGDragDropOp, FDragDropOperation)
 	
-	static TSharedRef<FUMGDragDropOp> New(UDragDropOperation* Operation, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode);
+	static TSharedRef<FUMGDragDropOp> New(UDragDropOperation* Operation, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode, TSharedPtr<SObjectWidget> SourceUserWidget);
 
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) override;
 
@@ -26,6 +26,9 @@ public:
 private:
 
 	TWeakObjectPtr<UDragDropOperation> DragOperation;
+
+	/** Source User Widget */
+	TSharedPtr<SObjectWidget> SourceUserWidget;
 
 	/** The widget used during the drag/drop action to show something being dragged. */
 	TSharedPtr<SWidget> DecoratorWidget;

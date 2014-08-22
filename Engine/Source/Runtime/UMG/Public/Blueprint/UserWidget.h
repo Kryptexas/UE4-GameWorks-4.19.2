@@ -193,7 +193,10 @@ public:
 	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
-	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent, UDragDropOperation*& Operation);
+	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
 	
 	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
 	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);

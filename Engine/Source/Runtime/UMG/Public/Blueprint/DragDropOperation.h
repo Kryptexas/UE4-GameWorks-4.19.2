@@ -34,7 +34,7 @@ public:
 
 	/**  */
 	UPROPERTY(BlueprintAssignable)
-	FOnDragDropMulticast OnDropCanceled;
+	FOnDragDropMulticast OnDragCancelled;
 
 	/**  */
 	UPROPERTY(BlueprintAssignable)
@@ -46,7 +46,7 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
-	void DropCanceled(const FPointerEvent& PointerEvent);
+	void DragCancelled(const FPointerEvent& PointerEvent);
 
 	/**  */
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
