@@ -17,6 +17,7 @@
 #include "ClassIconFinder.h"
 
 #include "UProjectInfo.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -589,23 +590,6 @@ bool GameProjectUtils::CreateProject(const FString& NewProjectFile, const FStrin
 	}
 
 	return bProjectCreationSuccessful;
-}
-
-bool GameProjectUtils::BuildGameBinaries(const FString& ProjectFilename, FText& OutFailReason)
-{
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "BuildingProjectStatus", "Building project..." ), bAllowNewSlowTask );
-
-	// Compile the *editor* for the project
-	if ( FModuleManager::Get().CompileGameProjectEditor(ProjectFilename, *GLog) )
-	{
-		return true;
-	}
-
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("ProjectFilename"), FText::FromString( ProjectFilename ) );
-	OutFailReason = FText::Format( LOCTEXT("FailedToCompileNewProject", "Failed to compile {ProjectFileName}."), Args );
-	return false;
 }
 
 void GameProjectUtils::CheckForOutOfDateGameProjectFile()
@@ -1686,15 +1670,21 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 
 bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason)
 {
-	if ( FModuleManager::Get().GenerateCodeProjectFiles(ProjectFilename, *GLog) )
+	FStringOutputDevice OutputLog;
+	OutputLog.SetAutoEmitLineTerminator(true);
+	GLog->AddOutputDevice(&OutputLog);
+	bool bHaveProjectFiles = FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), ProjectFilename, GWarn);
+	GLog->RemoveOutputDevice(&OutputLog);
+
+	if(!bHaveProjectFiles)
 	{
-		return true;
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("LogOutput"), FText::FromString(OutputLog) );
+		OutFailReason = FText::Format(LOCTEXT("CouldNotGenerateProjectFiles", "Failed to generate project files. Log output:\n{LogOutput}"), Args);
+		return false;
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("ProjectFilename"), FText::FromString( ProjectFilename ) );
-	OutFailReason = FText::Format( LOCTEXT("FailedToGenerateCodeProjectFiles", "Failed to generate code project files for \"{ProjectFilename}\"."), Args );
-	return false;
+	return true;
 }
 
 bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
@@ -2675,7 +2665,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	// Generate project files if we happen to be using a project file.
-	if ( !FModuleManager::Get().GenerateCodeProjectFiles( FPaths::GetProjectFilePath(), *GLog ) )
+	if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
 	{
 		OutFailReason = LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.");
 		return false;

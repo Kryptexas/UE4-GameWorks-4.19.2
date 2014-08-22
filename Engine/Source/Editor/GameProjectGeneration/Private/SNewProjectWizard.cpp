@@ -1319,8 +1319,16 @@ void SNewProjectWizard::CloseWindowIfAppropriate( bool ForceClose )
 
 void SNewProjectWizard::DisplayError( const FText& ErrorText )
 {
-	UE_LOG(LogGameProjectGeneration, Log, TEXT("%s"), *ErrorText.ToString());
-	PersistentGlobalErrorLabelText = ErrorText;
+	FString ErrorString = ErrorText.ToString();
+	UE_LOG(LogGameProjectGeneration, Log, TEXT("%s"), *ErrorString);
+	if(ErrorString.Contains("\n"))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, ErrorText);
+	}
+	else
+	{
+		PersistentGlobalErrorLabelText = ErrorText;
+	}
 }
 
 

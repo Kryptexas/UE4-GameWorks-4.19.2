@@ -135,9 +135,6 @@ public:
 	/** Creates the specified project file and all required folders. If TemplateFile is non-empty, it will be used as the template for creation. On failure, OutFailReason will be populated. */
 	static bool CreateProject(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);
 
-	/** Builds the binaries for a new project. */
-	static bool BuildGameBinaries(const FString& ProjectFilename, FText& OutFailReason);
-
 	/** Prompts the user to update his project file, if necessary. */
 	static void CheckForOutOfDateGameProjectFile();
 

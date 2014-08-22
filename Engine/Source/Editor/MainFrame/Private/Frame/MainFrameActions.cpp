@@ -692,7 +692,7 @@ void FMainFrameActionCallbacks::RefreshCodeProject()
 	FText FailReason;
 	if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason))
 	{
-		FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FailReason));
+		FMessageDialog::Open(EAppMsgType::Ok, FailReason);
 	}
 }
 
