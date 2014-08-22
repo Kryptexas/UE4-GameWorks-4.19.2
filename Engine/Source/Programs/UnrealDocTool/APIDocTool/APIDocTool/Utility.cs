@@ -16,6 +16,14 @@ namespace APIDocTool
 	{
 		static HashSet<string> AllLinkPaths = new HashSet<string>();
 
+		public static void AddUnique<T>(this List<T> Items, T Item)
+		{
+			if(!Items.Contains(Item))
+			{
+				Items.Add(Item);
+			}
+		}
+
 		public static void AddToDictionaryList<T, U>(T Key, U Value, Dictionary<T, List<U>> Dict)
 		{
 			List<U> ItemList;

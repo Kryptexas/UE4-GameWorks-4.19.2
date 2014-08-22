@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,154 +10,118 @@ using System.Xml;
 
 namespace APIDocTool
 {
-	public class BuildModule
+	class BuildTarget
 	{
-		public string Name;
-		public string Path;
-		public string Type;
-		public List<string> Dependencies = new List<string>();
 		public List<string> Definitions = new List<string>();
 		public List<string> IncludePaths = new List<string>();
+		public List<string> DirectoryNames = new List<string>();
 
-		public BuildModule(string InName, string InPath, string InType)
+		public BuildTarget(string BaseDirectoryName, string InputFileName)
 		{
-			Name = InName;
-			Path = InPath;
-			Type = InType;
-		}
+			XmlDocument Document = new XmlDocument();
+			Document.Load(InputFileName);
 
-		public override string ToString()
-		{
-			return Name;
-		}
-
-		public static BuildModule FromXml(XmlNode Node)
-		{
-			BuildModule NewModule = new BuildModule(Node.Attributes["name"].Value, Node.Attributes["path"].Value, Node.Attributes["type"].Value);
-			if (NewModule.Type == "cpp")
+			foreach (XmlNode Node in Document.SelectNodes("BuildSet/Environments/Environment/Tools/Tool"))
 			{
-				using (XmlNodeList DependencyNodeList = Node.SelectNodes("dependencies/dependency"))
+				XmlAttribute ToolPathAttr = Node.Attributes["Path"];
+				if (ToolPathAttr != null && String.Compare(Path.GetFileName(ToolPathAttr.InnerText), "cl.exe") == 0)
 				{
-					foreach (XmlNode DependencyNode in DependencyNodeList)
+					string Name = Node.Attributes["Name"].InnerText;
+					string Params = Node.Attributes["Params"].InnerText;
+
+					// Parse a list of tokens
+					List<string> Tokens = new List<string>();
+					for (int Idx = 0; Idx < Params.Length; Idx++)
 					{
-						NewModule.Dependencies.Add(DependencyNode.Attributes["module"].Value);
+						if (!Char.IsWhiteSpace(Params[Idx]))
+						{
+							StringBuilder Token = new StringBuilder();
+							while (Idx < Params.Length && !Char.IsWhiteSpace(Params[Idx]))
+							{
+								if (Params[Idx] == '"')
+								{
+									Idx++;
+									while (Params[Idx] != '"') Token.Append(Params[Idx++]);
+									Idx++;
+								}
+								else
+								{
+									Token.Append(Params[Idx++]);
+								}
+							}
+							Tokens.Add(Token.ToString());
+						}
 					}
-				}
-				using (XmlNodeList DefinitionNodeList = Node.SelectNodes("definitions/definition"))
-				{
-					foreach (XmlNode DefinitionNode in DefinitionNodeList)
+
+					// Parse it into a list of options, removing any that don't apply
+					List<string> FileNames = new List<string>();
+					for (int Idx = 0; Idx < Tokens.Count; Idx++)
 					{
-						NewModule.Definitions.Add(DefinitionNode.Attributes["name"].Value);
-					}
-				}
-				using (XmlNodeList IncludeNodeList = Node.SelectNodes("includes/include"))
-				{
-					foreach (XmlNode IncludeNode in IncludeNodeList)
-					{
-						NewModule.IncludePaths.Add(IncludeNode.Attributes["path"].Value);
-					}
-				}
-			}
-			return NewModule;
-		}
-	}
-
-	public class BuildBinary
-	{
-		public string Name;
-		public string Type;
-		public List<BuildModule> Modules = new List<BuildModule>();
-
-		public BuildBinary(string InName, string InType)
-		{
-			Name = InName;
-			Type = InType;
-		}
-
-		public BuildBinary Filter(List<string> ModuleNames)
-		{
-			BuildBinary NewBinary = new BuildBinary(Name, Type);
-			foreach (BuildModule Module in Modules)
-			{
-				if (ModuleNames.Contains(Module.Name))
-				{
-					NewBinary.Modules.Add(Module);
-				}
-			}
-			return NewBinary;
-		}
-
-		public override string ToString()
-		{
-			return Name;
-		}
-
-		public static BuildBinary FromXml(XmlNode Node)
-		{
-			BuildBinary NewBinary = new BuildBinary(Node.Attributes["name"].Value, Node.Attributes["type"].Value);
-			if (NewBinary.Type == "cpp")
-			{
-				using (XmlNodeList ModuleNodeList = Node.SelectNodes("module"))
-				{
-					foreach (XmlNode ModuleNode in ModuleNodeList)
-					{
-						BuildModule NewModule = BuildModule.FromXml(ModuleNode);
-						NewBinary.Modules.Add(NewModule);
+						if (Tokens[Idx].StartsWith("/Fo") || Tokens[Idx].StartsWith("/Fp") || Tokens[Idx].StartsWith("/Yu"))
+						{
+							Idx++;
+						}
+						else if (Tokens[Idx] == "/D")
+						{
+							Definitions.AddUnique(Tokens[++Idx]);
+						}
+						else if (Tokens[Idx] == "/I")
+						{
+							IncludePaths.AddUnique(ResolveDirectory(BaseDirectoryName, Tokens[++Idx]));
+						}
+						else if (!Tokens[Idx].StartsWith("/"))
+						{
+							DirectoryNames.AddUnique(Path.GetDirectoryName(ResolveFile(BaseDirectoryName, Tokens[Idx])));
+						}
 					}
 				}
 			}
-			return NewBinary;
-		}
-	}
-
-	public class BuildTarget
-	{
-		public string Name;
-		public List<BuildBinary> Binaries = new List<BuildBinary>();
-
-		public BuildTarget(string InName)
-		{
-			Name = InName;
 		}
 
-		public BuildTarget Filter(List<string> ModuleNames)
+		static string ResolveFile(string BaseDirectoryName, string FileName)
 		{
-			BuildTarget NewTarget = new BuildTarget(Name);
-			foreach (BuildBinary Binary in Binaries)
+			string NewFileName = FileName;
+			if(!Path.IsPathRooted(NewFileName))
 			{
-				BuildBinary NewBinary = Binary.Filter(ModuleNames);
-				if (NewBinary.Modules.Count > 0) NewTarget.Binaries.Add(NewBinary);
+				NewFileName = Path.Combine(BaseDirectoryName, NewFileName);
 			}
-			return NewTarget;
+			return new FileInfo(NewFileName).FullName;
 		}
 
-		public override string ToString()
+		static string ResolveDirectory(string BaseDirectoryName, string DirectoryName)
 		{
-			return Name;
-		}
-
-		public static BuildTarget FromXml(XmlNode Node)
-		{
-			BuildTarget NewTarget = new BuildTarget(Node.Attributes["name"].Value);
-			using (XmlNodeList BinaryNodeList = Node.SelectNodes("binary"))
+			string NewDirectoryName = ExpandEnvironmentVariables(DirectoryName).TrimEnd('/', '\\');
+			if(!Path.IsPathRooted(NewDirectoryName))
 			{
-				foreach (XmlNode BinaryNode in BinaryNodeList)
+				NewDirectoryName = Path.Combine(BaseDirectoryName, NewDirectoryName);
+			}
+			return new DirectoryInfo(NewDirectoryName).FullName;
+		}
+
+		static string ExpandEnvironmentVariables(string Text)
+		{
+			int StartIdx = -1;
+			for (int Idx = 0; Idx < Text.Length; Idx++)
+			{
+				if (Text[Idx] == '$' && (Idx + 1 < Text.Length && Text[Idx + 1] == '('))
 				{
-					BuildBinary NewBinary = BuildBinary.FromXml(BinaryNode);
-					NewTarget.Binaries.Add(NewBinary);
+					// Save the start of a variable name
+					StartIdx = Idx;
+				}
+				else if(Text[Idx] == ')' && StartIdx != -1)
+				{
+					// Replace the variable
+					string Name = Text.Substring(StartIdx + 2, Idx - (StartIdx + 2));
+					string Value = Environment.GetEnvironmentVariable(Name);
+					if (Value != null)
+					{
+						Text = Text.Substring(0, StartIdx) + Value + Text.Substring(Idx + 1);
+						Idx = StartIdx + Value.Length - 1;
+					}
+					StartIdx = -1;
 				}
 			}
-			return NewTarget;
-		}
-
-		public static BuildTarget Read(string InputPath)
-		{
-			// Parse the xml document
-			XmlDocument TargetDocument = Utility.ReadXmlDocument(InputPath);
-
-			// Read the target definition
-			XmlNode TargetNode = TargetDocument.SelectSingleNode("target");
-			return BuildTarget.FromXml(TargetNode);
+			return Text;
 		}
 	}
 }
