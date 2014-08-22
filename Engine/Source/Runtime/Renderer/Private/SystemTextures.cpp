@@ -253,16 +253,16 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
 			const bool bReference = false;
 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), PF_R8G8, TexCreate_HideInVisualizeTexture | TexCreate_FastVRAM, TexCreate_None, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), PF_R8G8, TexCreate_FastVRAM, TexCreate_None, false));
 
 			// for low roughness we would get banding with PF_R8G8 but for low spec it could be used, for now we don't do this optimization
 			Desc.Format = PF_G16R16;
+			//Desc.Format = PF_A16B16G16R16;
 
 			if (bReference)
 			{
 				Desc.Extent.X = 128;
 				Desc.Extent.Y = 128;
-				Desc.Format = PF_G16R16;
 			}
 
 			GRenderTargetPool.FindFreeElement(Desc, PreintegratedGF, TEXT("PreintegratedGF"));
@@ -276,13 +276,10 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 				float Roughness = (float)(y + 0.5f) / Desc.Extent.Y;
 				float m = Roughness * Roughness;
 				float m2 = m*m;
-				float k = m * 0.5f;
 
 				for (int32 x = 0; x < Desc.Extent.X; x++)
 				{
 					float NoV = (float)(x + 0.5f) / Desc.Extent.X;
-					float G_SchlickV = 1.0f / (NoV * (1.0f - k) + k);
-					float G_SmithV = 2.0f / (NoV + FMath::Sqrt((NoV*NoV) * (1.0f - m2) + m2));
 
 					FVector V;
 					V.X = FMath::Sqrt(1.0f - NoV * NoV);	// sin
@@ -291,6 +288,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 
 					float A = 0.0f;
 					float B = 0.0f;
+					float C = 0.0f;
 
 					const uint32 NumSamples = 128;
 					for (uint32 i = 0; i < NumSamples; i++)
@@ -298,41 +296,68 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 						float E1 = (float)i / NumSamples;
 						float E2 = (double)ReverseBits(i) / (double)0x100000000LL;
 
-						float Phi = 2.0f * PI * E1;
-						float CosPhi = FMath::Cos(Phi);
-						float SinPhi = FMath::Sin(Phi);
-						float CosTheta = FMath::Sqrt((1.0f - E2) / (1.0f + (m2 - 1.0f) * E2));
-						float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
-
-						FVector H(SinTheta * FMath::Cos(Phi), SinTheta * FMath::Sin(Phi), CosTheta);
-
-						FVector L = 2.0f * (V | H) * H - V;
-
-						float NoL = FMath::Max(L.Z, 0.0f);
-						float NoH = FMath::Max(H.Z, 0.0f);
-						float VoH = FMath::Max(V | H, 0.0f);
-
-						if (NoL > 0.0f)
 						{
-							float G_SchlickL = 1.0f / (NoL * (1.0f - k) + k);
-							float G_SmithL = 2.0f / (NoL + FMath::Sqrt((NoL*NoL) * (1.0f - m2) + m2));
+							float Phi = 2.0f * PI * E1;
+							float CosPhi = FMath::Cos(Phi);
+							float SinPhi = FMath::Sin(Phi);
+							float CosTheta = FMath::Sqrt((1.0f - E2) / (1.0f + (m2 - 1.0f) * E2));
+							float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
 
-							float Vis_G = VoH * (NoL / NoH) * G_SchlickL;
-							float Fc = 1.0f - VoH;
-							Fc *= FMath::Square(Fc*Fc);
-							A += Vis_G * (1.0f - Fc);
-							B += Vis_G * Fc;
+							FVector H(SinTheta * FMath::Cos(Phi), SinTheta * FMath::Sin(Phi), CosTheta);
+							FVector L = 2.0f * (V | H) * H - V;
+
+							float NoL = FMath::Max(L.Z, 0.0f);
+							float NoH = FMath::Max(H.Z, 0.0f);
+							float VoH = FMath::Max(V | H, 0.0f);
+
+							if (NoL > 0.0f)
+							{
+								float Vis_SmithV = NoL * ( NoV * ( 1 - m ) + m );
+								float Vis_SmithL = NoV * ( NoL * ( 1 - m ) + m );
+								float Vis = 0.5f / ( Vis_SmithV + Vis_SmithL );
+
+								float NoL_Vis_PDF = NoL * Vis * (4.0f * VoH / NoH);
+								float Fc = 1.0f - VoH;
+								Fc *= FMath::Square(Fc*Fc);
+								A += NoL_Vis_PDF * (1.0f - Fc);
+								B += NoL_Vis_PDF * Fc;
+							}
+						}
+
+						{
+							float Phi = 2.0f * PI * E1;
+							float CosPhi = FMath::Cos(Phi);
+							float SinPhi = FMath::Sin(Phi);
+							float CosTheta = FMath::Sqrt(E2);
+							float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
+
+							FVector L(SinTheta * FMath::Cos(Phi), SinTheta * FMath::Sin(Phi), CosTheta);
+							FVector H = ( V + L ).UnsafeNormal();
+
+							float NoL = FMath::Max(L.Z, 0.0f);
+							float NoH = FMath::Max(H.Z, 0.0f);
+							float VoH = FMath::Max(V | H, 0.0f);
+
+							float FD90 = 0.5f + 2.0f * VoH * VoH * Roughness;
+							float FdV = 1.0f + (FD90 - 1.0f) * pow( 1.0f - NoV, 5 );
+							float FdL = 1.0f + (FD90 - 1.0f) * pow( 1.0f - NoL, 5 );
+							C += FdV * FdL;// * ( 1.0f - 0.3333f * Roughness );
 						}
 					}
 					A /= NumSamples;
 					B /= NumSamples;
+					C /= NumSamples;
 
-					A *= G_SchlickV;
-					B *= G_SchlickV;
-
-					if (Desc.Format == PF_G16R16)
+					if( Desc.Format == PF_A16B16G16R16 )
 					{
-						uint16* Dest = (uint16*)(DestBuffer + x * sizeof(uint32)+y * DestStride);
+						uint16* Dest = (uint16*)(DestBuffer + x * 8 + y * DestStride);
+						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 65535.0f + 0.5f);
+						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 65535.0f + 0.5f);
+						Dest[2] = (int32)(FMath::Clamp(C, 0.0f, 1.0f) * 65535.0f + 0.5f);
+					}
+					else if (Desc.Format == PF_G16R16)
+					{
+						uint16* Dest = (uint16*)(DestBuffer + x * 4 + y * DestStride);
 						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 65535.0f + 0.5f);
 						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 65535.0f + 0.5f);
 					}
@@ -340,7 +365,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 					{
 						check(Desc.Format == PF_R8G8);
 
-						uint8* Dest = (uint8*)(DestBuffer + x * sizeof(uint16)+y * DestStride);
+						uint8* Dest = (uint8*)(DestBuffer + x * 2 + y * DestStride);
 						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 255.9999f);
 						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 255.9999f);
 					}

@@ -52,17 +52,17 @@ struct FSimpleDeferredLightData
 #if 0
 void StandardShadingShared( float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 V, half3 N )
 {
-	float NoV = saturate( dot(N, V) );
+	//float NoV = saturate( dot(N, V) );
+	float NoV = abs( dot(N, V) ) + 1e-5;
 
 	// Diffuse_Lambert
 	Shared.DiffuseMul = DiffuseColor * (1.0 / PI);
 
-	// D_GGX, Vis_Schlick
+	// D_GGX, Vis_SmithJointApprox
 	float m = Roughness * Roughness;
 	Shared.m2 = m * m;
-	Shared.k = Square( Roughness ) * 0.5;
-	float Vis_SchlickV = NoV * (1 - Shared.k) + Shared.k;
-	Shared.SpecularMul = (0.25 / PI) * (Shared.m2 / Vis_SchlickV);
+	Shared.SpecularMul = (0.5 / PI) * Shared.m2;
+	Shared.VisMad = float2( 2 * NoV * ( 1 - m ) + m, NoV * m );
 	
 	// F_Schlick
 	Shared.SpecularMul *= saturate( 50.0 * SpecularColor.g );
@@ -75,15 +75,14 @@ void StandardShadingPerLight( Shared, float3 L, float3 V, half3 N )
 	float NoH = saturate( dot(N, H) );		// 2 mad, 1 mul
 	float VoH = saturate( dot(V, H) );		// 2 mad, 1 mul
 
-	// D_GGX, Vis_Schlick
-	float d = ( NoH * Shared.m2 - NoH ) * NoH + 1;					// 2 mad
-	float Vis_SchlickL = NoL * (1 - Shared.k) + Shared.k;			// 1 mad, 1 add
-	float D_Vis = Shared.SpecularMul * rcp( d * d * Vis_SchlickL );	// 3 mul, 1 rcp
+	// D_GGX, Vis_SmithJointApprox
+	float d = ( NoH * Shared.m2 - NoH ) * NoH + 1;			// 2 mad
+	float v = NoL * Shared.VisMad.x + Shared.VisMad.y;		// 1 mad
+	float D_Vis = Shared.SpecularMul * rcp( d * d * v );	// 3 mul, 1 rcp
 
 	// F_Schlick
 	float Fc = pow( 1 - VoH, 5 );							// 1 sub, 3 mul
-	//float Fc = exp2( (-5.55473 * VoH - 6.98316) * VoH );	// 1 mad, 1 mul, 1 exp
-	float3 F = Fc + (1 - Fc) * SpecularColor;				// 1 add, 3 mad
+	float3 F = Fc + (1 - Fc) * SpecularColor;				// 1 sub, 3 mad
 
 	return Shared.DiffuseMul + D_Vis * F;					// 3 mad
 }
@@ -94,13 +93,14 @@ float3 StandardShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeE
 {
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	float NoV = saturate( dot(N, V) );
+	//float NoV = saturate( dot(N, V) );
+	float NoV = abs( dot(N, V) ) + 1e-5;
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 	
 	// Generalized microfacet specular
 	float D = D_GGX( LobeRoughness[1], NoH ) * LobeEnergy[1];
-	float Vis = Vis_Schlick( LobeRoughness[1], NoV, NoL );
+	float Vis = Vis_SmithJointApprox( LobeRoughness[1], NoV, NoL );
 	float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
 
 	return Diffuse_Lambert(GBuffer.DiffuseColor) * (LobeEnergy[2] * DiffSpecMask.r) + (D * Vis * DiffSpecMask.g) * F;

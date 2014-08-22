@@ -583,8 +583,15 @@ void ReflectionEnvironmentTiledDeferredMain(
 	BRANCH
 	if( GBuffer.ShadingModelID != SHADINGMODELID_UNLIT )
 	{
-		// Save GPRs by using R instead of V
-		float NoV = saturate( dot( GBuffer.WorldNormal, ReflectionVector ) );
+		float3 N = GBuffer.WorldNormal;
+		float3 V = -CameraToPixel;
+		float3 R = 2 * dot( V, N ) * N - V;
+
+		float NoV = saturate( dot( N, V ) );
+
+		// Point lobe in off-specular peak direction
+		float a = Square( GBuffer.Roughness );
+		R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
 
 	#if 1//APPLY_SSR
 		float4 SSR = ScreenSpaceReflections.Load( int3(PixelPos, 0) );
@@ -595,13 +602,11 @@ void ReflectionEnvironmentTiledDeferredMain(
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 		{
 			const float ClearCoat = GBuffer.CustomData.x;
-			//Color = float4(0,0,0,1);
 			Color = lerp( Color, float4(0,0,0,1), ClearCoat );
 		}
 	
 		float AO = ScreenSpaceData.AmbientOcclusion;
-		//float SpecularOcclusion = saturate( Square( NoV + AO ) - 1 + AO );
-		float SpecularOcclusion = saturate( pow( NoV + AO, GBuffer.Roughness ) - 1 + AO );
+		float SpecularOcclusion = saturate( pow( NoV + AO, a ) - 1 + AO );
 
 		Color.a *= SpecularOcclusion;
 
@@ -614,7 +619,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		Color.a *= GBuffer.IndirectIrradiance;
 	#endif
 	
-		GatherRadiance( Color, WorldPosition, ReflectionVector, GBuffer.Roughness );
+		GatherRadiance( Color, WorldPosition, R, GBuffer.Roughness );
 
 		BRANCH
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -650,7 +655,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.a *= GBuffer.IndirectIrradiance;
 		#endif
 
-			GatherRadiance( Color, WorldPosition, ReflectionVector, ClearCoatRoughness );
+			GatherRadiance( Color, WorldPosition, R, ClearCoatRoughness );
 		}
 		else
 		{

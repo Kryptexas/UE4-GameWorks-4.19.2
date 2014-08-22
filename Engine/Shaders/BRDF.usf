@@ -43,16 +43,16 @@
 
 float3 Diffuse_Lambert( float3 DiffuseColor )
 {
-	return DiffuseColor / PI;
+	return DiffuseColor * (1 / PI);
 }
 
 // [Burley 2012, "Physically-Based Shading at Disney"]
 float3 Diffuse_Burley( float3 DiffuseColor, float Roughness, float NoV, float NoL, float VoH )
 {
 	float FD90 = 0.5 + 2 * VoH * VoH * Roughness;
-	float FdV = 1 + (FD90 - 1) * exp2( (-5.55473 * NoV - 6.98316) * NoV );
-	float FdL = 1 + (FD90 - 1) * exp2( (-5.55473 * NoL - 6.98316) * NoL );
-	return DiffuseColor / PI * FdV * FdL;
+	float FdV = 1 + (FD90 - 1) * pow( 1 - NoV, 5 );
+	float FdL = 1 + (FD90 - 1) * pow( 1 - NoL, 5 );
+	return DiffuseColor * ( 1 / PI * FdV * FdL );
 }
 
 // [Gotanda 2012, "Beyond a Simple Physically Based Blinn-Phong Model in Real-Time"]
@@ -144,6 +144,16 @@ float Vis_Smith( float Roughness, float NoV, float NoL )
 	float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
 	float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
 	return rcp( Vis_SmithV * Vis_SmithL );
+}
+
+// Appoximation of joint Smith term for GGX
+// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
+float Vis_SmithJointApprox( float Roughness, float NoV, float NoL )
+{
+	float a = Square( Roughness );
+	float Vis_SmithV = NoL * ( NoV * ( 1 - a ) + a );
+	float Vis_SmithL = NoV * ( NoL * ( 1 - a ) + a );
+	return 0.5 * rcp( Vis_SmithV + Vis_SmithL );
 }
 
 float3 F_None( float3 SpecularColor )
