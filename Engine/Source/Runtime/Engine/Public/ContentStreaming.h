@@ -579,7 +579,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	/**
 	 * Checks whether any kind of streaming is active
 	 */
-	bool IsStreamingEnabled() const;
+	ENGINE_API bool IsStreamingEnabled() const;
 
 	/**
 	 * Checks whether texture streaming is active
@@ -589,12 +589,12 @@ struct FStreamingManagerCollection : public IStreamingManager
 	/**
 	 * Gets a reference to the Texture Streaming Manager interface
 	 */
-	ITextureStreamingManager& GetTextureStreamingManager() const;
+	ENGINE_API ITextureStreamingManager& GetTextureStreamingManager() const;
 
 	/**
 	 * Gets a reference to the Audio Streaming Manager interface
 	 */
-	IAudioStreamingManager& GetAudioStreamingManager() const;
+	ENGINE_API IAudioStreamingManager& GetAudioStreamingManager() const;
 
 	/**
 	 * Adds a streaming manager to the array of managers to route function calls to.
