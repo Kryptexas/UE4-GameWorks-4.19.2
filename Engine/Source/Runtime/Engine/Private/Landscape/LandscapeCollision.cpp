@@ -196,6 +196,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				}
 
 				// Set body instance data
+				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
 				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
@@ -730,6 +731,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 #endif// WITH_EDITOR
 
 				// Set body instance data
+				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
 				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
