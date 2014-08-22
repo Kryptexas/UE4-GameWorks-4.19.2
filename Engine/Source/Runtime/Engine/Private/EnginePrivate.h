@@ -211,6 +211,7 @@
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "Engine/NetDriver.h"
+#include "Engine/NetworkSettings.h"
 #include "Engine/ObjectLibrary.h"
 #include "Engine/ObjectReferencer.h"
 #include "GameFramework/OnlineSession.h"

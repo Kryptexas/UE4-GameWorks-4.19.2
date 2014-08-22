@@ -19,10 +19,7 @@ public:
 	 *
 	 * @return NULL if default implementation is to be used
 	 */
-	static class FHttpManager * CreatePlatformHttpManager()
-	{
-		return NULL;
-	}
+	static class FHttpManager * CreatePlatformHttpManager();
 
 	/**
 	 * Platform shutdown step

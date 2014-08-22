@@ -34,6 +34,20 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
+		// set certificate verification (disable to allow self-signed certificates)
+		bool bVerifyPeer = true;
+		GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni);
+		if (bVerifyPeer)
+		{
+			UE_LOG(LogInit, Display, TEXT("Libcurl will verify peer certificate"));
+			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 1L);
+		}
+		else
+		{
+			UE_LOG(LogInit, Display, TEXT("Libcurl will NOT verify peer certificate"));
+			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 0L);
+		}
+
 		// required for all multi-threaded handles
 		curl_easy_setopt(EasyHandle, CURLOPT_NOSIGNAL, 1L);
 

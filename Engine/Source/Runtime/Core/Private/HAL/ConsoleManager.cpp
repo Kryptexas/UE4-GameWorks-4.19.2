@@ -1874,3 +1874,11 @@ static TAutoConsoleVariable<int32> CVarGBuffer(
 	1,
 	TEXT("0=Do not use GBuffer (fast minimal rendering path), 1=Use GBuffer [default]."),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarVerifyPeer(
+	TEXT("n.VerifyPeer"),
+	1,
+	TEXT("Sets libcurl's CURL_OPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
+	TEXT("  0 = disable (allows self-signed certificates)\n")
+	TEXT("  1 = enable [default]"),
+	ECVF_ReadOnly);

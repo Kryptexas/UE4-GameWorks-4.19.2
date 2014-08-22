@@ -133,6 +133,13 @@ protected:
 			GetMutableDefault<UGameNetworkManagerSettings>()
 		);*/
 
+		// network settings
+		SettingsModule.RegisterSettings("Project", "Engine", "Network",
+			LOCTEXT("NetworkSettingsName", "Network"),
+			LOCTEXT("NetworkSettingsDescription", "Network settings."),
+			GetMutableDefault<UNetworkSettings>()
+		);
+
 		// Physics settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Physics",
 			LOCTEXT("EnginePhysicsSettingsName", "Physics"),

@@ -1,20 +1,26 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
-#include "AndroidHttp.h"
-
+#include "Curl/CurlHttp.h"
+#include "Curl/CurlHttpManager.h"
 
 void FAndroidPlatformHttp::Init()
 {
+	FCurlHttpManager::InitCurl();
 }
 
+class FHttpManager * FAndroidPlatformHttp::CreatePlatformHttpManager()
+{
+	return new FCurlHttpManager();
+}
 
 void FAndroidPlatformHttp::Shutdown()
 {
+	FCurlHttpManager::ShutdownCurl();
 }
-
 
 IHttpRequest* FAndroidPlatformHttp::ConstructRequest()
 {
-	return FGenericPlatformHttp::ConstructRequest();
+	return new FCurlHttpRequest(FCurlHttpManager::GMultiHandle);
 }
+
