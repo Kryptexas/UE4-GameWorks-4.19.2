@@ -462,33 +462,6 @@ public:
 		bRequestCancelCompilation = true;
 	}
 
-	/**
-	 * Tries to compile the specified game project. Not used for recompiling modules that are already loaded.
-	 *
-	 * @param GameProjectFilename The filename (including path) of the game project to compile.
-	 * @param Ar Output device for logging compilation status.
-	 * @return Returns true if the project was successfully compiled.
-	 */
-	bool CompileGameProject( const FString& GameProjectFilename, FOutputDevice &Ar );
-
-	/**
-	 * Tries to compile the specified game projects editor. Not used for recompiling modules that are already loaded.
-	 *
-	 * @param GameProjectFilename The filename (including path) of the game project to compile.
-	 * @param Ar Output device for logging compilation status.
-	 * @return	Returns true if the project was successfully compiled
-	 */
-	bool CompileGameProjectEditor( const FString& GameProjectFilename, FOutputDevice &Ar );
-
-	/**
-	 * Tries to compile the specified game project. Not used for recompiling modules that are already loaded.
-	 *
-	 * @param GameProjectFilename The filename (including path) of the game project for which to generate code projects.
-	 * @param Ar Output device for logging compilation status.
-	 * @return	Returns true if the project was successfully compiled.
-	 */
-	bool GenerateCodeProjectFiles( const FString& GameProjectFilename, FOutputDevice &Ar );	
-
 	/** Delegate that's used by the module manager to initialize a registered module that we statically linked with (monolithic only) */
 	DECLARE_DELEGATE_RetVal( IModuleInterface*, FInitializeStaticallyLinkedModule )
 
