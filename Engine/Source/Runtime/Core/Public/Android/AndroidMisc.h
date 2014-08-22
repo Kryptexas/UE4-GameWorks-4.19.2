@@ -83,6 +83,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static const FString GetDeviceMake();
 	static const FString GetDeviceModel();
 	static const FString GetOSLanguage();
+	static FString GetDefaultLocale();
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();

@@ -273,6 +273,11 @@ const FString FAndroidMisc::GetOSLanguage()
 	return OSLanguage;
 }
 
+FString FAndroidMisc::GetDefaultLocale()
+{
+	return OSLanguage;
+}
+
 uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 {
 #define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; if(KeyNames) { KeyNames[NumMappings]=KeyName; } ++NumMappings; };
