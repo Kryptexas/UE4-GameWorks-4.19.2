@@ -10,16 +10,21 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
-void AssetDataToString(AssetFilterType Asset, OUT TArray< FString >& Array)
+void AssetDataToExportTextString(AssetFilterType Asset, OUT TArray< FString >& Array)
 {
 	Array.Add(Asset.GetExportTextName());
 }
 
+void AssetDataToObjectPathString(AssetFilterType Asset, OUT TArray< FString >& Array)
+{
+	Array.Add(Asset.ObjectPath.ToString());
+}
+
 FFrontendFilter_Text::FFrontendFilter_Text()
 	: FFrontendFilter(nullptr)
-	, TextFilter( TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToString ) )
+	, TextFilter( TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToExportTextString ) )
 {
-	TextFilter.OnChanged().AddRaw(this, &FFrontendFilter_Text::HandleOnChangedEvent);
+	SetIncludeClassName(true);
 }
 
 FFrontendFilter_Text::~FFrontendFilter_Text()
@@ -40,6 +45,20 @@ FText FFrontendFilter_Text::GetRawFilterText() const
 void FFrontendFilter_Text::SetRawFilterText(const FText& InFilterText)
 {
 	return TextFilter.SetRawFilterText(InFilterText);
+}
+
+void FFrontendFilter_Text::SetIncludeClassName(bool bIncludeClassName)
+{
+	if ( bIncludeClassName )
+	{
+		TextFilter = TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToExportTextString );
+	}
+	else
+	{
+		TextFilter = TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToObjectPathString );
+	}
+
+	TextFilter.OnChanged().AddRaw(this, &FFrontendFilter_Text::HandleOnChangedEvent);
 }
 
 void FFrontendFilter_Text::HandleOnChangedEvent()

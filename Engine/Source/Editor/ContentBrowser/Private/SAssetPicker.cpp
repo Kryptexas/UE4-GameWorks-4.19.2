@@ -55,6 +55,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	if (!InArgs._AssetPickerConfig.bAutohideSearchBar)
 	{
 		TextFilter = MakeShareable( new FFrontendFilter_Text() );
+		TextFilter->SetIncludeClassName(InArgs._AssetPickerConfig.Filter.ClassNames.Num() != 1);
 		FrontendFilters->Add( TextFilter );
 		HighlightText = TAttribute< FText >( this, &SAssetPicker::GetHighlightedText );
 
@@ -300,6 +301,9 @@ void SAssetPicker::SetNewBackendFilter(const FARFilter& NewFilter)
 
 	CurrentBackendFilter = NewFilter;
 	CurrentBackendFilter.PackagePaths.Empty();
+
+	// Update the Text filter too, since now class names may no longer matter
+	TextFilter->SetIncludeClassName(NewFilter.ClassNames.Num() != 1);
 	
 	OnFilterChanged();
 }
