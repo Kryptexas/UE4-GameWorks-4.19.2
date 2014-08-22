@@ -55,7 +55,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FRadixSortParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, GroupCount )
 END_UNIFORM_BUFFER_STRUCT( FRadixSortParameters )
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRadixSortParameters,TEXT("RadixSort"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRadixSortParameters,TEXT("RadixSortUB"));
 
 typedef TUniformBufferRef<FRadixSortParameters> FRadixSortUniformBufferRef;
 
