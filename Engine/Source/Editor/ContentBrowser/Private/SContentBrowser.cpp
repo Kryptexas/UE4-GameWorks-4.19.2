@@ -48,9 +48,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	
 	bIsLocked = InArgs._InitiallyLocked;
 
-	// Listen for when view settings are changed
-	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SContentBrowser::HandleSettingChanged);
-
 	HistoryManager.SetOnApplyHistoryData(FOnApplyHistoryData::CreateSP(this, &SContentBrowser::OnApplyHistoryData));
 	HistoryManager.SetOnUpdateHistoryData(FOnUpdateHistoryData::CreateSP(this, &SContentBrowser::OnUpdateHistoryData));
 
@@ -1816,48 +1813,6 @@ void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& Origin
 void SContentBrowser::OnAssetViewRefreshRequested()
 {
 	AssetViewPtr->RequestSlowFullListRefresh();
-}
-
-void SContentBrowser::HandleSettingChanged(FName PropertyName)
-{
-	if ((PropertyName == "DisplayDevelopersFolder") ||
-		(PropertyName == "DisplayEngineFolder") ||
-		(PropertyName == "DisplayPluginFolders") ||
-		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
-	{
-		// If the dev or engine folder is no longer visible but we're inside it...
-		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
-		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
-		if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
-		{
-		    const FString OldSelectedPath = PathViewPtr->GetSelectedPath();
-		    if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( OldSelectedPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( OldSelectedPath )) || (!bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( OldSelectedPath ) ) )
-		    {
-			    // Set the folder back to the root, and refresh the contents
-			    TArray<FString> SelectedPaths;
-			    SelectedPaths.Add(TEXT("/Game"));
-			    PathViewPtr->SetSelectedPaths(SelectedPaths);
-			    SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
-		    }
-		}
-
-		// Update our path view so that it can include/exclude the dev folder
-		PathViewPtr->Populate();
-
-		// If the dev or engine folder has become visible and we're inside it...
-		if ( bDisplayDev || bDisplayEngine || bDisplayPlugins )
-		{
-			const FString NewSelectedPath = PathViewPtr->GetSelectedPath();
-			if ( (bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( NewSelectedPath )) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder( NewSelectedPath )) || (bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( NewSelectedPath ) ) )
-			{
-				// Refresh the contents
-				TArray<FString> SelectedPaths;
-				SelectedPaths.Add(NewSelectedPath);
-				SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
-			}
-		}
-	}
 }
 
 void SContentBrowser::HandleCollectionRemoved(const FCollectionNameType& Collection)

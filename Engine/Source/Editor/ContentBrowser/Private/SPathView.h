@@ -222,6 +222,9 @@ private:
 	/** Called from an engine core event when a new content path has been added, so that we can refresh our root set of paths */
 	void OnContentPathMounted( const FString& ContentPath );
 
+	/** Delegate called when an editor setting is changed */
+	void HandleSettingChanged(FName PropertyName);
+
 private:
 
 	/** A helper class to manage PreventTreeItemChangedDelegateCount by incrementing it when constructed (on the stack) and decrementing when destroyed */

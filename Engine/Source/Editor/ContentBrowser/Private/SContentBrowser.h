@@ -281,9 +281,6 @@ private:
 	/** Handler for when the asset context menu requests to refresh the asset view */
 	void OnAssetViewRefreshRequested();
 
-	/** Delegate called when an editor setting is changed */
-	void HandleSettingChanged(FName PropertyName);
-
 	/** Handles an on collection destroyed event */
 	void HandleCollectionRemoved(const FCollectionNameType& Collection);
 

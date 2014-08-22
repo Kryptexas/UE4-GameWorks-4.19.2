@@ -36,6 +36,9 @@ void SPathView::Construct( const FArguments& InArgs )
 	bAllowClassesFolder = InArgs._AllowClassesFolder;
 	PreventTreeItemChangedDelegateCount = 0;
 
+	// Listen for when view settings are changed
+	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SPathView::HandleSettingChanged);
+
 	//Setup the SearchBox filter
 	SearchBoxFolderFilter = MakeShareable( new FolderTextFilter( FolderTextFilter::FItemToStringArray::CreateSP( this, &SPathView::PopulateFolderSearchStrings ) ) );
 	SearchBoxFolderFilter->OnChanged().AddSP( this, &SPathView::FilterUpdated );
@@ -477,7 +480,7 @@ void SPathView::SyncToAssets( const TArray<FAssetData>& AssetDataList, const boo
 		else
 		{
 			// Explicit sync so just clear the selection
-		TreeViewPtr->ClearSelection();
+			TreeViewPtr->ClearSelection();
 		}
 
 		// SyncTreeItems should now only contain items which aren't already shown explicitly or implicitly (as a child)
@@ -491,9 +494,9 @@ void SPathView::SyncToAssets( const TArray<FAssetData>& AssetDataList, const boo
 		if (SyncTreeItems.Num() > 0)
 		{
 			// Scroll the first item into view if applicable
-		TreeViewPtr->RequestScrollIntoView(SyncTreeItems[0]);
+			TreeViewPtr->RequestScrollIntoView(SyncTreeItems[0]);
+		}
 	}
-}
 }
 
 TSharedPtr<FTreeItem> SPathView::FindItemRecursive(const FString& Path) const
@@ -811,16 +814,16 @@ void SPathView::TreeSelectionChanged( TSharedPtr< FTreeItem > TreeItem, ESelectI
 
 		if ( OnPathSelected.IsBound() )
 		{
-		if ( TreeItem.IsValid() )
-		{
-			OnPathSelected.Execute(TreeItem->FolderPath);
-		}
-		else
-		{
-			OnPathSelected.Execute(TEXT(""));
+			if ( TreeItem.IsValid() )
+			{
+				OnPathSelected.Execute(TreeItem->FolderPath);
+			}
+			else
+			{
+				OnPathSelected.Execute(TEXT(""));
+			}
 		}
 	}
-}
 }
 
 void SPathView::TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIsExpanded )
@@ -1321,11 +1324,55 @@ void SPathView::OnAssetRegistrySearchCompleted()
 	PendingInitialPaths.Empty();
 }
 
-
 void SPathView::OnContentPathMounted( const FString& ContentPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
 	bNeedsRepopulate = true;
+}
+
+void SPathView::HandleSettingChanged(FName PropertyName)
+{
+	if ((PropertyName == "DisplayDevelopersFolder") ||
+		(PropertyName == "DisplayEngineFolder") ||
+		(PropertyName == "DisplayPluginFolders") ||
+		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
+	{
+		// If the dev or engine folder is no longer visible but we're inside it...
+		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+		if (!bDisplayDev || !bDisplayEngine || !bDisplayPlugins)
+		{
+			const FString OldSelectedPath = GetSelectedPath();
+			if ((!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(OldSelectedPath)) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder(OldSelectedPath)) || (!bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(OldSelectedPath)))
+			{
+				// Set the folder back to the root, and refresh the contents
+				TSharedPtr<FTreeItem> GameRoot = FindItemRecursive(TEXT("/Game"));
+				if ( GameRoot.IsValid() )
+				{
+					TreeViewPtr->SetSelection(GameRoot);
+				}
+				else
+				{
+					TreeViewPtr->ClearSelection();
+				}
+			}
+		}
+
+		// Update our path view so that it can include/exclude the dev folder
+		Populate();
+
+		// If the dev or engine folder has become visible and we're inside it...
+		if (bDisplayDev || bDisplayEngine || bDisplayPlugins)
+		{
+			const FString NewSelectedPath = GetSelectedPath();
+			if ((bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(NewSelectedPath)) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder(NewSelectedPath)) || (bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(NewSelectedPath)))
+			{
+				// Refresh the contents
+				OnPathSelected.ExecuteIfBound(NewSelectedPath);
+			}
+		}
+	}
 }
 
 
