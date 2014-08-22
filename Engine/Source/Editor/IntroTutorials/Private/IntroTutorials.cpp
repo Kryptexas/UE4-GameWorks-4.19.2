@@ -34,6 +34,7 @@ IMPLEMENT_MODULE(FIntroTutorials, IntroTutorials)
 const FName FIntroTutorials::IntroTutorialTabName(TEXT("IntroTutorial"));
 
 const FString FIntroTutorials::IntroTutorialConfigSection(TEXT("IntroTutorials"));
+const FString FIntroTutorials::DisableTutorialsSettingName(TEXT("DisableAllTutorials"));
 const FString FIntroTutorials::InEditorTutorialPath(TEXT("Shared/Tutorials/inEditorTutorial"));
 const FString FIntroTutorials::WelcomeTutorialPath(TEXT("Shared/Tutorials/UE4Welcome"));
 const FString FIntroTutorials::InEditorGamifiedTutorialPath(TEXT("Shared/Tutorials/inEditorGamifiedTutorial"));
@@ -54,6 +55,7 @@ const FWelcomeTutorialProperties FIntroTutorials::TemplateOverview(TemplateOverv
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
 {
+	bDisableTutorials = false;
 	bEnablePostTutorialSurveys = false;
 
 	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("tutorials"));
@@ -99,8 +101,10 @@ TSharedRef<FExtender> FIntroTutorials::AddSummonBlueprintTutorialsMenuExtender(c
 
 void FIntroTutorials::StartupModule()
 {
+	GConfig->GetBool(*IntroTutorialConfigSection, *DisableTutorialsSettingName, bDisableTutorials, GEditorGameAgnosticIni);
+
 	// This code can run with content commandlets. Slate is not initialized with commandlets and the below code will fail.
-	if (!IsRunningCommandlet())
+	if (!bDisableTutorials && !IsRunningCommandlet())
 	{
 		// Add tutorial for main frame opening
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
@@ -223,9 +227,12 @@ void FIntroTutorials::StartupModule()
 
 void FIntroTutorials::ShutdownModule()
 {
-	FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
+	if (!bDisableTutorials && !IsRunningCommandlet())
+	{
+		FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
 
-	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+		GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	}
 
 	if (BlueprintEditorExtender.IsValid() && FModuleManager::Get().IsModuleLoaded("Kismet"))
 	{
@@ -661,6 +668,8 @@ void FIntroTutorials::HandleCompilerNotFound()
 	SummonTutorialWindowForPage( TEXT( "Shared/Tutorials/InstallingVisualStudioTutorial" ) );
 #elif PLATFORM_MAC
 	SummonTutorialWindowForPage( TEXT( "Shared/Tutorials/InstallingXCodeTutorial" ) );
+#else
+	STUBBED("FIntroTutorials::HandleCompilerNotFound");
 #endif
 }
 

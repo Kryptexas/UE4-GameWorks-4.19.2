@@ -45,6 +45,7 @@ class FIntroTutorials : public IIntroTutorials
 {
 public:
 	static const FString IntroTutorialConfigSection;
+	static const FString DisableTutorialsSettingName;
 	static const FString InEditorTutorialPath;
 	static const FString WelcomeTutorialPath;
 	static const FString InEditorGamifiedTutorialPath;
@@ -169,6 +170,8 @@ private:
 	/** The root window that we will always try to parent the tutorial window to */
 	TWeakPtr<SWindow> RootWindow;
 
+	/** Whether tutorials are disabled altogether */
+	bool bDisableTutorials;
 
 	TMap<FString, FGuid> TutorialSurveyMap;
 
