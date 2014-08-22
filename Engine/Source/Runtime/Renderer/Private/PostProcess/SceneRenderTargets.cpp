@@ -10,6 +10,8 @@
 #include "ReflectionEnvironment.h"
 #include "LightPropagationVolume.h"
 #include "SceneUtils.h"
+#include "HdrCustomResolveShaders.h"
+
 
 // for LightPropagationVolume feature, could be exposed
 const int ReflectiveShadowMapResolution = 256;
@@ -640,7 +642,55 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 {
     SCOPED_DRAW_EVENT(ResolveSceneColor, DEC_SCENE_ITEMS);
 
-	RHICmdList.CopyToResolveTarget(GetSceneColorSurface(), GetSceneColorTexture(), true, FResolveParams(ResolveRect));
+	uint32 samples = GSceneRenderTargets.SceneColor->GetDesc().NumSamples;
+
+	if(samples <= 1)
+	{
+		RHICmdList.CopyToResolveTarget(GetSceneColorSurface(), GetSceneColorTexture(), true, FResolveParams(ResolveRect));
+	}
+	else 
+	{
+		// Custom shader based color resolve for HDR color to emulate mobile.
+		// TODO: Currently this resolves the entire surface, need to respect ResolveRect.
+		
+		SetRenderTarget(RHICmdList, GetSceneColorTexture(), FTextureRHIParamRef());
+		
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+		TShaderMapRef<FHdrCustomResolveVS> VertexShader(GetGlobalShaderMap());
+
+		if(samples == 2)
+		{
+			TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(GetGlobalShaderMap());
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);
+			RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+		}
+		else if(samples == 4)
+		{
+			TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(GetGlobalShaderMap());
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);
+			RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+		}
+		else if(samples == 8)
+		{
+			TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(GetGlobalShaderMap());
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);
+			RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+		}
+		else
+		{
+			// Everything other than 2,4,8 samples is not implemented.
+			check(0);
+		}
+	}
 }
 
 /** Resolves the GBuffer targets so that their resolved textures can be sampled. */
