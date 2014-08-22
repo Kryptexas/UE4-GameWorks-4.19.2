@@ -120,11 +120,11 @@ void  UEnvQueryDebugHelpers::BlobArrayToDebugData(const TArray<uint8>& BlobArray
 	}
 }
 
-void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type Type)
+void UEnvQueryDebugHelpers::LogQuery(const class AActor* LogOwnerActor, struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type Type)
 {
 	TArray<uint8> BlobArray;
 	UEnvQueryDebugHelpers::QueryToBlobArray(Query, BlobArray);
-	FVisualLog::Get().GetEntryToWrite(Cast<AActor>(Query->Owner.Get()))->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName);
+	FVisualLog::Get().GetEntryToWrite(LogOwnerActor)->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName);
 }
 
 #endif //ENABLE_VISUAL_LOG

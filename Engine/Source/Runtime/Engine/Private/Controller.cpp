@@ -215,7 +215,7 @@ void AController::PostInitializeComponents()
 
 void AController::Possess(APawn* InPawn)
 {
-	REDIRECT_ACTOR_TO_VLOG(InPawn, this);
+	REDIRECT_OBJECT_TO_VLOG(InPawn, this);
 
 	if (InPawn != NULL)
 	{

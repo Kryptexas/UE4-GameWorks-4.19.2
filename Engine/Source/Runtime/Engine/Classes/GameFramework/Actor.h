@@ -386,11 +386,6 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> ParentComponentActor;	
 
-#if ENABLE_VISUAL_LOG
-	/** indicates where given actor will be writing its visual log data. Defaults to 'this' */
-	const AActor* VLogRedirection;
-#endif // ENABLE_VISUAL_LOG
-
 public:
 
 	/** 
@@ -2033,12 +2028,8 @@ public:
 	 */
 	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const {}
 
-	FORCEINLINE const AActor* GetVisualLogRedirection() const { return VLogRedirection; }
-	void RedirectToVisualLog(const AActor* NewRedir);
-
 private:
 	friend class FVisualLog;
-	void SetVisualLogRedirection(const AActor* NewRedir) { VLogRedirection = NewRedir; }
 #endif // ENABLE_VISUAL_LOG
 
 	//* Sets the friendly actor label and name */

@@ -39,10 +39,6 @@ FOnProcessEvent AActor::ProcessEventDelegate;
 AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-#if ENABLE_VISUAL_LOG
-	VLogRedirection = this;
-#endif // ENABLE_VISUAL_LOG
-
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -2265,13 +2261,6 @@ void AActor::BeginPlay()
 
 	ReceiveBeginPlay();
 }
-
-#if ENABLE_VISUAL_LOG
-void AActor::RedirectToVisualLog(const AActor* NewRedir)
-{ 
-	FVisualLog::Get().Redirect(this, NewRedir);
-}
-#endif // ENABLE_VISUAL_LOG
 
 void AActor::EnableInput(APlayerController* PlayerController)
 {

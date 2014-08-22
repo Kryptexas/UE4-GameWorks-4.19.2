@@ -169,7 +169,7 @@ bool DecodeFromBase64(const FString& Source, TArray<uint8>& Dest)
 //----------------------------------------------------------------------//
 // FVisLogEntry
 //----------------------------------------------------------------------//
-FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<AActor> >* Children)
+FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<UObject> >* Children)
 {
 	if (InActor->IsPendingKill() == false)
 	{
@@ -178,13 +178,16 @@ FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<AA
 		InActor->GrabDebugSnapshot(this);
 		if (Children != NULL)
 		{
-			TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
 			{
-				if (WeakActorPtr->IsValid())
+				if (WeakActorPtr->IsValid() )
 				{
-					const AActor* ChildActor = WeakActorPtr->Get();
-					ChildActor->GrabDebugSnapshot(this);
+					const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
+					if (ChildActor)
+					{
+						ChildActor->GrabDebugSnapshot(this);
+					}
 				}
 			}
 		}
@@ -521,7 +524,7 @@ void FVisLogEntry::AddDataBlock(const FString& TagName, const TArray<uint8>& Blo
 //----------------------------------------------------------------------//
 // FActorsVisLog
 //----------------------------------------------------------------------//
-FActorsVisLog::FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children)
+FActorsVisLog::FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children)
 	: Name(Actor->GetFName())
 	, FullName(Actor->GetFullName())
 {
@@ -702,8 +705,8 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 
 FVisLogEntry*  FVisualLog::GetEntryToWrite(const class AActor* Actor)
 {
-	check(Actor && Actor->GetWorld() && Actor->GetVisualLogRedirection());
-	const class AActor* LogOwner = Actor->GetVisualLogRedirection();
+	const class AActor* LogOwner = GetVisualLogRedirection(Actor);
+	check(Actor && Actor->GetWorld() && LogOwner);
 	const float TimeStamp = Actor->GetWorld()->TimeSeconds;
 	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
 	const int32 LastIndex = Log->Entries.Num() - 1;
@@ -733,51 +736,76 @@ void FVisualLog::Cleanup(bool bReleaseMemory)
 	}
 }
 
-void FVisualLog::Redirect(AActor* Actor, const AActor* NewRedirection)
+const class AActor* FVisualLog::GetVisualLogRedirection(const class UObject* Source)
+{
+	for (auto Iterator = RedirectsMap.CreateConstIterator(); Iterator; ++Iterator)
+	{
+		const auto& Children = (*Iterator).Value;
+		if (Children.Find(Source) != INDEX_NONE)
+		{
+			return (*Iterator).Key;
+		}
+	}
+
+	return Cast<AActor>(Source);
+}
+
+void FVisualLog::RedirectToVisualLog(const class UObject* Src, const class AActor* Dest)
+{
+	Redirect( const_cast<class UObject*>(Src), Dest);
+}
+
+void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 {
 	// sanity check
-	if (Actor == NULL)
+	if (Source == NULL)
 	{ 
 		return;
 	}
 
 	if (NewRedirection != NULL)
 	{
-		NewRedirection = NewRedirection->GetVisualLogRedirection();
+		NewRedirection = GetVisualLogRedirection(NewRedirection);
 	}
-	const AActor* OldRedirect = Actor->GetVisualLogRedirection();
+	const AActor* OldRedirect = GetVisualLogRedirection(Source);
 
 	if (NewRedirection == OldRedirect)
 	{
 		return;
 	}
-	if (NewRedirection == NULL)
+	if (!NewRedirection)
 	{
-		NewRedirection = Actor;
+		NewRedirection = Cast<AActor>(Source);
+	}
+	if (!NewRedirection)
+	{
+		return;
 	}
 
 	// this should log to OldRedirect
-	UE_VLOG(Actor, LogVisual, Display, TEXT("Binding %s to log %s"), *Actor->GetName(), *NewRedirection->GetName());
+	UE_VLOG(Source, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
 
-	TArray<TWeakObjectPtr<AActor> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
+	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
 
-	Actor->SetVisualLogRedirection(NewRedirection);
-	NewTargetChildren.AddUnique(Actor);
+	NewTargetChildren.AddUnique(Source);
 
 	// now update all actors that have Actor as their VLog redirection
-	TArray<TWeakObjectPtr<AActor> >* Children = RedirectsMap.Find(Actor);
-	if (Children != NULL)
+	AActor* SourceAsActor = Cast<AActor>(Source);
+	if (SourceAsActor)
 	{
-		TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
-		for (int32 Index = 0; Index < Children->Num(); ++Index)
+		TArray<TWeakObjectPtr<UObject> >* Children = RedirectsMap.Find(SourceAsActor);
+		if (Children != NULL)
 		{
-			if (WeakActorPtr->IsValid())
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
+			for (int32 Index = 0; Index < Children->Num(); ++Index)
 			{
-				WeakActorPtr->Get()->SetVisualLogRedirection(NewRedirection);
-				NewTargetChildren.AddUnique(*WeakActorPtr);
+				if (WeakActorPtr->IsValid())
+				{
+					NewTargetChildren.AddUnique(*WeakActorPtr);
+				}
 			}
+			RedirectsMap.Remove(SourceAsActor);
 		}
-		RedirectsMap.Remove(Actor);
 	}
 }
 
