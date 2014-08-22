@@ -158,10 +158,6 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		//TODO Add OnWidgetInitialized
 	}
-
-	// Create the input component so that we can simulate input to the blueprint in the forum users are accustomed to.
-	UserWidget->InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), UserWidget);
-	UInputDelegateBinding::BindInputDelegates(this, UserWidget->InputComponent);
 }
 
 #undef LOCTEXT_NAMESPACE

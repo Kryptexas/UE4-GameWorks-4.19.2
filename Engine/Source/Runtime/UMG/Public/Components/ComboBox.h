@@ -4,8 +4,10 @@
 
 #include "ComboBox.generated.h"
 
-/** The combobox allows you to display a list of options to the user in a dropdown menu for them to select one. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+/**
+ * The combobox allows you to display a list of options to the user in a dropdown menu for them to select one.
+ */
+UCLASS( meta=( DisplayName="ComboBox (Object)", Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UComboBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -18,7 +20,7 @@ public:
 
 	/** Called when the widget is needed for the item. */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
-	FGenerateWidgetUObject OnGenerateWidget;
+	FGenerateWidgetForObject OnGenerateWidgetEvent;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -30,4 +32,8 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+protected:
+
+	TSharedPtr< SComboBox<UObject*> > MyComboBox;
 };

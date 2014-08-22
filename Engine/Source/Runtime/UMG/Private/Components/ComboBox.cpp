@@ -14,20 +14,23 @@ UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UComboBox::RebuildWidget()
 {
-	TSharedRef< SComboBox<UObject*> > NewComboBox =
+	TSet<UObject*> UniqueItems(Items);
+	Items = UniqueItems.Array();
+
+	MyComboBox =
 		SNew(SComboBox<UObject*>)
 		.OptionsSource(&Items)
 		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox<UObject*>::FOnGenerateWidget, HandleGenerateWidget));
 
-	return NewComboBox;
+	return MyComboBox.ToSharedRef();
 }
 
 TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 {
 	// Call the user's delegate to see if they want to generate a custom widget bound to the data source.
-	if ( OnGenerateWidget.IsBound() )
+	if ( OnGenerateWidgetEvent.IsBound() )
 	{
-		UWidget* Widget = OnGenerateWidget.Execute(Item);
+		UWidget* Widget = OnGenerateWidgetEvent.Execute(Item);
 		if ( Widget != NULL )
 		{
 			return Widget->TakeWidget();

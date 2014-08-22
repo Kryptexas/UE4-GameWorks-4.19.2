@@ -82,7 +82,9 @@
 
 #include "Slider.h"
 #include "ProgressBar.h"
+
 #include "ComboBox.h"
+#include "ComboBoxString.h"
 
 #include "SScaleBox.h"
 #include "ScaleBoxSlot.h"

@@ -334,9 +334,6 @@ public:
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
 
-	UPROPERTY(Transient)
-	UInputComponent* InputComponent;
-
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
