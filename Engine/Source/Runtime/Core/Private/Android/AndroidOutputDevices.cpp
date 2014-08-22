@@ -14,17 +14,17 @@ class FOutputDeviceError* FAndroidOutputDevices::GetError()
 	return &Singleton;
 }
 
-class FOutputDevice* FAndroidOutputDevices::GetLog()
+/*class FOutputDevice* FAndroidOutputDevices::GetLog()
 {
 #if UE_BUILD_SHIPPING
 	return NULL;
 #else
 	// Always enable logging via ADB
-//	static FOutputDeviceAndroidDebug Singleton;
-//	return &Singleton;
+	static FOutputDeviceAndroidDebug Singleton;
+	return &Singleton;
 	return NULL;
 #endif
-}
+}*/
 
 FOutputDeviceAndroidDebug::FOutputDeviceAndroidDebug()
 {}
