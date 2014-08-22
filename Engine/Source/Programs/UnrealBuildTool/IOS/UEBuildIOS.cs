@@ -329,16 +329,6 @@ namespace UnrealBuildTool
             // generate the .stub!
             return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
         }
-
-        /// <summary>
-        /// Writes an XML summary of the build environment for this binary
-        /// </summary>
-        /// <param name="CompileEnvironment">The environment to compile the binary in</param>
-        /// <param name="LinkEnvironment">The environment to link the binary in</param>
-        /// <returns></returns>
-        public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer)
-        {
-        }
     }
 
 }

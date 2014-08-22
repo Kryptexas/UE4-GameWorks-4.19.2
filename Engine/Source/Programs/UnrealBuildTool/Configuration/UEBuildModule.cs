@@ -768,9 +768,6 @@ namespace UnrealBuildTool
 
 		/** Compiles the module, and returns a list of files output by the compiler. */
 		public abstract List<FileItem> Compile( CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, bool bCompileMonolithic );
-
-		/** Writes the build environment for this module */
-		public abstract void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, XmlWriter Writer);
 		
 		// Object interface.
 		public override string ToString()
@@ -867,15 +864,6 @@ namespace UnrealBuildTool
 		public override List<FileItem> Compile(CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, bool bCompileMonolithic)
 		{
 			return new List<FileItem>();
-		}
-
-		public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, XmlWriter Writer)
-		{
-			Writer.WriteStartElement("module");
-			Writer.WriteAttributeString("name", Name);
-			Writer.WriteAttributeString("path", ModuleDirectory);
-			Writer.WriteAttributeString("type", "external");
-			Writer.WriteEndElement();
 		}
 	};
 
@@ -1788,72 +1776,6 @@ namespace UnrealBuildTool
 			{
 				LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(RedistStaticLibraryPath));
 			}
-		}
-
-		public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, XmlWriter Writer)
-		{
-			// Get the compile environment
-			List<string> PrivateIncludePaths = new List<string>();
-			List<string> PrivateSystemIncludePaths = new List<string>();
-			List<string> PrivateDefinitions = new List<string>();
-			List<UEBuildFramework> PrivateFrameworks = new List<UEBuildFramework>();
-			SetupPrivateCompileEnvironment(ref PrivateIncludePaths, ref PrivateSystemIncludePaths, ref PrivateDefinitions, ref PrivateFrameworks);
-
-			// Add all of the include paths
-			List<string> IncludePaths = new List<string>();
-			IncludePaths.AddRange(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
-			IncludePaths.AddRange(PrivateSystemIncludePaths);
-			IncludePaths.AddRange(CompileEnvironment.Config.CPPIncludeInfo.IncludePaths);
-			IncludePaths.AddRange(PrivateIncludePaths);
-
-			// Build the full list of definitions
-			List<string> Definitions = new List<string>();
-			Definitions.AddRange(CompileEnvironment.Config.Definitions);
-			Definitions.AddRange(PrivateDefinitions);
-
-			// Build a list of all the dependencies
-			List<string> Dependencies = new List<string>();
-			Dependencies.AddRange(PublicDependencyModuleNames);
-			Dependencies.AddRange(PrivateDependencyModuleNames);
-
-			// Write the output XML
-			Writer.WriteStartElement("module");
-			Writer.WriteAttributeString("name", Name);
-			Writer.WriteAttributeString("path", ModuleDirectory);
-			Writer.WriteAttributeString("type", "cpp");
-			Writer.WriteStartElement("dependencies");
-			foreach (string Dependency in Dependencies)
-			{
-				Writer.WriteStartElement("dependency");
-				Writer.WriteAttributeString("module", Dependency);
-				Writer.WriteEndElement();
-			}
-			Writer.WriteEndElement();
-			Writer.WriteStartElement("definitions");
-			foreach (string Definition in Definitions)
-			{
-				Writer.WriteStartElement("definition");
-				Writer.WriteAttributeString("name", Definition);
-				Writer.WriteEndElement();
-			}
-			Writer.WriteEndElement();
-			Writer.WriteStartElement("includes");
-			foreach (string IncludePath in IncludePaths)
-			{
-				Writer.WriteStartElement("include");
-				Writer.WriteAttributeString("path", IncludePath);
-				Writer.WriteEndElement();
-			}
-			Writer.WriteEndElement();
-			Writer.WriteStartElement("additionalFrameworks");
-			foreach (UEBuildFramework Framework in PrivateFrameworks)
-			{
-				Writer.WriteStartElement("framework");
-				Writer.WriteAttributeString("name", Framework.FrameworkName);
-				Writer.WriteEndElement();
-			}
-			Writer.WriteEndElement();
-			Writer.WriteEndElement();
 		}
 
 		public HashSet<FileItem> _AllClassesHeaders     = new HashSet<FileItem>();

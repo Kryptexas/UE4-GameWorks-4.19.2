@@ -1853,16 +1853,6 @@ namespace UnrealBuildTool
                 BuildConfiguration.bDisableDebugInfo = false;
                 BuildConfiguration.bOmitPCDebugInfoInDevelopment = false;
             }
-
-            foreach(string Argument in Arguments)
-            {
-                const string WriteTargetInfoArg = "-writetargetinfo=";
-                if (Argument.ToLowerInvariant().StartsWith(WriteTargetInfoArg))
-                {
-                    BuildConfiguration.WriteTargetInfoPath = Argument.Substring(WriteTargetInfoArg.Length);
-                    break;
-                }
-            }
         }
 
         /**

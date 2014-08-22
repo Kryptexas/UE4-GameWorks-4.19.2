@@ -308,12 +308,6 @@ namespace UnrealBuildTool
 		public static bool bUseSharedPCHs;
 
 		/// <summary>
-		/// Writes an XML summary of the compile environment for the target to the given path, but does not build it.
-		/// </summary>
-		[XmlConfig]
-		public static string WriteTargetInfoPath;
-
-		/// <summary>
 		/// Whether the dependency cache includes pre-resolved include locations so UBT doesn't have to re-resolve each include location just to check the timestamp.
 		/// This is technically not fully correct because the dependency cache is global and each module could have a different set of include paths that could cause headers
 		/// to resolve files differently. In practice this is not the case, and significantly speeds up UBT when nothing is to be done.
@@ -442,8 +436,6 @@ namespace UnrealBuildTool
 			// these private PCHs do yield fastest incremental compiles for single files, it causes full rebuilds to
 			// take an inordinate amount of time, and intermediates will use up many gigabytes of disk space.
 			bUseSharedPCHs = true;
-
-			WriteTargetInfoPath = null;
 
 			// Using unity build to coalesce source files allows for much faster full rebuild times.  For fastest iteration times on single-file
 			// changes, consider turning this off.  In some cases, unity builds can cause linker errors after iterative changes to files, because

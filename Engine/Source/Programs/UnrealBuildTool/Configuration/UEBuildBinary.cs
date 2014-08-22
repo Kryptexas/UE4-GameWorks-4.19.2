@@ -192,15 +192,6 @@ namespace UnrealBuildTool
 		public abstract IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment,LinkEnvironment LinkEnvironment);
 
 		/// <summary>
-		/// Writes an XML summary of the build environment for this binary
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <param name="Writer">The output XML writer</param>
-		/// <returns></returns>
-		public abstract void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer);
-
-		/// <summary>
 		/// Called to allow the binary to modify the link environment of a different binary containing 
 		/// a module that depends on a module in this binary. */
 		/// </summary>
@@ -624,28 +615,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Writes an XML summary of the build environment for this binary
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <param name="Writer">The output XML writer</param>
-		/// <returns></returns>
-		public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer)
-		{
-			// Output documentation for each module
-			Writer.WriteStartElement("binary");
-			Writer.WriteAttributeString("name", Path.GetFileName(Config.OutputFilePath));
-			Writer.WriteAttributeString("type", "cpp");
-			foreach (var ModuleName in ModuleNames)
-			{
-				UEBuildModule Module = Target.GetModuleByName(ModuleName);
-				Module.WriteBuildEnvironment(CompileEnvironment, Writer);
-			}
-			Writer.WriteEndElement();
-		}
-
-
-		/// <summary>
 		/// Called to allow the binary to modify the link environment of a different binary containing 
 		/// a module that depends on a module in this binary.
 		/// </summary>
@@ -751,26 +720,6 @@ namespace UnrealBuildTool
 				ProjectCSharpEnviroment, Config.ProjectFilePath, Config.OutputFilePath);
 
 			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
-		}
-
-		/// <summary>
-		/// Writes an XML summary of the build environment for this binary
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <param name="Writer">The output XML writer</param>
-		/// <returns></returns>
-		public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer)
-		{
-			Writer.WriteStartElement("binary");
-			Writer.WriteAttributeString("name", Path.GetFileName(Config.OutputFilePath));
-			Writer.WriteAttributeString("type", "cs");
-
-			Writer.WriteStartElement("project");
-			Writer.WriteAttributeString("path", Config.ProjectFilePath);
-			Writer.WriteEndElement();
-
-			Writer.WriteEndElement();
 		}
 	};
 }

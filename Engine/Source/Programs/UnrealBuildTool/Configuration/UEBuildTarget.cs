@@ -1421,13 +1421,6 @@ namespace UnrealBuildTool
 				OutputItems.AddRange(Binary.Build(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
-			if (BuildConfiguration.WriteTargetInfoPath != null)	// @todo ubtmake: This has some overlap with what we are doing with the action graph.  It might be easier to support other build systems with formatting like this, but it is a lot of duplicated code
-			{
-				Log.TraceInformation("Writing build environment to " + BuildConfiguration.WriteTargetInfoPath + "...");
-				WriteTargetInfo();
-				OutputItems.Clear();
-			}
-
 			return ECompilationResult.Succeeded;
 		}
 
@@ -1700,28 +1693,6 @@ namespace UnrealBuildTool
 
 			// Copy the result into the final list
 			return FilteredBinaries;
-		}
-
-		/// <summary>
-		/// Writes target info.
-		/// </summary>
-		protected virtual void WriteTargetInfo()
-		{
-			Log.TraceInformation("Writing build environment to " + BuildConfiguration.WriteTargetInfoPath + "...");
-
-			XmlWriterSettings Settings = new XmlWriterSettings();
-			Settings.Indent = true;
-
-			using (XmlWriter Writer = XmlWriter.Create(BuildConfiguration.WriteTargetInfoPath, Settings))
-			{
-				Writer.WriteStartElement("target");
-				Writer.WriteAttributeString("name", AppName);
-				foreach (UEBuildBinary Binary in AppBinaries)
-				{
-					Binary.WriteBuildEnvironment(GlobalCompileEnvironment, GlobalLinkEnvironment, Writer);
-				}
-				Writer.WriteEndElement();
-			}
 		}
 
 		/// <summary>
