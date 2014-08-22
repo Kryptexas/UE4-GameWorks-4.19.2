@@ -312,6 +312,12 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
 	}
 
+	// Restore OwnedComponents array
+	if (!IsPendingKill())
+	{
+		ResetOwnedComponents();
+	}
+
 	Super::PostEditUndo(TransactionAnnotation);
 }
 
