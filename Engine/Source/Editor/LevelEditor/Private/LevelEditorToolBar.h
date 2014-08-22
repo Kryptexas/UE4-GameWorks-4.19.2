@@ -91,40 +91,46 @@ protected:
 	static void OnOpenSubLevelBlueprint( ULevel* InLevel );
 
 	/**
-	 * Checks if the passed in world setting's GameMode is a valid Blueprint
+	 * Retrieves the active GameMode class from
 	 *
 	 * @param InLevelEditor		The editor to extract the world from
-	 * @return					TRUE if the GameMode is a Blueprint
+	 * @return					The active GameMode class in the World Settings
 	 */
-	static bool IsValidGameModeBlueprint(TWeakPtr< SLevelEditor > InLevelEditor);
+	static UClass* GetActiveGameModeClass(TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/** Callback for the label to display for the GameMode menu selection */
 	static FText GetOpenGameModeBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor);
 
-	/** Callback for the tooltip to display for the GameMode menu selection */
-	static FText GetOpenGameModeBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
+	/** Callback when selecting a GameMode class, assigns it to the world */
+	static void OnSelectGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when creating a new GameMode class, creates the Blueprint and assigns it to the world */
+	static void OnCreateGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/**
-	 * Checks if the passed in world setting's GameState is a valid Blueprint
+	 * Retrieves the active GameState class from
 	 *
 	 * @param InLevelEditor		The editor to extract the world from
-	 * @return					TRUE if the GameState is a Blueprint
+	 * @return					The active GameState class in the World Settings
 	 */
-	static bool IsValidGameStateBlueprint(TWeakPtr< SLevelEditor > InLevelEditor);
+	static UClass* GetActiveGameStateClass(TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/** Callback for the label to display for the GameState menu selection */
 	static FText GetOpenGameStateBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor);
 	
-	/** Callback for the tooltip to display for the GameState menu selection */
-	static FText GetOpenGameStateBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
+	/** Callback when selecting a GameState class, assigns it to the world */
+	static void OnSelectGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when creating a new GameState class, creates the Blueprint and assigns it to the world */
+	static void OnCreateGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/**
-	 * Checks if the passed in world setting's Pawn is a valid Blueprint
+	 * Retrieves the active Pawn class from
 	 *
 	 * @param InLevelEditor		The editor to extract the world from
-	 * @return					TRUE if the Pawn is a Blueprint
+	 * @return					The active Pawn class in the World Settings
 	 */
-	static bool IsValidPawnBlueprint(TWeakPtr< SLevelEditor > InLevelEditor);
+	static UClass* GetActivePawnClass(TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/** Callback for the label to display for the Pawn menu selection */
 	static FText GetOpenPawnBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor);
@@ -132,33 +138,45 @@ protected:
 	/** Callback for the tooltip to display for the Pawn menu selection */
 	static FText GetOpenPawnBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
 
+	/** Callback when selecting a Pawn class, assigns it to the world */
+	static void OnSelectPawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when creating a new Pawn class, creates the Blueprint and assigns it to the world */
+	static void OnCreatePawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
 	/**
-	 * Checks if the passed in world setting's HUD is a valid Blueprint
+	 * Retrieves the active HUD class from
 	 *
 	 * @param InLevelEditor		The editor to extract the world from
-	 * @return					TRUE if the HUD is a Blueprint
+	 * @return					The active HUD class in the World Settings
 	 */
-	static bool IsValidHUDBlueprint(TWeakPtr< SLevelEditor > InLevelEditor);
+	static UClass* GetActiveHUDClass(TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/** Callback for the label to display for the HUD menu selection */
 	static FText GetOpenHUDBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor);
 	
-	/** Callback for the tooltip to display for the HUD menu selection */
-	static FText GetOpenHUDBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
+	/** Callback when selecting a HUD class, assigns it to the world */
+	static void OnSelectHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when creating a new HUD class, creates the Blueprint and assigns it to the world */
+	static void OnCreateHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/**
-	 * Checks if the passed in world setting's PlayerController is a valid Blueprint
+	 * Retrieves the active PlayerController class from
 	 *
 	 * @param InLevelEditor		The editor to extract the world from
-	 * @return					TRUE if the PlayerController is a Blueprint
+	 * @return					The active PlayerController class in the World Settings
 	 */
-	static bool IsValidPlayerControllerBlueprint(TWeakPtr< SLevelEditor > InLevelEditor);
+	static UClass* GetActivePlayerControllerClass(TWeakPtr< SLevelEditor > InLevelEditor);
 
 	/** Callback for the label to display for the PlayerController menu selection */
 	static FText GetOpenPlayerControllerBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor);
 
-	/** Callback for the tooltip to display for the PlayerController menu selection */
-	static FText GetOpenPlayerControllerBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
+	/** Callback when selecting a PlayerController class, assigns it to the world */
+	static void OnSelectPlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when creating a new PlayerController class, creates the Blueprint and assigns it to the world */
+	static void OnCreatePlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor);
 };
 
 
