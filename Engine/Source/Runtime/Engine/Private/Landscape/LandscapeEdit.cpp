@@ -78,6 +78,17 @@ void ULandscapeComponent::UpdateCachedBounds()
 	}
 }
 
+void ULandscapeComponent::UpdateNavigationRelevance()
+{
+	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	if (CollisionComponent && Proxy)
+	{
+		CollisionComponent->bCanEverAffectNavigation = Proxy->bUsedForNavigation;
+
+		UNavigationSystem::UpdateNavOctree(CollisionComponent.Get());
+	}
+}
+
 ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMaterialInterface* LandscapeMaterial, FName LayerName, UTexture2D* ThumbnailWeightmap, UTexture2D* ThumbnailHeightmap, ALandscapeProxy* Proxy)
 {
 	if (!LandscapeMaterial)
@@ -699,6 +710,12 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			int32 CollisionCompY2 = FMath::CeilToInt((float)ComponentY2 * CollisionQuadRatio);
 			CollisionComp->UpdateHeightfieldRegion(CollisionCompX1, CollisionCompY1, CollisionCompX2, CollisionCompY2);
 		}
+	}
+
+	{
+		// set relevancy for navigation system
+		ALandscapeProxy* LandscapeProxy = CollisionComp->GetLandscapeProxy();
+		CollisionComp->bCanEverAffectNavigation = LandscapeProxy ? LandscapeProxy->bUsedForNavigation : false;
 	}
 
 	if (bRebuild && CollisionProxy)
@@ -3640,8 +3657,6 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 
 void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_UsedForNavigation = FName(TEXT("bUsedForNavigation"));
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -3649,6 +3664,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	bool ChangedMaterial = false;
 	bool bNeedsRecalcBoundingBox = false;
 	bool bChangedLighting = false;
+	bool bChangedNavRelevance = false;
 	bool bPropagateToProxies = false;
 
 	ULandscapeInfo* Info = GetLandscapeInfo();
@@ -3711,9 +3727,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	{
 		ExportLOD = FMath::Clamp<int32>(ExportLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
 	}
-	else if (GIsEditor && PropertyName == NAME_UsedForNavigation)
+	else if (GIsEditor && PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUsedForNavigation))
 	{
-		UpdateNavigationRelevancy();
+		bChangedNavRelevance = true;
 	}
 
 	bPropagateToProxies = bPropagateToProxies || bNeedsRecalcBoundingBox || bChangedLighting;
@@ -3761,6 +3777,11 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				if (bChangedLighting)
 				{
 					Comp->InvalidateLightingCache();
+				}
+
+				if (bChangedNavRelevance)
+				{
+					Comp->UpdateNavigationRelevance();
 				}
 
 				// Reattach all components

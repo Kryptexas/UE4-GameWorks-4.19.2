@@ -659,11 +659,7 @@ struct FHeightmapAccessor
 			if (CollisionComponent)
 			{
 				CollisionComponent->RecreateCollision(true);
-				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-				if (NavSys)
-				{
-					NavSys->UpdateNavOctree(CollisionComponent);
-				}
+				UNavigationSystem::UpdateNavOctree(CollisionComponent);
 			}
 		}
 	}

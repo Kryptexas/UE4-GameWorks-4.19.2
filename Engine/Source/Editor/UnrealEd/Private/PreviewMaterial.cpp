@@ -171,7 +171,7 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 	{
 		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 
-		FNavigationLockContext NavUpdateLock;
+		FNavigationLockContext NavUpdateLock(ENavigationLockReason::MaterialUpdate);
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{

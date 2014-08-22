@@ -21,6 +21,7 @@ struct FNavigationQueryFilter;
 class AActor;
 class ANavigationData;
 class INavAgentInterface;
+class INavRelevantInterface;
 
 namespace FNavigationSystem
 {
@@ -90,20 +91,17 @@ struct FNavigationDirtyElement
 	/** object owning this element */
 	FWeakObjectPtr Owner;
 	
+	/** cached interface pointer */
+	INavRelevantInterface* NavInterface;
+
 	/** override for update flags */
 	int32 FlagsOverride;
 	
 	/** flags of already existing entry for this actor */
 	int32 PrevFlags;
 	
-	/** override to actor bounds */
-	FBox BoundsOverride;
-	
 	/** bounds of already existing entry for this actor */
 	FBox PrevBounds;
-
-	/** override bounds are set */
-	uint8 bHasBoundsOverride : 1;
 
 	/** prev flags & bounds data are set */
 	uint8 bHasPrevData : 1;
@@ -112,20 +110,18 @@ struct FNavigationDirtyElement
 	uint8 bInvalidRequest : 1;
 
 	FNavigationDirtyElement()
-		: FlagsOverride(0), bHasBoundsOverride(false), bHasPrevData(false), bInvalidRequest(false)
-	{
-
-	}
-
-	FNavigationDirtyElement(UObject* InOwner, int32 InFlagsOverride = 0)
-		: Owner(InOwner), FlagsOverride(InFlagsOverride), bHasBoundsOverride(false), bHasPrevData(false), bInvalidRequest(false)
+		: NavInterface(0), FlagsOverride(0), bHasPrevData(false), bInvalidRequest(false)
 	{
 	}
 
-	void SetBounds(const FBox& InBounds)
+	FNavigationDirtyElement(UObject* InOwner)
+		: Owner(InOwner), NavInterface(0), FlagsOverride(0), bHasPrevData(false), bInvalidRequest(false)
 	{
-		BoundsOverride = InBounds;
-		bHasBoundsOverride = true;
+	}
+
+	FNavigationDirtyElement(UObject* InOwner, INavRelevantInterface* InNavInterface, int32 InFlagsOverride = 0)
+		: Owner(InOwner), NavInterface(InNavInterface),	FlagsOverride(InFlagsOverride), bHasPrevData(false), bInvalidRequest(false)
+	{
 	}
 
 	bool operator==(const FNavigationDirtyElement& Other) const 

@@ -30,6 +30,7 @@ class AController;
 class UCrowdManager;
 class UNavArea;
 class INavLinkCustomInterface;
+class INavRelevantInterface;
 class FNavigationOctree;
 class ANavMeshBoundsVolume;
 class FNavDataGenerator;
@@ -72,25 +73,48 @@ namespace FNavigationSystem
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
 {
-	FNavigationSystemExec()
-	{
-	}
-
 	// Begin FExec Interface
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
 };
 
+namespace ENavigationLockReason
+{
+	enum Type
+	{
+		Unknown					= 1 << 0,
+		AllowUnregister			= 1 << 1,
+
+		MaterialUpdate			= 1 << 2,
+		LightingUpdate			= 1 << 3,
+		ContinuousEditorMove	= 1 << 4,
+	};
+}
+
 class ENGINE_API FNavigationLockContext
 {
 public:
-	FNavigationLockContext() : MyWorld(NULL), bSingleWorld(false) { LockUpdates(); }
-	FNavigationLockContext(UWorld* InWorld) : MyWorld(InWorld), bSingleWorld(true) { LockUpdates(); }
-	~FNavigationLockContext() { UnlockUpdates(); }
+	FNavigationLockContext(ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
+		: MyWorld(NULL), LockReason(Reason), bSingleWorld(false)
+	{
+		LockUpdates(); 
+	}
+
+	FNavigationLockContext(UWorld* InWorld, ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
+		: MyWorld(InWorld), LockReason(Reason), bSingleWorld(true)
+	{
+		LockUpdates(); 
+	}
+
+	~FNavigationLockContext()
+	{
+		UnlockUpdates(); 
+	}
 
 private:
 	UWorld* MyWorld;
-	bool bSingleWorld;
+	uint8 LockReason;
+	uint8 bSingleWorld : 1;
 
 	void LockUpdates();
 	void UnlockUpdates();
@@ -240,6 +264,7 @@ public:
 		OctreeUpdate_Geometry = 1,						// full update, mark dirty areas for geometry rebuild
 		OctreeUpdate_Modifiers = 2,						// quick update, mark dirty areas for modifier rebuild
 		OctreeUpdate_Refresh = 4,						// update is used for refresh, don't invalidate pending queue
+		OctreeUpdate_ParentChain = 8,					// update child nodes, don't remove anything
 	};
 
 	enum ECleanupMode
@@ -369,6 +394,8 @@ public:
 	
 	FBox GetLevelBounds(ULevel* InLevel) const;
 
+	bool IsNavigationRelevant(const AActor* TestActor) const;
+
 	/** @return default walkable area class */
 	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultWalkableArea() { return DefaultWalkableArea; }
 
@@ -419,8 +446,18 @@ public:
 	//----------------------------------------------------------------------//
 	// navigation octree related functions
 	//----------------------------------------------------------------------//
-	FSetElementId RegisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
-	void UnregisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
+	static void OnComponentRegistered(UActorComponent* Comp);
+	static void OnComponentUnregistered(UActorComponent* Comp);
+	static void OnActorRegistered(AActor* Actor);
+	static void OnActorUnregistered(AActor* Actor);
+
+	/** update navoctree entry for specified actor/component */
+	static void UpdateNavOctree(AActor* Actor);
+	static void UpdateNavOctree(UActorComponent* Comp);
+	/** update all navoctree entries for actor and its components */
+	static void UpdateNavOctreeAll(AActor* Actor);
+	/** removes all navoctree entries for actor and its components */
+	static void ClearNavOctreeAll(AActor* Actor);
 
 #if WITH_NAVIGATION_GENERATOR
 	void AddDirtyArea(const FBox& NewArea, int32 Flags);
@@ -428,10 +465,6 @@ public:
 #endif // WITH_NAVIGATION_GENERATOR
 
 	const FNavigationOctree* GetNavOctree() const { return NavOctree; }
-
-	void UpdateNavOctree(AActor* Actor, int32 UpdateFlags = OctreeUpdate_Default);
-	void UpdateNavOctree(UActorComponent* ActorComp, int32 UpdateFlags = OctreeUpdate_Default);
-	void UpdateNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
 
 	/** called to gather navigation relevant actors that have been created while
 	 *	Navigation System was not present */
@@ -444,6 +477,12 @@ public:
 
 	/** find all elements in navigation octree within given box (intersection) */
 	void FindElementsInNavOctree(const FBox& QueryBox, const struct FNavigationOctreeFilter& Filter, TArray<struct FNavigationOctreeElement>& Elements);
+
+	/** update single element in navoctree */
+	void UpdateNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags);
+
+	/** force updating parent node and all its children */
+	void UpdateNavOctreeParentChain(UObject* ElementOwner);
 
 	//----------------------------------------------------------------------//
 	// Custom navigation links
@@ -530,9 +569,20 @@ public:
 	/** check whether seamless navigation building is enabled*/
 	FORCEINLINE static bool GetIsNavigationAutoUpdateEnabled() { return bNavigationAutoUpdateEnabled; }
 
-	bool AreFakeComponentChangesBeingApplied() { return bFakeComponentChangesBeingApplied; }
-	void BeginFakeComponentChanges() { bFakeComponentChangesBeingApplied = true; }
-	void EndFakeComponentChanges() { bFakeComponentChangesBeingApplied = false; }
+	FORCEINLINE bool IsNavigationRegisterLocked() const { return NavUpdateLockFlags != 0; }
+	FORCEINLINE bool IsNavigationUnregisterLocked() const { return NavUpdateLockFlags && !(NavUpdateLockFlags & ENavigationLockReason::AllowUnregister); }
+	FORCEINLINE bool IsNavigationUpdateLocked() const { return IsNavigationRegisterLocked(); }
+	FORCEINLINE void AddNavigationUpdateLock(uint8 Flags) { NavUpdateLockFlags |= Flags; }
+	FORCEINLINE void RemoveNavigationUpdateLock(uint8 Flags) { NavUpdateLockFlags &= ~Flags; }
+
+	DEPRECATED(4.5, "AreFakeComponentChangesBeingApplied is deprecated. Use IsNavigationUpdateLocked instead.")
+	bool AreFakeComponentChangesBeingApplied() { return IsNavigationUpdateLocked(); }
+	
+	DEPRECATED(4.5, "BeginFakeComponentChanges is deprecated. Use AddNavigationUpdateLock instead.")
+	void BeginFakeComponentChanges() { AddNavigationUpdateLock(ENavigationLockReason::Unknown); }
+	
+	DEPRECATED(4.5, "EndFakeComponentChanges is deprecated. Use RemoveNavigationUpdateLock instead.")
+	void EndFakeComponentChanges() { RemoveNavigationUpdateLock(ENavigationLockReason::Unknown); }
 
 	void UpdateLevelCollision(ULevel* InLevel);
 
@@ -573,7 +623,7 @@ public:
 
 protected:
 #if WITH_EDITOR
-	bool bFakeComponentChangesBeingApplied;
+	uint8 NavUpdateLockFlags;
 #endif
 
 	FNavigationSystem::EMode OperationMode;
@@ -587,6 +637,9 @@ protected:
 	TMap<FNavAgentProperties, ANavigationData*> AgentToNavDataMap;
 	
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
+
+	/** Map of all objects that are tied to indexed navigation parent */
+	TMultiMap<UObject*, UObject*> OctreeChildNodesMap;
 
 	/** Map of all custom navigation links, that are relevant for path following */
 	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
@@ -654,8 +707,8 @@ protected:
 
 	void OnNavigationAreaEvent(UClass* AreaClass, ENavAreaEvent::Type Event);
 	
- 	FSetElementId RegisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
-	void UnregisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds);
+ 	FSetElementId RegisterNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags);
+	void UnregisterNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags);
 	
 	/** read element data from navigation octree */
 	bool GetNavOctreeElementData(UObject* NodeOwner, int32& DirtyFlags, FBox& DirtyBounds);
@@ -664,9 +717,6 @@ protected:
 	 *	nor its presence in NavOctree - function assumes callee responsibility 
 	 *	in this regard **/
 	void AddElementToNavOctree(const FNavigationDirtyElement& DirtyElement);
-
-	void AddActorElementToNavOctree(AActor& Actor, const FNavigationDirtyElement& DirtyElement);
-	void AddComponentElementToNavOctree(UActorComponent& ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds);
 
 	void SetCrowdManager(UCrowdManager* NewCrowdManager); 
 

@@ -154,9 +154,6 @@ public:
 	uint32 bBlockInput:1;
 
 private:
-	/** Cached value whether this actor is relevant for navigation generation. Usually will be calculated in actor's constructor, but can be changed at runtime as well */
-	uint32 bNavigationRelevant:1;
-
 	/** True if this actor is currently running user construction script (used to defer component registration) */
 	uint32 bRunningUserConstructionScript:1;
 
@@ -2007,14 +2004,11 @@ public:
 	//=============================================================================
 	// Navigation related functions
 	// 
-	/** Updates bNavigationRelevant. Override for custom navigation behaviors	 */
-	virtual bool UpdateNavigationRelevancy();
 
-	/** Indicates whether this actor is to be considered by navigation system a valid actor	 */
-	FORCEINLINE bool IsNavigationRelevant() const { return bNavigationRelevant; }
-
-	/**	Sets bNavigationRelevant, and notifies navigation system if value has changed	 */
-	void SetNavigationRelevancy(const bool bNewRelevancy);
+	/** Check if owned component should be relevant for navigation
+	 *  Allows implementing master switch to disable e.g. collision export in projectiles
+	 */
+	virtual bool IsComponentRelevantForNavigation(UActorComponent* Component) const { return true; }
 
 	//=============================================================================
 	// Debugging functions

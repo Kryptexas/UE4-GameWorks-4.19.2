@@ -12,13 +12,16 @@ ANavModifierVolume::ANavModifierVolume(const class FPostConstructInitializePrope
 {
 }
 
-bool ANavModifierVolume::GetNavigationRelevantData(struct FNavigationRelevantData& Data) const
+void ANavModifierVolume::GetNavigationData(struct FNavigationRelevantData& Data) const
 {
 	if (Brush && AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 	{
 		FAreaNavModifier AreaMod(BrushComponent, AreaClass);
 		Data.Modifiers.Add(AreaMod);
 	}
-	
-	return false;
+}
+
+FBox ANavModifierVolume::GetNavigationBounds() const
+{
+	return GetComponentsBoundingBox();
 }

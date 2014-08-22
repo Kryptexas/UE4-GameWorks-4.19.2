@@ -60,43 +60,32 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		SmartLinkComp->SetNavigationRelevancy(bSmartLinkIsRelevant);
 	}
 
-	UpdateNavigationRelevancy();
-
-	if (PropertyChangedEvent.Property && 
-		IsNavigationRelevant() && GetWorld() && GetWorld()->GetNavigationSystem())
+	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
+	if (CategoryName == TEXT("SimpleLink"))
 	{
-		const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
-		if (CategoryName == TEXT("SimpleLink") ||
-			CategoryName == TEXT("SmartLink") ||
-			CategoryName == TEXT("Obstacle"))
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+		if (NavSys)
 		{
-			GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
+			NavSys->UpdateNavOctree(this);
 		}
 	}
 }
 #endif // WITH_EDITOR
 
-void ANavLinkProxy::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	// NavLinkProxy has no components so we need to update navigation relevancy manually
-	UpdateNavigationRelevancy();
-}
-
-bool ANavLinkProxy::UpdateNavigationRelevancy()
-{ 
-	const bool bNewRelevancy = (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0) || SmartLinkComp->IsNavigationRelevant();
-	SetNavigationRelevancy(bNewRelevancy);
-	return bNewRelevancy; 
-}
-
-bool ANavLinkProxy::GetNavigationRelevantData(struct FNavigationRelevantData& Data) const
+void ANavLinkProxy::GetNavigationData(struct FNavigationRelevantData& Data) const
 {
 	NavigationHelper::ProcessNavLinkAndAppend(&Data.Modifiers, this, PointLinks);
 	NavigationHelper::ProcessNavLinkSegmentAndAppend(&Data.Modifiers, this, SegmentLinks);
+}
 
-	return false;
+FBox ANavLinkProxy::GetNavigationBounds() const
+{
+	return GetComponentsBoundingBox();
+}
+
+bool ANavLinkProxy::IsNavigationRelevant() const
+{
+	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0);
 }
 
 bool ANavLinkProxy::GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const
@@ -109,12 +98,7 @@ bool ANavLinkProxy::GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TA
 	OutLink.Append(PointLinks);
 	OutSegments.Append(SegmentLinks);
 
-	if (SmartLinkComp->IsNavigationRelevant())
-	{
-		OutLink.Add(SmartLinkComp->GetLinkModifier());
-	}
-
-	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0) || SmartLinkComp->IsNavigationRelevant();
+	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0);
 }
 
 FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const

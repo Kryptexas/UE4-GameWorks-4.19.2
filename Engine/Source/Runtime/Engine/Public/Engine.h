@@ -32,7 +32,7 @@
 #include "Engine/CullDistanceVolume.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
-#include "AI/Navigation/NavRelevantActorInterface.h"
+#include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavModifierVolume.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "GameFramework/DefaultPhysicsVolume.h"

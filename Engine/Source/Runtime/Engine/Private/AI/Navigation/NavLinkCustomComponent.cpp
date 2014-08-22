@@ -88,8 +88,34 @@ void UNavLinkCustomComponent::OnLinkMoveFinished(class UPathFollowingComponent* 
 	MovingAgents.Remove(WeakPathComp);
 }
 
-void UNavLinkCustomComponent::OnOwnerRegistered()
+void UNavLinkCustomComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
 {
+	FNavigationLink LinkMod = GetLinkModifier();
+	Data.Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
+
+	if (bCreateBoxObstacle)
+	{
+		Data.Modifiers.Add(FAreaNavModifier(FBox::BuildAABB(ObstacleOffset, ObstacleExtent), GetOwner()->GetTransform(), ObstacleAreaClass));
+	}
+}
+
+void UNavLinkCustomComponent::CalcBounds()
+{
+	Bounds = FBox(0);
+	Bounds += GetStartPoint();
+	Bounds += GetEndPoint();
+
+	if (bCreateBoxObstacle)
+	{
+		FBox ObstacleBounds = FBox::BuildAABB(ObstacleOffset, ObstacleExtent);
+		Bounds += ObstacleBounds.TransformBy(GetOwner()->GetTransform());
+	}
+}
+
+void UNavLinkCustomComponent::OnRegister()
+{
+	Super::OnRegister();
+
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys == NULL)
 	{
@@ -104,8 +130,10 @@ void UNavLinkCustomComponent::OnOwnerRegistered()
 	NavSys->RegisterCustomLink(this);
 }
 
-void UNavLinkCustomComponent::OnOwnerUnregistered()
+void UNavLinkCustomComponent::OnUnregister()
 {
+	Super::OnUnregister();
+
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys == NULL)
 	{
@@ -114,17 +142,6 @@ void UNavLinkCustomComponent::OnOwnerUnregistered()
 
 	// always try to unregister, even if not relevant right now
 	NavSys->UnregisterCustomLink(this);
-}
-
-void UNavLinkCustomComponent::OnApplyModifiers(struct FCompositeNavModifier& Modifiers)
-{
-	FNavigationLink LinkMod = GetLinkModifier();
-	Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
-
-	if (bCreateBoxObstacle)
-	{
-		Modifiers.Add(FAreaNavModifier(FBox::BuildAABB(ObstacleOffset, ObstacleExtent), GetOwner()->GetTransform(), ObstacleAreaClass));
-	}
 }
 
 void UNavLinkCustomComponent::SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction)
@@ -177,27 +194,6 @@ void UNavLinkCustomComponent::ClearNavigationObstacle()
 	bCreateBoxObstacle = false;
 
 	RefreshNavigationModifiers();
-}
-
-void UNavLinkCustomComponent::OnRegister()
-{
-	Super::OnRegister();
-
-	const AActor* MyOwner = GetOwner();
-	if (MyOwner)
-	{
-		FBox NewBounds(0);
-		NewBounds += MyOwner->GetActorLocation();
-		NewBounds += MyOwner->GetActorLocation() + LinkRelativeStart;
-		NewBounds += MyOwner->GetActorLocation() + LinkRelativeEnd;
-		
-		if (bCreateBoxObstacle)
-		{
-			NewBounds += FBox::BuildAABB(MyOwner->GetActorLocation() + ObstacleOffset, ObstacleExtent);
-		}
-
-		Bounds = NewBounds;
-	}
 }
 
 void UNavLinkCustomComponent::SetEnabled(bool bNewEnabled)

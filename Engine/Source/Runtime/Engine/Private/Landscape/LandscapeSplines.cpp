@@ -8,7 +8,6 @@
 #include "Components/SplineMeshComponent.h"
 #include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
-#include "AI/Navigation/RecastHelpers.h"
 #include "Landscape/LandscapeSplineProxies.h"
 #include "Landscape/LandscapeSplinesComponent.h"
 #include "Landscape/LandscapeSplineControlPoint.h"
@@ -897,7 +896,6 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		)
 	{
 		OuterSplines->Modify();
-		bNavDirty = true;
 
 		if (MeshComponent)
 		{
@@ -932,12 +930,6 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		}
 		else
 		{
-			// UpdateNavOctree won't work if we destroy any components, ghosts get left in the navmesh, so we have to unregister
-			if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-			{
-				OuterSplines->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(OuterSplines->GetOwner());
-			}
-
 			Modify();
 			MeshComponent->GetOuter()->Modify();
 			MeshComponent->DestroyComponent();
@@ -979,7 +971,6 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		{
 			MeshComponent->Modify();
 			MeshComponent->BodyInstance.SetCollisionProfileName(CollisionProfile);
-			bNavDirty = true;
 		}
 	}
 
@@ -1034,12 +1025,6 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 	OuterSplines->MarkRenderStateDirty();
 
-	if (bNavDirty && bUpdateCollision && OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UpdateNavOctree(OuterSplines->GetOwner());
-		bNavDirty = false;
-	}
-
 	if (bUpdateAttachedSegments)
 	{
 		for (const FLandscapeSplineConnection& Connection : ConnectedSegments)
@@ -1060,22 +1045,11 @@ void ULandscapeSplineControlPoint::DeleteSplinePoints()
 
 	OuterSplines->MarkRenderStateDirty();
 
-	// UpdateNavOctree won't work if we destroy any components, ghosts get left in the navmesh, so we have to unregister
-	if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(OuterSplines->GetOwner());
-	}
-
 	if (MeshComponent != NULL)
 	{
 		MeshComponent->GetOuter()->Modify();
 		MeshComponent->DestroyComponent();
 		MeshComponent = NULL;
-	}
-
-	if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UpdateNavOctree(OuterSplines->GetOwner());
 	}
 }
 
@@ -1545,16 +1519,6 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponents.Add(MeshComponent);
 			}
 
-			// if the spline mesh isn't the editor mesh or wasn't the editor mesh
-			if (!bUsingEditorMesh || (MeshComponent->StaticMesh != NULL && !MeshComponent->bHiddenInGame))
-			{
-				// either collision is enabled or the mesh component had collision enabled before
-				if (bEnableCollision || MeshComponent->BodyInstance.GetCollisionEnabled() != ECollisionEnabled::NoCollision)
-				{
-					bNavDirty = true;
-				}
-			}
-
 			MeshComponent->SetStaticMesh(Mesh);
 
 			MeshComponent->Materials = MeshEntry->MaterialOverrides;
@@ -1575,12 +1539,6 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 		if (iMesh < MeshComponents.Num())
 		{
-			// UpdateNavOctree won't work if we destroy any components, ghosts get left in the navmesh, so we have to unregister
-			if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-			{
-				OuterSplines->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(OuterSplines->GetOwner());
-			}
-
 			for (int32 i = iMesh; i < MeshComponents.Num(); i++)
 			{
 				MeshComponents[i]->GetOuter()->Modify();
@@ -1588,8 +1546,6 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			}
 
 			MeshComponents.RemoveAt(iMesh, MeshComponents.Num() - iMesh);
-
-			bNavDirty = true;
 		}
 
 		// Second pass:
@@ -1766,26 +1722,13 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	{
 		if (MeshComponents.Num() > 0)
 		{
-			// UpdateNavOctree won't work if we destroy any components, ghosts get left in the navmesh, so we have to unregister
-			if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-			{
-				OuterSplines->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(OuterSplines->GetOwner());
-			}
-
 			for (auto* MeshComponent : MeshComponents)
 			{
 				MeshComponent->GetOuter()->Modify();
 				MeshComponent->DestroyComponent();
 			}
 			MeshComponents.Empty();
-			bNavDirty = true;
 		}
-	}
-
-	if (bNavDirty && bUpdateCollision && OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UpdateNavOctree(OuterSplines->GetOwner());
-		bNavDirty = false;
 	}
 }
 
@@ -1814,23 +1757,12 @@ void ULandscapeSplineSegment::DeleteSplinePoints()
 
 	OuterSplines->MarkRenderStateDirty();
 
-	// UpdateNavOctree won't work if we destroy any components, ghosts get left in the navmesh, so we have to unregister
-	if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(OuterSplines->GetOwner());
-	}
-
 	for (auto* MeshComponent : MeshComponents)
 	{
 		MeshComponent->GetOuter()->Modify();
 		MeshComponent->DestroyComponent();
 	}
 	MeshComponents.Empty();
-
-	if (OuterSplines->GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		OuterSplines->GetWorld()->GetNavigationSystem()->UpdateNavOctree(OuterSplines->GetOwner());
-	}
 }
 
 static bool LineIntersect( const FVector2D& L1Start, const FVector2D& L1End, const FVector2D& L2Start, const FVector2D& L2End, FVector2D& Intersect, float Tolerance = KINDA_SMALL_NUMBER)

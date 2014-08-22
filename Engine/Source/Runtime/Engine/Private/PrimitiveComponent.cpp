@@ -101,6 +101,7 @@ UPrimitiveComponent::UPrimitiveComponent(const class FPostConstructInitializePro
 	bCheckAsyncSceneOnMove = false;
 	bReturnMaterialOnMove = false;
 	bCanEverAffectNavigation = false;
+	bNavigationRelevant = false;
 
 	bCachedAllCollideableDescendantsRelative = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
@@ -292,10 +293,10 @@ void UPrimitiveComponent::OnRegister()
 	// Notify the streaming system. Will only update the component data if it's already tracked.
 	IStreamingManager::Get().NotifyPrimitiveUpdated(this);
 
-	AActor* Owner = GetOwner();
-	if (bCanEverAffectNavigation && Owner != NULL)
+	if (bCanEverAffectNavigation)
 	{
-		Owner->UpdateNavigationRelevancy();
+		UNavigationSystem::OnComponentRegistered(this);
+		bNavigationRelevant = IsNavigationRelevant();
 	}
 }
 
@@ -309,10 +310,9 @@ void UPrimitiveComponent::OnUnregister()
 
 	Super::OnUnregister();
 
-	AActor* Owner = GetOwner();
-	if (bCanEverAffectNavigation && Owner != NULL)
+	if (bCanEverAffectNavigation)
 	{
-		Owner->UpdateNavigationRelevancy();
+		UNavigationSystem::OnComponentUnregistered(this);
 	}
 }
 
@@ -552,7 +552,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_CollisionEnabled = TEXT("CollisionEnabled");
 	static const FName NAME_SimulatePhysics = TEXT("bSimulatePhysics");
 	// Keep track of old cached cull distance to see whether we need to re-attach component.
 	const float OldCachedMaxDrawDistance = CachedMaxDrawDistance;
@@ -592,15 +591,6 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if(PropertyThatChanged != NULL && PropertyThatChanged->GetFName() == NAME_CollisionEnabled)
-	{
-		AActor* Owner = GetOwner();
-		if ( Owner )
-		{
-			Owner->UpdateNavigationRelevancy();
-		}
-	}
 
 	// Make sure cached cull distance is up-to-date.
 	if( LDMaxDrawDistance > 0 )
@@ -1659,7 +1649,7 @@ void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& B
 }
 
 
-bool UPrimitiveComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const 
+bool UPrimitiveComponent::IsNavigationRelevant() const 
 { 
 	if (!CanEverAffectNavigation())
 	{
@@ -1671,19 +1661,37 @@ bool UPrimitiveComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) 
 		return true;
 	}
 
-	const FCollisionResponseContainer & ResponseToChannels = GetCollisionResponseToChannels();
-
-	return (IsCollisionEnabled() || bSkipCollisionEnabledCheck == true)
-		&& (ResponseToChannels.GetResponse(ECC_Pawn) == ECR_Block 
-			|| ResponseToChannels.GetResponse(ECC_Vehicle) == ECR_Block);
+	const FCollisionResponseContainer& ResponseToChannels = GetCollisionResponseToChannels();
+	return IsCollisionEnabled() &&
+		(ResponseToChannels.GetResponse(ECC_Pawn) == ECR_Block || ResponseToChannels.GetResponse(ECC_Vehicle) == ECR_Block);
 }
 
-void UPrimitiveComponent::DisableNavigationRelevance()
+FBox UPrimitiveComponent::GetNavigationBounds() const
 {
-	check(!bRegistered);
-	bCanEverAffectNavigation = false;
+	return Bounds.GetBox();
 }
 
+void UPrimitiveComponent::SetCanEverAffectNavigation(bool bRelevant)
+{
+	if (bCanEverAffectNavigation != bRelevant)
+	{
+		bCanEverAffectNavigation = bRelevant;
+
+		// update octree if already registered
+		if (bRegistered)
+		{
+			if (bRelevant)
+			{
+				UNavigationSystem::OnComponentRegistered(this);
+				bNavigationRelevant = IsNavigationRelevant();
+			}
+			else
+			{
+				UNavigationSystem::OnComponentUnregistered(this);
+			}
+		}
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // COLLISION

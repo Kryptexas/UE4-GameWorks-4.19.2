@@ -193,6 +193,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 {
 	FCompositeNavModifier() : bHasPotentialLinks(false) {}
 
+	void Shrink();
 	void Reset();
 	void Empty();
 

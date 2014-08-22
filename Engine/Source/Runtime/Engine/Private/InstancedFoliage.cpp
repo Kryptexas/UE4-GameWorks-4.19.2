@@ -422,11 +422,6 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 		{
 			//!! need to update bounds for this cluster
 			ClusterComponent->RegisterComponent();
-
-			if (ClusterComponent->IsCollisionEnabled() && ClusterComponent->GetWorld()->GetNavigationSystem() != nullptr)
-			{
-				ClusterComponent->GetWorld()->GetNavigationSystem()->UpdateNavOctree(ClusterComponent);
-			}
 			bRemoved = true;
 		}
 	}

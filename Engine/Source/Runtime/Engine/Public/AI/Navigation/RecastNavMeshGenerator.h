@@ -377,8 +377,7 @@ public:
 	/** 
 	 *	@param Actor is a reference to make callee responsible for assuring it's valid
 	 */
-	static void ExportActorGeometry(AActor& Actor, FNavigationRelevantData& Data);
-	static void ExportComponentGeometry(UActorComponent& Component, FNavigationRelevantData& Data);
+	static void ExportComponentGeometry(UActorComponent* Component, FNavigationRelevantData& Data);
 	static void ExportVertexSoupGeometry(const TArray<FVector>& Verts, FNavigationRelevantData& Data);
 
 	static void ExportRigidBodyGeometry(UBodySetup& BodySetup, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld = FTransform::Identity);

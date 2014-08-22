@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AI/Navigation/NavRelevantActorInterface.h"
 #include "StaticMeshActor.generated.h"
 
 /**
@@ -9,7 +8,7 @@
  * Note that PostInitializeComponents() is not called for StaticMeshActors
  */
 UCLASS(hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, meta=(ChildCanTick))
-class ENGINE_API AStaticMeshActor : public AActor, public INavRelevantActorInterface
+class ENGINE_API AStaticMeshActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 

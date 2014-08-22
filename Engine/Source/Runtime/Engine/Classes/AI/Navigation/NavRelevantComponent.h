@@ -2,30 +2,33 @@
 
 #pragma once
 #include "Components/ActorComponent.h"
+#include "NavRelevantInterface.h"
 #include "NavRelevantComponent.generated.h"
 
 UCLASS()
-class ENGINE_API UNavRelevantComponent : public UActorComponent
+class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void OnOwnerRegistered();
-	virtual void OnOwnerUnregistered();
-
+	// Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+	// End UActorComponent Interface
 
-	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers);
+	// Begin INavRelevantInterface Interface
+	virtual FBox GetNavigationBounds() const override;
+	virtual bool IsNavigationRelevant() const override;
+	// End INavRelevantInterface Interface
 
-	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	virtual void CalcBounds();
+
+	UFUNCTION(BlueprintCallable, Category="Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
-
-	bool IsNavigationRelevant() const { return bNavigationRelevant; }
 
 	/** force refresh in navigation octree */
 	void RefreshNavigationModifiers();
 
-	/** bounds when owner is providing per component data */
+	/** bounds for navigation octree */
 	FBox Bounds;
 
 protected:

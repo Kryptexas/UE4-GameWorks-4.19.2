@@ -400,7 +400,10 @@ static void StoreCollisionCache(FRecastGeometryExport* GeomExport)
 	const int32 CoordsSize = sizeof(float) * 3 * NumVerts;
 	const int32 IndicesSize = sizeof(int32) * 3 * NumFaces;
 	const int32 CacheSize = HeaderSize + CoordsSize + IndicesSize;
-	GeomExport->Data->CollisionData.SetNum(CacheSize);
+	
+	// reserve + add combo to allocate exact amount (without any overhead/slack)
+	GeomExport->Data->CollisionData.Reserve(CacheSize);
+	GeomExport->Data->CollisionData.AddUninitialized(CacheSize);
 
 	// store collisions
 	uint8* RawMemory = GeomExport->Data->CollisionData.GetTypedData();
@@ -952,12 +955,12 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodySetup(UBodySetup& BodySetup, TNavStat
 	TemporaryShapeBuffer.Reset();
 }
 
-FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent& Component, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
+FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
 {
 #if WITH_PHYSX
 	bool bHasData = false;
 
-	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(&Component);
+	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if (PrimComp && PrimComp->IsNavigationRelevant())
 	{
 		if (PrimComp->HasCustomNavigableGeometry() && !PrimComp->DoCustomNavigableGeometryExport(GeomExport)) 
@@ -975,23 +978,6 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent& Component, FRecastG
 			}
 
 			GeomExport->SlopeOverride = BodySetup->WalkableSlopeOverride;
-		}
-	}
-#endif // WITH_PHYSX
-}
-
-FORCEINLINE_DEBUGGABLE void ExportActor(AActor& Actor, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
-{
-#if WITH_PHYSX
-	TArray<UPrimitiveComponent*> Components;
-	Actor.GetComponents(Components);
-
-	for (int32 i = 0; i < Components.Num(); ++i)
-	{
-		UPrimitiveComponent* PrimComp = Components[i];
-		if (PrimComp->CanEverAffectNavigation() == true)
-		{
-			ExportComponent(*PrimComp, GeomExport, ClipBounds);
 		}
 	}
 #endif // WITH_PHYSX
@@ -4328,15 +4314,7 @@ void FRecastNavMeshGenerator::UpdateTileGenerationWorkers(int32 TileId)
 	}
 }
 
-void FRecastNavMeshGenerator::ExportActorGeometry(AActor& Actor, FNavigationRelevantData& Data)
-{
-	FRecastGeometryExport GeomExport(Data);
-	RecastGeometryExport::ExportActor(Actor, &GeomExport);
-	RecastGeometryExport::CovertCoordDataToRecast(GeomExport.VertexBuffer);
-	RecastGeometryExport::StoreCollisionCache(&GeomExport);
-}
-
-void FRecastNavMeshGenerator::ExportComponentGeometry(UActorComponent& Component, FNavigationRelevantData& Data)
+void FRecastNavMeshGenerator::ExportComponentGeometry(UActorComponent* Component, FNavigationRelevantData& Data)
 {
 	FRecastGeometryExport GeomExport(Data);
 	RecastGeometryExport::ExportComponent(Component, &GeomExport);

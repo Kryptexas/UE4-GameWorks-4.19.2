@@ -1022,11 +1022,14 @@ void ULandscapeHeightfieldCollisionComponent::PostEditImport()
 void ULandscapeHeightfieldCollisionComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
+
 	// Reinitialize physics after undo
 	if (CollisionSizeQuads > 0)
 	{
 		RecreateCollision(false);
 	}
+
+	UNavigationSystem::UpdateNavOctree(this);
 }
 #endif
 

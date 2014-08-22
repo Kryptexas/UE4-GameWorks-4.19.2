@@ -207,7 +207,6 @@ public:
 	virtual void PostRegisterAllComponents() override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void BecomeViewTarget(APlayerController* PC) override;
-	virtual bool UpdateNavigationRelevancy() override; 
 	virtual void EnableInput(APlayerController* PlayerController) override;
 	virtual void DisableInput(APlayerController* PlayerController) override;
 
@@ -219,6 +218,9 @@ public:
 	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Navigation")
 	void SetCanAffectNavigationGeneration(bool bNewValue);
+
+	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
+	virtual void UpdateNavigationRelevance() {}
 
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;

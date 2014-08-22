@@ -360,14 +360,8 @@ ABrush* UWorld::SpawnBrush()
  */
 bool UWorld::EditorDestroyActor( AActor* ThisActor, bool bShouldModifyLevel )
 {
-#if !WITH_RUNTIME_NAVIGATION_BUILDING
-	// @NOTE: this piece needs to be here to have in-editor navmesh react to 
-	// actors being deleted, while not doing so in pure game mode.
-	if (ThisActor->GetWorld() != NULL && ThisActor->GetWorld()->GetNavigationSystem() != NULL)
-	{
-		ThisActor->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(ThisActor);
-	}
-#endif // !WITH_RUNTIME_NAVIGATION_BUILDING
+	UNavigationSystem::OnActorUnregistered(ThisActor);
+
 	bool bReturnValue = DestroyActor( ThisActor, false, bShouldModifyLevel );
 	ThisActor->GetWorld()->BroadcastLevelsChanged();
 	return bReturnValue;
@@ -390,12 +384,6 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	check(ThisActor->IsValidLowLevel());
 	//UE_LOG(LogSpawn, Log,  "Destroy %s", *ThisActor->GetClass()->GetName() );
 
-#if WITH_RUNTIME_NAVIGATION_BUILDING
-	if (ThisActor->GetWorld() != NULL && ThisActor->GetWorld()->GetNavigationSystem() != NULL)
-	{
-		ThisActor->GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(ThisActor);
-	}
-#endif // WITH_RUNTIME_NAVIGATION_BUILDING
 	if (ThisActor->GetWorld() == NULL)
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("Destroying %s, which doesn't have a valid world pointer"), *ThisActor->GetPathName());

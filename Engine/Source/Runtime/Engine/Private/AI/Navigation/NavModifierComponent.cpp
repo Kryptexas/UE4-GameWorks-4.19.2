@@ -5,52 +5,24 @@
 #include "AI/Navigation/NavModifierComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 
-UNavModifierComponent::UNavModifierComponent(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UNavModifierComponent::UNavModifierComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	AreaClass = UNavArea_Null::StaticClass();
-	Bounds = FNavigationSystem::InvalidBoundingBox;
 }
 
-void UNavModifierComponent::OnOwnerRegistered()
+void UNavModifierComponent::CalcBounds()
 {
-	if (AActor* MyOwner = GetOwner())
-	{
-		MyOwner->UpdateNavigationRelevancy();
-	}
-}
-
-void UNavModifierComponent::OnOwnerUnregistered()
-{
-	if (AActor* MyOwner = GetOwner())
-	{
-		MyOwner->UpdateNavigationRelevancy();
-	}
-}
-
-void UNavModifierComponent::OnRegister()
-{
-	Super::OnRegister();
-
 	const AActor* MyOwner = GetOwner();
-
 	if (MyOwner)
 	{
 		const float Radius = MyOwner->GetSimpleCollisionRadius();
 		const float HalfHeght = MyOwner->GetSimpleCollisionHalfHeight();
-		const FVector Loc = MyOwner->GetActorLocation();
 		ObstacleExtent = FVector(Radius, Radius, HalfHeght);
-		Bounds = FBox(Loc + ObstacleExtent, Loc - ObstacleExtent);
+		Bounds = FBox::BuildAABB(MyOwner->GetActorLocation(), ObstacleExtent);
 	}
 }
 
-void UNavModifierComponent::OnApplyModifiers(FCompositeNavModifier& Modifiers)
+void UNavModifierComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
 {
-	const AActor* MyOwner = GetOwner();
-	if (MyOwner)
-	{
-		const FVector Loc = MyOwner->GetActorLocation();
-		Bounds = FBox(Loc + ObstacleExtent, Loc - ObstacleExtent);
-		Modifiers.Add(FAreaNavModifier(Bounds, FTransform::Identity, AreaClass));
-	}
+	Data.Modifiers.Add(FAreaNavModifier(Bounds, FTransform::Identity, AreaClass));
 }

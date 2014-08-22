@@ -14,7 +14,6 @@
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "AI/Navigation/NavRelevantComponent.h"
 #include "VisualLog.h"
 #include "Animation/AnimInstance.h"
 
@@ -70,7 +69,6 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	NetDriverName = NAME_GameNetDriver;
 	NetDormancy = DORM_Awake;
 	// will be updated in PostInitProperties
-	bNavigationRelevant = false;
 	bActorEnableCollision = true;
 	bActorSeamlessTraveled = false;
 	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
@@ -1498,9 +1496,10 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
 	{
 		bActorInitialized = false;
-		SetNavigationRelevancy(false);
 		GetWorld()->RemoveNetworkActor(this);
 	}
+
+	UNavigationSystem::OnActorUnregistered(this);
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -2042,72 +2041,6 @@ void AActor::DisableComponentsSimulatePhysics()
 
 void AActor::PostRegisterAllComponents() 
 {
-	if (bNavigationRelevant == true && GetWorld()->GetNavigationSystem() != NULL)
-	{
-		// force re-adding to navoctree if already added, in case it has already 
-		// been added (possibly with not all components that could affect navigation
-		// not registered yet
-		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-	}
-}
-
-bool AActor::UpdateNavigationRelevancy()
-{
-	// iterate through all scene components. It's enough to have at least one navigation relevant component
-	bool bNewRelevancy = false;
-
-	TArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 CompIdx = 0; CompIdx < Components.Num() && bNewRelevancy == false; ++CompIdx)
-	{
-		USceneComponent* Comp = Cast<USceneComponent>(Components[CompIdx]);
-		if (Comp)
-		{
-			bNewRelevancy = Comp->IsRegistered() && Comp->IsNavigationRelevant();
-		}
-		else
-		{
-			UNavRelevantComponent* NavComp = Cast<UNavRelevantComponent>(Components[CompIdx]);
-			if (NavComp)
-			{
-				bNewRelevancy = NavComp->IsRegistered() && NavComp->IsNavigationRelevant();
-			}
-		}
-	}
-
-	SetNavigationRelevancy(bNewRelevancy);
-
-	return bNewRelevancy;
-}
-
-void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
-{
-	if (bNavigationRelevant != bNewRelevancy)
-	{
-		// @TODO if this starts failing I'll remodel the way things get registered 
-		// with NavOctree.
-		if(IsInGameThread() == false)
-		{
-			UE_LOG(LogNavigation, Fatal, TEXT("AActor::SetNavigationRelevancy called outside of GameThread for %s"), *GetFullName());
-		}
-		
-		bNavigationRelevant = bNewRelevancy;
-		UWorld* MyWorld = GetWorld();
-		if (MyWorld != NULL && MyWorld->GetNavigationSystem() != NULL)
-		{
-			if (bNewRelevancy == true)
-			{
-				UE_LOG(LogNavigation, Verbose, TEXT("AActor::SetNavigationRelevancy registering new relevant actor %s"), *GetFullName());
-
-				MyWorld->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
-			}
-			else
-			{
-				MyWorld->GetNavigationSystem()->UnregisterNavigationRelevantActor(this);
-			}
-		}
-	}
 }
 
 /** Util to call OnComponentCreated on components */
@@ -2573,7 +2506,6 @@ void AActor::SetActorHiddenInGame( bool bNewHidden )
 	if (bHidden != bNewHidden)
 	{
 		bHidden = bNewHidden;
-		UpdateNavigationRelevancy();
 		MarkComponentsRenderStateDirty();
 	}
 }
@@ -2592,8 +2524,6 @@ void AActor::SetActorEnableCollision(bool bNewActorEnableCollision)
 		{
 			Components[CompIdx]->OnActorEnableCollisionChanged();
 		}
-
-		UpdateNavigationRelevancy();
 	}
 }
 
@@ -3338,7 +3268,7 @@ void AActor::PostInitializeComponents()
 	{
 		bActorInitialized = true;
 
-		UpdateNavigationRelevancy();
+		UNavigationSystem::OnActorRegistered(this);
 	}
 }
 

@@ -461,6 +461,9 @@ public:
 
 	/** Extends passed region with this component section size */
 	ENGINE_API void GetComponentExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const;
+
+	/** Updates navigation properties to match landscape's master switch */
+	void UpdateNavigationRelevance();
 #endif
 
 	friend class FLandscapeComponentSceneProxy;

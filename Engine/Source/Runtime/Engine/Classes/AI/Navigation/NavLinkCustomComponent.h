@@ -33,12 +33,15 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	virtual void OnLinkMoveFinished(class UPathFollowingComponent* PathComp) override;
 	// END INavLinkCustomInterface
 
-	// BEGIN UNavRelevantComponent
+	// BEGIN UNavRelevantComponent Interface
+	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const;
+	virtual void CalcBounds();
+	// END UNavRelevantComponent Interface
+
+	// BEGIN UActorComponent Interface
 	virtual void OnRegister() override;
-	virtual void OnOwnerRegistered() override;
-	virtual void OnOwnerUnregistered() override;
-	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) override;
-	// END UNavRelevantComponent
+	virtual void OnUnregister() override;
+	// END UActorComponent Interface
 
 	// BEGIN UObject Interface
 	virtual void PostLoad() override;

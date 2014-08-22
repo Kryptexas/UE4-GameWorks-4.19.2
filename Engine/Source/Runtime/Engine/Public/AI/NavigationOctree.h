@@ -56,6 +56,7 @@ struct ENGINE_API FNavigationRelevantData
 	}
 
 	bool IsMatchingFilter(const FNavigationOctreeFilter& Filter) const;
+	void Shrink();
 };
 
 struct ENGINE_API FNavigationOctreeElement
@@ -105,6 +106,11 @@ struct ENGINE_API FNavigationOctreeElement
 	{
 		return Data.GetAllocatedSize();
 	}
+
+	FORCEINLINE void Shrink()
+	{
+		Data.Shrink();
+	}
 #endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 };
 
@@ -138,11 +144,8 @@ class FNavigationOctree : public TOctree<FNavigationOctreeElement, FNavigationOc
 	typedef TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics> Super;
 
 public:
-	DECLARE_DELEGATE_TwoParams(FNavigableGeometryExportDelegate, AActor&, FNavigationRelevantData&);
-	FNavigableGeometryExportDelegate NavigableGeometryExportDelegate;
-
-	DECLARE_DELEGATE_TwoParams(FNavigableGeometryComponentExportDelegate, UActorComponent&, FNavigationRelevantData&);
-	FNavigableGeometryComponentExportDelegate NavigableGeometryComponentExportDelegate;
+	DECLARE_DELEGATE_TwoParams(FNavigableGeometryComponentExportDelegate, UActorComponent*, FNavigationRelevantData&);
+	FNavigableGeometryComponentExportDelegate ComponentExportDelegate;
 
 	enum ENavGeometryStoringMode {
 		SkipNavGeometry,
@@ -152,15 +155,13 @@ public:
 	FNavigationOctree(FVector Origin, float Radius);
 	~FNavigationOctree();
 
-	/** @param Data allow you to access data put into navoctree while not 
-	 *	having to query navoctree about it just after adding */
-	void AddActor(AActor& Actor, FNavigationOctreeElement& Data);
-	void AddComponent(UActorComponent& ActorComp, const FBox& Bounds, FNavigationOctreeElement& Data);
+	/** Add new node and fill it with navigation export data */
+	void AddNode(UObject* ElementOb, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data);
 
-	/** Add node and update memory stats */
-	void AddNode(FNavigationOctreeElement& Data);
+	/** Append new data to existing node */
+	void AppendToNode(const FOctreeElementId& Id, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data);
 
-	/** Remove node and update memory stats */
+	/** Remove node */
 	void RemoveNode(const FOctreeElementId& Id);
 
 	void SetNavigableGeometryStoringMode(ENavGeometryStoringMode NavGeometryMode);

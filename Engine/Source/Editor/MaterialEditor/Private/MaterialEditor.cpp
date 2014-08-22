@@ -1386,7 +1386,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	// Handle propagation of the material being edited
 	else
 	{
-		FNavigationLockContext NavUpdateLock;
+		FNavigationLockContext NavUpdateLock(ENavigationLockReason::MaterialUpdate);
 
 		// Create a material update context so we can safely update materials.
 		{

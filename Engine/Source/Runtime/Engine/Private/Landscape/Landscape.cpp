@@ -796,38 +796,6 @@ void ALandscapeProxy::UnregisterAllComponents()
 	}
 }
 
-bool ALandscapeProxy::UpdateNavigationRelevancy()
-{
-	SetNavigationRelevancy(bUsedForNavigation);
-
-	return bUsedForNavigation;
-}
-
-FBox ALandscapeProxy::GetComponentsBoundingBox(bool bNonColliding) const
-{
-	FBox Bounds = Super::GetComponentsBoundingBox(bNonColliding);
-
-	USceneComponent* LandscapeRoot = GetRootComponent();
-
-	// can't really tell if it breaks anything, but is needed for navmesh generation
-	if (bUsedForNavigation)
-	{
-		for (auto CollisionComponentIt(CollisionComponents.CreateConstIterator()); CollisionComponentIt; ++CollisionComponentIt)
-		{
-			const ULandscapeHeightfieldCollisionComponent* Component = *CollisionComponentIt;
-			if (Component != NULL)
-			{
-				// Component may not be attached, so we'll calculate bounds manually
-				FTransform ComponentLtWTransform = FTransform(Component->RelativeRotation, Component->RelativeLocation, Component->RelativeScale3D) *
-					FTransform(LandscapeRoot->RelativeRotation, LandscapeRoot->RelativeLocation, LandscapeRoot->RelativeScale3D);
-
-				Bounds += Component->CalcBounds(ComponentLtWTransform).GetBox();
-			}
-		}
-	}
-	return Bounds;
-}
-
 // FLandscapeWeightmapUsage serializer
 FArchive& operator<<(FArchive& Ar, FLandscapeWeightmapUsage& U)
 {
@@ -946,10 +914,7 @@ void ALandscapeProxy::PreEditUndo()
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 
-		if (GetWorld()->GetNavigationSystem())
-		{
-			GetWorld()->GetNavigationSystem()->UnregisterNavigationRelevantActor(this);
-		}
+		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 }
 
@@ -961,10 +926,7 @@ void ALandscapeProxy::PostEditUndo()
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 
-		if (GetWorld()->GetNavigationSystem())
-		{
-			GetWorld()->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
-		}
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 

@@ -353,6 +353,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void RecalculateBaseEyeHeight() override;
+	virtual void UpdateNavigationRelevance() override;
 	// End APawn Interface
 
 	/** Apply momentum caused by damage. */

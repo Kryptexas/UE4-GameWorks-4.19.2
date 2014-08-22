@@ -14,8 +14,6 @@ class ABlockingVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual bool UpdateNavigationRelevancy() override;
-
 	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;

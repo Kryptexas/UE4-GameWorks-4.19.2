@@ -54,6 +54,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
+	CapsuleComponent->bCanEverAffectNavigation = false;
 	RootComponent = CapsuleComponent;
 
 	JumpKeyHoldTime = 0.0f;
@@ -94,6 +95,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 		static FName CollisionProfileName(TEXT("CharacterMesh"));
 		Mesh->SetCollisionProfileName(CollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
+		Mesh->bCanEverAffectNavigation = false;
 	}
 }
 
@@ -153,6 +155,11 @@ void ACharacter::GetSimpleCollisionCylinder(float& CollisionRadius, float& Colli
 	{
 		Super::GetSimpleCollisionCylinder(CollisionRadius, CollisionHalfHeight);
 	}
+}
+
+void ACharacter::UpdateNavigationRelevance()
+{
+	CapsuleComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
 }
 
 void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)

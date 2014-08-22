@@ -25,7 +25,6 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "AI/Navigation/NavigationPath.h"
-#include "AI/Navigation/NavigationProxy.h"
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
@@ -36,11 +35,13 @@ static const uint32 MAX_NAV_SEARCH_NODES = 2048;
 #endif // WITH_RECAST
 
 DEFINE_LOG_CATEGORY(LogNavigation);
+DEFINE_LOG_CATEGORY_STATIC(LogNavOctree, Warning, All);
 
 DECLARE_CYCLE_STAT(TEXT("Rasterize triangles"), STAT_Navigation_RasterizeTriangles,STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: area register"), STAT_Navigation_TickNavAreaRegister, STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: rebuild"), STAT_Navigation_TickRebuild, STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: async pathfinding"), STAT_Navigation_TickAsyncPathfinding, STATGROUP_Navigation);
+DECLARE_CYCLE_STAT(TEXT("Debug NavOctree Time"), STAT_DebugNavOctree, STATGROUP_Navigation);
 
 //----------------------------------------------------------------------//
 // Stats
@@ -116,7 +117,7 @@ void FNavigationLockContext::LockUpdates()
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
 		if (NavSys)
 		{
-			NavSys->BeginFakeComponentChanges();
+			NavSys->AddNavigationUpdateLock(LockReason);
 		}
 	}
 	else
@@ -126,7 +127,7 @@ void FNavigationLockContext::LockUpdates()
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 			if (NavSys)
 			{
-				NavSys->BeginFakeComponentChanges();
+				NavSys->AddNavigationUpdateLock(LockReason);
 			}
 		}
 	}
@@ -141,7 +142,7 @@ void FNavigationLockContext::UnlockUpdates()
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
 		if (NavSys)
 		{
-			NavSys->EndFakeComponentChanges();
+			NavSys->RemoveNavigationUpdateLock(LockReason);
 		}
 	}
 	else
@@ -151,7 +152,7 @@ void FNavigationLockContext::UnlockUpdates()
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 			if (NavSys)
 			{
-				NavSys->EndFakeComponentChanges();
+				NavSys->RemoveNavigationUpdateLock(LockReason);
 			}
 		}
 	}
@@ -194,7 +195,7 @@ UNavigationSystem::UNavigationSystem(const FPostConstructInitializeProperties& P
 	, DirtyAreasUpdateTime(0)
 {
 #if WITH_EDITOR
-	bFakeComponentChangesBeingApplied = false;
+	NavUpdateLockFlags = 0;
 #endif
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
@@ -205,10 +206,9 @@ UNavigationSystem::UNavigationSystem(const FPostConstructInitializeProperties& P
 	
 		NavOctree = new FNavigationOctree(FVector(0,0,0), 64000);
 #if WITH_NAVIGATION_GENERATOR
-#if WITH_RECAST
-		NavOctree->NavigableGeometryExportDelegate = FNavigationOctree::FNavigableGeometryExportDelegate::CreateStatic(&FRecastNavMeshGenerator::ExportActorGeometry);
-		NavOctree->NavigableGeometryComponentExportDelegate = FNavigationOctree::FNavigableGeometryComponentExportDelegate::CreateStatic(&FRecastNavMeshGenerator::ExportComponentGeometry);
-#endif // WITH_RECAST
+	#if WITH_RECAST
+		NavOctree->ComponentExportDelegate = FNavigationOctree::FNavigableGeometryComponentExportDelegate::CreateStatic(&FRecastNavMeshGenerator::ExportComponentGeometry);
+	#endif // WITH_RECAST
 		FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UNavigationSystem::OnLevelAddedToWorld);
 		FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UNavigationSystem::OnLevelRemovedFromWorld);
 #endif // WITH_NAVIGATION_GENERATOR	
@@ -1187,6 +1187,32 @@ bool UNavigationSystem::IsThereAnywhereToBuildNavigation() const
 	return bCreateNavigation;
 }
 
+bool UNavigationSystem::IsNavigationRelevant(const AActor* TestActor) const
+{
+	const INavRelevantInterface* NavInterface = InterfaceCast<const INavRelevantInterface>(TestActor);
+	if (NavInterface && NavInterface->IsNavigationRelevant())
+	{
+		return true;
+	}
+
+	TArray<UActorComponent*> Components;
+	if (TestActor)
+	{
+		TestActor->GetComponents(Components);
+	}
+
+	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	{
+		NavInterface = InterfaceCast<const INavRelevantInterface>(Components[Idx]);
+		if (NavInterface && NavInterface->IsNavigationRelevant())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 FBox UNavigationSystem::GetWorldBounds() const
 {
 	checkSlow(IsInGameThread() == true);
@@ -1198,7 +1224,7 @@ FBox UNavigationSystem::GetWorldBounds() const
 		// @TODO - super slow! Need to ask tech guys where I can get this from
 		for( FActorIterator It(GetWorld()); It; ++It )
 		{
-			if ((*It)->IsNavigationRelevant() == true)
+			if (IsNavigationRelevant(*It))
 			{
 				NavigableWorldBounds += (*It)->GetComponentsBoundingBox();
 			}
@@ -1218,7 +1244,7 @@ FBox UNavigationSystem::GetLevelBounds(ULevel* InLevel) const
 		const int32 ActorCount = InLevel->Actors.Num();
 		for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex, ++Actor)
 		{
-			if (*Actor != NULL && (*Actor)->IsNavigationRelevant() == true)
+			if (IsNavigationRelevant(*Actor))
 			{
 				NavigableLevelBounds += (*Actor)->GetComponentsBoundingBox();
 			}
@@ -1786,108 +1812,60 @@ void UNavigationSystem::AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags)
 
 int32 GetDirtyFlagHelper(int32 UpdateFlags, int32 DefaultValue)
 {
-	return ((UpdateFlags & UNavigationSystem::OctreeUpdate_Modifiers) != 0) ? ENavigationDirtyFlag::DynamicModifier :
-		((UpdateFlags & UNavigationSystem::OctreeUpdate_Geometry) != 0) ? ENavigationDirtyFlag::All :
+	return ((UpdateFlags & UNavigationSystem::OctreeUpdate_Geometry) != 0) ? ENavigationDirtyFlag::All :
+		((UpdateFlags & UNavigationSystem::OctreeUpdate_Modifiers) != 0) ? ENavigationDirtyFlag::DynamicModifier :		
 		DefaultValue;
 }
 
-FSetElementId UNavigationSystem::RegisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags) 
-{ 
-	FSetElementId RequestId;
-
-#if WITH_EDITOR
-	if (AreFakeComponentChangesBeingApplied())
-	{
-		// SMALL HACK: don't have to unregister actor, Static lighting system is refreshing components in world
-		return RequestId;
-	}
-#endif
-	
-	if (Actor->IsNavigationRelevant())
-	{
-		INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
-		UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
-		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
-		
-		// actor's shouldn't use proxy and per component navigation at the same time (conflict ownership of octree element)
-		if (bPerComponentNavigation && ProxyOb)
-		{
-			UE_LOG(LogNavigation, Warning, TEXT("Clearing navigation proxy of %s (provides per component data!)"), *GetNameSafe(Actor));
-			ProxyOb = NULL;
-		}
-
-		// dirty proxy will force update
-		if (ProxyOb && ProxyOb->bDirty)
-		{
-			ProxyOb->bDirty = false;
-
-			UnregisterNavigationRelevantActor(Actor, UpdateFlags | OctreeUpdate_Refresh);
-		}
-
-		UObject* ElementOwner = ProxyOb ? (UObject*)ProxyOb : Actor;
-		RequestId = RegisterNavOctreeElement(ElementOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
-	}
-
-	return RequestId;
-}
-
-FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds)
+FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 	FSetElementId SetId;
 
 #if WITH_EDITOR
-	if (AreFakeComponentChangesBeingApplied())
+	if (IsNavigationRegisterLocked())
 	{
-		// SMALL HACK: don't have to unregister actor, Static lighting system is refreshing components in world
 		return SetId;
 	}
 #endif
 
-	if (NavOctree == NULL || ElementOwner == NULL)
+	if (NavOctree == NULL || ElementOwner == NULL || ElementInterface == NULL)
 	{
 		return SetId;
 	}
 
-	//
-	// HACK: This is necessary to work around the case where a PerComponentNavigation actor has its components registered,
-	// which registers the actor, and also UpdateNavOctree(Component) is called in the same frame.
-	//
-	// A better solution would be to make the RegisterNavigationRelevantActor function add only individual components if
-	// the actor is using PerComponentNavigation.
-	//
-	UPrimitiveComponent* Component = Cast<UPrimitiveComponent>(ElementOwner);
-	if (Component && Component->GetOwner())
-	{
-		INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Component->GetOwner());
-		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
-		if (bPerComponentNavigation)
-		{
-			FSetElementId ActorSetId = PendingOctreeUpdates.FindId(Component->GetOwner());
-			if (ActorSetId.IsValidId())
-			{
-				return ActorSetId;
-			}
-		}
-	}
+	const bool bIsRelevant = ElementInterface->IsNavigationRelevant();
+	UE_LOG(LogNavOctree, Log, TEXT("REG %s %s"), *GetNameSafe(ElementOwner), bIsRelevant ? TEXT("[relevant]") : TEXT(""));
 
-	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(ElementOwner);
-	if (ElementId == NULL)
+	if (bIsRelevant)
 	{
-		FNavigationDirtyElement UpdateInfo(ElementOwner, GetDirtyFlagHelper(UpdateFlags, 0));
-		if (!(Bounds == FNavigationSystem::InvalidBoundingBox))
-		{
-			UpdateInfo.SetBounds(Bounds);
-		}
+		bool bCanAdd = false;
 
-		SetId = PendingOctreeUpdates.FindId(UpdateInfo);
-		if (SetId.IsValidId())
+		UObject* ParentNode = ElementInterface->GetNavigationParent();
+		if (ParentNode)
 		{
-			// make sure this request stays, in case it has been invalidated already
-			PendingOctreeUpdates[SetId] = UpdateInfo;
+			OctreeChildNodesMap.AddUnique(ParentNode, ElementOwner);
+			bCanAdd = true;
 		}
 		else
 		{
-			SetId = PendingOctreeUpdates.Add(UpdateInfo);
+			const FOctreeElementId* ElementId = GetObjectsNavOctreeId(ElementOwner);
+			bCanAdd = (ElementId == NULL);
+		}
+
+		if (bCanAdd)
+		{
+			FNavigationDirtyElement UpdateInfo(ElementOwner, ElementInterface, GetDirtyFlagHelper(UpdateFlags, 0));
+
+			SetId = PendingOctreeUpdates.FindId(UpdateInfo);
+			if (SetId.IsValidId())
+			{
+				// make sure this request stays, in case it has been invalidated already
+				PendingOctreeUpdates[SetId] = UpdateInfo;
+			}
+			else
+			{
+				SetId = PendingOctreeUpdates.Add(UpdateInfo);
+			}
 		}
 	}
 
@@ -1909,118 +1887,45 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		return;
 	}
 
-	// no check for owner's validity are performed, nor its presence
-	// in NavOctree - function assumes callee responsibility in this 
-	// regard
-
 	UObject* ElementOwner = DirtyElement.Owner.Get();
-	AActor* ActorOwner = Cast<AActor>(ElementOwner);
-	UActorComponent* CompOwner = Cast<UActorComponent>(ElementOwner);
-	
-	UNavigationProxy* NavProxy = Cast<UNavigationProxy>(ElementOwner);
-	if (NavProxy)
-	{
-		ActorOwner = NavProxy->MyOwner;
-	}
-
-	if (ElementOwner == NULL ||
-		(ActorOwner && ActorOwner->GetWorld() == NULL) ||
-		(CompOwner && CompOwner->GetWorld() == NULL))
+	if (ElementOwner == NULL || ElementOwner->IsPendingKill())
 	{
 		return;
 	}
 
-	if (ActorOwner)
-	{
-		INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(ActorOwner);
-		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
-
-		if (bPerComponentNavigation)
-		{
-			TArray<UActorComponent*> Components;
-			ActorOwner->GetComponents(Components);
-			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-			{
-				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[ComponentIndex]);
-				if (PrimComp && PrimComp->CanEverAffectNavigation())
-				{
-					AddComponentElementToNavOctree(*PrimComp, DirtyElement, PrimComp->Bounds.GetBox());
-				}
-				else
-				{
-					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
-					if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-					{
-						NavRelevantComponent->OnOwnerRegistered();
-						AddComponentElementToNavOctree(*NavRelevantComponent, DirtyElement, NavRelevantComponent->Bounds);
-					}
-				}
-			}
-		}
-		else
-		{
-			TArray<UNavRelevantComponent*> Components;
-			ActorOwner->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
-			{
-				UNavRelevantComponent* NavRelevantComponent = Components[i];
-				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-				{
-					NavRelevantComponent->OnOwnerRegistered();
-					AddComponentElementToNavOctree(*NavRelevantComponent, DirtyElement, NavRelevantComponent->Bounds);
-				}
-			}
-
-			AddActorElementToNavOctree(*ActorOwner, DirtyElement);
-		}
-	}
-	else if (CompOwner)
-	{
-		AddComponentElementToNavOctree(*CompOwner, DirtyElement, DirtyElement.BoundsOverride);
-	}
-}
-
-void UNavigationSystem::AddActorElementToNavOctree(AActor& Actor, const FNavigationDirtyElement& DirtyElement)
-{
-	ensure(GetObjectsNavOctreeId(&Actor) == NULL);
-
-	// notify relevant components about adding owner to octree
-	TArray<UNavRelevantComponent*> Components;
-	Actor.GetComponents(Components);
-	for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-	{
-		UNavRelevantComponent* NavRelevantComponent = Components[ComponentIndex];
-		if (NavRelevantComponent->IsNavigationRelevant())
-		{
-			NavRelevantComponent->OnOwnerRegistered();
-		}
-	}
-
 	FNavigationOctreeElement GeneratedData;
-	NavOctree->AddActor(Actor, GeneratedData);
+	const FBox ElementBounds = DirtyElement.NavInterface->GetNavigationBounds();
 
-#if WITH_NAVIGATION_GENERATOR && NAVOCTREE_CONTAINS_COLLISION_DATA
-	const FBox BBox = GeneratedData.Bounds.GetBox();
-	const bool bValidBBox = BBox.IsValid && !BBox.GetSize().IsNearlyZero();
-	if (bValidBBox && !GeneratedData.IsEmpty())
+	UObject* ParentNode = DirtyElement.NavInterface->GetNavigationParent();
+	if (ParentNode)
 	{
-		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data.GetDirtyFlag();
-		AddDirtyArea(BBox, DirtyFlag);
-	}
-#endif // WITH_NAVIGATION_GENERATOR
-}
+		// check if parent node is waiting in queue
+		const FSetElementId ParentRequestId = PendingOctreeUpdates.FindId(FNavigationDirtyElement(ParentNode));
+		if (ParentRequestId.IsValidId())
+		{
+			FNavigationDirtyElement& ParentNode = PendingOctreeUpdates[ParentRequestId];
+			AddElementToNavOctree(ParentNode);
 
-void UNavigationSystem::AddComponentElementToNavOctree(UActorComponent& ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds)
-{
-	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(&ActorComp);
-	if (ElementId != NULL)
+			// mark as invalid so it won't be processed twice
+			ParentNode.bInvalidRequest = true;
+		}
+
+		const FOctreeElementId* ParentId = GetObjectsNavOctreeId(ParentNode);
+		if (ParentId)
+		{
+			UE_LOG(LogNavOctree, Log, TEXT("ADD %s to %s"), *GetNameSafe(ElementOwner), *GetNameSafe(ParentNode));
+			NavOctree->AppendToNode(*ParentId, DirtyElement.NavInterface, ElementBounds, GeneratedData);
+		}
+		else 
+		{
+			UE_LOG(LogNavOctree, Warning, TEXT("Can't add node [%s] - parent [%s] not found in octree!"), *GetNameSafe(ElementOwner), *GetNameSafe(ParentNode));
+		}
+	}
+	else
 	{
-		RemoveNavOctreeElementId(*ElementId, OctreeUpdate_Default);
-		RemoveObjectsNavOctreeId(&ActorComp);
+		UE_LOG(LogNavOctree, Log, TEXT("ADD %s"), *GetNameSafe(ElementOwner));
+		NavOctree->AddNode(ElementOwner, DirtyElement.NavInterface, ElementBounds, GeneratedData);
 	}
-
-	FNavigationOctreeElement GeneratedData;
-	NavOctree->AddComponent(ActorComp, Bounds, GeneratedData);
 
 #if WITH_NAVIGATION_GENERATOR && NAVOCTREE_CONTAINS_COLLISION_DATA
 	const FBox BBox = GeneratedData.Bounds.GetBox();
@@ -2054,100 +1959,48 @@ bool UNavigationSystem::GetNavOctreeElementData(UObject* NodeOwner, int32& Dirty
 	return false;
 }
 
-void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 UpdateFlags)
+void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 #if WITH_EDITOR
-	if (AreFakeComponentChangesBeingApplied())
+	if (IsNavigationUnregisterLocked())
 	{
-		// SMALL HACK: don't have to unregister actor, Static lighting system is refreshing components in world
 		return;
 	}
 #endif
 
-	INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
-	UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
-	const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
-
-	// actor's shouldn't use proxy and per component navigation at the same time (conflict ownership of octree element)
-	if (bPerComponentNavigation && ProxyOb)
-	{
-		UE_LOG(LogNavigation, Warning, TEXT("Clearing navigation proxy of %s (provides per component data!)"), *GetNameSafe(Actor));
-		ProxyOb = NULL;
-	}
-
-	if (bPerComponentNavigation)
-	{
-		TArray<UPrimitiveComponent*> Components;
-		Actor->GetComponents(Components);
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			// always unregister, otherwise it will skip no longer relevant components
-
-			UPrimitiveComponent* PrimComp = Components[ComponentIndex];
-			if (PrimComp)
-			{
-				UnregisterNavOctreeElement(PrimComp, UpdateFlags, PrimComp->Bounds.GetBox());
-			}
-			else
-			{
-				UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
-				if (NavRelevantComponent)
-				{
-					NavRelevantComponent->OnOwnerUnregistered();
-
-					UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags, NavRelevantComponent->Bounds);
-				}
-			}
-		}
-	}
-	else
-	{
-		TArray<UNavRelevantComponent*> Components;
-		Actor->GetComponents(Components);
-		// notify relevant components about removing owner from octree
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			// always unregister, otherwise it will skip no longer relevant components
-
-			UNavRelevantComponent* NavRelevantComponent = Components[ComponentIndex];
-			if (NavRelevantComponent)
-			{
-				NavRelevantComponent->OnOwnerUnregistered();
-				UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags, NavRelevantComponent->Bounds);
-			}
-		}
-
-		UObject* ElementOwner = ProxyOb ? (UObject*)ProxyOb : Actor;
-		UnregisterNavOctreeElement(ElementOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
-	}
-}
-
-void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds)
-{
-#if WITH_EDITOR
-	if (AreFakeComponentChangesBeingApplied())
-	{
-		// SMALL HACK: don't have to unregister actor, Static lighting system is refreshing components in world
-		return;
-	}
-#endif
-	if (NavOctree == NULL || ElementOwner == NULL)
+	if (NavOctree == NULL || ElementOwner == NULL || ElementInterface == NULL)
 	{
 		return;
 	}
 
 	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(ElementOwner);
+	UE_LOG(LogNavOctree, Log, TEXT("UNREG %s %s"), *GetNameSafe(ElementOwner), ElementId ? TEXT("[exists]") : TEXT(""));
+
 	if (ElementId != NULL)
 	{
 		RemoveNavOctreeElementId(*ElementId, UpdateFlags);
 		RemoveObjectsNavOctreeId(ElementOwner);
+	}
+	else
+	{
+		const bool bCanRemoveChildNode = (UpdateFlags & OctreeUpdate_ParentChain) == 0;
+		UObject* ParentNode = ElementInterface->GetNavigationParent();
+		if (ParentNode && bCanRemoveChildNode)
+		{
+			// if node has navigation parent (= doesn't exists in octree on its own)
+			// and it's not part of parent chain update
+			// remove it from map and force update on parent to rebuild octree element
+
+			OctreeChildNodesMap.RemoveSingle(ParentNode, ElementOwner);
+			UpdateNavOctreeParentChain(ParentNode);
+		}
 	}
 
 	// mark pending update as invalid, it will be dirtied according to currently active settings
 	const bool bCanInvalidateQueue = (UpdateFlags & OctreeUpdate_Refresh) == 0;
 	if (bCanInvalidateQueue)
 	{
-		const FSetElementId RequestId = PendingOctreeUpdates.FindId(ElementOwner);
+		const FSetElementId RequestId = PendingOctreeUpdates.FindId(FNavigationDirtyElement(ElementOwner));
 		if (RequestId.IsValidId())
 		{
 			PendingOctreeUpdates[RequestId].bInvalidRequest = true;
@@ -2169,90 +2022,102 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 	}
 }
 
-void UNavigationSystem::UpdateNavOctree(AActor* Actor, int32 UpdateFlags)
+void UNavigationSystem::UpdateNavOctree(class AActor* Actor)
 {
-	INC_DWORD_STAT(STAT_Navigation_UpdateNavOctree);
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
-	if (Actor->IsNavigationRelevant())
+	INavRelevantInterface* NavElement = InterfaceCast<INavRelevantInterface>(Actor);
+	if (NavElement)
 	{
-		const INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
-		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
-		if (bPerComponentNavigation)
+		UNavigationSystem* NavSys = Actor ? UNavigationSystem::GetCurrent(Actor->GetWorld()) : NULL;
+		if (NavSys)
 		{
-			TArray<UActorComponent*> Components;
-			Actor->GetComponents(Components);
-			// make sure it's unregistered correctly
-			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
+			NavSys->UpdateNavOctreeElement(Actor, NavElement, OctreeUpdate_Modifiers);
+		}
+	}
+}
+
+void UNavigationSystem::UpdateNavOctree(class UActorComponent* Comp)
+{
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
+
+	// special case for early out: use cached nav relevancy
+	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp);
+	if (PrimComp && !PrimComp->bNavigationRelevant)
+	{
+		return;
+	}
+
+	INavRelevantInterface* NavElement = InterfaceCast<INavRelevantInterface>(Comp);
+	if (NavElement)
+	{
+		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
+		if (OwnerActor)
+		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
+			if (NavSys)
 			{
-				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[ComponentIndex]);
-				if (PrimComp && PrimComp->CanEverAffectNavigation())
+				if (OwnerActor->IsComponentRelevantForNavigation(Comp))
 				{
-					UnregisterNavOctreeElement(PrimComp, UpdateFlags | OctreeUpdate_Refresh, PrimComp->Bounds.GetBox());
+					NavSys->UpdateNavOctreeElement(Comp, NavElement, OctreeUpdate_Default);
 				}
 				else
 				{
-					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
-					if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-					{
-						UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags | OctreeUpdate_Refresh, NavRelevantComponent->Bounds);
-					}
+					NavSys->UnregisterNavOctreeElement(Comp, NavElement, OctreeUpdate_Default);
 				}
 			}
 		}
-		else
-		{
-			TArray<UNavRelevantComponent*> Components;
-			Actor->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
-			{
-				UNavRelevantComponent* NavRelevantComponent = Components[i];
-				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-				{
-					UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags | OctreeUpdate_Refresh, NavRelevantComponent->Bounds);
-				}
-			}
-		}
-
-		UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
-		UObject* NodeOwner = (ProxyOb && !bPerComponentNavigation) ? (UObject*)ProxyOb : Actor;
-
-		UpdateNavOctreeElement(NodeOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
 	}
 }
 
-void UNavigationSystem::UpdateNavOctree(UActorComponent* ActorComp, int32 UpdateFlags)
+void UNavigationSystem::UpdateNavOctreeAll(class AActor* Actor)
+{
+	if (Actor)
+	{
+		UpdateNavOctree(Actor);
+
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+
+		for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+		{
+			UpdateNavOctree(Components[Idx]);
+		}
+	}
+}
+
+void UNavigationSystem::ClearNavOctreeAll(class AActor* Actor)
+{
+	if (Actor)
+	{
+		OnActorUnregistered(Actor);
+
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+
+		for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+		{
+			OnComponentUnregistered(Components[Idx]);
+		}
+	}
+}
+
+void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 	INC_DWORD_STAT(STAT_Navigation_UpdateNavOctree);
 
-	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ActorComp);
-	UNavRelevantComponent* NavComp = Cast<UNavRelevantComponent>(ActorComp);
-
-	if (PrimComp)
-	{
-		UpdateNavOctreeElement(ActorComp, UpdateFlags, PrimComp->Bounds.GetBox());
-	}
-	else if (NavComp)
-	{
-		UpdateNavOctreeElement(ActorComp, UpdateFlags, NavComp->Bounds);
-	}	
-}
-
-void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, int32 UpdateFlags, const FBox& Bounds)
-{
 	// grab existing octree data
 	FBox CurrentBounds;
 	int32 CurrentFlags;
 	const bool bAlreadyExists = GetNavOctreeElementData(ElementOwner, CurrentFlags, CurrentBounds);
 
-	if (bAlreadyExists)
-	{
-		// don't invalidate pending requests
-		UpdateFlags |= OctreeUpdate_Refresh;
+	// don't invalidate pending requests
+	UpdateFlags |= OctreeUpdate_Refresh;
 
-		UnregisterNavOctreeElement(ElementOwner, UpdateFlags, CurrentBounds);
-	}
+	// always try to unregister, even if element owner doesn't exists in octree (parent nodes)
+	UnregisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
 
-	const FSetElementId RequestId = RegisterNavOctreeElement(ElementOwner, UpdateFlags, Bounds);
+	const FSetElementId RequestId = RegisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
 
 	// add original data to pending registration request
 	// so it could be dirtied properly when system receive unregister request while actor is still queued
@@ -2262,6 +2127,102 @@ void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, int32 Upda
 		UpdateInfo.PrevFlags = CurrentFlags;
 		UpdateInfo.PrevBounds = CurrentBounds;
 		UpdateInfo.bHasPrevData = bAlreadyExists;
+	}
+}
+
+void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
+{
+	TArray<UObject*> ChildNodes;
+
+	OctreeChildNodesMap.MultiFind(ElementOwner, ChildNodes);
+	if (ChildNodes.Num() == 0)
+	{
+		return;
+	}
+
+	INavRelevantInterface* ElementInterface = InterfaceCast<INavRelevantInterface>(ElementOwner);
+	const int32 UpdateFlags = OctreeUpdate_ParentChain | OctreeUpdate_Refresh;
+	TArray<INavRelevantInterface*> ChildNavInterfaces;
+	ChildNavInterfaces.AddZeroed(ChildNodes.Num());
+	
+	for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
+	{
+		ChildNavInterfaces[Idx] = InterfaceCast<INavRelevantInterface>(ChildNodes[Idx]);
+		UnregisterNavOctreeElement(ChildNodes[Idx], ChildNavInterfaces[Idx], UpdateFlags);
+	}
+
+	UnregisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+	RegisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+
+	for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
+	{
+		RegisterNavOctreeElement(ChildNodes[Idx], ChildNavInterfaces[Idx], UpdateFlags);
+	}
+}
+
+void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
+{
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
+	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Comp);
+	if (NavInterface)
+	{
+		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
+		if (OwnerActor && OwnerActor->IsComponentRelevantForNavigation(Comp))
+		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
+			if (NavSys)
+			{
+				NavSys->RegisterNavOctreeElement(Comp, NavInterface, OctreeUpdate_Default);
+			}
+		}
+	}
+}
+
+void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
+{
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
+	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Comp);
+	if (NavInterface)
+	{
+		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
+		if (OwnerActor)
+		{
+			// skip IsComponentRelevantForNavigation check, it's only for adding new stuff
+
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
+			if (NavSys)
+			{
+				NavSys->UnregisterNavOctreeElement(Comp, NavInterface, OctreeUpdate_Default);
+			}
+		}
+	}
+}
+
+void UNavigationSystem::OnActorRegistered(class AActor* Actor)
+{
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
+	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Actor);
+	if (NavInterface)
+	{
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
+		if (NavSys)
+		{
+			NavSys->RegisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+		}
+	}
+}
+
+void UNavigationSystem::OnActorUnregistered(class AActor* Actor)
+{
+	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
+	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Actor);
+	if (NavInterface)
+	{
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
+		if (NavSys)
+		{
+			NavSys->UnregisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+		}
 	}
 }
 
@@ -2280,10 +2241,10 @@ void UNavigationSystem::PopulateNavOctree()
 		{
 			AActor* Actor = Level->Actors[ActorIndex];
 
-			const bool bLegalActor = Actor && Actor->IsNavigationRelevant() && !Actor->IsPendingKill();
+			const bool bLegalActor = Actor && !Actor->IsPendingKill();
 			if (bLegalActor)
 			{
-				UpdateNavOctree(Actor);
+				UpdateNavOctreeAll(Actor);
 			}
 		}
 	}
@@ -2733,10 +2694,7 @@ void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 		FNavigationOctreeElement BSPElem;
 		FRecastNavMeshGenerator::ExportVertexSoupGeometry(*LevelGeom, BSPElem.Data);
 
-		BSPElem.Bounds = BSPElem.Data.Bounds;
-		BSPElem.Owner = Level;
-		
-		NavOctree->AddNode(BSPElem);
+		NavOctree->AddNode(Level, NULL, BSPElem.Data.Bounds, BSPElem);
 
 		AddDirtyArea(BSPElem.Bounds.GetBox(), ENavigationDirtyFlag::All);
 	}

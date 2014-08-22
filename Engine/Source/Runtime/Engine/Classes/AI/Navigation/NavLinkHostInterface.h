@@ -13,7 +13,6 @@ class UNavLinkHostInterface : public UInterface
 	GENERATED_UINTERFACE_BODY()
 };
 
-/** classes implementing INavLinkHostInterface should also implement INavRelevantActorInterface */
 class ENGINE_API INavLinkHostInterface
 {
 	GENERATED_IINTERFACE_BODY()

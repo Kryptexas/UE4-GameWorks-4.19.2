@@ -11,7 +11,6 @@
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavLinkTrivial.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
-#include "AI/Navigation/NavigationProxy.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull
@@ -434,6 +433,13 @@ void FSimpleLinkNavModifier::AddSegmentLink(const FNavigationSegmentLink& InLink
 //----------------------------------------------------------------------//
 // FCompositeNavMeshModifier
 //----------------------------------------------------------------------//
+void FCompositeNavModifier::Shrink()
+{
+	Areas.Shrink();
+	SimpleLinks.Shrink();
+	CustomLinks.Shrink();
+}
+
 void FCompositeNavModifier::Reset()
 {
 	Areas.Reset();
@@ -464,9 +470,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 		return Result;
 	}
 
-	const AActor* ActorOwner = Cast<UNavigationProxy>(ObjectOwner) ? ((UNavigationProxy*)ObjectOwner)->MyOwner :
-		Cast<AActor>(ObjectOwner) ? (AActor*)ObjectOwner : Cast<AActor>(ObjectOwner->GetOuter());
-
+	const AActor* ActorOwner = Cast<AActor>(ObjectOwner) ? (AActor*)ObjectOwner : Cast<AActor>(ObjectOwner->GetOuter());
 	if (ActorOwner == NULL)
 	{
 		return Result;

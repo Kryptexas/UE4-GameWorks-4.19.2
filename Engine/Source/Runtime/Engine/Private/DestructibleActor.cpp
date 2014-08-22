@@ -13,6 +13,7 @@ ADestructibleActor::ADestructibleActor(const class FPostConstructInitializePrope
 	: Super(PCIP)
 {
 	DestructibleComponent = PCIP.CreateDefaultSubobject<UDestructibleComponent>(this, TEXT("DestructibleComponent0"));
+	DestructibleComponent->bCanEverAffectNavigation = bAffectNavigation;
 	RootComponent = DestructibleComponent;
 }
 

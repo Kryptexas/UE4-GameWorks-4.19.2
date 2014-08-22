@@ -7,6 +7,7 @@
 #include "Components/SceneComponent.h"
 #include "SceneTypes.h"
 #include "Engine/EngineTypes.h"
+#include "AI/Navigation/NavRelevantInterface.h"
 
 #include "PrimitiveComponent.generated.h"
 
@@ -88,7 +89,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentBeginTouchOverSignature,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 
 UCLASS(abstract, HideCategories=(Mobility), ShowCategories=(PhysicsVolume))
-class ENGINE_API UPrimitiveComponent : public USceneComponent
+class ENGINE_API UPrimitiveComponent : public USceneComponent, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -389,6 +390,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Collision, AdvancedDisplay)
 	uint32 bCanEverAffectNavigation:1;
 
+	/** cached navigation relevancy flag for collision updates */
+	uint32 bNavigationRelevant : 1;
+
 protected:
 
 	/** Returns true if all descendant components that we can possibly collide with use relative location and rotation. */
@@ -401,9 +405,7 @@ protected:
 	float LastCheckedAllCollideableDescendantsTime;
 
 	/** if set to true then DoCustomNavigableGeometryExport will be called to collect navigable 
-	 *	geometry of this component.
-	 *	@NOTE that owner Actor needs to be "navigation relevant" (Actor->IsNavigationRelevant() == true)
-	 *	to have this mechanism triggered at all */
+	 *	geometry of this component. */
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> bHasCustomNavigableGeometry;
 
 	/** Next id to be used by a component. */
@@ -1119,7 +1121,6 @@ public:
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
 	virtual FVector GetComponentVelocity() const override;
-	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const override;
 	//End USceneComponent Interface
 
 	/**
@@ -1411,8 +1412,19 @@ public:
 		return bCanEverAffectNavigation;
 	}
 
-	/** turn off navigation relevance, must be called before component is registered! */
-	void DisableNavigationRelevance();
+	/** set value of bCanEverAffectNavigation flag and update navigation octree if needed */
+	void SetCanEverAffectNavigation(bool bRelevant);
+
+	DEPRECATED(4.5, "UPrimitiveComponent::DisableNavigationRelevance() is deprecated, use SetCanEverAffectNavigation() instead.")
+	void DisableNavigationRelevance()
+	{
+		SetCanEverAffectNavigation(false);
+	}
+
+	// Begin INavRelevantInterface Interface
+	virtual FBox GetNavigationBounds() const;
+	virtual bool IsNavigationRelevant() const;
+	// End INavRelevantInterface Interface
 
 	FORCEINLINE EHasCustomNavigableGeometry::Type HasCustomNavigableGeometry() const { return bHasCustomNavigableGeometry; }
 

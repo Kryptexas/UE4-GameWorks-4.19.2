@@ -108,7 +108,7 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 
 	check(StaticLightingSystem);
 
-	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld());
+	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld(), ENavigationLockReason::LightingUpdate);
 
 	if (!bDiscardResults)
 	{

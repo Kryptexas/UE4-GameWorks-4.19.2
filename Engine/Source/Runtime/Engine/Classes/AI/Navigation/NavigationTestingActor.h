@@ -144,7 +144,6 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	void TickMe();
 #endif // WITH_EDITOR
 
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override { return &NavAgentProps; }
 	virtual FVector GetNavAgentLocation() const override;

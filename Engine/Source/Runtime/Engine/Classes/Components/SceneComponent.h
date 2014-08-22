@@ -707,9 +707,6 @@ public:
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
 	virtual FBoxSphereBounds GetPlacementExtent() const;
 
-	/** Is component (not including attachments) relevant for navigation updates? */
-	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
-
 #if WITH_BODY_WELDING
 
 	/**
@@ -740,9 +737,6 @@ protected:
 
 	/** Called after changing transform, tries to update navigation octree */
 	void UpdateNavigationData();
-
-	/** Check if given component or any of its attachments are relevant for navigation updates */
-	static bool CheckNavigationRelevancy(USceneComponent* TestComponent);
 };
 
 

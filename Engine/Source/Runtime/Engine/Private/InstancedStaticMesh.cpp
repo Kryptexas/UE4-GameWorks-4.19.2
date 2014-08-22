@@ -1584,10 +1584,7 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 
 	MarkRenderStateDirty();
 
-	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-	}
+	UNavigationSystem::UpdateNavOctree(this);
 }
 
 void UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
@@ -1678,10 +1675,7 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
-	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-	}
+	UNavigationSystem::UpdateNavOctree(this);
 
 	return true;
 }
@@ -1696,10 +1690,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
-	if (IsCollisionEnabled() && GetWorld()->GetNavigationSystem() != nullptr)
-	{
-		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-	}
+	UNavigationSystem::UpdateNavOctree(this);
 }
 
 int32 UInstancedStaticMeshComponent::GetInstanceCount() const
@@ -1735,7 +1726,21 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 	if (StaticMesh != NULL)
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (NavCollision != NULL && NavCollision->bHasConvexGeometry)
+		if (NavCollision && NavCollision->bIsDynamicObstacle)
+		{
+			for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
+			{
+				const FVector Scale3D = InstanceData.Transform.GetScaleVector();
+				// if any of scales is 0 there's no point in exporting it
+				if (!Scale3D.IsZero())
+				{
+					FCompositeNavModifier Modifiers;
+					NavCollision->GetNavigationModifier(Modifiers, FTransform(InstanceData.Transform) * ComponentToWorld);
+					GeomExport->AddNavModifiers(Modifiers);
+				}
+			}
+		}
+		else if (NavCollision && NavCollision->bHasConvexGeometry)
 		{
 			for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
 			{
@@ -1809,6 +1814,13 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 	}
 
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+
+void UInstancedStaticMeshComponent::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	UNavigationSystem::UpdateNavOctree(this);
 }
 #endif
 

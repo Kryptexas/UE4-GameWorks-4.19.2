@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AI/Navigation/NavRelevantActorInterface.h"
 #include "Engine/EngineTypes.h"
 #include "GameFramework/Actor.h"
 #include "PhysicsEngine/BodyInstance.h"
@@ -185,7 +184,7 @@ namespace ELandscapeLODFalloff
 }
 
 UCLASS(NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
-class ALandscapeProxy : public AActor, public INavRelevantActorInterface
+class ALandscapeProxy : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -342,8 +341,6 @@ public:
 	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
-	virtual bool UpdateNavigationRelevancy() override;
-	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 #if WITH_EDITOR
 	virtual void Destroyed() override;
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
@@ -356,10 +353,6 @@ public:
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
 	virtual ALandscape* GetLandscapeActor();
-
-	// Begin INavRelevantActorInterface Interface
-	virtual bool DoesSupplyPerComponentNavigationCollision() const override{ return true; }
-	// End INavRelevantActorInterface Interface
 
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;

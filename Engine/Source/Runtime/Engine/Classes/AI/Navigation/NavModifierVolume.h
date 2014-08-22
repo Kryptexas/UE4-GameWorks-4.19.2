@@ -2,19 +2,20 @@
 
 #pragma once 
 #include "GameFramework/Volume.h"
+#include "NavRelevantInterface.h"
 #include "NavModifierVolume.generated.h"
 
 /** 
- *	allows applying selected NavAreaDefinition to navmesh, using Volume's shape
+ *	Allows applying selected AreaClass to navmesh, using Volume's shape
  */
 UCLASS(hidecategories=(Navigation, "AI|Navigation"))
-class ANavModifierVolume : public AVolume, public INavRelevantActorInterface
+class ANavModifierVolume : public AVolume, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Default)
 	TSubclassOf<class UNavArea> AreaClass;
 
-	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const override;
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(true); return true; }
+	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const override;
+	virtual FBox GetNavigationBounds() const;
 };

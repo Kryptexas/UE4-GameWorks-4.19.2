@@ -507,8 +507,6 @@ void UPrimitiveComponent::SetCollisionResponseToChannels(const FCollisionRespons
 
 void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 {
-	const bool bOldNavRelevant = IsRegistered() && IsNavigationRelevant(true);
-
 	if (BodyInstance.GetCollisionEnabled() != NewType)
 	{
 		BodyInstance.SetCollisionEnabled(NewType);
@@ -516,25 +514,11 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 
 		EnsurePhysicsStateCreated();
 	}
-
-	AActor* Owner = GetOwner();
-	if (Owner && IsRegistered())
-	{
-		const bool bNewNavRelevant = IsNavigationRelevant(true);
-		const bool bOwnerNavRelevant = Owner->IsNavigationRelevant();
-
-		if (bNewNavRelevant != bOldNavRelevant || bNewNavRelevant != bOwnerNavRelevant)
-		{
-			Owner->UpdateNavigationRelevancy();
-		}
-	}
 }
 
 // @todo : implement skeletalmeshcomponent version
 void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 {
-	const bool bOldNavRelevant = IsRegistered() && IsNavigationRelevant(true);
-
 	ECollisionEnabled::Type OldCollisionEnabled = BodyInstance.GetCollisionEnabled();
 	BodyInstance.SetCollisionProfileName(InCollisionProfileName);
 	OnComponentCollisionSettingsChanged();
@@ -544,18 +528,6 @@ void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 	if (OldCollisionEnabled != NewCollisionEnabled)
 	{
 		EnsurePhysicsStateCreated();
-	}
-
-	AActor* Owner = GetOwner();
-	if (Owner && IsRegistered())
-	{
-		const bool bNewNavRelevant = IsNavigationRelevant(true);
-		const bool bOwnerNavRelevant = Owner->IsNavigationRelevant();
-
-		if (bNewNavRelevant != bOldNavRelevant || bNewNavRelevant != bOwnerNavRelevant)
-		{
-			Owner->UpdateNavigationRelevancy();
-		}
 	}
 }
 
@@ -576,6 +548,14 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 	{
 		// changing collision settings could affect touching status, need to update
 		UpdateOverlaps();
+
+		// update navigation data if needed
+		const bool bNewNavRelevant = IsNavigationRelevant();
+		if (bNavigationRelevant != bNewNavRelevant)
+		{
+			bNavigationRelevant = bNewNavRelevant;
+			UNavigationSystem::UpdateNavOctree(this);
+		}
 	}
 }
 

@@ -905,9 +905,10 @@ void UCheatManager::WidgetReflector()
 void UCheatManager::RebuildNavigation()
 {
 #if WITH_NAVIGATION_GENERATOR
-	if (GetWorld() && GetWorld()->GetNavigationSystem())
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys)
 	{
-		GetWorld()->GetNavigationSystem()->Build();
+		NavSys->Build();
 	}
 #endif // WITH_NAVIGATION_GENERATOR
 }

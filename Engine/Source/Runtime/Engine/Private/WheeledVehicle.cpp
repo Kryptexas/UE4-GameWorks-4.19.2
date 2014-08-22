@@ -23,6 +23,7 @@ AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties&
 	Mesh->BodyInstance.bUseCCD = true;
 	Mesh->bBlendPhysics = true;
 	Mesh->bGenerateOverlapEvents = true;
+	Mesh->bCanEverAffectNavigation = false;
 	RootComponent = Mesh;
 
 	VehicleMovement = PCIP.CreateDefaultSubobject<UWheeledVehicleMovementComponent, UWheeledVehicleMovementComponent4W>(this, VehicleMovementComponentName);

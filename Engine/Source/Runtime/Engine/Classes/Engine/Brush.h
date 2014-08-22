@@ -161,7 +161,6 @@ class ABrush : public AActor
 	ENGINE_API virtual void Destroyed() override;
 	ENGINE_API virtual void PostRegisterAllComponents() override;
 	
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	virtual bool IsLevelBoundsRelevant() const override;
 
 #if WITH_EDITOR

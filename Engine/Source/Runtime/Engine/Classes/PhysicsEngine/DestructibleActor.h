@@ -29,7 +29,6 @@ class ADestructibleActor : public AActor
 	FActorFractureSignature OnActorFracture;
 
 	// Begin AActor interface.
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(!!bAffectNavigation); return !!bAffectNavigation; }
 #if WITH_EDITOR
 	ENGINE_API virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif // WITH_EDITOR

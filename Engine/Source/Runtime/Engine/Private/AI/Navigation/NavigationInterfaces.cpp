@@ -6,7 +6,7 @@
 #include "AI/Navigation/NavNodeInterface.h"
 #include "AI/Navigation/NavLinkHostInterface.h"
 #include "AI/Navigation/NavPathObserverInterface.h"
-#include "AI/Navigation/NavRelevantActorInterface.h"
+#include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 
 uint32 INavLinkCustomInterface::NextUniqueId = 1;
@@ -64,7 +64,7 @@ UNavPathObserverInterface::UNavPathObserverInterface(const class FPostConstructI
 {
 }
 
-UNavRelevantActorInterface::UNavRelevantActorInterface(const class FPostConstructInitializeProperties& PCIP)
+UNavRelevantInterface::UNavRelevantInterface(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }

@@ -1726,42 +1726,12 @@ const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
 
 void USceneComponent::UpdateNavigationData()
 {
-	AActor* MyActor = GetOwner();
-
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
-		IsRegistered() && MyActor && MyActor->IsNavigationRelevant() &&
-		World && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+		IsRegistered() && World && World->IsGameWorld() &&
+		World->GetNetMode() < ENetMode::NM_Client)
 	{
-		const bool bShouldUpdate = CheckNavigationRelevancy(this);
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-		
-		if (bShouldUpdate && NavSys)
-		{
-			NavSys->UpdateNavOctree(MyActor);
-		}
+		UNavigationSystem::UpdateNavOctree(this);
 	}
-}
-
-bool USceneComponent::CheckNavigationRelevancy(USceneComponent* TestComponent)
-{
-	check(TestComponent);
-
-	bool bResult = TestComponent->IsNavigationRelevant();
-	for (int32 Idx = 0; Idx < TestComponent->AttachChildren.Num() && !bResult; Idx++)
-	{
-		USceneComponent* Child = TestComponent->AttachChildren[Idx];
-		if (Child)
-		{
-			bResult = CheckNavigationRelevancy(Child);
-		}
-	}
-
-	return bResult;
-}
-
-bool USceneComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const
-{
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

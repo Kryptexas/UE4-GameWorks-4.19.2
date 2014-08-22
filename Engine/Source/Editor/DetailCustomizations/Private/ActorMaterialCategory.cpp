@@ -341,7 +341,7 @@ void FActorMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial,
 					EditChangeObject = CastChecked<ULandscapeComponent>(CurrentComponent)->GetLandscapeProxy();
 				}
 
-				FNavigationLockContext NavUpdateLock(Actor->GetWorld());
+				FNavigationLockContext NavUpdateLock(Actor->GetWorld(), ENavigationLockReason::MaterialUpdate);
 
 				EditChangeObject->PreEditChange( MaterialProperty );
 

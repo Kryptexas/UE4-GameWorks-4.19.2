@@ -21,6 +21,7 @@ class ENGINE_API ADefaultPawn : public APawn
 	// Begin Pawn overrides
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+	virtual void UpdateNavigationRelevance() override;
 	// End Pawn overrides
 
 	/** Input callback to move forward. */

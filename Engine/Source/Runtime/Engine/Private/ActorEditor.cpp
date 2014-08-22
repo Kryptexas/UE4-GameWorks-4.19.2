@@ -79,6 +79,7 @@ void AActor::PostEditMove(bool bFinished)
 		UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
 		if(Blueprint && (Blueprint->bRunConstructionScriptOnDrag || bFinished) && !FLevelUtils::IsMovingLevel() )
 		{
+			FNavigationLockContext NavLock(GetWorld(), ENavigationLockReason::AllowUnregister);
 			RerunConstructionScripts();
 		}
 	}
@@ -120,12 +121,9 @@ void AActor::PostEditMove(bool bFinished)
 
 	if (bFinished)
 	{
-		// @todo we could diverse between dynamic and not-that-dynamic actors
-		// and handle updating NavOctree differently
-		if (IsNavigationRelevant() == true && GetWorld() != NULL && GetWorld()->GetNavigationSystem() != NULL)
-		{
-			GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-		}
+		// update actor and all its components in navigation system after finishing move
+		// USceneComponent::UpdateNavigationData works only in game world
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 

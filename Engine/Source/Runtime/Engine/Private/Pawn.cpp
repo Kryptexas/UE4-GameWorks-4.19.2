@@ -71,6 +71,8 @@ void APawn::PreInitializeComponents()
 			GetWorld()->PersistentLevel->RegisterActorForAutoReceiveInput(this, PlayerIndex);
 		}
 	}
+
+	UpdateNavigationRelevance();
 }
 
 void APawn::PostInitializeComponents()
@@ -124,25 +126,17 @@ void APawn::UpdateNavAgent()
 	}
 }
 
-bool APawn::UpdateNavigationRelevancy()
-{
-	if (bCanAffectNavigationGeneration == false)
-	{
-		SetNavigationRelevancy(false);
-		return false;
-	}
-	else
-	{
-		return Super::UpdateNavigationRelevancy();
-	}
-}
-
 void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
 {
 	if (bCanAffectNavigationGeneration != bNewValue)
 	{
 		bCanAffectNavigationGeneration = bNewValue;
-		UpdateNavigationRelevancy();
+
+		// update components 
+		UpdateNavigationRelevance();
+
+		// update entries in navigation octree 
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
