@@ -488,7 +488,7 @@ void FHotReloadModule::InitHotReloadWatcher()
 
 void FHotReloadModule::ShutdownHotReloadWatcher()
 {
-	FDirectoryWatcherModule* DirectoryWatcherModule = FModuleManager::LoadModulePtr<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	FDirectoryWatcherModule* DirectoryWatcherModule = FModuleManager::GetModulePtr<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 	if( DirectoryWatcherModule != nullptr )
 	{
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule->Get();
