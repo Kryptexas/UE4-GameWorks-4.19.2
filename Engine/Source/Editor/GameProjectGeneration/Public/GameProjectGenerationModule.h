@@ -65,6 +65,9 @@ public:
 	/** Gets the current projects source file count */
 	virtual int32 GetProjectCodeFileCount();
 
+	/** Gets file and size info about the source directory */
+	virtual void GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize);
+
 	/** Update code resource files */
 	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 

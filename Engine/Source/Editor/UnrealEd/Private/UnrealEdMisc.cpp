@@ -360,9 +360,15 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			ProjectAttributes.Add( FAnalyticsEventAttribute( FString( "Id" ), *GetDefault<UGeneralProjectSettings>()->ProjectID.ToString() ));
 
 			FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-			int32 SourceFileCount = GameProjectModule.Get().GetProjectCodeFileCount();
+			
+			int32 SourceFileCount = 0;
+			int64 SourceFileDirectorySize = 0;
+			GameProjectModule.Get().GetProjectSourceDirectoryInfo(SourceFileCount, SourceFileDirectorySize);
+
 			ProjectAttributes.Add( FAnalyticsEventAttribute( FString( "SourceFileCount" ), SourceFileCount ));
+			ProjectAttributes.Add(FAnalyticsEventAttribute(FString("SourceFileDirectorySize"), SourceFileDirectorySize));
 			ProjectAttributes.Add( FAnalyticsEventAttribute( FString( "ModuleCount" ), FModuleManager::Get().GetModuleCount() ));
+
 			// UObject class count
 			int32 UObjectClasses = 0;
 			int32 UBlueprintClasses = 0;

@@ -2567,13 +2567,30 @@ FString GameProjectUtils::GetDefaultProjectTemplateFilename()
 	return TEXT("");
 }
 
+void GameProjectUtils::GetProjectCodeFilenames(TArray<FString>& OutProjectCodeFilenames)
+{
+	IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
+	IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
+}
+
 int32 GameProjectUtils::GetProjectCodeFileCount()
 {
 	TArray<FString> Filenames;
-	IFileManager::Get().FindFilesRecursive(Filenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
-	IFileManager::Get().FindFilesRecursive(Filenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
-
+	GetProjectCodeFilenames(Filenames);
 	return Filenames.Num();
+}
+
+void GameProjectUtils::GetProjectSourceDirectoryInfo(int32& OutNumCodeFiles, int64& OutDirectorySize)
+{
+	TArray<FString> Filenames;
+	GetProjectCodeFilenames(Filenames);
+	OutNumCodeFiles = Filenames.Num();
+
+	OutDirectorySize = 0;
+	for (const auto& filename : Filenames)
+	{
+		OutDirectorySize += IFileManager::Get().FileSize(*filename);
+	}
 }
 
 bool GameProjectUtils::ProjectHasCodeFiles()

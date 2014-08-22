@@ -90,6 +90,10 @@ int32 FGameProjectGenerationModule::GetProjectCodeFileCount()
 	return GameProjectUtils::GetProjectCodeFileCount();
 }
 
+void FGameProjectGenerationModule::GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize)
+{
+	GameProjectUtils::GetProjectSourceDirectoryInfo(OutNumFiles, OutDirectorySize);
+}
 
 bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {

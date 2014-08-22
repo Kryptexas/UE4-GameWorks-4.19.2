@@ -159,8 +159,15 @@ public:
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
 
-	/** Returns number of code files in the currently loaded project */
+	/** @return The number of code files in the currently loaded project */
 	static int32 GetProjectCodeFileCount();
+
+	/** 
+	* Retrieves file and size info about the project's source directory
+	* @param OutNumFiles Contains the number of files within the source directory
+	* @param OutDirectorySize Contains the combined size of all files in the directory
+	*/
+	static void GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize);
 
 	/** Returns the uproject template filename for the default project template. */
 	static FString GetDefaultProjectTemplateFilename();
@@ -329,6 +336,9 @@ private:
 
 	/** Handler for when the user confirms a project update */
 	static void OnUpdateProjectConfirm();
+
+	/** @param OutProjectCodeFilenames Contains the filenames of the project source code files */
+	static void GetProjectCodeFilenames(TArray<FString>& OutProjectCodeFilenames);
 
 	/**
 	 * Updates the projects, and optionally the modules names
