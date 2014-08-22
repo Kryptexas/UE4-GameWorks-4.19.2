@@ -146,6 +146,10 @@ class UMaterialInstance : public UMaterialInterface
 	/** Flag to detect cycles in the material instance graph. */
 	uint32 ReentrantFlag:1;
 
+	/** Defines if SubsurfaceProfile from tis instance is used or it uses the parent one. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = MaterialInstance)
+	uint32 bOverrideSubsurfaceProfile:1;
+
 	/** Unique ID for this material, used for caching during distributed lighting */
 	UPROPERTY()
 	FGuid ParentLightingGuid;
@@ -245,6 +249,7 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	ENGINE_API virtual bool IsMasked_Internal() const;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
 	ENGINE_API virtual bool GetOpacityMaskClipValueOverride(float& OutResult) const;
@@ -376,7 +381,7 @@ protected:
 	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface);
 
 	// to share code between PostLoad() and PostEditChangeProperty()
-	void UpdateMaterialInstanceData();
+	void PropagateDataToMaterialProxy();
 
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;

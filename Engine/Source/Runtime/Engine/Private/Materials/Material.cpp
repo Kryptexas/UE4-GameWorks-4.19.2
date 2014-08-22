@@ -210,21 +210,24 @@ public:
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(Context.Material.GetFeatureLevel());
 		if(MaterialResource && MaterialResource->GetRenderingThreadShaderMap())
 		{
-			static FName SubsurfaceProfile(TEXT("SubsurfaceProfile"));
-			if (ParameterName == SubsurfaceProfile)
+			static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
+			if (ParameterName == NameSubsurfaceProfile)
 			{
-				const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfile();
+				const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
 				if(SubsurfaceProfileRT)
 				{
 					// can be optimized (cached)
-					*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(*SubsurfaceProfileRT) / 255.0f;
+					*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
 				}
 				else
 				{
 					// no profile specified means we use the default one stored at [0] which is human skin
 					*OutValue = 0.0f;
 				}
+
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> Material %p GetScalarValue %f\n"), this, *OutValue);
+
 				return true;
 			}
 
@@ -3478,6 +3481,12 @@ bool UMaterial::IsTwoSided_Internal() const
 bool UMaterial::IsMasked_Internal() const
 {
 	return bIsMasked != 0;
+}
+
+USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const
+{
+	checkSlow(IsInGameThread());
+	return SubsurfaceProfile; 
 }
 
 bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const 

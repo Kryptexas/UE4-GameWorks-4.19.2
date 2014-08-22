@@ -219,7 +219,15 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant)
 	float RefractionDepthBias;
 
-	UPROPERTY(EditAnywhere, Category=MaterialOverrides)
+	/** SubsurfaceProfile, for Screen Space Subsurface Scattering */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material, meta = (DisplayName = "Subsurface Profile"))
+	class USubsurfaceProfile* SubsurfaceProfile;
+
+	/** Defines if SubsurfaceProfile from tis instance is used or it uses the parent one. */
+	UPROPERTY(EditAnywhere, Category = MaterialEditorInstanceConstant)
+	uint32 bOverrideSubsurfaceProfile : 1;
+
+	UPROPERTY(EditAnywhere, Category = MaterialOverrides)
 	uint32 bOverrideBaseProperties:1;
 
 	UPROPERTY(EditAnywhere, Category=MaterialOverrides, meta=(editcondition="bOverrideBaseProperties"))

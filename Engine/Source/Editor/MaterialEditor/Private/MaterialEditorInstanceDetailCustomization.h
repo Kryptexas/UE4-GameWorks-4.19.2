@@ -58,6 +58,9 @@ private:
 	/** Returns true if the refraction options should be displayed */
 	EVisibility ShouldShowMaterialRefractionSettings() const;
 
+	/** Returns true if the refraction options should be displayed */
+	EVisibility ShouldShowSubsurfaceProfile() const;
+
 private:
 	/** Object that stores all of the possible parameters we can edit */
 	UMaterialEditorInstanceConstant* MaterialEditorInstance;

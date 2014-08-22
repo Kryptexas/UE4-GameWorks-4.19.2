@@ -528,6 +528,8 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	ENGINE_API virtual bool IsMasked_Internal() const;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const { return 0; }
+
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and
 	 * instead always load all mip-levels for all textures used by this material.

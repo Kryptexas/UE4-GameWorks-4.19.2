@@ -13,8 +13,11 @@
 
 ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
 
-/** Encapsulates the post processing ambient occlusion pixel shader. */
-template <uint32 SpecularCorrection>
+/**
+ * Encapsulates the post processing ambient occlusion pixel shader.
+ * @param SetupMode 0:without specular correction, 1: with specular correction, 2:visualize
+ */
+template <uint32 SetupMode>
 class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSubsurfaceSetupPS , Global);
@@ -27,7 +30,7 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("SSSS_SPECULAR_CORRECTION"), SpecularCorrection);
+		OutEnvironment.SetDefine(TEXT("SETUP_MODE"), SetupMode);
 	}
 
 	/** Default constructor. */
@@ -36,6 +39,7 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderResourceParameter MiniFontTexture;
 
 	/** Initialization constructor. */
 	FPostProcessSubsurfaceSetupPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -43,6 +47,7 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
+		MiniFontTexture.Bind(Initializer.ParameterMap, TEXT("MiniFontTexture"));
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
@@ -53,13 +58,14 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		SetTextureParameter(Context.RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters;
+		Ar << PostprocessParameter << DeferredParameters << MiniFontTexture;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -78,19 +84,18 @@ public:
 #define VARIATION1(A) typedef FPostProcessSubsurfaceSetupPS<A> FPostProcessSubsurfaceSetupPS##A; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A, SF_Pixel);
 
-	VARIATION1(0)			VARIATION1(1)
+	VARIATION1(0) VARIATION1(1) VARIATION1(2)
 
 #undef VARIATION1
 
 
-template <uint32 SpecularCorrection>
+template <uint32 SetupMode>
 void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SpecularCorrection> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SetupMode> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -120,6 +125,15 @@ static bool DoSpecularCorrection()
 
 	// we need an alpha channel for this feature
 	return CVarState && (SceneColorFormat >= 4);
+}
+
+FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(bool bInVisualize)
+	: bVisualize(bInVisualize)
+{
+	if (bVisualize)
+	{
+		GSceneRenderTargets.AdjustGBufferRefCount(1);
+	}
 }
 
 void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& Context)
@@ -161,15 +175,22 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	if(DoSpecularCorrection())
+	if (bVisualize)
 	{
-		// with separate specular
-		SetSubsurfaceSetupShader<1>(Context);
+		SetSubsurfaceSetupShader<2>(Context);
 	}
 	else
 	{
-		// no separate specular
-		SetSubsurfaceSetupShader<0>(Context);
+		if (DoSpecularCorrection())
+		{
+			// with separate specular
+			SetSubsurfaceSetupShader<1>(Context);
+		}
+		else
+		{
+			// no separate specular
+			SetSubsurfaceSetupShader<0>(Context);
+		}
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -185,7 +206,58 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
+
+	if (bVisualize)
+	{
+		// this is a helper class for FCanvas to be able to get screen size
+		class FRenderTargetTemp : public FRenderTarget
+		{
+		public:
+			const FSceneView& View;
+			const FTexture2DRHIRef Texture;
+
+			FRenderTargetTemp(const FSceneView& InView, const FTexture2DRHIRef InTexture)
+				: View(InView), Texture(InTexture)
+			{
+			}
+			virtual FIntPoint GetSizeXY() const
+			{
+				return View.ViewRect.Size();
+			};
+			virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
+			{
+				return Texture;
+			}
+		} TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
+
+		FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
+
+		float X = 30;
+		float Y = 28;
+		const float YStep = 14;
+
+		FString Line;
+
+		Line = FString::Printf(TEXT("Visualize Screen Space Subsurface Scattering"));
+		Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
+
+		Y += YStep;
+
+		uint32 Index = 0;
+		while (GSubsufaceProfileTextureObject.GetEntryString(Index++, Line))
+		{
+			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
+		}
+
+		Canvas.Flush_RenderThread(Context.RHICmdList);
+	}
+
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	if (bVisualize)
+	{
+		GSceneRenderTargets.AdjustGBufferRefCount(-1);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -215,7 +287,7 @@ class FPostProcessSubsurfacePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
+		OutEnvironment.SetDefine(TEXT("SSS_METHOD"), Method);
 	}
 
 	/** Default constructor. */

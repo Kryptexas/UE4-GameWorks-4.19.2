@@ -39,6 +39,13 @@ struct FSubsurfaceProfileStruct
 		FalloffColor = FLinearColor(1.0f, 0.37f, 0.3f);
 	}
 
+	void Invalidate()
+	{
+		// nicer for debugging / VisualizeSSS
+		ScatterRadius = 0.0f;
+		SubsurfaceColor = FLinearColor(0, 0, 0);
+		FalloffColor = FLinearColor(0, 0, 0);
+	}
 };
 
 /**
@@ -59,6 +66,8 @@ class USubsurfaceProfile : public UObject
 	// End UObject interface
 };
 
+// For render thread side, to identify the right index in a map, is never dereferenced
+typedef void* USubsurfaceProfilePointer;
 
 
 // render thread
@@ -74,7 +83,7 @@ public:
 	void SetRendererModule(class IRendererModule* InRendererModule) { RendererModule = InRendererModule; }
 
 	// convenience, can be optimized 
-	int32 AddOrUpdateProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfile& Profile)
+	int32 AddOrUpdateProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfilePointer Profile)
 	{
 		int32 AllocationId = FindAllocationId(Profile); 
 		
@@ -93,13 +102,13 @@ public:
 	// O(n) n is a small number
 	// @param Profile must not be 0
 	// @return AllocationId -1: no allocation, should be deallocated with DeallocateSubsurfaceProfile()
-	int32 AddProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfile& Profile);
+	int32 AddProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfilePointer Profile);
 
 	// O(n) to find the element, n is the SSProfile count and usually quite small
-	void RemoveProfile(USubsurfaceProfile& InProfile);
+	void RemoveProfile(const USubsurfaceProfilePointer InProfile);
 
 	// @param InRendererModule first call needs to have it != 0
-	void UpdateProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfile& Profile) { int32 AllocationId = FindAllocationId(Profile); UpdateProfile(AllocationId, Settings); }
+	void UpdateProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfilePointer Profile) { int32 AllocationId = FindAllocationId(Profile); UpdateProfile(AllocationId, Settings); }
 
 	// @param InRendererModule first call needs to have it != 0
 	void UpdateProfile(int32 AllocationId, const FSubsurfaceProfileStruct Settings);
@@ -116,14 +125,17 @@ public:
 	// for debugging, can be removed
 	void Dump();
 
+	// for debugging / VisualizeSSS
+	ENGINE_API bool GetEntryString(uint32 Index, FString& Out) const;
+
 	// @return -1 if not found
-	int32 FindAllocationId(const USubsurfaceProfile& InProfile) const;
+	int32 FindAllocationId(const USubsurfaceProfilePointer InProfile) const;
 
 private:
 
 	struct FSubsurfaceProfileEntry
 	{
-		FSubsurfaceProfileEntry(FSubsurfaceProfileStruct InSubsurfaceProfileStruct, const USubsurfaceProfile* InGameThreadObject)
+		FSubsurfaceProfileEntry(FSubsurfaceProfileStruct InSubsurfaceProfileStruct, const USubsurfaceProfilePointer InGameThreadObject)
 			: Settings(InSubsurfaceProfileStruct)
 			, GameThreadObject(InGameThreadObject)
 		{
@@ -132,7 +144,7 @@ private:
 		FSubsurfaceProfileStruct Settings;
 
 		// not referenced, void and not USubsurfaceProfile* to prevent accidential access, 0 if the entry can be reused or it's [0] which is used as default
-		const void* GameThreadObject;
+		USubsurfaceProfilePointer GameThreadObject;
 	};
 
 	// 0 if there if no user of the feature
@@ -146,4 +158,4 @@ private:
 };
 
 // lives on the render thread
-extern TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;
+extern ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;

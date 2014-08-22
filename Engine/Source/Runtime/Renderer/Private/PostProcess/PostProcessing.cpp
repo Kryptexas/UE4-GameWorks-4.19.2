@@ -42,7 +42,7 @@
 #include "PostProcessTestImage.h"
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
-
+#include "PostProcessSubsurface.h"
 #include "PostProcessMorpheus.h"
 #include "IHeadMountedDisplay.h"
 #include "BufferVisualizationData.h"
@@ -1064,6 +1064,14 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		}
 		
 		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency);
+
+		if (View.Family->EngineShowFlags.VisualizeSSS)
+		{
+			// the setup pass also does visualization, based on EngineShowFlags.VisualizeSSS
+			FRenderingCompositePass* PassVisualize = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(true));
+			PassVisualize->SetInput(ePId_Input0, Context.FinalOutput);
+			Context.FinalOutput = FRenderingCompositeOutputRef(PassVisualize);
+		}
 
 		AddGBufferVisualization(Context, SeparateTranslucency);
 

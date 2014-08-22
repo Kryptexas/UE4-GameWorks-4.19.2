@@ -7,7 +7,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogSubsurfaceProfile, Log, All);
 
 // lives on the render thread
-TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;
+ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;
 
 // Texture with one or more SubSurfaceProfiles or 0 if there is no user
 static TRefCountPtr<IPooledRenderTarget> GSSProfiles;
@@ -31,9 +31,9 @@ FSubsurfaceProfileTexture::~FSubsurfaceProfileTexture()
 	}
 }
 
-int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfile& InProfile)
+int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfilePointer InProfile)
 {
-	check(&InProfile);
+	check(InProfile);
 	check(FindAllocationId(InProfile) == -1);
 
 	int32 RetAllocationId = -1;
@@ -49,7 +49,7 @@ int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Setti
 		if(RetAllocationId == -1)
 		{
 			RetAllocationId = SubsurfaceProfileEntries.Num();
-			SubsurfaceProfileEntries.Add(FSubsurfaceProfileEntry(Settings, &InProfile));
+			SubsurfaceProfileEntries.Add(FSubsurfaceProfileEntry(Settings, InProfile));
 		}
 	}
 
@@ -59,7 +59,7 @@ int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Setti
 }
 
 
-void FSubsurfaceProfileTexture::RemoveProfile(USubsurfaceProfile& InProfile)
+void FSubsurfaceProfileTexture::RemoveProfile(const USubsurfaceProfilePointer InProfile)
 {
 	int32 AllocationId = FindAllocationId(InProfile);
 
@@ -72,10 +72,11 @@ void FSubsurfaceProfileTexture::RemoveProfile(USubsurfaceProfile& InProfile)
 	// >0 as 0 is used as default profile which should never be removed
 	check(AllocationId > 0);
 
-	check(SubsurfaceProfileEntries[AllocationId].GameThreadObject == &InProfile);
+	check(SubsurfaceProfileEntries[AllocationId].GameThreadObject == InProfile);
 
 	// make it available for reuse
 	SubsurfaceProfileEntries[AllocationId].GameThreadObject = 0;
+	SubsurfaceProfileEntries[AllocationId].Settings.Invalidate();
 }
 
 void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurfaceProfileStruct Settings)
@@ -192,12 +193,49 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 	RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)GSSProfiles->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 }
 
-int32 FSubsurfaceProfileTexture::FindAllocationId(const USubsurfaceProfile& InProfile) const
+TCHAR MiniFontCharFromIndex(uint32 Index)
+{
+	if (Index <= 9)
+	{
+		return (TCHAR)('0' + Index);
+	}
+
+	Index -= 10;
+
+	if (Index <= 'Z' - 'A')
+	{
+		return (TCHAR)('A' + Index);
+	}
+
+	return (TCHAR)'?';
+}
+
+bool FSubsurfaceProfileTexture::GetEntryString(uint32 Index, FString& Out) const
+{
+	if (Index >= (uint32)SubsurfaceProfileEntries.Num())
+	{
+		return false;
+	}
+
+	const FSubsurfaceProfileStruct& ref = SubsurfaceProfileEntries[Index].Settings;
+
+
+	Out = FString::Printf(TEXT(" %c. %p ScatterRadius=%.1f, SubsurfaceColor=%.1f %.1f %.1f, FalloffColor=%.1f %.1f %.1f"), 
+		MiniFontCharFromIndex(Index), 
+		SubsurfaceProfileEntries[Index].GameThreadObject,
+		ref.ScatterRadius,
+		ref.SubsurfaceColor.R, ref.SubsurfaceColor.G, ref.SubsurfaceColor.B,
+		ref.FalloffColor.R, ref.FalloffColor.G, ref.FalloffColor.B);
+
+	return true;
+}
+
+int32 FSubsurfaceProfileTexture::FindAllocationId(const USubsurfaceProfilePointer InProfile) const
 {
 	// we start at 1 because [0] is the default profile and always [0].GameThreadObject = 0 so we don't need to iterate that one
 	for (int32 i = 1; i < SubsurfaceProfileEntries.Num(); ++i)
 	{
-		if (SubsurfaceProfileEntries[i].GameThreadObject == &InProfile)
+		if (SubsurfaceProfileEntries[i].GameThreadObject == InProfile)
 		{
 			return i;
 		}
@@ -250,7 +288,7 @@ void USubsurfaceProfile::BeginDestroy()
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		RemoveSubsurfaceProfile,
-		USubsurfaceProfile&, Ref, *this,
+		USubsurfaceProfilePointer, Ref, (USubsurfaceProfilePointer)this,
 		{
 			GSubsufaceProfileTextureObject.RemoveProfile(Ref);
 		});
@@ -263,9 +301,9 @@ void USubsurfaceProfile::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		UpdateSubsurfaceProfile,
 		const FSubsurfaceProfileStruct, Settings, this->Settings,
-		USubsurfaceProfile*, Profile, this,
+		USubsurfaceProfilePointer, Profile, (USubsurfaceProfilePointer)this,
 	{
 		// any changes to the setting require an update of the texture
-		GSubsufaceProfileTextureObject.UpdateProfile(Settings, *Profile);
+		GSubsufaceProfileTextureObject.UpdateProfile(Settings, Profile);
 	});
 }

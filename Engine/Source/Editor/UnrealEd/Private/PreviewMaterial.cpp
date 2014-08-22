@@ -598,6 +598,9 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		// Copy Refraction bias setting
 		SourceInstance->SetScalarParameterValueEditorOnly(TEXT("RefractionDepthBias"), RefractionDepthBias);
 
+		SourceInstance->bOverrideSubsurfaceProfile = bOverrideSubsurfaceProfile;
+		SourceInstance->SubsurfaceProfile = SubsurfaceProfile;
+
 		// Update object references and parameter names.
 		SourceInstance->UpdateParameterNames();
 		VisibleExpressions.Empty();
@@ -687,6 +690,9 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 
 	//Copy refraction settings
 	SourceInstance->GetRefractionSettings(RefractionDepthBias);
+
+	bOverrideSubsurfaceProfile = SourceInstance->bOverrideSubsurfaceProfile;
+	SubsurfaceProfile = SourceInstance->SubsurfaceProfile;
 
 	RegenerateArrays();
 

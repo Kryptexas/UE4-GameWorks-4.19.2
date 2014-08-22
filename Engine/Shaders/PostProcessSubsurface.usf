@@ -8,6 +8,9 @@
 #include "PostProcessCommon.usf"
 #include "DeferredShadingCommon.usf"
 
+// for VisualizeSSS
+#include "MiniFontCommon.usf"
+
 /** RGBA8 linear texture containing random normals */
 Texture2D SSProfilesTexture;
 SamplerState SSProfilesTextureSampler;
@@ -37,6 +40,20 @@ float GetSubsurfaceStrength(float2 UV)
 // 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
 // #define SSSS_SPECULAR_CORRECTION 1
 
+// define by C++ for the setup pass
+#ifndef SETUP_MODE
+	#define SETUP_MODE 0
+#endif
+
+#if SETUP_MODE == 0
+	#define SSSS_SPECULAR_CORRECTION 0
+#elif SETUP_MODE == 1
+	#define SSSS_SPECULAR_CORRECTION 1
+#else
+	// doesn't matter
+	#define SSSS_SPECULAR_CORRECTION 0
+#endif
+
 // 0: faster
 // 1: no color bleeding in z direction
 #define SSSS_FOLLOW_SURFACE 1
@@ -58,11 +75,11 @@ float GetSubsurfaceStrength(float2 UV)
 	error
 #endif
 
-#if METHOD == 0
+#if SSS_METHOD == 0
 	// horizontal
-#elif METHOD == 1
+#elif SSS_METHOD == 1
 	// vertical
-#elif METHOD == 2
+#elif SSS_METHOD == 2
 	// vertical and reconstruct specular
 #else
 	error
@@ -71,6 +88,10 @@ float GetSubsurfaceStrength(float2 UV)
 // 0 / 1
 #define VISUALIZE_KERNEL 0
 
+bool InUnitBox(float2 UV)
+{
+	return UV.x >= 0 && UV.y >= 0 && UV.y < 1 && UV.y < 1;
+}
 
 void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
@@ -78,75 +99,100 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 
 	OutColor = 0;
 
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-
-	FLATTEN if(ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE)
+	// if not VisualizeSSS
+	if (SETUP_MODE != 2)
 	{
-		float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+
+		FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE)
+		{
+			float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 
 #if SSSS_SPECULAR_CORRECTION == 1
-		// we take out the specular highlights
-		float3 Lighting = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
+			// we take out the specular highlights
+			float3 Lighting = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
 #else
-		float3 Lighting = SceneColor4.rgb;
+			float3 Lighting = SceneColor4.rgb;
 #endif
 
-		OutColor.rgb = Lighting;
+			OutColor.rgb = Lighting;
+		}
+	}
+	else
+	{
+		// visualization (doesn't have to be fast)
+		OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+
+		int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+
+		float2 ViewLocalUV = (PixelPos - View.ViewRectMin) / View.ViewSizeAndSceneTexelSize;
+
+
+		float2 IDAreaLocalUV = ViewLocalUV * 2 - 1.0f;
+
+//		OutColor = float4(IDAreaLocalUV.xy, 0, 0);		return;
+
+		if (InUnitBox(IDAreaLocalUV))
+		{
+			FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(View.ViewRectMin.xy * View.ViewSizeAndSceneTexelSize.zw + IDAreaLocalUV * (View.ViewSizeAndSceneTexelSize.xy * View.ViewSizeAndSceneTexelSize.zw));
+
+			uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(ScreenSpaceData.GBuffer);
+
+//			BRANCH if (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
+			{
+
+				OutColor = float4(0.5f, 0.5f, 0.5f, 0);
+
+				if (SubsurfaceProfileInt == 0)
+				{
+					// default (no Profile)
+					OutColor = float4(0.8f, 0.7f, 0.6f, 0);
+				}
+				if (SubsurfaceProfileInt == 1)
+				{
+					OutColor = float4(1, 0, 0, 0);
+				}
+				if (SubsurfaceProfileInt == 2)
+				{
+					OutColor = float4(0, 1, 0, 0);
+				}
+				if (SubsurfaceProfileInt == 3)
+				{
+					OutColor = float4(0, 0, 1, 0);
+				}
+				if (SubsurfaceProfileInt == 4)
+				{
+					OutColor = float4(1, 0, 1, 0);
+				}
+				if (SubsurfaceProfileInt == 5)
+				{
+					OutColor = float4(0, 1, 1, 0);
+				}
+				if (SubsurfaceProfileInt == 6)
+				{
+					OutColor = float4(1, 1, 0, 0);
+				}
+				if (SubsurfaceProfileInt == 100)
+				{
+					OutColor = float4(0, 0.2f, 0, 0);
+				}
+				if (SubsurfaceProfileInt == 255)
+				{
+					OutColor = float4(1, 1, 1, 0);
+				}
+
+				uint2 LeftTop = (PixelPos / 8) * 8;
+				PrintCharacter(PixelPos, OutColor.rgb, float3(1, 1, 1), LeftTop, SubsurfaceProfileInt);
+			}
+		}
 	}
 }
+
 
 // input0 is created by the SetupPS shader
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-	//
-
-	// test
-//	if (UV.y > 0.5f)
-	if (0)
-	{
-		uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(ScreenSpaceData.GBuffer);
-		OutColor = float4(0.5f, 0.5f, 0.5f, 0);
-		if (SubsurfaceProfileInt == 0)
-		{
-			OutColor = float4(0.8f, 0.7f, 0.6f, 0);
-		}
-		if (SubsurfaceProfileInt == 1)
-		{
-			OutColor = float4(1, 0, 0, 0);
-		}
-		if (SubsurfaceProfileInt == 2)
-		{
-			OutColor = float4(0, 1, 0, 0);
-		}
-		if (SubsurfaceProfileInt == 3)
-		{ 
-			OutColor = float4(0, 0, 1, 0);
-		}
-		if (SubsurfaceProfileInt == 4)
-		{
-			OutColor = float4(1, 0, 1, 0);
-		}
-		if (SubsurfaceProfileInt == 5)
-		{
-			OutColor = float4(0, 1, 1, 0);
-		}
-		if (SubsurfaceProfileInt == 6)
-		{
-			OutColor = float4(1, 1, 0, 0);
-		}
-		if (SubsurfaceProfileInt == 100)
-		{
-			OutColor = float4(0, 0.2f, 0, 0);
-		}
-		if (SubsurfaceProfileInt == 255)
-		{
-			OutColor = float4(1, 1, 1, 0);
-		}
-		return;
-	}
 
 	// call into "SeparableSSS.usf"
 
@@ -157,7 +203,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// *1000 as we store the sample distances / 1000 to allows for scaling
 	float Scaler = View.ViewSizeAndSceneTexelSize.x * View.ViewSizeAndSceneTexelSize.z * 1000.0f;
 
-#if METHOD == 0
+#if SSS_METHOD == 0
 	// first pass
 	float2 Direction = float2(1, 0) * Scaler;
 #else
@@ -170,16 +216,18 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 	// Lighting
 
-#if METHOD > 0
+#if SSS_METHOD > 0
 	// on second pass we recombine with the scene color
 
 	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 
 	float4 SSSColor = OutColor;
 
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+
 	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
 
-#if METHOD > 1
+#if SSS_METHOD > 1
 	// we took the specular highlights out, now we add them back in
 	SSSColor.rgb += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
 #endif

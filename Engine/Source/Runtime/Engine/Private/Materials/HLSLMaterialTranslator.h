@@ -343,12 +343,12 @@ public:
 			{
 				int32 SubsurfaceColor = Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this);
 
-				static FName SubsurfaceProfileName(TEXT("SubsurfaceProfile"));
+				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 
 				// 1.0f is is a not used profile - later this gets replaced with the actual profile
-				int32 SubsurfaceProfile = ForceCast(ScalarParameter(SubsurfaceProfileName, 1.0f), MCT_Float1);
+				int32 CodeSubsurfaceProfile = ForceCast(ScalarParameter(NameSubsurfaceProfile, 1.0f), MCT_Float1);
 
-				Chunk[MP_SubsurfaceColor] = AppendVector(SubsurfaceColor, SubsurfaceProfile);		
+				Chunk[MP_SubsurfaceColor] = AppendVector(SubsurfaceColor, CodeSubsurfaceProfile);		
 			}
 
 			Chunk[MP_ClearCoat]						= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoat			   ,this);

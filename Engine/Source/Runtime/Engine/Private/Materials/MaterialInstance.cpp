@@ -206,6 +206,28 @@ bool FMaterialInstanceResource::GetScalarValue(
 	) const
 {
 	checkSlow(IsInParallelRenderingThread());
+
+	static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
+	if (ParameterName == NameSubsurfaceProfile)
+	{
+		const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+
+		if (SubsurfaceProfileRT)
+		{
+			// can be optimized (cached)
+			*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
+		}
+		else
+		{
+			// no profile specified means we use the default one stored at [0] which is human skin
+			*OutValue = 0.0f;
+		}
+
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> MaterialInstance %p GetScalarValue %f\n"), this, *OutValue);
+
+		return true;
+	}
+
 	const float* Value = RenderThread_FindParameterByName<float>(ParameterName);
 	if(Value)
 	{
@@ -280,7 +302,7 @@ void FMaterialInstanceResource::GameThread_UpdateDistanceFieldPenumbraScale(floa
 	});
 }
 
-void UMaterialInstance::UpdateMaterialInstanceData()
+void UMaterialInstance::PropagateDataToMaterialProxy()
 {
 	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
 	{
@@ -1665,6 +1687,7 @@ void UMaterialInstance::PostLoad()
 			Texture->ConditionalPostLoad();
 		}
 	}
+
 	// do the same for font textures
 	for( int32 ValueIndex=0; ValueIndex < FontParameterValues.Num(); ValueIndex++ )
 	{
@@ -1675,6 +1698,9 @@ void UMaterialInstance::PostLoad()
 			Font->ConditionalPostLoad();
 		}
 	}
+
+	// called before we cache the uniform expression as a call to SubsurfaceProfileRT affects the dta in there
+	PropagateDataToMaterialProxy();
 
 	// Update bHasStaticPermutationResource in case the parent was not found
 	bHasStaticPermutationResource = (!StaticParameters.IsEmpty() || bOverrideBaseProperties) && Parent;
@@ -1699,6 +1725,7 @@ void UMaterialInstance::PostLoad()
 			}
 		}
 	}
+
 	INC_FLOAT_STAT_BY(STAT_ShaderCompiling_MaterialLoading,(float)MaterialLoadTime);
 
 	if (GIsEditor && GEngine != NULL && !IsTemplate() && Parent)
@@ -1706,8 +1733,6 @@ void UMaterialInstance::PostLoad()
 		// Ensure that the ReferencedTextureGuids array is up to date.
 		UpdateLightmassTextureTracking();
 	}
-
-	UpdateMaterialInstanceData();
 
 	// Fixup for legacy instances which didn't recreate the lighting guid properly on duplication
 	if (GetLinker() && GetLinker()->UE4Ver() < VER_UE4_BUMPED_MATERIAL_EXPORT_GUIDS)
@@ -2014,7 +2039,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		UpdateLightmassTextureTracking();
 	}
 
-	UpdateMaterialInstanceData();
+	PropagateDataToMaterialProxy();
 
 	InitResources();
 
@@ -2391,6 +2416,18 @@ bool UMaterialInstance::IsMasked_Internal() const
 		return BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
 	}
 	return GetMaterial()->IsMasked();
+}
+
+USubsurfaceProfile* UMaterialInstance::GetSubsurfaceProfile_Internal() const
+{
+	checkSlow(IsInGameThread());
+	if (bOverrideSubsurfaceProfile)
+	{
+		return SubsurfaceProfile;
+	}
+
+	// go up the chain if possible
+	return Parent ? Parent->GetSubsurfaceProfile_Internal() : 0;
 }
 
 bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const
