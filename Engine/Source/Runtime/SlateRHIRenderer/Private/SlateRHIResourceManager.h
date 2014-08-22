@@ -169,6 +169,8 @@ private:
 	FDynamicResourceMap DynamicResourceMap;
 	/** Set of dynamic textures that are currently being accessed */
 	TSet< TWeakObjectPtr<UTexture2D> > AccessedUTextures;
+	/** List of old utexture resources that are free to use as new resources */
+	TArray< TSharedPtr<FSlateUTextureResource> > UTextureFreeList;
 	/** List of old dynamic resources that are free to use as new resources */
 	TArray< TSharedPtr<FSlateDynamicTextureResource> > DynamicTextureFreeList;
 	/** Static Texture atlases which have been created */
