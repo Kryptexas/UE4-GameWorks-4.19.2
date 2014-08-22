@@ -11,7 +11,9 @@
 UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
+#if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
+#endif // #if WITH_EDITORONLY_DATA
 }
 
 void UAbilitySystemGlobals::InitGlobalData()
