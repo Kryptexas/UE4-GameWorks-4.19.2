@@ -15,6 +15,8 @@ public:
 
 	SLATE_END_ARGS()
 
+	virtual ~SAssetPicker();
+
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs );
 
@@ -72,6 +74,12 @@ private:
 	/** Bind our UI commands */
 	void BindCommands();
 
+	/** Loads settings for this asset picker if SaveSettingsName was set */
+	void LoadSettings();
+
+	/** Saves settings for this asset picker if SaveSettingsName was set */
+	void SaveSettings() const;
+
 private:
 	/** The asset view widget */
 	TSharedPtr<SAssetView> AssetViewPtr;
@@ -112,4 +120,7 @@ private:
 
 	/** UICommand list, holds list of actions for processing */
 	TSharedPtr< FUICommandList > Commands;
+
+	/** If set, view settings will be saved and loaded for the asset view using this name in ini files */
+	FString SaveSettingsName;
 };

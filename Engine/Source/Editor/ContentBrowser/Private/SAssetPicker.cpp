@@ -4,6 +4,11 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+SAssetPicker::~SAssetPicker()
+{
+	SaveSettings();
+}
+
 void SAssetPicker::Construct( const FArguments& InArgs )
 {
 	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
@@ -16,6 +21,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	OnAssetEnterPressed = InArgs._AssetPickerConfig.OnAssetEnterPressed;
 	bPendingFocusNextFrame = InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened;
 	DefaultFilterMenuExpansion = InArgs._AssetPickerConfig.DefaultFilterMenuExpansion;
+	SaveSettingsName = InArgs._AssetPickerConfig.SaveSettingsName;
 
 	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
@@ -215,6 +221,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 	];
+
+	LoadSettings();
 
 	AssetViewPtr->RequestSlowFullListRefresh();
 }
@@ -419,6 +427,38 @@ void SAssetPicker::BindCommands()
 		FExecuteAction::CreateSP( this, &SAssetPicker::OnRenameRequested ),
 		FCanExecuteAction::CreateSP( this, &SAssetPicker::CanExecuteRenameRequested )
 		));
+}
+
+void SAssetPicker::LoadSettings()
+{
+	const FString& SettingsString = SaveSettingsName;
+
+	if ( !SettingsString.IsEmpty() )
+	{
+		// Load all our data using the settings string as a key in the user settings ini
+		if (FilterListPtr.IsValid())
+		{
+			FilterListPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		}
+		
+		AssetViewPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+	}
+}
+
+void SAssetPicker::SaveSettings() const
+{
+	const FString& SettingsString = SaveSettingsName;
+
+	if ( !SettingsString.IsEmpty() )
+	{
+		// Save all our data using the settings string as a key in the user settings ini
+		if (FilterListPtr.IsValid())
+		{
+			FilterListPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		}
+
+		AssetViewPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
