@@ -716,7 +716,7 @@ void FMainFrameActionCallbacks::OpenIDE()
 
 void FMainFrameActionCallbacks::PackagingSettings()
 {
-	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Game", "Packaging");
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Project", "Packaging");
 }
 
 void FMainFrameActionCallbacks::SwitchProjectByIndex( int32 ProjectIndex )

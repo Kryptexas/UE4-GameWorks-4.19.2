@@ -643,7 +643,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenGameSettingsMenu( TShared
 		LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
 		LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
 		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Game"), FName("General")))
+		FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 	);
 
 #undef LOCTEXT_NAMESPACE
