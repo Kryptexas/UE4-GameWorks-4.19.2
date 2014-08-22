@@ -5283,7 +5283,7 @@ void FCustomizableTextObjectFactory::ClearObjectNameUsage(UObject* InParent, FNa
 	{
 		check(Found->GetOuter() == InParent);
 
-		Found->Rename(nullptr, nullptr, REN_None);
+		Found->Rename(nullptr, nullptr, REN_DontCreateRedirectors);
 	}
 }
 
