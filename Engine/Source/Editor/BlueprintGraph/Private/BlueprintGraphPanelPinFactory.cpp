@@ -1,7 +1,4 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-#pragma once
-
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintGraphPanelPinFactory.h"
 #include "K2Node_GetDataTableRow.h"
