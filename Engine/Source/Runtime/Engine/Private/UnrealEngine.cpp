@@ -8659,6 +8659,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Initialize gameplay for the level.
 	WorldContext.World()->InitializeActorsForPlay(URL);
 
+	// Reclaim some memory allocated during load/initialize. This is needed on low-memory devices.
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
 	// Remember the URL. Put this before spawning player controllers so that
 	// a player controller can get the map name during initialization and
 	// have it be correct

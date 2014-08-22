@@ -583,27 +583,22 @@ void UWorld::PostLoad()
 	// Initially set up the parameter collection list. This may be run again in UWorld::InitWorld.
 	SetupParameterCollectionInstances();
 
-	if ( GetLinkerUE4Version() < VER_UE4_WORLD_NAMED_AFTER_PACKAGE )
-	{
-		const FString ShortPackageName = FPackageName::GetLongPackageAssetName( GetOutermost()->GetName() );
-		if ( GetName() != ShortPackageName )
-		{
-			Rename(*ShortPackageName, NULL, REN_NonTransactional | REN_ForceNoResetLoaders);
-		}
-	}
-
-	if ( GetLinkerUE4Version() < VER_UE4_PUBLIC_WORLDS )
-	{
-		// Worlds are assets so they need RF_Public and RF_Standalone (for the editor)
-		if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
-		{
-			SetFlags(RF_Public|RF_Standalone);
-		}
-	}
-
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
+		if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
+		{
+			// Needed for VER_UE4_WORLD_NAMED_AFTER_PACKAGE. If this file was manually renamed outside of the editor, this is needed anyway
+			const FString ShortPackageName = FPackageName::GetLongPackageAssetName(GetOutermost()->GetName());
+			if (GetName() != ShortPackageName)
+			{
+				Rename(*ShortPackageName, NULL, REN_NonTransactional | REN_ForceNoResetLoaders);
+			}
+
+			// Worlds are assets so they need RF_Public and RF_Standalone (for the editor)
+			SetFlags(RF_Public | RF_Standalone);
+		}
+
 		// Ensure the DefaultBrush's model has the same outer as the default brush itself. Older packages erroneously stored this object as a top-level package
 		ABrush* DefaultBrush = PersistentLevel->Actors.Num() < 2 ? NULL : Cast<ABrush>(PersistentLevel->Actors[1]);
 		UModel* Model = DefaultBrush ? DefaultBrush->Brush : NULL;

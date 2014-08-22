@@ -48,8 +48,8 @@ public:
 	FOnBrowseWorld OnBrowseWorld;
 		
 private:
-	void OnWorldCreated(UWorld* InWorld, const UWorld::InitializationValues IVS);
-	void OnWorldCleanup(UWorld* InWorld, bool bSessionEnded, bool bCleanupResources);
+	void OnWorldCreated(UWorld* InWorld);
+	void OnWorldDestroyed(UWorld* InWorld);
 	void OnWorldCompositionChanged(UWorld* InWorld);
 		
 private:

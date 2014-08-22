@@ -97,13 +97,13 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	if (GetDebuggingReplicator())
 	{
 		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
-				}
+	}
 				
 	if (DebugComponent && DebugComponent->GetSelectedActor())
-				{
+	{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-					DrawDebugComponentData(MyPC, DebugComponent);
-				}
+		DrawDebugComponentData(MyPC, DebugComponent);
+	}
 
 	if (!EngineShowFlags.DebugAI)
 	{
@@ -344,32 +344,55 @@ void AGameplayDebuggingHUDComponent::DrawBehaviorTreeData(APlayerController* PC,
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrintString(DefaultContext, TEXT("\n{green}BEHAVIOR TREE\n"));
 	PrintString(DefaultContext, FString::Printf(TEXT("Brain Component: {yellow}%s\n"), *DebugComponent->BrainComponentName));
+	PrintString(DefaultContext, DebugComponent->BrainComponentString);
+	PrintString(DefaultContext, FColor::White, DebugComponent->BlackboardString, 600.0f, 40.0f);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
-	PrintString(DefaultContext, TEXT("\n{green}EQS\n"));
-	if (DebugComponent->EQSRepData.Num())
+	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
+
+	if (DebugComponent->AllEQSName.Num() == 0)
 	{
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
-			, DebugComponent->EQSTimestamp, PC->GetWorld()->GetTimeSeconds() - DebugComponent->EQSTimestamp
-			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query Name: {yellow}%s\n")
-			, *DebugComponent->EQSName
-			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
-			, DebugComponent->EQSId
-			));
+		return;
 	}
 
-#if  USE_EQS_DEBUGGER
-	if (DebugComponent->EQSLocalData.NumValidItems > 0)
+	if (!DebugComponent->AllEQSName.IsValidIndex(DebugComponent->CurrentEQSIndex))
 	{
+		return;
+	}
+	const FString SelecterEQSName = DebugComponent->AllEQSName[DebugComponent->CurrentEQSIndex];
+
+	PrintString(DefaultContext, TEXT("{white}Queries: "));
+	for (auto CurrentQueryName : DebugComponent->AllEQSName)
+	{
+		if (SelecterEQSName == CurrentQueryName)
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQueryName));
+		}
+		else
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQueryName));
+		}
+	}
+	PrintString(DefaultContext, TEXT("\n"));
+
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex];
+	if (CurrentLocalData.NumValidItems > 0)
+	{
+		PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
+			, CurrentLocalData.Timestamp, PC->GetWorld()->GetTimeSeconds() - CurrentLocalData.Timestamp
+			));
+		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
+			, CurrentLocalData.Id
+			));
+
+#if  USE_EQS_DEBUGGER
 		// draw test weights for best X items
-		const int32 NumItems = DebugComponent->EQSLocalData.Items.Num();
-		const int32 NumTests = DebugComponent->EQSLocalData.Tests.Num();
+		const int32 NumItems = CurrentLocalData.Items.Num();
+		const int32 NumTests = CurrentLocalData.Tests.Num();
 		const float RowHeight = 20.0f;
 
 		FCanvasTileItem TileItem(FVector2D(0, 0), GWhiteTexture, FVector2D(Canvas->SizeX, RowHeight), FLinearColor::Black);
@@ -385,7 +408,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			DrawItem(DefaultContext, TileItem, 0, DefaultContext.CursorY);
 
 			float HeaderX = DefaultContext.CursorX;
-			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), DebugComponent->EQSLocalData.NumValidItems), HeaderX, HeaderY);
+			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), CurrentLocalData.NumValidItems), HeaderX, HeaderY);
 			HeaderX += 200.0f;
 
 			PrintString(DefaultContext, FColor::White, TEXT("Score"), HeaderX, HeaderY);
@@ -415,13 +438,13 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
 		{
 			FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
-				*DebugComponent->EQSLocalData.Tests[TestIdx].ShortName,
-				*DebugComponent->EQSLocalData.Tests[TestIdx].Detailed);
+				*CurrentLocalData.Tests[TestIdx].ShortName,
+				*CurrentLocalData.Tests[TestIdx].Detailed);
 
 			PrintString(DefaultContext, TestDesc);
 		}
-	}
 #endif //USE_EQS_DEBUGGER
+	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -431,7 +454,8 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
-	const EQSDebug::FItemData& ItemData = DebugComponent->EQSLocalData.Items[ItemIdx];
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex];
+	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
 	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);
 	PosX += 200.0f;

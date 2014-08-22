@@ -12,6 +12,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+                "MainFrame",
 				"SourceControl",
 				"SourceControlWindows",
                 "ReferenceViewer"
@@ -43,6 +44,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+                "MainFrame",
                 "ReferenceViewer"
 			}
 		);

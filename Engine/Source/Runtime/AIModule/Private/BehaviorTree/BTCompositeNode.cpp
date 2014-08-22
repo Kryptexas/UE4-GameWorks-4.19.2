@@ -369,6 +369,11 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 				bResult = false;
 				break;
 			}
+			else
+			{
+				UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Child[%d] execution allowed by %s"),
+					ChildIdx, *UBehaviorTreeTypes::DescribeNodeHelper(TestDecorator));
+			}
 		}
 	}
 	else

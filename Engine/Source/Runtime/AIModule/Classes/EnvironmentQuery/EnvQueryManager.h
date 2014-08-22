@@ -83,14 +83,23 @@ struct FEnvQueryInstanceCache
 #if USE_EQS_DEBUGGER
 struct AIMODULE_API FEQSDebugger
 {
+	struct FEnvQueryInfo
+	{
+		float Timestamp;
+		TSharedPtr<FEnvQueryInstance> Instance;
+	};
+
 	void StoreQuery(TSharedPtr<FEnvQueryInstance>& Query);
-	TSharedPtr<FEnvQueryInstance> GetQueryForOwner(const UObject* Owner);
-	const TSharedPtr<FEnvQueryInstance> GetQueryForOwner(const UObject* Owner) const;
+	TArray<FEnvQueryInfo>&  GetAllQueriesForOwner(const UObject* Owner);
 
 protected:
 	// maps owner to performed queries
-	TMap<const UObject*, TSharedPtr<FEnvQueryInstance> > StoredQueries;
+	TMap<const UObject*, TArray<FEnvQueryInfo> > StoredQueries;
 };
+FORCEINLINE bool operator== (const FEQSDebugger::FEnvQueryInfo & Left, const FEQSDebugger::FEnvQueryInfo & Right)
+{
+	return Left.Instance == Right.Instance;
+}
 #endif // USE_EQS_DEBUGGER
 
 UCLASS()

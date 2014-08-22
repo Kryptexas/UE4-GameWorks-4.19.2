@@ -196,6 +196,55 @@ struct FCollectionPickerConfig
 	{}
 };
 
+namespace EAssetDialogType
+{
+	enum Type
+	{
+		Open,
+		Save
+	};
+}
+
+/** A struct containing shared details about how asset dialogs should behave. You should not instanciate this config, but use FOpenAssetDialogConfig or FSaveAssetDialogConfig instead. */
+struct FSharedAssetDialogConfig
+{
+	FText DialogTitleOverride;
+	FString DefaultPath;
+	TArray<FName> AssetClassNames;
+	FVector2D WindowSizeOverride;
+
+	virtual EAssetDialogType::Type GetDialogType() const = 0;
+
+	FSharedAssetDialogConfig()
+		: WindowSizeOverride(EForceInit::ForceInitToZero)
+	{}
+};
+
+/** A struct containing details about how the open asset dialog should behave. */
+struct FOpenAssetDialogConfig : public FSharedAssetDialogConfig
+{
+	bool bAllowMultipleSelection;
+
+	virtual EAssetDialogType::Type GetDialogType() const override { return EAssetDialogType::Open; }
+
+	FOpenAssetDialogConfig()
+		: FSharedAssetDialogConfig()
+		, bAllowMultipleSelection(false)
+	{}
+};
+
+/** A struct containing details about how the save asset dialog should behave. */
+struct FSaveAssetDialogConfig : public FSharedAssetDialogConfig
+{
+	FString DefaultAssetName;
+
+	virtual EAssetDialogType::Type GetDialogType() const override { return EAssetDialogType::Save; }
+
+	FSaveAssetDialogConfig()
+		: FSharedAssetDialogConfig()
+	{}
+};
+
 /**
  * Content browser module singleton
  */
@@ -228,6 +277,38 @@ public:
 	 * @return The collection picker widget
 	 */
 	virtual TSharedRef<class SWidget> CreateCollectionPicker(const FCollectionPickerConfig& CollectionPickerConfig) = 0;
+
+	/**
+	 * Opens the Open Asset dialog in a non-modal window
+	 *
+	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
+	 * @param OnAssetsChosenForOpen			A delegate that is fired when assets are chosen and the open button is pressed
+	 */
+	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen) = 0;
+
+	/**
+	 * Opens the Open Asset dialog in a modal window
+	 *
+	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
+	 * @return The assets that were chosen to be opened
+	 */
+	virtual TArray<FAssetData> CreateModalOpenAssetDialog(const FOpenAssetDialogConfig& InConfig) = 0;
+
+	/**
+	 * Opens the Save Asset dialog in a non-modal window
+	 *
+	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
+	 * @param OnAssetNameChosenForSave		A delegate that is fired when an object path is chosen and the save button is pressed
+	 */
+	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave) = 0;
+
+	/**
+	 * Opens the Save Asset dialog in a modal window
+	 *
+	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
+	 * @return The object path that was chosen
+	 */
+	virtual FString CreateModalSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig) = 0;
 
 	/** Returns true if there is at least one browser open that is eligible to be a primary content browser */
 	virtual bool HasPrimaryContentBrowser() const = 0;

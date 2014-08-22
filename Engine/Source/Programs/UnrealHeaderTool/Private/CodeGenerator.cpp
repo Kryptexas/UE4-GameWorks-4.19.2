@@ -2884,6 +2884,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 				ExportMCPDeclaration(Out, VariableTypeName, StructIt, CPF_AllFlags, Indent + 4);
 				VariableTypeName = FString::Printf(TEXT("CMsg%sMessage"), *VariableTypeName);
 				MCPTypeName = &VariableTypeName;*/
+				continue;
 			}
 			else
 			{

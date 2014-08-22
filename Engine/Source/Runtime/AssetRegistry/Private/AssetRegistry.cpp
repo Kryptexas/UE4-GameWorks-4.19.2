@@ -216,13 +216,14 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	FPackageName::QueryRootContentPaths( PathsToSearch );
 
 	// Start the asset search (synchronous in commandlets)
+	const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
 	if ( bSynchronousSearch )
 	{
-		ScanPathsSynchronous(PathsToSearch);
+		const bool bForceRescan = false;
+		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, bLoadAndSaveCache);
 	}
 	else
 	{
-		const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
 		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
 	}
 }
@@ -1063,52 +1064,8 @@ bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 
 void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
 {
-	const double SearchStartTime = FPlatformTime::Seconds();
-
-	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
-	TArray<FString> PathsToScan;
-	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
-	{
-		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
-		{
-			PathsToScan.Add(*PathIt);
-			SynchronouslyScannedPaths.Add(*PathIt);
-		}
-	}
-
-	if ( PathsToScan.Num() > 0 )
-	{
-		// Start the sync asset search
-		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true);
-
-		// Get the search results
-		TArray<FBackgroundAssetData*> AssetResults;
-		TArray<FString> PathResults;
-		TArray<FPackageDependencyData> DependencyResults;
-		TArray<double> SearchTimes;
-		int32 NumFilesToSearch = 0;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
-
-		// Cache the search results
-		const int32 NumResults = AssetResults.Num();
-		AssetSearchDataGathered(-1, AssetResults);
-		PathDataGathered(-1, PathResults);
-		DependencyDataGathered(-1, DependencyResults);
-
-		// Log stats
-		const FString& Path = PathsToScan[0];
-		FString PathsString;
-		if ( PathsToScan.Num() > 1 )
-		{
-			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
-		}
-		else
-		{
-			PathsString = FString::Printf(TEXT("'%s'"), *Path);
-		}
-
-		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
-	}
+	const bool bUseCache = false;
+	ScanPathsSynchronous_Internal(InPaths, bForceRescan, bUseCache);
 }
 
 void FAssetRegistry::AssetCreated(UObject* NewAsset)
@@ -1276,7 +1233,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 
 bool FAssetRegistry::IsUsingWorldAssets()
 {
-	return FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
 }
 
 void FAssetRegistry::Serialize(FArchive& Ar)
@@ -1319,6 +1276,56 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	for (TMap<FName, FAssetData*>::TIterator It(Data); It; ++It)
 	{
 		Ar << *It.Value();
+	}
+}
+
+void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, bool bUseCache)
+{
+	const double SearchStartTime = FPlatformTime::Seconds();
+
+	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
+	TArray<FString> PathsToScan;
+	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
+	{
+		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
+		{
+			PathsToScan.Add(*PathIt);
+			SynchronouslyScannedPaths.Add(*PathIt);
+		}
+	}
+
+	if ( PathsToScan.Num() > 0 )
+	{
+		// Start the sync asset search
+		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, bUseCache);
+
+		// Get the search results
+		TArray<FBackgroundAssetData*> AssetResults;
+		TArray<FString> PathResults;
+		TArray<FPackageDependencyData> DependencyResults;
+		TArray<double> SearchTimes;
+		int32 NumFilesToSearch = 0;
+		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
+
+		// Cache the search results
+		const int32 NumResults = AssetResults.Num();
+		AssetSearchDataGathered(-1, AssetResults);
+		PathDataGathered(-1, PathResults);
+		DependencyDataGathered(-1, DependencyResults);
+
+		// Log stats
+		const FString& Path = PathsToScan[0];
+		FString PathsString;
+		if ( PathsToScan.Num() > 1 )
+		{
+			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
+		}
+		else
+		{
+			PathsString = FString::Printf(TEXT("'%s'"), *Path);
+		}
+
+		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
 	}
 }
 

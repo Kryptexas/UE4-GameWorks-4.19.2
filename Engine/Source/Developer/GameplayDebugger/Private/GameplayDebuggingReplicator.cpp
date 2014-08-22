@@ -10,6 +10,7 @@
 #include "BehaviorTreeDelegates.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
+#include "LevelEditorViewport.h"
 #endif // WITH_EDITOR
 #include "UnrealNetwork.h"
 
@@ -29,13 +30,13 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 
 #if WITH_EDITOR
 	SetTickableWhenPaused(true);
-	SetIsTemporarilyHiddenInEditor(false);
+	SetIsTemporarilyHiddenInEditor(true);
 	SetActorHiddenInGame(false);
 #endif
 #if WITH_EDITORONLY_DATA
-	bHiddenEdLevel = false;
-	bHiddenEdLayer = false;
-	bHiddenEd = false;
+	bHiddenEdLevel = true;
+	bHiddenEdLayer = true;
+	bHiddenEd = true;
 	bEditable = false;
 #endif
 
@@ -78,6 +79,30 @@ void AGameplayDebuggingReplicator::PostInitializeComponents()
 void AGameplayDebuggingReplicator::BeginPlay()
 {
 	Super::BeginPlay();
+
+#if WITH_EDITOR
+	const UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
+	if (EEngine && (EEngine->bIsSimulatingInEditor || EEngine->EditorWorld) && IsGlobalInWorld() && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI)
+	{
+		SetIsTemporarilyHiddenInEditor(false);
+		SetActorHiddenInGame(false);
+		bHiddenEdLevel = false;
+		bHiddenEdLayer = false;
+		bHiddenEd = false;
+		bEditable = true;
+	}
+	else
+	{
+		SetTickableWhenPaused(true);
+		SetIsTemporarilyHiddenInEditor(true);
+		SetActorHiddenInGame(false);
+		bHiddenEdLevel = true;
+		bHiddenEdLayer = true;
+		bHiddenEd = true;
+		bEditable = false;
+	}
+#endif
+
 	if (Role == ROLE_Authority)
 	{
 		bReplicates = false;
@@ -325,6 +350,17 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 	if (World && GetDebugComponent() && GetDebugComponent()->GetOwnerRole() == ROLE_Authority)
 	{
 		bool bBroadcastedNewSelection = false;
+		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		TArray<int32> OryginalReplicateViewDataCounters;
+
+		if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
+		{
+			OryginalReplicateViewDataCounters = DebugComponent->ReplicateViewDataCounters;
+			for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
+			{
+				DebugComponent->ReplicateViewDataCounters[Index] = GameplayDebuggerSettings(this).CheckFlag((EAIDebugDrawDataView::Type)Index) ? 1 : 0;
+			}
+		}
 
 		// looks like Simulate in UE4 Editor - let's find selected Pawn to debug
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
@@ -348,6 +384,12 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 		{
 			SetActorToDebug(NULL);
 		}
+
+		if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
+		{
+			DebugComponent->ReplicateViewDataCounters = OryginalReplicateViewDataCounters;
+		}
+
 	}
 #endif
 }

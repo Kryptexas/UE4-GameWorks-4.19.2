@@ -1747,7 +1747,7 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, TSha
 				, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
 				, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
 
-			if (dtStatusSucceed(RaycastStatus))
+			if (dtStatusSucceed(RaycastStatus) && RaycastResult.HasHit())
 			{
 				WorkItem.bDidHit = true;
 				WorkItem.HitLocation = WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime;

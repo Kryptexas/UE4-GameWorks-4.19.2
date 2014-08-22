@@ -64,8 +64,22 @@ void FPerceptionListener::ProcessStimuli()
 	bHasStimulusToProcess = false;
 }
 
-FName FPerceptionListener::GetCollisionActorName() const 
+FName FPerceptionListener::GetBodyActorName() const 
 {
-	const AActor* OwnerActor = Listener.IsValid() ? Listener->GetCollisionActor() : NULL;
+	const AActor* OwnerActor = Listener.IsValid() ? Listener->GetBodyActor() : NULL;
 	return OwnerActor ? OwnerActor->GetFName() : NAME_None;
+}
+
+const AActor* FPerceptionListener::GetBodyActor() const 
+{ 
+	return Listener.IsValid() ? Listener->GetBodyActor() : NULL; 
+}
+
+const IGenericTeamAgentInterface* FPerceptionListener::GetTeamAgent() const
+{
+	const UAIPerceptionComponent* PercComponent = Listener.Get();
+	check(PercComponent);
+	const AActor* OwnerActor = PercComponent->GetOwner();
+	const IGenericTeamAgentInterface* OwnerTeamAgent = InterfaceCast<const IGenericTeamAgentInterface>(OwnerActor);
+	return OwnerTeamAgent != NULL ? OwnerTeamAgent : InterfaceCast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());
 }

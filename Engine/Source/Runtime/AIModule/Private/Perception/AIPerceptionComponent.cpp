@@ -47,18 +47,32 @@ void UAIPerceptionComponent::PostInitProperties()
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		AIOwner = Cast<AAIController>(GetOuter());
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			Owner->OnEndPlay.AddDynamic(this, &UAIPerceptionComponent::OnOwnerEndPlay);
+			AIOwner = Cast<AAIController>(Owner);
+		}
 	}
 }
 
-void UAIPerceptionComponent::BeginDestroy()
+void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
+{
+	CleanUp();
+}
+
+void UAIPerceptionComponent::CleanUp()
 {
 	UAIPerceptionSystem* AIPerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
 	if (AIPerceptionSys != NULL)
 	{
 		AIPerceptionSys->UnregisterListener(this);
 	}
+}
 
+void UAIPerceptionComponent::BeginDestroy()
+{
+	CleanUp();
 	Super::BeginDestroy();
 }
 
@@ -163,7 +177,7 @@ void UAIPerceptionComponent::SetShouldSenseDamage(bool bNewValue)
 
 FGenericTeamId UAIPerceptionComponent::GetTeamIdentifier() const
 {
-	return FGenericTeamId::GetTeamIdentifier(GetOuter());
+	return AIOwner ? FGenericTeamId::GetTeamIdentifier(AIOwner) : FGenericTeamId::NoTeam;
 }
 
 FVector UAIPerceptionComponent::GetActorLocation(const AActor* Actor) const 
@@ -195,7 +209,7 @@ void UAIPerceptionComponent::GetLocationAndDirection(FVector& Location, FVector&
 	}
 }
 
-const AActor* UAIPerceptionComponent::GetCollisionActor() const
+const AActor* UAIPerceptionComponent::GetBodyActor() const
 {
 	AController* OwnerController = Cast<AController>(GetOuter());
 	if (OwnerController != NULL)
@@ -241,8 +255,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 				PerceptualInfo = &PerceptualData.Add(SourcedStimulus->Source, FActorPerceptionInfo(SourcedStimulus->Source));
 				// tell it what's our dominant sense
 				PerceptualInfo->DominantSense = DominantSense;
-				// @todo add a propert, generic test here
-				PerceptualInfo->bIsHostile = (FGenericTeamId::GetTeamIdentifier(GetOuter()) != FGenericTeamId::GetTeamIdentifier(SourcedStimulus->Source));
+
+				PerceptualInfo->bIsHostile = AIOwner != NULL && FGenericTeamId::GetAttitude(AIOwner, SourcedStimulus->Source) == ETeamAttitude::Hostile;
 			}
 		}
 

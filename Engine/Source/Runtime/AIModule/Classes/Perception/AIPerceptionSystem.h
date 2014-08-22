@@ -7,6 +7,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIPerception, Warning, All);
 
+class UAISense;
+class UAIPerceptionComponent;
+
 /**
  *	By design checks perception between hostile teams
  */
@@ -19,7 +22,7 @@ protected:
 	AIPerception::FListenerMap ListenerContainer;
 
 	UPROPERTY()
-	TArray<class UAISense*> Senses;
+	TArray<UAISense*> Senses;
 
 	UPROPERTY(config)
 	float PerceptionAgingRate;
@@ -34,6 +37,17 @@ protected:
 
 	TArray<FDelayedStimulus> DelayedStimuli;
 
+	struct FPerceptionSourceRegistration
+	{
+		FAISenseId SenseId;
+		TWeakObjectPtr<AActor> Source;
+
+		FPerceptionSourceRegistration(FAISenseId InSenseId, AActor* SourceActor)
+			: SenseId(InSenseId), Source(SourceActor)
+		{}
+	};
+	TArray<FPerceptionSourceRegistration> SourcesToRegister;
+
 	/** Primary tick function */
 	/*UPROPERTY()
 	struct FActorTickFunction PrimaryActorTick;*/
@@ -44,8 +58,8 @@ public:
 	/* UObject end */
 
 	/** Registers listener if not registered */
-	void UpdateListener(class UAIPerceptionComponent* Listener);
-	void UnregisterListener(class UAIPerceptionComponent* Listener);
+	void UpdateListener(UAIPerceptionComponent* Listener);
+	void UnregisterListener(UAIPerceptionComponent* Listener);
 
 	template<typename FEventClass>
 	void OnEvent(const FEventClass& Event)
@@ -64,13 +78,14 @@ public:
 		}
 	}
 
-	void RegisterSource(FAISenseId SenseIndex, class AActor* SourceActor);
+	/** requests registration of a given actor as a perception data source for specified sense */
+	void RegisterSource(FAISenseId SenseIndex, AActor& SourceActor);
 
 	void ManagerTick(float DeltaSeconds);
 
 	void RegisterDelayedStimulus(uint32 ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
 
-	static UAIPerceptionSystem* GetCurrent(class UObject* WorldContextObject);
+	static UAIPerceptionSystem* GetCurrent(UObject* WorldContextObject);
 
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation);
 
@@ -86,6 +101,7 @@ protected:
 	void OnNewListener(const FPerceptionListener& NewListener);
 	void OnListenerUpdate(const FPerceptionListener& UpdatedListener);
 	void OnListenerRemoved(const FPerceptionListener& UpdatedListener);
+	void PerformSourceRegistration();
 
 	void AgeStimuli();
 

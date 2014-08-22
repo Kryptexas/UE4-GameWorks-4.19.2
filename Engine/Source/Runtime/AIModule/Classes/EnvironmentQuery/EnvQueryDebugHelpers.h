@@ -34,6 +34,7 @@ namespace EQSDebug
 		int32 NumValidItems;
 		int32 Id;
 		FString Name;
+		float Timestamp;
 
 		void Reset()
 		{
@@ -44,6 +45,7 @@ namespace EQSDebug
 			Tests.Reset();
 			SolidSpheres.Reset();
 			Texts.Reset();
+			Timestamp = 0;
 		}
 	};
 }
@@ -95,6 +97,7 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 	Ar << Data.NumValidItems;
 	Ar << Data.Id;
 	Ar << Data.Name;
+	Ar << Data.Timestamp;
 	return Ar;
 }
 

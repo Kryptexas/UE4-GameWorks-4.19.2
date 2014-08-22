@@ -70,6 +70,14 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	FString BrainComponentName;
 
+	UPROPERTY(Replicated)
+	FString BrainComponentString;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateBlackboard)
+	TArray<uint8> BlackboardRepData;
+
+	FString BlackboardString;
+
 	/** Begin path replication data */
 	UPROPERTY(Replicated)
 	TArray<FVector> PathPoints;
@@ -82,31 +90,30 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<uint8> NavmeshRepData;
 	
 	/** Begin EQS replication data */
+
 	UPROPERTY(Replicated)
-	float EQSTimestamp;
-	
-	UPROPERTY(Replicated)
-	FString EQSName;
-	
-	UPROPERTY(Replicated)
-	int32 EQSId;
+	TArray<FString> AllEQSName;
 
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	
 	/** local EQS debug data, decoded from EQSRepData blob */
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
-	EQSDebug::FQueryData EQSLocalData;
+	TArray<EQSDebug::FQueryData> EQSLocalData;	
 #endif
 	/** End EQS replication data */
 
-
-	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
 
 	UFUNCTION()
+	void OnChangeEQSQuery();
+
+	UFUNCTION()
 	virtual void OnRep_UpdateEQS();
+
+	UFUNCTION()
+	virtual void OnRep_UpdateBlackboard();
 
 	virtual bool GetComponentClassCanReplicate() const override{ return true; }
 
@@ -135,7 +142,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	/** Will broadcast information that this component is (no longer) being "observed" */
 	void SelectForDebugging(bool bNewStatus);
 
-	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return true; }
+	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return ReplicateViewDataCounters[InView] > 0 /*true*/; }
 	virtual void CollectDataToReplicate(bool bCollectExtendedData);
 
 	//=============================================================================
@@ -202,6 +209,9 @@ protected:
 	FBox NavMeshBounds;
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
+
+	int32 CurrentEQSIndex;
+	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 
 public:
 	static FName DefaultComponentName;

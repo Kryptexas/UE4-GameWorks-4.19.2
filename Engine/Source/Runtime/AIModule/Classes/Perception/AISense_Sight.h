@@ -58,6 +58,8 @@ struct FAISightTarget
 	{
 		return Target.IsValid() ? Target->GetActorLocation() : FVector::ZeroVector;
 	}
+
+	FORCEINLINE const AActor* GetTargetActor() const { return Target.Get(); }
 };
 
 struct FAISightQuery
@@ -100,7 +102,7 @@ class AIMODULE_API UAISense_Sight : public UAISense
 {
 	GENERATED_UCLASS_BODY()
 
-	TMap<FName, FAISightTarget> ObservedTargets;
+	TMap<FAISightTarget::FTargetId, FAISightTarget> ObservedTargets;
 
 	TArray<FAISightQuery> SightQueryQueue;
 
@@ -127,7 +129,7 @@ public:
 
 	void RegisterEvent(const FAISightEvent& Event);	
 
-	virtual void RegisterSource(class AActor* SourceActor) override;
+	virtual void RegisterSource(AActor& SourceActor) override;
 	
 protected:
 	virtual float Update() override;
@@ -144,7 +146,7 @@ protected:
 	void RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess);
 	void RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess);
 
-	void RegisterTarget(AActor* TargetActor, FQueriesOperationPostProcess PostProcess);
+	void RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess);
 
 	FORCEINLINE void SortQueries() { SightQueryQueue.Sort(FAISightQuery::FSortPredicate()); }
 

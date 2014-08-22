@@ -4402,6 +4402,9 @@ void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 	{
 		FLevelUtils::RemoveEditorTransform(LevelStreaming);
 	}
+
+	// Make sure the public and standalone flags are set on this world to allow it to work properly with the editor
+	World->SetFlags(RF_Public | RF_Standalone);
 }
 
 void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 OriginalPackageFlags, bool bSuccess)
@@ -7318,7 +7321,7 @@ namespace EditorUtilities
 
 bool UEditorEngine::IsUsingWorldAssets()
 {
-	return FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
 }
 
 void UEditorEngine::OnAssetLoaded(UObject* Asset)

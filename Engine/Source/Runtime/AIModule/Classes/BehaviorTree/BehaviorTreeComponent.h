@@ -7,13 +7,27 @@
 #include "BehaviorTreeTypes.h"
 #include "BehaviorTreeComponent.generated.h"
 
+class UBTNode;
+class UBTCompositeNode;
+class UBTTaskNode;
+class UBTDecorator;
+class UBTTask_RunBehavior;
+class FBehaviorTreeDebugger;
+class UBehaviorTree;
+class UBTAuxiliaryNode;
+struct FBehaviorTreeInstance;
+struct FBehaviorTreeInstanceId;
+struct FBTNodeIndex;
+struct FBehaviorTreeSearchData;
+struct FBehaviorTreeSearchUpdate;
+
 struct FBTNodeExecutionInfo
 {
 	/** index of first task allowed to be executed */
-	struct FBTNodeIndex SearchStart;
+	FBTNodeIndex SearchStart;
 
 	/** node to be executed */
-	class UBTCompositeNode* ExecuteNode;
+	UBTCompositeNode* ExecuteNode;
 
 	/** subtree index */
 	uint16 ExecuteInstanceIdx;
@@ -55,7 +69,7 @@ public:
 	// End UObject overrides
 
 	/** starts execution from root */
-	bool StartTree(class UBehaviorTree* Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
+	bool StartTree(UBehaviorTree* Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
 
 	/** stops execution */
 	void StopTree();
@@ -64,35 +78,35 @@ public:
 	void RestartTree();
 
 	/** request execution change */
-	void RequestExecution(class UBTCompositeNode* RequestedOn, int32 InstanceIdx, 
-		const class UBTNode* RequestedBy, int32 RequestedByChildIndex,
+	void RequestExecution(UBTCompositeNode* RequestedOn, int32 InstanceIdx, 
+		const UBTNode* RequestedBy, int32 RequestedByChildIndex,
 		EBTNodeResult::Type ContinueWithResult, bool bStoreForDebugger = true);
 
 	/** request execution change: helpers for decorator nodes */
-	void RequestExecution(const class UBTDecorator* RequestedBy);
+	void RequestExecution(const UBTDecorator* RequestedBy);
 
 	/** request execution change: helpers for task nodes */
 	void RequestExecution(EBTNodeResult::Type ContinueWithResult);
 
 	/** finish latent execution or abort */
-	void OnTaskFinished(const class UBTTaskNode* TaskNode, EBTNodeResult::Type TaskResult);
+	void OnTaskFinished(const UBTTaskNode* TaskNode, EBTNodeResult::Type TaskResult);
 
 	/** setup message observer for given task */
-	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType);
-	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, FAIRequestID MessageID);
+	void RegisterMessageObserver(const UBTTaskNode* TaskNode, FName MessageType);
+	void RegisterMessageObserver(const UBTTaskNode* TaskNode, FName MessageType, FAIRequestID MessageID);
 	
 	/** remove message observers registered with task */
-	void UnregisterMessageObserversFrom(const class UBTTaskNode* TaskNode);
+	void UnregisterMessageObserversFrom(const UBTTaskNode* TaskNode);
 	void UnregisterMessageObserversFrom(const FBTNodeIndex& TaskIdx);
 
 	/** add active parallel task */
-	void RegisterParallelTask(const class UBTTaskNode* TaskNode);
+	void RegisterParallelTask(const UBTTaskNode* TaskNode);
 
 	/** remove parallel task */
-	void UnregisterParallelTask(const class UBTTaskNode* TaskNode, uint16 InstanceIdx);
+	void UnregisterParallelTask(const UBTTaskNode* TaskNode, uint16 InstanceIdx);
 
 	/** unregister all aux nodes less important than given index */
-	void UnregisterAuxNodesUpTo(const struct FBTNodeIndex& Index);
+	void UnregisterAuxNodesUpTo(const FBTNodeIndex& Index);
 
 	/** BEGIN UActorComponent overrides */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -105,37 +119,37 @@ public:
 	void ScheduleExecutionUpdate();
 
 	/** tries to find behavior tree instance in context */
-	int32 FindInstanceContainingNode(const class UBTNode* Node) const;
+	int32 FindInstanceContainingNode(const UBTNode* Node) const;
 
 	/** tries to find template node for given instanced node */
-	class UBTNode* FindTemplateNode(const class UBTNode* Node) const;
+	UBTNode* FindTemplateNode(const UBTNode* Node) const;
 
 	/** @return current tree */
-	class UBehaviorTree* GetCurrentTree() const;
+	UBehaviorTree* GetCurrentTree() const;
 
 	/** @return tree from top of instance stack */
-	class UBehaviorTree* GetRootTree() const;
+	UBehaviorTree* GetRootTree() const;
 
 	/** @return active node */
-	const class UBTNode* GetActiveNode() const;
+	const UBTNode* GetActiveNode() const;
 	
 	/** get index of active instance on stack */
 	uint16 GetActiveInstanceIdx() const;
 
 	/** @return node memory */
-	uint8* GetNodeMemory(class UBTNode* Node, int32 InstanceIdx) const;
+	uint8* GetNodeMemory(UBTNode* Node, int32 InstanceIdx) const;
 
 	/** @return true if ExecutionRequest is switching to higher priority node */
 	bool IsRestartPending() const;
 
 	/** @return true if active node is one of child nodes of given one */
-	bool IsExecutingBranch(const class UBTNode* Node, int32 ChildIndex = -1) const;
+	bool IsExecutingBranch(const UBTNode* Node, int32 ChildIndex = -1) const;
 
 	/** @return true if aux node is currently active */
-	bool IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNode) const;
+	bool IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) const;
 
 	/** @return status of speficied task */
-	EBTTaskStatus::Type GetTaskStatus(const class UBTTaskNode* TaskNode) const;
+	EBTTaskStatus::Type GetTaskStatus(const UBTTaskNode* TaskNode) const;
 
 	virtual FString GetDebugInfoString() const override;
 	virtual FString DescribeActiveTasks() const;
@@ -147,17 +161,17 @@ public:
 
 protected:
 	/** stack of behavior tree instances */
-	TArray<struct FBehaviorTreeInstance> InstanceStack;
+	TArray<FBehaviorTreeInstance> InstanceStack;
 
 	/** list of known subtree instances */
-	TArray<struct FBehaviorTreeInstanceId> KnownInstances;
+	TArray<FBehaviorTreeInstanceId> KnownInstances;
 
 	/** instanced nodes */
 	UPROPERTY(transient)
-	TArray<class UBTNode*> NodeInstances;
+	TArray<UBTNode*> NodeInstances;
 
 	/** search data being currently used */
-	struct FBehaviorTreeSearchData SearchData;
+	FBehaviorTreeSearchData SearchData;
 
 	/** execution request, will be applied when current task finish execution/aborting */
 	FBTNodeExecutionInfo ExecutionRequest;
@@ -196,34 +210,34 @@ protected:
 
 	/** push behavior tree instance on execution stack
 	 *	@NOTE: should never be called out-side of BT execution, meaning only BT tasks can push another BT instance! */
-	bool PushInstance(class UBehaviorTree* TreeAsset);
+	bool PushInstance(UBehaviorTree* TreeAsset);
 
 	/** add unique Id of newly created subtree to KnownInstances list and return its index */
-	uint8 UpdateInstanceId(class UBehaviorTree* TreeAsset, const class UBTNode* OriginNode, int32 OriginInstanceIdx);
+	uint8 UpdateInstanceId(UBehaviorTree* TreeAsset, const UBTNode* OriginNode, int32 OriginInstanceIdx);
 
 	/** remove instanced nodes, known subtree instances and safely clears their persistent memory */
 	void RemoveAllInstances();
 
 	/** find next task to execute */
-	UBTTaskNode* FindNextTask(class UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
+	UBTTaskNode* FindNextTask(UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
 
 	/** called when tree runs out of nodes to execute */
 	void OnTreeFinished();
 
 	/** apply pending node updates from SearchData */
-	void ApplySearchData(class UBTNode* NewActiveNode, int32 UpToIdx = -1);
+	void ApplySearchData(UBTNode* NewActiveNode, int32 UpToIdx = -1);
 
 	/** apply updates from specific list */
-	void ApplySearchUpdates(const TArray<struct FBehaviorTreeSearchUpdate>& UpdateList, int32 UpToIdx, int32 NewNodeExecutionIndex, bool bPostUpdate = false);
+	void ApplySearchUpdates(const TArray<FBehaviorTreeSearchUpdate>& UpdateList, int32 UpToIdx, int32 NewNodeExecutionIndex, bool bPostUpdate = false);
 
 	/** abort currently executed task */
 	void AbortCurrentTask();
 
 	/** execute new task */
-	void ExecuteTask(class UBTTaskNode* TaskNode);
+	void ExecuteTask(UBTTaskNode* TaskNode);
 
 	/** deactivate all nodes up to requested one */
-	bool DeactivateUpTo(class UBTCompositeNode* Node, uint16 NodeInstanceIdx, EBTNodeResult::Type& NodeResult);
+	bool DeactivateUpTo(UBTCompositeNode* Node, uint16 NodeInstanceIdx, EBTNodeResult::Type& NodeResult);
 
 	/** update state of aborting tasks */
 	void UpdateAbortingTasks();
@@ -236,43 +250,43 @@ protected:
 	void StoreDebuggerRemovedInstance(uint16 InstanceIdx) const;
 
 	/** store search step for debugger */
-	void StoreDebuggerSearchStep(const class UBTNode* Node, uint16 InstanceIdx, EBTNodeResult::Type NodeResult) const;
-	void StoreDebuggerSearchStep(const class UBTNode* Node, uint16 InstanceIdx, bool bPassed) const;
+	void StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, EBTNodeResult::Type NodeResult) const;
+	void StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, bool bPassed) const;
 
 	/** store restarting node for debugger */
-	void StoreDebuggerRestart(const class UBTNode* Node, uint16 InstanceIdx, bool bAllowed);
+	void StoreDebuggerRestart(const UBTNode* Node, uint16 InstanceIdx, bool bAllowed);
 
 	/** describe blackboard's key values */
 	void StoreDebuggerBlackboard(TMap<FName, FString>& BlackboardValueDesc) const;
 
 	/** gather nodes runtime descriptions */
-	void StoreDebuggerRuntimeValues(TArray<FString>& RuntimeDescriptions, class UBTNode* RootNode, uint16 InstanceIdx) const;
+	void StoreDebuggerRuntimeValues(TArray<FString>& RuntimeDescriptions, UBTNode* RootNode, uint16 InstanceIdx) const;
 
 	/** update runtime description of given task node in latest debugger's snapshot */
-	void UpdateDebuggerAfterExecution(const class UBTTaskNode* TaskNode, uint16 InstanceIdx) const;
+	void UpdateDebuggerAfterExecution(const UBTTaskNode* TaskNode, uint16 InstanceIdx) const;
 
-	friend class UBTNode;
-	friend class UBTCompositeNode;
-	friend class UBTTaskNode;
-	friend class UBTTask_RunBehavior;
-	friend class FBehaviorTreeDebugger;
-	friend struct FBehaviorTreeInstance;
+	friend UBTNode;
+	friend UBTCompositeNode;
+	friend UBTTaskNode;
+	friend UBTTask_RunBehavior;
+	friend FBehaviorTreeDebugger;
+	friend FBehaviorTreeInstance;
 };
 
 //////////////////////////////////////////////////////////////////////////
 // Inlines
 
-FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetCurrentTree() const
+FORCEINLINE UBehaviorTree* UBehaviorTreeComponent::GetCurrentTree() const
 {
 	return InstanceStack.Num() ? KnownInstances[InstanceStack[ActiveInstanceIdx].InstanceIdIndex].TreeAsset : NULL;
 }
 
-FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetRootTree() const
+FORCEINLINE UBehaviorTree* UBehaviorTreeComponent::GetRootTree() const
 {
 	return InstanceStack.Num() ? KnownInstances[InstanceStack[0].InstanceIdIndex].TreeAsset : NULL;
 }
 
-FORCEINLINE const class UBTNode* UBehaviorTreeComponent::GetActiveNode() const
+FORCEINLINE const UBTNode* UBehaviorTreeComponent::GetActiveNode() const
 {
 	return InstanceStack.Num() ? InstanceStack[ActiveInstanceIdx].ActiveNode : NULL;
 }

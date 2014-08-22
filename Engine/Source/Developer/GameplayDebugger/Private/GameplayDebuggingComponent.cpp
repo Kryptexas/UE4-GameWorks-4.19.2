@@ -8,12 +8,14 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "BehaviorTreeDelegates.h"
 #include "Navigation/NavigationComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "Engine/Channel.h"
 
 #include "GameplayDebuggingComponent.h"
 
@@ -122,7 +124,6 @@ FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedD
 
 UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
-	, EQSTimestamp(0.f)
 	, bDrawEQSLabels(true)
 	, bDrawEQSFailedItems(true)
 {
@@ -148,6 +149,13 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
 #endif
+
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	if (Replicator)
+	{
+		Replicator->OnChangeEQSQuery.AddUObject(this, &UGameplayDebuggingComponent::OnChangeEQSQuery);
+	}
+
 }
 
 void UGameplayDebuggingComponent::Activate(bool bReset)
@@ -196,8 +204,11 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, ControllerName )
 	DOREPLIFETIME( UGameplayDebuggingComponent, PawnName );
 	DOREPLIFETIME( UGameplayDebuggingComponent, DebugIcon );
-	DOREPLIFETIME( UGameplayDebuggingComponent, BrainComponentName );
 	DOREPLIFETIME( UGameplayDebuggingComponent, PawnClass );
+
+	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentName);
+	DOREPLIFETIME(UGameplayDebuggingComponent, BrainComponentString);
+	DOREPLIFETIME(UGameplayDebuggingComponent, BlackboardRepData);
 
 	DOREPLIFETIME( UGameplayDebuggingComponent, PathPoints );
 	DOREPLIFETIME( UGameplayDebuggingComponent, PathErrorString );
@@ -206,10 +217,8 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
-	DOREPLIFETIME(UGameplayDebuggingComponent, EQSTimestamp);
-	DOREPLIFETIME(UGameplayDebuggingComponent, EQSName);
-	DOREPLIFETIME(UGameplayDebuggingComponent, EQSId);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
+	DOREPLIFETIME(UGameplayDebuggingComponent, AllEQSName);
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -258,6 +267,10 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 		CollectDataToReplicate(true);
 	}
 
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
+	CurrentEQSIndex = DebugComponent ? FMath::Clamp(CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -292,7 +305,6 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator )
 		{
 			APawn* NewTarget = *Iterator;
-			//  NewTarget->GetActorEnableCollision() == false - HACK to get rid of pawns not relevant for us 
 			if (NewTarget == NULL || NewTarget == MyPC->GetPawn() 
 				|| (NewTarget->PlayerState != NULL && NewTarget->PlayerState->bIsABot == false) 
 				|| NewTarget->GetActorEnableCollision() == false)
@@ -370,6 +382,7 @@ void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedDa
 			{
 				GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnabledEnvironmentQueryEd, GEngineIni);
 			}
+
 			if (bEnabledEnvironmentQueryEd)
 			{
 				CollectEQSData();
@@ -418,7 +431,61 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
-		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT(""); 
+		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT("");
+		BrainComponentString = MyController->BrainComponent->GetDebugInfoString();
+		if (World && World->GetNetMode() != NM_Standalone)
+		{
+			BrainComponentString = BrainComponentString.Left(MAX_STRING_SERIALIZE_SIZE - 1);
+		}
+
+		if (MyController->BrainComponent && !MyController->IsPendingKill())
+		{
+			BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
+
+			if (World && World->GetNetMode() != NM_Standalone)
+			{
+				TArray<uint8> UncompressedBuffer;
+				FMemoryWriter ArWriter(UncompressedBuffer);
+
+				ArWriter << BlackboardString;
+
+				const int32 HeaderSize = sizeof(int32);
+				BlackboardRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
+
+				const int32 UncompressedSize = UncompressedBuffer.Num();
+				int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
+				uint8* DestBuffer = BlackboardRepData.GetTypedData();
+				FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
+				DestBuffer += HeaderSize;
+
+				FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
+					(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
+
+				BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
+			}
+		}
+	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (World && World->GetNetMode() != NM_Standalone)
+	{
+		TArray<uint8> UncompressedBuffer;
+		int32 UncompressedSize = 0;
+		const int32 HeaderSize = sizeof(int32);
+		uint8* SrcBuffer = (uint8*)BlackboardRepData.GetTypedData();
+		FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
+		SrcBuffer += HeaderSize;
+		const int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
+
+		UncompressedBuffer.AddZeroed(UncompressedSize);
+
+		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+		FMemoryReader ArReader(UncompressedBuffer);
+
+		ArReader << BlackboardString;
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -552,6 +619,19 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 //////////////////////////////////////////////////////////////////////////
 // EQS Data
 //////////////////////////////////////////////////////////////////////////
+void UGameplayDebuggingComponent::OnChangeEQSQuery()
+{
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
+	if (DebugComponent && ++CurrentEQSIndex >= DebugComponent->AllEQSName.Num())
+	{
+		CurrentEQSIndex = 0;
+	}
+
+	UpdateBounds();
+	MarkRenderStateDirty();
+}
+
 const FEnvQueryResult* UGameplayDebuggingComponent::GetQueryResult() const
 {
 	return CachedQueryInstance.Get();
@@ -582,6 +662,7 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << EQSLocalData;
+		CurrentEQSIndex = 0;
 	}	
 
 	UpdateBounds();
@@ -606,27 +687,49 @@ void UGameplayDebuggingComponent::CollectEQSData()
 		return;
 	}
 
-	TSharedPtr<FEnvQueryInstance> CurrentInstance = QueryManager->GetDebugger().GetQueryForOwner(Owner);
-	if (!CurrentInstance.IsValid() || (CachedQueryInstance.IsValid() && CachedQueryInstance->QueryID == CurrentInstance->QueryID))
+	AllEQSName.Empty();
+	auto AllQueries = QueryManager->GetDebugger().GetAllQueriesForOwner(Owner);
+	for (int32 Index = 0; Index < AllQueries.Num(); ++Index)
 	{
-		return;
+		EQSDebug::FQueryData* CurrentLocalData = NULL;
+		CachedQueryInstance = AllQueries[Index].Instance;
+		AllEQSName.AddUnique(CachedQueryInstance->QueryName);
+
+		 //find corresponding query
+		bool bSkipToNext = false;
+		for (int32 Idx = 0; Idx < EQSLocalData.Num(); ++Idx)
+		{
+			if (EQSLocalData[Idx].Name == CachedQueryInstance->QueryName)
+			{
+				if (EQSLocalData[Idx].Id == CachedQueryInstance->QueryID)
+				{
+					bSkipToNext = true;
+					break;
+				}
+				CurrentLocalData = &EQSLocalData[Index];;
+				break;
+			}
+		}
+
+		if (bSkipToNext)
+		{
+			continue;
+		}
+
+		if (!CurrentLocalData)
+		{
+			EQSLocalData.AddZeroed();
+			CurrentLocalData = &EQSLocalData[EQSLocalData.Num()-1];
+		}
+
+		UEnvQueryDebugHelpers::QueryToDebugData(CachedQueryInstance.Get(), *CurrentLocalData);
+		CurrentLocalData->Timestamp = AllQueries[Index].Timestamp;
 	}
-
-	const double Timer1 = FPlatformTime::Seconds();
-
-	CachedQueryInstance = CurrentInstance;
-	EQSTimestamp = World->GetTimeSeconds();
-	EQSName = CachedQueryInstance->QueryName;
-	EQSId = CachedQueryInstance->QueryID;
 
 	TArray<uint8> UncompressedBuffer;
 	FMemoryWriter ArWriter(UncompressedBuffer);
 
-	UEnvQueryDebugHelpers::QueryToDebugData(CachedQueryInstance.Get(), EQSLocalData);
-
 	ArWriter << EQSLocalData;
-
-	const double Timer2 = FPlatformTime::Seconds();
 
 	const int32 UncompressedSize = UncompressedBuffer.Num();
 	const int32 HeaderSize = sizeof(int32);
@@ -640,12 +743,6 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), (void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
 
 	EQSRepData.SetNum(CompressedSize + HeaderSize, false);
-	const double Timer3 = FPlatformTime::Seconds();
-
-	//UE_LOG(LogEQS, Log, TEXT("Preparing EQS data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
-	//	EQSRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
-	//	1000.0f * (Timer2 - Timer1),
-	//	FMath::TruncToInt(100.0f * EQSRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 
 	if (World && World->GetNetMode() != NM_DedicatedServer)
 	{
@@ -1052,7 +1149,6 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 
 #if WITH_RECAST	
 	const APawn* MyPawn = Cast<APawn>(GetSelectedActor());
-	//const APlayerController* MyPC = MyPawn ? Cast<APlayerController>(MyPawn->Controller) : NULL;
 	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		FNavMeshSceneProxyData NewNavmeshRenderData;
@@ -1070,8 +1166,12 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #if USE_EQS_DEBUGGER
 	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() )
 	{
-		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-		CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), /*bDrawOnlyWhenSelected=*/false, EQSLocalData.SolidSpheres, EQSLocalData.Texts));
+		if (EQSLocalData.IsValidIndex(CurrentEQSIndex))
+		{
+			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
+			auto& CurrentLocalData = EQSLocalData[CurrentEQSIndex];
+			CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
+		}
 	}
 #endif // USE_EQS_DEBUGGER
 
@@ -1091,7 +1191,7 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & Loca
 #endif
 
 #if USE_EQS_DEBUGGER
-	if (EQSRepData.Num())
+	if (EQSRepData.Num() && ShouldReplicateData(EAIDebugDrawDataView::EQS))
 	{
 		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	}

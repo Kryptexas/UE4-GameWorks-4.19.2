@@ -68,6 +68,18 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	UPROPERTY(BlueprintAssignable)
 	FOnProjectileStopDelegate OnProjectileStop;
 
+	/** The magnitude of our acceleration towards the homing target */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Homing)
+	float HomingAccelerationMagnitude;
+
+	/** If true, we will home towards our homing target. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Homing)
+	bool bIsHomingProjectile;
+
+	/** The current target we are homing towards */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Homing)
+	TWeakObjectPtr<USceneComponent> HomingTargetComponent;
+
 	/** Sets the velocity to the new value, rotated into Actor space. */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement")
 	virtual void SetVelocityInLocalSpace(FVector NewVelocity);
@@ -94,7 +106,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	bool ShouldApplyGravity() const { return ProjectileGravityScale != 0.f; }
 
 	/** @returns the velocity after DeltaTime */
-	virtual FVector CalculateVelocity(FVector OldVelocity, float DeltaTime);
+	virtual FVector CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bApplyGravity);
 
 	/** Clears the reference to UpdatedComponent, fires stop event, and stops ticking. */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement")
@@ -118,6 +130,12 @@ protected:
 
 	// Compute the distance we should move in the given time, at a given a velocity.
 	virtual FVector ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bApplyGravity = true) const;
+
+	// Compute the acceleration that will be applied
+	virtual FVector ComputeAcceleration(bool bApplyGravity) const;
+
+	// Allow the projectile to track towards its homing target.
+	virtual FVector ComputeHoming() const;
 
 	// Compute gravity effect given current physics volume, projectile gravity scale, etc.
 	float GetEffectiveGravityZ() const;

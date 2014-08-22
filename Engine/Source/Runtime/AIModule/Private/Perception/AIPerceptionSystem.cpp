@@ -52,11 +52,25 @@ void UAIPerceptionSystem::PostInitProperties()
 	}
 }
 
-void UAIPerceptionSystem::RegisterSource(FAISenseId SenseIndex, class AActor* SourceActor)
+void UAIPerceptionSystem::RegisterSource(FAISenseId SenseIndex, AActor& SourceActor)
+{
+	SourcesToRegister.Add(FPerceptionSourceRegistration(SenseIndex, &SourceActor));
+}
+
+void UAIPerceptionSystem::PerformSourceRegistration()
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
-	Senses[SenseIndex]->RegisterSource(SourceActor);
+	for (const auto& PercSource : SourcesToRegister)
+	{
+		AActor* SourceActor = PercSource.Source.Get();
+		if (SourceActor)
+		{
+			Senses[PercSource.SenseId]->RegisterSource(*SourceActor);
+		}
+	}
+
+	SourcesToRegister.Reset();
 }
 
 void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
@@ -96,6 +110,11 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 	CurrentTime = World->GetTimeSeconds();
 
 	bool bNeedsUpdate = false;
+
+	if (SourcesToRegister.Num() > 0)
+	{
+		PerformSourceRegistration();
+	}
 
 	{
 		UAISense** SenseInstance = Senses.GetTypedData();
@@ -209,7 +228,7 @@ void UAIPerceptionSystem::UpdateListener(UAIPerceptionComponent* Listener)
     }
 }
 
-void UAIPerceptionSystem::UnregisterListener(class UAIPerceptionComponent* Listener)
+void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent* Listener)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
@@ -225,6 +244,9 @@ void UAIPerceptionSystem::UnregisterListener(class UAIPerceptionComponent* Liste
 				|| ListenerContainer[ListenerId].Listener.Get() == Listener);
 			OnListenerRemoved(ListenerContainer[ListenerId]);
 			ListenerContainer.Remove(ListenerId);
+
+			// make it as unregistered
+			Listener->StoreListenerId(AIPerception::InvalidListenerId);
 		}
 	}
 }

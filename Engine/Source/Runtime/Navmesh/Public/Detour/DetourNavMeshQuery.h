@@ -261,6 +261,47 @@ public:
 
 };
 
+struct dtQueryResultPack
+{
+	dtPolyRef ref;
+	float cost;
+	float pos[3];
+	unsigned int flag;
+
+	dtQueryResultPack() : ref(0), cost(0), flag(0) {}
+	dtQueryResultPack(dtPolyRef inRef, float inCost, const float* inPos, unsigned int inFlag);
+};
+
+struct NAVMESH_API dtQueryResult
+{
+	inline void reserve(int n) { data.resize(n); data.resize(0); }
+	inline int size() const { return data.size(); }
+
+	inline dtPolyRef getRef(int idx) const { return data[idx].ref; }
+	inline float getCost(int idx) const { return data[idx].cost; }
+	inline const float* getPos(int idx) const { return data[idx].pos; }
+	inline unsigned int getFlag(int idx) const { return data[idx].flag; }
+	void getPos(int idx, float* pos);
+
+	void copyRefs(dtPolyRef* refs, int nmax);
+	void copyCosts(float* costs, int nmax);
+	void copyPos(float* pos, int nmax);
+	void copyFlags(unsigned char* flags, int nmax);
+	void copyFlags(unsigned int* flags, int nmax);
+
+protected:
+	dtChunkArray<dtQueryResultPack> data;
+
+	inline int addItem(dtPolyRef ref, float cost, const float* pos, unsigned int flag) { data.push(dtQueryResultPack(ref, cost, pos, flag)); return data.size() - 1; }
+
+	inline void setRef(int idx, dtPolyRef ref) { data[idx].ref = ref; }
+	inline void setCost(int idx, float cost) { data[idx].cost = cost; }
+	inline void setFlag(int idx, unsigned int flag) { data[idx].flag = flag; }
+	void setPos(int idx, const float* pos);
+
+	friend class dtNavMeshQuery;
+};
+
 /// Provides the ability to perform pathfinding related queries against
 /// a navigation mesh.
 /// @ingroup detour
@@ -284,22 +325,17 @@ public:
 	// /@{
 
 	/// Finds a path from the start polygon to the end polygon.
-	///  @param[in]		startRef	The refrence id of the start polygon.
+	///  @param[in]		startRef	The reference id of the start polygon.
 	///  @param[in]		endRef		The reference id of the end polygon.
 	///  @param[in]		startPos	A position within the start polygon. [(x, y, z)]
 	///  @param[in]		endPos		A position within the end polygon. [(x, y, z)]
 	///  @param[in]		filter		The polygon filter to apply to the query.
-	///  @param[out]	path		An ordered list of polygon references representing the path. (Start to end.) 
-	///  							[(polyRef) * @p pathCount]
-	///  @param[out]	pathCount	The number of polygons returned in the @p path array.
-	///  @param[in]		maxPath		The maximum number of polygons the @p path array can hold. [Limit: >= 1]
-	///	 @param[out]	pathSegmentsCost	If provided will get filled will cost for every piece of path corridor
+	///  @param[out]	result		Results for path corridor, fills in refs and costs for each poly from start to end
 	///	 @param[out]	totalCost			If provided will get filled will total cost of path
 	dtStatus findPath(dtPolyRef startRef, dtPolyRef endRef,
 					  const float* startPos, const float* endPos,
 					  const dtQueryFilter* filter,
-					  dtPolyRef* path, int* pathCount, const int maxPath,
-					  float* pathSegmentsCost, float* totalCost) const;
+					  dtQueryResult& result, float* totalCost) const;
 	
 	/// Check if there is a path from start polygon to the end polygon using cluster graph
 	/// (cheap, does not care about link costs)
@@ -312,17 +348,12 @@ public:
 	///  @param[in]		endPos				Path end position. [(x, y, z)]
 	///  @param[in]		path				An array of polygon references that represent the path corridor.
 	///  @param[in]		pathSize			The number of polygons in the @p path array.
-	///  @param[out]	straightPath		Points describing the straight path. [(x, y, z) * @p straightPathCount].
-	///  @param[out]	straightPathFlags	Flags describing each point. (See: #dtStraightPathFlags) [opt]
-	///  @param[out]	straightPathRefs	The reference id of the polygon that is being entered at each point. [opt]
-	///  @param[out]	straightPathCount	The number of points in the straight path.
-	///  @param[in]		maxStraightPath		The maximum number of points the straight path arrays can hold.  [Limit: > 0]
+	///  @param[out]	result				Fills in positions, refs and flags
 	///  @param[in]		options				Query options. (see: #dtStraightPathOptions)
 	/// @returns The status flags for the query.
 	dtStatus findStraightPath(const float* startPos, const float* endPos,
 							  const dtPolyRef* path, const int pathSize,
-							  float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
-							  int* straightPathCount, const int maxStraightPath, const int options = 0) const;
+							  dtQueryResult& result, const int options = 0) const;
 
 	///@}
 	/// @name Sliced Pathfinding Functions
@@ -671,13 +702,11 @@ private:
 	
 	// Appends vertex to a straight path
 	dtStatus appendVertex(const float* pos, const unsigned char flags, const dtPolyRef ref,
-						  float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
-						  int* straightPathCount, const int maxStraightPath) const;
+						  dtQueryResult& result) const;
 
 	// Appends intermediate portal points to a straight path.
 	dtStatus appendPortals(const int startIdx, const int endIdx, const float* endPos, const dtPolyRef* path,
-						   float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
-						   int* straightPathCount, const int maxStraightPath, const int options) const;
+						   dtQueryResult& result, const int options) const;
 	
 	inline bool passLinkFilterByRef(const dtMeshTile* tile, const dtPolyRef ref) const
 	{

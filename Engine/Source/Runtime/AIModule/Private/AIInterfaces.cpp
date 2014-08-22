@@ -11,7 +11,7 @@ UAIResourceInterface::UAIResourceInterface(const class FPostConstructInitializeP
 
 FGenericTeamId FGenericTeamId::NoTeam(FGenericTeamId::NoTeamId);
 
-FGenericTeamId FGenericTeamId::GetTeamIdentifier(const UObject* TeamMember)
+FGenericTeamId FGenericTeamId::GetTeamIdentifier(const AActor* TeamMember)
 {
 	const IGenericTeamAgentInterface* TeamAgent = InterfaceCast<const IGenericTeamAgentInterface>(TeamMember);
 	if (TeamAgent)
@@ -20,6 +20,13 @@ FGenericTeamId FGenericTeamId::GetTeamIdentifier(const UObject* TeamMember)
 	}
 
 	return FGenericTeamId::NoTeam;
+}
+
+ETeamAttitude::Type FGenericTeamId::GetAttitude(const AActor* A, const AActor* B)
+{
+	const IGenericTeamAgentInterface* TeamAgentA = InterfaceCast<const IGenericTeamAgentInterface>(A);
+
+	return TeamAgentA == NULL || B == NULL ? ETeamAttitude::Neutral : TeamAgentA->GetTeamAttitudeTowards(*B);
 }
 
 UGenericTeamAgentInterface::UGenericTeamAgentInterface(const class FPostConstructInitializeProperties& PCIP)

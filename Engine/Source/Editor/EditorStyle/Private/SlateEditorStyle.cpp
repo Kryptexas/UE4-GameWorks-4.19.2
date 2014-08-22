@@ -5620,6 +5620,12 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 
 		Set("FBXSmallFont", FBXSmallFont);
 	}
+
+	// Asset Dialog
+	{
+		Set("AssetDialog.ErrorLabelBorder", new FSlateColorBrush(FLinearColor(0.2, 0, 0)));
+		Set("AssetDialog.ErrorLabelFont", FTextBlockStyle(NormalText).SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10)));
+	}
 }
 
 void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()

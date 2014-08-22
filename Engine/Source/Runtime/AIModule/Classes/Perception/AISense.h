@@ -53,7 +53,7 @@ public:
 		}
 	}
 
-	virtual void RegisterSource(class AActor* SourceActor) {}
+	virtual void RegisterSource(AActor& SourceActor) {}
 
 	FORCEINLINE void OnNewListener(const FPerceptionListener& NewListener) { OnNewListenerDelegate.ExecuteIfBound(NewListener); }
 	FORCEINLINE void OnListenerUpdate(const FPerceptionListener& NewListener) { OnListenerUpdateDelegate.ExecuteIfBound(NewListener); }

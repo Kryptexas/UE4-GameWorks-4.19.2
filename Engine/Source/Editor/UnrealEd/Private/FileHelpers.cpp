@@ -22,8 +22,8 @@
 #include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
-#include "Dialogs/SOpenLevelDialog.h"
 
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
@@ -594,14 +594,17 @@ static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& I
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
 
-	TSharedPtr<SDlgPickAssetPath> PickAssetPathWidget =
-		SNew(SDlgPickAssetPath)
-		.Title(LOCTEXT("LevelPathPickerTitle", "Save Level As"))
-		.DefaultAssetPath(FText::FromString(PackageName));
+	FSaveAssetDialogConfig SaveAssetDialogConfig;
+	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveLevelDialogTitle", "Save Level As");
+	SaveAssetDialogConfig.DefaultPath = DefaultPath;
+	SaveAssetDialogConfig.DefaultAssetName = NewNameSuggestion;
+	SaveAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
 
-	if (EAppReturnType::Ok == PickAssetPathWidget->ShowModal())
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
+	if ( !SaveObjectPath.IsEmpty() )
 	{
-		OutPackageName = PickAssetPathWidget->GetFullAssetPath().ToString();
+		OutPackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
 		return true;
 	}
 
@@ -1510,7 +1513,51 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 
 void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
 {
-	SOpenLevelDialog::CreateAndShowOpenLevelDialog(OnLevelsChosen, bAllowMultipleSelection);
+	struct FLocal
+	{
+		static void OnLevelsSelected(const TArray<FAssetData>& SelectedLevels, FOnLevelsChosen OnLevelsChosen)
+		{
+			if ( SelectedLevels.Num() > 0 )
+			{
+				// We selected a level. Save the path to this level to use as the default path next time we open.
+				const FAssetData& FirstAssetData = SelectedLevels[0];
+				
+				// Convert from package name to filename. Add a trailing slash to prevent an invalid conversion when an asset is in a root folder (e.g. /Game)
+				const FString FilesystemPathWithTrailingSlash = FPackageName::LongPackageNameToFilename(FirstAssetData.PackagePath.ToString() + TEXT("/"));
+
+				// Remove the slash if needed
+				FString FilesystemPath = FilesystemPathWithTrailingSlash;
+				if ( FilesystemPath.EndsWith(TEXT("/")) )
+				{
+					FilesystemPath = FilesystemPath.LeftChop(1);
+				}
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FilesystemPath);
+
+				OnLevelsChosen.ExecuteIfBound(SelectedLevels);
+			}
+		}
+	};
+
+	// Determine the starting path. Try to use the most recently used directory
+	FString DefaultPath;
+	{
+		const FString DefaultFilesystemDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
+		if (DefaultFilesystemDirectory.IsEmpty() || !FPackageName::TryConvertFilenameToLongPackageName(DefaultFilesystemDirectory, DefaultPath))
+		{
+			// No saved path, just use a reasonable default
+			DefaultPath = TEXT("/Game/Maps");
+		}
+	}
+
+	FOpenAssetDialogConfig OpenAssetDialogConfig;
+	OpenAssetDialogConfig.DialogTitleOverride = LOCTEXT("OpenLevelDialogTitle", "Open Level");
+	OpenAssetDialogConfig.DefaultPath = DefaultPath;
+	OpenAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
+	OpenAssetDialogConfig.bAllowMultipleSelection = bAllowMultipleSelection;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig, FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen));
 }
 
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)

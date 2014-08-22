@@ -18,6 +18,9 @@ UProjectileMovementComponent::UProjectileMovementComponent(const class FPostCons
 	Bounciness = 0.6f;
 	Friction = 0.2f;
 	BounceVelocityStopSimulatingThreshold = 5.f;
+
+	HomingAccelerationMagnitude = 0.f;
+
 	bWantsInitializeComponent = true;
 }
 
@@ -108,8 +111,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		Hit.Time = 1.f;
 
 		const FVector OldVelocity = Velocity;
-		const bool bApplyGravity = !bSliding;
-		FVector MoveDelta = ComputeMoveDelta(Velocity, TimeTick, bApplyGravity);
+		FVector MoveDelta = ComputeMoveDelta(Velocity, TimeTick, !bSliding);
 
 		const FVector TmpVelocity = Velocity;
 		const FRotator NewRotation = bRotationFollowsVelocity ? Velocity.Rotation() : ActorOwner->GetActorRotation();
@@ -137,14 +139,14 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		if (Hit.Time == 1.f)
 		{
 			bSliding = false;
-			Velocity = CalculateVelocity(Velocity, TimeTick);
+			Velocity = CalculateVelocity(Velocity, TimeTick, !bSliding);
 		}
 		else
 		{
 			if ( Velocity == TmpVelocity )
 			{
 				// re-calculate end velocity for partial time
-				Velocity = CalculateVelocity(OldVelocity, TimeTick*Hit.Time);
+				Velocity = CalculateVelocity(OldVelocity, TimeTick*Hit.Time, !bSliding);
 			}
 			if ( HandleHitWall(Hit, TimeTick, MoveDelta) )
 			{
@@ -202,14 +204,12 @@ void UProjectileMovementComponent::SetVelocityInLocalSpace(FVector NewVelocity)
 }
 
 
-FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime)
+FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bApplyGravity)
 {
 	FVector NewVelocity = OldVelocity;
 
-	if ( ShouldApplyGravity() )
-	{
-		NewVelocity.Z += GetEffectiveGravityZ() * DeltaTime;
-	}
+	const FVector Acceleration = ComputeAcceleration(bApplyGravity);
+	NewVelocity += Acceleration * DeltaTime;
 
 	return LimitVelocity(NewVelocity);
 }
@@ -225,21 +225,41 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 	return NewVelocity;
 }
 
-
 FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bApplyGravity) const
 {
 	// p = p0 + v*t
 	FVector Delta = InVelocity * DeltaTime;
 
 	// z = z0 + v*t (above) + 1/2*a*t^2
-	if (bApplyGravity)
-	{
-		Delta.Z += 0.5f * GetEffectiveGravityZ() * FMath::Square(DeltaTime);
-	}
+	const FVector Acceleration = ComputeAcceleration(bApplyGravity);
+	Delta += 0.5f * Acceleration * FMath::Square(DeltaTime);
 
 	return Delta;
 }
 
+FVector UProjectileMovementComponent::ComputeAcceleration(bool bApplyGravity) const
+{
+	FVector Acceleration(FVector::ZeroVector);
+
+	if (bApplyGravity)
+	{
+		Acceleration.Z += GetEffectiveGravityZ();
+	}
+
+	if (bIsHomingProjectile && HomingTargetComponent.IsValid())
+	{
+		Acceleration += ComputeHoming();
+	}
+
+	return Acceleration;
+}
+
+// Allow the projectile to track towards its homing target.
+FVector UProjectileMovementComponent::ComputeHoming() const
+{
+	FVector HomingAcceleration = ((HomingTargetComponent->GetComponentLocation() - UpdatedComponent->GetComponentLocation()).SafeNormal() * HomingAccelerationMagnitude);
+	return HomingAcceleration;
+}
 
 float UProjectileMovementComponent::GetEffectiveGravityZ() const
 {
@@ -273,7 +293,7 @@ bool UProjectileMovementComponent::HandleHitWall(const FHitResult& Hit, float Ti
 
 	return false;
 }
-
+ 
 FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
 {
 	FVector TempVelocity = Velocity;

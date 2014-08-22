@@ -6,6 +6,8 @@
 #include "ObjectTools.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "IDocumentation.h"
+#include "Editor/MainFrame/Public/MainFrame.h"
+#include "SAssetDialog.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -75,6 +77,68 @@ TSharedRef<class SWidget> FContentBrowserSingleton::CreateCollectionPicker(const
 	return SNew( SCollectionPicker )
 		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 		.CollectionPickerConfig(CollectionPickerConfig);
+}
+
+void FContentBrowserSingleton::CreateOpenAssetDialog(const FOpenAssetDialogConfig& InConfig, const FOnAssetsChosenForOpen& InOnAssetsChosenForOpen)
+{
+	const bool bModal = false;
+	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
+	AssetDialog->SetOnAssetsChosenForOpen(InOnAssetsChosenForOpen);
+	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
+}
+
+TArray<FAssetData> FContentBrowserSingleton::CreateModalOpenAssetDialog(const FOpenAssetDialogConfig& InConfig)
+{
+	struct FModalResults
+	{
+		void OnAssetsChosenForOpen(const TArray<FAssetData>& SelectedAssets)
+		{
+			SavedResults = SelectedAssets;
+		}
+
+		TArray<FAssetData> SavedResults;
+	};
+
+	FModalResults ModalWindowResults;
+	FOnAssetsChosenForOpen OnAssetsChosenForOpenDelegate = FOnAssetsChosenForOpen::CreateRaw(&ModalWindowResults, &FModalResults::OnAssetsChosenForOpen);
+
+	const bool bModal = true;
+	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
+	AssetDialog->SetOnAssetsChosenForOpen(OnAssetsChosenForOpenDelegate);
+	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
+
+	return ModalWindowResults.SavedResults;
+}
+
+void FContentBrowserSingleton::CreateSaveAssetDialog(const FSaveAssetDialogConfig& InConfig, const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave)
+{
+	const bool bModal = false;
+	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
+	AssetDialog->SetOnObjectPathChosenForSave(InOnObjectPathChosenForSave);
+	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
+}
+
+FString FContentBrowserSingleton::CreateModalSaveAssetDialog(const FSaveAssetDialogConfig& InConfig)
+{
+	struct FModalResults
+	{
+		void OnObjectPathChosenForSave(const FString& ObjectPath)
+		{
+			SavedResult = ObjectPath;
+		}
+
+		FString SavedResult;
+	};
+
+	FModalResults ModalWindowResults;
+	FOnObjectPathChosenForSave OnObjectPathChosenForSaveDelegate = FOnObjectPathChosenForSave::CreateRaw(&ModalWindowResults, &FModalResults::OnObjectPathChosenForSave);
+
+	const bool bModal = true;
+	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
+	AssetDialog->SetOnObjectPathChosenForSave(OnObjectPathChosenForSaveDelegate);
+	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
+
+	return ModalWindowResults.SavedResult;
 }
 
 bool FContentBrowserSingleton::HasPrimaryContentBrowser() const
@@ -261,6 +325,41 @@ void FContentBrowserSingleton::ContentBrowserClosed(const TSharedRef<SContentBro
 	}
 
 	BrowserToLastKnownTabManagerMap.Add(ClosedBrowser->GetInstanceName(), ClosedBrowser->GetTabManager());
+}
+
+void FContentBrowserSingleton::SharedCreateAssetDialogWindow(const TSharedRef<SAssetDialog>& AssetDialog, const FSharedAssetDialogConfig& InConfig, bool bModal) const
+{
+	const FVector2D DefaultWindowSize(1152.0f, 648.0f);
+	const FVector2D WindowSize = InConfig.WindowSizeOverride.IsZero() ? DefaultWindowSize : InConfig.WindowSizeOverride;
+	const FText WindowTitle = InConfig.DialogTitleOverride.IsEmpty() ? LOCTEXT("GenericAssetDialogWindowHeader", "Asset Dialog") : InConfig.DialogTitleOverride;
+
+	TSharedRef<SWindow> DialogWindow =
+		SNew(SWindow)
+		.Title(WindowTitle)
+		.ClientSize(WindowSize);
+
+	DialogWindow->SetContent(AssetDialog);
+
+	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+	if (MainFrameParentWindow.IsValid())
+	{
+		if (bModal)
+		{
+			FSlateApplication::Get().AddModalWindow(DialogWindow, MainFrameParentWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindowAsNativeChild(DialogWindow, MainFrameParentWindow.ToSharedRef());
+		}
+	}
+	else
+	{
+		if (ensureMsgf(!bModal, TEXT("Could not create asset dialog because modal windows must have a parent and this was called at a time where the mainframe window does not exist.")))
+		{
+			FSlateApplication::Get().AddWindow(DialogWindow);
+		}
+	}
 }
 
 void FContentBrowserSingleton::ChooseNewPrimaryBrowser()

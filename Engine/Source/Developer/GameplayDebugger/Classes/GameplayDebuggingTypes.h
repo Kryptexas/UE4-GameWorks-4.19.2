@@ -54,3 +54,5 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerSettings
 
 GAMEPLAYDEBUGGER_API
 FGameplayDebuggerSettings  GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator = NULL);
+
+DECLARE_MULTICAST_DELEGATE(FOnChangeEQSQuery);

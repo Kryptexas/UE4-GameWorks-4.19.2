@@ -15,6 +15,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogParticleSystemAuditCommandlet, Log, All);
 UParticleSystemAuditCommandlet::UParticleSystemAuditCommandlet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	HighSpawnRateOrBurstThreshold = 35.f;
+	FarLODDistanceTheshold = 3000.f;
 }
 
 int32 UParticleSystemAuditCommandlet::Main(const FString& Params)
@@ -84,6 +86,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			bool bMissingMaterial = false;
 			bool bHasConstantColorScaleOverLife = false;
 			bool bHasCollisionEnabled = false;
+			bool bHasHighSpawnRateOrBurst = false;
 			int32 ConstantColorScaleOverLifeCount = 0;
 			for (int32 EmitterIdx = 0; EmitterIdx < PSys->Emitters.Num(); EmitterIdx++)
 			{
@@ -116,8 +119,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 							{
 								UParticleModule* Module = LODLevel->Modules[ModuleIdx];
 
-								UParticleModuleColorScaleOverLife* CSOLModule = Cast<UParticleModuleColorScaleOverLife>(Module);
-								if (CSOLModule != NULL)
+								if ( UParticleModuleColorScaleOverLife* CSOLModule = Cast<UParticleModuleColorScaleOverLife>(Module) )
 								{
 									UDistributionFloatConstant* FloatConst = Cast<UDistributionFloatConstant>(CSOLModule->AlphaScaleOverLife.Distribution);
 									UDistributionVectorConstant* VectorConst = Cast<UDistributionVectorConstant>(CSOLModule->ColorScaleOverLife.Distribution);
@@ -127,20 +129,53 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 										ConstantColorScaleOverLifeCount++;
 									}
 								}
-								else if (bHasCollisionEnabled == false)
+								else if ( UParticleModuleCollision* CollisionModule = Cast<UParticleModuleCollision>(Module) )
 								{
-									UParticleModuleCollision* CollisionModule = Cast<UParticleModuleCollision>(Module);
-									if (CollisionModule != NULL)
+									if (CollisionModule->bEnabled == true)
 									{
-										if (CollisionModule->bEnabled == true)
+										bHasCollisionEnabled = true;
+									}
+								}
+								else if (UParticleModuleSpawn* SpawnModule = Cast<UParticleModuleSpawn>(Module))
+								{
+									if ( !bHasHighSpawnRateOrBurst )
+									{
+										if ( UDistributionFloatConstant* ConstantDistribution = Cast<UDistributionFloatConstant>(SpawnModule->Rate.Distribution) )
 										{
-											bHasCollisionEnabled = true;
+											if ( ConstantDistribution->Constant > HighSpawnRateOrBurstThreshold )
+											{
+												bHasHighSpawnRateOrBurst = true;
+											}
+										}
+
+										for ( const FParticleBurst& Burst : SpawnModule->BurstList )
+										{
+											if ( Burst.Count > HighSpawnRateOrBurstThreshold )
+											{
+												bHasHighSpawnRateOrBurst = true;
+											}
 										}
 									}
 								}
 							}
 						}
 					}
+				}
+			}
+
+			// Note all PSystems w/ a high constant spawn rate or burst count...
+			if ( bHasHighSpawnRateOrBurst )
+			{
+				ParticleSystemsWithHighSpawnRateOrBurst.Add(PSys->GetPathName());
+			}
+
+			// Note all PSystems w/ a far LOD distance...
+			for ( float LODDistance : PSys->LODDistances )
+			{
+				if (LODDistance > FarLODDistanceTheshold)
+				{
+					ParticleSystemsWithFarLODDistance.Add(PSys->GetPathName());
+					break;
 				}
 			}
 
@@ -539,6 +574,8 @@ void UParticleSystemAuditCommandlet::DumpResults()
 	DumpSimplePSysSet(ParticleSystemsWithCollisionEnabled, TEXT("PSysCollisionEnabled"));
 	DumpSimplePSysSet(ParticleSystemsWithConstantColorScaleOverLife, TEXT("PSysConstantColorScale"));
 	DumpSimplePSysSet(ParticleSystemsWithOrientZAxisTowardCamera, TEXT("PSysOrientZTowardsCamera"));
+	DumpSimplePSysSet(ParticleSystemsWithHighSpawnRateOrBurst, TEXT("PSysHighSpawnRateOrBurst"));
+	DumpSimplePSysSet(ParticleSystemsWithFarLODDistance, TEXT("PSysFarLODDistance"));
 
 	FArchive* OutputStream;
 

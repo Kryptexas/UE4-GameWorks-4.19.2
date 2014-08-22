@@ -4,7 +4,7 @@
 #include "ParticleDefinitions.h"
 #include "ParticleSystemAuditCommandlet.generated.h"
 
-UCLASS()
+UCLASS(config=Editor)
 class UParticleSystemAuditCommandlet : public UCommandlet
 {
 	GENERATED_UCLASS_BODY()
@@ -108,12 +108,24 @@ class UParticleSystemAuditCommandlet : public UCommandlet
 	TSet<FString> ParticleSystemsWithCollisionEnabled;
 	/** All particle systems w/ a color scale over life that is a constant */
 	TSet<FString> ParticleSystemsWithConstantColorScaleOverLife;
+	/** All particle systems w/ a high spawn rate or burst */
+	TSet<FString> ParticleSystemsWithHighSpawnRateOrBurst;
+	/** All particle systems w/ a far LODDistance */
+	TSet<FString> ParticleSystemsWithFarLODDistance;
 	/** All particle systems w/ a color scale over life that is a constant */
 	TMap<FString,int32> ParticleSystemsWithConstantColorScaleOverLifeCounts;
 	/** Particle systems w/ disabled LOD level matches */
 	TMap<FString,FParticleSystemLODInfo> ParticleSystemsWithLODLevelIssues;
 	/** Particle system duplicate module information */
 	TMap<FString,FParticleSystemDuplicateModuleInfo> PSysDuplicateModuleInfo;
+
+	/** If a particle system has a spawn rate or burst count greater than this value, it will be reported */
+	UPROPERTY(config)
+	float HighSpawnRateOrBurstThreshold;
+
+	/** If a particle system has an LODDistance larger than this value, it will be reported */
+	UPROPERTY(config)
+	float FarLODDistanceTheshold;
 
 	/** Entry point */
 	int32 Main(const FString& Params) override;

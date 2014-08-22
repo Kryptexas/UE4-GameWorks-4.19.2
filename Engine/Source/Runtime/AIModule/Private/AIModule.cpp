@@ -26,7 +26,7 @@ IMPLEMENT_MODULE(FAIModule, AIModule)
 
 void FAIModule::StartupModule()
 { 
-	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
+	// This code will execute after your module is loaded into memory and after global variables initialization. We needs some place to load GameplayDebugger module so it's best place for it now.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FModuleManager::LoadModulePtr< IModuleInterface >("GameplayDebugger");
 #endif

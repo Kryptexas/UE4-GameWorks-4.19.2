@@ -4,6 +4,17 @@
 
 #include "GenericTeamAgentInterface.generated.h"
 
+UENUM()
+namespace ETeamAttitude
+{
+	enum Type
+	{
+		Friendly,
+		Neutral,
+		Hostile,
+	};
+}
+
 USTRUCT()
 struct AIMODULE_API FGenericTeamId
 {
@@ -28,8 +39,10 @@ public:
 
 	FORCEINLINE uint8 GetId() const { return TeamID; }
 	//FORCEINLINE void SetId(uint8 NewId) { TeamID = NewId; }
+	
+	static FGenericTeamId GetTeamIdentifier(const AActor* TeamMember);
+	static ETeamAttitude::Type GetAttitude(const AActor* A, const AActor* B);
 
-	static FGenericTeamId GetTeamIdentifier(const UObject* TeamMember);
 	static FGenericTeamId NoTeam;
 };
 
@@ -45,4 +58,7 @@ class AIMODULE_API IGenericTeamAgentInterface
 
 	/** Retrieve team identifier in form of FGenericTeamId */
 	virtual FGenericTeamId GetGenericTeamId() const { return FGenericTeamId::NoTeam; }
+
+	/** Retrieved owner attitude toward given Other object */
+	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const { return ETeamAttitude::Neutral; }
 };

@@ -85,9 +85,11 @@ float UAISense_Sight::Update()
 	}
 
 	int32 TracesCount = 0;
-	static const int32 InitialInvalidQueriesSize = 16;
+	static const int32 InitialInvalidItemsSize = 16;
 	TArray<int32> InvalidQueries;
-	InvalidQueries.Reserve(InitialInvalidQueriesSize);
+	TArray<FAISightTarget::FTargetId> InvalidTargets;
+	InvalidQueries.Reserve(InitialInvalidItemsSize);
+	InvalidTargets.Reserve(InitialInvalidItemsSize);
 
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 
@@ -97,11 +99,14 @@ float UAISense_Sight::Update()
 		if (TracesCount < MaxTracesPerTick)
 		{
 			FPerceptionListener& Listener = ListenersMap[SightQuery->ObserverId];
-			check(Listener.Listener.IsValid());
+			ensure(Listener.Listener.IsValid());
 			FAISightTarget& Target = ObservedTargets[SightQuery->TargetId];
 					
+			const bool bTargetValid = Target.Target.IsValid();
+			const bool bListenerValid = Listener.Listener.IsValid();
+
 			// @todo figure out what should we do if not valid
-			if (Target.Target.IsValid())
+			if (bTargetValid && bListenerValid)
 			{
 				AActor* TargetActor = Target.Target.Get();
 				const FVector TargetLocation = TargetActor->GetActorLocation();
@@ -116,7 +121,7 @@ float UAISense_Sight::Update()
 					if (Target.SightTargetInterface != NULL)
 					{
 						int32 NumberOfLoSChecksPerformed = 0;
-						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, Listener.Listener->GetCollisionActor()) == true)
+						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, Listener.Listener->GetBodyActor()) == true)
 						{
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 1.f, OutSeenLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
@@ -134,11 +139,11 @@ float UAISense_Sight::Update()
 					{
 						// we need to do tests ourselves
 						/*const bool bHit = World->LineTraceTest(Listener.CachedLocation, TargetLocation
-							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetCollisionActor())
+							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor())
 							, FCollisionObjectQueryParams(ECC_WorldStatic));*/
 						FHitResult HitResult;
 						const bool bHit = World->LineTraceSingle(HitResult, Listener.CachedLocation, TargetLocation
-							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetCollisionActor())
+							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor())
 							, FCollisionObjectQueryParams(ECC_WorldStatic));
 
 						++TracesCount;
@@ -172,6 +177,10 @@ float UAISense_Sight::Update()
 			{
 				// put this index to "to be removed" array
 				InvalidQueries.Add(QueryIndex);
+				if (bTargetValid == false)
+				{
+					InvalidTargets.AddUnique(SightQuery->TargetId);
+				}
 			}
 		}
 		else
@@ -183,10 +192,27 @@ float UAISense_Sight::Update()
 		SightQuery->RecalcScore();
 	}
 
-	for (int32 Index = InvalidQueries.Num() - 1; Index >= 0; --Index)
+	if (InvalidQueries.Num() > 0)
 	{
-		// removing with swapping here, since queue is going to be sorted anyway
-		SightQueryQueue.RemoveAtSwap(InvalidQueries[Index], 1, /*bAllowShrinking*/false);
+		for (int32 Index = InvalidQueries.Num() - 1; Index >= 0; --Index)
+		{
+			// removing with swapping here, since queue is going to be sorted anyway
+			SightQueryQueue.RemoveAtSwap(InvalidQueries[Index], 1, /*bAllowShrinking*/false);
+		}
+
+		if (InvalidTargets.Num() > 0)
+		{
+			for (const auto& TargetId : InvalidTargets)
+			{
+				// remove affected queries
+				RemoveAllQueriesToTarget(TargetId, DontSort);
+				// remove target itself
+				ObservedTargets.Remove(TargetId);
+			}
+
+			// remove holes
+			ObservedTargets.Compact();
+		}
 	}
 
 	// sort Sight Queries
@@ -201,44 +227,40 @@ void UAISense_Sight::RegisterEvent(const FAISightEvent& Event)
 
 }
 
-void UAISense_Sight::RegisterSource(AActor* SourceActor) 
+void UAISense_Sight::RegisterSource(AActor& SourceActor) 
 {
-	if (SourceActor == NULL)
-	{
-		return;
-	}
-
 	RegisterTarget(SourceActor, Sort);
 }
 
-void UAISense_Sight::RegisterTarget(AActor* TargetActor, FQueriesOperationPostProcess PostProcess)
+void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
-
-	check(TargetActor);
-
-	FAISightTarget* SightTarget = ObservedTargets.Find(TargetActor->GetFName());
+	
+	FAISightTarget* SightTarget = ObservedTargets.Find(TargetActor.GetFName());
 	
 	if (SightTarget == NULL)
 	{
-		FAISightTarget NewSightTarget(TargetActor);
+		FAISightTarget NewSightTarget(&TargetActor);
 
 		SightTarget = &(ObservedTargets.Add(NewSightTarget.TargetId, NewSightTarget));
-		SightTarget->SightTargetInterface = InterfaceCast<IAISightTargetInterface>(TargetActor);
+		SightTarget->SightTargetInterface = InterfaceCast<IAISightTargetInterface>(&TargetActor);
 	}
 
 	// set/update data
-	SightTarget->TeamId = FGenericTeamId::GetTeamIdentifier(TargetActor);
+	SightTarget->TeamId = FGenericTeamId::GetTeamIdentifier(&TargetActor);
 	
 	// generate all pairs and add them to current Sight Queries
 	bool bNewQueriesAdded = false;
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
-	const FVector TargetLocation = TargetActor->GetActorLocation();
+	const FVector TargetLocation = TargetActor.GetActorLocation();
 
 	for (AIPerception::FListenerMap::TConstIterator ItListener(ListenersMap); ItListener; ++ItListener)
 	{
 		const FPerceptionListener& Listener = ItListener->Value;
-		if (Listener.HasSense(GetSenseIndex()) && Listener.TeamIdentifier != SightTarget->TeamId)
+		const IGenericTeamAgentInterface* ListenersTeamAgent = Listener.GetTeamAgent();
+
+		// @todo add configuration here
+		if (Listener.HasSense(GetSenseIndex()) && (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(TargetActor) == ETeamAttitude::Hostile))
 		{
 			// create a sight query		
 			FAISightQuery SightQuery(ItListener->Key, SightTarget->TargetId);
@@ -266,10 +288,19 @@ void UAISense_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
 
 	bool bNewQueriesAdded = false;
 
+	const IGenericTeamAgentInterface* ListenersTeamAgent = NewListener.GetTeamAgent();
+
 	// create sight queries with all legal targets
 	for (TMap<FName, FAISightTarget>::TConstIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
 	{
-		if (NewListener.TeamIdentifier != ItTarget->Value.TeamId)
+		const AActor* TargetActor = ItTarget->Value.GetTargetActor();
+		if (TargetActor == NULL)
+		{
+			continue;
+		}
+
+		// @todo this should be configurable - some AI might want to observe Neutrals and Friendlies as well
+		if (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(*TargetActor) == ETeamAttitude::Hostile)
 		{
 			// create a sight query		
 			FAISightQuery SightQuery(NewListener.GetListenerId(), ItTarget->Key);
@@ -299,13 +330,15 @@ void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedList
 	RemoveAllQueriesByListener(UpdatedListener, DontSort);
 
 	// see if this listener is a Target as well
-	const FName AsTargetId = UpdatedListener.GetCollisionActorName();
+	const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorName();
 	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
 	if (AsTarget != NULL)
 	{
 		RemoveAllQueriesToTarget(AsTargetId, DontSort);
-		check(AsTarget->Target.IsValid());
-		RegisterTarget(AsTarget->Target.Get(), DontSort);
+		if (AsTarget->Target.IsValid())
+		{
+			RegisterTarget(*(AsTarget->Target.Get()), DontSort);
+		}
 	}
 
 	// act as if it was a new listener
@@ -319,13 +352,11 @@ void UAISense_Sight::OnListenerRemovedImpl(const FPerceptionListener& UpdatedLis
 	if (UpdatedListener.Listener.IsValid())
 	{
 		// see if this listener is a Target as well
-		const FName AsTargetId = UpdatedListener.GetCollisionActorName();
+		const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorName();
 		FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
 		if (AsTarget != NULL)
 		{
-			RemoveAllQueriesToTarget(AsTargetId, DontSort);
-			check(AsTarget->Target.IsValid());
-			RegisterTarget(AsTarget->Target.Get(), DontSort);
+			RemoveAllQueriesToTarget(AsTargetId, Sort);			
 		}
 	}
 	else

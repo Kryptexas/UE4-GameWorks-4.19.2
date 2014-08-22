@@ -752,18 +752,12 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	Path.PathCorridorCost.Reset();
 
 	// get path corridor
-	static const int32 MAX_PATH_CORRIDOR_POLYS = 128;
-	NavNodeRef PathCorridorPolys[MAX_PATH_CORRIDOR_POLYS];
-	float PathCorridorCost[MAX_PATH_CORRIDOR_POLYS] = { 0.0f };
-	int32 NumPathCorridorPolys;
-
-	const dtStatus FindPathStatus = NavQuery.findPath(StartPolyID, EndPolyID,
-		&RecastStartPos.X, &RecastEndPos.X, QueryFilter,
-		PathCorridorPolys, &NumPathCorridorPolys, MAX_PATH_CORRIDOR_POLYS, PathCorridorCost, 0);
+	dtQueryResult PathResult;
+	const dtStatus FindPathStatus = NavQuery.findPath(StartPolyID, EndPolyID, &RecastStartPos.X, &RecastEndPos.X, QueryFilter, PathResult, 0);
 
 	// check for special case, where path has not been found, and starting polygon
 	// was the one closest to the target
-	if (NumPathCorridorPolys == 1 && dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
+	if (PathResult.size() == 1 && dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
 	{
 		// in this case we find a point on starting polygon, that's closest to destination
 		// and store it as path end
@@ -773,14 +767,14 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		new(Path.GetPathPoints()) FNavPathPoint(StartLoc, StartPolyID);
 		new(Path.GetPathPoints()) FNavPathPoint(Recast2UnrVector(&RecastHandPlacedPathEnd.X), StartPolyID);
 
-		Path.PathCorridor.Add(PathCorridorPolys[0]);
+		Path.PathCorridor.Add(PathResult.getRef(0));
 		Path.PathCorridorCost.Add(CalcSegmentCostOnPoly(StartPolyID, QueryFilter, RecastHandPlacedPathEnd, RecastStartPos));
 	}
 	else
 	{
 		PostProcessPath(FindPathStatus, Path, NavQuery, QueryFilter,
 			StartPolyID, EndPolyID, StartLoc, EndLoc, RecastStartPos, RecastEndPos,
-			PathCorridorPolys, PathCorridorCost, NumPathCorridorPolys);
+			PathResult);
 	}
 
 	if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
@@ -817,14 +811,9 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartL
 	}
 
 	// get path corridor
-	static const int32 MAX_PATH_CORRIDOR_POLYS = 128;
-	NavNodeRef PathCorridorPolys[MAX_PATH_CORRIDOR_POLYS];
-	float PathCorridorCost[MAX_PATH_CORRIDOR_POLYS];
-	int32 NumPathCorridorPolys;
-
+	dtQueryResult PathResult;
 	const dtStatus FindPathStatus = NavQuery.findPath(StartPolyID, EndPolyID,
-		&RecastStartPos.X, &RecastEndPos.X, QueryFilter,
-		PathCorridorPolys, &NumPathCorridorPolys, MAX_PATH_CORRIDOR_POLYS, PathCorridorCost, 0);
+		&RecastStartPos.X, &RecastEndPos.X, QueryFilter, PathResult, 0);
 
 	if (NumVisitedNodes)
 	{
@@ -909,33 +898,32 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 	NavNodeRef StartPolyID, NavNodeRef EndPolyID,
 	const FVector& StartLoc, const FVector& EndLoc,
 	const FVector& RecastStartPos, FVector& RecastEndPos,
-	NavNodeRef* PathCorridorPolys, float* PathCorridorCost, int32 NumPathCorridorPolys) const
+	dtQueryResult& PathResult) const
 {
 	// note that for recast partial path is successful, while we treat it as failed, just marking it as partial
 	if (dtStatusSucceed(FindPathStatus))
 	{
-		Path.PathCorridorCost.AddUninitialized(NumPathCorridorPolys);
-		if (NumPathCorridorPolys == 1)
+		Path.PathCorridorCost.AddUninitialized(PathResult.size());
+		if (PathResult.size() == 1)
 		{
 			// failsafe cost for single poly corridor
 			Path.PathCorridorCost[0] = CalcSegmentCostOnPoly(StartPolyID, Filter, EndLoc, StartLoc);
 		}
 		else
 		{
-			for (int32 i = 0; i < NumPathCorridorPolys; i++)
+			for (int32 i = 0; i < PathResult.size(); i++)
 			{
-				Path.PathCorridorCost[i] = PathCorridorCost[i];
+				Path.PathCorridorCost[i] = PathResult.getCost(i);
 			}
 		}
 
 		
 		// copy over corridor poly data
-		Path.PathCorridor.AddUninitialized(NumPathCorridorPolys);
-		NavNodeRef* CorridorPoly = PathCorridorPolys;
+		Path.PathCorridor.AddUninitialized(PathResult.size());
 		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetTypedData();
-		for (int i = 0; i < NumPathCorridorPolys; ++i, ++CorridorPoly, ++DestCorridorPoly)
+		for (int i = 0; i < PathResult.size(); ++i, ++DestCorridorPoly)
 		{
-			*DestCorridorPoly = *CorridorPoly;
+			*DestCorridorPoly = PathResult.getRef(i);
 		}
 
 		Path.OnPathCorridorUpdated(); 
@@ -954,16 +942,10 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 		if (Path.WantsStringPulling())
 		{
-			// temp data to catch output in detour's preferred formatint32 NumPathVerts = 0;
-			int32 NumPathVerts = 0;
-			float RecastPathVerts[RECAST_MAX_PATH_VERTS*3];
-			uint8 RecastPathFlags[RECAST_MAX_PATH_VERTS];
-			NavNodeRef RecastPolyRefs[RECAST_MAX_PATH_VERTS];
-
 			// if path is partial (path corridor doesn't contain EndPolyID), find new RecastEndPos on last poly in corridor
 			if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
 			{
-				NavNodeRef LastPolyID = PathCorridorPolys[NumPathCorridorPolys - 1];
+				NavNodeRef LastPolyID = Path.PathCorridor.Last();
 				float NewEndPoint[3];
 
 				const dtStatus NewEndPointStatus = NavQuery.closestPointOnPoly(LastPolyID, &RecastEndPos.X, NewEndPoint);
@@ -973,41 +955,34 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 				}
 			}
 
-			const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X, PathCorridorPolys
-				, NumPathCorridorPolys, RecastPathVerts, RecastPathFlags, RecastPolyRefs, &NumPathVerts
-				, RECAST_MAX_PATH_VERTS, DT_STRAIGHTPATH_AREA_CROSSINGS);
+			dtQueryResult StringPullResult;
+			const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X,
+				Path.PathCorridor.GetTypedData(), Path.PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
 
 			if (dtStatusSucceed(StringPullStatus))
 			{
-				Path.GetPathPoints().AddZeroed(NumPathVerts);
+				Path.GetPathPoints().AddZeroed(StringPullResult.size());
 
 				// convert to desired format
 				FNavPathPoint* CurVert = Path.GetPathPoints().GetTypedData();
-				float* CurRecastVert = RecastPathVerts;
-				uint8* CurFlag = RecastPathFlags;
-				NavNodeRef* CurPoly = RecastPolyRefs;
-
 				UNavigationSystem* NavSys = NavMeshOwner->GetWorld()->GetNavigationSystem();
 
-				for (int32 VertIdx=0; VertIdx < NumPathVerts; ++VertIdx)
+				for (int32 VertIdx=0; VertIdx < StringPullResult.size(); ++VertIdx)
 				{
-					FNavMeshNodeFlags CurNodeFlags(0);
+					const float* CurRecastVert = StringPullResult.getPos(VertIdx);
 					CurVert->Location = Recast2UnrVector(CurRecastVert);
-					CurRecastVert += 3;
+					CurVert->NodeRef = StringPullResult.getRef(VertIdx);
 
-					CurNodeFlags.PathFlags = *CurFlag;
-					CurFlag++;
+					FNavMeshNodeFlags CurNodeFlags(0);
+					CurNodeFlags.PathFlags = StringPullResult.getFlag(VertIdx);
 
 					uint8 AreaID = RECAST_DEFAULT_AREA;
-					DetourNavMesh->getPolyArea(*CurPoly, &AreaID);
+					DetourNavMesh->getPolyArea(CurVert->NodeRef, &AreaID);
 					CurNodeFlags.Area = AreaID;
 
 					const UClass* AreaClass = NavMeshOwner->GetAreaClass(AreaID);
 					const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 					CurNodeFlags.AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
-
-					CurVert->NodeRef = *CurPoly;
-					CurPoly++;
 
 					CurVert->Flags = CurNodeFlags.Pack();
 
@@ -1028,7 +1003,7 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 				// findStraightPath returns 0 for polyId of last point for some reason, even though it knows the poly id.  We will fill that in correctly with the last poly id of the corridor.
 				// @TODO shouldn't it be the same as EndPolyID? (nope, it could be partial path)
-				Path.GetPathPoints()[NumPathVerts - 1].NodeRef = PathCorridorPolys[NumPathCorridorPolys - 1];
+				Path.GetPathPoints().Last().NodeRef = Path.PathCorridor.Last();
 			}
 		}
 		else

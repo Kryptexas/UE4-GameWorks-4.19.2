@@ -1405,7 +1405,7 @@ void AActor::ForceNetUpdate()
 
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
-	if (Role < ROLE_Authority)
+	if (GetNetMode() == NM_Client)
 	{
 		return;
 	}
@@ -1413,14 +1413,6 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 	UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NetDriverName);
 	if (NetDriver)
 	{
-		// This is being hit in playtests, which implies something on the client
-		// is ROLE_Authority or higher. Adding logs to find out more.
-		if (NetDriver->ServerConnection != NULL)
-		{
-			UE_LOG(LogActor, Warning, TEXT("SetNetDormancy went through on client. Actor: %s with Role %d. bTearOff: %d"), *GetName(), (int32)Role, bTearOff );
-			return;
-		}
-
 		NetDormancy = NewDormancy;
 
 		// If not dormant, flush actor from NetDriver's dormant list
@@ -1437,7 +1429,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (Role < ROLE_Authority || NetDormancy <= DORM_Awake)
+	if (GetNetMode() == NM_Client || NetDormancy <= DORM_Awake)
 	{
 		return;
 	}
@@ -1448,20 +1440,18 @@ void AActor::FlushNetDormancy()
 		NetDormancy = DORM_DormantAll;
 	}
 
+	// Don't proceed with network operations if not actually set to replicate
+	if (!bReplicates)
+	{
+		return;
+	}
+
 	// Add to network actors list if needed
 	GetWorld()->AddNetworkActor( this );
 	
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
-		// This is being hit in playtests, which implies something on the client
-		// is ROLE_Authority or higher. Adding logs to find out more.
-		if (NetDriver->ServerConnection != NULL)
-		{
-			UE_LOG(LogActor, Warning, TEXT("FlushNetDormancy went through on client. Actor: %s with Role %d. bTearOff: %d"), *GetName(), (int32)Role, bTearOff );
-			return;
-		}
-
 		NetDriver->FlushActorDormancy(this);
 	}
 }

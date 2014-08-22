@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameplayDebuggingTypes.h"
 #include "GameplayDebuggingReplicator.generated.h"
-
 /**
 *	Transient actor used to communicate between server and client, mostly for RPC
 */
@@ -12,7 +12,7 @@ class AGameplayDebuggingHUDComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 
-UCLASS(config=Engine, NotBlueprintable, Transient)
+UCLASS(config = Engine, NotBlueprintable, Transient, hidecategories = Actor)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -70,7 +70,7 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	uint32 DebuggerShowFlags;
 
 	static FOnSelectionChanged OnSelectionChangedDelegate;
-	
+	FOnChangeEQSQuery OnChangeEQSQuery;
 protected:
 	void OnDebugAIDelegate(class UCanvas* Canvas, class APlayerController* PC);
 	void DrawDebugDataDelegate(class UCanvas* Canvas, class APlayerController* PC);

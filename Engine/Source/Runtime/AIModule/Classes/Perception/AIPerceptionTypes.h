@@ -137,7 +137,12 @@ struct FPerceptionListener
 
 	FORCEINLINE uint32 GetListenerId() const { return ListenerId; }
 
-	FName GetCollisionActorName() const;
+	FName GetBodyActorName() const;
+
+	/** Returns pointer to the actor representing this listener's physical body */
+	const AActor* GetBodyActor() const;
+
+	const IGenericTeamAgentInterface* GetTeamAgent() const;
 
 private:
 	uint32 ListenerId;

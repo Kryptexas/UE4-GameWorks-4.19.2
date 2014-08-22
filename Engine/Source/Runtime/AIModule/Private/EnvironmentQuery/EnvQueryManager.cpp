@@ -519,18 +519,32 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 
 void FEQSDebugger::StoreQuery(TSharedPtr<FEnvQueryInstance>& Query)
 {
-	TSharedPtr<FEnvQueryInstance>& StoredQuery = StoredQueries.FindOrAdd(Query->Owner.Get());
-	StoredQuery = Query;
+	TArray<FEnvQueryInfo>& AllQueries = StoredQueries.FindOrAdd(Query->Owner.Get());
+	bool bFoundQuery = false;
+	for (auto It = AllQueries.CreateIterator(); It; ++It)
+	{
+		auto& CurrentQuery = (*It);
+		if (CurrentQuery.Instance.IsValid() && Query->QueryName == CurrentQuery.Instance->QueryName)
+		{
+			CurrentQuery.Instance = Query;
+			CurrentQuery.Timestamp = GWorld->GetTimeSeconds();
+			bFoundQuery = true;
+			break;
+		}
+	}
+	if (!bFoundQuery)
+	{
+		FEnvQueryInfo Info;
+		Info.Instance = Query;
+		Info.Timestamp = GWorld->GetTimeSeconds();
+		AllQueries.AddUnique(Info);
+	}
 }
 
-TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner)
+TArray<FEQSDebugger::FEnvQueryInfo>&  FEQSDebugger::GetAllQueriesForOwner(const UObject* Owner)
 {
-	return StoredQueries.FindRef(Owner);
-}
-
-const TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner) const
-{
-	return StoredQueries.FindRef(Owner);
+	TArray<FEnvQueryInfo>& AllQueries = StoredQueries.FindOrAdd(Owner);
+	return AllQueries;
 }
 
 #endif // USE_EQS_DEBUGGER

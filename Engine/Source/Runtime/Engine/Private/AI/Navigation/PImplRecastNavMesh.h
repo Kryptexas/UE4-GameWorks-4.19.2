@@ -224,7 +224,7 @@ public:
 		NavNodeRef StartNode, NavNodeRef EndNode,
 		const FVector& UnrealStart, const FVector& UnrealEnd,
 		const FVector& RecastStart, FVector& RecastEnd,
-		NavNodeRef* PathCorridor, float* PathCosts, int32 PathCorridorSize) const;
+		dtQueryResult& PathResult) const;
 
 	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 

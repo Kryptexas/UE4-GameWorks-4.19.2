@@ -261,11 +261,15 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 	dtAssert(m_npath);
 	
 	static const float MIN_TARGET_DIST = 0.01f;
+
+	dtQueryResult result;
+	navquery->findStraightPath(m_pos, m_target, m_path, m_npath, result);
 	
-	int ncorners = 0;
-	navquery->findStraightPath(m_pos, m_target, m_path, m_npath,
-							   cornerVerts, cornerFlags, cornerPolys, &ncorners, maxCorners);
-	
+	int ncorners = dtMin(result.size(), maxCorners);
+	result.copyRefs(cornerPolys, maxCorners);
+	result.copyFlags(cornerFlags, maxCorners);
+	result.copyPos(cornerVerts, maxCorners);
+
 	// Prune points in the beginning of the path which are too close.
 	while (ncorners)
 	{

@@ -34,6 +34,7 @@ void UGameplayDebuggingControllerComponent::OnRegister()
 {
 	Super::OnRegister();
 	BindActivationKeys();
+	SetActiveViews(GameplayDebuggerSettings().DebuggerShowFlags);
 }
 
 AGameplayDebuggingReplicator* UGameplayDebuggingControllerComponent::GetDebuggingReplicator() const
@@ -69,14 +70,11 @@ void UGameplayDebuggingControllerComponent::BeginDestroy()
 			GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateReplilcation, 0);
 		}
 
-		if (DebugAITargetActor != NULL && !DebugAITargetActor->IsPendingKill())
+		for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
-			for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-			{
-				GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, EDebugComponentMessage::DeactivateDataView, (EAIDebugDrawDataView::Type)Index);
-			}
-			GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, EDebugComponentMessage::DisableExtendedView);
+			GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, EDebugComponentMessage::DeactivateDataView, (EAIDebugDrawDataView::Type)Index);
 		}
+		GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, EDebugComponentMessage::DisableExtendedView);
 	}
 
 	Super::BeginDestroy();
@@ -96,12 +94,12 @@ void UGameplayDebuggingControllerComponent::SetActiveViews(uint32 InActiveViews)
 {
 	GameplayDebuggerSettings(GetDebuggingReplicator()).DebuggerShowFlags = InActiveViews;
 
-	if (DebugAITargetActor && GetDebuggingReplicator())
+	if (GetDebuggingReplicator())
 	{
-		GetDebuggingReplicator();
 		for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
-			GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, IsViewActive((EAIDebugDrawDataView::Type)Index) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, (EAIDebugDrawDataView::Type)Index);
+			EAIDebugDrawDataView::Type CurrentView = (EAIDebugDrawDataView::Type)Index;
+			EnableActiveView(CurrentView, IsViewActive(CurrentView));
 		}
 	}
 }
@@ -110,7 +108,7 @@ void UGameplayDebuggingControllerComponent::EnableActiveView(EAIDebugDrawDataVie
 {
 	bEnable ? GameplayDebuggerSettings(GetDebuggingReplicator()).SetFlag(View) : GameplayDebuggerSettings(GetDebuggingReplicator()).ClearFlag(View);
 
-	if (DebugAITargetActor && GetDebuggingReplicator())
+	if (GetDebuggingReplicator())
 	{
 		GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, bEnable ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, View);
 #if WITH_EQS
@@ -228,6 +226,7 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys()
 		AIDebugViewInputComponent->BindKey(EKeys::NumPadSeven, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView7);
 		AIDebugViewInputComponent->BindKey(EKeys::NumPadEight, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView8);
 		AIDebugViewInputComponent->BindKey(EKeys::NumPadNine, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView9);
+		AIDebugViewInputComponent->BindKey(EKeys::Add, IE_Released, this, &UGameplayDebuggingControllerComponent::NextEQSQuery);
 	}
 	
 	if (PlayerOwner.IsValid())
@@ -308,6 +307,14 @@ DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView6, EAIDebugDrawDataView::GameVie
 DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView7, EAIDebugDrawDataView::GameView3);
 DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView8, EAIDebugDrawDataView::GameView4);
 DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView9, EAIDebugDrawDataView::GameView5);
+
+void UGameplayDebuggingControllerComponent::NextEQSQuery()
+{
+	if (IsViewActive(EAIDebugDrawDataView::EQS))
+	{
+		GetDebuggingReplicator()->OnChangeEQSQuery.Broadcast();
+	}
+}
 
 #ifdef DEFAULT_TOGGLE_HANDLER
 # undef DEFAULT_TOGGLE_HANDLER

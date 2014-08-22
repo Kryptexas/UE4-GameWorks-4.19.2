@@ -41,8 +41,7 @@ void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TA
 void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData)
 {
 	// step 1: data for rendering component
-	EQSLocalData.SolidSpheres.Reset();
-	EQSLocalData.Texts.Reset();
+	EQSLocalData.Reset();
 
 	FEQSSceneProxy::CollectEQSData(Query, Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true);
 

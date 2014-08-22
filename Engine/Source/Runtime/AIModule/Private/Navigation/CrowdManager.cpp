@@ -705,6 +705,41 @@ void UCrowdManager::ApplyVelocity(const UCrowdFollowingComponent* AgentComponent
 	const dtCrowdAgent* ag = DetourCrowd->getAgent(AgentIndex);
 	const dtCrowdAgentAnimation* anims = DetourCrowd->getAgentAnims();
 
+	// tracking TTP# 344043
+	const bool bIsNewVelocityInvalid = FMath::IsNaN(ag->nvel[0]) || !FMath::IsFinite(ag->nvel[0]) ||
+		FMath::IsNaN(ag->nvel[1]) || !FMath::IsFinite(ag->nvel[1]) ||
+		FMath::IsNaN(ag->nvel[2]) || !FMath::IsFinite(ag->nvel[2]);
+	if (bIsNewVelocityInvalid)
+	{
+		const bool bIsDesiredVelocityInvalid = FMath::IsNaN(ag->dvel[0]) || !FMath::IsFinite(ag->dvel[0]) ||
+			FMath::IsNaN(ag->dvel[1]) || !FMath::IsFinite(ag->dvel[1]) ||
+			FMath::IsNaN(ag->dvel[2]) || !FMath::IsFinite(ag->dvel[2]);
+		const bool bIsAgentPosInvalid = FMath::IsNaN(ag->npos[0]) || !FMath::IsFinite(ag->npos[0]) ||
+			FMath::IsNaN(ag->npos[1]) || !FMath::IsFinite(ag->npos[1]) ||
+			FMath::IsNaN(ag->npos[2]) || !FMath::IsFinite(ag->npos[2]);
+
+		UE_LOG(LogEngineCrowdFollowing, Fatal, TEXT("NaN detected in crowd simulation!\nAgent Idx: %d\n") \
+			TEXT("Agent pos valid? %s\nDVel valid? %s\nNum nei: %d\nNum corners: %d\n") \
+			TEXT("Desired speed: %.2f\nMax speed: %.2f\nUse separation? %s\nSeparation weight: %.2f\n") \
+			TEXT("TargetState: %s\nSmooth turns? %s\nAgent anim? %s\nRcToCorner x:%.1f, y:%.1f, z:%.1f\n"),
+			AgentIndex,
+			bIsAgentPosInvalid ? TEXT("NO") : TEXT("yes"),
+			bIsDesiredVelocityInvalid ? TEXT("NO") : TEXT("yes"),
+			ag->nneis,
+			ag->ncorners,
+			ag->desiredSpeed,
+			ag->params.maxSpeed,
+			(ag->params.updateFlags & DT_CROWD_SEPARATION) ? TEXT("yes") : TEXT("no"),
+			ag->params.separationWeight,
+			(ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY) ? TEXT("fixed velocity") :
+			(ag->targetState == DT_CROWDAGENT_TARGET_VALID) ? TEXT("valid") :
+			(ag->targetState == DT_CROWDAGENT_TARGET_NONE) ? TEXT("idle") :
+			*FString::Printf(TEXT("other [%d]"), ag->targetState),
+			(ag->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS) ? TEXT("yes") : TEXT("no"),
+			anims[AgentIndex].active ? TEXT("yes") : TEXT("no"),
+			ag->cornerVerts[0] - ag->npos[0], ag->cornerVerts[1] - ag->npos[1], ag->cornerVerts[2] - ag->npos[2]);
+	}
+
 	FVector NewVelocity = Recast2UnrealPoint(ag->nvel);
 	const float* RcDestCorner = anims[AgentIndex].active ? anims[AgentIndex].endPos : 
 		ag->ncorners ? &ag->cornerVerts[0] : &ag->npos[0];
