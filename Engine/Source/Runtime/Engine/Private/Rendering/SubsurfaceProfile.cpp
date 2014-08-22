@@ -151,14 +151,14 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 
 	for (uint32 y = 0; y < Height; ++y)
 	{
-		FSubsurfaceProfileStruct& Data = SubsurfaceProfileEntries[y].Settings;
+		FSubsurfaceProfileStruct Data = SubsurfaceProfileEntries[y].Settings;
 
-		if(Data.SubsurfaceColor.IsAlmostBlack())
-		{
-			// to avoid div by 0 and a jump to a different value
-			// this basically means we don't want subsurface scattering
-			Data.SubsurfaceColor = FLinearColor(0.0001f, 0.0001f, 0.0001f);
-		}
+		// bias to avoid div by 0 and a jump to a different value
+		// this basically means we don't want subsurface scattering
+		const float Bias = 0.001f;
+
+		Data.SubsurfaceColor = Data.SubsurfaceColor.GetClamped(Bias);
+		Data.FalloffColor = Data.FalloffColor.GetClamped(Bias);
 
 		ComputeMirroredSSSKernel(kernel, Data.SubsurfaceColor, Data.FalloffColor);
 

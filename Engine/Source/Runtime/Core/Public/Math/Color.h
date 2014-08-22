@@ -161,6 +161,19 @@ struct FLinearColor
 		return *this;
 	}
 
+	// clamped in 0..1 range
+	FORCEINLINE FLinearColor GetClamped(float InMin = 0.0f, float InMax = 1.0f) const
+	{
+		FLinearColor Ret;
+
+		Ret.R = FMath::Clamp(R, InMin, InMax);
+		Ret.G = FMath::Clamp(G, InMin, InMax);
+		Ret.B = FMath::Clamp(B, InMin, InMax);
+		Ret.A = FMath::Clamp(A, InMin, InMax);
+
+		return Ret;
+	}
+
 	/** Comparison operators */
 	FORCEINLINE bool operator==(const FLinearColor& ColorB) const
 	{
