@@ -1909,6 +1909,12 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 				}
 				break;
 			}
+			case PxGeometryType::eHEIGHTFIELD:
+			{
+				// HeightField is only used by Landscape, which does different code path from other primitives
+				SCENE_UNLOCK_READ(PScene);
+				break;
+			}
 			default:
 			{
 					   SCENE_UNLOCK_READ(PScene);
