@@ -232,12 +232,6 @@ namespace iPhonePackager
 		}
 
 		/// <summary>
-		/// Whether or not to allow interactive dialogs to pop up when a traditionally non-interactive command was specified
-		/// (e.g., can we pop up a configuration dialog during PackageIPA?)
-		/// </summary>
-		public static bool bAllowInteractiveDialogsDuringNonInteractiveCommands = false;
-
-		/// <summary>
 		/// Whether or not to output extra information (like every file copy and date/time stamp)
 		/// </summary>
 		public static bool bVerbose = true;

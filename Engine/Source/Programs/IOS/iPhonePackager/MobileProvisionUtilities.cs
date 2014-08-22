@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.IO;
 using System.Diagnostics;
 using System.Xml;
+using System.Globalization;
 
 namespace iPhonePackager
 {
@@ -27,6 +28,8 @@ namespace iPhonePackager
 		public string ProvisionName;
 		public bool bDebug;
 		public Utilities.PListHelper Data;
+		public DateTime CreationDate;
+		public DateTime ExpirationDate;
 
 		public static string FindCompatibleProvision(string CFBundleIdentifier, bool bCheckCert = true)
 		{
@@ -89,36 +92,80 @@ namespace iPhonePackager
 				ProvisionLibrary.Add(Provision, p);
 			}
 
-			// check the cache for a provision matching the app id (com.company.Game)
-			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
-			{
-				if (Pair.Value.ApplicationIdentifier.Contains(CFBundleIdentifier) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
-				{
-					// check to see if we have a certificate for this provision
-					if (!bCheckCert || CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
-					{
-						return Pair.Key;
-					}
-				}
-			}
+			Program.Log("Searching for mobile provisions that match the game '{0}' with CFBundleIdentifier='{1}' in '{2}'", GameName, CFBundleIdentifier, Config.ProvisionDirectory);
 
-			// check the cache for a provision matching the wild card
-			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
+			// check the cache for a provision matching the app id (com.company.Game)
+			// First checking for a contains match and then for a wildcard match
+			for (int Phase = 0; Phase < 2; ++Phase)
 			{
-				if ((Pair.Value.ProvisionName.Contains("Wildcard") || Pair.Value.ApplicationIdentifier.Contains("*")) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
+				foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
 				{
-					// check to see if we have a certificate for this provision
-					if (!bCheckCert || CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					string DebugName = Path.GetFileName(Pair.Key);
+					MobileProvision TestProvision = Pair.Value;
+
+					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
+
+					// Validate the name
+					bool bPassesNameCheck = false;
+					if (Phase == 0)
 					{
-						return Pair.Key;
+						bPassesNameCheck = TestProvision.ApplicationIdentifier.Contains(CFBundleIdentifier);
 					}
+					else
+					{
+						bPassesNameCheck = TestProvision.ProvisionName.Contains("Wildcard") || TestProvision.ApplicationIdentifier.Contains("*");
+					}
+
+					if (!bPassesNameCheck)
+					{
+						Program.LogVerbose("  .. Failed phase {0} name check (provision app ID was {1})", Phase, TestProvision.ApplicationIdentifier);
+						continue;
+					}
+
+					bool bPassesDebugCheck = (!Config.bForDistribution || ((TestProvision.ProvisionedDeviceIDs.Count == 0) && !TestProvision.bDebug));
+					if (!bPassesDebugCheck)
+					{
+						Program.LogVerbose("  .. Failed debugging check (mode={0}, get-task-allow={1}, #devices={2})", Config.bForDistribution, TestProvision.bDebug, TestProvision.ProvisionedDeviceIDs.Count);
+						continue;
+					}
+
+					// Check to see if the provision is in date
+					DateTime CurrentUTCTime = DateTime.UtcNow;
+					bool bPassesDateCheck = (CurrentUTCTime >= TestProvision.CreationDate) && (CurrentUTCTime < TestProvision.ExpirationDate);
+					if (!bPassesDateCheck)
+					{
+						Program.LogVerbose("  .. Failed time period check (valid from {0} to {1}, but UTC time is now {2})", TestProvision.CreationDate, TestProvision.ExpirationDate, CurrentUTCTime);
+						continue;
+					}
+
+					// check to see if we have a certificate for this provision
+					bool bPassesHasMatchingCertCheck = false;
+					if (bCheckCert)
+					{
+						bPassesHasMatchingCertCheck = (CodeSignatureBuilder.FindCertificate(TestProvision) != null);
+					}
+					else
+					{
+						bPassesHasMatchingCertCheck = true;
+					}
+
+					if (!bPassesHasMatchingCertCheck)
+					{
+						Program.LogVerbose("  .. Failed to find a matching certificate that was in date");
+						continue;
+					}
+
+					// Made it past all the tests
+					Program.LogVerbose("  Picked '{0}' with AppID '{1}' and Name '{2}' as a matching provision for the game '{3}'", DebugName, TestProvision.ApplicationIdentifier, TestProvision.ProvisionName, GameName);
+					return Pair.Key;
 				}
 			}
 
 			// check to see if there is already an embedded provision
-			string MobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
+			string EmbeddedMobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
 
-			return MobileProvisionFilename;
+			Program.Warning("Failed to find a valid matching mobile provision, will attempt to use the embedded mobile provision instead if present");
+			return EmbeddedMobileProvisionFilename;
 		}
 
 		/// <summary>
@@ -185,6 +232,21 @@ namespace iPhonePackager
 			if (PrefixList.Count > 0)
 			{
 				ApplicationIdentifierPrefix = PrefixList[0];
+			}
+
+			// Example date string from the XML: "2014-06-30T20:45:55Z";
+			DateTimeStyles AppleDateStyle = DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal;
+
+			string CreationDateString;
+			if (Data.GetDate("CreationDate", out CreationDateString))
+			{
+				CreationDate = DateTime.Parse(CreationDateString, CultureInfo.InvariantCulture, AppleDateStyle);
+			}
+
+			string ExpirationDateString;
+			if (Data.GetDate("ExpirationDate", out ExpirationDateString))
+			{
+				ExpirationDate = DateTime.Parse(ExpirationDateString, CultureInfo.InvariantCulture, AppleDateStyle);
 			}
 
 			// Key: DeveloperCertificates, Array<Data> (uuencoded)

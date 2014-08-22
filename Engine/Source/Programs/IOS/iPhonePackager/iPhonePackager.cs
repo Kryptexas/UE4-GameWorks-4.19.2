@@ -93,6 +93,20 @@ namespace iPhonePackager
 			Log(String.Format(Line, Args));
 		}
 
+		static public void LogVerbose(string Line)
+		{
+			if (Config.bVerbose)
+			{
+				UpdateStatus(Line);
+				Console.WriteLine(Line);
+			}
+		}
+
+		static public void LogVerbose(string Line, params object[] Args)
+		{
+			LogVerbose(String.Format(Line, Args));
+		}
+
 		static public void Error( string Line, int Code = 1 )
 		{
 			if (Program.ReturnCode == 0)
@@ -175,9 +189,6 @@ namespace iPhonePackager
 						// Behavior switches
 						switch (Arg)
 						{
-							case "-interactive":
-								Config.bAllowInteractiveDialogsDuringNonInteractiveCommands = true;
-								break;
 							case "-verbose":
 								Config.bVerbose = true;
 								break;
@@ -323,25 +334,6 @@ namespace iPhonePackager
 				Error("-createstub and -distribution are mutually exclusive");
 				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 				return false;
-			}
-
-			// If -sign was specified, check to see if the user has configured yet.  If not, we will pop up a configuration dialog
-			if (Config.bPerformResignWhenRepackaging && Config.bAllowInteractiveDialogsDuringNonInteractiveCommands)
-			{
-				string CWD = Directory.GetCurrentDirectory();
-				if (!CodeSignatureBuilder.DoRequiredFilesExist())
-				{
-					StartVisuals();
-
-					Form DisplayForm = new ToolsHub();
-					Application.Run(DisplayForm);
-					if (DisplayForm.DialogResult != DialogResult.OK)
-					{
-						Error("One or more files necessary for packaging are missing and configuration was cancelled");
-						return false;
-					}
-				}
-				Directory.SetCurrentDirectory(CWD);
 			}
 
 			return true;
