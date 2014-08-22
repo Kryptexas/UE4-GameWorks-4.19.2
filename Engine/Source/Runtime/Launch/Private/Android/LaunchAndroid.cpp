@@ -920,7 +920,7 @@ extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnable
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel )
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel, jstring osLanguage )
 {
 	const char *javaAndroidVersion = jenv->GetStringUTFChars(androidVersion, 0 );
 	FString UEAndroidVersion = FString(UTF8_TO_TCHAR( javaAndroidVersion ));
@@ -931,5 +931,8 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInfor
 	const char *javaPhoneModel = jenv->GetStringUTFChars(phoneModel, 0 );
 	FString UEPhoneModel = FString(UTF8_TO_TCHAR( javaPhoneModel ));
 
-	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel );
+	const char *javaOSLanguage = jenv->GetStringUTFChars(osLanguage, 0);
+	FString UEOSLanguage = FString(UTF8_TO_TCHAR(javaOSLanguage));
+
+	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel, UEOSLanguage );
 }

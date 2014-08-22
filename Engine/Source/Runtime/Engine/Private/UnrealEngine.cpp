@@ -5357,42 +5357,26 @@ bool UEngine::IsHardwareSurveyRequired()
 		return false;
 	}
 
-#if PLATFORM_IOS
-	// look up to see if how long ago the last survey was, if ever
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-	NSDate* SurveyDateTime = [UserSettings objectForKey:@"HardwareSurveyDateTime"];
-
-	// if we never did one, do it now
-	if (SurveyDateTime == nil)
-	{
-		return true;
-	}
-
-	// how long has it been (negate since the past is negative)
-	NSTimeInterval SecondsBeforeNow = -[SurveyDateTime timeIntervalSinceNow];
-	
-	// survey again after a 30 days (TimeDiff is in seconds)
-	return SecondsBeforeNow > (30.0 * 24.0 * 60.0 * 60.0);
-
-#elif PLATFORM_DESKTOP
-
+#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
 	bool bSurveyDone = false;
-	GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), bSurveyDone, GEditorGameAgnosticIni);
-
 	bool bSurveyExpired = false;
-	if (bSurveyDone)
-	{
-		bSurveyExpired = true;
-		FString SurveyDateTimeString;
-		if (GConfig->GetString(TEXT("Engine.HardwareSurvey"), TEXT("HardwareSurveyDateTime"), SurveyDateTimeString, GEditorGameAgnosticIni))
-		{
-			FDateTime SurveyDateTime;
-			if (FDateTime::Parse(SurveyDateTimeString, SurveyDateTime))
-			{
-				FDateTime Now = FDateTime::UtcNow();
-				int MonthsDelta = 12 * (Now.GetYear() - SurveyDateTime.GetYear()) + Now.GetMonth() - SurveyDateTime.GetMonth();
 
-				bSurveyExpired = MonthsDelta > 1 || (MonthsDelta == 1 && Now.GetDay() >= SurveyDateTime.GetDay());
+	// platform agnostic code to get the last time we did a survey
+	FString LastRecordedTimeString;
+	if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), LastRecordedTimeString))
+	{
+		// attempt to convert to FDateTime
+		FDateTime LastRecordedTime;
+		if (FDateTime::Parse(LastRecordedTimeString, LastRecordedTime))
+		{
+			bSurveyDone = true;
+
+			// make sure it was a month ago
+			FTimespan Diff = FDateTime::UtcNow() - LastRecordedTime;
+
+			if (Diff.GetTotalDays() > 30)
+			{
+				bSurveyExpired = true;
 			}
 		}
 	}
@@ -5400,7 +5384,7 @@ bool UEngine::IsHardwareSurveyRequired()
 	return !bSurveyDone || bSurveyExpired;
 #else
 	return false;
-#endif		// PLATFORM_DESKTOP
+#endif
 }
 
 FString UEngine::HardwareSurveyBucketRAM(uint32 MemoryMB)
@@ -5515,12 +5499,15 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_IOS
+#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
 	if (FEngineAnalytics::IsAvailable())
 	{
-		// mark now as last survey time
-		NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-		[UserSettings setObject:[NSDate date] forKey:@"HardwareSurveyDateTime"];
+		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
+
+		// remember last time we did a survey
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), FDateTime::UtcNow().ToString());
+
+#if PLATFORM_IOS || PLATFORM_ANDROID
 
 		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
 		// copy from what IOSPlatformSurvey has filled out
@@ -5535,19 +5522,13 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
 	
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("IOSHardwareStats"), HardwareStatsAttribs);
-	}
+#if PLATFORM_ANDROID
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("GPUModel"), SurveyResults.Displays[0].GPUCardName));
+#endif
+
+		Analytics.RecordEvent(*FString::Printf(TEXT("%sHardwareStats"), FPlatformProperties::IniPlatformName()), HardwareStatsAttribs);
 
 #elif PLATFORM_DESKTOP
-	if (GConfig)
-	{
-		GConfig->SetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), true, GEditorGameAgnosticIni);
-		GConfig->SetString(TEXT("Engine.HardwareSurvey"), TEXT("HardwareSurveyDateTime"), *FDateTime::UtcNow().ToString(), GEditorGameAgnosticIni);
-	}
-
-	if (FEngineAnalytics::IsAvailable())
-	{
-		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
 
 		TArray<FAnalyticsEventAttribute> HardwareWEIAttribs;
 		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
@@ -5648,8 +5629,9 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI.Detail" ), SurveyResults.LastPerformanceIndexErrorDetail));
 
 		Analytics.RecordEvent(TEXT( "HardwareStatErrors.1" ), HardwareStatErrorsAttribs);
+#endif // PLATFORM_DESKTOP
 	}
-#endif		// PLATFORM_DESKTOP
+#endif
 }
 
 static TAutoConsoleVariable<float> CVarMaxFPS(

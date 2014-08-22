@@ -65,7 +65,9 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context));
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static FString GetDefaultLocale();
-    
+	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
+	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
+
 	//////// Platform specific
 	static void* CreateAutoreleasePool();
 	static void ReleaseAutoreleasePool(void *Pool);

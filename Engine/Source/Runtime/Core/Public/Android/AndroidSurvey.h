@@ -8,11 +8,11 @@
 #pragma once
 
 /**
-* Android implementation of FGenericPlatformSurvey
-**/
+ * Android implementation of FGenericPlatformSurvey
+ **/
 struct FAndroidPlatformSurvey : public FGenericPlatformSurvey
 {
-	// default implementation for now
+	static bool GetSurveyResults(FHardwareSurveyResults& OutResults, bool bWait=false);
 };
 
 typedef FAndroidPlatformSurvey FPlatformSurvey;

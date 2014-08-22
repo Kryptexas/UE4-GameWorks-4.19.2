@@ -16,6 +16,7 @@ void* FAndroidMisc::NativeWindow = NULL;
 FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4.0.4"
 FString FAndroidMisc::DeviceMake; // make of the device we are running on eg. "samsung"
 FString FAndroidMisc::DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
+FString FAndroidMisc::OSLanguage; // language code the device is set to eg "deu"
 
 GenericApplication* FAndroidMisc::CreateApplication()
 {
@@ -242,13 +243,14 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 
 
 
-void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel )
+void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel, FString InOSLanguage )
 {
 	AndroidVersion = InAndroidVersion;
 	DeviceMake = InDeviceMake;
 	DeviceModel = InDeviceModel;
+	OSLanguage = InOSLanguage;
 
-	UE_LOG(LogEngine, Display, TEXT("Android Version Make Model: %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel);
+	UE_LOG(LogEngine, Display, TEXT("Android Version Make Model Language: %s %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel, *OSLanguage);
 }
 
 const FString FAndroidMisc::GetAndroidVersion()
@@ -264,6 +266,11 @@ const FString FAndroidMisc::GetDeviceMake()
 const FString FAndroidMisc::GetDeviceModel()
 {
 	return DeviceModel;
+}
+
+const FString FAndroidMisc::GetOSLanguage()
+{
+	return OSLanguage;
 }
 
 uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
