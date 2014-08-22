@@ -67,7 +67,7 @@ public class IOSPlatform : Platform
 
 	protected static int RunIPP(string[] Args)
 	{
-		return iPhonePackager.Program.RealMain(Args);
+		return 5;//@TODO: Reintegrate IPP to IOS.Automation iPhonePackager.Program.RealMain(Args);
 	}
 
 	public override int RunCommand(string Command)
