@@ -3,10 +3,9 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinComboBox.h"
-#include "SGraphPinEnum.h"
 #include "SGraphPinNameList.h"
 
-void SGraphPinNameList::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj, const TArray<FName>& InNameList)
+void SGraphPinNameList::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj, const TArray<TSharedPtr<FName>>& InNameList)
 {
 	NameList = InNameList;
 	SGraphPin::Construct(SGraphPin::FArguments(), InGraphPinObj);
@@ -14,29 +13,48 @@ void SGraphPinNameList::Construct(const FArguments& InArgs, UEdGraphPin* InGraph
 
 TSharedRef<SWidget>	SGraphPinNameList::GetDefaultValueWidget()
 {
-	//Get list of enum indexes
+	//Get list of name indexes
 	TArray< TSharedPtr<int32> > ComboItems;
 	GenerateComboBoxIndexes( ComboItems );
 
-	//Create widget
-	return SAssignNew(ComboBox, SPinComboBox)
-		.ComboItemList( ComboItems )
-		.VisibleText( this, &SGraphPinNameList::OnGetText )
-		.OnSelectionChanged( this, &SGraphPinNameList::ComboBoxSelectionChanged )
-		.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-		.OnGetDisplayName(this, &SGraphPinNameList::OnGetFriendlyName);
+	TSharedPtr<FName> CurrentlySelectedName;
+	if (NameList.Num() > 0)
+	{
+		// Preserve previous selection, or set to first in list
+		FName PreviousSelection = FName(*GraphPinObj->GetDefaultAsString());
+		CurrentlySelectedName = NameList[0];
+		for (TSharedPtr<FName> ListNamePtr : NameList)
+		{
+			if (PreviousSelection == *ListNamePtr.Get())
+			{
+				CurrentlySelectedName = ListNamePtr;
+				break;
+			}
+		}
+		check(CurrentlySelectedName.IsValid());
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *CurrentlySelectedName->ToString());
+	}
+
+	// Create widget
+	return SAssignNew(ComboBox, SNameComboBox)
+		.ContentPadding(FMargin(6.0f, 2.0f))
+		.OptionsSource(&NameList)
+		.InitiallySelectedItem(CurrentlySelectedName)
+		.OnSelectionChanged(this, &SGraphPinNameList::ComboBoxSelectionChanged)
+		.Visibility(this, &SGraphPin::GetDefaultValueVisibility)
+		;
 }
 
-FString SGraphPinNameList::OnGetFriendlyName(int32 EnumIndex)
+FString SGraphPinNameList::OnGetFriendlyName(int32 NameIndex)
 {
-	check(EnumIndex < NameList.Num());
-	return NameList[EnumIndex].ToString();
+	check(NameIndex < NameList.Num());
+	return NameList[NameIndex]->ToString();
 }
 
-void SGraphPinNameList::ComboBoxSelectionChanged( TSharedPtr<int32> NewSelection, ESelectInfo::Type /*SelectInfo*/ )
+void SGraphPinNameList::ComboBoxSelectionChanged(TSharedPtr<FName> NameItem, ESelectInfo::Type SelectInfo )
 {
-	check(*NewSelection < NameList.Num());
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, NameList[*NewSelection].ToString());
+	check(NameItem.IsValid());
+	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *NameItem->ToString());
 }
 
 FString SGraphPinNameList::OnGetText() const 
@@ -49,7 +67,7 @@ void SGraphPinNameList::GenerateComboBoxIndexes( TArray< TSharedPtr<int32> >& Ou
 {
 	for (int32 NameIndex = 0; NameIndex < NameList.Num(); NameIndex++)
 	{
-		TSharedPtr<int32> EnumIdxPtr(new int32(NameIndex));
-		OutComboBoxIndexes.Add(EnumIdxPtr);
+		TSharedPtr<int32> NameIdxPtr(new int32(NameIndex));
+		OutComboBoxIndexes.Add(NameIdxPtr);
 	}
 }

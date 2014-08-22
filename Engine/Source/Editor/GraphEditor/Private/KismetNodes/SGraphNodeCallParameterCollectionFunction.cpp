@@ -7,7 +7,7 @@
 #include "SGraphNodeK2Base.h"
 #include "SGraphNodeK2Default.h"
 #include "SGraphNodeCallParameterCollectionFunction.h"
-#include "KismetPins/SGraphPinNameList.h"
+#include "SGraphPinNameList.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SGraphNodeCallParameterCollectionFunction
@@ -37,7 +37,14 @@ TSharedPtr<SGraphPin> SGraphNodeCallParameterCollectionFunction::CreatePinWidget
 			}
 		}
 
-		TSharedPtr<SGraphPin> NewPin = SNew(SGraphPinNameList, Pin, NameList);
+		TArray<TSharedPtr<FName>> NamePtrList;
+
+		for (FName NameItem : NameList)
+		{
+			NamePtrList.Add(MakeShareable( new FName(NameItem)));
+		}
+
+		TSharedPtr<SGraphPin> NewPin = SNew(SGraphPinNameList, Pin, NamePtrList);
 		return NewPin;
 	}
 	else

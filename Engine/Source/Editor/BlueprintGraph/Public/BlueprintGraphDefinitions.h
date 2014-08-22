@@ -11,6 +11,7 @@
 #include "K2Node_BaseMCDelegate.h"
 #include "K2Node_BreakStruct.h"
 #include "K2Node_CallArrayFunction.h"
+#include "K2Node_CallDataTableFunction.h"
 #include "K2Node_CallDelegate.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_CallFunctionOnMember.h"

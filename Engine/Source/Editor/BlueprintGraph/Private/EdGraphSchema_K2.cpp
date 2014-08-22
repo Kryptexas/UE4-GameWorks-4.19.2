@@ -83,6 +83,8 @@ const FName FBlueprintMetadata::MD_Tooltip(TEXT("Tooltip"));
 
 const FName FBlueprintMetadata::MD_CallInEditor(TEXT("CallInEditor"));
 
+const FName FBlueprintMetadata::MD_DataTablePin(TEXT("DataTablePin"));
+
 //////////////////////////////////////////////////////////////////////////
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
@@ -1942,10 +1944,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 	}
 	else if (PinCategory == PC_Name)
 	{
-		if( NewDefaultValue.IsNumeric() )
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("Invalid default name for pin %s"), *(PinName)) ); 
-		}
+		// Anything is allowed
 	}
 	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface))
 	{

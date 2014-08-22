@@ -17,6 +17,7 @@ class UK2Node_GetDataTableRow : public UK2Node
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual FString GetTooltip() const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override
@@ -52,6 +53,9 @@ class UK2Node_GetDataTableRow : public UK2Node
 
 	/** Get the type of the TableRow to return */
 	UScriptStruct* GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
+
+	/** Get the list of possible RowNames */
+	void GetDataTableRowNameList(TArray<TSharedPtr<FName>>& OutList, const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
 
 private:
 	/**

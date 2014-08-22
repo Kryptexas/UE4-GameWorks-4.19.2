@@ -16,6 +16,7 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(UFunction c
 	bool const bHasArrayPointerParms = Function->HasMetaData(TEXT("ArrayParm"));
 	bool const bIsCommutativeAssociativeBinaryOp = Function->HasMetaData(FBlueprintMetadata::MD_CommutativeAssociativeBinaryOperator);
 	bool const bIsMaterialParamCollectionFunc = Function->HasMetaData(FBlueprintMetadata::MD_MaterialParameterCollectionFunction);
+	bool const bIsDataTableFunc = Function->HasMetaData(FBlueprintMetadata::MD_DataTablePin);
 
 	TSubclassOf<UK2Node_CallFunction> NodeClass;
 	if (bIsCommutativeAssociativeBinaryOp && bIsPure)
@@ -25,6 +26,10 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(UFunction c
 	else if (bIsMaterialParamCollectionFunc)
 	{
 		NodeClass = UK2Node_CallMaterialParameterCollectionFunction::StaticClass();
+	}
+	else if (bIsDataTableFunc)
+	{
+		NodeClass = UK2Node_CallDataTableFunction::StaticClass();
 	}
 	// @TODO:
 	//   else if CallOnMember => UK2Node_CallFunctionOnMember

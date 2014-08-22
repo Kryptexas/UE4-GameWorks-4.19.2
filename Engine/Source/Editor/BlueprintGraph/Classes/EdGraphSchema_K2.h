@@ -136,6 +136,8 @@ public:
 	/** Metadata string that indicates the specified event can be triggered in editor */
 	static const FName MD_CallInEditor;
 
+	/** Metadata to identify an DataTable Pin. Depending on which DataTable is selected, we display different RowName options */
+	static const FName MD_DataTablePin;
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}

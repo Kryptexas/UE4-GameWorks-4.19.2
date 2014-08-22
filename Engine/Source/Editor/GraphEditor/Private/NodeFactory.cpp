@@ -58,7 +58,6 @@
 #include "KismetPins/SGraphPinColor.h"
 #include "KismetPins/SGraphPinEnum.h"
 #include "KismetPins/SGraphPinKey.h"
-#include "KismetPins/SGraphPinNameList.h"
 #include "KismetPins/SGraphPinVector.h"
 #include "KismetPins/SGraphPinVector2D.h"
 #include "NiagaraPins/SGraphPinVector4.h"

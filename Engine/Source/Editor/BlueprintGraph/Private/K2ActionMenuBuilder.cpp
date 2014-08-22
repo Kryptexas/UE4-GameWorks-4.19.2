@@ -652,6 +652,7 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	const bool bIsPure = Function->HasAllFunctionFlags(FUNC_BlueprintPure);
 	const bool bCommutativeAssociativeBinaryOperator = Function->HasMetaData(FBlueprintMetadata::MD_CommutativeAssociativeBinaryOperator);
 	const bool bMaterialParameterCollectionFunction = Function->HasMetaData(FBlueprintMetadata::MD_MaterialParameterCollectionFunction);
+	bool const bIsDataTableFunc = Function->HasMetaData(FBlueprintMetadata::MD_DataTablePin);
 
 	UK2Node_CallFunction* CallTemplate = NULL;
 
@@ -666,6 +667,10 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	else if (bMaterialParameterCollectionFunction)
 	{
 		CallTemplate = ListBuilder.CreateTemplateNode<UK2Node_CallMaterialParameterCollectionFunction>();
+	}
+	else if (bIsDataTableFunc)
+	{
+		CallTemplate = ListBuilder.CreateTemplateNode<UK2Node_CallDataTableFunction>();
 	}
 	else if (CallOnMember.GetMemberName() != NAME_None)
 	{

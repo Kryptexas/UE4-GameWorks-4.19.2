@@ -1,14 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SGraphPin.h"
+#include "SNameComboBox.h"
 
-class SGraphPinNameList : public SGraphPin
+class GRAPHEDITOR_API SGraphPinNameList : public SGraphPin
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphPinNameList) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj, const TArray<FName>& InNameList);
+	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj, const TArray<TSharedPtr<FName>>& InNameList);
 
 protected:
 
@@ -41,7 +43,7 @@ private:
 	 * @param NewSelection The newly selected item in the combo box
 	 * @param SelectInfo Provides context on how the selection changed
 	 */
-	void ComboBoxSelectionChanged( TSharedPtr<int32> NewSelection, ESelectInfo::Type SelectInfo );
+	void ComboBoxSelectionChanged(TSharedPtr<FName> StringItem, ESelectInfo::Type SelectInfo);
 
 	/**
 	 * Returns the friendly name of the enum at index EnumIndex
@@ -50,6 +52,8 @@ private:
 	 */
 	FString OnGetFriendlyName(int32 EnumIndex);
 
-	TSharedPtr<class SPinComboBox>	ComboBox;
-	TArray<FName> NameList;
+	TSharedPtr<class SNameComboBox>	ComboBox;
+
+	/** The actual list of FName values to choose from */
+	TArray<TSharedPtr<FName>> NameList;
 };
