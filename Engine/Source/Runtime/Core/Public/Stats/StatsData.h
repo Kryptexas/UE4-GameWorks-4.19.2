@@ -39,6 +39,53 @@ struct CORE_API FStatConstants
 	static const FString ThreadNameMarker;
 };
 
+template<>
+struct TTypeFromString<FName>
+{
+	static void FromString( FName& OutValue, const TCHAR* Buffer )
+	{
+		OutValue = FName( Buffer );
+	}
+};
+
+template <typename T>
+void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
+{
+	TCHAR Temp[64] = TEXT( "" );
+	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT( Temp ) ) )
+	{
+		TTypeFromString<T>::FromString( Out, Temp );
+	}
+}
+
+/**
+*	Helper class to parse a value from the stream.
+*	If value is not present, provided default value will be used.
+*/
+template<typename T>
+struct TParsedValueWithDefault
+{
+public:
+	TParsedValueWithDefault( const TCHAR* Stream, const TCHAR* Match, const T& Default )
+		: Value( Default )
+	{
+		ParseTypedValue<T>( Stream, Match, Value );
+	}
+
+	const T& Get() const
+	{
+		return Value;
+	}
+
+	void Set( const T& NewValue )
+	{
+		Value = NewValue;
+	}
+
+private:
+	T Value;
+};
+
 /** Enumerates stat compare types. */
 struct EStatCompareBy
 {

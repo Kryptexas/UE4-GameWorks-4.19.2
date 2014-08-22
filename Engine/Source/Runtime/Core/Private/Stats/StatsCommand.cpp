@@ -33,53 +33,6 @@ struct TTypeFromString<EStatCompareBy::Type>
 	}
 };
 
-template<>
-struct TTypeFromString<FName>
-{
-	static void FromString( FName& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = FName(Buffer);
-	}
-};
-
-template <typename T>
-void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
-{
-	TCHAR Temp[64]=TEXT("");
-	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT(Temp) ) )
-	{
-		TTypeFromString<T>::FromString( Out, Temp );
-	}
-}
-
-/**
- *	Helper class to parse a value from the stream.
- *	If value is not present, provided default value will be used.
- */
-template<typename T>
-struct TParsedValueWithDefault
-{
-public:
-	TParsedValueWithDefault( const TCHAR* Stream, const TCHAR* Match, const T& Default )
-		: Value( Default )
-	{
-		ParseTypedValue<T>( Stream, Match, Value );
-	}
-
-	const T& Get() const
-	{
-		return Value;
-	}
-
-	void Set( const T& NewValue )
-	{
-		Value = NewValue;
-	}
-
-private:
-	T Value;
-};
-
 struct FGroupFilter : public IItemFiler
 {
 	TSet<FName> const& EnabledItems;
@@ -121,6 +74,7 @@ struct FStatGroupParams
 	 *	Maximum number of frames to be included in the history. 
 	 *	-maxhistoryframes=[20:20-120]
 	 */
+	// @TODO yrx 2014-08-21 Replace with TParsedValueWithDefaultAndRange
 	TParsedValueWithDefault<int32> MaxHistoryFrames;
 
 	/** Whether to reset all collected data. */
@@ -1107,6 +1061,12 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 
 	Ar.Log( TEXT("stat group list|listall|enable name|disable name|none|all|default - manages stats groups"));
 
+#if WITH_ENGINE
+	// Engine @see FStatCmdEngine
+	Ar.Log( TEXT( "stat display -font=small[tiny]" ) );
+	Ar.Log( TEXT( "    Changes stats rendering display options" ) );
+#endif // WITH_ENGINE
+
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
 	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
 }
@@ -1301,7 +1261,8 @@ static void StatCmd(FString InCmd)
 	}
 }
 
-static class FStatCmd : private FSelfRegisteringExec
+/** Exec used to execute core stats commands on the stats thread. */
+static class FStatCmdCore : private FSelfRegisteringExec
 {
 public:
 	/** Console commands, see embeded usage statement **/
@@ -1310,7 +1271,8 @@ public:
 		// Block the thread as this affects external stat states now
 		return DirectStatsCommand(Cmd,true,&Ar);
 	}
-} StatCmdExec;
+}
+StatCmdCoreExec;
 
 bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, FOutputDevice* Ar /*= nullptr*/)
 {
