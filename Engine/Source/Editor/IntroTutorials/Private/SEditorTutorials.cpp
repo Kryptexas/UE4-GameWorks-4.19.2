@@ -60,7 +60,7 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 			+SVerticalBox::Slot()
 			.FillHeight(0.75f)
 			[
-				SNullWidget::NullWidget
+				SNew( SSpacer )
 			]
 			+SVerticalBox::Slot()
 			.FillHeight(0.25f)
