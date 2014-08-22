@@ -504,6 +504,14 @@ namespace UnrealBuildTool
             }
         }
 
+		public static void ResetProjectFile()
+		{
+			// Reset the project settings to their original state. Used by project file generator, since it mutates the active project setting.
+			UProjectFile = "";
+			bHasUProjectFile = false;
+			UProjectPath = "";
+		}
+
         private static bool ParseRocketCommandlineArg(string InArg, ref string OutGameName)
         {
             string LowercaseArg = InArg.ToLowerInvariant();

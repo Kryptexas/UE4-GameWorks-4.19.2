@@ -1275,10 +1275,19 @@ namespace UnrealBuildTool
 						ArgumentsCopy[ 0 ] = TargetName;
 						Array.Copy(Arguments, 0, ArgumentsCopy, 1, Arguments.Length);
 
+						// CreateTarget mutates the current project setting file if it isn't already set, which prevents other 
+						// projects from being able to do the same. Capture the state beforehand, and reset if after running UBT. 
+						bool bHasProjectFile = UnrealBuildTool.HasUProjectFile();
+
 						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
 						if( !bSuccess )
 						{
 							break;
+						}
+
+						if(!bHasProjectFile)
+						{
+							UnrealBuildTool.ResetProjectFile();
 						}
 
 						// Display progress
