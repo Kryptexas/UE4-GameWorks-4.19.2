@@ -308,7 +308,6 @@ FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWa
 			NAME_FORMAT = NAME_ADPCM;
 		}
 	}
-	UE_LOG(LogAudio, Warning, TEXT("Audio format is %s"), *NAME_FORMAT.ToString());
 	return NAME_FORMAT;
 }
 
