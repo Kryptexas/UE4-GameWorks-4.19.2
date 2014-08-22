@@ -612,7 +612,7 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
 	// ES2 needs to flip when rendering to an RT that will be post processed
-	return IsES2Platform(Platform) && !IsPCPlatform(Platform);
+	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL;
 }
 
 inline bool RHISupportsInstancing(const EShaderPlatform Platform)

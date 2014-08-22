@@ -54,7 +54,7 @@ public:
 		VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		// lock it
 		void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
-        	// first vertex element
+		// first vertex element
 		FMaterialTileVertex* DestVertex = (FMaterialTileVertex*)Buffer;
 
 		// fill out the verts
@@ -139,7 +139,7 @@ void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class F
 	FMaterialTileVertex DestVertex[4];
 
 	// create verts
-	if ((IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform)))
+	if (RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform))
 	{
 		DestVertex[0].Initialize(X + SizeX, View.ViewRect.Height() - (Y + SizeY), U + SizeU, V + SizeV);
 		DestVertex[1].Initialize(X, View.ViewRect.Height() - (Y + SizeY), U, V + SizeV);
