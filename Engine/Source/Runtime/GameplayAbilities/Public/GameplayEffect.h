@@ -1212,11 +1212,17 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	bool bNeedToRecalculateStacks;
 
-	bool HasAnyTags(FGameplayTagContainer &Tags);
+	// ------------------------------------------------
 
-	bool HasAllTags(FGameplayTagContainer &Tags);
+	void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const;
 
-	bool HasTag(const FGameplayTag Tag);
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
+
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+
+	// ------------------------------------------------
 
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 	

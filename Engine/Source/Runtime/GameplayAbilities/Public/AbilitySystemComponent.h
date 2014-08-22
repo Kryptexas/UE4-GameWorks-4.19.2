@@ -205,15 +205,16 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
 
+	// --------------------------------------------
 	// Tags
-	UFUNCTION(BlueprintCallable, Category=GameplayEffects)
-	bool HasAnyTags(FGameplayTagContainer &Tags);
+	// --------------------------------------------
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
 
-	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	bool HasTag(const FGameplayTag Tag);
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
 
-	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	bool HasAllTags(FGameplayTagContainer &Tags);
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+
+	void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const;
 
 	/** Allow events to be registered for specific gameplay tags being added or removed */
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);

@@ -241,22 +241,6 @@ bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
 }
 
-bool UAbilitySystemComponent::HasAnyTags(FGameplayTagContainer &Tags)
-{
-	// Fixme: we could aggregate our current tags into a map to avoid this type of iteration
-	return ActiveGameplayEffects.HasAnyTags(Tags);
-}
-
-bool UAbilitySystemComponent::HasTag(FGameplayTag Tag)
-{
-	return ActiveGameplayEffects.HasTag(Tag);
-}
-
-bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
-{
-	return ActiveGameplayEffects.HasAllTags(Tags);
-}
-
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
 	return ActiveGameplayEffects.RegisterGameplayTagEvent(Tag);
@@ -266,6 +250,30 @@ FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEv
 {
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
 }
+
+// ------------------------------------------------------------------------
+
+void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+	return ActiveGameplayEffects.GetOwnedGameplayTags(TagContainer);
+}
+
+bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	return ActiveGameplayEffects.HasMatchingGameplayTag(TagToCheck);
+}
+
+bool UAbilitySystemComponent::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
+{
+	return ActiveGameplayEffects.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+}
+
+bool UAbilitySystemComponent::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
+{
+	return ActiveGameplayEffects.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+}
+
+// ------------------------------------------------------------------------
 
 void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 {

@@ -2,6 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 
+DEFINE_STAT(STAT_GameplayEffectsGetOwnedTags);
 DEFINE_STAT(STAT_GameplayEffectsHasAllTags);
 DEFINE_STAT(STAT_GameplayEffectsHasAnyTag);
 DEFINE_STAT(STAT_GameplayEffectsTick);

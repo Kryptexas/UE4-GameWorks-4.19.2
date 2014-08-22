@@ -1919,27 +1919,43 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 	}
 }
 
-bool FActiveGameplayEffectsContainer::HasAnyTags(FGameplayTagContainer &Tags)
+void FActiveGameplayEffectsContainer::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
-	for (auto It = Tags.CreateConstIterator(); It; ++It)
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetOwnedTags);
+	for (auto It = GameplayTagCountMap.CreateConstIterator(); It; ++It)
 	{
-		if (HasTag(*It))
+		if(It.Value() > 0)
 		{
-			return true;
+			TagContainer.AddTagFast(It.Key());
 		}
 	}
+}
 
+bool FActiveGameplayEffectsContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	/**
+	 *	The desired behavior here is:
+	 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
+	 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
+	 */
+
+	const int32* Count = GameplayTagCountMap.Find(TagToCheck);
+	if (Count)
+	{
+		return *Count > 0;
+	}
 	return false;
 }
 
-bool FActiveGameplayEffectsContainer::HasAllTags(FGameplayTagContainer &Tags)
+bool FActiveGameplayEffectsContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
+	if (TagContainer.Num() == 0)
+		return bCountEmptyAsMatch;
 
-	for (auto It = Tags.CreateConstIterator(); It;  ++It)
+	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
 	{
-		if (!HasTag(*It))
+		if (!HasMatchingGameplayTag(*It))
 		{
 			return false;
 		}
@@ -1948,31 +1964,21 @@ bool FActiveGameplayEffectsContainer::HasAllTags(FGameplayTagContainer &Tags)
 	return true;
 }
 
-bool FActiveGameplayEffectsContainer::HasTag(const FGameplayTag Tag)
+bool FActiveGameplayEffectsContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	/**
-	 *	The desired behavior here is:
-	 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
-	 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
-	 */
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
+	if (TagContainer.Num() == 0)
+		return bCountEmptyAsMatch;
 
-	int32* Count = GameplayTagCountMap.Find(Tag);
-	if (Count)
+	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
 	{
-		return *Count > 0;
-	}
-	return false;
-
-#if 0
-	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
-	{
-		if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (HasMatchingGameplayTag(*It))
 		{
 			return true;
 		}
 	}
+
 	return false;
-#endif
 }
 
 bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
