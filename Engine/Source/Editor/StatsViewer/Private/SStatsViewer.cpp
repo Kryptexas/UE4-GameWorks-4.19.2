@@ -24,6 +24,9 @@ namespace StatsViewerConstants
 {
 	/** Delay (in seconds) after a new character is entered into the search box to wait before updating the list (to give them time to enter a whole string instead of useless updating every time a char is put in) **/
 	static const float SearchTextUpdateDelay = 0.5f;
+
+	/** Stat viewer config file section name */
+	static const FString ConfigSectionName = "StatsViewer";
 }
 
 namespace StatsViewerMetadata
@@ -194,6 +197,24 @@ void SStatsViewer::Construct( const FArguments& InArgs )
 			]
 		]
 	];
+
+	// Display stats page from previous stat viewer instance
+	if (!CurrentStats.IsValid())
+	{
+		TSharedPtr<IStatsPage> InitialStatsPage;
+		FString DisplayedStatsPageName;
+		if (GConfig->GetString(*StatsViewerConstants::ConfigSectionName, TEXT("DisplayedStatsPageName"), DisplayedStatsPageName, GEditorUserSettingsIni))
+		{
+			InitialStatsPage = FStatsPageManager::Get().GetPage(FName(*DisplayedStatsPageName));
+		}
+		else
+		{
+			// Default to primitive stats if no config data exists yet
+			InitialStatsPage = FStatsPageManager::Get().GetPage(EStatsPage::PrimitiveStats);
+		}
+
+		SetDisplayedStats(InitialStatsPage.ToSharedRef());
+	}
 }
 
 SStatsViewer::SStatsViewer() :
@@ -684,6 +705,7 @@ void SStatsViewer::SetDisplayedStats( TSharedRef<IStatsPage> StatsPage )
 	}
 
 	CurrentStats = StatsPage;
+	GConfig->SetString(*StatsViewerConstants::ConfigSectionName, TEXT("DisplayedStatsPageName"), *StatsPage->GetName().ToString(), GEditorUserSettingsIni);
 	CurrentStats->OnShow( SharedThis(this) );
 	CurrentObjectSetIndex = CurrentStats->GetSelectedObjectSet();
 	CurrentFilterIndex = 0;

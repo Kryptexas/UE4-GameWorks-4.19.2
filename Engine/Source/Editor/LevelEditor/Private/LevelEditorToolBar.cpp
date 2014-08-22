@@ -446,15 +446,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 	}
 	MenuBuilder.EndSection();
 
-
-	// Texture Stats
-	MenuBuilder.BeginSection("LevelEditorStatistics", LOCTEXT( "Statistics", "Statistics" ) );
-	{
-	    MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SceneStats, NAME_None, LOCTEXT("OpenSceneStats", "Scene Stats") );
-	    MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().TextureStats, NAME_None, LOCTEXT("OpenTextureStats", "TextureStats Stats") );
-	}
-	MenuBuilder.EndSection();
-
 	// Map Check
 	MenuBuilder.BeginSection("LevelEditorVerification", LOCTEXT( "VerificationHeading", "Verification" ) );
 	{
