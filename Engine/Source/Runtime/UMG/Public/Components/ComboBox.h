@@ -22,6 +22,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FGenerateWidgetForObject OnGenerateWidgetEvent;
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 #endif

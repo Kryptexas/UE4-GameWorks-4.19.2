@@ -65,6 +65,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	void ClearOptions();
 
+	virtual void ReleaseNativeWidget() override;
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 #endif

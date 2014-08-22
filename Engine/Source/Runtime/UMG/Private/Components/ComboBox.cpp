@@ -12,6 +12,13 @@ UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
+void UComboBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyComboBox.Reset();
+}
+
 TSharedRef<SWidget> UComboBox::RebuildWidget()
 {
 	TSet<UObject*> UniqueItems(Items);

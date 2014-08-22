@@ -15,6 +15,14 @@ UComboBoxString::UComboBoxString(const FPostConstructInitializeProperties& PCIP)
 	HasDownArrow = true;
 }
 
+void UComboBoxString::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyComboBox.Reset();
+	ComoboBoxContent.Reset();
+}
+
 TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 {
 	for ( FString& DefaultOptions : DefaultOptions )
@@ -56,9 +64,6 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 
 	//	/** The visual style of the button part of the combo box (overrides ComboBoxStyle) */
 	//	SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
-
-	//	SLATE_ATTRIBUTE(FMargin, ContentPadding)
-	//	SLATE_ATTRIBUTE(FSlateColor, ForegroundColor)
 
 	//	/** The sound to play when the button is pressed (overrides ComboBoxStyle) */
 	//	SLATE_ARGUMENT(TOptional<FSlateSound>, PressedSoundOverride)
