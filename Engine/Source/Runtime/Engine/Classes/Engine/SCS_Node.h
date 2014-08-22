@@ -87,7 +87,7 @@ class USCS_Node : public UObject
 #endif
 
 	/** Create the specified component on the actor, then call action on children */
-	void ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform);
+	void ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform);
 
 	/** Returns an array containing this node and all children below it */
 	TArray<USCS_Node*> GetAllNodes();

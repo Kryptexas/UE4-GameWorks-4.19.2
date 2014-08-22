@@ -18,7 +18,7 @@ class USimpleConstructionScript : public UObject
 	ENGINE_API void FixupRootNodeParentReferences();
 
 	/** Execute this script on the supplied actor, creating components */
-	void ExecuteScriptOnActor(AActor* Actor, const FTransform& RootTransform);
+	void ExecuteScriptOnActor(AActor* Actor, const FTransform& RootTransform, bool bIsDefaultTransform);
 #if WITH_EDITOR
 	/** Return the Blueprint associated with this SCS instance */
 	ENGINE_API class UBlueprint* GetBlueprint() const;

@@ -2116,18 +2116,18 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector::ZeroVector;
-		FinishSpawning(FTransform(SpawnRotation, SpawnLocation, SpawnScale));
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		FinishSpawning(FTransform(SpawnRotation, SpawnLocation, SpawnScale), true);
 	}
 }
 
-void AActor::FinishSpawning(const FTransform& Transform)
+void AActor::FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform)
 {
 	if (ensure(!bHasFinishedSpawning))
 	{
 		bHasFinishedSpawning = true;
 
-		ExecuteConstruction(Transform, nullptr);
+		ExecuteConstruction(Transform, nullptr, bIsDefaultTransform);
 		PostActorConstruction();
 	}
 }

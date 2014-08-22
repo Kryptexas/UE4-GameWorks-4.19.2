@@ -1465,8 +1465,8 @@ public:
 	/** Called after the actor is spawned in the world.  Responsible for setting up actor for play. */
 	void PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
 
-        /** Called to finish the spawning process, generally in the case of deferred spawning */
-	void FinishSpawning(const FTransform& Transform);
+    /** Called to finish the spawning process, generally in the case of deferred spawning */
+	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false);
 
 private:
 	/** Called after the actor has run its construction. Responsible for finishing the actor spawn process. */
@@ -1688,8 +1688,9 @@ public:
 	 * Run any construction script for this Actor. Will call OnConstruction.
 	 * @param	Transform			The transform to construct the actor at.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
+	 * @param	bIsDefaultTransform	Whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults
 	 */
-	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache);
+	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.
