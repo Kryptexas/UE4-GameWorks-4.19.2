@@ -203,6 +203,7 @@ void FPhysicsSettingsDetails::UpdatePhysicalSurfaceList()
 	RefreshPhysicalSurfaceList();
 	PhysicalSurfaceListView->RequestListRefresh();
 	PhysicsSettings->LoadSurfaceType();
+	PhysicsSettings->UpdateDefaultConfigFile();
 }
 
 void FPhysicsSettingsDetails::RefreshPhysicalSurfaceList()
