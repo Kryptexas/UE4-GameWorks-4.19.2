@@ -176,6 +176,15 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	void AddTag(const FGameplayTag& TagToAdd);
 
 	/**
+	 * Add the specified tag to the container without checking for uniqueness
+	 *
+	 * @param TagToAdd Tag to add to the container
+	 * 
+	 * Useful when building container from another data struct (TMap for example)
+	 */
+	void AddTagFast(const FGameplayTag& TagToAdd);
+
+	/**
 	 * Tag to remove from the container
 	 * 
 	 * @param TagToRemove	Tag to remove from the container
