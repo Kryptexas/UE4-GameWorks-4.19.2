@@ -108,6 +108,8 @@ FPhysicsScene2D::FPhysicsScene2D(UWorld* AssociatedWorld)
 	World = new b2World(DefaultGravityBox);
 	World->SetDebugDraw(&FBox2DVisualizer::GlobalVisualizer);
 
+	World->SetContactFilter(this);
+
 	StartPhysicsTickFunction.bCanEverTick = true;
 	StartPhysicsTickFunction.Target = this;
 	StartPhysicsTickFunction.TickGroup = TG_StartPhysics;
