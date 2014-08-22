@@ -1025,8 +1025,32 @@ public:
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 #if WITH_BODY_WELDING
-	/** Used to physically weld objects at runtime. See decleration in USceneComponent for full description */
-	virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) override;
+
+	/**
+	*   Welds this component to another scene component, optionally at a named socket. Component is automatically attached if not already
+	*	Welding allows the child physics object to become physically connected to its parent. This is useful for creating compound rigid bodies with correct mass distribution.
+	*   @param InParent the component to be physically attached to
+	*   @param InSocketName optional socket to attach component to
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
+
+	/**
+	*   UnWelds this component from its parent component. Attachment is maintained (DetachFromParent automatically unwelds)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void UnWeldFromParent();
+
+	/**
+	*	Does the actual work for welding.
+	*	@return true if did a true weld of shapes, meaning body initialization is not needed
+	*/
+	bool WeldToInternal(USceneComponent * InParent, FName ParentSocketName = NAME_None);
+
+	/**
+	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
+	*/
+	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
 #endif
 
 protected:

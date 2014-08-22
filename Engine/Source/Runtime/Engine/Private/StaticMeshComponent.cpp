@@ -136,6 +136,10 @@ UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeP
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
+#if WITH_BODY_WELDING
+	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
+#endif
+
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 #endif

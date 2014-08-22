@@ -197,6 +197,10 @@ FBodyInstance::FBodyInstance()
 , bUseCCD(false)
 , bNotifyRigidBodyCollision(false)
 , bSimulatePhysics(false)
+#if WITH_BODY_WELDING
+, bAutoWeld(false)
+, bWelded(false)
+#endif
 , bStartAwake(true)
 , bEnableGravity(true)
 , bUseAsyncScene(false)
@@ -899,21 +903,17 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	check(BodySetup.IsValid());
 
 #if WITH_BODY_WELDING
+	if(bAutoWeld)
 	{
 		UPrimitiveComponent * ParentPrimComponent = PrimComp ? Cast<UPrimitiveComponent>(PrimComp->AttachParent) : NULL;
 		
 		//if we have a parent we will now do the weld and exit any further initialization
 		if (ParentPrimComponent && PrimComp->GetWorld() && PrimComp->GetWorld()->IsGameWorld())
 		{
-			/*FTransform RelativeTM = FTransform(PrimComp->RelativeRotation, PrimComp->RelativeLocation, PrimComp->RelativeScale3D);
-			FBodyInstance * OwnerBody = ParentPrimComponent->GetBodyInstance();
-			OwnerBody->Weld(this, RelativeTM);*/
-			if (ParentPrimComponent->WeldPhysicsBody(PrimComp))
+			if (PrimComp->WeldToInternal(ParentPrimComponent, PrimComp->AttachSocketName))	//welded new simulated body so initialization is done
 			{
-				//welded so stop any further initialization
 				return;
 			}
-			
 		}
 	}
 #endif
@@ -1451,7 +1451,7 @@ void FBodyInstance::TermBody()
 }
 
 #if WITH_BODY_WELDING
-bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
+bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 {
 	check(TheirBody);
 	if (TheirBody->BodySetup.IsValid() == false)	//attach actor can be called before body has been initialized. In this case just return false
@@ -1464,7 +1464,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 #if WITH_PHYSX
 	
 	//first time we're welding with root so we need to grab the shapes
-	if (ShapeToComponentMap.Num() == 0)
+	if (ShapeToBodyMap.Num() == 0)
 	{
 		int32 NumSyncShapes = 0;
 		TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
@@ -1472,13 +1472,17 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 		for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ++ShapeIdx)
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
-			UPrimitiveComponent *& PrimComp = ShapeToComponentMap.FindOrAdd(PShape);
-			PrimComp = OwnerComponent.Get();
+			FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
+			BI = this;
 		}
 	}
 
 	TArray<PxShape *> PNewShapes;
 
+	FTransform MyTM = GetUnrealWorldTransform();
+	MyTM.SetScale3D(Scale3D);	//physx doesn't store 3d so set it here
+
+	FTransform RelativeTM = TheirTM.GetRelativeTransform(MyTM);
 
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
@@ -1495,8 +1499,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 	for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)
 	{
 		PxShape* PShape = PNewShapes[ShapeIdx];
-		UPrimitiveComponent *& PrimComp = ShapeToComponentMap.FindOrAdd(PShape);
-		PrimComp = TheirBody->OwnerComponent.Get();
+		FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
+		BI = TheirBody;
 	}
 
 	PostShapeChange();
@@ -1511,10 +1515,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 	return false;
 }
 
-void FBodyInstance::UnWeld(UPrimitiveComponent* ChildComponent)
+void FBodyInstance::UnWeld(FBodyInstance* BI)
 {
-	check(ChildComponent);
-
 	//@TODO: BOX2D: Implement Weld
 
 #if WITH_PHYSX
@@ -1525,11 +1527,12 @@ void FBodyInstance::UnWeld(UPrimitiveComponent* ChildComponent)
 	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
 	{
 		PxShape* PShape = PShapes[ShapeIdx];
-		if (UPrimitiveComponent ** PrimCompPtrPtr = ShapeToComponentMap.Find(PShape))
+		if (FBodyInstance ** BIPtrPtr = ShapeToBodyMap.Find(PShape))
 		{
-			if (*PrimCompPtrPtr == ChildComponent)
+			if (*BIPtrPtr == BI)
 			{
 				RigidActorSync->detachShape(*PShape);
+				ShapeToBodyMap.Remove(PShape);
 			}
 		}
 	}
@@ -1537,11 +1540,12 @@ void FBodyInstance::UnWeld(UPrimitiveComponent* ChildComponent)
 	for (int32 ShapeIdx = NumSyncShapes; ShapeIdx < PShapes.Num(); ++ShapeIdx)
 	{
 		PxShape* PShape = PShapes[ShapeIdx];
-		if (UPrimitiveComponent ** PrimCompPtrPtr = ShapeToComponentMap.Find(PShape))
+		if (FBodyInstance ** BIPtrPtr = ShapeToBodyMap.Find(PShape))
 		{
-			if (*PrimCompPtrPtr == ChildComponent)
+			if (*BIPtrPtr == BI)
 			{
 				RigidActorAsync->detachShape(*PShape);
+				ShapeToBodyMap.Remove(PShape);
 			}
 		}
 	}

@@ -336,11 +336,42 @@ public:
 	void SnapTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/** 
-	 *	Detach this component from whatever it is attached to 
+	 *	Detach this component from whatever it is attached to. Automatically unwelds components that are welded together (See WeldTo)
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same *	
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual void DetachFromParent(bool bMaintainWorldPosition = false);
+
+#if WITH_BODY_WELDING
+	/**
+	*   Welds this component to another scene component, optionally at a named socket. Component is automatically attached if not already
+	*	Welding allows the child physics object to become physically connected to its parent. This is useful for creating compound rigid bodies with correct mass distribution.
+	*   @param InParent the component to be physically attached to
+	*   @param InSocketName optional socket to attach component to
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None){}
+
+	/**
+	*   UnWelds this component from its parent component. Attachment is maintained (DetachFromParent automatically unwelds)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void UnWeldFromParent(){}
+
+
+	/**
+	* Attempts to weld/unweld the child component to this component in a physically correct way. This re-calculates mass distribution and geometry to achieve correct physics.
+	* This function assumes ChildComponent has already been attached to this component and is now doing the physics fix-up.
+	* The function uses the attachment hierarchy to easily attach/detach multiple components together
+	* @param ChildComponent the component to be physically attached - assumed to already be attached in the scene hierarchy
+	* @param bWeld determines whether to weld or unweld. This flag is used for creating or breaking welded pieces at runtime
+	* @param ParentBoneName potentially used by skeletal mesh to weld child to specific bone on this component
+	* @param ChildBoneName potentially used by skeletal mesh to weld this component to specific bone in child
+	* @return whether or not the weld/unweld was succesfull
+	*/
+	//virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) { return false; }
+
+#endif
 
 	/** 
 	 * Gets the names of all the sockets on the component.
@@ -706,21 +737,6 @@ public:
 
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
 	virtual FBoxSphereBounds GetPlacementExtent() const;
-
-#if WITH_BODY_WELDING
-
-	/**
-	* Attempts to weld/unweld the child component to this component in a physically correct way. This re-calculates mass distribution and geometry to achieve correct physics.
-	* This function assumes ChildComponent has already been attached to this component and is now doing the physics fix-up.
-	* The function uses the attachment hierarchy to easily attach/detach multiple components together
-	* @param ChildComponent the component to be physically attached - assumed to already be attached in the scene hierarchy
-	* @param bWeld determines whether to weld or unweld. This flag is used for creating or breaking welded pieces at runtime
-	* @param ParentBoneName potentially used by skeletal mesh to weld child to specific bone on this component
-	* @param ChildBoneName potentially used by skeletal mesh to weld this component to specific bone in child
-	* @return whether or not the weld/unweld was succesfull
-	*/
-	virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) { return false;  }
-#endif
 
 protected:
 	/**

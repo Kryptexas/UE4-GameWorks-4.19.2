@@ -954,6 +954,10 @@ public:
 	/** Enable or Disable AngularVelocityDrive based on a list of bone names */
 	void SetNamedMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, const TArray<FName>& BoneNames, bool bSetOtherBodiesToComplement = false);
 
+#if WITH_BODY_WELDING
+	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
+	bool virtual WeldToInternal(USceneComponent * InParent, FName ParentSocketName = NAME_None){ return false; }	//not currently supported for skeletal mesh
+#endif
 
 	/**
 	 * Return Transform Matrix for SkeletalMeshComponent considering root motion setups

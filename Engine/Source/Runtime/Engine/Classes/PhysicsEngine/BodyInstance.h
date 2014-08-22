@@ -168,6 +168,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
 	uint32 bSimulatePhysics:1;
 
+//#if WITH_BODY_WELDING
+	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	uint32 bAutoWeld : 1;
+
+	/** determines if the body is currently welded */
+	uint32 bWelded : 1;
+//#endif
+
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bSimulatePhysics"))
 	uint32 bStartAwake:1;
@@ -315,7 +324,7 @@ public:
 #if WITH_BODY_WELDING
 
 #if WITH_PHYSX
-	TMap<physx::PxShape*, class UPrimitiveComponent*> ShapeToComponentMap;
+	TMap<physx::PxShape*, FBodyInstance*> ShapeToBodyMap;
 #endif
 
 	/** 
@@ -325,7 +334,7 @@ public:
 
 	/** 
 	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
-	void UnWeld(class UPrimitiveComponent * Body);
+	void UnWeld(FBodyInstance * Body);
 
 	/**
 	 * After adding/removing shapes call this function to update mass distribution etc... */

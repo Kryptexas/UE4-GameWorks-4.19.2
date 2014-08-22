@@ -1509,6 +1509,45 @@ FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName) const
 	return BodyInst;
 }
 
+#if WITH_BODY_WELDING
+void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+{
+	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
+
+	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+	{
+		FBodyInstance * BI = Bodies[BodyIdx];
+		if (BI && BI->bWelded)
+		{
+			OutWeldedBodies.Add(&BodyInstance);
+			if (PhysicsAsset)
+			{
+				if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodyIdx])
+				{
+					OutLabels.Add(BodySetup->BoneName);
+				}
+				else
+				{
+					OutLabels.Add(NAME_None);
+				}
+			}
+			else
+			{
+				OutLabels.Add(NAME_None);
+			}
+
+			for (USceneComponent * Child : AttachChildren)
+			{
+				if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
+				{
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+				}
+			}
+		}
+	}
+}
+#endif
+
 
 void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName)
 {

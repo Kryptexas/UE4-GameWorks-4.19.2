@@ -348,84 +348,162 @@ void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
 }
 
 #if WITH_BODY_WELDING
-bool UPrimitiveComponent::WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld, FName ParentBoneName, FName ChildBoneName)
+
+UPrimitiveComponent * GetRootWelded(UPrimitiveComponent * PrimComponent, FName ParentSocketName = NAME_None, FName * OutSocketName = NULL)
 {
-	//assumes that child is already attached
-	if (ChildComponent->AttachParent != this)
+	UPrimitiveComponent * Result = NULL;
+	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->AttachParent);	//we must find the root component along hierarchy that has bWelded set to true
+
+	//check that body itself is welded
+	if (FBodyInstance * BI = PrimComponent->GetBodyInstance(ParentSocketName))
+	{
+		if (BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
+		{
+			return NULL;
+		}
+	}
+
+	FName SocketName = ParentSocketName; //because of skeletal mesh it's important that we check along the bones that we attached
+	FBodyInstance * RootBI = NULL;
+	for (; RootComponent; RootComponent = Cast<UPrimitiveComponent>(RootComponent->AttachParent))
+	{
+		Result = RootComponent;
+		SocketName = RootComponent->AttachSocketName;
+
+		RootBI = RootComponent->GetBodyInstance(SocketName);
+		if (RootBI && RootBI->bWelded)
+		{
+			continue;
+		}
+
+		break;
+	}
+
+	if (OutSocketName)
+	{
+		*OutSocketName = SocketName;
+	}
+
+	return Result;
+}
+
+void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+{
+	if (BodyInstance.bWelded)
+	{
+		OutWeldedBodies.Add(&BodyInstance);
+		OutLabels.Add(NAME_None);
+			
+		for (USceneComponent * Child : AttachChildren)
+		{
+			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
+			{
+				PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+			}
+		}
+	}
+}
+
+bool UPrimitiveComponent::WeldToInternal(USceneComponent * InParent, FName ParentSocketName /* = Name_None */)
+{
+	//WeldToInternal assumes attachment is already done
+	if (AttachParent != InParent && AttachSocketName != ParentSocketName)
 	{
 		return false;
 	}
 
-	if (UPrimitiveComponent * ChildPrim = Cast<UPrimitiveComponent>(ChildComponent))
+	//Check that we can actually our own socket name
+	FBodyInstance * BI = GetBodyInstance();
+	if (BI == NULL)
 	{
-		//traverse the hierarchy to weld/unweld from root
-		USceneComponent * RootComponent = this;
-		FTransform RelativeTM = FTransform(ChildComponent->RelativeRotation, ChildComponent->RelativeLocation, ChildComponent->RelativeScale3D);
+		return false;
+	}
 
-		for (; RootComponent->AttachParent; RootComponent = RootComponent->AttachParent)
+	FName SocketName;
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, ParentSocketName, &SocketName);
+	
+	if (RootComponent)
+	{
+		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName))
 		{
-			RelativeTM = RelativeTM * FTransform(RootComponent->RelativeRotation, RootComponent->RelativeLocation, RootComponent->RelativeScale3D);
-		}
+			BI->bWelded = true;
+			//There are multiple cases to handle:
+			//Root is kinematic, simulated
+			//Child is kinematic, simulated
+			//Child always inherits from root
 
-		if (UPrimitiveComponent * RootPrim = Cast<UPrimitiveComponent>(RootComponent))
-		{
-			//we support welding of kinematic actors to simulated parents.
-			//welding simulated to anything doesn't make sense and we'd rather use a physical constraint
-			//welding kinematic to kinematic is not needed as the attachment hierarchy already handles moving the object around
-			if (RootPrim->IsSimulatingPhysics())
+			//if root is kinematic simply set child to be kinematic and we're done
+			if (RootComponent->IsSimulatingPhysics(SocketName) == false)
 			{
-				FBodyInstance * RootBody = RootPrim->GetBodyInstance(ParentBoneName);
-				FBodyInstance * ChildBody = ChildPrim->GetBodyInstance(ChildBoneName);
+				SetSimulatePhysics(false);
+				return false;	//return false because we need to continue with regular body initialization
+			}
 
-				if (RootBody && ChildBody)
+			//root is simulated so we actually weld the body
+			FTransform RelativeTM = RootComponent == AttachParent ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
+			RootBI->Weld(BI, GetComponentToWorld());
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /* = NAME_None */)
+{
+	//automatically attach if needed
+	if (AttachParent != InParent && AttachSocketName != InSocketName)
+	{
+		AttachTo(InParent, InSocketName);
+	}
+
+	WeldToInternal(InParent, InSocketName);
+}
+
+void UPrimitiveComponent::UnWeldFromParent()
+{
+	FBodyInstance * NewRootBI = GetBodyInstance();
+	if (NewRootBI == NULL || NewRootBI->bWelded == false)
+	{
+		return;
+	}
+
+	FName SocketName;
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, AttachSocketName, &SocketName);
+
+	if (RootComponent)
+	{
+		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName))
+		{
+			//create new root
+			RootBI->UnWeld(NewRootBI);
+			NewRootBI->bWelded = false;
+			//we need to temporarily turn off AutoWeld
+			bool bPrevAutoWeld = NewRootBI->bAutoWeld;
+			NewRootBI->bAutoWeld = false;
+			NewRootBI->InitBody(GetBodySetup(), GetComponentToWorld(), this, GetWorld()->GetPhysicsScene());
+			NewRootBI->bAutoWeld = bPrevAutoWeld;
+
+			//now weld its children to it
+			TArray<FBodyInstance*> ChildrenBodies;
+			TArray<FName> ChildrenLabels;
+			GetWeldedBodies(ChildrenBodies, ChildrenLabels);
+
+			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
+			{
+				FBodyInstance * ChildBI = ChildrenBodies[ChildIdx];
+				if (ChildBI != NewRootBI)
 				{
-					if (bWeld)
-					{
-						return RootBody->Weld(ChildBody, RelativeTM);
-					}
-					else 
-					{
-						//we first init the new root which is ChildBody
-						USceneComponent * OldParent = ChildPrim->AttachParent;	//we need to temporarily NULL it out to create a new body then put it back so that we can properly NULL it out later
-						ChildPrim->AttachParent = NULL;
-						ChildBody->InitBody(ChildPrim->GetBodySetup(), ChildPrim->GetComponentToWorld(), ChildPrim, ChildPrim->GetWorld()->GetPhysicsScene());
-						ChildPrim->AttachParent = OldParent;
-
-						//we need to find all of ChildComponent's children
-						TArray<USceneComponent*> Children;
-						ChildComponent->GetChildrenComponents(true, Children);
-
-						//then remove child and all its children from original root
-						RootBody->UnWeld(ChildPrim);
-						for (USceneComponent * Child : Children)
-						{
-							if (UPrimitiveComponent * Prim = Cast<UPrimitiveComponent>(Child))
-							{
-								RootBody->UnWeld(Prim);
-							}
-						}
-						
-						bool bSuccess = true;
-						//then weld all of child's children to child
-						for (USceneComponent * Child : Children)
-						{
-							if (UPrimitiveComponent * Prim = Cast<UPrimitiveComponent>(Child))
-							{
-								FTransform RelativeTM = Prim->GetComponentToWorld().GetRelativeTransform(ChildPrim->GetComponentToWorld());
-								bSuccess &= ChildBody->Weld(Prim->GetBodyInstance(), RelativeTM);
-							}
-						}
-
-						return bSuccess;
-					}
+					RootBI->UnWeld(NewRootBI);
+					NewRootBI->Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
 				}
 			}
 		}
 	}
-
-	
-	return false;
 }
+
+
 #endif
 
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
