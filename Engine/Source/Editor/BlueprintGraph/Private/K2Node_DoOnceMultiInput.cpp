@@ -8,6 +8,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -375,12 +376,12 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 	}
 }
 
-void UK2Node_DoOnceMultiInput::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_DoOnceMultiInput::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 	
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UK2Node_DoOnceMultiInput::GetMenuCategory() const

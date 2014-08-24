@@ -6,6 +6,7 @@
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagsK2Node_LiteralGameplayTag"
 
@@ -148,12 +149,12 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 	}
 }
 
-void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 	
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UGameplayTagsK2Node_LiteralGameplayTag::GetMenuCategory() const

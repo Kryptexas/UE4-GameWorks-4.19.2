@@ -8,6 +8,7 @@
 #include "K2Node_EnumEquality.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_EnumEquality"
 
@@ -259,12 +260,12 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 	}
 }
 
-void UK2Node_EnumEquality::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_EnumEquality::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 	
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UK2Node_EnumEquality::GetMenuCategory() const

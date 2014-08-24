@@ -60,8 +60,8 @@ static UObject const* BlueprintActionDatabaseRegistrarImpl::ResolveActionKey(UOb
 
 //------------------------------------------------------------------------------
 FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey)
-	: ActionDatabase(Database)
-	, GeneratingClass(DefaultKey)
+	: GeneratingClass(DefaultKey)
+	, ActionDatabase(Database)
 	, ActionKeyFilter(nullptr)
 	, ActionPrimingQueue(PrimingQueue)
 {
