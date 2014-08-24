@@ -8,6 +8,7 @@
 #include "Engine/InputAxisKeyDelegateBinding.h"
 #include "BlueprintEditorUtils.h"
 #include "EdGraphSchema_K2.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisKeyValue"
 
@@ -113,7 +114,7 @@ FName UK2Node_GetInputAxisKeyValue::GetPaletteIcon(FLinearColor& OutColor) const
 }
 
 
-void UK2Node_GetInputAxisKeyValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetInputAxisKeyValue::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FKey> AllKeys;
 	EKeys::GetAllKeys(AllKeys);
@@ -135,7 +136,7 @@ void UK2Node_GetInputAxisKeyValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>
 		};
 		
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 	}
 }
 

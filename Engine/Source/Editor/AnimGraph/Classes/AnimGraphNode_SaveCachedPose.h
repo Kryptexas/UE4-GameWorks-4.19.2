@@ -25,7 +25,7 @@ class UAnimGraphNode_SaveCachedPose : public UAnimGraphNode_Base
 	// End of UEdGraphNode interface
 
 	// UK2Node interface.
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface

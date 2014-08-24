@@ -5,6 +5,7 @@
 #include "CompilerResultsLog.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpacePlayer
@@ -55,7 +56,7 @@ void UAnimGraphNode_BlendSpacePlayer::GetMenuEntries(FGraphContextMenuBuilder& C
 	GetBlendSpaceEntries(bWantAimOffsets, ContextMenuBuilder);
 }
 
-void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
 	{
@@ -74,7 +75,7 @@ void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(TArray<UBlueprintNodeSpawne
 			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 			check(NodeSpawner != nullptr);
 			// @TODO: Need to file this one under the BlendSpace asset (so it can be cleared/updated when the asset is)
-			ActionListOut.Add(NodeSpawner);
+			ActionRegistrar.AddBlueprintAction(NodeSpawner);
 
 			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
 			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);

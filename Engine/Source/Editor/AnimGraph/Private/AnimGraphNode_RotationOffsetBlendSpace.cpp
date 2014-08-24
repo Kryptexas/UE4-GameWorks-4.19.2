@@ -5,6 +5,7 @@
 #include "GraphEditorActions.h"
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_RotationOffsetBlendSpace
@@ -44,7 +45,7 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuEntries(FGraphContextMenuBu
 	GetBlendSpaceEntries(bWantAimOffsets, ContextMenuBuilder);
 }
 
-void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
 	{
@@ -63,7 +64,7 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuActions(TArray<UBlueprintNo
 			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 			check(NodeSpawner != nullptr);
 			// @TODO: Need to file this one under the BlendSpace asset (so it can be cleared/updated when the asset is)
-			ActionListOut.Add(NodeSpawner);
+			ActionRegistrar.AddBlueprintAction(NodeSpawner);
 
 			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
 			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);

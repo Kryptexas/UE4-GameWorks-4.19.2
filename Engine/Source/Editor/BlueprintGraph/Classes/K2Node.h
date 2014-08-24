@@ -5,6 +5,7 @@
 #include "K2Node.generated.h"
 
 class UBlueprintNodeSpawner;
+class FBlueprintActionDatabaseRegistrar;
 
 /** Helper struct to allow us to redirect properties and functions through renames and additionally between classes if necessary */
 struct FFieldRemapInfo
@@ -297,7 +298,7 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @param  ActionListOut	The list to be populated with new spawners.
 	 */
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const {}
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegisrar) const {}
 
 	/**
 	 * Override to provide a default category for specific node types to be 

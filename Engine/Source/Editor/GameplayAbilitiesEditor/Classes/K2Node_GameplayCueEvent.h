@@ -18,6 +18,6 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 	// End UEdGraphNode interface
 	
 	// Begin UK2Node interface
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End UK2Node interface
 };

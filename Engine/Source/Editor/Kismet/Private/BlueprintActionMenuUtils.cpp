@@ -45,7 +45,8 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	uint32 FilterFlags = 0x00;
 	if (FilterClass != nullptr)
 	{
-		FilterFlags = FBlueprintActionFilter::BPFILTER_ExcludeGlobalFields;
+		// make sure we exclude global and static library actions
+		FilterFlags = FBlueprintActionFilter::BPFILTER_RejectPersistentNonTargetFields;
 	}
 	
 	FBlueprintActionFilter MenuFilter(FilterFlags);
@@ -53,12 +54,12 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	
 	// self member variables can be accessed through the MyBluprint panel (even
 	// inherited ones)... external variables can be accessed through the context
-	// menu (don't want to clutter the palette?)
-	MenuFilter.ExcludedNodeTypes.Add(UK2Node_Variable::StaticClass());
+	// menu (don't want to clutter the palette, I guess?)
+	MenuFilter.RejectedNodeTypes.Add(UK2Node_Variable::StaticClass());
 	
 	if (FilterClass != nullptr)
 	{
-		MenuFilter.OwnerClasses.Add(FilterClass);
+		MenuFilter.TargetClasses.Add(FilterClass);
 	}
 
 	MenuOut.AddMenuSection(MenuFilter, LOCTEXT("PaletteRoot", "Library"), /*MenuOrder =*/0, FBlueprintActionMenuBuilder::ConsolidatePropertyActions);
@@ -75,8 +76,8 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	FBlueprintActionFilter ComponentsFilter;
 	ComponentsFilter.Context = Context;
-	ComponentsFilter.NodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
-	ComponentsFilter.NodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
+	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
 	ComponentsFilter.AddIsFilteredTest(FBlueprintActionFilter::FIsFilteredDelegate::CreateStatic(IsUnBoundSpawner));
 	
 	bool bHasComponentsSection = false;
@@ -84,7 +85,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	{
 		if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Selection))
 		{
-			ComponentsFilter.OwnerClasses.Add(ObjProperty->PropertyClass);
+			ComponentsFilter.TargetClasses.Add(ObjProperty->PropertyClass);
 			bHasComponentsSection = true;
 		}
 	}
@@ -107,8 +108,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			for (UBlueprint* Blueprint : Context.Blueprints)
 			{
 				UClass* BlueprintClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
-				// @TODO: are we sure we only want members in the unconnected context menu? 
-				MenuFilter.OwnerClasses.Add(BlueprintClass);
+				MenuFilter.TargetClasses.Add(BlueprintClass);
 			}
 		}
 	}

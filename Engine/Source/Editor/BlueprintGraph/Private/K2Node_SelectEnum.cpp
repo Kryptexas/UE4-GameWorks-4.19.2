@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_SelectEnum.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 UDEPRECATED_K2Node_SelectEnum::UDEPRECATED_K2Node_SelectEnum(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -62,7 +63,7 @@ void UDEPRECATED_K2Node_SelectEnum::NotifyPinConnectionListChanged(UEdGraphPin* 
 	// don't do anything
 }
 
-void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
@@ -78,7 +79,7 @@ void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*
 		
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 		
 		TWeakObjectPtr<UEnum> EnumPtr = Enum;
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);

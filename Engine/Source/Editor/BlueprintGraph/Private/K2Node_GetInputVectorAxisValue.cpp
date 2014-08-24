@@ -5,6 +5,7 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "Engine/InputVectorAxisDelegateBinding.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 UK2Node_GetInputVectorAxisValue::UK2Node_GetInputVectorAxisValue(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -61,7 +62,7 @@ void UK2Node_GetInputVectorAxisValue::RegisterDynamicBinding(UDynamicBlueprintBi
 	InputVectorAxisBindingObject->InputAxisKeyDelegateBindings.Add(Binding);
 }
 
-void UK2Node_GetInputVectorAxisValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetInputVectorAxisValue::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FKey> AllKeys;
 	EKeys::GetAllKeys(AllKeys);
@@ -83,6 +84,6 @@ void UK2Node_GetInputVectorAxisValue::GetMenuActions(TArray<UBlueprintNodeSpawne
 		};
 
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 	}
 }

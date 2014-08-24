@@ -52,13 +52,14 @@ namespace BlueprintActionFilterImpl
 	static bool IsLatent(UBlueprintNodeSpawner const* NodeSpawner);
 	
 	/**
-	 * Utility method to check and see if the specified node-spawner would
-	 * produce a node associated with a global field.
+	 * Utility method to check and see if the specified field is a public global
+	 * or static field (that is has a persistent extent that span's the 
+	 * program's lifetime).
 	 *
-	 * @param  NodeSpawner	The action you want to query.
-	 * @return True if the action is associated with some global field, false if not (or unknown).
+	 * @param  Field	The field you want to check.
+	 * @return True if the field is global/static (and public), false if it has a limited extent (or is private/protected).
 	 */
-	static bool IsGlobal(UField const* Field);
+	static bool IsGloballyAccessible(UField const* Field);
 	
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner would
@@ -135,40 +136,31 @@ namespace BlueprintActionFilterImpl
 	
 	/**
 	 * Rejection test that checks to see if the node-spawner has any associated
-	 * fields that are global (structs, enums, etc.), or if the field belongs to
-	 * a static library class.
+	 * "non-target" fields that are global/static.
 	 * 
-	 * @param  Context			Holds the context (unused) for this test.
+	 * @param  Filter			Holds the TagetClass context for this test.
 	 * @param  BlueprintAction	The action you wish to query.
-	 * @return True if the action would spawn a node not allowed in function graphs.
+	 * @return 
 	 */
-	static bool IsGlobal(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is associated with 
-	 * a field that belongs to a class that is not white-listed (ignores global
-	 * fields).
+	 * a field that belongs to a class that is not white-listed (ignores global/
+	 * static fields).
 	 * 
-	 * @param  Context			Holds the class context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
+	 * @param  Filter					Holds the class context for this test.
+	 * @param  BlueprintAction			The action you wish to query.
+	 * @param  bPermitNonTargetGlobals	Determines if this test should pass for external global/static fields.
 	 * @return True if the action is associated with a non-whitelisted class member.
 	 */
-	static bool IsExternalField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * 
-	 * 
-	 * @param  Filter	
-	 * @param  BlueprintAction	
-	 * @return 
-	 */
-	static bool IsUneededMessageNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsNonTargetMemeber(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bPermitNonTargetGlobals);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is associated with 
 	 * a field that is hidden from the specified blueprint (via metadata).
 	 * 
-	 * @param  Context			Holds the class context for this test.
+	 * @param  Filter			Holds the class context for this test.
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action is associated with a hidden field.
 	 */
@@ -178,7 +170,7 @@ namespace BlueprintActionFilterImpl
 	 * Rejection test that checks to see if the node-spawner would produce a 
 	 * node type that isn't white-listed. 
 	 * 
-	 * @param  Context			Holds the class context for this test.
+	 * @param  Filter			Holds the class context for this test.
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @param  bMatchExplicitly When true, the node's class has to perfectly match a white-listed type (sub-classes don't count).
 	 * @return True if the action would produce a non-whitelisted node.
@@ -190,7 +182,7 @@ namespace BlueprintActionFilterImpl
 	 * specific object that is not currently selected.
 	 * 
 	 * 
-	 * @param  Context			Holds the selected object context for this test.
+	 * @param  Filter			Holds the selected object context for this test.
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would produce a bound node, tied to an object that isn't selected.
 	 */
@@ -213,6 +205,15 @@ namespace BlueprintActionFilterImpl
 	 * @return 
 	 */
 	static bool IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsSchemaIncompatible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
 	 * 
@@ -314,25 +315,26 @@ static bool BlueprintActionFilterImpl::IsLatent(UBlueprintNodeSpawner const* Nod
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsGlobal(UField const* Field)
+static bool BlueprintActionFilterImpl::IsGloballyAccessible(UField const* Field)
 {
-	bool bIsGlobal = false;
+	bool bHasPersistentExtents = false; // is global or static
+	bool bIsPublic = Field->HasAnyFlags(RF_Public);
 	
 	UClass* ClassOuter = Cast<UClass>(Field->GetOuter());
 	// outer is probably a UPackage (for like global enums, structs, etc.)
 	if (ClassOuter == nullptr)
 	{
-		bIsGlobal = true;
+		bHasPersistentExtents = true;
 	}
 	else if (UFunction const* Function = Cast<UFunction>(Field))
 	{
-		bool const bIsPublic = !Function->HasMetaData(FBlueprintMetadata::MD_Protected) &&
+		bIsPublic |= !Function->HasMetaData(FBlueprintMetadata::MD_Protected) &&
 			!Function->HasMetaData(FBlueprintMetadata::MD_Private);
 		
-		bIsGlobal = Function->HasAnyFunctionFlags(FUNC_Static) && bIsPublic;
+		bHasPersistentExtents = Function->HasAnyFunctionFlags(FUNC_Static);
 	}
 	
-	return bIsGlobal;
+	return bIsPublic && bHasPersistentExtents;
 }
 
 //------------------------------------------------------------------------------
@@ -487,20 +489,20 @@ static bool BlueprintActionFilterImpl::IsDeprecated(FBlueprintActionFilter const
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsGlobal(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	if (UField const* ClassField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
 	{
-		bIsFilteredOut = IsGlobal(ClassField);
+		bIsFilteredOut = IsGloballyAccessible(ClassField);
 		
 		UClass* FieldClass = ClassField->GetOwnerClass();
 		if (bIsFilteredOut && (FieldClass != nullptr))
 		{
-			for (UClass const* Class : Filter.OwnerClasses)
+			for (UClass const* Class : Filter.TargetClasses)
 			{
-				bool const bIsInternalFunc = Class->IsChildOf(FieldClass);
-				if (bIsInternalFunc)
+				bool const bIsInternalMemberField = Class->IsChildOf(FieldClass);
+				if (bIsInternalMemberField)
 				{
 					bIsFilteredOut = false;
 					break;
@@ -513,7 +515,7 @@ static bool BlueprintActionFilterImpl::IsGlobal(FBlueprintActionFilter const& Fi
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsExternalField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsNonTargetMemeber(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool bPermitNonTargetGlobals)
 {
 	bool bIsFilteredOut = false;
 	if (UField const* ClassField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
@@ -523,9 +525,9 @@ static bool BlueprintActionFilterImpl::IsExternalField(FBlueprintActionFilter co
 
 		// global (and static library) fields can stay (unless explicitly
 		// excluded... save that for a separate test)
-		if ((FieldClass != nullptr) && !IsGlobal(ClassField))
+		if ((FieldClass != nullptr) && (bPermitNonTargetGlobals || IsGloballyAccessible(ClassField)))
 		{
-			for (UClass const* Class : Filter.OwnerClasses)
+			for (UClass const* Class : Filter.TargetClasses)
 			{
 				bool const bIsInternalFunc = Class->IsChildOf(FieldClass) || (bIsInterfaceMethod && Class->ImplementsInterface(FieldClass));
 				if (!bIsInternalFunc)
@@ -537,30 +539,6 @@ static bool BlueprintActionFilterImpl::IsExternalField(FBlueprintActionFilter co
 		}
 	}
 	
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsUneededMessageNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = false;
-	if (BlueprintAction->NodeClass->IsChildOf<UK2Node_Message>())
-	{
-		UFunction const* const InterfaceFunc = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(BlueprintAction);
-		checkSlow(InterfaceFunc != nullptr);
-		checkSlow(InterfaceFunc->GetOuterUClass()->IsChildOf<UInterface>());
-
-		bIsFilteredOut = (Filter.Context.Pins.Num() > 0);
-		for (UEdGraphPin const* ContextPin : Filter.Context.Pins)
-		{
-			if (!IsPinCompatibleWithTargetSelf(ContextPin, InterfaceFunc, BlueprintAction))
-			{
-				bIsFilteredOut = false;
-				break;
-			}
-		}
-
-	}
 	return bIsFilteredOut;
 }
 
@@ -603,9 +581,9 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 				}
 			}
 
-			for (int32 ClassIndex = 0; !bIsFilteredOut && (ClassIndex < Filter.OwnerClasses.Num()); ++ClassIndex)
+			for (int32 ClassIndex = 0; !bIsFilteredOut && (ClassIndex < Filter.TargetClasses.Num()); ++ClassIndex)
 			{
-				bIsFilteredOut = IsFieldHiddenDelegate.Execute(Filter.OwnerClasses[ClassIndex]);
+				bIsFilteredOut = IsFieldHiddenDelegate.Execute(Filter.TargetClasses[ClassIndex]);
 			}
 		}
 	}
@@ -657,12 +635,12 @@ static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintAct
 //------------------------------------------------------------------------------
 static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bExcludeChildClasses)
 {
-	bool bIsFilteredOut = (Filter.NodeTypes.Num() > 0);
+	bool bIsFilteredOut = (Filter.PermittedNodeTypes.Num() > 0);
 
 	UClass* NodeClass = BlueprintAction->NodeClass;
 	if (NodeClass != nullptr)
 	{
-		for (TSubclassOf<UEdGraphNode> AllowedClass : Filter.NodeTypes)
+		for (TSubclassOf<UEdGraphNode> AllowedClass : Filter.PermittedNodeTypes)
 		{
 			if ((NodeClass->IsChildOf(AllowedClass) && !bExcludeChildClasses) ||
 				(AllowedClass == NodeClass))
@@ -672,9 +650,9 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 			}
 		}
 		
-		for (int32 ClassIndx = 0; !bIsFilteredOut && (ClassIndx < Filter.ExcludedNodeTypes.Num()); ++ClassIndx)
+		for (int32 ClassIndx = 0; !bIsFilteredOut && (ClassIndx < Filter.RejectedNodeTypes.Num()); ++ClassIndx)
 		{
-			TSubclassOf<UEdGraphNode> ExcludedClass = Filter.ExcludedNodeTypes[ClassIndx];
+			TSubclassOf<UEdGraphNode> ExcludedClass = Filter.RejectedNodeTypes[ClassIndx];
 			if ((bExcludeChildClasses && (ExcludedClass == NodeClass)) ||
 				NodeClass->IsChildOf(ExcludedClass))
 			{
@@ -745,6 +723,51 @@ static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActio
 			}
 		}
 	}
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsSchemaIncompatible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	UEdGraphNode const* NodeCDO = BlueprintAction->NodeClass->GetDefaultObject<UEdGraphNode>();
+
+	auto IsSchemaIncompatibleLambda = [NodeCDO](TArray<UEdGraph*> const& GraphList)->bool
+	{
+		bool bIsCompatible = true;
+		for (UEdGraph const* Graph : GraphList)
+		{
+			if (!NodeCDO->CanCreateUnderSpecifiedSchema(Graph->GetSchema()))
+			{
+				bIsCompatible = false;
+				break;
+			}
+		}
+		return !bIsCompatible;
+	};
+	
+	if (FilterContext.Graphs.Num() > 0)
+	{
+		bIsFilteredOut = IsSchemaIncompatibleLambda(FilterContext.Graphs);
+	}
+	else
+	{
+		bIsFilteredOut = true;
+		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
+		{
+			TArray<UEdGraph*> BpGraphList;
+			Blueprint->GetAllGraphs(BpGraphList);
+
+			if (!IsSchemaIncompatibleLambda(BpGraphList))
+			{
+				bIsFilteredOut = false;
+				break;
+			}
+		}
+	}
+
 	return bIsFilteredOut;
 }
 
@@ -1006,9 +1029,9 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
 	
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));	
-	if (Flags & BPFILTER_ExcludeGlobalFields)
+	if (Flags & BPFILTER_RejectPersistentNonTargetFields)
 	{
-		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsGlobal));
+		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPersistentNonTargetField));
 	}
 	
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldInaccessible));
@@ -1016,14 +1039,15 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPermissionNotGranted));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsRestrictedClassMember));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsSchemaIncompatible));
 
-	if (!(Flags & BPFILTER_IncludeDeprecated))
+	if (!(Flags & BPFILTER_PermitDeprecated))
 	{
 		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsDeprecated));
 	}
 
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_ExcludeChildNodeTypes) != 0));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsExternalField));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses)   != 0));
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) != 0));
 	
 	// don't know why we only allow impure ("imperitive") and const functions,
 	// but this mimics legacy functionality in GetFunctionCallsOnSelectedComponents()

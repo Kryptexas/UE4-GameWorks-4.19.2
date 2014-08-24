@@ -5,6 +5,7 @@
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 struct FK2Node_ConstructObjectFromClassHelper
 {
@@ -287,12 +288,12 @@ void UK2Node_ConstructObjectFromClass::GetNodeAttributes( TArray<TKeyValuePair<F
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ObjectClass" ), ClassToSpawnStr ));
 }
 
-void UK2Node_ConstructObjectFromClass::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_ConstructObjectFromClass::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegisrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+	ActionRegisrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UK2Node_ConstructObjectFromClass::GetMenuCategory() const

@@ -9,6 +9,7 @@
 #include "GameplayCueInterface.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintEditorUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
@@ -87,7 +88,7 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 	}	
 }
 
-void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GameplayCueEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	auto CustomizeCueNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName TagName)
 	{
@@ -107,7 +108,7 @@ void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Ac
 		check(NodeSpawner != nullptr);
 		NodeSpawner->CustomizeNodeDelegate = PostSpawnDelegate;
 		
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 	}
 }
 

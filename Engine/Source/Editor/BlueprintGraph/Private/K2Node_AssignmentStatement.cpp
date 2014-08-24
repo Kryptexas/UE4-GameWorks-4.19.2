@@ -6,6 +6,7 @@
 #include "VariableSetHandler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AssignmentStatement"
 
@@ -174,12 +175,12 @@ FNodeHandlingFunctor* UK2Node_AssignmentStatement::CreateNodeHandler(FKismetComp
 	return new FKCHandler_AssignmentStatement(CompilerContext);
 }
 
-void UK2Node_AssignmentStatement::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_AssignmentStatement::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UK2Node_AssignmentStatement::GetMenuCategory() const

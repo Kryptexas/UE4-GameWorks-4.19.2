@@ -537,9 +537,9 @@ void FBlueprintActionMenuBuilderImpl::AppendLegacyItems(FMenuSectionDefinition c
 		FBlueprintPaletteListBuilder LegacyBuilder(Blueprint, MenuDef.GetSectionHeading().ToString());
 		
 		UClass* ClassFilter = nullptr;
-		if (MenuFilter.OwnerClasses.Num() > 0)
+		if (MenuFilter.TargetClasses.Num() > 0)
 		{
-			ClassFilter = MenuFilter.OwnerClasses[0];
+			ClassFilter = MenuFilter.TargetClasses[0];
 		}
 		
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -593,12 +593,13 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	
 	if (!GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
 	{
-		FBlueprintActionDatabase::FClassActionMap const& ClassActions = FBlueprintActionDatabase::Get().GetAllActions();
-		for (auto ActionEntry : ClassActions)
+		FBlueprintActionDatabase::FActionRegistry const& ActionDatabase = FBlueprintActionDatabase::Get().GetAllActions();
+		for (auto ActionEntry : ActionDatabase)
 		{
-			UClass* Class = ActionEntry.Key;
 			for (UBlueprintNodeSpawner* NodeSpawner : ActionEntry.Value)
 			{
+				// @TODO: could probably have a super filter that spreads across 
+				//        all MenuSctions (to pair down on performance)
 				for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
 				{
 					TSharedPtr<FEdGraphSchemaAction> MenuEntry = MenuSection->MakeMenuItem(BlueprintEditorPtr, NodeSpawner);

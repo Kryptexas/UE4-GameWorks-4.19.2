@@ -35,8 +35,8 @@ struct FBlueprintActionContext
 
 	/** 
 	 * A list of objects the user currently has selected (things like blueprint 
-	 * properties, level actors, content-browser assets, etc.). Objects listed 
-	 * here will result in certain bound actions passing the filter.
+	 * properties, level actors, content-browser assets, etc.). Bound actions
+	 * have to be tied to one of these objects in order to pass the filter.
 	 */
 	TArray<UObject*> SelectedObjects;
 };
@@ -56,50 +56,52 @@ public:
 	enum EFlags // Flags, which configure certain rejection tests.
 	{
 		/** Deprecated class actions will not be filtered out*/
-		BPFILTER_IncludeDeprecated		= 0x00000001,
+		BPFILTER_PermitDeprecated				= 0x00000001,
 
 		/** 
-		 * Excludes nodes associated with global field types (functions, 
-		 * structs, enums, etc.); NOTE: that static function library members are 
-		 * counted as "global". 
+		 * Rejects actions associated with global/static ("persistent") fields.
+		 * However, static members of TargetClasses are kept, and not outright 
+		 * rejected by this (if TargetClasses is left empty, then all 
+		 * "persistent" fields are rejected.
 		 */
-		BPFILTER_ExcludeGlobalFields	= 0x00000002,
+		BPFILTER_RejectPersistentNonTargetFields= 0x00000002,
 
 		/**
-		 * Makes NodeTypes tests more aggressive by excluding nodes sub-classes, 
-		 * nodes have to explicitly match the class listed. 
+		 * Makes PermittedNodeType tests more aggressive by rejecting node 
+		 * sub-classes, (actions would have to explicitly match a class listed
+		 * in PermittedNodeTypes). 
 		 */
-		BPFILTER_ExcludeChildNodeTypes	= 0x00000004,
+		BPFILTER_RejectPermittedNodeSubClasses	= 0x00000004,
 	};
 	FBlueprintActionFilter(uint32 const Flags = 0x00);
 	
 	/**
-	 * A list of allowed node types. If an action's NodeClass isn't one of
-	 * these types, then it is filtered out. Use the "ExcludeChildNodeTypes"
-	 * flag to aggressively filter out child classes (must be an explicit match).
+	 * Contains the full blueprint/graph/pin context that this is filtering 
+	 * actions for.
 	 */
 	FBlueprintActionContext Context;	
 	
 	/**
-	 * A list of allowed node types. If an action's NodeClass isn't one of
-	 * these types, then it is filtered out. Use the "ExcludeChildNodeTypes"
-	 * flag to aggressively filter out child classes (must be an explicit match).
+	 * A list of allowed node types. If a spawner's NodeClass isn't one of
+	 * these types, then it is filtered out. Use the "RejectPermittedNodeSubClasses"
+	 * flag to aggressively filter out child classes as well (enforcing an 
+	 * explicit match).
 	 */
-	TArray< TSubclassOf<UEdGraphNode> > NodeTypes;
+	TArray< TSubclassOf<UEdGraphNode> > PermittedNodeTypes;
 	
 	/**
 	 * A list of node types that should be filtered out. If a node class is 
-	 * listed both here and in NodeTypes, then the exclusion wins (and it will 
-	 * be filtered out).
+	 * listed both here and in PermittedNodeTypes, then the exclusion wins (it 
+	 * will be filtered out).
 	 */
-	TArray< TSubclassOf<UEdGraphNode> > ExcludedNodeTypes;
+	TArray< TSubclassOf<UEdGraphNode> > RejectedNodeTypes;
 	
 	/**
-	 * A list of classes that you want members for. If an action does not have 
-	 * an associated field, or the associated field doesn't belong to any of 
-	 * these classes, then it is filtered out.
+	 * A list of classes that you want members for. If an action would produce
+	 * a node with a TargetPin, and that pin is incompatible with one of these
+	 * classes, then the action is filtered out.
 	 */
-	TArray<UClass*> OwnerClasses;
+	TArray<UClass*> TargetClasses;
 
 	/**
 	 * Users can extend the filter and add their own rejection tests with this

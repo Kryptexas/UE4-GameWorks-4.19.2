@@ -5,6 +5,7 @@
 #include "MakeStructHandler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -247,17 +248,12 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 	return Result;
 }
 
-void UK2Node_MakeStruct::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
 	{
 		UScriptStruct const* Struct = (*StructIt);
-		// we only want to add autonomous structs here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any structs that were changed).
-		bool bIsStandaloneStruct = Struct->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneStruct || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeMade(Struct))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeMade(Struct))
 		{
 			continue;
 		}
@@ -273,7 +269,10 @@ void UK2Node_MakeStruct::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionLi
 
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		// this struct could belong to a class, or is a user defined struct 
+		// (asset), that's why we want to make sure to register it along with 
+		// the action (so the action knows to refresh when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Struct, NodeSpawner);
 
 		TWeakObjectPtr<UScriptStruct> StructPtr = Struct;
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMakeNodeLambda, StructPtr);

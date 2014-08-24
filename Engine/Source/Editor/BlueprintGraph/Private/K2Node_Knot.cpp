@@ -4,6 +4,7 @@
 #include "K2ActionMenuBuilder.h"
 #include "Kismet2NameValidators.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 
@@ -145,12 +146,12 @@ void UK2Node_Knot::PostReconstructNode()
 	}
 }
 
-void UK2Node_Knot::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_Knot::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 bool UK2Node_Knot::ShouldOverridePinNames() const

@@ -8,6 +8,7 @@
 #include "EditorCategoryUtils.h"
 #include "BlueprintEditorUtils.h"
 #include "EdGraphSchema_K2.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAction"
 
@@ -133,7 +134,7 @@ void UK2Node_InputAction::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 	}
 }
 
-void UK2Node_InputAction::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_InputAction::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FName> ActionNames;
 	GetDefault<UInputSettings>()->GetActionNames(ActionNames);
@@ -150,7 +151,7 @@ void UK2Node_InputAction::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionL
 		};
 
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputActionName);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 	}
 }
 

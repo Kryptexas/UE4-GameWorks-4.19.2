@@ -9,6 +9,7 @@
 #include "GameplayAbilityGraphSchema.h"
 #include "K2Node_EnumLiteral.h"
 #include "BlueprintFunctionNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -80,7 +81,7 @@ void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& Context
 	}
 }
 
-void UK2Node_LatentAbilityCall::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// these nested loops are combing over the same classes/functions the
 	// FBlueprintActionDatabase does; ideally we save on perf and fold this in
@@ -130,7 +131,7 @@ void UK2Node_LatentAbilityCall::GetMenuActions(TArray<UBlueprintNodeSpawner*>& A
 				
 				// @TODO: since this can't be folded into FBlueprintActionDatabase, we
 				//        need a way to associate these spawners with a certain class
-				ActionListOut.Add(NodeSpawner);
+				ActionRegistrar.AddBlueprintAction(NodeSpawner);
 			}
 		}
 	}

@@ -6,6 +6,7 @@
 #include "KismetCompilerMisc.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 
@@ -263,12 +264,12 @@ FNodeHandlingFunctor* UK2Node_ExecutionSequence::CreateNodeHandler(FKismetCompil
 	return new FKCHandler_ExecutionSequence(CompilerContext);
 }
 
-void UK2Node_ExecutionSequence::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_ExecutionSequence::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 	check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 FText UK2Node_ExecutionSequence::GetMenuCategory() const

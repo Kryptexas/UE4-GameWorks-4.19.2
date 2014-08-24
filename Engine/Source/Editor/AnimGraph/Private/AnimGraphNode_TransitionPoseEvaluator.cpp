@@ -63,7 +63,7 @@ void UAnimGraphNode_TransitionPoseEvaluator::GetMenuEntries(FGraphContextMenuBui
 	// Intentionally empty: Don't allow an option to create them, as they're auto-created when custom blend graphs are made
 }
 
-void UAnimGraphNode_TransitionPoseEvaluator::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UAnimGraphNode_TransitionPoseEvaluator::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// Intentionally empty: Don't allow an option to create them, as they're auto-created when custom blend graphs are made
 }

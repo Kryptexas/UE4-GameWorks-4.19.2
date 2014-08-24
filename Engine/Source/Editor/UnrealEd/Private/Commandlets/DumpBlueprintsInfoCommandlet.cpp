@@ -1041,7 +1041,7 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 			}
 		}
 
-		float const DatabaseKbSize = Database.Size() / 1024.f;
+		float const DatabaseKbSize = Database.EstimatedSize() / 1024.f;
 		float EstimatedCacheKbSize = 0.0;
 		for (UBlueprint* CacheBlueprint : TemplateOuters)
 		{

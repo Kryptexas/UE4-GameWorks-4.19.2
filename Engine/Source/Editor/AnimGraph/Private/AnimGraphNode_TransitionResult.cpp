@@ -38,7 +38,7 @@ void UAnimGraphNode_TransitionResult::GetMenuEntries(FGraphContextMenuBuilder& C
 }
 
 
-void UAnimGraphNode_TransitionResult::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UAnimGraphNode_TransitionResult::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// Intentionally empty. This node is auto-generated when a transition graph is created.
 }

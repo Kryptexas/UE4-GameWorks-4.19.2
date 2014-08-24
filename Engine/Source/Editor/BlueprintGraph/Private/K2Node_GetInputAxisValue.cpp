@@ -8,6 +8,7 @@
 #include "Engine/InputAxisDelegateBinding.h"
 #include "BlueprintEditorUtils.h"
 #include "EdGraphSchema_K2.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisValue"
 
@@ -89,7 +90,7 @@ void UK2Node_GetInputAxisValue::RegisterDynamicBinding(UDynamicBlueprintBinding*
 	InputAxisBindingObject->InputAxisDelegateBindings.Add(Binding);
 }
 
-void UK2Node_GetInputAxisValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetInputAxisValue::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FName> AxisNames;
 	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
@@ -106,7 +107,7 @@ void UK2Node_GetInputAxisValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& A
 		};
 
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputAxisName);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeSpawner);
 	}
 }
 
