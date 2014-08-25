@@ -5,7 +5,7 @@
 /**
  * Class for encoding/decoding Base64 data (RFC 4648)
  */
-class HTTP_API FBase64
+class CORE_API FBase64
 {
 	/**
 	 * Base64 supports encoding any 3 uint8 chunk of binary data into a 4 uint8 set of characters from the alphabet below
