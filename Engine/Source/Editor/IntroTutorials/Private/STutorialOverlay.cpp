@@ -132,7 +132,7 @@ int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeo
 	InWidget->ArrangeChildren(InGeometry, ArrangedChildren);
 	for(int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++)
 	{
-		const FArrangedWidget& ArrangedWidget = ArrangedChildren(ChildIndex);
+		const FArrangedWidget& ArrangedWidget = ArrangedChildren[ChildIndex];
 		LayerId = TraverseWidgets(ArrangedWidget.Widget, ArrangedWidget.Geometry, MyClippingRect, OutDrawElements, LayerId);
 	}
 

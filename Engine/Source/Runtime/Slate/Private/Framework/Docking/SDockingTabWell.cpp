@@ -132,7 +132,7 @@ int32 SDockingTabWell::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 	// Draw all inactive tabs first
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		if (CurWidget.Widget == ForegroundTab)
 		{
 			ForegroundTabGeometry = &CurWidget;

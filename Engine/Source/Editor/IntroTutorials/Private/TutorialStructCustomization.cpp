@@ -206,7 +206,7 @@ private:
 
 		for(int32 PathIndex = Path.Widgets.Num() - 1; PathIndex >= 0; PathIndex--)
 		{
-			TSharedRef<SWidget> PathWidget = Path.Widgets(PathIndex).Widget;
+			TSharedRef<SWidget> PathWidget = Path.Widgets[PathIndex].Widget;
 			if(PathWidget->GetTag() != NAME_None)
 			{
 				PickedWidgetName = PathWidget->GetTag();

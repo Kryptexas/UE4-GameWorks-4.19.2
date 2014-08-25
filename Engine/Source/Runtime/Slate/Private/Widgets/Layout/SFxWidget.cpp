@@ -82,7 +82,7 @@ int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	{
 		// We can only have one direct descendant.
 		check( ArrangedChildren.Num() == 1 );
-		const FArrangedWidget& TheChild = ArrangedChildren(0);
+		const FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		// SFxWidgets are able to ignore parent clipping.
 		const FSlateRect ChildClippingRect = (bIgnoreClipping.Get())

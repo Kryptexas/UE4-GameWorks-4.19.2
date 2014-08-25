@@ -59,7 +59,7 @@ int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	if( ArrangedChildren.Num() > 0 )
 	{
 		check( ArrangedChildren.Num() == 1 );
-		FArrangedWidget& TheChild = ArrangedChildren(0);
+		FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		return TheChild.Widget->Paint( 
 			Args.WithNewParent(this), 

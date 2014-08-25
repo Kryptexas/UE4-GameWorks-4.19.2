@@ -578,7 +578,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 			// PRESSING ON A NODE!
 
 			// This changes selection and starts dragging it.
-			const FArrangedWidget& NodeGeometry = ArrangedChildren(NodeUnderMouseIndex);
+			const FArrangedWidget& NodeGeometry = ArrangedChildren[NodeUnderMouseIndex];
 			const FVector2D MousePositionInNode = NodeGeometry.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 			TSharedRef<SNode> NodeWidgetUnderMouse = StaticCastSharedRef<SNode>( NodeGeometry.Widget );
 

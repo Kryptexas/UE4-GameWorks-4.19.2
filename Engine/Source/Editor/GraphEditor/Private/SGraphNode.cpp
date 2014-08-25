@@ -1006,7 +1006,7 @@ TSharedPtr<SGraphPin> SGraphNode::GetHoveredPin( const FGeometry& MyGeometry, co
 		int32 HoveredPinIndex = SWidget::FindChildUnderMouse( ArrangedPins, MouseEvent );
 		if ( HoveredPinIndex != INDEX_NONE )
 		{
-			return StaticCastSharedRef<SGraphPin>(ArrangedPins(HoveredPinIndex).Widget);
+			return StaticCastSharedRef<SGraphPin>(ArrangedPins[HoveredPinIndex].Widget);
 		}
 	}
 	

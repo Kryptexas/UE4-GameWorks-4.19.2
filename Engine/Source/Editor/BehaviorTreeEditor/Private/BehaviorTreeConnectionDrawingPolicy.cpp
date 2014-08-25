@@ -72,7 +72,7 @@ void FBehaviorTreeConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArran
 	NodeWidgetMap.Empty();
 	for (int32 NodeIndex = 0; NodeIndex < ArrangedNodes.Num(); ++NodeIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedNodes(NodeIndex);
+		FArrangedWidget& CurWidget = ArrangedNodes[NodeIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 		NodeWidgetMap.Add(ChildNode->GetNodeObj(), NodeIndex);
 	}

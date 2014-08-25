@@ -62,8 +62,8 @@ public:
 		bool bCopiedMarker = false;
 		for( int32 WidgetIndex = 0; !bCopiedMarker && WidgetIndex < Widgets.Num(); ++WidgetIndex )
 		{
-			ClippedPath.AddWidget( Widgets(WidgetIndex) );
-			bCopiedMarker = (Widgets(WidgetIndex).Widget == MarkerWidget);
+			ClippedPath.AddWidget( Widgets[WidgetIndex] );
+			bCopiedMarker = (Widgets[WidgetIndex].Widget == MarkerWidget);
 		}
 		
 		if ( bCopiedMarker )
@@ -83,7 +83,7 @@ public:
 	{
 		for(int32 WidgetIndex = 0; WidgetIndex < Widgets.Num(); ++WidgetIndex)
 		{
-			if ( Widgets(WidgetIndex).Widget == WidgetToFind )
+			if ( Widgets[WidgetIndex].Widget == WidgetToFind )
 			{
 				return true;
 			}
@@ -103,7 +103,7 @@ public:
 	{
 		check(IsValid());
 
-		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets(0).Widget);
+		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
 		return FirstWidgetWindow;
 	}
 
@@ -116,7 +116,7 @@ public:
 	{
 		check(IsValid());
 
-		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets(0).Widget);
+		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
 		return FirstWidgetWindow;
 	}
 	
@@ -128,7 +128,7 @@ public:
 		FString StringBuffer;
 		for( int32 WidgetIndex = Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
 		{
-			StringBuffer += Widgets(WidgetIndex).ToString();
+			StringBuffer += Widgets[WidgetIndex].ToString();
 			StringBuffer += TEXT("\n");
 		}
 		return StringBuffer;
@@ -152,7 +152,7 @@ public:
 
 		for( int32 WidgetIndex=0; WidgetIndex < Extension.Num(); ++WidgetIndex )
 		{
-			this->Widgets.AddWidget( Extension(WidgetIndex) );
+			this->Widgets.AddWidget( Extension[WidgetIndex] );
 		}
 
 		return Extension.Num() > 0;

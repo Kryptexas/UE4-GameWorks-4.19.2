@@ -24,7 +24,7 @@ void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometr
 	int32 IndexClippedAt = NumChildren;
 	for (int32 ChildIdx = NumChildren - 2; ChildIdx >= 0; --ChildIdx)
 	{
-		const FArrangedWidget& CurWidget = ArrangedChildren(ChildIdx);
+		const FArrangedWidget& CurWidget = ArrangedChildren[ChildIdx];
 		if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X))
 		{
 			ArrangedChildren.Remove(ChildIdx);
@@ -40,13 +40,13 @@ void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometr
 	else
 	{
 		// Right align the wrap button
-		FArrangedWidget& ArrangedButton = ArrangedChildren(ArrangedChildren.Num() - 1);
+		FArrangedWidget& ArrangedButton = ArrangedChildren[ArrangedChildren.Num() - 1];
 		ArrangedButton.Geometry.AbsolutePosition = AllottedGeometry.AbsolutePosition + AllottedGeometry.Size - ArrangedButton.Geometry.Size;
 
 		// Further remove any children that the wrap button overlaps with
 		for (int32 ChildIdx = IndexClippedAt - 1; ChildIdx >= 0; --ChildIdx)
 		{
-			const FArrangedWidget& CurWidget = ArrangedChildren(ChildIdx);
+			const FArrangedWidget& CurWidget = ArrangedChildren[ChildIdx];
 			if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::TruncToInt(ArrangedButton.Geometry.AbsolutePosition.X))
 			{
 				ArrangedChildren.Remove(ChildIdx);
@@ -69,9 +69,9 @@ int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	if ((ClippedArrangedChildren.Num() != 0) && (ArrangedChildren.Num() != 0))
 	{
 		int32 IndexClippedAt = ClippedArrangedChildren.Num() - 1;
-		const FArrangedWidget& LastCippedChild = ClippedArrangedChildren(IndexClippedAt);
-		const FArrangedWidget& FirstChild = ArrangedChildren(0);
-		const FArrangedWidget& LastChild = ArrangedChildren(ArrangedChildren.Num() - 1);
+		const FArrangedWidget& LastCippedChild = ClippedArrangedChildren[IndexClippedAt];
+		const FArrangedWidget& FirstChild = ArrangedChildren[0];
+		const FArrangedWidget& LastChild = ArrangedChildren[ArrangedChildren.Num() - 1];
 		FGeometry ResizedGeometry = AllottedGeometry;
 	
 		// If only the last child/block, which is the wrap button, is being clipped
@@ -87,7 +87,7 @@ int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& 
 		else
 		{
 			// Children/blocks are being clipped, calculate the size of the custom border
-			const FArrangedWidget& NextChild = (IndexClippedAt + 1 < ClippedArrangedChildren.Num())? ClippedArrangedChildren(IndexClippedAt + 1): LastCippedChild;
+			const FArrangedWidget& NextChild = (IndexClippedAt + 1 < ClippedArrangedChildren.Num())? ClippedArrangedChildren[IndexClippedAt + 1]: LastCippedChild;
 			ResizedGeometry.Size.X = NextChild.Geometry.AbsolutePosition.X + NextChild.Geometry.Size.X - FirstChild.Geometry.AbsolutePosition.X;
 		}
 	

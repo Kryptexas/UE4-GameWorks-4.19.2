@@ -18,7 +18,7 @@ int32 SCompoundWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 	if( ArrangedChildren.Num() > 0 )
 	{
 		check( ArrangedChildren.Num() == 1 );
-		FArrangedWidget& TheChild = ArrangedChildren(0);
+		FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().InsetBy( ChildSlot.SlotPadding.Get() * AllottedGeometry.Scale ).IntersectionWith(MyClippingRect);
 

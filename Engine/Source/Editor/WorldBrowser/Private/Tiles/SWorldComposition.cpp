@@ -300,7 +300,7 @@ public:
 
 		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 		{
-			FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 			TSharedRef<SWorldTileItem> ChildNode = StaticCastSharedRef<SWorldTileItem>(CurWidget.Widget);
 		
 			ChildNode->bAffectedByMarquee = SelectionToVisualize->Contains(ChildNode->GetObjectBeingDisplayed());
@@ -606,7 +606,7 @@ protected:
 		if (NodeUnderMouseIndex != INDEX_NONE)
 		{
 			// PRESSING ON A NODE!
-			const FArrangedWidget& NodeGeometry = ArrangedChildren(NodeUnderMouseIndex);
+			const FArrangedWidget& NodeGeometry = ArrangedChildren[NodeUnderMouseIndex];
 			const FVector2D MousePositionInNode = NodeGeometry.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 			TSharedRef<SNode> NodeWidgetUnderMouse = StaticCastSharedRef<SNode>( NodeGeometry.Widget );
 

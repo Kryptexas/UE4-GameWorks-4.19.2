@@ -161,7 +161,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		TArray<FGraphDiffControl::FNodeMatch> NodeMatches;
 		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 		{
-			FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 			TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 			
 			// Examine node to see what layers we should be drawing in
@@ -514,7 +514,7 @@ void SGraphPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 	FArrangedChildren MyArrangedChildren(ArrangedChildren.GetFilter());
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 
 		TArray<FOverlayWidgetInfo> OverlayWidgets = ChildNode->GetOverlayWidgets(false, CurWidget.Geometry.Size);
@@ -645,7 +645,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 			const int32 HoveredNodeIndex = SWidget::FindChildUnderMouse( ArrangedNodes, MouseEvent );
 			if (HoveredNodeIndex != INDEX_NONE)
 			{
-				const FArrangedWidget& HoveredNode = ArrangedNodes(HoveredNodeIndex);
+				const FArrangedWidget& HoveredNode = ArrangedNodes[HoveredNodeIndex];
 				const TSharedRef<SGraphNode>& GraphNode = StaticCastSharedRef<SGraphNode>(HoveredNode.Widget);
 				NodeUnderCursor = GraphNode->GetNodeObj();
 

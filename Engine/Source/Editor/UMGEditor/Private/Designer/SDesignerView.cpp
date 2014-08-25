@@ -66,7 +66,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 			// A widget's children are implicitly Z-ordered from first to last
 			for ( int32 ChildIndex = ArrangedChildren.Num() - 1; !bHitChildWidget && ChildIndex >= 0; --ChildIndex )
 			{
-				FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+				FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 				bHitChildWidget = ( SomeChild.Widget->IsEnabled() || bIgnoreEnabledStatus ) && LocateWidgetsUnderCursor_Helper(SomeChild, InAbsoluteCursorLocation, OutWidgetsUnderCursor, bIgnoreEnabledStatus);
 			}
 		}

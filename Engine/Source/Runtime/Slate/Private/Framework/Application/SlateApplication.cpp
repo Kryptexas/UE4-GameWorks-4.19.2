@@ -113,7 +113,7 @@ void FSlateApplication::MouseCaptorHelper::SetMouseCaptor( const FWidgetPath& Ev
 		if ( !MouseCaptorWeakPath.IsValid() )
 		{
 			// If the target widget wasn't found on the event path then start the search from the root
-			FWidgetPath NewMouseCaptorPath = EventPath.GetPathDownTo( EventPath.Widgets(0).Widget );
+			FWidgetPath NewMouseCaptorPath = EventPath.GetPathDownTo( EventPath.Widgets[0].Widget );
 			NewMouseCaptorPath.ExtendPathTo( FWidgetMatcher( WidgetRef ) );
 			MouseCaptorWeakPath = NewMouseCaptorPath;
 		}
@@ -272,7 +272,7 @@ static bool LocateWidgetsUnderCursor_Helper( FArrangedWidget& Candidate, FVector
 			// A widget's children are implicitly Z-ordered from first to last
 			for (int32 ChildIndex = ArrangedChildren.Num()-1; !bHitChildWidget && ChildIndex >= 0; --ChildIndex)
 			{
-				FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+				FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 				bHitChildWidget = (SomeChild.Widget->IsEnabled() || bIgnoreEnabledStatus) && LocateWidgetsUnderCursor_Helper( SomeChild, InAbsoluteCursorLocation, OutWidgetsUnderCursor, bIgnoreEnabledStatus );
 			}
 		}
@@ -1506,7 +1506,7 @@ bool FSlateApplication::SetKeyboardFocus( const FWidgetPath& InFocusPath, const 
 
 	for (int32 WidgetIndex = InFocusPath.Widgets.Num()-1; !bFocusTransferComplete  && WidgetIndex >= 0; --WidgetIndex)
 	{
-		const FArrangedWidget& WidgetToFocus = InFocusPath.Widgets( WidgetIndex );
+		const FArrangedWidget& WidgetToFocus = InFocusPath.Widgets[ WidgetIndex ];
 		
 		// Does this widget support keyboard focus?  If so, then we'll go ahead and set it!
 		if( WidgetToFocus.Widget->SupportsKeyboardFocus() )
@@ -1549,7 +1549,7 @@ bool FSlateApplication::SetKeyboardFocus( const FWidgetPath& InFocusPath, const 
 					{
 						for (int32 ChildIndex=0; ChildIndex < NewFocusPath.Widgets.Num(); ++ChildIndex)
 						{
-							NotifyUsAboutFocusChange.AddUnique( NewFocusPath.Widgets(ChildIndex).Widget );
+							NotifyUsAboutFocusChange.AddUnique( NewFocusPath.Widgets[ChildIndex].Widget );
 						}
 
 						FScopedSwitchWorldHack SwitchWorld( NewFocusPath );
@@ -1801,14 +1801,14 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		// Pretend that the mouse left all the previously hovered widgets, and a drag entered them.
 		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
 		{
-			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets(WidgetIndex);
+			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
 			SomeWidget.Widget->OnMouseLeave( *InMouseEvent );
 		}
 
 		FDragDropEvent DragDropEvent( *InMouseEvent, ReplyDragDropContent );
 		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
 		{
-			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets(WidgetIndex);
+			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
 			SomeWidget.Widget->OnDragEnter( SomeWidget.Geometry, DragDropEvent );
 		}
 	}
@@ -1847,7 +1847,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		{
 			// The requested mouse captor was not in the event path.
 			// We will attempt to find it in this window; if we don't find it, then give up.
-			NewJoystickCaptorPath = CurrentEventPath.GetPathDownTo( CurrentEventPath.Widgets(0).Widget );
+			NewJoystickCaptorPath = CurrentEventPath.GetPathDownTo( CurrentEventPath.Widgets[0].Widget );
 			NewJoystickCaptorPath.ExtendPathTo( FWidgetMatcher(RequestedJoystickCaptor.ToSharedRef()) );
 		}
 
@@ -1917,7 +1917,7 @@ void FSlateApplication::LockCursor( const TSharedPtr<SWidget>& Widget )
 			GeneratePathToWidgetChecked( Widget.ToSharedRef(), WidgetPath );
 
 			// The last widget in the path should be the widget we are locking the cursor to
-			FArrangedWidget& WidgetGeom = WidgetPath.Widgets( WidgetPath.Widgets.Num() - 1 );
+			FArrangedWidget& WidgetGeom = WidgetPath.Widgets[ WidgetPath.Widgets.Num() - 1 ];
 
 			TSharedRef<SWindow> Window = WidgetPath.GetWindow();
 			// Do not attempt to lock the cursor to the window if its not in the foreground.  It would cause annoying side effects
@@ -2008,7 +2008,7 @@ void FSlateApplication::QueryCursor()
 				CursorResult = FCursorReply::Unhandled();
 				for( int32 WidgetIndex = WidgetsToQueryForCursor.Widgets.Num() - 1; !CursorResult.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 				{
-					const FArrangedWidget& WidgetToQuery = WidgetsToQueryForCursor.Widgets( WidgetIndex );
+					const FArrangedWidget& WidgetToQuery = WidgetsToQueryForCursor.Widgets[ WidgetIndex ];
 					CursorResult = WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, CursorEvent );
 				}
 
@@ -2132,7 +2132,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	TSharedPtr<SWidget> WidgetProvidingNewToolTip;
 	for ( int32 WidgetIndex=WidgetsToQueryForToolTip.Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
 	{
-		FArrangedWidget* CurWidgetGeometry = &WidgetsToQueryForToolTip.Widgets(WidgetIndex);
+		FArrangedWidget* CurWidgetGeometry = &WidgetsToQueryForToolTip.Widgets[WidgetIndex];
 		const TSharedRef<SWidget>& CurWidget = CurWidgetGeometry->Widget;
 
 		if( !NewToolTip.IsValid() )
@@ -2181,7 +2181,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 		// Some widgets might want to provide an alternative Tooltip Handler.
 		for ( int32 WidgetIndex=WidgetsToQueryForToolTip.Widgets.Num()-1; !bOnVisualizeTooltipHandled && WidgetIndex >= 0; --WidgetIndex )
 		{
-			const FArrangedWidget& CurWidgetGeometry = WidgetsToQueryForToolTip.Widgets(WidgetIndex);
+			const FArrangedWidget& CurWidgetGeometry = WidgetsToQueryForToolTip.Widgets[WidgetIndex];
 			bOnVisualizeTooltipHandled = CurWidgetGeometry.Widget->OnVisualizeTooltip( NewToolTip.IsValid() ? NewToolTip->AsWidget() : TSharedPtr<SWidget>() );
 			if (bOnVisualizeTooltipHandled)
 			{
@@ -2943,7 +2943,7 @@ bool FSlateApplication::ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent )
 		InCharacterEvent.SetEventPath( EventPath );
 		for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
-			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets[ WidgetIndex ];
 			if (SomeWidgetGettingEvent.Widget->IsEnabled())
 			{
 				// Widget newly under cursor, so send a MouseEnter.
@@ -3018,7 +3018,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 			// Tunnel the keyboard event
 			for( int32 WidgetIndex = 0; !Reply.IsEventHandled() && WidgetIndex < EventPath.Widgets.Num(); ++WidgetIndex )
 			{
-				FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+				FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets[ WidgetIndex ];
 				if (SomeWidgetGettingEvent.Widget->IsEnabled())
 				{
 					Reply = SomeWidgetGettingEvent.Widget->OnPreviewKeyDown( SomeWidgetGettingEvent.Geometry, InKeyboardEvent ).SetHandler(SomeWidgetGettingEvent.Widget);
@@ -3031,7 +3031,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 			// Send out key down events.
 			for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 			{
-				FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+				FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets[ WidgetIndex ];
 				if (SomeWidgetGettingEvent.Widget->IsEnabled())
 				{
 					Reply = SomeWidgetGettingEvent.Widget->OnKeyDown( SomeWidgetGettingEvent.Geometry, InKeyboardEvent ).SetHandler(SomeWidgetGettingEvent.Widget);
@@ -3101,7 +3101,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent )
 		// Send out mouse enter events.
 		for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
-			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets( WidgetIndex );
+			FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets[ WidgetIndex ];
 			if (SomeWidgetGettingEvent.Widget->IsEnabled())
 			{
 				// Widget newly under cursor, so send a MouseEnter.
@@ -3241,7 +3241,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 			for( int32 WidgetIndex = 0; !Reply.IsEventHandled() && WidgetIndex < WidgetsUnderCursor.Widgets.Num() ; ++WidgetIndex )
 			{
-				FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);
+				FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
 
 				Reply = CurWidget.Widget->OnPreviewMouseButtonDown(CurWidget.Geometry, MouseEvent).SetHandler( CurWidget.Widget );
 				ProcessReply( WidgetsUnderCursor, Reply, &WidgetsUnderCursor, &MouseEvent);
@@ -3249,7 +3249,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 			for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0 ; --WidgetIndex )
 			{
-				FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);				
+				FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];				
 
 				if (!Reply.IsEventHandled())
 				{
@@ -3279,7 +3279,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 				bool bFocusCandidateFound = false;
 				for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !bFocusCandidateFound && WidgetIndex >= 0 ; --WidgetIndex )
 				{
-					FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);
+					FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
 					if (CurWidget.Widget->SupportsKeyboardFocus())
 					{
 						bFocusCandidateFound = true;
@@ -3353,7 +3353,7 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 	FReply Reply = FReply::Unhandled();
 	for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 	{
-		FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);
+		FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
 		Reply = CurWidget.Widget->OnMouseButtonDoubleClick( CurWidget.Geometry, InMouseEvent ).SetHandler( CurWidget.Widget );
 		ProcessReply(WidgetsUnderCursor, Reply, &WidgetsUnderCursor, &InMouseEvent);
 
@@ -3445,7 +3445,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 		FReply Reply = FReply::Unhandled();
 		for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
-			FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);
+			FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
 			if (MouseEvent.IsTouchEvent())
 			{
 				Reply = CurWidget.Widget->OnTouchEnded( CurWidget.Geometry, MouseEvent ).SetHandler( CurWidget.Widget );
@@ -3528,7 +3528,7 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 	FReply Reply = FReply::Unhandled();
 	for( int32 WidgetIndex = EventPath.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 	{
-		FArrangedWidget& CurWidget = EventPath.Widgets(WidgetIndex);
+		FArrangedWidget& CurWidget = EventPath.Widgets[WidgetIndex];
 		// Gesture event gets first shot, if slate doesn't respond to it, we'll try the wheel event.
 		if( InGestureEvent!=NULL )
 		{
@@ -3751,7 +3751,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent )
 		// Send out mouse enter events.
 		for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
 		{
-			FArrangedWidget& SomeWidgetUnderCursor = WidgetsUnderCursor.Widgets( WidgetIndex );
+			FArrangedWidget& SomeWidgetUnderCursor = WidgetsUnderCursor.Widgets[ WidgetIndex ];
 			if ( !LastWidgetsUnderCursor.ContainsWidget(SomeWidgetUnderCursor.Widget) )
 			{
 				// Widget newly under cursor, so send a MouseEnter.
@@ -3773,7 +3773,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent )
 		// Bubble the MouseMove event.
 		for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !Reply.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 		{
-			FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets(WidgetIndex);
+			FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
 
 			if (MouseEvent.IsTouchEvent())
 			{

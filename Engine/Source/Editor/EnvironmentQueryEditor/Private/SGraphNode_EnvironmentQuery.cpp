@@ -473,7 +473,7 @@ TSharedPtr<SGraphNode> SGraphNode_EnvironmentQuery::GetSubNodeUnderCursor(const 
 		int32 HoveredIndex = SWidget::FindChildUnderMouse( ArrangedChildren, MouseEvent );
 		if ( HoveredIndex != INDEX_NONE )
 		{
-			ResultNode = StaticCastSharedRef<SGraphNode>(ArrangedChildren(HoveredIndex).Widget);
+			ResultNode = StaticCastSharedRef<SGraphNode>(ArrangedChildren[HoveredIndex].Widget);
 		}
 	}
 

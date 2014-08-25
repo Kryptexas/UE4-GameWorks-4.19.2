@@ -167,7 +167,7 @@ int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	if( ArrangedChildren.Num() > 0 )
 	{
 		check( ArrangedChildren.Num() == 1 );
-		FArrangedWidget& TheChild = ArrangedChildren(0);
+		FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().InsetBy( ChildSlot.SlotPadding.Get() * AllottedGeometry.Scale ).IntersectionWith(MyClippingRect);
 

@@ -102,7 +102,7 @@ int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	// There may be zero elements in this array if our child collapsed/hidden
 	if ( ArrangedChildren.Num() > 0 )
 	{
-		FArrangedWidget& TheChild = ArrangedChildren( 0 );
+		FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
 

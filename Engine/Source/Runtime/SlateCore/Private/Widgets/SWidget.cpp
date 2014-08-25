@@ -263,7 +263,7 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	// Recur!
 	for(int32 ChildIndex=0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+		FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 		SomeChild.Widget->TickWidgetsRecursively( SomeChild.Geometry, InCurrentTime, InDeltaTime );
 	}
 }
@@ -351,7 +351,7 @@ void SWidget::FindChildGeometries_Helper( const FGeometry& MyGeometry, const TSe
 	// See if we found any of the widgets on this level.
 	for(int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 	{
-		const FArrangedWidget& CurChild = ArrangedChildren( ChildIndex );
+		const FArrangedWidget& CurChild = ArrangedChildren[ ChildIndex ];
 		
 		if ( WidgetsToFind.Contains(CurChild.Widget) )
 		{
@@ -366,7 +366,7 @@ void SWidget::FindChildGeometries_Helper( const FGeometry& MyGeometry, const TSe
 		// Look for widgets among the children.
 		for( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
-			const FArrangedWidget& CurChild = ArrangedChildren( ChildIndex );
+			const FArrangedWidget& CurChild = ArrangedChildren[ ChildIndex ];
 			CurChild.Widget->FindChildGeometries_Helper( CurChild.Geometry, WidgetsToFind, OutResult );
 		}	
 	}	
@@ -394,7 +394,7 @@ int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPo
 	const int32 NumChildren = Children.Num();
 	for( int32 ChildIndex=NumChildren-1; ChildIndex >= 0; --ChildIndex )
 	{
-		const FArrangedWidget& Candidate = Children(ChildIndex);
+		const FArrangedWidget& Candidate = Children[ChildIndex];
 		const bool bCandidateUnderCursor = 
 			// Candidate is physically under the cursor
 			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation ) && 

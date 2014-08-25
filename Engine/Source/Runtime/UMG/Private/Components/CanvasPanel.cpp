@@ -90,9 +90,9 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
 		{
-			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->TakeWidget() )
+			if ( ArrangedChildren[ChildIndex].Widget == Slot->Content->TakeWidget() )
 			{
-				ArrangedGeometry = ArrangedChildren(ChildIndex).Geometry;
+				ArrangedGeometry = ArrangedChildren[ChildIndex].Geometry;
 				return true;
 			}
 		}

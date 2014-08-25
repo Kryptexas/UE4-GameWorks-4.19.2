@@ -1011,7 +1011,7 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 
 		UAnimStateNodeBase* State = CastChecked<UAnimStateNodeBase>(InputPin->GetOwningNode());
 		int32 StateIndex = NodeWidgetMap.FindChecked(State);
-		EndWidgetGeometry = &(ArrangedNodes(StateIndex));
+		EndWidgetGeometry = &(ArrangedNodes[StateIndex]);
 	}
 	else if (UAnimStateTransitionNode* TransNode = Cast<UAnimStateTransitionNode>(InputPin->GetOwningNode()))
 	{
@@ -1023,8 +1023,8 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 			int32* NextNodeIndex = NodeWidgetMap.Find(NextState);
 			if ((PrevNodeIndex != NULL) && (NextNodeIndex != NULL))
 			{
-				StartWidgetGeometry = &(ArrangedNodes(*PrevNodeIndex));
-				EndWidgetGeometry = &(ArrangedNodes(*NextNodeIndex));
+				StartWidgetGeometry = &(ArrangedNodes[*PrevNodeIndex]);
+				EndWidgetGeometry = &(ArrangedNodes[*NextNodeIndex]);
 			}
 		}
 	}
@@ -1046,7 +1046,7 @@ void FStateMachineConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArran
 	NodeWidgetMap.Empty();
 	for (int32 NodeIndex = 0; NodeIndex < ArrangedNodes.Num(); ++NodeIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedNodes(NodeIndex);
+		FArrangedWidget& CurWidget = ArrangedNodes[NodeIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 		NodeWidgetMap.Add(ChildNode->GetNodeObj(), NodeIndex);
 	}

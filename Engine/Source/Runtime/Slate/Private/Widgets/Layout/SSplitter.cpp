@@ -164,7 +164,7 @@ int32 SSplitter::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 	for( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex )
 	{
-		const FGeometry& GeometryAfterSplitter = ArrangedChildren( FMath::Clamp(ChildIndex + 1, 0, ArrangedChildren.Num()-1) ).Geometry;
+		const FGeometry& GeometryAfterSplitter = ArrangedChildren[ FMath::Clamp(ChildIndex + 1, 0, ArrangedChildren.Num()-1) ].Geometry;
 
 		const float HalfHitDetectionSplitterHandleSize = ( HitDetectionSplitterHandleSize / 2 );
 		const float HalfPhysicalSplitterHandleSize = ( PhysicalSplitterHandleSize / 2 );
@@ -494,7 +494,7 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 	//  - Prev vs. Next refers to the widgets in the order they are laid out (left->right, top->bottom).
 	//  - New vs. Old refers to the Old values for width/height vs. the post-resize values.
 
-	const float HandlePos = ChildGeometries(DraggedHandle+1).Geometry.Position.Component(AxisIndex) - PhysicalSplitterHandleSize / 2;
+	const float HandlePos = ChildGeometries[DraggedHandle+1].Geometry.Position.Component(AxisIndex) - PhysicalSplitterHandleSize / 2;
 	float Delta = LocalMousePos.Component(AxisIndex) - HandlePos;
 
 	const int32 SlotBeforeDragHandle = FindResizeableSlotBeforeHandle( DraggedHandle, Children );
@@ -529,7 +529,7 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 			FSlotInfo SlotInfo;
 
 			SlotInfo.Slot = &Children[ SlotsAfterDragHandleIndicies[ SlotIndex ] ];
-			SlotInfo.Geometry = &ChildGeometries( SlotsAfterDragHandleIndicies[ SlotIndex ] ).Geometry;
+			SlotInfo.Geometry = &ChildGeometries[ SlotsAfterDragHandleIndicies[ SlotIndex ] ].Geometry;
 			SlotInfo.NewSize = SlotInfo.Geometry->Size.Component( AxisIndex );
 
 			SlotsAfterDragHandle.Add( SlotInfo );
@@ -537,7 +537,7 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 
 		// Get references the prev and next children and their layout settings so that we can modify them.
 		FSlot& PrevChild = Children[SlotBeforeDragHandle];
-		FGeometry& PrevChildGeom = ChildGeometries(SlotBeforeDragHandle).Geometry;
+		FGeometry& PrevChildGeom = ChildGeometries[SlotBeforeDragHandle].Geometry;
 
 		// Compute the new sizes of the children
 		float NewPrevChildLength = ClampChild( PrevChildGeom.Size.Component(AxisIndex) + Delta );
@@ -632,8 +632,8 @@ int32 SSplitter::GetHandleBeingResizedFromMousePosition( float PhysicalSplitterH
 	// Search for the two widgets between which the cursor currently resides.
 	for ( int32 ChildIndex = 1; ChildIndex < ChildGeometries.Num(); ++ChildIndex )
 	{
-		FGeometry& PrevChild = ChildGeometries(ChildIndex - 1).Geometry;
-		FGeometry& NextChild = ChildGeometries(ChildIndex).Geometry;
+		FGeometry& PrevChild = ChildGeometries[ChildIndex - 1].Geometry;
+		FGeometry& NextChild = ChildGeometries[ChildIndex].Geometry;
 		float PrevBound = PrevChild.Position.Component(AxisIndex) + PrevChild.Size.Component(AxisIndex) - HalfHitDetectionSplitterHandleSize + HalfPhysicalSplitterHandleSize;
 		float NextBound = NextChild.Position.Component(AxisIndex) + HalfHitDetectionSplitterHandleSize - HalfPhysicalSplitterHandleSize;
 
@@ -798,13 +798,13 @@ FCursorReply SSplitter2x2::OnCursorQuery( const FGeometry& MyGeometry, const FPo
 void SSplitter2x2::ResizeChildren( FArrangedChildren& ArrangedChildren, FVector2D LocalMousePos )
 {
 	// Compute the handle position.  The last child is used because it is always the furthest away from the origin
-	const FVector2D HandlePos = ArrangedChildren(3).Geometry.Position - (FVector2D( SplitterHandleSize , SplitterHandleSize ) * .5f);
+	const FVector2D HandlePos = ArrangedChildren[3].Geometry.Position - (FVector2D( SplitterHandleSize , SplitterHandleSize ) * .5f);
 	FVector2D Delta = LocalMousePos - HandlePos;
 
-	FGeometry& TopLeftGeom = ArrangedChildren(0).Geometry;
-	FGeometry& BotLeftGeom = ArrangedChildren(1).Geometry;
-	FGeometry& TopRightGeom = ArrangedChildren(2).Geometry;
-	FGeometry& BotRightGeom = ArrangedChildren(3).Geometry;
+	FGeometry& TopLeftGeom = ArrangedChildren[0].Geometry;
+	FGeometry& BotLeftGeom = ArrangedChildren[1].Geometry;
+	FGeometry& TopRightGeom = ArrangedChildren[2].Geometry;
+	FGeometry& BotRightGeom = ArrangedChildren[3].Geometry;
 
 	FSlot& TopLeft = Children[0];
 	FSlot& BotLeft = Children[1];
@@ -890,8 +890,8 @@ int32 SSplitter2x2::CalculateResizingAxis( const FGeometry& MyGeometry, const FV
 	// Search for the two widgets between which the cursor currently resides.
 	for ( int32 ChildIndex = 1; ChildIndex < ArrangedChildren.Num(); ++ChildIndex )
 	{
-		FGeometry& PrevChild = ArrangedChildren(ChildIndex - 1).Geometry;
-		FGeometry& NextChild = ArrangedChildren(ChildIndex).Geometry;
+		FGeometry& PrevChild = ArrangedChildren[ChildIndex - 1].Geometry;
+		FGeometry& NextChild = ArrangedChildren[ChildIndex].Geometry;
 		FVector2D PrevBound = PrevChild.Position + PrevChild.Size;
 		FVector2D NextBound = NextChild.Position;
 
