@@ -74,24 +74,12 @@ class ENGINE_API UConsole
 
 	int32 SBPos;
 
-	/** index into the History array for the latest command that was entered */
-	UPROPERTY(config)
-	int32 HistoryTop;
+	/** Max number of command history entries */
+	static const int32 MAX_HISTORY_ENTRIES = 50;
 
-	/** index into the History array for the earliest command that was entered */
+	/** Holds the history buffer, order is old to new */
 	UPROPERTY(config)
-	int32 HistoryBot;
-
-	/** the index of the current position in the History array */
-	UPROPERTY(config)
-	int32 HistoryCur;
-
-	/** tracks previously entered console commands */
-	UPROPERTY(config)
-	FString History[16];    /*MAX_HISTORY_ENTRIES @fixmeconst*/
-
-	/** tracks whether the user is using arrows keys to navigate the history, so that auto-complete doesn't override */
-	uint32 bNavigatingHistory:1;
+	TArray<FString> HistoryBuffer;
 
 	/** The command the user is currently typing. */
 	FString TypedStr;
@@ -122,15 +110,13 @@ class ENGINE_API UConsole
 	/** Do we need to rebuild auto complete? */
 	uint32 bIsRuntimeAutoCompleteUpToDate:1;
 
+	// NAME_Typing, NAME_Open or NAME_None
 	FName ConsoleState;
 
 	FAutoCompleteNode AutoCompleteTree;
 
 	/** Current list of matching commands for auto-complete, @see UpdateCompleteIndices() */
-	TArray<int32> AutoCompleteIndices;
-
-	/** Max number of command history entries */
-	static const int32 MAX_HISTORY_ENTRIES = 16;
+	TArray<struct FAutoCompleteCommand> AutoComplete;
 
 	~UConsole();
 
@@ -262,9 +248,9 @@ private:
 	
 	void PostRender_InputLine(class UCanvas* Canvas, FIntPoint UserInputLinePos);
 
-	/**
-	* Searches console command history and removes any entries matching the specified command.
-	* @param Command - The command to search for and purge from the history.
-	*/
-	virtual void PurgeCommandFromHistory(const FString& Command);
+	void SetAutoCompleteFromHistory();
+
+	void SetInputLineFromAutoComplete();
+
+	void NormalizeHistoryBuffer();
 };
