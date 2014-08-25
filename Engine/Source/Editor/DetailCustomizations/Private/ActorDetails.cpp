@@ -126,10 +126,10 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
 
-		if (!HideCategories.Contains(TEXT("Layers")))
+		/*if (!HideCategories.Contains(TEXT("Layers")))
 		{
 			AddLayersCategory(DetailLayout);
-		}
+		}*/
 
 		//AddComponentsCategory( DetailLayout );
 	}

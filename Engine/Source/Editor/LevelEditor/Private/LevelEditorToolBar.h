@@ -50,13 +50,6 @@ protected:
 	static TSharedRef< SWidget > GenerateQuickSettingsMenu( TSharedRef<FUICommandList> InCommandList );
 
 	/**
-	 * Generates menu content for the settings display combo button drop down menu
-	 *
-	 * @return	Menu content widget
-	 */
-	static TSharedRef< SWidget > GenerateOpenGameSettingsMenu( TSharedRef<FUICommandList> InCommandList );
-
-	/**
 	 * Generates menu content for the compile combo button drop down menu
 	 *
 	 * @return	Menu content widget

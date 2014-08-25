@@ -192,22 +192,13 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 		ToolbarBuilder.AddComboButton(
 			FUIAction(),
 			FOnGetContent::CreateStatic(&FLevelEditorToolBar::GenerateQuickSettingsMenu, InCommandList),
-			LOCTEXT("QuickSettingsCombo", "Quick Settings"),
-			LOCTEXT("QuickSettingsCombo_ToolTip", "Quick level editor settings"),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions"),
+			LOCTEXT("QuickSettingsCombo", "Settings"),
+			LOCTEXT("QuickSettingsCombo_ToolTip", "Project and Editor settings"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.GameSettings"),
 			false,
 			"LevelToolbarQuickSettings"
 			);
 
-		ToolbarBuilder.AddComboButton(
-			FUIAction(),
-			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateOpenGameSettingsMenu, InCommandList ),
-			LOCTEXT( "OpenConfiguration_Label", "Game Settings" ),
-			LOCTEXT( "OpenConfiguration_ToolTip", "Open game settings windows" ),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.GameSettings"),
-			false,
-			"LevelToolbarWorldSettings"
-			);
 	}
 	ToolbarBuilder.EndSection();
 
@@ -624,7 +615,22 @@ static void MakeScalabilityMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.AddWidget(SNew(SScalabilitySettings), FText(), true);
 }
 
+static void MakePreviewSettingsMenu( FMenuBuilder& MenuBuilder )
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
 
+	MenuBuilder.BeginSection("LevelEditorPreview", LOCTEXT("PreviewHeading", "Previewing"));
+	{
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().OnlyLoadVisibleInPIE);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ToggleParticleSystemLOD);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ToggleParticleSystemHelpers);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ToggleFreezeParticleSimulation);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ToggleLODViewLocking);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().LevelStreamingVolumePrevis);
+	}
+	MenuBuilder.EndSection();
+#undef LOCTEXT_NAMESPACE
+}
 
 TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef<FUICommandList> InCommandList )
 {
@@ -647,30 +653,39 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList, MenuExtender );
 
+	struct Local
+	{
+		static void OpenSettings(FName ContainerName, FName CategoryName, FName SectionName)
+		{
+			FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(ContainerName, CategoryName, SectionName);
+		}
+	};
+
+	MenuBuilder.BeginSection("ProjectSettingsSection", LOCTEXT("ProjectSettings","Game Specific Settings") );
+	{
+
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().WorldProperties);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
+			LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Project"), FName("General")))
+			);
+	}
+	MenuBuilder.EndSection();
+
 	MenuBuilder.BeginSection("LevelEditorSelection", LOCTEXT("SelectionHeading","Selection") );
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AllowTranslucentSelection );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AllowGroupSelection );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().StrictBoxSelect );
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("LevelEditorEditing", LOCTEXT("EditingHeading", "Editing") );
-	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ShowTransformWidget );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().DrawBrushMarkerPolys );
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("LevelEditorPreview", LOCTEXT("PreviewHeading", "Previewing") );
+	MenuBuilder.BeginSection("LevelEditorScalability", LOCTEXT("ScalabilityHeading", "Scalability") );
 	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().OnlyLoadVisibleInPIE );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleParticleSystemLOD );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleParticleSystemHelpers );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleFreezeParticleSimulation );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleLODViewLocking );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LevelStreamingVolumePrevis );
-
 		MenuBuilder.AddSubMenu(
 			LOCTEXT( "ScalabilitySubMenu", "Engine Scalability Settings" ),
 			LOCTEXT( "ScalabilitySubMenu_ToolTip", "Open the engine scalability settings" ),
@@ -713,7 +728,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("LevelEditorActorSnap", LOCTEXT("ActorSnapHeading","Actor Snap") );
+	MenuBuilder.BeginSection( "Snapping", LOCTEXT("SnappingHeading","Snapping") );
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().EnableActorSnap );
 		TSharedRef<SWidget> SnapItem = 
@@ -729,11 +744,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 	          +SHorizontalBox::Slot()
 	          .FillWidth(0.1f);
 		MenuBuilder.AddWidget(SnapItem, LOCTEXT("ActorSnapLabel","Distance"));
-	}
-	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection( "Snapping", LOCTEXT("SnappingHeading","Snapping") );
-	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleSocketSnapping );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().EnableVertexSnap );
 	}
@@ -742,36 +753,10 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 	MenuBuilder.BeginSection("LevelEditorViewport", LOCTEXT("ViewportHeading", "Viewport") );
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleHideViewportUI );
+
+		MenuBuilder.AddSubMenu( LOCTEXT("PreviewMenu", "Previewing"), LOCTEXT("PreviewMenuTooltip","Game Preview Settings"), FNewMenuDelegate::CreateStatic( &MakePreviewSettingsMenu ) );
 	}
 	MenuBuilder.EndSection();
-
-#undef LOCTEXT_NAMESPACE
-
-	return MenuBuilder.MakeWidget();
-}
-
-TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenGameSettingsMenu( TSharedRef<FUICommandList> InCommandList )
-{
-#define LOCTEXT_NAMESPACE "OpenGameSettingsMenu"
-	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList );
-
-	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().WorldProperties );
-
-	struct Local
-	{
-		static void OpenSettings( FName ContainerName, FName CategoryName, FName SectionName )
-		{
-			FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(ContainerName, CategoryName, SectionName);
-		}
-	};
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
-		LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Project"), FName("General")))
-	);
 
 #undef LOCTEXT_NAMESPACE
 
