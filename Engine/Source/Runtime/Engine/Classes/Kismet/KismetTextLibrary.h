@@ -138,6 +138,22 @@ class UKismetTextLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsPercent", AdvancedDisplay = "1"), Category="Utilities|Text")
 	static FText AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
 
+	/* Converts a passed in date & time to a text, formatted as a date */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsDate", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsDate_DateTime(const FDateTime& InDateTime);
+
+	/* Converts a passed in date & time to a text, formatted as a date & time */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsDateTime", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsDateTime_DateTime(const FDateTime& In);
+
+	/* Converts a passed in date & time to a text, formatted as a time */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsTime", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsTime_DateTime(const FDateTime& In);
+
+	/* Converts a passed in time span to a text, formatted as a time span */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsTimespan", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsTimespan_Timespan(const FTimespan& InTimespan);
+
 	/* Used for formatting text using the FText::Format function and utilized by the UK2Node_FormatText */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "true"))
 	static FText Format(FText InPattern, TArray<FFormatTextArgument> InArgs);

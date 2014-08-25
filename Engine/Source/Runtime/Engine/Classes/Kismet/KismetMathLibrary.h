@@ -610,6 +610,246 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * Float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
 
+	//
+	// DateTime functions.
+	//
+
+	/* Addition (A + B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|DateTime")
+	static FDateTime Add_DateTimeTimespan( FDateTime A, FTimespan B );
+
+	/* Subtraction (A - B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime - Timespan", CompactNodeTitle="-", Keywords="- subtract minus"), Category="Math|DateTime")
+	static FDateTime Subtract_DateTimeTimespan( FDateTime A, FTimespan B );
+
+	/* Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Equal (DateTime)", CompactNodeTitle="==", Keywords="== equal"), Category="Math|DateTime")
+	static bool EqualEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="NotEqual (DateTime)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|DateTime")
+	static bool NotEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A > B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime > DateTime", CompactNodeTitle=">", Keywords="> greater"), Category="Math|DateTime")
+	static bool Greater_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A >= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime >= DateTime", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|DateTime")
+	static bool GreaterEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A < B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime < DateTime", CompactNodeTitle="<", Keywords="< less"), Category="Math|DateTime")
+	static bool Less_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A <= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime <= DateTime", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|DateTime")
+	static bool LessEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns the date component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDate"), Category="Math|DateTime")
+	static FDateTime GetDate( FDateTime A );
+
+	/* Returns the day component of A (1 to 31) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDay"), Category="Math|DateTime")
+	static int32 GetDay( FDateTime A );
+
+	/* Returns the day of year of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDayOfYear"), Category="Math|DateTime")
+	static int32 GetDayOfYear( FDateTime A );
+
+	/* Returns the hour component of A (24h format) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHour"), Category="Math|DateTime")
+	static int32 GetHour( FDateTime A );
+
+	/* Returns the hour component of A (12h format) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHour12"), Category="Math|DateTime")
+	static int32 GetHour12( FDateTime A );
+
+	/* Returns the millisecond component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMillisecond"), Category="Math|DateTime")
+	static int32 GetMillisecond( FDateTime A );
+
+	/* Returns the minute component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMinute"), Category="Math|DateTime")
+	static int32 GetMinute( FDateTime A );
+
+	/* Returns the month component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMonth"), Category="Math|DateTime")
+	static int32 GetMonth( FDateTime A );
+
+	/* Returns the second component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetSecond"), Category="Math|DateTime")
+	static int32 GetSecond( FDateTime A );
+
+	/* Returns the time elapsed since midnight of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTimeOfDay"), Category="Math|DateTime")
+	static FTimespan GetTimeOfDay( FDateTime A );
+
+	/* Returns the year component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetYear"), Category="Math|DateTime")
+	static int32 GetYear( FDateTime A );
+
+	/* Returns whether A's time is in the afternoon */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsAfternoon"), Category="Math|DateTime")
+	static bool IsAfternoon( FDateTime A );
+
+	/* Returns whether A's time is in the morning */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsMorning"), Category="Math|DateTime")
+	static bool IsMorning( FDateTime A );
+
+	/* Returns the number of days in the given year and month */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DaysInMonth"), Category="Math|DateTime")
+	static int32 DaysInMonth( int32 Year, int32 Month );
+
+	/* Returns the number of days in the given year */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DaysInYear"), Category="Math|DateTime")
+	static int32 DaysInYear( int32 Year );
+
+	/* Returns whether given year is a leap year */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsLeapYear"), Category="Math|DateTime")
+	static bool IsLeapYear( int32 Year );
+
+	/* Returns the maximum date and time value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MaxValue"), Category="Math|DateTime")
+	static FDateTime DateTimeMaxValue( );
+
+	/* Returns the minimum date and time value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MinValue"), Category="Math|DateTime")
+	static FDateTime DateTimeMinValue( );
+
+	/* Returns the local date and time on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Now"), Category="Math|DateTime")
+	static FDateTime Now( );
+
+	/* Returns the local date on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Today"), Category="Math|DateTime")
+	static FDateTime Today( );
+
+	/* Returns the UTC date and time on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="UtcNow"), Category="Math|DateTime")
+	static FDateTime UtcNow( );
+
+	//
+	// Timespan functions.
+	//
+
+	/* Addition (A + B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|Timespan")
+	static FTimespan Add_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Subtraction (A - B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan - Timespan", CompactNodeTitle="-", Keywords="- subtract minus"), Category="Math|Timespan")
+	static FTimespan Subtract_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Scalar multiplication (A * s) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan * float", CompactNodeTitle="*", Keywords="* multiply"), Category="Math|Timespan")
+	static FTimespan Multiply_TimespanFloat( FTimespan A, float Scalar );
+
+	/* Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Equal (Timespan)", CompactNodeTitle="==", Keywords="== equal"), Category="Math|Timespan")
+	static bool EqualEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="NotEqual (Timespan)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|Timespan")
+	static bool NotEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A > B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan > Timespan", CompactNodeTitle=">", Keywords="> greater"), Category="Math|Timespan")
+	static bool Greater_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A >= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan >= Timespan", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|Timespan")
+	static bool GreaterEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A < B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan < Timespan", CompactNodeTitle="<", Keywords="< less"), Category="Math|Timespan")
+	static bool Less_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A <= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan <= Timespan", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|Timespan")
+	static bool LessEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns the days component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDays"), Category="Math|Timespan")
+	static int32 GetDays( FTimespan A );
+
+	/* Returns the absolute value of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDuration"), Category="Math|Timespan")
+	static FTimespan GetDuration( FTimespan A );
+
+	/* Returns the hours component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHours"), Category="Math|Timespan")
+	static int32 GetHours( FTimespan A );
+
+	/* Returns the milliseconds component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMilliseconds"), Category="Math|Timespan")
+	static int32 GetMilliseconds( FTimespan A );
+
+	/* Returns the minutes component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMinutes"), Category="Math|Timespan")
+	static int32 GetMinutes( FTimespan A );
+
+	/* Returns the seconds component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetSeconds"), Category="Math|Timespan")
+	static int32 GetSeconds( FTimespan A );
+
+	/* Returns the total number of days in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalDays"), Category="Math|Timespan")
+	static float GetTotalDays( FTimespan A );
+
+	/* Returns the total number of hours in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalHours"), Category="Math|Timespan")
+	static float GetTotalHours( FTimespan A );
+
+	/* Returns the total number of milliseconds in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalMilliseconds"), Category="Math|Timespan")
+	static float GetTotalMilliseconds( FTimespan A );
+
+	/* Returns the total number of minutes in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalMinutes"), Category="Math|Timespan")
+	static float GetTotalMinutes( FTimespan A );
+
+	/* Returns the total number of seconds in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalSeconds"), Category="Math|Timespan")
+	static float GetTotalSeconds( FTimespan A );
+
+	/* Returns a time span that represents the specified number of days */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromDays"), Category="Math|Timespan")
+	static FTimespan FromDays( float Days );
+
+	/* Returns a time span that represents the specified number of hours */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromHours"), Category="Math|Timespan")
+	static FTimespan FromHours( float Hours );
+
+	/* Returns a time span that represents the specified number of milliseconds */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromMilliseconds"), Category="Math|Timespan")
+	static FTimespan FromMilliseconds( float Milliseconds );
+
+	/* Returns a time span that represents the specified number of minutes */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromMinutes"), Category="Math|Timespan")
+	static FTimespan FromMinutes( float Minutes );
+
+	/* Returns a time span that represents the specified number of seconds */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromSeconds"), Category="Math|Timespan")
+	static FTimespan FromSeconds( float Seconds );
+
+	/* Returns the maximum time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MaxValue"), Category="Math|Timespan")
+	static FTimespan TimespanMaxValue( );
+
+	/* Returns the minimum time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MinValue"), Category="Math|Timespan")
+	static FTimespan TimespanMinValue( );
+
+	/* Returns the ratio between two time spans (A / B), handles zero values */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="TimespanRatio"), Category="Math|Timespan")
+	static float TimespanRatio( FTimespan A, FTimespan B );
+
+	/* Returns a zero time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="ZeroValue"), Category="Math|Timespan")
+	static FTimespan TimespanZeroValue( );
+
 	// -- Begin K2 utilities
 
 	/** Converts a byte to a float */

@@ -1005,6 +1005,368 @@ bool UKismetMathLibrary::ClassIsChildOf(TSubclassOf<class UObject> TestClass, TS
 	return ((*ParentClass != NULL) && (*TestClass != NULL)) ? (*TestClass)->IsChildOf(*ParentClass) : false;
 }
 
+
+/* DateTime functions
+ *****************************************************************************/
+
+FDateTime UKismetMathLibrary::Add_DateTimeTimespan( FDateTime A, FTimespan B )
+{
+	return A + B;
+}
+
+
+FDateTime UKismetMathLibrary::Subtract_DateTimeTimespan( FDateTime A, FTimespan B )
+{
+	return A - B;
+}
+
+
+bool UKismetMathLibrary::EqualEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A == B;
+}
+
+
+bool UKismetMathLibrary::NotEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A != B;
+}
+
+
+bool UKismetMathLibrary::Greater_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A > B;
+}
+
+
+bool UKismetMathLibrary::GreaterEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A >= B;
+}
+
+
+bool UKismetMathLibrary::Less_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A < B;
+}
+
+
+bool UKismetMathLibrary::LessEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A <= B;
+}
+
+
+FDateTime UKismetMathLibrary::GetDate( FDateTime A )
+{
+	return A.GetDate();
+}
+
+
+int32 UKismetMathLibrary::GetDay( FDateTime A )
+{
+	return A.GetDay();
+}
+
+int32 UKismetMathLibrary::GetDayOfYear( FDateTime A )
+{
+	return A.GetDayOfYear();
+}
+
+
+int32 UKismetMathLibrary::GetHour( FDateTime A )
+{
+	return A.GetHour();
+}
+
+
+int32 UKismetMathLibrary::GetHour12( FDateTime A )
+{
+	return A.GetHour12();
+}
+
+
+int32 UKismetMathLibrary::GetMillisecond( FDateTime A )
+{
+	return A.GetMillisecond();
+}
+
+
+int32 UKismetMathLibrary::GetMinute( FDateTime A )
+{
+	return A.GetMinute();
+}
+
+
+int32 UKismetMathLibrary::GetMonth( FDateTime A )
+{
+	return A.GetMonth();
+}
+
+
+int32 UKismetMathLibrary::GetSecond( FDateTime A )
+{
+	return A.GetSecond();
+}
+
+
+FTimespan UKismetMathLibrary::GetTimeOfDay( FDateTime A )
+{
+	return A.GetTimeOfDay();
+}
+
+
+int32 UKismetMathLibrary::GetYear( FDateTime A )
+{
+	return A.GetYear();
+}
+
+
+bool UKismetMathLibrary::IsAfternoon( FDateTime A )
+{
+	return A.IsAfternoon();
+}
+
+
+bool UKismetMathLibrary::IsMorning( FDateTime A )
+{
+	return A.IsMorning();
+}
+
+
+int32 UKismetMathLibrary::DaysInMonth( int32 Year, int32 Month )
+{
+	return FDateTime::DaysInMonth(Year, Month);
+}
+
+
+int32 UKismetMathLibrary::DaysInYear( int32 Year )
+{
+	return FDateTime::DaysInYear(Year);
+}
+
+
+bool UKismetMathLibrary::IsLeapYear( int32 Year )
+{
+	return FDateTime::IsLeapYear(Year);
+}
+
+
+FDateTime UKismetMathLibrary::DateTimeMaxValue( )
+{
+	return FDateTime::MaxValue();
+}
+
+
+FDateTime UKismetMathLibrary::DateTimeMinValue( )
+{
+	return FDateTime::MinValue();
+}
+
+
+FDateTime UKismetMathLibrary::Now( )
+{
+	return FDateTime::Now();
+}
+
+
+FDateTime UKismetMathLibrary::Today( )
+{
+	return FDateTime::Today();
+}
+
+
+FDateTime UKismetMathLibrary::UtcNow( )
+{
+	return FDateTime::UtcNow();
+}
+
+
+/* Timespan functions
+ *****************************************************************************/
+
+FTimespan UKismetMathLibrary::Add_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A + B;
+}
+
+
+FTimespan UKismetMathLibrary::Subtract_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A - B;
+}
+
+
+FTimespan UKismetMathLibrary::Multiply_TimespanFloat( FTimespan A, float Scalar )
+{
+	return A * Scalar;
+}
+
+
+bool UKismetMathLibrary::EqualEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A == B;
+}
+
+
+bool UKismetMathLibrary::NotEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A != B;
+}
+
+
+bool UKismetMathLibrary::Greater_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A > B;
+}
+
+
+bool UKismetMathLibrary::GreaterEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A >= B;
+}
+
+
+bool UKismetMathLibrary::Less_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A < B;
+}
+
+
+bool UKismetMathLibrary::LessEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A <= B;
+}
+
+
+int32 UKismetMathLibrary::GetDays( FTimespan A )
+{
+	return A.GetDays();
+}
+
+
+FTimespan UKismetMathLibrary::GetDuration( FTimespan A )
+{
+	return A.GetDuration();
+}
+
+
+int32 UKismetMathLibrary::GetHours( FTimespan A )
+{
+	return A.GetHours();
+}
+
+
+int32 UKismetMathLibrary::GetMilliseconds( FTimespan A )
+{
+	return A.GetMilliseconds();
+}
+
+
+int32 UKismetMathLibrary::GetMinutes( FTimespan A )
+{
+	return A.GetMinutes();
+}
+
+
+int32 UKismetMathLibrary::GetSeconds( FTimespan A )
+{
+	return A.GetSeconds();
+}
+
+
+float UKismetMathLibrary::GetTotalDays( FTimespan A )
+{
+	return A.GetTotalDays();
+}
+
+
+float UKismetMathLibrary::GetTotalHours( FTimespan A )
+{
+	return A.GetTotalHours();
+}
+
+
+float UKismetMathLibrary::GetTotalMilliseconds( FTimespan A )
+{
+	return A.GetTotalMilliseconds();
+}
+
+
+float UKismetMathLibrary::GetTotalMinutes( FTimespan A )
+{
+	return A.GetTotalMinutes();
+}
+
+
+float UKismetMathLibrary::GetTotalSeconds( FTimespan A )
+{
+	return A.GetTotalSeconds();
+}
+
+
+FTimespan UKismetMathLibrary::FromDays( float Days )
+{
+	return FTimespan::FromDays(Days);
+}
+
+
+FTimespan UKismetMathLibrary::FromHours( float Hours )
+{
+	return FTimespan::FromHours(Hours);
+}
+
+
+FTimespan UKismetMathLibrary::FromMilliseconds( float Milliseconds )
+{
+	return FTimespan::FromMilliseconds(Milliseconds);
+}
+
+
+FTimespan UKismetMathLibrary::FromMinutes( float Minutes )
+{
+	return FTimespan::FromMinutes(Minutes);
+}
+
+
+FTimespan UKismetMathLibrary::FromSeconds( float Seconds )
+{
+	return FTimespan::FromSeconds(Seconds);
+}
+
+
+FTimespan UKismetMathLibrary::TimespanMaxValue( )
+{
+	return FTimespan::MaxValue();
+}
+
+
+FTimespan UKismetMathLibrary::TimespanMinValue( )
+{
+	return FTimespan::MinValue();
+}
+
+
+float UKismetMathLibrary::TimespanRatio( FTimespan A, FTimespan B )
+{
+	if (B != FTimespan::Zero())
+	{
+		return (float)A.GetTicks() / (float)B.GetTicks();
+	}
+
+	return 0.0;
+}
+
+
+FTimespan UKismetMathLibrary::TimespanZeroValue( )
+{
+	return FTimespan::Zero();
+}
+
+
+/* K2 Utilities
+ *****************************************************************************/
+
 float UKismetMathLibrary::Conv_ByteToFloat(uint8 InByte)
 {
 	return (float)InByte;

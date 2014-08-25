@@ -193,7 +193,6 @@ struct FVector
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector, SaveGame)
 	float Z;
-
 };
 
 USTRUCT(immutable, noexport)
@@ -653,7 +652,7 @@ public:
 
 // A date/time value.
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FDateTime
 {
 	UPROPERTY()
@@ -663,7 +662,7 @@ struct FDateTime
 
 // A time span value.
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FTimespan
 {
 	UPROPERTY()
