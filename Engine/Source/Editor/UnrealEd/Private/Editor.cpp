@@ -5964,7 +5964,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 	if( !bIsForeground )
 	{
 		const UEditorUserSettings* Settings = GetDefault<UEditorUserSettings>();
-		bShouldThrottle = Settings->bThrottleWhenNotForeground;
+		bShouldThrottle = Settings->bThrottleCPUWhenNotForeground;
 
 		// Check if we should throttle due to all windows being minimized
 		if ( !bShouldThrottle )

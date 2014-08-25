@@ -33,7 +33,7 @@ class UEditorUserSettings : public UObject
 
 	/** Lowers CPU usage when the editor is in the background and not the active application */
 	UPROPERTY(EditAnywhere, config, Category=Performance, meta=(DisplayName="Use Less CPU when in Background") )
-	uint32 bThrottleWhenNotForeground:1;
+	uint32 bThrottleCPUWhenNotForeground:1;
 
 	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
 	UPROPERTY(EditAnywhere, config, Category=Performance)
