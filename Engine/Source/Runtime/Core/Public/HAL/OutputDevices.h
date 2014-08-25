@@ -9,12 +9,6 @@
 	#define CLEAR_WARN_COLOR() 
 #else
 
-enum class EByteOrderMark : int8
-{
-	UTF8,
-	Unspecified,
-};
-
 /*-----------------------------------------------------------------------------
 	Colorized text.
 
@@ -86,6 +80,12 @@ using namespace OutputDeviceColor;
 
 #endif
 #endif
+
+enum class EByteOrderMark : int8
+{
+	UTF8,
+	Unspecified,
+};
 
 /*-----------------------------------------------------------------------------
 	Log Suppression
