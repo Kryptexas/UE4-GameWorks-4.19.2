@@ -2677,9 +2677,29 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 		return;
 	}
 
+	// Find actors that are already in the destination level and deselect them
+	{
+		TArray<AActor*> ActorsToDeselect;
+		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+		{
+			AActor* Actor = static_cast<AActor*>(*It);
+			if ( Actor && Actor->GetLevel() == InDestLevel )
+			{
+				ActorsToDeselect.Add(Actor);
+			}
+		}
+
+		for ( auto* Actor : ActorsToDeselect )
+		{
+			const bool bInSelected = false;
+			const bool bNotify = false;
+			SelectActor(Actor, bInSelected, bNotify);
+		}
+	}
+
 	if (GetSelectedActorCount() <= 0)
 	{
-		// Nothing to move, probably source level was hidden and actors lost selection mark
+		// Nothing to move, probably source level was hidden and actors lost selection mark or all actors were already in the destination level
 		return;
 	}
 

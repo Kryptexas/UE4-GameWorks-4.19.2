@@ -1759,33 +1759,30 @@ bool FLevelCollectionModel::IsValidMoveActorsToLevel()
 	if (bSelectionHasChanged)
 	{
 		bSelectionHasChanged = false;
-		USelection* SelectedActors = GEditor->GetSelectedActors();
-		// you cant move no selected actors to a level
-		if (SelectedActors->Num() == 0)
-		{
-			bCachedIsValidActorMoveResult = false;
-			return false;
-		}
+		bCachedIsValidActorMoveResult = false;
 
-		// are any of the selected actors in the selected levels
-		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		// We can only operate on a single selected level
+		if ( SelectedLevelsList.Num() == 1 )
 		{
-			AActor* Actor = CastChecked<AActor>(*Iter);
-			if (Actor != nullptr)
+			ULevel* Level = SelectedLevelsList[0]->GetLevelObject();
+			if (Level)
 			{
-				const ULevel* ActorsLevel = Actor->GetLevel();
-				for (TSharedPtr<FLevelModel> SelectedLevel : SelectedLevelsList)
+				// Allow the move if at least one actor is in another level
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 				{
-					if (SelectedLevel->GetLevelObject() == ActorsLevel)
+					AActor* Actor = CastChecked<AActor>(*Iter);
+					if (Actor != nullptr)
 					{
-						bCachedIsValidActorMoveResult = false;
-						return false;
+						if (Actor->GetLevel() != Level)
+						{
+							bCachedIsValidActorMoveResult = true;
+							break;
+						}
 					}
 				}
 			}
 		}
-
-		bCachedIsValidActorMoveResult = true;
 	}
 			
 	// if non of the selected actors are in the level, just check the level is unlocked
