@@ -2143,8 +2143,9 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	// Clean up string asset reference fixups
 	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
-	// Clean up the world type list now that PostLoad has occurred
+	// Clean up the world type list and owning world list now that PostLoad has occurred
 	UWorld::WorldTypePreLoadMap.Remove(PrefixedLevelFName);
+	ULevel::StreamedLevelsOwningWorld.Remove(PIELevelPackage->GetFName());
 	
 	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
 	{

@@ -796,6 +796,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 					{
 						ULevel::StreamedLevelsOwningWorld.Add(StreamingLevelWorldAssetPackageFName, this);
 						UPackage* const LevelPackage = LoadPackage( NULL, *StreamingLevelWorldAssetPackageName, LOAD_None );
+						ULevel::StreamedLevelsOwningWorld.Remove(StreamingLevelWorldAssetPackageFName);
 					
 						if( LevelPackage )
 						{

@@ -617,8 +617,9 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName );
 	}
 
-	// Clean up the world type list now that PostLoad has occurred
+	// Clean up the world type list and owning world list now that PostLoad has occurred
 	UWorld::WorldTypePreLoadMap.Remove(PackageFName);
+	ULevel::StreamedLevelsOwningWorld.Remove(PackageFName);
 }
 
 bool ULevelStreaming::IsLevelVisible() const
