@@ -13,52 +13,52 @@
 
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 	<script type="text/javascript">
-	    $(document).ready(function ()
-	    {
-	        $("#EditDescription").click(function ()
-	        {
-	            $("#CrashDescription").css("display", "none");
-	            $("#ShowCrashDescription input").css("display", "block");
-	            $("#EditDescription").css("display", "none");
-	            $("#SaveDescription").css("display", "inline");
-	        });
+		$(document).ready(function ()
+		{
+			$("#EditDescription").click(function ()
+			{
+				$("#CrashDescription").css("display", "none");
+				$("#ShowCrashDescription input").css("display", "block");
+				$("#EditDescription").css("display", "none");
+				$("#SaveDescription").css("display", "inline");
+			});
 
-	        $("#SaveDescription").click(function ()
-	        {
-	            $('#EditCrashDescriptionForm').submit();
-	        });
-	        // Zebra stripes
-	        $("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
-	        $("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
+			$("#SaveDescription").click(function ()
+			{
+				$('#EditCrashDescriptionForm').submit();
+			});
+			// Zebra stripes
+			$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
+			$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
 
-	        // Get Table Height and set Main Height
-	        $("#main").height($("#CrashesTable").height() + 800);
-	        $("#CrashesTable").width($("#ShowCommandLine").width());
+			// Get Table Height and set Main Height
+			$("#main").height($("#CrashesTable").height() + 800);
+			$("#CrashesTable").width($("#ShowCommandLine").width());
 
-	        // Show/Hide parts of the call stack
-	        $("#DisplayModuleNames").click(function ()
-	        {
-	            $(".module-name").toggle();
-	        });
-	        $("#DisplayFunctionNames").click(function ()
-	        {
-	            $(".function-name").toggle();
-	        });
-	        $("#DisplayFilePathNames").click(function ()
-	        {
-	            $(".file-path").toggle();
-	        });
-	        $("#DisplayFileNames").click(function ()
-	        {
-	            $(".file-name").toggle();
-	        });
-	        $("#DisplayUnformattedCallStack").click(function () 
-            {
-	            $("#FormattedCallStackContainer").toggle();
-	            $("#RawCallStackContainer").toggle();
-	        });
-	    });
-    </script>
+			// Show/Hide parts of the call stack
+			$("#DisplayModuleNames").click(function ()
+			{
+				$(".module-name").toggle();
+			});
+			$("#DisplayFunctionNames").click(function ()
+			{
+				$(".function-name").toggle();
+			});
+			$("#DisplayFilePathNames").click(function ()
+			{
+				$(".file-path").toggle();
+			});
+			$("#DisplayFileNames").click(function ()
+			{
+				$(".file-name").toggle();
+			});
+			$("#DisplayUnformattedCallStack").click(function () 
+			{
+				$("#FormattedCallStackContainer").toggle();
+				$("#RawCallStackContainer").toggle();
+			});
+		});
+	</script>
 </asp:Content>
 
 <asp:Content ID="AboveMainContent" ContentPlaceHolderID="AboveMainContent" runat="server">
@@ -97,9 +97,9 @@
 		<dt>ID</dt>
 			<dd ><%=Html.DisplayFor( m => Model.Bugg.Id )%></dd>
 
-        <dt>Build Version of Latest Crash</dt>
-            <dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>
-            
+		<dt>Build Version of Latest Crash</dt>
+			<dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>
+			
 		<dt>Time of Latest Crash</dt> 
 			<dd class='even' style='width:8em'><%=Model.Bugg.TimeOfLastCrash%></dd>
 
@@ -127,8 +127,22 @@
 	</div>
 
 	<div id="CallStackContainer" >
-		<h3>Call Stack of Most Recent Crash</h3>
 
+		<% if( Model.Bugg.Summary.Length > 0 ) 
+			{ %>
+				<div id='ShowErrorMessage'>
+					<br />
+					<h3>Error Message</h3>
+					<div id='ErrorMessage'>
+						<%=Model.Bugg.Summary %>
+					</div>
+				</div>
+				<br />
+		<%	}
+		%>
+
+
+		<h3>Call Stack of Most Recent Crash</h3>
 		<div id='RawCallStackContainer' style='display:none' >
 			<div>
 				<% foreach( CallStackEntry CallStackLine in Model.CallStack.CallStackEntries )

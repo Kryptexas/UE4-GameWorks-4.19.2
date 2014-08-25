@@ -795,7 +795,8 @@ th a:visited
 	display: none;
 }
 
-#CrashCommandLine
+#CrashCommandLine,
+#ErrorMessage
 {
 	min-height: 1em;
 	padding: .3em;

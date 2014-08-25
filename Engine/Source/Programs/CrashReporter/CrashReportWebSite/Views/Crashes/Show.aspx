@@ -13,49 +13,49 @@
 
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 	<script type="text/javascript">
-	    $(document).ready(function ()
-	    {
-	        $("#EditDescription").click(function ()
-	        {
-	            $("#CrashDescription").css("display", "none");
-	            $("#ShowCrashDescription input").css("display", "block");
-	            $("#EditDescription").css("display", "none");
-	            $("#SaveDescription").css("display", "inline");
-	        });
+		$(document).ready(function ()
+		{
+			$("#EditDescription").click(function ()
+			{
+				$("#CrashDescription").css("display", "none");
+				$("#ShowCrashDescription input").css("display", "block");
+				$("#EditDescription").css("display", "none");
+				$("#SaveDescription").css("display", "inline");
+			});
 
-	        $("#SaveDescription").click(function ()
-	        {
-	            $('#EditCrashDescriptionForm').submit();
-	            $('Description').disable();
-	        });
+			$("#SaveDescription").click(function ()
+			{
+				$('#EditCrashDescriptionForm').submit();
+				$('Description').disable();
+			});
 
-	        $("#DisplayModuleNames").click(function ()
-	        {
-	            $(".module-name").toggle();
-	        });
+			$("#DisplayModuleNames").click(function ()
+			{
+				$(".module-name").toggle();
+			});
 
-	        $("#DisplayFunctionNames").click(function ()
-	        {
-	            $(".function-name").toggle();
-	        });
+			$("#DisplayFunctionNames").click(function ()
+			{
+				$(".function-name").toggle();
+			});
 
-	        $("#DisplayFileNames").click(function ()
-	        {
-	            $(".file-name").toggle();
-	        });
+			$("#DisplayFileNames").click(function ()
+			{
+				$(".file-name").toggle();
+			});
 
-	        $("#DisplayFilePathNames").click(function ()
-	        {
-	            $(".file-path").toggle();
-	        });
+			$("#DisplayFilePathNames").click(function ()
+			{
+				$(".file-path").toggle();
+			});
 
-	        $("#DisplayUnformattedCallStack").click(function ()
-	        {
-	            $("#FormattedCallStackContainer").toggle();
-	            $("#RawCallStackContainer").toggle();
-	        });
-	    });
-    </script>
+			$("#DisplayUnformattedCallStack").click(function ()
+			{
+				$("#FormattedCallStackContainer").toggle();
+				$("#RawCallStackContainer").toggle();
+			});
+		});
+	</script>
 </asp:Content>
 
 <asp:Content ID="AboveMainContent" ContentPlaceHolderID="AboveMainContent" runat="server">
@@ -212,6 +212,19 @@
 	</div>
 
 	<div id="CallStackContainer" >
+		<% if( Model.Crash.Summary.Length > 0 ) 
+			{ %>
+				<div id='ShowErrorMessage'>
+					<br />
+					<h3>Error Message</h3>
+					<div id='ErrorMessage'>
+						<%=Model.Crash.Summary %>
+					</div>
+				</div>
+				<br />
+		<%	}
+		%>
+
 		<div class='CrashViewTextBox'>
 			<div class='CrashViewTextBoxRight'>
 				<h3>Call Stack</h3>

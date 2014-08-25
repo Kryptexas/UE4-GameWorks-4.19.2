@@ -885,9 +885,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.LanguageExt = NewCrashInfo.Language; // Converted by the crash process.
 			NewCrash.PlatformName = NewCrashInfo.Platform;
 
-			if (NewCrashInfo.AssertionMessage != null)
+			if( NewCrashInfo.ErrorMessage != null )
 			{
-				NewCrash.Summary = string.Join( "\n", NewCrashInfo.AssertionMessage );
+				NewCrash.Summary = string.Join( "\n", NewCrashInfo.ErrorMessage );
 			}
 			
 			if (NewCrashInfo.CallStack != null)

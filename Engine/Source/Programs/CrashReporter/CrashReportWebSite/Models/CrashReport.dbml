@@ -5,7 +5,7 @@
       <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
       <Column Name="TTPID" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
       <Column Name="Title" Type="System.String" DbType="VarChar(120)" CanBeNull="true" />
-      <Column Name="Summary" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
+      <Column Name="SummaryV2" Member="Summary" Type="System.String" DbType="VarChar(512)" CanBeNull="true" />
       <Column Name="Priority" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Pattern" Type="System.String" DbType="VarChar(800) NOT NULL" CanBeNull="false" />
       <Column Name="NumberOfCrashes" Type="System.Int32" DbType="Int" CanBeNull="true" />

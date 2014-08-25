@@ -310,7 +310,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Summary", DbType="VarChar(250)")]
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="SummaryV2", Storage="_Summary", DbType="VarChar(512)")]
 		public string Summary
 		{
 			get
