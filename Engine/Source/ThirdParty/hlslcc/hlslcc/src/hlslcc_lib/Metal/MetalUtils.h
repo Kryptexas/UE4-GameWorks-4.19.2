@@ -59,6 +59,8 @@ struct FBuffers
 		TArray<ir_instruction*> AllBuffers;
 		AllBuffers.Resize(Buffers.Num(), nullptr);
 		TIRVarList CBuffers;
+		// Put packed UB's into their location (h=0, m=1, etc); leave holes if not using a packed define
+		// and group the regular CBuffers in another list
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
 			auto* Var = Buffers[i]->as_variable();
@@ -78,6 +80,7 @@ struct FBuffers
 			}
 		}
 
+		// Fill the holes in the packed array list with real UB's
 		for (int i = 0; i < AllBuffers.Num() && !CBuffers.empty(); ++i)
 		{
 			if (!AllBuffers[i])

@@ -834,6 +834,30 @@ protected:
 							" [[ color(0) ]]"
 							);
 					}
+					else if (!strcmp(var->name, "gl_VertexID"))
+					{
+						//@todo-rco: FIX ME! Right now it's int, should be uint!
+						check(var->type->is_integer());
+						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
+						ralloc_asprintf_append(buffer, " %s", unique_name(var));
+						print_type_post(var->type);
+						ralloc_asprintf_append(
+							buffer,
+							" [[ vertex_id ]]"
+							);
+					}
+					else if (!strcmp(var->name, "gl_InstanceID"))
+					{
+						//@todo-rco: FIX ME! Right now it's int, should be uint!
+						check(var->type->is_integer());
+						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
+						ralloc_asprintf_append(buffer, " %s", unique_name(var));
+						print_type_post(var->type);
+						ralloc_asprintf_append(
+							buffer,
+							" [[ instance_id ]]"
+							);
+					}
 					else
 					{
 						check(var->type->is_record());
@@ -1965,6 +1989,7 @@ protected:
 						{
 							ralloc_asprintf_append(buffer, " [[ position ]]");
 						}
+/*
 						else if (strcmp(s->fields.structure[j].semantic, "gl_VertexID") == 0)
 						{
 							ralloc_asprintf_append(buffer, " [[ vertex_id ]]");
@@ -1972,7 +1997,7 @@ protected:
 						else if (strcmp(s->fields.structure[j].semantic, "gl_InstanceID") == 0)
 						{
 							ralloc_asprintf_append(buffer, " [[ instance_id ]]");
-						}
+						}*/
 						else if (!strncmp(s->fields.structure[j].semantic, "var_", 4))
 						{
 							ralloc_asprintf_append(buffer, " [[ user(%s) ]]", s->fields.structure[j].semantic + 4);
@@ -1980,6 +2005,14 @@ protected:
 						else if (!strncmp(s->fields.structure[j].semantic, "ATTRIBUTE", 9))
 						{
 							ralloc_asprintf_append(buffer, " [[ attribute(%s) ]]", s->fields.structure[j].semantic + 9);
+						}
+						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragColor", 12))
+						{
+							ralloc_asprintf_append(buffer, " [[ color(0) ]]");
+						}
+						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragDepth", 12))
+						{
+							ralloc_asprintf_append(buffer, " [[ depth(any) ]]");
 						}
 						else
 						{
@@ -2395,14 +2428,17 @@ protected:
 			bool bFirst = true;
 			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
 			{
-				ir_instruction* ir = Buffers.Buffers[i];
-				ir_variable* Var = ir ? ir->as_variable() : 0;
-				if (Var && !Var->semantic && !Var->type->is_sampler())
+				// Some entries might be null, if we used more packed than real UBs used
+				if (Buffers.Buffers[i])
 				{
-					ralloc_asprintf_append(buffer, "%s%s(%d)",
-						bFirst ? "// @UniformBlocks: " : ",",
-						Var->name, i);
-					bFirst = false;
+					auto* Var = Buffers.Buffers[i]->as_variable();
+					if (!Var->semantic && !Var->type->is_sampler())
+					{
+						ralloc_asprintf_append(buffer, "%s%s(%d)",
+							bFirst ? "// @UniformBlocks: " : ",",
+							Var->name, i);
+						bFirst = false;
+					}
 				}
 			}
 			if (!bFirst)
@@ -2643,17 +2679,6 @@ struct FMetalUnsupportedSamplerVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_leave(ir_texture* IR) override
 	{
-		if (IR->op == ir_txl)
-		{
-			if (bIsVertexShader)
-			{
-				YYLTYPE loc;
-				loc.first_column = IR->SourceLocation.Column;
-				loc.first_line = IR->SourceLocation.Line;
-				loc.source_file = IR->SourceLocation.SourceFile.c_str();
-				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on Metal\n");
-			}
-		}
 
 		return visit_continue;
 	}

@@ -330,7 +330,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 		{
 			// Monolithic builds that do not have the initializer were *not found* during the build step, so return FileNotFound
 			// (FileNotFound is an acceptable error in some case - ie loading a content only project)
-			UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Module '%s' not found - it's StaticallyLinkedModuleInitializers function is null." ), *InModuleName.ToString() );
+			UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Module '%s' not found - its StaticallyLinkedModuleInitializers function is null." ), *InModuleName.ToString() );
 			OutFailureReason = EModuleLoadResult::FileNotFound;
 		}
 #endif
