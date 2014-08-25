@@ -10,7 +10,7 @@ public class LibOVR : ModuleRules
 		string LibOVRVersion = "_04";
 		Type = ModuleType.External;
 
-		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion;
+		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR/LibOVR" + LibOVRVersion;
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
