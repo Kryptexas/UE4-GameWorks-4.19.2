@@ -9,6 +9,12 @@
 	#define CLEAR_WARN_COLOR() 
 #else
 
+enum class EByteOrderMark : int8
+{
+	UTF8,
+	Unspecified,
+};
+
 /*-----------------------------------------------------------------------------
 	Colorized text.
 
@@ -419,6 +425,14 @@ private:
 	bool		bDisableBackup;
 	
 	void WriteRaw( const TCHAR* C );
+
+	FArchive* CreateArchive(uint32 MaxAttempts = 32);
+
+	void WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark);
+
+	void CastAndSerializeData(const TCHAR* Data);
+
+	void WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category);
 };
 
 // Null output device.
