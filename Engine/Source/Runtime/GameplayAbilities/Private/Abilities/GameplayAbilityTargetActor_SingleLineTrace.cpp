@@ -80,6 +80,11 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 
 	FHitResult ReturnHitResult;
 	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
+	//Default to end of trace line if we don't hit anything.
+	if (!ReturnHitResult.bBlockingHit)
+	{
+		ReturnHitResult.Location = TraceEnd;
+	}
 	if (AActor* LocalReticleActor = ReticleActor.Get())
 	{
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
