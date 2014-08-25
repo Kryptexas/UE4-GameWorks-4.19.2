@@ -460,6 +460,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Display)
 	uint32 bDrawClusters:1;
 
+	/** should we draw edges of every navmesh's triangle */
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawOctree : 1;
+
 	UPROPERTY(config)
 	uint32 bDistinctlyDrawTilesBeingBuilt:1;
 

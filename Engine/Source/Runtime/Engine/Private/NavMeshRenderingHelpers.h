@@ -11,7 +11,7 @@
 #include "AI/Navigation/NavMeshRenderingComponent.h"
 #include "Materials/Material.h"
 #include "MaterialShared.h"
-
+#include "GenericOctree.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);
@@ -63,6 +63,7 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		ClusterLinkLines.Reset();
 		PathCollidingGeomIndices.Reset();
 		PathCollidingGeomVerts.Reset();
+		OctreeBounds.Reset();
 		MeshBuilders.Reset();
 		DebugLabels.Reset();
 		Bounds.Init();
@@ -86,6 +87,8 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	TArray<int32> PathCollidingGeomIndices;
 	TNavStatArray<FVector> PathCollidingGeomVerts;
 
+	TArray<FBoxCenterAndExtent>	OctreeBounds;
+		
 	FColor NavMeshColors[RECAST_MAX_AREAS];
 
 	struct FDebugMeshData
@@ -355,6 +358,28 @@ public:
 		return FColor(r*63, g*63, b*63, 164);
 	}
 
+	void DrawDebugBox(FPrimitiveDrawInterface* PDI, FVector const& Center, FVector const& Box, FColor const& Color) const
+	{
+		// no debug line drawing on dedicated server
+		if (PDI != NULL)
+		{
+			PDI->DrawLine(Center + FVector(Box.X, Box.Y, Box.Z), Center + FVector(Box.X, -Box.Y, Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(Box.X, -Box.Y, Box.Z), Center + FVector(-Box.X, -Box.Y, Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, -Box.Y, Box.Z), Center + FVector(-Box.X, Box.Y, Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, Box.Y, Box.Z), Center + FVector(Box.X, Box.Y, Box.Z), Color, SDPG_World);
+
+			PDI->DrawLine(Center + FVector(Box.X, Box.Y, -Box.Z), Center + FVector(Box.X, -Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(Box.X, -Box.Y, -Box.Z), Center + FVector(-Box.X, -Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, -Box.Y, -Box.Z), Center + FVector(-Box.X, Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, Box.Y, -Box.Z), Center + FVector(Box.X, Box.Y, -Box.Z), Color, SDPG_World);
+
+			PDI->DrawLine(Center + FVector(Box.X, Box.Y, Box.Z), Center + FVector(Box.X, Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(Box.X, -Box.Y, Box.Z), Center + FVector(Box.X, -Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, -Box.Y, Box.Z), Center + FVector(-Box.X, -Box.Y, -Box.Z), Color, SDPG_World);
+			PDI->DrawLine(Center + FVector(-Box.X, Box.Y, Box.Z), Center + FVector(-Box.X, Box.Y, -Box.Z), Color, SDPG_World);
+		}
+	}
+
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
@@ -381,7 +406,13 @@ public:
 			MeshBuilder.AddTriangles( ProxyData.MeshBuilders[Index].Indices );
 			MeshBuilder.Draw(PDI, FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View));
 		}
-
+		
+		for (int32 Index = 0; Index < ProxyData.OctreeBounds.Num(); ++Index)
+		{
+			FBoxCenterAndExtent& Bounds = ProxyData.OctreeBounds[Index];
+			DrawDebugBox(PDI, Bounds.Center, Bounds.Extent, FColor::White);
+		}
+		
 		FHitProxyId HitProxyId;
 		FBatchedElements BatchedElements;
 		int32 Num = ProxyData.NavMeshEdgeLines.Num();
@@ -501,6 +532,12 @@ public:
 				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
 				const bool bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
+
+				for (int32 Index = 0; Index < ProxyData.OctreeBounds.Num(); ++Index)
+				{
+					const FBoxCenterAndExtent& Bounds = ProxyData.OctreeBounds[Index];
+					DrawDebugBox(PDI, Bounds.Center, Bounds.Extent, FColor::White);
+				}
 
 				// Draw Mesh
 				for (int32 Index = 0; Index < MeshBatchElements.Num(); ++Index)

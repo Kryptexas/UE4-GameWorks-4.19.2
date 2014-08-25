@@ -9,6 +9,7 @@
 #include "NavigationOctree.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "AI/Navigation/RecastNavMeshGenerator.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #include "NavMeshRenderingHelpers.h"
 
@@ -109,6 +110,31 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 		CurrentData->NavMeshDrawOffset.Z += NavMesh->GetConfig().AgentRadius / 10.f;
 
 		NavMesh->BeginBatchQuery();
+
+		if (NavMesh->bDrawOctree)
+		{
+			const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+			const FNavigationOctree* NavOctree = NavSys ? NavSys->GetNavOctree() : NULL;
+
+			for (FNavigationOctree::TConstIterator<> NodeIt(*NavOctree); NodeIt.HasPendingNodes(); NodeIt.Advance())
+			{
+				const FNavigationOctree::FNode& CurrentNode = NodeIt.GetCurrentNode();
+				const int32 CurrentNodeElementCount = CurrentNode.GetElementCount();
+				const FOctreeNodeContext& CorrentContext = NodeIt.GetCurrentContext();
+				CurrentData->OctreeBounds.Add(CorrentContext.Bounds);
+
+				FOREACH_OCTREE_CHILD_NODE(ChildRef)
+				{
+					auto Context = CorrentContext.GetChildContext(ChildRef);
+					auto Child = CurrentNode.GetChild(ChildRef);
+					if (CurrentNode.HasChild(ChildRef))
+					{
+						NodeIt.PushChild(ChildRef);
+					}
+				}
+			}
+		}
+
 		NavMesh->GetDebugGeometry(CurrentData->NavMeshGeometry);
 		const TArray<FVector>& MeshVerts = CurrentData->NavMeshGeometry.MeshVerts;
 
