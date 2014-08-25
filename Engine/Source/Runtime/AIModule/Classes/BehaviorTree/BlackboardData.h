@@ -115,4 +115,7 @@ protected:
 
 	/** updates parent key cache for editor */
 	void UpdateParentKeys();
+
+	/** check if parent chain contains given blackboard data */
+	bool HasParent(const UBlackboardData* TestParent) const;
 };

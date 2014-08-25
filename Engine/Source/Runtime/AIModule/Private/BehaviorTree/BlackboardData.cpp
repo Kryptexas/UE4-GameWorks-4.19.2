@@ -110,6 +110,15 @@ void UBlackboardData::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UBlackboardData, Parent))
 	{
+		// look for cycles
+		if (Parent && Parent->HasParent(this))
+		{
+			UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has (%s) in parent chain! Clearing value to avoid cycle."),
+				*GetNameSafe(Parent), *GetNameSafe(this));
+
+			Parent = NULL;
+		}
+
 		UpdateParentKeys();
 	}
 }
@@ -135,6 +144,16 @@ static bool ContainsKeyName(FName KeyName, const TArray<FBlackboardEntry>& Keys,
 	}
 
 	return false;
+}
+
+bool UBlackboardData::HasParent(const UBlackboardData* TestParent) const
+{
+	if (Parent == TestParent)
+	{
+		return true;
+	}
+
+	return Parent ? Parent->HasParent(TestParent) : false;
 }
 
 void UBlackboardData::UpdateParentKeys()
