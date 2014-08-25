@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	IOSPlatformProcess.mm: iOS implementations of Process functions
+IOSPlatformProcess.cpp: iOS implementations of Process functions
 =============================================================================*/
 
 #include "Core.h"
@@ -86,3 +86,150 @@ void FIOSPlatformProcess::SetupGameOrRenderThread(bool bIsRenderThread)
 	Sched.sched_priority = bIsRenderThread ? RENDER_THREAD_PRIORITY : GAME_THREAD_PRIORITY;
 	pthread_setschedparam(pthread_self(), Policy, &Sched);
 }
+
+
+void FIOSPlatformProcess::SetThreadAffinityMask(uint64 AffinityMask)
+{
+	if ([IOSAppDelegate GetDelegate].OSVersion >= 8 && FPlatformMisc::NumberOfCores() > 1)
+	{
+		thread_affinity_policy AP;
+		AP.affinity_tag = AffinityMask;
+		thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_AFFINITY_POLICY, (integer_t*)&AP, THREAD_AFFINITY_POLICY_COUNT);
+	}
+	else
+	{
+		FGenericPlatformProcess::SetThreadAffinityMask(AffinityMask);
+	}
+}
+
+const uint64 FIOSPlatformAffinity::GetMainGameMask()
+{
+	return MAKEAFFINITYMASK1(0);
+}
+
+const uint64 FIOSPlatformAffinity::GetRenderingThreadMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+		case 3:
+			Mask = MAKEAFFINITYMASK1(1);
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetRenderingThreadMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+
+const uint64 FIOSPlatformAffinity::GetRTHeartBeatMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+		case 3:
+			Mask = MAKEAFFINITYMASK1(0);
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetRTHeartBeatMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+
+const uint64 FIOSPlatformAffinity::GetPoolThreadMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+			Mask = MAKEAFFINITYMASK1(1);
+			break;
+		case 3:
+			Mask = MAKEAFFINITYMASK1(2);
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetPoolThreadMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+
+const uint64 FIOSPlatformAffinity::GetTaskGraphThreadMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+			Mask = MAKEAFFINITYMASK1(1);
+			break;
+		case 3:
+			Mask = MAKEAFFINITYMASK1(2);
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetTaskGraphThreadMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+
+const uint64 FIOSPlatformAffinity::GetStatsThreadMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+			Mask = MAKEAFFINITYMASK1(0);
+			break;
+		case 3:
+			Mask = MAKEAFFINITYMASK1(2);
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetStatsThreadMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+
+const uint64 FIOSPlatformAffinity::GetNoAffinityMask()
+{
+	static int Mask = 0;
+	if (Mask == 0)
+	{
+		switch (FPlatformMisc::NumberOfCores())
+		{
+		case 2:
+		case 3:
+			Mask = (1 << FPlatformMisc::NumberOfCores()) - 1;
+			break;
+		default:
+			Mask = FGenericPlatformAffinity::GetNoAffinityMask();
+			break;
+		}
+	}
+
+	return Mask;
+}
+

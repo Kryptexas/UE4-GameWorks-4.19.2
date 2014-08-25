@@ -5,29 +5,6 @@
 class IFileHandle;
 class FApplePlatformFile;
 
-/** 
- * iOS file handle implementation
-**/
-class CORE_API FFileHandleIOS : public IFileHandle
-{
-	enum {READWRITE_SIZE = 1024 * 1024};
-	int32 FileHandle;
-
-	FORCEINLINE bool IsValid()
-	{
-		return FileHandle != -1;
-	}
-
-public:
-	FFileHandleIOS(int32 InFileHandle = -1);
-	virtual ~FFileHandleIOS();
-
-	virtual int64 Tell() override;
-	virtual bool Seek(int64 NewPosition) override;
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override;
-	virtual bool Read(uint8* Destination, int64 BytesToRead) override;
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) override;
-};
 
 /**
  * iOS File I/O implementation

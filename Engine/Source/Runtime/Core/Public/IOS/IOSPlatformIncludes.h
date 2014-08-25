@@ -99,8 +99,6 @@ struct RECT
 #include "IOS/IOSPlatformHttp.h"
 #import "IOSPlatformString.h"
 
-typedef FGenericPlatformAffinity FPlatformAffinity;
-
 // include platform properties and typedef it for the runtime
 
 #include "IOS/IOSPlatformProperties.h"

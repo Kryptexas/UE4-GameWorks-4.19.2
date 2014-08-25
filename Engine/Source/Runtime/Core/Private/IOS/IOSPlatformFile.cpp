@@ -11,75 +11,327 @@
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime IOSEpoch(1970, 1, 1);
 
+
+
+
+/* FIOSFileHandle class
+ *****************************************************************************/
+
 /** 
- * iOS file handle implementation
-**/
-FFileHandleIOS::FFileHandleIOS(int32 InFileHandle)
-	: FileHandle(InFileHandle)
-{
-}
+ * Managed IOS file handle implementation which limits number of open files. This
+ * is to prevent running out of system file handles (700). Should not be neccessary when 
+ * using pak file (e.g., SHIPPING?) so not particularly optimized. Only manages 
+ * files which are opened READ_ONLY.
+ **/
+#define MANAGE_FILE_HANDLES 1 // !UE_BUILD_SHIPPING
 
-FFileHandleIOS::~FFileHandleIOS()
+struct FManagedFile
 {
-	close(FileHandle);
-	FileHandle = -1;
-}
+	int32 Handle;
+	uint32 ID;
+	double AccessTime;
+};
 
-int64 FFileHandleIOS::Tell()
+class FIOSFileHandle : public IFileHandle
 {
-	check(IsValid());
-	return lseek(FileHandle, 0, SEEK_CUR);
-}
+	static const int32 READWRITE_SIZE = 1024 * 1024;
+	static const int32 ACTIVE_HANDLE_COUNT_PER_THREAD = 100;
 
-bool FFileHandleIOS::Seek(int64 NewPosition)
-{
-	check(IsValid());
-	check(NewPosition >= 0);
-	return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
-}
+public:
 
-bool FFileHandleIOS::SeekFromEnd(int64 NewPositionRelativeToEnd)
-{
-	check(IsValid());
-	check(NewPositionRelativeToEnd <= 0);
-	return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
-}
-
-bool FFileHandleIOS::Read(uint8* Destination, int64 BytesToRead)
-{
-	check(IsValid());
-	while (BytesToRead)
+	FIOSFileHandle( int32 InFileHandle, const FString& InFilename, bool bIsForRead )
+		: FileHandle(InFileHandle)
+#if !UE_BUILD_SHIPPING || MANAGE_FILE_HANDLES
+		, Filename(InFilename)
+#endif
+#if MANAGE_FILE_HANDLES
+        , HandleSlot(-1)
+        , FileSize(0)
+#endif
 	{
-		check(BytesToRead >= 0);
-		int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToRead);
-		check(Destination);
-		if (read(FileHandle, Destination, ThisSize) != ThisSize)
-		{
-			return false;
-		}
-		Destination += ThisSize;
-		BytesToRead -= ThisSize;
-	}
-	return true;
-}
+		check(FileHandle != 0);
 
-bool FFileHandleIOS::Write(const uint8* Source, int64 BytesToWrite)
-{
-	check(IsValid());
-	while (BytesToWrite)
-	{
-		check(BytesToWrite >= 0);
-		int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToWrite);
-		check(Source);
-		if (write(FileHandle, Source, ThisSize) != ThisSize)
+#if MANAGE_FILE_HANDLES
+
+		static uint32 NextID = 1;
+		FileID = NextID++;
+
+		// get the per-thread buffers
+		ManagedFiles = (FManagedFile*)FPlatformTLS::GetTlsValue(ManagedFilesTlsSlot);
+
+		// not made yet on this thread, make the buffers now
+		if (ManagedFiles == NULL)
 		{
-			return false;
+			ManagedFiles = new FManagedFile[ACTIVE_HANDLE_COUNT_PER_THREAD];
+			FMemory::Memzero(ManagedFiles, sizeof(FManagedFile) * ACTIVE_HANDLE_COUNT_PER_THREAD);
+			FPlatformTLS::SetTlsValue(ManagedFilesTlsSlot, ManagedFiles);
 		}
-		Source += ThisSize;
-		BytesToWrite -= ThisSize;
+
+        // Only files opened for read will be managed
+        if( bIsForRead )
+        {
+            ReserveSlot();
+            ManagedFiles[HandleSlot].Handle = FileHandle;
+
+			struct stat FileInfo;
+			FileInfo.st_size = -1;
+			// check the read path
+			fstat(FileHandle, &FileInfo);
+			FileSize = FileInfo.st_size;
+        }
+#endif
+
+		Seek(0);
 	}
-	return true;
-}
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~FIOSFileHandle( )
+	{
+#if MANAGE_FILE_HANDLES
+        if( IsManaged() )
+        {
+            if( ManagedFiles[HandleSlot].ID == FileID )
+            {
+                close(FileHandle);
+				ManagedFiles[HandleSlot].ID = 0;
+            }
+        }
+        else
+#endif
+        {
+		    close(FileHandle);
+        }
+
+		FileHandle = -1;
+	}
+
+	bool InternalRead(uint8* Destination, int64 BytesToRead)
+	{
+		while (BytesToRead)
+		{
+			check(BytesToRead >= 0);
+			int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToRead);
+			check(Destination);
+			if (read(FileHandle, Destination, ThisSize) != ThisSize)
+			{
+				return false;
+			}
+			Destination += ThisSize;
+			BytesToRead -= ThisSize;
+		}
+		return true;
+	}
+
+public:
+
+	// Begin IFileHandle interface
+
+	virtual bool Read( uint8* Destination, int64 BytesToRead ) override
+	{
+ #if MANAGE_FILE_HANDLES
+       if( IsManaged() )
+        {
+            ActivateSlot();
+			lseek(FileHandle, FileOffset, SEEK_SET);
+			// read into the buffer, and make sure it worked
+			if (InternalRead(Destination, BytesToRead))
+			{
+				FileOffset += BytesToRead;
+				return true;
+			}
+			return false;
+        }
+        else
+#endif
+        {
+		    return InternalRead(Destination, BytesToRead);
+        }
+	}
+
+	virtual bool Seek( int64 NewPosition ) override
+	{
+		check(NewPosition >= 0);
+
+#if MANAGE_FILE_HANDLES
+        if( IsManaged() )
+        {
+            FileOffset = NewPosition >= FileSize ? FileSize - 1 : NewPosition;
+            return true;
+        }
+        else
+#endif
+        {
+		    return (lseek(FileHandle, NewPosition, SEEK_SET) != -1);
+        }
+	}
+
+	virtual bool SeekFromEnd( int64 NewPositionRelativeToEnd = 0 ) override
+	{
+		check(NewPositionRelativeToEnd <= 0);
+
+#if MANAGE_FILE_HANDLES
+        if( IsManaged() )
+        {
+            FileOffset = (NewPositionRelativeToEnd >= FileSize) ? 0 : ( FileSize + NewPositionRelativeToEnd - 1 );
+            return true;
+        }
+        else
+#endif
+        {
+		    return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
+        }
+	}
+
+	virtual int64 Size( ) override
+	{
+#if MANAGE_FILE_HANDLES
+        if( IsManaged() )
+        {
+            return FileSize;
+        }
+        else
+#endif
+        {
+		    return IFileHandle::Size();
+        }
+	}
+
+	virtual int64 Tell( ) override
+	{
+#if MANAGE_FILE_HANDLES
+        if( IsManaged() )
+        {
+            return FileOffset;
+        }
+        else
+#endif
+        {
+		    return lseek(FileHandle, 0, SEEK_CUR);
+        }
+	}
+
+	virtual bool Write( const uint8* Source, int64 BytesToWrite ) override
+	{
+		while (BytesToWrite)
+		{
+			check(BytesToWrite >= 0);
+			int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToWrite);
+			check(Source);
+			if (write(FileHandle, Source, ThisSize) != ThisSize)
+			{
+				return false;
+			}
+			Source += ThisSize;
+			BytesToWrite -= ThisSize;
+		}
+		return true;
+	}
+
+	// End IFileHandle interface
+
+private:
+
+#if MANAGE_FILE_HANDLES
+    FORCEINLINE bool IsManaged()
+    {
+        return HandleSlot != -1;
+    }
+
+    void ActivateSlot()
+    {
+        if( IsManaged() )
+        {
+            if( ManagedFiles[HandleSlot].ID != FileID )
+            {
+				ReserveSlot();
+                
+				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY);
+
+				if (FileHandle != -1)
+                {
+                    ManagedFiles[HandleSlot].Handle = FileHandle;
+                }
+            }
+            else
+            {
+                ManagedFiles[HandleSlot].AccessTime = FPlatformTime::Seconds();
+            }
+        }
+    }
+
+    void ReserveSlot()
+    {
+        HandleSlot = -1;
+
+        // Look for non-reserved slot
+        for( int32 i = 0; i < ACTIVE_HANDLE_COUNT_PER_THREAD; ++i )
+        {
+            if( ManagedFiles[i].ID == 0 )
+            {
+                HandleSlot = i;
+                break;
+            }
+        }
+
+        // Take the oldest handle
+        if( HandleSlot == -1 )
+        {
+            int32 Oldest = 0;
+            for( int32 i = 1; i < ACTIVE_HANDLE_COUNT_PER_THREAD; ++i )
+            {
+                if( ManagedFiles[Oldest].AccessTime > ManagedFiles[i].AccessTime )
+                {
+                    Oldest = i;
+                }
+            }
+
+            close( ManagedFiles[Oldest].Handle );
+            HandleSlot = Oldest;
+        }
+
+        ManagedFiles[HandleSlot].ID = FileID;
+        ManagedFiles[HandleSlot].AccessTime = FPlatformTime::Seconds();
+    }
+#endif
+
+private:
+
+	// Holds the internal file handle.
+	int32 FileHandle;
+
+#if !UE_BUILD_SHIPPING || MANAGE_FILE_HANDLES
+	// Holds the name of the file that this handle represents. Kept around for possible reopen of file.
+	FString Filename;
+#endif
+
+#if MANAGE_FILE_HANDLES
+    // Most recent valid slot index for this handle; >=0 for handles which are managed.
+    int32 HandleSlot;
+
+    // Current file offset; valid iff a managed handle.
+    int64 FileOffset;
+
+    // Cached file size; valid iff a managed handle.
+    int64 FileSize;
+
+    // Each thread keeps a collection of active handles with access times.
+    FManagedFile* ManagedFiles;
+
+	// Unique FileID for this file (since handles aren't unique)
+	uint32 FileID;
+
+	static int32 ManagedFilesTlsSlot;
+#endif
+};
+
+#if MANAGE_FILE_HANDLES
+int32 FIOSFileHandle::ManagedFilesTlsSlot = FPlatformTLS::AllocTlsSlot();
+#endif
+
+
+
 
 
 /**
@@ -263,17 +515,20 @@ FDateTime FIOSPlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 IFileHandle* FIOSPlatformFile::OpenRead(const TCHAR* Filename)
 {
 	FString NormalizedFilename = NormalizeFilename(Filename);
+
 	// check the read path
-	int32 Handle = open(TCHAR_TO_UTF8(*ConvertToIOSPath(NormalizedFilename, false)), O_RDONLY);
+	FString FinalPath = ConvertToIOSPath(NormalizedFilename, false);
+	int32 Handle = open(TCHAR_TO_UTF8(*FinalPath), O_RDONLY);
 	if(Handle == -1)
 	{
 		// if not in the read path, check the write path
-		Handle = open(TCHAR_TO_UTF8(*ConvertToIOSPath(NormalizedFilename, true)), O_RDONLY);
+		FinalPath = ConvertToIOSPath(NormalizedFilename, true);
+		Handle = open(TCHAR_TO_UTF8(*FinalPath), O_RDONLY);
 	}
 
 	if (Handle != -1)
 	{
-		return new FFileHandleIOS(Handle);
+		return new FIOSFileHandle(Handle, FinalPath, true);
 	}
 	return NULL;
 }
@@ -301,7 +556,7 @@ IFileHandle* FIOSPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bo
 	int32 Handle = open(TCHAR_TO_UTF8(*IOSFilename), Flags, S_IRUSR | S_IWUSR);
 	if (Handle != -1)
 	{
-		FFileHandleIOS* FileHandleIOS = new FFileHandleIOS(Handle);
+		FIOSFileHandle* FileHandleIOS = new FIOSFileHandle(Handle, IOSFilename, false);
 		if (bAppend)
 		{
 			FileHandleIOS->SeekFromEnd(0);
