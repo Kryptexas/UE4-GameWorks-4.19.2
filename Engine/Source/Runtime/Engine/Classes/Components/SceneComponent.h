@@ -342,7 +342,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual void DetachFromParent(bool bMaintainWorldPosition = false);
 
-#if WITH_BODY_WELDING
 	/**
 	*   Welds this component to another scene component, optionally at a named socket. Component is automatically attached if not already
 	*	Welding allows the child physics object to become physically connected to its parent. This is useful for creating compound rigid bodies with correct mass distribution.
@@ -350,13 +349,13 @@ public:
 	*   @param InSocketName optional socket to attach component to
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
-	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None){}
+	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/**
 	*   UnWelds this component from its parent component. Attachment is maintained (DetachFromParent automatically unwelds)
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
-	virtual void UnWeldFromParent(){}
+	virtual void UnWeldFromParent();
 
 
 	/**
@@ -371,7 +370,6 @@ public:
 	*/
 	//virtual bool WeldPhysicsBody(USceneComponent * ChildComponent, bool bWeld = true, FName ParentBoneName = NAME_None, FName ChildBoneName = NAME_None) { return false; }
 
-#endif
 
 	/** 
 	 * Gets the names of all the sockets on the component.

@@ -275,20 +275,11 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 	}
 }
 
-#if WITH_BODY_WELDING
 void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */, TArray<physx::PxShape*> * NewShapes /* = NULL */ )
-#else
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D)
-#endif
 {
 #if WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
 	CreatePhysicsMeshes();
-#endif
-
-#if WITH_BODY_WELDING
-#else
-	FTransform * RelativeTM = NULL;	//code below already handles NULL case, just using ifdef to make it clear that the non NULL case isn't really supported yet
 #endif
 
 	float MinScale;
@@ -340,12 +331,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 				ensure(PLocalPose.isValid());
 				PxShape* NewShape = PDestActor->createShape(PSphereGeom, *PDefaultMat, PLocalPose);
-#if WITH_BODY_WELDING
+				
 				if (NewShapes)
 				{
 					NewShapes->Add(NewShape);
 				}
-#endif
 
 				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
 				NewShape->setContactOffset(ContactOffset);
@@ -376,12 +366,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 				ensure(PLocalPose.isValid());
 				PxShape* NewShape = PDestActor->createShape(PBoxGeom, *PDefaultMat, PLocalPose);
-#if WITH_BODY_WELDING
+	
 				if (NewShapes)
 				{
 					NewShapes->Add(NewShape);
 				}
-#endif
 
 				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
 				NewShape->setContactOffset(ContactOffset);
@@ -424,12 +413,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 					ensure(PLocalPose.isValid());
 					PxShape* NewShape = PDestActor->createShape(PCapsuleGeom, *PDefaultMat, PLocalPose);
-#if WITH_BODY_WELDING
+	
 					if (NewShapes)
 					{
 						NewShapes->Add(NewShape);
 					}
-#endif
 
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
 					NewShape->setContactOffset(ContactOffset);
@@ -471,12 +459,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 						ensure(PLocalPose.isValid());
 						PxShape* NewShape = PDestActor->createShape(PConvexGeom, *PDefaultMat, PLocalPose);
-#if WITH_BODY_WELDING
+	
 						if (NewShapes)
 						{
 							NewShapes->Add(NewShape);
 						}
-#endif
 
 						const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
 						NewShape->setContactOffset(ContactOffset);

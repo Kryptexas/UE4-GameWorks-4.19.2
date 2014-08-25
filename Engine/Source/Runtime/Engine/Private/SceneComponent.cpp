@@ -70,6 +70,15 @@ void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 {
 }
 
+void USceneComponent::WeldTo(class USceneComponent* InParent, FName InSocketName)
+{
+}
+
+void USceneComponent::UnWeldFromParent()
+{
+
+}
+
 void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent * Parent, bool bSkipPhysicsMove)
 {
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
@@ -725,11 +734,12 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		{
 			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
 			//At runtime we must not attach physically simulated objects as it will cause double transform updates, and you should just use a physical constraint if attachment is the desired behavior.
+			//Note that if bAutoWeld is true then it means that they actually do want the bodies to be simulated together, in which case we should not break the attachment
 			//We must fixup the relative location,rotation,scale as the attachment is no longer valid. Blueprint uses simple construction to try and attach before ComponentToWorld has ever been updated, so we cannot rely on it.
 			//As such we must calculate the proper Relative information
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
 			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && GetWorld() && GetWorld()->IsGameWorld())
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !PrimitiveComponent->BodyInstance.bAutoWeld && GetWorld() && GetWorld()->IsGameWorld())
 			{
 				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
 				UpdateComponentToWorldWithParent(Parent, false);
@@ -828,6 +838,17 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		// calculate transform with new attachment condition
 		UpdateComponentToWorld();
 
+		if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
+		{
+			if (FBodyInstance * BI = PrimitiveComponent->GetBodyInstance())
+			{
+				if (BI->bAutoWeld)
+				{
+					PrimitiveComponent->WeldToInternal(AttachParent, AttachSocketName);
+				}
+			}
+		}
+
 		// Update overlaps, in case location changed or overlap state depends on attachment.
 		if (IsRegistered())
 		{
@@ -845,6 +866,8 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 {
 	if(AttachParent != NULL)
 	{
+		UnWeldFromParent();
+
 		// Make sure parent points to us if we're registered
 		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (GetOwner() ? *GetOwner()->GetName() : TEXT("Unowned")), *AttachParent->GetName());
 

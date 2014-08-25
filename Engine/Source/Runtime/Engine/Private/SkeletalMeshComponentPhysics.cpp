@@ -1509,7 +1509,6 @@ FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName) const
 	return BodyInst;
 }
 
-#if WITH_BODY_WELDING
 void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
 {
 	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
@@ -1546,7 +1545,6 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 		}
 	}
 }
-#endif
 
 
 void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName)

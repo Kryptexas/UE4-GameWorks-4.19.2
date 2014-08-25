@@ -197,10 +197,8 @@ FBodyInstance::FBodyInstance()
 , bUseCCD(false)
 , bNotifyRigidBodyCollision(false)
 , bSimulatePhysics(false)
-#if WITH_BODY_WELDING
 , bAutoWeld(false)
 , bWelded(false)
-#endif
 , bStartAwake(true)
 , bEnableGravity(true)
 , bUseAsyncScene(false)
@@ -902,7 +900,6 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	// whenever update filter, this check will trigger, it seems it's best to know when we initialize body instead. 
 	check(BodySetup.IsValid());
 
-#if WITH_BODY_WELDING
 	if(bAutoWeld)
 	{
 		UPrimitiveComponent * ParentPrimComponent = PrimComp ? Cast<UPrimitiveComponent>(PrimComp->AttachParent) : NULL;
@@ -916,7 +913,6 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 			}
 		}
 	}
-#endif
 
 	USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
 	if (SkelMeshComp != nullptr)
@@ -1450,7 +1446,6 @@ void FBodyInstance::TermBody()
 	
 }
 
-#if WITH_BODY_WELDING
 bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 {
 	check(TheirBody);
@@ -1566,7 +1561,6 @@ void FBodyInstance::PostShapeChange()
 	// Update damping
 	UpdateDampingProperties();
 }
-#endif
 
 float AdjustForSmallThreshold(float NewVal, float OldVal)
 {

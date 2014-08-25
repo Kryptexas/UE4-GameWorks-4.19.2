@@ -587,11 +587,7 @@ public:
 	/** 
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
-#if WITH_BODY_WELDING
 	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform* RelativeTM = NULL, TArray<physx::PxShape*> * NewShapes = NULL);
-#else
-	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
-#endif
 #endif // WITH_PHYSX
 
 };

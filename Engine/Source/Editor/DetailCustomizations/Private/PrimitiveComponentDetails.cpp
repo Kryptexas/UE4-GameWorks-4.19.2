@@ -178,9 +178,7 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					}
 					else if (PropName == TEXT("AutoWeld"))
 					{
-#if WITH_BODY_WELDING
 						PhysicsCategory.AddProperty(ChildProperty);	//can't ifdef the property out so for now we just customize it to be hidden in UI
-#endif
 					}
 					else
 					{

@@ -136,9 +136,7 @@ UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeP
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
-#if WITH_BODY_WELDING
 	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
-#endif
 
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
@@ -260,6 +258,11 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 		check(AttachmentCounter.GetValue() == 0);
 		// Irrelevant lights were incorrect before VER_UE4_TOSS_IRRELEVANT_LIGHTS
 		IrrelevantLights.Empty();
+	}
+
+	if (Ar.UE4Ver() < VER_UE4_AUTO_WELDING)
+	{
+		GetBodyInstance()->bAutoWeld = false;	//existing content may rely on no auto welding
 	}
 }
 

@@ -598,6 +598,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS,
 	// USoundWave objects now contain details about compression scheme used.
 	VER_UE4_SOUND_COMPRESSION_TYPE_ADDED,
+	// Bodies will automatically weld when attached
+	VER_UE4_AUTO_WELDING,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
