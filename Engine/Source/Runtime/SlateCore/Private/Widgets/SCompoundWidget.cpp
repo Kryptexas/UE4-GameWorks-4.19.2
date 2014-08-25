@@ -65,3 +65,8 @@ SCompoundWidget::SCompoundWidget()
 	, ForegroundColor( FSlateColor::UseForeground() )
 {
 }
+
+void SCompoundWidget::SetVisibility( TAttribute<EVisibility> InVisibility )
+{
+	SWidget::SetVisibility( InVisibility );
+}

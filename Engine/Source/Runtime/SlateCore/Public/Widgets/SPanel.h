@@ -66,4 +66,7 @@ protected:
 
 	/** Hidden default constructor. */
 	SPanel( ) { }
+
+public:
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final;
 };

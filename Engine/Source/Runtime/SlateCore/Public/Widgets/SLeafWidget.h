@@ -13,6 +13,9 @@ class SLATECORE_API SLeafWidget
 	: public SWidget
 {
 public:
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final;
+
+private:
 
 	// Begin SWidget overrides
 

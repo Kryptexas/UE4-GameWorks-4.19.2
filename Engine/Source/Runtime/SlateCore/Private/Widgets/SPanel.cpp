@@ -48,3 +48,9 @@ int32 SPanel::PaintArrangedChildren( const FPaintArgs& Args, const FArrangedChil
 	
 	return MaxLayerId;
 }
+
+
+void SPanel::SetVisibility( TAttribute<EVisibility> InVisibility )
+{
+	SWidget::SetVisibility( InVisibility );
+}

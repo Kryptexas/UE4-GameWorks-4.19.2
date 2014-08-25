@@ -555,7 +555,7 @@ public:
 	}
 
 	/** @param InVisibility  should this widget be */
-	void SetVisibility( TAttribute<EVisibility> InVisibility )
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility )
 	{
 		Visibility = InVisibility;
 	}

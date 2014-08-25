@@ -12,6 +12,11 @@ FNoChildren SLeafWidget::NoChildrenInstance;
 /* SLeafWidget interface
  *****************************************************************************/
 
+void SLeafWidget::SetVisibility( TAttribute<EVisibility> InVisibility )
+{
+	SWidget::SetVisibility( InVisibility );
+}
+
 FChildren* SLeafWidget::GetChildren( )
 {
 	return &SLeafWidget::NoChildrenInstance;
