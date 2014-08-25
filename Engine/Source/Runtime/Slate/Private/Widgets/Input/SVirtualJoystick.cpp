@@ -444,7 +444,7 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 	}
 }
 
-void SVirtualJoystick::SetVisibility(const bool bInVisible, const bool bInFade)
+void SVirtualJoystick::SetJoystickVisibility(const bool bInVisible, const bool bInFade)
 {
 	// if we aren't fading, then just set the current opacity to desired
 	if (!bInFade)

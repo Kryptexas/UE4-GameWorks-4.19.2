@@ -2886,7 +2886,7 @@ void APlayerController::ClientSetCinematicMode_Implementation(bool bInCinematicM
 		ULocalPlayer* LocPlayer = Cast<ULocalPlayer>(Player);
 		if (VirtualJoystick.IsValid())
 		{
-			VirtualJoystick->SetVisibility(MyHUD->bShowHUD, true);
+			VirtualJoystick->SetJoystickVisibility(MyHUD->bShowHUD, true);
 		}
 	}
 
@@ -4239,7 +4239,7 @@ void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
 {
 	if (VirtualJoystick.IsValid())
 	{
-		VirtualJoystick->SetVisibility(bVisible, false);
+		VirtualJoystick->SetJoystickVisibility(bVisible, false);
 	}
 }
 

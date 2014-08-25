@@ -100,7 +100,7 @@ public:
 	/** 
 	 * Shows or hides the controls (for instance during cinematics
 	 */
-	void SetVisibility(const bool bVisible, const bool bFade);
+	void SetJoystickVisibility(const bool bVisible, const bool bFade);
 
 	void AddControl(const FControlInfo& Control)
 	{
