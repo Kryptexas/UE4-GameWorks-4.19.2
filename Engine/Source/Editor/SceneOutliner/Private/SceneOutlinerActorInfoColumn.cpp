@@ -67,7 +67,7 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 	const AActor* Actor = InActor.Get();
 	if ( Actor == nullptr )
 	{
-		return SNullWidget::NullWidget;
+		return SNew( SSpacer );
 	}
 
 	UClass* ObjectClass = Actor->GetClass();

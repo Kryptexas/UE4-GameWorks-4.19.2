@@ -67,7 +67,7 @@ TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* 
 
 TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr)
 {
-	TSharedRef<SWidget> SourceHyperlink = SNullWidget::NullWidget;
+	TSharedRef<SWidget> SourceHyperlink = SNew( SSpacer );
 	UBlueprint* Blueprint = (Class ? Cast<UBlueprint>(Class->ClassGeneratedBy) : nullptr);
 
 	if (Blueprint)
