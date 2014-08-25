@@ -58,11 +58,11 @@ public:
 #endif
 
 	/**
-	 * Constructor with no components initialized (garbage values)
+	 * Constructor with initialization to the identity transform.
 	 */
 	FORCEINLINE FTransform()
-		: Rotation(ForceInit)
-		, Translation(ForceInit)
+		: Rotation(0.f,0.f,0.f,1.f)
+		, Translation(0.f)
 		, Scale3D(1.f)
 	{
 		// Note: This can be used to track down initialization issues with bone atom arrays; but it will
@@ -77,7 +77,7 @@ public:
 	}
 
 	/**
-	 * Constructor with all components initialized
+	 * Constructor with an initial translation
 	 *
 	 * @param InTranslation The value to use for the translation component
 	 */
@@ -90,7 +90,7 @@ public:
 	}
 
 	/**
-	 * Constructor with all components initialized
+	 * Constructor with an initial rotation
 	 *
 	 * @param InRotation The value to use for rotation component
 	 */
@@ -103,7 +103,7 @@ public:
 	}
 
 	/**
-	 * Constructor with all components initialized
+	 * Constructor with an initial rotation
 	 *
 	 * @param InRotation The value to use for rotation component  (after being converted to a quaternion)
 	 */
@@ -131,7 +131,7 @@ public:
 	}
 
 	/**
-	 * Constructor taking a FRotator as the rotation component
+	 * Constructor with all components initialized, taking a FRotator as the rotation component
 	 *
 	 * @param InRotation The value to use for rotation component (after being converted to a quaternion)
 	 * @param InTranslation The value to use for the translation component
@@ -148,7 +148,7 @@ public:
 	/**
 	 * Copy-constructor
 	 *
-	 * @param InTransform The source atom from which all components will be copied
+	 * @param InTransform The source transform from which all components will be copied
 	 */
 	FORCEINLINE FTransform(const FTransform& InTransform) : 
 		Rotation(InTransform.Rotation), 
@@ -767,7 +767,7 @@ public:
 	}
 
 	/**
-	 * Set the translation and Scale3D components of this atom to a linearly interpolated combination of two other atoms
+	 * Set the translation and Scale3D components of this transform to a linearly interpolated combination of two other transforms
 	 *
 	 * Translation = FMath::Lerp(SourceAtom1.Translation, SourceAtom2.Translation, Alpha)
 	 * Scale3D = FMath::Lerp(SourceAtom1.Scale3D, SourceAtom2.Scale3D, Alpha)
@@ -827,7 +827,7 @@ public:
 	}
 
 	/**
-	 * Blends the Identity atom with a weighted source atom and accumulates that into a destination atom
+	 * Blends the Identity transform with a weighted source transform and accumulates that into a destination transform
 	 *
 	 * SourceAtom = Blend(Identity, SourceAtom, BlendWeight)
 	 * FinalAtom.Rotation = SourceAtom.Rotation * FinalAtom.Rotation
@@ -901,6 +901,7 @@ public:
 	 *
 	 * @return The rotation component
 	 */
+	DEPRECATED(4.5, "FTransform::GetRotationV() is deprecated, use FTransform::GetRotation() instead.")
 	FORCEINLINE FQuat GetRotationV() const
 	{
 		DiagnosticCheckNaN_Rotate();
@@ -913,6 +914,7 @@ public:
 	 *
 	 * @return The translation component
 	 */
+	DEPRECATED(4.5, "FTransform::GetTranslationV() is deprecated, use FTransform::GetTranslation() instead.")
 	FORCEINLINE FVector GetTranslationV() const
 	{
 		DiagnosticCheckNaN_Translate();
@@ -925,6 +927,7 @@ public:
 	 *
 	 * @return The Scale3D component
 	 */
+	DEPRECATED(4.5, "FTransform::GetScale3DV() is deprecated, use FTransform::GetScale3D() instead.")
 	FORCEINLINE FVector GetScale3DV() const
 	{
 		DiagnosticCheckNaN_Scale3D();
@@ -932,9 +935,9 @@ public:
 	}
 
 	/**
-	 * Sets the Rotation and Scale3D of this transformation from another atom
+	 * Sets the Rotation and Scale3D of this transformation from another transform
 	 *
-	 * @param SrcBA The atom to copy rotation and Scale3D from
+	 * @param SrcBA The transform to copy rotation and Scale3D from
 	 */
 	FORCEINLINE void CopyRotationPart(const FTransform& SrcBA)
 	{
@@ -946,9 +949,9 @@ public:
 	}
 
 	/**
-	 * Sets the Translation and Scale3D of this transformation from another atom
+	 * Sets the Translation and Scale3D of this transformation from another transform
 	 *
-	 * @param SrcBA The atom to copy translation and Scale3D from
+	 * @param SrcBA The transform to copy translation and Scale3D from
 	 */
 	FORCEINLINE void CopyTranslationAndScale3D(const FTransform& SrcBA)
 	{

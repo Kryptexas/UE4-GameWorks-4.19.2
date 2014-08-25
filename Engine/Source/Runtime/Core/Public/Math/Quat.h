@@ -41,21 +41,21 @@ public:
 	FORCEINLINE FQuat( ) { }
 
 	/**
-	 * Creates and initializes a new quaternion to zero.
+	 * Creates and initializes a new quaternion, with the W component either 0 or 1.
 	 *
-	 * @param EForceInit Force Init Enum.
+	 * @param EForceInit Force init enum: if equal to ForceInitToZero then W is 0, otherwise W = 1 (creating an identity transform)
 	 */
 	explicit FORCEINLINE FQuat( EForceInit );
 
 	/**
 	 * Constructor.
 	 *
-	 * @param InX x component of the axis.
-	 * @param InY y component of the axis.
-	 * @param InZ z component of the axis.
-	 * @param InA angle to rotate around the given axis.
+	 * @param InX X component of the quaternion
+	 * @param InY Y component of the quaternion
+	 * @param InZ Z component of the quaternion
+	 * @param InW W component of the quaternion
 	 */
-	FORCEINLINE FQuat( float InX, float InY, float InZ, float InA );
+	FORCEINLINE FQuat( float InX, float InY, float InZ, float InW );
 
 	/**
 	 * Copy constructor.
@@ -619,11 +619,11 @@ FORCEINLINE FQuat::FQuat( EForceInit ZeroOrNot )
 { }
 
 
-FORCEINLINE FQuat::FQuat( float InX, float InY, float InZ, float InA )
+FORCEINLINE FQuat::FQuat( float InX, float InY, float InZ, float InW )
 	: X(InX)
 	, Y(InY)
 	, Z(InZ)
-	, W(InA)
+	, W(InW)
 {
 	DiagnosticCheckNaN();
 }
