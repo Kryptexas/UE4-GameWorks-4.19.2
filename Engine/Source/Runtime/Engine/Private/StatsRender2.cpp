@@ -110,8 +110,8 @@ struct FStatRenderGlobals
 		HeadingColor(1.f,0.2f,0.f),
 		GroupColor(FLinearColor::White),
 		BackgroundColor(0.05f, 0.05f, 0.05f, 0.90f),	// dark gray mostly occluding the background
-		StatFontType(EStatFontTypes::NumFonts),
 		StatFont(nullptr),
+		StatFontType(EStatFontTypes::NumFonts),
 		bNeedRefresh(true)
 	{
 		SetNewFont( EStatFontTypes::Small );
