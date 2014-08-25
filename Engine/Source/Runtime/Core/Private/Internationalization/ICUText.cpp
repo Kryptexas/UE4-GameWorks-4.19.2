@@ -67,7 +67,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	return ResultText;
 }
 
-FText FText::AsTimespan(const FTimespan& Time, const FCulturePtr& TargetCulture)
+FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
@@ -75,10 +75,10 @@ FText FText::AsTimespan(const FTimespan& Time, const FCulturePtr& TargetCulture)
 
 	FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
 
-	double TotalHours = Time.GetTotalHours();
+	double TotalHours = Timespan.GetTotalHours();
 	int32 Hours = static_cast<int32>(TotalHours);
-	int32 Minutes = Time.GetMinutes();
-	int32 Seconds = Time.GetSeconds();
+	int32 Minutes = Timespan.GetMinutes();
+	int32 Seconds = Timespan.GetSeconds();
 
 	FNumberFormattingOptions NumberFormattingOptions;
 	NumberFormattingOptions.MinimumIntegralDigits = 2;
