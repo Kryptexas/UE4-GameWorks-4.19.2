@@ -536,7 +536,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 			FHitResult Result;
 
 			GetWorld()->SweepSingle(Result, Loc, Pos, FQuat::Identity, ECC_Camera, FCollisionShape::MakeBox(FVector(12.f)), BoxParams);
-			OutVT.POV.Location = (Result.GetActor() == NULL) ? Pos : Result.Location;
+			OutVT.POV.Location = !Result.bBlockingHit ? Pos : Result.Location;
 			OutVT.POV.Rotation = Rotator;
 
 			// don't apply modifiers when using this debug camera mode
