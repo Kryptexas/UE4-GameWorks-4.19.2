@@ -197,7 +197,10 @@ void ULevelStreaming::PostLoad()
 		const FString DeprecatedPackageNameString = PackageName_DEPRECATED.ToString();
 		if ( FPackageName::IsShortPackageName(PackageName_DEPRECATED) == false )
 		{
+			// Convert the FName reference to a TAssetPtr, then broadcast that we loaded a reference
+			// so this reference is gathered by the cooker without having to resave the package.
 			SetWorldAssetByPackageName(PackageName_DEPRECATED);
+			FCoreDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
 		}
 		else
 		{
