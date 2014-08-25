@@ -242,7 +242,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning)
+void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -254,7 +254,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
 
 	// If desired, update physics bodies associated with skeletal mesh component to match.
-	if( !bUpdateKinematics )
+	if( !bUpdateKinematics && !bForceUpdate)
 	{
 		// nothing to do 
 		return;
@@ -312,7 +312,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 				FBodyInstance* BodyInst = Bodies[i];
 				check(BodyInst);
 
-				if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
+				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true)))
 				{
 					// Find the graphics bone index that corresponds to this physics body.
 					FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;

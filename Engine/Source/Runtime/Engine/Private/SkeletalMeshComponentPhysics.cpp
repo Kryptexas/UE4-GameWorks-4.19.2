@@ -1330,7 +1330,7 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove )
 	{
-		UpdateKinematicBonesToPhysics(false, false);
+		UpdateKinematicBonesToPhysics(false, false, true);
 	}
 
 #if WITH_APEX_CLOTHING
