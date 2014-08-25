@@ -79,7 +79,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	}
 
 	// ES2 feature level emulation in D3D11
-	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 	{
 		GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
 		GRHIShaderPlatformValue = SP_PCD3D_ES2;

@@ -518,7 +518,7 @@ void FHZBOcclusionTester::SetInvalidFrameNumber()
 
 void FHZBOcclusionTester::InitDynamicRHI()
 {
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 #if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
@@ -531,7 +531,7 @@ void FHZBOcclusionTester::InitDynamicRHI()
 
 void FHZBOcclusionTester::ReleaseDynamicRHI()
 {
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		GRenderTargetPool.FreeUnusedResource( ResultsTextureCPU );
 	}
@@ -609,7 +609,7 @@ class FHZBTestPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -782,7 +782,7 @@ class THZBBuildPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -989,11 +989,11 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 		{
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		}
-    
-	    FSceneViewState* ViewState = (FSceneViewState*)View.State;
-    
-	    if(ViewState && !View.bDisableQuerySubmissions)
-	    {
+	
+		FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	
+		if(ViewState && !View.bDisableQuerySubmissions)
+		{
 			// Depth tests, no depth writes, no color writes, opaque, solid rasterization wo/ backface culling.
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
@@ -1089,12 +1089,12 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 					}
 				}
 			}
-    
-		    // Don't do primitive occlusion if we have a view parent or are frozen.
-    #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		    if ( !ViewState->HasViewParent() && !ViewState->bIsFrozen )
-    #endif
-		    {
+	
+			// Don't do primitive occlusion if we have a view parent or are frozen.
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if ( !ViewState->HasViewParent() && !ViewState->bIsFrozen )
+	#endif
+			{
 				VertexShader->SetParameters(RHICmdList, View);
 
 				{
@@ -1105,9 +1105,9 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 					SCOPED_DRAW_EVENT(GroupedQueries, DEC_SCENE_ITEMS);
 					View.GroupedOcclusionQueries.Flush(RHICmdList);
 				}
-		    }
-	    }
-    }
+			}
+		}
+	}
 
 	for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 	{

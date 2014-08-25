@@ -26,7 +26,7 @@ public:
 		{
 			return true;
 		}
-		else if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) )
+		else if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) )
 		{
 			return NumSamples <= 16;
 		}
@@ -617,7 +617,7 @@ uint32 FRCPassPostProcessWeightedSampleSum::GetMaxNumSamples(ERHIFeatureLevel::T
 	{
 		MaxNumSamples = MAX_FILTER_SAMPLES;
 	}
-	else if (InFeatureLevel >= ERHIFeatureLevel::SM3)
+	else if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		MaxNumSamples = 16;
 	}

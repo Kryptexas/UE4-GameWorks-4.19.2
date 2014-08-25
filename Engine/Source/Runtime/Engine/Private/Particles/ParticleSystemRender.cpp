@@ -540,7 +540,7 @@ FORCEINLINE FVector GetCameraOffsetFromPayload(
 	const FVector& InPosition,
 	const FVector& InCameraPosition )
 {
- 	checkSlow(InCameraPayloadOffset > 0);
+	checkSlow(InCameraPayloadOffset > 0);
 
 	FVector DirToCamera = InCameraPosition - InPosition;
 	float CheckSize = DirToCamera.SizeSquared();
@@ -1039,7 +1039,7 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
 {
 	const auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
-	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// Sort and generate particles for this view.
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
@@ -1416,7 +1416,7 @@ int32 FDynamicSpriteEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 
 	const auto FeatureLevel = View->GetFeatureLevel();
 
-	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM4;
 
 	if (bValid == false)
 	{
@@ -2002,7 +2002,7 @@ int32 FDynamicMeshEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy, F
 		return 0;
 	}
 
-	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM4;
 
 	int32 NumDraws = 0;
 	if (Source.EmitterRenderMode == ERM_Normal)
@@ -2077,7 +2077,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 	}
 
 	const auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
-	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM4;
 
 	int32 ParticleCount = Source.ActiveParticleCount;
 	if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
@@ -7741,7 +7741,7 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 	const FDynamicEmitterReplayDataBase& EmitterData = DynamicData->DynamicEmitterDataArray[Index]->GetSource();
 	if (EmitterData.bOverrideSystemMacroUV)
 	{
-	    MacroUVRadius = EmitterData.MacroUVRadius;
+		MacroUVRadius = EmitterData.MacroUVRadius;
 		MacroUVPosition = GetLocalToWorld().TransformVector(EmitterData.MacroUVPosition);
 	}
 
@@ -7753,7 +7753,6 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 		const FVector4 UpPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.ViewMatrix.GetColumn(1));
 		//checkSlow(RightPostProjectionPosition.X - ObjectPostProjectionPositionWithW.X >= 0.0f && UpPostProjectionPosition.Y - ObjectPostProjectionPositionWithW.Y >= 0.0f);
 
-        
 		// Scales to transform the view space positions corresponding to SystemPositionForMacroUVs +- SystemRadiusForMacroUVs into [0, 1] in xy
 		// Scales to transform the screen space positions corresponding to SystemPositionForMacroUVs +- SystemRadiusForMacroUVs into [0, 1] in zw
 		ObjectMacroUVScales = FVector2D(

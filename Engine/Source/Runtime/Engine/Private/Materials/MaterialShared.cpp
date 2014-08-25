@@ -449,7 +449,7 @@ bool FMaterial::MaterialModifiesMeshPosition_GameThread() const
 bool FMaterial::MaterialMayModifyMeshPosition() const
 {
 	// Conservative estimate when called before material translation has occurred. 
-    // This function is only intended for use in deciding whether or not shader permutations are required.
+	// This function is only intended for use in deciding whether or not shader permutations are required.
 	return HasVertexPositionOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation;
 }
 
@@ -909,7 +909,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
 
-	if (GetFeatureLevel() > ERHIFeatureLevel::ES2)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		if (GetShadingModel() == MSM_Unlit)
 		{
@@ -2285,11 +2285,11 @@ void FMaterialInstanceBasePropertyOverrides::UpdateHash(FSHA1& HashState) const
 		HashState.Update((const uint8*)&OpacityMaskClipValue, sizeof(OpacityMaskClipValue));
 	}
 
- 	if(bOverride_BlendMode)
+	if(bOverride_BlendMode)
 	{
 		const FString HashString = TEXT("bOverride_BlendMode");
- 		HashState.UpdateWithString(*HashString, HashString.Len());
- 		HashState.Update((const uint8*)&BlendMode, sizeof(BlendMode));
+		HashState.UpdateWithString(*HashString, HashString.Len());
+		HashState.Update((const uint8*)&BlendMode, sizeof(BlendMode));
 	}
 
 	if(bOverride_ShadingModel)

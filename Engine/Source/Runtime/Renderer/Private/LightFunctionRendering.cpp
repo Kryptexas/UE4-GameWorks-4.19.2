@@ -24,7 +24,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FLightFunctionVS( )	{ }
@@ -81,7 +81,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FLightFunctionPS() {}

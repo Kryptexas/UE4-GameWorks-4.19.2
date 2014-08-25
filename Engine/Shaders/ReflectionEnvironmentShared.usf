@@ -76,3 +76,21 @@ float3 GetSkySHDiffuse(float3 Normal)
 	// max to not get negative colors, maybe we can optimize to use saturate() and scale later or clamp this way: saturate(A/100)*100
 	return max(0, Intermediate0 + Intermediate1 + Intermediate2);
 }
+
+/**
+* Computes sky diffuse lighting from the SH irradiance map.
+* This has the SH basis evaluation and diffuse convolusion weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks"
+* Only does the first 3 components for speed.
+*/
+float3 GetSkySHDiffuseSimple(float3 Normal)
+{
+	float4 NormalVector = float4(Normal, 1);
+
+	float3 Intermediate0;
+	Intermediate0.x = dot(View.SkyIrradianceEnvironmentMap[0], NormalVector);
+	Intermediate0.y = dot(View.SkyIrradianceEnvironmentMap[1], NormalVector);
+	Intermediate0.z = dot(View.SkyIrradianceEnvironmentMap[2], NormalVector);		
+
+	// max to not get negative colors, maybe we can optimize to use saturate() and scale later or clamp this way: saturate(A/100)*100
+	return max(0, Intermediate0);
+}

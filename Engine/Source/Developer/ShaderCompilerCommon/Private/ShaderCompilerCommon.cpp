@@ -9,6 +9,30 @@
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
 
+int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT)
+{
+	auto CountLambda = [&](const TArray<uint32>& In)
+					{
+						int16 LastIndex = -1;
+						for (int32 i = 0; i < In.Num(); ++i)
+						{
+							auto BufferIndex = FRHIResourceTableEntry::GetUniformBufferIndex(In[i]);
+							if (BufferIndex != FRHIResourceTableEntry::GetEndOfStreamToken())
+							{
+								LastIndex = FMath::Max(LastIndex, (int16)BufferIndex);
+							}
+						}
+
+						return LastIndex + 1;
+					};
+	int16 Num = CountLambda(InSRT.SamplerMap);
+	Num = FMath::Max(Num, (int16)CountLambda(InSRT.ShaderResourceViewMap));
+	Num = FMath::Max(Num, (int16)CountLambda(InSRT.TextureMap));
+	Num = FMath::Max(Num, (int16)CountLambda(InSRT.UnorderedAccessViewMap));
+	return Num;
+}
+
+
 void BuildResourceTableTokenStream(const TArray<uint32>& InResourceMap, int32 MaxBoundResourceTable, TArray<uint32>& OutTokenStream)
 {
 	// First we sort the resource map.

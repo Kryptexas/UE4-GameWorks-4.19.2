@@ -139,7 +139,7 @@ class FCopySceneColorPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopySceneColorPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
 
 	FCopySceneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -739,7 +739,7 @@ void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneI
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
 	if(bUseSeparateTranslucency 
-		&& FeatureLevel >= ERHIFeatureLevel::SM3)
+		&& FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// add to list of translucent prims that use scene color
 		new(SortedSeparateTranslucencyPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
@@ -747,7 +747,7 @@ void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneI
 
 	if (bUseNormalTranslucency 
 		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM3))
+		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4))
 	{
 		// add to list of translucent prims
 		new(SortedPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());

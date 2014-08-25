@@ -65,7 +65,7 @@ struct FVertexFactoryInterpolantsVSToPS
 	float4 SubUV1AndLerp : TEXCOORD2;
 #else
 	#if NUM_MATERIAL_TEXCOORDS
-			#if ES2_PROFILE
+			#if (ES2_PROFILE || ES3_1_PROFILE)
 				// Avoid dependent texture fetches, put all UVs in xy
 				float2	TexCoords[NUM_MATERIAL_TEXCOORDS] : TEXCOORD0;
 			#else
@@ -148,7 +148,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.Particle.SubUVCoords[1] = Interpolants.SubUV1AndLerp.xy;
 	Result.Particle.SubUVLerp = Interpolants.SubUV1AndLerp.z;
 #elif NUM_MATERIAL_TEXCOORDS
-	#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		UNROLL
 		for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++ )
 		{
@@ -382,7 +382,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	FVertexFactoryInterpolantsVSToPS Interpolants;
 
 #if USE_PARTICLE_SUBUVS
-    Interpolants.SubUV0AndTexCoord0.xy = Intermediates.SubUVCoords.xy;
+	Interpolants.SubUV0AndTexCoord0.xy = Intermediates.SubUVCoords.xy;
 	Interpolants.SubUV1AndLerp.xy = Intermediates.SubUVCoords.zw;
 	Interpolants.SubUV1AndLerp.zw = Intermediates.SubUVLerp.xx;
 
@@ -394,7 +394,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		Interpolants.SubUV0AndTexCoord0.zw = 0;
 	#endif
 #elif NUM_MATERIAL_TEXCOORDS
-	#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		GetMaterialCustomizedUVs(VertexParameters, Interpolants.TexCoords);
 	#else
 		// Ensure the unused components of the last packed texture coordinate are initialized.

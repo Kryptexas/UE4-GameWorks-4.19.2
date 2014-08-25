@@ -29,12 +29,12 @@ public:
 		if (bUsePositionOnlyStream)
 		{
 			return VertexFactoryType->SupportsPositionOnly() && Material->IsSpecialEngineMaterial() 
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		// Only compile for the default material and masked materials
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
-			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView& View)
@@ -106,7 +106,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Compile for materials that are masked.
-		return Material->IsMasked() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsMasked() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

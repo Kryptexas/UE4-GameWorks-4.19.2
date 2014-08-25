@@ -140,7 +140,7 @@ static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDe
 
 inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (InFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		return GParticleSpriteVertexDeclarationInstanced;
 	}
@@ -177,7 +177,7 @@ void FParticleSpriteVertexFactory::InitRHI()
 
 void FParticleSpriteVertexFactory::InitStreams()
 {
-	const bool bInstanced = GetFeatureLevel() >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = GetFeatureLevel() >= ERHIFeatureLevel::SM4;
 
 	check(Streams.Num() == 0);
 	if(bInstanced) 

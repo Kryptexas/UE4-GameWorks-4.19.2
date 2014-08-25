@@ -129,7 +129,8 @@ struct FRHIUniformBufferLayout
 		if (!bComputedHash)
 		{
 			uint32 TmpHash = ConstantBufferSize;
-			TmpHash ^= ResourceOffset;
+			// This is to account for 32vs64 bits difference in pointer sizes.
+			TmpHash ^= Align(ResourceOffset, 8);
 			uint32 N = Resources.Num();
 			while (N >= 4)
 			{

@@ -20,7 +20,7 @@ public:
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -134,7 +134,7 @@ public:
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -220,7 +220,7 @@ public:
 	}
 
 private:
- 	FShaderParameter LightMapDensity;
+	FShaderParameter LightMapDensity;
 	FShaderParameter BuiltLightingAndSelectedFlags;
 	FShaderParameter DensitySelectedColor;
 	FShaderParameter LightMapResolutionScale;

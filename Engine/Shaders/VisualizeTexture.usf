@@ -93,15 +93,15 @@ void VisualizeTexturePS(
 	int InputValueMapping = (int)VisualizeParam[2].r;
 	if(InputValueMapping == 1)
 	{
-#if FEATURE_LEVEL > FEATURE_LEVEL_ES2
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 		// current z buffer is negated (1 is near, 0 is far)
 		float Depth = 1 - TexLookup.r;
 
 		// map depth to nice colors
 		float Scale = 64.0; // This 64 looks like a hardware limit.
-        Depth = (exp2(Depth * Scale) - 1.0) * (1.0 / (exp2(Scale) - 1.0));
+		Depth = (exp2(Depth * Scale) - 1.0) * (1.0 / (exp2(Scale) - 1.0));
 		Depth *= Depth;
-        Depth *= Depth;
+		Depth *= Depth;
 
 		float Value = Depth * Depth;
 		TexLookup = float4(pow(Value, 0.25f), pow(Value, 1), pow(Value, 4), 0);		
@@ -130,7 +130,7 @@ void VisualizeTexturePS(
 	}
 	
 	// blink blue if not finite
-#if FEATURE_LEVEL > FEATURE_LEVEL_ES2
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	if (isfinite(OutColor.rgb).x == false)
 	{
 		AlternateColor = float3(0, 0, 1);

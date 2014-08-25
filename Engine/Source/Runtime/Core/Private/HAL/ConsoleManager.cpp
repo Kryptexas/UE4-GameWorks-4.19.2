@@ -1394,7 +1394,7 @@ static TAutoConsoleVariable<int32> CVarMobileHDR(
 	1,
 	TEXT("0: Mobile renders in LDR gamma space. (suggested for unlit games targeting low-end phones)\n")
 	TEXT("1: Mobile renders in HDR linear space. (default)"),
-	ECVF_RenderThreadSafe);
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMobileHDR32bpp(
 	TEXT("r.MobileHDR32bpp"),

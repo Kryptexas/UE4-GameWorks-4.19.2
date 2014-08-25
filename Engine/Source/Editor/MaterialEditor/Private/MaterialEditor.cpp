@@ -85,7 +85,7 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 		// we only need the non-light-mapped, base pass, local vertex factory shaders for drawing an opaque Material Tile
 		// @todo: Added a FindShaderType by fname or something"
 
-		if (IsES2Platform(Platform))
+		if (IsMobilePlatform(Platform))
 		{
 			if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingVSFNoLightMapPolicy")) ||
 				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingPSFNoLightMapPolicy")))

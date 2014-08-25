@@ -137,8 +137,6 @@ void FOpenGLES2::ProcessQueryGLInt()
 	}
 	MaxVertexUniformComponents = FMath::Max<GLint>(MaxVertexUniformComponents, RequiredMaxVertexUniformComponents);
 
-	MaxVertexUniformComponents *= 4;
-	MaxPixelUniformComponents *= 4;
 	MaxGeometryUniformComponents = 0;
 
 	MaxGeometryTextureImageUnits = 0;

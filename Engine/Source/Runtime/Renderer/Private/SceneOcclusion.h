@@ -13,7 +13,7 @@ class FOcclusionQueryVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FOcclusionQueryVS,Global);
 public:
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
 
 	FOcclusionQueryVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)

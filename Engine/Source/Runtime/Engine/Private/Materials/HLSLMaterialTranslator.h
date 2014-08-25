@@ -2047,7 +2047,7 @@ protected:
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
-		const uint32 MaxNumCoordinates = FeatureLevel == ERHIFeatureLevel::ES2 ? 3 : 8;
+		const uint32 MaxNumCoordinates = (FeatureLevel == ERHIFeatureLevel::ES2) ? 3 : 8;
 
 		if (CoordinateIndex >= MaxNumCoordinates)
 		{
@@ -2141,7 +2141,7 @@ protected:
 		{
 			// Mobile: Sampling of a particular level depends on an extension; iOS does have it by default but
 			// there's a driver as of 7.0.2 that will cause a GPU hang if used with an Aniso > 1 sampler, so show an error for now
-			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 			{
 				Errorf(TEXT("Sampling for a specific mip-level is not supported for mobile"));
 				return INDEX_NONE;
@@ -2263,7 +2263,7 @@ protected:
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2419,7 +2419,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2554,7 +2554,7 @@ protected:
 		{
 			return INDEX_NONE;
 		}
-		else if (GetFeatureLevel() != ERHIFeatureLevel::ES2)
+		else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			FString WeightmapName = FString::Printf(TEXT("Weightmap%d"),WeightmapIndex);
 			int32 TextureCodeIndex = TextureParameter(FName(*WeightmapName),  GEngine->WeightMapPlaceholderTexture);
@@ -3113,7 +3113,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3205,7 +3205,7 @@ protected:
 
 	virtual int32 DDX( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3231,7 +3231,7 @@ protected:
 
 	virtual int32 DDY( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3256,7 +3256,7 @@ protected:
 
 	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3298,7 +3298,7 @@ protected:
 
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3346,7 +3346,7 @@ protected:
 
 	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3495,7 +3495,7 @@ protected:
 	*/
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) override 
 	{ 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3520,7 +3520,7 @@ protected:
 	 */
 	virtual int32 TextureCoordinateOffset() override
 	{
-		if (FeatureLevel == ERHIFeatureLevel::ES2 && ShaderFrequency == SF_Vertex)
+		if (FeatureLevel < ERHIFeatureLevel::SM4 && ShaderFrequency == SF_Vertex)
 		{
 			return AddInlinedCodeChunk(MCT_Float2, TEXT("Parameters.TexCoordOffset"));
 		}

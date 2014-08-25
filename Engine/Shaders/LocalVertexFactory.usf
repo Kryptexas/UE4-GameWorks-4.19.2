@@ -204,7 +204,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 
 #if LIGHTMAP_UV_ACCESS
 #if NEEDS_LIGHTMAP_COORDINATE
-	#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		// Not supported in pixel shader
 		Result.LightmapUVs = float2(0, 0);
 	#else
@@ -507,7 +507,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	#if USE_INSTANCING
 	//float2 InstanceLightMapBias = float2(Input.InstanceInverseTransform1.w, Input.InstanceInverseTransform2.w);
 	//Interpolants.LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + InstanceLightMapBias;
-		#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 	SetLightMapCoordinate(Interpolants, (float4)0, (float2)0);
 		#else
 	Interpolants.LightMapCoordinate = 0;
@@ -517,7 +517,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	float4 LightMapCoordinate = 0;
 	float2 ShadowMapCoordinate = 0;
 
-		#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
 		LightMapCoordinate.y *= 0.5;
 		LightMapCoordinate.zw = LightMapCoordinate.xy;

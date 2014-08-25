@@ -50,7 +50,7 @@ void Combine(inout float4 Dest, float4 Src, float4 Weight)
 #endif
 }
 
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
 	float2 InUV : TEXCOORD0,

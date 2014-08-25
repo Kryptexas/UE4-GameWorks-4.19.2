@@ -20,7 +20,7 @@ class FPostProcessDownsamplePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return Method != 2 || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Method != 2 || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

@@ -196,7 +196,7 @@ void GammaDistanceFieldMain(
 	float4 BaseColor = float4(Color.rgb, smoothstep(0.5-SmoothstepWidth, 0.5+SmoothstepWidth, BaseDist));
 	
 // @todo-mobile: bool doesn't work on ES2
-#if !ES2_PROFILE
+#if !(ES2_PROFILE || ES3_1_PROFILE)
 	if( EnableShadow )
 	{
 		// sample texture with shadow direction offset
@@ -229,7 +229,7 @@ void GammaDistanceFieldMain(
 		}
 	}
  #endif
- 	
+	
 	clip(BaseColor.a - ClipRef);
 	OutColor = BaseColor;
 	OutColor.a *= Color.a;

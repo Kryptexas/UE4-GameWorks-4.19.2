@@ -851,7 +851,7 @@ struct FModuleLocationBoneSocketInstancePayload
 	void InitArrayProxies( int32 FixedArraySize )
 	{
 		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-        // size for these arrays is calculated in RequiredBytesPerInstance.
+		// size for these arrays is calculated in RequiredBytesPerInstance.
 		const uint32 StructSize =  sizeof(FModuleLocationBoneSocketInstancePayload);
 		PrevFrameBoneSocketPositions = TPreallocatedArrayProxy<FVector>((uint8*)this + StructSize, FixedArraySize);
 
@@ -887,8 +887,8 @@ struct FModuleLocationVertSurfaceInstancePayload
 	void InitArrayProxies(int32 FixedArraySize)
 	{
 		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-        // size for these arrays is calculated in RequiredBytesPerInstance.
- 		const uint32 StructSize =  sizeof(FModuleLocationVertSurfaceInstancePayload);
+		// size for these arrays is calculated in RequiredBytesPerInstance.
+		const uint32 StructSize =  sizeof(FModuleLocationVertSurfaceInstancePayload);
 		ValidAssociatedBoneIndices = TPreallocatedArrayProxy<int32>((uint8*)this + StructSize, FixedArraySize);
 
 		uint32 StructOffset = StructSize + (FixedArraySize*sizeof(int32));
@@ -1249,8 +1249,8 @@ struct FDynamicEmitterReplayDataBase
 		  Scale( FVector( 1.0f ) ),
 		  SortMode(0),	// Default to PSORTMODE_None
 		  bOverrideSystemMacroUV(0),
-	      MacroUVRadius(0.f),
-	      MacroUVPosition(0.f,0.f,0.f)
+		  MacroUVRadius(0.f),
+		  MacroUVPosition(0.f,0.f,0.f)
 	{
 	}
 
@@ -1272,8 +1272,8 @@ struct FDynamicEmitterReplayDataBase
 		Ar << Scale;
 		Ar << SortMode;
 		Ar << bOverrideSystemMacroUV;
-	    Ar << MacroUVRadius;
-	    Ar << MacroUVPosition;
+		Ar << MacroUVRadius;
+		Ar << MacroUVPosition;
 	}
 
 };
@@ -1334,7 +1334,7 @@ struct FDynamicEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1621,7 +1621,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const override
 	{
-		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM3;
+		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM4;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
 	}
 
@@ -1673,7 +1673,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1720,7 +1720,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	}
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicSpriteEmitterReplayData Source;
 
@@ -1849,7 +1849,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1893,7 +1893,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	}
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicMeshEmitterReplayData Source;
 
@@ -2128,7 +2128,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -2179,7 +2179,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void GetIndexAllocInfo(int32& OutNumIndices, int32& OutStride ) const;
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicBeam2EmitterReplayData Source;
 
@@ -2267,7 +2267,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		, bRenderTangents(false)
 		, bRenderTessellation(false)
 		, bTextureTileDistance(false)
-	    , DistanceTessellationStepSize(12.5f)
+		, DistanceTessellationStepSize(12.5f)
 		, TangentTessellationScalar(25.0f)
 		, TextureTileDistance(0.0f)
 	{
@@ -2304,7 +2304,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -2524,7 +2524,7 @@ public:
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
 	 *	@param	FrameNumber		The frame number of this pre-render

@@ -526,7 +526,7 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
+		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 		{
 			return ERHIFeatureLevel::ES2;
 		}
@@ -546,7 +546,7 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{
-		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor;
 		if (bForceFeatureLevelES2)
 		{
 			return SP_OPENGL_PCES2;

@@ -20,7 +20,7 @@
 
 void FSkyTextureCubeResource::InitRHI()
 {
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);

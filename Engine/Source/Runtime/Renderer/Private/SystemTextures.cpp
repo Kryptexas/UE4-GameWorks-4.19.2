@@ -204,7 +204,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 	}
 
 	// Create the SSAO randomization texture
-	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM3 && InFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM4 && InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		float g_AngleOff1 = 127;
 		float g_AngleOff2 = 198;

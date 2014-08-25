@@ -26,7 +26,7 @@ public:
 		{
 			return true;
 		}
-		else if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3))
+		else if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 		{
 			return NumSamples <= 16;
 		}

@@ -240,7 +240,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 
 			bool bClothFactory = (DynamicData->ClothSimulUpdateData.Num() > 0) && Chunk.HasApexClothData();
 
-			if (GRHIFeatureLevel < ERHIFeatureLevel::SM3)
+			if (GRHIFeatureLevel < ERHIFeatureLevel::SM4)
 			{
 				bClothFactory = false;
 			}
@@ -265,7 +265,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 			//  sizeof(FMatrix) == 64
 			// CACHE_LINE_SIZE (128) / 64 = 2
 			const int32 PreFetchStride = 2; // FPlatformMisc::Prefetch stride
-    
+	
 			TArray<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
 			const int32 NumReferenceToLocal = ReferenceToLocalMatrices.Num();
 			for( int32 BoneIdx=0; BoneIdx < NumBones; BoneIdx++ )
@@ -274,7 +274,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 				FPlatformMisc::Prefetch( ChunkMatrices.GetTypedData() + BoneIdx + PreFetchStride, CACHE_LINE_SIZE ); 
 				FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetTypedData() + BoneIdx + PreFetchStride );
 				FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetTypedData() + BoneIdx + PreFetchStride, CACHE_LINE_SIZE );
-    
+	
 				FBoneSkinning& BoneMat = ChunkMatrices[BoneIdx];
 				const FBoneIndexType RefToLocalIdx = Chunk.BoneMap[BoneIdx];
 				const FMatrix& RefToLocal = ReferenceToLocalMatrices[RefToLocalIdx];
@@ -397,8 +397,8 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				FMorphGPUSkinVertex& DestVertex = Buffer[iVertex];
 				float AccumulatedWeight = AccumulatedWeightArray[iVertex];
 
- 				if (AccumulatedWeight > MinVertexAnimBlendWeight)
- 				{
+				if (AccumulatedWeight > MinVertexAnimBlendWeight)
+				{
 					// when copy back, make sure to normalize by accumulated weight
 					// since delta diff of normal is (-2, 2), we divide by 2 to packed into packed normal
 					// when we unpack, we'll apply *2. 
@@ -655,7 +655,7 @@ static void CreateVertexFactoryMorph(TIndirectArray<VertexFactoryTypeBase>& Vert
 {
 	auto* VertexFactory = new VertexFactoryType(InBoneMatrices);
 	VertexFactories.Add(VertexFactory);
-					 	
+						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
@@ -693,7 +693,7 @@ static void CreateVertexFactoryCloth(TArray<VertexFactoryTypeBase*>& VertexFacto
 {
 	VertexFactoryType* VertexFactory = new VertexFactoryType(InBoneMatrices);
 	VertexFactories.Add(VertexFactory);
-					 	
+						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
@@ -836,7 +836,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	ClothVertexFactories.Empty(Chunks.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
 	{
-		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{

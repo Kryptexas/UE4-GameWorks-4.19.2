@@ -528,6 +528,12 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL; 
 }
 
+/** Whether the shader platform corresponds to the ES2 feature level. */
+inline bool IsMobilePlatform(const EShaderPlatform Platform)
+{
+	return IsES2Platform(Platform) || Platform == SP_METAL;
+}
+
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS;
@@ -618,7 +624,7 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 {
 	//@todo-rco: Add Metal support
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);// || (Platform == SP_METAL);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);// || (Platform == SP_METAL);
 }
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)

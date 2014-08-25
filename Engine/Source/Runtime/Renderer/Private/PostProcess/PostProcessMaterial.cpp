@@ -23,7 +23,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FPostProcessMaterialVS( )	{ }
@@ -61,7 +61,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FPostProcessMaterialPS() {}

@@ -16,7 +16,7 @@
 #define USE_PARTICLE_SIZE (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_SIZE)
 
 // We don't compute a tangent basis in ES2 to save shader instructions.
-#define NEEDS_TANGENT_BASIS (FEATURE_LEVEL > FEATURE_LEVEL_ES2)
+#define NEEDS_TANGENT_BASIS (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
 
 struct FVertexFactoryInput
 {

@@ -15,7 +15,7 @@
 
 void FStaticShadowDepthMap::InitRHI()
 {
-	if (ShadowMapSizeX > 0 && ShadowMapSizeY > 0 && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (ShadowMapSizeX > 0 && ShadowMapSizeY > 0 && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(ShadowMapSizeX, ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);

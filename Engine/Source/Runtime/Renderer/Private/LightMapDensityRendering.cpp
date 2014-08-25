@@ -38,7 +38,7 @@ IMPLEMENT_DENSITY_LIGHTMAPPED_SHADER_TYPE( TLightMapPolicy<HQ_LIGHTMAP>, TLightM
 bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmediate& RHICmdList)
 {
 	bool bDirty=0;
-	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		SCOPED_DRAW_EVENT(LightMapDensity, DEC_SCENE_ITEMS);
 
