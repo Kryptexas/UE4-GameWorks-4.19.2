@@ -22,9 +22,9 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	TArray<FName> LocalIdenticalProperties, LocalDifferingProperties;
 	DiffUtils::CompareUnrelatedObjects(BaseCDO, BasePropertyMap, LocalCDO, LocalPropertyMap, LocalIdenticalProperties, LocalDifferingProperties);
 
-	TSet<FName> RemoteIdenticalPropertiesSet(RemoteIdenticalProperties);
-	TSet<FName> LocalIdenticalPropertiesSet(LocalIdenticalProperties);
-	TSet<FName> BaseIdenticalPropertiesSet(RemoteIdenticalPropertiesSet.Intersect(LocalIdenticalPropertiesSet));
+	TSet<FName> RemoteDifferingPropertiesSet(RemoteDifferingProperties);
+	TSet<FName> LocalDifferingPropertiesSet(LocalDifferingProperties);
+	TSet<FName> BaseDifferingPropertiesSet(RemoteDifferingPropertiesSet.Union(LocalDifferingPropertiesSet));
 	
 	/*	
 		DifferingProperties is an ordered list of all differing properties (properties added, removed or changed) in remote or local.
@@ -35,14 +35,14 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 			2. Iterate properties in remote, add any new properties to DifferingProperties
 			3. Iterate properties in local, add any new properties to DifferingProperties, if they have not already been added
 	*/
-	const auto AddPropertiesOrdered = []( UProperty const* Property, const TSet<FName>& IdenticalProperties, TArray<FName>& ResultingProperties )
+	const auto AddPropertiesOrdered = [](UProperty const* Property, const TSet<FName>& DifferingProperties, TArray<FName>& ResultingProperties)
 	{
 		if ((!Property->HasAnyPropertyFlags(CPF_Parm) && Property->HasAnyPropertyFlags(CPF_Edit)))
 		{
 			// contains check here is O(n), so we're needlessly n^2:
 			if (!ResultingProperties.Contains(Property->GetFName()))
 			{
-				if (!IdenticalProperties.Contains(Property->GetFName()))
+				if (DifferingProperties.Contains(Property->GetFName()))
 				{
 					ResultingProperties.Add(Property->GetFName());
 				}
@@ -55,7 +55,7 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 		const UClass* Class = BaseCDO->GetClass();
 		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
-			AddPropertiesOrdered( *PropertyIt, BaseIdenticalPropertiesSet, DifferingProperties );
+			AddPropertiesOrdered(*PropertyIt, BaseDifferingPropertiesSet, DifferingProperties);
 		}
 	}
 	if( RemoteCDO )
@@ -63,7 +63,7 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 		const UClass* Class = RemoteCDO->GetClass();
 		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
-			AddPropertiesOrdered(*PropertyIt, RemoteIdenticalPropertiesSet, DifferingProperties);
+			AddPropertiesOrdered(*PropertyIt, RemoteDifferingPropertiesSet, DifferingProperties);
 		}
 	}
 	if (LocalCDO)
@@ -71,7 +71,7 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 		const UClass* Class = LocalCDO->GetClass();
 		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
-			AddPropertiesOrdered(*PropertyIt, LocalIdenticalPropertiesSet, DifferingProperties);
+			AddPropertiesOrdered(*PropertyIt, LocalDifferingPropertiesSet, DifferingProperties);
 		}
 	}
 	CurrentDifference = -1;
@@ -79,19 +79,19 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
 	{
 		DetailsViews.Add(
-			FDetailsDiff( RemoteCDO, RemotePropertyMap, RemoteIdenticalPropertiesSet)
+			FDetailsDiff(RemoteCDO, RemotePropertyMap, RemoteDifferingPropertiesSet)
 		);
 	}
 	// EMergeParticipant::MERGE_PARTICIPANT_BASE
 	{
 		DetailsViews.Add(
-			FDetailsDiff(BaseCDO, BasePropertyMap, BaseIdenticalPropertiesSet)
+			FDetailsDiff(BaseCDO, BasePropertyMap, BaseDifferingPropertiesSet)
 		);
 	}
 	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
 	{
 		DetailsViews.Add(
-			FDetailsDiff(LocalCDO, LocalPropertyMap, LocalIdenticalPropertiesSet)
+			FDetailsDiff(LocalCDO, LocalPropertyMap, LocalDifferingPropertiesSet)
 		);
 	}
 

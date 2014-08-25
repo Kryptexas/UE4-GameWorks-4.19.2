@@ -4,7 +4,7 @@
 class KISMET_API FDetailsDiff
 {
 public:
-	FDetailsDiff( const UObject* InObject, const TMap< FName, const UProperty* >& InPropertyMap, const TSet< FName >& InIdenticalProperties );
+	FDetailsDiff( const UObject* InObject, const TMap< FName, const UProperty* >& InPropertyMap, const TSet< FName >& InDifferingProperties );
 
 	void HighlightProperty( FName PropertyName );
 	TSharedRef< SWidget > DetailsWidget();

@@ -175,7 +175,7 @@ public:
 	virtual void HighlightProperty(const UProperty* Property) = 0;
 
 	/**
-	 * Sets the set of properties that are considered identical, used when filtering out identical properties (showing only differing properties)
+	 * Sets the set of properties that are considered differing, used when filtering out identical properties
 	 */
-	virtual void UpdateIdenticalProperties(const TSet<FName> IdenticalProperties) = 0;
+	virtual void UpdateDifferingProperties(const TSet<FName> DifferingProperties) = 0;
 };

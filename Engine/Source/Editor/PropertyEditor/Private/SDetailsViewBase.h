@@ -66,7 +66,7 @@ struct FDetailFilter
 	bool bShowAllAdvanced;
 	/** If we should only show differing properties */
 	bool bShowOnlyDiffering;
-	TSet<FName> NamesOfMatchingProperties;
+	TSet<FName> DifferingProperties;
 };
 
 struct FDetailColumnSizeData
@@ -352,8 +352,8 @@ protected:
 	/** Called when the filter text changes.  This filters specific property nodes out of view */
 	void OnFilterTextChanged(const FText& InFilterText);
 
-	// @todo doc where does this belong?
-	virtual void UpdateIdenticalProperties(const TSet<FName> IdenticalProperties) override { CurrentFilter.NamesOfMatchingProperties = IdenticalProperties; }
+	/** Called when the list of currently differing properties changes */
+	virtual void UpdateDifferingProperties(const TSet<FName> InDifferingProperties) override { CurrentFilter.DifferingProperties = InDifferingProperties; }
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text

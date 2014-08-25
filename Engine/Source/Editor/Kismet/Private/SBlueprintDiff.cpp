@@ -33,7 +33,6 @@ public:
 					, FNamePropertyMap InOldProperties
 					, const UObject* InNewCDO
 					, FNamePropertyMap InNewProperities
-					, TSet<FName> InIdenticalProperties
 					, TArray<FName> InDifferingProperties );
 
 	TSharedRef<SWidget> OldDetailsWidget() { return OldDetails.DetailsWidget(); }
@@ -58,10 +57,9 @@ FCDODiffControl::FCDODiffControl(
 		, FNamePropertyMap InOldProperties
 		, const UObject* InNewCDO
 		, FNamePropertyMap InNewProperities
-		, TSet<FName> InIdenticalProperties
 		, TArray<FName> InDifferingProperties )
-	: OldDetails( InOldCDO, InOldProperties, InIdenticalProperties )
-	, NewDetails( InNewCDO, InNewProperities, InIdenticalProperties )
+	: OldDetails(InOldCDO, InOldProperties, TSet<FName>(InDifferingProperties))
+	, NewDetails(InNewCDO, InNewProperities, TSet<FName>(InDifferingProperties))
 	, DifferingProperties( InDifferingProperties )
 	, CurrentDifference( -1 )
 {
@@ -570,7 +568,8 @@ void DiffUtils::CompareUnrelatedObjects( UObject const* A, const TMap< FName, co
 			{
 				const void* AValue = (*AProp)->ContainerPtrToValuePtr<void>(A);
 				const void* BValue = (*BProp)->ContainerPtrToValuePtr<void>(B);
-				if ((*AProp)->Identical(AValue, BValue, 0))
+
+				if ((*AProp)->Identical(AValue, BValue, PPF_DeepComparison))
 				{
 					OutIdenticalProperties.Add(PropertyName);
 					continue;
@@ -1221,7 +1220,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 	TArray<FName> IdenticalProperties, DifferingProperties;
 	DiffUtils::CompareUnrelatedObjects( A, PropertyMapA, B, PropertyMapB, IdenticalProperties, DifferingProperties);
 
-	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, PropertyMapA, B, PropertyMapB, TSet<FName>(IdenticalProperties), DifferingProperties) );
+	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, PropertyMapA, B, PropertyMapB, DifferingProperties) );
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
 	DiffControl = NewDiffControl;
 	return SNew(SSplitter)

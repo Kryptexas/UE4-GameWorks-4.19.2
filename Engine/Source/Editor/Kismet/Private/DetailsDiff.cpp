@@ -5,7 +5,7 @@
 #include "IDetailsView.h"
 #include "PropertyEditorModule.h"
 
-FDetailsDiff::FDetailsDiff(const UObject* InObject, const TMap< FName, const UProperty* >& InPropertyMap, const TSet< FName >& InIdenticalProperties)
+FDetailsDiff::FDetailsDiff(const UObject* InObject, const TMap< FName, const UProperty* >& InPropertyMap, const TSet< FName >& InDifferingProperties)
 	: PropertyMap( InPropertyMap )
 	, DetailsView()
 {
@@ -17,7 +17,7 @@ FDetailsDiff::FDetailsDiff(const UObject* InObject, const TMap< FName, const UPr
 	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([]{return false; }));
 	// This is a read only details view (see the property editing delegate), but it is not const correct:
 	DetailsView->SetObject(const_cast<UObject*>(InObject));
-	DetailsView->UpdateIdenticalProperties(InIdenticalProperties);
+	DetailsView->UpdateDifferingProperties(InDifferingProperties);
 }
 
 void FDetailsDiff::HighlightProperty(FName PropertyName)
