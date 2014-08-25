@@ -25,6 +25,7 @@ void UAbilitySystemComponent::InitializeComponent()
 	
 	// Look for DSO AttributeSets (note we are currently requiring all attribute sets to be subobjects of the same owner. This doesn't *have* to be the case forever.
 	AActor *Owner = GetOwner();
+	InitAbilityActorInfo(Owner);	// Default init to our outer owner
 
 	TArray<UObject*> ChildObjects;
 	GetObjectsWithOuter(Owner, ChildObjects, false, RF_PendingKill);
