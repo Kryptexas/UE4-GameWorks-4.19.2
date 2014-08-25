@@ -3,10 +3,6 @@
 #include "EnginePrivate.h"
 #include "Json.h"
 
-#if WITH_EDITOR
-#include "StructureEditorUtils.h"
-#endif //WITH_EDITOR
-
 DEFINE_LOG_CATEGORY(LogDataTable);
 
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
@@ -540,7 +536,10 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		// And be sure to call DestroyScriptStruct later
 
 #if WITH_EDITOR
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(RowStruct), RowData);
+		if (auto UDStruct = Cast<const UUserDefinedStruct>(RowStruct))
+		{
+			UDStruct->InitializeDefaultValue(RowData);
+		}
 #endif // WITH_EDITOR
 
 		// Add to row map

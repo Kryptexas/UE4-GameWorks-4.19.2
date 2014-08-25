@@ -43,9 +43,6 @@ void UUserDefinedStruct::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags
 	Super::GetAssetRegistryTags(OutTags);
 
 	OutTags.Add(FAssetRegistryTag(TEXT("Tooltip"), FStructureEditorUtils::GetTooltip(this), FAssetRegistryTag::TT_Hidden));
-
-	const FName SuperStructName = SuperStruct ? SuperStruct->GetFName() : NAME_None;
-	OutTags.Add(FAssetRegistryTag(TEXT("BaseStruct"), SuperStructName.ToString(), FAssetRegistryTag::TT_Alphabetical));
 }
 
 UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
@@ -54,6 +51,11 @@ UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
 	UProperty* Property = Guid.IsValid() ? FStructureEditorUtils::GetPropertyByGuid(this, Guid) : NULL;
 	ensure(!Property || Guid == FStructureEditorUtils::GetGuidForProperty(Property));
 	return Property;
+}
+
+void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
+{
+	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
 }
 
 #endif	// WITH_EDITOR
