@@ -1976,6 +1976,12 @@ void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 		{
 			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
 			PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
+
+			//if wake when level starts is true, calling this function automatically wakes body up
+			if (bSimulatePhysics && bStartAwake)
+			{
+				PRigidDynamic->wakeUp();
+			}
 		}
 	}
 #endif
