@@ -992,7 +992,21 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					// Add the goto source code action for native functions
 					if (InGraphNode->IsA(UK2Node_CallFunction::StaticClass()))
 					{
-						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeFunctionDefinition);
+						const UEdGraphNode* ResultEventNode= NULL;
+						if(Cast<UK2Node_CallFunction>(InGraphNode)->GetFunctionGraph(ResultEventNode))
+						{
+							MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GoToDefinition);
+						}
+						else
+						{
+							MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeFunctionDefinition);
+						}
+					}
+
+					// Functions, macros, and composite nodes support going to a definition
+					if (InGraphNode->IsA(UK2Node_MacroInstance::StaticClass()) || InGraphNode->IsA(UK2Node_Composite::StaticClass()))
+					{
+						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GoToDefinition);
 					}
 
 					// show search for references for variable nodes and goto source code action

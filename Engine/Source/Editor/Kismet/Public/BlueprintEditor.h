@@ -867,6 +867,12 @@ private:
 	/** Called to check if native code browsing is available */
 	bool IsNativeCodeBrowsingAvailable() const;
 
+	/** Called when the user wants to jump to a node's graph definition */
+	void OnGoToDefinition();
+
+	/** Checks to see if it is possible to jump to the selected node's graph definition. */
+	bool CanGoToDefinition() const;
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 

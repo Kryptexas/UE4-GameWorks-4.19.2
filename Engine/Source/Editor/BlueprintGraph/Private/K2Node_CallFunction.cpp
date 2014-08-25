@@ -1520,9 +1520,50 @@ bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
-UEdGraph* UK2Node_CallFunction::GetFunctionGraph() const
+UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const
 {
-	return FindObject<UEdGraph>(GetBlueprint(), *(FunctionReference.GetMemberName().ToString()));
+	OutGraphNode = NULL;
+
+	// Search for the Blueprint owner of the function graph, climbing up through the Blueprint hierarchy
+	UClass* MemberParentClass = FunctionReference.GetMemberParentClass(this);
+	if(MemberParentClass != NULL)
+	{
+		UBlueprintGeneratedClass* ParentClass = Cast<UBlueprintGeneratedClass>(MemberParentClass);
+		if(ParentClass != NULL && ParentClass->ClassGeneratedBy != NULL)
+		{
+			UBlueprint* Blueprint = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+			while(Blueprint != NULL)
+			{
+				UEdGraph* TargetGraph = FindObject<UEdGraph>(Blueprint, *(FunctionReference.GetMemberName().ToString()));
+				if((TargetGraph != NULL) && !TargetGraph->HasAnyFlags(RF_Transient))
+				{
+					// Found the function graph in a Blueprint, return that graph
+					return TargetGraph;
+				}
+				else
+				{
+					// Did not find the function call as a graph, it may be a custom event
+					UK2Node_CustomEvent* CustomEventNode = NULL;
+
+					TArray<UK2Node_CustomEvent*> CustomEventNodes;
+					FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, CustomEventNodes);
+
+					for (UK2Node_CustomEvent* CustomEvent : CustomEventNodes)
+					{
+						if(CustomEvent->CustomFunctionName == FunctionReference.GetMemberName())
+						{
+							OutGraphNode = CustomEvent;
+							return CustomEvent->GetGraph();
+						}
+					}
+				}
+
+				ParentClass = Cast<UBlueprintGeneratedClass>(Blueprint->ParentClass);
+				Blueprint = ParentClass != NULL ? Cast<UBlueprint>(ParentClass->ClassGeneratedBy) : NULL;
+			}
+		}
+	}
+	return NULL;
 }
 
 bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function, const FString& PropertyName)

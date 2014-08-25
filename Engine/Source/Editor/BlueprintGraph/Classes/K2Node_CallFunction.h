@@ -150,8 +150,12 @@ public:
 
 	static void CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
 
-	/** Returns the graph for this function, if available */
-	UEdGraph* GetFunctionGraph() const;
+	/**
+	 * Returns the graph for this function, if available. In cases of calling an event, it will be the ubergraph for the event
+	 *
+	 * @param OutGraphNode		If this function calls an event, this param is the event node, otherwise it is NULL
+	 */
+	UEdGraph* GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const;
 
 	/** Checks if the property is marked as "CustomStructureParam" */
 	static bool IsStructureWildcardProperty(const UFunction* InFunction, const FString& PropertyName);

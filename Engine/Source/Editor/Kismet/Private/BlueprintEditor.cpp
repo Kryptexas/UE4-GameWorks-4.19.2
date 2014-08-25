@@ -731,6 +731,11 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
 				);
 
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GoToDefinition,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnGoToDefinition ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanGoToDefinition )
+				);
+
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeVariableDefinition,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeVariableDefinition ),
 				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable),
@@ -3983,7 +3988,12 @@ void FBlueprintEditor::OnExpandNodes()
 		}
 		else if (UK2Node_CallFunction* SelectedCallFunctionNode = Cast<UK2Node_CallFunction>(*NodeIt))
 		{
-			UEdGraph* FunctionGraph = SelectedCallFunctionNode->GetFunctionGraph();
+			const UEdGraphNode* ResultEventNode = NULL;
+			UEdGraph* FunctionGraph = SelectedCallFunctionNode->GetFunctionGraph(ResultEventNode);
+
+			// We should never get here when attempting to expand a call function that calls an event.
+			check(!ResultEventNode);
+
 			if(FunctionGraph)
 			{
 				DocumentManager->CleanInvalidTabs();
@@ -4025,7 +4035,9 @@ bool FBlueprintEditor::CanExpandNodes() const
 		}
 		else if (UK2Node_CallFunction* SelectedCallFunctionNode = Cast<UK2Node_CallFunction>(*NodeIt))
 		{
-			return SelectedCallFunctionNode->GetFunctionGraph() != NULL;
+			// If ResultEventNode is non-NULL, it means it is sourced by an event, we do not want to expand events
+			const UEdGraphNode* ResultEventNode = NULL;
+			return SelectedCallFunctionNode->GetFunctionGraph(ResultEventNode) != NULL && ResultEventNode == NULL;
 		}
 	}
 
@@ -4794,6 +4806,44 @@ bool FBlueprintEditor::CanStopWatchingPin() const
 	return false;
 }
 
+bool FBlueprintEditor::CanGoToDefinition() const
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if(SelectedNodes.Num() == 1)
+	{
+		UObject* Node = *SelectedNodes.CreateConstIterator();
+		if(UK2Node_CallFunction* FunctionCall = Cast<UK2Node_CallFunction>(Node))
+		{
+			const UEdGraphNode* ResultEventNode = NULL;
+			if(FunctionCall->GetFunctionGraph(ResultEventNode))
+			{
+				return true;
+			}
+		}
+		else if (UK2Node_MacroInstance* MacroNode = Cast<UK2Node_MacroInstance>(Node))
+		{
+			UEdGraph* MacroGraph = MacroNode->GetMacroGraph();
+			if (MacroGraph)
+			{
+				return true;
+			}
+		}
+		else if(UK2Node_Composite* Composite = Cast<UK2Node_Composite>(Node))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FBlueprintEditor::OnGoToDefinition()
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	check(SelectedNodes.Num() == 1);
+	OnNodeDoubleClicked(Cast<UEdGraphNode>(*SelectedNodes.CreateConstIterator()));
+}
+
 void FBlueprintEditor::ToggleSaveIntermediateBuildProducts()
 {
 	bSaveIntermediateBuildProducts = !bSaveIntermediateBuildProducts;
@@ -4809,54 +4859,18 @@ void FBlueprintEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 	//@TODO: Pull these last few stragglers out into their respective nodes; requires asking the same question in a different way without knowledge of the Explorer
 	if (UK2Node_CallFunction* FunctionCall = Cast<UK2Node_CallFunction>(Node))
 	{
-		//Check whether the current graph node is a function call to a custom event.
-		UK2Node_CustomEvent* CustomEventNode = nullptr;
-		TArray<UK2Node_CustomEvent*> CustomNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass(GetBlueprintObj(), CustomNodes);
-		for (int32 i=0; i < CustomNodes.Num(); i++)
+		const UEdGraphNode* ResultEventNode = NULL;
+
+		if(UEdGraph* FunctionGraph = FunctionCall->GetFunctionGraph(ResultEventNode))
 		{
-			UK2Node_CustomEvent* CustomNodePtr = CustomNodes[ i ];
-			if ((CustomNodePtr != nullptr) && (CustomNodePtr->CustomFunctionName == FunctionCall->FunctionReference.GetMemberName()))
+			// If there is an event node, jump to it, otherwise jump to the function graph
+			if(ResultEventNode)
 			{
-				CustomEventNode = CustomNodePtr;
-			}
-		}
-		if (CustomEventNode != nullptr)
-		{
-			JumpToNode(CustomEventNode);
-		}
-		else
-		{
-			// Look for a local graph named the same thing as the function (e.g., a user created function or a harmless coincidence)
-			UEdGraph* TargetGraph = FindObject<UEdGraph>(GetBlueprintObj(), *(FunctionCall->FunctionReference.GetMemberName().ToString()));
-			if ((TargetGraph != nullptr) && !TargetGraph->HasAnyFlags(RF_Transient))
-			{
-				JumpToHyperlink(TargetGraph);
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ResultEventNode, false);
 			}
 			else
 			{
-				// otherwise look for the function in another blueprint, possibly a parent
-				UClass* MemberParentClass = FunctionCall->FunctionReference.GetMemberParentClass(FunctionCall);
-				if(MemberParentClass != nullptr)
-				{
-					UBlueprintGeneratedClass* ParentClass = Cast<UBlueprintGeneratedClass>(MemberParentClass);
-					if(ParentClass != nullptr && ParentClass->ClassGeneratedBy != nullptr)
-					{
-						UBlueprint* Blueprint = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
-						while(Blueprint != nullptr)
-						{
-							TargetGraph = FindObject<UEdGraph>(Blueprint, *(FunctionCall->FunctionReference.GetMemberName().ToString()));
-							if((TargetGraph != nullptr) && !TargetGraph->HasAnyFlags(RF_Transient))
-							{
-								FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(TargetGraph);
-								break;
-							}
-
-							ParentClass = Cast<UBlueprintGeneratedClass>(Blueprint->ParentClass);
-							Blueprint = ParentClass != nullptr ? Cast<UBlueprint>(ParentClass->ClassGeneratedBy) : nullptr;
-						}
-					}
-				}
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(FunctionGraph);
 			}
 		}
 	}
