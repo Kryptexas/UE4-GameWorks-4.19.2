@@ -780,20 +780,22 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 			{
 				// If we are cooking don't cook sub levels multiple times if they've already been cooked
 				FString PackageFilename;
+				const FString StreamingLevelWorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
 				if (CookedPackages)
 				{
-					if (FPackageName::DoesPackageExist(StreamingLevel->PackageName.ToString(), NULL, &PackageFilename))
+					if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &PackageFilename))
 					{
 						PackageFilename = FPaths::ConvertRelativePathToFull(PackageFilename);
 					}
 				}
 				if (CookedPackages == NULL || !CookedPackages->Contains(PackageFilename))
 				{
+					const FName StreamingLevelWorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
 					// Load the package and find the world object.
-					if( FPackageName::IsShortPackageName(StreamingLevel->PackageName) == false )
+					if( FPackageName::IsShortPackageName(StreamingLevelWorldAssetPackageFName) == false )
 					{
-						ULevel::StreamedLevelsOwningWorld.Add(StreamingLevel->PackageName, this);
-						UPackage* const LevelPackage = LoadPackage( NULL, *StreamingLevel->PackageName.ToString(), LOAD_None );
+						ULevel::StreamedLevelsOwningWorld.Add(StreamingLevelWorldAssetPackageFName, this);
+						UPackage* const LevelPackage = LoadPackage( NULL, *StreamingLevelWorldAssetPackageName, LOAD_None );
 					
 						if( LevelPackage )
 						{
@@ -823,7 +825,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 					}
 					else
 					{
-						UE_LOG(LogSpawn, Warning, TEXT("Streaming level uses short package name (%s). Level will not be loaded."), *StreamingLevel->PackageName.ToString());
+						UE_LOG(LogSpawn, Warning, TEXT("Streaming level uses short package name (%s). Level will not be loaded."), *StreamingLevelWorldAssetPackageName);
 					}
 
 					// Remove this level object if the file couldn't be found.
@@ -846,9 +848,9 @@ ULevelStreaming* UWorld::GetLevelStreamingForPackageName(FName InPackageName)
 	{
 		ULevelStreaming* LevelStreaming = StreamingLevels[LevelIndex];
 		// see if name matches
-		if(LevelStreaming && LevelStreaming->PackageName == InPackageName)
+		if(LevelStreaming && LevelStreaming->GetWorldAssetPackageFName() == InPackageName)
 		{
-			// it doesn, return this one
+			// it doesn't, return this one
 			return LevelStreaming;
 		}
 	}

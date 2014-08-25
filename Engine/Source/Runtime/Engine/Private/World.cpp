@@ -524,7 +524,7 @@ void UWorld::PostLoad()
 			ULevelStreaming* const StreamingLevel = StreamingLevels[ LevelIndex ];
 			if( StreamingLevel != NULL )
 			{
-				if( StreamingLevel->PackageName == PersistentLevel->GetOutermost()->GetFName() || StreamingLevel->GetLoadedLevel() == PersistentLevel )
+				if( StreamingLevel->WorldAsset == this || StreamingLevel->GetLoadedLevel() == PersistentLevel )
 				{
 					// Remove this streaming level
 					StreamingLevels.RemoveAt( LevelIndex );
@@ -629,10 +629,11 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPacka
 		if (StreamingLevel)
 		{
 			// Load package if found.
+			const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
 			FString PackageFilename;
-			if (FPackageName::DoesPackageExist(StreamingLevel->PackageName.ToString(), NULL, &PackageFilename))
+			if (FPackageName::DoesPackageExist(WorldAssetPackageName, NULL, &PackageFilename))
 			{
-				AdditionalPackagesToCook.Add(StreamingLevel->PackageName.ToString());
+				AdditionalPackagesToCook.Add(WorldAssetPackageName);
 			}
 		}
 	}
@@ -2128,7 +2129,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 			ULevelStreaming* StreamingLevel = *LevelIt;
 			if (StreamingLevel)
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
 				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
 			}
 		}
@@ -3312,7 +3313,7 @@ const FString UWorld::GetMapName() const
 		// Use the name of the first found persistent level.
 		if( PersistentStreamingLevel )
 		{
-			MapName = PersistentStreamingLevel->PackageName.ToString();
+			MapName = PersistentStreamingLevel->GetWorldAssetPackageName();
 			break;
 		}
 	}

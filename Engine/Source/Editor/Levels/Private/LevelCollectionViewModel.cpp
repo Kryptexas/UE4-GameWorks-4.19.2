@@ -824,7 +824,7 @@ void FLevelCollectionViewModel::ClearStreamingLevelVolumes()
 					if ( LevelStreamingVolume )
 					{
 						LevelStreamingVolume->Modify();
-						LevelStreamingVolume->StreamingLevelNames.Remove( StreamingLevel->PackageName );
+						LevelStreamingVolume->StreamingLevelNames.Remove( StreamingLevel->GetWorldAssetPackageFName() );
 					}
 				}
 
@@ -1823,7 +1823,7 @@ void FLevelCollectionViewModel::AddStreamingLevelVolumes()
 
 					// Associate the level to the volume.
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevelNames.AddUnique( StreamingLevel->PackageName );
+					LevelStreamingVolume->StreamingLevelNames.AddUnique( StreamingLevel->GetWorldAssetPackageFName() );
 
 					// Associate the volume to the level.
 					StreamingLevel->EditorStreamingVolumes.AddUnique( LevelStreamingVolume );

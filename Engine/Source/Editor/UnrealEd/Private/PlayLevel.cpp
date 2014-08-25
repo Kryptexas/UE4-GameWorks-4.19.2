@@ -853,9 +853,11 @@ public:
 				ULevelStreaming* StreamingLevel = InWorld->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
-					PreviousStreamingPackageNames.Add( StreamingLevel->PackageName );
-					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( StreamingLevel->PackageName.ToString() ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( StreamingLevel->PackageName.ToString() ));
-					StreamingLevel->PackageName = FName(*StreamingLevelPackageName);
+					const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
+					const FName WorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
+					PreviousStreamingPackageNames.Add( WorldAssetPackageFName );
+					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( WorldAssetPackageName ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( WorldAssetPackageName ));
+					StreamingLevel->SetWorldAssetByPackageName(FName(*StreamingLevelPackageName));
 				}
 			}
 		}
@@ -874,7 +876,7 @@ public:
 				ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
-					StreamingLevel->PackageName = PreviousStreamingPackageNames[LevelIndex];
+					StreamingLevel->SetWorldAssetByPackageName(PreviousStreamingPackageNames[LevelIndex]);
 				}
 			}
 		}
@@ -2884,7 +2886,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			ULevelStreaming* StreamingLevel = *LevelIt;
 			if ( StreamingLevel )
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
 				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
 			}
 		}

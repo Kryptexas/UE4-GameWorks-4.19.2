@@ -3328,7 +3328,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 						ULevelStreaming* SubLevelStreaming = SubLevelWorld->StreamingLevels[SubLevelIndex];
 						if (SubLevelStreaming != NULL && SubLevelStreaming->GetLoadedLevel() == NULL)
 						{
-							UE_LOG(LogEditorServer, Warning, TEXT("%s contains streaming level '%s' which isn't loaded."), *SubLevelWorldSettings->GetName(), *SubLevelStreaming->PackageName.ToString());
+							UE_LOG(LogEditorServer, Warning, TEXT("%s contains streaming level '%s' which isn't loaded."), *SubLevelWorldSettings->GetName(), *SubLevelStreaming->GetWorldAssetPackageName());
 						}
 					}
 				}

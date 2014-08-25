@@ -169,7 +169,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 			for (int32 LevelIndex=0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
 			{
 				ULevelStreaming* CurrentLevelStreamingObject = GetWorld()->StreamingLevels[LevelIndex];
-				if (CurrentLevelStreamingObject != NULL && CurrentLevelStreamingObject->PackageName == PackageName)
+				if (CurrentLevelStreamingObject != NULL && CurrentLevelStreamingObject->GetWorldAssetPackageFName() == PackageName)
 				{
 					LevelStreamingObject = CurrentLevelStreamingObject;
 					if (LevelStreamingObject != NULL)
@@ -240,7 +240,7 @@ void APlayerController::ServerUpdateLevelVisibility_Implementation(FName Package
 				{
 					for (int32 i=0; i < World->StreamingLevels.Num(); ++i)
 					{
-						if ( World->StreamingLevels[i] && (World->StreamingLevels[i]->PackageName == InPackageName ))
+						if ( World->StreamingLevels[i] && (World->StreamingLevels[i]->GetWorldAssetPackageFName() == InPackageName ))
 						{
 							return true;
 						}
@@ -2902,7 +2902,7 @@ void APlayerController::ClientForceGarbageCollection_Implementation()
 void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
 	//`log( "LevelStreamingStatusChanged: " @ LevelObject @ bNewShouldBeLoaded @ bNewShouldBeVisible @ bNewShouldBeVisible );
-	ClientUpdateLevelStreamingStatus(LevelObject->PackageName,bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
+	ClientUpdateLevelStreamingStatus(LevelObject->GetWorldAssetPackageFName(),bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
 }
 
 void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, bool bFirst, bool bLast)

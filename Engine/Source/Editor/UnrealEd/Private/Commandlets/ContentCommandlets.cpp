@@ -1139,7 +1139,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 							ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 							if( StreamingLevel )
 							{
-								FString SubLevelName = StreamingLevel->PackageName.ToString();
+								FString SubLevelName = StreamingLevel->GetWorldAssetPackageName();
 								// add this sublevel's package to the list of packages to load if it's not already in the master list of packages
 								if (PackagesToFullyLoad.FindKey(SubLevelName) == NULL)
 								{

@@ -1303,7 +1303,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 					const ULevel* LoadedLevel = TheLevel->GetLoadedLevel();
 					
 					UE_LOG(LogGameMode, Log, TEXT("levelStatus: %s %i %i %i %s %i"),
-						*TheLevel->PackageName.ToString(),
+						*TheLevel->GetWorldAssetPackageName(),
 						TheLevel->bShouldBeVisible,
 						LoadedLevel && LoadedLevel->bIsVisible,
 						TheLevel->bShouldBeLoaded,
@@ -1311,7 +1311,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bHasLoadRequestPending);
 
 					PC->ClientUpdateLevelStreamingStatus(
-						TheLevel->PackageName,
+						TheLevel->GetWorldAssetPackageFName(),
 						TheLevel->bShouldBeLoaded,
 						TheLevel->bShouldBeVisible,
 						TheLevel->bShouldBlockOnLoad,

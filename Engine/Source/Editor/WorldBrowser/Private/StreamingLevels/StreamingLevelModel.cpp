@@ -56,7 +56,7 @@ FName FStreamingLevelModel::GetLongPackageName() const
 {
 	if (LevelStreaming.IsValid())
 	{
-		return LevelStreaming->PackageName;
+		return LevelStreaming->GetWorldAssetPackageFName();
 	}
 	else
 	{
@@ -203,7 +203,7 @@ void FStreamingLevelModel::UpdatePackageFileAvailability()
 		if (LevelStreaming.IsValid())
 		{
 			FString PackageName = LevelStreaming->PackageNameToLoad == NAME_None ? 
-										LevelStreaming->PackageName.ToString() : 
+										LevelStreaming->GetWorldAssetPackageName() : 
 										LevelStreaming->PackageNameToLoad.ToString();
 			
 			bHasValidPackageName = FPackageName::DoesPackageExist(PackageName);

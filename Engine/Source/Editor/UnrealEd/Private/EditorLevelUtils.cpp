@@ -50,7 +50,7 @@ namespace EditorLevelUtils
 		// Deselect all actors
 		GEditor->Exec( World, TEXT("ACTOR SELECT NONE"));
 
-		const FString& NewLevelName = DestLevelStreaming->PackageName.ToString();
+		const FString& NewLevelName = DestLevelStreaming->GetWorldAssetPackageName();
 				
 		for( TArray< AActor* >::TIterator CurActorIt( ActorsToMove ); CurActorIt; ++CurActorIt )
 		{
@@ -60,7 +60,7 @@ namespace EditorLevelUtils
 			if( !FLevelUtils::IsLevelLocked( DestLevel ) && !FLevelUtils::IsLevelLocked( CurActor ) )
 			{
 				ULevelStreaming* ActorPrevLevel = FLevelUtils::FindStreamingLevel( CurActor->GetLevel() );
-				const FString& PrevLevelName = ActorPrevLevel != NULL ? ActorPrevLevel->PackageName.ToString() : CurActor->GetLevel()->GetName();
+				const FString& PrevLevelName = ActorPrevLevel != NULL ? ActorPrevLevel->GetWorldAssetPackageName() : CurActor->GetLevel()->GetName();
 				UE_LOG(LogLevelTools, Warning, TEXT( "AutoLevel: Moving %s from %s to %s" ), *CurActor->GetName(), *PrevLevelName, *NewLevelName );
 
 				// Select this actor
@@ -194,7 +194,7 @@ namespace EditorLevelUtils
 			ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>( StaticConstructObject( LevelStreamingClass, InWorld, NAME_None, RF_NoFlags, NULL) );
 
 			// Associate a package name.
-			StreamingLevel->PackageName = LevelPackageName;
+			StreamingLevel->SetWorldAssetByPackageName(LevelPackageName);
 
 			// Seed the level's draw color.
 			StreamingLevel->LevelColor = FLinearColor::MakeRandomColor();
@@ -244,7 +244,7 @@ namespace EditorLevelUtils
 		const FScopedBusyCursor BusyCursor;
 
 		// Cache off the package name, as it will be lost when unloading the level
-		const FName CachedPackageName = InLevel->PackageName;
+		const FName CachedPackageName = InLevel->GetWorldAssetPackageFName();
 
 		// First hide and remove the level if it exists
 		ULevel* Level = InLevel->GetLoadedLevel();
@@ -334,7 +334,7 @@ namespace EditorLevelUtils
 				if ( LevelStreamingVolume )
 				{
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->PackageName );
+					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->GetWorldAssetPackageFName() );
 				}
 			}
 

@@ -95,7 +95,7 @@ FString FLevelViewModel::GetName(bool bForceDisplayPath /*=false*/, bool bDispla
 	}
 	else if ( IsLevelStreaming() )
 	{
-		DisplayName += LevelStreaming->PackageName.ToString();
+		DisplayName += LevelStreaming->GetWorldAssetPackageName();
 
 		bool bDisplayPathsInLevelBrowser = (GetDefault<ULevelBrowserSettings>()->bDisplayPaths);
 

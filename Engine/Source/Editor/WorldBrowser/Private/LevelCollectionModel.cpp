@@ -252,7 +252,7 @@ void FLevelCollectionModel::Tick( float DeltaTime )
 		for (ULevelStreaming* StreamingLevel : GetSimulationWorld()->StreamingLevels)
 		{
 			// Rebuild the original NonPrefixedPackageName so we can find it
-			const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
+			const FString PrefixedPackageName = StreamingLevel->GetWorldAssetPackageName();
 			const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
 					+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
 								

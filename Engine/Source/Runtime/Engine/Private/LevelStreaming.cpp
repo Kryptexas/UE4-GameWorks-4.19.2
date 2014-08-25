@@ -55,7 +55,7 @@ ULevelStreaming* FStreamLevelAction::FindAndCacheLevelStreamingObject( const FNa
 			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
 			// Like Saved/Autosaves/PackageName
 			if (LevelStreaming && 
-				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+				LevelStreaming->GetWorldAssetPackageName().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
 			{
 				return LevelStreaming;
 			}
@@ -99,7 +99,7 @@ void FStreamLevelAction::ActivateLevel( ULevelStreaming* LevelStreamingObject )
 		// Loading.
 		if( bLoading )
 		{
-			UE_LOG(LogStreaming, Log, TEXT("Streaming in level %s (%s)..."),*LevelStreamingObject->GetName(),*LevelStreamingObject->PackageName.ToString());
+			UE_LOG(LogStreaming, Log, TEXT("Streaming in level %s (%s)..."),*LevelStreamingObject->GetName(),*LevelStreamingObject->GetWorldAssetPackageName());
 			LevelStreamingObject->bShouldBeLoaded		= true;
 			LevelStreamingObject->bShouldBeVisible		|= bMakeVisibleAfterLoad;
 			LevelStreamingObject->bShouldBlockOnLoad	= bShouldBlockOnLoad;
@@ -107,7 +107,7 @@ void FStreamLevelAction::ActivateLevel( ULevelStreaming* LevelStreamingObject )
 		// Unloading.
 		else 
 		{
-			UE_LOG(LogStreaming, Log, TEXT("Streaming out level %s (%s)..."),*LevelStreamingObject->GetName(),*LevelStreamingObject->PackageName.ToString());
+			UE_LOG(LogStreaming, Log, TEXT("Streaming out level %s (%s)..."),*LevelStreamingObject->GetName(),*LevelStreamingObject->GetWorldAssetPackageName());
 			LevelStreamingObject->bShouldBeLoaded		= false;
 			LevelStreamingObject->bShouldBeVisible		= false;
 		}
@@ -122,7 +122,7 @@ void FStreamLevelAction::ActivateLevel( ULevelStreaming* LevelStreamingObject )
 				APlayerController* PlayerController = *Iterator;
 
 				UE_LOG(LogLevel, Log, TEXT("ActivateLevel %s %i %i %i"), 
-					*LevelStreamingObject->PackageName.ToString(), 
+					*LevelStreamingObject->GetWorldAssetPackageName(), 
 					LevelStreamingObject->bShouldBeLoaded, 
 					LevelStreamingObject->bShouldBeVisible, 
 					LevelStreamingObject->bShouldBlockOnLoad );
@@ -192,30 +192,37 @@ void ULevelStreaming::PostLoad()
 	const bool PIESession = GetWorld()->WorldType == EWorldType::PIE || (GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0;
 
 	// If this streaming level was saved with a short package name, try to convert it to a long package name
-	if ( !PIESession && PackageName != NAME_None )
+	if ( !PIESession && PackageName_DEPRECATED != NAME_None )
 	{
-		if ( FPackageName::IsShortPackageName(PackageName) == false )
+		const FString DeprecatedPackageNameString = PackageName_DEPRECATED.ToString();
+		if ( FPackageName::IsShortPackageName(PackageName_DEPRECATED) == false )
 		{
-			if ( FPackageName::DoesPackageExist(PackageName.ToString()) == false )
-			{
-				UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *PackageName.ToString());
-#if WITH_EDITOR
-				if (GIsEditor)
-				{
-					// Launch notification to inform user of default change
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("PackageName"), FText::FromName( PackageName ) );
-					FNotificationInfo Info( FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel","Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args ) );
-					Info.ExpireDuration = 7.0f;
-
-					FSlateNotificationManager::Get().AddNotification(Info);
-				}
-#endif // WITH_EDITOR
-			}
+			SetWorldAssetByPackageName(PackageName_DEPRECATED);
 		}
 		else
 		{
-			UE_LOG(LogLevelStreaming, Display, TEXT("Invalid streaming level package name (%s). Only long package names are supported. This streaming level may not load or save properly."), *PackageName.ToString());
+			UE_LOG(LogLevelStreaming, Display, TEXT("Invalid streaming level package name (%s). Only long package names are supported. This streaming level may not load or save properly."), *DeprecatedPackageNameString);
+		}
+	}
+
+	if ( !PIESession && !WorldAsset.IsNull() )
+	{
+		const FString WorldPackageName = GetWorldAssetPackageName();
+		if (FPackageName::DoesPackageExist(WorldPackageName) == false)
+		{
+			UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *WorldPackageName);
+#if WITH_EDITOR
+			if (GIsEditor)
+			{
+				// Launch notification to inform user of default change
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("PackageName"), FText::FromString(WorldPackageName));
+				FNotificationInfo Info(FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel", "Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args));
+				Info.ExpireDuration = 7.0f;
+
+				FSlateNotificationManager::Get().AddNotification(Info);
+			}
+#endif // WITH_EDITOR
 		}
 	}
 
@@ -256,7 +263,7 @@ void ULevelStreaming::Serialize( FArchive& Ar )
 
 FName ULevelStreaming::GetLODPackageName() const
 {
-	return LODPackageNames.IsValidIndex(LevelLODIndex) ? LODPackageNames[LevelLODIndex] : PackageName;
+	return LODPackageNames.IsValidIndex(LevelLODIndex) ? LODPackageNames[LevelLODIndex] : GetWorldAssetPackageFName();
 }
 
 FName ULevelStreaming::GetLODPackageNameToLoad() const
@@ -314,7 +321,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	}
 	
 	// Package name we want to load
-	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : PackageName;
+	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : GetWorldAssetPackageFName();
 	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad() : PackageNameToLoad;
 
 	// Check if currently loaded level is what we want right now
@@ -438,7 +445,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			{
 				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*(PackageName.ToString() + LOCALIZED_SEEKFREE_SUFFIX), NULL, NAME_None, *LocalizedPackageName)
+				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), NULL, NAME_None, *LocalizedPackageName)
 					.SetPIEInstanceID(PIEInstanceID);
 			}
 		}
@@ -548,7 +555,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 
 				// Try again with the destination package to load.
 				// IMPORTANT: check this BEFORE changing PackageNameToLoad, otherwise you wont know if the package name was supposed to be different.
-				const bool bLoadingIntoDifferentPackage = (PackageName != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
+				const bool bLoadingIntoDifferentPackage = (GetWorldAssetPackageFName() != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
 
 				// ... now set PackageNameToLoad
 				PackageNameToLoad = DestinationWorld->GetOutermost()->GetFName();
@@ -596,8 +603,8 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 						DestinationWorld->PersistentLevel->InvalidateModelSurface();
 						DestinationWorld->PersistentLevel->CommitModelSurfaces();
 					}
-						
-					PackageName = PackageNameToLoad;
+					
+					WorldAsset = DestinationWorld;
 				}
 			}
 		}
@@ -630,7 +637,7 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 	{
 		// Create instance long package name 
 		FString InstanceShortPackageName = InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InstanceUniqueName);
-		FString InstancePackagePath = FPackageName::GetLongPackagePath(PackageName.ToString()) + TEXT("/");
+		FString InstancePackagePath = FPackageName::GetLongPackagePath(GetWorldAssetPackageName()) + TEXT("/");
 		FName	InstanceUniquePackageName = FName(*(InstancePackagePath + InstanceShortPackageName));
 
 		// check if instance name is unique among existing streaming level objects
@@ -640,9 +647,9 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 		{
 			StreamingLevelInstance = Cast<ULevelStreaming>(StaticConstructObject(GetClass(), InWorld, NAME_None, RF_Transient, NULL));
 			// new level streaming instance will load the same map package as this object
-			StreamingLevelInstance->PackageNameToLoad = (PackageNameToLoad == NAME_None ? PackageName : PackageNameToLoad);
+			StreamingLevelInstance->PackageNameToLoad = (PackageNameToLoad == NAME_None ? GetWorldAssetPackageFName() : PackageNameToLoad);
 			// under a provided unique name
-			StreamingLevelInstance->PackageName = InstanceUniquePackageName;
+			StreamingLevelInstance->SetWorldAssetByPackageName(InstanceUniquePackageName);
 			StreamingLevelInstance->bShouldBeLoaded = false;
 			StreamingLevelInstance->bShouldBeVisible = false;
 			StreamingLevelInstance->LevelTransform = LevelTransform;
@@ -663,7 +670,7 @@ void ULevelStreaming::BroadcastLevelLoadedStatus(UWorld* PersistentWorld, FName 
 {
 	for (auto It = PersistentWorld->StreamingLevels.CreateIterator(); It; ++It)
 	{
-		if ((*It)->PackageName == LevelPackageName)
+		if ((*It)->GetWorldAssetPackageFName() == LevelPackageName)
 		{
 			if (bLoaded)
 			{
@@ -681,7 +688,7 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 {
 	for (auto It = PersistentWorld->StreamingLevels.CreateIterator(); It; ++It)
 	{
-		if ((*It)->PackageName == LevelPackageName)
+		if ((*It)->GetWorldAssetPackageFName() == LevelPackageName)
 		{
 			if (bVisible)
 			{
@@ -695,18 +702,42 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 	}
 }
 
+FString ULevelStreaming::GetWorldAssetPackageName() const
+{
+	const FString WorldAssetPath = WorldAsset.ToStringReference().ToString();
+	return FPackageName::ObjectPathToPackageName(WorldAssetPath);
+}
+
+FName ULevelStreaming::GetWorldAssetPackageFName() const
+{
+	const FString WorldAssetPackageName = GetWorldAssetPackageName();
+	if ( !WorldAssetPackageName.IsEmpty() )
+	{
+		return FName(*WorldAssetPackageName);
+	}
+	
+	return NAME_None;
+}
+
+void ULevelStreaming::SetWorldAssetByPackageName(FName InPackageName)
+{
+	const FString TargetWorldPackageName = InPackageName.ToString();
+	const FString TargetWorldObjectName = FPackageName::GetLongPackageAssetName(TargetWorldPackageName);
+	WorldAsset = TargetWorldPackageName + TEXT(".") + TargetWorldObjectName;
+}
+
 void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 {
 	// Apply PIE prefix so this level references
-	if (PackageName != NAME_None)
+	if (!WorldAsset.IsNull())
 	{
 		// Store original name 
 		if (PackageNameToLoad == NAME_None)
 		{
-			PackageNameToLoad = PackageName;
+			PackageNameToLoad = GetWorldAssetPackageFName();
 		}
-		const FString PlayWorldSteamingLevelName = UWorld::ConvertToPIEPackageName(PackageName.ToString(), PIEInstanceID);
-		PackageName = FName(*PlayWorldSteamingLevelName);
+		const FString PlayWorldSteamingLevelName = UWorld::ConvertToPIEPackageName(GetWorldAssetPackageName(), PIEInstanceID);
+		SetWorldAssetByPackageName(FName(*PlayWorldSteamingLevelName));
 	}
 	
 	// Rename LOD levels if any

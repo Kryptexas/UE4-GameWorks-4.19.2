@@ -2254,7 +2254,7 @@ void FBlueprintEditor::OnGraphEditorDropStreamingLevel(const TArray< TWeakObject
 			// Set dropped level package name
 			Node->AllocateDefaultPins();
 			UEdGraphPin* PackageNameInputPin = Node->FindPinChecked(TEXT("PackageName"));
-			PackageNameInputPin->DefaultValue = DroppedLevel->PackageName.ToString();
+			PackageNameInputPin->DefaultValue = DroppedLevel->GetWorldAssetPackageName();
 		}
 	}
 }

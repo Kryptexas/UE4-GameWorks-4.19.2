@@ -356,7 +356,7 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
 			// Like Saved/Autosaves/PackageName
 			if (LevelStreaming && 
-				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+				LevelStreaming->GetWorldAssetPackageName().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
 			{
 				return LevelStreaming;
 			}

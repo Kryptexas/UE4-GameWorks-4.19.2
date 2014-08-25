@@ -9305,7 +9305,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				ULevelStreamingPersistent* PersistentLevel = Cast<ULevelStreamingPersistent>(Context.World()->StreamingLevels[LevelIndex]);
 				if (PersistentLevel)
 				{
-					PreviousMapName = PersistentLevel->PackageName.ToString();
+					PreviousMapName = PersistentLevel->GetWorldAssetPackageName();
 					// only one persistent level
 					break;
 				}
@@ -9381,7 +9381,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// Propagate level and name to streaming object.
 		LevelStreamingPersistent->SetLoadedLevel(FakePersistentLevel);
-		LevelStreamingPersistent->PackageName	= FakePersistentLevelName;
+		LevelStreamingPersistent->SetWorldAssetByPackageName(FakePersistentLevelName);
 		// And add it to the world info's list of levels.
 		Context.World()->StreamingLevels.Add( LevelStreamingPersistent );
 
@@ -9401,7 +9401,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				// was this one of the packages we wanted to load?
 				for (int32 LoadLevelIndex = 0; LoadLevelIndex < Context.LevelsToLoadForPendingMapChange.Num(); LoadLevelIndex++)
 				{
-					if (Context.LevelsToLoadForPendingMapChange[LoadLevelIndex] == StreamingLevel->PackageName)
+					if (Context.LevelsToLoadForPendingMapChange[LoadLevelIndex] == StreamingLevel->GetWorldAssetPackageFName())
 					{
 						bWasFound = true;
 						break;
@@ -9455,7 +9455,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				ULevelStreaming* LevelStreamingObject = NULL;
 				for (int32 j = 0; j < Context.World()->StreamingLevels.Num(); j++)
 				{
-					if (Context.World()->StreamingLevels[j] != NULL && Context.World()->StreamingLevels[j]->PackageName == Context.PendingLevelStreamingStatusUpdates[i].PackageName)
+					if (Context.World()->StreamingLevels[j] != NULL && Context.World()->StreamingLevels[j]->GetWorldAssetPackageFName() == Context.PendingLevelStreamingStatusUpdates[i].PackageName)
 					{
 						LevelStreamingObject = Context.World()->StreamingLevels[j];
 						if (LevelStreamingObject != NULL)

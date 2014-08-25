@@ -2005,7 +2005,7 @@ bool UEditorEngine::WarnAboutHiddenLevels( UWorld* InWorld, bool bIncludePersist
 		FString HiddenLevelNames;
 		for ( int32 LevelIndex = 0 ; LevelIndex < HiddenLevels.Num() ; ++LevelIndex )
 		{
-			HiddenLevelNames += FString::Printf( TEXT("\n    %s"), *HiddenLevels[LevelIndex]->PackageName.ToString() );
+			HiddenLevelNames += FString::Printf( TEXT("\n    %s"), *HiddenLevels[LevelIndex]->GetWorldAssetPackageName() );
 		}
 
 		FFormatNamedArguments Args;

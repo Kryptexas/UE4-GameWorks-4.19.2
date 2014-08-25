@@ -486,7 +486,7 @@ void UCheatManager::SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoa
 		{
 			for (int32 i = 0; i < GetWorld()->StreamingLevels.Num(); i++)
 			{
-				(*Iterator)->ClientUpdateLevelStreamingStatus(GetWorld()->StreamingLevels[i]->PackageName, bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
+				(*Iterator)->ClientUpdateLevelStreamingStatus(GetWorld()->StreamingLevels[i]->GetWorldAssetPackageFName(), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
 			}
 		}
 	}

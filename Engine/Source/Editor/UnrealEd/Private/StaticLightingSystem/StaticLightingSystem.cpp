@@ -384,11 +384,11 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 			{
 				if (SkippedLevels.Len() > 0)
 				{
-					SkippedLevels += FString(TEXT(", ")) + CurStreamingLevel->PackageName.ToString();
+					SkippedLevels += FString(TEXT(", ")) + CurStreamingLevel->GetWorldAssetPackageName();
 				}
 				else
 				{
-					SkippedLevels += CurStreamingLevel->PackageName.ToString();
+					SkippedLevels += CurStreamingLevel->GetWorldAssetPackageName();
 				}
 			}
 		}

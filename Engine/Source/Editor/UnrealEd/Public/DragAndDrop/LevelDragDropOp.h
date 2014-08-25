@@ -31,7 +31,7 @@ public:
 		{
 			if (StreamingLevelsToDrop[0].IsValid())
 			{
-				LevelName = StreamingLevelsToDrop[0]->PackageName.ToString();
+				LevelName = StreamingLevelsToDrop[0]->GetWorldAssetPackageName();
 			}
 		}
 		

@@ -545,7 +545,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 	// Try to find existing object first
 	auto Predicate = [&](ULevelStreaming* StreamingLevel) 
 	{
-		return (StreamingLevel->PackageName == PackageName && StreamingLevel->HasAnyFlags(RF_Transient));
+		return (StreamingLevel->GetWorldAssetPackageFName() == PackageName && StreamingLevel->HasAnyFlags(RF_Transient));
 	};
 	
 	int32 Index = PersistentWorld->StreamingLevels.IndexOfByPredicate(Predicate);
@@ -558,7 +558,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 			);
 
 		//
-		AssociatedStreamingLevel->PackageName		= PackageName;
+		AssociatedStreamingLevel->SetWorldAssetByPackageName(PackageName);
 		AssociatedStreamingLevel->LevelColor		= FLinearColor::MakeRandomColor();
 		AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
 		AssociatedStreamingLevel->PackageNameToLoad	= PackageName;

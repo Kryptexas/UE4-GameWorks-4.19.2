@@ -269,7 +269,7 @@ ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldComposition
 	ULevelStreaming* StreamingLevel = Cast<ULevelStreaming>(StaticConstructObject(StreamingClass, OwningWorld, NAME_None, RF_Transient, NULL));
 		
 	// Associate a package name.
-	StreamingLevel->PackageName			= InTile.PackageName;
+	StreamingLevel->SetWorldAssetByPackageName(InTile.PackageName);
 	StreamingLevel->PackageNameToLoad	= InTile.PackageName;
 
 	//Associate LOD packages if any

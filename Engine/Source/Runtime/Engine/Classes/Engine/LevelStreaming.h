@@ -73,9 +73,13 @@ class ULevelStreaming : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Path to the asset used for loading.																						*/
-	UPROPERTY(Category=LevelStreaming, VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay, meta=(DisplayName = "Asset Path"))
-	FName PackageName;
+	/** Deprecated name of the package containing the level to load. Use WorldAsset or GetWorldAssetPackageFName instead.		*/
+	UPROPERTY()
+	FName PackageName_DEPRECATED;
+
+	/** The reference to the world containing the level to load																	*/
+	UPROPERTY(Category=LevelStreaming, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName = "Level"))
+	TAssetPtr<UWorld> WorldAsset;
 
 	/** If this isn't Name_None, then we load from this package on disk to the new package named PackageName					*/
 	UPROPERTY()
@@ -167,6 +171,15 @@ class ULevelStreaming : public UObject
 		return (LoadedLevel || PendingUnloadLevel);
 	}
 
+	/** Gets the package name for the world asset referred to by this level streaming */
+	ENGINE_API FString GetWorldAssetPackageName() const;
+
+	/** Gets the package name for the world asset referred to by this level streaming as an FName */
+	ENGINE_API FName GetWorldAssetPackageFName() const;
+
+	/** Sets the world asset based on the package name assuming it contains a world of the same name. */
+	ENGINE_API void SetWorldAssetByPackageName(FName InPackageName);
+
 	/** Rename package name to PIE appropriate name */
 	ENGINE_API void RenameForPIE(int PIEInstanceID);
 
@@ -218,7 +231,7 @@ class ULevelStreaming : public UObject
 
 		bool Matches( const ULevelStreaming* Candidate ) const
 		{
-			return Candidate->PackageName == PackageName;
+			return Candidate->GetWorldAssetPackageFName() == PackageName;
 		}
 
 		FName PackageName;

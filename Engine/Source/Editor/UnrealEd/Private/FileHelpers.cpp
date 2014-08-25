@@ -741,7 +741,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 								if( CurStreamingLevel != NULL )
 								{
 									// Update the package name
-									FString PackageNameToRename = CurStreamingLevel->PackageName.ToString();
+									FString PackageNameToRename = CurStreamingLevel->GetWorldAssetPackageName();
 									if( RenameStreamingLevel( PackageNameToRename, OldBaseLevelName, NewBaseLevelName ) )
 									{
 										bAnythingToRename = true;
@@ -780,10 +780,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 							if( CurStreamingLevel != NULL )
 							{
 								// Update the package name
-								FString PackageNameToRename = CurStreamingLevel->PackageName.ToString();
+								FString PackageNameToRename = CurStreamingLevel->GetWorldAssetPackageName();
 								if( RenameStreamingLevel( PackageNameToRename, OldBaseLevelName, NewBaseLevelName ) )
 								{
-									CurStreamingLevel->PackageName = FName( *PackageNameToRename );
+									CurStreamingLevel->SetWorldAssetByPackageName(FName( *PackageNameToRename ));
 
 									// Level was renamed!
 									CurStreamingLevel->MarkPackageDirty();

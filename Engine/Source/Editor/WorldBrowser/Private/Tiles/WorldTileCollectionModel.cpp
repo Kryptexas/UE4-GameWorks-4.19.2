@@ -879,7 +879,7 @@ void FWorldTileCollectionModel::UpdateStreamingPreview(FVector2D InLocation, boo
 
 			for (const auto& VisibleLevel : DistanceVisibleLevels)
 			{
-				PreviewVisibleTiles.Add(VisibleLevel.StreamingLevel->PackageName);
+				PreviewVisibleTiles.Add(VisibleLevel.StreamingLevel->GetWorldAssetPackageFName());
 			}
 		}
 	}
