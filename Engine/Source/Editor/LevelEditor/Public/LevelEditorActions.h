@@ -520,6 +520,7 @@ public:
 	TSharedPtr< FUICommandInfo > AllowGroupSelection;
 
 	TSharedPtr< FUICommandInfo > StrictBoxSelect;
+	TSharedPtr< FUICommandInfo > DrawBrushMarkerPolys;
 	TSharedPtr< FUICommandInfo > OnlyLoadVisibleInPIE;
 
 	TSharedPtr< FUICommandInfo > ToggleSocketSnapping; 
