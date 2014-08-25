@@ -91,6 +91,13 @@ public:
 	TSharedPtr<FSlateDynamicTextureResource> MakeDynamicTextureResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes );
 
 	/**
+	 * Find a dynamic texture resource 
+	 *
+	 * @param ResourceName			The name identifier of the resource
+	 */
+	TSharedPtr<FSlateDynamicTextureResource> GetDynamicTextureResourceByName( FName ResourceName );
+
+	/**
 	 * Returns true if a texture resource with the passed in resource name is available 
 	 */
 	bool ContainsTexture( const FName& ResourceName ) const;
@@ -155,7 +162,7 @@ private:
 	 *
 	 * @param InBrush	Slate brush for the dynamic resource
 	 */
-	FSlateShaderResourceProxy* GetDynamicTextureResource( const FSlateBrush& InBrush );
+	FSlateShaderResourceProxy* FindOrCreateDynamicTextureResource( const FSlateBrush& InBrush );
 
 	/**
 	 * Returns a rendering resource for a material

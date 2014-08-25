@@ -352,7 +352,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 			LoadUObjectForBrush( InBrush );
 		}
 
-		Texture = GetDynamicTextureResource( InBrush );
+		Texture = FindOrCreateDynamicTextureResource( InBrush );
 	}
 
 	return Texture;
@@ -399,6 +399,11 @@ TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTe
 	INC_DWORD_STAT_BY(STAT_SlateNumDynamicTextures, 1);
 
 	return TextureResource;
+}
+
+TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::GetDynamicTextureResourceByName( FName ResourceName )
+{
+	return DynamicResourceMap.GetDynamicTextureResource( ResourceName );
 }
 
 TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTextureResource(UTexture2D* InTextureObject)
@@ -456,7 +461,7 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 }
 
 
-FSlateShaderResourceProxy* FSlateRHIResourceManager::GetDynamicTextureResource( const FSlateBrush& InBrush )
+FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureResource(const FSlateBrush& InBrush)
 {
 	check( IsThreadSafeForSlateRendering() );
 

@@ -1009,13 +1009,15 @@ FIntPoint FSlateRHIRenderer::GenerateDynamicImageResource(const FName InTextureN
 	uint32 Height = 0;
 	TArray<uint8> RawData;
 
-	// Load the image from disk
-	bool bSucceeded = ResourceManager->LoadTexture(InTextureName, InTextureName.ToString(), Width, Height, RawData);
-
-	TSharedPtr<FSlateDynamicTextureResource> TextureResource;
-	if( bSucceeded )
+	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->GetDynamicTextureResourceByName( InTextureName );
+	if( !TextureResource.IsValid() )
 	{
-		TextureResource = ResourceManager->MakeDynamicTextureResource(InTextureName, Width, Height, RawData);
+		// Load the image from disk
+		bool bSucceeded = ResourceManager->LoadTexture(InTextureName, InTextureName.ToString(), Width, Height, RawData);
+		if (bSucceeded)
+		{
+			TextureResource = ResourceManager->MakeDynamicTextureResource(InTextureName, Width, Height, RawData);
+		}
 	}
 
 	return TextureResource.IsValid() ? TextureResource->Proxy->ActualSize : FIntPoint( 0, 0 );
@@ -1025,7 +1027,12 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 {
 	check( IsInGameThread() );
 
-	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
+	
+	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->GetDynamicTextureResourceByName( ResourceName );
+	if( !TextureResource.IsValid() )
+	{
+		TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
+	}
 	return TextureResource.IsValid();
 }
 
