@@ -303,6 +303,18 @@ void UCharacterMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 #endif // WITH_EDITOR
 
 
+void UCharacterMovementComponent::OnRegister()
+{
+	Super::OnRegister();
+
+#if WITH_EDITOR
+	// Compute WalkableFloorZ from the WalkableFloorAngle.
+	// This is only to respond to changes propagated by PostEditChangeProperty, so it's only done in the editor.
+	SetWalkableFloorAngle(WalkableFloorAngle);
+#endif
+}
+
+
 void UCharacterMovementComponent::OnUnregister()
 {
 	delete ClientPredictionData;

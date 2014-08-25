@@ -661,6 +661,7 @@ public:
 
 	//Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void PostLoad() override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
