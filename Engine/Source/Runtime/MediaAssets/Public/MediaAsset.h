@@ -205,7 +205,7 @@ public:
 	 * @see GetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaAsset")
-	bool SetRate( float InRate );
+	bool SetRate( float Rate );
 
 	/**
 	 * Checks whether the specified playback rate is supported.

@@ -49,7 +49,7 @@ float UMediaAsset::GetRate( ) const
 		return MediaPlayer->GetRate();
 	}
 
-	return 0;
+	return 0.0f;
 }
 
 
@@ -127,9 +127,9 @@ bool UMediaAsset::SetLooping( bool InLooping )
 }
 
 
-bool UMediaAsset::SetRate( float InRate )
+bool UMediaAsset::SetRate( float Rate )
 {
-	return MediaPlayer.IsValid() && MediaPlayer->SetRate(InRate);
+	return MediaPlayer.IsValid() && MediaPlayer->SetRate(Rate);
 }
 
 
