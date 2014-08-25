@@ -70,6 +70,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Initailizes the task with the owning GameplayAbility but does not actviate until Activate() is called */
 	virtual void InitTask(UGameplayAbility* InAbility);
 
+	/** Tick function for this task, if bTickingTask == true */
+	virtual void TickTask(float DeltaTime) {}
+
 	
 	
 	/** GameplayAbility that created us */
@@ -105,4 +108,7 @@ protected:
 
 	/** End and CleanUp the task - may be called by the task itself or by the owning ability if the ability is ending. Do NOT call directly! Call EndTask() or AbilityEnded() */
 	virtual void OnDestroy(bool AbilityIsEnding);
+
+	/** If true, this task will receive TickTask calls from AbilitySystemComponent */
+	bool bTickingTask;
 };

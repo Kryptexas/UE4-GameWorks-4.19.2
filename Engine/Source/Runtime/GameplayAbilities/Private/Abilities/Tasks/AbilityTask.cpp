@@ -19,6 +19,12 @@ void UAbilityTask::InitTask(UGameplayAbility* InAbility)
 	Ability = InAbility;
 	AbilitySystemComponent = InAbility->GetCurrentActorInfo()->AbilitySystemComponent;
 	InAbility->TaskStarted(this);
+
+	// If this task requires ticking, register it with AbilitySystemComponent
+	if (bTickingTask && AbilitySystemComponent.IsValid())
+	{
+		AbilitySystemComponent->TickingTaskStarted(this);
+	}
 }
 
 UWorld* UAbilityTask::GetWorld() const
@@ -64,6 +70,12 @@ void UAbilityTask::EndTask()
 void UAbilityTask::OnDestroy(bool AbilityIsEnding)
 {
 	ensure(!IsPendingKill());
+
+	// If this task required ticking, unregister it with AbilitySystemComponent
+	if (bTickingTask && AbilitySystemComponent.IsValid())
+	{
+		AbilitySystemComponent->TickingTaskEnded(this);
+	}
 
 	// Remove ourselves from the owning Ability's task list, if the ability isn't ending
 	if (!AbilityIsEnding && Ability.IsValid())

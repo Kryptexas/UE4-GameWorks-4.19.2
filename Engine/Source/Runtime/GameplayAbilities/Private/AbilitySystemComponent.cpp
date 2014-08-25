@@ -497,6 +497,28 @@ void UAbilitySystemComponent::OnRestackGameplayEffects()
 
 // ---------------------------------------------------------------------------------------
 
+void UAbilitySystemComponent::TickingTaskStarted(UAbilityTask* NewTask)
+{
+	// If this is our first ticking task, set this component as active so it begins ticking
+	if (TickingTasks.Num() == 0)
+	{
+		SetActive(true);
+	}
+	TickingTasks.AddUnique(NewTask);
+}
+
+void UAbilitySystemComponent::TickingTaskEnded(UAbilityTask* Task)
+{
+	// If we are removing our last ticking task, set this component as inactive so it stops ticking
+	TickingTasks.RemoveSingleSwap(Task);
+	if (TickingTasks.Num() == 0)
+	{
+		SetActive(false);
+	}
+}
+
+// ---------------------------------------------------------------------------------------
+
 void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

@@ -40,6 +40,19 @@ void UAbilitySystemComponent::InitializeComponent()
 	}
 }
 
+void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	for (TWeakObjectPtr<UAbilityTask> TickingTask : TickingTasks)
+	{
+		if (TickingTask.IsValid())
+		{
+			TickingTask->TickTask(DeltaTime);
+		}
+	}
+}
+
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
 {
 	check(AbilityActorInfo.IsValid());
@@ -115,6 +128,12 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayA
 void UAbilitySystemComponent::NotifyAbilityEnded(UGameplayAbility* Ability)
 {
 	check(Ability);
+
+	// If AnimatingAbility ended, clear the pointer
+	if (AnimatingAbility == Ability)
+	{
+		AnimatingAbility = NULL;
+	}
 	
 	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
