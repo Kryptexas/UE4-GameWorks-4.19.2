@@ -9,7 +9,7 @@ DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
  * A PopupAnchor summons a Popup relative to its content.
  * Summoning a popup relative to the cursor is accomplished via the application.
  */
-class SLATE_API SMenuAnchor : public SCompoundWidget
+class SLATE_API SMenuAnchor : public SPanel
 {
 public:
 	enum EMethod
@@ -54,10 +54,6 @@ public:
 	
 	SMenuAnchor();
 
-	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	// End of SWidget interface
-
 	/** See Content Slot attribute */
 	void SetContent(TSharedRef<SWidget> InContent);
 
@@ -86,16 +82,24 @@ public:
 	bool HasOpenSubMenus() const;
 
 protected:
+	// SWidget interface
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual FVector2D ComputeDesiredSize( ) const override;
+	virtual FChildren* GetChildren() override;
+	int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+	// End of SWidget interface
 
 	/**
-	 * Computes the desired position for a menu that's attached to this anchor
+	 * Computes the desired position for a popup that is attached to this anchor.
 	 *
 	 * @param   AllottedGeometry    Our widget's geometry
 	 * @param   PopupDesiredSize    How big the popup needs to be for all of its contents to be visible
-	 * @param   WindowSize          (Out) New size of the window
-	 * @param   NewPosition         (Out) The computed window position
+	 * @param   PlacementMode       Should the popup be below the anchor? Right of it? Some other placement?
+	 *
+	 * @return Geometry computed for the popup widget.
 	 */
-	void ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, FVector2D& WindowSize, FVector2D& NewPosition );
+	static FGeometry ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode );
 
 	/** Invoked when the popup window is being closed by the application */
 	void RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindow );
@@ -107,10 +111,7 @@ protected:
 	/** A pointer to the window presenting this popup. Pointer is null when the popup is not visible */
 	TWeakPtr<SWindow> PopupWindowPtr;
 
-	/** When not making a new window for the popup, we rely on the SPopupLayer to achieve the effect. */
-	struct FPopupLayerSlot* PopupLayerSlot;
-	
-	/** Static menu content */
+	/** Static menu content to use when the delegate used when OnGetMenuContent is not defined. */
 	TSharedPtr<SWidget> MenuContent;
 	
 	/** Callback invoked when the popup is being summoned */
@@ -128,5 +129,5 @@ protected:
 	/** Should we summon a new window for this popup or  */
 	EMethod Method;
 
-
+	TPanelChildren<FSimpleSlot> Children;
 };

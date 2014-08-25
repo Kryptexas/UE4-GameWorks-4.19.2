@@ -1660,7 +1660,7 @@ SWindow::SWindow()
 	, bHasMinimizeButton( false )
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )
-    , bIsModalWindow( false )
+	, bIsModalWindow( false )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )
@@ -1675,6 +1675,14 @@ SWindow::SWindow()
 	, ExpectedMaxHeight( INDEX_NONE )
 	, TitleBar()
 {
+}
+
+
+int32 SWindow::PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+{
+	LayerId = Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = OutDrawElements.PaintDeferred( LayerId );
+	return LayerId;
 }
 
 

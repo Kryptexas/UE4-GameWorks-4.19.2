@@ -570,6 +570,7 @@ public:
 class FSlateWindowElementList
 {
 	friend class FSlateElementBatcher;
+
 public:
 	/** 
 	 * Construct a new list of elements with which to paint a window.
@@ -614,6 +615,30 @@ public:
 		const int32 InsertIdx = DrawElements.AddUninitialized();
 		return *(new(DrawElements.GetTypedData() + InsertIdx) FSlateDrawElement());
 	}
+
+	/**
+	* Some widgets may want to paint their children after after another, loosely-related widget finished painting.
+	* Or they may want to paint "after everyone".
+	*/
+	struct FDeferredPaint
+	{
+	public:
+		SLATECORE_API FDeferredPaint( const TSharedRef<SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled );
+
+		int32 ExecutePaint( int32 LayerId, FSlateWindowElementList& OutDrawElements ) const;
+
+	private:
+		const TWeakPtr<SWidget> WidgetToPaintPtr;
+		const FPaintArgs Args;
+		const FGeometry AllottedGeometry;
+		const FSlateRect MyClippingRect;
+		const FWidgetStyle WidgetStyle;
+		const bool bParentEnabled;
+	};
+
+	SLATECORE_API void QueueDeferredPainting( const FDeferredPaint& InDeferredPaint );
+
+	int32 PaintDeferred( int32 LayerId );
 	
 	/**
 	 * Remove all the elements from this draw list.
@@ -656,4 +681,10 @@ protected:
 
 	/** All the indices for every batch. */
 	TArray<SlateIndex> BatchedIndices;
+
+	/**
+	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.
+	 * We accomplish this by deferring their painting.
+	 */
+	TArray< TSharedRef<FDeferredPaint> > DeferredPaintList;
 };

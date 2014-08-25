@@ -15,54 +15,54 @@ void SComboButton::Construct( const FArguments& InArgs )
 	
 	OnGetMenuContent = InArgs._OnGetMenuContent;
 	OnComboBoxOpened = InArgs._OnComboBoxOpened;
-	Method = InArgs._Method;
 	ContentWidgetPtr = InArgs._MenuContent.Widget;
-	ContentScale = InArgs._ContentScale;
-	Placement = InArgs._MenuPlacement;
 	bIsFocusable = InArgs._IsFocusable;
 
 	TSharedPtr<SHorizontalBox> HBox;
 
-	this->ChildSlot
-	.HAlign( InArgs._HAlign )
-	.VAlign( InArgs._VAlign )
-	[
-		SNew(SButton)
-		.ContentPadding(FMargin(1,0))
-		.ButtonStyle(OurButtonStyle)	
-		.ClickMethod( EButtonClickMethod::MouseDown )
-		.OnClicked( this, &SComboButton::OnButtonClicked )
-		.ContentPadding( InArgs._ContentPadding )
-		.ForegroundColor( InArgs._ForegroundColor )
-		.ButtonColorAndOpacity( InArgs._ButtonColorAndOpacity )
-		.IsFocusable( InArgs._IsFocusable )
+	SMenuAnchor::Construct( SMenuAnchor::FArguments()
+		.Placement( InArgs._MenuPlacement )
+		.Method( InArgs._Method )
 		[
-			// Button and down arrow on the right
-			// +-------------------+---+
-			// | Button Content    | v |
-			// +-------------------+---+
-			SAssignNew(HBox, SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.  Expose( ButtonContentSlot )
-			.  FillWidth(1)
-			.  VAlign(VAlign_Center)
+			SNew( SButton )
+			.ContentPadding( FMargin( 1, 0 ) )
+			.ButtonStyle( OurButtonStyle )
+			.ClickMethod( EButtonClickMethod::MouseDown )
+			.OnClicked( this, &SComboButton::OnButtonClicked )
+			.ContentPadding( InArgs._ContentPadding )
+			.ForegroundColor( InArgs._ForegroundColor )
+			.ButtonColorAndOpacity( InArgs._ButtonColorAndOpacity )
+			.IsFocusable( InArgs._IsFocusable )
 			[
-				InArgs._ButtonContent.Widget
-			]
-			+SHorizontalBox::Slot()
-			.  AutoWidth()
-			.  HAlign(HAlign_Center)
-			.  VAlign(VAlign_Center)
-			.  Padding( InArgs._HasDownArrow ? 2 : 0)
-			[
-				SNew(SImage)
-				. Visibility( InArgs._HasDownArrow ? EVisibility::Visible : EVisibility::Collapsed )
-				. Image(&InArgs._ComboButtonStyle->DownArrowImage)
-				// Inherit tinting from parent
-				. ColorAndOpacity( FSlateColor::UseForeground() )
+				// Button and down arrow on the right
+				// +-------------------+---+
+				// | Button Content    | v |
+				// +-------------------+---+
+				SAssignNew( HBox, SHorizontalBox )
+				+ SHorizontalBox::Slot()
+				.Expose( ButtonContentSlot )
+				.FillWidth( 1 )
+				.HAlign( InArgs._HAlign )
+				.VAlign( InArgs._VAlign )
+				[
+					InArgs._ButtonContent.Widget
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign( HAlign_Center )
+				.VAlign( VAlign_Center )
+				.Padding( InArgs._HasDownArrow ? 2 : 0 )
+				[
+					SNew( SImage )
+					.Visibility( InArgs._HasDownArrow ? EVisibility::Visible : EVisibility::Collapsed )
+					.Image( &InArgs._ComboButtonStyle->DownArrowImage )
+					// Inherit tinting from parent
+					. ColorAndOpacity( FSlateColor::UseForeground() )
+				]
 			]
 		]
-	];
+	);
+
 	
 	// The menu that pops up when we press the button.
 	// We keep this content around, and then put it into a new window when we need to pop

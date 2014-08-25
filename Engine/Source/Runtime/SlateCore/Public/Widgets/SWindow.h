@@ -207,6 +207,9 @@ public:
 		}
 	}
 
+	/** Paint the window and all of its contents. Not the same as Paint(). */
+	int32 PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+
 	/**
 	 * Returns the size of the title bar as a Slate size parameter.  Does not take into account application scale!
 	 *

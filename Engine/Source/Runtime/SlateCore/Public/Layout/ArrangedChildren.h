@@ -97,11 +97,23 @@ class SLATECORE_API FArrangedChildren
 		return Array.Num();
 	}
 
+	const FArrangedWidget& operator[]( int32 Index ) const
+	{
+		return Array[Index];
+	}
+
+	FArrangedWidget& operator[]( int32 Index )
+	{
+		return Array[Index];
+	}
+
+	// @todo umg na deprecate this
 	const FArrangedWidget& operator()(int32 Index) const
 	{
 		return Array[Index];
 	}
 
+	// @todo umg na deprecate this
 	FArrangedWidget& operator()(int32 Index)
 	{
 		return Array[Index];

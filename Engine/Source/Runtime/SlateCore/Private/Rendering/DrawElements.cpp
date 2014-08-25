@@ -15,6 +15,7 @@ void FSlateDrawElement::MakeDebugQuad( FSlateWindowElementList& ElementList, uin
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
+
 void FSlateDrawElement::MakeBox( 
 	FSlateWindowElementList& ElementList,
 	uint32 InLayer, 
@@ -34,6 +35,7 @@ void FSlateDrawElement::MakeBox(
 	DrawElt.DrawEffects = InDrawEffects;
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
+
 
 void FSlateDrawElement::MakeRotatedBox( 
 	FSlateWindowElementList& ElementList,
@@ -60,6 +62,7 @@ void FSlateDrawElement::MakeRotatedBox(
 	DrawElt.DataPayload.SetRotatedBoxPayloadProperties( InBrush, Angle, RotationPoint, InTint );
 }
 
+
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const int32 StartIndex, const int32 EndIndex, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
@@ -72,6 +75,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.DrawEffects = InDrawEffects;
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
+
 
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
@@ -86,6 +90,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
+
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FText& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
@@ -98,6 +103,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.DrawEffects = InDrawEffects;
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
+
 
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& InPaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
 {
@@ -112,6 +118,7 @@ void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint
 	DrawElt.Scale = InPaintGeometry.DrawScale;
 }
 
+
 void FSlateDrawElement::MakeSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
@@ -124,10 +131,12 @@ void FSlateDrawElement::MakeSpline( FSlateWindowElementList& ElementList, uint32
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
+
 void FSlateDrawElement::MakeDrawSpaceSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness, ESlateDrawEffect::Type InDrawEffects, const FColor& InTint )
 {
 	MakeSpline( ElementList, InLayer, FPaintGeometry::Identity(), InStart, InStartDir, InEnd, InEndDir, InClippingRect, InThickness, InDrawEffects, InTint );
 }
+
 
 void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias )
 {
@@ -141,6 +150,7 @@ void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
+
 void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, bool bGammaCorrect, bool bAllowBlending, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
@@ -153,6 +163,8 @@ void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint
 	DrawElt.DrawEffects = InDrawEffects;
 	DrawElt.Scale = PaintGeometry.DrawScale;
 }
+
+
 void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
@@ -161,3 +173,45 @@ void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32
 	DrawElt.DataPayload.SetCustomDrawerPayloadProperties( CustomDrawer );
 	DrawElt.ClippingRect = FSlateRect(1,1,1,1);
 }
+
+
+FSlateWindowElementList::FDeferredPaint::FDeferredPaint( const TSharedRef<SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled )
+: WidgetToPaintPtr( InWidgetToPaint )
+, Args( InArgs )
+, AllottedGeometry( InAllottedGeometry )
+, MyClippingRect( InMyClippingRect )
+, WidgetStyle( InWidgetStyle )
+, bParentEnabled( InParentEnabled )
+{
+}
+
+
+int32 FSlateWindowElementList::FDeferredPaint::ExecutePaint( int32 LayerId, FSlateWindowElementList& OutDrawElements ) const
+{
+	TSharedPtr<SWidget> WidgetToPaint = WidgetToPaintPtr.Pin();
+	if ( WidgetToPaint.IsValid() )
+	{
+		return WidgetToPaint->Paint( Args, AllottedGeometry, OutDrawElements.GetWindow()->GetClippingRectangleInWindow(), OutDrawElements, LayerId, WidgetStyle, bParentEnabled );
+	}
+
+	return LayerId;
+}
+
+
+void FSlateWindowElementList::QueueDeferredPainting( const FDeferredPaint& InDeferredPaint )
+{
+	DeferredPaintList.Add( MakeShareable( new FDeferredPaint( InDeferredPaint ) ) );
+}
+
+
+int32 FSlateWindowElementList::PaintDeferred( int32 LayerId )
+{
+	for ( const TSharedRef<FDeferredPaint>& PaintArgs : DeferredPaintList )
+	{
+		LayerId = PaintArgs->ExecutePaint( LayerId, *this );
+	}
+
+	return LayerId;
+}
+
+
