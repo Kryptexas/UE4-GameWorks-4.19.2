@@ -303,7 +303,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
-	check((BaseQualifier.PredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.CurrentPredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -329,7 +329,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			{
 				ActiveGameplayEffects.StacksNeedToRecalculate();
 			}
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PreviousPredictionKey(), BaseQualifier.CurrentPredictionKey());
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
@@ -557,7 +557,7 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 	{
 		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey)
 		{
-			PredictionDelegates[idx].Value.Broadcast();
+			PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
 		}
 		else
 		{
@@ -571,10 +571,10 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 	}
 }
 
-FAbilitySystemComponentPredictionKeyClear& UAbilitySystemComponent::GetPredictionKeyDelegate(int32 PredictionKey)
+UAbilitySystemComponent::FPredictionInfo& UAbilitySystemComponent::GetPredictionKeyDelegate(uint32 PredictionKey)
 {
 	// See if we already have one for this key
-	for (TPair<int32, FAbilitySystemComponentPredictionKeyClear> & Item : PredictionDelegates)
+	for (auto & Item : PredictionDelegates)
 	{
 		if (Item.Key == PredictionKey)
 		{
@@ -583,15 +583,16 @@ FAbilitySystemComponentPredictionKeyClear& UAbilitySystemComponent::GetPredictio
 	}
 
 	// Create a new one
-	TPair<int32, FAbilitySystemComponentPredictionKeyClear> NewPair;
+	TPair<uint32, FPredictionInfo> NewPair;
 	NewPair.Key = PredictionKey;
 	
 	PredictionDelegates.Add(NewPair);
 	return PredictionDelegates.Last().Value;
 }
 
-int32 UAbilitySystemComponent::GetNextPredictionKey()
+uint32 UAbilitySystemComponent::GetNextPredictionKey()
 {
+	LocalPredictionKey = FMath::Max(LocalPredictionKey, ReplicatedPredictionKey);
 	return ++LocalPredictionKey;
 }
 

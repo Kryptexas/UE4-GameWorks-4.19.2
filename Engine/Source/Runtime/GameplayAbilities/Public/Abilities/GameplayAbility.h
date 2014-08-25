@@ -119,7 +119,7 @@ public:
 	 *	-This function handles networking and prediction
 	 *	-If all goes well, CallActivateAbility is called next.
 	 */
-	bool TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, int32 PredictionKey = 0, UGameplayAbility ** OutInstancedAbility = NULL);
+	bool TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, uint32 PrevPredictionKey = 0, uint32 CurrPredictionKey = 0, UGameplayAbility ** OutInstancedAbility = NULL);
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
 	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const;
@@ -224,10 +224,10 @@ protected:
 	/** Called on a predictive ability when the server confirms its execution */
 	void ConfirmActivateSucceed();
 
-	virtual void TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload);
+	virtual void TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
-		void SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload);
+	void SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload);
 
 	// --------------------------------------
 	//	CommitAbility

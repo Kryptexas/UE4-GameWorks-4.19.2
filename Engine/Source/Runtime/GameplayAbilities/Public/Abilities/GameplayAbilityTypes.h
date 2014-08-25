@@ -354,41 +354,41 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 *
 *	Data tied to a specific activation of an ability.
 *		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
-*		-Holds PredictionKey
+*		-Holds current and previous PredictionKey
 *		-Generally not meant to be subclassed in projects.
 *		-Passed around by value since the struct is small.
 */
-
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityActivationInfo()
-	: ActivationMode(EGameplayAbilityActivationMode::Authority),
-	PredictionKey(0)
+	: ActivationMode(EGameplayAbilityActivationMode::Authority)
+	, PrevPredictionKey(0)
+	, CurrPredictionKey(0)
 	{
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor * InActor, int32 InPredictionKey)
-		: PredictionKey(InPredictionKey)
+	FGameplayAbilityActivationInfo(AActor * InActor, uint32 InPrevPredictionKey, uint32 InCurrPredictionKey)
+		: PrevPredictionKey(InPrevPredictionKey)
+		, CurrPredictionKey(InCurrPredictionKey)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
 		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
 		ActivationMode = (InActor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
 	}
 
-	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, int32 InPredictionKey)
+	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, uint32 InPrevPredictionKey = 0, uint32 InCurrPredictionKey = 0)
 		: ActivationMode(InType)
-		, PredictionKey(InPredictionKey)
+		, PrevPredictionKey(InPrevPredictionKey)
+		, CurrPredictionKey(InCurrPredictionKey)
 	{
 	}
 
 
 	void GeneratePredictionKey(UAbilitySystemComponent * Component) const;
-
-	void SetPredictionKey(int32 InPredictionKey);
 
 	void SetActivationConfirmed();
 
@@ -396,7 +396,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
 
 	UPROPERTY()
-	mutable int32 PredictionKey;
+	mutable uint32 PrevPredictionKey;
+
+	UPROPERTY()
+	mutable uint32 CurrPredictionKey;
 };
 
 
@@ -650,6 +653,15 @@ USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEventData
 {
 	GENERATED_USTRUCT_BODY()
+
+	FGameplayEventData()
+	: Instigator(NULL)
+	, Target(NULL)
+	, PrevPredictionKey(0)
+	, CurrPredictionKey(0)
+	{
+		// do nothing
+	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	AActor* Instigator;
@@ -661,6 +673,9 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	float Var2;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float Var3;
+
+	uint32 PrevPredictionKey;
+	uint32 CurrPredictionKey;
 };
 
 /** 

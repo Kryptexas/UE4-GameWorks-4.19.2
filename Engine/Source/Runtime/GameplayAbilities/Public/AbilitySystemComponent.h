@@ -146,20 +146,67 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 */
 
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
-	int32	ReplicatedPredictionKey;
+	uint32	ReplicatedPredictionKey;
 
 	UPROPERTY(transient)
-	int32	LocalPredictionKey;
+	uint32	LocalPredictionKey;
 
-	int32	GetNextPredictionKey();
+	uint32	GetNextPredictionKey();
 
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
-	TArray<TPair<int32, FAbilitySystemComponentPredictionKeyClear> > PredictionDelegates;
+	struct FPredictionInfo
+	{
+		FAbilitySystemComponentPredictionKeyClear PredictionKeyClearDelegate;
+		TArray<uint32> DependentPredictionKeys;
+	};
 
-	FAbilitySystemComponentPredictionKeyClear &	GetPredictionKeyDelegate(int32 PredictionKey);
-	
+	TArray<TPair<uint32, FPredictionInfo > > PredictionDelegates;
+
+	FPredictionInfo &	GetPredictionKeyDelegate(uint32 PredictionKey);
+
+	struct FPendingAbilityInfo
+	{
+		bool operator==(const FPendingAbilityInfo& Other)
+		{
+			return PrevPredictionKey == Other.PrevPredictionKey
+				&& CurrPredictionKey == Other.CurrPredictionKey
+				&& Ability == Other.Ability;
+		}
+
+		uint32 PrevPredictionKey;
+		uint32 CurrPredictionKey;
+		UGameplayAbility* Ability;
+	};
+
+	// This is a list of GameplayAbilities that are predicted by the client and were triggered by abilities that were also predicted by the client
+	// When the server version of the predicted ability executes it should trigger copies of these and the copies will be associated with the correct prediction keys
+	TArray<FPendingAbilityInfo> PendingClientAbilities;
+
+	enum class EAbilityExecutionState : uint8
+	{
+		Executing,
+		Succeeded,
+		Failed,
+	};
+
+	struct FExecutingAbilityInfo
+	{
+		FExecutingAbilityInfo() : State(EAbilityExecutionState::Executing) {};
+
+		bool operator==(const FExecutingAbilityInfo& Other)
+		{
+			return CurrPredictionKey == Other.CurrPredictionKey
+				&& State == Other.State;
+		}
+
+		uint32 CurrPredictionKey;
+		EAbilityExecutionState State;
+		UGameplayAbility* Ability;
+	};
+
+	TArray<FExecutingAbilityInfo> ExecutingServerAbilities;
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -332,13 +379,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	void	OnRep_ActivateAbilities();
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
+	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilityFailed(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
+	void	ClientActivateAbilityFailed(class UGameplayAbility* AbilityToActivate, uint32 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilitySucceed(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
+	void	ClientActivateAbilitySucceed(class UGameplayAbility* AbilityToActivate, uint32 PredictionKey);
 
 	// ----------------------------------------------------------------------------------------------------------------
 

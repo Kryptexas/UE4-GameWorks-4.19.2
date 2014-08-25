@@ -37,7 +37,7 @@ void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilityActorIn
 	// For jump, we are just going to call CancelAbility with an authority ActivationInfo. This is all jump needs, but more complex
 	// abilities may need more work.
 
-	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Authority, 0);
+	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Authority);
 
 	CancelAbility(ActorInfo, ActivationInfo);
 }

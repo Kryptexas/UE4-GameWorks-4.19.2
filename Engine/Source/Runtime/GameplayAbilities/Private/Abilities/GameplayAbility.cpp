@@ -49,17 +49,67 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 #endif
 }
 
-void UGameplayAbility::TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag EventTag, FGameplayEventData* Payload)
+void UGameplayAbility::TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag EventTag, FGameplayEventData* Payload, UAbilitySystemComponent& Component)
 {
 	if (ShouldAbilityRespondToEvent(EventTag, Payload))
 	{
-		TryActivateAbility(ActorInfo);
+		int32 ExecutingAbilityIndex = -1;
+
+		// if we're the server and this is coming from a predicted event we should check if the client has already predicted it
+		if (Payload->CurrPredictionKey 
+			&& NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive
+			&& ActorInfo->Actor->Role == ROLE_Authority)
+		{
+			bool bPendingClientAbilityFound = false;
+			for (auto PendingAbilityInfo : Component.PendingClientAbilities)
+			{
+				if (Payload->CurrPredictionKey == PendingAbilityInfo.PrevPredictionKey && this == PendingAbilityInfo.Ability) // found a match
+				{
+					Payload->PrevPredictionKey = PendingAbilityInfo.PrevPredictionKey;
+					Payload->CurrPredictionKey = PendingAbilityInfo.CurrPredictionKey;
+
+					Component.PendingClientAbilities.RemoveSingleSwap(PendingAbilityInfo);
+					bPendingClientAbilityFound = true;
+					break;
+				}
+			}
+
+			// we haven't received the client's copy of the triggered ability
+			// keep track of this so we can associate the prediction keys when it comes in
+			if (bPendingClientAbilityFound == false)
+			{
+				UAbilitySystemComponent::FExecutingAbilityInfo Info;
+				Info.CurrPredictionKey = Payload->CurrPredictionKey;
+				Info.Ability = this;
+
+				ExecutingAbilityIndex = Component.ExecutingServerAbilities.Add(Info);
+			}
+		}
+
+		if (TryActivateAbility(ActorInfo, Payload->PrevPredictionKey, Payload->CurrPredictionKey))
+		{
+			if (ExecutingAbilityIndex >= 0)
+			{
+				Component.ExecutingServerAbilities[ExecutingAbilityIndex].State = UAbilitySystemComponent::EAbilityExecutionState::Succeeded;
+			}
+		}
+		else if (ExecutingAbilityIndex >= 0)
+		{
+			Component.ExecutingServerAbilities[ExecutingAbilityIndex].State = UAbilitySystemComponent::EAbilityExecutionState::Failed;
+		}
 	}
 }
 
 // TODO: polymorphic payload
 void UGameplayAbility::SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload)
 {
+	if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
+	{
+		check(CurrentActivationInfo.CurrPredictionKey != 0);
+		Payload.PrevPredictionKey = CurrentActivationInfo.PrevPredictionKey;
+		Payload.CurrPredictionKey = CurrentActivationInfo.CurrPredictionKey;
+	}
+
 	AActor *OwnerActor = Cast<AActor>(GetOuter());
 	if (OwnerActor)
 	{
@@ -207,7 +257,7 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, c
 
 void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!ActorInfo->AbilitySystemComponent->IsNetSimulating() || ActivationInfo.PredictionKey != 0)
+	if (!ActorInfo->AbilitySystemComponent->IsNetSimulating() || ActivationInfo.CurrPredictionKey != 0)
 	{
 		ApplyCooldown(ActorInfo, ActivationInfo);
 
@@ -215,13 +265,13 @@ void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo,
 	}
 }
 
-bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, int32 PredictionKey, UGameplayAbility ** OutInstancedAbility)
+bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, uint32 PrevPredictionKey, uint32 CurrPredictionKey, UGameplayAbility ** OutInstancedAbility)
 {	
 	// This should only come from button presses/local instigation
 	ENetRole NetMode = ActorInfo->Actor->Role;
 	ensure(NetMode != ROLE_SimulatedProxy);
 	
-	FGameplayAbilityActivationInfo	ActivationInfo(ActorInfo->Actor.Get(), PredictionKey);
+	FGameplayAbilityActivationInfo	ActivationInfo(ActorInfo->Actor.Get(), PrevPredictionKey, CurrPredictionKey);
 
 	// Always do a non instanced CanActivate check
 	if (!CanActivateAbility(ActorInfo))
@@ -356,7 +406,7 @@ void UGameplayAbility::ConfirmActivateSucceed()
 
 void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AbilitySystemComponent->ServerTryActivateAbility(this, ActivationInfo.PredictionKey);
+	ActorInfo->AbilitySystemComponent->ServerTryActivateAbility(this, ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey);
 }
 
 void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -392,7 +442,7 @@ void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo,
 	if (CooldownGameplayEffect)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKeys(ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey));
 	}
 }
 
@@ -411,7 +461,7 @@ void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, con
 	check(ActorInfo->AbilitySystemComponent.IsValid());
 	if (CostGameplayEffect)
 	{
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKeys(ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey));
 	}
 }
 
@@ -593,16 +643,11 @@ bool FGameplayAbilityActorInfo::IsNetAuthority() const
 void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAbilitySystemComponent * Component) const
 {
 	check(Component);
-	check(PredictionKey == 0);
 	check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
 
-	PredictionKey = Component->GetNextPredictionKey();
+	PrevPredictionKey = CurrPredictionKey;
+	CurrPredictionKey = Component->GetNextPredictionKey();
 	ActivationMode = EGameplayAbilityActivationMode::Predicting;
-}
-
-void FGameplayAbilityActivationInfo::SetPredictionKey(int32 InPredictionKey)
-{
-	PredictionKey = InPredictionKey;
 }
 
 void FGameplayAbilityActivationInfo::SetActivationConfirmed()

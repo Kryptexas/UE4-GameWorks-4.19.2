@@ -210,13 +210,13 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 	}
 }
 
-void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
 	{
 		DenyClientActivation--;
-		ClientActivateAbilityFailed(AbilityToActivate, PredictionKey);
+		ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
 		return;
 	}
 #endif
@@ -224,51 +224,91 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
+	// if this was triggered by a predicted ability the server triggered copy should be the canonical one
+	if (PrevPredictionKey != 0)
+	{
+		// first check if the server has already started this ability
+		for (auto ExecutingAbilityInfo : ExecutingServerAbilities)
+		{
+			if (ExecutingAbilityInfo.CurrPredictionKey == PrevPredictionKey && ExecutingAbilityInfo.Ability == AbilityToActivate)
+			{
+				switch(ExecutingAbilityInfo.State)
+				{
+					case EAbilityExecutionState::Executing:
+						ExecutingAbilityInfo.Ability->CurrentActivationInfo.PrevPredictionKey = PrevPredictionKey;
+						ExecutingAbilityInfo.Ability->CurrentActivationInfo.CurrPredictionKey = CurrPredictionKey;
+						break;
+					case EAbilityExecutionState::Failed:
+						ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
+						break;
+					case EAbilityExecutionState::Succeeded:
+						ClientActivateAbilitySucceed(AbilityToActivate, CurrPredictionKey);
+						break;
+				}
+
+				ExecutingServerAbilities.RemoveSingleSwap(ExecutingAbilityInfo);
+				return;
+			}
+		}
+
+		FPendingAbilityInfo AbilityInfo;
+		AbilityInfo.PrevPredictionKey = PrevPredictionKey;
+		AbilityInfo.CurrPredictionKey = CurrPredictionKey;
+		AbilityInfo.Ability = AbilityToActivate;
+
+		PendingClientAbilities.Add(AbilityInfo);
+		return;
+	}
+
 	UGameplayAbility *InstancedAbility = NULL;
 
-	if (AbilityToActivate->TryActivateAbility(AbilityActorInfo.Get(), PredictionKey, &InstancedAbility))
+	if (AbilityToActivate->TryActivateAbility(AbilityActorInfo.Get(), PrevPredictionKey, CurrPredictionKey, &InstancedAbility))
 	{
 		if (InstancedAbility && InstancedAbility->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
 		{
-			InstancedAbility->ClientActivateAbilitySucceed(PredictionKey);
+			InstancedAbility->ClientActivateAbilitySucceed(CurrPredictionKey);
 		}
 		else
 		{
-			ClientActivateAbilitySucceed(AbilityToActivate, PredictionKey);
+			ClientActivateAbilitySucceed(AbilityToActivate, CurrPredictionKey);
 		}
 
 		// Update our ReplicatedPredictionKey. When the client gets value, he will know his state (actor+all components/subobjects) are up to do date and he can
 		// remove any necessary predictive work.
 
-		if (PredictionKey > 0)
+		if (CurrPredictionKey > 0)
 		{
-			ensure(PredictionKey > ReplicatedPredictionKey);
-			ReplicatedPredictionKey = PredictionKey;
+			ensure(CurrPredictionKey > ReplicatedPredictionKey);
+			ReplicatedPredictionKey = CurrPredictionKey;
 		}
 	}
 	else
 	{
-		ClientActivateAbilityFailed(AbilityToActivate, PredictionKey);
+		ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
 	}
 }
 
-bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
 {
 	return true;
 }
 
-void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, uint32 PredictionKey)
 {
 	if (PredictionKey > 0)
 	{
 		for (int32 idx = 0; idx < PredictionDelegates.Num(); ++idx)
 		{
-			int32 Key = PredictionDelegates[idx].Key;
+			uint32 Key = PredictionDelegates[idx].Key;
 			if (Key == PredictionKey)
 			{
 				ABILITY_LOG(Warning, TEXT("Failed ActivateAbility, clearing prediction data %d"), PredictionKey);
 
-				PredictionDelegates[idx].Value.Broadcast();
+				PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
+				for (uint32 DependentKey : PredictionDelegates[idx].Value.DependentPredictionKeys)
+				{
+					ClientActivateAbilityFailed(AbilityToActivate, DependentKey);
+				}
 				PredictionDelegates.RemoveAt(idx);
 				break;
 			}
@@ -280,16 +320,13 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGamepl
 	}
 }
 
-void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, uint32 PredictionKey)
 {
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
-	// Fixme: We need a better way to link up/reconcile preditive replicated abilities. It would be ideal if we could predictively spawn an
+	// Fixme: We need a better way to link up/reconcile predictive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
-
-	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
-
 
 	if (AbilityToActivate->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
@@ -297,7 +334,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 		bool found = false;
 		for (UGameplayAbility* LocalAbility : NonReplicatedInstancedAbilities)				// Fixme: this has to be updated once predictive abilities can replicate
 		{
-			if (LocalAbility->GetCurrentActivationInfo().PredictionKey == PredictionKey)
+			if (LocalAbility->GetCurrentActivationInfo().CurrPredictionKey == PredictionKey)
 			{
 				LocalAbility->ConfirmActivateSucceed();
 				found = true;
@@ -312,6 +349,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 	}
 	else
 	{
+		FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, 0, PredictionKey);
 		// We haven't already executed this ability at all, so kick it off.
 		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -381,7 +419,7 @@ void UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, FGamepl
 		{
 			if (Ability.IsValid())
 			{
-				Ability.Get()->TriggerAbilityFromGameplayEvent(AbilityActorInfo.Get(), EventTag, Payload);
+				Ability.Get()->TriggerAbilityFromGameplayEvent(AbilityActorInfo.Get(), EventTag, Payload, *this);
 			}
 		}
 	}
