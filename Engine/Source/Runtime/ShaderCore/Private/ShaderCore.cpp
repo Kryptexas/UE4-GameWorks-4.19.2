@@ -108,20 +108,29 @@ TMap<FString, FString> GShaderFileCache;
 /** The shader file hash cache, used to minimize loading and hashing shader files */
 TMap<FString, FSHAHash> GShaderHashCache;
 
+static TAutoConsoleVariable<int32> CVarForceDebugViewModes(
+	TEXT("r.ForceDebugViewModes"),
+	0,
+	TEXT("0: Setting has no effect.\n")
+	TEXT("1: Forces debug view modes to be available, even on cooked builds.")
+	TEXT("2: Forces debug view modes to be unavailable, even on editor builds.  Removes many shader permutations for faster shader iteration."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
 /** Returns true if debug viewmodes are allowed for the current platform. */
 bool AllowDebugViewmodes()
-{
-	static bool bAllowDebugViewmodesOnConsoles = false;
-	static bool bReadFromIni = false;
-	if (!bReadFromIni)
-	{
-		bReadFromIni = true;
-		GConfig->GetBool( TEXT("/Script/Engine.Engine"), TEXT("bAllowDebugViewmodesOnConsoles"), bAllowDebugViewmodesOnConsoles, GEngineIni );
-	}
+{	
+	int32 ForceDebugViewValue = CVarForceDebugViewModes.GetValueOnAnyThread();
 
-	// To use debug viewmodes on consoles, bAllowDebugViewmodesOnConsoles in the engine ini must be set to true, 
+	// To use debug viewmodes on consoles, r.ForceDebugViewModes must be set to 2 in ConsoleVariables.ini
 	// And EngineDebugMaterials must be in the StartupPackages for the target platform.
-	return bAllowDebugViewmodesOnConsoles || (!IsRunningCommandlet() && !FPlatformProperties::RequiresCookedData());
+	bool bForceEnable = ForceDebugViewValue == 1;
+	bool bForceDisable = ForceDebugViewValue == 2;
+
+	//bool bEnabled = (!IsRunningCommandlet() && !FPlatformProperties::RequiresCookedData());	
+	//bEnabled |= bForceEnable;
+	//bEnabled &= !bForceDisable;
+
+	return (!bForceDisable) && (bForceEnable || (!IsRunningCommandlet() && !FPlatformProperties::RequiresCookedData()));
 }
 
 bool FShaderParameterMap::FindParameterAllocation(const TCHAR* ParameterName,uint16& OutBufferIndex,uint16& OutBaseIndex,uint16& OutSize) const

@@ -42,13 +42,6 @@ struct CORE_API FWinRTMisc : public FGenericPlatformMisc
 
 	/** Get the application root directory. */
 	static const TCHAR* RootDir();
-
-	/** 
-	 * Determines the shader format for the plarform
-	 *
-	 * @return	Returns the shader format to be used by that platform
-	 */
-	static const TCHAR* GetNullRHIShaderFormat();
 };
 
 typedef FWinRTMisc FPlatformMisc;

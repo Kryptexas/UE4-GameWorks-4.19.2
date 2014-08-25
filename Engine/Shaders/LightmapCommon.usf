@@ -140,6 +140,11 @@ half GetPrimaryPrecomputedShadowMask(FVertexFactoryInterpolantsVSToPS Interpolan
 		// This is necessary because objects inside a light's influence that were determined to be completely shadowed won't be rendered with STATICLIGHTING_TEXTUREMASK==1
 		return 0;
 
+	#elif MOVABLE_DIRECTIONAL_LIGHT
+		//@mw todo
+		// TODO: Filter shadowmap
+		return 1;
+
 	#else
 
 		// Mark as unshadowed by default

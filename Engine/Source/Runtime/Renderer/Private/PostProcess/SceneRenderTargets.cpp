@@ -64,9 +64,9 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("r.MobileMSAA"),
 	0,
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
-    TEXT("1: Use Temporal AA (MSAA disabled)\n")
-    TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-    TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
+	TEXT("1: Use Temporal AA (MSAA disabled)\n")
+	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
+	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -201,7 +201,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		(CurrentSceneColorFormat != SceneColorFormat) ||
 		(bAllowStaticLighting != bNewAllowStaticLighting) ||
 		(bUseDownsizedOcclusionQueries != bDownsampledOcclusionQueries) ||
- 		(CurrentMaxShadowResolution != MaxShadowResolution) ||
+		(CurrentMaxShadowResolution != MaxShadowResolution) ||
 		(CurrentTranslucencyLightingVolumeDim != TranslucencyLightingVolumeDim) ||
 		(CurrentMobile32bpp != Mobile32bpp) ||
 		(CurrentMobileMSAA != MobileMSAA) ||
@@ -332,12 +332,13 @@ void FSceneRenderTargets::AllocSceneColor()
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
 
-		if (CurrentFeatureLevel == ERHIFeatureLevel::ES2)
+		if (CurrentFeatureLevel < ERHIFeatureLevel::SM4)
 		{
-		    uint16 NumSamples = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
-	        if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+			//@todo-rco: Fix when OpenGL supports MSAA
+			uint16 NumSamples = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
+			if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
 			{
-	            NumSamples = 1;
+				NumSamples = 1;
 			}
 			Desc.NumSamples = NumSamples;
 		}
@@ -640,7 +641,7 @@ void FSceneRenderTargets::FinishRenderingCustomDepth(FRHICommandListImmediate& R
 */
 void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
 {
-    SCOPED_DRAW_EVENT(ResolveSceneColor, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(ResolveSceneColor, DEC_SCENE_ITEMS);
 
 	uint32 samples = GSceneRenderTargets.SceneColor->GetDesc().NumSamples;
 
@@ -1063,6 +1064,14 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		GRenderTargetPool.FindFreeElement(Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
 	}
+
+	AllocateReflectionTargets();	
+}
+
+void FSceneRenderTargets::AllocateForwardShadingShadowDepthTarget(const FIntPoint& ShadowBufferResolution)
+{
+	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+	GRenderTargetPool.FindFreeElement(Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
 }
 
 // for easier use of "VisualizeTexture"
@@ -1097,6 +1106,41 @@ static TCHAR* const GetTranslucencyShadowTransmissionName(uint32 Id)
 	return (TCHAR*)TEXT("InvalidName");
 }
 
+void FSceneRenderTargets::AllocateReflectionTargets()
+{	
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::ES2 && GSupportsRenderTargetFormat_PF_FloatRGBA)
+	{
+		extern ENGINE_API int32 GReflectionCaptureSize;
+		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
+
+		{
+			uint32 TexFlags = TexCreate_TargetArraySlicesIndependently;
+
+			// Create scratch cubemaps for filtering passes
+			FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GReflectionCaptureSize, PF_FloatRGBA, TexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
+			GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"));
+			GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"));
+
+			EPixelFormat BrightnessFormat = CurrentFeatureLevel > ERHIFeatureLevel::ES2 ? PF_R32_FLOAT : PF_FloatRGBA;
+			FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), BrightnessFormat, TexCreate_None, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc3, ReflectionBrightness, TEXT("ReflectionBrightness"));
+		}
+
+		extern int32 GDiffuseIrradianceCubemapSize;
+		const int32 NumDiffuseIrradianceMips = FMath::CeilLogTwo(GDiffuseIrradianceCubemapSize) + 1;
+
+		{
+			FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GDiffuseIrradianceCubemapSize, PF_FloatRGBA, TexCreate_TargetArraySlicesIndependently, TexCreate_RenderTargetable, false, 1, NumDiffuseIrradianceMips));
+			GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[0], TEXT("DiffuseIrradianceScratchCubemap0"));
+			GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[1], TEXT("DiffuseIrradianceScratchCubemap1"));
+		}
+
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(FSHVector3::MaxSHBasis, 1), PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
+		}
+	}
+}
 
 void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 {
@@ -1206,39 +1250,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		}
 	}
 
-	extern ENGINE_API int32 GReflectionCaptureSize;
-	const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
-
-	{
-		uint32 TexFlags = TexCreate_None;
-
-		if (!GSupportsGSRenderTargetLayerSwitchingToMips)
-		{
-			TexFlags = TexCreate_TargetArraySlicesIndependently;
-		}
-
-		// Create scratch cubemaps for filtering passes
-		FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GReflectionCaptureSize, PF_FloatRGBA, TexFlags, TexCreate_RenderTargetable, false, 1, NumReflectionCaptureMips));
-		GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[0], TEXT("ReflectionColorScratchCubemap0"));
-		GRenderTargetPool.FindFreeElement(Desc2, ReflectionColorScratchCubemap[1], TEXT("ReflectionColorScratchCubemap1"));
-
-		FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_R32_FLOAT, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc3, ReflectionBrightness, TEXT("ReflectionBrightness"));
-	}
-
-	extern int32 GDiffuseIrradianceCubemapSize;
-	const int32 NumDiffuseIrradianceMips = FMath::CeilLogTwo(GDiffuseIrradianceCubemapSize) + 1;
-
-	{
-		FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::CreateCubemapDesc(GDiffuseIrradianceCubemapSize, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false, 1, NumDiffuseIrradianceMips));
-		GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[0], TEXT("DiffuseIrradianceScratchCubemap0"));
-		GRenderTargetPool.FindFreeElement(Desc2, DiffuseIrradianceScratchCubemap[1], TEXT("DiffuseIrradianceScratchCubemap1"));
-	}
-
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(FSHVector3::MaxSHBasis, 1), PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
-	}
+	AllocateReflectionTargets();
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
@@ -1267,7 +1279,7 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
-	if (CurrentFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (CurrentFeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		// Potentially allocate an alpha channel in th -fe scene color texture to store the resolved scene depth.
 		SceneColorBufferFormat = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
@@ -1308,7 +1320,7 @@ void FSceneRenderTargets::InitDynamicRHI()
 		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-		if (CurrentFeatureLevel == ERHIFeatureLevel::ES2)
+		if (CurrentFeatureLevel < ERHIFeatureLevel::SM4)
 		{
 			AllocateForwardShadingPathRenderTargets();
 		}
@@ -1739,7 +1751,7 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 
-	if (TextureMode == ESceneRenderTargetsMode::SetTextures && FeatureLevel >= ERHIFeatureLevel::SM3)
+	if (TextureMode == ESceneRenderTargetsMode::SetTextures && FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// if there is no ambient occlusion it's better to have white there
 		IPooledRenderTarget* ScreenSpaceAO = GSceneRenderTargets.ScreenSpaceAO;

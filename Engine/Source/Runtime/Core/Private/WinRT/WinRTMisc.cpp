@@ -281,8 +281,3 @@ const TCHAR* FWinRTMisc::RootDir()
 	}
 	return *Path;
 }
-
-const TCHAR* FWinRTMisc::GetNullRHIShaderFormat()
-{
-	return TEXT("PCD3D_SM5");
-}

@@ -135,6 +135,12 @@ public:
 	 * If the allocated render targets are too small, they are reallocated.
 	 */
 	void Allocate(const FSceneViewFamily& ViewFamily);
+
+	/**
+	 * Forward shading can't know how big the optimal atlased shadow buffer will be, so provide a set it up per frame.
+	 */
+	void AllocateForwardShadingShadowDepthTarget(const FIntPoint& ShadowBufferResolution);
+
 	/**
 	 *
 	 */
@@ -502,10 +508,12 @@ private:
 	void InitEditorPrimitivesDepth();
 
 	/** Allocates render targets for use with the forward shading path. */
-	void AllocateForwardShadingPathRenderTargets();
+	void AllocateForwardShadingPathRenderTargets();	
 
 	/** Allocates render targets for use with the deferred shading path. */
 	void AllocateDeferredShadingPathRenderTargets();
+
+	void AllocateReflectionTargets();
 
 	/** Determine the appropriate render target dimensions. */
 	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;

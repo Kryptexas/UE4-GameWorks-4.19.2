@@ -80,13 +80,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static bool CoInitialize();
 	static void CoUninitialize();
 
-	/** 
-	 * Determines the shader format for the plarform
-	 *
-	 * @return	Returns the shader format to be used by that platform
-	 */
-	static const TCHAR* GetNullRHIShaderFormat();
-
 	/**
 	 * Has the OS execute a command and path pair (such as launch a browser)
 	 *

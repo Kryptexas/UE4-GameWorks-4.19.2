@@ -961,7 +961,7 @@ void UReflectionCaptureComponent::PostLoad()
 	Super::PostLoad();
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FeatureLevelPreview"));
-	bool bRetainAllFeatureLevelData = CVar->GetValueOnGameThread() == 1 && GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	bool bRetainAllFeatureLevelData = CVar->GetValueOnGameThread() == 1 && GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())

@@ -37,6 +37,7 @@ public:
 	{
 		// Only compile the hit proxy vertex shader on PC
 		return IsPCPlatform(Platform)
+			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4)
 			// and only compile for the default material or materials that are masked.
 			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}
@@ -108,7 +109,8 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile the hit proxy vertex shader on PC
-		return IsPCPlatform(Platform)
+		return IsPCPlatform(Platform) 
+			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) 
 			// and only compile for default materials or materials that are masked.
 			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}

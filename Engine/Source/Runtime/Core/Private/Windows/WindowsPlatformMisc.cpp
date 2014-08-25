@@ -1763,11 +1763,6 @@ void FWindowsPlatformMisc::LoadStartupModules()
 #endif	//WITH_EDITOR
 }
 
-const TCHAR* FWindowsPlatformMisc::GetNullRHIShaderFormat()
-{
-	return TEXT("PCD3D_SM5");
-}
-
 bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command)
 {
 	HINSTANCE hApp = ShellExecute(NULL,
