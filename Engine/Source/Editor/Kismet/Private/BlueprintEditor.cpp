@@ -3730,19 +3730,6 @@ bool FBlueprintEditor::CanCollapseSelectionToMacro(TSet<class UEdGraphNode*>& In
 			LogResults.Error(*LOCTEXT("CannotPasteNodeMacro_Error", "@@ cannot be placed in macro graph").ToString(), Node);
 			bCollapseAllowed = false;
 		}
-
-		if (Schema->CanEncapuslateNode(*Node))
-		{
-			if(UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>(Node))
-			{
-				// Latent functions are not allowed in macros.
-				if(FunctionNode->IsLatentFunction())
-				{
-					LogResults.Error(*LOCTEXT("LatentFunctionNotAllowed_Error", "Latent functions (@@) are not allowed in macros!").ToString(), FunctionNode);
-					bCollapseAllowed = false;
-				}
-			}
-		}
 	}
 
 	FMessageLog MessageLog("BlueprintLog");

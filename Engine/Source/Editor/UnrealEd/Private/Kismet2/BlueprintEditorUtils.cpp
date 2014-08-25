@@ -1515,6 +1515,21 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated && !Blueprint->bBeingCompiled)
 	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for (int32 i = 0; i < AllGraphs.Num(); i++)
+		{
+			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+			GetEntryAndResultNodes(AllGraphs[i], EntryNode, ResultNode);
+
+			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+			{
+				// Remove data marking graphs as latent, this will be re-cache'd as needed
+				TunnelNode->MetaData.HasLatentFunctions = INDEX_NONE;
+			}
+		}
+
 		{
 			// Invoke the compiler to update the skeleton class definition
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
@@ -1542,6 +1557,21 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated)
 	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for (int32 i = 0; i < AllGraphs.Num(); i++)
+		{
+			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+			GetEntryAndResultNodes(AllGraphs[i], EntryNode, ResultNode);
+
+			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+			{
+				// Remove data marking graphs as latent, this will be re-cache'd as needed
+				TunnelNode->MetaData.HasLatentFunctions = INDEX_NONE;
+			}
+		}
+
 		Blueprint->Status = BS_Dirty;
 		Blueprint->MarkPackageDirty();
 		Blueprint->PostEditChange();
@@ -6261,6 +6291,79 @@ FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)
 	}
 
 	return LOCTEXT( "NoGraphTooltip", "(None)" );
+}
+
+bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
+{
+	struct Local
+	{
+		static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraph, TArray<UEdGraph*>& InspectedGraphList)
+		{
+			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+			GetEntryAndResultNodes(InGraph, EntryNode, ResultNode);
+
+			UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get());
+			if(!TunnelNode)
+			{
+				// No tunnel, no metadata.
+				return false;
+			}
+
+			if(TunnelNode->MetaData.HasLatentFunctions != INDEX_NONE)
+			{
+				return TunnelNode->MetaData.HasLatentFunctions > 0;
+			}
+			else
+			{
+				// Add all graphs to the list of already inspected, this prevents circular inclusion issues.
+				InspectedGraphList.Add(InGraph);
+
+				for( const UEdGraphNode* Node : InGraph->Nodes )
+				{
+					if(const UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
+					{
+						// Check any function call nodes to see if they are latent.
+						if(CallFunctionNode->GetTargetFunction()->HasMetaData(FBlueprintMetadata::MD_Latent))
+						{
+							TunnelNode->MetaData.HasLatentFunctions = 1;
+							return true;
+						}
+					}
+					else if(const UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(Node))
+					{
+						// Any macro graphs that haven't already been checked need to be checked for latent function calls
+						if(InspectedGraphList.Find(MacroInstanceNode->GetMacroGraph()) == INDEX_NONE)
+						{
+							if(CheckIfGraphHasLatentFunctions(MacroInstanceNode->GetMacroGraph(), InspectedGraphList))
+							{
+								TunnelNode->MetaData.HasLatentFunctions = 1;
+								return true;
+							}
+						}
+					}
+					else if(const UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(Node))
+					{
+						// Any collapsed graphs that haven't already been checked need to be checked for latent function calls
+						if(InspectedGraphList.Find(CompositeNode->BoundGraph) == INDEX_NONE)
+						{
+							if(CheckIfGraphHasLatentFunctions(CompositeNode->BoundGraph, InspectedGraphList))
+							{
+								TunnelNode->MetaData.HasLatentFunctions = 1;
+								return true;
+							}
+						}
+					}
+				}
+
+				TunnelNode->MetaData.HasLatentFunctions = 0;
+				return false;
+			}
+		}
+	};
+
+	TArray<UEdGraph*> InspectedGraphList;
+	return Local::CheckIfGraphHasLatentFunctions(InGraph, InspectedGraphList);
 }
 
 #undef LOCTEXT_NAMESPACE

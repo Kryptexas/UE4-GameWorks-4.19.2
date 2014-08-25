@@ -328,7 +328,7 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 
 	if(InDestGraph != NULL)
 	{
-		bLatentFuncs = (GetGraphType(InDestGraph) == GT_Ubergraph);
+		bLatentFuncs = (GetGraphType(InDestGraph) == GT_Ubergraph || (GetGraphType(InDestGraph) == GT_Macro));
 		bIsConstructionScript = IsConstructionScript(InDestGraph);
 	}
 

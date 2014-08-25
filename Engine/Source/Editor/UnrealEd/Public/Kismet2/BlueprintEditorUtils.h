@@ -953,6 +953,10 @@ public:
 	 * @return					The description of the graph
 	 */
 	static FText GetGraphDescription(const UEdGraph* InGraph);
+
+	/** Checks if a graph (or any sub-graphs or referenced graphs) have latent function nodes */
+	static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraph);
+
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);

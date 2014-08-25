@@ -2419,6 +2419,12 @@ void FK2ActionMenuBuilder::GetMacroTools(FBlueprintPaletteListBuilder& ActionMen
 				//If so, then don't allow adding action menu to instance the macro graph to its own definition.
 				if (InCurrentGraph != MacroGraph)
 				{
+					// Do not allow any macros with latent functions to appear in the list
+					if(InCurrentGraph && InCurrentGraph->GetSchema()->GetGraphType(InCurrentGraph) == GT_Function && FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(MacroGraph))
+					{
+						continue;
+					}
+
 					UK2Node_Tunnel* FunctionEntryNode = NULL;
 					UK2Node_Tunnel* FunctionResultNode = NULL;
 					bool bIsMacroPure = false;
