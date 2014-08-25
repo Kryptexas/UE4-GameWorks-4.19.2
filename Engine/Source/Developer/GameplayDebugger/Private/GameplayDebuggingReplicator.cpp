@@ -23,7 +23,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	, PlayerControllersUpdateDelay(0)
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
@@ -123,7 +123,7 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(DebugComponentClass.Get(), this);
 			DebugComponent->SetIsReplicated(true);
 			DebugComponent->RegisterComponent();
-			DebugComponent->Activate();
+			//DebugComponent->Activate();
 		}
 	}
 
@@ -154,6 +154,9 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			DebugComponentClass = UGameplayDebuggingComponent::StaticClass();
 		}
 	}
+
+	SetActorTickEnabled(true);
+	SetTickableWhenPaused(true);
 }
 
 UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
@@ -231,6 +234,7 @@ void AGameplayDebuggingReplicator::EnableDraw(bool bEnable)
 		GameHUD->bShowHUD = bEnable ? false : true;
 	}
 	GEngine->bEnableOnScreenDebugMessages = bEnable ? false : true;
+	GetDebugComponent()->MarkRenderStateDirty();
 }
 
 bool AGameplayDebuggingReplicator::IsToolCreated()
@@ -402,7 +406,7 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 		return;
 	}
 
-	if (!LocalPlayerOwner || IsGlobalInWorld())
+	if (!LocalPlayerOwner || IsGlobalInWorld() || !IsDrawEnabled())
 	{
 		return;
 	}
@@ -419,7 +423,7 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 	LastDrawAtFrame = GFrameNumber;
 
 	const UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
-	if (!IsDrawEnabled() || !GDC)
+	if (!GDC)
 	{
 		return;
 	}

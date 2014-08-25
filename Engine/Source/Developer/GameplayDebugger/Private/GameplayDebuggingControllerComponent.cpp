@@ -154,6 +154,7 @@ void UGameplayDebuggingControllerComponent::OnActivationKeyPressed()
 
 			BindAIDebugViewKeys();
 			GetDebuggingReplicator()->EnableDraw(true);
+			GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 		}
 
 		ControlKeyPressedTime = GetWorld()->GetTimeSeconds();
@@ -199,6 +200,7 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 		Deactivate();
 		SetComponentTickEnabled(false);
 		GetDebuggingReplicator()->EnableDraw(false);
+		GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 		bToolActivated = false;
 	}
 }
@@ -262,7 +264,6 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 				UpdateNavMeshTimer();
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::NavMesh);
-				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 				OwnerComp->SetVisibility(true, true);
 				OwnerComp->SetHiddenInGame(false, true);
 				OwnerComp->MarkRenderStateDirty();
@@ -272,7 +273,6 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 				GetWorld()->GetTimerManager().ClearTimer(this, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::NavMesh);
-				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 				OwnerComp->ServerDiscardNavmeshData();
 				OwnerComp->SetVisibility(false, true);
 				OwnerComp->SetHiddenInGame(true, true);

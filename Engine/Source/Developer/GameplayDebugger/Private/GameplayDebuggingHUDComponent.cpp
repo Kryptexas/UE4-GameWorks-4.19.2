@@ -10,6 +10,7 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "CanvasItem.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
@@ -354,27 +355,27 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
 
-	if (DebugComponent->AllEQSName.Num() == 0)
+	if (DebugComponent->EQSLocalData.Num() == 0)
 	{
 		return;
 	}
 
-	if (!DebugComponent->AllEQSName.IsValidIndex(DebugComponent->CurrentEQSIndex))
+	if (!DebugComponent->EQSLocalData.IsValidIndex(DebugComponent->CurrentEQSIndex))
 	{
 		return;
 	}
-	const FString SelecterEQSName = DebugComponent->AllEQSName[DebugComponent->CurrentEQSIndex];
+	const FString SelecterEQSName = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex].Name;
 
 	PrintString(DefaultContext, TEXT("{white}Queries: "));
-	for (auto CurrentQueryName : DebugComponent->AllEQSName)
+	for (auto CurrentQuery : DebugComponent->EQSLocalData)
 	{
-		if (SelecterEQSName == CurrentQueryName)
+		if (SelecterEQSName == CurrentQuery.Name)
 		{
-			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQueryName));
+			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
 		}
 		else
 		{
-			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQueryName));
+			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
 		}
 	}
 	PrintString(DefaultContext, TEXT("\n"));
@@ -389,7 +390,6 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			, CurrentLocalData.Id
 			));
 
-#if  USE_EQS_DEBUGGER
 		// draw test weights for best X items
 		const int32 NumItems = CurrentLocalData.Items.Num();
 		const int32 NumTests = CurrentLocalData.Tests.Num();
@@ -443,14 +443,13 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 
 			PrintString(DefaultContext, TestDesc);
 		}
-#endif //USE_EQS_DEBUGGER
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent)
 {
-#if USE_EQS_DEBUGGER && WITH_EQS
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
@@ -496,7 +495,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 		PrintString(DefaultContext, FColor::Green, TestDesc, PosX, PosY);
 		PosX += 100.0f;
 	}
-#endif
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 }
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

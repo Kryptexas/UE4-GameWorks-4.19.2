@@ -90,10 +90,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<uint8> NavmeshRepData;
 	
 	/** Begin EQS replication data */
-
-	UPROPERTY(Replicated)
-	TArray<FString> AllEQSName;
-
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	

@@ -519,7 +519,13 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 
 void FEQSDebugger::StoreQuery(TSharedPtr<FEnvQueryInstance>& Query)
 {
+	StoredQueries.Remove(NULL);
+	if (!Query.IsValid())
+	{
+		return;
+	}
 	TArray<FEnvQueryInfo>& AllQueries = StoredQueries.FindOrAdd(Query->Owner.Get());
+		
 	bool bFoundQuery = false;
 	for (auto It = AllQueries.CreateIterator(); It; ++It)
 	{

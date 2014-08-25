@@ -132,7 +132,7 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 		
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
-	bAutoActivate = true;
+	bAutoActivate = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	bIsSelectedForDebugging = false;
@@ -161,13 +161,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 void UGameplayDebuggingComponent::Activate(bool bReset)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	ActivationCounter++;
-	if (ActivationCounter > 0)
+	if (IsActive() == false)
 	{
-		if (IsActive() == false)
-		{
-			Super::Activate(bReset);
-		}
+		Super::Activate(bReset);
 		SetComponentTickEnabled(true);
 	}
 #else
@@ -178,14 +174,9 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 void UGameplayDebuggingComponent::Deactivate()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	ActivationCounter--;
-	if (ActivationCounter <= 0)
+	if (IsActive())
 	{
-		ActivationCounter = 0;
-		if (IsActive())
-		{
-			Super::Deactivate();
-		}
+		Super::Deactivate();
 		SetComponentTickEnabled(false);
 	}
 #else
@@ -218,8 +209,6 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
-	DOREPLIFETIME(UGameplayDebuggingComponent, AllEQSName);
-
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -269,7 +258,7 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
-	CurrentEQSIndex = DebugComponent ? FMath::Clamp(CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	CurrentEQSIndex = DebugComponent ? FMath::Clamp(CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -432,7 +421,7 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
 		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT("");
-		BrainComponentString = MyController->BrainComponent->GetDebugInfoString();
+		BrainComponentString = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetDebugInfoString() : TEXT("");
 		if (World && World->GetNetMode() != NM_Standalone)
 		{
 			BrainComponentString = BrainComponentString.Left(MAX_STRING_SERIALIZE_SIZE - 1);
@@ -586,14 +575,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 		break;
 
 	case EDebugComponentMessage::DeactivateReplilcation:
-		{
-			Deactivate();
-			APawn* MyPawn = Cast<APawn>(GetSelectedActor());
-			if (MyPawn != NULL && IsActive() == false)
-			{
-				//MyPawn->RemoveDebugComponent();
-			}
-		}
+		Deactivate();
 		break;
 
 	case EDebugComponentMessage::ActivateDataView:
@@ -623,7 +605,7 @@ void UGameplayDebuggingComponent::OnChangeEQSQuery()
 {
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
-	if (DebugComponent && ++CurrentEQSIndex >= DebugComponent->AllEQSName.Num())
+	if (DebugComponent && ++CurrentEQSIndex >= DebugComponent->EQSLocalData.Num())
 	{
 		CurrentEQSIndex = 0;
 	}
@@ -687,13 +669,11 @@ void UGameplayDebuggingComponent::CollectEQSData()
 		return;
 	}
 
-	AllEQSName.Empty();
 	auto AllQueries = QueryManager->GetDebugger().GetAllQueriesForOwner(Owner);
 	for (int32 Index = 0; Index < AllQueries.Num(); ++Index)
 	{
 		EQSDebug::FQueryData* CurrentLocalData = NULL;
 		CachedQueryInstance = AllQueries[Index].Instance;
-		AllEQSName.AddUnique(CachedQueryInstance->QueryName);
 
 		 //find corresponding query
 		bool bSkipToNext = false;
@@ -1145,6 +1125,10 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 //----------------------------------------------------------------------//
 FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 {
+	if (!IsActive())
+	{
+		return NULL;
+	}
 	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
 
 #if WITH_RECAST	
