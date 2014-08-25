@@ -4,7 +4,7 @@
 
 #include "InputCoreTypes.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct INPUTCORE_API FKey
 {
 	GENERATED_USTRUCT_BODY()
