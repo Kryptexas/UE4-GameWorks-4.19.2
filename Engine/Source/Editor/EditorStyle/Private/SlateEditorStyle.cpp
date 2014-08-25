@@ -784,7 +784,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "CurveEd.CurveKey", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f) ) );
 		Set( "CurveEd.CurveKeySelected", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f), SelectionColor ) );
 		Set( "CurveEd.InfoFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
-		Set( "CurveEd.Tangent", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f), FLinearColor(0.0f, 0.66f, 0.7f) ) );
+		Set( "CurveEd.Tangent", new IMAGE_BRUSH( "Common/Tangent", FVector2D(7.0f, 7.0f), FLinearColor(0.0f, 0.66f, 0.7f) ) );
 		Set( "CurveEd.TangentColor", FLinearColor(0.0f, 0.66f, 0.7f) );
 	}
 	
