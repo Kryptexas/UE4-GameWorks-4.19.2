@@ -648,6 +648,32 @@ FString FGameplayAbilityTargetData::ToString() const
 }
 
 
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const
+{
+	/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
+	if (LocationType == EGameplayAbilityTargetingLocationType::Type::SocketTransform)
+	{
+		const FGameplayAbilityActorInfo* ActorInfo = Ability.IsValid() ? Ability.Get()->GetCurrentActorInfo() : NULL;
+		AActor* AISourceActor = ActorInfo ? (ActorInfo->Actor.IsValid() ? ActorInfo->Actor.Get() : NULL) : NULL;
+		UAnimInstance* AnimInstance = ActorInfo ? ActorInfo->AnimInstance.Get() : NULL;
+		USkeletalMeshComponent* AISourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
+
+		if (AISourceActor && AISourceComponent)
+		{
+			FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
+			ReturnData->SourceActor = AISourceActor;
+			ReturnData->SourceComponent = AISourceComponent;
+			ReturnData->SourceSocketName = SourceSocketName;
+			ReturnData->TargetPoint = HitResult.Location;
+			return FGameplayAbilityTargetDataHandle(ReturnData);
+		}
+	}
+	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
+	ReturnData->HitResult = HitResult;
+	return FGameplayAbilityTargetDataHandle(ReturnData);
+}
+
+
 bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 

@@ -196,6 +196,74 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 };
 
 /**
+*	Handle for Targeting Data. This servers two main purposes:
+*		-Avoid us having to copy around the full targeting data structure in Blueprints
+*		-Allows us to leverage polymorphism in the target data structure
+*		-Allows us to implement NetSerialize and replicate by value between clients/server
+*
+*		-Avoid using UObjects could be used to give us polymorphism and by reference passing in blueprints.
+*		-However we would still be screwed when it came to replication
+*
+*		-Replication by value
+*		-Pass by reference in blueprints
+*		-Polymophism in TargetData structure
+*
+*/
+
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityTargetDataHandle() { }
+	FGameplayAbilityTargetDataHandle(struct FGameplayAbilityTargetData* DataPtr)
+		: Data(DataPtr)
+	{
+
+	}
+
+	TSharedPtr<FGameplayAbilityTargetData>	Data;
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	/** Comparison operator */
+	bool operator==(FGameplayAbilityTargetDataHandle const& Other) const
+	{
+		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
+		bool bBothValid = IsValid() && Other.IsValid();
+		bool bBothInvalid = !IsValid() && !Other.IsValid();
+		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayAbilityTargetDataHandle const& Other) const
+	{
+		return !(FGameplayAbilityTargetDataHandle::operator==(Other));
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
+};
+
+/**
 *	FGameplayAbilityActorInfo
 *
 *	Contains data used to determine locations for targeting systems.
@@ -243,6 +311,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 			return LiteralTransform;		//Fallback
 		}
 	}
+
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
 
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
 	TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
@@ -575,74 +645,6 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public
 	};
 };
 
-
-/**
-*	Handle for Targeting Data. This servers two main purposes:
-*		-Avoid us having to copy around the full targeting data structure in Blueprints
-*		-Allows us to leverage polymorphism in the target data structure
-*		-Allows us to implement NetSerialize and replicate by value between clients/server
-*
-*		-Avoid using UObjects could be used to give us polymorphism and by reference passing in blueprints.
-*		-However we would still be screwed when it came to replication
-*
-*		-Replication by value
-*		-Pass by reference in blueprints
-*		-Polymophism in TargetData structure
-*
-*/
-
-USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityTargetDataHandle() { }
-	FGameplayAbilityTargetDataHandle(FGameplayAbilityTargetData* DataPtr)
-		: Data(DataPtr)
-	{
-		
-	}
-
-	TSharedPtr<FGameplayAbilityTargetData>	Data;
-
-	void Clear()
-	{
-		Data.Reset();
-	}
-
-	bool IsValid() const
-	{
-		return Data.IsValid();
-	}
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	/** Comparison operator */
-	bool operator==(FGameplayAbilityTargetDataHandle const& Other) const
-	{
-		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
-		bool bBothValid = IsValid() && Other.IsValid();
-		bool bBothInvalid = !IsValid() && !Other.IsValid();
-		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
-	}
-
-	/** Comparison operator */
-	bool operator!=(FGameplayAbilityTargetDataHandle const& Other) const
-	{
-		return !(FGameplayAbilityTargetDataHandle::operator==(Other));
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
-		WithNetSerializer = true,
-		WithIdenticalViaEquality = true,
-	};
-};
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEventData

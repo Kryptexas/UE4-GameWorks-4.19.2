@@ -173,27 +173,6 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::MakeTargetData(FHitResult HitResult) const
 {
-	//TODO - Refactor into transmitting a handle built via FGameplayAbilityTargetingLocationInfo
-
-	/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-	if (StartLocation.LocationType == EGameplayAbilityTargetingLocationType::Type::SocketTransform)
-	{
-		const FGameplayAbilityActorInfo* ActorInfo = Ability.IsValid() ? Ability.Get()->GetCurrentActorInfo() : NULL;
-		UAnimInstance* AnimInstance = ActorInfo ? ActorInfo->AnimInstance.Get() : NULL;
-		USkeletalMeshComponent* AISourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
-		AActor* AISourceActor = ActorInfo ? (ActorInfo->Actor.IsValid() ? ActorInfo->Actor.Get() : NULL) : NULL;
-
-		if (AISourceActor && AISourceComponent)
-		{
-			FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
-			ReturnData->SourceActor = AISourceActor;
-			ReturnData->SourceComponent = AISourceComponent;
-			ReturnData->SourceSocketName = StartLocation.SourceSocketName;
-			ReturnData->TargetPoint = HitResult.Location;
-			return FGameplayAbilityTargetDataHandle(ReturnData);
-		}
-	}
-	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-	ReturnData->HitResult = HitResult;
-	return FGameplayAbilityTargetDataHandle(ReturnData);
+	/** Note: This will be cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
+	return StartLocation.MakeTargetDataHandleFromHitResult(Ability, HitResult);
 }
