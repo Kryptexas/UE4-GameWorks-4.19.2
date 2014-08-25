@@ -17,7 +17,13 @@ class USimpleConstructionScript : public UObject
 	/** Ensures that all root node parent references are still valid and clears the reference if not */
 	ENGINE_API void FixupRootNodeParentReferences();
 
-	/** Execute this script on the supplied actor, creating components */
+	/**
+	 * Execute this script on the supplied actor, creating components 
+	 *
+	 * @param Actor					The actor instance to execute the script on.
+	 * @param RootTransform			The transform to apply to the root scene component of the actor instance if defined in this script.
+	 * @param bIsDefaultTransform	Indicates whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults.
+	 */
 	void ExecuteScriptOnActor(AActor* Actor, const FTransform& RootTransform, bool bIsDefaultTransform);
 #if WITH_EDITOR
 	/** Return the Blueprint associated with this SCS instance */
