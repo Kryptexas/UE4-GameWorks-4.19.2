@@ -4854,7 +4854,7 @@ bool GameplayEffectsTest_ImmunityMod(UWorld *World, FAutomationTestBase * Test)
 		float ExpectedValue = StartHealth;
 		float ActualValue = DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health;
 
-		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), (ActualValue == ExpectedValue));
 		ABILITY_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health);
 	}
 

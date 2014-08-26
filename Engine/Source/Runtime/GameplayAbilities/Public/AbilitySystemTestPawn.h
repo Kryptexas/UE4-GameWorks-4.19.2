@@ -2,15 +2,18 @@
 
 #pragma once
 #include "GameplayCueInterface.h"
+#include "AbilitySystemInterface.h"
 #include "GameplayCueView.h"
 #include "AbilitySystemTestPawn.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
-class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public IGameplayCueInterface
+class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public IGameplayCueInterface, public IAbilitySystemInterface
 {
 	GENERATED_UCLASS_BODY()
 
 	virtual void PostInitializeComponents() override;
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
 	/** DefaultPawn collision component */
 	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly)
