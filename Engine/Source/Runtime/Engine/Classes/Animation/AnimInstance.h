@@ -312,12 +312,12 @@ public:
 
 public:
 	/** Returns the owning actor of this AnimInstance */
-	UFUNCTION(BlueprintPure, Category="Animation")
-	AActor* GetOwningActor();
+	UFUNCTION(Category="Animation")
+	AActor* GetOwningActor() const;
 	
 	// Returns the skeletal mesh component that has created this AnimInstance
-	UFUNCTION(BlueprintPure, Category="Animation")
-	USkeletalMeshComponent* GetOwningComponent();
+	UFUNCTION(Category="Animation")
+	USkeletalMeshComponent* GetOwningComponent() const;
 
 public:
 

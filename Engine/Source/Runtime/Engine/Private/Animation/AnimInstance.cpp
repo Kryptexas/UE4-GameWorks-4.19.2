@@ -190,7 +190,7 @@ void UAnimInstance::CopyPose(const FA2Pose& Source, FA2Pose& Destination)
 	}
 }
 
-AActor* UAnimInstance::GetOwningActor()
+AActor* UAnimInstance::GetOwningActor() const
 {
 	USkeletalMeshComponent* OwnerComponent = GetSkelMeshComponent();
 	return OwnerComponent->GetOwner();
@@ -207,7 +207,7 @@ APawn* UAnimInstance::TryGetPawnOwner()
 	return NULL;
 }
 
-USkeletalMeshComponent* UAnimInstance::GetOwningComponent()
+USkeletalMeshComponent* UAnimInstance::GetOwningComponent() const
 {
 	return GetSkelMeshComponent();
 }
