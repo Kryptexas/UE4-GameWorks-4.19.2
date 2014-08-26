@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
+#include "Abilities/Tasks/AbilityTask.h"
 
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
