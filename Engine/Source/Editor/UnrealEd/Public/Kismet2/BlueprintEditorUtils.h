@@ -491,6 +491,27 @@ public:
 	static bool AddMemberVariable(UBlueprint* Blueprint, const FName& NewVarName, const FEdGraphPinType& NewVarType, const FString& DefaultValue = FString());
 
 	/**
+	 * Duplicates a variable given it's name and Blueprint
+	 *
+	 * @param InBlueprint					The Blueprint the variable can be found in
+	 * @paramInScope						Local variable's scope
+	 * @param InVariableToDuplicate			Variable name to be found and duplicated
+	 *
+	 * @return								Returns the name of the new variable or NAME_None is failed to duplicate
+	 */
+	static FName DuplicateVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableToDuplicate);
+
+	/**
+	 * Internal function that deep copies a variable description
+	 *
+	 * @param InBlueprint					The blueprint to ensure a uniquely named variable in
+	 * @param InVariableToDuplicate			Variable description to duplicate
+	 *
+	 * @return								Returns a copy of the passed in variable description.
+	 */
+	static FBPVariableDescription DuplicateVariableDescription(UBlueprint* InBlueprint, FBPVariableDescription& InVariableDescription);
+
+	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
 	 *
 	 * @param	VarName	Name of the variable to be removed.
@@ -539,6 +560,15 @@ public:
 	 * @param	InVarName			Name of the variable to be removed.
 	 */
 	static void RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName);
+
+	/**
+	 * Returns a local variable with the function entry it was found in
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the variable to search for
+	 * @return					The local variable description
+	 */
+	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName);
 
 	/**
 	 * Returns a local variable

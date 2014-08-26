@@ -1916,7 +1916,10 @@ bool SMyBlueprint::IsDuplicateActionVisible() const
 			return GraphAction->EdGraph && GraphAction->EdGraph->GetSchema()->CanDuplicateGraph(GraphAction->EdGraph);
 		}
 	}
-
+	else if (SelectionAsVar() || SelectionAsLocalVar())
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -1930,11 +1933,17 @@ bool SMyBlueprint::CanDuplicateAction() const
 			return GraphAction->EdGraph->GetSchema()->CanDuplicateGraph(GraphAction->EdGraph);
 		}
 	}
+	else if(SelectionAsVar() || SelectionAsLocalVar())
+	{
+		return true;
+	}
 	return false;
 }
 
 void SMyBlueprint::OnDuplicateAction()
 {
+	FName DuplicateActionName = NAME_None;
+
 	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "DuplicateGraph", "Duplicate Graph" ) );
@@ -1951,6 +1960,29 @@ void SMyBlueprint::OnDuplicateAction()
 
 		GetBlueprintObj()->FunctionGraphs.Add(DuplicatedGraph);
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+
+		DuplicateActionName = DuplicatedGraph->GetFName();
+	}
+	else if (FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar())
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "DuplicateVariable", "Duplicate Variable" ) );
+		GetBlueprintObj()->Modify();
+
+		DuplicateActionName = FBlueprintEditorUtils::DuplicateVariable(GetBlueprintObj(), nullptr, VarAction->GetVariableName());
+	}
+	else if (FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar())
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "Duplicate Local Variable", "Duplicate Local Variable" ) );
+		GetBlueprintObj()->Modify();
+
+		DuplicateActionName = FBlueprintEditorUtils::DuplicateVariable(GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName());
+	}
+
+	// Select and rename the duplicated action
+	if(DuplicateActionName != NAME_None)
+	{
+		SelectItemByName(DuplicateActionName);
+		OnRequestRenameOnActionNode();
 	}
 }
 
