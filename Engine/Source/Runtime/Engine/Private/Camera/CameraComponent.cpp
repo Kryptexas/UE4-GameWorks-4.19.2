@@ -95,6 +95,7 @@ void UCameraComponent::RefreshVisualRepresentation()
 		DrawFrustum->FrustumStartDist = 10.f;
 		DrawFrustum->FrustumEndDist = 1000.f;
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
+		DrawFrustum->MarkRenderStateDirty();
 	}
 }
 
