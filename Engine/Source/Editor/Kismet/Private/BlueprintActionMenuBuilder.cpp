@@ -4,13 +4,13 @@
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintDragDropMenuItem.h"
+#include "BlueprintBoundMenuItem.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionDatabase.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
 #include "BlueprintVariableNodeSpawner.h"
-#include "BlueprintBoundNodeSpawner.h"
 #include "K2ActionMenuBuilder.h"		// for FBlueprintPaletteListBuilder/FBlueprintGraphActionListBuilder
 #include "EdGraphSchema_K2.h"			// for StaticClass(), bUseLegacyActionMenus, etc.
 #include "BlueprintEditor.h"			// for GetMyBlueprintWidget(), and GetIsContextSensitive()
@@ -60,6 +60,14 @@ public:
 	 * @return A newly allocated FBlueprintActionMenuItem (which wraps the supplied action).
 	 */
 	TSharedPtr<FEdGraphSchemaAction> MakeDragDropMenuItem(UBlueprintNodeSpawner const* SampleAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  BoundAction	
+	 * @return 
+	 */
+	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner* BoundAction);
 	
 private:
 	/**
@@ -164,6 +172,20 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeDragDropMe
 	FBlueprintDragDropMenuItem* NewMenuItem = new FBlueprintDragDropMenuItem(Context, SampleAction, MenuGrouping);
 
 	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+	return MakeShareable(NewMenuItem);
+}
+
+//------------------------------------------------------------------------------
+TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner* BoundAction)
+{
+	FBlueprintBoundMenuItem* NewMenuItem = new FBlueprintBoundMenuItem(BoundAction, MenuGrouping);
+	// FBlueprintBoundMenuItem takes care of its own menu category
+	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+
+	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, BoundAction);
+	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, BoundAction).ToString();
+	NewMenuItem->Keywords			= GetSearchKeywordsForAction(EditorContext, BoundAction).ToString();
+
 	return MakeShareable(NewMenuItem);
 }
 
@@ -358,6 +380,16 @@ namespace FBlueprintActionMenuBuilderImpl
 		 * @return An empty TSharedPtr if the action was filtered out, otherwise a newly allocated FBlueprintActionMenuItem.
 		 */
 		TSharedPtr<FEdGraphSchemaAction> MakeMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* const DatabaseAction);
+
+		/**
+		 * 
+		 * 
+		 * @param  EditorContext	
+		 * @param  DatabaseAction	
+		 * @param  Bindings	
+		 * @return 
+		 */
+		TSharedPtr<FEdGraphSchemaAction> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* const DatabaseAction, TArray<UObject*> const& Bindings);
 		
 		/**
 		 * Clears out any consolidated properties that this may have been 
@@ -369,7 +401,7 @@ namespace FBlueprintActionMenuBuilderImpl
 		/** In charge of spawning menu items for this section (holds category/ordering information)*/
 		FBlueprintActionMenuItemFactory ItemFactory;
 		/** Tracks the properties that we've already consolidated and passed (when using the ConsolidatePropertyActions flag)*/
-		TSet<UProperty const*> ConsolidateProperties;
+		TSet<UProperty const*> ConsolidatedProperties;
 	};
 	
 	/**
@@ -409,39 +441,77 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::SetSectionSortOrde
 {
 	ItemFactory.MenuGrouping = MenuGrouping;
 }
-
+// 
 //------------------------------------------------------------------------------
-TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* const DatabaseAction)
+TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* const DatabaseAction, TArray<UObject*> const& Bindings)
 {
-	UBlueprintNodeSpawner const* MenuAction = DatabaseAction;
+ 	TSharedPtr<FBlueprintBoundMenuItem> MenuItem;
 
+	UBlueprintNodeSpawner* BoundAction = nullptr;
 	// we don't want the blueprint database growing out of control with an entry 
-	// for every object you could ever possibly bind to, so the 
-	// UBlueprintBoundNodeSpawner from the database serves as a template (note,
-	// it isn't bound to anything)... so, we do the binding here (if anything
-	// to bind to is selected), and use the temporary (bound) spawner in place 
-	// of the passed DatabaseAction
-	if (UBlueprintBoundNodeSpawner const* BoundNodeSpawner = Cast<UBlueprintBoundNodeSpawner>(DatabaseAction))
+	// for every object you could ever possibly bind to, so each 
+	// UBlueprintNodeSpawner comes with an interface to bind through... however,
+	// we can't mutate the action database (by binding to those actions directly)
+	// so, we have to clone and test the action post binding
+	for (auto BindingIt = Bindings.CreateConstIterator(); BindingIt;)
 	{
-		for (UObject const* SelectedObj : ItemFactory.Context.SelectedObjects)
+		UObject const* BindingObj = *BindingIt;
+		++BindingIt;
+
+		// check to see if this object can be bound to this action
+		if (DatabaseAction->CanBind(BindingObj))
 		{
-			// if the bound object is null, then this was most likely set up as a 
-			// template for us to copy and assign a binding object
-			if ((BoundNodeSpawner->GetBoundObject() == nullptr) && BoundNodeSpawner->IsOfBindingType(SelectedObj))
+			// we don't want binding to mutate the database, so we clone the 
+			// action and pass that to FBlueprintBoundMenuItem for binding;
+			// if we haven't created a mutable BoundAction yet, we need that...
+			// we do this prior to filtering because there may be tests that 
+			// reject based off bindings
+			if (BoundAction == nullptr)
 			{
 				// don't worry about outer, if this makes it through the filter,
 				// then the menu item will add a reference to keep it around
-				UBlueprintBoundNodeSpawner* BoundAction = DuplicateObject(BoundNodeSpawner, GetTransientPackage());
-				BoundAction->SetBoundObject(SelectedObj);
+				BoundAction = DuplicateObject<UBlueprintNodeSpawner>(DatabaseAction, GetTransientPackage());
+				BoundAction->CustomizeNodeDelegate = DatabaseAction->CustomizeNodeDelegate; // delegate isn't duplicated
+			}
 
-				// replace the menu action with one that is actually bound to 
-				// something
-				MenuAction = BoundAction;
-				break;
+			// add bindings before filtering (in case tests accept/reject based off of this)
+			BoundAction->AddBinding(BindingObj);
+
+			bool const bIsLastBinding = !BindingIt;
+			// if BoundAction is now "full" (meaning it can take any more 
+			// bindings), or if this is the last binding to test...
+			if (!BoundAction->CanBindMultipleObjects() || bIsLastBinding)
+			{
+				// have to check IsFiltered() for every "fully bound" action (in
+				// case there are tests that reject based off of this), we may 
+				// test this multiple times per action (we have to make sure 
+				// that every set of bound objects pass before folding them into
+				// MenuItem)
+				bool const bPassedFilter = !Filter.IsFiltered(BoundAction);
+				if (bPassedFilter)
+				{
+					if (!MenuItem.IsValid())
+					{
+						MenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, BoundAction);
+					}
+
+					for (TWeakObjectPtr<UObject> Object : BoundAction->GetBindings())
+					{
+						MenuItem->AddBinding(Object.Get());
+					}
+				}
+				BoundAction->ClearBindings();
 			}
 		}
 	}
-	bool bPassedFilter = (MenuAction != nullptr) && !Filter.IsFiltered(MenuAction);
+
+	return MenuItem;
+}
+
+//------------------------------------------------------------------------------
+TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* const DatabaseAction)
+{	
+	bool bPassedFilter = (DatabaseAction != nullptr) && !Filter.IsFiltered(DatabaseAction);
 
 	bool bCreateDragDropItem = false;
 	// if the caller wants to consolidate all property actions, then we have to 
@@ -450,15 +520,15 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 	if (bPassedFilter && (Flags & FBlueprintActionMenuBuilder::ConsolidatePropertyActions))
 	{
 		UProperty const* ActionProperty = nullptr;
-		if (UBlueprintVariableNodeSpawner const* VariableSpawner = Cast<UBlueprintVariableNodeSpawner>(MenuAction))
+		if (UBlueprintVariableNodeSpawner const* VariableSpawner = Cast<UBlueprintVariableNodeSpawner>(DatabaseAction))
 		{
-			bCreateDragDropItem  = true;
+			bCreateDragDropItem = true;
 			ActionProperty = VariableSpawner->GetVarProperty();
 			bPassedFilter = (ActionProperty != nullptr);
 		}
-		else if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner>(MenuAction))
+		else if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner>(DatabaseAction))
 		{
-			bCreateDragDropItem  = true;
+			bCreateDragDropItem = true;
 			ActionProperty = DelegateSpawner->GetProperty();
 			bPassedFilter = (ActionProperty != nullptr);
 		}
@@ -466,31 +536,32 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 		if (ActionProperty != nullptr)
 		{
 			// @TODO: could be added as a filter test instead
-			bool const bAlreadyConsolidated = ConsolidateProperties.Contains(ActionProperty);
+			bool const bAlreadyConsolidated = ConsolidatedProperties.Contains(ActionProperty);
 			bPassedFilter = !bAlreadyConsolidated;
-			ConsolidateProperties.Add(ActionProperty);
+			ConsolidatedProperties.Add(ActionProperty);
 		}
 	}
 
-	TSharedPtr<FEdGraphSchemaAction> MenuEntry = nullptr;
+	TSharedPtr<FEdGraphSchemaAction> MenuEntry;
 	if (bPassedFilter)
 	{
 		if (bCreateDragDropItem)
 		{
-			MenuEntry = ItemFactory.MakeDragDropMenuItem(MenuAction);
+			MenuEntry = ItemFactory.MakeDragDropMenuItem(DatabaseAction);
 		}
 		else
 		{
-			MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, MenuAction);
+			MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction);
 		}
 	}
+
 	return MenuEntry;
 }
 
 //------------------------------------------------------------------------------
 void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::Empty()
 {
-	ConsolidateProperties.Empty();
+	ConsolidatedProperties.Empty();
 }
 
 //------------------------------------------------------------------------------
@@ -606,6 +677,16 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 					if (MenuEntry.IsValid())
 					{
 						AddAction(MenuEntry);
+					}
+
+					TArray<UObject*> const& BindingObjects = MenuSection->Filter.Context.SelectedObjects;
+					// @TODO: this only makes one "BoundMenuEntry" for all 
+					//        bindings, we could have a non-consolidated mode if
+					//        we want (like we have for property actions)
+					TSharedPtr<FEdGraphSchemaAction> BoundMenuEntry = MenuSection->MakeBoundMenuItem(BlueprintEditorPtr, NodeSpawner, BindingObjects);
+					if (BoundMenuEntry.IsValid())
+					{
+						AddAction(BoundMenuEntry);
 					}
 				}
 			}

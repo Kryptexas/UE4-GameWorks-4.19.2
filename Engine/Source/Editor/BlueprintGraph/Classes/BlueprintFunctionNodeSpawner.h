@@ -48,6 +48,12 @@ public:
 	virtual FText GetDefaultMenuTooltip() const override;
 	virtual FText GetDefaultSearchKeywords() const override;
 	// End UBlueprintNodeSpawner interface
+
+	// FBlueprintNodeBinder interface
+	virtual bool CanBindMultipleObjects() const override;
+	virtual bool CanBind(UObject const* BindingCandidate) const override;
+	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
+	// End FBlueprintNodeBinder interface
 	
 	/**
 	 * Retrieves the function that this assigns to spawned nodes (defines the 

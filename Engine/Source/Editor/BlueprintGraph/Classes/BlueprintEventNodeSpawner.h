@@ -48,6 +48,13 @@ public:
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultSearchKeywords() const override;
 	// End UBlueprintNodeSpawner interface
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	bool IsForCustomEvent() const;
 	
 	/**
 	 * Retrieves the function that this assigns to spawned nodes (defines the
@@ -56,6 +63,15 @@ public:
 	 * @return The event function that this class was initialized with.
 	 */
 	UFunction const* GetEventFunction() const;
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint) const;
+
+	
 
 private:
 	/** The function to configure new nodes with. */

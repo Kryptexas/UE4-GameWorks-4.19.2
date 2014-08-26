@@ -6,7 +6,7 @@
 #include "BlueprintNodeSpawnerUtils.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintBoundEventNodeSpawner.h"
 #include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
@@ -187,15 +187,6 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action would produce a bound node, tied to an object that isn't selected.
 	 */
 	static bool IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
-
-	/**
-	 * 
-	 * 
-	 * @param  Filter	
-	 * @param  BlueprintAction	
-	 * @return 
-	 */
-	static bool IsBoundFunctionImpure(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
 	 * 
@@ -525,7 +516,8 @@ static bool BlueprintActionFilterImpl::IsNonTargetMemeber(FBlueprintActionFilter
 
 		// global (and static library) fields can stay (unless explicitly
 		// excluded... save that for a separate test)
-		if ((FieldClass != nullptr) && (bPermitNonTargetGlobals || IsGloballyAccessible(ClassField)))
+		bool const bSkip = bPermitNonTargetGlobals && IsGloballyAccessible(ClassField);
+		if ((FieldClass != nullptr) && !bSkip)
 		{
 			for (UClass const* Class : Filter.TargetClasses)
 			{
@@ -668,35 +660,16 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
+	if (UBlueprintBoundEventNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction))
 	{
 		bIsFilteredOut = true;
-
-		if (UObject const* BoundObject = BoundSpawner->GetBoundObject())
+		for (UObject const* SelectedObj : Filter.Context.SelectedObjects)
 		{
-			for (UObject* SelectedObj : Filter.Context.SelectedObjects)
+			if (BoundSpawner->CanBind(SelectedObj))
 			{
-				if (SelectedObj == BoundObject)
-				{
-					bIsFilteredOut = false;
-					break;
-				}
+				bIsFilteredOut = false;
+				break;
 			}
-		}
-	}
-	return bIsFilteredOut;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsBoundFunctionImpure(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
-{
-	bool bIsFilteredOut = false;
-	if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
-	{
-		if (UFunction const* BoundFunction = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(BoundSpawner))
-		{
-			bIsFilteredOut = !BoundFunction->HasAnyFunctionFlags(FUNC_BlueprintPure) && 
-				!BoundFunction->HasAnyFunctionFlags(FUNC_Const);
 		}
 	}
 	return bIsFilteredOut;
@@ -845,14 +818,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 				{
 					if (UFunction const* Function = Cast<UFunction>(MemberField))
 					{
-						// @TODO: duplicated from UK2Node_CallFunction::AllowMultipleSelfs()... 
-						//        move into a shared resource (don't want to call 
-						//        GetTemplateNode() to get at AllowMultipleSelfs() 
-						//        for perf reasons)
-						bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
-						bool const bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) == false);
-						bool const bIsLatent = (Function->HasMetaData(FBlueprintMetadata::MD_Latent) != false);
-						bIsCompatible = !bHasReturnParam && bIsImpure && !bIsLatent;
+						bIsCompatible = UK2Node_CallFunction::CanFunctionSupportMultipleTargets(Function);
 					}
 					else
 					{
@@ -1047,12 +1013,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	}
 
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses)   != 0));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) != 0));
-	
-	// don't know why we only allow impure ("imperitive") and const functions,
-	// but this mimics legacy functionality in GetFunctionCallsOnSelectedComponents()
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsBoundFunctionImpure)); 
-
+	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) == 0));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsBoundToUnselectedObject));
 	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsOutOfScopeLocalVariable));
 

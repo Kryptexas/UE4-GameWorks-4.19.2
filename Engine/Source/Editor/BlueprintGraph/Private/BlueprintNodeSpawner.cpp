@@ -121,6 +121,18 @@ FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 }
 
 //------------------------------------------------------------------------------
+bool UBlueprintNodeSpawner::CanBind(UObject const* BindingCandidate) const 
+{
+	return false;
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Binding) const
+{
+	return false;
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer) const
 {	
 	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
@@ -150,6 +162,11 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D con
 			NewNode->SetFlags(RF_Transactional);
 			NewNode->AllocateDefaultPins();
 			NewNode->PostPlacedNewNode();
+
+			ParentGraph->Modify();
+			// selections of this node happen up, out at the 
+			// FBlueprintActionMenuItem level
+			ParentGraph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 		}
 	}
 

@@ -9,7 +9,7 @@
 #include "BlueprintDelegateNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
-#include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "Stats.h"					// for RETURN_QUICK_DECLARE_CYCLE_STAT()
 #include "ScopedTimers.h"			// for FScopedDurationTimer
@@ -21,6 +21,9 @@
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
+// used below in FBlueprintNodeSpawnerFactory::MakeComponentBoundEventSpawner()/MakeActorBoundEventSpawner()
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_ActorBoundEvent.h"
 // used below in FBlueprintNodeSpawnerFactory::MakeMessageNodeSpawner()
 #include "K2Node_Message.h"
 // used below in BlueprintActionDatabaseImpl::AddClassPropertyActions()
@@ -93,6 +96,14 @@ namespace FBlueprintNodeSpawnerFactory
 	 * @return 
 	 */
 	static UBlueprintNodeSpawner* MakeComponentBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty);
+
+	/**
+	 * 
+	 * 
+	 * @param  DelegateProperty	
+	 * @return 
+	 */
+	static UBlueprintNodeSpawner* MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty);
 };
 
 //------------------------------------------------------------------------------
@@ -185,15 +196,13 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNo
 //------------------------------------------------------------------------------
 static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeComponentBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty)
 {
-	// BoundEventSpawner does the binding, we need a sub-spawner to lay the node
-	// ... we choose UBlueprintDelegateNodeSpawner because we need it to hold on
-	// to the UMulticastDelegateProperty
-	UBlueprintDelegateNodeSpawner* DelegateSpawner = UBlueprintDelegateNodeSpawner::Create(/*NodeClass =*/nullptr, DelegateProperty);
-	// UK2Node_ComponentBoundEvent is not a UK2Node_BaseMCDelegate so we have to
-	// set it this way
-	DelegateSpawner->NodeClass = UK2Node_ComponentBoundEvent::StaticClass(); 
+	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ComponentBoundEvent::StaticClass(), DelegateProperty);
+}
 
-	return UBlueprintBoundNodeSpawner::Create(DelegateSpawner, UObjectProperty::StaticClass());
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty)
+{
+	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ComponentBoundEvent::StaticClass(), DelegateProperty);
 }
 
 /*******************************************************************************
@@ -379,8 +388,6 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMessageNodeSpawner()
 	check(Class != nullptr);
 
-	bool const bIsComponent = Class->IsChildOf<UActorComponent>();
-
 	// loop over all the functions in the specified class; exclude-super because 
 	// we can always get the super functions by looking up that class separately 
 	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
@@ -408,20 +415,6 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 			{
 				ActionListOut.Add(MakeMessageNodeSpawner(Function));
 			}
-
-			// bindable function calls (for component properties)
-			if (bIsComponent)
-			{
-				bool const bIsPublic = !Function->HasMetaData(FBlueprintMetadata::MD_Protected) &&
-					!Function->HasMetaData(FBlueprintMetadata::MD_Private);
-				// may have to move the bIsPublic check from here into 
-				// BlueprintActionFilter, once we have blueprintable components?
-				if (bIsPublic)
-				{
-					// bound function for component property
-					ActionListOut.Add(UBlueprintBoundNodeSpawner::Create(FuncSpawner, UObjectProperty::StaticClass()));
-				}
-			}
 		}
 	}
 }
@@ -431,7 +424,8 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeDelegateNodeSpawner()
 
-	bool const bIsComponent = Class->IsChildOf<UActorComponent>();
+	bool const bIsComponent  = Class->IsChildOf<UActorComponent>();
+	bool const bIsActorClass = Class->IsChildOf<AActor>();
 	
 	// loop over all the properties in the specified class; exclude-super because 
 	// we can always get the super properties by looking up that class separately 
@@ -467,12 +461,13 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 			UBlueprintNodeSpawner* ClearSpawner = UBlueprintDelegateNodeSpawner::Create(UK2Node_ClearDelegate::StaticClass(), DelegateProperty);
 			ActionListOut.Add(ClearSpawner);
 
-			// @TODO: AddBoundEventActionsForClass()
-			//   UK2Node_ActorBoundEvent
-
 			if (bIsComponent)
 			{
 				ActionListOut.Add(MakeComponentBoundEventSpawner(DelegateProperty));
+			}
+			else if (bIsActorClass)
+			{
+				ActionListOut.Add(MakeActorBoundEventSpawner(DelegateProperty));
 			}
  		}
 		else

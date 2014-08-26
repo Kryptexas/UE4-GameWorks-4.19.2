@@ -62,7 +62,7 @@ public:
 		 * Rejects actions associated with global/static ("persistent") fields.
 		 * However, static members of TargetClasses are kept, and not outright 
 		 * rejected by this (if TargetClasses is left empty, then all 
-		 * "persistent" fields are rejected.
+		 * "persistent" fields are rejected).
 		 */
 		BPFILTER_RejectPersistentNonTargetFields= 0x00000002,
 

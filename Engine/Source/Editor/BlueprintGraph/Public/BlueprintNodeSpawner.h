@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "BlueprintNodeBinder.h"
 #include "BlueprintNodeSpawner.generated.h"
 
 // Forward declarations
@@ -23,7 +24,7 @@ class UEdGraphNode;
  * these "actions".
  */
 UCLASS(Transient)
-class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject
+class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject, public FBlueprintNodeBinder
 {
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_TwoParams(FCustomizeNodeDelegate, UEdGraphNode*, bool);
@@ -156,6 +157,11 @@ public:
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
 	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr) const;
+
+	// FBlueprintNodeBinder interface
+	virtual bool CanBind(UObject const* BindingCandidate) const override;
+	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
+	// End FBlueprintNodeBinder interface
 
 protected:
 	/**

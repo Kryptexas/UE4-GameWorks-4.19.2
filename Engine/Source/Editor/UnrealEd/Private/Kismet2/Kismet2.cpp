@@ -1251,7 +1251,7 @@ void FKismetEditorUtilities::CreateNewBoundEventForComponent(UActorComponent* Co
 	}
 }
 
-const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AActor* Actor, FName EventName)
+const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AActor const* Actor, FName EventName)
 {
 	const UK2Node_ActorBoundEvent* Node = NULL;
 	if(Actor != NULL && EventName != NAME_None)

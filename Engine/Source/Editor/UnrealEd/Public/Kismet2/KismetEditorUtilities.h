@@ -114,7 +114,7 @@ public:
 	static int32 GetNumberOfSelectedNodes(const class UBlueprint* Blueprint);
 
 	/** Find the event node for this actor with the given event name */
-	static const class UK2Node_ActorBoundEvent* FindBoundEventForActor(AActor* Actor, FName EventName);
+	static const class UK2Node_ActorBoundEvent* FindBoundEventForActor(AActor const* Actor, FName EventName);
 
 	/** Find the event node for the component property with the given event name */
 	static const class UK2Node_ComponentBoundEvent* FindBoundEventForComponent(const UBlueprint* Blueprint, FName EventName, FName PropertyName);

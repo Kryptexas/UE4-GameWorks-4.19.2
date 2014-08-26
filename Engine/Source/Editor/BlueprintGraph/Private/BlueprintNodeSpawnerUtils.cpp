@@ -7,9 +7,9 @@
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
-#include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
-
+ 
 //------------------------------------------------------------------------------
 UClass* FBlueprintNodeSpawnerUtils::GetAssociatedClass(UBlueprintNodeSpawner const* BlueprintAction)
 {
@@ -22,10 +22,6 @@ UClass* FBlueprintNodeSpawnerUtils::GetAssociatedClass(UBlueprintNodeSpawner con
 	else if (UBlueprintComponentNodeSpawner const* ComponentSpawner = Cast<UBlueprintComponentNodeSpawner>(BlueprintAction))
 	{
 		ActionClass = ComponentSpawner->GetComponentClass();
-	}
-	else if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
-	{
-		ActionClass = GetAssociatedClass(BoundSpawner->GetSubSpawner());
 	}
 	else if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(BlueprintAction))
 	{
@@ -54,10 +50,6 @@ UField const* FBlueprintNodeSpawnerUtils::GetAssociatedField(UBlueprintNodeSpawn
 	{
 		ClassField = Property;
 	}
-	else if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
-	{
-		ClassField = GetAssociatedField(BoundSpawner->GetSubSpawner());
-	}
 	return ClassField;
 }
 
@@ -73,10 +65,6 @@ UFunction const* FBlueprintNodeSpawnerUtils::GetAssociatedFunction(UBlueprintNod
 	else if (UBlueprintEventNodeSpawner const* EventSpawner = Cast<UBlueprintEventNodeSpawner>(BlueprintAction))
 	{
 		Function = EventSpawner->GetEventFunction();
-	}
-	else if (UBlueprintBoundNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundNodeSpawner>(BlueprintAction))
-	{
-		Function = GetAssociatedFunction(BoundSpawner->GetSubSpawner());
 	}
 
 	return Function;
@@ -94,6 +82,10 @@ UProperty const* FBlueprintNodeSpawnerUtils::GetAssociatedProperty(UBlueprintNod
 	else if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(BlueprintAction))
 	{
 		Property = VarSpawner->GetVarProperty();
+	}
+	else if (UBlueprintBoundEventNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction))
+	{
+		Property = BoundSpawner->GetEventDelegate();
 	}
 	return Property;
 }

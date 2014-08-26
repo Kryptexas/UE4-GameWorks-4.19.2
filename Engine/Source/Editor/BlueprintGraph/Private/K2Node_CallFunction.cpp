@@ -728,11 +728,19 @@ bool UK2Node_CallFunction::AllowMultipleSelfs(bool bInputAsArray) const
 {
 	if (UFunction* Function = GetTargetFunction())
 	{
-		const bool bHasReturnParams = (Function->GetReturnProperty() != NULL);
-		return !bHasReturnParams && !IsNodePure() && !IsLatentFunction();
+		return CanFunctionSupportMultipleTargets(Function);
 	}
 
 	return Super::AllowMultipleSelfs(bInputAsArray);
+}
+
+bool UK2Node_CallFunction::CanFunctionSupportMultipleTargets(UFunction const* Function)
+{
+	bool const bIsImpure = !Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+	bool const bIsLatent = Function->HasMetaData(FBlueprintMetadata::MD_Latent);
+	bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
+
+	return !bHasReturnParam && bIsImpure && !bIsLatent;
 }
 
 FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const

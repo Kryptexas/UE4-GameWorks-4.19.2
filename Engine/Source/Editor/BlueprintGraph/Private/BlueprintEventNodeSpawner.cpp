@@ -93,27 +93,19 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 {
 	check(ParentGraph != nullptr);
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
-
-	UK2Node_Event* EventNode = nullptr;
-	
-	FName EventName = CustomEventName;
-	if (EventFunc != nullptr)
-	{
-		check(EventFunc != nullptr);
-		EventName = EventFunc->GetFName();
-	}
-	
-	UClass* ClassOwner = Blueprint->GeneratedClass;
 	// look to see if a node for this event already exists (only one node is
 	// allowed per event, per blueprint)
-	if (EventFunc != nullptr)
+	UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint);
+	// @TODO: casting away the const is bad form!
+	UK2Node_Event* EventNode = const_cast<UK2Node_Event*>(PreExistingNode);
+
+	bool const bIsCustomEvent = IsForCustomEvent();
+	check(bIsCustomEvent || (EventFunc != nullptr));
+
+	FName EventName = CustomEventName;
+	if (!bIsCustomEvent)
 	{
-		ClassOwner = CastChecked<UClass>(EventFunc->GetOuter());
-		EventNode  = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventName);
-	}
-	else
-	{
-		EventNode  = UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(Blueprint, EventName);
+		EventName  = EventFunc->GetFName();	
 	}
 
 	// if there is no existing node, then we can happily spawn one into the graph
@@ -180,6 +172,33 @@ FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 UFunction const* UBlueprintEventNodeSpawner::GetEventFunction() const
 {
 	return EventFunc;
+}
+
+//------------------------------------------------------------------------------
+UK2Node_Event const* UBlueprintEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint) const
+{
+	UK2Node_Event* PreExistingNode = nullptr;
+
+	check(Blueprint != nullptr);
+	if (IsForCustomEvent())
+	{
+		PreExistingNode = UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(Blueprint, CustomEventName);
+	}
+	else
+	{
+		check(EventFunc != nullptr);
+		UClass* ClassOwner = EventFunc->GetOwnerClass();
+
+		PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventFunc->GetFName());
+	}
+
+	return PreExistingNode;
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintEventNodeSpawner::IsForCustomEvent() const
+{
+	return (EventFunc == nullptr);
 }
 
 #undef LOCTEXT_NAMESPACE

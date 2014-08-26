@@ -160,6 +160,9 @@ public:
 	/** Checks if the property is marked as "CustomStructureParam" */
 	static bool IsStructureWildcardProperty(const UFunction* InFunction, const FString& PropertyName);
 
+	/** Used to determine the result of AllowMultipleSelfs() (without having a node instance) */
+	static bool CanFunctionSupportMultipleTargets(UFunction const* InFunction);
+
 private: 
 
 	/** Helper function to check if the SelfPin is wired correctly */
