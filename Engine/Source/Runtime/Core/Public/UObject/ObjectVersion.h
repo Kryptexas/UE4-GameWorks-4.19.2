@@ -600,6 +600,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SOUND_COMPRESSION_TYPE_ADDED,
 	// Bodies will automatically weld when attached
 	VER_UE4_AUTO_WELDING,
+	// Rename UCharacterMovementComponent::bCrouchMovesCharacterDown
+	VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

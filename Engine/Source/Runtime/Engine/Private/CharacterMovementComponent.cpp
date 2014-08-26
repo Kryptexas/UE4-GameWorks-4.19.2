@@ -199,6 +199,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	DefaultWaterMovementMode = MOVE_Swimming;
 	DefaultLandMovementMode = MOVE_Walking;
 	bForceNextFloorCheck = true;
+	bCrouchMovesCharacterDown_DEPRECATED = false;
 	bForceBraking_DEPRECATED = false;
 	bShrinkProxyCapsule = true;
 	bCanWalkOffLedges = true;
@@ -284,6 +285,11 @@ void UCharacterMovementComponent::PostLoad()
 	{
 		MaxWalkSpeedCrouched = MaxWalkSpeed * CrouchedSpeedMultiplier_DEPRECATED;
 		MaxCustomMovementSpeed = MaxWalkSpeed;
+	}
+
+	if (LinkerUE4Ver < VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN)
+	{
+		bCrouchMaintainsBaseLocation = bCrouchMovesCharacterDown_DEPRECATED;
 	}
 }
 
@@ -634,7 +640,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	{	
 		// Walking uses only XY velocity, and must be on a walkable floor, with a Base.
 		Velocity.Z = 0.f;
-		bCrouchMovesCharacterDown = true;
+		bCrouchMaintainsBaseLocation = true;
 
 		// make sure we update our new floor/base on initial entry of the walking physics
 		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
@@ -644,7 +650,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	else
 	{
 		CurrentFloor.Clear();
-		bCrouchMovesCharacterDown = false;
+		bCrouchMaintainsBaseLocation = false;
 
 		if (MovementMode == MOVE_Falling)
 		{
@@ -1609,7 +1615,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 			}
 		}
 
-		if (bCrouchMovesCharacterDown)
+		if (bCrouchMaintainsBaseLocation)
 		{
 			// Intentionally not using MoveUpdatedComponent, where a horizontal plane constraint would prevent the base of the capsule from staying at the same spot.
 			UpdatedComponent->MoveComponent(FVector(0.f, 0.f, -ScaledHalfHeightAdjust), CharacterOwner->GetActorRotation(), true);
@@ -1671,7 +1677,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
 		bool bEncroached = true;
 
-		if (!IsMovingOnGround())
+		if (!bCrouchMaintainsBaseLocation)
 		{
 			// Expand in place
 			bEncroached = GetWorld()->OverlapTest(PawnLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
@@ -1712,20 +1718,22 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		}
 		else
 		{
-			// Moving on ground
 			// Expand while keeping base location the same.
 			FVector StandingLocation = PawnLocation + FVector(0.f, 0.f, StandingCapsuleShape.GetCapsuleHalfHeight() - CurrentCrouchedHalfHeight);
 			bEncroached = GetWorld()->OverlapTest(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
 
 			if (bEncroached)
 			{
-				// Something might be just barely overhead, try moving down closer to the floor to avoid it.
-				const float MinFloorDist = KINDA_SMALL_NUMBER * 10.f;
-				if (CurrentFloor.bBlockingHit && CurrentFloor.FloorDist > MinFloorDist)
+				if (IsMovingOnGround())
 				{
-					StandingLocation.Z -= CurrentFloor.FloorDist - MinFloorDist;
-					bEncroached = GetWorld()->OverlapTest(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
-				}
+					// Something might be just barely overhead, try moving down closer to the floor to avoid it.
+					const float MinFloorDist = KINDA_SMALL_NUMBER * 10.f;
+					if (CurrentFloor.bBlockingHit && CurrentFloor.FloorDist > MinFloorDist)
+					{
+						StandingLocation.Z -= CurrentFloor.FloorDist - MinFloorDist;
+						bEncroached = GetWorld()->OverlapTest(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
+					}
+				}				
 			}
 
 			if (!bEncroached)

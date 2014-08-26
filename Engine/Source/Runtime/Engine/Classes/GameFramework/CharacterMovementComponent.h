@@ -378,6 +378,9 @@ public:
 	// Deprecated properties
 
 	UPROPERTY()
+	uint32 bCrouchMovesCharacterDown_DEPRECATED:1;
+
+	UPROPERTY()
 	uint32 bForceBraking_DEPRECATED:1;
 
 	/** Multiplier to max ground speed to use when crouched */
@@ -524,11 +527,12 @@ public:
 	uint32 bWantsToCrouch:1;
 
 	/**
-	 * If true, crouching should lower the center of the player and keep the base of the capsule in place. If false, the base of the capsule moves up and the center stays in place.
-	 * By default, this is set to true when walking and false otherwise when the movement mode changes. Feel free to override the behavior when the movement mode changes.
+	 * If true, crouching should keep the base of the capsule in place by lowering the center of the shrunken capsule. If false, the base of the capsule moves up and the center stays in place.
+	 * The same behavior applies when the character uncrouches: if true, the base is kept in the same location and the center moves up. If false, the capsule grows and only moves up if the base impacts something.
+	 * By default this variable is set when the movement mode changes: set to true when walking and false otherwise. Feel free to override the behavior when the movement mode changes.
 	 */
 	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadWrite, AdvancedDisplay)
-	uint32 bCrouchMovesCharacterDown:1;
+	uint32 bCrouchMaintainsBaseLocation:1;
 
 	/** If true, the pawn ignores the effects of changes in its base's rotation on its rotation. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
@@ -815,7 +819,7 @@ public:
 
 	/** 
 	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does *not* apply gravity.
-	 * This is used internally during movement updates. Normally you don't need to call this from outside code, but you might want to use it for custom movement.
+	 * This is used internally during movement updates. Normally you don't need to call this from outside code, but you might want to use it for custom movement modes.
 	 *
 	 * @param	DeltaTime						time elapsed since last frame.
 	 * @param	Friction						coefficient of friction when not accelerating, or in the direction opposite acceleration.
