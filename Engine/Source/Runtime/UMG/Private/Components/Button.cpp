@@ -137,6 +137,11 @@ const FButtonStyle* UButton::GetStyle() const
 void UButton::SetButtonStyle(FButtonStyle InButtonStyle)
 {
 	MyStyle = InButtonStyle;
+
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetButtonStyle(&MyStyle.GetValue());
+	}
 }
 
 FButtonStyle UButton::GetButtonStyle()
