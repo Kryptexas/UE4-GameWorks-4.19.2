@@ -2388,6 +2388,32 @@ FVector AActor::GetActorScale3D() const
 	return FVector(1,1,1);
 }
 
+void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldOffset(DeltaLocation, bSweep);
+	}
+}
+
+void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep);
+	}	
+}
+
+void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldTransform(DeltaTransform, bSweep);
+	}	
+}
+
+
+
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this

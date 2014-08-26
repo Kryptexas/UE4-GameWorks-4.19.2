@@ -249,7 +249,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false);
 
-	/** Adds a delta to the rotation of this component in its local reference frame */
+	/** Adds a delta to the transform of this component in its local reference frame. Scale is unchanged. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalTransform(const FTransform& DeltaTransform, bool bSweep=false);
 
@@ -261,12 +261,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldRotation(FRotator NewRotation, bool bSweep=false);
 
+	/** Set the relative scale of this component to put it at the supplied scale in world space. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldScale3D(FVector NewScale);
 
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	/** Set the transform of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false);
+
+	/** Adds a delta to the location of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldOffset(FVector DeltaLocation, bool bSweep=false);
+
+	/** Adds a delta to the rotation of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldRotation(FRotator DeltaRotation, bool bSweep=false);
+
+	/** Adds a delta to the transform of this component in world space. Scale is unchanged. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldTransform(const FTransform& DeltaTransform, bool bSweep=false);
 
 	/** Return location of the component, in world space */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldLocation"), Category="Utilities|Transformation")

@@ -383,6 +383,32 @@ void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool b
 	SetRelativeTransform(NewRelTransform, bSweep);
 }
 
+void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep)
+{
+	if (!DeltaLocation.IsZero())
+	{
+		const FVector NewWorldLocation = DeltaLocation + ComponentToWorld.GetTranslation();
+		SetWorldLocation(NewWorldLocation, bSweep);
+	}
+}
+
+void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep)
+{
+	if (!DeltaRotation.IsZero())
+	{
+		const FQuat NewWorldRotation = DeltaRotation.Quaternion() * ComponentToWorld.GetRotation();
+		SetWorldRotation(NewWorldRotation.Rotator(), bSweep);
+	}
+}
+
+void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+{
+	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
+	const FVector NewWorldLocation = DeltaTransform.GetTranslation() + ComponentToWorld.GetTranslation();
+
+	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)));
+}
+
 void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
 {
 	if( NewScale3D != RelativeScale3D )

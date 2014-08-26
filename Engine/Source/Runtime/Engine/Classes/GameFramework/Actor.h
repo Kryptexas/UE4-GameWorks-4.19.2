@@ -625,6 +625,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetHorizontalDotProductTo(AActor* OtherActor);
 
+	/** Adds a delta to the location of this actor in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false);
+
+	/** Adds a delta to the rotation of this actor in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false);
+
+	/** Adds a delta to the transform of this actor in world space. Scale is unchanged. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false);
+
 	/** 
 	 *	Set the Actors transform to the specified one.
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
