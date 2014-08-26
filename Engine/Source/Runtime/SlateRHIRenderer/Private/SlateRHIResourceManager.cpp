@@ -79,6 +79,11 @@ void FDynamicResourceMap::ReleaseResources()
 	{
 		BeginReleaseResource(It.Value()->RHIRefTexture);
 	}
+	
+	for (TMap<UObject*, TSharedPtr<FSlateUTextureResource> >::TIterator It(UTextureResourceMap); It; ++It)
+	{
+		It.Value()->UpdateRenderResource(nullptr);
+	}
 
 }
 
