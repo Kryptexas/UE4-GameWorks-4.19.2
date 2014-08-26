@@ -564,7 +564,7 @@ public:
 	uint32 GetTouchpadIndex() const { return TouchpadIndex; }
 
 	/** @return Is this event a result from a touch (as opposed to a mouse) */
-	uint32 IsTouchEvent() const { return bIsTouchEvent; }
+	bool IsTouchEvent() const { return bIsTouchEvent; }
 
 	/** @return The type of touch gesture */
 	EGestureEvent::Type GetGestureType() const { return GestureType; }

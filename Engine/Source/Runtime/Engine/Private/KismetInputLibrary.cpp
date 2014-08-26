@@ -134,17 +134,17 @@ int32 UKismetInputLibrary::PointerEvent_GetUserIndex(const FPointerEvent& Input)
 	return Input.GetUserIndex();
 }
 
-uint32 UKismetInputLibrary::PointerEvent_GetPointerIndex(const FPointerEvent& Input)
+int32 UKismetInputLibrary::PointerEvent_GetPointerIndex(const FPointerEvent& Input)
 {
 	return Input.GetPointerIndex();
 }
 
-uint32 UKismetInputLibrary::PointerEvent_GetTouchpadIndex(const FPointerEvent& Input)
+int32 UKismetInputLibrary::PointerEvent_GetTouchpadIndex(const FPointerEvent& Input)
 {
 	return Input.GetTouchpadIndex();
 }
 
-uint32 UKismetInputLibrary::PointerEvent_IsTouchEvent(const FPointerEvent& Input)
+bool UKismetInputLibrary::PointerEvent_IsTouchEvent(const FPointerEvent& Input)
 {
 	return Input.IsTouchEvent();
 }
@@ -165,7 +165,7 @@ FKey UKismetInputLibrary::ControllerEvent_GetEffectingButton(const FControllerEv
 	return Input.GetEffectingButton();
 }
 
-uint32 UKismetInputLibrary::ControllerEvent_GetUserIndex(const FControllerEvent& Input)
+int32 UKismetInputLibrary::ControllerEvent_GetUserIndex(const FControllerEvent& Input)
 {
 	return Input.GetUserIndex();
 }

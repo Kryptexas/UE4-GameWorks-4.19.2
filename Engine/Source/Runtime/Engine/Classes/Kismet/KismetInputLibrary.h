@@ -168,15 +168,15 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 
 	/** @return The unique identifier of the pointer (e.g., finger index) */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetPointerIndex" ), Category="Utilities|PointerEvent")
-	static uint32 PointerEvent_GetPointerIndex(const FPointerEvent& Input);
+	static int32 PointerEvent_GetPointerIndex(const FPointerEvent& Input);
 
 	/** @return The index of the touch pad that generated this event (for platforms with multiple touch pads per user) */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetTouchpadIndex" ), Category="Utilities|PointerEvent")
-	static uint32 PointerEvent_GetTouchpadIndex(const FPointerEvent& Input);
+	static int32 PointerEvent_GetTouchpadIndex(const FPointerEvent& Input);
 
 	/** @return Is this event a result from a touch (as opposed to a mouse) */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "IsTouchEvent" ), Category="Utilities|PointerEvent")
-	static uint32 PointerEvent_IsTouchEvent(const FPointerEvent& Input);
+	static bool PointerEvent_IsTouchEvent(const FPointerEvent& Input);
 
 	//TODO UMG Support GetGestureType()
 
@@ -195,7 +195,7 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 
 	/** @return The index of the user that caused the event */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetUserIndex" ), Category="Utilities|ControllerEvent")
-	static uint32 ControllerEvent_GetUserIndex(const FControllerEvent& Input);
+	static int32 ControllerEvent_GetUserIndex(const FControllerEvent& Input);
 
 	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetAnalogValue" ), Category="Utilities|ControllerEvent")
