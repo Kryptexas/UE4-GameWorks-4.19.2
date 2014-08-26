@@ -304,7 +304,10 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
-	check((BaseQualifier.CurrentPredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.CurrentPredictionKey() == 0) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+
+	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
+	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && BaseQualifier.CurrentPredictionKey() != 0 && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -319,10 +322,8 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 	FGameplayEffectSpec* OurCopyOfSpec = NULL;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
+	float Duration = bTreatAsInfiniteDuration ? UGameplayEffect::INFINITE_DURATION : Spec.GetDuration();
 	{
-	
-		float Duration = Spec.GetDuration();
-
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
 			// recalculating stacking needs to come before creating the new effect
@@ -351,6 +352,22 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		// In theory, we don't modify 2nd order modifiers after they are 'attached'
 		// Long complex chains can be created but we never say 'Modify a GE that is modding another GE'
 		OurCopyOfSpec->MakeUnique();
+
+		// if necessary add a modifier to OurCopyOfSpec to force it to have an infinite duration
+		if (bTreatAsInfiniteDuration)
+		{
+			FGameplayModifierInfo ModInfo;
+			ModInfo.ModifierOp = EGameplayModOp::Override;
+			ModInfo.Magnitude.SetValue(UGameplayEffect::INFINITE_DURATION);
+			ModInfo.EffectType = EGameplayModEffect::Duration;
+			ModInfo.ModifierType = EGameplayMod::ActiveGE;
+			TSharedPtr<FGameplayEffectLevelSpec> Level(new FGameplayEffectLevelSpec(0.f, OurCopyOfSpec->Def->LevelInfo, NULL));
+			FModifierSpec Mod(ModInfo, Level, NULL);
+			FModifierQualifier Qualifier;
+			Qualifier.Type(EGameplayMod::ActiveGE);
+
+			OurCopyOfSpec->ApplyModifier(Mod, Qualifier, true);
+		}
 	}
 
 	// Now that we have our own copy, apply our GEs that modify IncomingGEs
@@ -361,7 +378,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}	
 	
 	// Now that we have the final version of this effect, actually apply it if its going to be hanging around
-	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION )
+	if (Duration != UGameplayEffect::INSTANT_APPLICATION )
 	{
 		if (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD)
 		{
@@ -384,7 +401,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
 	
 	// Execute if this is an instant application effect
-	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION)
+	if (Duration == UGameplayEffect::INSTANT_APPLICATION)
 	{
 		ExecuteGameplayEffect(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).IgnoreHandle(MyHandle));
 	}

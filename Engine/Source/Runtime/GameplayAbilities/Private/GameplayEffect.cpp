@@ -190,11 +190,10 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec,
 	ABILITY_LOG_SCOPE(TEXT("FGameplayEffectSpec::ApplyModifiersFrom %s. InSpec: %s"), *this->ToSimpleString(), *InSpec.ToSimpleString());
 
 	int32 NumApplied = 0;
-	bool ShouldSnapshot = InSpec.ShouldApplyAsSnapshot(QualifierContext);
 
 	if (!InSpec.Def || !InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Def))
 	{
-		// InSpec doesn't match this gameplay effect but if InSpec provides immunity we also need to check the modifiers because they can be canceled independent of the gameplay effect
+		// InSpec doesn't match this GameplayEffectSpec but if InSpec provides immunity we also need to check the modifiers because they can be canceled independent of the GameplayEffectSpec
 		if ((int32)InSpec.Def->AppliesImmunityTo == (int32)QualifierContext.Type())
 		{
 			for (int ii = 0; ii < Modifiers.Num(); ++ii)
@@ -221,63 +220,7 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec,
 
 	for (const FModifierSpec &InMod : InSpec.Modifiers)
 	{
-		if (!InMod.CanModifyInContext(QualifierContext))
-		{
-			continue;
-		}
-
-		switch (InMod.Info.EffectType)
-		{
-			case EGameplayModEffect::Magnitude:
-			{
-				for (FModifierSpec &MyMod : Modifiers)
-				{
-					if (InMod.CanModifyModifier(MyMod, QualifierContext))
-					{
-						InMod.ApplyModTo(MyMod, ShouldSnapshot);
-						NumApplied++;
-					}
-				}
-				break;
-			}
-
-			// Fixme: Duration mods aren't checking that attributes match - do we care?
-			// eg - "I mod duration of all GEs that modify Health" would need to check to see if this mod modifies health before doing the stuff below.
-			// Or can we get by with just tags?
-
-			case EGameplayModEffect::Duration:
-			{
-				// don't modify infinite duration unless we're overriding it
-				if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
-				{
-					Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
-					NumApplied++;
-				}
-				
-				break;
-			}
-
-			case EGameplayModEffect::ChanceApplyTarget:
-			{
-				ChanceToApplyToTarget.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
-				NumApplied++;
-				break;
-			}
-
-			case EGameplayModEffect::ChanceExecuteEffect:
-			{
-				ChanceToExecuteOnGameplayEffect.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
-				NumApplied++;
-				break;
-			}
-
-			case EGameplayModEffect::LinkedGameplayEffect:
-			{
-				TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
-				NumApplied++;
-				break;
-			}
-		}
+		NumApplied += ApplyModifier(InMod, QualifierContext, InSpec.ShouldApplyAsSnapshot(QualifierContext));
 	}
 
 	return NumApplied;
@@ -301,6 +244,70 @@ int32 FGameplayEffectSpec::ExecuteModifiersFrom(const FGameplayEffectSpec &InSpe
 	}
 
 	return NumExecuted;
+}
+
+int32 FGameplayEffectSpec::ApplyModifier(const FModifierSpec &InMod, const FModifierQualifier &QualifierContext, bool bApplyAsSnapshot)
+{
+	int32 NumApplied = 0;
+	if (!InMod.CanModifyInContext(QualifierContext))
+	{
+		return 0;
+	}
+
+	switch (InMod.Info.EffectType)
+	{
+		case EGameplayModEffect::Magnitude:
+		{
+			for (FModifierSpec &MyMod : Modifiers)
+			{
+				if (InMod.CanModifyModifier(MyMod, QualifierContext))
+				{
+					InMod.ApplyModTo(MyMod, bApplyAsSnapshot);
+					NumApplied = 1;
+				}
+			}
+			break;
+		}
+
+		// Fixme: Duration mods aren't checking that attributes match - do we care?
+		// eg - "I mod duration of all GEs that modify Health" would need to check to see if this mod modifies health before doing the stuff below.
+		// Or can we get by with just tags?
+
+		case EGameplayModEffect::Duration:
+		{
+			// don't modify infinite duration unless we're overriding it
+			if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
+			{
+				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+				NumApplied = 1;
+			}
+
+			break;
+		}
+
+		case EGameplayModEffect::ChanceApplyTarget:
+		{
+			ChanceToApplyToTarget.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+			NumApplied = 1;
+			break;
+		}
+
+		case EGameplayModEffect::ChanceExecuteEffect:
+		{
+			ChanceToExecuteOnGameplayEffect.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+			NumApplied = 1;
+			break;
+		}
+
+		case EGameplayModEffect::LinkedGameplayEffect:
+		{
+			TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
+			NumApplied = 1;
+			break;
+		}
+	}
+
+	return NumApplied;
 }
 
 float FGameplayEffectSpec::GetDuration() const
@@ -387,7 +394,7 @@ EGameplayEffectStackingPolicy::Type FGameplayEffectSpec::GetStackingType() const
 
 bool FModifierSpec::CanModifyInContext(const FModifierQualifier &QualifierContext) const
 {
-	// Can only modify if are valid within this Qualifier Context
+	// Can only modify if this spec is valid within this Qualifier Context
 	// (E.g, if I am an OutgoingGE mod, I cannot modify during a IncomingGE context)
 	if (Info.ModifierType != QualifierContext.Type())
 	{

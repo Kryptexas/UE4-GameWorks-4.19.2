@@ -940,6 +940,7 @@ struct FModifierSpec
 
 	TSharedPtr<FGameplayEffectSpec> TargetEffectSpec;
 
+	// returns true if this GameplayEffectSpec can modify things in QualifierContext, returns false otherwise.
 	bool CanModifyInContext(const FModifierQualifier &QualifierContext) const;
 	// returns true if this GameplayEffect can modify Other, false otherwise
 	bool CanModifyModifier(FModifierSpec &Other, const FModifierQualifier &QualifierContext) const;
@@ -1031,12 +1032,17 @@ struct FGameplayEffectSpec
 
 	void InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level);
 
-	// returns the number of modifiers applied to InSpec by the current GameplayEffect Spec
+	// returns the number of modifiers applied to the current GameplayEffectSpec by InSpec
 	// returns -1 if the current GameplayEffectSpec prevents InSpec from being applied
 	int32 ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
+	// returns 1 if the modifier was applied, 0 otherwise
+	int32 ApplyModifier(const FModifierSpec &InMod, const FModifierQualifier &QualifierContext, bool bApplyAsSnapshot);
+
+	// returns true if modifiers applied to this GameplayEffectSpec should be a snapshot of the applied modifiers
+	// returns false if modifiers applied to this GameplayEffectSpec should link to the applied modifiers
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
 
 	FString ToSimpleString() const
