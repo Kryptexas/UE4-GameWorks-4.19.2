@@ -146,6 +146,9 @@ void UPoseableMeshComponent::SetBoneTransformByName(FName BoneName, const FTrans
 
 				LocalAtoms[BoneIndex].SetToRelativeTransform(CSPose.GetComponentSpaceTransform(ParentIndex));
 			}
+
+			// Need to send new state to render thread
+			MarkRenderDynamicDataDirty();
 		}
 	}
 }
