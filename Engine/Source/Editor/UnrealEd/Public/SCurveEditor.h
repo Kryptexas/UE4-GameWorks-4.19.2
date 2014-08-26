@@ -288,8 +288,9 @@ private:
 	/* Get the curves to will be used during a fit operation */
 	TArray<FRichCurve*> GetCurvesToFit()const;
 
-	void ZoomToFitHorizontal();
-	void ZoomToFitVertical();
+	void ZoomToFitHorizontal(bool OnlySelected);
+	void ZoomToFitVertical(bool OnlySelected);
+	void ZoomToFitAll(bool OnlySelected);
 
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();
@@ -402,17 +403,16 @@ private:
 	/** Get the tooltip for a curve selection checkbox */
 	FText			GetCurveCheckBoxToolTip(FRichCurve* Curve) const;
 
-	/* Get text representation of selected keys interpolation modes */
-	FText			GetInterpolationModeText() const;
-
 	/** Create ontext Menu for waring menu*/
 	void	PushWarningMenu(FVector2D Position, const FText& Message);
 
 	/** Create context Menu for key interpolation settings*/
-	void	PushInterpolationMenu(FVector2D Position);
+	void	PushCurveMenu(const FGeometry& InMyGeometry, FVector2D Position);
 
 	/** Called when the user selects the interpolation mode */
 	void	OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);
+
+	bool IsInterpolationModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);
 
 	/** Begin a transaction for dragging a key or tangent */
 	void	BeginDragTransaction();

@@ -81,15 +81,46 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FExecuteAction::CreateSP(this, &SCurveEditor::RedoAction));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitHorizontal,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal, false));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical, false));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitAll,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, false));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitSelected,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, true));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
 		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SCurveEditor::IsSnappingEnabled));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationConstant,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Constant, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Constant, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationLinear,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Linear, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Linear, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicAuto,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicUser,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_User),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_User));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicBreak,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Break),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_Break));
 
 	SAssignNew(WarningMessageText, SErrorText);
 
@@ -304,47 +335,33 @@ void SCurveEditor::PushWarningMenu( FVector2D Position, const FText& Message )
 }
 
 
-void SCurveEditor::PushInterpolationMenu(FVector2D Position)
+void SCurveEditor::PushCurveMenu(const FGeometry& InMyGeometry, FVector2D Position)
 {
-	FText Heading = (SelectedKeys.Num() > 0) ? FText::Format( LOCTEXT("KeyInterpolationMode", "Key Interpolation({0})"), GetInterpolationModeText()) : LOCTEXT("CurveInterpolationMode", "Curve Interpolation");
+	FText Heading = (SelectedKeys.Num() > 0) ? LOCTEXT("KeyInterpolationMode", "Key Interpolation") : LOCTEXT("CurveInterpolationMode", "Curve Interpolation");
 
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, Commands.ToSharedRef());
+
+	if (SelectedKeys.Num() == 0)
+	{
+		MenuBuilder.BeginSection("EditCurveEditorActions", LOCTEXT("Actions", "Actions"));
+		{
+			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::AddNewKey, InMyGeometry, Position));
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("AddKey", "Add Key"),
+				LOCTEXT("AddKey_ToolTip", "Create a new point in the curve.  You can also use (Shift + Left Mouse Button)"),
+				FSlateIcon(),
+				Action);
+		}
+		MenuBuilder.EndSection();
+	}
+
 	MenuBuilder.BeginSection("CurveEditorInterpolation", Heading);
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateLinearMode", "Linear"),
-			LOCTEXT("LinearInterpolationToolTip", "Use Linear interpolation"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Linear, RCTM_Auto) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateClampMode", "Clamp"),
-			LOCTEXT("ClampInterpolationToolTip", "Clamp to value"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Constant, RCTM_Auto) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicAutoMode", "Cubic-auto"),
-			LOCTEXT("CubicAutoInterpolationToolTip", "Cubic interpolation with automatic tangents"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Auto) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicLockedMode", "Cubic-locked"),
-			LOCTEXT("CubicLockedInterpolationToolTip", "Cubic interpolation, with user controlled tangent"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_User) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicBreakMode", "Cubic-break"),
-			LOCTEXT("CubicBreakInterpolationToolTip", "Cubic interpolation with seperate user controlled tangents for arrive and leave"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Break) ,
-			FCanExecuteAction()));
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicAuto);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicUser);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicBreak);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationLinear);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationConstant);
 	}
 	MenuBuilder.EndSection(); //CurveEditorInterpolation
 
@@ -879,12 +896,12 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 
 	if( bZoomToFitVertical )
 	{
-		ZoomToFitVertical();
+		ZoomToFitVertical(false);
 	}
 
 	if ( bZoomToFitHorizontal )
 	{
-		ZoomToFitHorizontal();
+		ZoomToFitHorizontal(false);
 	}
 
 	CurveSelectionWidget.Pin()->SetContent(CreateCurveSelectionWidget());
@@ -1305,11 +1322,13 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 					EmptySelection();
 					AddToSelection(HitKey);
 				}
-				PushInterpolationMenu(InMouseEvent.GetScreenSpacePosition());
+				PushCurveMenu(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 			}
 			else if (HitTestCurves(InMyGeometry, InMouseEvent))
 			{
-				PushInterpolationMenu(InMouseEvent.GetScreenSpacePosition());
+				// Empty the selection if a key wasn't clicked so that menu has the correct context.
+				EmptySelection();
+				PushCurveMenu(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 			}
 			else
 			{
@@ -1613,29 +1632,44 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 }
 
 
-void SCurveEditor::ZoomToFitHorizontal()
+void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
 	if(Curves.Num() > 0)
 	{
-		float InMin = FLT_MAX, InMax = -FLT_MAX;
+		float InMin = FLT_MAX;
+		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
-		for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+
+		if (OnlySelected)
 		{
-			FRichCurve* Curve = *It;
-			float MinTime, MaxTime;
-			Curve->GetTimeRange(MinTime, MaxTime);
-			InMin = FMath::Min(MinTime, InMin);
-			InMax = FMath::Max(MaxTime, InMax);
-			TotalKeys += Curve->GetNumKeys();
+			for (auto SelectedKey : SelectedKeys)
+			{
+				TotalKeys++;
+				float KeyTime = SelectedKey.Curve->GetKeyTime(SelectedKey.KeyHandle);
+				InMin = FMath::Min(KeyTime, InMin);
+				InMax = FMath::Max(KeyTime, InMax);
+			}
 		}
-		
-		if(TotalKeys > 0)
+		else
+		{
+			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			{
+				FRichCurve* Curve = *It;
+				float MinTime, MaxTime;
+				Curve->GetTimeRange(MinTime, MaxTime);
+				InMin = FMath::Min(MinTime, InMin);
+				InMax = FMath::Max(MaxTime, InMax);
+				TotalKeys += Curve->GetNumKeys();
+			}
+		}
+
+		if (TotalKeys > 0)
 		{
 			// Clamp the minimum size
 			float Size = InMax - InMin;
-			if( Size < CONST_MinViewRange )
+			if (Size < CONST_MinViewRange)
 			{
 				InMin -= (0.5f*CONST_MinViewRange);
 				InMax += (0.5f*CONST_MinViewRange);
@@ -1658,7 +1692,7 @@ void SCurveEditor::ZoomToFitHorizontal()
 
 FReply SCurveEditor::ZoomToFitHorizontalClicked()
 {
-	ZoomToFitHorizontal();
+	ZoomToFitHorizontal(false);
 	return FReply::Handled();
 }
 
@@ -1669,23 +1703,39 @@ void SCurveEditor::SetDefaultOutput(const float MinZoomRange)
 	ViewMaxOutput = (ViewMaxOutput + (0.5f*MinZoomRange));
 }
 
-void SCurveEditor::ZoomToFitVertical()
+void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
 	if(CurvesToFit.Num() > 0)
 	{
-		float InMin = FLT_MAX, InMax = -FLT_MAX;
+		float InMin = FLT_MAX;
+		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
-		for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+
+		if (OnlySelected)
 		{
-			FRichCurve* Curve = *It;
-			float MinVal, MaxVal;
-			Curve->GetValueRange(MinVal, MaxVal);
-			InMin = FMath::Min(MinVal, InMin);
-			InMax = FMath::Max(MaxVal, InMax);
-			TotalKeys += Curve->GetNumKeys();
+			for (auto SelectedKey : SelectedKeys)
+			{
+				TotalKeys++;
+				float KeyValue = SelectedKey.Curve->GetKeyValue(SelectedKey.KeyHandle);
+				InMin = FMath::Min(KeyValue, InMin);
+				InMax = FMath::Max(KeyValue, InMax);
+			}
 		}
+		else
+		{
+			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			{
+				FRichCurve* Curve = *It;
+				float MinVal, MaxVal;
+				Curve->GetValueRange(MinVal, MaxVal);
+				InMin = FMath::Min(MinVal, InMin);
+				InMax = FMath::Max(MaxVal, InMax);
+				TotalKeys += Curve->GetNumKeys();
+			}
+		}
+
 		const float MinZoomRange = (TotalKeys > 0 ) ? CONST_MinViewRange: CONST_DefaultZoomRange;
 
 		ViewMinOutput = (InMin);
@@ -1707,8 +1757,19 @@ void SCurveEditor::ZoomToFitVertical()
 
 FReply SCurveEditor::ZoomToFitVerticalClicked()
 {
-	ZoomToFitVertical();
+	ZoomToFitVertical(false);
 	return FReply::Handled();
+}
+
+void SCurveEditor::ZoomToFitAll(bool OnlySelected)
+{
+	if (OnlySelected && SelectedKeys.Num() == 0)
+	{
+		// Don't zoom to selected if there is no selection.
+		return;
+	}
+	ZoomToFitHorizontal(OnlySelected);
+	ZoomToFitVertical(OnlySelected);
 }
 
 void SCurveEditor::ToggleSnapping()
@@ -2091,6 +2152,35 @@ void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ER
 	CurveOwner->OnCurveChanged();
 }
 
+bool SCurveEditor::IsInterpolationModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
+{
+	if (SelectedKeys.Num() > 0)
+	{
+		for (auto SelectedKey : SelectedKeys)
+		{
+			if (SelectedKey.Curve->GetKeyInterpMode(SelectedKey.KeyHandle) != InterpMode || SelectedKey.Curve->GetKeyTangentMode(SelectedKey.KeyHandle) != TangentMode)
+			{
+				return false;
+			}
+		}
+	}
+	else
+	{
+		for (auto SelectedCurve : SelectedCurves)
+		{
+			check(IsValidCurve(SelectedCurve));
+			for (auto KeyHandleIterator(SelectedCurve->GetKeyHandleIterator()); KeyHandleIterator; ++KeyHandleIterator)
+			{
+				if (SelectedCurve->GetKeyInterpMode(KeyHandleIterator->Key) != InterpMode || SelectedCurve->GetKeyTangentMode(KeyHandleIterator->Key) != TangentMode)
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 /* Given a tangent value for a key, calculates the 2D delta vector from that key in curve space */
 static inline FVector2D CalcTangentDir(float Tangent)
 {
@@ -2261,53 +2351,6 @@ FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)
 		InLocation.Y = OutputSnap != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnap.Get()) * OutputSnap.Get() : InLocation.Y;
 	}
 	return InLocation;
-}
-
-FText SCurveEditor::GetInterpolationModeText() const
-{
-	FString Results;
-
-	const int32 LastValidKeyIndex = SelectedKeys.Num()-1;
-	for (int32 i = 0; i<SelectedKeys.Num(); ++i)
-	{
-		FSelectedCurveKey Key = SelectedKeys[i];
-		switch(Key.Curve->GetKeyInterpMode(Key.KeyHandle))
-		{
-		case RCIM_Linear:
-			{
-				Results += LOCTEXT("InterpolateLinearMode", "Linear").ToString();
-			}break;
-		case RCIM_Constant:
-			{
-				Results += LOCTEXT("InterpolateClampMode", "Clamp").ToString();
-			}break;
-		case RCIM_Cubic:
-			{
-				switch(Key.Curve->GetKey(Key.KeyHandle).TangentMode)
-				{
-				case RCTM_Auto:
-					{
-						Results += LOCTEXT("InterpolateCubicAutoMode", "Cubic-auto").ToString();
-					}break;
-				case RCTM_User:
-					{
-						Results += LOCTEXT("InterpolateCubicLockedMode", "Cubic-locked").ToString();
-					}break;
-				case RCTM_Break:
-					{
-						Results += LOCTEXT("InterpolateCubicBreakMode", "Cubic-break").ToString();
-					}break;
-				}
-			}break;
-		}
-
-		if(i != LastValidKeyIndex)
-		{
-			Results += ", ";
-		}
-	}
-
-	return FText::FromString( Results );
 }
 
 #undef LOCTEXT_NAMESPACE

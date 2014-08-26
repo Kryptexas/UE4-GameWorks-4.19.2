@@ -505,6 +505,13 @@ ERichCurveInterpMode FRichCurve::GetKeyInterpMode(FKeyHandle KeyHandle) const
 	return GetKey(KeyHandle).InterpMode;
 }
 
+ERichCurveTangentMode FRichCurve::GetKeyTangentMode(FKeyHandle KeyHandle) const
+{
+	if (!IsKeyHandleValid(KeyHandle)) { return RCTM_Auto; }
+
+	return GetKey(KeyHandle).TangentMode;
+}
+
 void FRichCurve::GetTimeRange(float& MinTime, float& MaxTime) const
 {
 	if(Keys.Num() == 0)

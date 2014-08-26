@@ -339,8 +339,11 @@ public:
 	/** Set the tangent weight mode of the specified key */
 	void SetKeyTangentWeightMode(FKeyHandle KeyHandle, ERichCurveTangentWeightMode NewTangentWeightMode);
 
-	/** Set the interp mode of the specified key */
+	/** Get the interp mode of the specified key */
 	ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const;
+
+	/** Get the tangent mode of the specified key */
+	ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const;
 
 	/** Get range of input time values. Outside this region curve continues constantly the start/end values. */
 	void GetTimeRange(float& MinTime, float& MaxTime) const;

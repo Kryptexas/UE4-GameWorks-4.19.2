@@ -19,7 +19,14 @@ public:
 
 	TSharedPtr<FUICommandInfo> ZoomToFitHorizontal;
 	TSharedPtr<FUICommandInfo> ZoomToFitVertical;
+	TSharedPtr<FUICommandInfo> ZoomToFitAll;
+	TSharedPtr<FUICommandInfo> ZoomToFitSelected;
 	TSharedPtr<FUICommandInfo> ToggleSnapping;
+	TSharedPtr<FUICommandInfo> InterpolationConstant;
+	TSharedPtr<FUICommandInfo> InterpolationLinear;
+	TSharedPtr<FUICommandInfo> InterpolationCubicAuto;
+	TSharedPtr<FUICommandInfo> InterpolationCubicUser;
+	TSharedPtr<FUICommandInfo> InterpolationCubicBreak;
 
 public:
 	virtual void RegisterCommands() override;
