@@ -256,10 +256,11 @@ void SMessageLogListing::Construct( const FArguments& InArgs, const TSharedRef< 
 	MessageLogListingViewModel = StaticCastSharedRef<FMessageLogListingViewModel>(InModelView);
 
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+	TSharedPtr<SVerticalBox> VerticalBox = NULL;
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
+		SAssignNew(VerticalBox, SVerticalBox)
 		+SVerticalBox::Slot()
 		.FillHeight(1)
 		[
@@ -269,76 +270,84 @@ void SMessageLogListing::Construct( const FArguments& InArgs, const TSharedRef< 
 				.OnSelectionChanged(this, &SMessageLogListing::OnLineSelectionChanged)
 				.ItemHeight(24)
 		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 0, 0, 1)
-		[
-			SNew(SSeparator)
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SAssignNew(HorizontalBox, SHorizontalBox)	
-		]
 	];
 
-	if(MessageLogListingViewModel->GetShowFilters())
+	//If we have some content below the message log, add a separator and a new box.
+	if (MessageLogListingViewModel->GetShowFilters() || 
+		MessageLogListingViewModel->GetShowPages() || 
+		MessageLogListingViewModel->GetAllowClear() )
 	{
+		VerticalBox->AddSlot()
+			.AutoHeight()
+			.Padding(0, 0, 0, 1)
+			[
+				SNew(SSeparator)
+			];
+
+		VerticalBox->AddSlot()
+			.AutoHeight()
+			[
+				SAssignNew(HorizontalBox, SHorizontalBox)
+			];
+
+		if (MessageLogListingViewModel->GetShowFilters())
+		{
+			HorizontalBox->AddSlot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				[
+					SNew(SComboButton)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.ForegroundColor(FSlateColor::UseForeground())
+					.ContentPadding(2)
+					.OnGetMenuContent(this, &SMessageLogListing::OnGetFilterMenuContent)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Show", "Show"))
+						.ToolTipText(LOCTEXT("ShowToolTip", "Only show messages of the selected types"))
+					]
+				];
+		}
+
 		HorizontalBox->AddSlot()
 			.FillWidth(1.0f)
-			.HAlign(HAlign_Left)
+			.HAlign(HAlign_Right)
 			[
 				SNew(SComboButton)
-				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
+				.IsEnabled(this, &SMessageLogListing::IsPageWidgetEnabled)
+				.Visibility(this, &SMessageLogListing::GetPageWidgetVisibility)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 				.ForegroundColor(FSlateColor::UseForeground())
 				.ContentPadding(2)
-				.OnGetMenuContent(this, &SMessageLogListing::OnGetFilterMenuContent)
+				.OnGetMenuContent(this, &SMessageLogListing::OnGetPageMenuContent)
 				.ButtonContent()
 				[
-					SNew(STextBlock) 
-					.Text(LOCTEXT("Show", "Show"))
-					.ToolTipText(LOCTEXT("ShowToolTip", "Only show messages of the selected types"))
+					SNew(STextBlock)
+					.Text(this, &SMessageLogListing::OnGetPageMenuLabel)
+					.ToolTipText(LOCTEXT("PageToolTip", "Choose the log page to view"))
+				]
+			];
+
+		// if we aren't using pages, we allow the user to manually clear the log
+		HorizontalBox->AddSlot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.OnClicked(this, &SMessageLogListing::OnClear)
+				.IsEnabled(this, &SMessageLogListing::IsClearWidgetEnabled)
+				.Visibility(this, &SMessageLogListing::GetClearWidgetVisibility)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.ContentPadding(2)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ClearMessageLog", "Clear"))
+					.ToolTipText(LOCTEXT("ClearMessageLog_ToolTip", "Clear the messages in this log"))
 				]
 			];
 	}
-
-	HorizontalBox->AddSlot()
-		.FillWidth(1.0f)
-		.HAlign(HAlign_Right)
-		[
-			SNew(SComboButton)
-			.IsEnabled(this, &SMessageLogListing::IsPageWidgetEnabled)
-			.Visibility(this, &SMessageLogListing::GetPageWidgetVisibility)
-			.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-			.ForegroundColor(FSlateColor::UseForeground())
-			.ContentPadding(2)
-			.OnGetMenuContent(this, &SMessageLogListing::OnGetPageMenuContent)
-			.ButtonContent()
-			[
-				SNew(STextBlock) 
-				.Text(this, &SMessageLogListing::OnGetPageMenuLabel)
-				.ToolTipText(LOCTEXT("PageToolTip", "Choose the log page to view"))
-			]
-		];
-
-	// if we aren't using pages, we allow the user to manually clear the log
-	HorizontalBox->AddSlot()
-		.FillWidth(1.0f)
-		.HAlign(HAlign_Right)
-		[
-			SNew(SButton)
-			.OnClicked(this, &SMessageLogListing::OnClear)
-			.IsEnabled(this, &SMessageLogListing::IsClearWidgetEnabled)
-			.Visibility(this, &SMessageLogListing::GetClearWidgetVisibility)
-			.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-			.ForegroundColor(FSlateColor::UseForeground())
-			.ContentPadding(2)
-			[
-				SNew(STextBlock) 
-				.Text(LOCTEXT("ClearMessageLog", "Clear"))
-				.ToolTipText(LOCTEXT("ClearMessageLog_ToolTip", "Clear the messages in this log"))
-			]
-		];
 
 	// Register with the the view object so that it will notify if any data changes
 	MessageLogListingViewModel->OnDataChanged().AddSP( this, &SMessageLogListing::OnChanged );
@@ -611,13 +620,13 @@ bool SMessageLogListing::IsClearWidgetEnabled() const
 
 EVisibility SMessageLogListing::GetClearWidgetVisibility() const
 {
-	if(MessageLogListingViewModel->GetShowPages())
+	if (MessageLogListingViewModel->GetAllowClear() && !MessageLogListingViewModel->GetShowPages())
 	{
-		return EVisibility::Collapsed;
+		return EVisibility::Visible;
 	}
 	else
 	{
-		return EVisibility::Visible;
+		return EVisibility::Collapsed;
 	}
 }
 

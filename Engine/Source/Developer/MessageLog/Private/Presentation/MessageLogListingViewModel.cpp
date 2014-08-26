@@ -374,6 +374,16 @@ bool FMessageLogListingViewModel::GetShowPages() const
 	return bShowPages;
 }
 
+void FMessageLogListingViewModel::SetAllowClear(bool bInAllowClear)
+{
+	bAllowClear = bAllowClear;
+}
+
+bool FMessageLogListingViewModel::GetAllowClear() const
+{
+	return bAllowClear;
+}
+
 void FMessageLogListingViewModel::SetDiscardDuplicates(bool bInDiscardDuplicates)
 {
 	bool bOldDiscardDuplicates = bDiscardDuplicates;

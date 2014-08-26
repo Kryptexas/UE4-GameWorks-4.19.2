@@ -101,6 +101,12 @@ public:
 	/** Get whether we should show pages or not */
 	bool GetShowPages() const;
 
+	/** Set whether we should show allow the user to clear the log. */
+	void SetAllowClear(bool bInAllowClear);
+
+	/** Get whether we should show allow the user to clear the log. */
+	bool GetAllowClear() const;
+
 	/** Set whether we should discard duplicates or not */
 	void SetDiscardDuplicates(bool bInDiscardDuplicates);
 
@@ -141,6 +147,7 @@ private:
 	FMessageLogListingViewModel( TSharedPtr< FMessageLogListingModel > InMessageLogListingModel, const FText& InLogLabel, const FMessageLogInitializationOptions& InitializationOptions )
 		: bShowFilters( InitializationOptions.bShowFilters )
 		, bShowPages( InitializationOptions.bShowPages )
+		, bAllowClear( InitializationOptions.bAllowClear )
 		, bDiscardDuplicates( InitializationOptions.bDiscardDuplicates )
 		, MaxPageCount( InitializationOptions.MaxPageCount )
 		, CurrentPageIndex( 0 )
@@ -168,6 +175,9 @@ private:
 
 	/** Whether pages should be used/shown for this listing */
 	bool bShowPages;
+
+	/** Whether we allow the user to clear the log. */
+	bool bAllowClear;
 
 	/** Whether to check for duplicate messages & discard them */
 	bool bDiscardDuplicates;
