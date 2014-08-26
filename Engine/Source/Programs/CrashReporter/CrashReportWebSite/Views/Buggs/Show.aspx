@@ -128,7 +128,7 @@
 
 	<div id="CallStackContainer" >
 
-		<% if( Model.Bugg.Summary.Length > 0 ) 
+		<% if( !string.IsNullOrEmpty( Model.Bugg.Summary ) ) 
 			{ %>
 				<div id='ShowErrorMessage'>
 					<br />

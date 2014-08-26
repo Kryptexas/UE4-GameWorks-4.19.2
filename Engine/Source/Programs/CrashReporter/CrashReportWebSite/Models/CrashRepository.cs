@@ -453,15 +453,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Dictionary<string, int> GroupCounts = GetCountsByGroup( Results );
 
 			// Filter by user group if present
-            int UserGroupId;
-            if (!string.IsNullOrEmpty(FormData.UserGroup))
-            {
-                UserGroupId = FindOrAddUserGroup(FormData.UserGroup);
-            }
-            else
-            {
-                UserGroupId = 1;
-            }
+			int UserGroupId;
+			if (!string.IsNullOrEmpty(FormData.UserGroup))
+			{
+				UserGroupId = FindOrAddUserGroup(FormData.UserGroup);
+			}
+			else
+			{
+				UserGroupId = 1;
+			}
 			Results =
 			(
 				from CrashDetail in Results

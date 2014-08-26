@@ -212,7 +212,7 @@
 	</div>
 
 	<div id="CallStackContainer" >
-		<% if( Model.Crash.Summary.Length > 0 ) 
+		<% if( !string.IsNullOrEmpty( Model.Crash.Summary ) ) 
 			{ %>
 				<div id='ShowErrorMessage'>
 					<br />
