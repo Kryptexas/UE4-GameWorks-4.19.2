@@ -66,10 +66,13 @@ protected:
 
 private:
 
+	UPROPERTY()
 	UCurveTable* GlobalCurveTable;
 
+	UPROPERTY()
 	UCurveTable* GlobalAttributeDefaultsTable;
 
+	UPROPERTY()
 	UDataTable* GlobalAttributeMetaDataTable;
 
 	TSharedPtr<FAttributeSetInitter> GlobalAttributeSetInitter;
