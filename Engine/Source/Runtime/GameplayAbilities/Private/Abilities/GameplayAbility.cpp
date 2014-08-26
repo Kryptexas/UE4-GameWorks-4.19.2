@@ -572,6 +572,18 @@ void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
 	ActiveTasks.Add(NewTask);
 }
 
+void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
+{
+	TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
+	{
+		if (NamedTasks[i].IsValid())
+		{
+			NamedTasks[i].Get()->EndTask();
+		}
+	}
+}
+
 void UGameplayAbility::TaskEnded(UAbilityTask* Task)
 {
 	ActiveTasks.Remove(Task);

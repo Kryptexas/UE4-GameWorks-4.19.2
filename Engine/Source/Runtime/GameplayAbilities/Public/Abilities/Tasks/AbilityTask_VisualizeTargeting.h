@@ -2,25 +2,25 @@
 #pragma once
 
 #include "AbilityTask.h"
-#include "AbilityTask_Wait.generated.h"
+#include "AbilityTask_VisualizeTargeting.generated.h"
 
 class AGameplayAbilityTargetActor;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FVisualizeTargetingDelegate);
 
 UCLASS(MinimalAPI)
-class UAbilityTask_Wait: public UAbilityTask
+class UAbilityTask_VisualizeTargeting: public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
-	FWaitDelegate	DoneWaiting;
+	FVisualizeTargetingDelegate TimeElapsed;
 
-	void OnWaitDurationComplete();
+	void OnTimeElapsed();
 
 	/** Spawns Targeting actor. */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", HideSpawnParms="Instigator"), Category="Ability|Tasks")
-	static UAbilityTask_Wait* Wait(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class, float InWaitDuration = -1.0f);
+	static UAbilityTask_VisualizeTargeting* VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class, FName TaskInstanceName, float Duration = -1.0f);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	bool BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class, AGameplayAbilityTargetActor*& SpawnedActor);

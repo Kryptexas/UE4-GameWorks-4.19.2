@@ -88,13 +88,14 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 
 	/** Helper function for instantiating and initializing a new task */
 	template <class T>
-	static T*	NewTask(UObject* WorldContextObject)
+	static T*	NewTask(UObject* WorldContextObject, FName InstanceName = FName())
 	{
 		check(WorldContextObject);
 
 		T* MyObj = NewObject<T>();
 		UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
 		MyObj->InitTask(ThisAbility);
+		MyObj->InstanceName = InstanceName;
 		return MyObj;
 	}
 
@@ -104,6 +105,12 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Called explicitly to end the task (usually by the task itself). Calls OnDestroy. */
 	void EndTask();
 
+public:
+
+	/** This name allows us to find the task later so that we can end it. */
+	UPROPERTY()
+	FName InstanceName;
+
 protected:	
 
 	/** End and CleanUp the task - may be called by the task itself or by the owning ability if the ability is ending. Do NOT call directly! Call EndTask() or AbilityEnded() */
@@ -111,4 +118,20 @@ protected:
 
 	/** If true, this task will receive TickTask calls from AbilitySystemComponent */
 	bool bTickingTask;
+};
+
+//For searching through lists of ability instances
+struct FAbilityInstanceNamePredicate
+{
+	FAbilityInstanceNamePredicate(FName DesiredInstanceName)
+	{
+		InstanceName = DesiredInstanceName;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && !A.Get()->InstanceName.IsNone() && A.Get()->InstanceName.IsValid() && (A.Get()->InstanceName == InstanceName));
+	}
+
+	FName InstanceName;
 };

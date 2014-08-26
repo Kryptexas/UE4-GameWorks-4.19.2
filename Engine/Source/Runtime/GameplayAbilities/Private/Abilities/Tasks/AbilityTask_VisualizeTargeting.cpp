@@ -2,28 +2,28 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/Tasks/AbilityTask_Wait.h"
+#include "Abilities/Tasks/AbilityTask_VisualizeTargeting.h"
 
-UAbilityTask_Wait::UAbilityTask_Wait(const class FPostConstructInitializeProperties& PCIP)
+UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	
+
 }
 
-UAbilityTask_Wait* UAbilityTask_Wait::Wait(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, float WaitDuration)
+UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, FName TaskInstanceName, float Duration)
 {
-	auto MyObj = NewTask<UAbilityTask_Wait>(WorldContextObject);		//Register for abort list here, providing a given FName as a key
+	auto MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for abort list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
-	if (WaitDuration > 0.0f)
+	if (Duration > 0.0f)
 	{
-		MyObj->GetWorld()->GetTimerManager().SetTimer(MyObj, &UAbilityTask_Wait::OnWaitDurationComplete, WaitDuration, false);
+		MyObj->GetWorld()->GetTimerManager().SetTimer(MyObj, &UAbilityTask_VisualizeTargeting::OnTimeElapsed, Duration, false);
 	}
 	return MyObj;
 }
 
 // ---------------------------------------------------------------------------------------
 
-bool UAbilityTask_Wait::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
+bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
 {
 	SpawnedActor = nullptr;
 
@@ -67,7 +67,7 @@ bool UAbilityTask_Wait::BeginSpawningActor(UObject* WorldContextObject, TSubclas
 	return (SpawnedActor != nullptr);
 }
 
-void UAbilityTask_Wait::FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor)
+void UAbilityTask_VisualizeTargeting::FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor)
 {
 	if (SpawnedActor)
 	{
@@ -83,7 +83,7 @@ void UAbilityTask_Wait::FinishSpawningActor(UObject* WorldContextObject, AGamepl
 
 // ---------------------------------------------------------------------------------------
 
-void UAbilityTask_Wait::OnDestroy(bool AbilityEnded)
+void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 {
 	if (MyTargetActor.IsValid() && !MyTargetActor->HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -96,8 +96,8 @@ void UAbilityTask_Wait::OnDestroy(bool AbilityEnded)
 
 // --------------------------------------------------------------------------------------
 
-void UAbilityTask_Wait::OnWaitDurationComplete()
+void UAbilityTask_VisualizeTargeting::OnTimeElapsed()
 {
-	DoneWaiting.Broadcast();
+	TimeElapsed.Broadcast();
 	EndTask();
 }

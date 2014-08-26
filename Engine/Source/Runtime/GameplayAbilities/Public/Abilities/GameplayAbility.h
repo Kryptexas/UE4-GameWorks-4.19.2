@@ -268,6 +268,10 @@ protected:
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) { }
 
+	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	void CancelTaskByInstanceName(FName InstanceName);
+
 	// -------------------------------------
 	//	EndAbility
 	// -------------------------------------
@@ -387,8 +391,6 @@ protected:
 
 	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
 	
-	
-
 private:
 
 	/** 
