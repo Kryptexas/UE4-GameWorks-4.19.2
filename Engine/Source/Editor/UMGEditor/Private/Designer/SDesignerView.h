@@ -53,6 +53,9 @@ public:
 	// End of IUMGDesigner interface
 
 private:
+	/** Establishes the resolution and aspect ratio to use on construction from config settings */
+	void SetStartupResolution();
+
 	/** The width of the preview screen for the UI */
 	FOptionalSize GetPreviewWidth() const;
 
@@ -86,8 +89,15 @@ private:
 
 	void CacheSelectedWidgetGeometry();
 
+	/** @return Formatted text for the given resolution params */
+	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
+
+	FText GetCurrentResolutionText() const;
+	FSlateColor GetResolutionTextColorAndOpacity() const;
+	
 	// Handles selecting a common screen resolution.
-	void HandleCommonResolutionSelected(int32 Width, int32 Height);
+	void HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio);
+	bool HandleIsCommonResolutionSelected(int32 Width, int32 Height) const;
 	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
 	TSharedRef<SWidget> GetAspectMenu();
 
@@ -98,6 +108,11 @@ private:
 	FReply HandleZoomToFitClicked();
 
 private:
+	static const FString ConfigSectionName;
+	static const uint32 DefaultResolutionWidth;
+	static const uint32 DefaultResolutionHeight;
+	static const FString DefaultAspectRatio;
+
 	enum DragHandle
 	{
 		DH_NONE = -1,
@@ -186,6 +201,11 @@ private:
 	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
 	TWeakPtr<SWidget> HoveredSlateWidget;
 
+	// Resolution info
 	int32 PreviewWidth;
 	int32 PreviewHeight;
+	FString PreviewAspectRatio;
+
+	/** Curve to handle fading of the resolution */
+	FCurveSequence ResolutionTextFade;
 };

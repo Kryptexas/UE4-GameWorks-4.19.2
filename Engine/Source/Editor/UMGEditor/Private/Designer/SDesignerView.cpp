@@ -91,6 +91,11 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 /////////////////////////////////////////////////////
 // SDesignerView
 
+const FString SDesignerView::ConfigSectionName = "UMGEditor.Designer";
+const uint32 SDesignerView::DefaultResolutionWidth = 1280;
+const uint32 SDesignerView::DefaultResolutionHeight = 720;
+const FString SDesignerView::DefaultAspectRatio = "16:9";
+
 void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
 	ScopedTransaction = NULL;
@@ -101,11 +106,10 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
 
-	//TODO UMG Store as a setting
-	//PreviewWidth = 1920;
-	//PreviewHeight = 1080;
-	PreviewWidth = 1280;
-	PreviewHeight = 720;
+	SetStartupResolution();
+
+	ResolutionTextFade = FCurveSequence(0.0f, 1.0f);
+	ResolutionTextFade.Play();
 
 	HoverTime = 0;
 
@@ -199,9 +203,10 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.Padding(5.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+					.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
 					.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "Zoom To Fit"))
 					.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
 					[
@@ -212,17 +217,35 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.Padding(5.0f)
 				[
 					SNew(SComboButton)
-					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+					.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
+					.ForegroundColor(FLinearColor::Black)
 					.OnGetMenuContent(this, &SDesignerView::GetAspectMenu)
 					.ContentPadding(2.0f)
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("AspectRatio", "Aspect Ratio"))
+						.Text(LOCTEXT("Resolution", "Resolution"))
+						.TextStyle(FEditorStyle::Get(), "ViewportMenu.Label")
 					]
+				]
+			]
+			// Bottom bar to show current resolution & AR
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(6, 0, 0, 2)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+					.Text(this, &SDesignerView::GetCurrentResolutionText)
+					.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
 				]
 			]
 		]
@@ -244,6 +267,29 @@ SDesignerView::~SDesignerView()
 	if ( BlueprintEditor.IsValid() )
 	{
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+	}
+}
+
+void SDesignerView::SetStartupResolution()
+{
+	// Use previously set resolution (or create new entries using default values)
+	// Width
+	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewWidth"), PreviewWidth, GEditorUserSettingsIni))
+	{
+		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), DefaultResolutionWidth, GEditorUserSettingsIni);
+		PreviewWidth = DefaultResolutionWidth;
+	}
+	// Height
+	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewHeight"), PreviewHeight, GEditorUserSettingsIni))
+	{
+		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), DefaultResolutionHeight, GEditorUserSettingsIni);
+		PreviewHeight = DefaultResolutionHeight;
+	}
+	// Aspect Ratio
+	if (!GConfig->GetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), PreviewAspectRatio, GEditorUserSettingsIni))
+	{
+		GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *DefaultAspectRatio, GEditorUserSettingsIni);
+		PreviewAspectRatio = DefaultAspectRatio;
 	}
 }
 
@@ -1316,10 +1362,43 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	return FReply::Unhandled();
 }
 
-void SDesignerView::HandleCommonResolutionSelected(int32 Width, int32 Height)
+FText SDesignerView::GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Width"), FText::AsNumber(Width, nullptr, I18N.GetInvariantCulture()));
+	Args.Add(TEXT("Height"), FText::AsNumber(Height, nullptr, I18N.GetInvariantCulture()));
+	Args.Add(TEXT("AspectRatio"), FText::FromString(AspectRatio));
+
+	return FText::Format(LOCTEXT("CommonResolutionFormat", "{Width} x {Height} ({AspectRatio})"), Args);
+}
+
+FText SDesignerView::GetCurrentResolutionText() const
+{
+	return GetResolutionText(PreviewWidth, PreviewHeight, PreviewAspectRatio);
+}
+
+FSlateColor SDesignerView::GetResolutionTextColorAndOpacity() const
+{
+	return FLinearColor(1, 1, 1, 1.25f - ResolutionTextFade.GetLerp());
+}
+
+void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio)
 {
 	PreviewWidth = Width;
 	PreviewHeight = Height;
+	PreviewAspectRatio = AspectRatio;
+
+	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), Width, GEditorUserSettingsIni);
+	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), Height, GEditorUserSettingsIni);
+	GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *AspectRatio, GEditorUserSettingsIni);
+
+	ResolutionTextFade.Play();
+}
+
+bool SDesignerView::HandleIsCommonResolutionSelected(int32 Width, int32 Height) const
+{
+	return (Width == PreviewWidth) && (Height == PreviewHeight);
 }
 
 void SDesignerView::AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName)
@@ -1328,16 +1407,13 @@ void SDesignerView::AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const 
 	{
 		for ( auto Iter = Resolutions.CreateConstIterator(); Iter; ++Iter )
 		{
-			FUIAction Action(FExecuteAction::CreateRaw(this, &SDesignerView::HandleCommonResolutionSelected, Iter->Width, Iter->Height));
+			// Actions for the resolution menu entry
+			FExecuteAction OnResolutionSelected = FExecuteAction::CreateRaw(this, &SDesignerView::HandleOnCommonResolutionSelected, Iter->Width, Iter->Height, Iter->AspectRatio);
+			FCanExecuteAction OnCanResolutionBeSelected = FCanExecuteAction::CreateRaw(&FSlateApplication::Get(), &FSlateApplication::IsNormalExecution);
+			FIsActionChecked OnIsResolutionSelected = FIsActionChecked::CreateRaw(this, &SDesignerView::HandleIsCommonResolutionSelected, Iter->Width, Iter->Height);
+			FUIAction Action(OnResolutionSelected, OnCanResolutionBeSelected, OnIsResolutionSelected);
 
-			FInternationalization& I18N = FInternationalization::Get();
-
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Width"), FText::AsNumber(Iter->Width, NULL, I18N.GetInvariantCulture()));
-			Args.Add(TEXT("Height"), FText::AsNumber(Iter->Height, NULL, I18N.GetInvariantCulture()));
-			Args.Add(TEXT("AspectRatio"), FText::FromString(Iter->AspectRatio));
-
-			MenuBuilder.AddMenuEntry(FText::FromString(Iter->Description), FText::Format(LOCTEXT("CommonResolutionFormat", "{Width} x {Height} (AspectRatio)"), Args), FSlateIcon(), Action);
+			MenuBuilder.AddMenuEntry(FText::FromString(Iter->Description), GetResolutionText(Iter->Width, Iter->Height, Iter->AspectRatio), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::Check);
 		}
 	}
 	MenuBuilder.EndSection();
