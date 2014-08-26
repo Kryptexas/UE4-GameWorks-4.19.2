@@ -454,19 +454,10 @@ void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 	InstigatorAbilitySystemComponent = NULL;
 
 	// Cache off his AbilitySystemComponent.
-	if (Instigator)
+	IAbilitySystemInterface* AbilitySystmeInterface = InterfaceCast<IAbilitySystemInterface>(Instigator);
+	if (!AbilitySystmeInterface)
 	{
-		TArray<UObject*> ChildObjects;
-		GetObjectsWithOuter(Instigator, ChildObjects);
-
-		for (UObject * Obj : ChildObjects)
-		{
-			if (Obj && Obj->GetClass()->IsChildOf(UAbilitySystemComponent::StaticClass()))
-			{
-				InstigatorAbilitySystemComponent = Cast<UAbilitySystemComponent>(Obj);
-				break;
-			}
-		}
+		InstigatorAbilitySystemComponent = AbilitySystmeInterface->GetAbilitySystemComponent();
 	}
 }
 

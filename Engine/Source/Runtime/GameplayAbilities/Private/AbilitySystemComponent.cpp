@@ -509,7 +509,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
-		IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
 		return;
