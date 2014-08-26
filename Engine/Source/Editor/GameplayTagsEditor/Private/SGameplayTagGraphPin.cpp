@@ -44,6 +44,21 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 {
 	FString TagString = GraphPinObj->GetDefaultAsString();
 
+	UK2Node_CallFunction* CallFuncNode = Cast<UK2Node_CallFunction>(GraphPinObj->GetOuter());
+	
+	FilterString.Empty();
+	if (CallFuncNode)
+	{
+		UFunction* ThisFunction = CallFuncNode->GetTargetFunction();
+		if (ThisFunction)
+		{
+			if (ThisFunction->HasMetaData(TEXT("GameplayTagFilter")))
+			{
+				FilterString = ThisFunction->GetMetaData(TEXT("GameplayTagFilter"));
+			}
+		}
+	}
+
 	if (TagString.StartsWith(TEXT("(")) && TagString.EndsWith(TEXT(")")))
 	{
 		TagString = TagString.LeftChop(1);
@@ -78,6 +93,7 @@ TSharedRef<SWidget> SGameplayTagGraphPin::GetListContent()
 			.TagContainerName( TEXT("SGameplayTagGraphPin") )
 			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
 			.MultiSelect(false)
+			.Filter(FilterString)
 		];
 }
 
