@@ -286,17 +286,17 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 
 	// default to supporting ES2
-	bool bSupportOpenGLES2 = true;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportOpenGLES2"), bSupportOpenGLES2, GEngineIni);
-	if (bSupportOpenGLES2)
+	bool bSupportsOpenGLES2 = true;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsOpenGLES2"), bSupportsOpenGLES2, GEngineIni);
+	if (bSupportsOpenGLES2)
 	{
 		OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
 	}
 
 	// default to NOT supporting metal
-	bool bSupportMetal = false;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportMetal"), bSupportMetal, GEngineIni);
-	if (bSupportMetal)
+	bool bSupportsMetal = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
+	if (bSupportsMetal)
 	{
 		OutFormats.AddUnique(NAME_SF_METAL);
 	}

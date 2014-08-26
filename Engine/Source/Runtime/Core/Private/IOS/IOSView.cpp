@@ -25,8 +25,8 @@ id<MTLDevice> GMetalDevice = nil;
 {
 #if HAS_METAL
 	// make sure the project setting has enabled Metal support (per-project user settings in the editor)
-	bool bSupportMetal = false;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportMetal"), bSupportMetal, GEngineIni);
+	bool bSupportsMetal = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
 
 	// does commandline override?
 	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2"));
@@ -34,7 +34,7 @@ id<MTLDevice> GMetalDevice = nil;
 	bool bTriedToInit = false;
 
 	// the check for the function pointer itself is to determine if the Metal framework exists, before calling it
-	if (bSupportMetal && !bForceES2 && MTLCreateSystemDefaultDevice != NULL)
+	if (bSupportsMetal && !bForceES2 && MTLCreateSystemDefaultDevice != NULL)
 	{
 		// if the device is unable to run with Metal (pre-A7), this will return nil
 		GMetalDevice = MTLCreateSystemDefaultDevice();
@@ -47,7 +47,7 @@ id<MTLDevice> GMetalDevice = nil;
 	if (GMetalDevice == nil)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Not using Metal because: [Project Settings Disabled Metal? %s :: Commandline Forced ES2? %s :: Older OS? %s :: Pre-A7 Device? %s]"),
-			bSupportMetal ? TEXT("No") : TEXT("Yes"),
+			bSupportsMetal ? TEXT("No") : TEXT("Yes"),
 			bForceES2? TEXT("Yes") : TEXT("No"),
 			(MTLCreateSystemDefaultDevice == NULL) ? TEXT("Yes") : TEXT("No"),
 			bTriedToInit ? TEXT("Yes") : TEXT("Unknown (didn't test)"));

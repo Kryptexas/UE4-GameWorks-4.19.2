@@ -25,5 +25,11 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	{
 		bSupportsPortraitOrientation = true;
 	}
+
+	// Ensure that at least one API is supported
+	if (!bSupportsMetal && !bSupportsOpenGLES2)
+	{
+		bSupportsOpenGLES2 = true;
+	}
 }
 #endif
