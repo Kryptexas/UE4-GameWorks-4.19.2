@@ -691,7 +691,7 @@ void ACharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	// If we are controlled remotely, set animation timing to be driven by client's network updates. So timing and events remain in sync.
-	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy))
+	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy && GetNetConnection() != nullptr))
 	{
 		Mesh->bAutonomousTickPose = true;
 	}
