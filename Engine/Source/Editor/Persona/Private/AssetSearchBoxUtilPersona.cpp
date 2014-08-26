@@ -68,3 +68,50 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 		.MustMatchPossibleSuggestions(InArgs._MustMatchPossibleSuggestions)
 	];
 }
+
+void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class USkeleton* InSkeleton, TSharedPtr<class IPropertyHandle> CurveNameProperty)
+{
+	check(InSkeleton);
+
+	// get the currently chosen curve, if any
+	const FString PropertyName = CurveNameProperty->GetPropertyDisplayName();
+	FString CurValue;
+	CurveNameProperty->GetValue(CurValue);
+	if (CurValue == FString("None"))
+	{
+		CurValue.Empty();
+	}
+
+	Skeleton = InSkeleton;
+	
+	// create the asset search box
+	ChildSlot
+		[
+			SNew(SAssetSearchBox)
+			.InitialText(FText::FromString(CurValue))
+			.HintText(InArgs._HintText)
+			.OnTextCommitted(InArgs._OnTextCommitted)
+			.PossibleSuggestions(this, &SAssetSearchBoxForCurves::GetCurveSearchSuggestions)
+			.DelayChangeNotificationsWhileTyping(true)
+			.MustMatchPossibleSuggestions(InArgs._MustMatchPossibleSuggestions)
+		];
+}
+
+TArray<FString> SAssetSearchBoxForCurves::GetCurveSearchSuggestions() const
+{
+	TArray<FString> PossibleSuggestions;
+	if (USkeleton* Skel = Skeleton.Get())
+	{
+		if (FSmartNameMapping* Mapping = Skel->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+		{
+			TArray<FName> Names; 
+			Mapping->FillNameArray(Names);
+			for (const FName& Name : Names)
+			{
+				PossibleSuggestions.Add(Name.ToString());
+			}
+		}
+	}
+
+	return PossibleSuggestions;
+}
