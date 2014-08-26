@@ -18,7 +18,7 @@
 /** Compile Steam SDK version in use */
 #define STEAM_SDK_VER TEXT("1.29a")
 /** Path of the current Steam SDK version in use */
-#define STEAM_SDK_VER_PATH TEXT("Steamv129a")
+#define STEAM_SDK_VER_PATH TEXT("Steamv130")
 /** Root location of Steam SDK */
 #define STEAM_SDK_ROOT_PATH TEXT("Binaries/ThirdParty/Steamworks")
 

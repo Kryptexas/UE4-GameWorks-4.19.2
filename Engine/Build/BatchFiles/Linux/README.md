@@ -26,7 +26,7 @@ Building
 1. Download the additional .zip archives for the master branch from Epic's GitHub
    Releases page at https://github.com/EpicGames/UnrealEngine/releases
 
-2. Download v129a of the Steamworks SDK.
+2. Download v130 of the Steamworks SDK.
 
 3. Install the downloaded dependencies with:
 

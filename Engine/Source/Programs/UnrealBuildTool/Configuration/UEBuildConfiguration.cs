@@ -225,7 +225,7 @@ namespace UnrealBuildTool
 		public static void PostReset()
 		{
 			// Configuration overrides.
-			string SteamVersion = "Steamv129a";
+			string SteamVersion = "Steamv130";
 			bCompileSteamOSS = bCompileSteamOSS
 			   && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 

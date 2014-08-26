@@ -36,7 +36,7 @@ INSTALLED_DEPENDENCIES=${DEPENDENCIES%.txt}.installed
 
 #TODO: Move these hardcodings out of this file
 PERFORCE_ARCHIVE=$ARCHIVE_ROOT/p4api.tgz
-STEAM_ARCHIVE=$ARCHIVE_ROOT/steamworks_sdk_129a.zip
+STEAM_ARCHIVE=$ARCHIVE_ROOT/steamworks_sdk_130.zip
 
 # Make it super easy for users of certain linux distributions.
 CheckDistroDependencies() {
@@ -250,15 +250,15 @@ InstallPerforce() {
 
 InstallSteamworks() {
   echo "==> Installing Steamworks SDK"
-  rm -rf Engine/Source/ThirdParty/Steamworks/Steamv129a
-  mkdir Engine/Source/ThirdParty/Steamworks/Steamv129a
-  cd Engine/Source/ThirdParty/Steamworks/Steamv129a
+  rm -rf Engine/Source/ThirdParty/Steamworks/Steamv130
+  mkdir Engine/Source/ThirdParty/Steamworks/Steamv130
+  cd Engine/Source/ThirdParty/Steamworks/Steamv130
   unzip -q $STEAM_ARCHIVE
   cd ${TOP_DIR}
   mkdir -p Engine/Binaries/Linux/
   rm -f Engine/Binaries/Linux/libsteam_api.so
   cd Engine/Binaries/Linux
-  ln -s ../../Source/ThirdParty/Steamworks/Steamv129a/sdk/redistributable_bin/linux64/libsteam_api.so
+  ln -s ../../Source/ThirdParty/Steamworks/Steamv130/sdk/redistributable_bin/linux64/libsteam_api.so
   cd ${TOP_DIR}
 }
 
