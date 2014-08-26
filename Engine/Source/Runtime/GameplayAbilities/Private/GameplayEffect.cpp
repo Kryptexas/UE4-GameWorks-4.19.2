@@ -1378,7 +1378,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
 		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
-		Owner->NetMulticast_InvokeGameplayCueExecuted(Spec);
+		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec);
 	}
 
 }
@@ -1633,28 +1633,47 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 	return NewEffect;
 }
 
+void FActiveGameplayEffectsContainer::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta, IGameplayTagsModule& GameplayTagsModule)
+{
+	FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
+	for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
+	{
+		const FGameplayTag& Tag = *TagIt;
+		int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
+
+		bool WasZero = Count == 0;
+		Count = FMath::Max(Count + CountDelta, 0);
+		
+		// If we went from 0->1 or 1->0
+		if (WasZero || Count == 0)
+		{
+			FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
+			if (Delegate)
+			{
+				Delegate->Broadcast(Tag, Count);
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta, IGameplayTagsModule& GameplayTagsModule)
+{
+	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
+	{
+		const FGameplayTag& Tag = *TagIt;
+		UpdateTagMap(Tag, CountDelta, GameplayTagsModule);
+	}
+}
+
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect)
 {
 	// Update gameplaytag count and broadcast delegate if we just added this tag (count=0, prior to increment)
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	for (auto BaseTagIt = Effect.Spec.Def->OwnedTagsContainer.CreateConstIterator(); BaseTagIt; ++BaseTagIt)
+	UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, 1, GameplayTagsModule);
+	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
-		const FGameplayTag& BaseTag = *BaseTagIt;
-		FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
-		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			const FGameplayTag& Tag = *TagIt;
-			int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
-			if (Count++ == 0)
-			{
-				FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-				if (Delegate)
-				{
-					Delegate->Broadcast(Tag, 1);
-				}
-			}
-		}
-	}
+		UpdateTagMap(Cue.GameplayCueTags, 1, GameplayTagsModule);
+	}	
 }
 
 
@@ -1713,29 +1732,15 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 /** This does cleanup that has to happen whether the effect is being removed locally or due to replication */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
 {
-
 	Effect.OnRemovedDelegate.Broadcast();
 
 	// Update gameplaytag count and broadcast delegate if we are at 0
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	for (auto BaseTagIt = Effect.Spec.Def->OwnedTagsContainer.CreateConstIterator(); BaseTagIt; ++BaseTagIt)
+	UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1, GameplayTagsModule);
+
+	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
-		const FGameplayTag& BaseTag = *BaseTagIt;
-		FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
-		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			const FGameplayTag& Tag = *TagIt;
-			int32& Count = GameplayTagCountMap[Tag];
-			if (--Count == 0)
-			{
-				FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-				if (Delegate)
-				{
-					Delegate->Broadcast(Tag, 0);
-				}
-			}
-			check(Count >= 0);
-		}
+		UpdateTagMap(Cue.GameplayCueTags, -1, GameplayTagsModule);
 	}
 }
 

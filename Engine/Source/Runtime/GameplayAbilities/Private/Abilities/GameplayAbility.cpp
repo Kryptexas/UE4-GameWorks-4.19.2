@@ -810,3 +810,37 @@ bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, clas
 	return true;
 }
 
+
+
+// -----------------------------------------------------------------
+
+
+/**
+ *	Helper methods for adding GaAmeplayCues without having to go through GameplayEffects.
+ *	For now, none of these will happen predictively. We can eventually build this out more to 
+ *	work with the PredictionKey system.
+ */
+
+void UGameplayAbility::ExecuteGameplayCue(FGameplayTag GameplayCueTag)
+{
+	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
+	{
+		CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag);
+	}
+}
+
+void UGameplayAbility::AddGameplayCue(FGameplayTag GameplayCueTag)
+{
+	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
+	{
+		CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag);
+	}
+}
+
+void UGameplayAbility::RemoveGameplayCue(FGameplayTag GameplayCueTag)
+{
+	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
+	{
+		CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag);
+	}
+}

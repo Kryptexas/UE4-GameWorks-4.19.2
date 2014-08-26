@@ -39,6 +39,7 @@ UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructIniti
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	ActiveGameplayEffects.Owner = this;
+	ActiveGameplayCues.Owner = this;
 
 	SetIsReplicated(true);
 	ReplicatedPredictionKey = 0;
@@ -73,7 +74,7 @@ void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attr
 	InitStats(Attributes, DataTable);
 }
 
-const UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
+const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
 	const UAttributeSet *MyAttributes  = NULL;
@@ -442,11 +443,11 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-
-	AActor *ActorOwner = AbilityActorInfo->Actor.Get();
-	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
 		return;
 	}
 
@@ -469,11 +470,80 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	}
 }
 
+void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag);
+	}
+	else
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+	}
+}
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
+void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayCues.AddCue(GameplayCueTag);
+		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag);
+	}
+	else
+	{
+		// Allow for predictive gameplaycue events? Needs more thought
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+	}
+}
+
+void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTag)
+{
+	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayCues.RemoveCue(GameplayCueTag);
+	}
+}
+
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
+{
+	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+		IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	if (!GameplayCueInterface)
+	{
+		return;
+	}
+
+	FGameplayCueParameters CueParameters;
+	CueParameters.InstigatorContext.AddInstigator(ActorOwner);	// Treat ourselves as the instigator for now. We may need to allow this to be passed in eventually.
+
+	const float NormalizedMagnitude = 1.f;
+
+	GameplayCueInterface->HandleGameplayCue(ActorOwner, GameplayCueTag, EventType, CueParameters);
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec)
 {
 	InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
 }
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag)
+{
+	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag)
+{
+	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+}
+
+bool UAbilitySystemComponent::IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
+{
+	return (ActiveGameplayEffects.HasMatchingGameplayTag(GameplayCueTag) || ActiveGameplayCues.HasMatchingGameplayTag(GameplayCueTag));
+}
+
+// ----------------------------------------------------------------------------------------
 
 void UAbilitySystemComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
 {
@@ -525,6 +595,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
 
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedInstancedAbilities);
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
@@ -616,15 +687,6 @@ uint32 UAbilitySystemComponent::GetNextPredictionKey()
 {
 	LocalPredictionKey = FMath::Max(LocalPredictionKey, ReplicatedPredictionKey);
 	return ++LocalPredictionKey;
-}
-
-void UAbilitySystemComponent::DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
-{
-	AbilitySystemComponent_eventBlueprintCustomHandler_Parms Parms;
-	Parms.EventType = EventType;
-	Parms.Parameters = Parameters;
-
-	Actor->ProcessEvent(Func, &Parms);
 }
 
 // ---------------------------------------------------------------------------------------

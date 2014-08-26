@@ -290,6 +290,22 @@ protected:
 	virtual void ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	// -------------------------------------
+	//	GameplayCue
+	//	Abilities can invoke GameplayCues without having to create GameplayEffects
+	// -------------------------------------
+	
+	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"))
+	virtual void ExecuteGameplayCue(FGameplayTag GameplayCueTag);
+
+	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"))
+	virtual void AddGameplayCue(FGameplayTag GameplayCueTag);
+
+	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"))
+	virtual void RemoveGameplayCue(FGameplayTag GameplayCueTag);
+
+
+	// -------------------------------------
+
 
 	bool IsInstantiated() const
 	{
@@ -390,7 +406,6 @@ protected:
 	void MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
-	
 private:
 
 	/** 

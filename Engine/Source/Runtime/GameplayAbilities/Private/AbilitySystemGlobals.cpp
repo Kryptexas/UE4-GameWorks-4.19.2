@@ -96,11 +96,11 @@ UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromAct
 		return nullptr;
 	}
 
- 	IAbilitySystemInterface* ASI = InterfaceCast<IAbilitySystemInterface>(Actor);
- 	if (ASI)
- 	{
- 		return ASI->GetAbilitySystemComponent();
- 	}
+	IAbilitySystemInterface* ASI = InterfaceCast<IAbilitySystemInterface>(Actor);
+	if (ASI)
+	{
+		return ASI->GetAbilitySystemComponent();
+	}
 
 	/** This is slow and not desirable */
 	ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on Actor that is not IAbilitySystemInterface. This slow!"));

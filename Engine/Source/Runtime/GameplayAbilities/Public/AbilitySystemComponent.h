@@ -2,6 +2,7 @@
 #pragma once
 
 #include "GameplayEffect.h"
+#include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.generated.h"
 
@@ -320,12 +321,36 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	//	GameplayCues
 	// 
 	// ----------------------------------------------------------------------------------------------------------------
+	 
 
+	// GameplayCues can come from GameplayEffectSpecs
 
-	UFUNCTION(BlueprintImplementableEvent, Category = GameplayCue, meta = (BlueprintInternalUseOnly = "true"))
-	void BlueprintCustomHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpec Spec);
 
-	static void DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);
+
+	// GameplayCues can also come on their own. For now these will have no additional parameters (just a tag) though that it something we could
+	// support down the road if we wanted.
+
+	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag);
+
+	void AddGameplayCue(const FGameplayTag GameplayCueTag);
+	
+	void RemoveGameplayCue(const FGameplayTag GameplayCueTag);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag);
+
+	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType);
+
+	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue hanlding to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
+	UFUNCTION(BlueprintCallable, Category="GameplayCue", meta=(GameplayTagFilter="GameplayCue"))
+	bool IsGameplayCueActive(const FGameplayTag GameplayCueTag) const;
+
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -546,15 +571,15 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
 	FActiveGameplayEffectsContainer	ActiveGameplayEffects;
 
+	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
+	FActiveGameplayCueContainer	ActiveGameplayCues;
+
 	UFUNCTION()
 	void OnRep_GameplayEffects();
 
 	// ---------------------------------------------
-
-	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayEffectSpec Spec);
-
-	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);	
+	
+	
 	
 	// ---------------------------------------------
 

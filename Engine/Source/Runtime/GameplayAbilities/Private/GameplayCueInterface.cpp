@@ -39,3 +39,55 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 
 	// Fall back to a possible generic handler if available
 }
+
+
+
+void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray)
+{
+	InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+}
+
+void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray)
+{
+	InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+}
+
+void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag)
+{
+	UWorld* World = Owner->GetWorld();
+
+	FActiveGameplayCue	NewCue;
+	NewCue.GameplayCueTag =Tag;
+	MarkItemDirty(NewCue);
+
+	GameplayCues.Add(NewCue);
+}
+
+void FActiveGameplayCueContainer::RemoveCue(const FGameplayTag& Tag)
+{
+	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
+	{
+		FActiveGameplayCue& Cue = GameplayCues[idx];
+
+		if (Cue.GameplayCueTag == Tag)
+		{
+			GameplayCues.RemoveAt(idx);
+			MarkArrayDirty();
+			return;
+		}
+	}
+}
+
+bool FActiveGameplayCueContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	for (const FActiveGameplayCue& Cue : GameplayCues)
+	{
+		/** We expect that if TagToCheck=(a.b) and we have a (a.b.c) tag, then we match  */
+		if (Cue.GameplayCueTag.Matches(EGameplayTagMatchType::IncludeParentTags, TagToCheck, EGameplayTagMatchType::Explicit))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}

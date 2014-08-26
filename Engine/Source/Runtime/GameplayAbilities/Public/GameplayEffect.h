@@ -155,7 +155,7 @@ struct FGameplayEffectCue
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	float	MaxLevel;
 
-	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	UPROPERTY(EditDefaultsOnly, Category = GameplayCue, meta = (Categories="GameplayCue"))
 	FGameplayTagContainer GameplayCueTags;
 
 	float NormalizeLevel(float InLevel)
@@ -1282,6 +1282,9 @@ private:
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
+
+	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta, class IGameplayTagsModule& GameplayTagsModule);
+	void UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta, class IGameplayTagsModule& GameplayTagsModule);
 };
 
 template<>
