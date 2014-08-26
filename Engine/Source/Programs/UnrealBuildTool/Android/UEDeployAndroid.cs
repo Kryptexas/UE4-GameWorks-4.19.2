@@ -311,9 +311,9 @@ namespace UnrealBuildTool.Android
 			foreach (string Arch in Arches)
 			{
 				string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch);
-				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + Path.GetFileNameWithoutExtension(OutputPath) + ".apk";
 				// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
-				DestApkName = DestApkName.Replace("UE4Game-", ProjectName + "-");
+				string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
+				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
 
 				// if we making multiple Apks, we need to put the architecture into the name
 				if (bMakeSeparateApks)
@@ -410,9 +410,9 @@ namespace UnrealBuildTool.Android
 				string Arch = Arches[ArchIndex];
 
 				string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch);
-				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + Path.GetFileNameWithoutExtension(OutputPath) + ".apk";
 				// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
-				DestApkName = DestApkName.Replace("UE4Game-", ProjectName + "-");
+				string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
+				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
 
 				// if we making multiple Apks, we need to put the architecture into the name
 				if (bMakeSeparateApks)
