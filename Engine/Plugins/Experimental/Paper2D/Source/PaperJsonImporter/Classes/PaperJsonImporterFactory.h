@@ -14,8 +14,5 @@ class UPaperJsonImporterFactory : public UFactory
 	virtual FText GetToolTip() const override;
 	virtual UObject* FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn) override;
 	// End of UFactory interface
-
-protected:
-	TSharedPtr<class FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors);
 };
 

@@ -4,10 +4,11 @@
  * Factory for flipbooks
  */
 
+#pragma once
 #include "PaperFlipbookFactory.generated.h"
 
 UCLASS()
-class UPaperFlipbookFactory : public UFactory
+class PAPER2DEDITOR_API UPaperFlipbookFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

@@ -10,10 +10,14 @@ public class PaperJsonImporter : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"Slate",
+				"SlateCore",
 				"Engine",
 				"Paper2D",
 				"UnrealEd",
-				"Paper2DEditor"
+				"Paper2DEditor",
+				"AssetTools",
+				"ContentBrowser"
 			});
 
 		PrivateIncludePathModuleNames.AddRange(

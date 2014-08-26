@@ -7,28 +7,9 @@
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
-
-//////////////////////////////////////////////////////////////////////////
-// FSpriteFrame
-
-// Represents one parsed frame in a sprite sheet
-struct FSpriteFrame
-{
-	FName FrameName;
-
-	FVector2D SpritePosInSheet;
-	FVector2D SpriteSizeInSheet;
-
-	FVector2D SpriteSourcePos;
-	FVector2D SpriteSourceSize;
-
-	FVector2D ImageSourceSize;
-
-	FVector2D Pivot;
-
-	bool bTrimmed;
-	bool bRotated;
-};
+#include "PaperSpriteSheet.h"
+#include "PaperJsonSpriteSheetImporter.h"
+#include "ReimportPaperJsonImporterFactory.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperJsonImporterFactory
@@ -38,7 +19,7 @@ UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FPostConstructInitial
 {
 	bCreateNew = false;
 	//bEditAfterNew = true;
-	SupportedClass = UPaperFlipbook::StaticClass();
+	SupportedClass = UPaperSpriteSheet::StaticClass();
 
 	bEditorImport = true;
 	bText = true;
@@ -52,216 +33,6 @@ FText UPaperJsonImporterFactory::GetToolTip() const
 	return NSLOCTEXT("Paper2D", "PaperJsonImporterFactoryDescription", "Sprite sheets exported from Adobe Flash");
 }
 
-static bool ParseFrame(TSharedPtr<FJsonObject> &FrameData, FSpriteFrame &OutFrame)
-{
-	bool bReadFrameSuccessfully = true;
-	// An example frame:
-	//   "frame": {"x":210,"y":10,"w":190,"h":223},
-	//   "rotated": false,
-	//   "trimmed": true,
-	//   "spriteSourceSize": {"x":0,"y":11,"w":216,"h":240},
-	//   "sourceSize": {"w":216,"h":240},	
-	//   "pivot": {"x":0.5,"y":0.5}			[optional]
-
-	OutFrame.bRotated = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("rotated"), false);
-	OutFrame.bTrimmed = FPaperJSONHelpers::ReadBoolean(FrameData, TEXT("trimmed"), false);
-
-	bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadRectangle(FrameData, "frame", /*out*/ OutFrame.SpritePosInSheet, /*out*/ OutFrame.SpriteSizeInSheet);
-
-	if (OutFrame.bTrimmed)
-	{
-		bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadSize(FrameData, "sourceSize", /*out*/ OutFrame.ImageSourceSize);
-		bReadFrameSuccessfully = bReadFrameSuccessfully && FPaperJSONHelpers::ReadRectangle(FrameData, "spriteSourceSize", /*out*/ OutFrame.SpriteSourcePos, /*out*/ OutFrame.SpriteSourceSize);
-	}
-	else
-	{
-		OutFrame.SpriteSourcePos = FVector2D::ZeroVector;
-		OutFrame.SpriteSourceSize = OutFrame.SpriteSizeInSheet;
-		OutFrame.ImageSourceSize = OutFrame.SpriteSizeInSheet;
-	}
-
-	if (!FPaperJSONHelpers::ReadXY(FrameData, "pivot", /*out*/ OutFrame.Pivot))
-	{
-		OutFrame.Pivot.X = 0.5f;
-		OutFrame.Pivot.Y = 0.5f;
-	}
-
-	// A few more prerequisites to sort out before rotation can be enabled
-	if (OutFrame.bRotated)
-	{
-		// Sprite Source Pos is from top left, our pivot when rotated is bottom left
-		OutFrame.SpriteSourcePos.Y = OutFrame.ImageSourceSize.Y - OutFrame.SpriteSourcePos.Y - OutFrame.SpriteSizeInSheet.Y;
-
-		// We rotate final sprite geometry 90 deg CCW to fixup
-		// These need to be swapped to be valid in texture space.
-		Swap(OutFrame.SpriteSizeInSheet.X, OutFrame.SpriteSizeInSheet.Y);
-		Swap(OutFrame.ImageSourceSize.X, OutFrame.ImageSourceSize.Y);
-		
-		Swap(OutFrame.SpriteSourcePos.X, OutFrame.SpriteSourcePos.Y);
-		Swap(OutFrame.SpriteSourceSize.X, OutFrame.SpriteSourceSize.Y);
-	}
-
-	return bReadFrameSuccessfully;
-}
-
-static bool ParseFramesFromSpriteHash(TSharedPtr<FJsonObject> ObjectBlock, TArray<FSpriteFrame>& OutSpriteFrames, TSet<FName>& FrameNames)
-{
-	GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frame"), true, true);
-	bool bLoadedSuccessfully = true;
-
-	// Parse all of the frames
-	int32 FrameCount = 0;
-	for (auto FrameIt = ObjectBlock->Values.CreateIterator(); FrameIt; ++FrameIt)
-	{
-		GWarn->StatusUpdate(FrameCount, ObjectBlock->Values.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frames"));
-
-		bool bReadFrameSuccessfully = true;
-
-		FSpriteFrame Frame;
-		Frame.FrameName = *FrameIt.Key();
-
-		if (FrameNames.Contains(Frame.FrameName))
-		{
-			bReadFrameSuccessfully = false;
-		}
-		else
-		{
-			FrameNames.Add(Frame.FrameName);
-		}
-
-		TSharedPtr<FJsonValue> FrameDataAsValue = FrameIt.Value();
-		TSharedPtr<FJsonObject> FrameData;
-		if (FrameDataAsValue->Type == EJson::Object)
-		{
-			FrameData = FrameDataAsValue->AsObject();
-			bReadFrameSuccessfully = bReadFrameSuccessfully && ParseFrame(FrameData, /*out*/Frame);
-		}
-		else
-		{
-			bReadFrameSuccessfully = false;
-		}
-
-		if (bReadFrameSuccessfully)
-		{
-			OutSpriteFrames.Add(Frame);
-		}
-		else
-		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
-			bLoadedSuccessfully = false;
-		}
-
-		FrameCount++;
-	}
-
-	GWarn->EndSlowTask();
-	return bLoadedSuccessfully;
-}
-
-static bool ParseFramesFromSpriteArray(const TArray<TSharedPtr<FJsonValue>>& ArrayBlock, TArray<FSpriteFrame>& OutSpriteFrames, TSet<FName>& FrameNames)
-{
-	GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frame"), true, true);
-	bool bLoadedSuccessfully = true;
-
-	// Parse all of the frames
-	int32 FrameCount = 0;
-	for (int32 FrameCount = 0; FrameCount < ArrayBlock.Num(); ++FrameCount)
-	{
-		GWarn->StatusUpdate(FrameCount, ArrayBlock.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frames"));
-		bool bReadFrameSuccessfully = true;
-		FSpriteFrame Frame;
-
-		const TSharedPtr<FJsonValue>& FrameDataAsValue = ArrayBlock[FrameCount];
-		if (FrameDataAsValue->Type == EJson::Object)
-		{
-			TSharedPtr<FJsonObject> FrameData;
-			FrameData = FrameDataAsValue->AsObject();
-
-			FString FrameFilename = FPaperJSONHelpers::ReadString(FrameData, TEXT("filename"), TEXT(""));
-			if (!FrameFilename.IsEmpty())
-			{
-				Frame.FrameName = FName(*FrameFilename); // case insensitive
-				if (FrameNames.Contains(Frame.FrameName))
-				{
-					bReadFrameSuccessfully = false;
-				}
-				else
-				{
-					FrameNames.Add(Frame.FrameName);
-				}
-
-				bReadFrameSuccessfully = bReadFrameSuccessfully && ParseFrame(FrameData, /*out*/Frame);
-			}
-			else
-			{
-				bReadFrameSuccessfully = false;
-			}
-		}
-		else
-		{
-			bReadFrameSuccessfully = false;
-		}
-
-		if (bReadFrameSuccessfully)
-		{
-			OutSpriteFrames.Add(Frame);
-		}
-		else
-		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
-			bLoadedSuccessfully = false;
-		}
-	}
-
-	GWarn->EndSlowTask();
-	return bLoadedSuccessfully;
-}
-
-static ESpritePivotMode::Type GetBestPivotType(FVector2D JsonPivot)
-{
-	// Not assuming layout of ESpritePivotMode
-	if (JsonPivot.X == 0 && JsonPivot.Y == 0)
-	{
-		return ESpritePivotMode::Top_Left;
-	}
-	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 0)
-	{
-		return ESpritePivotMode::Top_Center;
-	}
-	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 0)
-	{
-		return ESpritePivotMode::Top_Right;
-	}
-	else if (JsonPivot.X == 0 && JsonPivot.Y == 0.5f)
-	{
-		return ESpritePivotMode::Center_Left;
-	}
-	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 0.5f)
-	{
-		return ESpritePivotMode::Center_Center;
-	}
-	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 0.5f)
-	{
-		return ESpritePivotMode::Center_Right;
-	}
-	else if (JsonPivot.X == 0 && JsonPivot.Y == 1.0f)
-	{
-		return ESpritePivotMode::Bottom_Left;
-	}
-	else if (JsonPivot.X == 0.5f && JsonPivot.Y == 1.0f)
-	{
-		return ESpritePivotMode::Bottom_Center;
-	}
-	else if (JsonPivot.X == 1.0f && JsonPivot.Y == 1.0f)
-	{
-		return ESpritePivotMode::Bottom_Right;
-	}
-	else
-	{
-		return ESpritePivotMode::Custom;
-	}
-}
-
 UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
 {
 	Flags |= RF_Transactional;
@@ -270,249 +41,49 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	bool bLoadedSuccessfully = true;
-
 	const FString CurrentFilename = UFactory::GetCurrentFilename();
 	FString CurrentSourcePath;
 	FString FilenameNoExtension;
 	FString UnusedExtension;
 	FPaths::Split(CurrentFilename, CurrentSourcePath, FilenameNoExtension, UnusedExtension);
 
-	const FString LongPackagePath = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetPathName());
+	
 
+	const FString LongPackagePath = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetPathName());
+	UPaperSpriteSheet* Result = NULL;
+	
 	const FString NameForErrors(InName.ToString());
 	const FString FileContent(BufferEnd - Buffer, Buffer);
-	TSharedPtr<FJsonObject> SpriteDescriptorObject = ParseJSON(FileContent, NameForErrors);
+	
+	FPaperJsonSpriteSheetImporter Importer;
 
-	TSet<FName> FrameNames;
-	TArray<FSpriteFrame> ParsedFrames;
-
-	UPaperFlipbook* Result = NULL;
-
-	if (SpriteDescriptorObject.IsValid())
+	// Are we reimporting?
+	if (IsA(UReimportPaperJsonImporterFactory::StaticClass()))
 	{
-		UTexture2D* ImportedTexture = NULL;
-
-		// Validate the meta block
-		TSharedPtr<FJsonObject> MetaBlock = FPaperJSONHelpers::ReadObject(SpriteDescriptorObject, TEXT("meta"));
-		if (MetaBlock.IsValid())
-		{
-			// Example contents:
-			//   "app": "Adobe Flash CS6",
-			//   "version": "12.0.0.481",        (ignored)
-			//   "image": "MySprite.png",
-			//   "format": "RGBA8888",           (ignored)
-			//   "size": {"w":2048,"h":2048},    (ignored)
-			//   "scale": "1"                    (ignored)
-
-			const FString AppName = FPaperJSONHelpers::ReadString(MetaBlock, TEXT("app"), TEXT(""));
-			const FString Image = FPaperJSONHelpers::ReadString(MetaBlock, TEXT("image"), TEXT(""));
-			
- 			if (bLoadedSuccessfully)
-			{
-				const FString FlashPrefix(TEXT("Adobe Flash"));
-				const FString TexturePackerPrefix(TEXT("http://www.codeandweb.com/texturepacker"));
-
-				if (AppName.StartsWith(FlashPrefix) || AppName.StartsWith(TexturePackerPrefix))
-				{
-					// Cool, we (mostly) know how to handle these sorts of files!
-					UE_LOG(LogPaperJsonImporter, Log, TEXT("Parsing sprite sheet exported from '%s'"), *AppName);
-				}
-				else if (!AppName.IsEmpty())
-				{
-					// It's got an app tag inside a meta block, so we'll take a crack at it
-					UE_LOG(LogPaperJsonImporter, Warning, TEXT("Unexpected 'app' named '%s' while parsing sprite descriptor file '%s'.  Parsing will continue but the format may not be fully supported"), *AppName, *NameForErrors);
-				}
-				else
-				{
-					// Probably not a sprite sheet
-					UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected 'app' key indicating the exporter (might not be a sprite sheet)"), *NameForErrors);
-					bLoadedSuccessfully = false;
-				}
- 			}
-
-			if (bLoadedSuccessfully)
-			{
-				if (Image.IsEmpty())
-				{
-					UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected valid 'image' tag"), *NameForErrors);
-					bLoadedSuccessfully = false;
-				}
-				else
-				{
-					// Import the texture
-					//@TODO: Avoid the first compression, since we're going to recompress
-					const FString TargetSubPath = LongPackagePath + TEXT("/Textures");
-
-					const FString SourceSheetImageFilename = FPaths::Combine(*CurrentSourcePath, *Image);
-					TArray<FString> SheetFileNames;
-					SheetFileNames.Add(SourceSheetImageFilename);
-
-					TArray<UObject*> ImportedSheets = AssetToolsModule.Get().ImportAssets(SheetFileNames, TargetSubPath);
-
-					ImportedTexture = (ImportedSheets.Num() > 0) ? Cast<UTexture2D>(ImportedSheets[0]) : NULL;
-
-					if (ImportedTexture == NULL)
-					{
-						UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
-						bLoadedSuccessfully = false;
-					}
-					else
-					{
-						// Change the compression settings
-						ImportedTexture->Modify();
-						ImportedTexture->LODGroup = TEXTUREGROUP_UI;
-						ImportedTexture->CompressionSettings = TC_EditorIcon;
-						ImportedTexture->Filter = TF_Nearest;
-						ImportedTexture->PostEditChange();
-					}
-				}
-			}
-		}
-		else
-		{
-			// Missing meta tag
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing meta block"), *NameForErrors);
-			bLoadedSuccessfully = false;
-		}
-
-		// Parse the frames
-		if (bLoadedSuccessfully)
-		{
-			TSharedPtr<FJsonObject> ObjectFrameBlock = FPaperJSONHelpers::ReadObject(SpriteDescriptorObject, TEXT("frames"));
-			if (ObjectFrameBlock.IsValid())
-			{
-				bLoadedSuccessfully = ParseFramesFromSpriteHash(ObjectFrameBlock, /*out*/ParsedFrames, /*inout*/FrameNames);
-			}
-			else
-			{
-				// Try loading as an array
-				TArray<TSharedPtr<FJsonValue>> ArrayBlock = FPaperJSONHelpers::ReadArray(SpriteDescriptorObject, TEXT("frames"));
-				if (ArrayBlock.Num() > 0)
-				{
-					bLoadedSuccessfully = ParseFramesFromSpriteArray(ArrayBlock, /*out*/ParsedFrames, /*inout*/FrameNames);
-				}
-				else
-				{
-					UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing frames block"), *NameForErrors);
-				}
-			}
-
-
-			// Create an animated sprite that encompasses the frames
-			UPaperFlipbook* Flipbook = NULL;
-			if (ParsedFrames.Num() > 0)
-			{
-				Flipbook = NewNamedObject<UPaperFlipbook>(InParent, InName, Flags);
-				Result = Flipbook;
-
-				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frame"), true, true);
-				FScopedFlipbookMutator EditLock(Flipbook);
-
-				// Create objects for each successfully parsed frame
-				const int32 FrameRun = 1; //@TODO: Don't make a keyframe for every single item if we can help it
-				for (int32 FrameIndex = 0; FrameIndex < ParsedFrames.Num(); ++FrameIndex)
-				{
-					GWarn->StatusUpdate(FrameIndex, ParsedFrames.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frames"));
-
-					// Check for user canceling the import
-					if (GWarn->ReceivedUserCancel())
-					{
-						break;
-					}
-
-					const FSpriteFrame& Frame = ParsedFrames[FrameIndex];
-
-					// Create a package for the frame
-					const FString TargetSubPath = LongPackagePath + TEXT("/Frames");
-
-					UObject* OuterForFrame = NULL; // @TODO: Use this if we don't want them to be individual assets - Flipbook;
-
-					// Create a unique package name and asset name for the frame
-					const FString TentativePackagePath = PackageTools::SanitizePackageName(TargetSubPath + TEXT("/") + Frame.FrameName.ToString());
-					FString DefaultSuffix;
-					FString AssetName;
-					FString PackageName;
-					AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
-
-					// Create a package for the frame
-					OuterForFrame = CreatePackage(NULL, *PackageName);
-
-					// Create a frame in the package
-					UPaperSprite* TargetSprite = NewNamedObject<UPaperSprite>(OuterForFrame, *AssetName, Flags);
-					FAssetRegistryModule::AssetCreated(TargetSprite);
-
-					TargetSprite->Modify();
-
-					TargetSprite->InitializeSprite(ImportedTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
-
-					if (Frame.bRotated)
-					{
-						TargetSprite->SetRotated(true);
-					}
-
-					if (Frame.bTrimmed)
-					{
-						TargetSprite->SetTrim(Frame.bTrimmed, Frame.SpriteSourcePos, Frame.ImageSourceSize);
-					}
-
-					// Set up pivot on object based on Texture Packer json
-					ESpritePivotMode::Type PivotType = GetBestPivotType(Frame.Pivot);
-					FVector2D TextureSpacePivotPoint = FVector2D::ZeroVector;
-					if (PivotType == ESpritePivotMode::Custom)
-					{
-						TextureSpacePivotPoint.X = Frame.SpritePosInSheet.X - Frame.SpriteSourcePos.X + Frame.ImageSourceSize.X * Frame.Pivot.X;
-						TextureSpacePivotPoint.Y = Frame.SpritePosInSheet.Y - Frame.SpriteSourcePos.Y + Frame.ImageSourceSize.Y * Frame.Pivot.Y;
-					}
-					TargetSprite->SetPivot(PivotType, TextureSpacePivotPoint);
-
-					// Create the entry in the animation
-					FPaperFlipbookKeyFrame* DestFrame = new (EditLock.KeyFrames) FPaperFlipbookKeyFrame();
-					DestFrame->Sprite = TargetSprite;
-					DestFrame->FrameRun = FrameRun;
-
-					TargetSprite->PostEditChange();
-				}
-
-				GWarn->EndSlowTask();
-			}
-
-		}
-	}
-	else
-	{
-		// Failed to parse the JSON
-		bLoadedSuccessfully = false;
+		UReimportPaperJsonImporterFactory* CurrentReimportFactory = Cast<UReimportPaperJsonImporterFactory>(this);
+		Importer.SetReimportData(CurrentReimportFactory->ExistingTextureName, CurrentReimportFactory->ExistingTexture, CurrentReimportFactory->ExistingSpriteNames, CurrentReimportFactory->ExistingSprites);
 	}
 
+	if (Importer.ImportFromString(FileContent, NameForErrors) &&
+		Importer.ImportTextures(LongPackagePath, CurrentSourcePath))
+	{
+		UPaperSpriteSheet* SpriteSheet = NewNamedObject<UPaperSpriteSheet>(InParent, InName, Flags);
+		if (Importer.PerformImport(LongPackagePath, Flags, SpriteSheet))
+		{
+			if (SpriteSheet->AssetImportData == nullptr)
+			{
+				SpriteSheet->AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), SpriteSheet);
+			}
+
+			SpriteSheet->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, SpriteSheet);
+			SpriteSheet->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+			SpriteSheet->AssetImportData->bDirty = false;
+
+			Result = SpriteSheet;
+		}
+	}
+	
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, Result);
 
 	return Result;
-}
-
-TSharedPtr<FJsonObject> UPaperJsonImporterFactory::ParseJSON(const FString& FileContents, const FString& NameForErrors)
-{
-	// Load the file up (JSON format)
-
-	if (!FileContents.IsEmpty())
-	{
-		const TSharedRef< TJsonReader<> >& Reader = TJsonReaderFactory<>::Create(FileContents);
-
-		TSharedPtr<FJsonObject> SpriteDescriptorObject;
-		if (FJsonSerializer::Deserialize(Reader, SpriteDescriptorObject) && SpriteDescriptorObject.IsValid())
-		{
-			// File was loaded and deserialized OK!
-			return SpriteDescriptorObject;
-		}
-		else
-		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
-			return NULL;
-		}
-	}
-	else
-	{
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Sprite descriptor file '%s' was empty.  This sprite cannot be imported."), *NameForErrors);
-		return NULL;
-	}
 }
