@@ -43,15 +43,39 @@ void UAbilitySystemComponent::InitializeComponent()
 
 void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TickAbilityTasks);
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	for (TWeakObjectPtr<UAbilityTask> TickingTask : TickingTasks)
+	// Because we have no control over what a task may do when it ticks, we must be careful.
+	// Ticking a task may kill the task right here. It could also potentially kill another task
+	// which was waiting on the original task to do something. Since when a tasks is killed, it removes
+	// itself from the TickingTask list, we will make a copy of the tasks we want to service before ticking any
+
+	int32 NumTickingTasks = TickingTasks.Num();
+	switch(NumTickingTasks)
 	{
-		if (TickingTask.IsValid())
-		{
-			TickingTask->TickTask(DeltaTime);
-		}
-	}
+		case 0:
+			break;
+		case 1:
+			if (TickingTasks[0].IsValid())
+			{
+				TickingTasks[0]->TickTask(DeltaTime);
+			}
+			break;
+		default:
+			{
+				TArray<TWeakObjectPtr<UAbilityTask> >	LocalTickingTasks = TickingTasks;
+				for (TWeakObjectPtr<UAbilityTask>& TickingTask : LocalTickingTasks)
+				{
+					if (TickingTask.IsValid())
+					{
+						TickingTask->TickTask(DeltaTime);
+					}
+				}
+			}
+		break;
+	};
 }
 
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
