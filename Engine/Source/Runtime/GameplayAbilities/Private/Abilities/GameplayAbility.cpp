@@ -141,6 +141,18 @@ void UGameplayAbility::PostNetInit()
 	}
 }
 
+bool UGameplayAbility::IsActive() const
+{
+	// Only Instanced-Per-Actor abilities persist between activations
+	if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	{
+		return bIsActive;
+	}
+
+	// Non-instanced and Instanced-Per-Execution abilities are by definition active unless they are pending kill
+	return !IsPendingKill();
+}
+
 bool UGameplayAbility::IsSupportedForNetworking() const
 {
 	/**
@@ -339,8 +351,15 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 	return true;	
 }
 
+void UGameplayAbility::CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	EndAbility(ActorInfo);
+}
+
 void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
+	bIsActive = false;
+
 	// Tell all our tasks that we are finished and they should cleanup
 	for (TWeakObjectPtr<UAbilityTask> Task : ActiveTasks)
 	{
@@ -383,6 +402,7 @@ void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, c
 
 	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
 
+	bIsActive = true;
 	Comp->NotifyAbilityActivated(this);
 
 	// Become the 'Targeting Ability'

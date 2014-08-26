@@ -169,6 +169,9 @@ public:
 
 	void PostNetInit();
 
+	/** Returns true if the ability is currently active */
+	bool IsActive() const;
+
 	/** This ability has these tags */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer AbilityTags;
@@ -266,7 +269,7 @@ protected:
 	// --------------------------------------
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
-	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) { }
+	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	UFUNCTION(BlueprintCallable, Category = Ability)
@@ -416,4 +419,7 @@ private:
 	 *	 (E.g, child classes may want to cast to FMyGameAbilityActorInfo)
 	 */
 	mutable const FGameplayAbilityActorInfo* CurrentActorInfo;
+
+	/** True if the ability is currently active. For instance per owner abilities */
+	bool bIsActive;
 };
