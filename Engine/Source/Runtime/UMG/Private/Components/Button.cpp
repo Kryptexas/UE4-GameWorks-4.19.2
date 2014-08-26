@@ -53,14 +53,6 @@ void UButton::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	SButton::FArguments ButtonDefaults;
-
-	const FButtonStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FButtonStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		StylePtr = ButtonDefaults._ButtonStyle;
-	}
-
 	TOptional<FSlateSound> OptionalPressedSound;
 	if ( PressedSound.GetResourceObject() )
 	{
@@ -73,7 +65,15 @@ void UButton::SynchronizeProperties()
 		OptionalHoveredSound = HoveredSound;
 	}
 
-	MyButton->SetButtonStyle( StylePtr );
+	if ( MyStyle.IsSet() )
+	{
+		MyButton->SetButtonStyle(&MyStyle.GetValue());
+	}
+	else
+	{
+		const FButtonStyle* StylePtr = GetStyle();
+		MyButton->SetButtonStyle(StylePtr);
+	}
 
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
@@ -107,6 +107,49 @@ void UButton::OnSlotRemoved(UPanelSlot* Slot)
 	{
 		MyButton->SetContent(SNullWidget::NullWidget);
 	}
+}
+
+void UButton::SetStyle(USlateWidgetStyleAsset* InStyle)
+{
+	Style = InStyle;
+	MyStyle = TOptional<FButtonStyle>();
+
+	const FButtonStyle* StylePtr = GetStyle();
+
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetButtonStyle(StylePtr);
+	}
+}
+
+const FButtonStyle* UButton::GetStyle() const
+{
+	const FButtonStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FButtonStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		SButton::FArguments ButtonDefaults;
+		StylePtr = ButtonDefaults._ButtonStyle;
+	}
+
+	return StylePtr;
+}
+
+void UButton::SetButtonStyle(FButtonStyle InButtonStyle)
+{
+	MyStyle = InButtonStyle;
+}
+
+FButtonStyle UButton::GetButtonStyle()
+{
+	// If the dynamic style hasn't been set, default it to a clone of the current
+	// button style asset.
+	if ( !MyStyle.IsSet() )
+	{
+		const FButtonStyle* StylePtr = GetStyle();
+		MyStyle = *StylePtr;
+	}
+	
+	return MyStyle.GetValue();
 }
 
 void UButton::SetColorAndOpacity(FLinearColor Color)
