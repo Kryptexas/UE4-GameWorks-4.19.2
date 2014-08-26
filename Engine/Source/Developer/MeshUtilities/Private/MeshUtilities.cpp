@@ -14,6 +14,7 @@
 #include "ImageUtils.h"
 #include "MaterialExportUtils.h"
 #include "Textures/TextureAtlas.h"
+#include "LayoutUV.h"
 
 #include "FbxErrors.h"
 
@@ -33,6 +34,8 @@
 #define MESH_UTILITIES_VER TEXT("0db5412b27ab480f844cc7f0be5abaff")
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities,Verbose,All);
+
+#define LOCTEXT_NAMESPACE "MeshUtils"
 
 // CVars
 static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
@@ -1494,7 +1497,7 @@ static void ComputeTriangleTangents(
  * @param OutOverlappingCorners - Maps a corner index to the indices of all overlapping corners.
  * @param RawMesh - The mesh for which to compute overlapping corners.
  */
-static void FindOverlappingCorners(
+void FindOverlappingCorners(
 	TMultiMap<int32,int32>& OutOverlappingCorners,
 	FRawMesh const& RawMesh,
 	float ComparisonThreshold
@@ -1519,7 +1522,7 @@ static void FindOverlappingCorners(
 		// only need to search forward, since we add pairs both ways
 		for (int32 j = i + 1; j < VertIndexAndZ.Num(); j++)
 		{
-			if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > THRESH_POINTS_ARE_SAME * 4.01f)
+			if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 				break; // can't be any more dups
 
 			FVector PositionA = GetPositionForWedge(RawMesh, VertIndexAndZ[i].Index);
@@ -3805,16 +3808,50 @@ bool FMeshUtilities::GenerateUVs(
 #else
 	return false;
 #endif // #if PLATFORM_WINDOWS
-
 }
+
+
 
 bool FMeshUtilities::LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint32 TexCoordIndex, FText& OutError)
 {
-#if PLATFORM_WINDOWS
+#if 0//PLATFORM_WINDOWS
 	FD3D9MeshUtilities D3DMeshUtils;
 	return D3DMeshUtils.LayoutUVs(RawMesh, TextureResolution, TexCoordIndex, OutError);
 #else
+
+	OutError = FText();
+	if( !RawMesh.IsValid() )
+	{
+		OutError = LOCTEXT("LayoutUVs_FailedInvalid", "LayoutUVs failed, mesh was invalid.");
+		return false;
+	}
+
+	/*int32 NumTexCoords = 0;
+	for (int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; ++i)
+	{
+		if (RawMesh.WedgeTexCoords[i].Num() != RawMesh.WedgeIndices.Num())
+		{
+			break;
+		}
+		NumTexCoords++;
+	}
+
+	if (NumTexCoords > MAX_MESH_TEXTURE_COORDS || TexCoordIndex > (uint32)NumTexCoords)
+	{
+		OutError = LOCTEXT("LayoutUVs_FailedUVs", "LayoutUVs failed, incorrect number of texcoords.");
 	return false;
+	}*/
+
+	FLayoutUV Packer( &RawMesh, 0, TexCoordIndex, TextureResolution );
+
+	Packer.FindCharts();
+	bool bPackSuccess = Packer.FindBestPacking();
+	if( bPackSuccess )
+	{
+		Packer.CommitPackedUVs();
+	}
+
+	return bPackSuccess;
 #endif // #if PLATFORM_WINDOWS
 }
 
