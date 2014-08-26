@@ -192,6 +192,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
 					.Text(this, &SDesignerView::GetZoomText)
 					.ColorAndOpacity(this, &SDesignerView::GetZoomTextColorAndOpacity)
+					.Visibility(EVisibility::SelfHitTestInvisible)
 				]
 
 				+ SHorizontalBox::Slot()
@@ -397,13 +398,35 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 	const FVector2D TopLeft = CachedDesignerWidgetLocation;
 	const FVector2D Size = CachedDesignerWidgetSize * GetZoomAmount() * GetPreviewDPIScale();
 
+	// Calculate the parent position and size.  We use this information for calculating offsets.
+	FVector2D ParentPosition, ParentSize;
+	{
+		FWidgetReference ParentRef = BlueprintEditor.Pin()->GetReferenceFromTemplate(SelectedWidget.GetTemplate()->GetParent());
+
+		TSharedPtr<SWidget> PreviewSlateWidget = ParentRef.GetPreview()->GetCachedWidget();
+		if ( PreviewSlateWidget.IsValid() )
+		{
+			FWidgetPath WidgetPath;
+			SelectedWidgetPath.ToWidgetPath(WidgetPath);
+		
+			FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+			FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, PreviewSlateWidget.ToSharedRef(), AsShared(), ArrangedWidget);
+
+			ParentPosition = ArrangedWidget.Geometry.AbsolutePosition;
+			ParentSize = ArrangedWidget.Geometry.Size * GetZoomAmount() * GetPreviewDPIScale();
+		}
+	}
+
 	FVector2D FinalPosition(0, 0);
 
+	// Get the intial offset based on the location around the selected object.
 	switch ( ExtensionElement->GetLocation() )
 	{
 	case EExtensionLayoutLocation::Absolute:
+	{
+		FinalPosition = ParentPosition;
 		break;
-
+	}
 	case EExtensionLayoutLocation::TopLeft:
 		FinalPosition = TopLeft;
 		break;
@@ -434,6 +457,9 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 		FinalPosition = TopLeft + Size;
 		break;
 	}
+
+	// Add the alignment offset
+	FinalPosition += ParentSize * ExtensionElement->GetAlignment();
 
 	return FinalPosition + ExtensionElement->GetOffset();
 }
@@ -516,7 +542,7 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 
 		if ( Preview )
 		{
-			return FWidgetReference::FromPreview(BlueprintEditor.Pin(), Preview);
+			return BlueprintEditor.Pin()->GetReferenceFromPreview(Preview);
 		}
 	}
 
@@ -698,8 +724,18 @@ void SDesignerView::CacheSelectedWidgetGeometry()
 	{
 		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
 
+		FWidgetPath WidgetPath;
+		if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
+		{
+			SelectedWidgetPath = FWeakWidgetPath(WidgetPath);
+		}
+		else
+		{
+			SelectedWidgetPath = FWeakWidgetPath();
+		}
+
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FDesignTimeUtils::GetArrangedWidgetRelativeToParent(Widget, AsShared(), ArrangedWidget);
+		FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, Widget, AsShared(), ArrangedWidget);
 
 		CachedDesignerWidgetLocation = ArrangedWidget.Geometry.AbsolutePosition;
 		CachedDesignerWidgetSize = ArrangedWidget.Geometry.Size;
@@ -775,79 +811,6 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		);
 
 		DrawDragHandles(SelectionGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
-
-		//TODO UMG Move this to a function.
-		// Draw anchors.
-		if ( SelectedWidget.IsValid() && SelectedWidget.GetTemplate()->Slot )
-		{
-			const float X = AllottedGeometry.AbsolutePosition.X;
-			const float Y = AllottedGeometry.AbsolutePosition.Y;
-			const float Width = AllottedGeometry.Size.X;
-			const float Height = AllottedGeometry.Size.Y;
-
-			float Selection_X = SelectionGeometry.DrawPosition.X;
-			float Selection_Y = SelectionGeometry.DrawPosition.Y;
-			float Selection_Width = SelectionGeometry.DrawSize.X;
-			float Selection_Height = SelectionGeometry.DrawSize.Y;
-
-			const FVector2D LeftRightSize = FVector2D(32, 16);
-			const FVector2D TopBottomSize = FVector2D(16, 32);
-
-			// @TODO UMG - Don't use the curve editors brushes
-			const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
-			FLinearColor KeyColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.f);
-
-			// Normalized offset of the handle, 0, no offset, 1 move the handle completely out by its own size.
-			//const float HandleOffset = 1.0f;
-
-			if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(SelectedWidget.GetTemplate()->Slot) )
-			{
-				// Left
-				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					++LayerId,
-					FPaintGeometry(FVector2D(X + Width * CanvasSlot->LayoutData.Anchors.Minimum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
-					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
-					MyClippingRect,
-					ESlateDrawEffect::None,
-					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
-					);
-
-				// Right
-				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					++LayerId,
-					FPaintGeometry(FVector2D(X + Width * CanvasSlot->LayoutData.Anchors.Maximum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
-					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
-					MyClippingRect,
-					ESlateDrawEffect::None,
-					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
-					);
-
-
-				// Top
-				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					++LayerId,
-					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->LayoutData.Anchors.Minimum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
-					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
-					MyClippingRect,
-					ESlateDrawEffect::None,
-					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
-					);
-
-				// Bottom
-				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					++LayerId,
-					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->LayoutData.Anchors.Maximum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
-					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
-					MyClippingRect,
-					ESlateDrawEffect::None,
-					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
-					);
-			}
-		}
 	}
 
 	return LayerId;
@@ -1186,7 +1149,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			BP->WidgetTree->RootWidget = Widget;
 
-			SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+			SelectedWidget = BlueprintEditor.Pin()->GetReferenceFromTemplate(Widget);
 
 			DropPreviewParent = NULL;
 

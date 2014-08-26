@@ -4,6 +4,25 @@
 
 #include "DesignerExtension.h"
 
+/** Set of anchor widget types */
+namespace EAnchorWidget
+{
+	enum Type
+	{
+		Center,
+		Left,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight,
+
+		MAX_COUNT
+	};
+}
+
 /**
  * The canvas slot extension provides design time widgets for widgets that are selected in the canvas.
  */
@@ -22,9 +41,19 @@ public:
 
 private:
 
+	FReply HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+
 	FReply HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event);
 	FReply HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event);
 	FReply HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event);
+
+	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
+
+	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
+	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
+	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
 
 	void MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta);
 
@@ -36,7 +65,9 @@ private:
 
 private:
 
-	bool bDragging;
-
 	TSharedPtr<SBorder> MoveHandle;
+
+	TArray< TSharedPtr<SWidget> > AnchorWidgets;
+
+	bool bMovingAnchor;
 };

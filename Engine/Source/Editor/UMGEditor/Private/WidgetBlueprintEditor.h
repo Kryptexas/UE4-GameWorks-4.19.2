@@ -40,6 +40,12 @@ public:
 	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
 
+	/** Creates a widget reference using the template. */
+	FWidgetReference GetReferenceFromTemplate(UWidget* TemplateWidget);
+
+	/** Creates a widget reference using the preview.  Which is used to lookup the stable template pointer. */
+	FWidgetReference GetReferenceFromPreview(UWidget* PreviewWidget);
+
 	/** @return The sequencer used to create widget animations */
 	TSharedPtr<ISequencer>& GetSequencer();
 
@@ -156,4 +162,7 @@ private:
 
 	/** The toolbar builder associated with this editor */
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> WidgetToolbar;
+
+	/** The widget references out in the ether that may need to be updated after being issued. */
+	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
 };

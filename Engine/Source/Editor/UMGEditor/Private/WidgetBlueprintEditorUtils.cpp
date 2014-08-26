@@ -89,7 +89,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 
 
 		// Rename Preview before renaming the template widget so the preview widget can be found
-		UWidget* WidgetPreview = FWidgetReference::FromTemplate(BlueprintEditor, Widget).GetPreview();
+		UWidget* WidgetPreview = BlueprintEditor->GetReferenceFromTemplate(Widget).GetPreview();
 		if(WidgetPreview)
 		{
 			WidgetPreview->Rename(*NewNameStr);

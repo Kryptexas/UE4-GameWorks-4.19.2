@@ -60,4 +60,12 @@ bool FDesignTimeUtils::GetArrangedWidgetRelativeToParent(TSharedRef<const SWidge
 	return false;
 }
 
+void FDesignTimeUtils::GetArrangedWidgetRelativeToParent(FWidgetPath& WidgetPath, TSharedRef<const SWidget> Widget, TSharedRef<const SWidget> Parent, FArrangedWidget& ArrangedWidget)
+{
+	FArrangedWidget ArrangedDesigner = WidgetPath.FindArrangedWidget(Parent);
+
+	ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
+	ArrangedWidget.Geometry.AbsolutePosition -= ArrangedDesigner.Geometry.AbsolutePosition;
+}
+
 #undef LOCTEXT_NAMESPACE

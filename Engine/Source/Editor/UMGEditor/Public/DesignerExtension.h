@@ -16,6 +16,7 @@ namespace EExtensionLayoutLocation
 {
 	enum Type
 	{
+		/** Slate unit position relative from the parent. */
 		Absolute,
 
 		TopLeft,
@@ -38,10 +39,11 @@ namespace EExtensionLayoutLocation
 class UMGEDITOR_API FDesignerSurfaceElement : public TSharedFromThis < FDesignerSurfaceElement >
 {
 public:
-	FDesignerSurfaceElement(TSharedRef<SWidget> InWidget, EExtensionLayoutLocation::Type InLocation, FVector2D InOffset = FVector2D(0,0))
+	FDesignerSurfaceElement(TSharedRef<SWidget> InWidget, EExtensionLayoutLocation::Type InLocation, TAttribute<FVector2D> InOffset = FVector2D(0, 0), TAttribute<FVector2D> InAlignment = FVector2D(0, 0))
 		: Widget(InWidget)
 		, Location(InLocation)
 		, Offset(InOffset)
+		, Alignment(InAlignment)
 	{
 	}
 
@@ -58,7 +60,7 @@ public:
 	}
 
 	/** Sets the offset after laid out in that location */
-	void SetOffset(FVector2D InOffset)
+	void SetOffset(TAttribute<FVector2D> InOffset)
 	{
 		Offset = InOffset;
 	}
@@ -66,7 +68,19 @@ public:
 	/** Gets the offset after being laid out. */
 	FVector2D GetOffset() const
 	{
-		return Offset;
+		return Offset.Get();
+	}
+
+	/** Sets the alignment to use, a normalized value representing position inside the parent. */
+	void SetAlignment(TAttribute<FVector2D> InAlignment)
+	{
+		Alignment = InAlignment;
+	}
+
+	/** Gets the alignment to use, a normalized value representing position inside the parent. */
+	FVector2D GetAlignment() const
+	{
+		return Alignment.Get();
 	}
 
 protected:
@@ -74,7 +88,9 @@ protected:
 
 	EExtensionLayoutLocation::Type Location;
 
-	FVector2D Offset;
+	TAttribute<FVector2D> Offset;
+
+	TAttribute<FVector2D> Alignment;
 };
 
 /**

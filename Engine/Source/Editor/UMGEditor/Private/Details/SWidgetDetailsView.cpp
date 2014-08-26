@@ -234,7 +234,7 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 		bool bIsSameWidget = false;
 		if ( TemplateWidget != NULL )
 		{
-			if ( FWidgetReference::FromTemplate(BlueprintEditor.Pin(), TemplateWidget).GetPreview() != PreviewWidget )
+			if ( BlueprintEditor.Pin()->GetReferenceFromTemplate( TemplateWidget ).GetPreview() != PreviewWidget )
 			{
 				OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
 				return false;
@@ -306,7 +306,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		
-		FWidgetReference WidgetRef = FWidgetReference::FromTemplate(BPEditor, Blueprint->WidgetTree->FindWidget(Widget->GetName()));
+		FWidgetReference WidgetRef = BPEditor->GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Widget->GetName()));
 		if ( WidgetRef.IsValid() )
 		{
 			UWidget* Template = WidgetRef.GetTemplate();

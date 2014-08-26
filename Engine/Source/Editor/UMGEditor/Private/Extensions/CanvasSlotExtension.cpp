@@ -16,7 +16,7 @@ static float DistancePointToLine2D(const FVector2D& LinePointA, const FVector2D&
 }
 
 FCanvasSlotExtension::FCanvasSlotExtension()
-	: bDragging(false)
+	: bMovingAnchor(false)
 {
 	ExtensionId = FName(TEXT("CanvasSlot"));
 }
@@ -40,12 +40,12 @@ void FCanvasSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Sel
 
 	MoveHandle =
 		SNew(SBorder)
-		//.BorderImage(FEditorStyle::Get().GetBrush("ToolBar.Background"))
-		//.BorderBackgroundColor(FLinearColor(0,0,0))
+		.BorderImage(FEditorStyle::Get().GetBrush("NoBrush"))
 		.OnMouseButtonDown(this, &FCanvasSlotExtension::HandleBeginDrag)
 		.OnMouseButtonUp(this, &FCanvasSlotExtension::HandleEndDrag)
 		.OnMouseMove(this, &FCanvasSlotExtension::HandleDragging)
 		.Padding(FMargin(0))
+		.Cursor(EMouseCursor::GrabHand)
 		[
 			SNew(SImage)
 			.Image(FCoreStyle::Get().GetBrush("SoftwareCursor_CardinalCross"))
@@ -54,6 +54,151 @@ void FCanvasSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Sel
 	MoveHandle->SlatePrepass();
 
 	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(MoveHandle.ToSharedRef(), EExtensionLayoutLocation::TopLeft, FVector2D(0, -(MoveHandle->GetDesiredSize().Y + 10)))));
+
+	AnchorWidgets.SetNumZeroed(EAnchorWidget::MAX_COUNT);
+	AnchorWidgets[EAnchorWidget::Center] = MakeAnchorWidget(EAnchorWidget::Center, 16, 16);
+
+	AnchorWidgets[EAnchorWidget::Left] = MakeAnchorWidget(EAnchorWidget::Left, 32, 16);
+	AnchorWidgets[EAnchorWidget::Right] = MakeAnchorWidget(EAnchorWidget::Right, 32, 16);
+	AnchorWidgets[EAnchorWidget::Top] = MakeAnchorWidget(EAnchorWidget::Top, 16, 32);
+	AnchorWidgets[EAnchorWidget::Bottom] = MakeAnchorWidget(EAnchorWidget::Bottom, 16, 32);
+
+	AnchorWidgets[EAnchorWidget::TopLeft] = MakeAnchorWidget(EAnchorWidget::TopLeft, 24, 24);
+	AnchorWidgets[EAnchorWidget::TopRight] = MakeAnchorWidget(EAnchorWidget::TopRight, 24, 24);
+	AnchorWidgets[EAnchorWidget::BottomLeft] = MakeAnchorWidget(EAnchorWidget::BottomLeft, 24, 24);
+	AnchorWidgets[EAnchorWidget::BottomRight] = MakeAnchorWidget(EAnchorWidget::BottomRight, 24, 24);
+
+
+	TArray<FVector2D> AnchorPos;
+	AnchorPos.SetNumZeroed(EAnchorWidget::MAX_COUNT);
+	AnchorPos[EAnchorWidget::Center] = FVector2D(-8, -8);
+	
+	AnchorPos[EAnchorWidget::Left] = FVector2D(-32, -8);
+	AnchorPos[EAnchorWidget::Right] = FVector2D(0, -8);
+	AnchorPos[EAnchorWidget::Top] = FVector2D(-8, -32);
+	AnchorPos[EAnchorWidget::Bottom] = FVector2D(-8, 0);
+
+	AnchorPos[EAnchorWidget::TopLeft] = FVector2D(-24, -24);
+	AnchorPos[EAnchorWidget::TopRight] = FVector2D(0, -24);
+	AnchorPos[EAnchorWidget::BottomLeft] = FVector2D(-24, 0);
+	AnchorPos[EAnchorWidget::BottomRight] = FVector2D(0, 0);
+
+	for ( int32 AnchorIndex = (int32)EAnchorWidget::MAX_COUNT - 1; AnchorIndex >= 0; AnchorIndex-- )
+	{
+		if ( !AnchorWidgets[AnchorIndex].IsValid() )
+		{
+			continue;
+		}
+
+		AnchorWidgets[AnchorIndex]->SlatePrepass();
+		TAttribute<FVector2D> AnchorAlignment = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(SharedThis(this), &FCanvasSlotExtension::GetAnchorAlignment, (EAnchorWidget::Type)AnchorIndex));
+		SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(AnchorWidgets[AnchorIndex].ToSharedRef(), EExtensionLayoutLocation::Absolute, AnchorPos[AnchorIndex], AnchorAlignment)));
+	}
+}
+
+TSharedRef<SWidget> FCanvasSlotExtension::MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height)
+{
+	return SNew(SBorder)
+		.BorderImage(FEditorStyle::Get().GetBrush("NoBrush"))
+		.OnMouseButtonDown(this, &FCanvasSlotExtension::HandleAnchorBeginDrag, AnchorType)
+		.OnMouseButtonUp(this, &FCanvasSlotExtension::HandleAnchorEndDrag, AnchorType)
+		.OnMouseMove(this, &FCanvasSlotExtension::HandleAnchorDragging, AnchorType)
+		.Visibility(this, &FCanvasSlotExtension::GetAnchorVisibility, AnchorType)
+		.Padding(FMargin(0))
+		[
+			SNew(SBox)
+			.WidthOverride(Width)
+			.HeightOverride(Height)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(SImage)
+				.Image(this, &FCanvasSlotExtension::GetAnchorBrush, AnchorType)
+			]
+		];
+}
+
+const FSlateBrush* FCanvasSlotExtension::GetAnchorBrush(EAnchorWidget::Type AnchorType) const
+{
+	switch ( AnchorType )
+	{
+	case EAnchorWidget::Center:
+		return AnchorWidgets[EAnchorWidget::Center]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Center.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Center");
+	case EAnchorWidget::Left:
+		return AnchorWidgets[EAnchorWidget::Left]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Left.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Left");
+	case EAnchorWidget::Right:
+		return AnchorWidgets[EAnchorWidget::Right]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Right.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Right");
+	case EAnchorWidget::Top:
+		return AnchorWidgets[EAnchorWidget::Top]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Top.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Top");
+	case EAnchorWidget::Bottom:
+		return AnchorWidgets[EAnchorWidget::Bottom]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Bottom.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.Bottom");
+	case EAnchorWidget::TopLeft:
+		return AnchorWidgets[EAnchorWidget::TopLeft]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.TopLeft.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.TopLeft");
+	case EAnchorWidget::BottomRight:
+		return AnchorWidgets[EAnchorWidget::BottomRight]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.BottomRight.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.BottomRight");
+	case EAnchorWidget::TopRight:
+		return AnchorWidgets[EAnchorWidget::TopRight]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.TopRight.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.TopRight");
+	case EAnchorWidget::BottomLeft:
+		return AnchorWidgets[EAnchorWidget::BottomLeft]->IsHovered() ? FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.BottomLeft.Hovered") : FEditorStyle::Get().GetBrush("UMGEditor.AnchorGizmo.BottomLeft");
+	}
+
+	return FCoreStyle::Get().GetBrush("Selection");
+}
+
+EVisibility FCanvasSlotExtension::GetAnchorVisibility(EAnchorWidget::Type AnchorType) const
+{
+	for ( const FWidgetReference& Selection : SelectionCache )
+	{
+		UWidget* PreviewWidget = Selection.GetPreview();
+
+		UCanvasPanelSlot* PreviewCanvasSlot = CastChecked<UCanvasPanelSlot>(PreviewWidget->Slot);
+		switch ( AnchorType )
+		{
+		case EAnchorWidget::Center:
+			return PreviewCanvasSlot->LayoutData.Anchors.Minimum == PreviewCanvasSlot->LayoutData.Anchors.Maximum ? EVisibility::Visible : EVisibility::Collapsed;
+		case EAnchorWidget::Left:
+		case EAnchorWidget::Right:
+			return PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y == PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y ? EVisibility::Visible : EVisibility::Collapsed;
+		case EAnchorWidget::Top:
+		case EAnchorWidget::Bottom:
+			return PreviewCanvasSlot->LayoutData.Anchors.Minimum.X == PreviewCanvasSlot->LayoutData.Anchors.Maximum.X ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+FVector2D FCanvasSlotExtension::GetAnchorAlignment(EAnchorWidget::Type AnchorType) const
+{
+	for ( const FWidgetReference& Selection : SelectionCache )
+	{
+		UWidget* PreviewWidget = Selection.GetPreview();
+		UCanvasPanelSlot* PreviewCanvasSlot = CastChecked<UCanvasPanelSlot>(PreviewWidget->Slot);
+		
+		FVector2D Minimum = PreviewCanvasSlot->LayoutData.Anchors.Minimum;
+		FVector2D Maximum = PreviewCanvasSlot->LayoutData.Anchors.Maximum;
+		
+		switch ( AnchorType )
+		{
+		case EAnchorWidget::Center:
+		case EAnchorWidget::Left:
+		case EAnchorWidget::Top:
+		case EAnchorWidget::TopLeft:
+			return Minimum;
+		case EAnchorWidget::Right:
+		case EAnchorWidget::Bottom:
+		case EAnchorWidget::BottomRight:
+			return Maximum;
+		case EAnchorWidget::TopRight:
+			return  FVector2D(Maximum.X, Minimum.Y);
+		case EAnchorWidget::BottomLeft:
+			return  FVector2D(Minimum.X, Maximum.Y);
+		}
+	}
+
+	return FVector2D(0, 0);
 }
 
 bool FCanvasSlotExtension::GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments)
@@ -109,10 +254,114 @@ void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, cons
 	PaintCollisionLines(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
+FReply FCanvasSlotExtension::HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType)
+{
+	bMovingAnchor = true;
+	return FReply::Handled().CaptureMouse(AnchorWidgets[(int32)AnchorType].ToSharedRef());
+}
+
+FReply FCanvasSlotExtension::HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType)
+{
+	bMovingAnchor = false;
+	return FReply::Handled().ReleaseMouseCapture();
+}
+
+FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType)
+{
+	if ( bMovingAnchor && !Event.GetCursorDelta().IsZero() )
+	{
+		float InverseScale = ( 1.0f / Designer->GetPreviewScale() );
+
+		FVector2D DeltaScaled = Event.GetCursorDelta() * InverseScale;
+
+		for ( FWidgetReference& Selection : SelectionCache )
+		{
+			UWidget* PreviewWidget = Selection.GetPreview();
+			if ( UCanvasPanel* Canvas = Cast<UCanvasPanel>(PreviewWidget->GetParent()) )
+			{
+				UCanvasPanelSlot* PreviewCanvasSlot = Cast<UCanvasPanelSlot>(PreviewWidget->Slot);
+
+				FGeometry Geometry;
+				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, Geometry) )
+				{
+					// Calculate the default anchor offset, ie where would this control be laid out if no offset were provided.
+					FVector2D CanvasSize = Canvas->GetCanvasWidget()->GetCachedGeometry().Size;
+
+					FVector2D AnchorDelta = DeltaScaled / CanvasSize;
+
+					PreviewCanvasSlot->SaveBaseLayout();
+					switch ( AnchorType )
+					{
+					case EAnchorWidget::Center:
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum += AnchorDelta;
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum += AnchorDelta;
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 0.0f, 1.0f);
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.X, 0.0f, 1.0f);
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 0.0f, 1.0f);
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y, 0.0f, 1.0f);
+						break;
+					}
+
+					switch ( AnchorType )
+					{
+					case EAnchorWidget::Left:
+					case EAnchorWidget::TopLeft:
+					case EAnchorWidget::BottomLeft:
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X += AnchorDelta.X;
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 0.0f, PreviewCanvasSlot->LayoutData.Anchors.Maximum.X);
+						break;
+					}
+
+					switch ( AnchorType )
+					{
+					case EAnchorWidget::Right:
+					case EAnchorWidget::TopRight:
+					case EAnchorWidget::BottomRight:
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X += AnchorDelta.X;
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.X, PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 1.0f);
+						break;
+					}
+
+					switch ( AnchorType )
+					{
+					case EAnchorWidget::Top:
+					case EAnchorWidget::TopLeft:
+					case EAnchorWidget::TopRight:
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y += AnchorDelta.Y;
+						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 0.0f, PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y);
+						break;
+					}
+
+					switch ( AnchorType )
+					{
+					case EAnchorWidget::Bottom:
+					case EAnchorWidget::BottomLeft:
+					case EAnchorWidget::BottomRight:
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y += AnchorDelta.Y;
+						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y, PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 1.0f);
+						break;
+					}
+
+					PreviewCanvasSlot->RebaseLayout();
+
+
+					// Update the Template widget to match
+					UWidget* TemplateWidget = Selection.GetTemplate();
+					UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
+
+					TemplateSlot->LayoutData = PreviewCanvasSlot->LayoutData;
+				}
+			};
+
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
 FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event)
 {
-	bDragging = true;
-
 	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
 
 	return FReply::Handled().CaptureMouse(MoveHandle.ToSharedRef());
@@ -120,8 +369,6 @@ FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FP
 
 FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event)
 {
-	bDragging = false;
-
 	EndTransaction();
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
@@ -131,7 +378,7 @@ FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPoi
 
 FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event)
 {
-	if ( bDragging )
+	if ( MoveHandle->HasMouseCapture() )
 	{
 		float InverseScale = ( 1.0f / Designer->GetPreviewScale() );
 
@@ -201,7 +448,7 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 			if ( UCanvasPanel* Canvas = CastChecked<UCanvasPanel>(CanvasSlot->Parent) )
 			{
 				//TODO UMG Only show guide lines when near them and dragging
-				if ( bDragging )
+				if ( MoveHandle->HasMouseCapture() )
 				{
 					FGeometry MyArrangedGeometry;
 					if ( !Canvas->GetGeometryForSlot(CanvasSlot, MyArrangedGeometry) )

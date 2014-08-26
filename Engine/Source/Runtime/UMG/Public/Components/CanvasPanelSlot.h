@@ -77,6 +77,12 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
 	// End of UObject interface
+
+	/** Stores the current layout information about the slot and parent canvas. */
+	void SaveBaseLayout();
+
+	/** Compares the saved base layout against the current state.  Updates the necessary properties to maintain a stable position. */
+	void RebaseLayout(bool PreserveSize = true);
 #endif
 
 private:

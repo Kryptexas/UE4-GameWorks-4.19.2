@@ -153,6 +153,40 @@ void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	Super::PreEditChange(PropertyAboutToChange);
 
+	SaveBaseLayout();
+}
+
+void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	SynchronizeProperties();
+
+	static FName AnchorsProperty(TEXT("Anchors"));
+
+	FEditPropertyChain::TDoubleLinkedListNode* AnchorNode = PropertyChangedEvent.PropertyChain.GetHead()->GetNextNode();
+	if ( !AnchorNode )
+	{
+		return;
+	}
+
+	FEditPropertyChain::TDoubleLinkedListNode* LayoutDataNode = AnchorNode->GetNextNode();
+
+	if ( !LayoutDataNode )
+	{
+		return;
+	}
+
+	UProperty* AnchorProperty = LayoutDataNode->GetValue();
+
+	if ( AnchorProperty && AnchorProperty->GetFName() == AnchorsProperty )
+	{
+		RebaseLayout();
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void UCanvasPanelSlot::SaveBaseLayout()
+{
 	// Get the current location
 	if ( UCanvasPanel* Canvas = Cast<UCanvasPanel>(Parent) )
 	{
@@ -165,94 +199,82 @@ void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
 	}
 }
 
-void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
+void UCanvasPanelSlot::RebaseLayout(bool PreserveSize)
 {
-	SynchronizeProperties();
-
-	static FName AnchorsProperty(TEXT("Anchors"));
-	
-	FEditPropertyChain::TDoubleLinkedListNode* AnchorNode = PropertyChangedEvent.PropertyChain.GetHead()->GetNextNode();
-	if (!AnchorNode)
+	// Ensure we have a parent canvas
+	if ( UCanvasPanel* Canvas = Cast<UCanvasPanel>(Parent) )
 	{
-		return;
-	}
-	
-	FEditPropertyChain::TDoubleLinkedListNode* LayoutDataNode = AnchorNode->GetNextNode();
-	
-	if (!LayoutDataNode)
-	{
-		return;
-	}
-	
-	UProperty* AnchorProperty = LayoutDataNode->GetValue();
-
-	if ( AnchorProperty && AnchorProperty->GetFName() == AnchorsProperty )
-	{
-		// Ensure we have a parent canvas
-		if ( UCanvasPanel* Canvas = Cast<UCanvasPanel>(Parent) )
+		FGeometry Geometry;
+		if ( Canvas->GetGeometryForSlot(this, Geometry) )
 		{
-			FGeometry Geometry;
-			if ( Canvas->GetGeometryForSlot(this, Geometry) )
+			// Calculate the default anchor offset, ie where would this control be laid out if no offset were provided.
+			FVector2D CanvasSize = Canvas->GetCanvasWidget()->GetCachedGeometry().Size;
+			FMargin AnchorPositions = FMargin(
+				LayoutData.Anchors.Minimum.X * CanvasSize.X,
+				LayoutData.Anchors.Minimum.Y * CanvasSize.Y,
+				LayoutData.Anchors.Maximum.X * CanvasSize.X,
+				LayoutData.Anchors.Maximum.Y * CanvasSize.Y);
+			FVector2D DefaultAnchorPosition = FVector2D(AnchorPositions.Left, AnchorPositions.Top);
+
+			// Determine the amount that would be offset from the anchor position if alignment was applied.
+			FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
+
+			// Determine where the widget's new position needs to be to maintain a stable location when the anchors change.
+			FVector2D LeftTopDelta = PreEditGeometry.Position - DefaultAnchorPosition;
+
+			// Adjust the size to remain constant
+			if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
 			{
-				// Calculate the default anchor offset, ie where would this control be laid out if no offset were provided.
-				FVector2D CanvasSize = Canvas->GetCanvasWidget()->GetCachedGeometry().Size;
-				FMargin AnchorPositions = FMargin(
-					LayoutData.Anchors.Minimum.X * CanvasSize.X,
-					LayoutData.Anchors.Minimum.Y * CanvasSize.Y,
-					LayoutData.Anchors.Maximum.X * CanvasSize.X,
-					LayoutData.Anchors.Maximum.Y * CanvasSize.Y);
-				FVector2D DefaultAnchorPosition = FVector2D(AnchorPositions.Left, AnchorPositions.Top);
-
-				// Determine the amount that would be offset from the anchor position if alignment was applied.
-				FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
-
-				// Determine where the widget's new position needs to be to maintain a stable location when the anchors change.
-				FVector2D PositionDelta = PreEditGeometry.Position - DefaultAnchorPosition;// ( Geometry.Position - DefaultAnchorOffset );
-
-				// Adjust the size to remain constant
-				if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Left = PositionDelta.X + AlignmentOffset.X;
-					LayoutData.Offsets.Right = PreEditGeometry.Size.X;
-				}
-				else if ( LayoutData.Anchors.IsStretchedHorizontal() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Left = PositionDelta.X;
-					LayoutData.Offsets.Right = AnchorPositions.Right - ( PositionDelta.X + PreEditGeometry.Size.X );
-				}
-				else
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Left = PositionDelta.X + AlignmentOffset.X;
-				}
-
-				if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Top = PositionDelta.Y + AlignmentOffset.Y;
-					LayoutData.Offsets.Bottom = PreEditGeometry.Size.Y;
-				}
-				else if ( LayoutData.Anchors.IsStretchedVertical() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Top = PositionDelta.Y;
-					LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( PositionDelta.Y + PreEditGeometry.Size.Y );
-				}
-				else
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Top = PositionDelta.Y + AlignmentOffset.Y;
-				}
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
+				LayoutData.Offsets.Right = PreEditGeometry.Size.X;
+			}
+			else if ( !PreserveSize && LayoutData.Anchors.IsStretchedHorizontal() && !PreEditLayoutData.Anchors.IsStretchedHorizontal() )
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Left = 0;
+				LayoutData.Offsets.Right = 0;
+			}
+			else if ( LayoutData.Anchors.IsStretchedHorizontal() )
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Left = LeftTopDelta.X;
+				LayoutData.Offsets.Right = AnchorPositions.Right - ( AnchorPositions.Left + LayoutData.Offsets.Left + PreEditGeometry.Size.X );
+			}
+			else
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
 			}
 
-			// Apply the changes to the properties.
-			SynchronizeProperties();
+			if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
+				LayoutData.Offsets.Bottom = PreEditGeometry.Size.Y;
+			}
+			else if ( !PreserveSize && LayoutData.Anchors.IsStretchedVertical() && !PreEditLayoutData.Anchors.IsStretchedVertical() )
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Top = 0;
+				LayoutData.Offsets.Bottom = 0;
+			}
+			else if ( LayoutData.Anchors.IsStretchedVertical() )
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Top = LeftTopDelta.Y;
+				LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( AnchorPositions.Top + LayoutData.Offsets.Top + PreEditGeometry.Size.Y );
+			}
+			else
+			{
+				// Adjust the position to remain constant
+				LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
+			}
 		}
-	}
 
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+		// Apply the changes to the properties.
+		SynchronizeProperties();
+	}
 }
 
 #endif

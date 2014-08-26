@@ -4,85 +4,62 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+FWidgetHandle::FWidgetHandle(UWidget* Widget)
+	: Widget(Widget)
+{
+
+}
+
 // FWidgetReference
 
 FWidgetReference::FWidgetReference()
 	: WidgetEditor()
-	, TemplateWidget(NULL)
+	, TemplateHandle()
 {
+
 }
 
-FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
+FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, TSharedPtr< FWidgetHandle > TemplateHandle)
 	: WidgetEditor(WidgetEditor)
-	, TemplateWidget(TemplateWidget)
+	, TemplateHandle(TemplateHandle)
 {
-	// register for any objects replaced
-	GEditor->OnObjectsReplaced().AddRaw(this, &FWidgetReference::OnObjectsReplaced);
-}
-
-FWidgetReference::~FWidgetReference()
-{
-	GEditor->OnObjectsReplaced().RemoveAll(this);
-}
-
-FWidgetReference FWidgetReference::FromTemplate(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, UWidget* TemplateWidget)
-{
-	return FWidgetReference(InWidgetEditor, TemplateWidget);
-}
-
-FWidgetReference FWidgetReference::FromPreview(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, UWidget* PreviewWidget)
-{
-	if ( InWidgetEditor.IsValid() )
-	{
-		UUserWidget* PreviewRoot = InWidgetEditor->GetPreview();
-		if ( PreviewRoot )
-		{
-			UWidgetBlueprint* Blueprint = InWidgetEditor->GetWidgetBlueprintObj();
-
-			if ( PreviewWidget )
-			{
-				FString Name = PreviewWidget->GetName();
-				return FromTemplate(InWidgetEditor, Blueprint->WidgetTree->FindWidget(Name));
-			}
-		}
-	}
-
-	return FWidgetReference();
+	
 }
 
 bool FWidgetReference::IsValid() const
 {
-	return TemplateWidget.Get() != NULL && GetPreview();
+	if ( TemplateHandle.IsValid() )
+	{
+		return TemplateHandle->Widget.Get() != NULL && GetPreview();
+	}
+
+	return false;
 }
 
 UWidget* FWidgetReference::GetTemplate() const
 {
-	return TemplateWidget.Get();
-}
-
-UWidget* FWidgetReference::GetPreview() const
-{
-	if ( WidgetEditor.IsValid() )
+	if ( TemplateHandle.IsValid() )
 	{
-		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
-
-		if ( PreviewRoot && TemplateWidget.Get() )
-		{
-			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateWidget.Get()->GetName());
-			return PreviewWidget;
-		}
+		return TemplateHandle->Widget.Get();
 	}
 
 	return NULL;
 }
 
-void FWidgetReference::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+UWidget* FWidgetReference::GetPreview() const
 {
-	UObject* const* NewObject = ReplacementMap.Find(TemplateWidget.Get());
-	if ( NewObject )
+	if ( WidgetEditor.IsValid() && TemplateHandle.IsValid() )
 	{
-		TemplateWidget = Cast<UWidget>(*NewObject);
+		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
+
+		if ( PreviewRoot && TemplateHandle->Widget.Get() )
+		{
+			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateHandle->Widget.Get()->GetName());
+			return PreviewWidget;
+		}
 	}
+
+	return NULL;
 }
 
 #undef LOCTEXT_NAMESPACE

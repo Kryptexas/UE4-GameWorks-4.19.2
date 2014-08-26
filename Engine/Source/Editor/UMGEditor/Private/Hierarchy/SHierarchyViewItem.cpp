@@ -281,7 +281,7 @@ void FHierarchyRoot::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children
 
 	if ( Blueprint->WidgetTree->RootWidget )
 	{
-		TSharedPtr<FHierarchyWidget> RootChild = MakeShareable(new FHierarchyWidget(FWidgetReference::FromTemplate(BPEd, Blueprint->WidgetTree->RootWidget), BPEd));
+		TSharedPtr<FHierarchyWidget> RootChild = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(Blueprint->WidgetTree->RootWidget), BPEd));
 		Children.Add(RootChild);
 	}
 }
@@ -451,7 +451,7 @@ void FHierarchyWidget::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Childr
 			UWidget* Child = Widget->GetChildAt(i);
 			if ( Child )
 			{
-				TSharedPtr<FHierarchyWidget> ChildItem = MakeShareable(new FHierarchyWidget(FWidgetReference::FromTemplate(BPEd, Child), BPEd));
+				TSharedPtr<FHierarchyWidget> ChildItem = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(Child), BPEd));
 				Children.Add(ChildItem);
 			}
 		}

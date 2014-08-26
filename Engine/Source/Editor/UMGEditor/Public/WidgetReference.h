@@ -5,6 +5,19 @@
 class UWidget;
 class SWidget;
 class UWidgetBlueprint;
+class FWidgetBlueprintEditor;
+struct FWidgetReference;
+
+struct UMGEDITOR_API FWidgetHandle
+{
+	friend FWidgetReference;
+	friend FWidgetBlueprintEditor;
+
+private:
+	FWidgetHandle(UWidget* Widget);
+
+	TWeakObjectPtr<UWidget> Widget;
+};
 
 /**
  * The Widget reference is a useful way to hold onto the selection in a way that allows for up to date access to the current preview object.
@@ -12,22 +25,10 @@ class UWidgetBlueprint;
  */
 struct UMGEDITOR_API FWidgetReference
 {
+	friend FWidgetBlueprintEditor;
+
 public:
-	/**
-	 * Creates a widget reference using the template.
-	 */
-	static FWidgetReference FromTemplate(TSharedPtr<class FWidgetBlueprintEditor> InWidgetEditor, UWidget* TemplateWidget);
-
-	/**
-	 * Creates a widget reference using the preview.  Which is used to lookup the stable template pointer.
-	 */
-	static FWidgetReference FromPreview(TSharedPtr<class FWidgetBlueprintEditor> InWidgetEditor, UWidget* PreviewWidget);
-
-	/** Constructor for the null widget reference.  Not intended for normal use. */
 	FWidgetReference();
-
-	/** Destructor */
-	~FWidgetReference();
 
 	/** @returns true if both the template and the preview pointers are valid. */
 	bool IsValid() const;
@@ -41,20 +42,23 @@ public:
 	/** Checks if widget reference is the same as nother widget reference, based on the template pointers. */
 	bool operator==( const FWidgetReference& Other ) const
 	{
-		return TemplateWidget.Get() == Other.TemplateWidget.Get();
+		if ( TemplateHandle.IsValid() && Other.TemplateHandle.IsValid() )
+		{
+			return TemplateHandle->Widget.Get() == Other.TemplateHandle->Widget.Get();
+		}
+
+		return false;
 	}
 
 private:
-	FWidgetReference(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+	FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, TSharedPtr< FWidgetHandle > TemplateHandle);
 
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
 private:
+	TWeakPtr<FWidgetBlueprintEditor> WidgetEditor;
 
-	TWeakPtr<class FWidgetBlueprintEditor> WidgetEditor;
-
-	//TODO UMG We probably want to make this a weak object reference.
-	TWeakObjectPtr<UWidget> TemplateWidget;
+	TSharedPtr< FWidgetHandle > TemplateHandle;
 };
 
 inline uint32 GetTypeHash(const struct FWidgetReference& WidgetRef)

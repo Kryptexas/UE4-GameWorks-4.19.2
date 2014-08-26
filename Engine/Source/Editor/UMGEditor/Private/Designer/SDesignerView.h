@@ -201,11 +201,18 @@ private:
 	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
 	TWeakPtr<SWidget> HoveredSlateWidget;
 
-	// Resolution info
+	/** The configured Width of the preview area, simulates screen size. */
 	int32 PreviewWidth;
+
+	/** The configured Height of the preview area, simulates screen size. */
 	int32 PreviewHeight;
+
+	// Resolution Info
 	FString PreviewAspectRatio;
 
 	/** Curve to handle fading of the resolution */
 	FCurveSequence ResolutionTextFade;
+
+	/**  */
+	FWeakWidgetPath SelectedWidgetPath;
 };

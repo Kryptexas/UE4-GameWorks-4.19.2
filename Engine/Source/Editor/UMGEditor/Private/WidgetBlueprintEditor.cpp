@@ -214,24 +214,24 @@ void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& R
 	// Objects being replaced could force a selection change
 	OnSelectedWidgetsChanging.Broadcast();
 
-	TSet<FWidgetReference> TempSelection;
-	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	// Remove dead references and update references
+	for ( int32 HandleIndex = WidgetHandlePool.Num() - 1; HandleIndex >= 0; HandleIndex-- )
 	{
-		UWidget* OldTemplate = WidgetRef.GetTemplate();
+		TSharedPtr<FWidgetHandle> Ref = WidgetHandlePool[HandleIndex].Pin();
 
-		UObject* const* NewObject = ReplacementMap.Find(OldTemplate);
-		if ( NewObject )
+		if ( Ref.IsValid() )
 		{
-			UWidget* NewTemplate = Cast<UWidget>(*NewObject);
-			TempSelection.Add(FWidgetReference::FromTemplate(SharedThis(this), NewTemplate));
+			UObject* const* NewObject = ReplacementMap.Find(Ref->Widget.Get());
+			if ( NewObject )
+			{
+				Ref->Widget = Cast<UWidget>(*NewObject);
+			}
 		}
 		else
 		{
-			TempSelection.Add(WidgetRef);
+			WidgetHandlePool.RemoveAtSwap(HandleIndex);
 		}
 	}
-
-	SelectedWidgets = TempSelection;
 
 	// Fire the selection updated event to ensure everyone is watching the same widgets.
 	OnSelectedWidgetsChanged.Broadcast();
@@ -511,6 +511,31 @@ UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 	}
 
 	return PreviewWidgetPtr.Get();
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetReferenceFromTemplate(UWidget* TemplateWidget)
+{
+	TSharedRef<FWidgetHandle> Reference = MakeShareable(new FWidgetHandle(TemplateWidget));
+	WidgetHandlePool.Add(Reference);
+
+	return FWidgetReference(SharedThis(this), Reference);
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetReferenceFromPreview(UWidget* PreviewWidget)
+{
+	UUserWidget* PreviewRoot = GetPreview();
+	if ( PreviewRoot )
+	{
+		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+		if ( PreviewWidget )
+		{
+			FString Name = PreviewWidget->GetName();
+			return GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Name));
+		}
+	}
+
+	return FWidgetReference(SharedThis(this), TSharedPtr<FWidgetHandle>());
 }
 
 TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
