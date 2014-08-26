@@ -146,83 +146,84 @@ public:
 	class APlayerController* GetOwningPlayer() const;
 
 	/** Called when the widget is constructed */
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Construct();
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
 
 	//TODO UMG HitTest
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface | Painting")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	FEventReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	//UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	//void OnKeyboardFocusChanging(FWeakWidgetPath PreviousFocusPath, FWidgetPath NewWidgetPath);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
-	//FCursorReply OnCursorQuery(FGeometry MyGeometry, const FPointerEvent& CursorEvent) const;
-	UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	//UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	//FCursorReply OnCursorQuery(FGeometry MyGeometry, const FPointerEvent& CursorEvent) const;
+
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
 	
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-	UFUNCTION(BlueprintImplementableEvent, Category="Drag and Drop")
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
 	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
 	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Gamepad Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
 	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
 	FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
 	FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
 	FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
 	FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="Touch Input")
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);

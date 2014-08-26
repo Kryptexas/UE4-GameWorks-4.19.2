@@ -5,6 +5,7 @@
 #include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
 #include "WidgetAnimation.h"
+#include "WidgetBlueprintLibrary.h"
 
 /**
  * This class holds onto the widget when it's placed into the viewport.
@@ -198,6 +199,161 @@ UWorld* UUserWidget::GetWorld() const
 	}
 	
 	return CachedWorld;
+}
+
+void UUserWidget::Construct_Implementation()
+{
+
+}
+
+void UUserWidget::Tick_Implementation(FGeometry MyGeometry, float InDeltaTime)
+{
+
+}
+
+void UUserWidget::OnPaint_Implementation(FPaintContext& Context) const
+{
+
+}
+
+FEventReply UUserWidget::OnKeyboardFocusReceived_Implementation(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnKeyboardFocusLost_Implementation(FKeyboardFocusEvent InKeyboardFocusEvent)
+{
+
+}
+
+FEventReply UUserWidget::OnKeyChar_Implementation(FGeometry MyGeometry, FCharacterEvent InCharacterEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnPreviewMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonUp_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseMove_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnMouseEnter_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+
+}
+
+void UUserWidget::OnMouseLeave_Implementation(const FPointerEvent& MouseEvent)
+{
+
+}
+
+FEventReply UUserWidget::OnMouseWheel_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonDoubleClick_Implementation(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnDragDetected_Implementation(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation)
+{
+
+}
+
+void UUserWidget::OnDragCancelled_Implementation(const FPointerEvent& PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+void UUserWidget::OnDragEnter_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+void UUserWidget::OnDragLeave_Implementation(FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+bool UUserWidget::OnDragOver_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+	return false;
+}
+
+bool UUserWidget::OnDrop_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+	return false;
+}
+
+FEventReply UUserWidget::OnControllerButtonPressed_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnControllerButtonReleased_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnControllerAnalogValueChanged_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchGesture_Implementation(FGeometry MyGeometry, const FPointerEvent& GestureEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchStarted_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchMoved_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchEnded_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, FMotionEvent InMotionEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
 }
 
 void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
