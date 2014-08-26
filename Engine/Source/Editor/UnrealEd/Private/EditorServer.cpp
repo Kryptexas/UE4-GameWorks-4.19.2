@@ -2034,12 +2034,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 		FString LongTempFname;
 		if ( FPackageName::TryConvertFilenameToLongPackageName(TempFname, LongTempFname) )
 		{
- 			if ( Context.World() && Context.World()->GetOutermost() && Context.World()->GetOutermost() == FindPackage(NULL, *LongTempFname) )
- 			{
- 				// This map is already loaded and in the editor.
- 				return true;
- 			}
-
 			// Is the new world already loaded?
 			UPackage* ExistingPackage = FindPackage(NULL, *LongTempFname);
 			UWorld* ExistingWorld = NULL;
@@ -2112,7 +2106,15 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Arguments.Add(TEXT("MapFileName"), FText::FromString( MapFileName ));
 						FMessageLog("LoadErrors").NewPage( FText::Format( LOCTEXT("LoadMapLogPage", "Loading map: {MapFileName}"), Arguments ) );
 					}
-					EditorDestroyWorld( Context, LocalizedLoadingMap, ExistingWorld );
+
+					// If we are loading the same world again (reloading) then we must not specify that we want to keep this world in memory.
+					// Otherwise, try to keep the existing world in memory since there is not reason to reload it.
+					UWorld* NewWorld = nullptr;
+					if (ExistingWorld != nullptr && Context.World() != ExistingWorld)
+					{
+						NewWorld = ExistingWorld;
+					}
+					EditorDestroyWorld( Context, LocalizedLoadingMap, NewWorld );
 
 					// Refresh ExistingPackage and Existing World now that GC has occurred.
 					ExistingPackage = FindPackage(NULL, *LongTempFname);
