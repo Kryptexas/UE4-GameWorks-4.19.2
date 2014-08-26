@@ -2,8 +2,6 @@
 
 #include "TextureEditorPrivatePCH.h"
 #include "Factories.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "EngineAnalytics.h"
 
 #define LOCTEXT_NAMESPACE "FTextureEditorToolkit"
 
@@ -994,14 +992,7 @@ void FTextureEditorToolkit::HandleReimportManagerPostReimport( UObject* InObject
 		return;
 	}
 
-	if (bSuccess)
-	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Texture.ReimportedViaEditor"));
-		}
-	}
-	else
+	if (!bSuccess)
 	{
 		// Failed, restore the compression flag
 		Texture->DeferCompression = SavedCompressionSetting;

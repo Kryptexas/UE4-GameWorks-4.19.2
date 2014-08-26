@@ -64,9 +64,6 @@
 #include "AnimationEditorUtils.h"
 #include "SAnimationSequenceBrowser.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "EngineAnalytics.h"
-
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -909,10 +906,6 @@ void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {
 	if (bSuccess)
 	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Persona.ReimportedViaEditor"));
-		}
 		ConditionalRefreshEditor(InObject);
 	}
 }

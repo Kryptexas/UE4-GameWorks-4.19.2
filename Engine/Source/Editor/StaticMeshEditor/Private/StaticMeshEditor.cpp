@@ -1777,10 +1777,6 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 
 	if (bSuccess)
 	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.ReimportedViaEditor"));
-		}
 		RefreshTool();
 	}
 }
