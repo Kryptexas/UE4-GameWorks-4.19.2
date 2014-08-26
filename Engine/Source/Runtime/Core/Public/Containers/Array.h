@@ -976,9 +976,9 @@ public:
 	 *
 	 * @param Addr The address to check.
 	 */
-	FORCEINLINE void CheckAddress(const void* Addr)
+	FORCEINLINE void CheckAddress(const ElementType* Addr) const
 	{
-		checkf(Addr < GetTypedData() || Addr >= GetTypedData() + ArrayMax, TEXT("Attempting to add a container element which already comes from the container!"));
+		checkf(Addr < GetTypedData() || Addr >= (GetTypedData() + ArrayMax), TEXT("Attempting to add a container element (0x%08x) which already comes from the container (0x%08x, ArrayMax: %d)!"), Addr, GetTypedData(), ArrayMax);
 	}
 
 	int32 Insert( ElementType&& Item, int32 Index )

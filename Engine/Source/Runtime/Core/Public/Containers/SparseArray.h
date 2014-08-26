@@ -574,7 +574,7 @@ public:
 	 *
 	 * @param Addr The address to check.
 	 */
-	FORCEINLINE void CheckAddress(const void* Addr)
+	FORCEINLINE void CheckAddress(const ElementType* Addr) const
 	{
 		Data.CheckAddress(Addr);
 	}
