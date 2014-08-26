@@ -266,6 +266,7 @@
     <Compile Include="Configuration\EngineConfiguration.cs" />
     <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Windows\UEBuildWindows.cs" />
+    <Compile Include="Windows\VCEnvironment.cs" />
     <Compile Include="Windows\VCToolChain.cs" />
     <Compile Include="Windows\WindowsProjectGenerator.cs" />
   </ItemGroup>
