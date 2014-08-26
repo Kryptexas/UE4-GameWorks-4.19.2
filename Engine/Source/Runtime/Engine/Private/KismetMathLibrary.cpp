@@ -863,6 +863,11 @@ FRotator UKismetMathLibrary::RInterpTo(FRotator Current, FRotator Target, float 
 	return FMath::RInterpTo( Current, Target, DeltaTime, InterpSpeed);
 }
 
+FLinearColor UKismetMathLibrary::CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::CInterpTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
 FLinearColor UKismetMathLibrary::LinearColorLerp(FLinearColor A, FLinearColor B, float Alpha)
 {
 	return A + Alpha * (B - A);

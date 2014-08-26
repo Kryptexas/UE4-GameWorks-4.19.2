@@ -2043,6 +2043,30 @@ CORE_API float FMath::FInterpConstantTo( float Current, float Target, float Delt
 	return Current + FMath::Clamp<float>(Dist, -Step, Step);
 }
 
+/** Interpolate Linear Color from Current to Target. Scaled by distance to Target, so it has a strong start speed and ease out. */
+CORE_API FLinearColor FMath::CInterpTo(const FLinearColor& Current, const FLinearColor& Target, float DeltaTime, float InterpSpeed)
+{
+	// If no interp speed, jump to target value
+	if (InterpSpeed <= 0.f)
+	{
+		return Target;
+	}
+
+	// Difference between colors
+	const float Dist = FLinearColor::Dist(Target, Current);
+
+	// If distance is too small, just set the desired color
+	if (Dist < KINDA_SMALL_NUMBER)
+	{
+		return Target;
+	}
+
+	// Delta change, Clamp so we do not over shoot.
+	const FLinearColor DeltaMove = (Target - Current) * FMath::Clamp<float>(DeltaTime * InterpSpeed, 0.f, 1.f);
+
+	return Current + DeltaMove;
+}
+
 CORE_API float ClampFloatTangent( float PrevPointVal, float PrevTime, float CurPointVal, float CurTime, float NextPointVal, float NextTime )
 {
 	const float PrevToNextTimeDiff = FMath::Max< double >( KINDA_SMALL_NUMBER, NextTime - PrevTime );

@@ -1239,6 +1239,17 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
+	/**
+	 * Interpolates towards a varying target color smoothly.
+	 *
+	 * @param		Current			Current Color
+	 * @param		Target			Target Color
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated Color
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "color"))
+	static FLinearColor CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed);
 
 	//
 	// Random stream functions
