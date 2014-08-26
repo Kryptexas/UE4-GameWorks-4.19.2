@@ -4,6 +4,8 @@
 
 #include "AssetTypeActions_Base.h"
 
+class UPaperSpriteSheet;
+
 class FPaperSpriteSheetAssetTypeActions : public FAssetTypeActions_Base
 {
 public:

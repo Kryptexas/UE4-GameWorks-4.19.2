@@ -2,6 +2,7 @@
 
 #include "PaperJsonImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
+#include "PaperSpriteSheet.h"
 #include "PaperSpriteSheetAssetTypeActions.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
