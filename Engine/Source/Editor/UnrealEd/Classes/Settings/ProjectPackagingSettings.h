@@ -66,7 +66,7 @@ public:
 	bool UseOBB_InAPK;
 
 	/**
-	 * ISO codes of cultures whose data should be packaged to be cooked, staged, and packaged.
+	 * ISO codes of cultures whose data should be cooked, staged, and packaged.
 	 * Note: These paths are relative to your project Content directory
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cultures to Package"))
