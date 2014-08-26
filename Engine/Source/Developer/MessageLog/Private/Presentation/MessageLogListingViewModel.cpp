@@ -376,7 +376,7 @@ bool FMessageLogListingViewModel::GetShowPages() const
 
 void FMessageLogListingViewModel::SetAllowClear(bool bInAllowClear)
 {
-	bAllowClear = bAllowClear;
+	bAllowClear = bInAllowClear;
 }
 
 bool FMessageLogListingViewModel::GetAllowClear() const
