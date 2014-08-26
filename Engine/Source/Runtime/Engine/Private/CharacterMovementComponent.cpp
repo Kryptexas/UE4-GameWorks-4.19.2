@@ -199,7 +199,6 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	DefaultWaterMovementMode = MOVE_Swimming;
 	DefaultLandMovementMode = MOVE_Walking;
 	bForceNextFloorCheck = true;
-	bCrouchMovesCharacterDown_DEPRECATED = false;
 	bForceBraking_DEPRECATED = false;
 	bShrinkProxyCapsule = true;
 	bCanWalkOffLedges = true;
@@ -285,11 +284,6 @@ void UCharacterMovementComponent::PostLoad()
 	{
 		MaxWalkSpeedCrouched = MaxWalkSpeed * CrouchedSpeedMultiplier_DEPRECATED;
 		MaxCustomMovementSpeed = MaxWalkSpeed;
-	}
-
-	if (LinkerUE4Ver < VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN)
-	{
-		bCrouchMaintainsBaseLocation = bCrouchMovesCharacterDown_DEPRECATED;
 	}
 }
 

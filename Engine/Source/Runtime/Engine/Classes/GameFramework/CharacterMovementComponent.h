@@ -378,9 +378,6 @@ public:
 	// Deprecated properties
 
 	UPROPERTY()
-	uint32 bCrouchMovesCharacterDown_DEPRECATED:1;
-
-	UPROPERTY()
 	uint32 bForceBraking_DEPRECATED:1;
 
 	/** Multiplier to max ground speed to use when crouched */
