@@ -754,6 +754,11 @@ FString UK2Node_CallFunction::GetTooltip() const
 	{
 		Tooltip = GetDefaultTooltipForFunction(Function);
 
+		// Strip off the @param nastiness
+		Tooltip.Split(TEXT("@param"), &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Split(TEXT("@return"), &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Trim();
+		while (Tooltip.RemoveFromEnd(TEXT("\n"))) ;
 
 		FString ClientString;
 
