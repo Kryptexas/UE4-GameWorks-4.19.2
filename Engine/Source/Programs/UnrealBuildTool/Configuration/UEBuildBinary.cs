@@ -585,15 +585,15 @@ namespace UnrealBuildTool
 					if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Linux)
 					{
 						// Create the import library.
-						OutputFiles.Add(BinaryLinkEnvironment.LinkExecutable(true));
+						OutputFiles.AddRange(BinaryLinkEnvironment.LinkExecutable(true));
 					}
 				}
 
 				BinaryLinkEnvironment.Config.bIncludeDependentLibrariesInLibrary = bIncludeDependentLibrariesInLibrary;
 
 				// Link the binary.
-				FileItem Executable = BinaryLinkEnvironment.LinkExecutable(false);
-				OutputFiles.Add(Executable);
+				FileItem[] Executables = BinaryLinkEnvironment.LinkExecutable(false);
+				OutputFiles.AddRange(Executables);
 
 				// Produce additional console app if requested
 				if (BinaryLinkEnvironment.Config.CanProduceAdditionalConsoleApp && UEBuildConfiguration.bBuildEditor)
@@ -605,10 +605,13 @@ namespace UnrealBuildTool
 					ConsoleAppLinkEvironment.Config.OutputFilePath = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePath);
 
 					// Link the console app executable
-					OutputFiles.Add(ConsoleAppLinkEvironment.LinkExecutable(false));
+					OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
 				}
 
-				OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
+				foreach (var Executable in Executables)
+				{
+					OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
+				}
 			}
 			
 			return OutputFiles;

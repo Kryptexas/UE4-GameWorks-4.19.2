@@ -46,21 +46,11 @@ public class FreeType2 : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			switch (Target.Architecture)
-			{
-			case "-armv7":
-				PublicLibraryPaths.Add(FreeType2LibPath + "Android/ARMv7");
-				break;
-			case "-arm64":
-				PublicLibraryPaths.Add(FreeType2LibPath + "Android/ARM64");
-				break;
-			case "-x86":
-				PublicLibraryPaths.Add(FreeType2LibPath + "Android/x86");
-				break;
-			case "-x64":
-				PublicLibraryPaths.Add(FreeType2LibPath + "Android/x64");
-				break;
-			}
+			// filtered out in the toolchain
+			PublicLibraryPaths.Add(FreeType2LibPath + "Android/ARMv7");
+			PublicLibraryPaths.Add(FreeType2LibPath + "Android/ARM64");
+			PublicLibraryPaths.Add(FreeType2LibPath + "Android/x86");
+			PublicLibraryPaths.Add(FreeType2LibPath + "Android/x64");
 
 			PublicAdditionalLibraries.Add("freetype2412");
 		}

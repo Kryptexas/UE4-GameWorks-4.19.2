@@ -19,18 +19,12 @@ public class AndroidPlatform : Platform
 	{
 	}
 
-	private static string GetArchitecture(ProjectParams Params)
+	private static string GetSONameWithoutArchitecture(ProjectParams Params, string DecoratedExeName)
 	{
-		// @todo android: Need the architecture passed through from the ProjectParams!
-		return "-armv7";
+		return Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), DecoratedExeName) + ".so";
 	}
 
-	private static string GetFinalSOName(ProjectParams Params, string DecoratedExeName)
-	{
-		return Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), DecoratedExeName) + GetArchitecture(Params) + ".so";
-	}
-
-	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game)
+	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture)
 	{
 		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)), "Binaries/Android");
 
@@ -40,11 +34,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
-		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + GetArchitecture(Params) + ".apk";
-
-		/*string ProjectDir = Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath));
-		// Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
-		string ApkName = Path.Combine(ProjectDir, "Binaries/Android", DecoratedExeName) + GetArchitecture(Params) + ".apk";*/
+		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + Architecture + ".apk";
 
 		// if the source binary was UE4Game, handle using it or switching to project name
 		if (Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename) == "UE4Game")
@@ -60,8 +50,6 @@ public class AndroidPlatform : Platform
 				ApkName = ApkName.Replace(ProjectDir, Path.Combine(CmdEnv.LocalRoot, "Engine"));
 			}
 		}
-
-		Console.WriteLine("APKName = " + ApkName + " ::: SO name = " + GetFinalSOName(Params, DecoratedExeName));
 
 		return ApkName;
 	}
@@ -102,80 +90,86 @@ public class AndroidPlatform : Platform
 		return "/mnt/sdcard/obb/" + PackageName + "/" + Path.GetFileName(ObbName);
 	}
 
-	private static string GetFinalBatchName(string ApkName, ProjectParams Params)
+	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture)
 	{
-		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + ".bat");
+		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + Architecture + ".bat");
 	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		string SOName = GetFinalSOName(Params, SC.StageExecutables[0]);
-		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
-		string BatchName = GetFinalBatchName(ApkName, Params);
+		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
+		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 
-		// packaging just takes a pak file and makes it the .obb
-		UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
-		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
-		if (!Params.Prebuilt)
+		foreach (string Architecture in Architectures)
 		{
-			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
-			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
+			string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "");
+			string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "");
+
+			// packaging just takes a pak file and makes it the .obb
+			UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
+			var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+			if (!Params.Prebuilt)
+			{
+				string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
+				string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
+				Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
+			}
+
+			// first, look for a .pak file in the staged directory
+			string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
+
+			bool bHasPakFile = PakFiles.Length >= 1;
+
+			// for now, we only support 1 pak/obb file
+			if (PakFiles.Length > 1)
+			{
+				throw new AutomationException("Can't package for Android with 0 or more than 1 pak file (found {0} pak files in {1})", PakFiles.Length, SC.StageDirectory);
+			}
+
+			string LocalObbName = GetFinalObbName(ApkName);
+			string DeviceObbName = GetDeviceObbName(ApkName);
+
+			// Always delete the target OBB file if it exists
+			if (File.Exists(LocalObbName))
+			{
+				File.Delete(LocalObbName);
+			}
+
+			if (!Params.OBBinAPK && bHasPakFile)
+			{
+				Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
+				File.Copy(PakFiles[0], LocalObbName);
+			}
+
+			Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
+			string PackageName = GetPackageInfo(ApkName, false);
+			// make a batch file that can be used to install the .apk and .obb files
+			string[] BatchLines = new string[] {
+				"setlocal",
+				"set ADB=%ANDROID_HOME%\\platform-tools\\adb.exe",
+				"set DEVICE=",
+				"if not \"%1\"==\"\" set DEVICE=-s %1",
+				"%ADB% %DEVICE% uninstall " + PackageName,
+				"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
+				"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
+				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
+				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/obb/" + PackageName,
+				Params.OBBinAPK || !bHasPakFile ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
+				Params.OBBinAPK || !bHasPakFile ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+				"goto:eof",
+				":Error",
+				"@echo.",
+				"@echo There was an error installing the game or the obb file. Look above for more info.",
+				"@echo.",
+				"@echo Things to try:",
+				"@echo Check that the device (and only the device) is listed with \"%ADB$ devices\" from a command prompt.",
+				"@echo Make sure all Developer options look normal on the device",
+				"@echo Check that the device has an SD card.",
+				"@pause"
+			};
+			File.WriteAllLines(BatchName, BatchLines);
 		}
-
-		// first, look for a .pak file in the staged directory
-		string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
-
-		bool bHasPakFile = PakFiles.Length >= 1;
-
-		// for now, we only support 1 pak/obb file
-		if (PakFiles.Length > 1)
-		{
-			throw new AutomationException("Can't package for Android with 0 or more than 1 pak file (found {0} pak files in {1})", PakFiles.Length, SC.StageDirectory);
-		}
-
-		string LocalObbName = GetFinalObbName(ApkName);
-		string DeviceObbName = GetDeviceObbName(ApkName);
-
-		// Always delete the target OBB file if it exists
-		if (File.Exists(LocalObbName))
-		{
-			File.Delete(LocalObbName);
-		}
-
-		if (!Params.OBBinAPK && bHasPakFile)
-		{
-			Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
-			File.Copy(PakFiles[0], LocalObbName);
-		}
-
-		Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
-		string PackageName = GetPackageInfo(ApkName, false);
-		// make a batch file that can be used to install the .apk and .obb files
-		string[] BatchLines = new string[] {
-			"setlocal",
-			"set ADB=%ANDROID_HOME%\\platform-tools\\adb.exe",
-            "set DEVICE=",
-            "if not \"%1\"==\"\" set DEVICE=-s %1",
-			"%ADB% %DEVICE% uninstall " + PackageName,
-			"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
-			"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
-			"%ADB% %DEVICE% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
-			"%ADB% %DEVICE% shell rm -r /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
-			"%ADB% %DEVICE% shell rm -r /mnt/sdcard/obb/" + PackageName,
-			Params.OBBinAPK || !bHasPakFile ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
-			Params.OBBinAPK || !bHasPakFile ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
-			"goto:eof",
-			":Error",
-			"@echo.",
-			"@echo There was an error installing the game or the obb file. Look above for more info.",
-			"@echo.",
-			"@echo Things to try:",
-			"@echo Check that the device (and only the device) is listed with \"%ADB$ devices\" from a command prompt.",
-			"@echo Make sure all Developer options look normal on the device",
-			"@echo Check that the device has an SD card.",
-			"@pause"
-		};
-		File.WriteAllLines(BatchName, BatchLines);
 
 		PrintRunTime();
 	}
@@ -187,9 +181,9 @@ public class AndroidPlatform : Platform
 			throw new AutomationException("Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
+		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "ERROR");
 		string ObbName = GetFinalObbName(ApkName);
-		string BatchName = GetFinalBatchName(ApkName, Params);
+		string BatchName = GetFinalBatchName(ApkName, Params, "ERROR");
 
 		// verify the files exist
 		if (!FileExists(ApkName))
@@ -305,15 +299,15 @@ public class AndroidPlatform : Platform
 
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
 	{
-		string SOName = GetFinalSOName(Params, SC.StageExecutables[0]);
 		string AdbCommand = GetAdbCommand(Params);
-		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
+		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "ERROR");
 
 		// make sure APK is up to date (this is fast if so)
 		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 		if (!Params.Prebuilt)
 		{
 			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
+			string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
 			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 		}
 
@@ -555,10 +549,11 @@ public class AndroidPlatform : Platform
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
-		string ApkName = ClientApp + GetArchitecture(Params) + ".apk";
+		string DeviceArchitecture = "ERROR";
+		string ApkName = ClientApp + DeviceArchitecture + ".apk";
 		if (!File.Exists(ApkName))
 		{
-			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true);
+			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture);
 		}
 
 		Console.WriteLine("Apk='{0}', CLientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);

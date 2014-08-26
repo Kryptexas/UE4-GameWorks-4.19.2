@@ -168,9 +168,9 @@ namespace UnrealBuildTool
 		}
 
 		/** Links the input files into an executable. */
-		public FileItem LinkExecutable( bool bBuildImportLibraryOnly )
+		public FileItem[] LinkExecutable( bool bBuildImportLibraryOnly )
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkFiles(this, bBuildImportLibraryOnly);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkAllFiles(this, bBuildImportLibraryOnly);
 		}
 
 		/// <summary>

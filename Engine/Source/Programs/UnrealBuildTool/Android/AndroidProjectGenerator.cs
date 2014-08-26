@@ -196,7 +196,9 @@ namespace UnrealBuildTool
 			string AndroidManifestPath = Path.Combine(IntermediateDirectoryPath, "AndroidManifest.xml");
 
 			// string for <AdditionalLibraryDirectories>
-			string AdditionalLibDirs = IntermediateDirectoryPath + @"\obj\local\armeabi-v7a";
+			string AdditionalLibDirs = "";
+			AdditionalLibDirs += IntermediateDirectoryPath + @"\obj\local\armeabi-v7a";
+			AdditionalLibDirs += ";" + IntermediateDirectoryPath + @"\obj\local\x86";
 			AdditionalLibDirs += @";$(AdditionalLibraryDirectories)";
 
 			string PathsLines = 

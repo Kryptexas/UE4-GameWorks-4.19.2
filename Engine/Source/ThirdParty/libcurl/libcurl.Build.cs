@@ -21,26 +21,17 @@ public class libcurl : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
-            switch (Target.Architecture)
-            {
-                case "-armv7":
-                    PublicIncludePaths.Add(LibCurlPath + "include/Android/ARMv7");
-                    PublicLibraryPaths.Add(LibCurlPath + "lib/Android/ARMv7");
-                    break;
-                case "-arm64":
-                    PublicIncludePaths.Add(LibCurlPath + "include/Android/ARM64");
-                    PublicLibraryPaths.Add(LibCurlPath + "lib/Android/ARM64");
-                    break;
-                case "-x86":
-                    PublicIncludePaths.Add(LibCurlPath + "include/Android/x86");
-                    PublicLibraryPaths.Add(LibCurlPath + "lib/Android/x86");
-                    break;
-                case "-x64":
-                    PublicIncludePaths.Add(LibCurlPath + "include/Android/x64");
-                    PublicLibraryPaths.Add(LibCurlPath + "lib/Android/x64");
-                    break;
-            }
-            PublicAdditionalLibraries.Add("curl");
+			// toolchain will filter properly
+            PublicIncludePaths.Add(LibCurlPath + "include/Android/ARMv7");
+            PublicLibraryPaths.Add(LibCurlPath + "lib/Android/ARMv7");
+            PublicIncludePaths.Add(LibCurlPath + "include/Android/ARM64");
+            PublicLibraryPaths.Add(LibCurlPath + "lib/Android/ARM64");
+            PublicIncludePaths.Add(LibCurlPath + "include/Android/x86");
+            PublicLibraryPaths.Add(LibCurlPath + "lib/Android/x86");
+            PublicIncludePaths.Add(LibCurlPath + "include/Android/x64");
+            PublicLibraryPaths.Add(LibCurlPath + "lib/Android/x64");
+
+			PublicAdditionalLibraries.Add("curl");
             PublicAdditionalLibraries.Add("crypto");
             PublicAdditionalLibraries.Add("ssl");
             PublicAdditionalLibraries.Add("dl");

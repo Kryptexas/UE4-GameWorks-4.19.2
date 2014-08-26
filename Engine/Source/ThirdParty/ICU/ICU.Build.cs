@@ -92,27 +92,16 @@ public class ICU : ModuleRules
 
             switch (Target.Platform)
             {
-            case UnrealTargetPlatform.Linux:
-                TargetSpecificPath += Target.Architecture + "/";
-                break;
-            case UnrealTargetPlatform.Android:
-                switch (Target.Architecture)
-                {
-                    case "-armv7":
-                        TargetSpecificPath += "ARMv7" + "/";
-                        break;
-                    case "-arm64":
-                        TargetSpecificPath += "ARM64" + "/";
-                        break;
-                    case "-x86":
-                        TargetSpecificPath += "x86" + "/";
-                        break;
-                    case "-x64":
-                        TargetSpecificPath += "X64" + "/";
-                        break;
-                }
-                break;
-            }
+	            case UnrealTargetPlatform.Linux:
+		            TargetSpecificPath += Target.Architecture + "/";
+			        break;
+				case UnrealTargetPlatform.Android:
+					PublicLibraryPaths.Add(TargetSpecificPath + "ARMv7/lib");
+					PublicLibraryPaths.Add(TargetSpecificPath + "ARM64/lib");
+					PublicLibraryPaths.Add(TargetSpecificPath + "x86/lib");
+					PublicLibraryPaths.Add(TargetSpecificPath + "x64/lib");
+					break;
+			}
 
 			string[] LibraryNameStems =
 			{
@@ -135,8 +124,8 @@ public class ICU : ModuleRules
                         string LibraryName = "icu" + Stem + LibraryNamePostfix;
                         if (Target.Platform == UnrealTargetPlatform.Android)
                         {
-                            PublicLibraryPaths.Add(TargetSpecificPath + "lib/");
-                            PublicAdditionalLibraries.Add(LibraryName); // Android requires only the filename.
+							// we will filter out in the toolchain
+							PublicAdditionalLibraries.Add(LibraryName); // Android requires only the filename.
                         }
                         else
                         {

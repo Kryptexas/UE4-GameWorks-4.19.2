@@ -15,8 +15,6 @@ namespace UnrealBuildTool
 		/// Android settings.
 		/// </summary>
 		[XmlConfig]
-		public static string AndroidArchitecture = "-armv7";
-		[XmlConfig]
 		public static string AndroidNdkApiTarget = "latest";
 		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
@@ -24,8 +22,8 @@ namespace UnrealBuildTool
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
 		{
-			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return AndroidArchitecture;
+			// internal architectures are handled inside the toolchain to be able to build all at once, so we no longer need an architecture here
+			return base.GetActiveArchitecture();
 		}
 
         public override bool CanUseXGE()
@@ -150,6 +148,12 @@ namespace UnrealBuildTool
 					return ".gch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
+		}
+
+		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
+		{
+			// if we compile multiple architectures at once, PCH doesn't work right, so only use PCH when building for one platform
+			return AndroidToolChain.GetAllArchitectures().Length == 1;
 		}
 
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
@@ -299,26 +303,21 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
-			if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-armv7")
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-				InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
+			
+			// the toolchain will actually filter these out
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
 
-                InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-				InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
-
-                InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
-            }
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
             // Add path to statically compiled version of cxa_demangle
-            InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
 
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");

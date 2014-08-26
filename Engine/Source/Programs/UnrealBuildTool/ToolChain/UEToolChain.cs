@@ -17,7 +17,7 @@ namespace UnrealBuildTool
 		
 		CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles);
 		
-		FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
 		
 		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile);
 		
@@ -84,6 +84,11 @@ namespace UnrealBuildTool
 		}
 
 		public abstract FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		public virtual FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		{
+			return new FileItem[] { LinkFiles(LinkEnvironment, bBuildImportLibraryOnly) };
+		}
+
 
 		public virtual void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
 		{

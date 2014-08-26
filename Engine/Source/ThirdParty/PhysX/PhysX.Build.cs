@@ -209,17 +209,11 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			if (Target.Architecture == "-armv7")
-			{
-				PhysXLibDir += "/Android/ARMv7";
-			}
-			else
-			{
-				PhysXLibDir += "/Android/x86";
-			}
-
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
-			PublicLibraryPaths.Add(PhysXLibDir);
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARMv7");
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/x86");
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/arm64");
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/x64");
 
 			string[] StaticLibrariesAndroid = new string[] {
 				"LowLevel{0}",

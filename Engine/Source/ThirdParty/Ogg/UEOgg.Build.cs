@@ -55,21 +55,11 @@ public class UEOgg : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			switch (Target.Architecture)
-			{
-			case "-armv7":
-				PublicLibraryPaths.Add(OggLibPath + "Android/ARMv7");
-				break;
-			case "-arm64":
-				PublicLibraryPaths.Add(OggLibPath + "Android/ARM64");
-				break;
-			case "-x86":
-				PublicLibraryPaths.Add(OggLibPath + "Android/x86");
-				break;
-			case "-x64":
-				PublicLibraryPaths.Add(OggLibPath + "Android/x64");
-				break;
-			}
+			// filtered in the toolchain
+			PublicLibraryPaths.Add(OggLibPath + "Android/ARMv7");
+			PublicLibraryPaths.Add(OggLibPath + "Android/ARM64");
+			PublicLibraryPaths.Add(OggLibPath + "Android/x86");
+			PublicLibraryPaths.Add(OggLibPath + "Android/x64");
 
 			PublicAdditionalLibraries.Add("ogg");
 		}
