@@ -28,10 +28,26 @@ void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAb
 	}
 }
 
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromLocations(FGameplayAbilityTargetingLocationInfo SourceLocation, FGameplayAbilityTargetingLocationInfo TargetLocation)
+{
+	// Construct TargetData
+	FGameplayAbilityTargetData_LocationInfo*	NewData = new FGameplayAbilityTargetData_LocationInfo();
+	NewData->SourceLocation = SourceLocation;
+	NewData->TargetLocation = TargetLocation;
+
+	// Give it a handle and return
+	FGameplayAbilityTargetDataHandle	Handle;
+	Handle.Data = TSharedPtr<FGameplayAbilityTargetData_LocationInfo>(NewData);
+	return Handle;
+}
+
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data)
 {
+	// Construct TargetData
 	FGameplayAbilityTargetData_Mesh*	NewData = new FGameplayAbilityTargetData_Mesh(Data);
 	FGameplayAbilityTargetDataHandle	Handle;
+
+	// Give it a handle and return
 	Handle.Data = TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData);
 	return Handle;
 }
@@ -46,6 +62,16 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	Handle.Data = TSharedPtr<FGameplayAbilityTargetData>(TargetData);
 
 	return Handle;
+}
+
+TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	if (Data)
+	{
+		return Data->GetActors();
+	}
+	return TArray<AActor*>();
 }
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData)

@@ -67,12 +67,12 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	}
 
 	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (AimDirection * 3000.f);
+	FVector TraceEnd = TraceStart + (AimDirection * MaxRange);
 
 	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
 	if (MyAbility)		//Server and launching client only
 	{
-		TraceStart = StartLocation.GetTargetingTransform(MyAbility->GetCurrentActorInfo()).GetLocation();
+		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
 	}
 	AimDirection = (TraceEnd - TraceStart).SafeNormal();
 

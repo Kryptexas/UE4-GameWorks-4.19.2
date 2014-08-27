@@ -750,6 +750,14 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
 
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<AActor*> TargetActors) const
+{
+	/** Note: This is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
+	FGameplayAbilityTargetData_ActorArray* ReturnData = new FGameplayAbilityTargetData_ActorArray();
+	ReturnData->TargetActorArray = TargetActors;
+	ReturnData->SourceLocation = *this;
+	return FGameplayAbilityTargetDataHandle(ReturnData);
+}
 
 bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
@@ -802,6 +810,49 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 	
 
 	ABILITY_LOG(Warning, TEXT("FGameplayAbilityTargetDataHandle Serialized: %s"), ScriptStruct ? *ScriptStruct->GetName() : TEXT("NULL") );
+
+	bOutSuccess = true;
+	return true;
+}
+
+bool FGameplayAbilityTargetingLocationInfo::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << LocationType;
+
+	switch (LocationType)
+	{
+	case EGameplayAbilityTargetingLocationType::ActorTransform:
+		Ar << SourceActor;
+		break;
+	case EGameplayAbilityTargetingLocationType::SocketTransform:
+		Ar << SourceComponent;
+		Ar << SourceSocketName;
+		break;
+	case EGameplayAbilityTargetingLocationType::LiteralTransform:
+		Ar << LiteralTransform;
+		break;
+	default:
+		check(false);		//This case should not happen
+		break;
+	}
+
+	bOutSuccess = true;
+	return true;
+}
+
+bool FGameplayAbilityTargetData_LocationInfo::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	SourceLocation.NetSerialize(Ar, Map, bOutSuccess);
+	TargetLocation.NetSerialize(Ar, Map, bOutSuccess);
+
+	bOutSuccess = true;
+	return true;
+}
+
+bool FGameplayAbilityTargetData_ActorArray::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	SourceLocation.NetSerialize(Ar, Map, bOutSuccess);
+	Ar << TargetActorArray;
 
 	bOutSuccess = true;
 	return true;
