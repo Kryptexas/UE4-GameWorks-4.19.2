@@ -2049,6 +2049,9 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 	UWorld*	AssociatedWorld	= UWorld::FindWorldInPackage(PackageToSave);
 	const bool	bIsMapPackage = AssociatedWorld != NULL;
 
+	// The name of the package
+	const FString PackageName = PackageToSave->GetName();
+
 	// Place were we should save the file, including the filename
 	FString FinalPackageSavePath;
 	// Just the filename
@@ -2057,18 +2060,18 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 	// True if we should attempt saving
 	bool bAttemptSave = true;
 
-	// If we are treating worlds as assets, there is never a need to go down the "Save As" codepath
-	static const bool bUsingWorldAssets = UEditorEngine::IsUsingWorldAssets();
-
-	FString ExistingFilename;
-	const bool bPackageAlreadyExists = FPackageName::DoesPackageExist( PackageToSave->GetName(), NULL, &ExistingFilename );
-	if( !bIsMapPackage || bPackageAlreadyExists || bUsingWorldAssets )
+	// If the package already has a valid path to a non read-only location, use it to determine where the file should be saved
+	const bool bIncludeReadOnlyRoots = false;
+	const bool bIsValidPath = FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots);
+	if( bIsValidPath )
 	{
+		FString ExistingFilename;
+		const bool bPackageAlreadyExists = FPackageName::DoesPackageExist(PackageName, NULL, &ExistingFilename);
 		if (!bPackageAlreadyExists)
 		{
 			// Construct a filename from long package name.
 			const FString& FileExtension = bIsMapPackage ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
-			ExistingFilename = FPackageName::LongPackageNameToFilename(PackageToSave->GetName(), FileExtension);
+			ExistingFilename = FPackageName::LongPackageNameToFilename(PackageName, FileExtension);
 
 			// Check if we can use this filename.
 			FText ErrorText;
@@ -2093,8 +2096,12 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 			FinalPackageFilename = FString::Printf( TEXT("%s.%s"), *BaseFilename, *Extension );
 		}
 	}
-	else
+	else if ( bIsMapPackage )
 	{
+		// @todo Only maps should be allowed to change names at save time, for now.
+		// If this changes, there must be generic code to rename assets to the new name BEFORE saving to disk.
+		// Right now, all of this code is specific to maps
+
 		// There wont be a "not checked out from SCC but writable on disk" conflict if the package is new.
 		bOutPackageLocallyWritable = false;
 
@@ -2130,7 +2137,30 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		{
 			FString DefaultLocation = Directory;
 
-			if( FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename) )
+			bool bSaveFile = false;
+			if( UEditorEngine::IsUsingWorldAssets() )
+			{
+				FString DefaultPackagePath;
+				FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation, DefaultPackagePath);
+
+				FString PackageName;
+				bSaveFile = OpenLevelSaveAsDialog(
+					DefaultPackagePath,
+					FPaths::GetBaseFilename(FinalPackageFilename),
+					PackageName);
+
+				if (bSaveFile)
+				{
+					// Leave out the extension. It will be added below.
+					FinalPackageFilename = FPackageName::LongPackageNameToFilename(PackageName);
+				}
+			}
+			else
+			{
+				bSaveFile = FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename );
+			}
+
+			if( bSaveFile )
 			{
 				// If the supplied file name is missing an extension then give it the default package
 				// file extension.
@@ -2182,15 +2212,12 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		}
 	}
 
-	// The name of the package
-	FString PackageName = PackageToSave->GetName();
-
 	// attempt the save
 
 	while( bAttemptSave )
 	{
 		bool bWasSuccessful = false;
-		if ( bIsMapPackage && !bUsingWorldAssets )
+		if ( bIsMapPackage )
 		{
 			// have a Helper attempt to save the map
 			SaveOutput.Log("LogFileHelpers", ELogVerbosity::Log, FString::Printf(TEXT("Saving Map: %s"), *PackageName));
