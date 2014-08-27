@@ -794,6 +794,7 @@ struct FPostProcessSettings
 		SceneColorTint = FLinearColor(1, 1, 1);
 		SceneFringeIntensity = 0.0f;
 		SceneFringeSaturation = 0.5f;
+		// next value might get overwritten by r.DefaultFeature.Bloom
 		BloomIntensity = 1.0f;
 		BloomThreshold = 1.0f;
 		Bloom1Tint = FLinearColor(0.5f, 0.5f, 0.5f);
@@ -821,15 +822,17 @@ struct FPostProcessSettings
 		LPVTransmissionIntensity = 1.0f;
 		AutoExposureLowPercent = 80.0f;
 		AutoExposureHighPercent = 98.3f;
+		// next value might get overwritten by r.DefaultFeature.AutoExposure
 		AutoExposureMinBrightness = 0.03f;
+		// next value might get overwritten by r.DefaultFeature.AutoExposure
 		AutoExposureMaxBrightness = 2.0f;
 		AutoExposureBias = 0.0f;
 		AutoExposureSpeedUp = 3.0f;
 		AutoExposureSpeedDown = 1.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
-		// Note: We changed this from 1.0f to 0.0f for a faster default.
-		LensFlareIntensity = 0.0f;
+		// next value might get overwritten by r.DefaultFeature.LensFlare
+		LensFlareIntensity = 1.0f;
 		LensFlareTint = FLinearColor(1.0f, 1.0f, 1.0f);
 		LensFlareBokehSize = 3.0f;
 		LensFlareThreshold = 8.0f;
@@ -837,6 +840,7 @@ struct FPostProcessSettings
 		VignetteColor = FLinearColor(0.0f, 0.0f, 0.0f);
 		GrainIntensity = 0.0f;
 		GrainJitter = 0.0f;
+		// next value might get overwritten by r.DefaultFeature.AmbientOcclusion
 		AmbientOcclusionIntensity = .5f;
 		AmbientOcclusionStaticFraction = 1.0f;
 		AmbientOcclusionRadius = 40.0f;
@@ -873,6 +877,7 @@ struct FPostProcessSettings
 		LensFlareTints[5] = FLinearColor(0.9f, 1.0f, 0.8f, 0.27f);
 		LensFlareTints[6] = FLinearColor(1.0f, 0.8f, 0.4f, 0.22f);
 		LensFlareTints[7] = FLinearColor(0.9f, 0.7f, 0.7f, 0.15f);
+		// next value might get overwritten by r.DefaultFeature.MotionBlur
 		MotionBlurAmount = 0.5f;
 		MotionBlurMax = 5.0f;
 		MotionBlurPerObjectSize = 0.5f;

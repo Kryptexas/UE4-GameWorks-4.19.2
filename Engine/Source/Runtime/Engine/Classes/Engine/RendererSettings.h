@@ -152,6 +152,31 @@ class ENGINE_API URendererSettings
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))
 	TEnumAsByte<ECustomDepth::Type> CustomDepth;
 
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom is enabled by default",
+		ToolTip = "Whether the default for Bloom is enabled or not (postprocess volume/camera/game setting still can enable)"))
+	uint32 bDefaultFeatureBloom : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.AmbientOcclusion", DisplayName = "Ambient Occlusion is enabled by default",
+		ToolTip = "Whether the default for AmbientOcclusion is enabled or not (postprocess volume/camera/game setting still can enable)"))
+	uint32 bDefaultFeatureAmbientOcclusion : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure is enabled by default",
+		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting still can enable)"))
+	uint32 bDefaultFeatureAutoExposure : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.MotionBlur", DisplayName = "Motion Blur is enabled by default",
+		ToolTip = "Whether the default for MotionBlur is enabled or not (postprocess volume/camera/game setting still can enable)"))
+	uint32 bDefaultFeatureMotionBlur : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.LensFlare", DisplayName = "Lens Flares (Image based) are enabled by default",
+		ToolTip = "Whether the default for LensFlare is enabled or not (postprocess volume/camera/game setting still can enable)"))
+	uint32 bDefaultFeatureLensFlare : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
 		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass."))

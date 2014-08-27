@@ -60,6 +60,44 @@ static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
 	TEXT(" 0.01:smallest .. 1.0:normal (default), <1:smaller, >1:larger"),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 
+// Engine default (project settings):
+
+static TAutoConsoleVariable<int32> CVarDefaultBloom(
+	TEXT("r.DefaultFeature.Bloom"),
+	1,
+	TEXT("Engine default (project setting) for Bloom is\n")
+	TEXT(" 0: off, set BloomIntensity  to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusion(
+	TEXT("r.DefaultFeature.AmbientOcclusion"),
+	1,
+	TEXT("Engine default (project setting) for AmbientOcclusion is\n")
+	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
+	TEXT("r.DefaultFeature.AutoExposure"),
+	1,
+	TEXT("Engine default (project setting) for AutoExposure is\n")
+	TEXT(" 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1 (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultMotionBlur(
+	TEXT("r.DefaultFeature.MotionBlur"),
+	1,
+	TEXT("Engine default (project setting) for MotionBlur is\n")
+	TEXT(" 0: off, sets MotionBlurAmount to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 1: on (default)"));
+
+// off by default for better performance and less distractions
+static TAutoConsoleVariable<int32> CVarDefaultLensFlare(
+	TEXT("r.DefaultFeature.LensFlare"),
+	0,
+	TEXT("Engine default (project setting) for LensFlare is\n")
+	TEXT(" 0: off, sets LensFlareIntensity to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 1: on (default)"));
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -808,6 +846,31 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 
 	// Set values before any override happens.
 	FinalPostProcessSettings.SetBaseValues();
+
+	// project settings might want to have different defaults
+	{
+		if(!CVarDefaultBloom.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.BloomIntensity = 0;
+		}
+		if (!CVarDefaultAmbientOcclusion.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.AmbientOcclusionIntensity = 0;
+		}
+		if (!CVarDefaultAutoExposure.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.AutoExposureMinBrightness = 1;
+			FinalPostProcessSettings.AutoExposureMaxBrightness = 1;
+		}
+		if (!CVarDefaultMotionBlur.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.MotionBlurAmount = 0;
+		}
+		if (!CVarDefaultLensFlare.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.LensFlareIntensity = 0;
+		}
+	}
 
 	if(State)
 	{
