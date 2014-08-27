@@ -67,7 +67,7 @@ public:
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,Color),
 			sizeof(FPaperSpriteVertex),
-			VET_Float4
+			VET_Color
 			);
 		Data.TextureCoordinates.Empty();
 		Data.TextureCoordinates.Add(FVertexStreamComponent(

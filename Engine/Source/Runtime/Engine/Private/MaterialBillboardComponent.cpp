@@ -10,7 +10,7 @@ struct FMaterialSpriteVertex
 	FVector Position;
 	FPackedNormal TangentX;
 	FPackedNormal TangentZ;
-	FLinearColor Color;
+	FColor Color;
 	FVector2D TexCoords;
 };
 
@@ -58,7 +58,7 @@ public:
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FMaterialSpriteVertex,Color),
 			sizeof(FMaterialSpriteVertex),
-			VET_Float4
+			VET_Color
 			);
 		Data.TextureCoordinates.Empty();
 		Data.TextureCoordinates.Add(FVertexStreamComponent(

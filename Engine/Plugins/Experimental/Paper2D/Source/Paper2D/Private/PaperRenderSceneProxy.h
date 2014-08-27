@@ -13,7 +13,7 @@ struct PAPER2D_API FPaperSpriteVertex
 	FVector Position;
 	FPackedNormal TangentX;
 	FPackedNormal TangentZ;
-	FLinearColor Color;
+	FColor Color;
 	FVector2D TexCoords;
 
 	FPaperSpriteVertex() {}
