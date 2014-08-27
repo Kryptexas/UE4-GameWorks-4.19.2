@@ -396,11 +396,11 @@ public:
 	/** Set this body to be fixed (kinematic) or not. */
 	void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false);
 	/** Makes sure the current kinematic state matches the simulate flag */
-	void UpdateInstanceSimulatePhysics(bool bIgnoreOwner = false);
+	void UpdateInstanceSimulatePhysics();
 	/** Returns true if this body is simulating, false if it is fixed (kinematic) */
-	bool IsInstanceSimulatingPhysics(bool bIgnoreOwner = false);
+	bool IsInstanceSimulatingPhysics();
 	/** Should Simulate Physics **/
-	bool ShouldInstanceSimulatingPhysics(bool bIgnoreOwner=false);
+	bool ShouldInstanceSimulatingPhysics();
 	/** Returns whether this body is awake */
 	bool IsInstanceAwake() const;
 	/** Wake this body */

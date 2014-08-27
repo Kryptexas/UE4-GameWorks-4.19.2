@@ -109,7 +109,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			BodyInstance = Bodies[BodyIndex];
 
 			//if simulated body copy back and blend with animation
-			if(BodyInstance->IsInstanceSimulatingPhysics(true))
+			if(BodyInstance->IsInstanceSimulatingPhysics())
 			{
 				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform();
 
@@ -312,7 +312,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 				FBodyInstance* BodyInst = Bodies[i];
 				check(BodyInst);
 
-				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true)))
+				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics()))
 				{
 					// Find the graphics bone index that corresponds to this physics body.
 					FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;

@@ -1955,11 +1955,11 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 	return bSuccess;
 }
 
-void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
+void FBodyInstance::UpdateInstanceSimulatePhysics()
 {
 	// In skeletal case, we need both our bone and skelcomponent flag to be true.
 	// This might be 'and'ing us with ourself, but thats fine.
-	const bool bUseSimulate = IsInstanceSimulatingPhysics(bIgnoreParent);
+	const bool bUseSimulate = IsInstanceSimulatingPhysics();
 	bool bInitialized = false;
 #if WITH_PHYSX
 	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
@@ -2061,26 +2061,17 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 		}
 	}
 
-	UpdateInstanceSimulatePhysics(true);
+	UpdateInstanceSimulatePhysics();
 }
 
-bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
+bool FBodyInstance::IsInstanceSimulatingPhysics()
 {
 	// if I'm simulating or owner is simulating
-	return ShouldInstanceSimulatingPhysics(bIgnoreOwner) && IsValidBodyInstance();
+	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
 
-bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
+bool FBodyInstance::ShouldInstanceSimulatingPhysics()
 {
-	// if I'm simulating or owner is simulating
-	if (OwnerComponent != NULL && BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
-	{
-		// if derive from owner, and owner is simulating, this should simulate
-		return OwnerComponent->BodyInstance.bSimulatePhysics;
-
-		// or else, it should look its own setting
-	}
-
 	return bSimulatePhysics;
 }
 

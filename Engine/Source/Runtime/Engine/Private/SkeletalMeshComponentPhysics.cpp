@@ -506,17 +506,27 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		return;
 	}
 
-	// skeletalmeshcomponent BodyInstance is data class
-	// we don't instantiate BodyInstance but Bodies
-	// however this information is used for Owner data
 	BodyInstance.bSimulatePhysics = bSimulate;
 
 	// enable blending physics
 	bBlendPhysics = bSimulate;
 
-	for(int32 i=0; i<Bodies.Num(); i++)
+	//Go through body setups and see which bodies should be turned on and off
+	if (UPhysicsAsset * PhysAsset = GetPhysicsAsset())
 	{
-		Bodies[i]->UpdateInstanceSimulatePhysics();
+		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+		{
+			if (FBodyInstance * BodyInstance = Bodies[BodyIdx])
+			{
+				if (UBodySetup * BodySetup = PhysAsset->BodySetup[BodyIdx])
+				{
+					if (BodySetup->PhysicsType == EPhysicsType::PhysType_Default)
+					{
+						BodyInstance->SetInstanceSimulatePhysics(bSimulate);
+					}
+				}
+			}
+		}
 	}
 }
 
