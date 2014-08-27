@@ -21,6 +21,8 @@ enum class ETextHistoryType
 class CORE_API FTextHistory
 {
 public:
+	friend class FTextSnapshot;
+
 	FTextHistory();
 
 	virtual ~FTextHistory() {};

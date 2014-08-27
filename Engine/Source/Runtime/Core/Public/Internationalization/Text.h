@@ -351,6 +351,7 @@ public:
 	static const FText UnEscapedCloseBraceOutsideOfArgumentBlock;
 	static const FText SerializationFailureError;
 
+	friend class FTextSnapshot;
 	friend class FTextInspector;
 	friend class FInternationalization;
 	friend class UStruct;
@@ -364,6 +365,31 @@ public:
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
 #endif
+};
+
+/** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
+class CORE_API FTextSnapshot
+{
+public:
+	FTextSnapshot();
+
+	explicit FTextSnapshot(const FText& InText);
+
+	/** Check to see whether the given text is identical to the text this snapshot was made from */
+	bool IdenticalTo(const FText& InText) const;
+
+	/** Check to see whether the display string of the given text is identical to the display string this snapshot was made from */
+	bool IsDisplayStringEqualTo(const FText& InText) const;
+
+private:
+	/** A pointer to the visible display string for the FText we took a snapshot of (used for an efficient pointer compare) */
+	TSharedPtr<FString, ESPMode::ThreadSafe> DisplayStringPtr;
+
+	/** Revision index of the history of the FText we took a snapshot of, or INDEX_NONE if there was no history */
+	int32 HistoryRevision;
+
+	/** Flags with various information on what sort of FText we took a snapshot of */
+	int32 Flags;
 };
 
 class CORE_API FTextInspector

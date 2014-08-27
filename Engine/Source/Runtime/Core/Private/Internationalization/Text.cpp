@@ -797,4 +797,42 @@ bool FText::IdenticalTo( const FText& Other ) const
 	return DisplayString == Other.DisplayString;
 }
 
+FTextSnapshot::FTextSnapshot()
+	: DisplayStringPtr()
+	, HistoryRevision(INDEX_NONE)
+	, Flags(0)
+{
+}
+
+FTextSnapshot::FTextSnapshot(const FText& InText)
+	: DisplayStringPtr(InText.DisplayString)
+	, HistoryRevision(InText.History.IsValid() ? InText.History->Revision : INDEX_NONE)
+	, Flags(InText.Flags)
+{
+}
+
+bool FTextSnapshot::IdenticalTo(const FText& InText) const
+{
+	// Make sure the string is up-to-date with the current culture
+	// (this usually happens when ToString() is called)
+	InText.Rebuild();
+
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return DisplayStringPtr == InText.DisplayString
+		&& HistoryRevision == InHistoryRevision
+		&& Flags == InText.Flags;
+}
+
+bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
+{
+	// Make sure the string is up-to-date with the current culture
+	// (this usually happens when ToString() is called)
+	InText.Rebuild();
+
+	// We have to assume that the display string has changed if the history of the text has changed
+	// (due to a culture change), as we no longer have the old display string to compare against
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return HistoryRevision == InHistoryRevision && DisplayStringPtr.IsValid() && DisplayStringPtr->Equals(InText.ToString(), ESearchCase::CaseSensitive);
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -138,8 +138,8 @@ private:
 	/** The text displayed in this text block */
 	TAttribute< FText > BoundText;
 
-	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
-	FText BoundTextLastTick;
+	/** The state of BoundText last Tick() (used to allow updates when the text is changed) */
+	FTextSnapshot BoundTextLastTick;
 
 	/** The marshaller used to set the Text text in the text layout. */
 	TSharedPtr< FRichTextLayoutMarshaller > Marshaller;

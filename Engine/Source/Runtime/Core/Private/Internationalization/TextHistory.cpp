@@ -41,10 +41,14 @@ void FTextHistory::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, E
 
 void FTextHistory::Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString)
 {
-	if(IsOutOfDate())
-	{
-		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
+	const bool bIsOutOfDate = IsOutOfDate();
 
+	// FTextHistory_Base will never report being out-of-date, but we need to keep the history revision in sync
+	// with the head culture regardless so that FTextSnapshot::IdenticalTo still works correctly
+	Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
+
+	if(bIsOutOfDate)
+	{
 		InDisplayString.Get() = FTextInspector::GetDisplayString(ToText(false));
 	}
 }

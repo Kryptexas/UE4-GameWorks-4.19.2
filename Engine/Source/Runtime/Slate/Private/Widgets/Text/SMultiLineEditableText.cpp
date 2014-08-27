@@ -264,7 +264,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 		// Update the cached BoundText value to prevent it triggering another SetEditableText update again next Tick
 		if (BoundText.IsBound())
 		{
-			BoundTextLastTick = TextToSet;
+			BoundTextLastTick = FTextSnapshot(TextToSet);
 		}
 	}
 
@@ -327,7 +327,7 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	// Update the cached BoundText value to prevent it triggering another SetEditableText update again next Tick
 	if (BoundText.IsBound())
 	{
-		BoundTextLastTick = TextToSet;
+		BoundTextLastTick = FTextSnapshot(TextToSet);
 	}
 
 	// Update the internal editable text
@@ -1874,10 +1874,10 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 		bool bHasSetText = false;
 
 		const FText& TextToSet = BoundText.Get(FText::GetEmpty());
-		if (BoundText.IsBound() && !BoundTextLastTick.IdenticalTo(TextToSet))
+		if (!BoundTextLastTick.IdenticalTo(TextToSet))
 		{
 			// The pointer used by the bound text has changed, however the text may still be the same - check that now
-			if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+			if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
 			{
 				// The source text has changed, so update the internal editable text
 				bHasSetText = true;
@@ -1885,7 +1885,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 			}
 
 			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
-			BoundTextLastTick = TextToSet;
+			BoundTextLastTick = FTextSnapshot(TextToSet);
 		}
 
 		if (!bHasSetText && Marshaller->IsDirty())

@@ -55,17 +55,17 @@ void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 	bool bRequiresTextUpdate = false;
 	const FText& TextToSet = GetText();
-	if (BoundText.IsBound() && !BoundTextLastTick.IdenticalTo(TextToSet))
+	if (!BoundTextLastTick.IdenticalTo(TextToSet))
 	{
 		// The pointer used by the bound text has changed, however the text may still be the same - check that now
-		if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+		if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
 		{
 			// The source text has changed, so update the internal editable text
 			bRequiresTextUpdate = true;
 		}
 
 		// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
-		BoundTextLastTick = TextToSet;
+		BoundTextLastTick = FTextSnapshot(TextToSet);
 	}
 
 	if (bRequiresTextUpdate || Marshaller->IsDirty())
@@ -141,7 +141,7 @@ void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 	// Update the cached BoundText value to prevent it triggering another SetText update again next Tick
 	if (BoundText.IsBound())
 	{
-		BoundTextLastTick = InText;
+		BoundTextLastTick = FTextSnapshot(InText);
 	}
 
 	TextLayout->ClearLines();
