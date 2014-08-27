@@ -379,9 +379,13 @@ void FIntroTutorials::SummonTutorialWindowForPage(const FString& Path)
 
 		TutorialWindow = Window;
 
-		if(RootWindow.IsValid())
+		if(RootWindow.IsValid() && !PLATFORM_MAC)
 		{
 			FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), RootWindow.Pin().ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(Window.ToSharedRef());
 		}
 
 		// tutorial Widget

@@ -19,23 +19,20 @@ UEditorTutorialFactory::UEditorTutorialFactory(const class FPostConstructInitial
 
 bool UEditorTutorialFactory::ConfigureProperties()
 {
+	// show import dialog
+	TSharedRef<SWindow> Window = SNew(SWindow)
+			.Title(LOCTEXT("WindowTitle", "Import Tutorial"))
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::Autosized);	
+
+	ImporterDialog = SNew(SEditorTutorialImporter)
+		.ParentWindow(Window);
+
+	Window->SetContent(ImporterDialog.ToSharedRef());
+
 	TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-	if(RootWindow.IsValid())
-	{
-		// show import dialog
-		TSharedRef<SWindow> Window = SNew(SWindow)
-				.Title(LOCTEXT("WindowTitle", "Import Tutorial"))
-				.SupportsMaximize(false)
-				.SupportsMinimize(false)
-				.SizingRule(ESizingRule::Autosized);	
-
-		ImporterDialog = SNew(SEditorTutorialImporter)
-			.ParentWindow(Window);
-
-		Window->SetContent(ImporterDialog.ToSharedRef());
-
-		FSlateApplication::Get().AddModalWindow(Window, RootWindow.ToSharedRef());
-	}
+	FSlateApplication::Get().AddModalWindow(Window, RootWindow);
 
 	return true;
 }
