@@ -691,7 +691,7 @@ namespace APIDocTool
 					}
 					if (!Utility.IsNullOrWhitespace(FullDescription))
 					{
-						Writer.WriteLine(BriefDescription);
+						Writer.WriteLine(FullDescription);
 					}
 					Writer.LeaveSection();
 				}
