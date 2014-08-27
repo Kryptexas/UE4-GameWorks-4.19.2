@@ -65,38 +65,47 @@ static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
 static TAutoConsoleVariable<int32> CVarDefaultBloom(
 	TEXT("r.DefaultFeature.Bloom"),
 	1,
-	TEXT("Engine default (project setting) for Bloom is\n")
-	TEXT(" 0: off, set BloomIntensity  to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT("Engine default (project setting) for Bloom is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, set BloomIntensity to 0\n")
 	TEXT(" 1: on (default)"));
 
 static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusion(
 	TEXT("r.DefaultFeature.AmbientOcclusion"),
 	1,
-	TEXT("Engine default (project setting) for AmbientOcclusion is\n")
-	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT("Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0\n")
 	TEXT(" 1: on (default)"));
 
 static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
 	TEXT("r.DefaultFeature.AutoExposure"),
 	1,
-	TEXT("Engine default (project setting) for AutoExposure is\n")
-	TEXT(" 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1 (postprocess volume/camera/game setting still can override)\n")
+	TEXT("Engine default (project setting) for AutoExposure is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1\n")
 	TEXT(" 1: on (default)"));
 
 static TAutoConsoleVariable<int32> CVarDefaultMotionBlur(
 	TEXT("r.DefaultFeature.MotionBlur"),
 	1,
-	TEXT("Engine default (project setting) for MotionBlur is\n")
-	TEXT(" 0: off, sets MotionBlurAmount to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT("Engine default (project setting) for MotionBlur is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets MotionBlurAmount to 0\n")
 	TEXT(" 1: on (default)"));
 
 // off by default for better performance and less distractions
 static TAutoConsoleVariable<int32> CVarDefaultLensFlare(
 	TEXT("r.DefaultFeature.LensFlare"),
 	0,
-	TEXT("Engine default (project setting) for LensFlare is\n")
-	TEXT(" 0: off, sets LensFlareIntensity to 0 (postprocess volume/camera/game setting still can override)\n")
+	TEXT("Engine default (project setting) for LensFlare is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets LensFlareIntensity to 0\n")
 	TEXT(" 1: on (default)"));
+
+// see EAntiAliasingMethod
+static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
+	TEXT("r.DefaultFeature.AntiAliasing"),
+	2,
+	TEXT("Engine default (project setting) for AntiAliasingMethod is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off (no anti-aliasing)\n")
+	TEXT(" 1: FXAA (faster than TemporalAA but much more shimmering for non static cases)\n")
+	TEXT(" 2: TemporalAA (default)"));
 
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
@@ -869,6 +878,14 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 		if (!CVarDefaultLensFlare.GetValueOnGameThread())
 		{
 			FinalPostProcessSettings.LensFlareIntensity = 0;
+		}
+
+		{
+			int32 Value = CVarDefaultAntiAliasing.GetValueOnGameThread();
+			if (Value >= 0 && Value < AAM_MAX)
+			{
+				FinalPostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+			}
 		}
 	}
 

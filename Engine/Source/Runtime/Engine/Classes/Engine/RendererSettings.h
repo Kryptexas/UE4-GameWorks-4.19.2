@@ -67,6 +67,20 @@ namespace EEarlyZPass
 }
 
 
+/** used by FPostProcessSettings Anti-aliasing */
+UENUM()
+namespace EAntiAliasingMethodUI
+{
+	enum Type
+	{
+		AAM_None UMETA(DisplayName = "None"),
+		AAM_FXAA UMETA(DisplayName = "FXAA"),
+		AAM_TemporalAA UMETA(DisplayName = "TemporalAA"),
+		AAM_MAX,
+	};
+}
+
+
 /**
  * Implements project settings for the Rendering sub-system.
  */
@@ -177,7 +191,12 @@ class ENGINE_API URendererSettings
 		ToolTip = "Whether the default for LensFlare is enabled or not (postprocess volume/camera/game setting still can enable)"))
 	uint32 bDefaultFeatureLensFlare : 1;
 
-	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.DefaultFeature.AntiAliasing", DisplayName = "Anti Aliasing method that is used by default",
+		ToolTip = "What anti-aliasing mode is used by default (postprocess volume/camera/game setting still can enable)"))
+	TEnumAsByte<EAntiAliasingMethodUI::Type> DefaultFeatureAntiAliasing;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
 		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass."))
 	TEnumAsByte<EEarlyZPass::Type> EarlyZPass;
