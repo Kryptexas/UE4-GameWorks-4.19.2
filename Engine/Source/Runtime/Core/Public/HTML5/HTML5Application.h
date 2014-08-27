@@ -35,4 +35,6 @@ private:
 
 	TSharedPtr< class FHTML5InputInterface > InputInterface;
 	TSharedRef< class FGenericWindow > ApplicationWindow;
+
+	int32 WarmUpTicks; 
 };
