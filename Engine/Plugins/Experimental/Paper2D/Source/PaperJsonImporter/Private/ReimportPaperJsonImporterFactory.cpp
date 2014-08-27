@@ -3,6 +3,7 @@
 #pragma once
 #include "PaperJsonImporterPrivatePCH.h"
 #include "ReimportPaperJsonImporterFactory.h"
+#include "PaperSpriteSheet.h"
 
 #define LOCTEXT_NAMESPACE "PaperJsonImporter"
 

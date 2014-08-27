@@ -5,6 +5,8 @@
 #include "PaperJsonImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
 
+class UPaperSpriteSheet;
+
 //////////////////////////////////////////////////////////////////////////
 // FSpriteFrame
 

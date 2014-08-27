@@ -4,6 +4,7 @@
 #include "Paper2DClasses.h"
 #include "Json.h"
 #include "PaperJSONHelpers.h"
+#include "PaperJsonSpriteSheetImporter.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"

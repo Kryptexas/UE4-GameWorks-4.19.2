@@ -8,6 +8,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "PaperFlipbookFactory.h"
+#include "PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
