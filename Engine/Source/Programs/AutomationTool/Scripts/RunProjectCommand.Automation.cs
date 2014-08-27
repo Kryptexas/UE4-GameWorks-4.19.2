@@ -627,7 +627,7 @@ public partial class Project : CommandUtils
                                     else
                                     {
                                         // use default port
-                                        FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                                        TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 								}
 							}
@@ -671,7 +671,7 @@ public partial class Project : CommandUtils
                                     else
                                     {
                                         // use default port
-                                        FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                                        TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 								}
 							}
@@ -707,7 +707,7 @@ public partial class Project : CommandUtils
                 else
                 {
                     // use default port
-                    FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                    TempCmdLine += LocalHost;
                 }
 				TempCmdLine += " ";
 

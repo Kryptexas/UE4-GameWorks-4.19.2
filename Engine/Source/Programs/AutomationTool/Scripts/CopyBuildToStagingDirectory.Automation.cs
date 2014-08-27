@@ -814,7 +814,7 @@ public partial class Project : CommandUtils
                 else
                 {
                     // use default port
-                    FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                    FileHostParams += LocalHost;
                 }
 				FileHostParams += " ";
 			}
