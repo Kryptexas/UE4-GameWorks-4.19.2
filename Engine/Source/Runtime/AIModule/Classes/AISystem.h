@@ -10,6 +10,7 @@
 class UBehaviorTreeManager;
 class UEnvQueryManager;
 class UAIPerceptionSystem;
+class UAIAsyncTaskBlueprintProxy;
 
 UCLASS(config=Engine)
 class AIMODULE_API UAISystem : public UAISystemBase
@@ -27,6 +28,9 @@ protected:
 
 	UPROPERTY(Transient)
 	UAIPerceptionSystem* PerceptionSystem;
+
+	UPROPERTY(Transient)
+	TArray<class UAIAsyncTaskBlueprintProxy*> AllProxyObjects;
 
 public:
 	virtual ~UAISystem();
@@ -78,6 +82,10 @@ public:
 
 	virtual UWorld* GetWorld() const override { return GetOuterWorld(); }
 	
+	FORCEINLINE void AddReferenceFromProxyObject(UAIAsyncTaskBlueprintProxy* BlueprintProxy) { AllProxyObjects.AddUnique(BlueprintProxy); }
+
+	FORCEINLINE void RemoveReferenceToProxyObject(UAIAsyncTaskBlueprintProxy* BlueprintProxy) { AllProxyObjects.RemoveSwap(BlueprintProxy); }
+
 	//----------------------------------------------------------------------//
 	// cheats
 	//----------------------------------------------------------------------//
