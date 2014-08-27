@@ -181,7 +181,7 @@ void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 
 	UE_LOG(LogMac, Log,  TEXT("LaunchURL %s %s"), URL, Parms?Parms:TEXT("") );
 	NSString* Url = (NSString*)FPlatformString::TCHARToCFString( URL );
-	NSURL* UrlToOpen = [NSURL URLWithString: ([Url hasPrefix: @"http://"] || [Url hasPrefix: @"https://"] || [Url hasPrefix: @"file://"]) ? Url : [NSString stringWithFormat: @"http://%@", Url]];
+	NSURL* UrlToOpen = [NSURL URLWithString: ([Url hasPrefix: @"http://"] || [Url hasPrefix: @"https://"] || [Url hasPrefix: @"file://"] || [Url hasPrefix: @"mailto:"]) ? Url : [NSString stringWithFormat: @"http://%@", Url]];
 	[[NSWorkspace sharedWorkspace] openURL: UrlToOpen];
 	CFRelease( (CFStringRef)Url );
 	if( Error )
