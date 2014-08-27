@@ -96,10 +96,13 @@ void UChildActorComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInsta
 	if (ChildActor)
 	{
 		// Only rename if it is safe to
-		const FString ChildActorNameString = ChildActorName.ToString();
-		if (ChildActor->Rename(*ChildActorName.ToString(), NULL, REN_Test))
+		if(ChildActorName != NAME_None)
 		{
-			ChildActor->Rename(*ChildActorName.ToString(), NULL, REN_DoNotDirty);
+			const FString ChildActorNameString = ChildActorName.ToString();
+			if (ChildActor->Rename(*ChildActorNameString, NULL, REN_Test))
+			{
+				ChildActor->Rename(*ChildActorNameString, NULL, REN_DoNotDirty);
+			}
 		}
 
 		USceneComponent* ChildActorRoot = ChildActor->GetRootComponent();
