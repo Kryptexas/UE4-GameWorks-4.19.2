@@ -371,6 +371,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UGameplayAbility* GiveAbility(UGameplayAbility* Ability, int32 InputID);
 
+	/** Wipes all 'given' abilities. */
+	void ClearAllAbilities();
+
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
 	void OnGiveAbility(UGameplayAbility* Ability, int32 InputID);
 

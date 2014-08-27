@@ -107,6 +107,14 @@ UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability
 	return Ability;
 }
 
+void UAbilitySystemComponent::ClearAllAbilities()
+{
+	check(IsOwnerActorAuthoritative());	// Should be called on authority
+
+	// Note we aren't marking any old abilities pending kill. This shouldn't matter since they will be garbage collected.
+	ActivatableAbilities.Empty(ActivatableAbilities.Num());
+}
+
 void UAbilitySystemComponent::OnGiveAbility(UGameplayAbility* Ability, int32 InputID)
 {
 	for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
