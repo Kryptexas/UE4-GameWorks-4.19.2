@@ -136,6 +136,14 @@ void FMacTextInputMethodSystem::UnregisterContext(const TSharedRef<ITextInputMet
 		return;
 	}
 	
+	TSharedPtr<ITextInputMethodChangeNotifier> Notifier(NotifierRef.Pin());
+	FTextInputMethodChangeNotifier* MacNotifier = (FTextInputMethodChangeNotifier*)Notifier.Get();
+	TSharedPtr<FGenericWindow> GenericWindow = MacNotifier->GetContextWindow();
+	if(GenericWindow.IsValid())
+	{
+		DeactivateContext(Context);
+	}
+	
 	ContextMap.Remove(Context);
 }
 
