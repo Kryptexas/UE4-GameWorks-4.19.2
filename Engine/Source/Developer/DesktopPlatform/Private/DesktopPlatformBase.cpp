@@ -190,7 +190,8 @@ bool FDesktopPlatformBase::IsPreferredEngineIdentifier(const FString &Identifier
 
 bool FDesktopPlatformBase::IsStockEngineRelease(const FString &Identifier)
 {
-	return Identifier.Len() > 0 && FChar::IsDigit(Identifier[0]);
+	FGuid Guid;
+	return !FGuid::Parse(Identifier, Guid);
 }
 
 bool FDesktopPlatformBase::IsSourceDistribution(const FString &EngineRootDir)

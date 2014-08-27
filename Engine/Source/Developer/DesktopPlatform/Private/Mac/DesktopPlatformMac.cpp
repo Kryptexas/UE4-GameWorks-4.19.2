@@ -589,7 +589,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 				{
 					if (!OutInstallations.FindKey(EngineDir))
 					{
-						EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+						EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
 						Section.AddUnique(*EngineId, EngineDir);
 						ConfigFile.Dirty = true;
 					}
