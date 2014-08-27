@@ -81,7 +81,7 @@ class UFont : public UObject
 
 	/** List of characters in the font.  For a MultiFont, this will include all characters in all sub-fonts!  Thus,
 		the number of characters in this array isn't necessary the number of characters available in the font */
-	UPROPERTY(EditAnywhere, editinline, Category=Font)
+	UPROPERTY(EditAnywhere, Category=Font)
 	TArray<struct FFontCharacter> Characters;
 
 	/** Textures that store this font's glyph image data */

@@ -157,7 +157,7 @@ class UDestructibleFractureSettings : public UObject
 	int32									CellSiteCount;
 
 	/** Stored interior material data.  Just need one as we only support Voronoi splitting. */
-	UPROPERTY(EditAnywhere, transient, editinline, Category=General)
+	UPROPERTY(EditAnywhere, transient, Category=General)
 	FFractureMaterial						FractureMaterialDesc;
 
 	/** Random seed for reproducibility */

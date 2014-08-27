@@ -134,7 +134,7 @@ struct INTROTUTORIALS_API FTutorialWidgetContent
 	}
 
 	/** Content to associate with widget */
-	UPROPERTY(EditAnywhere, EditInline, Category="Widget")
+	UPROPERTY(EditAnywhere, Category="Widget")
 	FTutorialContent Content;
 
 	/** Anchor for content widget to highlight */
@@ -165,10 +165,10 @@ struct INTROTUTORIALS_API FTutorialStage
 	UPROPERTY(EditAnywhere, Category="Stage")
 	FName Name;
 
-	UPROPERTY(EditAnywhere, EditInline, Category="Stage")
+	UPROPERTY(EditAnywhere, Category="Stage")
 	FTutorialContent Content;
 
-	UPROPERTY(EditAnywhere, EditInline, Category="Stage")
+	UPROPERTY(EditAnywhere, Category="Stage")
 	TArray<FTutorialWidgetContent> WidgetContent;
 };
 
@@ -195,7 +195,7 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	FTutorialContent SummaryContent;
 
 	/** The various stages of this tutorial */
-	UPROPERTY(EditAnywhere, EditInline, Category="Stages")
+	UPROPERTY(EditAnywhere, Category="Stages")
 	TArray<FTutorialStage> Stages;
 
 	/** Tutorial to optionally chain onto after this tutorial completes */

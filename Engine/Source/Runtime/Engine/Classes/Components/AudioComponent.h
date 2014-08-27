@@ -101,7 +101,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	class USoundBase* Sound;
 
 	/** Array of per-instance parameters for this AudioComponent. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, Category=Sound, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sound, AdvancedDisplay)
 	TArray<struct FAudioComponentParam> InstanceParameters;
 
 	/** Optional sound group this AudioComponent belongs to */

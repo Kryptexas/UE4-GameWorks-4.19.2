@@ -9583,35 +9583,72 @@ static TAutoConsoleVariable<int32> CVarDumpCopyPropertiesForUnrelatedObjects(
 struct FFindEditInlineSubobjectHelper
 {
 	template<typename T>
-	static void Get(const UObject* InObject, T& OutObjects)
+	static void Get(const UStruct* Struct, const uint8* ContainerAddress, T& OutObjects)
 	{
-		const UClass* Class = InObject ? InObject->GetClass() : NULL;
-		for (UProperty* Prop = (Class ? Class->RefLink : NULL); Prop; Prop = Prop->NextRef)
+		check(ContainerAddress);
+		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
 			if (Prop->HasAnyPropertyFlags(CPF_EditInline))
 			{
+				// Collect Objects referenced in EditInline properties
+
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
 				if (ObjectProperty)
 				{
-					auto ObjectValue = ObjectProperty->GetObjectPropertyValue_InContainer(InObject);
-					if (ObjectValue)
+					for (int32 ArrayIdx = 0; ArrayIdx < Prop->ArrayDim; ++ArrayIdx)
 					{
-						OutObjects.Add(ObjectValue);
-					}
-					continue;
-				}
-
-				auto ArrayProperty = Cast<const UArrayProperty>(Prop);
-				auto InnerObjectProperty = ArrayProperty ? Cast<const UObjectProperty>(ArrayProperty->Inner) : NULL;
-				if (InnerObjectProperty)
-				{
-					FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, InObject);
-					for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-					{
-						UObject** ObjectValuePtr = (UObject**)(ArrayHelper.GetRawPtr(ElementIndex));
-						if (ObjectValuePtr && *ObjectValuePtr)
+						auto ObjectValue = ObjectProperty->GetObjectPropertyValue_InContainer(ContainerAddress, ArrayIdx);
+						if (ObjectValue)
 						{
-							OutObjects.Add(*ObjectValuePtr);
+							OutObjects.Add(ObjectValue);
+						}
+					}
+				}
+				else
+				{
+					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+					auto InnerObjectProperty = ArrayProperty ? Cast<const UObjectProperty>(ArrayProperty->Inner) : NULL;
+					if (InnerObjectProperty)
+					{
+						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+						{
+							UObject** ObjectValuePtr = reinterpret_cast<UObject**>(ArrayHelper.GetRawPtr(ElementIndex));
+							if (ObjectValuePtr && *ObjectValuePtr)
+							{
+								OutObjects.Add(*ObjectValuePtr);
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				// Look for EditInline properties in structs varaibles
+
+				auto StructProperty = Cast<const UStructProperty>(Prop);
+				if (StructProperty && StructProperty->Struct)
+				{
+					for (int32 ArrayIdx = 0; ArrayIdx < Prop->ArrayDim; ++ArrayIdx)
+					{
+						const uint8* ValueAddress = StructProperty->ContainerPtrToValuePtr<uint8>(ContainerAddress, ArrayIdx);
+						Get(StructProperty->Struct, ValueAddress, OutObjects);
+					}
+				}
+				else
+				{
+					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+					auto InnerStructProperty = ArrayProperty ? Cast<const UStructProperty>(ArrayProperty->Inner) : NULL;
+					if (InnerStructProperty && InnerStructProperty->Struct)
+					{
+						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+						{
+							const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
+							if (ValueAddress)
+							{
+								Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
+							}
 						}
 					}
 				}
@@ -9758,11 +9795,11 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	{
 		TSet<UObject*> OldEditInlineObjects;
-		FFindEditInlineSubobjectHelper::Get(OldObject, OldEditInlineObjects);
+		FFindEditInlineSubobjectHelper::Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
 		if (OldEditInlineObjects.Num())
 		{
-			TArray<UObject*> NewEditInlineObjects;
-			FFindEditInlineSubobjectHelper::Get(NewObject, NewEditInlineObjects);
+			TSet<UObject*> NewEditInlineObjects;
+			FFindEditInlineSubobjectHelper::Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
 			// if object exist in both sets, it's outer is old object, and its class is "editinline"
 			for (auto Obj : NewEditInlineObjects)
 			{

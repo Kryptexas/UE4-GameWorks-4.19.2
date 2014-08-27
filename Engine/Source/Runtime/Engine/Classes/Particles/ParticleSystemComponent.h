@@ -295,7 +295,7 @@ public:
 	 *	Array holding name instance parameters for this ParticleSystemComponent.
 	 *	Parameters can be used in Cascade using DistributionFloat/VectorParticleParameters.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, Category=Particles)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	TArray<struct FParticleSysParam> InstanceParameters;
 
 	UPROPERTY(BlueprintAssignable)

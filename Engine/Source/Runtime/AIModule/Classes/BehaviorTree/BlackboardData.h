@@ -37,7 +37,7 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 #endif
 
 	/** blackboard keys */
-	UPROPERTY(EditAnywhere, EditInLine, Category=Blackboard)
+	UPROPERTY(EditAnywhere, Category=Blackboard)
 	TArray<FBlackboardEntry> Keys;
 
 	/** @return key ID from name */
