@@ -10,6 +10,7 @@
 #include "../mesa/glsl_parser_extras.h"
 #include "../mesa/hash_table.h"
 #include "../mesa/ir_rvalue_visitor.h"
+#include "../mesa/ast.h"
 #include "../PackUniformBuffers.h"
 #include "../IRDump.h"
 #include "../OptValueNumbering.h"
@@ -146,16 +147,40 @@ static void CreateNewAssignmentsHalf2Float(_mesa_glsl_parse_state* State, exec_l
 	}
 }
 
+const glsl_type* GetFragColorTypeFromMetalOutputStruct(const glsl_type* OutputType)
+{
+	const glsl_type* FragColorType = glsl_type::error_type;
+	if (OutputType && OutputType->base_type == GLSL_TYPE_STRUCT)
+	{
+		for (unsigned j = 0; j < OutputType->length; j++)
+		{
+			if (OutputType->fields.structure[j].semantic)
+			{
+				if (!strncmp(OutputType->fields.structure[j].semantic, "gl_FragColor", 12))
+				{
+					FragColorType = OutputType->fields.structure[j].type;
+					break;
+				}
+			}
+		}
+	}
+	return FragColorType;
+}
+
 struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
 	bool bUsesFramebufferFetchES2;
 	ir_variable* DestColorVar;
-	FFixIntrinsicsVisitor(_mesa_glsl_parse_state* InState) :
+	const glsl_type* DestColorType;
+
+	FFixIntrinsicsVisitor(_mesa_glsl_parse_state* InState, ir_function_signature* InMainSig) :
 		State(InState),
 		bUsesFramebufferFetchES2(false),
-		DestColorVar(nullptr)
+		DestColorVar(nullptr),
+		DestColorType(glsl_type::error_type)
 	{
+		DestColorType = GetFragColorTypeFromMetalOutputStruct(InMainSig->return_type);
 	}
 
 	//ir_visitor_status visit_leave(ir_expression* expr) override
@@ -206,11 +231,16 @@ struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 			if (!DestColorVar)
 			{
 				// Generate new input variable for Metal semantics
-				DestColorVar = new(State)ir_variable(glsl_type::get_instance(GLSL_TYPE_FLOAT, 4, 1), "gl_LastFragData", ir_var_in);
+				DestColorVar = new(State)ir_variable(glsl_type::get_instance(DestColorType->base_type, 4, 1), "gl_LastFragData", ir_var_in);
 				DestColorVar->semantic = "gl_LastFragData";
 			}
 
-			auto* Assignment = new (State)ir_assignment(IR->return_deref, new(State)ir_dereference_variable(DestColorVar));
+			ir_rvalue* DestColor = new(State)ir_dereference_variable(DestColorVar);
+			if (IR->return_deref->type->base_type != DestColor->type->base_type)
+			{
+				DestColor = convert_component(DestColor, IR->return_deref->type);
+			}
+			auto* Assignment = new (State)ir_assignment(IR->return_deref, DestColor);
 			IR->insert_before(Assignment);
 			IR->remove();
 		}
@@ -224,7 +254,7 @@ void FMetalCodeBackend::FixIntrinsics(exec_list* ir, _mesa_glsl_parse_state* sta
 	ir_function_signature* MainSig = GetMainFunction(ir);
 	check(MainSig);
 
-	FFixIntrinsicsVisitor Visitor(state);
+	FFixIntrinsicsVisitor Visitor(state,MainSig);
 	Visitor.run(&MainSig->body);
 
 	if (Visitor.bUsesFramebufferFetchES2)

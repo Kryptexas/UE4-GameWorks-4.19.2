@@ -522,9 +522,9 @@ protected:
 */
 			else
 			{
-			ralloc_asprintf_append(buffer, "%s", t->HlslName);
+				ralloc_asprintf_append(buffer, "%s", t->HlslName);
+			}
 		}
-	}
 	}
 
 	/**
@@ -2823,6 +2823,6 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 	// Framebuffer fetch
 	{
 		// Leave original fb ES2 fetch function as that's what the hlsl expects
-		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_HALF, 0, 4, 4);
 	}
 }
