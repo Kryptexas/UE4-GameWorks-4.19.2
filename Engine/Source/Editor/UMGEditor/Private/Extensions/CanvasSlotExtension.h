@@ -65,9 +65,18 @@ private:
 
 private:
 
+	/** */
 	TSharedPtr<SBorder> MoveHandle;
 
+	/** */
 	TArray< TSharedPtr<SWidget> > AnchorWidgets;
 
+	/** */
 	bool bMovingAnchor;
+
+	/** */
+	FVector2D MouseDownPosition;
+
+	/** */
+	FAnchors BeginAnchors;
 };
