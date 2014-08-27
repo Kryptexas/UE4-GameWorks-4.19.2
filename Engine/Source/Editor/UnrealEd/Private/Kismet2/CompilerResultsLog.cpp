@@ -277,11 +277,12 @@ TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDum
 
 		// handle output line error message if applicable
 		// @todo Handle case where there are parenthesis in path names
+		// @todo Handle errors reported by Clang
 		FString LeftStr, RightStr;
 		FString FullPath, LineNumberString;
 		if (Line.Split(TEXT(")"), &LeftStr, &RightStr, ESearchCase::CaseSensitive) &&
 			LeftStr.Split(TEXT("("), &FullPath, &LineNumberString, ESearchCase::CaseSensitive) &&
-			(FCString::Strtoi(*LineNumberString, NULL, 10) > 0))
+			LineNumberString.IsNumeric() && (FCString::Strtoi(*LineNumberString, NULL, 10) > 0))
 		{
 			EMessageSeverity::Type Severity = EMessageSeverity::Error;
 			FString FullPathTrimmed = FullPath;
