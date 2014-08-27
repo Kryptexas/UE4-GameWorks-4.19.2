@@ -276,7 +276,7 @@ int32 FGameplayEffectSpec::ApplyModifier(const FModifierSpec &InMod, const FModi
 
 		case EGameplayModEffect::Duration:
 		{
-			// don't modify infinite duration unless we're overriding it
+			// don't modify infinite duration or instant unless we're overriding it
 			if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
 			{
 				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
@@ -462,10 +462,10 @@ void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 	InstigatorAbilitySystemComponent = NULL;
 
 	// Cache off his AbilitySystemComponent.
-	IAbilitySystemInterface* AbilitySystmeInterface = InterfaceCast<IAbilitySystemInterface>(Instigator);
-	if (AbilitySystmeInterface)
+	IAbilitySystemInterface* AbilitySystemInterface = InterfaceCast<IAbilitySystemInterface>(Instigator);
+	if (AbilitySystemInterface)
 	{
-		InstigatorAbilitySystemComponent = AbilitySystmeInterface->GetAbilitySystemComponent();
+		InstigatorAbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
 	}
 }
 
