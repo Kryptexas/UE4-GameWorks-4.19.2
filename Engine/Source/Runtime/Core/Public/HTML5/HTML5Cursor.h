@@ -27,4 +27,8 @@ public:
 
 private:
 	FVector2D Position;
+	bool CursorStatus; 
+	bool LockStatus; 
+
+	friend class FHTML5Application;
 };

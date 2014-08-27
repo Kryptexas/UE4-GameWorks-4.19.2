@@ -17,10 +17,10 @@ public:
 
 	~FHTML5InputInterface() {}
 
-	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
+	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
 
 	/** Tick the interface (i.e check for new controllers) */
-	void Tick( float DeltaTime, const SDL_Event& Event );
+	void Tick( float DeltaTime, const SDL_Event& Event,TSharedRef < FGenericWindow>& ApplicationWindow );
 	/**
 	 * Poll for controller state and send events if needed
 	 */
