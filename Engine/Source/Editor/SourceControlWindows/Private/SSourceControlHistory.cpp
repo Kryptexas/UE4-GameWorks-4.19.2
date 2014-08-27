@@ -169,7 +169,7 @@ static UObject* GetAssetRevisionObject(TSharedPtr<FHistoryTreeItem> HistoryTreeI
 					TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
 
 					// try and load the temporary package
-					AssetPackage = LoadPackage(NULL, *TempPackageName, LOAD_None);
+					AssetPackage = LoadPackage(NULL, *TempPackageName, LOAD_ForDiff);
 				}
 			} // if FileSourceControlState.IsValid()
 		}

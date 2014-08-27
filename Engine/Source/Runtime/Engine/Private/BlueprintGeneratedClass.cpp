@@ -55,6 +55,14 @@ void UBlueprintGeneratedClass::PostLoad()
 			ClassFlags &= ~CLASS_NotPlaceable;
 		}
 	}
+
+	if (const UPackage* Package = GetOutermost())
+	{
+		if (Package->PackageFlags & PKG_ForDiffing)
+		{
+			ClassFlags |= CLASS_Deprecated;
+		}
+	}
 #endif // WITH_EDITORONLY_DATA
 }
 

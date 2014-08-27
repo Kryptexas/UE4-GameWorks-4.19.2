@@ -926,9 +926,6 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 						if(OldObject != NULL)
 						{
 							/* Set the revision information*/
-							auto Package = InObject->GetOutermost();
-							auto PackageName = Package->GetName();
-
 							FRevisionInfo OldRevision;
 							OldRevision.Changelist = Revision->GetCheckInIdentifier();
 							OldRevision.Date = Revision->GetDate();
