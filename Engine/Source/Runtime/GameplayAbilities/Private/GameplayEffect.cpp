@@ -463,7 +463,7 @@ void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 
 	// Cache off his AbilitySystemComponent.
 	IAbilitySystemInterface* AbilitySystmeInterface = InterfaceCast<IAbilitySystemInterface>(Instigator);
-	if (!AbilitySystmeInterface)
+	if (AbilitySystmeInterface)
 	{
 		InstigatorAbilitySystemComponent = AbilitySystmeInterface->GetAbilitySystemComponent();
 	}
