@@ -34,7 +34,27 @@ void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 
 void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
 {
-	SetOffsets(FMargin(InPosition.X, InPosition.Y, LayoutData.Offsets.Right, LayoutData.Offsets.Bottom));
+	FVector2D Delta = FVector2D(InPosition.X - LayoutData.Offsets.Left, InPosition.Y - LayoutData.Offsets.Top);
+
+	FMargin NewOffset = LayoutData.Offsets;
+	NewOffset.Left += Delta.X;
+	NewOffset.Top += Delta.Y;
+
+	// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
+	// now represents margin from the right stretched side.
+	if ( LayoutData.Anchors.IsStretchedHorizontal() )
+	{
+		NewOffset.Right -= Delta.X;
+	}
+
+	// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
+	// now represents margin from the bottom stretched side.
+	if ( LayoutData.Anchors.IsStretchedVertical() )
+	{
+		NewOffset.Bottom -= Delta.Y;
+	}
+
+	SetOffsets(NewOffset);
 }
 
 void UCanvasPanelSlot::SetDesiredSize(FVector2D InSize)
@@ -216,59 +236,81 @@ void UCanvasPanelSlot::RebaseLayout(bool PreserveSize)
 				LayoutData.Anchors.Maximum.Y * CanvasSize.Y);
 			FVector2D DefaultAnchorPosition = FVector2D(AnchorPositions.Left, AnchorPositions.Top);
 
-			// Determine the amount that would be offset from the anchor position if alignment was applied.
-			FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
-
 			// Determine where the widget's new position needs to be to maintain a stable location when the anchors change.
 			FVector2D LeftTopDelta = PreEditGeometry.Position - DefaultAnchorPosition;
 
-			// Adjust the size to remain constant
-			if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
+			if ( PreEditLayoutData.Anchors.Minimum != LayoutData.Anchors.Minimum || PreEditLayoutData.Anchors.Maximum != LayoutData.Anchors.Maximum )
 			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
-				LayoutData.Offsets.Right = PreEditGeometry.Size.X;
-			}
-			else if ( !PreserveSize && LayoutData.Anchors.IsStretchedHorizontal() && !PreEditLayoutData.Anchors.IsStretchedHorizontal() )
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Left = 0;
-				LayoutData.Offsets.Right = 0;
-			}
-			else if ( LayoutData.Anchors.IsStretchedHorizontal() )
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Left = LeftTopDelta.X;
-				LayoutData.Offsets.Right = AnchorPositions.Right - ( AnchorPositions.Left + LayoutData.Offsets.Left + PreEditGeometry.Size.X );
-			}
-			else
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
-			}
+				// Determine the amount that would be offset from the anchor position if alignment was applied.
+				FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
 
-			if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
-				LayoutData.Offsets.Bottom = PreEditGeometry.Size.Y;
+				// Adjust the size to remain constant
+				if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
+					LayoutData.Offsets.Right = PreEditGeometry.Size.X;
+				}
+				else if ( !PreserveSize && LayoutData.Anchors.IsStretchedHorizontal() && !PreEditLayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Left = 0;
+					LayoutData.Offsets.Right = 0;
+				}
+				else if ( LayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Left = LeftTopDelta.X;
+					LayoutData.Offsets.Right = AnchorPositions.Right - ( AnchorPositions.Left + LayoutData.Offsets.Left + PreEditGeometry.Size.X );
+				}
+				else
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Left = LeftTopDelta.X + AlignmentOffset.X;
+				}
+
+				if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
+					LayoutData.Offsets.Bottom = PreEditGeometry.Size.Y;
+				}
+				else if ( !PreserveSize && LayoutData.Anchors.IsStretchedVertical() && !PreEditLayoutData.Anchors.IsStretchedVertical() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Top = 0;
+					LayoutData.Offsets.Bottom = 0;
+				}
+				else if ( LayoutData.Anchors.IsStretchedVertical() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Top = LeftTopDelta.Y;
+					LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( AnchorPositions.Top + LayoutData.Offsets.Top + PreEditGeometry.Size.Y );
+				}
+				else
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
+				}
 			}
-			else if ( !PreserveSize && LayoutData.Anchors.IsStretchedVertical() && !PreEditLayoutData.Anchors.IsStretchedVertical() )
+			else if ( PreEditLayoutData.Offsets.Left != LayoutData.Offsets.Left || PreEditLayoutData.Offsets.Top != LayoutData.Offsets.Top )
 			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Top = 0;
-				LayoutData.Offsets.Bottom = 0;
-			}
-			else if ( LayoutData.Anchors.IsStretchedVertical() )
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Top = LeftTopDelta.Y;
-				LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( AnchorPositions.Top + LayoutData.Offsets.Top + PreEditGeometry.Size.Y );
-			}
-			else
-			{
-				// Adjust the position to remain constant
-				LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
+				LayoutData.Offsets.Left += LeftTopDelta.X;
+				LayoutData.Offsets.Top += LeftTopDelta.Y;
+
+				// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
+				// now represents margin from the right stretched side.
+				if ( LayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					LayoutData.Offsets.Right -= LeftTopDelta.X;
+				}
+
+				// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
+				// now represents margin from the bottom stretched side.
+				if ( LayoutData.Anchors.IsStretchedVertical() )
+				{
+					LayoutData.Offsets.Bottom -= LeftTopDelta.Y;
+				}
 			}
 		}
 

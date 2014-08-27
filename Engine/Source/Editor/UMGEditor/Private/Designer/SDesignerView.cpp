@@ -256,24 +256,17 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 			[
 				SNew(SDisappearingBar)
 				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(0)
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderBackgroundColor(FLinearColor(1, 1, 1, 0.75))
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(0, 5))
+					.Visibility(this, &SDesignerView::GetInfoBarVisibility)
 					[
-						SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						.BorderBackgroundColor(FLinearColor(1, 1, 1, 0.75))
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						.Padding(FMargin(0, 5))
-						.Visibility(this, &SDesignerView::GetInfoBarVisibility)
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-							.Text(this, &SDesignerView::GetInfoBarText)
-						]
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+						.Text(this, &SDesignerView::GetInfoBarText)
 					]
 				]
 			]
@@ -366,7 +359,7 @@ FSlateRect SDesignerView::ComputeAreaBounds() const
 
 EVisibility SDesignerView::GetInfoBarVisibility() const
 {
-	if ( DesignerMessage != EDesignerMessage::None && bMovingExistingWidget )
+	if ( DesignerMessage != EDesignerMessage::None )
 	{
 		return EVisibility::Visible;
 	}
@@ -657,10 +650,11 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if ( HasMouseCapture() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		bMouseDown = false;
 		bMovingExistingWidget = false;
+		DesignerMessage = EDesignerMessage::None;
 
 		if ( CurrentHandle != DH_NONE )
 		{
@@ -729,6 +723,7 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 			if ( !bIsRootWidget )
 			{
 				bMovingExistingWidget = true;
+				DesignerMessage = EDesignerMessage::None;
 				//Drag selected widgets
 				return FReply::Handled().DetectDrag(AsShared(), EKeys::LeftMouseButton);
 			}
@@ -1362,9 +1357,34 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 			if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
 			{
-				FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+				// HACK UMG: In order to correctly drop items into the canvas that have a non-zero anchor,
+				// we need to know the layout information after slate has performed a prepass.  So we have
+				// to rebase the layout and reinterpret the new position based on anchor point layout data.
+				// This should be pulled out into an extension of some kind so that this can be fixed for
+				// other widgets as well that may need to do work like this.
+				if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot) )
+				{
+					if ( bIsPreview )
+					{
+						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
 
-				Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+						CanvasSlot->SaveBaseLayout();
+						Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+						CanvasSlot->RebaseLayout();
+
+						FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+					}
+					else
+					{
+						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+						//Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+					}
+				}
+				else
+				{
+					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+					Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+				}
 
 				DropPreviewParent = NewParent;
 
@@ -1401,6 +1421,7 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 {
 	bMouseDown = false;
 	bMovingExistingWidget = false;
+	DesignerMessage = EDesignerMessage::None;
 
 	UWidgetBlueprint* BP = GetBlueprint();
 	

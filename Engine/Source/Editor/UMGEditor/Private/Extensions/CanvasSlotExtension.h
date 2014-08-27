@@ -45,17 +45,11 @@ private:
 	FReply HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
 	FReply HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
 
-	FReply HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event);
-	FReply HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event);
-	FReply HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event);
-
 	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
 
 	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
 	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
 	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
-
-	void MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta);
 
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments);
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, UCanvasPanelSlot* Slot, TArray<FVector2D>& Segments);
@@ -64,9 +58,6 @@ private:
 	void PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
 private:
-
-	/** */
-	TSharedPtr<SBorder> MoveHandle;
 
 	/** */
 	TArray< TSharedPtr<SWidget> > AnchorWidgets;

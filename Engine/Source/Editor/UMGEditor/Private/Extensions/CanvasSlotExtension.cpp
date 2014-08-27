@@ -38,23 +38,6 @@ void FCanvasSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Sel
 {
 	SelectionCache = Selection;
 
-	MoveHandle =
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::Get().GetBrush("NoBrush"))
-		.OnMouseButtonDown(this, &FCanvasSlotExtension::HandleBeginDrag)
-		.OnMouseButtonUp(this, &FCanvasSlotExtension::HandleEndDrag)
-		.OnMouseMove(this, &FCanvasSlotExtension::HandleDragging)
-		.Padding(FMargin(0))
-		.Cursor(EMouseCursor::GrabHand)
-		[
-			SNew(SImage)
-			.Image(FCoreStyle::Get().GetBrush("SoftwareCursor_CardinalCross"))
-		];
-
-	MoveHandle->SlatePrepass();
-
-	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(MoveHandle.ToSharedRef(), EExtensionLayoutLocation::TopLeft, FVector2D(0, -(MoveHandle->GetDesiredSize().Y + 10)))));
-
 	AnchorWidgets.SetNumZeroed(EAnchorWidget::MAX_COUNT);
 	AnchorWidgets[EAnchorWidget::Center] = MakeAnchorWidget(EAnchorWidget::Center, 16, 16);
 
@@ -374,78 +357,6 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 	return FReply::Unhandled();
 }
 
-FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
-
-	return FReply::Handled().CaptureMouse(MoveHandle.ToSharedRef());
-}
-
-FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	EndTransaction();
-
-	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
-
-	return FReply::Handled().ReleaseMouseCapture();
-}
-
-FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event)
-{
-	if ( MoveHandle->HasMouseCapture() )
-	{
-		float InverseScale = ( 1.0f / Designer->GetPreviewScale() );
-
-		for ( FWidgetReference& Selection : SelectionCache )
-		{
-			MoveByAmount(Selection, Event.GetCursorDelta() * InverseScale);
-		}
-
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
-void FCanvasSlotExtension::MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta)
-{
-	if ( Delta.IsZero() )
-	{
-		return;
-	}
-
-	UWidget* Widget = WidgetRef.GetPreview();
-
-	UCanvasPanelSlot* CanvasSlot = CastChecked<UCanvasPanelSlot>(Widget->Slot);
-	UCanvasPanel* Parent = CastChecked<UCanvasPanel>(CanvasSlot->Parent);
-
-	FMargin Offsets = CanvasSlot->LayoutData.Offsets;
-	Offsets.Left += Delta.X;
-	Offsets.Top += Delta.Y;
-
-	// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
-	// now represents margin from the right stretched side.
-	if ( CanvasSlot->LayoutData.Anchors.IsStretchedHorizontal() )
-	{
-		Offsets.Right -= Delta.X;
-	}
-
-	// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
-	// now represents margin from the bottom stretched side.
-	if ( CanvasSlot->LayoutData.Anchors.IsStretchedVertical() )
-	{
-		Offsets.Bottom -= Delta.Y;
-	}
-
-	CanvasSlot->SetOffsets(Offsets);
-
-	// Update the Template widget to match
-	UWidget* TemplateWidget = WidgetRef.GetTemplate();
-	UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
-
-	TemplateSlot->SetOffsets(Offsets);
-}
-
 void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	for ( const FWidgetReference& WidgetRef : Selection )
@@ -462,7 +373,7 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 			if ( UCanvasPanel* Canvas = CastChecked<UCanvasPanel>(CanvasSlot->Parent) )
 			{
 				//TODO UMG Only show guide lines when near them and dragging
-				if ( MoveHandle->HasMouseCapture() )
+				if ( false )
 				{
 					FGeometry MyArrangedGeometry;
 					if ( !Canvas->GetGeometryForSlot(CanvasSlot, MyArrangedGeometry) )
