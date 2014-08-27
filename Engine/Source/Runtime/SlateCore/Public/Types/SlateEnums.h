@@ -120,6 +120,9 @@ enum EMenuPlacement
 	/** Place the menu immediately below the anchor and match is width to the anchor's content */
 	MenuPlacement_ComboBox UMETA(DisplayName="Combo Box"),
 
+	/** Place the menu immediately below the anchor and match is width to the anchor's content. If the width overflows, align with the right edge of the anchor. */
+	MenuPlacement_ComboBoxRight UMETA(DisplayName="Combo Box Right"),
+
 	/** Place the menu to the right of the anchor */
 	MenuPlacement_MenuRight UMETA(DisplayName="Menu Right"),
 
