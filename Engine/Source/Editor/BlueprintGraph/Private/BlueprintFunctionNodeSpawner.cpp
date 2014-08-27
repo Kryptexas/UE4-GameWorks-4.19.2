@@ -3,7 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintFunctionNodeSpawner.h"
 #include "EdGraphSchema_K2.h"	// for FBlueprintMetadata
-#include "Gameframework/Actor.h"
+#include "GameFramework/Actor.h"
 #include "BlueprintVariableNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
