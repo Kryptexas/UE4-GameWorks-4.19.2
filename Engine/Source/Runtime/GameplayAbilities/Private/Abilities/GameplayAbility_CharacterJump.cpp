@@ -13,6 +13,7 @@ UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const class FPost
 	: Super(PCIP)
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Predictive;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
 }
 
 void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
