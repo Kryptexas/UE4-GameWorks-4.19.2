@@ -222,6 +222,9 @@ protected:
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
 
+	/** The amount we have scrolled this tick cycle */
+	float TickScrollDelta;
+
 	/** Information about the widgets we generated during the last regenerate pass */
 	FReGenerateResults LastGenerateResults;
 
@@ -253,6 +256,9 @@ private:
 
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
 	bool CanUseInertialScroll( float ScrollAmount ) const;
+
+	/** Called every tick to update and perform the inertial scroll */
+	void TickInertialScroll( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
 protected:
 
