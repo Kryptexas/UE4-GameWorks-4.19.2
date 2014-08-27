@@ -368,7 +368,7 @@ namespace UnrealBuildTool
 																	bInAllowExports: Binary.Config.bAllowExports,
 																	InModuleNames: Binary.Config.ModuleNames);
 
-					NewBinaries.Add(new UEStubDummyBinary(InBuildTarget, NewConfig));
+					NewBinaries.Add(new UEBuildBinaryCPP(InBuildTarget, NewConfig));
 				}
 			}
 
