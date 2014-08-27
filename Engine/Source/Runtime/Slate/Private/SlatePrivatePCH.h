@@ -28,3 +28,4 @@
 #include "ProgressWidgetStyle.h"
 #include "ScrollBoxWidgetStyle.h"
 #include "ScrollBarWidgetStyle.h"
+#include "SpinBoxWidgetStyle.h"

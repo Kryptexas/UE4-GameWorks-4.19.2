@@ -74,6 +74,8 @@
 #include "CheckBox.h"
 #include "Image.h"
 
+#include "SpinBox.h"
+
 #include "EditableText.h"
 #include "EditableTextBox.h"
 

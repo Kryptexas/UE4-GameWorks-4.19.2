@@ -101,7 +101,7 @@ public:
 		MinSliderValue = (InArgs._MinSliderValue.Get().IsSet()) ? InArgs._MinSliderValue : MinValue;
 		MaxSliderValue = (InArgs._MaxSliderValue.Get().IsSet()) ? InArgs._MaxSliderValue : MaxValue;
 
-		bUnlimitedSpinRange = !((InArgs._MinValue.Get().IsSet() && InArgs._MaxValue.Get().IsSet()) || (InArgs._MinSliderValue.Get().IsSet() && InArgs._MaxSliderValue.Get().IsSet()));
+		UpdateIsSpinRangeUnlimited();
 	
 		SliderExponent = InArgs._SliderExponent;
 
@@ -432,6 +432,58 @@ public:
 		return SCompoundWidget::HasKeyboardFocus() || (EditableText.IsValid() && EditableText->HasKeyboardFocus());
 	}
 
+	/** See the Value attribute */
+	float GetValue() const { return ValueAttribute.Get(); }
+	void SetValue(const TAttribute<NumericType>& InValueAttribute) 
+	{
+		ValueAttribute = InValueAttribute; 
+		CommitValue(InValueAttribute.Get(), ECommitMethod::CommittedViaSpin, ETextCommit::Default);
+	}
+
+	/** See the MinValue attribute */
+	NumericType GetMinValue() const { return MinValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
+	void SetMinValue(const TAttribute<TOptional<NumericType>>& InMinValue) 
+	{ 
+		MinValue = InMinValue;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MaxValue attribute */
+	NumericType GetMaxValue() const { return MaxValue.Get().Get(TNumericLimits<NumericType>::Max()); }
+	void SetMaxValue(const TAttribute<TOptional<NumericType>>& InMaxValue) 
+	{ 
+		MaxValue = InMaxValue; 
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MinSliderValue attribute */
+	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
+	void SetMinSliderValue(const TAttribute<TOptional<NumericType>>& InMinSliderValue) 
+	{ 
+		MinSliderValue = (InMinSliderValue.Get().IsSet()) ? InMinSliderValue : MinValue;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MaxSliderValue attribute */
+	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
+	void SetMaxSliderValue(const TAttribute<TOptional<NumericType>>& InMaxSliderValue) 
+	{ 
+		MaxSliderValue = (InMaxSliderValue.Get().IsSet()) ? InMaxSliderValue : MaxValue;;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the Delta attribute */
+	NumericType GetDelta() const { return Delta; }
+	void SetDelta(NumericType InDelta) { Delta = InDelta; }
+
+	/** See the SliderExponent attribute */
+	float GetSliderExponent() const { return SliderExponent.Get(); }
+	void SetSliderExponent(const TAttribute<float>& InSliderExponent) { SliderExponent = InSliderExponent; }
+	
+	/** See the MinDesiredWidth attribute */
+	float GetMinDesiredWidth() const { return SliderExponent.Get(); }
+	void SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth) { MinDesiredWidth = InMinDesiredWidth; }
+
 protected:
 	/** Make the spinbox switch to keyboard-based input mode. */
 	void EnterTextMode()
@@ -644,6 +696,10 @@ private:
 
 	/** True when no range is specified, spinner can be spun indefinitely */
 	bool bUnlimitedSpinRange;
+	void UpdateIsSpinRangeUnlimited()
+	{
+		bUnlimitedSpinRange = !((MinValue.Get().IsSet() && MaxValue.Get().IsSet()) || (MinSliderValue.Get().IsSet() && MaxSliderValue.Get().IsSet()));
+	}
 
 	const FSlateBrush* BackgroundHoveredBrush;
 	const FSlateBrush* BackgroundBrush;
@@ -652,23 +708,20 @@ private:
 
 	float DistanceDragged;
 	NumericType Delta;
+	TAttribute<float> SliderExponent;
 	TAttribute< TOptional<NumericType> > MinValue;
 	TAttribute< TOptional<NumericType> > MaxValue;
 	TAttribute< TOptional<NumericType> > MinSliderValue;
 	TAttribute< TOptional<NumericType> > MaxSliderValue;
 
-	NumericType GetMinValue() const { return MinValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
-	NumericType GetMaxValue() const { return MaxValue.Get().Get(TNumericLimits<NumericType>::Max()); }
-	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
-	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
-
+	/** Prevents the spinbox from being smaller than desired in certain cases (e.g. when it is empty) */
+	TAttribute<float> MinDesiredWidth;
 	float GetTextMinDesiredWidth() const
 	{
 		return FMath::Max(0.0f, MinDesiredWidth.Get() - ArrowImageWidth);
 	}
 
-	TAttribute<float> SliderExponent;
-
+	/** Whether the user is dragging the slider */
 	bool bDragging;
 	
 	/** Cached mouse position to restore after scrolling. */
@@ -685,9 +738,6 @@ private:
 	/** This is the cached value the user believes it to be (usually different due to truncation to an int). Used for identifying 
 		external forces on the spinbox and syncing the internal value to them. Synced when a value is committed to the spinbox. */
 	NumericType CachedExternalValue;
-
-	/** Prevents the spinbox from being smaller than desired in certain cases (e.g. when it is empty) */
-	TAttribute<float> MinDesiredWidth;
 
 	/** The width of the arrow image, used for calculating the min desired width of the internal text controls. */
 	float ArrowImageWidth;
