@@ -277,10 +277,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
 	bool bSupportsKeyboardFocus;
 
-	/** Called when the visibility changes. */
-	UPROPERTY(BlueprintAssignable)
-	FOnVisibilityChangedEvent OnVisibilityChanged;
-
 	UPROPERTY()
 	FMargin Padding;
 

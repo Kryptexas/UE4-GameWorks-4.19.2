@@ -9,6 +9,7 @@
 
 #include "WidgetTemplateDragDropOp.h"
 #include "SZoomPan.h"
+#include "SDisappearingBar.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -23,13 +24,24 @@ public:
 
 	FWidgetReference Widget;
 
-	static TSharedRef<FSelectedWidgetDragDropOp> New(FWidgetReference InWidget);
+	bool bStayingInParent;
+	FWidgetReference ParentWidget;
+
+	static TSharedRef<FSelectedWidgetDragDropOp> New(TSharedPtr<FWidgetBlueprintEditor> Editor, FWidgetReference InWidget);
 };
 
-TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(FWidgetReference InWidget)
+TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<FWidgetBlueprintEditor> Editor, FWidgetReference InWidget)
 {
+	bool bStayInParent = false;
+	if ( UPanelWidget* PanelTemplate = InWidget.GetTemplate()->GetParent() )
+	{
+		bStayInParent = PanelTemplate->LockToPanelOnDrag();
+	}
+
 	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());
 	Operation->Widget = InWidget;
+	Operation->bStayingInParent = bStayInParent;
+	Operation->ParentWidget = Editor->GetReferenceFromTemplate(InWidget.GetTemplate()->GetParent());
 	Operation->DefaultHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->CurrentHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->Construct();
@@ -105,6 +117,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	DropPreviewParent = NULL;
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
+
+	DesignerMessage = EDesignerMessage::None;
 
 	SetStartupResolution();
 
@@ -233,6 +247,37 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					]
 				]
 			]
+
+			// Info Bar, displays heads up information about some actions.
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			.Padding(FMargin(0, 0, 0, 200))
+			[
+				SNew(SDisappearingBar)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(0)
+					[
+						SNew(SBorder)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.BorderBackgroundColor(FLinearColor(1, 1, 1, 0.75))
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.Padding(FMargin(0, 5))
+						.Visibility(this, &SDesignerView::GetInfoBarVisibility)
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+							.Text(this, &SDesignerView::GetInfoBarText)
+						]
+					]
+				]
+			]
+
 			// Bottom bar to show current resolution & AR
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
@@ -319,6 +364,27 @@ FSlateRect SDesignerView::ComputeAreaBounds() const
 	return FSlateRect(0, 0, PreviewWidth, PreviewHeight);
 }
 
+EVisibility SDesignerView::GetInfoBarVisibility() const
+{
+	if ( DesignerMessage != EDesignerMessage::None && bMovingExistingWidget )
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;
+}
+
+FText SDesignerView::GetInfoBarText() const
+{
+	switch ( DesignerMessage )
+	{
+	case EDesignerMessage::MoveFromParent:
+		return LOCTEXT("PressShiftToMove", "Press SHIFT to move the widget out of the current parent");
+	}
+
+	return FText::GetEmpty();
+}
+
 void SDesignerView::OnEditorSelectionChanged()
 {
 	TSet<FWidgetReference> PendingSelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
@@ -359,10 +425,15 @@ void SDesignerView::OnEditorSelectionChanged()
 	CreateExtensionWidgetsForSelection();
 }
 
+void SDesignerView::ClearExtensionWidgets()
+{
+	ExtensionWidgetCanvas->ClearChildren();
+}
+
 void SDesignerView::CreateExtensionWidgetsForSelection()
 {
 	// Remove all the current extension widgets
-	ExtensionWidgetCanvas->ClearChildren();
+	ClearExtensionWidgets();
 
 	TArray<FWidgetReference> Selected;
 	if ( SelectedWidget.IsValid() )
@@ -1034,7 +1105,9 @@ FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 {
 	if ( SelectedWidget.IsValid() )
 	{
-		return FReply::Handled().BeginDragDrop(FSelectedWidgetDragDropOp::New(SelectedWidget));
+		ClearExtensionWidgets();
+
+		return FReply::Handled().BeginDragDrop(FSelectedWidgetDragDropOp::New(BlueprintEditor.Pin(), SelectedWidget));
 	}
 
 	return FReply::Unhandled();
@@ -1229,6 +1302,35 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	{
 		SelectedDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
+		// If they've pressed shift, and we were staying in the parent, disable that
+		// and adjust the designer message to no longer warn.
+		if ( DragDropEvent.IsShiftDown() && SelectedDragDropOp->bStayingInParent )
+		{
+			SelectedDragDropOp->bStayingInParent = false;
+			DesignerMessage = EDesignerMessage::None;
+		}
+
+		// If we're staying in the parent we started in, replace the parent found under the cursor with
+		// the original one, also update the arranged widget data so that our layout calculations are accurate.
+		if ( SelectedDragDropOp->bStayingInParent )
+		{
+			DesignerMessage = EDesignerMessage::MoveFromParent;
+
+			if ( UPanelWidget* LockedParent = Cast<UPanelWidget>(bIsPreview ? SelectedDragDropOp->ParentWidget.GetPreview() : SelectedDragDropOp->ParentWidget.GetTemplate()) )
+			{
+				TSharedPtr<SWidget> NewParentWidget = LockedParent->GetCachedWidget();
+
+				if ( NewParentWidget.IsValid() )
+				{
+					Target = LockedParent;
+
+					const bool bSuccess = FDesignTimeUtils::GetArrangedWidget(NewParentWidget.ToSharedRef(), ArrangedWidget);
+					check(bSuccess);
+				}
+			}
+		}
+
+		// If the widget being hovered over is a panel, attempt to place it into that panel.
 		if ( Target && Target->IsA(UPanelWidget::StaticClass()) )
 		{
 			UPanelWidget* NewParent = Cast<UPanelWidget>(Target);
@@ -1318,6 +1420,9 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	if ( Widget )
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+		// Regenerate extension widgets now that we've finished moving or placing the widget.
+		CreateExtensionWidgetsForSelection();
 
 		return FReply::Handled();
 	}

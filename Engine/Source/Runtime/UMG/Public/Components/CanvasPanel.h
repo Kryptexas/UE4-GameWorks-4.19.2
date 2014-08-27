@@ -26,6 +26,13 @@ public:
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	// End UWidget interface
+
+	// UWidget interface
+	virtual bool LockToPanelOnDrag() const override
+	{
+		return true;
+	}
+	// End UWidget interface
 #endif
 
 protected:

@@ -8,6 +8,15 @@
 #include "DesignerExtension.h"
 #include "IUMGDesigner.h"
 
+namespace EDesignerMessage
+{
+	enum Type
+	{
+		None,
+		MoveFromParent,
+	};
+}
+
 class FDesignerExtension;
 
 /**
@@ -70,7 +79,11 @@ private:
 	/** Updates the designer to display the latest preview widget */
 	void UpdatePreviewWidget();
 
+	void ClearExtensionWidgets();
 	void CreateExtensionWidgetsForSelection();
+
+	EVisibility GetInfoBarVisibility() const;
+	FText GetInfoBarText() const;
 
 	/** Displays the context menu when you right click */
 	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
@@ -215,4 +228,7 @@ private:
 
 	/**  */
 	FWeakWidgetPath SelectedWidgetPath;
+
+	/** */
+	EDesignerMessage::Type DesignerMessage;
 };

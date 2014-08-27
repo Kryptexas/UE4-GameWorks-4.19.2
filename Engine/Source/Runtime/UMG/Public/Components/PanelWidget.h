@@ -70,6 +70,11 @@ public:
 	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
+	virtual bool LockToPanelOnDrag() const
+	{
+		return false;
+	}
+
 	virtual void ConnectEditorData() override
 	{
 		for ( UPanelSlot* Slot : Slots )
