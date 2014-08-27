@@ -2258,7 +2258,9 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 	if ( InputState.IsAnyMouseButtonDown() )
 	{
 		const FViewportCursorLocation Cursor(View, this, HitX, HitY);
-		GEditor->ClickLocation = FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View).Location;
+		const FActorPositionTraceResult TraceResult = FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View);
+		GEditor->ClickLocation = TraceResult.Location;
+		GEditor->ClickPlane = FPlane(TraceResult.Location, TraceResult.SurfaceNormal);
 
 		// Snap the new location if snapping is enabled
 		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
