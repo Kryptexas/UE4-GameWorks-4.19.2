@@ -6,6 +6,7 @@
 
 #pragma once
 #include "Model.h"
+#include "Level.h"
 #include "GameFramework/Actor.h"
 #include "Brush.generated.h"
 
