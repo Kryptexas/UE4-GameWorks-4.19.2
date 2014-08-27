@@ -30,9 +30,9 @@ public:
 		}
 	};
 
-	static TSharedRef< FSlateWidgetRun > Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo );
+	static TSharedRef< FSlateWidgetRun > Create(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo);
 
-	static TSharedRef< FSlateWidgetRun > Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange );
+	static TSharedRef< FSlateWidgetRun > Create(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange);
 
 	virtual ~FSlateWidgetRun() {}
 
@@ -70,18 +70,22 @@ public:
 
 private:
 
-	FSlateWidgetRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo );
+	FSlateWidgetRun(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo);
 
-	FSlateWidgetRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange );
+	FSlateWidgetRun(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo, const FTextRange& InRange);
 
 	FSlateWidgetRun( const FSlateWidgetRun& Run );
 
 private:
 
+	TWeakPtr<class FTextLayout> TextLayout;
 	FRunInfo RunInfo;
 	TSharedRef< const FString > Text;
 	FTextRange Range;
 	FWidgetRunInfo Info;
 	TArray< TSharedRef<SWidget> > Children;
+
+	mutable FVector2D WidgetSize;
+
 };
 #endif //WITH_FANCY_TEXT

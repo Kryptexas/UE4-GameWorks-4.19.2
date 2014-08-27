@@ -36,7 +36,7 @@ TSharedRef< ISlateRun > FWidgetDecorator::Create(const TSharedRef<class FTextLay
 		RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid( Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
 	}
 
-	return FSlateWidgetRun::Create( RunInfo, InOutModelText, CreateWidgetDelegate.Execute( RunInfo, Style ), ModelRange );
+	return FSlateWidgetRun::Create(TextLayout, RunInfo, InOutModelText, CreateWidgetDelegate.Execute(RunInfo, Style), ModelRange);
 }
 
 TSharedRef< FImageDecorator > FImageDecorator::Create( FString InRunName, const ISlateStyle* const InStyle )
