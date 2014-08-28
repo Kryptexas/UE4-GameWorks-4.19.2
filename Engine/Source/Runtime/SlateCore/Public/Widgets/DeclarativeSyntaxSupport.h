@@ -973,14 +973,38 @@ struct TSlateBaseNamedArgs
 		return *(static_cast<WidgetArgsType*>(this));
 	}
 
+	/** Add metadata to this widget. */
+	WidgetArgsType& AddMetaData(TSharedRef<ISlateMetaData> InMetaData)
+	{
+		MetaData.Add(InMetaData);
+		return *(static_cast<WidgetArgsType*>(this));
+	}
+
+	/** Add metadata to this widget - convenience method - 1 argument */
+	template<typename MetaDataType, typename Arg0Type>
+	WidgetArgsType& AddMetaData(Arg0Type InArg0)
+	{
+		MetaData.Add(MakeShareable(new MetaDataType(InArg0)));
+		return *(static_cast<WidgetArgsType*>(this));
+	}
+
+	/** Add metadata to this widget - convenience method - 2 arguments */
+	template<typename MetaDataType, typename Arg0Type, typename Arg1Type>
+	WidgetArgsType& AddMetaData(Arg0Type InArg0, Arg1Type InArg1)
+	{
+		MetaData.Add(MakeShareable(new MetaDataType(InArg0, InArg1)));
+		return *(static_cast<WidgetArgsType*>(this));
+	}
+
 	SLATE_TEXT_ATTRIBUTE( ToolTipText )
 	SLATE_ARGUMENT( TSharedPtr<IToolTip>, ToolTip )
 	SLATE_ATTRIBUTE( TOptional<EMouseCursor::Type>, Cursor )
 	SLATE_ATTRIBUTE( bool, IsEnabled )
 	SLATE_ATTRIBUTE( EVisibility, Visibility )
 	SLATE_ARGUMENT( FName, Tag )
-};
 
+	TArray<TSharedRef<ISlateMetaData>> MetaData;
+};
 
 namespace RequiredArgs
 {
@@ -1238,7 +1262,8 @@ struct TDecl
 			InArgs._Cursor ,
 			InArgs._IsEnabled ,
 			InArgs._Visibility,
-			InArgs._Tag );
+			InArgs._Tag,
+			InArgs.MetaData );
 
 		_RequiredArgs.CallConstruct(_Widget, InArgs);
 

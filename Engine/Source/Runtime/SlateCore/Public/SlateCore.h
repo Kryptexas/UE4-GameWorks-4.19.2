@@ -66,6 +66,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "SlateEnums.h"
 #include "SlateStructs.h"
 #include "PaintArgs.h"
+#include "ISlateMetaData.h"
 
 // Layout
 #include "SlotBase.h"

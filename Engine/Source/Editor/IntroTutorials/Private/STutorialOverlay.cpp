@@ -102,8 +102,10 @@ int32 STutorialOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 
 int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeometry& InGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
+	TSharedPtr<FTagMetaData> MetaData = InWidget->GetMetaData<FTagMetaData>();
+
 	const FName Tag = InWidget->GetTag();
-	if(Tag != NAME_None)
+	if(Tag != NAME_None || MetaData.IsValid())
 	{
 		// we are a named widget - ask it to draw
 		OnPaintNamedWidget.Broadcast(InWidget, InGeometry);

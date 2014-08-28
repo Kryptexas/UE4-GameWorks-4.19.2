@@ -71,16 +71,18 @@ public:
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const FName& InTag );
+		const FName& InTag,
+		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
 	void SWidgetConstruct( const TAttribute<FString> & InToolTipText ,
 		const TSharedPtr<IToolTip> & InToolTip ,
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const FName& InTag )
+		const FName& InTag,
+		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTag);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTag, InMetaData);
 	}
 
 	//
@@ -587,6 +589,41 @@ public:
 	 * Used by Slate to set the runtime debug info about this widget.
 	 */
 	void SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine );
+	
+	/**
+	 * Get the metadata of the type provided.
+	 * @return the first metadata of the type supplied that we encounter
+	 */
+	template<typename MetaDataType>
+	TSharedPtr<MetaDataType> GetMetaData() const
+	{
+		for (const auto& MetaDataEntry : MetaData)
+		{
+			if (MetaDataEntry->IsOfType<MetaDataType>())
+			{
+				return StaticCastSharedRef<MetaDataType>(MetaDataEntry);
+			}
+		}
+		return TSharedPtr<MetaDataType>();	
+	}
+
+	/**
+	 * Get all metadata of the type provided.
+	 * @return all the metadata found of the specified type.
+	 */
+	template<typename MetaDataType>
+	TArray<TSharedRef<MetaDataType>> GetAllMetaData() const
+	{
+		TArray<TSharedRef<MetaDataType>> FoundMetaData;
+		for (const auto& MetaDataEntry : MetaData)
+		{
+			if (MetaDataEntry->IsOfType<MetaDataType>())
+			{
+				FoundMetaData.Add(StaticCastSharedRef<MetaDataType>(MetaDataEntry));
+			}
+		}
+		return FoundMetaData;	
+	}
 
 public:
 
@@ -715,6 +752,9 @@ protected:
 
 	/** Tag for this widget */
 	FName Tag;
+
+	/** Metadata associated with this widget */
+	TArray<TSharedRef<ISlateMetaData>> MetaData;
 
 	/** The cursor to show when the mouse is hovering over this widget. */
 	TAttribute< TOptional<EMouseCursor::Type> > Cursor;

@@ -212,6 +212,15 @@ private:
 				PickedWidgetName = PathWidget->GetTag();
 				break;
 			}
+			else
+			{
+				TSharedPtr<FTagMetaData> MetaData = PathWidget->GetMetaData<FTagMetaData>();
+				if(MetaData.IsValid())
+				{
+					PickedWidgetName = MetaData->Tag;
+					break;
+				}
+			}		
 		}
 
 		// kind of a hack, but we need to maintain keyboard focus otherwise we wont get our keypress to 'pick'
