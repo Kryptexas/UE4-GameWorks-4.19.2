@@ -27,6 +27,7 @@ public class GraphEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Engine",

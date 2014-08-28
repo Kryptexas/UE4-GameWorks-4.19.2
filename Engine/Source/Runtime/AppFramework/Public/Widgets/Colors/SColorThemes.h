@@ -51,9 +51,10 @@ private:
 class SColorTrash : public SCompoundWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS(SColorTrash)
 		: _UsesSmallIcon(false)
-		{}
+	{ }
 
 		SLATE_ATTRIBUTE(bool, UsesSmallIcon)
 	SLATE_END_ARGS()
@@ -108,6 +109,7 @@ class SThemeColorBlocksBar;
 class SThemeColorBlock : public SCompoundWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS(SThemeColorBlock)
 		: _Color()
 		, _OnSelectColor()
@@ -116,7 +118,7 @@ public:
 		, _HideTrashCallback()
 		, _UseSRGB()
 		, _UseAlpha()
-		{}
+	{ }
 
 		/** A pointer to the color this block uses */
 		SLATE_ATTRIBUTE(TSharedPtr<FLinearColor>, Color)
@@ -148,6 +150,7 @@ public:
 	void Construct(const FArguments& InArgs );
 	
 private:
+
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -205,6 +208,7 @@ private:
 class SThemeColorBlocksBar : public SPanel
 {
 public:
+
 	SLATE_BEGIN_ARGS(SThemeColorBlocksBar)
 		: _ColorTheme()
 		, _OnSelectColor()
@@ -213,7 +217,7 @@ public:
 		, _EmptyText()
 		, _UseSRGB()
 		, _UseAlpha()
-		{}
+	{ }
 
 		/** A pointer to the color theme that this bar should display */
 		SLATE_ATTRIBUTE(TSharedPtr<FColorTheme>, ColorTheme)
@@ -405,7 +409,7 @@ public:
 		, _HideTrashCallback()
 		, _UseSRGB()
 		, _UseAlpha()
-		{}
+	{ }
 
 		/** The color theme that this bar is displaying */
 		SLATE_ATTRIBUTE(TSharedPtr<FColorTheme>, ColorTheme)
@@ -438,6 +442,7 @@ public:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 	
 private:
+
 	FString GetThemeName() const;
 
 	/** Text Block which shows the Color Theme's name */
@@ -470,9 +475,10 @@ class SColorThemesViewer
 	: public SCompoundWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS(SColorThemesViewer)
 		: _UseAlpha()
-		{}
+	{ }
 
 		/** Whether the ability to pick the alpha value is enabled */
 		SLATE_ATTRIBUTE(bool, UseAlpha)
@@ -502,6 +508,7 @@ public:
 	void MenuToStandardNoReturn();
 
 private:
+
 	FReply NewColorTheme();
 	FReply DuplicateColorTheme();
 	FReply DeleteColorTheme();

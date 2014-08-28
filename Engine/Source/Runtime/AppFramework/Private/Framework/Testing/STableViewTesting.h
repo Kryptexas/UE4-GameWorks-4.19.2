@@ -3,4 +3,4 @@
 #pragma once
 
 
-SLATE_API TSharedRef<SWidget> MakeLayoutExample();
+APPFRAMEWORK_API TSharedRef<SWidget> MakeTableViewTesting();

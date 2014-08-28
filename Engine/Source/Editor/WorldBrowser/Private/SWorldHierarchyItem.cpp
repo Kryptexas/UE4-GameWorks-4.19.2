@@ -2,8 +2,11 @@
 #include "WorldBrowserPrivatePCH.h"
 
 #include "SWorldHierarchyItem.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
+
 
 //////////////////////////
 // SWorldHierarchyItem

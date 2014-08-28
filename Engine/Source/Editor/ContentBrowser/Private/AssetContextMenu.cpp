@@ -28,6 +28,9 @@
 #include "IDocumentation.h"
 #include "EditorClassUtils.h"
 
+#include "SColorPicker.h"
+
+
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)

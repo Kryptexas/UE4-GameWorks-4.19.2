@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "AppFrameworkPrivatePCH.h"
 #include "SUserWidgetTest.h"
 
 
-class SUserWidgetExampleImpl : public SUserWidgetExample
+class SUserWidgetExampleImpl
+	: public SUserWidgetExample
 {
 public:
 
@@ -13,10 +14,9 @@ public:
 		SUserWidget::Construct( SUserWidget::FArguments()
 		[
 			SNew(STextBlock)
-			.Text( FText::Format( NSLOCTEXT("SlateTestSuite","UserWidgetExampleTitle"," Implemented in the .cpp : {0}"), InArgs._Title ) )
+				.Text( FText::Format( NSLOCTEXT("SlateTestSuite","UserWidgetExampleTitle"," Implemented in the .cpp : {0}"), InArgs._Title ) )
 		]);
 	}
-
 
 	virtual void DoStuff() override
 	{

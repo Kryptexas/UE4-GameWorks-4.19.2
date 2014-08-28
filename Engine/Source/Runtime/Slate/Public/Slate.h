@@ -129,8 +129,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SVolumeControl.h"
 #include "SColorSpectrum.h"
 #include "SColorWheel.h"
-#include "SColorThemes.h"
-#include "SColorPicker.h"
 ///
 #include "SToolBarButtonBlock.h"
 #include "SToolBarComboButtonBlock.h"
@@ -172,6 +170,3 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 // Old docking
 #include "SDockableTab.h"
 #include "SDockTabStack.h"
-
-// Test suite
-#include "STestSuite.h"

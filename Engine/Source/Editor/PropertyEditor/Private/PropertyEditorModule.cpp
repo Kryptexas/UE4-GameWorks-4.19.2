@@ -22,6 +22,8 @@
 
 #include "PropertyTableConstants.h"
 #include "SStructureDetailsView.h"
+#include "SColorPicker.h"
+
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
 

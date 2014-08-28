@@ -10,6 +10,7 @@ public class DetailCustomizations : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Engine",

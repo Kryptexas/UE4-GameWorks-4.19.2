@@ -14,6 +14,7 @@ public class Levels : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
                 "InputCore",

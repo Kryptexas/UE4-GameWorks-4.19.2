@@ -18,6 +18,7 @@ public class Persona : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core", 
 				"CoreUObject", 
 				"Slate", 

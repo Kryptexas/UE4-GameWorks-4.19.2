@@ -1,643 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-
-
-class SSimpleGradient : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SSimpleGradient )
-		: _StartColor( FLinearColor(0,0,0) )
-		, _EndColor( FLinearColor(1,1,1) )
-		, _HasAlphaBackground( false )
-		, _Orientation( Orient_Vertical )
-		, _UseSRGB( true )
-		{}
-
-		/** The leftmost gradient color */
-		SLATE_ATTRIBUTE( FLinearColor, StartColor )
-		
-		/** The rightmost gradient color */
-		SLATE_ATTRIBUTE( FLinearColor, EndColor )
-
-		/** Whether a checker background is displayed for alpha viewing */
-		SLATE_ATTRIBUTE( bool, HasAlphaBackground )
-
-		/** Horizontal or vertical gradient */
-		SLATE_ATTRIBUTE( EOrientation, Orientation)
-
-		/** Whether to display sRGB color */
-		SLATE_ATTRIBUTE( bool, UseSRGB )
-
-	SLATE_END_ARGS()
-
-	/**
-	 * Construct this widget
-	 *
-	 * @param	InArgs	The declaration data for this widget
-	 */
-	void Construct( const FArguments& InArgs )
-	{
-		StartColor = InArgs._StartColor;
-		EndColor = InArgs._EndColor;
-		bHasAlphaBackground = InArgs._HasAlphaBackground.Get();
-		Orientation = InArgs._Orientation.Get();
-	}
-
-private:
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
-	{
-		const ESlateDrawEffect::Type DrawEffects = this->ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-
-		if (bHasAlphaBackground)
-		{
-			const FSlateBrush* StyleInfo = FCoreStyle::Get().GetBrush("ColorPicker.AlphaBackground");
-
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId,
-				AllottedGeometry.ToPaintGeometry(),
-				StyleInfo,
-				MyClippingRect,
-				DrawEffects
-			);
-		}
-
-		TArray<FSlateGradientStop> GradientStops;
-
-		GradientStops.Add(FSlateGradientStop(FVector2D::ZeroVector, StartColor.Get()));
-		GradientStops.Add(FSlateGradientStop(AllottedGeometry.Size, EndColor.Get()));
-
-		FSlateDrawElement::MakeGradient(
-			OutDrawElements,
-			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry(),
-			GradientStops,
-			Orientation,
-			MyClippingRect,
-			DrawEffects,
-			false
-		);
-
-		return LayerId + 1;
-	}
-	
-	/** The leftmost gradient color */
-	TAttribute<FLinearColor> StartColor;
-
-	/** The rightmost gradient color */
-	TAttribute<FLinearColor> EndColor;
-
-	/** Whether a checker background is displayed for alpha viewing */
-	bool bHasAlphaBackground;
-	
-	/** Horizontal or vertical gradient */
-	EOrientation Orientation;
-
-	/** Whether to display sRGB color */
-	TAttribute<bool> UseSRGB;
-};
-
-
-class SComplexGradient : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SComplexGradient )
-		: _GradientColors()
-		, _HasAlphaBackground( false )
-		, _Orientation( Orient_Vertical )
-		{}
-
-		/** The colors used in the gradient */
-		SLATE_ATTRIBUTE( TArray<FLinearColor>, GradientColors )
-
-		/** Whether a checker background is displayed for alpha viewing */
-		SLATE_ATTRIBUTE( bool, HasAlphaBackground )
-		
-		/** Horizontal or vertical gradient */
-		SLATE_ATTRIBUTE( EOrientation, Orientation)
-
-	SLATE_END_ARGS()
-
-	/**
-	 * Construct this widget
-	 *
-	 * @param	InArgs	The declaration data for this widget
-	 */
-	void Construct( const FArguments& InArgs )
-	{
-		GradientColors = InArgs._GradientColors;
-		bHasAlphaBackground = InArgs._HasAlphaBackground.Get();
-		Orientation = InArgs._Orientation.Get();
-	}
-
-private:
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
-	{
-		ESlateDrawEffect::Type DrawEffects = (bParentEnabled && IsEnabled()) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-
-		if (bHasAlphaBackground)
-		{
-			const FSlateBrush* StyleInfo = FCoreStyle::Get().GetBrush("ColorPicker.AlphaBackground");
-
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId,
-				AllottedGeometry.ToPaintGeometry(),
-				StyleInfo,
-				MyClippingRect,
-				DrawEffects
-				);
-		}
-
-		if (GradientColors.Get().Num())
-		{
-			TArray<FSlateGradientStop> GradientStops;
-			for (int32 i = 0; i < GradientColors.Get().Num(); ++i)
-			{
-				GradientStops.Add( FSlateGradientStop( AllottedGeometry.Size * (float(i) / (GradientColors.Get().Num() - 1)),
-					GradientColors.Get()[i] ) );
-			}
-
-			FSlateDrawElement::MakeGradient(
-				OutDrawElements,
-				LayerId + 1,
-				AllottedGeometry.ToPaintGeometry(),
-				GradientStops,
-				Orientation,
-				MyClippingRect,
-				DrawEffects
-				);
-		}
-
-		return LayerId + 1;
-	}
-	
-	/** The colors used in the gradient */
-	TAttribute< TArray<FLinearColor> > GradientColors;
-
-	/** Whether a checker background is displayed for alpha viewing */
-	bool bHasAlphaBackground;
-	
-	/** Horizontal or vertical gradient */
-	EOrientation Orientation;
-};
-
-
-/** The value slider is a simple control like the color wheel for selecting value */
-class SValueSlider : public SLeafWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SValueSlider )
-		: _SelectedColor()
-		, _OnValueChanged()
-		, _OnMouseCaptureBegin()
-		, _OnMouseCaptureEnd()
-		{}
-		
-		/** The current color selected by the user */
-		SLATE_ATTRIBUTE( FLinearColor, SelectedColor )
-		
-		/** Invoked when a new value is selected on the color wheel */
-		SLATE_EVENT( FOnLinearColorValueChanged, OnValueChanged )
-		
-		/** Invoked when the mouse is pressed and sliding begins */
-		SLATE_EVENT( FSimpleDelegate, OnMouseCaptureBegin )
-
-		/** Invoked when the mouse is released and sliding ends */
-		SLATE_EVENT( FSimpleDelegate, OnMouseCaptureEnd )
-
-	SLATE_END_ARGS()
-	
-	void Construct( const FArguments& InArgs )
-	{
-		SelectorImage = FCoreStyle::Get().GetBrush("ColorPicker.Selector");
-
-		OnValueChanged = InArgs._OnValueChanged;
-		OnMouseCaptureBegin = InArgs._OnMouseCaptureBegin;
-		OnMouseCaptureEnd = InArgs._OnMouseCaptureEnd;
-		SelectedColor = InArgs._SelectedColor;
-	}
-
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
-	{
-		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
-		const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-	
-		FLinearColor FullValueColor = SelectedColor.Get();
-		FullValueColor.B = FullValueColor.A = 1.f;
-		FLinearColor StopColor = FullValueColor.HSVToLinearRGB();
-
-		TArray<FSlateGradientStop> GradientStops;
-		GradientStops.Add( FSlateGradientStop( FVector2D::ZeroVector, FLinearColor(0,0,0,1.0f) ) );
-		GradientStops.Add( FSlateGradientStop( AllottedGeometry.Size, StopColor ) );
-
-		FSlateDrawElement::MakeGradient(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			GradientStops,
-			Orient_Vertical,
-			MyClippingRect,
-			DrawEffects
-		);
-	
-		float Value = SelectedColor.Get().B;
-		FVector2D RelativeSelectedPosition = FVector2D(Value, 0.5f);
-
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry( RelativeSelectedPosition*AllottedGeometry.Size - SelectorImage->ImageSize*0.5, SelectorImage->ImageSize ),
-			SelectorImage,
-			MyClippingRect,
-			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint() * SelectorImage->GetTint( InWidgetStyle ) );
-
-		return LayerId + 1;
-	}
-	
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-		{
-			OnMouseCaptureBegin.ExecuteIfBound();
-
-			return FReply::Handled().CaptureMouse( SharedThis(this) );
-		}
-		else
-		{
-			return FReply::Unhandled();
-		}
-	}
-	
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture() )
-		{
-			OnMouseCaptureEnd.ExecuteIfBound();
-
-			return FReply::Handled().ReleaseMouseCapture();
-		}
-		else
-		{
-			return FReply::Unhandled();
-		}
-	}
-
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		if (!HasMouseCapture())
-		{
-			return FReply::Unhandled();
-		}
-
-		FVector2D LocalMouseCoordinate = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-		FVector2D Location = LocalMouseCoordinate / (MyGeometry.Size);
-		float Value = FMath::Clamp(Location.X, 0.f, 1.f);
-
-		FLinearColor NewColor = SelectedColor.Get();
-		NewColor.B = Value;
-
-		OnValueChanged.ExecuteIfBound(NewColor);
-
-		return FReply::Handled();
-	}
-	
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
-	{
-		return FReply::Handled();
-	}
-
-	virtual FVector2D ComputeDesiredSize() const
-	{
-		return SelectorImage->ImageSize * 2.f;
-	}
-	
-protected:
-
-	/** The color selector image to show */
-	const FSlateBrush* SelectorImage;
-	
-	/** The current color selected by the user */
-	TAttribute< FLinearColor > SelectedColor;
-
-	/** Invoked when a new value is selected on the color wheel */
-	FOnLinearColorValueChanged OnValueChanged;
-
-	/** Invoked when the mouse is pressed */
-	FSimpleDelegate OnMouseCaptureBegin;
-
-	/** Invoked when the mouse is let up */
-	FSimpleDelegate OnMouseCaptureEnd;
-};
-
-
-
-#define LOCTEXT_NAMESPACE "EyeDroppperButton"
-
-/**
- * Class for placing a color picker eye-dropper button.
- * A self contained until that only needs client code to set the display gamma and listen
- * for the OnValueChanged events. It toggles the dropper when clicked.
- * When active it captures the mouse, shows a dropper cursor and samples the pixel color constantly.
- * It is stopped normally by hitting the Esc key.
- */
-class SEyeDropperButton : public SButton
-{
-public:
-	DECLARE_DELEGATE(FOnDropperComplete)
-
-	SLATE_BEGIN_ARGS( SEyeDropperButton )
-		: _OnValueChanged()
-		, _OnBegin()
-		, _OnComplete()
-		, _DisplayGamma()
-		{}
-
-		/** Invoked when a new value is selected by the dropper */
-		SLATE_EVENT(FOnLinearColorValueChanged, OnValueChanged)
-
-		/** Invoked when the dropper goes from inactive to active */
-		SLATE_EVENT(FSimpleDelegate, OnBegin)
-
-		/** Invoked when the dropper goes from active to inactive */
-		SLATE_EVENT(FOnDropperComplete, OnComplete)
-
-		/** Sets the display Gamma setting - used to correct colors sampled from the screen */
-		SLATE_ATTRIBUTE(float, DisplayGamma)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs )
-	{
-		OnValueChanged = InArgs._OnValueChanged;
-		OnBegin = InArgs._OnBegin;
-		OnComplete = InArgs._OnComplete;
-		DisplayGamma = InArgs._DisplayGamma;
-
-		// This is a button containing an dropper image and text that tells the user to hit Esc.
-		// Their visibility and colors are changed according to whether dropper mode is active or not.
-		SButton::Construct(
-			SButton::FArguments()
-				.ContentPadding(1.0f)
-				.OnClicked(this, &SEyeDropperButton::OnClicked)
-				[
-					SNew(SOverlay)
-
-					+ SOverlay::Slot()
-						.Padding(FMargin(1.0f, 0.0f))
-						[
-							SNew(SImage)
-								.Image(FCoreStyle::Get().GetBrush("ColorPicker.EyeDropper"))
-								.ToolTipText(LOCTEXT("EyeDropperButton_ToolTip", "Activates the eye-dropper for selecting a colored pixel from any window."))
-								.ColorAndOpacity(this, &SEyeDropperButton::GetDropperImageColor)				
-						]
-
-					+ SOverlay::Slot()
-						[
-							SNew(STextBlock)
-								.Text(LOCTEXT("EscapeCue", "Esc"))
-								.ToolTipText(LOCTEXT("EyeDropperEscapeCue_ToolTip", "Hit Escape key to stop the eye dropper"))
-								.Visibility(this, &SEyeDropperButton::GetEscapeTextVisibility)
-						]
-				]
-		);
-	}
-
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
-	{
-		// Clicking ANY mouse button when the dropper isn't active resets the active dropper states ready to activate
-		if (!HasMouseCapture())
-		{
-			bWasClickActivated = false;
-			bWasLeft = false;
-			bWasReEntered = false;
-		}
-
-		return SButton::OnMouseButtonDown(MyGeometry, MouseEvent);
-	}
-
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
-	{
-		// If a mouse click is completing and the dropper is active ALWAYS deactivate
-		bool bDeactivating = false;
-		if (bWasClickActivated)
-		{
-			bDeactivating = true;
-		}
-
-		// bWasClicked is reset here because if it is set during SButton::OnMouseButtonUp()
-		// then the button was 'clicked' according to the usual rules. We might want to capture the
-		// mouse when the button is clicked but can't do it in the Clicked callback.
-		bWasClicked = false;
-		FReply Reply = SButton::OnMouseButtonUp(MyGeometry, MouseEvent);
-
-		// Switching dropper mode off?
-		if (bDeactivating)
-		{
-			// These state flags clear dropper mode
-			bWasClickActivated = false;
-			bWasLeft = false;
-			bWasReEntered = false;
-
-			Reply.ReleaseMouseCapture();
-
-			OnComplete.ExecuteIfBound();
-		}
-		else if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bWasClicked)
-		{
-			// A normal LMB mouse click on the button occurred
-			// Set the initial dropper mode state and capture the mouse
-			bWasClickActivated = true;
-			bWasLeft = false;
-			bWasReEntered = false;
-
-			OnBegin.ExecuteIfBound();
-
-			Reply.CaptureMouse(this->AsShared());
-		}
-		bWasClicked = false;
-
-		return Reply;
-	}
-
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
-	{
-		// If the mouse is captured and bWasClickActivated is set then we are in dropper mode
-		if (HasMouseCapture() && bWasClickActivated)
-		{
-			if (IsMouseOver(MyGeometry, MouseEvent))
-			{
-				if (bWasLeft)
-				{
-					// Mouse is over the button having left it once
-					bWasReEntered = true;
-				}
-			}
-			else
-			{
-				// Mouse is outside the button
-				bWasLeft = true;
-				bWasReEntered = false;
-
-				// In dropper mode and outside the button - sample the pixel color and push it to the client
-				FLinearColor ScreenColor = FPlatformMisc::GetScreenPixelColor(FSlateApplication::Get().GetCursorPos(), false);
-				OnValueChanged.ExecuteIfBound(ScreenColor);
-			}
-		}
-
-		return SButton::OnMouseMove( MyGeometry, MouseEvent );
-	}
-
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
-	{
-		// Escape key when in dropper mode
-		if (InKeyboardEvent.GetKey() == EKeys::Escape &&
-			HasMouseCapture() &&
-			bWasClickActivated)
-		{
-			// Clear the dropper mode states
-			bWasClickActivated = false;
-			bWasLeft = false;
-			bWasReEntered = false;
-
-			// This is needed to switch the dropper cursor off immediately so the user can see the Esc key worked
-			FSlateApplication::Get().QueryCursor();
-
-			FReply ReleaseReply = FReply::Handled().ReleaseMouseCapture();
-
-			OnComplete.ExecuteIfBound();
-
-			return ReleaseReply;
-		}
-
-		return FReply::Unhandled();
-	}
-
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override
-	{
-		// Cursor is changed to the dropper when dropper mode is active and the states are correct
-		if (HasMouseCapture() &&
-			bWasClickActivated && bWasLeft && !bWasReEntered )
-		{
-			return FCursorReply::Cursor( EMouseCursor::EyeDropper );
-		}
-
-		return SButton::OnCursorQuery( MyGeometry, CursorEvent );
-	}
-
-	FReply OnClicked()
-	{
-		// Log clicks so that OnMouseButtonUp() can post process clicks
-		bWasClicked = true;
-		return FReply::Handled();
-	}
-
-private:
-
-	EVisibility GetEscapeTextVisibility() const
-	{
-		// Show the Esc key message in the button when dropper mode is active
-		if (HasMouseCapture() && bWasClickActivated)
-		{
-			return EVisibility::Visible;
-		}
-		return EVisibility::Hidden;
-	}
-
-	FSlateColor GetDropperImageColor() const
-	{
-		// Make the dropper image in the button pale when dropper mode is active
-		if (HasMouseCapture() && bWasClickActivated)
-		{
-			return FLinearColor(0.3f, 0.3f, 0.3f, 1.0f);
-		}
-		return FSlateColor::UseForeground();
-	}
-
-	bool IsMouseOver(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
-	{ 
-		return MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
-	}
-
-	/** Invoked when a new value is selected by the dropper */
-	FOnLinearColorValueChanged OnValueChanged;
-
-	/** Invoked when the dropper goes from inactive to active */
-	FSimpleDelegate OnBegin;
-
-	/** Invoked when the dropper goes from active to inactive - can be used to commit colors by the owning picker */
-	FOnDropperComplete OnComplete;
-
-	/** Sets the display Gamma setting - used to correct colors sampled from the screen */
-	TAttribute<float> DisplayGamma;
-
-	// Dropper states
-	bool bWasClicked;
-	bool bWasClickActivated;
-	bool bWasLeft;
-	bool bWasReEntered;
-};
-
-#undef LOCTEXT_NAMESPACE
-
-
-FColorTheme::FColorTheme( const FString& InName, const TArray< TSharedPtr<FLinearColor> >& InColors )
-	: Name(InName)
-	, Colors(InColors)
-	, RefreshEvent()
-{ }
-
-
-void FColorTheme::InsertNewColor( TSharedPtr<FLinearColor> InColor, int32 InsertPosition )
-{
-	Colors.Insert(InColor, InsertPosition);
-	RefreshEvent.Broadcast();
-}
-
-
-int32 FColorTheme::FindApproxColor( const FLinearColor& InColor, float Tolerance ) const
-{
-	for (int32 ColorIndex = 0; ColorIndex < Colors.Num(); ++ColorIndex)
-	{
-		if (Colors[ColorIndex]->Equals(InColor, Tolerance))
-		{
-			return ColorIndex;
-		}
-	}
-
-	return INDEX_NONE;
-}
-
-
-void FColorTheme::RemoveAll()
-{
-	Colors.Empty();
-	RefreshEvent.Broadcast();
-}
-
-
-void FColorTheme::RemoveColor( int32 ColorIndex )
-{
-	Colors.RemoveAt(ColorIndex);
-	RefreshEvent.Broadcast();
-}
-
-
-int32 FColorTheme::RemoveColor( const TSharedPtr<FLinearColor> InColor )
-{
-	const int32 Position = Colors.Find(InColor);
-	if (Position != INDEX_NONE)
-	{
-		RemoveColor(Position);
-	}
-
-	return Position;
-}
+#include "AppFrameworkPrivatePCH.h"
+#include "SComplexGradient.h"
+#include "SSimpleGradient.h"
+#include "SColorValueSlider.h"
+#include "SEyeDropperButton.h"
 
 
 #define LOCTEXT_NAMESPACE "ColorPicker"
+
 
 /** A default window size for the color picker which looks nice */
 const FVector2D SColorPicker::DEFAULT_WINDOW_SIZE = FVector2D(308, 458);
@@ -655,7 +26,7 @@ SColorPicker::~SColorPicker()
 {
 	if (ColorThemesViewer.IsValid())
 	{
-		ColorThemesViewer->OnCurrentThemeChanged().RemoveAll( this );
+		ColorThemesViewer->OnCurrentThemeChanged().RemoveAll(this);
 	}
 }
 
@@ -1243,7 +614,7 @@ void SColorPicker::GenerateInlineColorPickerContent()
 					.Padding(FMargin(0.0f, 2.0f, 0.0f, 0.0f))
 					.AutoHeight()
 					[
-						SNew(SValueSlider)
+						SNew(SColorValueSlider)
 							.SelectedColor(this, &SColorPicker::GetCurrentColor)
 							.OnValueChanged(this, &SColorPicker::HandleHSVColorChanged)
 							.OnMouseCaptureBegin(this, &SColorPicker::HandleInteractiveChangeBegin)
@@ -1398,7 +769,7 @@ void SColorPicker::CycleMode( )
 
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedRef<SWidget> SColorPicker::MakeColorSlider( EColorPickerChannels::Type Channel ) const
+TSharedRef<SWidget> SColorPicker::MakeColorSlider( EColorPickerChannels Channel ) const
 {
 	FText SliderTooltip;
 
@@ -1443,7 +814,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSlider( EColorPickerChannels::Type Ch
 }
 
 
-TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels::Type Channel ) const
+TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel ) const
 {
 	if ((Channel == EColorPickerChannels::Alpha) && !bUseAlpha.Get())
 	{
@@ -1706,7 +1077,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 /* SColorPicker callbacks
  *****************************************************************************/
 
-FLinearColor SColorPicker::GetGradientEndColor( EColorPickerChannels::Type Channel ) const
+FLinearColor SColorPicker::GetGradientEndColor( EColorPickerChannels Channel ) const
 {
 	switch (Channel)
 	{
@@ -1721,7 +1092,7 @@ FLinearColor SColorPicker::GetGradientEndColor( EColorPickerChannels::Type Chann
 }
 
 
-FLinearColor SColorPicker::GetGradientStartColor( EColorPickerChannels::Type Channel ) const
+FLinearColor SColorPicker::GetGradientStartColor( EColorPickerChannels Channel ) const
 {
 	switch (Channel)
 	{
@@ -1762,13 +1133,13 @@ FReply SColorPicker::HandleCancelButtonClicked( )
 }
 
 
-EVisibility SColorPicker::HandleColorPickerModeVisibility( EColorPickerModes::Type Mode ) const
+EVisibility SColorPicker::HandleColorPickerModeVisibility( EColorPickerModes Mode ) const
 {
 	return (CurrentMode == Mode) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 
-FLinearColor SColorPicker::HandleColorSliderEndColor( EColorPickerChannels::Type Channel ) const
+FLinearColor SColorPicker::HandleColorSliderEndColor( EColorPickerChannels Channel ) const
 {
 	switch (Channel)
 	{
@@ -1783,7 +1154,7 @@ FLinearColor SColorPicker::HandleColorSliderEndColor( EColorPickerChannels::Type
 }
 
 
-FLinearColor SColorPicker::HandleColorSliderStartColor( EColorPickerChannels::Type Channel ) const
+FLinearColor SColorPicker::HandleColorSliderStartColor( EColorPickerChannels Channel ) const
 {
 	switch (Channel)
 	{
@@ -1804,7 +1175,7 @@ void SColorPicker::HandleColorSpectrumValueChanged( FLinearColor NewValue )
 }
 
 
-float SColorPicker::HandleColorSpinBoxValue( EColorPickerChannels::Type Channel ) const
+float SColorPicker::HandleColorSpinBoxValue( EColorPickerChannels Channel ) const
 {
 	switch (Channel)
 	{
@@ -1820,7 +1191,7 @@ float SColorPicker::HandleColorSpinBoxValue( EColorPickerChannels::Type Channel 
 }
 
 
-void SColorPicker::HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels::Type Channel )
+void SColorPicker::HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels Channel )
 {
 	int32 ComponentIndex;
 	bool IsHSV = false;

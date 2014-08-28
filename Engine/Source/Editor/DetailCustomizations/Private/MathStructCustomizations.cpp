@@ -4,8 +4,11 @@
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "MathStructCustomizations.h"
 #include "IPropertyUtilities.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"
+
 
 TSharedRef<IPropertyTypeCustomization> FMathStructCustomization::MakeInstance() 
 {

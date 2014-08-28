@@ -6,7 +6,7 @@
 /**
  * Implements the color spectrum widget.
  */
-class SColorSpectrum
+class SLATE_API SColorSpectrum
 	: public SLeafWidget
 {
 public:

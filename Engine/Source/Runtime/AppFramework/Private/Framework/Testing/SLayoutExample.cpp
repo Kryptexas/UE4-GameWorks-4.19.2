@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "AppFrameworkPrivatePCH.h"
 #include "SLayoutExample.h"
 
 
@@ -395,7 +395,7 @@ public:
 
 
 
-SLATE_API TSharedRef<SWidget> MakeLayoutExample()
+APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample()
 {
 	return SNew(SExampleLayout);
 }

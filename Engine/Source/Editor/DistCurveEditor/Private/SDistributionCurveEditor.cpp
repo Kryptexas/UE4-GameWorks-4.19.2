@@ -7,6 +7,7 @@
 #include "CurveEditorSharedData.h"
 #include "SDistributionCurveEditor.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "SColorPicker.h"
 
 #define LOCTEXT_NAMESPACE "CurveEditor"
 

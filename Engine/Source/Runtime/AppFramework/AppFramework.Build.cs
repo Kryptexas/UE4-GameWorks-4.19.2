@@ -1,0 +1,33 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+using UnrealBuildTool;
+
+public class AppFramework : ModuleRules
+{
+	public AppFramework(TargetInfo Target)
+	{
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"Slate",
+				"SlateCore",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+                "InputCore",
+			}
+		);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"Runtime/AppFramework/Private",
+                "Runtime/AppFramework/Private/Framework/Testing",
+				"Runtime/AppFramework/Private/Widgets",
+                "Runtime/AppFramework/Private/Widgets/Colors",
+                "Runtime/AppFramework/Private/Widgets/Testing",
+			}
+		);
+	}
+}

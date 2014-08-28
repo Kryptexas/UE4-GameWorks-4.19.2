@@ -21,6 +21,7 @@ public class ContentBrowser : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
                 "InputCore",

@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SColorGradientEditor.h"
+#include "SColorPicker.h"
 #include "SCurveEditor.h"
 #include "ScopedTransaction.h"
 

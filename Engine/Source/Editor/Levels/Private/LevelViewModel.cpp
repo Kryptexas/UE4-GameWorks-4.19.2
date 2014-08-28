@@ -8,6 +8,7 @@
 #include "EditorLevelUtils.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "EditorSupportDelegates.h"
+#include "SColorPicker.h"
 
 #define LOCTEXT_NAMESPACE "Level"
 

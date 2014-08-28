@@ -83,6 +83,8 @@
 
 #include "Engine/GameInstance.h"
 #include "HotReloadInterface.h"
+#include "STestSuite.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

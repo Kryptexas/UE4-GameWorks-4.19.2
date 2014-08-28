@@ -20,6 +20,7 @@ public class Kismet : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Slate",

@@ -178,7 +178,7 @@ private:
 	void CreateColorPicker( bool bUseAlpha, bool bOnlyRefreshOnOk );
 	
 	/** Creates a new color picker for interactively selecting color */
-	TSharedRef<SColorPicker> CreateInlineColorPicker();
+	TSharedRef<class SColorPicker> CreateInlineColorPicker();
 
 	/**
 	 * Called when the property is set from the color picker 

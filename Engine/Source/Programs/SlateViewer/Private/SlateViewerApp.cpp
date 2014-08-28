@@ -2,6 +2,7 @@
 
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
+#include "STestSuite.h"
 
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");

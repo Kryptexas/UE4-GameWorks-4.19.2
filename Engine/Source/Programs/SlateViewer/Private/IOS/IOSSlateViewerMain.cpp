@@ -5,11 +5,14 @@
 #include "IOSAppDelegate.h"
 #include "IOSCommandLineHelper.h"
 #include "IOS/SlateOpenGLESView.h"
+#include "STestSuite.h"
+
 
 #define IOS_MAX_PATH 1024
 #define CMD_LINE_MAX 16384
 
 FString GSavedCommandLine;
+
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 {
@@ -33,9 +36,11 @@ void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 	}
 }
 
+
 void FAppEntry::PlatformInit()
 {
 }
+
 
 void FAppEntry::Init()
 {
@@ -59,6 +64,7 @@ void FAppEntry::Init()
 	double LastTime = FPlatformTime::Seconds();
 }
 
+
 void FAppEntry::Tick()
 {
 	FSlateApplication::Get().PumpMessages();
@@ -68,10 +74,12 @@ void FAppEntry::Tick()
 	FPlatformProcess::Sleep( 0 );
 }
 
+
 void FAppEntry::Shutdown()
 {
 	FSlateApplication::Shutdown();
 }
+
 
 int main(int argc, char *argv[])
 {

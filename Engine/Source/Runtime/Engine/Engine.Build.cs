@@ -58,6 +58,7 @@ public class Engine : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Networking",
 				"Sockets",
 				"SlateCore",

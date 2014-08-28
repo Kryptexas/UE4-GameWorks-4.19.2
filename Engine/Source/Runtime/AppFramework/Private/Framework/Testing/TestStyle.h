@@ -4,7 +4,7 @@
 /**
  * Test slate style
  */
-class SLATE_API FTestStyle 
+class FTestStyle 
 {
 public:
 

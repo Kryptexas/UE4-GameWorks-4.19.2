@@ -58,6 +58,7 @@
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
 #include "FindInMaterial.h"
+#include "SColorPicker.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Particles/ParticleSystemComponent.h"

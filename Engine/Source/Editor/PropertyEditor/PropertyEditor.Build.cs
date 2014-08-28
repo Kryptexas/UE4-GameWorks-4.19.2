@@ -36,6 +36,7 @@ public class PropertyEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"EditorStyle",

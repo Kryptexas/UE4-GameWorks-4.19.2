@@ -14,7 +14,7 @@
 #include "CascadeActions.h"
 #include "Cascade.h"
 #include "PhysicsPublic.h"
-
+#include "SColorPicker.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

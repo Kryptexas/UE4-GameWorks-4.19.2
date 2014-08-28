@@ -4,38 +4,32 @@
 
 
 /** Called when the color picker cancel button is pressed */
-DECLARE_DELEGATE_OneParam( FOnColorPickerCancelled, FLinearColor );
+DECLARE_DELEGATE_OneParam(FOnColorPickerCancelled, FLinearColor);
 
 
-namespace EColorPickerChannels
+/**
+ * Enumerates color channels (do not reorder).
+ */
+enum class EColorPickerChannels
 {
-	/**
-	 * Enumerates color channels (do not reorder).
-	 */
-	enum Type
-	{
-		Red,
-		Green,
-		Blue,
-		Alpha,
-		Hue,
-		Saturation,
-		Value
-	};
-}
+	Red,
+	Green,
+	Blue,
+	Alpha,
+	Hue,
+	Saturation,
+	Value
+};
 
 
-namespace EColorPickerModes
+/**
+ * Enumerates color picker modes.
+ */
+enum class EColorPickerModes
 {
-	/**
-	 * Enumerates color picker modes.
-	 */
-	enum Type
-	{
-		Spectrum,
-		Wheel
-	};
-}
+	Spectrum,
+	Wheel
+};
 
 
 /**
@@ -60,7 +54,7 @@ struct FColorChannels
  * use the functions OpenColorPicker and DestroyColorPicker, since they hold a static
  * instance of the color picker.
  */
-class SLATE_API SColorPicker
+class APPFRAMEWORK_API SColorPicker
 	: public SCompoundWidget
 {
 public:
@@ -82,7 +76,7 @@ public:
 		, _ParentWindow()
 		, _DisplayGamma(2.2f)
 		, _DisplayInlineVersion(false)
-		{}
+	{ }
 		
 		/** The color that is being targeted as a TAttribute */
 		SLATE_ATTRIBUTE(FLinearColor, TargetColorAttribute)
@@ -109,22 +103,22 @@ public:
 		SLATE_ATTRIBUTE(bool, OnlyRefreshOnOk)
 		
 		/** The event called when the color is committed */
-		SLATE_EVENT( FOnLinearColorValueChanged, OnColorCommitted )
+		SLATE_EVENT(FOnLinearColorValueChanged, OnColorCommitted)
 
 		/** The event called before the color is committed */
-		SLATE_EVENT( FOnLinearColorValueChanged, PreColorCommitted )
+		SLATE_EVENT(FOnLinearColorValueChanged, PreColorCommitted)
 		
 		/** The event called when the color picker cancel button is pressed */
-		SLATE_EVENT( FOnColorPickerCancelled, OnColorPickerCancelled )
+		SLATE_EVENT(FOnColorPickerCancelled, OnColorPickerCancelled)
 
 		/** The event called when the color picker parent window is closed */
-		SLATE_EVENT( FOnWindowClosed, OnColorPickerWindowClosed )
+		SLATE_EVENT(FOnWindowClosed, OnColorPickerWindowClosed)
 
 		/** The event called when a slider drag, color wheel drag or dropper grab starts */
-		SLATE_EVENT( FSimpleDelegate, OnInteractivePickBegin )
+		SLATE_EVENT(FSimpleDelegate, OnInteractivePickBegin)
 
 		/** The event called when a slider drag, color wheel drag or dropper grab finishes */
-		SLATE_EVENT( FSimpleDelegate, OnInteractivePickEnd )
+		SLATE_EVENT(FSimpleDelegate, OnInteractivePickEnd)
 
 		/** A pointer to the parent window */
 		SLATE_ATTRIBUTE(TSharedPtr<SWindow>, ParentWindow)
@@ -140,8 +134,6 @@ public:
 	/** A default window size for the color picker which looks nice */
 	static const FVector2D DEFAULT_WINDOW_SIZE;
 
-public:
-
 	/**	Destructor. */
 	~SColorPicker();
 
@@ -150,15 +142,11 @@ public:
 	/**
 	 * Construct the widget
 	 *
-	 * @param InArgs   Declaration from which to construct the widget.
+	 * @param InArgs Declaration from which to construct the widget.
 	 */
 	void Construct(const FArguments& InArgs );
 
-protected:	
-
-	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	// End of SWidget interface
+protected:
 
 	/** Backup all the colors that are being modified */
 	void BackupColors();
@@ -203,7 +191,7 @@ protected:
 	 * @param Channel The color channel to create the widget for.
 	 * @return The new slider.
 	 */
-	TSharedRef<SWidget> MakeColorSlider( EColorPickerChannels::Type Channel ) const;
+	TSharedRef<SWidget> MakeColorSlider( EColorPickerChannels Channel ) const;
 
 	/**
 	 * Creates a color spin box widget for the specified channel.
@@ -211,7 +199,7 @@ protected:
 	 * @param Channel The color channel to create the widget for.
 	 * @return The new spin box.
 	 */
-	TSharedRef<SWidget> MakeColorSpinBox( EColorPickerChannels::Type Channel ) const;
+	TSharedRef<SWidget> MakeColorSpinBox( EColorPickerChannels Channel ) const;
 
 	/**
 	 * Creates the color preview box widget.
@@ -220,13 +208,19 @@ protected:
 	 */
 	TSharedRef<SWidget> MakeColorPreviewBox( ) const;
 
+protected:	
+
+	// SWidget interface
+
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
 private:
 
 	// Callback for getting the end color of a color spin box gradient.
-	FLinearColor GetGradientEndColor( EColorPickerChannels::Type Channel ) const;
+	FLinearColor GetGradientEndColor( EColorPickerChannels Channel ) const;
 
 	// Callback for getting the start color of a color spin box gradient.
-	FLinearColor GetGradientStartColor( EColorPickerChannels::Type Channel ) const;
+	FLinearColor GetGradientStartColor( EColorPickerChannels Channel ) const;
 
 	// Callback for handling expansion of the 'Advanced' area.
 	void HandleAdvancedAreaExpansionChanged( bool Expanded );
@@ -244,22 +238,22 @@ private:
 	FReply HandleColorPickerModeButtonClicked( );
 
 	// Callback for getting the visibility of the given color picker mode.
-	EVisibility HandleColorPickerModeVisibility( EColorPickerModes::Type Mode ) const;
+	EVisibility HandleColorPickerModeVisibility( EColorPickerModes Mode ) const;
 
 	// Callback for getting the end color of a color slider.
-	FLinearColor HandleColorSliderEndColor( EColorPickerChannels::Type Channel ) const;
+	FLinearColor HandleColorSliderEndColor( EColorPickerChannels Channel ) const;
 
 	// Callback for getting the start color of a color slider.
-	FLinearColor HandleColorSliderStartColor( EColorPickerChannels::Type Channel ) const;
+	FLinearColor HandleColorSliderStartColor( EColorPickerChannels Channel ) const;
 
 	// Callback for value changes in the color spectrum picker.
 	void HandleColorSpectrumValueChanged( FLinearColor NewValue );
 
 	// Callback for getting the value of a color spin box.
-	float HandleColorSpinBoxValue( EColorPickerChannels::Type Channel ) const;
+	float HandleColorSpinBoxValue( EColorPickerChannels Channel ) const;
 
 	// Callback for value changes in a color spin box.
-	void HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels::Type Channel );
+	void HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels Channel );
 
 	// Callback for completed eye dropper interactions.
 	void HandleEyeDropperButtonComplete( );
@@ -310,7 +304,7 @@ private:
 	void HandleThemeBarColorSelected( FLinearColor NewValue );
 
 	// Callback for getting the theme bar's color theme.
-	TSharedPtr<FColorTheme> HandleThemeBarColorTheme( ) const;
+	TSharedPtr<class FColorTheme> HandleThemeBarColorTheme( ) const;
 
 	// Callback for getting the visibility of the theme bar hint text.
 	EVisibility HandleThemeBarHintVisibility( ) const;
@@ -342,7 +336,7 @@ private:
 	FLinearColor ColorBegin;
 
 	// Holds the color picker's mode.
-	EColorPickerModes::Type CurrentMode;
+	EColorPickerModes CurrentMode;
 
 	/** Time, used for color animation */
 	float CurrentTime;
@@ -511,10 +505,10 @@ struct FColorPickerArgs
 /**
  * Opens up the static color picker, destroying any previously existing one.
  */
-SLATE_API bool OpenColorPicker( const FColorPickerArgs& Args );
+APPFRAMEWORK_API bool OpenColorPicker( const FColorPickerArgs& Args );
 
 /**
  * Destroys the current color picker. Necessary if the values the color picker
  * currently targets become invalid.
  */
-SLATE_API void DestroyColorPicker();
+APPFRAMEWORK_API void DestroyColorPicker();

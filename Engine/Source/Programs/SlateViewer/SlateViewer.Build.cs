@@ -10,6 +10,7 @@ public class SlateViewer : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"Projects",
 				"Slate",
@@ -23,8 +24,12 @@ public class SlateViewer : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PrivateDependencyModuleNames.Add("NetworkFile");
-			PrivateDependencyModuleNames.Add("StreamingFile");
+			PrivateDependencyModuleNames.AddRange(
+                new string [] {
+                    "NetworkFile",
+                    "StreamingFile"
+                }
+            );
 		}
 	}
 }

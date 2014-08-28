@@ -3,6 +3,4 @@
 #pragma once
 
 
-SLATE_API void RestoreSlateTestSuite();
-
-SLATE_API void MakeSplitterTest();
+APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample();

@@ -9,7 +9,7 @@
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
-
+#include "SColorPicker.h"
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "SMyBlueprint.h"

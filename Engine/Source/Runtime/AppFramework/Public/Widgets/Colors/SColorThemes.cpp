@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "AppFrameworkPrivatePCH.h"
 
 
 void FColorDragDrop::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent )
@@ -63,6 +63,58 @@ TSharedPtr<SWidget> FColorDragDrop::GetDefaultDecorator() const
 }
 
 
+FColorTheme::FColorTheme( const FString& InName, const TArray< TSharedPtr<FLinearColor> >& InColors )
+	: Name(InName)
+	, Colors(InColors)
+	, RefreshEvent()
+{ }
+
+
+void FColorTheme::InsertNewColor( TSharedPtr<FLinearColor> InColor, int32 InsertPosition )
+{
+	Colors.Insert(InColor, InsertPosition);
+	RefreshEvent.Broadcast();
+}
+
+
+int32 FColorTheme::FindApproxColor( const FLinearColor& InColor, float Tolerance ) const
+{
+	for (int32 ColorIndex = 0; ColorIndex < Colors.Num(); ++ColorIndex)
+	{
+		if (Colors[ColorIndex]->Equals(InColor, Tolerance))
+		{
+			return ColorIndex;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+
+void FColorTheme::RemoveAll()
+{
+	Colors.Empty();
+	RefreshEvent.Broadcast();
+}
+
+
+void FColorTheme::RemoveColor( int32 ColorIndex )
+{
+	Colors.RemoveAt(ColorIndex);
+	RefreshEvent.Broadcast();
+}
+
+
+int32 FColorTheme::RemoveColor( const TSharedPtr<FLinearColor> InColor )
+{
+	const int32 Position = Colors.Find(InColor);
+	if (Position != INDEX_NONE)
+	{
+		RemoveColor(Position);
+	}
+
+	return Position;
+}
 
 
 void SColorTrash::Construct( const FArguments& InArgs )

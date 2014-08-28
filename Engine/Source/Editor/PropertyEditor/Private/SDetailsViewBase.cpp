@@ -15,6 +15,8 @@
 #include "PropertyDetailsUtilities.h"
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
+#include "SColorPicker.h"
+
 
 SDetailsViewBase::~SDetailsViewBase()
 {

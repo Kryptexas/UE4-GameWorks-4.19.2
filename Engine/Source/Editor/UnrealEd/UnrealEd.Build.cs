@@ -74,6 +74,7 @@ public class UnrealEd : ModuleRules
 			new string[] 
 			{ 
 				"AnimGraph",
+                "AppFramework",
 				"BlueprintGraph",
 				"OnlineSubsystem",
 				"OnlineBlueprintSupport",

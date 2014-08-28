@@ -5,8 +5,11 @@
 #include "IDocumentation.h"
 #include "ISourceCodeAccessModule.h"
 #include "ContentBrowserModule.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "STutorialEditableText"
+
 
 namespace TutorialTextHelpers
 {

@@ -6,7 +6,7 @@
 /**
  * Implements the color wheel widget.
  */
-class SColorWheel
+class SLATE_API SColorWheel
 	: public SLeafWidget
 {
 public:
