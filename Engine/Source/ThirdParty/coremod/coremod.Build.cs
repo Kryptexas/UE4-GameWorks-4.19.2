@@ -36,5 +36,23 @@ public class coremod: ModuleRules
         {
             PublicAdditionalLibraries.Add(LibraryPath + "/lib/Linux/" + Target.Architecture + "/" + "libcoremodLinux.a");
         }
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			string AndroidPath = LibraryPath + "/lib/Android/";
+			// No 64bit support for Android yet
+			switch (Target.Architecture)
+			{
+			case "-armv7":
+				PublicLibraryPaths.Add(AndroidPath + "armeabi-v7a");
+				PublicAdditionalLibraries.Add("xmp-coremod");
+				break;
+			case "-x86":
+				PublicLibraryPaths.Add(AndroidPath + "x86");
+				PublicAdditionalLibraries.Add("xmp-coremod");
+				break;
+			}
+
+			
+		}
 	}
 }
