@@ -5,7 +5,7 @@
 #include "GameplayAbilityTargetActor_Radius.h"
 #include "Engine/World.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
-#include "GameplayAbilityTargetTypes.h
+#include "GameplayAbilityTargetTypes.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
