@@ -56,7 +56,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* CreateQueuedBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
 
@@ -65,9 +65,18 @@ public:
 	 *
 	 * @param Wave			USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* CreateNativeBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
+
+	/**
+	* Static function used to create an Audio buffer and dynamically upload procedural data to.
+	*
+	* @param InWave		USoundWave to use as template and wave source
+	* @param AudioDevice	audio device to attach created buffer to
+	* @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	*/
+	static FSLESSoundBuffer* CreateProceduralBuffer(FSLESAudioDevice* AudioDevice, USoundWave* Wave);
 
 	/**
 	 * Static function used to create a buffer.
@@ -206,6 +215,8 @@ protected:
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
+	uint32						BufferSize;
+
 	int32						BufferInUse;
 	bool						bHasLooped;
 
@@ -214,6 +225,12 @@ protected:
 	void ReleaseResources();
 	bool EnqueuePCMBuffer( bool bLoop);
 	bool EnqueuePCMRTBuffer( bool bLoop);
+
+	/** Decompress through FSLESSoundBuffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
+	bool ReadMorePCMData(const int32 BufferIndex);
+
+	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
+	bool ReadProceduralData(const int32 BufferIndex);
 };
 
 /**
