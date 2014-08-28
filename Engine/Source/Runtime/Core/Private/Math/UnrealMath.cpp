@@ -380,9 +380,18 @@ void FMatrix::DebugPrint() const
 
 FQuat FQuat::MakeFromEuler(const FVector& Euler)
 {
-	return FQuat( FRotationTranslationMatrix( FRotator::MakeFromEuler(Euler), FVector::ZeroVector ) );
+	return FRotator::MakeFromEuler(Euler).Quaternion();
 }
 
+FMatrix FRotationAboutPointMatrix::Make(const FQuat& Rot, const FVector& Origin)
+{
+	return FRotationAboutPointMatrix(Rot.Rotator(), Origin);
+}
+
+FMatrix FRotationMatrix::Make(FQuat const& Rot)
+{
+	return FQuatRotationTranslationMatrix(Rot, FVector::ZeroVector);
+}
 
 FMatrix FRotationMatrix::MakeFromX(FVector const& XAxis)
 {

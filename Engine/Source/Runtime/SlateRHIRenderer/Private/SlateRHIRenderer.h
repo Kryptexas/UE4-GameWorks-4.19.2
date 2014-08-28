@@ -4,6 +4,7 @@
 
 class FSlateRHIResourceManager;
 class FSlateRHIRenderingPolicy;
+class FSlateElementBatcher;
 
 
 #define USE_MAX_DRAWBUFFERS 1

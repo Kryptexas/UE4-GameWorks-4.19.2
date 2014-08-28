@@ -87,6 +87,39 @@ namespace ESlateLineJoinType
 	};
 };
 
+/**
+ * Stores a rectangle that has been transformed by an arbitrary render transform. 
+ * We provide a ctor that does the work common to slate drawing, but you could technically 
+ * create this any way you want.
+ */
+struct FSlateRotatedRect
+{
+	FSlateRotatedRect(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace);
+	/** transformed Top-left corner. */
+	FVector2D TopLeft;
+	/** transformed X extent (right-left). */
+	FVector2D ExtentX;
+	/** transformed Y extent (bottom-top). */
+	FVector2D ExtentY;
+
+	FSlateRect ToBoundingRect() const;
+	bool IsUnderLocation(const FVector2D& Location) const;
+};
+
+/**
+ * Stores a Rotated rect as float16 for rendering.
+ */
+struct FSlateRotatedRectFloat16
+{
+	FSlateRotatedRectFloat16();
+	FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect);
+	/** transformed Top-left corner. */
+	FFloat16 TopLeft[2];
+	/** transformed X extent (right-left). */
+	FFloat16 ExtentX[2];
+	/** transformed Y extent (bottom-top). */
+	FFloat16 ExtentY[2];
+};
 
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
@@ -95,66 +128,16 @@ struct FSlateVertex
 {
 	/** Texture coordinates.  The first 2 are in xy and the 2nd are in zw */
 	FVector4 TexCoords; 
-	/** Clipping coordinates (left,top,right,bottom)*/
-	uint16 ClipCoords[4];
-	/** Position of the vertex in world space */
-	uint16 Position[2];
+	/** Position of the vertex in window space */
+	int16 Position[2];
+	/** clip center/extents in render window space (window space with render transforms applied) */
+	FSlateRotatedRectFloat16 ClipRect;
 	/** Vertex color */
 	FColor Color;
 	
-	FSlateVertex() {}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRect& InClipCoords) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, InTexCoord2.X, InTexCoord2.Y )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FVector4& InClipCoords) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, InTexCoord2.X, InTexCoord2.Y )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.X);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Y);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Z);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.W);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRect& InClipCoords ) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, 1.0f, 1.0f )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const uint32 InDWORD ) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, 1.0f, 1.0f )
-		, Color( InDWORD )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = 0;
-		ClipCoords[1] = 0;
-		ClipCoords[2] = 0;
-		ClipCoords[3] = 0;
-	}
+	FSlateVertex();
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect );
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };

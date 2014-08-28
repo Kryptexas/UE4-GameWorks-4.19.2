@@ -659,10 +659,10 @@ bool FSlateFontCache::AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, 
 
 	if( bSuccess )
 	{
-		OutCharacterEntry.StartU = NewSlot->X;
-		OutCharacterEntry.StartV = NewSlot->Y;
-		OutCharacterEntry.USize = NewSlot->Width;
-		OutCharacterEntry.VSize = NewSlot->Height;
+		OutCharacterEntry.StartU = NewSlot->X + NewSlot->Padding;
+		OutCharacterEntry.StartV = NewSlot->Y + NewSlot->Padding;
+		OutCharacterEntry.USize = NewSlot->Width - 2 * NewSlot->Padding;
+		OutCharacterEntry.VSize = NewSlot->Height - 2 * NewSlot->Padding;
 		OutCharacterEntry.TextureIndex = 0;
 		OutCharacterEntry.XAdvance = RenderData.MeasureInfo.XAdvance;
 		OutCharacterEntry.VerticalOffset = RenderData.MeasureInfo.VerticalOffset;

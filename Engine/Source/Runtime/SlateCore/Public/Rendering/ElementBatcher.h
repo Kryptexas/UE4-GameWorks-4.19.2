@@ -47,104 +47,43 @@ private:
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Size				The size of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param Layer				The layer to draw this element in
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Color				The color of the quad
 	 */
-	void AddQuadElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateRect& InClippingRect, uint32 Layer, FColor Color = FColor(255,255,255));
+	void AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color = FColor(255,255,255));
 
 	/** 
 	 * Creates vertices necessary to draw a 3x3 element
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Size				The size of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddBoxElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddBoxElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a string (one quad per character)
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Size				The size of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddTextElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddTextElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a gradient box (horizontal or vertical)
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Size				The size of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddGradientElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddGradientElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a spline (Bezier curve)
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddSplineElement( const FVector2D& Position, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddSplineElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a series of attached line segments
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Size				The size of the element (not used)
-	 * @param Scale				The amount to scale the element by (not used)
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param DrawEffects		DrawEffects to apply
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddLineElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddLineElement( const FSlateDrawElement& DrawElement );
 	
 	/** 
 	 * Creates vertices necessary to draw a viewport (just a textured quad)
-	 *
-	 * @param Position			The top left screen space position of the element
-	 * @param Scale				The amount to scale the element by
-	 * @param Size				The size of the element
-	 * @param InPayload			The data payload for this element
-	 * @param InClippingRect	The clipping rectangle for the element
-	 * @param Layer				The layer to draw this element in
 	 */
-	void AddViewportElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddViewportElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a border element
-	 *
-	 * @param Position		The top left screen space position of the element
-	 * @param Size			The size of the element
-	 * @param Scale			The amount to scale the element by
-	 * @param InPayload		The data payload for this element
-	 * @param DrawEffects	DrawEffects to apply
-	 * @param Layer			The layer to draw this element in
 	 */
-	void AddBorderElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddBorderElement( const FSlateDrawElement& DrawElement );
 
 	/**
 	 * Batches a custom slate drawing element
@@ -156,7 +95,7 @@ private:
 	 * @param DrawEffects	DrawEffects to apply
 	 * @param Layer			The layer to draw this element in
 	 */
-	void AddCustomElement( const FVector2D& Position, const FVector2D& Size, float Scale, const FSlateDataPayload& InPayload, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, uint32 Layer );
+	void AddCustomElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Finds an batch for an element based on the passed in parameters

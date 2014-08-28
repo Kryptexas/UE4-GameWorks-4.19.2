@@ -397,7 +397,10 @@ public:
 
 APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample()
 {
-	return SNew(SExampleLayout);
+	extern FSlateRenderTransform GetRenderTransform();
+	return 
+		SNew(SExampleLayout)
+		.RenderTransform_Static(&GetRenderTransform);
 }
 
 #undef LOCTEXT_NAMESPACE

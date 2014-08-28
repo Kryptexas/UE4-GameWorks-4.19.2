@@ -964,6 +964,7 @@ struct TSlateBaseNamedArgs
 	, _Cursor( TOptional<EMouseCursor::Type>() )
 	, _IsEnabled( true )
 	, _Visibility( EVisibility::Visible )
+	, _RenderTransform()
 	{
 	}
 
@@ -1001,6 +1002,7 @@ struct TSlateBaseNamedArgs
 	SLATE_ATTRIBUTE( TOptional<EMouseCursor::Type>, Cursor )
 	SLATE_ATTRIBUTE( bool, IsEnabled )
 	SLATE_ATTRIBUTE( EVisibility, Visibility )
+	SLATE_ATTRIBUTE( FSlateRenderTransform, RenderTransform )
 	SLATE_ARGUMENT( FName, Tag )
 
 	TArray<TSharedRef<ISlateMetaData>> MetaData;
@@ -1262,6 +1264,7 @@ struct TDecl
 			InArgs._Cursor ,
 			InArgs._IsEnabled ,
 			InArgs._Visibility,
+			InArgs._RenderTransform,
 			InArgs._Tag,
 			InArgs.MetaData );
 

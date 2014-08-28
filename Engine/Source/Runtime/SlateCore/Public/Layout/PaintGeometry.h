@@ -2,67 +2,127 @@
 
 #pragma once
 
+#include "SlateRenderTransform.h"
+#include "SlateLayoutTransform.h"
 
 /**
- * A Paint geometry is a draw-space rectangle.
- * The DrawPosition and DrawSize are already positioned and
- * scaled for immediate consumption by the draw code.
+ * A Paint geometry contains the window-space (draw-space) info to draw an element on the screen.
+ * 
+ * It contains the size of the element in the element's local space along with the 
+ * transform needed to position the element in window space.
+ * 
+ * DrawPosition/DrawSize/DrawScale are maintained for legacy reasons, but are deprecated:
+ * 
+ *		The DrawPosition and DrawSize are already positioned and
+ *		scaled for immediate consumption by the draw code.
  *
- * The DrawScale is only applied to the internal aspects of the draw primitives. e.g. Line thickness, 3x3 grid margins, etc.
+ *		The DrawScale is only applied to the internal aspects of the draw primitives. e.g. Line thickness, 3x3 grid margins, etc.
  */
 struct SLATECORE_API FPaintGeometry
 {
-	/** Render-space position at which we will draw */
+	/** 
+	 * !!! DEPRECATED!!! Drawing should only happen in local space to ensure render transforms work.
+	 *	WARNING: This legacy member represents is LAYOUT space, and does not account for render transforms.
+	 *	
+	 * Render-space position at which we will draw.
+	 *
+	 * 
+	 */
 	FVector2D DrawPosition;
 
 	/**
-	 * The size in render-space that we want to make this element.
-	 * This field is ignored by some elements (e.g. spline, lines)
+	 * !!! DEPRECATED!!! Drawing should only happen in local space to ensure render transforms work.
+	 *	WARNING: This legacy member represents is LAYOUT space, and does not account for render transforms.
+	 * 
+	 * Only affects the draw aspects of individual draw elements. e.g. line thickness, 3x3 grid margins 
 	 */
-	FVector2D DrawSize;
-
-	/** Only affects the draw aspects of individual draw elements. e.g. line thickness, 3x3 grid margins */
 	float DrawScale;
 
+	/** Get the Size of the geometry in local space. Must call CommitTransformsIfUsingLegacyConstructor() first if legacy ctor is used. */
+	const FVector2D& GetLocalSize() const { return LocalSize; }
+
+	/** Access the final render transform. Must call CommitTransformsIfUsingLegacyConstructor() first if legacy ctor is used. */
+	const FSlateRenderTransform& GetAccumulatedRenderTransform() const { return AccumulatedRenderTransform; }
+
+	/**
+	 * Support mutable geometries constructed in window space, and possibly mutated later, as all legacy members are public.
+	 * In these cases we defer creating of the RenderTransform and LocalSize until rendering time to ensure that all member changes have finished.
+	 * WARNING: Legacy usage does NOT support render transforms!
+	 */
+	void CommitTransformsIfUsingLegacyConstructor() const 
+	{ 
+		if (!bUsingLegacyConstructor) return;
+		
+		AccumulatedRenderTransform = FSlateRenderTransform(DrawScale, DrawPosition);
+		FSlateLayoutTransform AccumulatedLayoutTransform = FSlateLayoutTransform(DrawScale, DrawPosition);
+		LocalSize = TransformVector(Inverse(AccumulatedLayoutTransform), DrawSize);
+	}
+
+private:
+	// Mutable to support legacy constructors. Doesn't account for render transforms.
+	mutable FVector2D DrawSize;
+
+	// Mutable to support legacy constructors.
+	mutable FVector2D LocalSize;
+
+	// final render transform for drawing. Transforms from local space to window space for the draw element.
+	// Mutable to support legacy constructors.
+	mutable FSlateRenderTransform AccumulatedRenderTransform;
+
+	// Support legacy constructors.
+	bool bUsingLegacyConstructor;
 public:
+	/** Default ctor. */
+	FPaintGeometry() 
+		: DrawPosition(0.0f, 0.0f)
+		, DrawScale(1.0f)
+		, DrawSize(0.0f, 0.0f)
+		, LocalSize(0.0f, 0.0f)
+		, AccumulatedRenderTransform()
+		, bUsingLegacyConstructor(true)
+	{}
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InDrawPosition The draw position.
-	 * @param InDrawSize The draw size.
-	 * @param InDrawScale The draw scale.
+	 * @param InLocalSize					The size in local space
+	 * @param InAccumulatedLayoutTransform	The accumulated layout transform (from an FGeometry)
+	 * @param InAccumulatedRenderTransform	The accumulated render transform (from an FGeometry)
 	 */
-	FPaintGeometry( FVector2D InDrawPosition, FVector2D InDrawSize, float InDrawScale )
-		: DrawPosition(InDrawPosition)
-		, DrawSize (InDrawSize)
-		, DrawScale(InDrawScale)
-	{ }
-
-public:
-
-	/**
-	 * Converts this paint geometry to a Slate rectangle.
-	 *
-	 * @return The Slate rectangle.
-	 */
-	FSlateRect ToSlateRect( ) const
-	{
-		return FSlateRect(DrawPosition.X, DrawPosition.Y, DrawPosition.X + DrawSize.X, DrawPosition.Y + DrawSize.Y);
+	FPaintGeometry( const FSlateLayoutTransform& InAccumulatedLayoutTransform, const FSlateRenderTransform& InAccumulatedRenderTransform, const FVector2D& InLocalSize )
+		: DrawPosition(InAccumulatedLayoutTransform.GetTranslation())
+		, DrawScale(InAccumulatedLayoutTransform.GetScale())
+		, DrawSize(0.0f, 0.0f)
+		, LocalSize(InLocalSize)
+		, AccumulatedRenderTransform(InAccumulatedRenderTransform)
+		, bUsingLegacyConstructor(false)
+	{ 
 	}
 
-public:
+	// !!! DEPRECATED!!! This is legacy and should be removed!
+	FPaintGeometry( FVector2D InDrawPosition, FVector2D InDrawSize, float InDrawScale )
+		: DrawPosition(InDrawPosition)
+		, DrawScale(InDrawScale)
+		, DrawSize(InDrawSize)
+		, LocalSize(0.0f, 0.0f)
+		, AccumulatedRenderTransform()
+		, bUsingLegacyConstructor(true)
+	{ 
+	}
 
-	static const FPaintGeometry& Identity( )
+	/**
+	 * Special case method to append a layout transform to a paint geometry.
+	 * This is used in cases where the FGeometry was arranged in desktop space
+	 * and we need to undo the root desktop translation to get into window space.
+	 * If you find yourself wanting to use this function, ask someone if there's a better way.
+	 * 
+	 * @param LayoutTransform	An additional layout transform to append to this paint geoemtry.
+	 */
+	void AppendTransform(const FSlateLayoutTransform& LayoutTransform)
 	{
-		static FPaintGeometry IdentityPaintGeometry
-		(
-			FVector2D(0.0f, 0.0f),	// Position: Draw at the origin of draw space
-			FVector2D(0.0f, 0.0f),	// Size    : Size is ignored by splines
-			1.0f					// Scale   : Do not do any scaling.
-		);
-
-		return IdentityPaintGeometry;
+		AccumulatedRenderTransform = ::Concatenate(AccumulatedRenderTransform, LayoutTransform);
+		DrawPosition = TransformPoint(LayoutTransform, DrawPosition);
+		DrawScale = ::Concatenate(LayoutTransform.GetScale(), DrawScale);
 	}
 };
 

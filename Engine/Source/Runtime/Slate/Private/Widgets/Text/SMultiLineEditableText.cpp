@@ -2426,9 +2426,7 @@ bool SMultiLineEditableText::FTextInputMethodContext::GetTextBounds(const uint32
 
 		// Translate the position (which is in local space) into screen (absolute) space
 		// Note: The local positions are pre-scaled, so we don't scale them again here
-		FGeometry CachedGeometryNoScale = CachedGeometry;
-		CachedGeometryNoScale.Scale = 1.0f;
-		Position = CachedGeometryNoScale.LocalToAbsolute(Position);
+		Position += CachedGeometry.AbsolutePosition;
 	}
 	return IsClipped;
 }

@@ -2,6 +2,20 @@
 
 #pragma once
 
+/** 
+ * Specifies how to handle texture atlas padding (when specified for the atlas). 
+ * We only support one pixel of padding because we don't support mips or aniso filtering on atlas textures right now.
+ */
+enum ESlateTextureAtlasPaddingStyle
+{
+	/** Don't pad the atlas. */
+	NoPadding,
+	/** Dilate the texture by one pixel to pad the atlas. */
+	DilateBorder,
+	/** One pixel uniform padding border filled with zeros. */
+	PadWithZero,
+};
+
 /**
  * Structure holding information about where a texture is located in the atlas
  * Pointers to left and right children build a tree of texture rectangles so we can easily find optimal slots for textures
@@ -20,6 +34,7 @@ struct FAtlasedTextureSlot
 	uint32 Width;
 	/** The height of the character */
 	uint32 Height;
+	/** Uniform Padding. can only be zero or one. See ESlateTextureAtlasPaddingStyle. */
 	uint8 Padding;
 	FAtlasedTextureSlot( uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight, uint8 InPadding )
 		: Left(nullptr)
@@ -35,20 +50,19 @@ struct FAtlasedTextureSlot
 	}
 };
 
-
 /**
  * Base class texture atlases in Slate
  */
 class SLATECORE_API FSlateTextureAtlas
 {
 public:
-	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 StrideBytes, uint32 InPadding )
+	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle InPaddingStyle )
 		: AtlasData()
 		, RootNode( nullptr )
 		, AtlasWidth( InWidth )
 		, AtlasHeight( InHeight )
 		, Stride( StrideBytes )
-		, Padding( InPadding )
+		, PaddingStyle( InPaddingStyle )
 		, bNeedsUpdate( false )
 	{
 		InitAtlasData();
@@ -120,21 +134,23 @@ protected:
 		uint32 SrcTextureWidth;
 		/** The width of the dest texture */
 		uint32 DestTextureWidth;
-		/** The stride of each pixel */
-		uint32 DataStride;
-		/** Padding in the destination */
-		uint32 Padding;
-		/** Whether to dialate the texture and put the extra data in the padding area */
-		bool bDialateToPadding;
 	};
 
 	/**
-	 * Copies a single row from a source texture to a dest texture
-	 * Optionally dilating the texture by the padding amount
+	 * Copies a single row from a source texture to a dest texture,
+	 * respecting the padding.
 	 *
 	 * @param CopyRowData	Information for how to copy a row
 	 */
-	void CopyRow( FCopyRowData& CopyRowData );
+	void CopyRow( const FCopyRowData& CopyRowData );
+
+	/**
+	 * Zeros out a row in the dest texture (used with PaddingStyle == PadWithZero).
+	 * respecting the padding.
+	 *
+	 * @param CopyRowData	Information for how to copy a row
+	 */
+	void ZeroRow( const FCopyRowData& CopyRowData );
 
 	/** 
 	 * Copies texture data into the atlas at a given slot
@@ -167,8 +183,9 @@ protected:
 	uint32 AtlasHeight;
 	/** Stride of the atlas in bytes */
 	uint32 Stride;
-	/** Padding on all sides of each texture in the atlas */
-	uint32 Padding;
+	/** Padding style */
+	ESlateTextureAtlasPaddingStyle PaddingStyle;
+
 	/** True if this texture needs to have its rendering resources updated */
 	bool bNeedsUpdate;
 };

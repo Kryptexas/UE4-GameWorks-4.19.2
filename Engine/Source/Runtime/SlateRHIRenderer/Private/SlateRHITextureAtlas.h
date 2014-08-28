@@ -19,7 +19,7 @@ public:
 	 * @param StrideBytes
 	 * @param Padding
 	 */
-	FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 SrideBytes, uint32 Padding );
+	FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 SrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle );
 
 	/**
 	 * Destructor.

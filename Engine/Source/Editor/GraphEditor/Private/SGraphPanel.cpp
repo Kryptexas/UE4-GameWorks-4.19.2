@@ -219,11 +219,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 						if (bShowCommentBubble)
 						{
-							FGeometry CommentGeometry = CurWidget.Geometry;
-							if (!bScaleComments)
-							{
-								CommentGeometry.Scale = 1.0f;
-							}
+							FGeometry CommentGeometry = CurWidget.Geometry.MakeChild(CurWidget.Geometry.Size, FSlateLayoutTransform(bScaleComments ? 1.0f : Inverse(CurWidget.Geometry.Scale)));
 							PaintComment(NodeComment, CommentGeometry, MyClippingRect, OutDrawElements, ChildLayerId, ChildNode->GetNodeCommentColor().GetColor( InWidgetStyle ), /*inout*/ CommentBubbleY, InWidgetStyle);
 						}
 					}

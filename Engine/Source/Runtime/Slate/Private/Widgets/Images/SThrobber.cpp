@@ -139,25 +139,18 @@ void SCircularThrobber::ConstructSequence()
 int32 SCircularThrobber::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FColor FinalColorAndOpacity( InWidgetStyle.GetColorAndOpacityTint() * PieceImage->GetTint( InWidgetStyle ) );
-	
-	const float Scale = AllottedGeometry.Scale; 
-	const float OffsetX = (AllottedGeometry.Size.X * Scale * 0.5f) - (PieceImage->ImageSize.X * Scale * 0.5f);
-	const float OffsetY = (AllottedGeometry.Size.Y * Scale * 0.5f) - (PieceImage->ImageSize.Y * Scale * 0.5f);
-
-	FPaintGeometry PaintGeom = AllottedGeometry.ToPaintGeometry();
-	FVector2D Origin = PaintGeom.DrawPosition;
-	Origin.X += OffsetX;
-	Origin.Y += OffsetY;
-
+	const FVector2D LocalOffset = (AllottedGeometry.Size - PieceImage->ImageSize) * 0.5f;
 	const float DeltaAngle = NumPieces > 0 ? 2 * PI / NumPieces : 0;
 	const float Phase = Curve.GetLerpLooping() * 2 * PI;
 
 	for (int32 PieceIdx = 0; PieceIdx < NumPieces; ++PieceIdx)
 	{
-		PaintGeom.DrawPosition.X = Origin.X + FMath::Sin(DeltaAngle * PieceIdx + Phase) * OffsetX;
-		PaintGeom.DrawPosition.Y = Origin.Y + FMath::Cos(DeltaAngle * PieceIdx + Phase) * OffsetY;
-		PaintGeom.DrawSize = PieceImage->ImageSize * Scale * (PieceIdx + 1) / NumPieces;
-
+		const float Angle = DeltaAngle * PieceIdx + Phase;
+		// scale each piece linearly until the last piece is full size
+		FSlateLayoutTransform PieceLocalTransform(
+			(PieceIdx + 1) / (float)NumPieces,
+			LocalOffset + LocalOffset * FVector2D(FMath::Sin(Angle), FMath::Cos(Angle)));
+		FPaintGeometry PaintGeom = AllottedGeometry.ToPaintGeometry(PieceImage->ImageSize, PieceLocalTransform);
 		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, PaintGeom, PieceImage, MyClippingRect, ESlateDrawEffect::None, InWidgetStyle.GetColorAndOpacityTint() );
 	}
 	

@@ -35,8 +35,8 @@ void FSlateD3DTexture::Init( DXGI_FORMAT InFormat, D3D11_SUBRESOURCE_DATA* Inita
 	check( SUCCEEDED(Hr) );
 }
 
-FSlateTextureAtlasD3D::FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, uint8 Padding )
-	: FSlateTextureAtlas( Width, Height, StrideBytes, Padding )
+FSlateTextureAtlasD3D::FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle )
+	: FSlateTextureAtlas( Width, Height, StrideBytes, PaddingStyle )
 	, AtlasTexture( new FSlateD3DTexture( Width, Height ) )
 {
 }

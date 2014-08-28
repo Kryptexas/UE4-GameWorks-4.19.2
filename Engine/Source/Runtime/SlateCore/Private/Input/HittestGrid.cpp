@@ -63,7 +63,14 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 			check( IndexesInCell[i] < WidgetsCachedThisFrame->Num() ); 
 
 			const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[IndexesInCell[i]];
-			if ( TestCandidate.CachedGeometry.IsUnderLocation( DesktopSpaceCoordinate ) && TestCandidate.ClippingRect.ContainsPoint( DesktopSpaceCoordinate ) && TestCandidate.WidgetPtr.IsValid() )
+
+			// Compute the render space clipping rect.
+			FSlateRotatedRect DesktopOrientedClipRect(
+				Inverse(TestCandidate.CachedGeometry.GetAccumulatedLayoutTransform()),
+				TestCandidate.CachedGeometry.GetAccumulatedRenderTransform(),
+				TestCandidate.CachedGeometry.GetClippingRect().IntersectionWith(TestCandidate.ClippingRect));
+
+			if (DesktopOrientedClipRect.IsUnderLocation(DesktopSpaceCoordinate) && TestCandidate.WidgetPtr.IsValid())
 			{
 				HitWidgetIndex = IndexesInCell[i];
 			}
@@ -138,12 +145,10 @@ int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibil
 {
 	check( ParentHittestIndex < WidgetsCachedThisFrame->Num() );
 
+	// Update the FGeometry to transform into desktop space.
 	FArrangedWidget WindowAdjustedWidget(Widget);
-	WindowAdjustedWidget.Geometry.AbsolutePosition += InWindowOffset;
-
-	const FSlateRect WindowAdjustedRect(
-		InClippingRect.Left + InWindowOffset.X, InClippingRect.Top + InWindowOffset.Y,
-		InClippingRect.Right + InWindowOffset.X, InClippingRect.Bottom + InWindowOffset.Y );
+	WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
+	const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
 
 	// Remember this widget, its geometry, and its place in the logical hierarchy.
 	const int32 WidgetIndex = WidgetsCachedThisFrame->Add( FCachedWidget( ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect ) );
@@ -156,19 +161,21 @@ int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibil
 	if (Visibility.IsHitTestVisible())
 	{
 		// Mark any cell that is overlapped by this widget.
-		const FVector2D UpperLeft = WindowAdjustedWidget.Geometry.AbsolutePosition - GridOrigin;
-		const FVector2D LowerRight = UpperLeft + WindowAdjustedWidget.Geometry.Size*WindowAdjustedWidget.Geometry.Scale;
-		const FSlateRect GridSpaceWindowRect = FSlateRect(WindowAdjustedRect.Left - GridOrigin.X, WindowAdjustedRect.Top - GridOrigin.Y, WindowAdjustedRect.Right - GridOrigin.X, WindowAdjustedRect.Bottom - GridOrigin.Y);
-		const FSlateRect CellCoverageRect = FSlateRect(UpperLeft, LowerRight).IntersectionWith(GridSpaceWindowRect);
-		
+
+		// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
+		FSlateRect GridRelativeBoundingClipRect = FSlateRotatedRect(
+			Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
+			WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform(),
+			WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect)).ToBoundingRect().OffsetBy(-GridOrigin);
+
 		// Starting and ending cells covered by this widget.	
 		const FIntPoint UpperLeftCell = FIntPoint(
-			FMath::Max(0, FMath::FloorToInt(CellCoverageRect.Left / CellSize.X)),
-			FMath::Max(0, FMath::FloorToInt(CellCoverageRect.Top / CellSize.Y)));
+			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Left / CellSize.X)),
+			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Top / CellSize.Y)));
 
 		const FIntPoint LowerRightCell = FIntPoint(
-			FMath::Min( NumCells.X-1, FMath::FloorToInt(CellCoverageRect.Right / CellSize.X)),
-			FMath::Min( NumCells.Y-1, FMath::FloorToInt(CellCoverageRect.Bottom / CellSize.Y)));
+			FMath::Min( NumCells.X-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Right / CellSize.X)),
+			FMath::Min( NumCells.Y-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Bottom / CellSize.Y)));
 
 		for (int32 XIndex=UpperLeftCell.X; XIndex <= LowerRightCell.X; ++ XIndex )
 		{

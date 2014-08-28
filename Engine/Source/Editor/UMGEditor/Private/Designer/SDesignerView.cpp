@@ -861,10 +861,8 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		const FLinearColor Tint(0, 1, 0);
 
 		// Draw selection effect
-		FPaintGeometry SelectionGeometry(
-			ArrangedWidget.Geometry.AbsolutePosition,
-			ArrangedWidget.Geometry.Size * ArrangedWidget.Geometry.Scale,
-			ArrangedWidget.Geometry.Scale);
+		
+		FPaintGeometry SelectionGeometry = ArrangedWidget.Geometry.ToPaintGeometry();
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -876,20 +874,20 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 			Tint
 		);
 
-		DrawDragHandles(SelectionGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
+		DrawDragHandles(ArrangedWidget.Geometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
 	}
 
 	return LayerId;
 }
 
-void SDesignerView::DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
+void SDesignerView::DrawDragHandles(const FGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
 {
 	if ( SelectedWidget.IsValid() && SelectedWidget.GetTemplate()->Slot )
 	{
-		float X = SelectionGeometry.DrawPosition.X;
-		float Y = SelectionGeometry.DrawPosition.Y;
-		float Width = SelectionGeometry.DrawSize.X;
-		float Height = SelectionGeometry.DrawSize.Y;
+		float X = 0.0f;
+		float Y = 0.0f;
+		float Width = SelectionGeometry.Size.X;
+		float Height = SelectionGeometry.Size.Y;
 
 		// @TODO UMG Handles should come from the slot/container to express how its slots can be transformed.
 		TArray<FVector2D> Handles;
@@ -922,7 +920,7 @@ void SDesignerView::DrawDragHandles(const FPaintGeometry& SelectionGeometry, con
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				++LayerId,
-				FPaintGeometry(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), HandleSize, 1.0f),
+				SelectionGeometry.ToPaintGeometry(HandleSize, FSlateLayoutTransform(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f))),
 				KeyBrush,
 				MyClippingRect,
 				ESlateDrawEffect::None,

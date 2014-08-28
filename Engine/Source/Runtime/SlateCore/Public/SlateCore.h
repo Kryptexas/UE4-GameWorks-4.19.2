@@ -134,7 +134,6 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "RenderingCommon.h"
 #include "DrawElements.h"
 #include "RenderingPolicy.h"
-#include "ElementBatcher.h"
 #include "SlateDrawBuffer.h"
 #include "SlateRenderer.h"
 

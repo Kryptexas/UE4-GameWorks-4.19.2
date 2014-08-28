@@ -322,7 +322,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 
 				VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix);
-				VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
 
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(
@@ -427,7 +426,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						PixelShader->GetPixelShader(),
 						FGeometryShaderRHIRef()));
 
-					VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, 1.0f / DisplayGamma, ShaderParams.PixelParams);
 
 

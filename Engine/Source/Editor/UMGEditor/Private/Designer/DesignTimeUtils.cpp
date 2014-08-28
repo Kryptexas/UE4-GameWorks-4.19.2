@@ -38,7 +38,7 @@ bool FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Wid
 	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
 	{
 		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-		ArrangedWidget.Geometry.AbsolutePosition -= CurrentWindowRef->GetPositionInScreen();
+		ArrangedWidget.Geometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
 		return true;
 	}
 
@@ -50,10 +50,7 @@ bool FDesignTimeUtils::GetArrangedWidgetRelativeToParent(TSharedRef<const SWidge
 	FWidgetPath WidgetPath;
 	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
 	{
-		FArrangedWidget ArrangedDesigner = WidgetPath.FindArrangedWidget(Parent);
-
-		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-		ArrangedWidget.Geometry.AbsolutePosition -= ArrangedDesigner.Geometry.AbsolutePosition;
+		GetArrangedWidgetRelativeToParent(WidgetPath, Widget, Parent, ArrangedWidget);
 		return true;
 	}
 
@@ -65,7 +62,8 @@ void FDesignTimeUtils::GetArrangedWidgetRelativeToParent(FWidgetPath& WidgetPath
 	FArrangedWidget ArrangedDesigner = WidgetPath.FindArrangedWidget(Parent);
 
 	ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
-	ArrangedWidget.Geometry.AbsolutePosition -= ArrangedDesigner.Geometry.AbsolutePosition;
+	// !!! WRH 2014/08/26 - This code tries to mutate an FGeometry in an unsupported way. This code should be refactored.
+	ArrangedWidget.Geometry.AppendTransform(FSlateLayoutTransform(Inverse(ArrangedDesigner.Geometry.AbsolutePosition)));
 }
 
 #undef LOCTEXT_NAMESPACE

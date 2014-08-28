@@ -4,7 +4,7 @@
 
 
 FSlateFontAtlas::FSlateFontAtlas( uint32 InWidth, uint32 InHeight )
-	: FSlateTextureAtlas( InWidth, InHeight, sizeof(uint8), 0 )
+	: FSlateTextureAtlas( InWidth, InHeight, sizeof(uint8), ESlateTextureAtlasPaddingStyle::PadWithZero )
 {
 }
 

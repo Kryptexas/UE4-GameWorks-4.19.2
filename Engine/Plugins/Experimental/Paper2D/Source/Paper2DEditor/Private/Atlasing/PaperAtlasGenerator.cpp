@@ -27,7 +27,7 @@ struct FSingleTexturePaperAtlas : public FSlateTextureAtlas
 {
 public:
 	FSingleTexturePaperAtlas(uint32 InWidth, uint32 InHeight)
-	: FSlateTextureAtlas(InWidth, InHeight, sizeof(FColor), 0)
+	: FSlateTextureAtlas(InWidth, InHeight, sizeof(FColor), ESlateTextureAtlasPaddingStyle::NoPadding)
 	{
 		//@TODO: check(StrideBytes >= 4*Width);
 	}

@@ -229,6 +229,12 @@ public:
 	/** @return The geometry of the window in window space (i.e. position and AbsolutePosition are 0) */
 	FGeometry GetWindowGeometryInWindow() const;
 
+	/** @return the transform from local space to screen space (desktop space). */
+	FSlateLayoutTransform GetLocalToScreenTransform() const;
+
+	/** @return the transform from local space to window space, which is basically desktop space without the offset. Essentially contains the DPI scale. */
+	FSlateLayoutTransform GetLocalToWindowTransform() const;
+
 	/** @return The position of the window in screen space */
 	FVector2D GetPositionInScreen() const;
 
@@ -240,6 +246,9 @@ public:
 
 	/** @return Rectangle that this window occupies in screen space */
 	FSlateRect GetRectInScreen() const;
+
+	/** @return Rectangle of the window's usable client area in screen space. */
+	FSlateRect GetClientRectInScreen() const;
 
 	/** @return the size of the window's usable client area. */
 	FVector2D GetClientSizeInScreen() const;

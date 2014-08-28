@@ -5,6 +5,7 @@
 
 class FSlateOpenGLTextureManager;
 class FSlateOpenGLRenderingPolicy;
+class FSlateElementBatcher;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define CHECK_GL_ERRORS \

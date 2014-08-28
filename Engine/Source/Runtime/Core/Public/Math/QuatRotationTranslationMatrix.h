@@ -12,6 +12,13 @@ public:
 	* @param Origin translation to apply
 	*/
 	FQuatRotationTranslationMatrix(const FQuat& Q, const FVector& Origin);
+
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static FMatrix Make(const FQuat& Q, const FVector& Origin)
+	{
+		return FQuatRotationTranslationMatrix(Q, Origin);
+	}
+
 };
 
 FORCEINLINE FQuatRotationTranslationMatrix::FQuatRotationTranslationMatrix(const FQuat& Q, const FVector& Origin)

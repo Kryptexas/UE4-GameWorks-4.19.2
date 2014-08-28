@@ -4,7 +4,20 @@
 
 
 /** 
- * A rectangle defined by upper-left and lower-right corners
+ * A rectangle defined by upper-left and lower-right corners.
+ * 
+ * Assumes a "screen-like" coordinate system where the origin is in the top-left, with the Y-axis going down.
+ * Functions like "contains" etc will not work with other conventions.
+ * 
+ *      +---------> X
+ *      |
+ *      |    (Left,Top)  
+ *      |            o----o 
+ *      |            |    |
+ *      |            o----o 
+ *      |                (Right, Bottom)
+ *      \/
+ *      Y
  */
 class SLATECORE_API FSlateRect
 {
@@ -76,13 +89,32 @@ public:
 	}
 
 	/**
+	 * Returns the bottom-right position of the rectangle
+	 * 
+	 * @return The bottom-right position.
+	 */
+	FVector2D GetBottomRight() const
+	{
+		return FVector2D( Right, Bottom );
+	}
+
+	/**
 	 * Return a rectangle that is contracted on each side by the amount specified in each margin.
 	 *
-	 * @param FMargin The amount to contract the geometry.
+	 * @param InsetAmount The amount to contract the geometry.
 	 *
 	 * @return An inset rectangle.
 	 */
 	FSlateRect InsetBy( const struct FMargin& InsetAmount ) const;
+
+	/**
+	 * Return a rectangle that is offset by the amount specified .
+	 *
+	 * @param OffsetAmount The amount to contract the geometry.
+	 *
+	 * @return An offset rectangle.
+	 */
+	FSlateRect OffsetBy( const FVector2D& OffsetAmount ) const;
 
 	/**
 	 * Returns the rect that encompasses both rectangles
@@ -96,7 +128,6 @@ public:
 		return FSlateRect( FMath::Min( Left, Other.Left ), FMath::Min( Top, Other.Top ), FMath::Max( Right, Other.Right ), FMath::Max( Bottom, Other.Bottom ) );
 	}
 
-	
 	FSlateRect IntersectionWith( const FSlateRect& Other ) const 
 	{
 		FSlateRect Intersected( FMath::Max( this->Left, Other.Left ), FMath::Max(this->Top, Other.Top), FMath::Min( this->Right, Other.Right ), FMath::Min( this->Bottom, Other.Bottom ) );
@@ -179,5 +210,24 @@ public:
 	}
 };
 
+/**
+ * Transforms a rect by the given transform, ensuring the rect does not get inverted.
+ */
+template <typename TransformType>
+FSlateRect TransformRect(const TransformType& Transform, const FSlateRect& Rect)
+{
+	FVector2D TopLeftTransformed = TransformPoint(Transform, FVector2D(Rect.Left, Rect.Top));
+	FVector2D BottomRightTransformed = TransformPoint(Transform, FVector2D(Rect.Right, Rect.Bottom));
+
+	if (TopLeftTransformed.X > BottomRightTransformed.X)
+	{
+		Swap(TopLeftTransformed.X, BottomRightTransformed.X);
+	}
+	if (TopLeftTransformed.Y > BottomRightTransformed.Y)
+	{
+		Swap(TopLeftTransformed.Y, BottomRightTransformed.Y);
+	}
+	return FSlateRect(TopLeftTransformed, BottomRightTransformed);
+}
 
 template<> struct TIsPODType<FSlateRect> { enum { Value = true }; };

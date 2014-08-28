@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Geometry.h"
 
 /**
  * A pair: Widget and its Geometry. Widgets populate an list of WidgetGeometries

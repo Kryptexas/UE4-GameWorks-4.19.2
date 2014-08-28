@@ -210,9 +210,10 @@ void FSlateOpenGLShaderProgram::LinkShaders( const FSlateOpenGLVS& VertexShader,
 
 	// Set up attribute locations for per vertex data
 	glBindAttribLocation(ProgramID, 0, "InTexCoords");
-	glBindAttribLocation(ProgramID, 1, "InClipCoords");
-	glBindAttribLocation(ProgramID, 2, "InPosition");
-	glBindAttribLocation(ProgramID, 3, "InColor");
+	glBindAttribLocation(ProgramID, 1, "InPosition");
+	glBindAttribLocation(ProgramID, 2, "InClipOrigin");
+	glBindAttribLocation(ProgramID, 3, "InClipExtents");
+	glBindAttribLocation(ProgramID, 4, "InColor");
 
 	// Link the shaders
 	glLinkProgram( ProgramID );

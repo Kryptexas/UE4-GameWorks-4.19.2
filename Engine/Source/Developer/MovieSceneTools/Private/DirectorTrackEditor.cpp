@@ -226,10 +226,10 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 	{
 		for (int32 i = 0; i < Thumbnails.Num(); ++i)
 		{
-			FGeometry TruncatedGeometry = AllottedGeometry;
-			TruncatedGeometry.Position.X += i * ThumbnailWidth;
-			TruncatedGeometry.AbsolutePosition.X += i * ThumbnailWidth;
-			TruncatedGeometry.Size.X = ThumbnailWidth;
+			FGeometry TruncatedGeometry = AllottedGeometry.MakeChild(
+				FVector2D(ThumbnailWidth, AllottedGeometry.Size.Y),
+				FSlateLayoutTransform(AllottedGeometry.Scale, FVector2D(i * ThumbnailWidth, 0.0f))
+				);
 			ensure(TruncatedGeometry.Size.Y == AnimatableShotToolConstants::DirectorTrackHeight);
 
 			FSlateDrawElement::MakeViewport(

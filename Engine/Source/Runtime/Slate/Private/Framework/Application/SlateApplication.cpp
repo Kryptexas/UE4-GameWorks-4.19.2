@@ -2334,13 +2334,18 @@ int32 FSlateApplication::DrawKeyboardFocus( const FWidgetPath& FocusPath, FSlate
 		// so the user can see what they are doing.
 		const FArrangedWidget& FocusedWidgetGeomertry = FocusPath.Widgets.Last();
 
+		// The FGeometry we get is from a WidgetPath, so it's rooted in desktop space.
+		// We need to APPEND a transform to the Geometry to essentially undo this root transform
+		// and get us back into Window Space.
+		// This is nonstandard so we have to go through some hoops and a specially exposed method 
+		// in FPaintGeometry to allow appending layout transforms.
+		FPaintGeometry WindowSpaceGeometry = FocusedWidgetGeomertry.Geometry.ToPaintGeometry();
+		WindowSpaceGeometry.AppendTransform(TransformCast<FSlateLayoutTransform>(Inverse(FocusPath.GetWindow()->GetPositionInScreen())));
+
 		FSlateDrawElement::MakeBox(
 			WindowElementList,
 			InLayerId++,
-			FPaintGeometry(
-			FocusedWidgetGeomertry.Geometry.AbsolutePosition - FocusPath.GetWindow()->GetPositionInScreen(),
-			FocusedWidgetGeomertry.Geometry.Size * FocusedWidgetGeomertry.Geometry.Scale,
-			FocusedWidgetGeomertry.Geometry.Scale ),
+			WindowSpaceGeometry,
 			FCoreStyle::Get().GetBrush("FocusRectangle"),
 			FocusPath.GetWindow()->GetClippingRectangleInWindow(),
 			ESlateDrawEffect::None,
@@ -2565,13 +2570,11 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 		AnchorRect.Top = InAnchor.Top + 1;
 		const FPlatformRect PlatformWorkArea = PlatformApplication->GetWorkArea( AnchorRect );
 
-		FGeometry WorkArea(
-			FVector2D(PlatformWorkArea.Left, PlatformWorkArea.Top),
-			FVector2D::ZeroVector,
-			FVector2D(PlatformWorkArea.Right - PlatformWorkArea.Left, PlatformWorkArea.Bottom - PlatformWorkArea.Top),
-			1 );
-
-		FSlateRect WorkAreaRect( WorkArea.Position.X, WorkArea.Position.Y, WorkArea.Position.X+WorkArea.Size.X, WorkArea.Position.Y+WorkArea.Size.Y );
+		FSlateRect WorkAreaRect( 
+			PlatformWorkArea.Left, 
+			PlatformWorkArea.Top, 
+			PlatformWorkArea.Left+(PlatformWorkArea.Right - PlatformWorkArea.Left), 
+			PlatformWorkArea.Top+(PlatformWorkArea.Bottom - PlatformWorkArea.Top) );
 
 		// In the direction we are opening, see if there is enough room. If there is not, flip the opening direction along the same axis.
 		FVector2D NewPosition = FVector2D::ZeroVector;

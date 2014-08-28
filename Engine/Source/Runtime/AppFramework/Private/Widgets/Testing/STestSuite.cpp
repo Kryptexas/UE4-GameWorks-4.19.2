@@ -7,10 +7,195 @@
 #include "TestStyle.h"
 #include "SyntaxHighlighterTextLayoutMarshaller.h"
 #include "STestSuite.h"
-
+#include "TransformCalculus3D.h"
+#include "SlateRenderTransform.h"
+#include "SlateLayoutTransform.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
+namespace
+{
+	/**
+	 * A set of syntax tests for transform calculus to ensure that the basic primitives are supported properly.
+	 * Does NOT test for correctness, purely syntax!
+	 */
+	bool TestTransformCalculus()
+	{
+		float uniScale = 5.8f;
+		FVector trans(5, 6, 7);
+		FQuat quat(FVector(1, 2, 3).SafeNormal(), 33.5f);
+		FRotator rot(7, 8, 9);
+		FMatrix mat = FRotationMatrix::Make(rot);
+
+		// Identity casts
+		const float& uniScale2 = TransformCast<float>(uniScale);
+		const FVector& trans2 = TransformCast<FVector>(trans);
+		const FQuat& quat2 = TransformCast<FQuat>(quat);
+		const FRotator& rot2 = TransformCast<FRotator>(rot);
+		const FMatrix& mat2 = TransformCast<FMatrix>(mat);
+
+		// rotation casts
+		auto quat3 = TransformCast<FQuat>(rot);
+		auto rot3 = TransformCast<FRotator>(quat);
+		rot3 = TransformCast<FRotator>(mat);
+
+		// higher level transform casts
+		auto mat3 = TransformCast<FMatrix>(uniScale);
+		mat3 = TransformCast<FMatrix>(trans);
+		mat3 = TransformCast<FMatrix>(quat);
+		mat3 = TransformCast<FMatrix>(rot);
+
+		// basic concatenation
+		auto uniScale4 = Concatenate(uniScale, uniScale2);
+		auto trans4 = Concatenate(trans, trans2);
+		auto quat4 = Concatenate(quat, quat2);
+		auto rot4 = Concatenate(rot, rot2);
+		auto mat4 = Concatenate(mat, mat2);
+
+		// matrix conversion
+		FMatrix mat5;
+		FQuat quat5;
+
+		mat5 = Concatenate(uniScale4, trans4);
+		mat5 = Concatenate(trans4, uniScale4);
+		mat5 = Concatenate(uniScale4, quat4);
+		mat5 = Concatenate(quat4, uniScale4);
+		mat5 = Concatenate(uniScale4, rot4);
+		mat5 = Concatenate(rot4, uniScale4);
+		mat5 = Concatenate(uniScale4, mat4);
+		mat5 = Concatenate(mat4, uniScale4);
+
+		mat5 = Concatenate(trans4, quat4);
+		mat5 = Concatenate(quat4, trans4);
+		mat5 = Concatenate(trans4, rot4);
+		mat5 = Concatenate(rot4, trans4);
+		mat5 = Concatenate(trans4, mat4);
+		mat5 = Concatenate(mat4, trans4);
+
+		quat5 = Concatenate(quat4, rot4);
+		quat5 = Concatenate(rot4, quat4);
+		mat5 = Concatenate(quat4, mat4);
+		mat5 = Concatenate(mat4, quat4);
+
+		mat5 = Concatenate(rot4, mat4);
+		mat5 = Concatenate(mat4, rot4);
+
+		mat5 = Concatenate(Inverse(trans), rot, trans);
+
+		mat5 = Concatenate(Inverse(trans), rot, uniScale, trans);
+
+		FScale2D scale2D(1.4f, 3.2f);
+		FShear2D shear2D(-3.5f, -4.6f);
+		FVector2D trans2D(7, 8);
+		FQuat2D rot2D(1.4f);
+		FMatrix2x2 mat2D(5, 6, 7, 8);
+		FSlateLayoutTransform transformLayout(uniScale, trans2D);
+		FSlateRenderTransform transform2D = ::Concatenate(FScale2D(2, 4), FShear2D(0.5, 2), FQuat2D(FMath::DegreesToRadians(45.0f)), FVector2D(5, 7));
+
+		// Identity casts
+		const FScale2D& scale2D2 = TransformCast<FScale2D>(scale2D);
+		const FShear2D& shear2D2 = TransformCast<FShear2D>(shear2D);
+		const FVector2D& trans2D2 = TransformCast<FVector2D>(trans2D);
+		const FQuat2D& rot2D2 = TransformCast<FQuat2D>(rot2D);
+		const FMatrix2x2& mat2D2 = TransformCast<FMatrix2x2>(mat2D);
+		const FSlateLayoutTransform& transformLayout2 = TransformCast<FSlateLayoutTransform>(transformLayout);
+		const FSlateRenderTransform& transform2D2 = TransformCast<FSlateRenderTransform>(transform2D);
+
+		auto scale2D3 = Concatenate(scale2D, scale2D);
+		auto shear2D3 = Concatenate(shear2D, shear2D);
+		auto trans2D3 = Concatenate(trans2D, trans2D);
+		auto rot2D3 = Concatenate(rot2D, rot2D);
+		auto mat2D3 = Concatenate(mat2D, mat2D);
+		auto transformLayout3 = Concatenate(transformLayout, transformLayout);
+		auto transform2D3 = Concatenate(transform2D, transform2D);
+
+		// higher level transform casts
+		transformLayout3 = TransformCast<FSlateLayoutTransform>(uniScale);
+		transformLayout3 = TransformCast<FSlateLayoutTransform>(trans2D);
+
+		transform2D3 = TransformCast<FSlateRenderTransform>(uniScale);
+		transform2D3 = TransformCast<FSlateRenderTransform>(scale2D);
+		transform2D3 = TransformCast<FSlateRenderTransform>(shear2D);
+		transform2D3 = TransformCast<FSlateRenderTransform>(trans2D);
+		transform2D3 = TransformCast<FSlateRenderTransform>(rot2D);
+		transform2D3 = TransformCast<FSlateRenderTransform>(mat2D);
+		transform2D3 = TransformCast<FSlateRenderTransform>(transformLayout);
+
+		// basic concatenation
+		scale2D3 = Concatenate(uniScale, scale2D);
+		scale2D3 = Concatenate(scale2D, uniScale);
+
+		auto transformLayout4 = Concatenate(transformLayout, transformLayout);
+		transformLayout4 = Concatenate(uniScale, trans2D);
+		transformLayout4 = Concatenate(trans2D, uniScale);
+
+		transformLayout4 = Concatenate(uniScale, transformLayout);
+		transformLayout4 = Concatenate(trans2D, transformLayout);
+		transformLayout4 = Concatenate(transformLayout, uniScale);
+		transformLayout4 = Concatenate(transformLayout, trans2D);
+
+		auto transform2D4 = Concatenate(transform2D, transform2D);
+
+		transform2D4 = Concatenate(trans2D, scale2D);
+		transform2D4 = Concatenate(trans2D, shear2D);
+		transform2D4 = Concatenate(trans2D, rot2D);
+		transform2D4 = Concatenate(trans2D, mat2D);
+		transform2D4 = Concatenate(trans2D, transform2D);
+		transform2D4 = Concatenate(scale2D, transformLayout);
+		transform2D4 = Concatenate(scale2D, transform2D);
+		transform2D4 = Concatenate(shear2D, transformLayout);
+		transform2D4 = Concatenate(shear2D, transform2D);
+		transform2D4 = Concatenate(rot2D, transformLayout);
+		transform2D4 = Concatenate(rot2D, transform2D);
+		transform2D4 = Concatenate(mat2D, transformLayout);
+		transform2D4 = Concatenate(mat2D, transform2D);
+		transform2D4 = Concatenate(transformLayout, transform2D);
+
+		transform2D4 = Concatenate(scale2D, trans2D);
+		transform2D4 = Concatenate(shear2D, trans2D);
+		transform2D4 = Concatenate(rot2D, trans2D);
+		transform2D4 = Concatenate(mat2D, trans2D);
+		transform2D4 = Concatenate(transform2D, trans2D);
+		transform2D4 = Concatenate(transformLayout, scale2D);
+		transform2D4 = Concatenate(transform2D, scale2D);
+		transform2D4 = Concatenate(transformLayout, shear2D);
+		transform2D4 = Concatenate(transform2D, shear2D);
+		transform2D4 = Concatenate(transformLayout, rot2D);
+		transform2D4 = Concatenate(transform2D, rot2D);
+		transform2D4 = Concatenate(transformLayout, mat2D);
+		transform2D4 = Concatenate(transform2D, mat2D);
+		transform2D4 = Concatenate(transform2D, transformLayout);
+
+		auto mat2D4 = Concatenate(scale2D, shear2D);
+		mat2D4 = Concatenate(scale2D, rot2D);
+		mat2D4 = Concatenate(scale2D, mat2D);
+
+		mat2D4 = Concatenate(shear2D, scale2D);
+		mat2D4 = Concatenate(rot2D, scale2D);
+		mat2D4 = Concatenate(mat2D, scale2D);
+
+		mat2D4 = Concatenate(shear2D, rot2D);
+		mat2D4 = Concatenate(shear2D, mat2D);
+
+		mat2D4 = Concatenate(rot2D, shear2D);
+		mat2D4 = Concatenate(mat2D, shear2D);
+
+		mat2D4 = Concatenate(rot2D, mat2D);
+
+		mat2D4 = Concatenate(mat2D, rot2D);
+		{
+			auto matRot = Concatenate(FRotationMatrix::Make(FRotator(0.0f, 17.5f, 0.0f)), FRotationMatrix::Make(FRotator(12.4f, 5.7f, 29.0f)));
+			auto quatRot = Concatenate(FQuat(FRotator(0.0f, 17.5f, 0.0f)), FQuat(FRotator(12.4f, 5.7f, 29.0f)));
+
+			FVector vec(3.0f, 4.0f, 5.0f);
+			auto matRotRes = TransformPoint(matRot, vec);
+			auto quatRotRes = TransformPoint(quatRot, vec);
+		}
+
+		return true;
+	}
+	bool bTestTransformCalculus = TestTransformCalculus();
+}
 
 struct FOnPaintHandlerParams
 {
@@ -349,10 +534,10 @@ private:
 	{
 		TArray<FSlateGradientStop> GradientStops;
 
-		GradientStops.Add( FSlateGradientStop( FVector2D::ZeroVector, FColor(255,255,0) ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.1f,0), FColor(255,255,0) ) );
 		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.25f,0), FColor(255,0,255) ) );
 		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.75f,0), FColor(0,0,255) ) );
-		GradientStops.Add( FSlateGradientStop( InParams.Geometry.Size, FColor(0,255,0) ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*0.9f,0), FColor(0,255,0) ) );
 
 		FSlateDrawElement::MakeGradient(
 			InParams.OutDrawElements,
@@ -370,9 +555,9 @@ private:
 	int32 TestSplineElement( const FOnPaintHandlerParams& InParams )
 	{
 		const FVector2D Start(10,10);
-		const FVector2D StartDir(1000,0);
+		const FVector2D StartDir(InParams.Geometry.Size.X * 1000 / 600,0);
 		const FVector2D End(InParams.Geometry.Size.X/4, InParams.Geometry.Size.Y-10);
-		const FVector2D EndDir(1000,0);
+		const FVector2D EndDir(InParams.Geometry.Size.X * 1000 / 600,0);
 
 		FSlateDrawElement::MakeSpline(
 			InParams.OutDrawElements,
@@ -432,12 +617,12 @@ private:
 	void MakeRotationExample( const FOnPaintHandlerParams& InParams )
 	{
 		const FSlateBrush* CenterBrush = FTestStyle::Get().GetBrush("TestRotation40px");
+		const FSlateBrush* TestBrush = FTestStyle::Get().GetBrush("TestRotation20px");
 
-		FVector2D LocalPos = FVector2D(50,50);
-		FVector2D Size = CenterBrush->ImageSize;
-		FVector2D OrbitPos = (LocalPos + (LocalPos+Size))*.5f;
+		const FVector2D LocalPos = FVector2D(50,50);
+		const FVector2D LocalSize = CenterBrush->ImageSize;
 
-		FPaintGeometry CenterGeom = InParams.Geometry.ToPaintGeometry( LocalPos, Size );
+		FSlateLayoutTransform CenterLayoutTransform(LocalPos);
 
 		// Make a box that rotates around its center.  Note if you don't specify the rotation point or rotation space
 		// it defaults to rotating about the center of the box.  ERotationSpace::RelativeToElement is used by default in this case.  
@@ -446,7 +631,7 @@ private:
 			FSlateDrawElement::MakeRotatedBox(
 				InParams.OutDrawElements,
 				InParams.Layer,
-				CenterGeom,
+				InParams.Geometry.ToPaintGeometry( LocalSize, CenterLayoutTransform ),
 				CenterBrush,
 				InParams.ClippingRect,
 				InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
@@ -455,23 +640,20 @@ private:
 		}
 
 		// Make a box that rotates around the center of the previous box
-		// In this example we rotate around a point( the center of the previous box ), which is in world space so we specify ERotationSpace::RelativeToWorld
 		{
-			const FSlateBrush* TestBrush = FTestStyle::Get().GetBrush("TestRotation20px");
-
-			FVector2D WorldOrbitPos = InParams.Geometry.LocalToAbsolute( OrbitPos );
+			FSlateLayoutTransform OrbitLayoutTransform(LocalPos + LocalSize);
+			const FVector2D LocalCenterOfRotation = (LocalPos + (LocalPos+LocalSize))*.5f;
+			const FVector2D RelativeOrbitPos = TransformPoint(Inverse(OrbitLayoutTransform), LocalCenterOfRotation);
 
 			FSlateDrawElement::MakeRotatedBox(
 				InParams.OutDrawElements,
 				InParams.Layer,
-				InParams.Geometry.ToPaintGeometry( FVector2D(110,50), TestBrush->ImageSize ),
+				InParams.Geometry.ToPaintGeometry( TestBrush->ImageSize, OrbitLayoutTransform ),
 				TestBrush,
 				InParams.ClippingRect,
 				InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 				OuterRotation,
-				WorldOrbitPos,
-				FSlateDrawElement::RelativeToWorld
-				);
+				RelativeOrbitPos);
 		}
 
 	}
@@ -3268,6 +3450,7 @@ class SFxTest : public SCompoundWidget
 		RenderScaleOrigin = FVector2D(0.5f, 0.5f);
 		LayoutScale = 1.0f;
 		VisualOffset = FVector2D::ZeroVector;
+		FxWidgetIgnoreClippingState = ESlateCheckBoxState::Checked;
 
 
 		this->ChildSlot
@@ -3350,6 +3533,16 @@ class SFxTest : public SCompoundWidget
 							.OnValueChanged(this, &SFxTest::OnVisualOffsetChangedY)
 						]
 					]
+					+SGridPanel::Slot(0, 4) .Padding(2)
+					[
+						SNew(SCheckBox)
+						.IsChecked( this, &SFxTest::GetFxWidgetIgnoreClippingState )
+						.OnCheckStateChanged( this, &SFxTest::OnFxWidgetIgnoreClippingChanged )
+						[
+							SNew(STextBlock)
+							.Text( LOCTEXT("IgnoreClipping", "Ignore Clipping") )
+						]
+					]
 				]
 				+SHorizontalBox::Slot()
 				[
@@ -3383,6 +3576,7 @@ class SFxTest : public SCompoundWidget
 				SNew(SBorder)
 				[
 					SNew(SFxWidget)
+					.IgnoreClipping(this, &SFxTest::GetFxWidgetIgnoreClipping)
 					.RenderScale( this, &SFxTest::GetRenderScale )
 					.RenderScaleOrigin( this, &SFxTest::GetRenderScaleOrigin )
 					.LayoutScale( this, &SFxTest::GetLayoutScale )
@@ -3409,6 +3603,10 @@ class SFxTest : public SCompoundWidget
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+	bool GetFxWidgetIgnoreClipping() const { return FxWidgetIgnoreClippingState == ESlateCheckBoxState::Checked; }
+	ESlateCheckBoxState::Type GetFxWidgetIgnoreClippingState() const { return FxWidgetIgnoreClippingState; }
+	void OnFxWidgetIgnoreClippingChanged( ESlateCheckBoxState::Type InValue ) { FxWidgetIgnoreClippingState = InValue; }
+	ESlateCheckBoxState::Type FxWidgetIgnoreClippingState;
 
 	float GetRenderScale() const { return RenderScale; }
 	void OnRenderScaleChanged( float InValue ) { RenderScale = InValue; }
@@ -4047,11 +4245,202 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 };
 
+/**
+ * User Widget wrapper for a this widget. Legacy as this widget used to be in a separate header.
+ */
+class SRenderTransformManipulatorWidget : public SUserWidget
+{
+
+public:
+
+	SLATE_USER_ARGS(SRenderTransformManipulatorWidget)
+	{}
+
+	SLATE_END_ARGS()
+
+	virtual void Construct(const FArguments& InArgs) = 0;
+};
+
+namespace
+{
+	float RotDeg = 0.0f;
+	FScale2D Scale;
+	FShear2D Shear;
+	FQuat2D Rot;
+	FVector2D Offset(0,0);
+
+	class SRenderTransformManipulatorWidgetImpl : public SRenderTransformManipulatorWidget
+	{
+	public:
+		virtual void Construct(const FArguments& InArgs) override;
+
+		TSharedPtr<SImage> ImageWidget;
+	private:
+		static const ISlateStyle& GetStyle()
+		{
+			static FSlateStyleSet Style("RenderTransformManipulatorStyle");
+			static bool IsInit = false;
+			if (!IsInit)
+			{
+				check(IsInGameThread());
+				Style.SetContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+				Style.Set("UE4Icon", new FSlateImageBrush(Style.RootToContentDir(TEXT("Testing/UE4Icon.png")), FVector2D(50, 50)));
+				IsInit = true;
+			}
+			return Style;
+		}
+	};
+}
+
+/**
+ * Global access here because we need other translation units to access this function.
+ */
+FSlateRenderTransform GetRenderTransform()
+{
+	return Concatenate(-Offset, Concatenate(Shear, Scale, Rot, Offset));
+}
+
+void SRenderTransformManipulatorWidgetImpl::Construct(const FArguments& InArgs)
+{
+	SUserWidget::Construct(SUserWidget::FArguments()
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().Padding(4)
+				[
+					SAssignNew(ImageWidget, SImage)
+					.RenderTransform_Static(&::GetRenderTransform)
+					.Image(GetStyle().GetBrush("UE4Icon"))
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				[
+					SNew(STextBlock).Text(LOCTEXT("RD", "Rotation degrees"))
+				]
+				+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+					[
+						SNew(SSpinBox<float>)
+						.MinValue(0.0f)
+						.MaxValue(360.0f)
+						.OnValueChanged_Static([](float val) { RotDeg = val; Rot = FQuat2D(FMath::DegreesToRadians(val)); })
+						.Value_Static([] { return RotDeg; })
+					]
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("XO", "X Offset"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-1000.0f)
+							.MaxValue(1000.0f)
+							.OnValueChanged_Static([](float val) { Offset.X = val; })
+							.Value_Static([] { return Offset.X; })
+						]
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("YO", "Y Offset"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-1000.0f)
+							.MaxValue(1000.0f)
+							.OnValueChanged_Static([](float val) { Offset.Y = val; })
+							.Value_Static([] { return Offset.Y; })
+						]
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("XS", "X Scale"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-10.0f)
+							.MaxValue(10.0f)
+							.OnValueChanged_Static([](float val) { Scale = FScale2D(val, Scale.GetVector().Y); })
+							.Value_Static([] { return Scale.GetVector().X; })
+						]
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("YS", "Y Scale"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-10.0f)
+							.MaxValue(10.0f)
+							.OnValueChanged_Static([](float val) { Scale = FScale2D(Scale.GetVector().X, val); })
+							.Value_Static([] { return Scale.GetVector().Y; })
+						]
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("XSH", "X Shear"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-4.f)
+							.MaxValue(4.f)
+							.OnValueChanged_Static([](float val) { Shear = FShear2D(val, Shear.GetVector().Y); })
+							.Value_Static([] { return Shear.GetVector().X; })
+						]
+				]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("YSH", "Y Shear"))
+					]
+					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+						[
+							SNew(SSpinBox<float>)
+							.MinValue(-4.f)
+							.MaxValue(4.f)
+							.OnValueChanged_Static([](float val) { Shear = FShear2D(Shear.GetVector().X, val); })
+							.Value_Static([] { return Shear.GetVector().Y; })
+						]
+				]
+		]
+	);
+}
+
+/**
+ * New implementation for the User Widget idiom.
+ */
+TSharedRef<SRenderTransformManipulatorWidget> SRenderTransformManipulatorWidget::New()
+{
+	return MakeShareable(new SRenderTransformManipulatorWidgetImpl());
+}
+
 static TSharedPtr<FTabManager> TestSuite1TabManager;
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 {
+	extern FSlateRenderTransform GetRenderTransform();
 	if (TabIdentifier == FName(TEXT("AnimationTestTab")))
 	{
 		return SNew(SDockTab)
@@ -4080,6 +4469,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			)
 		[
 			SNew(SVerticalBox)
+			.RenderTransform_Static(&GetRenderTransform)
 			+SVerticalBox::Slot()
 			[
 				SNew(SAnimTest)
@@ -4099,6 +4489,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		.Label( NSLOCTEXT("TestSuite1", "DocumentsTab", "Documents") )
 		[
 			SNew( SDocumentsTest, TabManagerRef )
+			.RenderTransform_Static(&GetRenderTransform)
 			.Tag("DocumentSpawner")
 		];
 	}
@@ -4127,6 +4518,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. Label( LOCTEXT("RichTextTestTab", "Rich Text") )
 			[
 				SNew( SRichTextTest )
+				.RenderTransform_Static(&GetRenderTransform)
 			];
 	}
 	else if ( TabIdentifier == FName( TEXT( "MultiLineEditTab" ) ) )
@@ -4139,6 +4531,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				#else
 				SNew( SSpacer )
 				#endif //WITH_FANCY_TEXT
+				.RenderTransform_Static(&GetRenderTransform)
 			];
 	}
 #endif //WITH_FANCY_TEXT
@@ -4149,6 +4542,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "EditableTextTestTabToolTip", "Switches to the Editable Text tab, where you can test the various inline text editing controls." ) )
 		[
 			SNew( STextEditTest )
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 #if WITH_FANCY_TEXT
@@ -4159,6 +4553,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "RichEditableTextTestTabToolTip", "Switches to the Rich Editable Text tab, where you can test the various rich editable text features." ) )
 			[
 				SNew( SRichTextEditTest )
+				.RenderTransform_Static(&GetRenderTransform)
 			];
 	}
 #endif //WITH_FANCY_TEXT
@@ -4168,6 +4563,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. Label( LOCTEXT("LayoutRoundingTab", "Layout Rounding") )
 		[
 			SNew( SLayoutRoundingTest )
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("ElementTestsTab")))
@@ -4177,6 +4573,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "ElementTestsTabToolTip", "Switches to the Element Tests tab, which allows you to view various rendering-related features of Slate." ) )
 		[
 			SNew( SElementTesting )
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("SplitterTestTab")))
@@ -4186,6 +4583,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "SplitterTestTabToolTip", "Switches to the Splitter Test tab, which you can use to test splitters." ) )
 		[
 			SNew( SSplitterTest )
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("MultiBoxTestTab")))
@@ -4195,6 +4593,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "MultiBoxTextTabToolTip", "Switches to the MultiBox tab, where you can test out MultiBoxes and MultiBlocks." ) )
 		[
 			SNew( SMultiBoxTest )
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("WidgetGalleryTab")))
@@ -4213,6 +4612,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "ColorPickerTestTabToolTip", "Switches to the Color Picker tab, where you can test out the color picker." ) )
 		[
 			SNew(SColorPickerTest)
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == "DPIScalingTest")
@@ -4220,6 +4620,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab)
 		[
 			SNew(SDPIScalingTest)
+			.RenderTransform_Static(&GetRenderTransform)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
@@ -4229,6 +4630,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "NotificationListTestTabToolTip", "Switches to the Notification List tab, where you can test out the notification list." ) )
 			[
 				SNew(SNotificationListTest)
+				.RenderTransform_Static(&GetRenderTransform)
 			];
 	}
 	else if (TabIdentifier == FName("GridPanelTest"))
@@ -4236,6 +4638,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab)
 			[
 				SNew(SGridPanelTest)
+				.RenderTransform_Static(&GetRenderTransform)
 			];
 	}
 	else
@@ -4479,6 +4882,22 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 	return TestSuite2Tab;
 }
 
+TSharedRef<SDockTab> SpawnRenderTransformManipulator( const FSpawnTabArgs& Args )
+{	
+	TSharedRef<SDockTab> RenderTransformManipulatorTab =
+		SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab)
+		.Label(LOCTEXT("RenderTransformTabLabel", "Render Transform"))
+		.ToolTipText(LOCTEXT("RenderTransformTabToolTip", "Allows manipulating the render transform of all test tabs at a global level."));
+
+	RenderTransformManipulatorTab->SetContent
+	(
+		SNew( SRenderTransformManipulatorWidget )
+	);
+
+	return RenderTransformManipulatorTab;
+}
+
 
 void RestoreSlateTestSuite()
 {
@@ -4486,6 +4905,7 @@ void RestoreSlateTestSuite()
 
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite1", FOnSpawnTab::CreateStatic( &SpawnTestSuite1 ) );
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite2", FOnSpawnTab::CreateStatic( &SpawnTestSuite2 ) );
+	FGlobalTabmanager::Get()->RegisterTabSpawner("RenderTrasnformManipulator", FOnSpawnTab::CreateStatic(&SpawnRenderTransformManipulator));
 
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea
@@ -4497,6 +4917,7 @@ void RestoreSlateTestSuite()
 			FTabManager::NewStack()
 			->AddTab( "TestSuite2", ETabState::OpenedTab )
 			->AddTab( "TestSuite1", ETabState::OpenedTab )
+			->AddTab( "RenderTrasnformManipulator", ETabState::OpenedTab )
 		)		
 	)
 	#if PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS

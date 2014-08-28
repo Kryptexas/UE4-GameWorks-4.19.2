@@ -3373,7 +3373,7 @@ private:
 	struct FLightmapAtlas : public FSlateTextureAtlas
 	{
 		FLightmapAtlas(uint32 InWidth)
-			: FSlateTextureAtlas(InWidth, InWidth, 0, 0)
+			: FSlateTextureAtlas(InWidth, InWidth, 0, ESlateTextureAtlasPaddingStyle::NoPadding)
 		{}
 
 		const FAtlasedTextureSlot* AddLightmap(uint32 InWidth)

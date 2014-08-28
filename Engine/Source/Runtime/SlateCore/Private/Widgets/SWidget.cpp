@@ -17,6 +17,7 @@ SWidget::SWidget()
 	, Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
 	, Visibility( EVisibility::Visible )
+	, RenderTransform()
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
 	, bToolTipForceFieldEnabled( false )
@@ -31,6 +32,7 @@ void SWidget::Construct(
 	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 	const TAttribute<bool> & InEnabledState ,
 	const TAttribute<EVisibility> & InVisibility,
+	const TAttribute<FSlateRenderTransform>& InTransform,
 	const FName& InTag,
 	const TArray<TSharedRef<ISlateMetaData>>& InMetaData
 )
@@ -54,6 +56,7 @@ void SWidget::Construct(
 	Cursor = InCursor;
 	EnabledState = InEnabledState;
 	Visibility = InVisibility;
+	RenderTransform = InTransform;
 	Tag = InTag;
 	MetaData = InMetaData;
 }

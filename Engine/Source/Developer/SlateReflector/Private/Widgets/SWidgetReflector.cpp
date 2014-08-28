@@ -232,18 +232,22 @@ int32 SWidgetReflector::VisualizePickAsRectangles( const FWidgetPath& InWidgetsT
 		const float ColorFactor = static_cast<float>(WidgetIndex)/InWidgetsToVisualize.Widgets.Num();
 		const FLinearColor Tint(1.0f - ColorFactor, ColorFactor, 0.0f, 1.0f);
 
+		// The FGeometry we get is from a WidgetPath, so it's rooted in desktop space.
+		// We need to APPEND a transform to the Geometry to essentially undo this root transform
+		// and get us back into Window Space.
+		// This is nonstandard so we have to go through some hoops and a specially exposed method 
+		// in FPaintGeometry to allow appending layout transforms.
+		FPaintGeometry WindowSpaceGeometry = WidgetGeometry.Geometry.ToPaintGeometry();
+		WindowSpaceGeometry.AppendTransform(TransformCast<FSlateLayoutTransform>(Inverse(InWidgetsToVisualize.TopLevelWindow->GetPositionInScreen())));
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry(
-				WidgetGeometry.Geometry.AbsolutePosition - InWidgetsToVisualize.TopLevelWindow->GetPositionInScreen(),
-				WidgetGeometry.Geometry.Size * WidgetGeometry.Geometry.Scale,
-				WidgetGeometry.Geometry.Scale),
-				FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
-				InWidgetsToVisualize.TopLevelWindow->GetClippingRectangleInWindow(),
-				ESlateDrawEffect::None,
-				FMath::Lerp( TopmostWidgetColor, LeafmostWidgetColor, ColorFactor
-			)
+			WindowSpaceGeometry,
+			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
+			InWidgetsToVisualize.TopLevelWindow->GetClippingRectangleInWindow(),
+			ESlateDrawEffect::None,
+			FMath::Lerp( TopmostWidgetColor, LeafmostWidgetColor, ColorFactor )
 		);
 	}
 
@@ -258,14 +262,18 @@ int32 SWidgetReflector::VisualizeSelectedNodesAsRectangles( const TArray<TShared
 		const TSharedPtr<FReflectorNode>& NodeToDraw = InNodesToDraw[NodeIndex];
 		const FLinearColor Tint(0.0f, 1.0f, 0.0f);
 
+		// The FGeometry we get is from a WidgetPath, so it's rooted in desktop space.
+		// We need to APPEND a transform to the Geometry to essentially undo this root transform
+		// and get us back into Window Space.
+		// This is nonstandard so we have to go through some hoops and a specially exposed method 
+		// in FPaintGeometry to allow appending layout transforms.
+		FPaintGeometry WindowSpaceGeometry = NodeToDraw->Geometry.ToPaintGeometry();
+		WindowSpaceGeometry.AppendTransform(TransformCast<FSlateLayoutTransform>(Inverse(VisualizeInWindow->GetPositionInScreen())));
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry(
-				NodeToDraw->Geometry.AbsolutePosition - VisualizeInWindow->GetPositionInScreen(),
-				NodeToDraw->Geometry.Size * NodeToDraw->Geometry.Scale,
-				NodeToDraw->Geometry.Scale
-			),
+			WindowSpaceGeometry,
 			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
 			VisualizeInWindow->GetClippingRectangleInWindow(),
 			ESlateDrawEffect::None,

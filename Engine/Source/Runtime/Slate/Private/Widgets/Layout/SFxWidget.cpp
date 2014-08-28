@@ -51,28 +51,19 @@ void SFxWidget::SetColorAndOpacity( FLinearColor InColorAndOpacity )
 }
 
 /**
- * Transform the geometry for rendering only:
- * 
- * @param RenderScale     Zoom by this amount.
- * @param ScaleOrigin     Where the origin of the transforms is within the object (range 0..1)
- * @param Offset          Offset in either direction as multiple of unscaled object size.
+ * This widget was created before render transforms existed for each widget, and it chose to apply the render transform AFTER the layout transform.
+ * This means leveraging the render transform of FGeometry would be expensive, as we would need to use Concat(LayoutTransform, RenderTransform, Inverse(LayoutTransform).
+ * Instead, we maintain the old way of doing it by modifying the AllottedGeometry only during rendering to append the widget's implied RenderTransform to the existing LayoutTransform.
  */
-static FGeometry MakeScaledGeometry( const FGeometry& Geometry, const float RenderScale, const FVector2D& ScaleOrigin, const FVector2D& Offset )
-{
-	const FVector2D CenteringAdjustment = Geometry.Size*ScaleOrigin*Geometry.Scale - Geometry.Size*ScaleOrigin*Geometry.Scale*RenderScale;
-	const FVector2D OffsetAdjustment = Geometry.Size*Offset*Geometry.Scale;
-	
-	return FGeometry(
-		FVector2D::ZeroVector,
-		Geometry.AbsolutePosition + CenteringAdjustment + OffsetAdjustment,
-		Geometry.Size,
-		Geometry.Scale * RenderScale );
-}
-
 int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	// Transformt the geometry for rendering only. Layout is unaffected.
-	const FGeometry ModifiedGeometry = MakeScaledGeometry( AllottedGeometry, RenderScale.Get(), RenderScaleOrigin.Get(), VisualOffset.Get() );
+	// Convert the 0..1 origin into local space extents.
+	const FVector2D ScaleOrigin = RenderScaleOrigin.Get() * AllottedGeometry.Size;
+	const FVector2D Offset = VisualOffset.Get() * AllottedGeometry.Size;
+	// create the render transform as a scale around ScaleOrigin and offset it by Offset.
+	const auto RenderTransform = Concatenate(Inverse(ScaleOrigin), RenderScale.Get(), ScaleOrigin, Offset);
+	// This will append the render transform to the layout transform, and we only use it for rendering.
+	FGeometry ModifiedGeometry = AllottedGeometry.MakeChild(AllottedGeometry.Size, RenderTransform);
 	
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	this->ArrangeChildren(ModifiedGeometry, ArrangedChildren);
@@ -99,27 +90,23 @@ int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 }
 
-
 FVector2D SFxWidget::ComputeDesiredSize() const
 {
 	// Layout scale affects out desired size.
-	return LayoutScale.Get() * ChildSlot.GetWidget()->GetDesiredSize();
+	return TransformVector(LayoutScale.Get(), ChildSlot.GetWidget()->GetDesiredSize());
 }
-
 
 void SFxWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const EVisibility MyVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyVisibility ) )
 	{
-		const float MyDPIScale = LayoutScale.Get();
+		// Only layout scale affects the arranged geometry.
+		const FSlateLayoutTransform LayoutTransform(LayoutScale.Get());
 
-		// Only layout scale affects the arranged geometry. This part is identical to DPI scaling.
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 			this->ChildSlot.GetWidget(),
-			FVector2D::ZeroVector,
-			AllottedGeometry.Size / MyDPIScale,
-			MyDPIScale
-		));
+			TransformVector(Inverse(LayoutTransform), AllottedGeometry.Size),
+			LayoutTransform));
 	}
 }

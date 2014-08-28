@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "SlateLayoutTransform.h"
+#include "SlateRenderTransform.h"
+#include "PaintGeometry.h"
 #include "Geometry.generated.h"
-
 
 class FArrangedWidget;
 class SWidget;
-
+class FLayoutGeometry;
 
 /**
  * Represents the position, size, and absolute position of a Widget in Slate.
@@ -25,15 +27,19 @@ struct SLATECORE_API FGeometry
 
 public:
 
-	/** Default constructor. */
-	FGeometry( )
-		: Position(0.0f, 0.0f)
-		, AbsolutePosition(0.0f, 0.0f)
-		, Size(0.0f, 0.0f)
-		, Scale(1.0f)
-	{ }
+	/**
+	 * Default constructor. Creates a geometry with identity transforms.
+	 */
+	FGeometry();
 
 	/**
+	 * !!! HACK!!! We're keeping members of FGeometry const to prevent mutability without making them private, for backward compatibility.
+	 * But this means the assignment operator no longer works. We implement one ourselves now and force a memcpy.
+	 */
+	FGeometry& operator=(const FGeometry& RHS);
+
+	/**
+	 * !!! DEPRECATED FUNCTION !!! Use MakeChild taking a layout transform instead!
 	 * Construct a new geometry given the following parameters:
 	 * 
 	 * @param OffsetFromParent         Local position of this geometry within its parent geometry.
@@ -41,12 +47,38 @@ public:
 	 * @param InSize                   The size of this geometry.
 	 * @param InScale                  The scale of this geometry with respect to Normal Slate Coordinates.
 	 */
-	FGeometry( const FVector2D& OffsetFromParent, const FVector2D& ParentAbsolutePosition, const FVector2D& InSize, float InScale )
-		: Position(OffsetFromParent)
-		, AbsolutePosition(ParentAbsolutePosition + (OffsetFromParent * InScale))
-		, Size(InSize)	
-		, Scale(InScale)
-	{ }
+	FGeometry( const FVector2D& OffsetFromParent, const FVector2D& ParentAbsolutePosition, const FVector2D& InLocalSize, float InScale );
+
+private:
+	/**
+	 * Construct a new geometry with a given size in LocalSpace that is attached to a parent geometry with the given layout and render transform. 
+	 * 
+	 * @param InLocalSize						The size of the geometry in Local Space.
+	 * @param InLocalLayoutTransform			A layout transform from local space to the parent geoemtry's local space.
+	 * @param InLocalRenderTransform			A render-only transform in local space that will be prepended to the LocalLayoutTransform when rendering.
+	 * @param ParentAccumulatedLayoutTransform	The accumulated layout transform of the parent widget. AccumulatedLayoutTransform = Concat(LocalLayoutTransform, ParentAccumulatedLayoutTransform).
+	 * @param ParentAccumulatedRenderTransform	The accumulated render transform of the parent widget. AccumulatedRenderTransform = Concat(LocalRenderTransform, LocalLayoutTransform, ParentAccumulatedRenderTransform).
+	 */
+	FGeometry( 
+		const FVector2D& InLocalSize, 
+		const FSlateLayoutTransform& InLocalLayoutTransform, 
+		const FSlateRenderTransform& InLocalRenderTransform, 
+		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, 
+		const FSlateRenderTransform& ParentAccumulatedRenderTransform);
+
+	/**
+	 * Construct a new geometry with a given size in LocalSpace (and identity render transform) that is attached to a parent geometry with the given layout and render transform. 
+	 * 
+	 * @param InLocalSize						The size of the geometry in Local Space.
+	 * @param InLocalLayoutTransform			A layout transform from local space to the parent geoemtry's local space.
+	 * @param ParentAccumulatedLayoutTransform	The accumulated layout transform of the parent widget. AccumulatedLayoutTransform = Concat(LocalLayoutTransform, ParentAccumulatedLayoutTransform).
+	 * @param ParentAccumulatedRenderTransform	The accumulated render transform of the parent widget. AccumulatedRenderTransform = Concat(LocalRenderTransform, LocalLayoutTransform, ParentAccumulatedRenderTransform).
+	 */
+	FGeometry( 
+		const FVector2D& InLocalSize, 
+		const FSlateLayoutTransform& InLocalLayoutTransform, 
+		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, 
+		const FSlateRenderTransform& ParentAccumulatedRenderTransform);
 
 public:
 
@@ -59,9 +91,9 @@ public:
 	bool operator==( const FGeometry& Other ) const
 	{
 		return
-			this->Position == Other.Position &&
+			this->Size == Other.Size && 
 			this->AbsolutePosition == Other.AbsolutePosition &&
-			this->Size == Other.Size &&
+			this->Position == Other.Position &&
 			this->Scale == Other.Scale;
 	}
 	
@@ -77,143 +109,276 @@ public:
 	}
 
 public:
-	
 	/**
-	 * Create a child geometry; i.e. a geometry relative to this geometry.
-	 *
-	 * @param ChildOffset  The offset of the child from this Geometry's position.
-	 * @param ChildSize    The size of the child geometry in screen units.
-	 * @param InScale      How much to scale this child with respect to its parent.
-	 * @return A Geometry that is offset from this geometry by ChildOffset
+	 * Makes a new geometry that is essentially the root of a hierarchy (has no parent transforms to inherit).
+	 * For a root Widget, the LayoutTransform is often the window DPI scale + window offset.
+	 * 
+	 * @param LocalSize			Size of the geoemtry in Local Space.
+	 * @param LayoutTransform	Layout transform of the geometry.
+	 * @return					The new root geometry
 	 */
-	FGeometry MakeChild( const FVector2D& ChildOffset, const FVector2D& ChildSize, float InScale = 1.0f ) const
-	{
-		return FGeometry( ChildOffset, this->AbsolutePosition, ChildSize, this->Scale * InScale );
-	}
-	
+	static FGeometry MakeRoot( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform );
+
 	/**
-	 * Create a child widget geometry; i.e. a geometry relative to this geometry that
-	 * is also associated with a Widget.
+	 * Create a child geometry relative to this one with a given local space size, layout transform, and render transform.
+	 * For example, a widget with a 5x5 margin will create a geometry for it's child contents having a LayoutTransform of Translate(5,5) and a LocalSize 10 units smaller 
+	 * than it's own.
 	 *
-	 * @param InWidget     The widget to associate with the newly created child geometry
-	 * @param ChildOffset  The offset of the child from this Geometry's position.
-	 * @param ChildSize    The size of the child geometry in screen units.
-	 * @param InScale      How much to scale this child with respect to its parent.
-	 * @return A WidgetGeometry that is offset from this geometry by ChildOffset
-	 */
-	FArrangedWidget MakeChild( const TSharedRef<SWidget>& InWidget, const FVector2D& ChildOffset, const FVector2D& ChildSize, float InScale = 1.0f ) const;
-
-	/**
-	 * Make an FPaintGeometry in this FGeometry at the specified Offset.
+	 * @param LocalSize			The size of the child geometry in local space.
+	 * @param LayoutTransform	Layout transform of the new child relative to this Geometry. Goes from the child's layout space to the this widget's layout space.
+	 * @param RenderTransform	Render-only transform of the new child that is applied before the layout transform for rendering purposes only.
 	 *
-	 * @param InOffset   Offset in SlateUnits from this FGeometry's origin.
-	 * @param InSize     The size of this paint element in SlateUnits.
-	 * @param InScale    Additional scaling to apply to the DrawElements.
-	 * @return a FPaintGeometry derived this FGeometry.
+	 * @return					The new child geometry.
 	 */
-	FPaintGeometry ToPaintGeometry( FVector2D InOffset, FVector2D InSize, float InScale ) const;
-
-	/** A PaintGeometry that is not scaled additionally with respect to its originating FGeometry */
-	FPaintGeometry ToPaintGeometry( FVector2D InOffset, FVector2D InSize ) const
-	{
-		return ToPaintGeometry( InOffset, InSize, 1.0f );
-	}
-
-	/** Convert the FGeometry to an FPaintGeometry with no changes */
-	FPaintGeometry ToPaintGeometry() const
-	{
-		return ToPaintGeometry( FVector2D(0,0), this->Size, 1.0f );
-	}
-
-	/** An FPaintGeometry that is offset into the FGeometry from which it originates and occupies all the available room */
-	FPaintGeometry ToOffsetPaintGeometry( FVector2D InOffset ) const
-	{
-		return ToPaintGeometry( InOffset, this->Size, 1.0f );
-	}
+	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform ) const;
 
 	/**
-	 * Make an FPaintGeometry from this FGeometry by inflating the FGeometry by InflateAmount.
+	 * Create a child geometry relative to this one with a given local space size, layout transform, and identity render transform.
+	 * For example, a widget with a 5x5 margin will create a geometry for it's child contents having a LayoutTransform of Translate(5,5) and a LocalSize 10 units smaller 
+	 * than it's own.
+	 *
+	 * @param LocalSize			The size of the child geometry in local space.
+	 * @param LayoutTransform	Layout transform of the new child relative to this Geometry. Goes from the child's layout space to the this widget's layout space.
+	 *
+	 * @return					The new child geometry.
+	 */
+	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const;
+
+	/**
+	 * Create a child geometry+widget relative to this one using the given LayoutGeometry.
+	 *
+	 * @param ChildWidget		The child widget this geometry is being created for.
+	 * @param LayoutGeometry	Layout geometry of the child.
+	 *
+	 * @return					The new child geometry.
+	 */
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry ) const;
+
+	/**
+	 * Create a child geometry+widget relative to this one with a given local space size and layout transform.
+	 * The Geometry inherits the child widget's render transform.
+	 * For example, a widget with a 5x5 margin will create a geometry for it's child contents having a LayoutTransform of Translate(5,5) and a LocalSize 10 units smaller 
+	 * than it's own.
+	 *
+	 * @param ChildWidget		The child widget this geometry is being created for.
+	 * @param LocalSize			The size of the child geometry in local space.
+	 * @param LayoutTransform	Layout transform of the new child relative to this Geometry. 
+	 *
+	 * @return					The new child geometry+widget.
+	 */
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const;
+
+	/**
+	 * !!! DEPRECATED FUNCTION !!! Use MakeChild taking a layout transform instead!
+	 * Create a child geometry relative to this one with a given local space size and layout transform given by a scale+offset. The Render Transform is identity.
+	 *
+	 * @param ChildOffset	Offset of the child relative to the parent. Scale+Offset effectively define the layout transform.
+	 * @param LocalSize		The size of the child geometry in local space.
+	 * @param ChildScale	Scale of the child relative to the parent. Scale+Offset effectively define the layout transform.
+	 *
+	 * @return				The new child geometry.
+	 */
+	FGeometry MakeChild( const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f ) const;
+
+	/**
+	 * !!! DEPRECATED FUNCTION !!! Use MakeChild taking a layout transform instead!
+	 * Create a child geometry+widget relative to this one with a given local space size and layout transform given by a scale+offset.
+	 * The Geometry inherits the child widget's render transform.
+	 *
+	 * @param ChildWidget	The child widget this geometry is being created for.
+	 * @param ChildOffset	Offset of the child relative to the parent. Scale+Offset effectively define the layout transform.
+	 * @param LocalSize		The size of the child geometry in local space.
+	 * @param ChildScale	Scale of the child relative to the parent. Scale+Offset effectively define the layout transform.
+	 *
+	 * @return				The new child geometry+widget.
+	 */
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f) const;
+
+	/**
+	 * Create a paint geometry that represents this geometry.
+	 * 
+	 * @return	The new paint geometry.
+	 */
+	FPaintGeometry ToPaintGeometry() const;
+
+	/**
+	 * Create a paint geometry relative to this one with a given local space size and layout transform.
+	 * The paint geometry inherits the widget's render transform.
+	 *
+	 * @param LocalSize			The size of the child geometry in local space.
+	 * @param LayoutTransform	Layout transform of the paint geometry relative to this Geometry. 
+	 *
+	 * @return					The new paint geometry derived from this one.
+	 */
+	FPaintGeometry ToPaintGeometry( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const;
+
+	/**
+	 * Create a paint geometry with the same size as this geometry with a given layout transform.
+	 * The paint geometry inherits the widget's render transform.
+	 *
+	 * @param LayoutTransform	Layout transform of the paint geometry relative to this Geometry. 
+	 * 
+	 * @return					The new paint geometry derived from this one.
+	 */
+	FPaintGeometry ToPaintGeometry( const FSlateLayoutTransform& LayoutTransform) const;
+
+	/**
+	 * !!! DEPRECATED FUNCTION !!! Use ToPaintGeometry taking a layout transform instead!
+	 * Create a paint geometry relative to this one with a given local space size and layout transform given as a scale+offset.
+	 * The paint geometry inherits the widget's render transform.
+	 *
+	 * @param LocalOffset	Offset of the paint geometry relative to the parent. Scale+Offset effectively define the layout transform.
+	 * @param LocalSize		The size of the paint geometry in local space.
+	 * @param LocalScale	Scale of the paint geometry relative to the parent. Scale+Offset effectively define the layout transform.
+	 * 
+	 * @return				The new paint geometry derived from this one.
+	 */
+	FPaintGeometry ToPaintGeometry( const FVector2D& LocalOffset, const FVector2D& LocalSize, float LocalScale = 1.0f ) const;
+
+	/**
+	 * !!! DEPRECATED FUNCTION !!! Use ToPaintGeometry taking a layout transform instead!
+	 * Create a paint geometry relative to this one with the same size size and a given local space offset.
+	 * The paint geometry inherits the widget's render transform.
+	 *
+	 * @param LocalOffset	Offset of the paint geometry relative to the parent. Effectively defines the layout transform.
+	 * 
+	 * @return				The new paint geometry derived from this one.
+	 */
+	FPaintGeometry ToOffsetPaintGeometry( const FVector2D& LocalOffset ) const;
+
+	/**
+	 * Create a paint geometry relative to this one that whose local space is "inflated" by the specified amount in each direction.
+	 * The paint geometry inherits the widget's render transform.
+	 *
+	 * @param InflateAmount	Amount by which to "inflate" the geometry in each direction around the center point. Effectively defines a layout transform offset and an inflation of the LocalSize.
+	 * 
+	 * @return				The new paint geometry derived from this one.
 	 */
 	FPaintGeometry ToInflatedPaintGeometry( const FVector2D& InflateAmount ) const;
 
-	FPaintGeometry CenteredPaintGeometryOnLeft( const FVector2D& SizeBeingAligned, float InScale ) const;
+	/** 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 * 
+	 * @return true if the provided location in absolute coordinates is within the bounds of this geometry. 
+	 */
+	bool IsUnderLocation( const FVector2D& AbsoluteCoordinate ) const;
 
-	FPaintGeometry CenteredPaintGeometryOnRight( const FVector2D& SizeBeingAligned, float InScale ) const;
-
-	FPaintGeometry CenteredPaintGeometryBelow( const FVector2D& SizeBeingAligned, float InScale ) const;
-
-
-	/** @return true if the provided location is within the bounds of this geometry. */
-	const bool IsUnderLocation( const FVector2D& AbsoluteCoordinate ) const
-	{
-		return
-			( AbsolutePosition.X <= AbsoluteCoordinate.X ) && ( ( AbsolutePosition.X + Size.X * Scale ) > AbsoluteCoordinate.X ) &&
-			( AbsolutePosition.Y <= AbsoluteCoordinate.Y ) && ( ( AbsolutePosition.Y + Size.Y * Scale ) > AbsoluteCoordinate.Y );
-	}
-
-	/** @return Translates AbsoluteCoordinate into the space defined by this Geometry. */
-	const FVector2D AbsoluteToLocal( FVector2D AbsoluteCoordinate ) const
-	{
-		return (AbsoluteCoordinate - this->AbsolutePosition) / Scale;
-	}
+	/** 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 * 
+	 * @return Transforms AbsoluteCoordinate into the local space of this Geometry. 
+	 */
+	FVector2D AbsoluteToLocal( FVector2D AbsoluteCoordinate ) const;
 
 	/**
 	 * Translates local coordinates into absolute coordinates
-	 *
+	 * 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 * 
 	 * @return  Absolute coordinates
 	 */
-	const FVector2D LocalToAbsolute( FVector2D LocalCoordinate ) const
-	{
-		return (LocalCoordinate * Scale) + this->AbsolutePosition;
-	}
+	FVector2D LocalToAbsolute( FVector2D LocalCoordinate ) const;
 	
 	/**
-	 * Returns the allocated geometry's relative position and size as a rect
-	 *
-	 * @return  Allotted geometry relative position and size rectangle
-	 */
-	FSlateRect GetRect( ) const
-	{
-		return FSlateRect( Position.X, Position.Y, Position.X + Size.X, Position.Y + Size.Y );
-	}
-
-	/**
+	 * !!! DEPRECATED !!! This legacy function does not account for render transforms.
+	 * 
 	 * Returns a clipping rectangle corresponding to the allocated geometry's absolute position and size.
 	 * Note that the clipping rectangle starts 1 pixel above and left of the geometry because clipping is not
 	 * inclusive on the lower bound.
+	 * 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
 	 *
-	 * @return  Allotted geometry absolute position and size rectangle
+	 * @return  Allotted geometry rectangle in absolute coordinates.
 	 */
-	FSlateRect GetClippingRect( ) const
-	{
-		return FSlateRect( AbsolutePosition.X, AbsolutePosition.Y, AbsolutePosition.X + Size.X * Scale, AbsolutePosition.Y + Size.Y * Scale );
-	}
+	FSlateRect GetClippingRect( ) const;
 	
 	/** @return A String representation of this Geometry */
-	FString ToString( ) const
-	{
-		return FString::Printf(TEXT("[Pos=%s, Abs=%s, Size=%s]"), *Position.ToString(), *AbsolutePosition.ToString(), *Size.ToString() );
-	}
+	FString ToString( ) const;
 
-	/** @return the size of the geometry in screen space */
-	FVector2D GetDrawSize() const
-	{
-		return Size * Scale;
-	}
+	/** 
+	 * !!! DEPRECATED !!! This legacy function does not account for render transforms.
+	 * 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 *
+	 * @return the size of the geometry in absolute space */
+	FVector2D GetDrawSize() const;
 
+	/** @return the size of the geometry in local space. */
+	const FVector2D& GetLocalSize() const { return Size; }
+
+	/** @return the accumulated render transform. Shouldn't be needed in general. */
+	const FSlateRenderTransform& GetAccumulatedRenderTransform() const { return AccumulatedRenderTransform; }
+
+	/** @return the accumulated layout transform. Shouldn't be needed in general. */
+	FSlateLayoutTransform GetAccumulatedLayoutTransform() const { return FSlateLayoutTransform(Scale, AbsolutePosition); }
+
+	/**
+	 * Special case method to append a layout transform to a geometry.
+	 * This is used in cases where the FGeometry was arranged in window space
+	 * and we need to add the root desktop translation.
+	 * If you find yourself wanting to use this function, ask someone if there's a better way.
+	 * 
+	 * @param LayoutTransform	An additional layout transform to append to this geoemtry.
+	 */
+	void AppendTransform(const FSlateLayoutTransform& LayoutTransform);
 public:
+	/** 
+	 * 
+	 * !!! DEPRECATED !!! Use GetLocalSize() accessor instead of directly accessing public members.
+	 * 
+	 *	   This member has been made const to prevent mutation.
+	 *	   There is no way to easily detect mutation of public members, thus no way to update the render transforms when they are modified.
+	 * 
+	 * 
+	 * Size of the geometry in local space. 
+	 */
+	FVector2D /*Local*/Size;
 
-	/** Position relative to the parent */
-	FVector2D Position;
+	/** 
+	 * !!! DEPRECATED !!! These legacy public members should ideally not be referenced, as they do not account for the render transform.
+	 *     FGeometry manipulation should be done in local space as much as possible so logic can be done in aligned local space, but 
+	 *     still support arbitrary render transforms.
+	 * 
+	 *	   This member has been made const to prevent mutation, which would also break render transforms, which are computed during construction.
+	 *	   There is no way to easily detect mutation of public members, thus no way to update the render transforms when they are modified.
+	 * 
+	 * Scale in absolute space. Equivalent to the scale of the accumulated layout transform. 
+	 * 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 */
+	const float /*Absolute*/Scale;
 
-	/** Position in screen space or (window space during rendering) */
-	FVector2D AbsolutePosition;	
+	/** 
+	 * !!! DEPRECATED !!! These legacy public members should ideally not be referenced, as they do not account for the render transform.
+	 *     FGeometry manipulation should be done in local space as much as possible so logic can be done in aligned local space, but 
+	 *     still support arbitrary render transforms.
+	 * 
+	 *	   This member has been made const to prevent mutation, which would also break render transforms, which are computed during construction.
+	 *	   There is no way to easily detect mutation of public members, thus no way to update the render transforms when they are modified.
+	 * 
+	 * Position in absolute space. Equivalent to the translation of the accumulated layout transform. 
+	 * 
+	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
+	 */
+	const FVector2D AbsolutePosition;	
 
-	/** The dimensions */
-	FVector2D Size;
+	/** 
+	 * !!! DEPRECATED !!! 
+	 * 
+	 * Position of the geometry with respect to its parent in local space. Equivalent to the translation portion of the Local->Parent layout transform.
+	 * If you know your children have no additional scale applied to them, you can use this as the Local->Parent layout transform. If your children
+	 * DO have additional scale applied, there is no way to determine the actual Local->Parent layout transform, since the scale is accumulated.
+	 */
+	const FVector2D /*Local*/Position;
 
-	/** How much this geometry is scaled: WidgetCoodinates / SlateCoordinates */
-	float Scale;
+private:
+
+	/** Concatenated Render Transform. Actual transform used for rendering.
+	 * Formed as: Concat(LocalRenderTransform, LocalLayoutTransform, Parent->AccumulatedRenderTransform) 
+	 * 
+	 * For rendering, absolute coordinates will always be in window space (relative to the root window).
+	 */
+	FSlateRenderTransform AccumulatedRenderTransform;
 };
 
 

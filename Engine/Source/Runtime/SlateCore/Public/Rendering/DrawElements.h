@@ -210,6 +210,7 @@ public:
 		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
 		const FLinearColor& InTint = FLinearColor::White );
 
+	// !!! DEPRECATED !!! Use a render transform om your widget instead.
 	SLATECORE_API static void MakeRotatedBox(
 		FSlateWindowElementList& ElementList,
 		uint32 InLayer, 
@@ -253,7 +254,7 @@ public:
 	 * @param InClippingRect           Parts of the element are clipped if it falls outside of this rectangle
 	 * @param InDrawEffects            Optional draw effects to apply
 	 */
-	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& InPaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, bool bGammaCorrect = true );
+	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, bool bGammaCorrect = true );
 
 	/**
 	 * Creates a spline element
@@ -314,8 +315,9 @@ public:
 
 	EElementType GetElementType() const { return ElementType; }
 	uint32 GetLayer() const { return Layer; }
+	const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
 	const FVector2D& GetPosition() const { return Position; }
-	const FVector2D& GetSize() const { return Size; }
+	const FVector2D& GetLocalSize() const { return LocalSize; }
 	float GetScale() const { return Scale; }
 	const FSlateRect& GetClippingRect() const { return ClippingRect; }
 	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
@@ -323,48 +325,14 @@ public:
 
 private:
 
-	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace )
-	{
-		FVector2D RotationPoint(0,0);
-	
-		const FVector2D& Position = PaintGeometry.DrawPosition;
-		const FVector2D& Size = PaintGeometry.DrawSize;
-
-		switch( RotationSpace )
-		{
-		case RelativeToElement:
-			{
-				if( !UserRotationPoint.IsSet() )
-				{
-					// If the user did not specify a rotation point, we rotate about the center of the element
-					RotationPoint = ( Position + ( Position + Size ) ) / 2.0f;
-				}
-				else
-				{
-					// Rotate relative to the position of the element
-					RotationPoint = Position + UserRotationPoint.GetValue();
-				}
-			}
-			break;
-		case RelativeToWorld:
-			{
-				// Passthrough, its in world space
-				RotationPoint =  UserRotationPoint.Get( FVector2D::ZeroVector );
-			}
-			break;
-		default:
-			check(0);
-			break;
-		}
-
-		return RotationPoint;
-	}
+	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace );
 
 private:
 	FSlateDataPayload DataPayload;
+	FSlateRenderTransform RenderTransform;
 	FSlateRect ClippingRect;
 	FVector2D Position;
-	FVector2D Size;
+	FVector2D LocalSize;
 	float Scale;
 	uint32 Layer;
 	uint32 DrawEffects;
@@ -376,34 +344,25 @@ private:
  */
 struct FShaderParams
 {
-	/** Vertex shader parameters */
-	FVector4 VertexParams;
 	/** Pixel shader parameters */
 	FVector4 PixelParams;
 
 	FShaderParams()
-		: VertexParams( 0,0,0,0 )
-		, PixelParams( 0,0,0,0 )
+		: PixelParams( 0,0,0,0 )
 	{}
 
-	FShaderParams( const FVector4& InVertexParams, const FVector4& InPixelParams )
-		: VertexParams( InVertexParams )
-		, PixelParams( InPixelParams )
+	FShaderParams( const FVector4& InPixelParams )
+		: PixelParams( InPixelParams )
 	{}
 
 	bool operator==( const FShaderParams& Other ) const
 	{
-		return VertexParams == Other.VertexParams && PixelParams == Other.PixelParams;
+		return PixelParams == Other.PixelParams;
 	}
 
 	static FShaderParams MakePixelShaderParams( const FVector4& PixelShaderParams )
 	{
-		return FShaderParams( FVector4(0,0,0,0), PixelShaderParams );
-	}
-
-	static FShaderParams MakeVertexShaderParams( const FVector4& VertexShaderParams )
-	{
-		return FShaderParams( VertexShaderParams, FVector4(0,0,0,0) );
+		return FShaderParams( PixelShaderParams );
 	}
 };
 

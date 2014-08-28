@@ -11,6 +11,7 @@ namespace ESplitterResizeMode
 	};
 }
 
+class FLayoutGeometry;
 /**
  * SSPlitter divides its allotted area into N segments, where N is the number of children it has.
  * It allows the users to resize the children along the splitters axis: that is, horizontally or vertically.
@@ -204,6 +205,9 @@ public:
 	EOrientation GetOrientation() const;	
 
 
+private:
+	TArray<FLayoutGeometry> ArrangeChildrenForLayout( const FGeometry& AllottedGeometry ) const;
+
 protected:
 
 	/**
@@ -231,7 +235,7 @@ protected:
 	 * @param ChildGeometries  The arranged children; we need their sizes and positions so that we can perform a resizing.
 	 */
 	template<EOrientation SplitterOrientation>
-	static void HandleResizing( const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, FArrangedChildren& ChildGeometries );
+	static void HandleResizing( const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries );
 
 	/**
 	 * @param ProposedSize  A size that a child would like to be
@@ -250,7 +254,7 @@ protected:
 	 * @return The index of the handle being hovered, or INDEX_NONE if we are not hovering a handle.
 	 */
 	template<EOrientation SplitterOrientation>
-	static int32 GetHandleBeingResizedFromMousePosition(  float PhysicalSplitterHandleSize, float HitDetectionSplitterHandleSize, FVector2D LocalMousePos, FArrangedChildren& ChildGeometries );
+	static int32 GetHandleBeingResizedFromMousePosition(  float PhysicalSplitterHandleSize, float HitDetectionSplitterHandleSize, FVector2D LocalMousePos, const TArray<FLayoutGeometry>& ChildGeometries );
 
 	TPanelChildren< FSlot > Children;
 
@@ -385,6 +389,8 @@ public:
 
 private:
 
+	TArray<FLayoutGeometry> ArrangeChildrenForLayout( const FGeometry& AllottedGeometry ) const;
+
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
 	/**
@@ -451,7 +457,7 @@ private:
 	 * @param ArrangedChildren	The current geometry of all arranged children before the user moved the splitter
 	 * @param LocalMousePos		The current mouse position		
 	 */
-	void ResizeChildren( FArrangedChildren& ArrangedChildren, FVector2D LocalMousePos );
+	void ResizeChildren( const FGeometry& MyGeometry, const TArray<FLayoutGeometry>& ArrangedChildren, const FVector2D& LocalMousePos );
 
 
 private:

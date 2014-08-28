@@ -24,6 +24,7 @@ public:
 			InArgs._Cursor, 
 			InArgs._IsEnabled,
 			InArgs._Visibility,
+			InArgs._RenderTransform,
 			InArgs._Tag,
 			InArgs.MetaData
 		);

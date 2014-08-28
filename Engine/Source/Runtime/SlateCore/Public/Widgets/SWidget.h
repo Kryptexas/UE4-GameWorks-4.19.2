@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SlateRenderTransform.h"
 
 class SLATECORE_API FSlateControlledConstruction
 {
@@ -71,6 +72,7 @@ public:
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
+		const TAttribute<FSlateRenderTransform>& InTransform,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
@@ -79,10 +81,11 @@ public:
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
+		const TAttribute<FSlateRenderTransform>& InTransform,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTag, InMetaData);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTag, InMetaData);
 	}
 
 	//
@@ -562,6 +565,16 @@ public:
 		Visibility = InVisibility;
 	}
 
+	const FSlateRenderTransform& GetRenderTransform() const
+	{
+		return RenderTransform.Get();
+	}
+
+	void SetRenderTransform( TAttribute<FSlateRenderTransform> InTransform )
+	{
+		RenderTransform = InTransform;
+	}
+
 	/**
 	 * Set the tool tip that should appear when this widget is hovered.
 	 *
@@ -765,6 +778,8 @@ protected:
 	/** Is this widget visible, hidden or collapsed */
 	TAttribute< EVisibility > Visibility;
 
+	/** Render transform of this widget */
+	TAttribute< FSlateRenderTransform > RenderTransform;
 private:
 
 	/**

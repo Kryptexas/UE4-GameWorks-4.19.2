@@ -348,7 +348,7 @@ void UGameEngine::OnGameWindowClosed( const TSharedRef<SWindow>& WindowBeingClos
 
 void UGameEngine::OnGameWindowMoved( const TSharedRef<SWindow>& WindowBeingMoved )
 {
-	const FSlateRect WindowRect = WindowBeingMoved->GetWindowGeometryInScreen().GetRect();
+	const FSlateRect WindowRect = WindowBeingMoved->GetRectInScreen();
 	GetGameUserSettings()->SetWindowPosition(WindowRect.Left, WindowRect.Top);
 	GetGameUserSettings()->SaveConfig();
 }

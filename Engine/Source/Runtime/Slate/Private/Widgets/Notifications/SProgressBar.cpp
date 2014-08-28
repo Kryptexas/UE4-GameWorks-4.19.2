@@ -95,8 +95,9 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	TOptional<float> ProgressFraction = Percent.Get();	
 
 	// Paint inside the border only. 
-	FPaintGeometry ForegroundPaintGeometry = AllottedGeometry.ToInflatedPaintGeometry( -BorderPadding.Get() );
-	const FSlateRect ForegroundClippingRect = ForegroundPaintGeometry.ToSlateRect().IntersectionWith( MyClippingRect );
+	// Pre-snap the clipping rect to try and reduce common jitter, since the padding is typically only a single pixel.
+	FSlateRect SnappedClippingRect = FSlateRect(FMath::RoundToInt(MyClippingRect.Left), FMath::RoundToInt(MyClippingRect.Top), FMath::RoundToInt(MyClippingRect.Right), FMath::RoundToInt(MyClippingRect.Bottom));
+	const FSlateRect ForegroundClippingRect = SnappedClippingRect.InsetBy(FMargin(BorderPadding.Get().X, BorderPadding.Get().Y));
 	
 	const FSlateBrush* CurrentBackgroundImage = GetBackgroundImage();
 
@@ -105,7 +106,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		RetLayerId++,
 		AllottedGeometry.ToPaintGeometry(),
 		CurrentBackgroundImage,
-		MyClippingRect,
+		SnappedClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * CurrentBackgroundImage->GetTint( InWidgetStyle )
 	);	

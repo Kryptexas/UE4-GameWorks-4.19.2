@@ -478,7 +478,7 @@ protected:
 	uint32 PaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, uint32 LayerId) const
 	{
 		FVector2D ScreenWorldOrigin = GraphCoordToPanelCoord(FVector2D(0, 0));
-		FSlateRect ScreenRect = AllottedGeometry.GetRect();
+		FSlateRect ScreenRect(FVector2D(0, 0), AllottedGeometry.GetLocalSize());
 	
 		// World Y-axis
 		if (ScreenWorldOrigin.X > ScreenRect.Left &&
@@ -643,7 +643,7 @@ protected:
 	{
 		VisibleChildren.Empty();
 
-		FSlateRect PanelRect = AllottedGeometry.GetRect();
+		FSlateRect PanelRect(FVector2D(0, 0), AllottedGeometry.GetLocalSize());
 		FVector2D ViewStartPos = PanelCoordToGraphCoord(FVector2D(PanelRect.Left, PanelRect.Top));
 		FVector2D ViewEndPos = PanelCoordToGraphCoord(FVector2D(PanelRect.Right, PanelRect.Bottom));
 		FSlateRect ViewRect(ViewStartPos, ViewEndPos);

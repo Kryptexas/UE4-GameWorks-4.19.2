@@ -38,7 +38,7 @@ private:
 class FSlateTextureAtlasD3D : public FSlateTextureAtlas
 {
 public:
-	FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, uint8 Padding );
+	FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle );
 	~FSlateTextureAtlasD3D();
 
 	void InitAtlasTexture( int32 Index );

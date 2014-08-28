@@ -221,7 +221,6 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 		const FShaderParams& ShaderParams = RenderBatch.ShaderParams;
 
-		VertexShader->SetShaderParams( ShaderParams.VertexParams );
 		VertexShader->BindParameters();
 		
 		if( DrawFlags & ESlateBatchDrawFlag::NoBlending )

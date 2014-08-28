@@ -28,39 +28,55 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint_SSlider);
 #endif
 
+	// we draw the slider like a horizontal slider regardless of the orientation, and apply a render transform to make it display correctly.
+	// However, the AllottedGeometry is computed as it will be rendered, so we have to use the "horizontal orientation" when doing drawing computations.
+	const float AllottedWidth = Orientation == Orient_Horizontal ? AllottedGeometry.GetLocalSize().X : AllottedGeometry.GetLocalSize().Y;
+	const float AllottedHeight = Orientation == Orient_Horizontal ? AllottedGeometry.GetLocalSize().Y : AllottedGeometry.GetLocalSize().X;
+
 	float HandleRotation;
 	FVector2D HandleTopLeftPoint;
 	FVector2D SliderStartPoint;
 	FVector2D SliderEndPoint;
 
-	// calculate slider geometry
+	// calculate slider geometry as if it's a horizontal slider (we'll rotate it later if it's vertical)
 	const FVector2D HalfHandleSize = 0.5f * NormalHandleImage->ImageSize;
 	const float Indentation = IndentHandle.Get() ? NormalHandleImage->ImageSize.X : 0.0f;
 
-	if (Orientation == Orient_Horizontal)
+	const float SliderLength = AllottedWidth - Indentation;
+	const float SliderHandleOffset = ValueAttribute.Get() * SliderLength;
+	const float SliderY = 0.5f * AllottedHeight;
+
+	HandleRotation = 0.0f;
+	HandleTopLeftPoint = FVector2D(SliderHandleOffset - HalfHandleSize.X + 0.5f * Indentation, SliderY - HalfHandleSize.Y);
+
+	SliderStartPoint = FVector2D(HalfHandleSize.X, SliderY);
+	SliderEndPoint = FVector2D(AllottedWidth - HalfHandleSize.X, SliderY);
+
+	FSlateRect RotatedClippingRect = MyClippingRect;
+	FGeometry SliderGeometry = AllottedGeometry;
+	
+	// rotate the slider 90deg if it's vertical. The 0 side goes on the bottom, the 1 side on the top.
+	if (Orientation == Orient_Vertical)
 	{
-		const float SliderLength = AllottedGeometry.Size.X - Indentation;
-		const float SliderHandleOffset = ValueAttribute.Get() * SliderLength;
-		const float SliderY = 0.5f * AllottedGeometry.Size.Y;
-
-		HandleRotation = 0.0f;
-		HandleTopLeftPoint = FVector2D(SliderHandleOffset - HalfHandleSize.X + 0.5f * Indentation, SliderY - HalfHandleSize.Y);
-
-		SliderStartPoint = FVector2D(HalfHandleSize.X, SliderY);
-		SliderEndPoint = FVector2D(AllottedGeometry.Size.X - HalfHandleSize.X, SliderY);
+		// Do this by translating along -X by the width of the geometry, then rotating 90 degreess CCW (left-hand coords)
+		FSlateRenderTransform RenderTransform = TransformCast<FSlateRenderTransform>(Concatenate(Inverse(FVector2D(AllottedWidth, 0)), FQuat2D(FMath::DegreesToRadians(-90.0f))));
+		// create a child geometry matching this one, but with the render transform.
+		SliderGeometry = AllottedGeometry.MakeChild(
+			FVector2D(AllottedWidth, AllottedHeight), 
+			FSlateLayoutTransform(), 
+			RenderTransform);
+		// The clipping rect is already given properly in window space. But we do not support layout rotations, so our local space rendering cannot
+		// get the clipping rect into local space properly for the local space clipping we do in the shader.
+		// Thus, we transform the clip coords into local space manually, UNDO the render transform so it will clip properly,
+		// and then bring the clip coords back into window space where DrawElements expect them.
+		RotatedClippingRect = TransformRect(
+			Concatenate(
+				Inverse(SliderGeometry.GetAccumulatedLayoutTransform()), 
+				Inverse(RenderTransform), 
+				SliderGeometry.GetAccumulatedLayoutTransform()), 
+			MyClippingRect);
 	}
-	else
-	{
-		const float SliderLength = AllottedGeometry.Size.Y - Indentation;
-		const float SliderHandleOffset = ValueAttribute.Get() * SliderLength;
-		const float SliderX = 0.5f * AllottedGeometry.Size.X;
 
-		HandleRotation = -0.5f * PI;
-		HandleTopLeftPoint = FVector2D(SliderX - HalfHandleSize.X, AllottedGeometry.Size.Y - SliderHandleOffset - HalfHandleSize.Y - 0.5f * Indentation);
-
-		SliderStartPoint = FVector2D(SliderX, AllottedGeometry.Size.Y - HalfHandleSize.X);
-		SliderEndPoint = FVector2D(SliderX, HalfHandleSize.X);
-	}
 
 	// draw slider bar
 	TArray<FVector2D> LinePoints;
@@ -73,9 +89,9 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	FSlateDrawElement::MakeLines( 
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.ToPaintGeometry(),
+		SliderGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
+		RotatedClippingRect,
 		DrawEffects,
 		SliderBarColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -83,16 +99,13 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	++LayerId;
 
 	// draw slider handle
-	FSlateDrawElement::MakeRotatedBox( 
+	FSlateDrawElement::MakeBox( 
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.ToPaintGeometry(HandleTopLeftPoint, NormalHandleImage->ImageSize),
+		SliderGeometry.ToPaintGeometry(HandleTopLeftPoint, NormalHandleImage->ImageSize),
 		LockedAttribute.Get() ? DisabledHandleImage : NormalHandleImage,
-		MyClippingRect,
+		RotatedClippingRect,
 		DrawEffects,
-		HandleRotation,
-		TOptional<FVector2D>(),
-		FSlateDrawElement::RelativeToElement,
 		SliderHandleColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 	);
 

@@ -1,61 +1,182 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
+#include "LayoutGeometry.h"
 
-
-/* FArrangedChildren interface
- *****************************************************************************/
-
-FArrangedWidget FGeometry::MakeChild( const TSharedRef<SWidget>& InWidget, const FVector2D& ChildOffset, const FVector2D& ChildSize, float InScale ) const
+FGeometry::FGeometry() 
+	: Size(0.0f, 0.0f)
+	, Scale(1.0f)
+	, AbsolutePosition(0.0f, 0.0f)
 {
-	return FArrangedWidget( InWidget, this->MakeChild(ChildOffset, ChildSize, InScale) );
+}
+
+FGeometry& FGeometry::operator=(const FGeometry& RHS)
+{
+	// HACK to allow us to make FGeometry public members immutable to catch misuse.
+	if (this != &RHS)
+	{
+		FMemory::MemCopy(*this, RHS);
+	}
+	return *this;
+}
+
+FGeometry::FGeometry(const FVector2D& OffsetFromParent, const FVector2D& ParentAbsolutePosition, const FVector2D& InLocalSize, float InScale) 
+	: Size(InLocalSize)
+	, Scale(1.0f)
+	, AbsolutePosition(0.0f, 0.0f)
+{
+	// Since OffsetFromParent is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	FVector2D LayoutOffset = TransformPoint(InScale, OffsetFromParent);
+
+	FSlateLayoutTransform ParentAccumulatedLayoutTransform(InScale, ParentAbsolutePosition);
+	FSlateLayoutTransform LocalLayoutTransform(LayoutOffset);
+	AccumulatedRenderTransform = TransformCast<FSlateRenderTransform>(LocalLayoutTransform);
+	FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(LocalLayoutTransform, ParentAccumulatedLayoutTransform);
+	// HACK to allow us to make FGeometry public members immutable to catch misuse.
+	const_cast<FVector2D&>(AbsolutePosition) = AccumulatedLayoutTransform.GetTranslation();
+	const_cast<float&>(Scale) = AccumulatedLayoutTransform.GetScale();
+	const_cast<FVector2D&>(Position) = LocalLayoutTransform.GetTranslation();
+}
+
+FGeometry::FGeometry(const FVector2D& InLocalSize, const FSlateLayoutTransform& InLocalLayoutTransform, const FSlateRenderTransform& InLocalRenderTransform, const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, const FSlateRenderTransform& ParentAccumulatedRenderTransform) 
+	: Size(InLocalSize)
+	, Scale(1.0f)
+	, AbsolutePosition(0.0f, 0.0f)
+	, AccumulatedRenderTransform(Concatenate(InLocalRenderTransform, InLocalLayoutTransform, ParentAccumulatedRenderTransform))
+{
+	FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(InLocalLayoutTransform, ParentAccumulatedLayoutTransform);
+	// HACK to allow us to make FGeometry public members immutable to catch misuse.
+	const_cast<FVector2D&>(AbsolutePosition) = AccumulatedLayoutTransform.GetTranslation();
+	const_cast<float&>(Scale) = AccumulatedLayoutTransform.GetScale();
+	const_cast<FVector2D&>(Position) = InLocalLayoutTransform.GetTranslation();
+}
+
+FGeometry::FGeometry(const FVector2D& InLocalSize, const FSlateLayoutTransform& InLocalLayoutTransform, const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, const FSlateRenderTransform& ParentAccumulatedRenderTransform) 
+	: Size(InLocalSize)
+	, Scale(1.0f)
+	, AbsolutePosition(0.0f, 0.0f)
+	, AccumulatedRenderTransform(Concatenate(InLocalLayoutTransform, ParentAccumulatedRenderTransform))
+{
+	FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(InLocalLayoutTransform, ParentAccumulatedLayoutTransform);
+	// HACK to allow us to make FGeometry public members immutable to catch misuse.
+	const_cast<FVector2D&>(AbsolutePosition) = AccumulatedLayoutTransform.GetTranslation();
+	const_cast<float&>(Scale) = AccumulatedLayoutTransform.GetScale();
+	const_cast<FVector2D&>(Position) = InLocalLayoutTransform.GetTranslation();
+}
+
+void FGeometry::AppendTransform(const FSlateLayoutTransform& LayoutTransform)
+{
+	FSlateLayoutTransform AccumulatedLayoutTransform = ::Concatenate(GetAccumulatedLayoutTransform(), LayoutTransform);
+	AccumulatedRenderTransform = ::Concatenate(AccumulatedRenderTransform, LayoutTransform);
+	const_cast<FVector2D&>(AbsolutePosition) = AccumulatedLayoutTransform.GetTranslation();
+	const_cast<float&>(Scale) = AccumulatedLayoutTransform.GetScale();
+}
+
+FGeometry FGeometry::MakeRoot(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform)
+{
+	return FGeometry(LocalSize, LayoutTransform, FSlateLayoutTransform(), FSlateRenderTransform());
+}
+
+FGeometry FGeometry::MakeChild(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform) const
+{
+	return FGeometry(LocalSize, LayoutTransform, RenderTransform, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
+}
+
+FGeometry FGeometry::MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const
+{
+	return FGeometry(LocalSize, LayoutTransform, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
+}
+
+FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry) const
+{
+	return MakeChild(ChildWidget, LayoutGeometry.GetSizeInLocalSpace(), LayoutGeometry.GetLocalToParentTransform());
+}
+
+FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
+{
+	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform()));
+}
+
+FGeometry FGeometry::MakeChild( const FVector2D& ChildOffset, const FVector2D& LocalSize, float LocalScale ) const
+{
+	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	return FGeometry(LocalSize, FSlateLayoutTransform(LocalScale, TransformPoint(LocalScale, ChildOffset)), GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
+}
+
+FArrangedWidget FGeometry::MakeChild( const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale) const
+{
+	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)), ChildWidget->GetRenderTransform()));
+}
+
+FPaintGeometry FGeometry::ToPaintGeometry() const
+{
+	return FPaintGeometry(GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform(), Size);
+}
+
+FPaintGeometry FGeometry::ToPaintGeometry(const FSlateLayoutTransform& LayoutTransform) const
+{
+	return ToPaintGeometry(Size, LayoutTransform);
 }
 
 
-FPaintGeometry FGeometry::ToPaintGeometry( FVector2D InOffset, FVector2D InSize, float InScale ) const
+FPaintGeometry FGeometry::ToPaintGeometry(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
 {
-	const float CombinedScale = this->Scale*InScale;
-	return FPaintGeometry( this->AbsolutePosition + InOffset*CombinedScale, InSize * CombinedScale, CombinedScale );
+	FSlateLayoutTransform NewAccumulatedLayoutTransform = Concatenate(LayoutTransform, GetAccumulatedLayoutTransform());
+	return FPaintGeometry(NewAccumulatedLayoutTransform, Concatenate(LayoutTransform, GetAccumulatedRenderTransform()), LocalSize);
 }
 
+FPaintGeometry FGeometry::ToPaintGeometry(const FVector2D& LocalOffset, const FVector2D& LocalSize, float LocalScale) const
+{
+	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	return ToPaintGeometry(LocalSize, FSlateLayoutTransform(LocalScale, TransformPoint(LocalScale, LocalOffset)));
+}
+
+FPaintGeometry FGeometry::ToOffsetPaintGeometry(const FVector2D& LocalOffset) const
+{
+	return ToPaintGeometry(FSlateLayoutTransform(LocalOffset));
+}
 
 FPaintGeometry FGeometry::ToInflatedPaintGeometry( const FVector2D& InflateAmount ) const
 {
-	return FPaintGeometry( this->AbsolutePosition - InflateAmount*this->Scale, (this->Size+InflateAmount*2)*this->Scale, this->Scale );
+	// This essentially adds (or subtracts) a border around the widget. We scale the size then offset by the border amount.
+	// Note this is not scaling child widgets, so the scale is not changing.
+	FVector2D NewSize = Size + InflateAmount * 2;
+	return ToPaintGeometry(NewSize, FSlateLayoutTransform(-InflateAmount));
+}
+
+FSlateRect FGeometry::GetClippingRect() const
+{
+	return TransformRect(GetAccumulatedLayoutTransform(), FSlateRect(FVector2D(0.0f,0.0f), Size));
+}
+
+FVector2D FGeometry::AbsoluteToLocal(FVector2D AbsoluteCoordinate) const
+{
+	return TransformPoint(Inverse(GetAccumulatedLayoutTransform()), AbsoluteCoordinate);
 }
 
 
-FPaintGeometry FGeometry::CenteredPaintGeometryOnLeft( const FVector2D& SizeBeingAligned, float InScale ) const
+FVector2D FGeometry::LocalToAbsolute(FVector2D LocalCoordinate) const
 {
-	const float CombinedScale = this->Scale*InScale;
-	
-	return FPaintGeometry(
-		this->AbsolutePosition + FVector2D(-SizeBeingAligned.X, this->Size.Y/2 - SizeBeingAligned.Y/2) * InScale,
-		SizeBeingAligned * CombinedScale,
-		CombinedScale
-	);
+	return TransformPoint(GetAccumulatedLayoutTransform(), LocalCoordinate);
+}
+
+bool FGeometry::IsUnderLocation(const FVector2D& AbsoluteCoordinate) const
+{
+	return GetClippingRect().ContainsPoint(AbsoluteCoordinate);
 }
 
 
-FPaintGeometry FGeometry::CenteredPaintGeometryOnRight( const FVector2D& SizeBeingAligned, float InScale ) const
+FString FGeometry::ToString() const
 {
-	const float CombinedScale = this->Scale*InScale;
-	
-	return FPaintGeometry(
-		this->AbsolutePosition + FVector2D(this->Size.X, this->Size.Y/2 - SizeBeingAligned.Y/2) * InScale,
-		SizeBeingAligned * CombinedScale,
-		CombinedScale
-	);
+	return FString::Printf(TEXT("[Abs=%s, Scale=%.2f, Size=%s]"), *AbsolutePosition.ToString(), Scale, *Size.ToString());
 }
 
-
-FPaintGeometry FGeometry::CenteredPaintGeometryBelow( const FVector2D& SizeBeingAligned, float InScale ) const
+FVector2D FGeometry::GetDrawSize() const
 {
-	const float CombinedScale = this->Scale*InScale;
-	
-	return FPaintGeometry(
-		this->AbsolutePosition + FVector2D(this->Size.X/2 - SizeBeingAligned.X/2, this->Size.Y) * InScale,
-		SizeBeingAligned * CombinedScale,
-		CombinedScale
-	);
+	return TransformVector(GetAccumulatedLayoutTransform(), Size);
 }

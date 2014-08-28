@@ -29,6 +29,7 @@
 #include "Axis.h"
 #include "Matrix.h"
 #include "RotationTranslationMatrix.h"
+#include "RotationAboutPointMatrix.h"
 #include "ScaleRotationTranslationMatrix.h"
 #include "RotationMatrix.h"
 #include "Quat.h"

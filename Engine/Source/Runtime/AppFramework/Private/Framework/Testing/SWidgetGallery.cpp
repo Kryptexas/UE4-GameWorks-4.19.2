@@ -249,6 +249,8 @@ public:
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
+							SNew(SFxWidget).IgnoreClipping(false)
+							[
 							SNew(SVerticalBox)
 
 							+ SVerticalBox::Slot()
@@ -256,6 +258,7 @@ public:
 								[
 									// selector combo box
 									SAssignNew(SelectorComboBox, SComboBox<TSharedPtr<FString> >)
+										.Method(SMenuAnchor::UseCurrentWindow)
 										.OptionsSource(&SelectorComboBoxOptions)
 										.OnSelectionChanged(this, &SWidgetGallery::HandleSelectorComboBoxSelectionChanged)
 										.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
@@ -278,6 +281,7 @@ public:
 												.Text(this, &SWidgetGallery::HandleSecondComboBoxText)
 										]
 								]
+							]
 						]
 
 					// SComboButton
@@ -291,7 +295,9 @@ public:
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
-							SNew(SComboButton)
+							SNew(SFxWidget).IgnoreClipping(false)
+							[
+								SNew(SComboButton)
 								.Method(SMenuAnchor::UseCurrentWindow)
 								.ButtonContent()
 								[
@@ -327,6 +333,7 @@ public:
 												.Text(LOCTEXT("ComboButtonItemLabel03", "widgets"))
 										]
 								]
+							]
 						]
 
 					// SEditableText
@@ -1093,7 +1100,10 @@ private:
  */
 TSharedRef<SWidget> MakeWidgetGallery()
 {
-	return SNew(SWidgetGallery);
+	extern FSlateRenderTransform GetRenderTransform();
+	return 
+		SNew(SWidgetGallery)
+		.RenderTransform_Static(&GetRenderTransform);
 }
 
 

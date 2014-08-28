@@ -88,15 +88,31 @@ public:
 
 private:
 
+	/**
+	 * Each child slot essentially tries to place their contents at a specified position on the screen
+	 * and scale as the widget initiating the popup, both of which are stored in the slot attributes.
+	 * The tricky part is that the scale we are given is the fully accumulated layout scale of the widget, which already incorporates 
+	 * the DPI Scale of the window. The DPI Scale is also applied to the overlay since it is part of the window,
+	 * so this scale needs to be factored out when determining the scale of the child geometry that will be created to hold the popup.
+	 * We also optionally adjust the window position to keep it within the client bounds of the top-level window. This must be done in screenspace.
+	 * This means some hairy transformation calculus goes on to ensure the computations are done in the proper space so scale is respected.
+	 * 
+	 * There are 3 transformational spaces involved, each clearly specified in the variable names:
+	 * Screen      - Basically desktop space. Contains desktop offset and DPI scale.
+	 * WindowLocal - local space of the SWindow containing this popup. Screenspace == Concat(WindowLocal, DPI Scale, Desktop Offset)
+	 * ChildLocal  - space of the child widget we want to display in the popup. The widget's LayoutTransform takes us from ChildLocal to WindowLocal space.
+	 */
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 	{
-		const FVector2D WindowDesktopPosition = (ensure(OwnerWindow.IsValid()))
-			? OwnerWindow.Pin()->GetPositionInScreen()
-			: FVector2D::ZeroVector;
+		// skip all this work if there are no children to arrange.
+		if (Children.Num() == 0) return;
 
-		const FVector2D WindowSize = (ensure(OwnerWindow.IsValid()))
-			? OwnerWindow.Pin()->GetClientSizeInScreen()
-			: FVector2D::ZeroVector;
+		// create a transform from screen to local space.
+		// This assumes that the PopupLayer is part of an Overlay that takes up the entire window space.
+		// We should technically be using the AllottedGeometry to transform from AbsoluteToLocal space just in case it has an additional scale on it.
+		// But we can't because the absolute space of the geometry is sometimes given in desktop space (picking, ticking) 
+		// and sometimes in window space (painting), and we can't necessarily tell by inspection so we have to just make an assumption here.
+		FSlateLayoutTransform ScreenToWindowLocal = (ensure(OwnerWindow.IsValid())) ? Inverse(OwnerWindow.Pin()->GetLocalToScreenTransform()) : FSlateLayoutTransform();
 		
 		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
@@ -104,33 +120,43 @@ private:
 			const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
 			if ( ArrangedChildren.Accepts(ChildVisibility) )
 			{
-				const FVector2D WidgetDesiredSize = CurChild.GetWidget()->GetDesiredSize();
-				const float ChildScale = CurChild.Scale_Attribute.Get();
-				const bool bClampToWindow = CurChild.Clamp_Attribute.Get();
-				const FVector2D ChildSize = WidgetDesiredSize * ChildScale;
-				FVector2D ChildLocalPosition = CurChild.DesktopPosition_Attribute.Get() - WindowDesktopPosition;
+				// This scale+translate forms the ChildLocal to Screenspace transform.
+				// The translation may be adjusted based on clamping, but the scale is accurate, 
+				// so we can transform vectors into screenspace using the scale alone.
+				const float ChildLocalToScreenScale = CurChild.Scale_Attribute.Get();
+				FVector2D ChildLocalToScreenOffset = CurChild.DesktopPosition_Attribute.Get();
+				// The size of the child is either the desired size of the widget (computed in the child's local space) or the size override (specified in screen space)
+				const FVector2D ChildSizeChildLocal = CurChild.GetWidget()->GetDesiredSize();
+				// Convert the desired size to screen space. Here is were we convert a vector to screenspace
+				// before we have the final position in screenspace (which would be needed to transform a point).
+				FVector2D ChildSizeScreenspace = TransformVector(ChildLocalToScreenScale, ChildSizeChildLocal);
+				// But then allow each size dimension to be overridden by the slot, which specifies the overrides in screen space.
+				ChildSizeScreenspace = FVector2D(
+						CurChild.WidthOverride_Attribute.IsSet() ? CurChild.WidthOverride_Attribute.Get() : ChildSizeScreenspace.X,
+						CurChild.HeightOverride_Attribute.IsSet() ? CurChild.HeightOverride_Attribute.Get() : ChildSizeScreenspace.Y);
 				
-				if(bClampToWindow)
+				// If clamping, move the screen space position to ensure the screen space size stays within the client rect of the top level window.
+				if(CurChild.Clamp_Attribute.Get())
 				{
-					FVector2D ClampBufferReducedWindowSize = WindowSize - CurChild.ClampBuffer_Attribute.Get();
-					ChildLocalPosition.X = FMath::Clamp(ChildLocalPosition.X - FMath::Max(0.0f, (ChildLocalPosition.X  + WidgetDesiredSize.X ) - ClampBufferReducedWindowSize.X), 0.0f, MAX_flt);
-					ChildLocalPosition.Y = FMath::Clamp(ChildLocalPosition.Y - FMath::Max(0.0f, (ChildLocalPosition.Y  + WidgetDesiredSize.Y ) - ClampBufferReducedWindowSize.Y), 0.0f, MAX_flt);
+					const FSlateRect WindowClientRectScreenspace = (ensure(OwnerWindow.IsValid())) ? OwnerWindow.Pin()->GetClientRectInScreen() : FSlateRect();
+					const FVector2D ClampBufferScreenspace = CurChild.ClampBuffer_Attribute.Get();
+					const FSlateRect ClampedWindowClientRectScreenspace = WindowClientRectScreenspace.InsetBy(FMargin(ClampBufferScreenspace.X, ClampBufferScreenspace.Y));
+					// Find how much our child wants to extend beyond our client space and subtract that amount, but don't push it past the client edge.
+					ChildLocalToScreenOffset.X = FMath::Max(WindowClientRectScreenspace.Left, ChildLocalToScreenOffset.X - FMath::Max(0.0f, (ChildLocalToScreenOffset.X  + ChildSizeScreenspace.X ) - ClampedWindowClientRectScreenspace.Right));
+					ChildLocalToScreenOffset.Y = FMath::Max(WindowClientRectScreenspace.Top, ChildLocalToScreenOffset.Y - FMath::Max(0.0f, (ChildLocalToScreenOffset.Y  + ChildSizeScreenspace.Y ) - ClampedWindowClientRectScreenspace.Bottom));
 				}
+
+				// We now have the final position, so construct the transform from ChildLocal to Screenspace
+				const FSlateLayoutTransform ChildLocalToScreen(ChildLocalToScreenScale, ChildLocalToScreenOffset);
+				// Using this we can compute the transform from ChildLocal to WindowLocal, which is effectively the LayoutTransform of the child widget.
+				const FSlateLayoutTransform ChildLocalToWindowLocal = Concatenate(ChildLocalToScreen, ScreenToWindowLocal);
+				// The ChildSize needs to be given in ChildLocal space when constructing a geometry.
+				const FVector2D ChildSizeLocalspace = TransformVector(Inverse(ChildLocalToScreen), ChildSizeScreenspace);
 
 				// The position is explicitly in desktop pixels.
 				// The size and DPI scale come from the widget that is using
 				// this overlay to "punch" through the UI.
-				ArrangedChildren.AddWidget( ChildVisibility, FArrangedWidget( CurChild.GetWidget(),
-					FGeometry(
-						ChildLocalPosition / ChildScale,
-						AllottedGeometry.AbsolutePosition,
-						FVector2D(
-							// Notice that override sizes get divided by ChildScale because any explicit size overrides are in pixel units and are not affected by DPI scaling.
-							CurChild.WidthOverride_Attribute.IsSet() ? CurChild.WidthOverride_Attribute.Get() / ChildScale : WidgetDesiredSize.X,
-							CurChild.HeightOverride_Attribute.IsSet() ? CurChild.HeightOverride_Attribute.Get() / ChildScale : WidgetDesiredSize.Y
-						),
-						ChildScale
-				) ) );
+				ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(CurChild.GetWidget(), ChildSizeLocalspace, ChildLocalToWindowLocal));
 			}
 		}
 	}
@@ -562,14 +588,33 @@ FVector2D SWindow::GetInitialDesiredPositionInScreen() const
 FGeometry SWindow::GetWindowGeometryInScreen() const
 {
 	const float AppScale = FSlateApplicationBase::Get().GetApplicationScale();
-	return FGeometry( ScreenPosition/AppScale, FVector2D::ZeroVector, Size/AppScale, AppScale );
+	// We are scaling children for layout, but our pixel bounds are not changing. 
+	// FGeometry expects Size in Local space, but our size is stored in screen space.
+	// So we need to transform Size into the window's local space for FGeometry.
+	FSlateLayoutTransform LocalToScreen = GetLocalToScreenTransform();
+	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToScreen), Size), LocalToScreen );
 }
 
 FGeometry SWindow::GetWindowGeometryInWindow() const
 {
 	const float AppScale = FSlateApplicationBase::Get().GetApplicationScale();
-	return FGeometry( FVector2D::ZeroVector, FVector2D::ZeroVector, Size/AppScale, AppScale );
+	// We are scaling children for layout, but our pixel bounds are not changing. 
+	// FGeometry expects Size in Local space, but our size is stored in screen space (same as window space + screen offset).
+	// So we need to transform Size into the window's local space for FGeometry.
+	FSlateLayoutTransform LocalToWindow = GetLocalToWindowTransform();
+	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), Size), LocalToWindow );
 }
+
+FSlateLayoutTransform SWindow::GetLocalToScreenTransform() const
+{
+	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale(), ScreenPosition);
+}
+
+FSlateLayoutTransform SWindow::GetLocalToWindowTransform() const
+{
+	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale());
+}
+
 
 FVector2D SWindow::GetPositionInScreen() const
 {
@@ -600,23 +645,24 @@ FSlateRect SWindow::GetNonMaximizedRectInScreen() const
 
 FSlateRect SWindow::GetRectInScreen() const
 { 
-	return FSlateRect( ScreenPosition.X, ScreenPosition.Y, ScreenPosition.X + Size.X, ScreenPosition.Y + Size.Y );
+	return FSlateRect( ScreenPosition, ScreenPosition + Size );
+}
+
+FSlateRect SWindow::GetClientRectInScreen() const
+{
+	if (HasOSWindowBorder())
+	{
+		return GetRectInScreen();
+	}
+
+	return GetRectInScreen()
+		.InsetBy(GetWindowBorderSize())
+		.InsetBy(FMargin(0.0f, TitleBarSize, 0.0f, 0.0f));
 }
 
 FVector2D SWindow::GetClientSizeInScreen() const
 {
-	if (HasOSWindowBorder())
-	{
-		return Size;
-	}
-
-	FVector2D ClientSize = Size;
-	FMargin BorderSize = GetWindowBorderSize();
-
-	ClientSize.X -= (BorderSize.Left + BorderSize.Right);
-	ClientSize.Y -= (BorderSize.Top + BorderSize.Bottom + TitleBarSize);
-
-	return ClientSize;
+	return GetClientRectInScreen().GetSize();
 }
 
 FSlateRect SWindow::GetClippingRectangleInWindow() const

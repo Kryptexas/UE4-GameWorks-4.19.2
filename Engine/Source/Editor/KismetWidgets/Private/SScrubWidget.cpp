@@ -75,7 +75,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	const int32 TextLayer = BackgroundLayer + 1;
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT( "ProgressBar.Background" ) );
-	const FSlateRect GeomRect = AllottedGeometry.GetRect();
+	const float GeomHeight = AllottedGeometry.Size.Y;
 
 	if ( NumOfKeys.Get() > 0 && SequenceLength.Get() > 0)
 	{
@@ -95,7 +95,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			if ( FGenericPlatformMath::Fmod(KeyVal, Divider) == 0.f )
 			{
 				const FVector2D Offset(XPos, 0.f);
-				const FVector2D Size(1, GeomRect.Bottom-GeomRect.Top);
+				const FVector2D Size(1, GeomHeight);
 				// draw each box with key frame
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
@@ -125,7 +125,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			}
  			else if (HalfDivider > 1.f)
  			{
- 				const float Height = GeomRect.Bottom-GeomRect.Top;
+ 				const float Height = GeomHeight;
  				const FVector2D Offset(XPos, Height*0.25f);
  				const FVector2D Size(1, Height*0.5f);
  				// draw each box with key frame
@@ -171,7 +171,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			{
 				const float BarXPos = TimeScaleInfo.InputToLocalX(BarValue);
 				const FVector2D BarOffset(BarXPos-2.f, 0.f);
-				const FVector2D Size(4.f, GeomRect.Bottom-GeomRect.Top);
+				const FVector2D Size(4.f, GeomHeight);
 
 				FLinearColor BarColor = InWidgetStyle.GetColorAndOpacityTint();	
 				BarColor.R *= 0.1f;

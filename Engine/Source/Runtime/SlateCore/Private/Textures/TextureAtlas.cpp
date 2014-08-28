@@ -36,7 +36,9 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 	// Find a spot for the character in the texture
 	const FAtlasedTextureSlot* NewSlot = FindSlotForTexture(TextureWidth, TextureHeight);
 
-	if (NewSlot)
+	// handle cases like space, where the size of the glyph is zero. The copy data code doesn't handle zero sized source data with a padding
+	// so make sure to skip this call.
+	if (NewSlot && TextureWidth > 0 && TextureHeight > 0)
 	{
 		CopyDataIntoSlot(NewSlot, Data);
 		MarkTextureDirty();
@@ -71,7 +73,7 @@ void FSlateTextureAtlas::InitAtlasData()
 {
 	check(RootNode == nullptr && AtlasData.Num() == 0);
 
-	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, Padding);
+	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, PaddingStyle == NoPadding ? 0 : 1);
 	AtlasData.Reserve(AtlasWidth * AtlasHeight * Stride);
 	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * Stride);
 
@@ -79,30 +81,49 @@ void FSlateTextureAtlas::InitAtlasData()
 }
 
 
-void FSlateTextureAtlas::CopyRow( FCopyRowData& CopyRowData )
+void FSlateTextureAtlas::CopyRow( const FCopyRowData& CopyRowData )
 {
 	const uint8* Data = CopyRowData.SrcData;
 	uint8* Start = CopyRowData.DestData;
 	const uint32 SourceWidth = CopyRowData.SrcTextureWidth;
 	const uint32 DestWidth = CopyRowData.DestTextureWidth;
-	const uint32 CopyStride = CopyRowData.DataStride;
-	const uint32 CopyPadding = CopyRowData.Padding;
 	const uint32 SrcRow = CopyRowData.SrcRow;
 	const uint32 DestRow = CopyRowData.DestRow;
+	// this can only be one or zero
+	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
 
-	const uint8* SourceDataAddr = &Data[SrcRow * SourceWidth * CopyStride]; 
-	uint8* DestDataAddr = &Start[DestRow * DestWidth * CopyStride + CopyPadding * CopyStride]; 
-	FMemory::Memcpy(DestDataAddr, SourceDataAddr, SourceWidth * CopyStride); 
+	const uint8* SourceDataAddr = &Data[(SrcRow * SourceWidth) * Stride]; 
+	uint8* DestDataAddr = &Start[(DestRow * DestWidth + Padding) * Stride]; 
+	FMemory::Memcpy(DestDataAddr, SourceDataAddr, SourceWidth * Stride); 
 
-	if (CopyRowData.bDialateToPadding)
+	if (Padding > 0)
 	{ 
-		const uint8* FirstPixel = SourceDataAddr; 
-		const uint8* LastPixel = SourceDataAddr + ((SourceWidth - 1) * CopyStride); 
-		uint8* DestDataAddrNoPadding = &Start[DestRow * DestWidth * CopyStride]; 
-		FMemory::Memcpy(DestDataAddrNoPadding, FirstPixel, CopyStride ); 
-		DestDataAddrNoPadding = &Start[DestRow * DestWidth * CopyStride + (CopyRowData.RowWidth - 1) * CopyStride]; 
-		FMemory::Memcpy(DestDataAddrNoPadding, LastPixel, CopyStride); 
+		uint8* DestPaddingPixelLeft = &Start[(DestRow * DestWidth) * Stride];
+		uint8* DestPaddingPixelRight = DestPaddingPixelLeft + ((CopyRowData.RowWidth - 1) * Stride);
+		if (PaddingStyle == ESlateTextureAtlasPaddingStyle::DilateBorder)
+		{
+			const uint8* FirstPixel = SourceDataAddr; 
+			const uint8* LastPixel = SourceDataAddr + ((SourceWidth - 1) * Stride); 
+			FMemory::Memcpy(DestPaddingPixelLeft, FirstPixel, Stride);
+			FMemory::Memcpy(DestPaddingPixelRight, LastPixel, Stride);
+		}
+		else
+		{
+			FMemory::Memzero(DestPaddingPixelLeft, Stride);
+			FMemory::Memzero(DestPaddingPixelRight, Stride);
+		}
+
 	} 
+}
+
+void FSlateTextureAtlas::ZeroRow( const FCopyRowData& CopyRowData )
+{
+	const uint32 SourceWidth = CopyRowData.SrcTextureWidth;
+	const uint32 DestWidth = CopyRowData.DestTextureWidth;
+	const uint32 DestRow = CopyRowData.DestRow;
+
+	uint8* DestDataAddr = &CopyRowData.DestData[DestRow * DestWidth * Stride]; 
+	FMemory::Memzero(DestDataAddr, CopyRowData.RowWidth * Stride); 
 }
 
 
@@ -112,29 +133,35 @@ void FSlateTextureAtlas::CopyDataIntoSlot( const FAtlasedTextureSlot* SlotToCopy
 	uint8* Start = &AtlasData[SlotToCopyTo->Y*AtlasWidth*Stride + SlotToCopyTo->X*Stride];
 	
 	// Account for same padding on each sides
+	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
 	const uint32 AllPadding = Padding*2;
 	// The width of the source texture without padding (actual width)
 	const uint32 SourceWidth = SlotToCopyTo->Width-AllPadding; 
+	const uint32 SourceHeight = SlotToCopyTo->Width-AllPadding; 
 
 	FCopyRowData CopyRowData;
-	CopyRowData.bDialateToPadding = Padding != 0;
-	CopyRowData.DataStride = Stride;
 	CopyRowData.DestData = Start;
 	CopyRowData.SrcData = Data.GetData();
 	CopyRowData.DestTextureWidth = AtlasWidth;
 	CopyRowData.SrcTextureWidth = SourceWidth;
-	CopyRowData.Padding = Padding;
 	CopyRowData.RowWidth = SlotToCopyTo->Width;
 
-	// Copy color data into padding for bilinear filtering. 
+	// Apply the padding for bilinear filtering. 
 	// Not used if no padding (assumes sampling outside boundaries of the sub texture is not possible)
-	if (Padding)
+	if (Padding > 0)
 	{
 		// Copy first color row into padding.  
 		CopyRowData.SrcRow = 0;
 		CopyRowData.DestRow = 0;
 
-		CopyRow(CopyRowData);	
+		if (PaddingStyle == ESlateTextureAtlasPaddingStyle::DilateBorder)
+		{
+			CopyRow(CopyRowData);
+		}
+		else
+		{
+			ZeroRow(CopyRowData);
+		}
 	}
 
 	// Copy each row of the texture
@@ -146,13 +173,20 @@ void FSlateTextureAtlas::CopyDataIntoSlot( const FAtlasedTextureSlot* SlotToCopy
 		CopyRow(CopyRowData);
 	}
 
-	if (Padding)
+	if (Padding > 0)
 	{
 		// Copy last color row into padding row for bilinear filtering
-		CopyRowData.SrcRow = SlotToCopyTo->Height - AllPadding - 1;
+		CopyRowData.SrcRow = SourceHeight - 1;
 		CopyRowData.DestRow = SlotToCopyTo->Height - Padding;
 
-		CopyRow(CopyRowData);
+		if (PaddingStyle == ESlateTextureAtlasPaddingStyle::DilateBorder)
+		{
+			CopyRow(CopyRowData);
+		}
+		else
+		{
+			ZeroRow(CopyRowData);
+		}
 	}
 }
 
@@ -188,6 +222,7 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 	}
 
 	// Account for padding on both sides
+	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
 	uint32 TotalPadding = Padding * 2;
 
 	// This slot can't fit the character

@@ -1102,7 +1102,10 @@ protected:
 
 TSharedRef<SWidget> MakeTableViewTesting()
 {
-	return SNew( STableViewTesting );
+	extern FSlateRenderTransform GetRenderTransform();
+	return 
+		SNew( STableViewTesting )
+		.RenderTransform_Static(&GetRenderTransform);
 }
 
 

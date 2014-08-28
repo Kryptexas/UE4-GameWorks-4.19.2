@@ -252,8 +252,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Draw the text centered in the color region
 			{
 				FVector2D StringSize = FontMeasureService->Measure( GradientColorMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
-				FPaintGeometry PaintGeom = ColorMarkAreaGeometry.CenteredPaintGeometryBelow( StringSize, 1.0f );
-				PaintGeom.DrawPosition.Y = ColorMarkAreaGeometry.AbsolutePosition.Y + 1;
+				FPaintGeometry PaintGeom = ColorMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((ColorMarkAreaGeometry.Size.X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
 				( 
@@ -271,8 +270,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Draw the text centered in the alpha region
 			{
 				FVector2D StringSize = FontMeasureService->Measure( GradientAlphaMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
-				FPaintGeometry PaintGeom = AlphaMarkAreaGeometry.CenteredPaintGeometryBelow( StringSize, 1.0f );
-				PaintGeom.DrawPosition.Y = AlphaMarkAreaGeometry.AbsolutePosition.Y + 1;
+				FPaintGeometry PaintGeom = AlphaMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((AlphaMarkAreaGeometry.Size.X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
 				( 

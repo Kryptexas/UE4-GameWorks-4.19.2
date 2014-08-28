@@ -154,13 +154,13 @@ void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindo
 
 void SMenuAnchor::OnClickedOutsidePopup()
 {
-	bDismissedThisTick = true;
-	if (ensure(Method == UseCurrentWindow))
-	{
-		FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
-		SetIsOpen(false);	
+		bDismissedThisTick = true;
+		if (ensure(Method == UseCurrentWindow))
+		{
+			FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
+			SetIsOpen(false);	
+		}
 	}
-}
 
 
 void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
@@ -207,10 +207,13 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			FSlateApplication::Get().GeneratePathToWidgetChecked( AsShared(), MyWidgetPath );
 			const FGeometry& MyGeometry = MyWidgetPath.Widgets.Last().Geometry;
 
+			// @todo Slate: This code does not properly propagate the layout scale of the widget we are creating the popup for.
+			// The popup instead has a scale of one, but a computed size as if the contents were scaled. This code should ideally
+			// wrap the contents with an SFxWidget that applies the necessary layout scale. This is a very rare case right now.
+			
 			// Figure out how big the content widget is so we can set the window's initial size properly
 			TSharedRef< SWidget > MenuContentRef = MenuContentPtr.ToSharedRef();
 			MenuContentRef->SlatePrepass();
-
 
 			// Combo-boxes never size down smaller than the widget that spawned them, but all
 			// other pop-up menus are currently auto-sized
