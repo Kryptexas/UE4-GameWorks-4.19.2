@@ -2014,33 +2014,36 @@ namespace AutomationTool
             return StorageDirectory;
         }
 
-        static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
+        public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
         {
+            if (!DirectoryExists_NoExceptions(Dir))
+            {
+				Log(System.Diagnostics.TraceEventType.Information, "Directory {0} does not exist", Dir);
+				return false;
+			}
+
             try
             {
-                if (!DirectoryExists_NoExceptions(Dir))
-                {
-                    return false;
-                }
-                var TestGUID = Guid.NewGuid();
-                var Filename = CombinePaths(Dir, TestGUID.ToString() + ".Temp.txt");
-                WriteAllText_NoExceptions(Filename, "Test");
-                if (FileExists_NoExceptions(true, Filename))
-                {
-                    DeleteFile_NoExceptions(Filename, true);
-                    //Log(System.Diagnostics.TraceEventType.Information, "Resolved shared dir {0}", Dir);
-                    return true;
-                }
-                Log(System.Diagnostics.TraceEventType.Warning, "Shared dir {0} is not writable", Dir);
+				string Filename = CombinePaths(Dir, Guid.NewGuid().ToString() + ".Temp.txt");
+				string NativeFilename = ConvertSeparators(PathSeparator.Default, Filename);
+				using(StreamWriter Writer = new StreamWriter(NativeFilename))
+				{
+					Writer.Write("Test");
+				}
+				if(File.Exists(NativeFilename))
+				{
+		            DeleteFile_NoExceptions(Filename, true);
+		            Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is writable", Dir);
+					return true;
+				}
+			}
+			catch(Exception)
+			{
+			}
 
-            }
-            catch (Exception Ex)
-            {
-                Log(System.Diagnostics.TraceEventType.Warning, "Failed to resolve shared dir {0}", Dir);
-                Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
-            }
-            return false;
-        }
+			Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is not writable", Dir);
+			return false;
+		}
 
         static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
         public static string ResolveSharedBuildDirectory(string GameFolder)
