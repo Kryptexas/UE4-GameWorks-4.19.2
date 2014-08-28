@@ -5354,7 +5354,7 @@ void UEngine::TickHardwareSurvey()
 bool UEngine::IsHardwareSurveyRequired()
 {
 	// Analytics must have been initialized FIRST.
-	if (!FEngineAnalytics::IsAvailable())
+	if (!FEngineAnalytics::IsAvailable() || IsRunningDedicatedServer() )
 	{
 		return false;
 	}
