@@ -1358,10 +1358,11 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
 		MaybeUpdateBasedMovement(DeltaSeconds);
-		ApplyAccumulatedForces(DeltaSeconds);
 
 		OldVelocity = Velocity;
 		OldLocation = CharacterOwner->GetActorLocation();
+
+		ApplyAccumulatedForces(DeltaSeconds);
 
 		// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
 		const bool bAllowedToCrouch = CanCrouchInCurrentState();
