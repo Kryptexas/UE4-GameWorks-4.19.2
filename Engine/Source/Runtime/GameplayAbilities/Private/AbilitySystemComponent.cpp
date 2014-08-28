@@ -617,6 +617,8 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedInstancedAbilities);
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
 
+	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
+
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 }
 

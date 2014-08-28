@@ -279,6 +279,12 @@ void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo,
 
 bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, uint32 PrevPredictionKey, uint32 CurrPredictionKey, UGameplayAbility ** OutInstancedAbility)
 {	
+	// make sure the ActorInfo and then Actor on that FGameplayAbilityActorInfo are valid, if not bail out.
+	if (ActorInfo == NULL || ActorInfo->Actor == NULL)
+	{
+		return false;
+	}
+
 	// This should only come from button presses/local instigation
 	ENetRole NetMode = ActorInfo->Actor->Role;
 	ensure(NetMode != ROLE_SimulatedProxy);
@@ -657,6 +663,14 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor, UAbilitySystemCom
 	}
 
 	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
+}
+
+void FGameplayAbilityActorInfo::ClearActorInfo()
+{
+	Actor = NULL;
+	PlayerController = NULL;
+	AnimInstance = NULL;
+	MovementComponent = NULL;
 }
 
 bool FGameplayAbilityActorInfo::IsLocallyControlled() const

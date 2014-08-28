@@ -493,6 +493,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	// -----------------------------------------------------------------------------
 
+	UPROPERTY(ReplicatedUsing=OnRep_OwningActor)
+	AActor* AbilityActor;
+	
+	UFUNCTION()
+	void OnRep_OwningActor();
+
 	/** Cached off data about the owning actor that abilities will need to frequently access (movement component, mesh component, anim instance, etc) */
 	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
 
@@ -502,6 +508,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc.
 	 */
 	void InitAbilityActorInfo(AActor* AvatarActor);
+
+	/**
+	* This is called when the actor that is initialized to this system dies, this will clear that actor from this system and FGameplayAbilityActorInfo
+	*/
+	void ClearActorInfo();
 
 	/**
 	 *	This will refresh the Ability's ActorInfo structure based on the current ActorInfo. That is, AvatarActor will be the same but we will look for new

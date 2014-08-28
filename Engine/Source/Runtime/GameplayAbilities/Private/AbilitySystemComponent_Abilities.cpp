@@ -82,6 +82,31 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
 {
 	check(AbilityActorInfo.IsValid());
 	AbilityActorInfo->InitFromActor(AvatarActor, this);
+	AbilityActor = AvatarActor;
+}
+
+void UAbilitySystemComponent::ClearActorInfo()
+{
+	check(AbilityActorInfo.IsValid());
+	AbilityActorInfo->ClearActorInfo();
+	AbilityActor = NULL;
+}
+
+void UAbilitySystemComponent::OnRep_OwningActor()
+{
+	check(AbilityActorInfo.IsValid());
+
+	if (AbilityActor != AbilityActorInfo->Actor)
+	{
+		if (AbilityActor != NULL)
+		{
+			InitAbilityActorInfo(AbilityActor);
+		}
+		else
+		{
+			ClearActorInfo();
+		}
+	}
 }
 
 void UAbilitySystemComponent::RefreshAbilityActorInfo()

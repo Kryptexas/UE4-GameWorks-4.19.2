@@ -193,6 +193,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 	bool IsNetAuthority() const;
 
 	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
+	virtual void ClearActorInfo();
 };
 
 /**

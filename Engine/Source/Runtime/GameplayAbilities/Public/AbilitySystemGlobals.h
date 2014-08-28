@@ -38,6 +38,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
 
+	bool IsAbilitySystemGlobalsInitialized()
+	{
+		return GlobalAttributeSetInitter.IsValid();
+	}
+
 	void AutomationTestOnly_SetGlobalCurveTable(class UCurveTable *InTable)
 	{
 		GlobalCurveTable = InTable;
