@@ -1856,9 +1856,11 @@ public:
 		AOLevelParameters.Bind(Initializer.ParameterMap);
 		BentNormalAOTexture3.Bind(Initializer.ParameterMap,TEXT("BentNormalAOTexture3"));
 		BentNormalAOSampler3.Bind(Initializer.ParameterMap,TEXT("BentNormalAOSampler3"));
+		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
+		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FSceneRenderTargetItem& InBentNormalTexture, const FDistanceFieldAOParameters& Parameters)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FSceneRenderTargetItem& InBentNormalTexture, FSceneRenderTargetItem& DistanceFieldNormal, const FDistanceFieldAOParameters& Parameters)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -1868,6 +1870,15 @@ public:
 		AOLevelParameters.Set(RHICmdList, ShaderRHI, View, GAODownsampleFactor);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, BentNormalAOTexture3, BentNormalAOSampler3, TStaticSamplerState<SF_Point>::GetRHI(), InBentNormalTexture.ShaderResourceTexture);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DistanceFieldNormalTexture,
+			DistanceFieldNormalSampler,
+			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			DistanceFieldNormal.ShaderResourceTexture
+			);
 	}
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
@@ -1878,6 +1889,8 @@ public:
 		Ar << AOLevelParameters;
 		Ar << BentNormalAOTexture3;
 		Ar << BentNormalAOSampler3;
+		Ar << DistanceFieldNormalTexture;
+		Ar << DistanceFieldNormalSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1888,6 +1901,8 @@ private:
 	FAOLevelParameters AOLevelParameters;
 	FShaderResourceParameter BentNormalAOTexture3;
 	FShaderResourceParameter BentNormalAOSampler3;
+	FShaderResourceParameter DistanceFieldNormalTexture;
+	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
 IMPLEMENT_SHADER_TYPE(,FDistanceFieldAOCombinePS2,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOCombinePS2"),SF_Pixel);
@@ -2124,7 +2139,13 @@ void UpdateHistory(
 	}
 }
 
-void PostProcessBentNormalAO(FRHICommandList& RHICmdList, const FDistanceFieldAOParameters& Parameters, TArray<FViewInfo>& Views, FSceneRenderTargetItem& IrradianceCacheInterpolation, TRefCountPtr<IPooledRenderTarget>& AOOutput)
+void PostProcessBentNormalAO(
+	FRHICommandList& RHICmdList, 
+	const FDistanceFieldAOParameters& Parameters, 
+	TArray<FViewInfo>& Views, 
+	FSceneRenderTargetItem& IrradianceCacheInterpolation, 
+	FSceneRenderTargetItem& DistanceFieldNormal,
+	TRefCountPtr<IPooledRenderTarget>& AOOutput)
 {
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
 	AllocateOrReuseAORenderTarget(DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"));
@@ -2160,7 +2181,7 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, const FDistanceFieldAO
 			
 			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			PixelShader->SetParameters(RHICmdList, View, IrradianceCacheInterpolation, Parameters);
+			PixelShader->SetParameters(RHICmdList, View, IrradianceCacheInterpolation, DistanceFieldNormal, Parameters);
 
 			DrawRectangle( 
 				RHICmdList,
@@ -3022,7 +3043,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 				// Post process the AO to cover over artifacts
 				TRefCountPtr<IPooledRenderTarget> AOOutput;
-				PostProcessBentNormalAO(RHICmdList, Parameters, Views, IrradianceCacheAccumulation->GetRenderTargetItem(), AOOutput);
+				PostProcessBentNormalAO(RHICmdList, Parameters, Views, IrradianceCacheAccumulation->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), AOOutput);
 
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, AOOutput);
 

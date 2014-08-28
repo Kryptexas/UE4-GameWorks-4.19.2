@@ -243,7 +243,7 @@ private:
 	/** The runnable thread */
 	TScopedPointer<FRunnableThread> Thread;
 
-	TScopedPointer<class FQueuedThreadPool> WorkerThreadPool;
+	TScopedPointer<FQueuedThreadPool> WorkerThreadPool;
 
 	volatile bool bIsRunning;
 	volatile bool bForceFinish;

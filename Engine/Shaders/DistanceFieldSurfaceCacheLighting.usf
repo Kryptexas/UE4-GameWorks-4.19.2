@@ -393,8 +393,8 @@ void AOCombinePS2(
 	in float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0)
 {
-	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + .5f) * View.ViewSizeAndSceneTexelSize.zw);
-	float SceneDepth = CalcSceneDepth(ScreenUV);
+	float4 DistanceFieldNormalValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, UVAndScreenPos.xy, 0);
+	float SceneDepth = DistanceFieldNormalValue.w;
 
 #define VISUALIZE_ACCUMULATED_WEIGHTS 0
 #if VISUALIZE_ACCUMULATED_WEIGHTS
@@ -418,13 +418,12 @@ void AOCombinePS2(
 		OutColor.a = -SceneDepth;
 	}
 
-	float3 DefaultVisibility = float3(0, 0, 1);
-
-	// Fade to unoccluded in the distance
-	OutColor.rgb = lerp(DefaultVisibility, OutColor.rgb, saturate(.003f * (AOMaxViewDistance - SceneDepth)));
-
+	BRANCH
 	if (SceneDepth > AOMaxViewDistance)
 	{
+		// Fade to unoccluded in the distance
+		OutColor.rgb = lerp(DistanceFieldNormalValue.xyz, OutColor.rgb, saturate(.003f * (AOMaxViewDistance - SceneDepth)));
+
 		OutColor.a = abs(OutColor.a);
 	}
 
