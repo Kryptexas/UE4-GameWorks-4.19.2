@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
+#include "SlateRenderer.h"
 
 
 /* FSlateTextureAtlas helper class
@@ -45,6 +46,12 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 	}
 
 	return NewSlot;
+}
+
+void FSlateTextureAtlas::MarkTextureDirty()
+{
+	check( IsThreadSafeForSlateRendering() );
+	bNeedsUpdate = true;
 }
 	
 

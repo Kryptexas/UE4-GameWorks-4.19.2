@@ -380,22 +380,22 @@ struct AIMODULE_API FBlackboardKeySelector
 	FBlackboardKeySelector() : SelectedKeyID(FBlackboard::InvalidKey)
 	{}
 
-	/** array of allowed types with additional properties (e.g. ubject's base class) 
+	/** array of allowed types with additional properties (e.g. uobject's base class) 
 	  * EditDefaults is required for FBlackboardSelectorDetails::CacheBlackboardData() */
-	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
+	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category = Blackboard)
 	TArray<class UBlackboardKeyType*> AllowedTypes;
 
 	/** name of selected key */
-	UPROPERTY(EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	FName SelectedKeyName;
 
 	/** class of selected key  */
-	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(transient, EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	TSubclassOf<class UBlackboardKeyType> SelectedKeyType;
 
 protected:
 	/** ID of selected key */
-	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(transient, EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	uint8 SelectedKeyID;
 	// SelectedKeyId type should be FBlackboard::FKey, but typedefs are not supported by UHT
 	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");

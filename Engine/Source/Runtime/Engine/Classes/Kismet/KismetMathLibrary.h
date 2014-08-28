@@ -1224,8 +1224,33 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @param		InterpSpeed		Interpolation speed
 	 * @return		New interpolated position
 	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
+	static float FInterpTo_Constant(float Current, float Target, float DeltaTime, float InterpSpeed);
+
+	/**
+	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="position"))
 	static FVector VInterpTo(FVector Current, FVector Target, float DeltaTime, float InterpSpeed);
+
+
+	/**
+	 * Tries to reach Target at a constant rate.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "position"))
+	static FVector VInterpTo_Constant(FVector Current, FVector Target, float DeltaTime, float InterpSpeed);
 
 	/**
 	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
@@ -1238,6 +1263,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
+
+	/**
+	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
+	static FRotator RInterpTo_Constant(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
 	/**
 	 * Interpolates towards a varying target color smoothly.

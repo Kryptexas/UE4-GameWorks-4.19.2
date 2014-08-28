@@ -141,6 +141,7 @@ void UBehaviorTreeComponent::StopTree()
 		for (int32 AuxIndex = 0; AuxIndex < InstanceInfo.ActiveAuxNodes.Num(); AuxIndex++)
 		{
 			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
+			check(AuxNode != NULL);
 			uint8* NodeMemory = AuxNode->GetNodeMemory<uint8>(InstanceInfo);
 			AuxNode->WrappedOnCeaseRelevant(this, NodeMemory);
 		}
@@ -156,6 +157,7 @@ void UBehaviorTreeComponent::StopTree()
 
 	if (IsRegistered())
 	{
+		check(GetOwner() != NULL);
 		GetOwner()->GetWorldTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
 	}
 

@@ -3350,7 +3350,7 @@ float AActor::GetDotProductTo(AActor* OtherActor)
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
 		Offset = Offset.SafeNormal();
-		return Dir.DotProduct(Dir, Offset);
+		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }
@@ -3362,7 +3362,7 @@ float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
 		Offset = Offset.SafeNormal2D();
-		return Dir.DotProduct(Dir, Offset);
+		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }

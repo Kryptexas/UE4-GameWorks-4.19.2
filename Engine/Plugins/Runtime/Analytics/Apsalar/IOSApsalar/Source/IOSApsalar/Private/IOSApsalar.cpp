@@ -22,7 +22,9 @@ TSharedPtr<IAnalyticsProvider> FAnalyticsIOSApsalar::CreateAnalyticsProvider(con
 		const FString Secret = GetConfigValue.Execute(TEXT("ApiSecret"), true);
 		const FString SendInterval = GetConfigValue.Execute(TEXT("SendInterval"), false);
 		const FString MaxBufferSize = GetConfigValue.Execute(TEXT("MaxBufferSize"), false);
-		return TSharedPtr<IAnalyticsProvider>(new FAnalyticsProviderApsalar(Key, Secret, FCString::Atoi(*SendInterval), FCString::Atoi(*MaxBufferSize)));
+		const FString ManuallyReportRevenue = GetConfigValue.Execute(TEXT("ManuallyReportRevenue"), false);
+		const bool bWantsManualRevenueReporting = ManuallyReportRevenue.Compare(TEXT("true"), ESearchCase::IgnoreCase);
+		return TSharedPtr<IAnalyticsProvider>(new FAnalyticsProviderApsalar(Key, Secret, FCString::Atoi(*SendInterval), FCString::Atoi(*MaxBufferSize), bWantsManualRevenueReporting));
 	}
 	else
 	{
@@ -56,7 +58,7 @@ TSharedPtr<IAnalyticsProvider> FAnalyticsIOSApsalar::CreateAnalyticsProvider(con
 
 // Provider
 
-FAnalyticsProviderApsalar::FAnalyticsProviderApsalar(const FString Key, const FString Secret, const int32 SendInterval, const int32 MaxBufferSize) :
+FAnalyticsProviderApsalar::FAnalyticsProviderApsalar(const FString Key, const FString Secret, const int32 SendInterval, const int32 MaxBufferSize, const bool bWantsManualRevenueReporting) :
 	ApiKey(Key),
 	ApiSecret(Secret)
 {
@@ -71,6 +73,12 @@ FAnalyticsProviderApsalar::FAnalyticsProviderApsalar(const FString Key, const FS
 	if (SendInterval > 0)
 	{
 		[Apsalar setBatchInterval:(int)SendInterval];
+	}
+
+	// Disable the auto reporting of revenue if they want to manually report it
+	if (bWantsManualRevenueReporting)
+	{
+		[Apsalar setAllowAutoIAPComplete:NO];
 	}
 #else
 	UE_LOG(LogAnalytics, Warning, TEXT("WITH_APSALAR=0. Are you missing the SDK?"));
@@ -223,15 +231,6 @@ void FAnalyticsProviderApsalar::RecordEvent(const FString& EventName, const TArr
 		}
 		UE_LOG(LogAnalytics, Display, TEXT("IOSApsalar::RecordEvent('%s', %d attributes)"), *EventName, AttrCount);
 	}
-#else
-	UE_LOG(LogAnalytics, Warning, TEXT("WITH_APSALAR=0. Are you missing the SDK?"));
-#endif
-}
-
-void FAnalyticsProviderApsalar::RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes)
-{
-#if WITH_APSALAR
-	RecordEvent(TEXT("User Attribute"), Attributes);
 #else
 	UE_LOG(LogAnalytics, Warning, TEXT("WITH_APSALAR=0. Are you missing the SDK?"));
 #endif

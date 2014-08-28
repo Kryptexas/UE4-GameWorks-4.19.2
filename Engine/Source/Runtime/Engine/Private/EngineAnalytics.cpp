@@ -106,7 +106,7 @@ FAnalytics::FProviderConfigurationDelegate& GetEngineAnalyticsOverrideConfigDele
 
 
 /**
- * On-demand construction of the singleton. 
+ * Get analytics pointer
  */
 IAnalyticsProvider& FEngineAnalytics::GetProvider()
 {

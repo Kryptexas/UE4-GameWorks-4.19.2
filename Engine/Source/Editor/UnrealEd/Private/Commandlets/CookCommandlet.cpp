@@ -1012,11 +1012,24 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 	}
 
 	GenerateLongPackageNames(FilesInPath);
-	
+
+	TSet<UClass*> ClassesToForceFullGC;
+	for ( const FString& ClassName : FullGCAssetClassNames )
+	{
+		UClass* ClassToForceFullGC = FindObject<UClass>(nullptr, *ClassName);
+		if ( ClassToForceFullGC )
+		{
+			ClassesToForceFullGC.Add(ClassToForceFullGC);
+		}
+		else
+		{
+			UE_LOG(LogCookCommandlet, Warning, TEXT("Configured to force full GC for assets of type (%s) but that class does not exist."), *ClassName);
+		}
+	}
+
 	const int32 GCInterval = bLeakTest ? 1: 500;
 	int32 NumProcessedSinceLastGC = GCInterval;
-	bool bLastLoadWasMap = false;
-	bool bLastLoadWasMapWithStreamingLevels = false;
+	bool bForceGC = false;
 	TSet<FString> CookedPackages;
 	FString LastLoadedMapName;
 
@@ -1027,7 +1040,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 	for( int32 FileIndex = 0; ; FileIndex++ )
 	{
-		if (NumProcessedSinceLastGC >= GCInterval || bLastLoadWasMap || FileIndex < 0 || FileIndex >= FilesInPath.Num())
+		if (NumProcessedSinceLastGC >= GCInterval || bForceGC || FileIndex < 0 || FileIndex >= FilesInPath.Num())
 		{
 			// since we are about to save, we need to resolve all string asset references now
 			GRedirectCollector.ResolveStringAssetReference();
@@ -1073,7 +1086,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				}
 			}
 
-			if (NumProcessedSinceLastGC >= GCInterval)
+			if (bForceGC || NumProcessedSinceLastGC >= GCInterval)
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Full GC..."));
 
@@ -1091,6 +1104,8 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 						}
 					}
 				}
+
+				bForceGC = false;
 			}
 		}
 
@@ -1124,9 +1139,6 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 			UE_LOG(LogCookCommandlet, Display, TEXT("\tskipping %s, already cooked."), *Filename);
 			continue;
 		}
-
-		bLastLoadWasMap = false;
-		bLastLoadWasMapWithStreamingLevels = false;
 
 		if (!ShouldCook(Filename))
 		{
@@ -1168,15 +1180,26 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 					World->WorldComposition->CollectTilesToCook(FilesInPath);
 				}
 
-				// maps don't compile level script actors correctly unless we do FULL GC's, they may also hold weak pointer refs that need to be reset
-				NumProcessedSinceLastGC = GCInterval; 
-
 				LastLoadedMapName = Package->GetName();
-				bLastLoadWasMap = true;
 			}
 			else
 			{
 				LastLoadedMapName.Empty();
+			}
+
+			if ( !bForceGC && ClassesToForceFullGC.Num() > 0 )
+			{
+				const bool bIncludeNestedObjects = false;
+				TArray<UObject*> RootLevelObjects;
+				GetObjectsWithOuter(Package, RootLevelObjects, bIncludeNestedObjects);
+				for ( auto* RootObject : RootLevelObjects )
+				{
+					if ( ClassesToForceFullGC.Contains(RootObject->GetClass()) )
+					{
+						bForceGC = true;
+						break;
+					}
+				}
 			}
 		}
 	}

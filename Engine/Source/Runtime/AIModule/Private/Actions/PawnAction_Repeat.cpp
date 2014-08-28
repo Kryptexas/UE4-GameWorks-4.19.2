@@ -9,7 +9,7 @@ UPawnAction_Repeat::UPawnAction_Repeat(const class FPostConstructInitializePrope
 	ChildFailureHandlingMode = EPawnActionFailHandling::IgnoreFailure;
 }
 
-UPawnAction_Repeat* UPawnAction_Repeat::CreateAction(UWorld* World, UPawnAction* ActionToRepeat, int32 NumberOfRepeats)
+UPawnAction_Repeat* UPawnAction_Repeat::CreateAction(UWorld& World, UPawnAction* ActionToRepeat, int32 NumberOfRepeats)
 {
 	if (ActionToRepeat == NULL || !(NumberOfRepeats > 0 || NumberOfRepeats == UPawnAction_Repeat::LoopForever))
 	{

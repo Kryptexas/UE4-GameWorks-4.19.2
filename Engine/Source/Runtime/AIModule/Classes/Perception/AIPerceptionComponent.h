@@ -8,6 +8,9 @@
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
+struct FVisLogEntry;
+class UCanvas;
+class UAIPerceptionSystem;
 
 struct AIMODULE_API FActorPerceptionInfo
 {
@@ -200,7 +203,11 @@ public:
 	bool HasAnyActiveStimulus(const AActor* Source) const;
 	bool HasActiveStimulus(const AActor* Source, FAISenseId Sense) const;
 
-	void DrawDebugInfo(class UCanvas* Canvas);
+	void DrawDebugInfo(UCanvas* Canvas);
+
+#if ENABLE_VISUAL_LOG
+	virtual void DescribeSelfToVisLog(FVisLogEntry* Snapshot) const;
+#endif // ENABLE_VISUAL_LOG
 	
 protected:
 
@@ -213,7 +220,7 @@ protected:
 private:
 	uint32 PerceptionListenerId;
 
-	friend class UAIPerceptionSystem;
+	friend UAIPerceptionSystem;
 
 	void StoreListenerId(uint32 InListenerId) { PerceptionListenerId = InListenerId; }
 

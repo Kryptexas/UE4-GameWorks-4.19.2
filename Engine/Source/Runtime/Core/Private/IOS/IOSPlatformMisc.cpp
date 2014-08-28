@@ -10,6 +10,7 @@
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
+#include "GenericPlatformChunkInstall.h"
 
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -544,3 +545,23 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 	return FPlatformMisc::GetHashedMacAddressString();
 }
 
+class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
+{
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if(!ChunkInstall)
+	{
+		if(PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		} else
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
+
+}

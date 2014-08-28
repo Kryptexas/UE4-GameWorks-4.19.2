@@ -41,7 +41,7 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 {
 	UE_LOG(LogIOS, Log,  TEXT("LaunchURL %s %s"), URL, Parms?Parms:TEXT("") );
 	CFStringRef CFUrl = FPlatformString::TCHARToCFString( URL );
-	CFUrl = CFURLCreateStringByAddingPercentEscapes(NULL, CFUrl, NULL, NULL, kCFStringEncodingUTF8);
+	CFUrl = CFURLCreateStringByAddingPercentEscapes(NULL, CFUrl, CFSTR("#?+"), NULL, kCFStringEncodingUTF8);
 	[[UIApplication sharedApplication] openURL: [NSURL URLWithString:( NSString *)CFUrl]];
 	CFRelease( CFUrl );
 

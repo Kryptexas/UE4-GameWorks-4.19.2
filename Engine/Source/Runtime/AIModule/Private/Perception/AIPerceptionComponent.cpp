@@ -420,3 +420,10 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 		}
 	}
 }
+
+#if ENABLE_VISUAL_LOG
+void UAIPerceptionComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+{
+
+}
+#endif // ENABLE_VISUAL_LOG

@@ -250,7 +250,7 @@ public:
 	 */
 	static FSlateApplicationBase& Get( )
 	{
-		check(IsInGameThread());
+		check(IsThreadSafeForSlateRendering());
 		return *CurrentBaseApplication;
 	}
 

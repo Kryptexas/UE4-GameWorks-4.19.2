@@ -115,7 +115,7 @@ void SetSimpleDeferredLightParameters(
 {
 	FDeferredLightUniformStruct DeferredLightUniformsValue;
 	DeferredLightUniformsValue.LightPosition = SimpleLightPerViewData.Position;
-	DeferredLightUniformsValue.LightInvRadius = 1.0f / SimpleLight.Radius;
+	DeferredLightUniformsValue.LightInvRadius = 1.0f / FMath::Max(SimpleLight.Radius, KINDA_SMALL_NUMBER);
 	DeferredLightUniformsValue.LightColor = SimpleLight.Color;
 	DeferredLightUniformsValue.LightFalloffExponent = SimpleLight.Exponent;
 	DeferredLightUniformsValue.NormalizedLightDirection = FVector(1, 0, 0);

@@ -18,8 +18,8 @@
  * - no or limited editor preview
  */
 
-UCLASS(MinimalAPI)
-class UBTTask_RunBehavior : public UBTTaskNode
+UCLASS()
+class AIMODULE_API UBTTask_RunBehavior : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 

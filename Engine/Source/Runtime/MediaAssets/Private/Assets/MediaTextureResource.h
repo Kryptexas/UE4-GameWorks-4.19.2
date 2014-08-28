@@ -38,7 +38,7 @@ public:
 
 	// FDeferredUpdateResource overrides
 
-	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList ) override;
+	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true ) override;
 
 private:
 

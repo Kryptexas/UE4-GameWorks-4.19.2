@@ -8,11 +8,15 @@
 #include "Commandlets/Commandlet.h"
 #include "CookCommandlet.generated.h"
 
-UCLASS()
+UCLASS(config=Editor)
 class UCookCommandlet
 	: public UCommandlet
 {
 	GENERATED_UCLASS_BODY()
+
+	/** List of asset types that will force GC after loading them during cook */
+	UPROPERTY(config)
+	TArray<FString> FullGCAssetClassNames;
 
 	/** If true, iterative cooking is being done */
 	bool bIterativeCooking;

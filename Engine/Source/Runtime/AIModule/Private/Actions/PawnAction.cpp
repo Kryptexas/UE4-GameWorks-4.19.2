@@ -82,7 +82,7 @@ EPawnActionAbortState::Type UPawnAction::Abort(EAIForceParam::Type ShouldForce)
 		{
 		case EPawnActionAbortState::MarkPendingAbort:
 			// this means child is awaiting its abort, so should parent
-		case EPawnActionAbortState::LatendAbortInProgress:
+		case EPawnActionAbortState::LatentAbortInProgress:
 			// this means child is performing time-consuming abort. Parent should wait
 			Result = EPawnActionAbortState::MarkPendingAbort;
 			break;
@@ -247,7 +247,7 @@ bool UPawnAction::Start()
 }
 
 
-bool UPawnAction::Pause()
+bool UPawnAction::Pause(const UPawnAction* PausedBy)
 {
 	// parent should be paused anyway
 	ensure(ParentAction == NULL || ParentAction->IsPaused() == true);
@@ -257,7 +257,7 @@ bool UPawnAction::Pause()
 	{
 		return false;
 	}
-	else if (AbortState == EPawnActionAbortState::LatendAbortInProgress || AbortState == EPawnActionAbortState::AbortDone)
+	else if (AbortState == EPawnActionAbortState::LatentAbortInProgress || AbortState == EPawnActionAbortState::AbortDone)
 	{
 		UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Not pausing due to being in unpausable aborting state")
 			, *GetName(), *ChildAction->GetName());
@@ -270,7 +270,7 @@ bool UPawnAction::Pause()
 
 	if (ChildAction)
 	{
-		ChildAction->Pause();
+		ChildAction->Pause(PausedBy);
 	}
 
 	return bPaused;

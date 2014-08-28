@@ -574,9 +574,11 @@ public:
 protected:
 
 	/**
-	* Updates the resource
-	*/
-	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList ) = 0;
+	 * Updates (resolves) the render target texture.
+	 * Optionally clears the contents of the render target to green.
+	 * This is only called by the rendering thread.
+	 */
+	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true ) = 0;
 
 	/**
 	 * Add this resource to deferred update list
@@ -713,10 +715,12 @@ public:
 	FTexture2DRHIRef GetTextureRHI() { return Texture2DRHI; }
 protected:
 	/**
-	* Clear contents of the render target
-	*/
+	 * Updates (resolves) the render target texture.
+	 * Optionally clears the contents of the render target to green.
+	 * This is only called by the rendering thread.
+	 */
 	friend class UTextureRenderTarget2D;
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true) override;
 
 private:
 	/** The UTextureRenderTarget2D which this resource represents. */
@@ -808,10 +812,11 @@ public:
 
 protected:
 	/**
-	* Clear contents of the render target. Clears each face of the cube
+	* Updates (resolves) the render target texture.
+	* Optionally clears each face of the render target to green.
 	* This is only called by the rendering thread.
 	*/
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true) override;
 
 private:
 	/** The UTextureRenderTargetCube which this resource represents. */

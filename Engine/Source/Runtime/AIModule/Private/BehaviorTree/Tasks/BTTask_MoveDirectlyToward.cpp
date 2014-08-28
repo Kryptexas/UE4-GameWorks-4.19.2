@@ -6,7 +6,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "BehaviorTree/Tasks/BTTask_MoveDirectlyToward.h"
 
-UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const class FPostConstructInitializeProperties& PCIP) 
+UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 	, AcceptableRadius(50.f)
 	, bProjectVectorGoalToNavigation(true)
@@ -19,7 +19,7 @@ UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const class FPostConstruc
 	BlackboardKey.AddVectorFilter(this);
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
@@ -65,7 +65,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeC
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
 	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
@@ -90,7 +90,7 @@ FString UBTTask_MoveDirectlyToward::GetStaticDescription() const
 	return FString::Printf(TEXT("%s: %s"), *Super::GetStaticDescription(), *KeyDesc);
 }
 
-void UBTTask_MoveDirectlyToward::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_MoveDirectlyToward::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

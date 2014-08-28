@@ -123,6 +123,11 @@ public:
 	 * @return true of a movie started playing
 	 */
 	virtual bool PlayMovie() = 0;
+
+	/** 
+	 * Stops the currently playing movie, if any
+	 */
+	virtual void StopMovie() = 0;
 	
 	/** Call only on the game thread. Spins this thread until the movie stops. */
 	virtual void WaitForMovieToFinish() = 0;

@@ -82,13 +82,14 @@ void UTextureRenderTarget2D::InitAutoFormat(uint32 InSizeX, uint32 InSizeY)
 	UpdateResource();
 }
 
-void UTextureRenderTarget2D::UpdateResourceImmediate()
+void UTextureRenderTarget2D::UpdateResourceImmediate(bool bClearRenderTarget/*=true*/)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		UpdateResourceImmediate,
 		FRenderResource*,Resource,Resource,
+		bool, bClearRenderTarget, bClearRenderTarget,
 		{
-			static_cast<FTextureRenderTarget2DResource*>(Resource)->UpdateDeferredResource(RHICmdList);
+		static_cast<FTextureRenderTarget2DResource*>(Resource)->UpdateDeferredResource(RHICmdList, bClearRenderTarget);
 		}
 	);
 }
@@ -363,16 +364,21 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 }
 
 /**
- * Clear contents of the render target. 
+ * Updates (resolves) the render target texture.
+ * Optionally clears the contents of the render target to green.
+ * This is only called by the rendering thread.
  */
-void FTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
+void FTextureRenderTarget2DResource::UpdateDeferredResource( FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget/*=true*/ )
 {
 	RemoveFromDeferredUpdateList();
 
  	// clear the target surface to green
-	SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());
-	RHICmdList.SetViewport(0, 0, 0.0f, TargetSizeX, TargetSizeY, 1.0f);
-	RHICmdList.Clear(true, ClearColor, false, 0.f, false, 0, FIntRect());
+	if (bClearRenderTarget)
+	{
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());
+		RHICmdList.SetViewport(0, 0, 0.0f, TargetSizeX, TargetSizeY, 1.0f);
+		RHICmdList.Clear(true, ClearColor, false, 0.f, false, 0, FIntRect());
+	}
  
  	// copy surface to the texture for use
 	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());

@@ -161,9 +161,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 void UGameplayDebuggingComponent::Activate(bool bReset)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (IsActive() == false)
-	{
-		Super::Activate(bReset);
+		if (IsActive() == false)
+		{
+			Super::Activate(bReset);
 		SetComponentTickEnabled(true);
 	}
 #else
@@ -174,9 +174,9 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 void UGameplayDebuggingComponent::Deactivate()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (IsActive())
-	{
-		Super::Deactivate();
+		if (IsActive())
+		{
+			Super::Deactivate();
 		SetComponentTickEnabled(false);
 	}
 #else
@@ -417,18 +417,16 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 		return;
 	}
 
+	BrainComponentName = TEXT("");
+	BrainComponentString = TEXT("");
+
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
-	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
+	AAIController* MyController = Cast<AAIController>(MyPawn->Controller);
+	if (MyController != NULL && MyController->BrainComponent != NULL && MyController->IsPendingKillPending() == false)
 	{
 		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT("");
 		BrainComponentString = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetDebugInfoString() : TEXT("");
-		if (World && World->GetNetMode() != NM_Standalone)
-		{
-			BrainComponentString = BrainComponentString.Left(MAX_STRING_SERIALIZE_SIZE - 1);
-		}
 
-		if (MyController->BrainComponent && !MyController->IsPendingKill())
-		{
 			BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
 
 			if (World && World->GetNetMode() != NM_Standalone)
@@ -453,7 +451,6 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 				BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
 			}
 		}
-	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
@@ -575,7 +572,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 		break;
 
 	case EDebugComponentMessage::DeactivateReplilcation:
-		Deactivate();
+			Deactivate();
 		break;
 
 	case EDebugComponentMessage::ActivateDataView:

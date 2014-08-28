@@ -67,7 +67,7 @@ namespace EPawnActionAbortState
 	{
 		NotBeingAborted,
 		MarkPendingAbort,	// this means waiting for child to abort before aborting self
-		LatendAbortInProgress,
+		LatentAbortInProgress,
 		AbortDone,
 
 		MAX UMETA(Hidden)
@@ -98,6 +98,26 @@ namespace EPawnActionEventType
 		Push,
 	};
 }
+
+UENUM()
+namespace EAIRequestPriority
+{
+	enum Type
+	{
+		SoftScript, // actions requested by Level Designers by placing AI-hinting elements on the map
+		Logic,	// actions AI wants to do due to its internal logic				
+		HardScript, // actions LDs really want AI to perform
+		Reaction,	// actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking
+		Ultimate,	// ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions)
+
+		MAX UMETA(Hidden)
+	};
+}
+
+namespace EAIRequestPriority
+{
+	static const int32 Lowest = Logic;
+};
 
 UENUM()
 namespace EAILockSource
@@ -156,7 +176,7 @@ struct FAIResourceLock
 	FString GetLockSourceName() const;
 };
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct AIMODULE_API FAIRequestID
 {
 	GENERATED_USTRUCT_BODY()
@@ -206,3 +226,9 @@ public:
 	static const FAIRequestID InvalidRequest;
 };
 
+// used in BT nodes' memory for nodes spawning actions
+enum class EBTActionMemoryHelper : uint8
+{
+	ActionAbortingDone = 0,
+	WaitingForActionToFinishAborting = 1
+};

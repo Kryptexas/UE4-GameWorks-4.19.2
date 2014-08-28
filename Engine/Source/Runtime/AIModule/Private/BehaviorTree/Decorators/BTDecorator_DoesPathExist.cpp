@@ -8,7 +8,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_DoesPathExist.h"
 
-UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Does path exist";
 
@@ -27,7 +27,7 @@ UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const class FPostConstruc
 	PathQueryType = EPathExistanceQueryType::HierarchicalQuery;
 }
 
-void UBTDecorator_DoesPathExist::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree* Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
@@ -42,7 +42,7 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(class UBehaviorTree* Asset)
 	BlackboardKeyB.CacheSelectedKey(BBAsset);
 }
 
-bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
 {
 	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
 	if (BlackboardComp == NULL)
@@ -60,7 +60,7 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(class UBehaviorTreeC
 	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp->GetWorld());
 	if (NavSys && bHasPointA && bHasPointB)
 	{
-		const AAIController* AIOwner = Cast<AAIController>(OwnerComp->GetOwner());
+		const AAIController* AIOwner = OwnerComp->GetAIOwner();
 		const ANavigationData* NavData = AIOwner && AIOwner->NavComponent ? AIOwner->NavComponent->GetNavData() : NULL;
 		TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavData, FilterClass);
 

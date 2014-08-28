@@ -578,7 +578,7 @@ void SColorGradientEditor::OpenGradientStopColorPicker()
 		// Open a color picker
 		FColorPickerArgs ColorPickerArgs;
 
-		ColorPickerArgs.bOnlyRefreshOnMouseUp = true;
+		ColorPickerArgs.bOnlyRefreshOnMouseUp = false;
 		ColorPickerArgs.bIsModal = false;
 		ColorPickerArgs.ParentWidget = SharedThis( this );
 		ColorPickerArgs.bUseAlpha = false;
@@ -592,9 +592,9 @@ void SColorGradientEditor::OpenGradientStopColorPicker()
 void SColorGradientEditor::OnSelectedStopColorChanged( FLinearColor InNewColor )
 {
 	FScopedTransaction ColorChange( LOCTEXT("ChangeGradientStopColor", "Change Gradient Stop Color") );
-	CurveOwner->GetOwner()->Modify();
 	SelectedStop.SetColor( InNewColor, *CurveOwner );
-	
+	CurveOwner->GetOwner()->Modify();
+
 	// Set the the last edited color.  The next time a new stop is added we'll use this value
 	LastModifiedColor.R = InNewColor.R;
 	LastModifiedColor.G = InNewColor.G;
@@ -604,6 +604,7 @@ void SColorGradientEditor::OnSelectedStopColorChanged( FLinearColor InNewColor )
 void SColorGradientEditor::OnCancelSelectedStopColorChange( FLinearColor PreviousColor )
 {
 	SelectedStop.SetColor( PreviousColor.HSVToLinearRGB(), *CurveOwner );
+	CurveOwner->GetOwner()->Modify();
 }
 
 void SColorGradientEditor::OnBeginChangeAlphaValue()
@@ -881,6 +882,7 @@ FGradientStopMark SColorGradientEditor::AddStop( const FVector2D& Position, cons
 void SColorGradientEditor::MoveStop( FGradientStopMark& Mark, float NewTime )
 {
 	Mark.SetTime( NewTime, *CurveOwner );
+	CurveOwner->GetOwner()->Modify();
 }
 
 

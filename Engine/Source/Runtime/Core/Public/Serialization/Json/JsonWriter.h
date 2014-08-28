@@ -13,15 +13,17 @@ class TJsonWriter
 {
 public:
 
-	static TSharedRef< TJsonWriter > Create( FArchive* const Stream )
+	static TSharedRef< TJsonWriter > Create( FArchive* const Stream, int32 InitialIndentLevel = 0 )
 	{
-		return MakeShareable( new TJsonWriter< CharType, PrintPolicy >( Stream ) );
+		return MakeShareable( new TJsonWriter< CharType, PrintPolicy >( Stream, InitialIndentLevel ) );
 	}
 
 
 public:
 
 	virtual ~TJsonWriter() {}
+
+	FORCEINLINE int32 GetIndentLevel() const { return IndentLevel; }
 
 	void WriteObjectStart()
 	{
@@ -286,11 +288,11 @@ public:
 
 protected:
 
-	TJsonWriter( FArchive* const InStream )
+	TJsonWriter( FArchive* const InStream, int32 InitialIndentLevel )
 		: Stream( InStream )
 		, Stack()
 		, PreviousTokenWritten( EJsonToken::None )
-		, IndentLevel( 0 )
+		, IndentLevel( InitialIndentLevel )
 	{
 
 	}
@@ -379,9 +381,9 @@ class TJsonStringWriter : public TJsonWriter<TCHAR, PrintPolicy>
 {
 public:
 
-	static TSharedRef< TJsonStringWriter > Create( FString* const InStream )
+	static TSharedRef< TJsonStringWriter > Create( FString* const InStream, int32 InitialIndent = 0 )
 	{
-		return MakeShareable( new TJsonStringWriter( InStream ) );
+		return MakeShareable( new TJsonStringWriter( InStream, InitialIndent ) );
 	}
 
 
@@ -409,8 +411,8 @@ public:
 
 protected:
 
-	TJsonStringWriter( FString* const InOutString )
-		: TJsonWriter<TCHAR, PrintPolicy>( new FMemoryWriter(Bytes) )
+	TJsonStringWriter( FString* const InOutString, int32 InitialIndent )
+		: TJsonWriter<TCHAR, PrintPolicy>( new FMemoryWriter(Bytes), InitialIndent )
 		, Bytes()
 		, OutString( InOutString )
 	{
@@ -428,13 +430,13 @@ class TJsonWriterFactory
 {
 public:
 
-	static TSharedRef< TJsonWriter<CharType, PrintPolicy> > Create( FArchive* const Stream )
+	static TSharedRef< TJsonWriter<CharType, PrintPolicy> > Create( FArchive* const Stream, int32 InitialIndent = 0 )
 	{
-		return TJsonWriter< CharType, PrintPolicy >::Create( Stream );
+		return TJsonWriter< CharType, PrintPolicy >::Create( Stream, InitialIndent );
 	}
 
-	static TSharedRef< TJsonWriter<TCHAR, PrintPolicy> > Create( FString* const Stream )
+	static TSharedRef< TJsonWriter<TCHAR, PrintPolicy> > Create( FString* const Stream, int32 InitialIndent = 0 )
 	{
-		return StaticCastSharedRef< TJsonWriter< TCHAR, PrintPolicy > >( TJsonStringWriter<PrintPolicy>::Create( Stream ) );
+		return StaticCastSharedRef< TJsonWriter< TCHAR, PrintPolicy > >( TJsonStringWriter<PrintPolicy>::Create( Stream, InitialIndent ) );
 	}
 };

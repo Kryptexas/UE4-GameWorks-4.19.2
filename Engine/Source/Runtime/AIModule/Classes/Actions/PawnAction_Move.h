@@ -48,8 +48,8 @@ protected:
 public:
 	virtual void BeginDestroy() override;
 
-	static UPawnAction_Move* CreateAction(UWorld* World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode);
-	static UPawnAction_Move* CreateAction(UWorld* World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode);
+	static UPawnAction_Move* CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode);
+	static UPawnAction_Move* CreateAction(UWorld& World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode);
 
 	static bool CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius);
 	static bool CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius);
@@ -74,7 +74,7 @@ protected:
 	
 	void ClearPath();
 	virtual bool Start() override;
-	virtual bool Pause() override;
+	virtual bool Pause(const UPawnAction* PausedBy) override;
 	virtual bool Resume() override;
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) override;

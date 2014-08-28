@@ -264,13 +264,13 @@ struct AIMODULE_API FEnvNamedValue
 {
 	GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	TEnumAsByte<EEnvQueryParam::Type> ParamType;
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	float Value;
 };
 

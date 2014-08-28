@@ -1538,9 +1538,9 @@ namespace UnrealBuildTool
 			if (OnlyModules.Count > 0)
 			{
 				AppBinaries = FilterOnlyModules();
-			}
+							}
 			else if (UEBuildConfiguration.bHotReloadFromIDE)
-			{
+				{
 				AppBinaries = FilterGameModules();
 			}
 
@@ -1662,7 +1662,7 @@ namespace UnrealBuildTool
 			}
 
 			if (!AnyBinariesAdded)
-			{
+		{
 				throw new BuildException("One or more of the modules specified using the '-module' argument could not be found.");
 			}
 
@@ -1687,7 +1687,7 @@ namespace UnrealBuildTool
 					FilteredBinaries.Add(DLLBinary);
 					AnyBinariesAdded = true;
 				}
-			}
+				}
 
 			if (!AnyBinariesAdded)
 			{
@@ -2224,44 +2224,44 @@ namespace UnrealBuildTool
 		/** Sets up the plugins for this target */
 		protected virtual void SetupPlugins()
 		{
-			// Filter the plugins list by the current project
-			List<PluginInfo> ValidPlugins = new List<PluginInfo>();
-			foreach(PluginInfo Plugin in Plugins.AllPlugins)
-			{
-				if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
+				// Filter the plugins list by the current project
+				List<PluginInfo> ValidPlugins = new List<PluginInfo>();
+				foreach(PluginInfo Plugin in Plugins.AllPlugins)
 				{
-					ValidPlugins.Add(Plugin);
-				}
-			}
-
-			// Build the enabled plugin list
-			if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
-			{
-				var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
-
-				// Add the list of plugins enabled by default
-				if (UEBuildConfiguration.bCompileAgainstEngine)
-				{
-					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
+					if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
+					{
+						ValidPlugins.Add(Plugin);
+					}
 				}
 
-				// Update the plugin list for game targets
-				if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
+				// Build the enabled plugin list
+				if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
 				{
-					// Enable all the game specific plugins by default
-					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
+					var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
 
-					// Use the project settings to update the plugin list for this target
-					FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
+					// Add the list of plugins enabled by default
+					if (UEBuildConfiguration.bCompileAgainstEngine)
+					{
+						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
+					}
+
+					// Update the plugin list for game targets
+					if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
+					{
+						// Enable all the game specific plugins by default
+						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
+
+						// Use the project settings to update the plugin list for this target
+						FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
+					}
+
+					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
 				}
-
-				EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
+				else
+				{
+					EnabledPlugins.AddRange(ValidPlugins);
+				}
 			}
-			else
-			{
-				EnabledPlugins.AddRange(ValidPlugins);
-			}
-		}
 
 		/** Sets up the binaries for the target. */
 		protected virtual void SetupBinaries()

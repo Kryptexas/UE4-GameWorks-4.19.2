@@ -20,7 +20,7 @@ class AIMODULE_API UPawnAction_Sequence : public UPawnAction
 
 	uint32 CurrentActionIndex;
 
-	static UPawnAction_Sequence* CreateAction(UWorld* World, TArray<UPawnAction*>& ActionSequence);
+	static UPawnAction_Sequence* CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence);
 
 protected:
 	virtual bool Start() override;

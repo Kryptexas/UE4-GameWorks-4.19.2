@@ -192,7 +192,7 @@ void FAssetFixUpRedirectors::LoadReferencingPackages(TArray<FRedirectorRefs>& Re
 				else
 				{
 					// If we found a valid package, mark it for save
-					OutReferencingPackagesToSave.Add(Package);
+					OutReferencingPackagesToSave.AddUnique(Package);
 				}
 			}
 		}

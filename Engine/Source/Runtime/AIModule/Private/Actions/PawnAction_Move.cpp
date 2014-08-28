@@ -24,7 +24,7 @@ void UPawnAction_Move::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
 {
 	if (GoalActor == NULL)
 	{
@@ -41,7 +41,7 @@ UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, class AActor* Go
 	return Action;
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode)
 {
 	if (FAISystem::IsValidLocation(GoalLocation) == false)
 	{
@@ -141,9 +141,9 @@ void UPawnAction_Move::DeferredPerformMoveAction()
 	}
 }
 
-bool UPawnAction_Move::Pause()
+bool UPawnAction_Move::Pause(const UPawnAction* PausedBy)
 {
-	bool bResult = Super::Pause();
+	bool bResult = Super::Pause(PausedBy);
 	if (bResult)
 	{
 		AAIController* MyController = Cast<AAIController>(GetController());

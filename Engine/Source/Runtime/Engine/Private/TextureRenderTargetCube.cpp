@@ -277,18 +277,23 @@ void FTextureRenderTargetCubeResource::ReleaseDynamicRHI()
 }
 
 /**
- * Clear contents of the render target. Clears each face of the cube
+ * Updates (resolves) the render target texture.
+ * Optionally clears each face of the render target to green.
+ * This is only called by the rendering thread.
  */
-void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
+void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget/*=true*/)
 {
 	const FIntPoint Dims = GetSizeXY();
 	for(int32 FaceIdx = CubeFace_PosX; FaceIdx < CubeFace_MAX; FaceIdx++)
 	{
 		// clear each face of the cube target texture to ClearColor
-		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef());
+		if (bClearRenderTarget)
+		{
+			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef());
+			RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
+			RHICmdList.Clear(true, Owner->ClearColor, false, 0.f, false, 0, FIntRect());
+		}
 
-		RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
-		RHICmdList.Clear(true, Owner->ClearColor, false, 0.f, false, 0, FIntRect());
 		// copy surface to the texture for use
 		FResolveParams ResolveParams;
 		ResolveParams.CubeFace = (ECubeFace)FaceIdx;

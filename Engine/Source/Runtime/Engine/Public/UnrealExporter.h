@@ -77,9 +77,15 @@ ENGINE_API void ExportProperties( const class FExportObjectInnerContext* Context
  */
 ENGINE_API void DumpComponents(UObject *Object);
 
+/** Debug spew for object's components, returned as an FString. */
+ENGINE_API FString DumpComponentsToString(UObject *Object);
+
 /**
  * Debug spew for an object
  * @param Label header line for spew
  * @param Object object to dump component spew for
  */
 ENGINE_API void DumpObject(const TCHAR *Label, UObject* Object);
+
+/** Debug spew for an object, returned as an FString. */
+ENGINE_API FString DumpObjectToString(UObject* Object);

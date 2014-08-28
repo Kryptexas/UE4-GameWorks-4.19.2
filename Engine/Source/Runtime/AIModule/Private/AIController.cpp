@@ -13,7 +13,6 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/PhysicsVolume.h"
-#include "Perception/AIPerceptionComponent.h"
 #include "AIController.h"
 
 // mz@todo these need to be removed, legacy code
@@ -43,6 +42,8 @@ AAIController::AAIController(const class FPostConstructInitializeProperties& PCI
 	PathFollowingComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
 
+	ActionsComp = PCIP.CreateDefaultSubobject<UPawnActionsComponent>(this, "ActionsComp");
+
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
 }
@@ -61,6 +62,18 @@ void AAIController::PostInitializeComponents()
 	if (bWantsPlayerState && !IsPendingKill() && (GetNetMode() != NM_Client))
 	{
 		InitPlayerState();
+	}
+}
+
+void AAIController::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+
+	// cache PerceptionComponent if not already set
+	// note that it's possible for an AI to not have a perception component at all
+	if (PerceptionComponent == NULL || PerceptionComponent->IsPendingKill() == true)
+	{
+		PerceptionComponent = FindComponentByClass<UAIPerceptionComponent>();
 	}
 }
 
@@ -128,6 +141,11 @@ void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 	{
 		BrainComponent->DescribeSelfToVisLog(Snapshot);
 	}
+
+	if (PerceptionComponent != NULL)
+	{
+		PerceptionComponent->DescribeSelfToVisLog(Snapshot);
+}
 }
 #endif // ENABLE_VISUAL_LOG
 
@@ -172,6 +190,7 @@ void AAIController::SetFocalPoint( FVector FP, bool bOffsetFromBase, uint8 InPri
 FVector AAIController::GetFocalPoint() const
 {
 	FBasedPosition FinalFocus;
+
 	// find focus with highest priority
 	for( int32 Index = FocusInformation.Priorities.Num()-1; Index >= 0; --Index)
 	{
@@ -229,7 +248,7 @@ void AAIController::K2_ClearFocus()
 	ClearFocus(EAIFocusPriority::Gameplay);
 }
 
-void AAIController::SetFocus(AActor* NewFocus, uint8 InPriority)
+void AAIController::SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority)
 {
 	if( NewFocus )
 	{
@@ -245,7 +264,7 @@ void AAIController::SetFocus(AActor* NewFocus, uint8 InPriority)
 	}
 }
 
-void AAIController::ClearFocus(uint8 InPriority)
+void AAIController::ClearFocus(EAIFocusPriority::Type InPriority)
 {
 	if (InPriority < FocusInformation.Priorities.Num())
 	{
@@ -256,7 +275,7 @@ void AAIController::ClearFocus(uint8 InPriority)
 
 bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks) const
 {
-	if (!Other)
+	if( !Other )
 	{
 		return false;
 	}
@@ -348,7 +367,7 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 			}
 		}
 
-		for (int32 PointIndex=0; PointIndex<4; PointIndex++)
+		for ( int32 PointIndex=0; PointIndex<4; PointIndex++ )
 		{
 			if ((PointIndex != IndexMin) && (PointIndex != IndexMax))
 			{
@@ -749,5 +768,8 @@ bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start,
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }
-
+bool AAIController::PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator)
+{
+	return ActionsComp != NULL && ActionsComp->PushAction(Action, Priority, Instigator);
+}
 

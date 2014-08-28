@@ -327,17 +327,20 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		navquery->getPortalPoints(m_path[fromIdx - 1], m_path[fromIdx], v1, v2, dummyT1, dummyT2);
 
 		const float edgeLen = dtVdist(v1, v2);
-		const float edgeOffset = dtMin(radius, edgeLen * 0.75f) / edgeLen;
+		if (edgeLen > 0.001f)
+		{
+			const float edgeOffset = dtMin(radius, edgeLen * 0.75f) / edgeLen;
 
-		if (dtVequal(corner, v1))
-		{
-			dtVsub(dir, v2, v1);
-			dtVmad(corner, corner, dir, edgeOffset);
-		}
-		else
-		{
-			dtVsub(dir, v1, v2);
-			dtVmad(corner, corner, dir, edgeOffset);
+			if (dtVequal(corner, v1))
+			{
+				dtVsub(dir, v2, v1);
+				dtVmad(corner, corner, dir, edgeOffset);
+			}
+			else
+			{
+				dtVsub(dir, v1, v2);
+				dtVmad(corner, corner, dir, edgeOffset);
+			}
 		}
 	}
 

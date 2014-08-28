@@ -582,7 +582,20 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 		// NOTE: We ignore inner objects that have been tagged for death
 		GetObjectsWithOuter(Object, TempInners, false, RF_PendingKill);
 	}
-	const FExportObjectInnerContext::InnerList& ObjectInners = ContextInners ? *ContextInners : TempInners;
+	FExportObjectInnerContext::InnerList const& UnsortedObjectInners = ContextInners ? *ContextInners : TempInners;
+
+	FExportObjectInnerContext::InnerList SortedObjectInners;
+	if (PortFlags & PPF_DebugDump)
+	{
+		SortedObjectInners = UnsortedObjectInners;
+		// optionally sort inners, which can be useful when comparing/diffing debug dumps
+		SortedObjectInners.Sort([](const UObject& A, const UObject& B) -> bool
+		{
+			return A.GetName() < B.GetName();
+		});
+	}
+
+	FExportObjectInnerContext::InnerList const& ObjectInners = (PortFlags & PPF_DebugDump) ? SortedObjectInners : UnsortedObjectInners;
 
 	if (!(PortFlags & PPF_SeparateDefine))
 	{
@@ -865,7 +878,28 @@ void DumpComponents(UObject *Object)
 	}
 }
 
+
+FString DumpComponentsToString(UObject *Object)
+{
+	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
+
+	FStringOutputDevice Output;
+	Output.Logf(TEXT("Components for '%s':\r\n"), *Object->GetFullName());
+	ExportProperties(NULL, Output, Object->GetClass(), (uint8*)Object, 2, NULL, NULL, Object, PPF_SubobjectsOnly);
+	Output.Logf(TEXT("<--- DONE!\r\n"));
+	return Output;
+}
+
+
+
 void DumpObject(const TCHAR *Label, UObject* Object)
+{
+	FString const ExportedText = DumpObjectToString(Object);
+	UE_LOG(LogExporter, Display, TEXT("%s"), Label);
+	UE_LOG(LogExporter, Display, TEXT("%s"), *ExportedText);
+}
+
+FString DumpObjectToString(UObject* Object)
 {
 	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
 
@@ -873,9 +907,5 @@ void DumpObject(const TCHAR *Label, UObject* Object)
 	const FExportObjectInnerContext Context;
 	UExporter::ExportToOutputDevice(&Context, Object, NULL, Archive, TEXT("copy"), 0, PPF_Copy | PPF_DebugDump, false);
 
-	FString ExportedText;
-	ExportedText = Archive;
-
-	UE_LOG(LogExporter, Display, TEXT("%s"), Label);
-	UE_LOG(LogExporter, Display, TEXT("%s"), *ExportedText);
+	return Archive;
 }

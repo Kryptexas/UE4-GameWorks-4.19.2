@@ -5,13 +5,15 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BTTask_BlackboardBase.generated.h"
 
+class UBehaviorTree;
+
 UCLASS(Abstract)
 class AIMODULE_API UBTTask_BlackboardBase : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 
 	/** initialize any asset related data */
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
+	virtual void InitializeFromAsset(UBehaviorTree* Asset) override;
 
 	/** get name of selected blackboard key */
 	FName GetSelectedBlackboardKey() const;

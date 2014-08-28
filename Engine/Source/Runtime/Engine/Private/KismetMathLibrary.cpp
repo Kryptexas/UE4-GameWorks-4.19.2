@@ -580,6 +580,11 @@ float UKismetMathLibrary::FInterpTo(float Current, float Target, float DeltaTime
 	return FMath::FInterpTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
+float UKismetMathLibrary::FInterpTo_Constant(float Current, float Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::FInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
 FVector UKismetMathLibrary::Multiply_VectorFloat(FVector A, float B)
 {
 	return A * B;
@@ -699,6 +704,12 @@ FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float Del
 {
 	return FMath::VInterpTo( Current, Target, DeltaTime, InterpSpeed );
 }
+
+FVector UKismetMathLibrary::VInterpTo_Constant(FVector Current, FVector Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::VInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
 
 FVector UKismetMathLibrary::RandomUnitVector()
 {
@@ -861,6 +872,11 @@ FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 FRotator UKismetMathLibrary::RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::RInterpTo( Current, Target, DeltaTime, InterpSpeed);
+}
+
+FRotator UKismetMathLibrary::RInterpTo_Constant(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::RInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
 FLinearColor UKismetMathLibrary::CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed)

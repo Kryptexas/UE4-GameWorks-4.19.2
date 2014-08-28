@@ -136,12 +136,12 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 	return true;
 }
 
-bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags)
+bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent)
 {
 	TSharedRef<FJsonObject> JsonObject = MakeShareable( new FJsonObject() );
 	if (UStructToJsonObject(StructDefinition, Struct, JsonObject, CheckFlags, SkipFlags))
 	{
-		TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&OutJsonString);
+		TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&OutJsonString, Indent);
 
 		if (FJsonSerializer::Serialize( JsonObject, JsonWriter ))
 		{

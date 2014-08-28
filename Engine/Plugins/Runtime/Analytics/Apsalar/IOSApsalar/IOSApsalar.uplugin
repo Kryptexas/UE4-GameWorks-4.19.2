@@ -15,6 +15,7 @@
 		{
 			"Name" : "IOSApsalar",
 			"Type" : "Runtime",
+			"LoadingPhase" : "PreDefault",
 			"WhitelistPlatforms" : [ "IOS" ]
 		}
 	]

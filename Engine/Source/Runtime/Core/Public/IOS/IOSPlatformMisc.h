@@ -68,6 +68,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
 	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
 
+	static class IPlatformChunkInstall* GetPlatformChunkInstall();
+    
 	//////// Platform specific
 	static void* CreateAutoreleasePool();
 	static void ReleaseAutoreleasePool(void *Pool);

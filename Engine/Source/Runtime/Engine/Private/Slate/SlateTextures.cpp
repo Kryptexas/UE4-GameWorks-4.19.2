@@ -222,14 +222,17 @@ void FSlateTextureRenderTarget2DResource::ReleaseDynamicRHI()
 	RemoveFromDeferredUpdateList();
 }
 
-void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
+void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget/*=true*/)
 {
 	check(IsInRenderingThread());
 
 	// clear the target surface to green
-	SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
-	RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
-	RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
+	if (bClearRenderTarget)
+	{
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
+		RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
+		RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
+	}
 
 	// copy surface to the texture for use
 	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());

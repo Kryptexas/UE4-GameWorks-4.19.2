@@ -4,7 +4,7 @@
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/Services/BTService_BlueprintBase.h"
 
-UBTService_BlueprintBase::UBTService_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTService_BlueprintBase::UBTService_BlueprintBase(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
@@ -33,7 +33,7 @@ void UBTService_BlueprintBase::PostInitProperties()
 	NodeName = BlueprintNodeHelpers::GetNodeName(this);
 }
 
-void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
@@ -44,7 +44,7 @@ void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* Ow
 	}
 }
 
-void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
@@ -85,7 +85,7 @@ void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& Sea
 	}
 }
 
-void UBTService_BlueprintBase::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
@@ -120,7 +120,7 @@ FString UBTService_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTService_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTService_BlueprintBase* CDO = (UBTService_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -130,7 +130,7 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCo
 	}
 }
 
-void UBTService_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
+void UBTService_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
 	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);

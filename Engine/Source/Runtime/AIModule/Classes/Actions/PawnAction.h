@@ -8,7 +8,7 @@
 class UPawnAction;
 class UPawnActionsComponent;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogPawnAction, Warning, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPawnAction, Warning, All);
 DECLARE_DELEGATE_TwoParams(FPawnActionEventDelegate, UPawnAction*, EPawnActionEventType::Type);
 
 UENUM()
@@ -114,6 +114,7 @@ public:
 	FORCEINLINE bool IsPaused() const { return !!bPaused; }
 	FORCEINLINE bool IsActive() const { return FinishResult == EPawnActionResult::InProgress && IsPaused() == false && AbortState == EPawnActionAbortState::NotBeingAborted; }
 	FORCEINLINE bool IsBeingAborted() const { return AbortState != EPawnActionAbortState::NotBeingAborted; }
+	FORCEINLINE bool IsFinished() const { return FinishResult != EPawnActionResult::InProgress; }
 	FORCEINLINE bool WantsTick() const { return bWantsTick; }
 
 	FORCEINLINE void TickAction(float DeltaTime)
@@ -150,11 +151,10 @@ public:
 	class AController* GetController();
 
 	template<class TActionClass>
-	static TActionClass* CreateActionInstance(class UWorld* World)
+	static TActionClass* CreateActionInstance(UWorld& World)
 	{
-		check(World);
-		TSubclassOf<class UPawnAction> ActionClass = TActionClass::StaticClass();
-		return ConstructObject<TActionClass>(ActionClass, World);
+		TSubclassOf<UPawnAction> ActionClass = TActionClass::StaticClass();
+		return ConstructObject<TActionClass>(ActionClass, &World);
 	}
 
 	//----------------------------------------------------------------------//
@@ -172,7 +172,7 @@ public:
 	TEnumAsByte<EAIRequestPriority::Type> GetActionPriority();
 
 	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static class UPawnAction* CreateActionInstance(class UObject* WorldContextObject, TSubclassOf<class UPawnAction> ActionClass);
+	static UPawnAction* CreateActionInstance(UObject* WorldContextObject, TSubclassOf<UPawnAction> ActionClass);
 
 	//----------------------------------------------------------------------//
 	// debug
@@ -204,7 +204,7 @@ protected:
 	 *	@NOTE if action fails to start no finishing or aborting mechanics will be triggered */
 	virtual bool Start();
 	/** called to pause action when higher priority or child action kicks in */
-	virtual bool Pause();
+	virtual bool Pause(const UPawnAction* PausedBy);
 	/** called to resume action after being paused */
 	virtual bool Resume();
 	/** called when this action is being removed from action stacks */

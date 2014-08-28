@@ -84,7 +84,7 @@ FIntPoint FMediaTextureResource::GetSizeXY( ) const
 /* FDeferredUpdateResource overrides
  *****************************************************************************/
 
-void FMediaTextureResource::UpdateDeferredResource( FRHICommandListImmediate& RHICmdList )
+void FMediaTextureResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget/*=true*/)
 {
 	FTimespan CurrentFrameTime = VideoBuffer->GetCurrentSampleTime();
 	TSharedPtr<TArray<uint8>, ESPMode::ThreadSafe> CurrentFrame = VideoBuffer->GetCurrentSample();

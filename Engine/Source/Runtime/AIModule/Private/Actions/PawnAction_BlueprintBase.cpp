@@ -37,9 +37,9 @@ bool UPawnAction_BlueprintBase::Start()
 	return bSuperResult;
 }
 
-bool UPawnAction_BlueprintBase::Pause()
+bool UPawnAction_BlueprintBase::Pause(const UPawnAction* PausedBy)
 {
-	bool bResult = Super::Pause();
+	const bool bResult = Super::Pause(PausedBy);
 	if (bResult)
 	{
 		ActionPause(GetPawn());
@@ -49,7 +49,7 @@ bool UPawnAction_BlueprintBase::Pause()
 
 bool UPawnAction_BlueprintBase::Resume()
 {
-	bool bResult = Super::Resume();
+	const bool bResult = Super::Resume();
 	if (bResult)
 	{
 		ActionResume(GetPawn());

@@ -27,7 +27,7 @@ class AIMODULE_API UPawnAction_Repeat : public UPawnAction
 	int32 RepeatsLeft;
 
 	/** @param NumberOfRepeats number of times to repeat action. UPawnAction_Repeat::LoopForever loops forever */
-	static UPawnAction_Repeat* CreateAction(class UWorld* World, class UPawnAction* ActionToRepeat, int32 NumberOfRepeats);
+	static UPawnAction_Repeat* CreateAction(UWorld& World, class UPawnAction* ActionToRepeat, int32 NumberOfRepeats);
 
 protected:
 	virtual bool Start() override;

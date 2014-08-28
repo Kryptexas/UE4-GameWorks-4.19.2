@@ -15,6 +15,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlackboardEntryDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	MyNameProperty = StructPropertyHandle->GetChildHandle(TEXT("EntryName"));
+	MyDescriptionProperty = StructPropertyHandle->GetChildHandle(TEXT("EntryDescription"));
 	MyValueProperty = StructPropertyHandle->GetChildHandle(TEXT("KeyType"));
 
 	// dont show a header row
@@ -30,6 +31,7 @@ void FBlackboardEntryDetails::CustomizeChildren( TSharedRef<class IPropertyHandl
 	if (StructPropertyHandle->IsValidHandle())
 	{
 		StructBuilder.AddChildProperty(MyNameProperty.ToSharedRef());
+		StructBuilder.AddChildProperty(MyDescriptionProperty.ToSharedRef());
 		StructBuilder.AddChildProperty(MyValueProperty.ToSharedRef());
 	}
 }

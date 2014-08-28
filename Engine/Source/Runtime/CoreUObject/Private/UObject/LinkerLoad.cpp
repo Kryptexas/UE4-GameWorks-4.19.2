@@ -441,6 +441,12 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 {
 	// See whether there already is a linker for this parent/ linker root.
 	ULinkerLoad* Linker = FindExistingLinkerForPackage(Parent);
+	if (!Linker)
+	{
+		// In case we're Async loading and something from the main thread is trying to load the same package,
+		// also look for linkers that haven't been finalized yet.
+		Linker = GObjPendingLoaders.FindRef(Parent);
+	}
 	if (Linker)
 	{
 		UE_LOG(LogStreaming, Log, TEXT("ULinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
@@ -454,6 +460,8 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 			LoadFlags |= LOAD_SeekFree;
 		}
 		Linker = new ULinkerLoad( FPostConstructInitializeProperties(), Parent, Filename, LoadFlags );
+		// Add to the list of linkers that haven't been finalized yet
+		GObjPendingLoaders.Add(Parent, Linker);
 	}
 	return Linker;
 }
@@ -1624,7 +1632,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 	if( bHasFinishedInitialization == false )
 	{
 		// Add this linker to the object manager's linker array.
-		GObjLoaders.Add( LinkerRoot, this );
+		GObjLoaders.Add(LinkerRoot, this);
+		// And remove it from the pending loaders list.
+		GObjPendingLoaders.Remove(LinkerRoot);
 
 		// check if the package source matches the package filename's CRC (if it doens't match, a user saved this package)
 		if (Summary.PackageSource != FCrc::StrCrc_DEPRECATED(*FPaths::GetBaseFilename(Filename).ToUpper()))
@@ -3459,7 +3469,8 @@ void ULinkerLoad::Detach( bool bEnsureAllBulkDataIsLoaded )
 	}
 
 	// Remove from object manager, if it has been added.
-	GObjLoaders.Remove( this->LinkerRoot );
+	GObjLoaders.Remove(LinkerRoot);
+	GObjPendingLoaders.Remove(LinkerRoot);
 	GObjLoadersWithNewImports.Remove(this);
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{

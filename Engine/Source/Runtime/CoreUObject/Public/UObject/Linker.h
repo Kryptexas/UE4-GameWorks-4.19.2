@@ -13,6 +13,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 
 /** Map of packages to their open linkers **/ 
 extern TMap<class UPackage*, class ULinkerLoad*>		GObjLoaders;
+/** Map of packages to their open linkers which have not yet been finalized (during async loading) **/
+extern TMap<class UPackage*, class ULinkerLoad*>		GObjPendingLoaders;
 /** List of loaders that have new imports **/
 extern TSet<class ULinkerLoad*>							GObjLoadersWithNewImports;
 

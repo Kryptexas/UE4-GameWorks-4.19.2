@@ -136,7 +136,7 @@ FAIMessageObserver::~FAIMessageObserver()
 	Unregister();
 }
 
-void FAIMessageObserver::Register(class UBrainComponent* OwnerComp)
+void FAIMessageObserver::Register(UBrainComponent* OwnerComp)
 {
 	OwnerComp->MessageObservers.Add(this);
 	Owner = OwnerComp;
@@ -177,7 +177,7 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 //////////////////////////////////////////////////////////////////////////
 // Brain component
 
-UBrainComponent::UBrainComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBrainComponent::UBrainComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bDoLogicRestartOnUnlock = false;
@@ -237,6 +237,13 @@ void UBrainComponent::ForceUnlockResource()
 bool UBrainComponent::IsResourceLocked() const
 {
 	return ResourceLock.IsLocked();
+}
+
+void UBrainComponent::OnRegister() 
+{
+	Super::OnRegister();
+
+	AIOwner = Cast<AAIController>(GetOwner());
 }
 
 void UBrainComponent::InitializeComponent()

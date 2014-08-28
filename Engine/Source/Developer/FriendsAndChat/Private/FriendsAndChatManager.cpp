@@ -915,12 +915,12 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 
 	for ( int32 UserIdx=0; UserIdx < UserIds.Num(); UserIdx++ )
 	{
-		TSharedPtr<FOnlineFriend> OnlineFirend = FriendsInterface->GetFriend( 0, *UserIds[UserIdx], EFriendsLists::ToString( ReadListRequests[0] ) );
+		TSharedPtr<FOnlineFriend> OnlineFriend = FriendsInterface->GetFriend( 0, *UserIds[UserIdx], EFriendsLists::ToString( ReadListRequests[0] ) );
 		TSharedPtr<FOnlineUser> OnlineUser = OnlineSubMcp->GetUserInterface()->GetUserInfo( LocalPlayer, *UserIds[UserIdx] );
 
-		if ( OnlineFirend.IsValid() && OnlineUser.IsValid() )
+		if (OnlineFriend.IsValid() && OnlineUser.IsValid())
 		{
-			TSharedPtr< FFriendStuct > FriendItem = MakeShareable( new FFriendStuct( OnlineFirend, OnlineUser, DisplayList ) );
+			TSharedPtr< FFriendStuct > FriendItem = MakeShareable(new FFriendStuct(OnlineFriend, OnlineUser, DisplayList));
 			PendingFriendsList.Add( FriendItem );
 		}
 		else

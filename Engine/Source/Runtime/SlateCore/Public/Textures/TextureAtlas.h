@@ -90,7 +90,7 @@ public:
 	uint32 GetHeight() const { return AtlasHeight; }
 
 	/** Marks the texture as dirty and needing its rendering resources updated */
-	void MarkTextureDirty() { check( IsInGameThread() ); bNeedsUpdate = true; }
+	void MarkTextureDirty();
 	
 	/**
 	 * Updates the texture used for rendering if needed

@@ -15,6 +15,11 @@ struct FBlackboardEntry
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	FName EntryName;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, Category=Blackboard, Meta=(ToolTip="Optional description to explain what this blackboard entry does."))
+	FString EntryDescription;
+#endif // WITH_EDITORONLY_DATA
+
 	/** key type and additional properties */
 	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard)
 	UBlackboardKeyType* KeyType;

@@ -6,8 +6,12 @@
 #include "AIResourceInterface.h"
 #include "BrainComponent.generated.h"
 
+class AAIController;
+class UBlackboardComponent;
+class UBrainComponent;
+struct FAIMessage;
 
-DECLARE_DELEGATE_TwoParams(FOnAIMessage, class UBrainComponent*, const struct FAIMessage&);
+DECLARE_DELEGATE_TwoParams(FOnAIMessage, UBrainComponent*, const FAIMessage&);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBrain, Warning, All);
 
@@ -104,7 +108,10 @@ class AIMODULE_API UBrainComponent : public UActorComponent, public IAIResourceI
 protected:
 	/** blackboard component */
 	UPROPERTY(transient)
-	class UBlackboardComponent* BlackboardComp;
+	UBlackboardComponent* BlackboardComp;
+
+	UPROPERTY(transient)
+	AAIController* AIOwner;
 
 	// @TODO this is a temp contraption to implement delayed messages delivering
 	// until proper AI messaging is implemented
@@ -145,16 +152,19 @@ public:
 	/** BEGIN UActorComponent overrides */
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
+	virtual void OnRegister() override;
 	/** END UActorComponent overrides */
 
 	/** caches BlackboardComponent's pointer to be used with this brain component */
-	void CacheBlackboardComponent(class UBlackboardComponent* BBComp);
+	void CacheBlackboardComponent(UBlackboardComponent* BBComp);
 
 	/** @return blackboard used with this component */
-	class UBlackboardComponent* GetBlackboardComponent();
+	UBlackboardComponent* GetBlackboardComponent();
 
 	/** @return blackboard used with this component */
-	const class UBlackboardComponent* GetBlackboardComponent() const;
+	const UBlackboardComponent* GetBlackboardComponent() const;
+
+	FORCEINLINE AAIController* GetAIOwner() const { return AIOwner; }
 
 protected:
 
@@ -181,12 +191,12 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // Inlines
 
-FORCEINLINE class UBlackboardComponent* UBrainComponent::GetBlackboardComponent()
+FORCEINLINE UBlackboardComponent* UBrainComponent::GetBlackboardComponent()
 {
 	return BlackboardComp;
 }
 
-FORCEINLINE const class UBlackboardComponent* UBrainComponent::GetBlackboardComponent() const
+FORCEINLINE const UBlackboardComponent* UBrainComponent::GetBlackboardComponent() const
 {
 	return BlackboardComp;
 }

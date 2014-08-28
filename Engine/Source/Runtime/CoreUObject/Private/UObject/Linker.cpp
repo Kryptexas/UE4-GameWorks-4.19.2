@@ -14,6 +14,7 @@ DEFINE_LOG_CATEGORY(LogLinker);
 #define LOCTEXT_NAMESPACE "Linker"
 
 TMap<UPackage*, ULinkerLoad*>		GObjLoaders;
+TMap<UPackage*, ULinkerLoad*>		GObjPendingLoaders;
 TSet<ULinkerLoad*>					GObjLoadersWithNewImports;
 
 /** Points to the main PackageLinker currently being serialized */

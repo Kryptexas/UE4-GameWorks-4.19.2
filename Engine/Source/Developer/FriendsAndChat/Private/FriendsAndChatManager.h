@@ -391,11 +391,11 @@ private:
 	TArray< TSharedPtr< FUniqueNetId > > NotifiedRequest;
 	// Holds the list messages sent out to be responded to
 	TArray<TSharedPtr< FFriendsAndChatMessage > > NotificationMessages;
-	// Holds and array of outgoing invite friend requests
+	// Holds an array of outgoing invite friend requests
 	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingFriendRequests;
-	// Holds and array of outgoing delete friend requests
+	// Holds an array of outgoing delete friend requests
 	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingDeleteFriendRequests;
-	// Holds and array of outgoing accept friend requests
+	// Holds an array of outgoing accept friend requests
 	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingAcceptFriendRequests;
 	// Holds the list of lists to query on refresh - e.g. recent friends
 	TArray< EFriendsLists::Type > ReadListRequests;

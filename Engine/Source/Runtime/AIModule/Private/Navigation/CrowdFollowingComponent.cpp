@@ -835,7 +835,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 		const float DistSq = (GetCurrentTargetLocation() - CurrentLocation).SizeSquared();
 		const float PathSwitchThresSq = FMath::Square(AgentRadius * 5.0f);
 
-		Tokens.Add(TEXT("dist2D"));
+		Tokens.Add(TEXT("distance"));
 		Flags.Add(EPathFollowingDebugTokens::ParamName);
 		Tokens.Add(FString::Printf(TEXT("%.0f"), FMath::Sqrt(DistSq)));
 		Flags.Add((DistSq < PathSwitchThresSq) ? EPathFollowingDebugTokens::PassedValue : EPathFollowingDebugTokens::FailedValue);

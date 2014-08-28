@@ -15,6 +15,7 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "GameFramework/Controller.h"
+#include "Actions/PawnActionsComponent.h"
 #include "Perception/AIPerceptionListenerInterface.h"
 #include "AIController.generated.h"
 
@@ -23,28 +24,11 @@ class UNavigationComponent;
 class UPathFollowingComponent;
 class UBrainComponent;
 class UAIPerceptionComponent;
+struct FBasedPosition;
+class UPawnAction;
+class UPawnActionsComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
-
-UENUM()
-namespace EAIRequestPriority
-{
-	enum Type
-	{
-		SoftScript, // actions requested by Level Designers by placing AI-hinting elements on the map
-		Logic,	// actions AI wants to do due to its internal logic				
-		HardScript, // actions LDs really want AI to perform
-		Reaction,	// actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking
-		Ultimate,	// ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions)
-
-		MAX UMETA(Hidden)
-	};
-}
-
-namespace EAIRequestPriority
-{
-	static const int32 Lowest = Logic;
-};
 
 namespace EAIFocusPriority
 {
@@ -61,8 +45,14 @@ struct FFocusKnowledge
 {
 	struct FFocusItem
 	{
-		TWeakObjectPtr<class AActor> Actor;
-		struct FBasedPosition Position;    
+		TWeakObjectPtr<AActor> Actor;
+		FBasedPosition Position;    
+
+		FVector GetLocation() const 
+		{
+			const AActor* FocusActor = Actor.Get();
+			return FocusActor ? FocusActor->GetActorLocation() : *Position;
+		}
 	};
 
 	FFocusKnowledge() 
@@ -111,6 +101,11 @@ public:
 
 	UPROPERTY()
 	UAIPerceptionComponent* PerceptionComponent;
+	
+public:
+
+	UPROPERTY(BlueprintReadOnly, Category = AI)
+	TSubobjectPtr<UPawnActionsComponent> ActionsComp;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void OnPossess(APawn* PossessedPawn);
@@ -123,9 +118,9 @@ public:
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	EPathFollowingRequestResult::Type MoveToActor(class AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
 	// @todo: above should be: 
-	// EPathFollowingRequestResult::Type MoveToActor(class AActor* Goal, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
+	// EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
 	// but parser doesn't like this (it's a bug, when fixed this will be changed)
 
 	/** Makes AI go toward specified Dest location
@@ -148,7 +143,7 @@ public:
 	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
 	 *  @return RequestID, or 0 when failed
 	 */
-	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, class AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
+	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
 
 	/** if AI is currently moving due to request given by RequestToPause, then the move will be paused */
 	bool PauseMove(FAIRequestID RequestToPause);
@@ -170,7 +165,7 @@ public:
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
 
 	/** @returns path to actor Goal (can be incomplete if async pathfinding is used) */
-	FNavPathSharedPtr FindPath(class AActor* Goal, bool bUsePathfinding = true, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
+	FNavPathSharedPtr FindPath(AActor* Goal, bool bUsePathfinding = true, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
 
 	/** @returns path to point Dest (can be incomplete if async pathfinding is used) */
 	FNavPathSharedPtr FindPath(const FVector& Dest, bool bUsePathfinding = true, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
@@ -207,7 +202,8 @@ public:
 	virtual FVector GetFocalPoint() const;
 
 	FORCEINLINE FVector GetFocalPoint(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? *FocusInformation.Priorities[Priority].Position : FAISystem::InvalidLocation; }
-
+	FORCEINLINE FFocusKnowledge::FFocusItem GetFocusItem(EAIFocusPriority::Type Priority) const { return FocusInformation.Priorities.IsValidIndex(Priority) ? FocusInformation.Priorities[Priority] : FFocusKnowledge::FFocusItem(); }
+	
 	/** Set FocalPoint as absolute position or offset from base. */
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocalPoint"))
 	void K2_SetFocalPoint(FVector FP, bool bOffsetFromBase = false);
@@ -243,6 +239,7 @@ public:
 	// Begin AActor Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual void PostInitializeComponents() override;
+	virtual void PostRegisterAllComponents() override;
 	// End AActor Interface
 
 	// Begin AController Interface
@@ -264,7 +261,7 @@ public:
 	 * @param bAlternateChecks used only in AIController implementation
 	 * @return true if controller's pawn can see Other actor.
 	 */
-	virtual bool LineOfSightTo(const class AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const override;
+	virtual bool LineOfSightTo(const AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const override;
 	// End AController Interface
 
 	/** Notifies AIController of changes in given actors' perception */
@@ -277,17 +274,21 @@ public:
 	virtual void SetFocalPoint(FVector FP, bool bOffsetFromBase=false, uint8 InPriority=EAIFocusPriority::Gameplay);
 
 	/* Set Focus actor for given priority, will set FocalPoint as a result. */
-	virtual void SetFocus(AActor* NewFocus, uint8 InPriority=EAIFocusPriority::Gameplay);
+	virtual void SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority = EAIFocusPriority::Gameplay);
 
 	/** Clears Focus for given priority, will also clear FocalPoint as a result
 	 *	@param InPriority focus priority to clear. If you don't know what to use you probably mean EAIFocusPriority::Gameplay*/
-	virtual void ClearFocus(uint8 InPriority);
+	virtual void ClearFocus(EAIFocusPriority::Type InPriority);
 
 	//----------------------------------------------------------------------//
 	// IAIPerceptionListenerInterface
 	//----------------------------------------------------------------------//
 	virtual class UAIPerceptionComponent* GetPerceptionComponent() override { return PerceptionComponent; }
 
+	//----------------------------------------------------------------------//
+	// Actions
+	//----------------------------------------------------------------------//
+	bool PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);
 
 	//----------------------------------------------------------------------//
 	// debug/dev-time 

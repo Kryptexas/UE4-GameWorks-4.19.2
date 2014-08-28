@@ -4,7 +4,7 @@
 #include "BehaviorTree/Services/BTService_DefaultFocus.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 
-UBTService_DefaultFocus::UBTService_DefaultFocus(const class FPostConstructInitializeProperties& PCIP) 
+UBTService_DefaultFocus::UBTService_DefaultFocus(const FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 {
 	NodeName = "Set default focus";
@@ -19,15 +19,17 @@ UBTService_DefaultFocus::UBTService_DefaultFocus(const class FPostConstructIniti
 	BlackboardKey.AddVectorFilter(this);
 }
 
-void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) 
+void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) 
 {
+	check(OwnerComp);
+
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
-	FBTDefaultFocusMemory* MyMemory = (FBTDefaultFocusMemory*)NodeMemory;
+	FBTFocusMemory* MyMemory = (FBTFocusMemory*)NodeMemory;
 	check(MyMemory);
 	MyMemory->Reset();
 
-	AAIController* OwnerController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;	
+	AAIController* OwnerController = OwnerComp->GetAIOwner();
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	
 	if (OwnerController != NULL && MyBlackboard != NULL)
@@ -52,13 +54,15 @@ void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* Own
 	}
 }
 
-void UBTService_DefaultFocus::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_DefaultFocus::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
+	check(OwnerComp);
+
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
-	FBTDefaultFocusMemory* MyMemory = (FBTDefaultFocusMemory*)NodeMemory;
+	FBTFocusMemory* MyMemory = (FBTFocusMemory*)NodeMemory;
 	check(MyMemory);
-	AAIController* OwnerController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;	
+	AAIController* OwnerController = OwnerComp->GetAIOwner();
 	if (OwnerController != NULL)
 	{
 		bool bClearFocus = false;
@@ -90,14 +94,9 @@ FString UBTService_DefaultFocus::GetStaticDescription() const
 	return FString::Printf(TEXT("Set default focus to %s"), *KeyDesc);
 }
 
-void UBTService_DefaultFocus::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTService_DefaultFocus::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
-}
-
-uint16 UBTService_DefaultFocus::GetInstanceMemorySize() const
-{
-	return sizeof(FBTDefaultFocusMemory);
 }
 
 #if WITH_EDITOR

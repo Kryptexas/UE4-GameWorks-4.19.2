@@ -151,6 +151,11 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 	return bBeganPlaying;
 }
 
+void FDefaultGameMoviePlayer::StopMovie()
+{
+	bUserCalledFinish = true;
+}
+
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 {
 	if (LoadingScreenIsPrepared() && IsMovieCurrentlyPlaying())

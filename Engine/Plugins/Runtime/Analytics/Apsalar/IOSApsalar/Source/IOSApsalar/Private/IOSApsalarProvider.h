@@ -13,7 +13,7 @@ class FAnalyticsProviderApsalar :
 	bool bHasSessionStarted;
 
 public:
-	FAnalyticsProviderApsalar(const FString Key, const FString Secret, const int32 SendInterval, const int32 MaxBufferSize);
+	FAnalyticsProviderApsalar(const FString Key, const FString Secret, const int32 SendInterval, const int32 MaxBufferSize, const bool bWantsManualRevenueReporting);
 	virtual ~FAnalyticsProviderApsalar();
 
 	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override;
@@ -27,7 +27,6 @@ public:
 	virtual bool SetSessionID(const FString& InSessionID) override;
 
 	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
-	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes) override;
 
 	virtual void RecordItemPurchase(const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity) override;
 	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const FString& RealCurrencyType, float RealMoneyCost, const FString& PaymentProvider) override;
