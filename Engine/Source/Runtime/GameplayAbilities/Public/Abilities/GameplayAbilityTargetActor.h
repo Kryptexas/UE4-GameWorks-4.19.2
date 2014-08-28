@@ -16,6 +16,10 @@ public:
 	UPROPERTY()
 	bool StaticTargetFunction;
 
+	/** The TargetData this class produces can be entirely generated on the server. We don't require the client to send us full or partial TargetData (possibly just a 'confirm') */
+	UPROPERTY()
+	bool ShouldProduceTargetDataOnServer;
+
 	/** Describes where the targeting action starts, usually the player character or a socket on the player character. */
 	//UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Targeting)
 	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn = true), Replicated, Category = Targeting)
@@ -34,6 +38,8 @@ public:
 	UFUNCTION()
 	virtual void CancelTargeting();
 
+	virtual void BindToConfirmCancelInputs();
+
 	virtual bool ShouldProduceTargetData() const;
 
 	/** Replicated target data was received from a client. Possibly sanitize/verify. return true if data is good and we should broadcast it as valid data. */
@@ -51,4 +57,8 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category="Targeting")
 	APlayerController* MasterPC;
+
+	UPROPERTY()
+	UGameplayAbility* OwningAbility;
+
 };

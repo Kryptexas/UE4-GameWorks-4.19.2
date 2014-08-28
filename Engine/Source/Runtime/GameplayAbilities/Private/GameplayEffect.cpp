@@ -500,6 +500,9 @@ bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackage
 		HitResult->Normal.NetSerialize(Ar, Map, bOutSuccess);
 	}
 
+	Ar << HasWorldOrigin;
+	Ar << WorldOrigin;
+
 	bOutSuccess = true;
 	return true;
 }
@@ -512,6 +515,12 @@ bool FGameplayEffectInstigatorContext::IsLocallyControlled() const
 		return Pawn->IsLocallyControlled();
 	}
 	return false;
+}
+
+void FGameplayEffectInstigatorContext::AddOrigin(FVector InOrigin)
+{
+	HasWorldOrigin = true;
+	WorldOrigin = InOrigin;
 }
 
 

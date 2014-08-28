@@ -16,22 +16,17 @@ public:
 
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const override;
 
-	virtual void StartTargeting(UGameplayAbility* Ability);
+	virtual void StartTargeting(UGameplayAbility* Ability) override;
 	
 	virtual void ConfirmTargeting() override;	
 
 	virtual void Tick(float DeltaSeconds) override;
-	
-	TWeakObjectPtr<UGameplayAbility> Ability;
 	
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	bool bDebug;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
-
-	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
-	bool bBindToConfirmCancelInputs;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Projectile)
 	float MaxRange;

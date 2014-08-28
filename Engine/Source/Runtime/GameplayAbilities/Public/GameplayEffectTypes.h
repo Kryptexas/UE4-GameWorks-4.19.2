@@ -145,6 +145,7 @@ struct FGameplayEffectInstigatorContext
 	FGameplayEffectInstigatorContext()
 		: Instigator(NULL)
 		, InstigatorAbilitySystemComponent(NULL)
+		, HasWorldOrigin(false)
 	{
 	}
 
@@ -161,18 +162,20 @@ struct FGameplayEffectInstigatorContext
 
 	void AddHitResult(const FHitResult InHitResult);
 
+	void AddOrigin(FVector InOrigin);
+
 	FString ToString() const
 	{
 		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
 	}
 
 	/** Should always return the original instigator that started the whole chain */
-	AActor * GetOriginalInstigator()
+	AActor* GetOriginalInstigator()
 	{
 		return Instigator;
 	}
 
-	UAbilitySystemComponent * GetOriginalInstigatorAbilitySystemComponent() const
+	UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
 	{
 		return InstigatorAbilitySystemComponent;
 	}
@@ -184,10 +187,15 @@ struct FGameplayEffectInstigatorContext
 	AActor* Instigator;
 
 	UPROPERTY(NotReplicated)
-	UAbilitySystemComponent *InstigatorAbilitySystemComponent;
+	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
 
 	/** Trace information - may be NULL in many cases */
 	TSharedPtr<FHitResult>	HitResult;
+
+	UPROPERTY()
+	FVector	WorldOrigin;
+
+	bool HasWorldOrigin;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };

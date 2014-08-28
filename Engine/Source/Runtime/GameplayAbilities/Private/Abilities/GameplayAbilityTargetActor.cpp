@@ -14,6 +14,7 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstr
 	: Super(PCIP)
 {
 	StaticTargetFunction = false;
+	ShouldProduceTargetDataOnServer = false;
 }
 
 void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -24,6 +25,7 @@ void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimePr
 
 void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 {
+	OwningAbility = Ability;
 }
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
@@ -69,5 +71,18 @@ bool AGameplayAbilityTargetActor::OnReplicatedTargetDataReceived(FGameplayAbilit
 
 bool AGameplayAbilityTargetActor::ShouldProduceTargetData() const
 {
-	return (MasterPC && MasterPC->IsLocalController());
+	// return true if we are locally owned, or (we are the server and this is a gameplaytarget ability that can produce target data server side)
+	return (MasterPC && (MasterPC->IsLocalController() || ShouldProduceTargetDataOnServer));
+}
+
+void AGameplayAbilityTargetActor::BindToConfirmCancelInputs()
+{
+	check(OwningAbility);
+
+	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+	if (ASC)
+	{
+		ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
+		ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);
+	}
 }

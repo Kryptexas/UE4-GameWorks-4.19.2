@@ -2,6 +2,7 @@
 #pragma once
 
 #include "AbilityTask.h"
+#include "GameplayAbilityTargetTypes.h"
 #include "AbilityTask_WaitTargetData.generated.h"
 
 class AGameplayAbilityTargetActor;
@@ -33,7 +34,7 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 
 	/** Spawns Targeting actor and waits for it to return valid data or to be cancelled. */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", HideSpawnParms="Instigator"), Category="Ability|Tasks")
-	static UAbilityTask_WaitTargetData* WaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class);
+	static UAbilityTask_WaitTargetData* WaitTargetData(UObject* WorldContextObject, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> Class);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	bool BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class, AGameplayAbilityTargetActor*& SpawnedActor);
@@ -45,10 +46,14 @@ protected:
 
 	virtual void OnDestroy(bool AbilityEnded) override;
 
+	bool ShouldReplicateDataToServer() const;
+
 	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 
 	/** The TargetActor that we spawned, or the class CDO if this is a static targeting task */
 	TWeakObjectPtr<AGameplayAbilityTargetActor>	MyTargetActor;
+
+	TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType;
 };
 
 

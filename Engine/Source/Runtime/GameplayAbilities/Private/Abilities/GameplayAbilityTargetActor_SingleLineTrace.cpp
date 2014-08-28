@@ -19,13 +19,12 @@ AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleL
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	StaticTargetFunction = false;
 	bDebug = false;
-	bBindToConfirmCancelInputs = true;
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	//DOREPLIFETIME(AGameplayAbilityTargetActor, StartLocation);
+	
 	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, bDebug);
 	DOREPLIFETIME(AGameplayAbilityTargetActor_SingleLineTrace, SourceActor);
 }
@@ -55,10 +54,10 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	Params.AddIgnoredActors(ActorsToIgnore);
 
 	FVector AimDirection = InSourceActor->GetActorForwardVector();		//Default
-	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility)		//Server and launching client only
+	
+	if (OwningAbility)		//Server and launching client only
 	{
-		APlayerController* AimingPC = MyAbility->GetCurrentActorInfo()->PlayerController.Get();
+		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
 		check(AimingPC);
 		FVector CamLoc;
 		FRotator CamRot;
@@ -70,7 +69,7 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	FVector TraceEnd = TraceStart + (AimDirection * MaxRange);
 
 	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
-	if (MyAbility)		//Server and launching client only
+	if (OwningAbility)		//Server and launching client only
 	{
 		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
 	}
@@ -95,29 +94,13 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
 {
 	AActor* StaticSourceActor = ActorInfo->Actor.Get();
-	check(StaticSourceActor);
-	UAnimInstance* AnimInstance = ActorInfo->AnimInstance.Get();
-	USkeletalMeshComponent* StaticSourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
-
 	return MakeTargetData(PerformTrace(StaticSourceActor));
 }
 
 void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbility* InAbility)
 {
-	Ability = InAbility;
+	Super::StartTargeting(InAbility);
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
-	UAnimInstance* AnimInstance = InAbility->GetCurrentActorInfo()->AnimInstance.Get();
-
-	// We can bind directly to our ASC's confirm/cancel events, or wait to be told from an outside source to confirm or cancel
-	if (bBindToConfirmCancelInputs && (MasterPC && MasterPC->IsLocalController()))
-	{
-		UAbilitySystemComponent* ASC = Ability->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-		if (ASC)
-		{
-			ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting);
-			ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::CancelTargeting);
-		}
-	}
 	
 	bDebug = true;
 
@@ -174,5 +157,5 @@ void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::MakeTargetData(FHitResult HitResult) const
 {
 	/** Note: This will be cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-	return StartLocation.MakeTargetDataHandleFromHitResult(Ability, HitResult);
+	return StartLocation.MakeTargetDataHandleFromHitResult(OwningAbility, HitResult);
 }

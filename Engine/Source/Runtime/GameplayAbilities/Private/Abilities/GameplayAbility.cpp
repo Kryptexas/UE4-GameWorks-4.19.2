@@ -716,11 +716,15 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 		SpecToApply.InstigatorContext.AddHitResult(*GetHitResult());
 	}
 
+	if (HasOrigin())
+	{
+		SpecToApply.InstigatorContext.AddOrigin(GetOrigin().GetLocation());
+	}
+
 	TArray<AActor*> Actors = GetActors();
 	for (AActor * TargetActor : Actors)
 	{
 		check(TargetActor);
-		
 		UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 		if (TargetComponent)
 		{
@@ -738,7 +742,6 @@ FString FGameplayAbilityTargetData::ToString() const
 
 FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const
 {
-	/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	if (LocationType == EGameplayAbilityTargetingLocationType::Type::SocketTransform)
 	{
 		const FGameplayAbilityActorInfo* ActorInfo = Ability.IsValid() ? Ability.Get()->GetCurrentActorInfo() : NULL;
@@ -756,6 +759,8 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 			return FGameplayAbilityTargetDataHandle(ReturnData);
 		}
 	}
+
+	/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
 	ReturnData->HitResult = HitResult;
 	return FGameplayAbilityTargetDataHandle(ReturnData);
@@ -820,7 +825,7 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 	}
 	
 
-	ABILITY_LOG(Warning, TEXT("FGameplayAbilityTargetDataHandle Serialized: %s"), ScriptStruct ? *ScriptStruct->GetName() : TEXT("NULL") );
+	//ABILITY_LOG(Warning, TEXT("FGameplayAbilityTargetDataHandle Serialized: %s"), ScriptStruct ? *ScriptStruct->GetName() : TEXT("NULL") );
 
 	bOutSuccess = true;
 	return true;
