@@ -9,8 +9,11 @@
 #include "ReferenceViewer.h"
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
+
 
 FPathContextMenu::FPathContextMenu(const TWeakPtr<SWidget>& InParentContent)
 	: ParentContent(InParentContent)
