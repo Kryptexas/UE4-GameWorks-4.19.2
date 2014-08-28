@@ -36,6 +36,11 @@ struct FSCSDiffEntry
 	FName PropertyName;
 };
 
+inline bool operator ==(const FSCSDiffEntry A, const FSCSDiffEntry B)
+{
+	return A.TreeNodeName == B.TreeNodeName && A.PropertyName == B.PropertyName;
+}
+
 namespace DiffUtils
 {
 	KISMET_API TMap< FName, const UProperty* > GetProperties( const UObject* ForObj );

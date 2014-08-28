@@ -27,25 +27,32 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 	{
 		const bool bStillHaveLocalDiffs = LocalDifferingProperties.IsValidIndex(LocalIter);
 		const bool bStillHaveRemoteDiffs = RemoteDifferingProperties.IsValidIndex(RemoteIter);
+		FSCSDiffEntry Entry;
+
 		if (bStillHaveLocalDiffs && bStillHaveRemoteDiffs)
 		{
 			if (LocalDiffsSortKeys[LocalIter] <= RemoteDiffsSortKeys[RemoteIter])
 			{
-				DifferingProperties.Push(LocalDifferingProperties[LocalIter++]);
+				Entry = LocalDifferingProperties[LocalIter++];
 			}
 			else
 			{
-				DifferingProperties.Push(RemoteDifferingProperties[RemoteIter++]);
+				Entry = RemoteDifferingProperties[RemoteIter++];
 			}
 		}
 		else if (bStillHaveLocalDiffs)
 		{
-			DifferingProperties.Push(LocalDifferingProperties[LocalIter++]);
+			Entry = LocalDifferingProperties[LocalIter++];
 		}
 		else
 		{
 			check(bStillHaveRemoteDiffs);
-			DifferingProperties.Push(RemoteDifferingProperties[RemoteIter++]);
+			Entry = RemoteDifferingProperties[RemoteIter++];
+		}
+
+		if (!DifferingProperties.Contains(Entry))
+		{
+			DifferingProperties.Push(Entry);
 		}
 	}
 
