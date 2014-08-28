@@ -1118,12 +1118,15 @@ namespace UnrealBuildTool
 				// Add all the include paths
 				foreach(string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
 				{
-					foreach(string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+					if(Directory.Exists(IncludePath))
 					{
-						string Extension = Path.GetExtension(IncludeFileName).ToLower();
-						if(Extension == ".h" || Extension == ".inl")
+						foreach(string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
 						{
-							FileNames.Add(IncludeFileName);
+							string Extension = Path.GetExtension(IncludeFileName).ToLower();
+							if(Extension == ".h" || Extension == ".inl")
+							{
+								FileNames.Add(IncludeFileName);
+							}
 						}
 					}
 				}
