@@ -14,7 +14,7 @@ DECLARE_DELEGATE_OneParam(FOnWizardPageIsEnabled, int32)
 /**
  * Implements a wizard widget.
  */
-class SLATE_API SWizard
+class APPFRAMEWORK_API SWizard
 	: public SCompoundWidget
 {
 public:
@@ -22,7 +22,7 @@ public:
 	/**
 	 * Implements a wizard page.
 	 */
-	class SLATE_API FWizardPage
+	class APPFRAMEWORK_API FWizardPage
 	{
 	public:
 

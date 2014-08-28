@@ -8,11 +8,14 @@
 #include "SScrollBorder.h"
 #include "TemplateCategory.h"
 #include "GameProjectGenerationModule.h"
+#include "SWizard.h"
+
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 
 FName SNewProjectWizard::TemplatePageName = TEXT("Template");
 FName SNewProjectWizard::NameAndLocationPageName = TEXT("NameAndLocation");
+
 
 namespace
 {

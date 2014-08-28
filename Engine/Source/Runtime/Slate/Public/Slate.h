@@ -146,7 +146,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SWidgetSwitcher.h"
 #include "SSuggestionTextBox.h"
 #include "SBreadcrumbTrail.h"
-#include "SWizard.h"
 #include "STextComboBox.h"
 #include "SNumericEntryBox.h"
 #include "SEditableComboBox.h"

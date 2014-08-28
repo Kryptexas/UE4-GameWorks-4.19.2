@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "AppFrameworkPrivatePCH.h"
+#include "SWizard.h"
 
 
 #define LOCTEXT_NAMESPACE "SWizard"

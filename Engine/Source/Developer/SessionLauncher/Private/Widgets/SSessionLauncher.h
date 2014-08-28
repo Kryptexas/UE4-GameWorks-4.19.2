@@ -123,7 +123,4 @@ private:
 
 	// Holds the widget switcher.
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
-
-	// Holds the wizard widget.
-	TSharedPtr<SWizard> Wizard;
 };

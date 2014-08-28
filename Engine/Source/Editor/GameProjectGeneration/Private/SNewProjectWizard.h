@@ -177,7 +177,7 @@ private:
 private:
 
 	/** The wizard widget */
-	TSharedPtr<SWizard> MainWizard;
+	TSharedPtr<class SWizard> MainWizard;
 
 	FString LastBrowsePath;
 	FString CurrentProjectFileName;

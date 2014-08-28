@@ -9,8 +9,11 @@
 #include "DesktopPlatformModule.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "EditorClassUtils.h"
+#include "SWizard.h"
+
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
+
 
 struct FParentClassItem
 {

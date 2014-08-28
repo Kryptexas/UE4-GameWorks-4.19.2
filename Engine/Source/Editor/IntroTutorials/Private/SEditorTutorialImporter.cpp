@@ -6,8 +6,11 @@
 #include "IDocumentationPage.h"
 #include "EditorTutorial.h"
 #include "DesktopPlatformModule.h"
+#include "SWizard.h"
+
 
 #define LOCTEXT_NAMESPACE "SEditorTutorialImporter"
+
 
 void SEditorTutorialImporter::Construct(const FArguments& InArgs)
 {
