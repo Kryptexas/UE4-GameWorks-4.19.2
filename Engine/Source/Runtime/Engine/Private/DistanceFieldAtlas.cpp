@@ -296,6 +296,10 @@ FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue()
 	ThreadRunnable = new FBuildDistanceFieldThreadRunnable(this);
 }
 
+FDistanceFieldAsyncQueue::~FDistanceFieldAsyncQueue()
+{
+}
+
 void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 {
 #if WITH_EDITOR
