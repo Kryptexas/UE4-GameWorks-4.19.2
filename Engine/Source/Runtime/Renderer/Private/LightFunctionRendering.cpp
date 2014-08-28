@@ -150,6 +150,8 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionPS,TEXT("LightFunctionPixelShader"
 /** Returns a fade fraction for a light function and a given view based on the appropriate fade settings. */
 static float GetLightFunctionFadeFraction(const FViewInfo& View, FSphere LightBounds)
 {
+	extern float CalculateShadowFadeAlpha(float MaxUnclampedResolution, int32 ShadowFadeResolution, int32 MinShadowResolution);
+
 	// Override the global settings with the light's settings if the light has them specified
 	static auto CVarMinShadowResolution = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.MinResolution"));
 	static auto CVarShadowFadeResolution = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.FadeResolution"));
@@ -169,8 +171,7 @@ static float GetLightFunctionFadeFraction(const FViewInfo& View, FSphere LightBo
 		FMath::Max(ScreenPosition.W, 1.0f);
 
 	static auto CVarShadowTexelsPerPixel = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.TexelsPerPixel"));
-	const uint32 UnclampedResolution = FMath::TruncToInt(ScreenRadius * CVarShadowTexelsPerPixel->GetValueOnRenderThread());
-	extern float CalculateShadowFadeAlpha(int32 MaxUnclampedResolution, int32 ShadowFadeResolution, int32 MinShadowResolution);
+	const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixel->GetValueOnRenderThread();
 	const float ResolutionFadeAlpha = CalculateShadowFadeAlpha(UnclampedResolution, ShadowFadeResolution, MinShadowResolution);
 	return ResolutionFadeAlpha;
 }
