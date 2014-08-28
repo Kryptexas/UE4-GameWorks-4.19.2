@@ -283,7 +283,7 @@ FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWa
 		formatRead = true;
 
 		FString audioSetting;
-		if (!GConfig->GetString(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("AndroidAudio"), audioSetting, GEngineIni))
+		if (!GConfig->GetString(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("AndroidAudio"), audioSetting, GEngineIni))
 		{
 			audioSetting = TEXT("DEFAULT");
 		}
