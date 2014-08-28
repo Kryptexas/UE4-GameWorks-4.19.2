@@ -456,7 +456,7 @@ public:
 	}
 
 	/**
-	 * Returns a reference to the alue associated with a specified key.
+	 * Returns a reference to the value associated with a specified key.
 	 * @param	Key - The key to search for.
 	 * @return	The value associated with the specified key, or triggers an assertion if the key does not exist.
 	 */
