@@ -12,8 +12,11 @@ struct FTemplateCategory
 	/** A description of the templates contained within this category */
 	FText Description;
 
-	/** A thumbnail to help identify this category */
-	const FSlateBrush* Thumbnail;
+	/** A thumbnail to help identify this category (on the tab) */
+	const FSlateBrush* Icon;
+
+	/** A thumbnail to help identify this category (on the screenshot)*/
+	const FSlateBrush* Image;
 
 	/** A unique name for this category */
 	FName Type;

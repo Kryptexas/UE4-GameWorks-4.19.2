@@ -89,7 +89,7 @@ public:
 public:
 
 	/** (Un)register a new type of template category to be shown on the new project page */
-	virtual bool RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Thumbnail);
+	virtual bool RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Icon, const FSlateBrush* Image);
 	virtual void UnRegisterTemplateCategory(FName Type);
 
 	// Non DLL-exposed access to template categories

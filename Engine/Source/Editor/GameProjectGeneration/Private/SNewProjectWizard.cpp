@@ -598,7 +598,7 @@ TSharedRef<SWidget> SNewProjectWizard::BuildCategoryTabs()
 				.HeightOverride(32)
 				[
 					SNew(SImage)
-					.Image(Category->Thumbnail)
+					.Image(Category->Icon)
 				]
 			];
 		}
@@ -670,7 +670,7 @@ const FSlateBrush* SNewProjectWizard::GetSelectedTemplateTypeImage() const
 		auto Category = FGameProjectGenerationModule::Get().GetCategory(SelectedItem->Type);
 		if (Category.IsValid())
 		{
-			return Category->Thumbnail;
+			return Category->Image;
 		}
 	}
 	return nullptr;

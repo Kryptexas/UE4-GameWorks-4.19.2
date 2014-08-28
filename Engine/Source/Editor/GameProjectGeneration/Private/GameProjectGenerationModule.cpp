@@ -20,6 +20,7 @@ void FGameProjectGenerationModule::StartupModule()
 		FTemplateCategory::BlueprintCategoryName,
 		LOCTEXT("BlueprintCategory_Name", "Blueprint"),
 		LOCTEXT("BlueprintCategory_Description", "Blueprint templates require no programming knowledge.\nAll game mechanics can be implemented using Blueprint visual scripting.\nEach template includes a basic set of blueprints to use as a starting point for your game."),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintIcon"),
 		FEditorStyle::GetBrush("GameProjectDialog.BlueprintImage"));
 
 	RegisterTemplateCategory(
@@ -29,6 +30,7 @@ void FGameProjectGenerationModule::StartupModule()
 			LOCTEXT("CodeCategory_Description", "C++ templates offer a good example of how to work with some of the core concepts of the Engine from code.\nYou still have the option of adding your own blueprints to the project at a later date if you want.\nChoosing this template type requires you to have {0} installed."),
 			FSourceCodeNavigation::GetSuggestedSourceCodeIDE()
 		),
+		FEditorStyle::GetBrush("GameProjectDialog.CodeIcon"),
 		FEditorStyle::GetBrush("GameProjectDialog.CodeImage"));
 }
 
@@ -118,14 +120,14 @@ void FGameProjectGenerationModule::ClearSupportedTargetPlatforms()
 	GameProjectUtils::ClearSupportedTargetPlatforms();
 }
 
-bool FGameProjectGenerationModule::RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Thumbnail)
+bool FGameProjectGenerationModule::RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Icon, const FSlateBrush* Image)
 {
 	if (TemplateCategories.Contains(Type))
 	{
 		return false;
 	}
 
-	FTemplateCategory Category = { Name, Description, Thumbnail, Type };
+	FTemplateCategory Category = { Name, Description, Icon, Image, Type };
 	TemplateCategories.Add(Type, MakeShareable(new FTemplateCategory(Category)));
 	return true;
 }
