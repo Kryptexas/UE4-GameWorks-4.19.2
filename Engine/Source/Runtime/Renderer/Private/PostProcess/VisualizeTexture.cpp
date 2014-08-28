@@ -194,8 +194,9 @@ IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT(
 
 template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
-	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -475,7 +476,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	}
 }
 
-void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
+void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	if(Mode != 0)
 	{
@@ -507,8 +508,9 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = View.ShaderMap;
+	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

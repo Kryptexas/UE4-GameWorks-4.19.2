@@ -1242,7 +1242,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeShaderTypes();
 
 		// Load the global shaders.
-		if (GetGlobalShaderMap() == NULL && GIsRequestingExit)
+		if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == NULL && GIsRequestingExit)
 		{
 			// This means we can't continue without the global shader map.
 			return 1;

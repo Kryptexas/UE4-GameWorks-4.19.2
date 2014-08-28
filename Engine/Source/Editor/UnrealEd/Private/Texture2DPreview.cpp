@@ -84,8 +84,8 @@ void FBatchedElementTexture2DPreviewParameters::BindShaders(
 	const FMatrix& ColorWeights,
 	const FTexture* Texture)
 {
-	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FSimpleElementTexture2DPreviewPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap(InFeatureLevel));
+	TShaderMapRef<FSimpleElementTexture2DPreviewPS> PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 	
 	static FGlobalBoundShaderState BoundShaderState;

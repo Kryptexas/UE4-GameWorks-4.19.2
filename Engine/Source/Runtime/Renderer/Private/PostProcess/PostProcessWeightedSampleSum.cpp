@@ -172,17 +172,17 @@ void SetFilterShaders(
 	)
 {
 	check(CombineMethodInt <= 2);
-	
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 	// A macro to handle setting the filter shader for a specific number of samples.
 #define SET_FILTER_SHADER_TYPE(NumSamples) \
 	case NumSamples: \
 	{ \
-		TShaderMapRef<TFilterVS<NumSamples> > VertexShader(GetGlobalShaderMap()); \
+		TShaderMapRef<TFilterVS<NumSamples> > VertexShader(ShaderMap); \
 		*OutVertexShader = *VertexShader; \
 		if(CombineMethodInt == 0) \
 		{ \
-			TShaderMapRef<TFilterPS<NumSamples, 0> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef<TFilterPS<NumSamples, 0> > PixelShader(ShaderMap); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
@@ -191,7 +191,7 @@ void SetFilterShaders(
 		} \
 		else if(CombineMethodInt == 1) \
 		{ \
-			TShaderMapRef<TFilterPS<NumSamples, 1> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef<TFilterPS<NumSamples, 1> > PixelShader(ShaderMap); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
@@ -200,7 +200,7 @@ void SetFilterShaders(
 		} \
 		else\
 		{ \
-			TShaderMapRef<TFilterPS<NumSamples, 2> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef<TFilterPS<NumSamples, 2> > PixelShader(ShaderMap); \
 			{ \
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \

@@ -1658,10 +1658,10 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	if (ShadowInfo->bTranslucentShadow)
 	{
 		// Get the Shadow Projection Vertex Shader (with transforms)
-		FShadowProjectionVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionVS>();
+		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
 
 		// Get the translucency pixel shader
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionFromTranslucencyPS<Quality> >();
+		FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<Quality> >();
 
 		// Bind shader
 		static FGlobalBoundShaderState BoundShaderState;
@@ -1675,13 +1675,13 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	else if (ShadowInfo->IsWholeSceneDirectionalShadow())
 	{
 		// Get the Shadow Projection Vertex Shader which does not use a transform
-		FShadowProjectionNoTransformVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionNoTransformVS>();
+		FShadowProjectionNoTransformVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionNoTransformVS>();
 
 		// Get the Shadow Projection Pixel Shader for PSSM
 		if (ShadowInfo->CascadeSettings.FadePlaneLength > 0)
 		{
 			// This shader fades the shadow towards the end of the split subfrustum.
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, true> >();
+			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, true> >();
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
@@ -1692,7 +1692,7 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 		else
 		{
 			// Do not use the fade plane shader if the fade plane region length is 0 (avoids divide by 0).
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, false> >();
+			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
@@ -1706,11 +1706,11 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	else
 	{
 		// Get the Shadow Projection Vertex Shader
-		FShadowProjectionVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionVS>();
+		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
 
 		// Get the Shadow Projection Pixel Shader
 		// This shader is the ordinary projection shader used by point/spot lights.		
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, false> >();
+		FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
@@ -1811,7 +1811,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	}
 
 	// Find the projection shaders.
-	TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FShadowProjectionVS> VertexShader(View->ShaderMap);
 
 	// Depth test wo/ writes, no color writing.
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
@@ -1934,7 +1934,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
 
 			// Find the projection shaders.
-			TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(GetGlobalShaderMap());
+			TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(View->ShaderMap);
 			VertexShaderNoTransform->SetParameters(RHICmdList, *View);
 			SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
 
@@ -2000,7 +2000,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		}
 		
 		// Find the projection shaders.
-		TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FShadowProjectionVS> VertexShader(View->ShaderMap);
 
 		// Cache the bound shader state
 		SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), MaskBoundShaderState[1], GetVertexDeclarationFVector4(), *VertexShader, NULL);
@@ -2148,8 +2148,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 template <uint32 Quality>
 static void SetPointLightShaderTempl(FRHICommandList& RHICmdList, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo)
 {
-	TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<TOnePassPointShadowProjectionPS<Quality> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FShadowProjectionVS> VertexShader(View.ShaderMap);
+	TShaderMapRef<TOnePassPointShadowProjectionPS<Quality> > PixelShader(View.ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -2992,6 +2992,7 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 					{
 						LightPropagationVolume->InjectDirectionalLightRSM( 
 							RHICmdList, 
+							*ProjectedShadowInfo->DependentView,
 							GSceneRenderTargets.GetReflectiveShadowMapDiffuseTexture(), 
 							GSceneRenderTargets.GetReflectiveShadowMapNormalTexture(),
 							GSceneRenderTargets.GetReflectiveShadowMapDepthTexture(),

@@ -110,6 +110,8 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 	, Pass(0)
 	, RHICmdList(InRHICmdList)
 	, ViewPortRect(0, 0, 0 ,0)
+	, FeatureLevel(View.GetFeatureLevel())
+	, ShaderMap(InView.ShaderMap)
 {
 	check(!IsViewportValid());
 
@@ -121,11 +123,6 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 FRenderingCompositePassContext::~FRenderingCompositePassContext()
 {
 	Graph.Free();
-}
-
-ERHIFeatureLevel::Type FRenderingCompositePassContext::GetFeatureLevel() const
-{
-	return View.GetFeatureLevel();
 }
 
 void FRenderingCompositePassContext::Process(const TCHAR *GraphDebugName)

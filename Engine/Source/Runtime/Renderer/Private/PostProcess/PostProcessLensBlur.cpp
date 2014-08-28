@@ -196,8 +196,8 @@ void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessLensBlurVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessLensBlurPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessLensBlurVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessLensBlurPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

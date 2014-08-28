@@ -369,7 +369,7 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 
 	if (bInitializeOffsets)
 	{
-//later		InitializePixelShader = GetGlobalShaderMap()->GetShader<FShaderComplexityAccumulatePixelShader>();
+//later		InitializePixelShader = GetGlobalShaderMap(View.ShaderMap)->GetShader<FShaderComplexityAccumulatePixelShader>();
 		DistortPixelShader = NULL;
 	}
 	else
@@ -424,7 +424,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 	if (bOverrideWithShaderComplexity)
 	{
 		check(!bInitializeOffsets);
-//later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityPixelShader(GetGlobalShaderMap());
+//later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityPixelShader(GetGlobalShaderMap(View->ShaderMap));
 		//don't add any vertex complexity
 //later		ShaderComplexityPixelShader->SetParameters(0, DistortPixelShader->GetNumInstructions());
 	}
@@ -451,7 +451,7 @@ FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBound
 	if (bOverrideWithShaderComplexity)
 	{
 		check(!bInitializeOffsets);
-//later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap());
+//later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
 //later		PixelShaderRHIRef = ShaderComplexityAccumulatePixelShader->GetPixelShader();
 	}
 
@@ -895,8 +895,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 				// Set the view family's render target/viewport.
 				Context.SetViewportAndCallRHI(View.ViewRect);
 
-				TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-				TShaderMapRef<FDistortionApplyScreenPS> PixelShader(GetGlobalShaderMap());
+				TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+				TShaderMapRef<FDistortionApplyScreenPS> PixelShader(View.ShaderMap);
 
 				static FGlobalBoundShaderState BoundShaderState;
 				

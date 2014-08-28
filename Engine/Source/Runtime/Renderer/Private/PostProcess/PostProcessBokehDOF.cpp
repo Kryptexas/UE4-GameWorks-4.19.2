@@ -186,10 +186,10 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	// setup shader
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 	
 	{
-		TShaderMapRef<PostProcessVisualizeDOFPS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<PostProcessVisualizeDOFPS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 
@@ -345,9 +345,9 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	// setup shader
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 	{
-		TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 
@@ -560,8 +560,8 @@ VARIATION1(0,1)			VARIATION1(1,1)			VARIATION1(2,1)
 template <uint32 DOFMethod, uint32 DOFIndexStyle>
 void FRCPassPostProcessBokehDOF::SetShaderTempl(const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize)
 {
-	TShaderMapRef<FPostProcessBokehDOFVS<DOFMethod, DOFIndexStyle> > VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBokehDOFPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBokehDOFVS<DOFMethod, DOFIndexStyle> > VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBokehDOFPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

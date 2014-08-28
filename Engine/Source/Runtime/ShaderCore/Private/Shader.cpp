@@ -668,7 +668,7 @@ FShader::FShader() :
 {
 	// set to undefined (currently shared with SF_Vertex)
 	Target.Frequency = 0;
-	Target.Platform = GRHIShaderPlatform;
+	Target.Platform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
 }
 
 /**

@@ -280,8 +280,8 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& 
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
-		TShaderMapRef<FHeightFogVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FHeightFogVS> VertexShader(View.ShaderMap);
+		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(View.ShaderMap);
 
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
 		VertexShader->SetParameters(RHICmdList, View);

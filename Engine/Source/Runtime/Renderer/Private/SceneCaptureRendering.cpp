@@ -29,8 +29,9 @@ void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList
 
 		// Render the scene normally
 		const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
-		FIntRect ViewRect = SceneRenderer->Views[0].ViewRect;
-		FIntRect UnconstrainedViewRect = SceneRenderer->Views[0].UnconstrainedViewRect;
+		FViewInfo& View = SceneRenderer->Views[0];
+		FIntRect ViewRect = View.ViewRect;
+		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
 		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
 		SceneRenderer->Render(RHICmdList);
@@ -45,14 +46,14 @@ void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-			TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
-			TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FScreenVS> VertexShader(View.ShaderMap);
+			TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
 			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(RHICmdList, SceneRenderer->FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			FRenderingCompositePassContext Context(RHICmdList, SceneRenderer->Views[0]);
+			FRenderingCompositePassContext Context(RHICmdList, View);
 
-			VertexShader->SetParameters(RHICmdList, SceneRenderer->Views[0]);
+			VertexShader->SetParameters(RHICmdList, View);
 			PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
 
 			FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());

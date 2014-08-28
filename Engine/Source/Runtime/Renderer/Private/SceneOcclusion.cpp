@@ -746,8 +746,8 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 
 		SetRenderTarget(RHICmdList, ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL);
 
-		TShaderMapRef< FScreenVS >	VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< FHZBTestPS >	PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< FScreenVS >	VertexShader(View.ShaderMap);
+		TShaderMapRef< FHZBTestPS >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
@@ -890,8 +890,8 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
 
-		TShaderMapRef< FScreenVS >		VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< THZBBuildPS<0> >	PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);
+		TShaderMapRef< THZBBuildPS<0> >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
@@ -924,8 +924,8 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
 
-		TShaderMapRef< FScreenVS >		VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< THZBBuildPS<1> >	PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);
+		TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
@@ -1002,7 +1002,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 
 			// Lookup the vertex shader.
-			TShaderMapRef<FOcclusionQueryVS> VertexShader(GetGlobalShaderMap());
+			TShaderMapRef<FOcclusionQueryVS> VertexShader(View.ShaderMap);
 			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), OcclusionTestBoundShaderState, GetVertexDeclarationFVector3(), *VertexShader, NULL);
 			VertexShader->SetParameters(RHICmdList, View);
 

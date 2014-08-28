@@ -185,7 +185,10 @@ static int32 GenerateParticleSortKeys(
 {
 	SCOPED_DRAW_EVENT(ParticleSortKeyGen, DEC_PARTICLE);
 
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	// MOBILEPREVIEWTODO: Proper value for this
+	const auto FeatureLevel = GRHIFeatureLevel;
+
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	FParticleKeyGenParameters KeyGenParameters;
 	FParticleKeyGenUniformBufferRef KeyGenUniformBuffer;
@@ -193,7 +196,7 @@ static int32 GenerateParticleSortKeys(
 	int32 TotalParticleCount = 0;
 
 	// Grab the shader, set output.
-	TShaderMapRef<FParticleSortKeyGenCS> KeyGenCS(GetGlobalShaderMap());
+	TShaderMapRef<FParticleSortKeyGenCS> KeyGenCS(GetGlobalShaderMap(FeatureLevel));
 	RHICmdList.SetComputeShader(KeyGenCS->GetComputeShader());
 	KeyGenCS->SetOutput(RHICmdList, KeyBufferUAV, SortedVertexBufferUAV);
 	KeyGenCS->SetPositionTextures(RHICmdList, PositionTextureRHI);

@@ -249,8 +249,9 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	static FGlobalBoundShaderState ResolveBoundShaderState;
 
 	// Set the vertex and pixel shader
-	TShaderMapRef<FResolveVS> ResolveVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<TPixelShader> ResolvePixelShader(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
+	TShaderMapRef<TPixelShader> ResolvePixelShader(ShaderMap);
 	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
 	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);

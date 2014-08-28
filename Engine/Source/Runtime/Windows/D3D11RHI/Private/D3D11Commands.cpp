@@ -1894,7 +1894,8 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		OriginalResourceState.ClearCurrentVertexResources(StateCache);		
 
 		// Set the new shaders
-		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
+		auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 
 		FOneColorPS* PixelShader = NULL;
 
@@ -1902,42 +1903,42 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
 		if (BoundRenderTargets.GetNumActiveTargets() <= 1)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 2)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 3)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 4)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 5)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 6)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 7)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		else if (BoundRenderTargets.GetNumActiveTargets() == 8)
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 

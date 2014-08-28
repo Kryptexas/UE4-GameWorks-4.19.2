@@ -207,12 +207,12 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		SSRQuality = 0;
 	}
 
-	TShaderMapRef< FPostProcessVS > VertexShader(GetGlobalShaderMap());
+	TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 
 	#define CASE(A, B) \
 		case (A + 2 * (B + 3 * 0 )): \
 		{ \
-			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(Context.GetShaderMap()); \
 			static FGlobalBoundShaderState BoundShaderState; \
 			SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			VertexShader->SetParameters(Context); \

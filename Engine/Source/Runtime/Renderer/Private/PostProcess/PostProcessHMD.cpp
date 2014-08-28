@@ -219,8 +219,8 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	check(GEngine->HMDDevice.IsValid());
 
 	{
-		TShaderMapRef<FPostProcessHMDVS<false> > VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FPostProcessHMDPS<false> > PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessHMDVS<false> > VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessHMDPS<false> > PixelShader(Context.GetShaderMap());
 		static FGlobalBoundShaderState BoundShaderState;
 		
 		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);

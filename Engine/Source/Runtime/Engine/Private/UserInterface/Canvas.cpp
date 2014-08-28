@@ -245,7 +245,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			BatchedDrawCommand,
 			FBatchedDrawParameters,Parameters,DrawParameters,
 		{
-			const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform);
+			const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Parameters.ShaderPlatform);
 				
 			// draw batched items
 			Parameters.RenderData->BatchedElements.Draw(

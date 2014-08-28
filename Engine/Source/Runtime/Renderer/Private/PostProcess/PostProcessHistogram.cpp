@@ -108,7 +108,7 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(Context.GetShaderMap());
 
 	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());

@@ -82,8 +82,8 @@ void FNormalMapBatchedElementParameters::BindShaders(
 	const FMatrix& ColorWeights,
 	const FTexture* Texture)
 {
-	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FSimpleElementNormalMapPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap(InFeatureLevel));
+	TShaderMapRef<FSimpleElementNormalMapPS> PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 	
 	static FGlobalBoundShaderState BoundShaderState;

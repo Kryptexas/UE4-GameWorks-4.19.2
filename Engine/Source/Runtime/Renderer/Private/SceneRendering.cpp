@@ -129,6 +129,8 @@ void FViewInfo::Init()
 	}
 
 	MaxShadowCascades = FMath::Clamp<int32>(CVarMaxShadowCascades.GetValueOnAnyThread(), 1, 10);
+
+	ShaderMap = GetGlobalShaderMap(FeatureLevel);
 }
 
 FViewInfo::~FViewInfo()

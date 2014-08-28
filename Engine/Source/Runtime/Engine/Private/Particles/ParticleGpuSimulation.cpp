@@ -1236,8 +1236,8 @@ void ExecuteSimulationCommands(
 	)
 {
 	// Grab shaders.
-	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<TParticleSimulationPS<bUseDepthBufferCollision> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
+	TShaderMapRef<TParticleSimulationPS<bUseDepthBufferCollision> > PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 	// Bound shader state.
 	
@@ -1293,8 +1293,8 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	int32 FirstTile = 0;
 
 	// Grab shaders.
-	TShaderMapRef<FParticleTileVS> VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef<FParticleSimulationClearPS> PixelShader( GetGlobalShaderMap() );
+	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
+	TShaderMapRef<FParticleSimulationClearPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 	
 	// Bound shader state.
 	
@@ -1539,8 +1539,8 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 		FirstParticle += ParticlesThisDrawCall;
 
 		// Grab shaders.
-		TShaderMapRef<FParticleInjectionVS> VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef<FParticleInjectionPS> PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef<FParticleInjectionVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef<FParticleInjectionPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 		// Bound shader state.
 		
@@ -1762,8 +1762,8 @@ static void VisualizeGPUSimulation(
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	// Grab shaders.
-	TShaderMapRef<FParticleSimVisualizeVS> VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef<FParticleSimVisualizePS> PixelShader( GetGlobalShaderMap() );
+	TShaderMapRef<FParticleSimVisualizeVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
+	TShaderMapRef<FParticleSimVisualizePS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 	// Bound shader state.
 	
@@ -2012,7 +2012,10 @@ static FBox ComputeParticleBounds(
 	FParticleBoundsParameters Parameters;
 	FParticleBoundsUniformBufferRef UniformBuffer;
 
-	if (ParticleCount > 0 && GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+	// MOBILEPREVIEWTODO: Proper value for this
+	const auto FeatureLevel = GRHIFeatureLevel;
+
+	if (ParticleCount > 0 && FeatureLevel == ERHIFeatureLevel::SM5)
 	{
 		// Determine how to break the work up over individual work groups.
 		const uint32 MaxGroupCount = 128;
@@ -2038,7 +2041,7 @@ static FBox ComputeParticleBounds(
 			PF_A32B32G32R32F );
 
 		// Grab the shader.
-		TShaderMapRef<FParticleBoundsCS> ParticleBoundsCS( GetGlobalShaderMap() );
+		TShaderMapRef<FParticleBoundsCS> ParticleBoundsCS(GetGlobalShaderMap(FeatureLevel));
 		RHICmdList.SetComputeShader(ParticleBoundsCS->GetComputeShader());
 
 		// Dispatch shader to compute bounds.

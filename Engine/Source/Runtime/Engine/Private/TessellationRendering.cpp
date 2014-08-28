@@ -8,7 +8,7 @@ bool RequiresAdjacencyInformation( UMaterialInterface* Material, const FVertexFa
 {
 	EMaterialTessellationMode TessellationMode = MTM_NoTessellation;
 	bool bEnableCrackFreeDisplacement = false;
-	if ( RHISupportsTessellation(GRHIShaderPlatform) && VertexFactoryType->SupportsTessellationShaders() && Material )
+	if ( RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactoryType->SupportsTessellationShaders() && Material )
 	{
 		if ( IsInRenderingThread() )
 		{

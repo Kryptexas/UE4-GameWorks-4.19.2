@@ -351,7 +351,7 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
+void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
 	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -362,10 +362,12 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
 	// Write 1 to highest bit of stencil to areas that should not receive decals
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI(), 0x80);
 
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FStencilDecalMaskPS> PixelShader(GetGlobalShaderMap());
+	const auto FeatureLevel = View.GetFeatureLevel();
+	auto ShaderMap = View.ShaderMap;
+	TShaderMapRef<FScreenVS> ScreenVertexShader(ShaderMap);
+	TShaderMapRef<FStencilDecalMaskPS> PixelShader(ShaderMap);
 	
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	PixelShader->SetParameters(RHICmdList, View);
 
@@ -746,7 +748,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	}
 
 	// this cast is safe as only the dedicated server implements this differently and this pass should not be executed on the dedicated server
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FScene& Scene = *(FScene*)ViewFamily.Scene;
 
@@ -863,7 +865,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		int32 LastDecalHasNormal = -1; // Decal state can change based on its normal property.(SM5)
 		ERenderTargetMode LastRenderTargetMode = RTM_Unknown;
 		int32 WasInsideDecal = -1;
-		const ERHIFeatureLevel::Type SMFeatureLevel = GetMaxSupportedFeatureLevel(GRHIShaderPlatform);
+		const ERHIFeatureLevel::Type SMFeatureLevel = Context.GetFeatureLevel();
 
 		SCOPED_DRAW_EVENT(Decals, DEC_SCENE_ITEMS);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());

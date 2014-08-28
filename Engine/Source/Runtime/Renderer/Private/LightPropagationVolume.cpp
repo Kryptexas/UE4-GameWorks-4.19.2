@@ -611,22 +611,22 @@ IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION>,
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES>,							TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES>,	TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
 
-FLpvWriteShaderCSBase* GetPropagateShader( bool bSecondaryOcclusion, bool bSecondaryBounces )
+FLpvWriteShaderCSBase* GetPropagateShader(FViewInfo& View, bool bSecondaryOcclusion, bool bSecondaryBounces )
 {
 	FLpvWriteShaderCSBase* ShaderOut = NULL;
 	if ( bSecondaryBounces )
 	{
 		if ( bSecondaryOcclusion ) 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES> >(View.ShaderMap);
 		else 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES> >(View.ShaderMap);
 	}
 	else
 	{
 		if ( bSecondaryOcclusion ) 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION> >(View.ShaderMap);
 		else 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<0> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<0> >(View.ShaderMap);
 	}
 	return ShaderOut;
 }
@@ -922,7 +922,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 /**
 * Clears the LPV
 */
-void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
+void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	if ( !bEnabled )
 	{
@@ -941,7 +941,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 	//RHIBatchComputeShaderBegin();
 	// Clear the list buffers
 	{
-		TShaderMapRef<FLpvClearListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -953,7 +953,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 
 	// Clear the LPV (or fade, if REFINE_OVER_TIME is enabled)
 	{
-		TShaderMapRef<FLpvClearCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -966,7 +966,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 	// Clear the geometry volume if necessary
 	if ( SecondaryOcclusionStrength > 0.001f )
 	{
-		TShaderMapRef<FLpvClearGeometryVolumeCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearGeometryVolumeCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -1033,6 +1033,7 @@ void FLightPropagationVolume::SetVplInjectionConstants(
 */
 void FLightPropagationVolume::InjectDirectionalLightRSM(
 	FRHICommandListImmediate& RHICmdList,
+	FViewInfo&					View,
 	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmNormalTex, 
 	const FTexture2DRHIRef&		RsmDepthTex, 
@@ -1045,7 +1046,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 
 		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
 
-		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		// Clear the list counter the first time this function is called in a frame
@@ -1070,7 +1071,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		}
 		LpvWriteUniformBufferParams->GeometryVolumeCaptureLightDirection = LightDirection;
 
-		TShaderMapRef<FLpvBuildGeometryVolumeCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvBuildGeometryVolumeCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams ); // FIXME: is this causing a stall? Double-buffer?
@@ -1090,7 +1091,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 /**
 * Propagates light in the LPV 
 */
-void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
+void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	if ( !bEnabled )
 	{
@@ -1103,7 +1104,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 		SCOPED_DRAW_EVENT(LpvAccumulateVplLists, DEC_LIGHT);
 		mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
 
-		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
@@ -1129,7 +1130,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 			bool bSecondaryOcclusion	= (SecondaryOcclusionStrength > 0.001f); 
 			bool bSecondaryBounces		= (SecondaryBounceStrength > 0.001f); 
 			mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
-			FLpvWriteShaderCSBase* Shader = GetPropagateShader( bSecondaryOcclusion, bSecondaryBounces );
+			FLpvWriteShaderCSBase* Shader = GetPropagateShader(View, bSecondaryOcclusion, bSecondaryBounces);
 			RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 			LpvWriteUniformBufferParams->PropagationIndex = PropagationStep;
@@ -1190,7 +1191,7 @@ void FLightPropagationVolume::GetShaderParams( FLpvBaseWriteShaderParams& OutPar
 	OutParams.UniformBuffer = LpvWriteUniformBuffer;
 }
 
-void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light)
+void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light, const FViewInfo& View)
 {
 	if(!bEnabled)
 	{
@@ -1224,11 +1225,11 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 
 			if ( Light.CastsStaticShadow() || Light.CastsDynamicShadow() )
 			{
-				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<INJECT_SHADOWED> >( GetGlobalShaderMap() );
+				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<INJECT_SHADOWED> >(View.ShaderMap);
 			}
 			else
 			{
-				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<0> >( GetGlobalShaderMap() );
+				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<0> >(View.ShaderMap);
 			}
 		}
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());

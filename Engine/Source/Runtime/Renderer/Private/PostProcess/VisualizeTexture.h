@@ -7,6 +7,7 @@
 #pragma once
 
 struct IPooledRenderTarget;
+class FViewInfo;
 
 class FVisualizeTexture
 {
@@ -14,7 +15,7 @@ public:
 	FVisualizeTexture();
 
 	/** renders the VisualizeTextureContent to the current render target */
-	void PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View);
+	void PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 	/** */
 	void OnStartFrame(const FSceneView& View);
 	/** */

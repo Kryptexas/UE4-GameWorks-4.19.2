@@ -291,7 +291,7 @@ bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLi
 template <bool bVisualizeLightCulling>
 static void SetShaderTemplTiledLighting(
 	FRHICommandListImmediate& RHICmdList,
-	const FSceneView& View, 
+	const FViewInfo& View,
 	int32 ViewIndex,
 	int32 NumViews,
 	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
@@ -302,7 +302,7 @@ static void SetShaderTemplTiledLighting(
 	IPooledRenderTarget& InTexture,
 	IPooledRenderTarget& OutTexture)
 {
-	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(GetGlobalShaderMap());
+	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(View.ShaderMap);
 	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
 	ComputeShader->SetParameters(RHICmdList, View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, OutTexture);

@@ -559,8 +559,9 @@ void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllV
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState< CW_RGB, BO_Add, BF_One, BF_One >::GetRHI());
 
-	TShaderMapRef< FPostProcessVS > VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef< FReflectionCaptureSpecularBouncePS > PixelShader( GetGlobalShaderMap() );
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef< FPostProcessVS > VertexShader(ShaderMap);
+	TShaderMapRef< FReflectionCaptureSpecularBouncePS > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -635,11 +636,11 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews(FR
 			FReflectionEnvironmentTiledDeferredCS* ComputeShader = NULL;
 			if( bUseLightmaps )
 			{
-				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<1> >( GetGlobalShaderMap() );
+				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<1> >(View.ShaderMap);
 			}
 			else
 			{
-				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<0> >( GetGlobalShaderMap() );
+				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<0> >(View.ShaderMap);
 			}
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -760,12 +761,12 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 				{
 					const FSphere LightBounds(ReflectionCapture.PositionAndRadius, ReflectionCapture.PositionAndRadius.W);
 
-					TShaderMapRef<TDeferredLightVS<true> > VertexShader(GetGlobalShaderMap());
+					TShaderMapRef<TDeferredLightVS<true> > VertexShader(View.ShaderMap);
 
 					// Use the appropriate shader for the capture shape
 					if (ReflectionCapture.CaptureProperties.Z == 0)
 					{
-						TShaderMapRef<TStandardDeferredReflectionPS<true> > PixelShader(GetGlobalShaderMap());
+						TShaderMapRef<TStandardDeferredReflectionPS<true> > PixelShader(View.ShaderMap);
 
 						static FGlobalBoundShaderState BoundShaderState;
 						
@@ -775,7 +776,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 					}
 					else
 					{
-						TShaderMapRef<TStandardDeferredReflectionPS<false> > PixelShader(GetGlobalShaderMap());
+						TShaderMapRef<TStandardDeferredReflectionPS<false> > PixelShader(View.ShaderMap);
 
 						static FGlobalBoundShaderState BoundShaderState;
 						
@@ -815,7 +816,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 			}
 
-			TShaderMapRef< FPostProcessVS >		VertexShader(GetGlobalShaderMap());
+			TShaderMapRef< FPostProcessVS >		VertexShader(View.ShaderMap);
 
 			if (!LightAccumulation)
 			{
@@ -826,7 +827,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 #define CASE(A,B,C) \
 			case ((A << 2) | (B << 1) | C) : \
 			{ \
-			TShaderMapRef< FReflectionApplyPS<A, B, C> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef< FReflectionApplyPS<A, B, C> > PixelShader(View.ShaderMap); \
 			static FGlobalBoundShaderState BoundShaderState; \
 			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, SSROutput->GetRenderTargetItem().ShaderResourceTexture); \

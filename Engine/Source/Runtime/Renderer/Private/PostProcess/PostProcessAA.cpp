@@ -216,8 +216,8 @@ IMPLEMENT_SHADER_TYPE(,FFXAAVS,TEXT("FXAAShader"),TEXT("FxaaVS"),SF_Vertex);
 template <uint32 Quality>
 static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessAntiAliasingPS<Quality> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FFXAAVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessAntiAliasingPS<Quality> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -272,7 +272,7 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 	}
 	
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FFXAAVS> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,

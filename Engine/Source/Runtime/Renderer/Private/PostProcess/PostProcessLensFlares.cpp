@@ -154,12 +154,12 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
 	{
-		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
@@ -186,7 +186,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 
 	// add lens flares on top of that
 	{
-		TShaderMapRef<FPostProcessLensFlaresPS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessLensFlaresPS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 		

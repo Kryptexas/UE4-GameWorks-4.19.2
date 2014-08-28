@@ -222,8 +222,8 @@ static void InjectCurves(
 			(float)Curve.TexelAllocation.Y / GParticleCurveTextureSizeY );
 
 		// Grab shaders.
-		TShaderMapRef<FParticleCurveInjectionVS> VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef<FParticleCurveInjectionPS> PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef<FParticleCurveInjectionVS> VertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+		TShaderMapRef<FParticleCurveInjectionPS> PixelShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 
 		// Bound shader state.
 		

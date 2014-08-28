@@ -139,8 +139,8 @@ void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList,
 template<typename TPixelShader>
 void FMipLevelBatchedElementParameters::BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
 {
-	TShaderMapRef<FCubemapTexturePropertiesVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<TPixelShader> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FCubemapTexturePropertiesVS> VertexShader(GetGlobalShaderMap(InFeatureLevel));
+	TShaderMapRef<TPixelShader> PixelShader(GetGlobalShaderMap(InFeatureLevel));
 	
 
 	static FGlobalBoundShaderState BoundShaderState;
@@ -163,8 +163,8 @@ void FIESLightProfilePS::SetParameters( FRHICommandList& RHICmdList, const FText
 
 void FIESLightProfileBatchedElementParameters::BindShaders( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
 {
-	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FIESLightProfilePS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap(InFeatureLevel));
+	TShaderMapRef<FIESLightProfilePS> PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 	
 	static FGlobalBoundShaderState BoundShaderState;

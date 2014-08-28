@@ -478,8 +478,8 @@ void RecompileGlobalShaders()
 		// Flush pending accesses to the existing global shaders.
 		FlushRenderingCommands();
 
+		// MOBILEPREVIEWTODO: Use global feature level bitfield to recompile for all active platforms
 		GetGlobalShaderMap(GRHIShaderPlatform)->Empty();
-
 		VerifyGlobalShaders(GRHIShaderPlatform, false);
 
 		GShaderCompilingManager->ProcessAsyncResults(false, true);

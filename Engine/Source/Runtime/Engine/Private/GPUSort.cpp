@@ -690,7 +690,8 @@ int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortB
 	const bool bDebugOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bDebugSort = CVarDebugSort.GetValueOnRenderThread() != 0;
 
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	const auto FeatureLevel = GRHIFeatureLevel;
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	SCOPED_DRAW_EVENTF(SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
 
@@ -729,10 +730,11 @@ int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortB
 	SortParameters.GroupCount = GroupCount;
 
 	// Grab shaders.
-	TShaderMapRef<FRadixSortClearOffsetsCS> ClearOffsetsCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortUpsweepCS> UpsweepCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortSpineCS> SpineCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortDownsweepCS> DownsweepCS(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<FRadixSortClearOffsetsCS> ClearOffsetsCS(ShaderMap);
+	TShaderMapRef<FRadixSortUpsweepCS> UpsweepCS(ShaderMap);
+	TShaderMapRef<FRadixSortSpineCS> SpineCS(ShaderMap);
+	TShaderMapRef<FRadixSortDownsweepCS> DownsweepCS(ShaderMap);
 
 	// Constant buffer workaround. Both shaders must use either the constant buffer or vertex buffer.
 	check( UpsweepCS->RequiresConstantBufferWorkaround() == DownsweepCS->RequiresConstantBufferWorkaround() );

@@ -128,8 +128,10 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBenchmarkVS,TEXT("GPUBenchmark"),TEXT("MainBe
 template <uint32 Method>
 void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
 {
-	TShaderMapRef<FPostProcessBenchmarkVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBenchmarkPS<Method> > PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(View.GetFeatureLevel());
+
+	TShaderMapRef<FPostProcessBenchmarkVS> VertexShader(ShaderMap);
+	TShaderMapRef<FPostProcessBenchmarkPS<Method> > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

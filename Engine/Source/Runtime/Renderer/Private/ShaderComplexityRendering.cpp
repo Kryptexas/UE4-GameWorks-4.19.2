@@ -180,8 +180,8 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	//reuse this generic vertex shader
-	TShaderMapRef<FShaderComplexityApplyVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FShaderComplexityApplyPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FShaderComplexityApplyVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FShaderComplexityApplyPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState ShaderComplexityBoundShaderState;
 	

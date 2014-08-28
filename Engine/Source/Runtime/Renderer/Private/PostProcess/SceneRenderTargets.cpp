@@ -667,11 +667,12 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		TShaderMapRef<FHdrCustomResolveVS> VertexShader(GetGlobalShaderMap());
+		auto ShaderMap = GetGlobalShaderMap(CurrentFeatureLevel);
+		TShaderMapRef<FHdrCustomResolveVS> VertexShader(ShaderMap);
 
 		if(samples == 2)
 		{
-			TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
 			static FGlobalBoundShaderState BoundShaderState;
 			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);
@@ -679,7 +680,7 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		}
 		else if(samples == 4)
 		{
-			TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
 			static FGlobalBoundShaderState BoundShaderState;
 			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);
@@ -687,7 +688,7 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		}
 		else if(samples == 8)
 		{
-			TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
 			static FGlobalBoundShaderState BoundShaderState;
 			SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 			PixelShader->SetParameters(RHICmdList, GSceneRenderTargets.SceneColor->GetRenderTargetItem().TargetableTexture);

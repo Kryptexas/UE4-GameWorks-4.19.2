@@ -231,14 +231,14 @@ class FDrawBasePassDynamicMeshAction
 {
 public:
 
-	const FSceneView& View;
+	const FViewInfo& View;
 	bool bBackFace;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
 	FDrawBasePassDynamicMeshAction(
-		const FSceneView& InView,
+		const FViewInfo& InView,
 		const bool bInBackFace,
 		const FHitProxyId InHitProxyId
 		)
@@ -328,7 +328,7 @@ public:
 
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	FRHICommandList& RHICmdList, 
-	const FSceneView& View,
+	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
 	bool bBackFace,

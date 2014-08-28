@@ -5171,7 +5171,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 
 		UMaterial::AllMaterialsCacheResourceShadersForRendering();
 		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(GRHIShaderPlatform, false);
+		GetGlobalShaderMap(InFeatureLevel, false);
 		GShaderCompilingManager->ProcessAsyncResults(false, true);
 
 		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
@@ -5214,7 +5214,7 @@ void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
 
 		UMaterial::AllMaterialsCacheResourceShadersForRendering();
 		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(GRHIShaderPlatform, false);
+		GetGlobalShaderMap(InFeatureLevel, false);
 		GShaderCompilingManager->ProcessAsyncResults(false, true);
 		
 		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)

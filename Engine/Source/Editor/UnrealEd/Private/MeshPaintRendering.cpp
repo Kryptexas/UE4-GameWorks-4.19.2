@@ -352,8 +352,8 @@ namespace MeshPaintRendering
 										   const float InGamma,
 										   const FMeshPaintShaderParameters& InShaderParams )
 	{
-		TShaderMapRef< TMeshPaintVertexShader > VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< TMeshPaintPixelShader > PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< TMeshPaintVertexShader > VertexShader(GetGlobalShaderMap(InFeatureLevel));
+		TShaderMapRef< TMeshPaintPixelShader > PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 		
 		static FGlobalBoundShaderState BoundShaderState;
@@ -373,8 +373,8 @@ namespace MeshPaintRendering
 												 const float InGamma,
 												 const FMeshPaintDilateShaderParameters& InShaderParams )
 	{
-		TShaderMapRef< TMeshPaintDilateVertexShader > VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< TMeshPaintDilatePixelShader > PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< TMeshPaintDilateVertexShader > VertexShader(GetGlobalShaderMap(InFeatureLevel));
+		TShaderMapRef< TMeshPaintDilatePixelShader > PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 		
 		static FGlobalBoundShaderState BoundShaderState;

@@ -203,11 +203,14 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	FGlobalBoundShaderState* LocalBoundShaderState = 0;
 	const FSceneView& View = Context.View;
 
+	const auto FeatureLevel = Context.GetFeatureLevel();
+	auto ShaderMap = Context.GetShaderMap();
+
 	// A macro to handle setting the filter shader for a specific number of samples.
 #define CASE_COUNT(BlendCount) \
 	case BlendCount: \
 	{ \
-		TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(GetGlobalShaderMap()); \
+		TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
 		static FGlobalBoundShaderState BoundShaderState; \
 		LocalBoundShaderState = &BoundShaderState;\
 		LocalPixelShader = *PixelShader;\
@@ -229,26 +232,26 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	check(LocalBoundShaderState != NULL);
 	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
-		TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
+		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
+		TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
 		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
 	}
 	else
 	{
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
 
 		VertexShader->SetParameters(Context);
 	}
 #define CASE_COUNT(BlendCount) \
 	case BlendCount: \
 	{ \
-	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(GetGlobalShaderMap()); \
+	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
 	PixelShader->SetParameters(Context.RHICmdList, View, Texture, Weights); \
 	}; \
 	break;
@@ -422,7 +425,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		// use unwrapped 2d texture 256x16
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 		DrawRectangle( 
 			Context.RHICmdList,
@@ -484,7 +487,7 @@ bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FRenderingComp
 		return true;
 	}
 
-	if(Context->View.GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	if(Context->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		const FFinalPostProcessSettings Settings = Context->View.FinalPostProcessSettings;
 		for(uint32 i = 0; i < (uint32)Settings.ContributingLUTs.Num(); ++i)

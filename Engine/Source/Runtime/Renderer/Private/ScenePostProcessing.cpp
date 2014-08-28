@@ -120,8 +120,8 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 	// turn off depth reads/writes
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FGammaCorrectionVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FGammaCorrectionPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FGammaCorrectionVS> VertexShader(View->ShaderMap);
+	TShaderMapRef<FGammaCorrectionPS> PixelShader(View->ShaderMap);
 
 	static FGlobalBoundShaderState PostProcessBoundShaderState;
 	

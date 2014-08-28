@@ -250,6 +250,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
 #endif
+	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GRHIFeatureLevel)
 {
 	check(UnscaledViewRect.Min.X >= 0);
 	check(UnscaledViewRect.Min.Y >= 0);
@@ -1220,11 +1221,6 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 			FinalPostProcessSettings.BufferVisualizationOverviewMaterials.Add(*It);
 		}
 	}
-}
-
-ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
-{ 
-	return (Family != nullptr) ? Family->GetFeatureLevel() : GRHIFeatureLevel;
 }
 
 EShaderPlatform FSceneView::GetShaderPlatform() const

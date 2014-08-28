@@ -221,7 +221,7 @@ public:
 	void AddPhaseEvent(const TCHAR* InPhaseName);
 
 	/** renders the VisualizeTextureContent to the current render target */
-	void PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View);
+	void PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	FVisualizeTexture VisualizeTexture;
 

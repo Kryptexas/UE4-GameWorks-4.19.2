@@ -92,7 +92,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	FScene* Scene = ViewFamily.Scene->GetRenderScene();
 	check(Scene);
@@ -100,7 +100,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	
 	// Ambient cubemap specular will be applied in the reflection environment pass if it is enabled
 	const bool bApplySpecular = View.Family->EngineShowFlags.ReflectionEnvironment == 0 || NumReflectionCaptures == 0;
-	TShaderMapRef<FPostProcessAmbientPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessAmbientPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

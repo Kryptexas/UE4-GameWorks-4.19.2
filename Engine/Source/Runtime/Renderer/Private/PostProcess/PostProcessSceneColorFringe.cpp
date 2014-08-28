@@ -167,8 +167,8 @@ void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	
-	TShaderMapRef<FPostProcessSceneColorFringeVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSceneColorFringePS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSceneColorFringeVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSceneColorFringePS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

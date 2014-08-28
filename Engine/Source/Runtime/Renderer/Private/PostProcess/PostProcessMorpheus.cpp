@@ -205,8 +205,8 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

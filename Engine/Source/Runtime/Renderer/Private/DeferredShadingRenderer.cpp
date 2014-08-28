@@ -146,7 +146,9 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 
 	uint32 NumActiveRenderTargets = GSceneRenderTargets.GetNumGBufferTargets();
 	
-	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+
+	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 	FOneColorPS* PixelShader = NULL; 
 
 	// Assume for now all code path supports SM4, otherwise render target numbers are changed
@@ -154,20 +156,20 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	{
 	case 5:
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		break;
 	case 6:
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		break;
 	default:
 	case 1:
 		{
-			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
 			PixelShader = *MRTPixelShader;
 		}
 		break;
@@ -1257,7 +1259,7 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 				SCOPED_DRAW_EVENT(ClearLPVs, DEC_SCENE_ITEMS);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
 				LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
-				LightPropagationVolume->Clear(RHICmdList);
+				LightPropagationVolume->Clear(RHICmdList, View);
 			}
 		}
 	}
@@ -1279,7 +1281,7 @@ void FDeferredShadingSceneRenderer::PropagateLPVs(FRHICommandListImmediate& RHIC
 				SCOPED_DRAW_EVENT(UpdateLPVs, DEC_SCENE_ITEMS);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
 				
-				LightPropagationVolume->Propagate(RHICmdList);
+				LightPropagationVolume->Propagate(RHICmdList, View);
 			}
 		}
 	}
@@ -1360,8 +1362,8 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandLis
 		{
 			const FViewInfo& View = Views[ViewIndex];
 			// Set shaders and texture
-			TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-			TShaderMapRef<FDownsampleSceneDepthPS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+			TShaderMapRef<FDownsampleSceneDepthPS> PixelShader(View.ShaderMap);
 
 			extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 

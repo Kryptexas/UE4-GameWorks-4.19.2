@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Shader.h"
+#include "SceneManagement.h"
 
 class FShaderCompileJob;
 
@@ -176,7 +177,20 @@ extern ENGINE_API FString SaveGlobalShaderFile(EShaderPlatform Platform, FString
  * @param bRefreshShaderMap If true, the existing global shader map will be tossed first
  * @return A reference to the global shader map.
  */
-extern ENGINE_API TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform = GRHIShaderPlatform, bool bRefreshShaderMap = false);
+extern ENGINE_API TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap = false);
+
+/**
+  * Overload for the above GetGlobalShaderMap which takes a feature level and translates to the appropriate shader platform
+  *
+  * @param FeatureLevel - Which feature levels shader map to use
+  * @param bRefreshShaderMap If true, the existing global shader map will be tossed first
+  * @return A reference to the global shader map.
+  *
+  **/
+inline TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(ERHIFeatureLevel::Type FeatureLevel, bool bRefreshShaderMap = false) 
+{ 
+	return GetGlobalShaderMap(GShaderPlatformForFeatureLevel[FeatureLevel], bRefreshShaderMap); 
+}
 
 /**
  * Forces a recompile of the global shaders.

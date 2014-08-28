@@ -176,8 +176,8 @@ void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessBloomSetupVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomSetupPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	

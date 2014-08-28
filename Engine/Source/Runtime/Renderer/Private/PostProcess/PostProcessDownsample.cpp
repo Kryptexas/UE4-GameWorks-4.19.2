@@ -139,8 +139,9 @@ FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverri
 template <uint32 Method>
 void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessDownsamplePS<Method> > PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = Context.GetShaderMap();
+	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(ShaderMap);
+	TShaderMapRef<FPostProcessDownsamplePS<Method> > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -220,7 +221,7 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 		bHasCleared = true;
 	}
 
-	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
 
 	switch (RectSource)
 	{
