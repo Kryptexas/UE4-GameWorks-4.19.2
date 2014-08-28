@@ -10,6 +10,7 @@
 #include "FXSystem.h"
 #include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
 #include "SceneUtils.h"
+#include "PostProcessing.h"
 
 /*------------------------------------------------------------------------------
 	Globals
