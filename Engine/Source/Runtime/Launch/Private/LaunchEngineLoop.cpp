@@ -45,10 +45,10 @@
 	#include "Commandlets/Commandlet.h"
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
-	#include "HeadMountedDisplay.h"
 	#include "HighResScreenshot.h"
 
 #if !UE_SERVER
+	#include "HeadMountedDisplay.h"
 	#include "ISlateRHIRendererModule.h"
 #endif
 
@@ -2608,7 +2608,7 @@ void FEngineLoop::AppExit( )
 
 void FEngineLoop::PreInitHMDDevice()
 {
-#if WITH_ENGINE
+#if WITH_ENGINE && !UE_SERVER
 	if (!GIsEditor)
 	{
 		//@todo vr: only preinit first valid hmd?
@@ -2622,7 +2622,7 @@ void FEngineLoop::PreInitHMDDevice()
 			}
 		}
 	}
-#endif // #if WITH_ENGINE
+#endif // #if WITH_ENGINE && !UE_SERVER
 }
 
 #undef LOCTEXT_NAMESPACE

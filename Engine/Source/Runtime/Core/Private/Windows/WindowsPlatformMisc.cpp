@@ -1756,7 +1756,9 @@ void FWindowsPlatformMisc::LoadPreInitModules()
 void FWindowsPlatformMisc::LoadStartupModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("XAudio2"));
+#if !UE_SERVER
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
+#endif // !UE_SERVER
 
 #if WITH_EDITOR
 	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
