@@ -369,16 +369,19 @@ UPrimitiveComponent * GetRootWelded(UPrimitiveComponent * PrimComponent, FName P
 
 void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
 {
-	if (BodyInstance.bWelded)
-	{
-		OutWeldedBodies.Add(&BodyInstance);
-		OutLabels.Add(NAME_None);
+	OutWeldedBodies.Add(&BodyInstance);
+	OutLabels.Add(NAME_None);
 			
-		for (USceneComponent * Child : AttachChildren)
+	for (USceneComponent * Child : AttachChildren)
+	{
+		if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 		{
-			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
+			if (FBodyInstance * BI = PrimChild->GetBodyInstance())
 			{
-				PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+				if (BI->bWelded)
+				{
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+				}
 			}
 		}
 	}
@@ -467,8 +470,8 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 			bool bHasBodySetup = GetBodySetup() != NULL;
 
-			//we need to temporarily turn off AutoWeld
-			if (bHasBodySetup)
+			//if BodyInstance hasn't already been created we need to initialize it
+			if (bHasBodySetup && NewRootBI->IsValidBodyInstance() == false)
 			{
 				bool bPrevAutoWeld = NewRootBI->bAutoWeld;
 				NewRootBI->bAutoWeld = false;

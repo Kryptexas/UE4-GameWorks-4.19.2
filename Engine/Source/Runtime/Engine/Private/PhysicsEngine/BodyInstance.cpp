@@ -2043,9 +2043,28 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 #endif
 
 	// If we are enabling simulation, and we are the root body of our component, we detach the component 
-	if ((bSimulate == true) && OwnerComponent.IsValid() && OwnerComponent->IsRegistered() && (OwnerComponent->AttachParent != NULL) && (OwnerComponent->GetBodyInstance() == this))
+	if ((bSimulate == true) && OwnerComponent.IsValid() && OwnerComponent->IsRegistered() && OwnerComponent->GetBodyInstance() == this)
 	{
-		OwnerComponent->DetachFromParent(true);
+		if (OwnerComponent->AttachParent)
+		{
+			OwnerComponent->DetachFromParent(true);
+		}
+		else if (bSimulatePhysics == false)	//if we're switching from kinematic to simulated
+		{
+			//if we are the root in hierarchy we must make sure to update children that are welded
+			TArray<FBodyInstance*> ChildrenBodies;
+			TArray<FName> ChildrenLabels;
+			OwnerComponent->GetWeldedBodies(ChildrenBodies, ChildrenLabels);
+
+			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
+			{
+				FBodyInstance * ChildBI = ChildrenBodies[ChildIdx];
+				if (ChildBI != this)
+				{
+					Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
+				}
+			}
+		}
 	}
 
 	bSimulatePhysics = bSimulate;
