@@ -490,12 +490,12 @@ static bool SaveWorld(UWorld* World,
 		{
 			if ( bPackageNeedsRename )
 			{
-				Package->Rename(*NewPackageName, NULL, REN_NonTransactional);
+				Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
 			}
 
 			if ( bWorldNeedsRename )
 			{
-				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional);
+				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
 			}
 		}
 

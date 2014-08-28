@@ -1834,13 +1834,14 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 					{
 						// This file was deleted. Remove all assets in the package from the registry.
 						const FName PackageName = FName(*LongPackageName);
-						TArray<FAssetData*>* PackageAssets = CachedAssetsByPackageName.Find(PackageName);
+						TArray<FAssetData*>* PackageAssetsPtr = CachedAssetsByPackageName.Find(PackageName);
 
-						if (PackageAssets)
+						if (PackageAssetsPtr)
 						{
-							for ( auto AssetIt = (*PackageAssets).CreateConstIterator(); AssetIt; ++AssetIt )
+							TArray<FAssetData*>& PackageAssets = *PackageAssetsPtr;
+							for ( int32 AssetIdx = PackageAssets.Num() - 1; AssetIdx >= 0; --AssetIdx )
 							{
-								RemoveAssetData(*AssetIt);
+								RemoveAssetData(PackageAssets[AssetIdx]);
 							}
 						}
 
