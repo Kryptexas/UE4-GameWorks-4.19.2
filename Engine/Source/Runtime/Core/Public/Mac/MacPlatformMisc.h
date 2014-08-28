@@ -140,6 +140,11 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+
+	/**
+	 * Returns whether the Mac OS X version is 10.9.x or not.
+	 */
+	static bool IsRunningOnMavericks();
 };
 
 #ifdef __OBJC__

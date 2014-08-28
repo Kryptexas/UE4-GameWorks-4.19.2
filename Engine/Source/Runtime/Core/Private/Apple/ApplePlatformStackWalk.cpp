@@ -178,7 +178,15 @@ void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter,
 			FCStringAnsi::Sprintf(FBase, "%p", (void*)DylibInfo.dli_fbase);
 			FCStringAnsi::Sprintf(Address, "%p", (void*)ProgramCounter);
 			
-			execl("/usr/bin/atos", "-nowarning", "-arch", "x86_64", "-d", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
+			// Mavericks requires additional params to atos to silence a deprecation warning. On Yosemite same params cause "unrecognized option" error
+			if (FPlatformMisc::IsRunningOnMavericks())
+			{
+				execl("/usr/bin/atos", "-nowarning", "-arch", "x86_64", "-d", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
+			}
+			else
+			{
+				execl("/usr/bin/atos", "-arch", "x86_64", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
+			}
 			close(FileDesc[1]);
 		}
 		else

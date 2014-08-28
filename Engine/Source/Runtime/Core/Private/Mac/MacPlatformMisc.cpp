@@ -63,6 +63,15 @@ struct MacApplicationInfo
 		FCStringAnsi::Strcpy(OSVersionUTF8, PATH_MAX+1, [[SystemVersion objectForKey: @"ProductVersion"] UTF8String]);
 		OSBuild = FString((NSString*)[SystemVersion objectForKey: @"ProductBuildVersion"]);
 		
+		TArray<FString> Components;
+		OSVersion.ParseIntoArray(&Components, TEXT("."), true);
+		uint8 ComponentValues[2] = {0};
+		for(uint32 i = 0; i < Components.Num() && i < 2; i++)
+		{
+			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
+		}
+		RunningOnMavericks == ComponentValues[0] == 10 && ComponentValues[1] == 9;
+		
 		char TempSysCtlBuffer[PATH_MAX] = {};
 		size_t TempSysCtlBufferSize = PATH_MAX;
 		
@@ -177,6 +186,7 @@ struct MacApplicationInfo
 	}
 	
 	bool RunningOnBattery;
+	bool RunningOnMavericks;
 	int32 PowerSourceNotification;
 	char AppNameUTF8[PATH_MAX+1];
 	char AppLogPath[PATH_MAX+1];
@@ -1037,6 +1047,11 @@ FText FMacPlatformMisc::GetFileManagerName()
 bool FMacPlatformMisc::IsRunningOnBattery()
 {
 	return GMacAppInfo.RunningOnBattery;
+}
+
+bool FMacPlatformMisc::IsRunningOnMavericks()
+{
+	return GMacAppInfo.RunningOnMavericks;
 }
 
 /** Global pointer to crash handler */
