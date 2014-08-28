@@ -33,9 +33,8 @@ ULevelStreaming* FLevelUtils::FindStreamingLevel(const ULevel* Level)
 {
 	ULevelStreaming* MatchingLevel = NULL;
 
-	if (Level)
+	if (Level && Level->OwningWorld)
 	{
-		check(Level->OwningWorld);
 		for( int32 LevelIndex = 0 ; LevelIndex < Level->OwningWorld->StreamingLevels.Num() ; ++LevelIndex )
 		{
 			ULevelStreaming* CurStreamingLevel = Level->OwningWorld->StreamingLevels[ LevelIndex ];
