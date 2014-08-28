@@ -35,6 +35,18 @@ public:
 	FVector Position;
 };
 
+/**
+* Index into the Per-view data for each instance.
+* Most uses wont need to add > 1 per view data.
+* This array will be the same size as InstanceData for uses that require per view data. Otherwise it will be empty.
+*/
+class FSimpleLightInstacePerViewIndexData
+{
+public:
+	uint32 PerViewIndex : 31;
+	uint32 bHasPerViewData;
+};
+
 /** Data pertaining to a set of simple dynamic lights */
 class FSimpleLightArray
 {
@@ -43,6 +55,8 @@ public:
 	TArray<FSimpleLightEntry, TMemStackAllocator<>> InstanceData;
 	/** Per-view data for each light */
 	TArray<FSimpleLightPerViewEntry, TMemStackAllocator<>> PerViewData;
+	/** Indices into the per-view data for each light. */
+	TArray<FSimpleLightInstacePerViewIndexData, TMemStackAllocator<>> InstancePerViewDataIndices;
 
 public:
 
@@ -57,12 +71,16 @@ public:
 		// If InstanceData has an equal number of elements to PerViewData then all views share the same PerViewData.
 		if (InstanceData.Num() == PerViewData.Num())
 		{
+			check(InstancePerViewDataIndices.Num() == 0);
 			return PerViewData[LightIndex];
 		}
 		else 
 		{
-			// Calculate strided per-view index.
-			const int32 PerViewDataIndex = (LightIndex * NumViews) + ViewIndex;
+			check(InstancePerViewDataIndices.Num() == InstanceData.Num());
+
+			// Calculate per-view index.
+			FSimpleLightInstacePerViewIndexData PerViewIndex = InstancePerViewDataIndices[LightIndex];
+			const int32 PerViewDataIndex = PerViewIndex.PerViewIndex + ( PerViewIndex.bHasPerViewData ? ViewIndex : 0 );
 			return PerViewData[PerViewDataIndex];
 		}
 	}

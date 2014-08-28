@@ -1193,13 +1193,33 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 				FVector LightPosition = Source.bUseLocalSpace ? FVector(InLocalToWorld.TransformPosition(ParticlePosition)) : ParticlePosition;
 				
 				// Calculate light positions per-view if we are using a camera offset.
-				// OutParticleLights is accumulated over MULTIPLE emitters.  Some may use camera offset, some may not.
-				// if some do and some don't, then OutParticleLights.PerViewData will cease to have NumLights*NumViews entries and 
-				// GetViewDependentData on it will become bogus and in the worst case, crash from reading out of bounds.
-				// Hack fix is to just add all views always.  Real fix would be detecting whether any emitter was using cameraoffset and 
-				// add for all emitters in that case.
 				if (Source.CameraPayloadOffset != 0)
 				{
+					//Reserve mem for the indices into the per view data.
+					if (InViewFamily.Views.Num() > 1)
+					{	
+						OutParticleLights.InstancePerViewDataIndices.Reserve(OutParticleLights.InstanceData.Num() + ParticleCount);
+						if (InViewFamily.Views.Num() > 1 && OutParticleLights.InstancePerViewDataIndices.Num() == 0)
+						{
+							//If this is the first time we've needed to add these then we need to fill data up to this light.
+							int32 NumLights = OutParticleLights.InstanceData.Num();
+							OutParticleLights.InstancePerViewDataIndices.AddUninitialized(OutParticleLights.InstanceData.Num());
+							for (int32 i = 0; i < NumLights; ++i)
+							{
+								OutParticleLights.InstancePerViewDataIndices[i].PerViewIndex = i;
+								OutParticleLights.InstancePerViewDataIndices[i].bHasPerViewData = false;
+							}
+						}
+
+						//If non-zero, the numbers of instances to indices should always match.
+						check(OutParticleLights.InstancePerViewDataIndices.Num() == OutParticleLights.InstanceData.Num());
+						//Add index of this light into the per veiw data.
+						FSimpleLightInstacePerViewIndexData PerViewIndexData;
+						PerViewIndexData.bHasPerViewData = true;
+						PerViewIndexData.PerViewIndex = OutParticleLights.PerViewData.Num();
+						OutParticleLights.InstancePerViewDataIndices.Add(PerViewIndexData);
+					}
+
 					for(int32 ViewIndex = 0; ViewIndex < InViewFamily.Views.Num(); ++ViewIndex)
 					{
 						FSimpleLightPerViewEntry PerViewData;
@@ -1212,13 +1232,21 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 				}
 				else
 				{
+					//Add index of this light into the per view data if needed.
+					if (OutParticleLights.InstancePerViewDataIndices.Num() != 0)
+					{
+						//If non-zero, the numbers of instances to indices should always match.
+						check(OutParticleLights.InstancePerViewDataIndices.Num() == OutParticleLights.InstanceData.Num());
+						FSimpleLightInstacePerViewIndexData PerViewIndexData;
+						PerViewIndexData.bHasPerViewData = false;
+						PerViewIndexData.PerViewIndex = OutParticleLights.PerViewData.Num();
+						OutParticleLights.InstancePerViewDataIndices.Add(PerViewIndexData);
+					}
+
 					// When not using camera-offset, output one position for all views to share. 
 					FSimpleLightPerViewEntry PerViewData;
 					PerViewData.Position = LightPosition;
-					for (int32 ViewIndex = 0; ViewIndex < InViewFamily.Views.Num(); ++ViewIndex)
-					{
-						OutParticleLights.PerViewData.Add(PerViewData);
-					}									
+					OutParticleLights.PerViewData.Add(PerViewData);
 				}
 
 				// Add an entry for the light instance.
