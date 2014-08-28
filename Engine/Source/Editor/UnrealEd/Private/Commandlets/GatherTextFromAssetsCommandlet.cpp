@@ -692,6 +692,39 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		return -1;
 	}
 
+	for (FString& IncludePath : IncludePaths)
+	{
+		FPaths::NormalizeDirectoryName(IncludePath);
+		if (FPaths::IsRelative(IncludePath))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				IncludePath = FPaths::Combine( *( FPaths::GameDir() ), *IncludePath );
+			}
+			else
+			{
+				IncludePath = FPaths::Combine( *( FPaths::EngineDir() ), *IncludePath );
+			}
+		}
+
+		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
+
+		// All paths must ends with "/*"
+		if ( !IncludePath.EndsWith(TEXT("/*")) )
+		{
+			// If it ends in a slash, add the star.
+			if ( IncludePath.EndsWith(TEXT("/")) )
+			{
+				IncludePath.AppendChar(TEXT('*'));
+			}
+			// If it doesn't end in a slash or slash star, just add slash star.
+			else
+			{
+				IncludePath.Append(TEXT("/*"));
+			}
+		}
+	}
+
 	//Exclude paths
 	TArray<FString> ExcludePaths;
 	GetConfigArray(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
@@ -746,6 +779,21 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	TArray<FString> ManifestDependenciesList;
 	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 	
+	for (FString& ManifestDependency : ManifestDependenciesList)
+	{
+		if (FPaths::IsRelative(ManifestDependency))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
+			}
+			else
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
+			}
+		}
+	}
+
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{
 		UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("The GatherTextFromAssets commandlet couldn't find all the specified manifest dependencies."));
@@ -779,14 +827,16 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		}
 
 		//Run through all the files found and add any that pass the include, exclude and filter constraints to OrderedPackageFilesToLoad
-		for( int32 PackageFileIdx=0; PackageFileIdx<PackageFiles.Num(); ++PackageFileIdx )
+		for (FString& PackageFile : PackageFiles)
 		{
+			PackageFile = FPaths::ConvertRelativePathToFull(PackageFile);
+
 			bool bExclude = false;
 			//Ensure it matches the include paths if there are some.
-			for( int32 IncludePathIdx=0; IncludePathIdx<IncludePaths.Num() ; ++IncludePathIdx )
+			for (FString& IncludePath : IncludePaths)
 			{
 				bExclude = true;
-				if( PackageFiles[PackageFileIdx].MatchesWildcard(IncludePaths[IncludePathIdx]) )
+				if( PackageFile.MatchesWildcard(IncludePath) )
 				{
 					bExclude = false;
 					break;
@@ -795,31 +845,31 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 			if ( bExclude )
 			{
-				PackageFilesNotInIncludePath.Add(PackageFiles[PackageFileIdx]);
+				PackageFilesNotInIncludePath.Add(PackageFile);
 			}
 
 			//Ensure it does not match the exclude paths if there are some.
 			for( int32 ExcludePathIdx=0; !bExclude && ExcludePathIdx<ExcludePaths.Num() ; ++ExcludePathIdx )
 			{
-				if( PackageFiles[PackageFileIdx].MatchesWildcard(ExcludePaths[ExcludePathIdx]) )
+				if( PackageFile.MatchesWildcard(ExcludePaths[ExcludePathIdx]) )
 				{
 					bExclude = true;
-					PackageFilesInExcludePath.Add(PackageFiles[PackageFileIdx]);
+					PackageFilesInExcludePath.Add(PackageFile);
 					break;
 				}
 			}
 
 			//Check that this is not on the list of packages that we don't care about e.g. textures.
-			if ( !bExclude && IsAssetPackage && LongPackageNamesToExclude.Contains( PackageFiles[PackageFileIdx] ) )
+			if ( !bExclude && IsAssetPackage && LongPackageNamesToExclude.Contains( PackageFile ) )
 			{
 				bExclude = true;
-				PackageFilesExcludedByClass.Add(PackageFiles[PackageFileIdx]);
+				PackageFilesExcludedByClass.Add(PackageFile);
 			}
 
 			//If we haven't failed one of the above checks, add it to the array of packages to process.
 			if(!bExclude)
 			{
-				TScopedPointer< FArchive > FileReader( IFileManager::Get().CreateFileReader( *PackageFiles[PackageFileIdx] ) );
+				TScopedPointer< FArchive > FileReader( IFileManager::Get().CreateFileReader( *PackageFile ) );
 				if( FileReader )
 				{
 					// Read package file summary from the file
@@ -829,7 +879,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 					// Early out check if the package has been flagged as needing localization gathering
 					if( PackageSummary.PackageFlags & PKG_RequiresLocalizationGather || PackageSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING )
 					{
-						PackageFileNamesToLoad.Add( PackageFiles[PackageFileIdx] );
+						PackageFileNamesToLoad.Add( PackageFile );
 					}
 				}
 			}

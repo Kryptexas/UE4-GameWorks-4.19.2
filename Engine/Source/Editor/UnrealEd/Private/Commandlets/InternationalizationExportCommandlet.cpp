@@ -1269,11 +1269,35 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	if (FPaths::IsRelative(SourcePath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			SourcePath = FPaths::Combine( *( FPaths::GameDir() ), *SourcePath );
+		}
+		else
+		{
+			SourcePath = FPaths::Combine( *( FPaths::EngineDir() ), *SourcePath );
+		}
+	}
+
 	FString DestinationPath; // Destination path that we will write files to.
 	if( !GetConfigString( *SectionName, TEXT("DestinationPath"), DestinationPath, ConfigPath ) )
 	{
 		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No destination path specified.") );
 		return -1;
+	}
+
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
 	}
 
 	FString Filename; // Name of the file to read or write from

@@ -44,6 +44,20 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	if(FPaths::IsRelative(GatherTextConfigPath))
+	{
+		FString ProjectBasePath;
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			ProjectBasePath = FPaths::GameDir();
+		}
+		else
+		{
+			ProjectBasePath = FPaths::EngineDir();
+		}
+		GatherTextConfigPath = FPaths::Combine( *ProjectBasePath, *GatherTextConfigPath );
+	}
+
 	GConfig->LoadFile(*GatherTextConfigPath);
 
 	FConfigFile* ConfigFile = GConfig->FindConfigFile(*GatherTextConfigPath);

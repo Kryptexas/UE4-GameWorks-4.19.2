@@ -93,13 +93,28 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	// Search in the root folder for each of the wildcard filters specified and build a list of files
 	TArray<FString> AllFoundFiles;
 
-	for(int32 i = 0; i < IncludePaths.Num(); i++)
+	for (FString& IncludePath : IncludePaths)
 	{
+		FString ProjectBasePath;
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			ProjectBasePath = FPaths::GameDir();
+		}
+		else
+		{
+			ProjectBasePath = FPaths::EngineDir();
+		}
+
+		if(FPaths::IsRelative(IncludePath))
+		{
+			IncludePath = FPaths::Combine( *ProjectBasePath, *IncludePath );
+		}
+
 		for (int32 SourceFileSearchIdx=0; SourceFileSearchIdx < UniqueSourceFileSearchFilters.Num(); SourceFileSearchIdx++)
 		{
 			TArray<FString> RootSourceFiles;
 
-			IFileManager::Get().FindFilesRecursive(RootSourceFiles, *(FPaths::RootDir() + IncludePaths[i]), *UniqueSourceFileSearchFilters[SourceFileSearchIdx], true, false,false);
+			IFileManager::Get().FindFilesRecursive(RootSourceFiles, *IncludePath, *UniqueSourceFileSearchFilters[SourceFileSearchIdx], true, false,false);
 
 			AllFoundFiles.Append(RootSourceFiles);
 		}
@@ -142,6 +157,21 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	TArray<FString> ManifestDependenciesList;
 	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 	
+	for (FString& ManifestDependency : ManifestDependenciesList)
+	{
+		if (FPaths::IsRelative(ManifestDependency))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
+			}
+			else
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
+			}
+		}
+	}
+
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{
 		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't find all the specified manifest dependencies."));
@@ -175,9 +205,20 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	ParseCtxt.ManifestInfo = ManifestInfo;
 
 	// Parse all source files for macros and add entries to SourceParsedEntries
-	for (int32 SourceFileIdx=0; SourceFileIdx < FilesToProcess.Num(); SourceFileIdx++)
+	for ( FString& SourceFile : FilesToProcess)
 	{
-		ParseCtxt.Filename = FilesToProcess[SourceFileIdx];
+		FString ProjectBasePath;
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			ProjectBasePath = FPaths::GameDir();
+		}
+		else
+		{
+			ProjectBasePath = FPaths::EngineDir();
+		}
+
+		ParseCtxt.Filename = SourceFile;
+		FPaths::MakePathRelativeTo(ParseCtxt.Filename, *ProjectBasePath);
 		ParseCtxt.LineNumber = 0;
 		ParseCtxt.LineText.Empty();
 		ParseCtxt.Namespace.Empty();
@@ -189,7 +230,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		ParseCtxt.WithinStartingLine.Empty();
 
 		FString SourceFileText;
-		if (!FFileHelper::LoadFileToString(SourceFileText, *ParseCtxt.Filename))
+		if (!FFileHelper::LoadFileToString(SourceFileText, *SourceFile))
 		{
 			UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("GatherTextSource failed to open file %s"), *ParseCtxt.Filename);
 		}

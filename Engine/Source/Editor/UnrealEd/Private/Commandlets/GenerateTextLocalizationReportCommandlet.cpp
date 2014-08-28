@@ -89,11 +89,35 @@ int32 UGenerateTextLocalizationReportCommandlet::Main(const FString& Params)
 		return -1;
 	}
 
+	if (FPaths::IsRelative(SourcePath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			SourcePath = FPaths::Combine( *( FPaths::GameDir() ), *SourcePath );
+		}
+		else
+		{
+			SourcePath = FPaths::Combine( *( FPaths::EngineDir() ), *SourcePath );
+		}
+	}
+
 	// Get destination path.
 	if( !( GetConfigString( *SectionName, TEXT("DestinationPath"), DestinationPath, GatherTextConfigPath ) ) )
 	{
 		UE_LOG(LogGenerateTextLocalizationReportCommandlet, Error, TEXT("No destination path specified."));
 		return -1;
+	}
+
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
 	}
 
 	// Get the timestamp from the commandline, if not provided we will use the current time.

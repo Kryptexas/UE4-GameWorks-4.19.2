@@ -59,6 +59,39 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	for (FString& IncludePath : IncludePaths)
+	{
+		FPaths::NormalizeDirectoryName(IncludePath);
+		if (FPaths::IsRelative(IncludePath))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				IncludePath = FPaths::Combine( *( FPaths::GameDir() ), *IncludePath );
+			}
+			else
+			{
+				IncludePath = FPaths::Combine( *( FPaths::EngineDir() ), *IncludePath );
+			}
+		}
+
+		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
+
+		// All paths must ends with "/*"
+		if ( !IncludePath.EndsWith(TEXT("/*")) )
+		{
+			// If it ends in a slash, add the star.
+			if ( IncludePath.EndsWith(TEXT("/")) )
+			{
+				IncludePath.AppendChar(TEXT('*'));
+			}
+			// If it doesn't end in a slash or slash star, just add slash star.
+			else
+			{
+				IncludePath.Append(TEXT("/*"));
+			}
+		}
+	}
+
 	//Exclude paths
 	TArray<FString> ExcludePaths;
 	GetConfigArray(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
@@ -90,6 +123,21 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	TArray<FString> ManifestDependenciesList;
 	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 	
+	for (FString& ManifestDependency : ManifestDependenciesList)
+	{
+		if (FPaths::IsRelative(ManifestDependency))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
+			}
+			else
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
+			}
+		}
+	}
+
 	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
 	{
 		UE_LOG(LogGatherTextFromMetaDataCommandlet, Error, TEXT("The GatherTextFromMetaData commandlet couldn't find all the specified manifest dependencies."));
@@ -105,6 +153,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FStr
 	{
 		FString SourceFilePath;
 		FSourceCodeNavigation::FindClassHeaderPath(*It, SourceFilePath);
+		SourceFilePath = FPaths::ConvertRelativePathToFull(SourceFilePath);
 
 		// Returns true if in an include path. False otherwise.
 		auto IncludePathLogic = [&]() -> bool

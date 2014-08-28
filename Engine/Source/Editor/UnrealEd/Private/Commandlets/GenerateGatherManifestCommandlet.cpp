@@ -60,6 +60,18 @@ int32 UGenerateGatherManifestCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
+	}
+
 	// Get manifest name.
 	FString ManifestName;
 	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, GatherTextConfigPath ) )
@@ -71,6 +83,21 @@ int32 UGenerateGatherManifestCommandlet::Main( const FString& Params )
 	//Grab any manifest dependencies
 	TArray<FString> ManifestDependenciesList;
 	GetConfigArray(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
+
+	for (FString& ManifestDependency : ManifestDependenciesList)
+	{
+		if (FPaths::IsRelative(ManifestDependency))
+		{
+			if (!FPaths::GameDir().IsEmpty())
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::GameDir() ), *ManifestDependency );
+			}
+			else
+			{
+				ManifestDependency = FPaths::Combine( *( FPaths::EngineDir() ), *ManifestDependency );
+			}
+		}
+	}
 
 	if( ManifestDependenciesList.Num() > 0 )
 	{

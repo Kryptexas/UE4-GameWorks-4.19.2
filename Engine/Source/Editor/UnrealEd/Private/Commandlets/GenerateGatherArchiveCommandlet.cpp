@@ -58,14 +58,6 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
-	// Get source path.
-	FString SourcePath;
-	if( !( GetConfigString( *SectionName, TEXT("SourcePath"), SourcePath, GatherTextConfigPath ) ) )
-	{
-		UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("No source path specified."));
-		return -1;
-	}
-
 	// Get manifest name.
 	FString ManifestName;
 	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, GatherTextConfigPath ) )
@@ -108,6 +100,18 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 	{
 		UE_LOG( LogGenerateArchiveCommandlet, Error, TEXT("No destination path specified.") );
 		return -1;
+	}
+
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
 	}
 
 	// Get archive name.

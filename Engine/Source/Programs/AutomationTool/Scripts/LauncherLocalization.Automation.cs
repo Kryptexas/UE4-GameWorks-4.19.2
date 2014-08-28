@@ -66,8 +66,8 @@ class LauncherLocalization : BuildCommand
 		// Setup commandlet arguments with configurations.
 		var CommandletArgumentSets = new string[] 
 			{
-				String.Format("-config={0}", @"../../../Engine/Programs/NoRedist/UnrealEngineLauncher/Config/Localization/App.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
-				String.Format("-config={0}", @"../../../Engine/Programs/NoRedist/UnrealEngineLauncher/Config/Localization/WordCount.ini"),
+				String.Format("-config={0}", @"./Programs/NoRedist/UnrealEngineLauncher/Config/Localization/App.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
+				String.Format("-config={0}", @"./Programs/NoRedist/UnrealEngineLauncher/Config/Localization/WordCount.ini"),
 			};
 
 		// Execute commandlet for each set of arguments.
