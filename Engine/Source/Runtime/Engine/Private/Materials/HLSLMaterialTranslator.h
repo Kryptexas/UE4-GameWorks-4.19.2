@@ -339,9 +339,13 @@ public:
 
 			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
 
-			if (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile)
+			if (Material->GetMaterialDomain() == MD_Surface
+				&& (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile))
 			{
-				int32 SubsurfaceColor = Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this);
+				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
+
+				// another ForceCast as CompilePropertyAndSetMaterialProperty() can return MCT_Float which we don't want here
+				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true);
 
 				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 
