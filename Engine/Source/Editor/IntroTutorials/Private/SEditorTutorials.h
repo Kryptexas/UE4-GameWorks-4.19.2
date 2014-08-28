@@ -40,10 +40,13 @@ class SEditorTutorials : public SCompoundWidget
 	void Construct(const FArguments& InArgs);
 
 	/** Launch a tutorial - will interrogate parent to get the tutorial data to display */
-	void LaunchTutorial(bool bInIsNavigationWindow);
+	void LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited);
 
 	/** Show the tutorials browser in this window */
 	void ShowBrowser(const FString& InFilter);
+
+	/** hide the tutorials browser in this window */
+	void HideContent();
 
 	/** Get parent window for this widget */
 	TSharedPtr<SWindow> GetParentWindow() const;
@@ -121,4 +124,8 @@ private:
 
 	/** Delegate fired to retrive the current tutorial stage */
 	FOnGetCurrentTutorialStage OnGetCurrentTutorialStage;
+
+	/** External delegates used to report user interaction */
+	FSimpleDelegate OnTutorialClosed;
+	FSimpleDelegate OnTutorialExited;
 };

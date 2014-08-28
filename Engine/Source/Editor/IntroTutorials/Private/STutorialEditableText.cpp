@@ -186,7 +186,7 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("tutorial"), OnTutorialLinkClicked));
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("code"), OnCodeLinkClicked));
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("asset"), OnAssetLinkClicked));
-	RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create(&TextStyles));
+	RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create(TextStyles));
 
 	this->ChildSlot
 	[

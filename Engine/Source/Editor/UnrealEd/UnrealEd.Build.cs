@@ -47,6 +47,7 @@ public class UnrealEd : ModuleRules
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
+                "IntroTutorials",
 			}
 		);
 

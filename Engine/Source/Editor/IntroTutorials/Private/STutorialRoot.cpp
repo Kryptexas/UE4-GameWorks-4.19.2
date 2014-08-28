@@ -4,6 +4,7 @@
 #include "STutorialRoot.h"
 #include "SEditorTutorials.h"
 #include "EditorTutorialSettings.h"
+#include "TutorialStateSettings.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
@@ -76,14 +77,14 @@ void STutorialRoot::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FS
 	}
 }
 
-void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow)
+void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
 	if(InTutorial != nullptr)
 	{
 		CurrentTutorial = InTutorial;
 
 		bool bHaveSeenTutorial = false;
-		CurrentTutorialStage = bInRestart ? 0 : GetDefault<UEditorTutorialSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+		CurrentTutorialStage = bInRestart ? 0 : GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
 
 		// launch tutorial for all windows we wrap - any tutorial can display over any window
 		for(auto& TutorialWidget : TutorialWidgets)
@@ -99,8 +100,19 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 				{
 					bIsNavigationWindow = (TutorialWidget.Value.Pin()->GetParentWindow() == InNavigationWindow.Pin());
 				}
-				TutorialWidget.Value.Pin()->LaunchTutorial(bIsNavigationWindow);
+				TutorialWidget.Value.Pin()->LaunchTutorial(bIsNavigationWindow, InOnTutorialClosed, InOnTutorialExited);
 			}
+		}
+	}
+}
+
+void STutorialRoot::CloseAllTutorialContent()
+{
+	for (auto& TutorialWidget : TutorialWidgets)
+	{
+		if (TutorialWidget.Value.IsValid())
+		{
+			TutorialWidget.Value.Pin()->HideContent();
 		}
 	}
 }
@@ -137,8 +149,8 @@ void STutorialRoot::HandleHomeClicked()
 {
 	if(CurrentTutorial != nullptr)
 	{
-		GetMutableDefault<UEditorTutorialSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
-		GetMutableDefault<UEditorTutorialSettings>()->SaveProgress();
+		GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 	}
 
 	CurrentTutorial = nullptr;
@@ -204,7 +216,7 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			TSubclassOf<UEditorTutorial> NextTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->NextTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
 			if(NextTutorialClass != nullptr)
 			{
-				LaunchTutorial(NextTutorialClass->GetDefaultObject<UEditorTutorial>(), true, InNavigationWindow);
+				LaunchTutorial(NextTutorialClass->GetDefaultObject<UEditorTutorial>(), true, InNavigationWindow, FSimpleDelegate(), FSimpleDelegate());
 			}
 			else
 			{
@@ -214,10 +226,10 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 		else
 		{
 			CurrentTutorialStage = FMath::Min(CurrentTutorialStage + 1, CurrentTutorial->Stages.Num() - 1);
-			GetMutableDefault<UEditorTutorialSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+			GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
 		}
 
-		if (CurrentTutorial != nullptr && (CurrentTutorial != PreviousTutorial || CurrentTutorialStage != PreviousTutorialStage))
+		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() && (CurrentTutorial != PreviousTutorial || CurrentTutorialStage != PreviousTutorialStage))
 		{
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}

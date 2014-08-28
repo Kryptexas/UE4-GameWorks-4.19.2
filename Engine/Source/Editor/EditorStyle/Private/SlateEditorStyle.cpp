@@ -2395,7 +2395,7 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		const FTextBlockStyle TutorialHeaderText = FTextBlockStyle(DocumentationHeaderText)
 			.SetColorAndOpacity(FLinearColor::Black);
 
-		Set( "Tutorials.Border", new BOX_BRUSH( "Tutorials/OverlayFrame", FMargin(18.0f/64.0f), FLinearColor(1.0f, 1.0f, 1.0f, 0.8f) ) );
+		Set( "Tutorials.Border", new BOX_BRUSH( "Tutorials/OverlayFrame", FMargin(18.0f/64.0f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) ) );
 		Set( "Tutorials.Browser.WelcomeHeader", FTextBlockStyle(TutorialHeaderText)
 			.SetFontSize(20));
 
@@ -2500,83 +2500,97 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			const FLinearColor DisabledColor(FColor(0xaaaaaa));
 			const FLinearColor TextColor(FColor(0xff2c3e50));
 
-			Set( "TutorialEditableText.RoundedBackground", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(FColor(0xffeff3f3)) ) );
+			Set("TutorialEditableText.RoundedBackground", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(FColor(0xffeff3f3))));
 
-			Set( "TutorialEditableText.Toolbar.HyperlinkImage", new IMAGE_BRUSH( "Tutorials/hyperlink", Icon16x16, TextColor ) );
+			Set("TutorialEditableText.Toolbar.HyperlinkImage", new IMAGE_BRUSH("Tutorials/hyperlink", Icon16x16, TextColor));
 
-			Set( "TutorialEditableText.Toolbar.TextColor", TextColor );
+			Set("TutorialEditableText.Toolbar.TextColor", TextColor);
 
-			Set( "TutorialEditableText.Toolbar.Text", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 10 ) )
-				.SetColorAndOpacity( TextColor )
+			Set("TutorialEditableText.Toolbar.Text", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Regular", 10))
+				.SetColorAndOpacity(TextColor)
 				);
 
-			Set( "TutorialEditableText.Toolbar.BoldText", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Bold", 10 ) )
-				.SetColorAndOpacity( TextColor )
+			Set("TutorialEditableText.Toolbar.BoldText", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Bold", 10))
+				.SetColorAndOpacity(TextColor)
 				);
 
-			Set( "TutorialEditableText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Italic", 10 ) )
-				.SetColorAndOpacity( TextColor )
+			Set("TutorialEditableText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Italic", 10))
+				.SetColorAndOpacity(TextColor)
 				);
 
-			Set( "TutorialEditableText.Toolbar.Checkbox", FCheckBoxStyle()
+			Set("TutorialEditableText.Toolbar.Checkbox", FCheckBoxStyle()
 				.SetCheckBoxType(ESlateCheckBoxType::CheckBox)
-				.SetUncheckedImage( IMAGE_BRUSH( "Common/CheckBox", Icon16x16, FLinearColor::White ) )
-				.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/CheckBox", Icon16x16, HoverColor ) )
-				.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Hovered", Icon16x16, HoverColor ) )
-				.SetCheckedImage( IMAGE_BRUSH( "Common/CheckBox_Checked_Hovered", Icon16x16, FLinearColor::White ) )
-				.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/CheckBox_Checked_Hovered", Icon16x16, HoverColor ) )
-				.SetCheckedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Checked", Icon16x16, HoverColor ) )
-				.SetUndeterminedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined", Icon16x16, FLinearColor::White ) )
-				.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon16x16, HoverColor ) )
-				.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon16x16, FLinearColor::White ) )
+				.SetUncheckedImage(IMAGE_BRUSH("Common/CheckBox", Icon16x16, FLinearColor::White))
+				.SetUncheckedHoveredImage(IMAGE_BRUSH("Common/CheckBox", Icon16x16, HoverColor))
+				.SetUncheckedPressedImage(IMAGE_BRUSH("Common/CheckBox_Hovered", Icon16x16, HoverColor))
+				.SetCheckedImage(IMAGE_BRUSH("Common/CheckBox_Checked_Hovered", Icon16x16, FLinearColor::White))
+				.SetCheckedHoveredImage(IMAGE_BRUSH("Common/CheckBox_Checked_Hovered", Icon16x16, HoverColor))
+				.SetCheckedPressedImage(IMAGE_BRUSH("Common/CheckBox_Checked", Icon16x16, HoverColor))
+				.SetUndeterminedImage(IMAGE_BRUSH("Common/CheckBox_Undetermined", Icon16x16, FLinearColor::White))
+				.SetUndeterminedHoveredImage(IMAGE_BRUSH("Common/CheckBox_Undetermined_Hovered", Icon16x16, HoverColor))
+				.SetUndeterminedPressedImage(IMAGE_BRUSH("Common/CheckBox_Undetermined_Hovered", Icon16x16, FLinearColor::White))
 				);
 
-			Set( "TutorialEditableText.Toolbar.ToggleButtonCheckbox", FCheckBoxStyle()
+			Set("TutorialEditableText.Toolbar.ToggleButtonCheckbox", FCheckBoxStyle()
 				.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
-				.SetUncheckedImage( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ) )
-				.SetUncheckedHoveredImage( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
-				.SetUncheckedPressedImage( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
-				.SetCheckedImage( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor ) )
-				.SetCheckedHoveredImage( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
-				.SetCheckedPressedImage( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
+				.SetUncheckedImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor))
+				.SetUncheckedHoveredImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor))
+				.SetUncheckedPressedImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor))
+				.SetCheckedImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor))
+				.SetCheckedHoveredImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor))
+				.SetCheckedPressedImage(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor))
 				);
 
 			const FButtonStyle Button = FButtonStyle()
-				.SetNormal( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ) )
-				.SetHovered( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor ) )
-				.SetPressed( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor ) )
-				.SetDisabled( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor ) )
-				.SetNormalPadding( FMargin( 2,2,2,2 ) )
-				.SetPressedPadding( FMargin( 2,3,2,1 ) );
-			Set( "TutorialEditableText.Toolbar.Button", Button );
+				.SetNormal(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor))
+				.SetHovered(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), HoverColor))
+				.SetPressed(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), SelectedColor))
+				.SetDisabled(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor))
+				.SetNormalPadding(FMargin(2, 2, 2, 2))
+				.SetPressedPadding(FMargin(2, 3, 2, 1));
+			Set("TutorialEditableText.Toolbar.Button", Button);
 
 			const FComboButtonStyle ComboButton = FComboButtonStyle()
 				.SetButtonStyle(Button)
 				.SetDownArrowImage(IMAGE_BRUSH("Common/ComboArrow", Icon8x8))
-				.SetMenuBorderBrush(BOX_BRUSH( "Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor ))
+				.SetMenuBorderBrush(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), NormalColor))
 				.SetMenuBorderPadding(FMargin(0.0f));
-			Set( "TutorialEditableText.Toolbar.ComboButton", ComboButton	);
+			Set("TutorialEditableText.Toolbar.ComboButton", ComboButton);
 
 			{
 				const FButtonStyle ComboBoxButton = FButtonStyle()
-					.SetNormal( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
-					.SetHovered( BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
-					.SetPressed( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White ) )
-					.SetDisabled( BOX_BRUSH("Tutorials/FlatColorSquare",  FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor ) )
-					.SetNormalPadding( FMargin( 2,2,2,2 ) )
-					.SetPressedPadding( FMargin( 2,3,2,1 ) );
+					.SetNormal(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White))
+					.SetHovered(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White))
+					.SetPressed(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White))
+					.SetDisabled(BOX_BRUSH("Tutorials/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), DisabledColor))
+					.SetNormalPadding(FMargin(2, 2, 2, 2))
+					.SetPressedPadding(FMargin(2, 3, 2, 1));
 
 				const FComboButtonStyle ComboBoxComboButton = FComboButtonStyle(ComboButton)
 					.SetButtonStyle(ComboBoxButton)
 					.SetMenuBorderPadding(FMargin(1.0));
 
-				Set( "TutorialEditableText.Toolbar.ComboBox", FComboBoxStyle()
+				Set("TutorialEditableText.Toolbar.ComboBox", FComboBoxStyle()
 					.SetComboButtonStyle(ComboBoxComboButton)
 					);
 			}
+		}
+
+		// In-editor tutorial launch button
+		{
+			Set("TutorialLaunch.Button", FButtonStyle()
+				.SetNormalPadding(0)
+				.SetPressedPadding(0)
+				.SetNormal(IMAGE_BRUSH("Tutorials/TutorialButton_Default_16x", Icon16x16))
+				.SetHovered(IMAGE_BRUSH("Tutorials/TutorialButton_Hovered_16x", Icon16x16))
+				.SetPressed(IMAGE_BRUSH("Tutorials/TutorialButton_Pressed_16x", Icon16x16))
+				);
+
+			Set("TutorialLaunch.Circle", new IMAGE_BRUSH("Tutorials/Circle_128x", Icon128x128, FLinearColor::White));
+			Set("TutorialLaunch.Circle.Color", FLinearColor::Green);
 		}
 	}
 }

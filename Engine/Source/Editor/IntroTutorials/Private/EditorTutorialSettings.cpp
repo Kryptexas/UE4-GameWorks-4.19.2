@@ -9,67 +9,25 @@ UEditorTutorialSettings::UEditorTutorialSettings(const class FPostConstructIniti
 
 }
 
-void UEditorTutorialSettings::PostInitProperties()
+void UEditorTutorialSettings::FindTutorialsForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial) const
 {
-	Super::PostInitProperties();
-
-	for(const auto& Progress : TutorialsProgress)
+	for (const auto& Context : TutorialContexts)
 	{
-		TSubclassOf<UEditorTutorial> TutorialClass = LoadClass<UEditorTutorial>(NULL, *Progress.Tutorial.AssetLongPathname, NULL, LOAD_None, NULL);
-		if(TutorialClass != nullptr)
+		if (Context.Context == InContext)
 		{
-			UEditorTutorial* Tutorial = TutorialClass->GetDefaultObject<UEditorTutorial>();
-			ProgressMap.Add(Tutorial, Progress);
+			TSubclassOf<UEditorTutorial> LaunchTutorialClass = LoadClass<UEditorTutorial>(nullptr, *Context.LaunchTutorial.AssetLongPathname, nullptr, LOAD_None, nullptr);
+			if (LaunchTutorialClass != nullptr)
+			{
+				OutLaunchTutorial = LaunchTutorialClass->GetDefaultObject<UEditorTutorial>();
+			}
+
+			TSubclassOf<UEditorTutorial> AttractTutorialClass = LoadClass<UEditorTutorial>(nullptr, *Context.AttractTutorial.AssetLongPathname, nullptr, LOAD_None, nullptr);
+			if (AttractTutorialClass != nullptr)
+			{
+				OutAttractTutorial = AttractTutorialClass->GetDefaultObject<UEditorTutorial>();
+			}
+
+			return;
 		}
 	}
-}
-
-int32 UEditorTutorialSettings::GetProgress(UEditorTutorial* InTutorial, bool& bOutHaveSeenTutorial) const
-{
-	const FTutorialProgress* FoundProgress = ProgressMap.Find(InTutorial);
-	if(FoundProgress != nullptr)
-	{
-		bOutHaveSeenTutorial = true;
-		return FoundProgress->CurrentStage;
-	}
-
-	bOutHaveSeenTutorial = false;
-	return 0;
-}
-
-bool UEditorTutorialSettings::HaveSeenTutorial(UEditorTutorial* InTutorial) const
-{
-	return ProgressMap.Find(InTutorial) != nullptr;
-}
-
-void UEditorTutorialSettings::RecordProgress(UEditorTutorial* InTutorial, int32 CurrentStage)
-{
-	if(InTutorial != nullptr)
-	{
-		FTutorialProgress* FoundProgress = ProgressMap.Find(InTutorial);
-		if(FoundProgress != nullptr)
-		{
-			FoundProgress->CurrentStage = FMath::Max(FoundProgress->CurrentStage, CurrentStage);
-		}
-		else
-		{
-			FTutorialProgress Progress;
-			Progress.Tutorial = FStringClassReference(InTutorial->GetClass());
-			Progress.CurrentStage = CurrentStage;
-
-			ProgressMap.Add(InTutorial, Progress);
-		}
-	}
-}
-
-void UEditorTutorialSettings::SaveProgress()
-{
-	TutorialsProgress.Empty();
-
-	for(const auto& ProgressMapEntry : ProgressMap)
-	{
-		TutorialsProgress.Add(ProgressMapEntry.Value);
-	}
-
-	SaveConfig();
 }

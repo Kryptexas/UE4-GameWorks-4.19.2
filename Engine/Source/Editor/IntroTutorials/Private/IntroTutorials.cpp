@@ -16,6 +16,7 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "Particles/ParticleSystem.h"
 #include "EditorTutorialSettings.h"
+#include "TutorialStateSettings.h"
 #include "TutorialSettings.h"
 #include "Settings.h"
 #include "EditorTutorial.h"
@@ -26,6 +27,7 @@
 #include "TutorialStructCustomization.h"
 #include "EditorTutorialDetailsCustomization.h"
 #include "STutorialRoot.h"
+#include "STutorialButton.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -555,7 +557,7 @@ bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, cons
 		if(EditorStartupTutorialClass != nullptr)
 		{
 			UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-			if(!GetDefault<UEditorTutorialSettings>()->HaveSeenTutorial(Tutorial))
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
 			{
 				LaunchTutorial(Tutorial);
 				return true;
@@ -567,7 +569,7 @@ bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, cons
 		if(ProjectStartupTutorialClass != nullptr)
 		{
 			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-			if(!GetDefault<UEditorTutorialSettings>()->HaveSeenTutorial(Tutorial))
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
 			{
 				LaunchTutorial(Tutorial);
 				return true;
@@ -753,11 +755,19 @@ void FIntroTutorials::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const 
 	}
 }
 
-void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow)
+void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
 {
 	if(TutorialRoot.IsValid())
 	{
-		TutorialRoot->LaunchTutorial(InTutorial, bInRestart, InNavigationWindow);
+		TutorialRoot->LaunchTutorial(InTutorial, bInRestart, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
+	}
+}
+
+void FIntroTutorials::CloseAllTutorialContent()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->CloseAllTutorialContent();
 	}
 }
 
@@ -777,5 +787,11 @@ void FIntroTutorials::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 	}
 }
 
+TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow) const
+{
+	return SNew(STutorialButton)
+		.Context(InContext)
+		.ContextWindow(InContextWindow);
+}
 
 #undef LOCTEXT_NAMESPACE

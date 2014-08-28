@@ -48,9 +48,10 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 		SAssignNew(ContentWidget, SBorder)
 
 		// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
-		.Padding(Anchor.Type != ETutorialAnchorIdentifier::None ? 18.0f : 24.0f)
+		.Padding(24.0f)
 		.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
 		.Visibility(this, &STutorialContent::GetVisibility)
+		.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
 		.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		[
 			SNew(SHorizontalBox)
@@ -59,7 +60,7 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 			.MaxWidth(600.0f)
 			.VAlign(VAlign_Center)
 			[
-				GenerateContentWidget(InContent, InArgs._WrapTextAt, Anchor.Type != ETutorialAnchorIdentifier::None, DocumentationPage)
+				GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -101,6 +102,9 @@ static void GetAnimationValues(bool bIsIntro, float InAnimationProgress, float& 
 
 int32 STutorialContent::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	CachedContentGeometry = AllottedGeometry;
+	CachedContentGeometry.AbsolutePosition += OutDrawElements.GetWindow()->GetPositionInScreen();
+
 	if(bIsVisible && Anchor.Type != ETutorialAnchorIdentifier::None && Anchor.bDrawHighlight)
 	{
 		float AlphaFactor;
@@ -164,7 +168,7 @@ static TSharedRef<SWidget> GetStageTitle(const FExcerpt& InExcerpt, int32 InCurr
 	return SNullWidget::NullWidget;
 }
 
-TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, bool bForWidget, TSharedPtr<IDocumentationPage>& OutDocumentationPage)
+TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage)
 {
 	// Style for the documentation
 	static FDocumentationStyle DocumentationStyle;
@@ -188,7 +192,7 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 				.Visibility(EVisibility::SelfHitTestInvisible)
 				.WrapTextAt(WrapTextAt)
 				.Text(InContent.Text)
-				.TextStyle(FEditorStyle::Get(), bForWidget ? "Tutorials.WidgetContent" : "Tutorials.Content");
+				.TextStyle(FEditorStyle::Get(), "Tutorials.Content");
 		}
 
 	case ETutorialContent::UDNExcerpt:
@@ -234,7 +238,7 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("tutorial"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnTutorialLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("code"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnCodeLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("asset"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnAssetLinkClicked)));
-			Decorators.Add(FTextStyleDecorator::Create(&TextStyles));
+			Decorators.Add(FTextStyleDecorator::Create(TextStyles));
 
 			return SNew(SRichTextBlock)
 					.Visibility(EVisibility::SelfHitTestInvisible)
@@ -320,10 +324,14 @@ void STutorialContent::HandlePaintNamedWidget(TSharedRef<SWidget> InWidget, cons
 	switch(Anchor.Type)
 	{
 	case ETutorialAnchorIdentifier::NamedWidget:
-		if(Anchor.WrapperIdentifier == InWidget->GetTag())
 		{
-			bIsVisible = true;
-			CachedGeometry = InGeometry;
+			TSharedPtr<FTagMetaData> MetaData = InWidget->GetMetaData<FTagMetaData>();
+			if( Anchor.WrapperIdentifier == InWidget->GetTag() ||
+				(MetaData.IsValid() && MetaData->Tag == Anchor.WrapperIdentifier))
+			{
+				bIsVisible = true;
+				CachedGeometry = InGeometry;
+			}
 		}
 		break;
 	}
@@ -342,6 +350,13 @@ void STutorialContent::HandleCacheWindowSize(const FVector2D& InWindowSize)
 EVisibility STutorialContent::GetVisibility() const
 {
 	return bIsVisible || Anchor.Type == ETutorialAnchorIdentifier::None ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+}
+
+FSlateColor STutorialContent::GetBackgroundColor() const
+{
+	// note cant use IsHovered() here because our widget is SelfHitTestInvisible
+	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+	return CachedContentGeometry.IsUnderLocation(CursorPos) ? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 0.8f);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -46,7 +46,7 @@ class STutorialContent : public SCompoundWidget
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	/** Helper function to generate widgets from an FTutorialContent struct */
-	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, bool bForWidget, TSharedPtr<IDocumentationPage>& OutDocumentationPage);
+	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage);
 
 	/** Handle repositioning the widget */
 	FVector2D GetPosition() const;
@@ -74,11 +74,19 @@ private:
 	/** Get close button visibility - varies depending on whether we are standalone or not */
 	EVisibility GetCloseButtonVisibility() const;
 
+	/** Alter the background color depending on hover state */
+	FSlateColor GetBackgroundColor() const;
+
+private:
+
 	/** Copy of the window size we were last draw at */
 	FVector2D CachedWindowSize;
 
 	/** Copy of the geometry our widget was last drawn with */
 	FGeometry CachedGeometry;
+
+	/** Copy of the geometry our content was last drawn with */
+	mutable FGeometry CachedContentGeometry;
 
 	/** Container for widget content */
 	TSharedPtr<SWidget> ContentWidget;

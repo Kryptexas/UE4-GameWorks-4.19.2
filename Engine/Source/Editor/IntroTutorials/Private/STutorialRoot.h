@@ -28,7 +28,10 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Launch the specified tutorial from the specified window */
-	void LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow);
+	void LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited);
+
+	/** Close all tutorial content */
+	void CloseAllTutorialContent();
 
 	/** Summon the browser widget for the specified window */
 	void SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter = TEXT(""));

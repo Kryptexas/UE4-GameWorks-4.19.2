@@ -149,7 +149,9 @@ public:
 	// IIntroTutorials interface
 	virtual void RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString) override;
 	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass) override;
-	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr) override;
+	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate()) override;
+	virtual void CloseAllTutorialContent() override;
+	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow) const override;
 	// End of IIntroTutorials interface
 private:
 	/** The tab id of the tutorial tab */

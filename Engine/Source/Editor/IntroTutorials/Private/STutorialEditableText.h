@@ -203,7 +203,7 @@ class FTextStyleDecorator : public ITextDecorator
 {
 public:
 
-	static TSharedRef<FTextStyleDecorator> Create(FTextStyles* const InTextStyles)
+	static TSharedRef<FTextStyleDecorator> Create(const FTextStyles& InTextStyles)
 	{
 		return MakeShareable(new FTextStyleDecorator(InTextStyles));
 	}
@@ -230,17 +230,17 @@ public:
 		*InOutModelText += OriginalText.Mid(RunParseResult.ContentRange.BeginIndex, RunParseResult.ContentRange.EndIndex - RunParseResult.ContentRange.BeginIndex);
 		ModelRange.EndIndex = InOutModelText->Len();
 
-		return FSlateTextRun::Create(RunInfo, InOutModelText, TextStyles->CreateTextBlockStyle(RunInfo), ModelRange);
+		return FSlateTextRun::Create(RunInfo, InOutModelText, TextStyles.CreateTextBlockStyle(RunInfo), ModelRange);
 	}
 
 private:
 
-	FTextStyleDecorator(FTextStyles* const InTextStyles)
+	FTextStyleDecorator(const FTextStyles& InTextStyles)
 		: TextStyles(InTextStyles)
 	{
 	}
 
-	FTextStyles* TextStyles;
+	FTextStyles TextStyles;
 };
 
 

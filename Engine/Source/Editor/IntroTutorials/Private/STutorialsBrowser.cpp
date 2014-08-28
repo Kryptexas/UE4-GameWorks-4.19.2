@@ -6,6 +6,7 @@
 #include "STutorialContent.h"
 #include "TutorialSettings.h"
 #include "EditorTutorialSettings.h"
+#include "TutorialStateSettings.h"
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
@@ -253,7 +254,7 @@ public:
 						+SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, false, DocumentationPage)
+							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, DocumentationPage)
 						]
 					]
 				]
@@ -279,7 +280,7 @@ public:
 	TOptional<float> GetProgress() const
 	{
 		bool bHaveSeenTutorial = false;
-		const int32 CurrentStage = GetDefault<UEditorTutorialSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
+		const int32 CurrentStage = GetDefault<UTutorialStateSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
 		return (Tutorial->Stages.Num() > 0) ? (float)(CurrentStage + 1) / (float)Tutorial->Stages.Num() : 0.0f;
 	}
 
@@ -288,7 +289,7 @@ public:
 		if(LaunchButton->IsHovered())
 		{
 			bool bHaveSeenTutorial = false;
-			const int32 CurrentStage = GetDefault<UEditorTutorialSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
+			const int32 CurrentStage = GetDefault<UTutorialStateSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
 			return LaunchButton->IsHovered() && bHaveSeenTutorial ? EVisibility::Visible : EVisibility::Hidden;
 		}
 
@@ -629,7 +630,7 @@ FSlateColor STutorialsBrowser::GetBackButtonColor() const
 
 void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRestart)
 {
-	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow);
+	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
 }
 
 void STutorialsBrowser::OnCategorySelected(const FString& InCategory)

@@ -79,9 +79,11 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 	];
 }
 
-void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow)
+void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
 	bShowNavigation = bInIsNavigationWindow;
+	OnTutorialClosed = InOnTutorialClosed;
+	OnTutorialExited = InOnTutorialExited;
 
 	RebuildCurrentContent();
 }
@@ -91,6 +93,13 @@ void SEditorTutorials::ShowBrowser(const FString& InFilter)
 {
 	TutorialHome->SetFilter(InFilter);
 	HandleHomeClicked();
+}
+
+void SEditorTutorials::HideContent()
+{
+	HandleHomeClicked();
+	bBrowserVisible = false;
+	bShowNavigation = false;
 }
 
 bool SEditorTutorials::IsNavigationVisible() const
@@ -114,6 +123,7 @@ void SEditorTutorials::HandleCloseClicked()
 {
 	HandleHomeClicked();
 	bBrowserVisible = false;
+	OnTutorialClosed.ExecuteIfBound();
 }
 
 void SEditorTutorials::HandleBackClicked()
@@ -128,6 +138,7 @@ void SEditorTutorials::HandleHomeClicked()
 
 	ContentBox->ClearChildren();
 	bBrowserVisible = true;
+	OnTutorialExited.ExecuteIfBound();
 }
 
 void SEditorTutorials::HandleNextClicked()

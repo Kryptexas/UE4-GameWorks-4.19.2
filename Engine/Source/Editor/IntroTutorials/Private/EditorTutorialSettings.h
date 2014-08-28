@@ -5,17 +5,23 @@
 #include "EditorTutorial.h"
 #include "EditorTutorialSettings.generated.h"
 
-/** Track the progress of an individual tutorial */
+/** Named context that corresponds to a particular tutorial */
 USTRUCT()
-struct FTutorialProgress
+struct FTutorialContext
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	FStringClassReference Tutorial;
+	/** The context that this tutorial is used in */
+	UPROPERTY(EditAnywhere, Category = "Tutorials")
+	FName Context;
 
-	UPROPERTY()
-	int32 CurrentStage;
+	/** The tutorial to use in this context to let the user know there is a tutorial available */
+	UPROPERTY(EditAnywhere, Category = "Tutorials", meta = (MetaClass = "EditorTutorial"))
+	FStringClassReference AttractTutorial;
+
+	/** The tutorial to use in this context when the user chooses to launch */
+	UPROPERTY(EditAnywhere, Category = "Tutorials", meta = (MetaClass = "EditorTutorial"))
+	FStringClassReference LaunchTutorial;
 };
 
 /** Editor-wide tutorial settings */
@@ -28,28 +34,14 @@ class UEditorTutorialSettings : public UObject
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials")
 	TArray<FTutorialCategory> Categories;
 
-	UPROPERTY(Config)
-	TArray<FTutorialProgress> TutorialsProgress;
-
 	/** Tutorial to start on Editor startup */
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials", meta=(MetaClass="EditorTutorial"))
 	FStringClassReference StartupTutorial;
 
-	/** UObject interface */
-	virtual void PostInitProperties() override;
+	/** Tutorials used in various contexts - e.g. the various asset editors */
+	UPROPERTY(Config, EditAnywhere, Category = "Tutorials")
+	TArray<FTutorialContext> TutorialContexts;
 
-	/** Get the recorded progress of the pass-in tutorial */
-	int32 GetProgress(UEditorTutorial* InTutorial, bool& bOutHaveSeenTutorial) const;
-
-	/** Check if we have seen the passed-in tutorial before */
-	bool HaveSeenTutorial(UEditorTutorial* InTutorial) const;
-
-	/** Record the progress of the passed-in tutorial */
-	void RecordProgress(UEditorTutorial* InTutorial, int32 CurrentStage);
-
-	/** Save the progress of all our tutorials */
-	void SaveProgress();
-
-	/** Recorded progress */
-	TMap<UEditorTutorial*, FTutorialProgress> ProgressMap;
+	/** Get the tutorial for the specified context */
+	void FindTutorialsForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial) const;
 };

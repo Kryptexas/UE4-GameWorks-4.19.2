@@ -58,6 +58,19 @@ public:
 	 * @param	bRestart	Whether to restart the tutorial or resume from where we left off last time.
 	 * @param	InNavigationWindow	Optional window to launch the tutorial from - this is where navigation will be displayed.
 	 */
-	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr) = 0;
+	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate()) = 0;
+
+	/**
+ 	 *  Close all tutorial content, including the browser.
+	 */
+	virtual void CloseAllTutorialContent() = 0;
+
+	/**
+	 * Create a widget that allows access to the tutorial for the current context.
+	 * @param	InContext			The name of the context this widget is attached to (e.g. "LevelEditor")
+	 * @param	InContextWindow		The window that the context is attached to (e.g. the main window, or an asset editor tab)
+	 * @return a widget used to access context-sensitive tutorials
+	 */
+	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow) const = 0;
 };
 
