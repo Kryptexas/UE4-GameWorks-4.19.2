@@ -509,6 +509,17 @@ FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo()
 	return *CurrentActorInfo;
 }
 
+/** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
+USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo()
+{
+	check(CurrentActorInfo);
+	if (CurrentActorInfo->AnimInstance.IsValid())
+	{
+		return CurrentActorInfo->AnimInstance.Get()->GetOwningComponent();
+	}
+	return NULL;
+}
+
 /** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
 FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingSpec(UGameplayEffect* GameplayEffect) const
 {

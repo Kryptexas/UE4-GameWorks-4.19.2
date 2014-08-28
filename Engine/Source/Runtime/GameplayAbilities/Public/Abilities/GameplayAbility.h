@@ -335,6 +335,9 @@ protected:
 	UFUNCTION(BlueprintPure, Category=Ability)
 	FGameplayAbilityActorInfo GetActorInfo();
 
+	UFUNCTION(BlueprintPure, Category = Ability)
+	USkeletalMeshComponent* GetOwningComponentFromActorInfo();
+
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
 
