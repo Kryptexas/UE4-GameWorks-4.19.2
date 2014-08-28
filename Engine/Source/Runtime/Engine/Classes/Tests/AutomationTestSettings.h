@@ -275,6 +275,23 @@ struct FBuildPromotionTestSettings
 };
 
 /**
+* Holds settings for the asset import / export automation test
+*/
+USTRUCT()
+struct FEditorMapPerformanceTestDefinition
+{
+	GENERATED_USTRUCT_BODY()
+	
+	/** Map to be used for the Performance Capture **/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
+	FFilePath PerformanceTestmap;
+
+	/** How long is this test expected to run before stopping **/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "This is the length of time in seconds that this test will run for before stopping."))
+	int32 TestTimer;
+};
+
+/**
  * Implements the Editor's user settings.
  */
 UCLASS(config=Engine)
@@ -285,37 +302,49 @@ class ENGINE_API UAutomationTestSettings : public UObject
 public:
 
 	/**
-	 * The directory to which the packaged project will be copied.
+	 * The automation test map to be used for several of the automation tests.
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Automation, meta=(FilePathFilter = "umap"))
 	FFilePath AutomationTestmap;
+
+	/**
+	* The map to be used for the editor performance capture tool.
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
+	TArray<FEditorMapPerformanceTestDefinition> EditorPerformanceTestMaps;
+
+	/**
+	* Editor build promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FBuildPromotionTestSettings BuildPromotionTest;
+
+	/**
+	* Modules to load that have engine tests
+	*/
+	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
+	TArray<FString> EngineTestModules;
+
+	/**
+	* Modules to load that have editor tests
+	*/
+	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
+	TArray<FString> EditorTestModules;
+
+	/**
+	* Folders containing levels to exclude from automated tests
+	*/
+	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
+	TArray<FString> TestLevelFolders;
 
 	/**
 	 * Asset to test for open in automation process
 	 */
 	UPROPERTY(EditAnywhere, config, Category=Automation)
 	TArray<FOpenTestAsset> TestAssetsToOpen;
-
+	
 	/**
-	 * Modules to load that have engine tests
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Automation)
-	TArray<FString> EngineTestModules;
-
-	/**
-	 * Modules to load that have editor tests
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Automation)
-	TArray<FString> EditorTestModules;
-
-	/**
-	 * Folders containing levels to exclude from automated tests
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Automation)
-	TArray<FString> TestLevelFolders;
-
-	/**
-	 * Asset to test for open in automation process
+	 * External executables and scripts to run as part of automation.
 	 */
 	UPROPERTY(EditAnywhere, config, Category=ExternalTools)
 	TArray<FExternalToolDefinition> ExternalTools;
@@ -326,9 +355,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	TArray<FEditorImportExportTestDefinition> ImportExportTestDefinitions;
 
-	/**
-	* Editor build promotion test settings
-	*/
-	UPROPERTY(EditAnywhere, config, Category = Automation)
-	FBuildPromotionTestSettings BuildPromotionTest;
+
+
+
 };

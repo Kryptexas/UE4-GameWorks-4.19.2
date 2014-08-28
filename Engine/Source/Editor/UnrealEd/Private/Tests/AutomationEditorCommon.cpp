@@ -5,7 +5,9 @@
 #include "AssetEditorManager.h"
 #include "ModuleManager.h"
 #include "LevelEditor.h"
-#include "ModuleManager.h"
+#include "Editor/MainFrame/Public/MainFrame.h"
+
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
 
@@ -361,6 +363,106 @@ bool FEndPlayMapCommand::Update()
 	GUnrealEd->RequestEndPlayMap();
 	return true;
 }
+
+/**
+* This command grabs the FPS and Memory for the current editor session.
+*/
+bool FEditorPerformanceCommand::Update()
+{
+	//Get the base filename for the map that will be used.
+	FString ShortMapName = FPaths::GetBaseFilename(BaseMapName);	
+	
+	//Map Load time variables
+	double MapLoadStartTime = 0.0f;
+	double MapLoadTime = 0.0f;
+
+	//Gets the main frame module
+	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
+
+	//Variables that hold the content from the text files
+	FString SavedMapLoadTime;
+	FString SavedAverageFPS;
+	FString SavedMemory;
+	static SIZE_T StaticLastTotalAllocated = 0;
+
+	//Performance file locations and setups.
+	FString FileSaveLocation = FPaths::AutomationLogDir() + TEXT("Performance/") + ShortMapName + TEXT("/");
+	FString FPSFileSaveLocation = FileSaveLocation + TEXT("RawFPS.txt");
+	FString MemoryFileSaveLocation = FileSaveLocation + TEXT("RawMemory.txt");
+	FString MapLoadTimeFileSaveLocation = FileSaveLocation + TEXT("RAWMapLoadTime.txt");
+	
+	//Open the map if it hasn't been loaded already.
+	if (MainFrameModule.GetLoadedLevelName() != ShortMapName)
+	{
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("Intended map is not loaded in the editor.  Loading '%s' now."), *ShortMapName);
+		
+		//Get the current number of seconds.  This will be used to track how long it took to load the map.
+		MapLoadStartTime = FPlatformTime::Seconds();
+		//Load the map
+		FEditorAutomationTestUtilities::LoadMap(BaseMapName);
+		//This is the time it took to load the map in the editor.
+		MapLoadTime = FPlatformTime::Seconds() - MapLoadStartTime;
+
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("%s has been loaded."), *ShortMapName);
+
+		//Log out to a text file the time it takes to load the map.
+		FString LoadTime = FString::Printf(TEXT("%.3f"), MapLoadTime);
+		FFileHelper::LoadFileToString(SavedMapLoadTime, *MapLoadTimeFileSaveLocation);
+		FString MapLoadTimeFileSetup = SavedMapLoadTime + LoadTime + TEXT(",");
+		FFileHelper::SaveStringToFile(MapLoadTimeFileSetup, *MapLoadTimeFileSaveLocation);
+
+		//Display the time it took to launch the map.
+		UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took '%.3f' to load"), *BaseMapName, MapLoadTime);
+		return true;
+	}
+	
+	//FPS capture
+	const float CurrentFPS = 1.0f / FSlateApplication::Get().GetAverageDeltaTime();
+	const float ClampedFPS = (CurrentFPS < 0.3f || CurrentFPS > 4000.0f) ? 0.0f : CurrentFPS;
+	//Log out to a text file the AverageFPS
+	FString AverageFPS = FString::Printf(TEXT("%3.1f"), ClampedFPS);
+	FFileHelper::LoadFileToString(SavedAverageFPS, *FPSFileSaveLocation);
+	FString FPSFileSetup = SavedAverageFPS + AverageFPS + TEXT(",");
+	FFileHelper::SaveStringToFile(FPSFileSetup, *FPSFileSaveLocation);
+
+	//Working Set Memory capture
+	// Query OS for process memory used
+	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+	StaticLastTotalAllocated = MemoryStats.UsedPhysical;
+	//Log out to a text file the Memory in kilobytes.
+	FString Memory = FString::Printf(TEXT("%f"), ((float)StaticLastTotalAllocated / 1024));
+	FFileHelper::LoadFileToString(SavedMemory, *MemoryFileSaveLocation);
+	FString MemoryFileSetup = SavedMemory + Memory + TEXT(",");
+	FFileHelper::SaveStringToFile(MemoryFileSetup, *MemoryFileSaveLocation);
+	
+	return true;
+}
+
+/**
+* This this command loads a map into the editor.
+*/
+bool FEditorLoadMap::Update()
+{
+	double MapLoadStartTime = 0.0f;
+	double MapLoadTime = 0.0f;
+	
+	//Get the current number of seconds.  This will be used to track how long it took to load the map.
+	MapLoadStartTime = FPlatformTime::Seconds();
+
+	//Load the map
+	FEditorAutomationTestUtilities::LoadMap(MapName);
+
+	//This is the time it took to load the map in the editor.
+	MapLoadTime = FPlatformTime::Seconds() - MapLoadStartTime;
+
+	//Log how long it took to launch the map.
+	UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took '%.3f' to load"), *MapName, MapLoadTime);
+
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+//Find Asset Commands
 
 /**
 * Generates a list of assets from the ENGINE and the GAME by a specific type.
