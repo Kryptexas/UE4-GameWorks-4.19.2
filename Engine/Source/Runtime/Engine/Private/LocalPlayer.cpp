@@ -117,6 +117,13 @@ AHUD* FLocalPlayerContext::GetHUD() const
 	return PC ? PC->MyHUD : NULL;
 }
 
+class APawn* FLocalPlayerContext::GetPawn() const
+{
+	check(LocalPlayer.IsValid())
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->GetPawn() : NULL;
+}
+
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
 {
 	LocalPlayer = InLocalPlayer;

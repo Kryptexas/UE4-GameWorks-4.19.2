@@ -67,6 +67,16 @@ struct ENGINE_API FLocalPlayerContext
 		return CastChecked<T>(GetHUD(), ECastCheckedType::NullAllowed);
 	}
 
+	/** Getter for the base pawn of this player */
+	class APawn* GetPawn() const;
+
+	/** Templated getter for the player's pawn */
+	template<class T>
+	FORCEINLINE T* GetPawn() const
+	{
+		return CastChecked<T>(GetPawn(), ECastCheckedType::NullAllowed);
+	}
+
 private:	
 
 	/* Set the local player. */
