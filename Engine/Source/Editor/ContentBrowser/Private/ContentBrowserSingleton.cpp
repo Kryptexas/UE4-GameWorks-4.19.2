@@ -348,9 +348,13 @@ void FContentBrowserSingleton::SharedCreateAssetDialogWindow(const TSharedRef<SA
 		{
 			FSlateApplication::Get().AddModalWindow(DialogWindow, MainFrameParentWindow.ToSharedRef());
 		}
-		else
+		else if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
 		{
 			FSlateApplication::Get().AddWindowAsNativeChild(DialogWindow, MainFrameParentWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(DialogWindow);
 		}
 	}
 	else
