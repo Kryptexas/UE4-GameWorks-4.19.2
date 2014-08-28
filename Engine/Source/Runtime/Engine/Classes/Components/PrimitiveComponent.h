@@ -1030,18 +1030,18 @@ public:
 	*   @param InParent the component to be physically attached to
 	*   @param InSocketName optional socket to attach component to
 	*/
-	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None) override;
-
-	/**
-	*   UnWelds this component from its parent component. Attachment is maintained (DetachFromParent automatically unwelds)
-	*/
-	virtual void UnWeldFromParent() override;
+	virtual void WeldTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/**
 	*	Does the actual work for welding.
 	*	@return true if did a true weld of shapes, meaning body initialization is not needed
 	*/
-	bool WeldToInternal(USceneComponent * InParent, FName ParentSocketName = NAME_None);
+	virtual bool WeldToImplementation(USceneComponent * InParent, FName ParentSocketName = NAME_None, bool bWeldSimulatedChild = true);
+
+	/**
+	*   UnWelds this component from its parent component. Attachment is maintained (DetachFromParent automatically unwelds)
+	*/
+	virtual void UnWeldFromParent();
 
 	/**
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 

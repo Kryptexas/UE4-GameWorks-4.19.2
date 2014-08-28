@@ -732,8 +732,15 @@ public:
 	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToComponent", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
-	void AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
+	void AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
+
+	/**
+	*  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	*   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
+	*/
+
+	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "AttachActorToComponent", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
+	void K2_AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
 	/**
 	 * Attaches the RootComponent of this Actor to the RootComponent of the supplied actor, optionally at a named socket.
@@ -741,8 +748,15 @@ public:
 	 * @param InSocketName				Socket name to attach to, if any
 	 * @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToActor", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
-	void AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
+	void AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
+
+	/**
+	*  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	*   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
+	*/
+
+	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "AttachActorToActor", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
+	void K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
 	/** 
 	 *  Snap the RootComponent of this Actor to the supplied Actor's root component, optionally at a named socket. It is not valid to call this on components that are not Registered. 

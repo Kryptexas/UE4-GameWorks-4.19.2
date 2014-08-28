@@ -1098,11 +1098,16 @@ bool AActor::HasNetOwner() const
 	return TopOwner->HasNetOwner();
 }
 
-void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
+void AActor::K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
+{
+	AttachRootComponentTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+}
+
+void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if(RootComponent && InParent)
 	{
-		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType );
+		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
 
 
 		AttachmentReplication.AttachParent = InParent->GetAttachmentRootActor();
@@ -1145,14 +1150,19 @@ void AActor::OnRep_AttachmentReplication()
 	}
 }
 
-void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
+void AActor::K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
+{
+	AttachRootComponentToActor(InParentActor, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+}
+
+void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if (RootComponent && InParentActor)
 	{
 		USceneComponent* ParentRootComponent = InParentActor->GetRootComponent();
 		if (ParentRootComponent)
 		{
-			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType );
+			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
 
 
 			AttachmentReplication.AttachParent = InParentActor;

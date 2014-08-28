@@ -96,6 +96,38 @@ EVisibility FPrimitiveComponentDetails::IsCustomLockedAxisSelected() const
 	return bVisible ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+bool FPrimitiveComponentDetails::IsAutoWeldEditable() const
+{
+	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
+	{
+		if (UPrimitiveComponent * SceneComponent = Cast<UPrimitiveComponent>(ObjectsCustomized[i].Get()))
+		{
+			if (FBodyInstance * BI = SceneComponent->GetBodyInstance())
+			{
+				if (BI->IsInstanceSimulatingPhysics())
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+EVisibility FPrimitiveComponentDetails::IsAutoWeldVisible() const
+{
+	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
+	{
+		if (ObjectsCustomized[i].IsValid() && !ObjectsCustomized[i]->IsA(UStaticMeshComponent::StaticClass()))
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
+	return EVisibility::Visible;
+}
+
 void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	TSharedRef<IPropertyHandle> MobilityHandle = DetailBuilder.GetProperty("Mobility", USceneComponent::StaticClass());
@@ -176,9 +208,10 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 						//we only enable bUseAsyncScene if the project uses an AsyncScene
 						PhysicsCategory.AddProperty(ChildProperty).Visibility(TAttribute<EVisibility>(this, &FPrimitiveComponentDetails::IsCustomLockedAxisSelected));
 					}
-					else if (PropName == TEXT("AutoWeld"))
+					else if (PropName == TEXT("bAutoWeld"))
 					{
-						PhysicsCategory.AddProperty(ChildProperty);	//can't ifdef the property out so for now we just customize it to be hidden in UI
+						PhysicsCategory.AddProperty(ChildProperty).Visibility(TAttribute<EVisibility>(this, &FPrimitiveComponentDetails::IsAutoWeldVisible))
+																  .EditCondition(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsAutoWeldEditable), NULL);
 					}
 					else
 					{

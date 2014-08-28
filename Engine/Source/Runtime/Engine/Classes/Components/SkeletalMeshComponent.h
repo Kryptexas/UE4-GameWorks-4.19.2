@@ -955,7 +955,6 @@ public:
 	void SetNamedMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, const TArray<FName>& BoneNames, bool bSetOtherBodiesToComplement = false);
 
 	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
-	bool virtual WeldToInternal(USceneComponent * InParent, FName ParentSocketName = NAME_None){ return false; }	//not currently supported for skeletal mesh
 
 	/**
 	 * Return Transform Matrix for SkeletalMeshComponent considering root motion setups

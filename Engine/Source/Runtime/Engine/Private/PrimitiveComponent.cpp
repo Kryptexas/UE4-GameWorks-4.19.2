@@ -329,7 +329,7 @@ void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
 	Super::OnChildAttached(ChildComponent);
 }
 
-UPrimitiveComponent * GetRootWelded(UPrimitiveComponent * PrimComponent, FName ParentSocketName = NAME_None, FName * OutSocketName = NULL)
+UPrimitiveComponent * GetRootWelded(UPrimitiveComponent * PrimComponent, FName ParentSocketName = NAME_None, FName * OutSocketName = NULL, bool bAboutToWeld = false)
 {
 	UPrimitiveComponent * Result = NULL;
 	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->AttachParent);	//we must find the root component along hierarchy that has bWelded set to true
@@ -337,7 +337,7 @@ UPrimitiveComponent * GetRootWelded(UPrimitiveComponent * PrimComponent, FName P
 	//check that body itself is welded
 	if (FBodyInstance * BI = PrimComponent->GetBodyInstance(ParentSocketName))
 	{
-		if (BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
+		if (bAboutToWeld == false && BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
 		{
 			return NULL;
 		}
@@ -384,7 +384,7 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 	}
 }
 
-bool UPrimitiveComponent::WeldToInternal(USceneComponent * InParent, FName ParentSocketName /* = Name_None */)
+bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName ParentSocketName /* = Name_None */, bool bWeldSimulatedChild /* = false */)
 {
 	//WeldToInternal assumes attachment is already done
 	if (AttachParent != InParent || AttachSocketName != ParentSocketName)
@@ -399,9 +399,14 @@ bool UPrimitiveComponent::WeldToInternal(USceneComponent * InParent, FName Paren
 		return false;
 	}
 
+	if (BI->ShouldInstanceSimulatingPhysics() && bWeldSimulatedChild == false)
+	{
+		return false;
+	}
+
 	FName SocketName;
-	UPrimitiveComponent * RootComponent = GetRootWelded(this, ParentSocketName, &SocketName);
-	
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, ParentSocketName, &SocketName, true);
+
 	if (RootComponent)
 	{
 		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName))
@@ -438,7 +443,7 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 		AttachTo(InParent, InSocketName, EAttachLocation::KeepWorldPosition);
 	}
 
-	WeldToInternal(InParent, InSocketName);
+	WeldToImplementation(InParent, InSocketName);
 }
 
 void UPrimitiveComponent::UnWeldFromParent()
@@ -491,7 +496,6 @@ void UPrimitiveComponent::UnWeldFromParent()
 		}
 	}
 }
-
 
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
 {

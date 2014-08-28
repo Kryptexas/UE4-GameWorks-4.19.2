@@ -907,7 +907,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		//if we have a parent we will now do the weld and exit any further initialization
 		if (ParentPrimComponent && PrimComp->GetWorld() && PrimComp->GetWorld()->IsGameWorld())
 		{
-			if (PrimComp->WeldToInternal(ParentPrimComponent, PrimComp->AttachSocketName))	//welded new simulated body so initialization is done
+			if (PrimComp->WeldToImplementation(ParentPrimComponent, PrimComp->AttachSocketName, false))	//welded new simulated body so initialization is done
 			{
 				return;
 			}
