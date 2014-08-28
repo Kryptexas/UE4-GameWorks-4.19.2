@@ -6,6 +6,8 @@
 #include "EditorTutorial.h"
 #include "IntroTutorials.h"
 #include "LevelEditor.h"
+#include "BlueprintEditorUtils.h"
+#include "Guid.h"
 
 void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const InStage)
 {
@@ -52,35 +54,33 @@ void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const
 			FIntroTutorials& IntroTutorials = FModuleManager::Get().GetModuleChecked<FIntroTutorials>("IntroTutorials");
 
 			// now add canvas slots for widget-bound content
-			for(const FTutorialWidgetContent& WidgetContent : InStage->WidgetContent)
+			for (const FTutorialWidgetContent& WidgetContent : InStage->WidgetContent)
 			{
-				if(WidgetContent.Content.Type != ETutorialContent::None )
+				if (WidgetContent.Content.Type != ETutorialContent::None)
 				{
-					const bool bEmptyText = (WidgetContent.Content.Type == ETutorialContent::Text || WidgetContent.Content.Type == ETutorialContent::RichText) && WidgetContent.Content.Text.IsEmpty();
-					if(!bEmptyText)
-					{
-						TSharedPtr<STutorialContent> ContentWidget = 
-							SNew(STutorialContent, WidgetContent.Content)
-							.HAlign(WidgetContent.HorizontalAlignment)
-							.VAlign(WidgetContent.VerticalAlignment)
-							.Offset(WidgetContent.Offset)
-							.IsStandalone(bIsStandalone)
-							.OnClosed(OnClosed)
-							.WrapTextAt(WidgetContent.ContentWidth)
-							.Anchor(WidgetContent.WidgetAnchor);
-						OpenBrowserForWidgetAnchor(WidgetContent);
 
-						OverlayCanvas->AddSlot()
+					TSharedPtr<STutorialContent> ContentWidget =
+						SNew(STutorialContent, WidgetContent.Content)
+						.HAlign(WidgetContent.HorizontalAlignment)
+						.VAlign(WidgetContent.VerticalAlignment)
+						.Offset(WidgetContent.Offset)
+						.IsStandalone(bIsStandalone)
+						.OnClosed(OnClosed)
+						.WrapTextAt(WidgetContent.ContentWidth)
+						.Anchor(WidgetContent.WidgetAnchor);
+					
+					PerformWidgetInteractions(WidgetContent); 					
+
+					OverlayCanvas->AddSlot()
 						.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetPosition)))
 						.Size(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetSize)))
 						[
 							ContentWidget.ToSharedRef()
 						];
 
-						OnPaintNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandlePaintNamedWidget);
-						OnResetNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandleResetNamedWidget);
-						OnCacheWindowSize.AddSP(ContentWidget.Get(), &STutorialContent::HandleCacheWindowSize);
-					}
+					OnPaintNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandlePaintNamedWidget);
+					OnResetNamedWidget.AddSP(ContentWidget.Get(), &STutorialContent::HandleResetNamedWidget);
+					OnCacheWindowSize.AddSP(ContentWidget.Get(), &STutorialContent::HandleCacheWindowSize);
 				}
 			}
 		}
@@ -141,12 +141,20 @@ int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeo
 	return LayerId;
 }
 
+void STutorialOverlay::PerformWidgetInteractions(const FTutorialWidgetContent &WidgetContent)
+{
+	// Open any browser we need too
+	OpenBrowserForWidgetAnchor(WidgetContent);
+
+	FocusOnAnyBlueprintNodes(WidgetContent);
+}
+
 void STutorialOverlay::OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent)
 {
 	FString IdentString = WidgetContent.WidgetAnchor.WrapperIdentifier.ToString();
 	FString TabString = "";
-		
-	// See if we have a mapping for the widget ident
+	
+	// See if we have a mapping for the widget ident.We will likely pull this from meta data when we have it)
 	for (TMap<FString, FString>::TConstIterator It(BrowserTabMap); It; ++It)
 	{
 		if (It.Key().StartsWith(IdentString) == true)
@@ -163,6 +171,40 @@ void STutorialOverlay::OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &
 		LevelEditorTabManager->InvokeTab(FName(*TabString));
 	}
 	
+}
+
+void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &WidgetContent)
+{
+	if (WidgetContent.bAutoFocus == false)
+	{
+		return;
+	}
+	FString IdentString = WidgetContent.WidgetAnchor.WrapperIdentifier.ToString();
+	TArray<FString> Tokens;
+	IdentString.ParseIntoArray(&Tokens, TEXT(","), true);
+	if (Tokens.Num() > 1 )
+	{
+		FString Name = Tokens[1];
+
+		// I'm sure this isnt how to do this. But probably this will all come from meta data anyway
+		int32 NameIndex;
+		Name.FindLastChar(TEXT('.'), NameIndex);
+		FString BlueprintName = Name.RightChop(NameIndex+1);		
+		UBlueprint* Blueprint = FindObject<UBlueprint>(ANY_PACKAGE, *BlueprintName);
+		// If we find a blueprint
+		if (Blueprint != nullptr)
+		{
+			// Try to grab guid
+			FGuid NodeGuid;
+			FGuid::Parse(Tokens[Tokens.Num() - 1], NodeGuid);
+			UEdGraphNode* OutNode = NULL;
+			if (UEdGraphNode* GraphNode = FBlueprintEditorUtils::GetNodeByGUID(Blueprint, NodeGuid))
+			{
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
+			}
+		}
+
+	}
 }
 
 void STutorialOverlay::AddTabInfo()

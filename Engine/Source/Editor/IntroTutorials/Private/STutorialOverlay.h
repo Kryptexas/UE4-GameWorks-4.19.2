@@ -49,6 +49,12 @@ private:
 	/* Opens the browser that the given widget requires if it is not already. */
 	void OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent);
 
+	/* Focus on the blueprint node if an anchor widget references one */
+	void FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &WidgetContent);
+
+	/* Do any interaction stuff for a widget - open browser, scroll to node etc */
+	void PerformWidgetInteractions(const FTutorialWidgetContent &WidgetContent);
+
 	/* Creates a map of broswers required by the various widget types. */
 	void AddTabInfo();
 

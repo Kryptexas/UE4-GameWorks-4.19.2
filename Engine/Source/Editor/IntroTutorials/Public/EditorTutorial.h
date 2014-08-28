@@ -131,6 +131,7 @@ struct INTROTUTORIALS_API FTutorialWidgetContent
 		ContentWidth = 350.0f;
 		HorizontalAlignment = HAlign_Center;
 		VerticalAlignment = VAlign_Bottom;
+		bAutoFocus = false;
 	}
 
 	/** Content to associate with widget */
@@ -154,6 +155,10 @@ struct INTROTUTORIALS_API FTutorialWidgetContent
 	/** Content width - text will be wrapped at this point */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Widget", meta=(UIMin="10.0", UIMax="600.0"))
 	float ContentWidth;
+
+	/** If this a node that can be focused (EG a blueprint node) should we auto focus on it */
+	UPROPERTY(EditAnywhere, Category = "Anchor")
+	bool bAutoFocus;
 };
 
 /** A single tutorial stage, containing the optional main content & a number of widgets with content attached */

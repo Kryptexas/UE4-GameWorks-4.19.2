@@ -702,20 +702,16 @@ void SGraphNode::UpdateGraphNode()
 
 	// Setup a tag for this node
  	FString TagName;
- 	if (GraphNode != nullptr)
- 	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Cast<UEdGraph>(GraphNode->GetOuter()));
-		FString NodeName;
-		if (Blueprint != nullptr)
+	if (GraphNode != nullptr)
+ 	{	
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
 		{
-			NodeName = Blueprint->GetOuter()->GetName();
+			LastOuter = LastOuter->GetOuter();
 		}
-		else
-		{
-			NodeName = NodeTitle->GetHeadTitle().ToString();
-		}
-
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *NodeName, *GraphNode->NodeGuid.ToString());
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
  	}
 	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;

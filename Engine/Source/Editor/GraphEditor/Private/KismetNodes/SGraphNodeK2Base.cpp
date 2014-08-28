@@ -48,8 +48,14 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	FString TagName;
 	if (GraphNode != nullptr)
 	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *GraphNode->GetName(), *GraphNode->NodeGuid.ToString());		
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
 	}
 	
 	//
