@@ -10,6 +10,28 @@
 #pragma once
 #if !CPP      //noexport class
 
+// String search case used in UnrealString.h
+UENUM()
+namespace ESearchCase
+{
+	enum Type
+	{
+		CaseSensitive,
+		IgnoreCase,
+	};
+}
+
+// String search dir used in UnrealString.h
+UENUM()
+namespace ESearchDir
+{
+	enum Type
+	{
+		FromStart,
+		FromEnd,
+	};
+}
+
 // Generic axis enum (mirrored for native use in Axis.h).
 UENUM()
 namespace EAxis

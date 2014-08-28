@@ -302,3 +302,109 @@ TArray<FString> UKismetStringLibrary::GetCharacterArrayFromString(const FString&
 
 	return SeparatedChars;
 }
+
+FString UKismetStringLibrary::ToUpper(const FString& SourceString)
+{
+	return SourceString.ToUpper();
+}
+
+FString UKismetStringLibrary::ToLower(const FString& SourceString)
+{
+	return SourceString.ToLower();
+}
+
+FString UKismetStringLibrary::LeftPad(const FString& SourceString, int32 ChCount)
+{
+	return SourceString.LeftPad(ChCount);
+}
+
+FString UKismetStringLibrary::RightPad(const FString& SourceString, int32 ChCount)
+{
+	return SourceString.RightPad(ChCount);
+}
+
+bool UKismetStringLibrary::IsNumeric(const FString& SourceString)
+{
+	return SourceString.IsNumeric();
+}
+
+bool UKismetStringLibrary::StartsWith(const FString& SourceString, const FString& InPrefix, ESearchCase::Type SearchCase)
+{
+	return SourceString.StartsWith(InPrefix,SearchCase);
+}
+
+bool UKismetStringLibrary::EndsWith(const FString& SourceString, const FString& InSuffix, ESearchCase::Type SearchCase)
+{
+	return SourceString.EndsWith(InSuffix,SearchCase);
+}
+
+bool UKismetStringLibrary::MatchesWildcard(const FString& SourceString, const FString& Wildcard, ESearchCase::Type SearchCase)
+{
+	return SourceString.MatchesWildcard(Wildcard, SearchCase);
+}
+
+FString UKismetStringLibrary::Trim(const FString& SourceString)
+{
+	FString Trimmed = SourceString;
+	return Trimmed.Trim();
+}
+
+FString UKismetStringLibrary::TrimTrailing(const FString& SourceString)
+{
+	FString Trimmed = SourceString;
+	return Trimmed.TrimTrailing();
+}
+
+int32 UKismetStringLibrary::CullArray(const FString& SourceString,TArray<FString>& InArray)
+{
+	return SourceString.CullArray(&InArray);
+}
+
+FString UKismetStringLibrary::Reverse(const FString& SourceString)
+{
+//	return SourceString.Reverse();
+	FString Reversed = SourceString;
+	Reversed.ReverseString();
+	return Reversed;
+}
+
+FString UKismetStringLibrary::Replace(const FString& SourceString, const FString& From, const FString& To, ESearchCase::Type SearchCase)
+{
+	return SourceString.Replace(*From, *To, SearchCase);
+}
+
+int32 UKismetStringLibrary::ReplaceInline(FString& SourceString, const FString& SearchText, const FString& ReplacementText, ESearchCase::Type SearchCase)
+{
+	return SourceString.ReplaceInline(*SearchText, *ReplacementText, SearchCase);
+}
+
+bool UKismetStringLibrary::Split(const FString& SourceString, const FString& InStr, FString& LeftS, FString& RightS, ESearchCase::Type SearchCase, ESearchDir::Type SearchDir)
+{
+	return SourceString.Split(InStr, &LeftS, &RightS, SearchCase, SearchDir);
+}
+
+FString UKismetStringLibrary::Left(const FString& SourceString, int32 Count)
+{
+	return SourceString.Left(Count);
+}
+
+FString UKismetStringLibrary::LeftChop(const FString& SourceString, int32 Count)
+{
+	return SourceString.LeftChop(Count);
+}
+
+FString UKismetStringLibrary::Right(const FString& SourceString, int32 Count)
+{
+	return SourceString.Right(Count);
+}
+
+FString UKismetStringLibrary::RightChop(const FString& SourceString, int32 Count)
+{
+	return SourceString.RightChop(Count);
+}
+
+FString UKismetStringLibrary::Mid(const FString& SourceString, int32 Start, int32 Count = MAX_int32)
+{
+	return SourceString.Mid(Start, Count);
+}
+
