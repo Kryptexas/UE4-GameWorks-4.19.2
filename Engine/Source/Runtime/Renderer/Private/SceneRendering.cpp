@@ -364,7 +364,6 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	}
 
 	ViewUniformShaderParameters.UnlitViewmodeMask = bIsUnlitView ? 1 : 0;
-	ViewUniformShaderParameters.ReflectionLightmapMixingMask = Family->EngineShowFlags.ReflectionEnvironmentLightmapMixing ? 1 : 0;
 	ViewUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;
 
 	ViewUniformShaderParameters.GameTime = Family->CurrentWorldTime;

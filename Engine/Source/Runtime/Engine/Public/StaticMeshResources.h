@@ -523,125 +523,6 @@ private:
 	void AllocateData( bool bNeedsCPUAccess = true );
 };
 
-class FDistanceFieldVolumeTexture;
-
-/** Global volume texture atlas that collects all static mesh resource distance fields. */
-class FDistanceFieldVolumeTextureAtlas : public FRenderResource
-{
-public:
-	FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat);
-
-	virtual void ReleaseRHI() override
-	{
-		VolumeTextureRHI.SafeRelease();
-	}
-
-	int32 GetSizeX() const { return VolumeTextureRHI->GetSizeX(); }
-	int32 GetSizeY() const { return VolumeTextureRHI->GetSizeY(); }
-	int32 GetSizeZ() const { return VolumeTextureRHI->GetSizeZ(); }
-
-	/** Add an allocation to the atlas. */
-	void AddAllocation(FDistanceFieldVolumeTexture* Texture);
-
-	/** Remove an allocation from the atlas. This must be done prior to deleting the FDistanceFieldVolumeTexture object. */
-	void RemoveAllocation(FDistanceFieldVolumeTexture* Texture);
-
-	/** Reallocates the volume texture if necessary and uploads new allocations. */
-	ENGINE_API void UpdateAllocations();
-
-	EPixelFormat Format;
-	FTexture3DRHIRef VolumeTextureRHI;
-
-private:
-	/** Manages the atlas layout. */
-	FTextureLayout3d BlockAllocator;
-
-	/** Allocations that are waiting to be added until the next update. */
-	TArray<FDistanceFieldVolumeTexture*> PendingAllocations;
-
-	/** Allocations that have already been added, stored in case we need to realloc. */
-	TArray<FDistanceFieldVolumeTexture*> CurrentAllocations;
-};
-
-extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;
-
-/** Represents a distance field volume texture for a single UStaticMesh. */
-class FDistanceFieldVolumeTexture
-{
-public:
-	FDistanceFieldVolumeTexture(const class FDistanceFieldVolumeData& InVolumeData) :
-		VolumeData(InVolumeData),
-		Atlas(NULL),
-		AtlasAllocationMin(FIntVector(-1, -1, -1)),
-		bReferencedByAtlas(false)
-	{}
-
-	~FDistanceFieldVolumeTexture()
-	{
-		// Make sure we have been properly removed from the atlas before deleting
-		check(!bReferencedByAtlas);
-	}
-
-	void Initialize();
-	void Release();
-
-	FIntVector GetAllocationMin() const
-	{
-		return AtlasAllocationMin;
-	}
-
-	FIntVector GetAllocationSize() const;
-
-	void SetAtlas(FDistanceFieldVolumeTextureAtlas* InAtlas)
-	{
-		Atlas = InAtlas;
-	}
-
-	bool IsValidDistanceFieldVolume() const;
-
-private:
-	const FDistanceFieldVolumeData& VolumeData;
-	FDistanceFieldVolumeTextureAtlas* Atlas;
-	FIntVector AtlasAllocationMin;
-	bool bReferencedByAtlas;
-
-	friend class FDistanceFieldVolumeTextureAtlas;
-};
-
-/** Distance field data payload and output of the mesh build process. */
-class FDistanceFieldVolumeData
-{
-public:
-
-	/** Signed distance field volume stored in local space. */
-	TArray<FFloat16> DistanceFieldVolume;
-
-	/** Dimensions of DistanceFieldVolume. */
-	FIntVector Size;
-
-	/** Local space bounding box of the distance field volume. */
-	FBox LocalBoundingBox;
-
-	/** Whether the mesh was closed and therefore a valid distance field was supported. */
-	bool bMeshWasClosed;
-
-	FDistanceFieldVolumeTexture VolumeTexture;
-
-	FDistanceFieldVolumeData() :
-		Size(FIntVector(0, 0, 0)),
-		LocalBoundingBox(0),
-		bMeshWasClosed(true),
-		VolumeTexture(*this)
-	{}
-
-	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
-	{
-		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed;
-		return Ar;
-	}
-};
-
-
 /** Rendering resources needed to render an individual static mesh LOD. */
 struct FStaticMeshLODResources
 {
@@ -667,7 +548,8 @@ struct FStaticMeshLODResources
 	/** Sections for this LOD. */
 	TArray<FStaticMeshSection> Sections;
 
-	FDistanceFieldVolumeData DistanceFieldData;
+	/** Distance field data associated with this mesh, null if not present.  */
+	class FDistanceFieldVolumeData* DistanceFieldData; 
 
 	/** The maximum distance by which this LOD deviates from the base from which it was generated. */
 	float MaxDeviation;
@@ -676,12 +558,9 @@ struct FStaticMeshLODResources
 	bool bHasAdjacencyInfo;
 
 	/** Default constructor. */
-	FStaticMeshLODResources()
-		: MaxDeviation(0.0f)
-		, bHasAdjacencyInfo(false)
-	{
-		DistanceFieldData.VolumeTexture.SetAtlas(&GDistanceFieldVolumeTextureAtlas);
-	}
+	FStaticMeshLODResources();
+
+	~FStaticMeshLODResources();
 
 	/** Initializes all rendering resources. */
 	void InitResources(UStaticMesh* Parent);
@@ -894,7 +773,7 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided) const override;
 	virtual bool HasDistanceFieldRepresentation() const override;
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODs.GetAllocatedSize() ); }
@@ -984,6 +863,8 @@ protected:
 	FStaticMeshRenderData* RenderData;
 
 	TIndirectArray<FLODInfo> LODs;
+
+	const FDistanceFieldVolumeData* DistanceFieldData;
 
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component

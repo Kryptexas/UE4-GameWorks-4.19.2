@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "StaticMeshResources.h"
+#include "DistanceFieldAtlas.h"
 
 /** Maximum object / tile interactions to allocate memory for. */
 static const int32 GMaxTileShadingJobs = 500000;
@@ -24,17 +24,22 @@ extern void GenerateStratifiedUniformHemisphereSamples2(int32 NumThetaSteps, int
 
 extern void GetSpacedVectors(TArray<TInlineAllocator<9> >& OutVectors);
 
+class FDistanceFieldAOParameters
+{
+public:
+	float OcclusionMaxDistance;
+	float Contrast;
+
+	FDistanceFieldAOParameters(float InOcclusionMaxDistance = 600.0f, float InContrast = 0)
+	{
+		Contrast = FMath::Clamp(InContrast, .01f, 2.0f);
+		OcclusionMaxDistance = FMath::Clamp(InOcclusionMaxDistance, 200.0f, 1500.0f);
+	}
+};
+
 BEGIN_UNIFORM_BUFFER_STRUCT(FAOSampleData2,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SampleDirections,[NumConeSampleDirections])
 END_UNIFORM_BUFFER_STRUCT(FAOSampleData2)
-
-inline float GetAOMaxDistance()
-{
-	extern float GAOLargestSampleOffset;
-	extern float GAOConeHalfAngle;
-	float AOMaxDistanceValue = GAOLargestSampleOffset * (1 + FMath::Tan(GAOConeHalfAngle));
-	return AOMaxDistanceValue;
-}
 
 class FAOParameters
 {
@@ -63,15 +68,16 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI)
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FDistanceFieldAOParameters& Parameters)
 	{
-		float AOMaxDistanceValue = GetAOMaxDistance();
-		SetShaderValue(RHICmdList, ShaderRHI, AOMaxDistance, AOMaxDistanceValue);
+		SetShaderValue(RHICmdList, ShaderRHI, AOMaxDistance, Parameters.OcclusionMaxDistance);
 
-		extern float GAOLargestSampleOffset;
+		extern float GAOConeHalfAngle;
+		const float AOLargestSampleOffset = Parameters.OcclusionMaxDistance / (1 + FMath::Tan(GAOConeHalfAngle));
+
 		extern float GAOStepExponentScale;
 		extern uint32 GAONumConeSteps;
-		float AOStepScaleValue = GAOLargestSampleOffset / FMath::Pow(2.0f, GAOStepExponentScale * (GAONumConeSteps - 1));
+		float AOStepScaleValue = AOLargestSampleOffset / FMath::Pow(2.0f, GAOStepExponentScale * (GAONumConeSteps - 1));
 		SetShaderValue(RHICmdList, ShaderRHI, AOStepScale, AOStepScaleValue);
 
 		SetShaderValue(RHICmdList, ShaderRHI, AOStepExponentScale, GAOStepExponentScale);

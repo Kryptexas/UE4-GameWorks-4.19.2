@@ -78,7 +78,7 @@ public:
 	virtual ~FShaderCompileThreadRunnable();
 
 	// FRunnable interface.
-	virtual bool Init(void) { return true; bIsRunning = true; }
+	virtual bool Init(void) { bIsRunning = true; return true; }
 	virtual void Exit(void) { bIsRunning = false; }
 	virtual void Stop(void) { bForceFinish = true; }
 	virtual uint32 Run(void);

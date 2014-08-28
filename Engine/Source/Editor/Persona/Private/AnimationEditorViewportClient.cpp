@@ -95,7 +95,6 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 
 	EngineShowFlags.Game = 0;
 	EngineShowFlags.ScreenSpaceReflections = 1;
-	EngineShowFlags.ReflectionEnvironmentLightmapMixing = 0;
 	EngineShowFlags.AmbientOcclusion = 1;
 	EngineShowFlags.SetSnap(0);
 

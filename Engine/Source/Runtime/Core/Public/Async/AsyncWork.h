@@ -260,12 +260,12 @@ class FAsyncTask : private FQueuedWork
 	/* Generic start function, not called directly
 		* @param bForceSynchronous if true, this job will be started synchronously, now, on this thread
 	**/
-	void Start(bool bForceSynchronous)
+	void Start(bool bForceSynchronous, FQueuedThreadPool* InQueuedPool)
 	{
 		FPlatformMisc::MemoryBarrier();
 		CheckIdle();  // can't start a job twice without it being completed first
 		WorkNotFinishedCounter.Increment();
-		QueuedPool = GThreadPool;
+		QueuedPool = InQueuedPool;
 		if (bForceSynchronous)
 		{
 			QueuedPool = 0;
@@ -472,15 +472,15 @@ public:
 	**/
 	void StartSynchronousTask()
 	{
-		Start(true);
+		Start(true, GThreadPool);
 	}
 
 	/** 
 	* Queue this task for processing by the background thread pool
 	**/
-	void StartBackgroundTask()
+	void StartBackgroundTask(FQueuedThreadPool* InQueuedPool = GThreadPool)
 	{
-		Start(false);
+		Start(false, InQueuedPool);
 	}
 
 	/** 

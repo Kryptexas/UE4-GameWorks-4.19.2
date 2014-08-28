@@ -60,12 +60,16 @@ public:
 };
 
 
+
 /**
  * The center for all post processing activities.
  */
 class FPostProcessing
 {
 public:
+
+	bool AllowFullPostProcessing(const FViewInfo& View, ERHIFeatureLevel::Type FeatureLevel);
+
 	// @param VelocityRT only valid if motion blur is supported
 	void Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 

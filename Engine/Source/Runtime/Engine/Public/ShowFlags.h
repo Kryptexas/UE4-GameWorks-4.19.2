@@ -205,6 +205,7 @@ struct FEngineShowFlags
 		SetVolumeLightingSamples(false);
 		// we enable it manually on the editor view ports
 		SetSnap(false);
+		SetVisualizeMeshDistanceFields(false);
 		SetVisualizeDistanceFieldAO(false);
 		SetVisualizeSSR(false);
 		SetForceGBuffer(false);
@@ -233,7 +234,6 @@ struct FEngineShowFlags
 		SetSeparateTranslucency(false);
 		SetScreenPercentage(false);
 		SetScreenSpaceReflections(false);
-		SetReflectionEnvironmentLightmapMixing(false);
 		SetTemporalAA(false);
 		SetTextRender(false);
 

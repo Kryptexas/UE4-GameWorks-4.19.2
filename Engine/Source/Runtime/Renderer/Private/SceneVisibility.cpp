@@ -1612,6 +1612,17 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{		
+		FViewInfo& View = Views[ViewIndex];
+
+		if (!GPostProcessing.AllowFullPostProcessing(View, FeatureLevel))
+		{
+			// Disable anti-aliasing if we are not going to be able to apply final post process effects
+			View.FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
+		}
+	}
+
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup();

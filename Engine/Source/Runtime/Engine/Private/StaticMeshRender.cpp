@@ -10,6 +10,7 @@
 #include "TessellationRendering.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "DistanceFieldAtlas.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -62,6 +63,9 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	WireframeColor = InComponent->GetWireframeColor();
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
+
+	// Copy the pointer to the volume data, async building of the data may modify the one on FStaticMeshLODResources while we are rendering
+	DistanceFieldData = RenderData->LODResources[0].DistanceFieldData;
 
 	if (GForceDefaultMaterial)
 	{
@@ -1204,18 +1208,27 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
-void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided) const
 {
-	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
-	LocalVolumeBounds = DistanceField.LocalBoundingBox;
-	OutBlockMin = DistanceField.VolumeTexture.GetAllocationMin();
-	OutBlockSize = DistanceField.VolumeTexture.GetAllocationSize();
+	if (DistanceFieldData)
+	{
+		LocalVolumeBounds = DistanceFieldData->LocalBoundingBox;
+		OutBlockMin = DistanceFieldData->VolumeTexture.GetAllocationMin();
+		OutBlockSize = DistanceFieldData->VolumeTexture.GetAllocationSize();
+		bOutBuiltAsIfTwoSided = DistanceFieldData->bBuiltAsIfTwoSided;
+	}
+	else
+	{
+		LocalVolumeBounds = FBox(0);
+		OutBlockMin = FIntVector(-1, -1, -1);
+		OutBlockSize = FIntVector(0, 0, 0);
+		bOutBuiltAsIfTwoSided = false;
+	}
 }
 
 bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
-	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
-	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceField.VolumeTexture.IsValidDistanceFieldVolume();
+	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
 }
 
 /** Initialization constructor. */

@@ -578,12 +578,12 @@ public:
 	 *
 	 * @return Whether the pool creation was successful or not
 	 */
-	virtual bool Create (uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) = 0;
+	virtual bool Create(uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) = 0;
 
 	/**
 	 * Tells the pool to clean up all background threads
 	 */
-	virtual void Destroy () = 0;
+	virtual void Destroy() = 0;
 
 	/**
 	 * Checks to see if there is a thread available to perform the task. If not,
@@ -591,7 +591,7 @@ public:
 	 *
 	 * @param InQueuedWork The work that needs to be done asynchronously
 	 */
-	virtual void AddQueuedWork (FQueuedWork* InQueuedWork) = 0;
+	virtual void AddQueuedWork(FQueuedWork* InQueuedWork) = 0;
 
 	/**
 	 * Attempts to retract a previously queued task.
@@ -599,7 +599,7 @@ public:
 	 * @param InQueuedWork The work to try to retract
 	 * @return true if the work was retracted
 	 */
-	virtual bool RetractQueuedWork (FQueuedWork* InQueuedWork) = 0;
+	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) = 0;
 
 	/**
 	 * Places a thread back into the available pool
@@ -607,7 +607,7 @@ public:
 	 * @param InQueuedThread The thread that is ready to be pooled
 	 * @return next job or null if there is no job available now
 	 */
-	virtual FQueuedWork* ReturnToPoolOrGetNextJob (class FQueuedThread* InQueuedThread) = 0;
+	virtual FQueuedWork* ReturnToPoolOrGetNextJob(class FQueuedThread* InQueuedThread) = 0;
 
 
 public:

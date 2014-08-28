@@ -8,6 +8,7 @@
 #include "DeferredShadingCommon.usf"  
 #include "BRDF.usf"
 #include "ReflectionEnvironmentShared.usf"
+#include "SkyLightingShared.usf"
 
 #if TILED_DEFERRED_CULL_SHADER
 
@@ -407,7 +408,7 @@ float CountOverlap( float3 WorldPosition )
 	return Overlap;
 }
 
-void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirection, float Roughness )
+void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirection, float Roughness, float2 ScreenPosition, float IndirectIrradiance )
 {
 	float Mip = ComputeReflectionCaptureMipFromRoughness( Roughness );
 
@@ -516,6 +517,15 @@ void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirecti
 			{
 				float4 Sample = ReflectionEnvironmentColorTexture.SampleLevel( ReflectionEnvironmentColorSampler, float4( ProjectedCaptureVector, CaptureArrayIndex ), Mip );
 
+				#if USE_LIGHTMAPS
+					// We have high frequency directional data but low frequency spatial data in the envmap.
+					// We have high frequency spatial data but low frequency directional data in the lightmap.
+					// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
+					// This is only done with luma so as to not get odd color shifting.
+					// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
+					Sample.rgb *= IndirectIrradiance;
+				#endif
+
 				Sample.rgb *= CaptureProperties.r;
 				Sample *= DistanceAlpha;
 
@@ -527,12 +537,25 @@ void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirecti
 	}
 
 #define APPLY_SKY_LIGHT 1
-#if APPLY_SKY_LIGHT
+#if APPLY_SKY_LIGHT 
 	BRANCH
 	if( SkyLightParameters.y > 0 && Color.a >= 0.001 )
 	{
+		// Normalize for static skylight types which mix with lightmaps
+		bool bNormalize = SkyLightParameters.z < 1 && USE_LIGHTMAPS;
+		float3 SkyLighting = GetSkyLightReflection( RayDirection, Roughness, bNormalize );
+
+		FLATTEN
+		if (bNormalize)
+		{
+			SkyLighting *= IndirectIrradiance;
+		}
+
+		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+		float Visibility = GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness);
+
 		// TODO use Mip
-		Color.rgb += Color.a * GetSkyLightReflection( RayDirection, Roughness, USE_LIGHTMAPS );
+		Color.rgb += (Color.a * Visibility) * SkyLighting;
 	}
 #endif
 }
@@ -553,8 +576,8 @@ void ReflectionEnvironmentTiledDeferredMain(
 	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
 	
 	uint2 PixelPos = DispatchThreadId.xy + ViewDimensions.xy;
-	float2 ScreenUV = (float2(DispatchThreadId.xy) + .5f) / (ViewDimensions.zw - ViewDimensions.xy);
-	float2 ScreenPosition = float2(2.0f, -2.0f) * ScreenUV + float2(-1.0f, 1.0f);
+	float2 UV = (float2(DispatchThreadId.xy) + .5f) / (ViewDimensions.zw - ViewDimensions.xy);
+	float2 ScreenPosition = float2(2.0f, -2.0f) * UV + float2(-1.0f, 1.0f);
 	float SceneDepth = CalcSceneDepth(PixelPos);
 
 	float MinTileZ;
@@ -575,7 +598,18 @@ void ReflectionEnvironmentTiledDeferredMain(
 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 	float3 CameraToPixel = normalize(WorldPosition - View.ViewOrigin.xyz);
 	float3 ReflectionVector = reflect(CameraToPixel, GBuffer.WorldNormal);
-
+	float IndirectIrradiance = GBuffer.IndirectIrradiance;
+	
+#if USE_LIGHTMAPS
+	BRANCH
+	// Add in diffuse contribution from dynamic skylights so reflection captures will have something to mix with
+	if (SkyLightParameters.y > 0 && SkyLightParameters.z > 0)
+	{
+		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+		IndirectIrradiance += GetDynamicSkyIndirectIrradiance(ScreenUV, GBuffer.WorldNormal);
+	}
+#endif
+	
 #if VISUALIZE_OVERLAP
 	float Overlap = CountOverlap( WorldPosition );
 #endif
@@ -610,16 +644,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 
 		Color.a *= SpecularOcclusion;
 
-	#if USE_LIGHTMAPS
-		// We have high frequency directional data but low frequency spatial data in the envmap.
-		// We have high frequency spatial data but low frequency directional data in the lightmap.
-		// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
-		// This is only done with luma so as to not get odd color shifting.
-		// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
-		Color.a *= GBuffer.IndirectIrradiance;
-	#endif
-	
-		GatherRadiance( Color, WorldPosition, R, GBuffer.Roughness );
+		GatherRadiance( Color, WorldPosition, R, GBuffer.Roughness, ScreenPosition, IndirectIrradiance );
 
 		BRANCH
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -645,17 +670,8 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.rgb += SSR.rgb * F;
 			Color.a *= 1 - SSR.a;
 			Color.a *= SpecularOcclusion;
-		
-		#if USE_LIGHTMAPS
-			// We have high frequency directional data but low frequency spatial data in the envmap.
-			// We have high frequency spatial data but low frequency directional data in the lightmap.
-			// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
-			// This is only done with luma so as to not get odd color shifting.
-			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
-			Color.a *= GBuffer.IndirectIrradiance;
-		#endif
 
-			GatherRadiance( Color, WorldPosition, R, ClearCoatRoughness );
+			GatherRadiance( Color, WorldPosition, R, ClearCoatRoughness, ScreenPosition, IndirectIrradiance );
 		}
 		else
 		{

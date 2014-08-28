@@ -936,6 +936,8 @@ int32 FShaderCompileThreadRunnable::CompilingLoop()
 	if (NumActiveThreads == 0 && Manager->bAllowAsynchronousShaderCompiling)
 	{
 		// Yield while there's nothing to do
+		// Note: sleep-looping is bad threading practice, wait on an event instead!
+		// The shader worker thread does it because it needs to communicate with other processes through the file system
 		FPlatformProcess::Sleep(.010f);
 	}
 

@@ -743,6 +743,14 @@ void OverrideRenderTarget(FRenderingCompositeOutputRef It, TRefCountPtr<IPooledR
 	}
 }
 
+bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeatureLevel::Type FeatureLevel)
+{
+	return View.Family->EngineShowFlags.PostProcessing 
+		&& FeatureLevel >= ERHIFeatureLevel::SM4 
+		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldAO
+		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields;
+}
+
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_PostProcessing_Process );
@@ -797,7 +805,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 
-		if (View.Family->EngineShowFlags.PostProcessing && FeatureLevel >= ERHIFeatureLevel::SM4)
+		if (AllowFullPostProcessing(View, FeatureLevel))
 		{
 			FRenderingCompositeOutputRef VelocityInput;
 			if(VelocityRT)

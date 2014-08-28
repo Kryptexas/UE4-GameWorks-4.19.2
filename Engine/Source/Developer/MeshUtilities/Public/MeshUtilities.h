@@ -131,9 +131,18 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
-		const TArray<UMaterialInterface*>& Materials,
 		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
+
+	/** Builds a signed distance field volume for the given LODModel. */
+	virtual void GenerateSignedDistanceFieldVolumeData(
+		const FStaticMeshLODResources& LODModel,
+		class FQueuedThreadPool& ThreadPool,
+		const TArray<EBlendMode>& MaterialBlendModes,
+		const FBoxSphereBounds& Bounds,
+		float DistanceFieldResolutionScale,
+		bool bGenerateAsIfTwoSided,
+		class FDistanceFieldVolumeData& OutData) = 0;
 
 	/**
 	 * Create all render specific data for a skeletal mesh LOD model

@@ -96,8 +96,6 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenPercentage, SFG_PostProcess, LOCTEXT("ScreenPer
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeMotionBlur, SFG_Visualize, LOCTEXT("VisualizeMotionBlurSF", "Motion Blur"))
 /** Whether to display the Reflection Environment feature, which has local reflections from Reflection Capture actors. */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ReflectionEnvironment, SFG_LightingFeatures, LOCTEXT("ReflectionEnvironmentSF", "Reflection Environment"))
-/** Reflection environment mixes with lightmap shading. */
-SHOWFLAG_ALWAYS_ACCESSIBLE(ReflectionEnvironmentLightmapMixing, SFG_LightingFeatures, LOCTEXT("ReflectionEnvironmentLightmapMixingSF", "Reflection Environment Lightmap Mixing"))
 /** Visualize pixels that are outside of their object's bounding box (content error). */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeOutOfBoundsPixels, SFG_Visualize, LOCTEXT("VisualizeOutOfBoundsPixelsSF", "Out of Bounds Pixels"))
 /** Whether to display the scene's diffuse. */
@@ -268,6 +266,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(LpvLightingOnly, SFG_Hidden, LOCTEXT("VisualizeLPVSF_
 SHOWFLAG_ALWAYS_ACCESSIBLE(Paper2DSprites, SFG_Advanced, LOCTEXT("Paper2DSpritesSF", "Paper 2D Sprites"))
 /** Visualization of distance field AO */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeDistanceFieldAO, SFG_Visualize, LOCTEXT("VisualizeDistanceFieldAOSF", "Distance Field AO"))
+/** Mesh Distance fields */
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeMeshDistanceFields, SFG_Visualize, LOCTEXT("MeshDistanceFieldsSF", "Mesh Distance Fields"))
 /** Distance field AO */
 SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("DistanceFieldAOSF", "Distance Field AO"))
 /** Visualize screen space reflections, for developer (by default off): */

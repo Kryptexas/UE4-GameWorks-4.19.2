@@ -36,6 +36,7 @@
 	#include "DerivedDataCacheInterface.h"
 	#include "RenderCore.h"
 	#include "ShaderCompiler.h"
+	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
 	#include "ParticleHelper.h"
 	#include "Online.h"
@@ -1171,6 +1172,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		check(!GShaderCompilingManager);
 		GShaderCompilingManager = new FShaderCompilingManager();
+
+		check(!GDistanceFieldAsyncQueue);
+		GDistanceFieldAsyncQueue = new FDistanceFieldAsyncQueue();
 	}
 
 	FIOSystem::Get(); // force it to be created if it isn't already
@@ -1937,6 +1941,12 @@ void FEngineLoop::Exit()
 		SessionService->Stop();
 		SessionService.Reset();
 	}
+
+	if (GDistanceFieldAsyncQueue)
+	{
+		GDistanceFieldAsyncQueue->Shutdown();
+		delete GDistanceFieldAsyncQueue;
+	}
 #endif // WITH_ENGINE
 
 	MALLOC_PROFILER( GEngine->Exec( NULL, TEXT( "MPROF STOP" ) ); )
@@ -2105,6 +2115,11 @@ void FEngineLoop::Tick()
 		{
 			// Process any asynchronous shader compile results that are ready, limit execution time
 			GShaderCompilingManager->ProcessAsyncResults(true, false);
+		}
+
+		if (GDistanceFieldAsyncQueue)
+		{
+			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)

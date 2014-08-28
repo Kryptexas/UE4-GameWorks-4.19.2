@@ -79,6 +79,8 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
+	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
+	, Contrast(InLightComponent->Contrast)
 {
 }
 
@@ -104,6 +106,7 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	bCaptureDirty = false;
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
+	OcclusionMaxDistance = 600;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -239,6 +242,12 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0)
 		{
 			return SourceType == SLS_SpecifiedCubemap;
+		}
+
+		if (FCString::Strcmp(*PropertyName, TEXT("Contrast")) == 0
+			|| FCString::Strcmp(*PropertyName, TEXT("OcclusionMaxDistance")) == 0)
+		{
+			return Mobility == EComponentMobility::Movable && CastShadows;
 		}
 	}
 

@@ -156,6 +156,11 @@ float3 LoadObjectLocalPositionExtent(uint ObjectIndex)
 	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 4).xyz;
 }
 
+float4 LoadObjectLocalPositionExtentAndTwoSided(uint ObjectIndex)
+{
+	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 4).xyzw;
+}
+
 float4 LoadObjectUVScale(uint ObjectIndex)
 {
 	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 5).xyzw;

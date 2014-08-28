@@ -1799,8 +1799,20 @@ struct FMeshBuildSettings
 	/** The local scale applied when building the mesh */
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
 	FVector BuildScale3D;
+
+	/** 
+	 * Scale to apply to the mesh when allocating the distance field volume texture.
+	 * The default scale is 1, which is assuming that the mesh will be placed unscaled in the world.
+	 */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	float DistanceFieldResolutionScale;
+
+	/** 
+	 * Whether to generate the distance field treating every triangle hit as a frontface.  
+	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
+	 */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bGenerateDistanceFieldAsIfTwoSided;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1812,6 +1824,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 	{
 		DistanceFieldResolutionScale = 1;
+		bGenerateDistanceFieldAsIfTwoSided = false;
 	}
 
 	/** Equality operator. */
@@ -1822,7 +1835,8 @@ struct FMeshBuildSettings
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& BuildScale3D == Other.BuildScale3D
-			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale;
+			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
+			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided;
 	}
 
 	/** Inequality. */

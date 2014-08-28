@@ -9,7 +9,7 @@
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "StaticMeshResources.h"
 #include "RawMesh.h"
-
+#include "DistanceFieldAtlas.h"
 #include "StaticMeshEditor.h"
 #include "BusyCursor.h"
 #include "MeshBuild.h"
@@ -711,7 +711,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 	if( StaticMesh->RenderData->LODResources.Num() > 0 )
 	{
-		const FDistanceFieldVolumeData& VolumeData = StaticMesh->RenderData->LODResources[0].DistanceFieldData;
+		const FDistanceFieldVolumeData& VolumeData = *(StaticMesh->RenderData->LODResources[0].DistanceFieldData);
 
 		if(VolumeData.Size.GetMax() > 0)
 		{

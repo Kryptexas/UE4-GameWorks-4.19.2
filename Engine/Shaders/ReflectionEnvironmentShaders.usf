@@ -10,6 +10,7 @@
 #include "SHCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "MonteCarlo.usf"
+#include "SkyLightingShared.usf"
 
 struct FCopyToCubeFaceVSOutput
 {
@@ -529,10 +530,12 @@ void ReflectionApplyPS(
 		FLATTEN
 		if (bNormalize)
 		{
-			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
+			SkyLighting *= GBuffer.IndirectIrradiance;
 		}
-		
-		SpecularLighting.rgb += SpecularLighting.a * SkyLighting;
+
+		float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness); 
+
+		SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
 #endif
 
 #if APPLY_SSR

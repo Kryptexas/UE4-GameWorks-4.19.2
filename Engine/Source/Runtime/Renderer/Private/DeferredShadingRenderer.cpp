@@ -17,6 +17,7 @@
 #include "LightPropagationVolume.h"
 #include "DeferredShadingRenderer.h"
 #include "SceneUtils.h"
+#include "DistanceFieldLightingShared.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
@@ -809,8 +810,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			GCompositionLighting.ProcessAfterBasePass(RHICmdList, Views[ViewIndex]);
 		}
 
-		RenderDynamicSkyLighting(RHICmdList);
-
 		// Clear the translucent lighting volumes before we accumulate
 		ClearTranslucentVolumeLighting(RHICmdList);
 
@@ -829,8 +828,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			PropagateLPVs(RHICmdList);
 		}
 
+		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
+		RenderDynamicSkyLighting(RHICmdList, DynamicBentNormalAO);
+
 		// Render reflections that only operate on opaque pixels
-		RenderDeferredReflections(RHICmdList);
+		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO);
 
 		// Post-lighting composition lighting stage
 		// e.g. ambient cubemaps, ambient occlusion, LPV indirect
@@ -915,8 +917,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO)
 	{
-		FSceneRenderTargetItem DummyOutput(NULL, NULL, NULL);
-		RenderDistanceFieldAOSurfaceCache(RHICmdList, DummyOutput, true);
+		TRefCountPtr<IPooledRenderTarget> DummyOutput;
+		RenderDistanceFieldAOSurfaceCache(RHICmdList, FDistanceFieldAOParameters(), DummyOutput, true);
+	}
+
+	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
+	{
+		RenderMeshDistanceFieldVisualization(RHICmdList, FDistanceFieldAOParameters());
 	}
 
 	// Resolve the scene color for post processing.

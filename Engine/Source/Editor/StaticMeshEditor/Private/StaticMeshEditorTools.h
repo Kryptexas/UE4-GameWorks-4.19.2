@@ -143,6 +143,7 @@ private:
 	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
 	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
 	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
+	ESlateCheckBoxState::Type ShouldGenerateDistanceFieldAsIfTwoSided() const;
 	TOptional<float> GetBuildScaleX() const;
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
@@ -152,6 +153,7 @@ private:
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
+	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState);
 	void OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType );
 	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
 	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );

@@ -1368,7 +1368,6 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 		ViewFamily.EngineShowFlags.CompositeEditorPrimitives = 0;
 		// These are highly dynamic and can't be captured effectively
 		ViewFamily.EngineShowFlags.LightShafts = 0;
-		ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO = 0;
 
 		// Don't apply sky lighting diffuse when capturing the sky light source, or we would have feedback
 		ViewFamily.EngineShowFlags.SkyLighting = !bCapturingForSkyLight;
