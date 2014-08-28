@@ -10,6 +10,7 @@
 #include "SBlueprintMerge.h"
 #include "SMergeDetailsView.h"
 #include "SMergeGraphView.h"
+#include "SMergeTreeView.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
@@ -25,11 +26,13 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 
 	Data = InData;
 
-	TSharedPtr<SMergeGraphView> GraphView = SNew( SMergeGraphView, InData );
+	auto GraphView = SNew( SMergeGraphView, InData );
 	GraphControl.Widget = GraphView;
-	GraphControl.DiffControl = GraphView.Get();
+	GraphControl.DiffControl = &GraphView.Get();
 
-	TreeControl.Widget = SNew(SBorder);
+	auto TreeView = SNew(SMergeTreeView, InData);
+	TreeControl.Widget = TreeView;
+	TreeControl.DiffControl = &TreeView.Get();
 
 	auto DetailsView = SNew( SMergeDetailsView, InData );
 	DetailsControl.Widget = DetailsView;
@@ -37,14 +40,14 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 
 	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
 	ToolbarBuilder.AddToolBarButton( 
-		FUIAction( FExecuteAction::CreateSP(this, &SBlueprintMerge::PrevDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::CanCycleDiffs) )
+		FUIAction( FExecuteAction::CreateSP(this, &SBlueprintMerge::PrevDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::HasPrevDiff) )
 		, NAME_None
 		, LOCTEXT("PrevMergeLabel", "Prev")
 		, LOCTEXT("PrevMergeTooltip", "Go to previous difference")
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.PrevDiff")
 	);
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::NextDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::CanCycleDiffs))
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::NextDiff), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::HasNextDiff))
 		, NAME_None
 		, LOCTEXT("NextMergeLabel", "Next")
 		, LOCTEXT("NextMergeTooltip", "Go to next difference")
@@ -127,9 +130,14 @@ void SBlueprintMerge::PrevDiff()
 	CurrentDiffControl->PrevDiff();
 }
 
-bool SBlueprintMerge::CanCycleDiffs() const
+bool SBlueprintMerge::HasNextDiff() const
 {
-	return CurrentDiffControl && CurrentDiffControl->HasDifferences();
+	return CurrentDiffControl && CurrentDiffControl->HasNextDifference();
+}
+
+bool SBlueprintMerge::HasPrevDiff() const
+{
+	return CurrentDiffControl && CurrentDiffControl->HasPrevDifference();
 }
 
 void SBlueprintMerge::OnAcceptResultClicked()

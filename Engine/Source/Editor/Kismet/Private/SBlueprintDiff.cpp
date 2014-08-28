@@ -19,14 +19,87 @@
 #include "SBlueprintDiff.h"
 #include "SGraphTitleBar.h"
 #include "SSCSEditor.h"
+#include "SCSDiff.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
 typedef TMap< FName, const UProperty* > FNamePropertyMap;
 
-class FCDODiffControl : public TSharedFromThis<FCDODiffControl>
-	, public IDiffControl
+// Each difference in the tree will either be a tree node that is added in one Blueprint 
+// or a tree node and an FName of a property that has been added or edited in one Blueprint
+class FSCSDiffControl	: public TSharedFromThis< FSCSDiffControl >
+						, public IDiffControl
+{
+public:
+	FSCSDiffControl(
+					const UBlueprint* InOldBlueprint
+					, const UBlueprint* InNewBlueprint
+					, TArray< FSCSDiffEntry > InDifferingProperties
+					);
+
+
+	TSharedRef<SWidget> OldTreeWidget() { return OldSCS.TreeWidget(); }
+	TSharedRef<SWidget> NewTreeWidget() { return NewSCS.TreeWidget(); }
+
+	virtual ~FSCSDiffControl() {}
+private:
+	void NextDiff() override;
+	void PrevDiff() override;
+	bool HasNextDifference() const override;
+	bool HasPrevDifference() const override;
+
+	void HighlightCurrentDifference();
+
+	TArray< FSCSDiffEntry > DifferingProperties;
+	int CurrentDifference;
+
+	FSCSDiff OldSCS;
+	FSCSDiff NewSCS;
+};
+
+FSCSDiffControl::FSCSDiffControl(
+		const UBlueprint* InOldBlueprint
+		, const UBlueprint* InNewBlueprint
+		, TArray< FSCSDiffEntry > InDifferingProperties
+	)
+	: DifferingProperties(InDifferingProperties)
+	, CurrentDifference(-1)
+	, OldSCS( InOldBlueprint )
+	, NewSCS( InNewBlueprint )
+{
+}
+
+void FSCSDiffControl::NextDiff()
+{
+	++CurrentDifference;
+	HighlightCurrentDifference();
+}
+
+void FSCSDiffControl::PrevDiff()
+{
+	--CurrentDifference;
+	HighlightCurrentDifference();
+}
+
+bool FSCSDiffControl::HasNextDifference() const
+{
+	return DifferingProperties.IsValidIndex(CurrentDifference + 1);
+}
+
+bool FSCSDiffControl::HasPrevDifference() const
+{
+	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
+}
+
+void FSCSDiffControl::HighlightCurrentDifference()
+{
+	OldSCS.HighlightProperty(DifferingProperties[CurrentDifference]);
+	NewSCS.HighlightProperty(DifferingProperties[CurrentDifference]);
+}
+
+class FCDODiffControl	: public TSharedFromThis<FCDODiffControl>
+						, public IDiffControl
 {
 public:
 	FCDODiffControl( const UObject* InOldCDO
@@ -42,7 +115,8 @@ public:
 private:
 	void NextDiff() override;
 	void PrevDiff() override;
-	bool HasDifferences() const override;
+	bool HasNextDifference() const override;
+	bool HasPrevDifference() const override;
 
 	void HighlightCurrentDifference();
 	FDetailsDiff OldDetails;
@@ -67,35 +141,24 @@ FCDODiffControl::FCDODiffControl(
 
 void FCDODiffControl::NextDiff()
 {
-	if (DifferingProperties.Num() == 0)
-	{
-		return;
-	}
-
-	CurrentDifference = (CurrentDifference + 1) % DifferingProperties.Num();
-
+	++CurrentDifference;
 	HighlightCurrentDifference();
 }
 
 void FCDODiffControl::PrevDiff()
 {
-	if (DifferingProperties.Num() == 0)
-	{
-		return;
-	}
-
 	--CurrentDifference;
-	if (CurrentDifference < 0)
-	{
-		CurrentDifference = DifferingProperties.Num() - 1;
-	}
-
 	HighlightCurrentDifference();
 }
 
-bool FCDODiffControl::HasDifferences() const
+bool FCDODiffControl::HasNextDifference() const
 {
-	return DifferingProperties.Num() != 0;
+	return DifferingProperties.IsValidIndex(CurrentDifference + 1);
+}
+
+bool FCDODiffControl::HasPrevDifference() const
+{
+	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
 }
 
 void FCDODiffControl::HighlightCurrentDifference()
@@ -175,10 +238,11 @@ private:
 	void PrevDiff() override;
 
 	/** Called when determining whether the prev/nextbuttons should be enabled */
-	bool HasDifferences() const override;
+	bool HasNextDifference() const override;
+	bool HasPrevDifference() const override;
 
 	/** Get Index of the current diff that is selected */
-	int32 GetCurrentDiffIndex();
+	int32 GetCurrentDiffIndex() const;
 
 	/* Called when a new row is being generated */
 	TSharedRef<ITableRow> OnGenerateRow(FSharedDiffOnGraph ParamItem, const TSharedRef<STableViewBase>& OwnerTable);
@@ -492,12 +556,28 @@ void FListItemGraphToDiff::PrevDiff()
 	DiffList->SetSelection(DiffListSource[Index]);
 }
 
-bool FListItemGraphToDiff::HasDifferences() const
+bool FListItemGraphToDiff::HasNextDifference() const
 {
-	return DiffList.IsValid() && DiffListSource.Num() > 0;
+	if (!DiffList.IsValid())
+	{
+		return false;
+	}
+	int32 Index = GetCurrentDiffIndex();
+	return DiffListSource.IsValidIndex(Index + 1);
 }
 
-int32 FListItemGraphToDiff::GetCurrentDiffIndex() 
+bool FListItemGraphToDiff::HasPrevDifference() const
+{
+	if (!DiffList.IsValid())
+	{
+		return false;
+	}
+
+	int32 Index = GetCurrentDiffIndex();
+	return DiffListSource.IsValidIndex(Index - 1);
+}
+
+int32 FListItemGraphToDiff::GetCurrentDiffIndex() const
 {
 	if ( DiffList.IsValid() )
 	{
@@ -505,7 +585,7 @@ int32 FListItemGraphToDiff::GetCurrentDiffIndex()
 		if(Selected.Num() == 1)
 		{	
 			int32 Index = 0;
-			for(auto It(DiffListSource.CreateIterator());It;++It,Index++)
+			for(auto It(DiffListSource.CreateConstIterator());It;++It,Index++)
 			{
 				if(*It == Selected[0])
 				{
@@ -514,7 +594,7 @@ int32 FListItemGraphToDiff::GetCurrentDiffIndex()
 			}
 		}
 	}
-	return 0;
+	return -1;
 }
 
 void FListItemGraphToDiff::OnGraphChanged( const FEdGraphEditAction& Action )
@@ -536,7 +616,7 @@ FDiffPanel::FDiffPanel()
 	LastFocusedPin = NULL;
 }
 
-void DiffUtils::CompareUnrelatedObjects( UObject const* A, const TMap< FName, const UProperty* >& PropertyMapA, UObject const* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties )
+void DiffUtils::CompareUnrelatedObjects( const UObject* A, const TMap< FName, const UProperty* >& PropertyMapA, UObject const* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties )
 {
 	TSet<FName> PropertiesInA, PropertiesInB;
 	if( A )
@@ -562,8 +642,14 @@ void DiffUtils::CompareUnrelatedObjects( UObject const* A, const TMap< FName, co
 		{
 			const UProperty* const* AProp = PropertyMapA.Find(PropertyName);
 			const UProperty* const* BProp = PropertyMapB.Find(PropertyName);
-			check( AProp && BProp );
+			
+			if( !AProp && !BProp )
+			{
+				OutIdenticalProperties.Add(PropertyName);
+				continue;
+			}
 
+			check( AProp && BProp );
 			if( (*AProp)->SameType(*BProp) )
 			{
 				const void* AValue = (*AProp)->ContainerPtrToValuePtr<void>(A);
@@ -578,6 +664,81 @@ void DiffUtils::CompareUnrelatedObjects( UObject const* A, const TMap< FName, co
 
 			OutDifferingProperties.Add(PropertyName);
 		}
+	}
+}
+
+void DiffUtils::CompareUnrelatedSCS(const UBlueprint* A, const UBlueprint* B, TArray< FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys )
+{
+	// we get bitten by const shallowness here, avoid mutation:
+	const TArray<USCS_Node*> NodesInA = A && A->SimpleConstructionScript ? A->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
+	const TArray<USCS_Node*> NodesInB = B && B->SimpleConstructionScript ? B->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
+
+	const auto FindByName = []( const TArray<USCS_Node*>& NodeList, FName Name ) -> USCS_Node*
+	{
+		for( auto Node : NodeList )
+		{
+			if( Node->VariableName == Name )
+			{
+				return Node;
+			}
+		}
+		return nullptr;
+	};
+
+	int32 SortKey = 0;
+	for( auto NodeInA : NodesInA )
+	{
+		auto NodeInB = FindByName( NodesInB, NodeInA->VariableName );
+		if( NodeInB )
+		{
+			// diff NodeA vs NodeB:
+			FNamePropertyMap PropertyMapA = DiffUtils::GetProperties(NodeInA->ComponentTemplate);
+			FNamePropertyMap PropertyMapB = DiffUtils::GetProperties(NodeInB->ComponentTemplate);
+			TArray<FName> IdenticalProperties, DifferingProperties;
+
+			DiffUtils::CompareUnrelatedObjects(A, PropertyMapA, B, PropertyMapB, IdenticalProperties, DifferingProperties);
+			for( auto Property : DifferingProperties )
+			{
+				FSCSDiffEntry Diff = { NodeInA->VariableName, Property };
+				OutDifferingEntries.Push( Diff );
+
+				if (OptionalOutSortKeys)
+				{
+					OptionalOutSortKeys->Push(SortKey);
+				}
+			}
+		}
+		else
+		{
+			// Node A was added:
+			FSCSDiffEntry Diff = { NodeInA->VariableName, FName() };
+			OutDifferingEntries.Push( Diff );
+
+			if (OptionalOutSortKeys)
+			{
+				OptionalOutSortKeys->Push(SortKey);
+			}
+		}
+
+		++SortKey;
+	}
+
+	// add nodes that were added in B:
+	for( auto NodeInB : NodesInB )
+	{
+		if( FindByName( NodesInA, NodeInB->VariableName ) == nullptr )
+		{
+			// Node B was added:
+			FSCSDiffEntry Diff = { NodeInB->VariableName, FName() };
+			OutDifferingEntries.Push(Diff);
+
+			if (OptionalOutSortKeys)
+			{
+				OptionalOutSortKeys->Push(SortKey);
+			}
+		}
+
+		++SortKey;
 	}
 }
 
@@ -612,7 +773,7 @@ void DiffWidgetUtils::SelectNextRow( SListView< TSharedPtr< FDiffSingleResult> >
 void DiffWidgetUtils::SelectPrevRow(SListView< TSharedPtr< FDiffSingleResult> >& ListView, const TArray< TSharedPtr< FDiffSingleResult > >& ListViewSource )
 {
 	int32 CurrentIndex = GetCurrentIndex(ListView, ListViewSource);
-	if (CurrentIndex > 0)
+	if (CurrentIndex == 0)
 	{
 		return;
 	}
@@ -620,23 +781,16 @@ void DiffWidgetUtils::SelectPrevRow(SListView< TSharedPtr< FDiffSingleResult> >&
 	ListView.SetSelection(ListViewSource[CurrentIndex - 1]);
 }
 
-static TSharedRef<SWidget> GenerateComponentsDiff( UBlueprint const* BaseBlueprint, UBlueprint const* DisplayedBlueprint )
+bool DiffWidgetUtils::HasNextDifference(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource)
 {
-	TSharedRef<SKismetInspector> Inspector = SNew(SKismetInspector)
-		.HideNameArea(true)
-		.ViewIdentifier(FName("BlueprintInspector"))
-		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
+	int32 CurrentIndex = GetCurrentIndex(ListView, ListViewSource);
+	return ListViewSource.IsValidIndex(CurrentIndex+1);
+}
 
-	return SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SSCSEditor, TSharedPtr<FBlueprintEditor>(), DisplayedBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(DisplayedBlueprint), Inspector )
-		]
-		+ SVerticalBox::Slot()
-		[
-			Inspector
-		];
+bool DiffWidgetUtils::HasPrevDifference(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource)
+{
+	int32 CurrentIndex = GetCurrentIndex(ListView, ListViewSource);
+	return ListViewSource.IsValidIndex(CurrentIndex - 1);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -712,8 +866,8 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 	const FDiffListCommands& Commands = FDiffListCommands::Get();
 	KeyCommands = MakeShareable(new FUICommandList);
 
-	KeyCommands->MapAction(Commands.Previous, FExecuteAction::CreateSP(this, &SBlueprintDiff::PrevDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::CanCycleDiffs) );
-	KeyCommands->MapAction(Commands.Next, FExecuteAction::CreateSP(this, &SBlueprintDiff::NextDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::CanCycleDiffs) );
+	KeyCommands->MapAction(Commands.Previous, FExecuteAction::CreateSP(this, &SBlueprintDiff::PrevDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::HasPrevDiff) );
+	KeyCommands->MapAction(Commands.Next, FExecuteAction::CreateSP(this, &SBlueprintDiff::NextDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::HasNextDiff) );
 
 	FToolBarBuilder ToolbarBuilder(KeyCommands.ToSharedRef(), FMultiBoxCustomization::None);
 	ToolbarBuilder.AddToolBarButton(Commands.Previous, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.PrevDiff"));
@@ -831,9 +985,14 @@ void SBlueprintDiff::PrevDiff()
 	}
 }
 
-bool SBlueprintDiff::CanCycleDiffs() const
+bool SBlueprintDiff::HasNextDiff() const
 {
-	return DiffControl.IsValid() && DiffControl->HasDifferences();
+	return DiffControl.IsValid() && DiffControl->HasNextDifference();
+}
+
+bool SBlueprintDiff::HasPrevDiff() const
+{
+	return DiffControl.IsValid() && DiffControl->HasPrevDifference();
 }
 
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
@@ -1247,6 +1406,11 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 {
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
+	TArray< FSCSDiffEntry > Differences;
+	DiffUtils::CompareUnrelatedSCS( PanelOld.Blueprint, PanelNew.Blueprint, Differences );
+
+	auto NewDiffControl = TSharedPtr<FSCSDiffControl>(new FSCSDiffControl(PanelOld.Blueprint, PanelNew.Blueprint, Differences));
+	DiffControl = NewDiffControl;
 	return SNew(SSplitter)
 		+ SSplitter::Slot()
 		.Value(0.5f)
@@ -1254,7 +1418,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			[
-				GenerateComponentsDiff(PanelNew.Blueprint, PanelOld.Blueprint)
+				NewDiffControl->OldTreeWidget()
 			]
 		]
 		+ SSplitter::Slot()
@@ -1263,7 +1427,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			[
-				GenerateComponentsDiff(PanelOld.Blueprint, PanelNew.Blueprint)
+				NewDiffControl->NewTreeWidget()
 			]
 		];
 }

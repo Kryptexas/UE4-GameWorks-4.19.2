@@ -3,15 +3,15 @@
 
 #include "BlueprintMergeData.h"
 #include "IDiffControl.h"
-#include "DetailsDiff.h"
+#include "SCSDiff.h"
 
-class SMergeDetailsView : public SCompoundWidget
+class SMergeTreeView	: public SCompoundWidget
 						, public IDiffControl
 {
 public:
-	virtual ~SMergeDetailsView() {}
+	virtual ~SMergeTreeView() {}
 
-	SLATE_BEGIN_ARGS(SMergeDetailsView)
+	SLATE_BEGIN_ARGS(SMergeTreeView)
 	{}
 	SLATE_END_ARGS()
 
@@ -24,14 +24,13 @@ private:
 	bool HasPrevDifference() const override;
 
 	void HighlightCurrentDifference();
-	FDetailsDiff& GetRemoteDetails();
-	FDetailsDiff& GetBaseDetails();
-	FDetailsDiff& GetLocalDetails();
+	FSCSDiff& GetRemoteView();
+	FSCSDiff& GetBaseView();
+	FSCSDiff& GetLocalView();
 
 	FBlueprintMergeData Data;
-	TArray< FDetailsDiff > DetailsViews;
+	TArray< FSCSDiff > SCSViews;
 
-	/** These have been duplicated from FCDODiffControl, opportunity to refactor exists: */
-	TArray< FName > DifferingProperties;
+	TArray< FSCSDiffEntry > DifferingProperties;
 	int CurrentDifference;
 };

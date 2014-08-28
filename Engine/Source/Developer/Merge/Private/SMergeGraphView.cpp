@@ -369,10 +369,32 @@ void SMergeGraphView::PrevDiff()
 	DiffWidgetUtils::SelectPrevRow( *DiffResultList.Pin(), *DiffResultsListData );
 }
 
-bool SMergeGraphView::HasDifferences() const
+bool SMergeGraphView::HasNextDifference() const
+{
+	if (HasNoDifferences())
+	{
+		return false;
+	}
+
+	check(DiffResultList.Pin().IsValid() && DiffResultsListData);
+	return DiffWidgetUtils::HasNextDifference(*DiffResultList.Pin(), *DiffResultsListData);
+}
+
+bool SMergeGraphView::HasPrevDifference() const
+{
+	if (HasNoDifferences())
+	{
+		return false;
+	}
+
+	check(DiffResultList.Pin().IsValid() && DiffResultsListData);
+	return DiffWidgetUtils::HasPrevDifference(*DiffResultList.Pin(), *DiffResultsListData);
+}
+
+bool SMergeGraphView::HasNoDifferences() const
 {
 	auto DiffResultListPtr = DiffResultList.Pin();
-	return DiffResultListPtr.IsValid() && DiffResultListPtr->GetNumItemsBeingObserved() > 0;
+	return !DiffResultListPtr.IsValid() || DiffResultListPtr->GetNumItemsBeingObserved() == 0;
 }
 
 void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType)

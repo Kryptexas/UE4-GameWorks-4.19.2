@@ -467,6 +467,14 @@ public:
 
 	/** Select the given tree node */
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
+	
+	/**
+	 * Highlight a tree node and, optionally, a property with in it
+	 *
+	 * @param Node		 A Reference to the Node SCS_Node to be highlighted
+	 * @param Property	The name of the property to be highlighted in the details view
+	 */
+	void HighlightTreeNode( const USCS_Node* Node, FName Property );
 
 	/**
 	 * Function to save current state of SimpleConstructionScript and nodes associated with it.

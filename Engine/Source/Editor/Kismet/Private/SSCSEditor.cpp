@@ -2,6 +2,7 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintUtilities.h"
 #include "ComponentAssetBroker.h"
@@ -2468,6 +2469,23 @@ void SSCSEditor::SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCnt
 		{
 			SCSTreeWidget->SetItemSelection(InNodeToSelect, !SCSTreeWidget->IsItemSelected(InNodeToSelect));
 		}
+	}
+}
+
+void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
+{
+	check(Node);
+	auto TreeNode = FindTreeNode( Node );
+	check( TreeNode.IsValid() );
+	SelectNode( TreeNode, false );
+	if( Property != FName() )
+	{
+		auto KismetInspectorSPtr = KismetInspectorPtr.Pin();
+		check( KismetInspectorSPtr.IsValid() );
+		UActorComponent* Component = TreeNode->GetComponentTemplate();
+		UProperty* CurrentProp = FindField<UProperty>(Component->GetClass(), Property);
+		check( CurrentProp );
+		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( CurrentProp );
 	}
 }
 

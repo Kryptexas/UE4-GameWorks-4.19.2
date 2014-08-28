@@ -19,9 +19,11 @@ private:
 	/** Implementation of IDiffControl: */
 	void NextDiff() override;
 	void PrevDiff() override;
-	bool HasDifferences() const override;
+	bool HasNextDifference() const override;
+	bool HasPrevDifference() const override;
 
 	/** Helper functions and event handlers: */
+	bool HasNoDifferences() const;
 	void OnGraphListSelectionChanged(TSharedPtr<struct FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType);
 	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
 

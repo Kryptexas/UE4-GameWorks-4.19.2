@@ -6,6 +6,7 @@ class IDiffControl
 public:
 	virtual void NextDiff() = 0;
 	virtual void PrevDiff() = 0;
-	virtual bool HasDifferences() const = 0;
+	virtual bool HasNextDifference() const = 0;
+	virtual bool HasPrevDifference() const = 0;
 };
 

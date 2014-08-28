@@ -23,7 +23,8 @@ private:
 	/** Event handlers */
 	void NextDiff();
 	void PrevDiff();
-	bool CanCycleDiffs() const;
+	bool HasNextDiff() const;
+	bool HasPrevDiff() const;
 	void OnAcceptResultClicked();
 	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);

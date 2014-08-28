@@ -150,9 +150,14 @@ void SMergeDetailsView::HighlightCurrentDifference()
 	}
 }
 
-bool SMergeDetailsView::HasDifferences() const
+bool SMergeDetailsView::HasNextDifference() const
 {
-	return DifferingProperties.Num() != 0;
+	return DifferingProperties.IsValidIndex( CurrentDifference + 1 );
+}
+
+bool SMergeDetailsView::HasPrevDifference() const
+{
+	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
 }
 
 FDetailsDiff& SMergeDetailsView::GetRemoteDetails()
