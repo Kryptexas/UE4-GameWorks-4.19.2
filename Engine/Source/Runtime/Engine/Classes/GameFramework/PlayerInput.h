@@ -542,4 +542,7 @@ private:
 
 	// A counter used to track the order in which events occurred since the last time the input stack was processed
 	uint32 EventCount;
+
+	// Cache the last time dilation so as to be able to clear smoothing when it changes
+	float LastTimeDilation;
 };
