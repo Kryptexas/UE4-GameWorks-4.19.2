@@ -163,8 +163,6 @@ public:
 
 	ENGINE_API FDistanceFieldAsyncQueue();
 
-	ENGINE_API virtual ~FDistanceFieldAsyncQueue();
-
 	/** Adds a new build task. */
 	ENGINE_API void AddTask(FAsyncDistanceFieldTask* Task);
 

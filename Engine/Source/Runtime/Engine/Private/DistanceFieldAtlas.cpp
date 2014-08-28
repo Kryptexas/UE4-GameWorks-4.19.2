@@ -296,9 +296,6 @@ FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue()
 	ThreadRunnable = new FBuildDistanceFieldThreadRunnable(this);
 }
 
-FDistanceFieldAsyncQueue::~FDistanceFieldAsyncQueue()
-{}
-
 void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 {
 #if WITH_EDITOR
@@ -320,7 +317,7 @@ void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 	}
 	else
 	{
-		TScopedPointer<FQueuedThreadPool> WorkerThreadPool = TScopedPointer<FQueuedThreadPool>(CreateWorkerThreadPool());
+		TScopedPointer<FQueuedThreadPool> WorkerThreadPool(CreateWorkerThreadPool());
 		Build(Task, *WorkerThreadPool);
 	}
 #else
