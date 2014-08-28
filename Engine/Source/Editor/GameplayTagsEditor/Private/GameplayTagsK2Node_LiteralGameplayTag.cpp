@@ -42,12 +42,10 @@ bool UGameplayTagsK2Node_LiteralGameplayTag::CanCreateUnderSpecifiedSchema( cons
 void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuEntries( FGraphContextMenuBuilder& ContextMenuBuilder ) const
 {
 	Super::GetMenuEntries(ContextMenuBuilder);
-	
-	const FString FunctionCategory(TEXT("Call Function"));
 
 	UK2Node* EnumNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UGameplayTagsK2Node_LiteralGameplayTag>();
 
-	const FString Category = FunctionCategory + TEXT("|Gameplay Tags|Tag Container");
+	const FString Category = TEXT("Gameplay Tags|Tag Container");
 	const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
 	const FString Tooltip = EnumNodeTemplate->GetTooltip();
 	const FString Keywords = EnumNodeTemplate->GetKeywords();
@@ -159,7 +157,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(FBlueprintActionData
 
 FText UGameplayTagsK2Node_LiteralGameplayTag::GetMenuCategory() const
 {
-	return LOCTEXT("ActionMenuCategory", "Gameplay Tags");
+	return LOCTEXT("ActionMenuCategory", "Gameplay Tags|Tag Container");
 }
 
 #undef LOCTEXT_NAMESPACE

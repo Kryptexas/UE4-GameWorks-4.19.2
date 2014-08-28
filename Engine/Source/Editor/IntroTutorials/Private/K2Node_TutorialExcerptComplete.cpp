@@ -39,12 +39,11 @@ void UK2Node_TutorialExcerptComplete::GetMenuEntries(FGraphContextMenuBuilder& C
 	UK2Node_TutorialExcerptComplete* TemplateNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_TutorialExcerptComplete>();
 	TemplateNode->BindFunction();
 
-	const FString Category = LOCTEXT("TutorialExcerptComplete_Category", "Call Function").ToString();
-	const FString SubCategory = LOCTEXT("TutorialExcerptComplete_SubCategory", "Tutorials").ToString();
+	const FString Category = LOCTEXT("TutorialExcerptComplete_SubCategory", "Tutorials").ToString();
 	const FText MenuDesc = LOCTEXT("TutorialExcerptComplete_Desc", "Tutorial Excerpt Complete");
 	const FString Tooltip = LOCTEXT("TutorialExcerptComplete_Tooltip", "Add a node to complete a tutorial excerpt").ToString();
 
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category + TEXT("|") + SubCategory, MenuDesc, Tooltip);
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
 }
 

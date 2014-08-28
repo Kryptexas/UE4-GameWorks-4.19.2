@@ -103,6 +103,7 @@ namespace K2ActionCategories
 	static FString const GameCategory	      = LOCTEXT("GameCategory",         "Game").ToString();
 	
 
+	static FString const RootFunctionCategory = TEXT("");
 	static FString const GenericFunctionCategory   = LOCTEXT("FunctionCategory",         "Call Function").ToString();
 	static FString const CallFuncForEachCategory   = LOCTEXT("CallFuncForEachCategory",  "Call Function For Each").ToString();
 	static FString const CallFuncOnPrefix	       = LOCTEXT("CallFuncOnPrefix",         "Call Function on ").ToString();
@@ -610,6 +611,10 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	if (!bIsParentContext && !bPlaceOnTop)
 	{
 		NodeCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, BaseCategory);
+		if (NodeCategory.IsEmpty())
+		{
+			NodeCategory = K2ActionCategories::GenericFunctionCategory;
+		}
 	}
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action;
@@ -839,13 +844,13 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			FunctionTypes |= UEdGraphSchema_K2::FT_Imperative;
 		}
 
-		GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
-		GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
+		GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
+		GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
 
 		// spawn actor from archetype node
 		if (!bIsConstructionScript)
 		{
-			AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+			AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 			if ( Blueprint->SupportsInputEvents() )
 			{
@@ -853,7 +858,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			}
 		}
 		
-		AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+		AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 		// Add struct make/break nodes
 		GetStructActions( ContextMenuBuilder );
@@ -1067,7 +1072,7 @@ struct FClassDynamicCastMenuUtils
 
 	static void SpawnNode(UClass* TargetType, FBlueprintGraphActionListBuilder& ContextMenuBuilder)
 	{
-		static const FString CastCategory = K2ActionCategories::GenericFunctionCategory + "|" + K2ActionCategories::CastingCategory;
+		static const FString CastCategory = K2ActionCategories::RootFunctionCategory + "|" + K2ActionCategories::CastingCategory;
 		UK2Node_DynamicCast* CastNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_ClassDynamicCast>();
 		CastNode->TargetType = TargetType;
 
@@ -1134,8 +1139,8 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			const bool bWantBindableDelegates = (GraphType == GT_Ubergraph) || (GraphType == GT_Function) ||
 				((bAllowUnsafeCommands) && (Blueprint->BlueprintType == BPTYPE_MacroLibrary));
 
-			GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::GenericFunctionCategory);
-			GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::GenericFunctionCategory);
+			GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::RootFunctionCategory);
+			GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::RootFunctionCategory);
 
 			GetVariableGettersSettersForClass(ContextMenuBuilder, Class, FromPin.PinType, true, false, true, bWantBindableDelegates, bRequireDesiredPinType);
 
@@ -1151,7 +1156,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 			if (!K2Schema->IsConstructionScript(ContextMenuBuilder.CurrentGraph))
 			{
-				AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+				AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 				if (Class->IsChildOf(AActor::StaticClass()))
 				{
@@ -1160,7 +1165,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 				}
 			}
 			
-			AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+			AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 			// for output pins, add macro flow control as a connection option
 			if ( FromPin.Direction == EGPD_Output )
@@ -1205,7 +1210,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 							FunctionTypes |= UEdGraphSchema_K2::FT_Imperative;
 						}
 
-						GetFuncNodesForClass(ContextMenuBuilder, PinClass, PinClass, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
+						GetFuncNodesForClass(ContextMenuBuilder, PinClass, PinClass, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
 
 						if( FromPin.PinType.bIsReference )
 						{
@@ -1238,7 +1243,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 				// Dynamic casts
 				{
-					FString const CastCategory = K2ActionCategories::GenericFunctionCategory + "|" + K2ActionCategories::CastingCategory;
+					FString const CastCategory = K2ActionCategories::RootFunctionCategory + "|" + K2ActionCategories::CastingCategory;
 
 					for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 					{
@@ -2533,7 +2538,7 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 				{
 					const bool bShowMakeOnTop = bUseNativeMake && Function->HasMetaData(NativeMakeFunc);
 					const bool bShowBrakeOnTop = bUseNativeBrake && Function->HasMetaData(NativeBrakeFunc);
-					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, FFunctionTargetInfo(), FMemberReference(), K2ActionCategories::GenericFunctionCategory, K2Schema->AG_LevelReference, ContextMenuBuilder, false, bShowMakeOnTop || bShowBrakeOnTop);
+					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, FFunctionTargetInfo(), FMemberReference(), K2ActionCategories::RootFunctionCategory, K2Schema->AG_LevelReference, ContextMenuBuilder, false, bShowMakeOnTop || bShowBrakeOnTop);
 				}
 			}
 		}

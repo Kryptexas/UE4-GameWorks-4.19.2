@@ -204,12 +204,9 @@ void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) con
 
 	if (bShowEnumEquality)
 	{
-		//@TODO: Promote the categories into the schema and remove this duplication with the code in EdGraphSchema_K2.cpp
-		const FString FunctionCategory(TEXT("Call Function"));
-
 		UK2Node* EnumNodeTemplate = Context.CreateTemplateNode<UK2Node_EnumEquality>();
 
-		const FString Category = FunctionCategory + TEXT("|Utilities| Enum");
+		const FString Category = TEXT("Utilities| Enum");
 		const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
 		const FString Tooltip = EnumNodeTemplate->GetTooltip();
 		const FString Keywords = EnumNodeTemplate->GetKeywords();
