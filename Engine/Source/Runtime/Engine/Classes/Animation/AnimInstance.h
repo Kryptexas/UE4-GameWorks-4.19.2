@@ -307,8 +307,8 @@ public:
 
 	// kismet event functions
 
-	UFUNCTION(BlueprintPure, Category = "Animation")
-	virtual APawn* TryGetPawnOwner();
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	virtual APawn* TryGetPawnOwner() const;
 
 public:
 	/** Returns the owning actor of this AnimInstance */

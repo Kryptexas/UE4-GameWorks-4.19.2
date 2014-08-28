@@ -196,7 +196,7 @@ AActor* UAnimInstance::GetOwningActor() const
 	return OwnerComponent->GetOwner();
 }
 
-APawn* UAnimInstance::TryGetPawnOwner()
+APawn* UAnimInstance::TryGetPawnOwner() const
 {
 	USkeletalMeshComponent* OwnerComponent = GetSkelMeshComponent();
 	if (AActor* OwnerActor = OwnerComponent->GetOwner())
