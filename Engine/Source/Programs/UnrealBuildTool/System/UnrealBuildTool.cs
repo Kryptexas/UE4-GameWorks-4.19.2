@@ -1822,6 +1822,11 @@ namespace UnrealBuildTool
                 BuildConfiguration.bUsePCHFiles = false;
             }
 
+            if (Utils.ParseCommandLineFlag(Arguments, "-nosharedpch", out ArgumentIndex))
+            {
+                BuildConfiguration.bUseSharedPCHs = false;
+            }
+
             if (Utils.ParseCommandLineFlag(Arguments, "-skipActionHistory", out ArgumentIndex))
             {
                 BuildConfiguration.bUseActionHistory = false;
