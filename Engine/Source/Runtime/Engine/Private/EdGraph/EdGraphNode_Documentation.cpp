@@ -37,7 +37,17 @@ FString UEdGraphNode_Documentation::GetTooltip() const
 
 FText UEdGraphNode_Documentation::GetNodeTitle( ENodeTitleType::Type TitleType ) const
 {
-	return NSLOCTEXT( "K2Node", "DocumentationBlock_Title", "UDN Documentation Excerpt" );
+	FText NodeTitle;
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		NodeTitle = NSLOCTEXT("K2Node", "DocumentationBlock_ListTitle", "Add Documentation Node...");
+	}
+	else
+	{
+		NodeTitle = NSLOCTEXT("K2Node", "DocumentationBlock_Title", "UDN Documentation Excerpt");
+	}
+
+	return NodeTitle;
 }
 
 FString UEdGraphNode_Documentation::GetPinNameOverride(const UEdGraphPin& Pin) const

@@ -13,6 +13,7 @@ class UK2Node_ClassDynamicCast : public UK2Node_DynamicCast
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface

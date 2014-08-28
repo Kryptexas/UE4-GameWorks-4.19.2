@@ -18,10 +18,17 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		FString NodeNameStr = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
 
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("NodeName"), FText::FromString(NodeNameStr));
-		Args.Add(TEXT("OuterClassName"), FText::FromString(Function->GetOuterUClass()->GetName()));
-		NodeName = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			NodeName = FText::Format(LOCTEXT("ListTitle", "{0} (Message)"), FText::FromString(NodeNameStr));
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeName"), FText::FromString(NodeNameStr));
+			Args.Add(TEXT("OuterClassName"), FText::FromString(Function->GetOuterUClass()->GetName()));
+			NodeName = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
+		}
 	}
 	else
 	{

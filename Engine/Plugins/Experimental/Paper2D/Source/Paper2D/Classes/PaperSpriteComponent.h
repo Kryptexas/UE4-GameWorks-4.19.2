@@ -6,7 +6,7 @@
 
 #include "PaperSpriteComponent.generated.h"
 
-UCLASS(ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
+UCLASS(ShowCategories=(Mobility), ClassGroup=Paper2D, EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperSpriteComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
