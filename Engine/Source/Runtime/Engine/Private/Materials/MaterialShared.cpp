@@ -1031,6 +1031,31 @@ FMaterial::~FMaterial()
 	FMaterialShaderMap::RemovePendingMaterial(this);
 }
 
+// could be more to a more central DBuffer file
+// @return e.g. 1+2+4 means DBufferA(1) + DBufferB(2) + DBufferC(4) is used
+static uint8 ComputeDBufferMRTMask(EDecalBlendMode DecalBlendMode)
+{
+	switch(DecalBlendMode)
+	{
+		case DBM_DBuffer_ColorNormalRoughness:
+			return 1 + 2 + 4;
+		case DBM_DBuffer_Color:
+			return 1;
+		case DBM_DBuffer_ColorNormal:
+			return 1 + 2;
+		case DBM_DBuffer_ColorRoughness:
+			return 1 + 4;
+		case DBM_DBuffer_Normal:
+			return 2;
+		case DBM_DBuffer_NormalRoughness:
+			return 2 + 4;
+		case DBM_DBuffer_Roughness:
+			return 4;
+	}
+
+	return 0;
+}
+
 /** Populates OutEnvironment with defines needed to compile shaders for this material. */
 void FMaterial::SetupMaterialEnvironment(
 	EShaderPlatform Platform,
@@ -1137,6 +1162,16 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
+
+	{
+		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();
+
+		uint8 bDBufferMask = ComputeDBufferMRTMask(DecalBlendMode);
+
+		OutEnvironment.SetDefine(TEXT("MATERIAL_DBUFFERA"), (bDBufferMask & 0x1) != 0);
+		OutEnvironment.SetDefine(TEXT("MATERIAL_DBUFFERB"), (bDBufferMask & 0x2) != 0);
+		OutEnvironment.SetDefine(TEXT("MATERIAL_DBUFFERC"), (bDBufferMask & 0x4) != 0);
+	}
 
 	switch(GetShadingModel())
 	{

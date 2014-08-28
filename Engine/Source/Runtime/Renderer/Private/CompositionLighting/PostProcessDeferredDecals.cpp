@@ -141,74 +141,95 @@ void SetDecalBlendState(FRHICommandList& RHICmdList, const ERHIFeatureLevel::Typ
 {
 	if(RenderStage == 0)
 	{
-		// todo if(SMFeatureLevel == ERHIFeatureLevel::SM4)
-		switch(DecalBlendMode)
+		// before base pass (for DBuffer decals)
+
+		if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 		{
-		case DBM_DBuffer_ColorNormalRoughness:
+			// DX10 doesn't support masking/using different blend modes per MRT.
+			// We set the opacity in the shader to 0 so we can use the same frame buffer blend.
+
 			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );
+			return;
+		}
+		else
+		{
+			// see DX10 comment above
+			// As we set the opacity in the shader we don't need to set different frame buffer blend modes but we like to hint to the driver that we
+			// don't need to output there. We also could replace this with many SetRenderTarget calls but it might be slower (needs to be tested).
 
-		case DBM_DBuffer_Color:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
-			break;
+			switch(DecalBlendMode)
+			{
+			case DBM_DBuffer_ColorNormalRoughness:
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_ColorNormal:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
-			break;
+			case DBM_DBuffer_Color:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_ColorRoughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_ColorNormal:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_Normal:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
-			break;
+			case DBM_DBuffer_ColorRoughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_NormalRoughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_Normal:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_Roughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_NormalRoughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		default:
-			// the decal type should not be rendered in this pass - internal error
-			check(0);	
-			break;
+			case DBM_DBuffer_Roughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
+
+			default:
+				// the decal type should not be rendered in this pass - internal error
+				check(0);	
+				break;
+			}
 		}
 
 		return;
 	}
 	else
 	{
+		// before lighting (for non DBuffer decals)
+
 		switch(DecalBlendMode)
 		{
 		case DBM_Translucent:

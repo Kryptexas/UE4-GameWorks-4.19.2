@@ -502,6 +502,19 @@ void EncodeDBufferData(FGBufferData GBufferData, float3 MultiOpacity,
 
 	// UNORM 2 channel
 	DBufferC = float4(GBufferData.Roughness, 0, 0, MultiOpacity.z);
+
+	// no need to output any data if the channel isn't used anyway (for DX10 we don't adjust the FrameBufferBlend state - it doesn't support different blend modes for different MRT)
+	{
+#if !MATERIAL_DBUFFERA
+		DBufferA = 0;
+#endif
+#if !MATERIAL_DBUFFERB
+		DBufferB = 0;
+#endif
+#if !MATERIAL_DBUFFERC
+		DBufferC = 0;
+#endif
+	}
 }
 
 float3 ExtractSubsurfaceColor(FGBufferData BufferData)
