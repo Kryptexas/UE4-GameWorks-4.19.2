@@ -332,10 +332,10 @@ protected:
 		}
 	}
 
-	UFUNCTION(BlueprintCallable, Category=Ability)
+	//UFUNCTION(BlueprintCallable, Category=Ability)
 	FGameplayAbilityActorInfo GetActorInfo() const;
 
-	UFUNCTION(BlueprintCallable, Category = Ability)
+	//UFUNCTION(BlueprintCallable, Category = Ability)
 	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
