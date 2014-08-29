@@ -258,6 +258,7 @@ namespace UnrealBuildTool
 		{
 			string InputProjectDir = Path.GetFullPath("Programs\\AutomationToolStub");
 			string OutputProjectDir = IntermediateProjectFilesPath;
+			Directory.CreateDirectory(OutputProjectDir);
 
 			// Load the template aggregate project file
 			XDocument Document = XDocument.Load(Utils.CleanDirectorySeparators(Path.Combine(InputProjectDir, "AutomationToolStubTemplate.csproj")));
