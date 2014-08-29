@@ -701,10 +701,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 			}
 			else
 			{
-				UE_LOG( LogNet, Warning, TEXT( "Rejected unwanted function %s in %s" ), *Message.ToString(), *Object->GetFullName() );
+				UE_LOG( LogNet, Verbose, TEXT( "Rejected unwanted function %s in %s" ), *Message.ToString(), *Object->GetFullName() );
 
 				if ( !OwningChannel->Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
 				{
+					UE_LOG( LogNet, Error, TEXT( "Rejected too many unwanted functions %s in %s" ), *Message.ToString(), *Object->GetFullName() );
 					return false;
 				}
 			}
