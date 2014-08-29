@@ -185,7 +185,7 @@ TSharedRef<SWidget> FBlackboardDecoratorDetails::OnGetEnumValueContent() const
 
 FString FBlackboardDecoratorDetails::GetCurrentEnumValueDesc() const
 {
-	if (CachedCustomObjectType)
+	if (CachedCustomObjectType && EnumPropValues.Num() > 0)
 	{
 		int32 CurrentIntValue = 0;
 		FPropertyAccess::Result Result = IntValueProperty->GetValue(CurrentIntValue);
