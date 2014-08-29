@@ -130,9 +130,6 @@ struct FModuleStatus
 
 	/** Whether this module contains game play code. */
 	bool bIsGameModule;
-
-	/** The compilation method of this module. */
-	FString CompilationMethod;
 };
 
 /**
@@ -270,6 +267,14 @@ public:
 	 * @see QueryModule
 	 */
 	void QueryModules( TArray<FModuleStatus>& OutModuleStatuses );
+
+	/**
+	 * Queries the compilation method for a given module.
+	 *
+	 * @param InModuleName Module to query the name of
+	 * @return A string describing the method used to compile the module.
+	 */
+	FString GetModuleCompileMethod(FName InModuleName);
 
 	/**
 	 * Unloads a specific module
@@ -522,6 +527,12 @@ public:
 	/** Called when the compile data for a module need to be update in memory and written to config */
 	void UpdateModuleCompileData(FName ModuleName);
 
+	/** Gets the filename for a module */
+	FString GetModuleFilename(FName ModuleName) const;
+
+	/** Sets the filename for a module. The module is not reloaded immediately, but the new name will be used for subsequent unload/load events. */
+	void SetModuleFilename(FName ModuleName, const FString& Filename);
+
 public:
 
 	/**
@@ -635,9 +646,6 @@ protected:
 	 */
 	struct FModuleCompilationData
 	{
-		/** A flag set when the data it updated - loaded modules don't update this info until they are compiled or just before they unload */
-		bool bIsValid;
-
 		/** Has a timestamp been set for the .dll file */
 		bool bHasFileTimeStamp;
 
@@ -648,8 +656,7 @@ protected:
 		EModuleCompileMethod CompileMethod;
 
 		FModuleCompilationData()
-			: bIsValid(false)
-			, bHasFileTimeStamp(false)
+			: bHasFileTimeStamp(false)
 			, CompileMethod(EModuleCompileMethod::Unknown)
 		{ }
 	};
@@ -678,9 +685,6 @@ protected:
 
 		/** Arbitrary number that encodes the load order of this module, so we can shut them down in reverse order. */
 		int32 LoadOrder;
-
-		/** Last know compilation data for this module - undefined if CompileData.bIsValid is false */
-		FModuleCompilationData CompileData;
 
 		/** static that tracks the current load number. Incremented whenever we add a new module*/
 		static int32 CurrentLoadOrder;
@@ -738,20 +742,14 @@ protected:
 	/** Compares file versions between the current executing engine version and the specified dll */
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
 
-	/** Called during CheckForFinishedModuleDLLCompile() for each successfully recomplied module */
-	void OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
-
-	/** Called when the compile data for a module need to be update in memory and written to config */
-	void UpdateModuleCompileData(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
-
 	/** Called when a new module is added to the manager to get the saved compile data from config */
-	static void ReadModuleCompilationInfoFromConfig(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
+	static void ReadModuleCompilationInfoFromConfig(FName ModuleName, FModuleCompilationData& CompileData);
 
 	/** Saves the module's compile data to config */
-	static void WriteModuleCompilationInfoToConfig(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
+	static void WriteModuleCompilationInfoToConfig(FName ModuleName, const FModuleCompilationData& CompileData);
 
 	/** Access the module's file and read the timestamp from the file system. Returns true if the timestamp was read successfully. */
-	static bool GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> ModuleInfo, FDateTime& OutFileTimeStamp);
+	bool GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFileTimeStamp) const;
 
 	/** Finds modules matching a given name wildcard. */
 	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
@@ -783,6 +781,9 @@ private:
 
 	/** Multicast delegate called to process any new loaded objects. */
 	FSimpleMulticastDelegate ProcessLoadedObjectsCallback;
+
+	/** Last known compilation data for each module */
+	TMap<FName, TSharedRef<FModuleCompilationData>> ModuleCompileData;
 
 	/** When compiling a module using an external application, stores the handle to the process that is running */
 	FProcHandle ModuleCompileProcessHandle;

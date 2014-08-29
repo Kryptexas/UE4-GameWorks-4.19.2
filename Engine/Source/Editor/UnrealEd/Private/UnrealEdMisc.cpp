@@ -401,7 +401,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			{
 				TArray< FAnalyticsEventAttribute > ModuleAttributes;
 				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("ModuleName"), Module.Name));
-				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), Module.CompilationMethod));
+				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), FModuleManager::Get().GetModuleCompileMethod(*Module.Name)));
 				EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
 			}
 		}
