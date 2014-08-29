@@ -2264,7 +2264,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					FBaseParticle* SourceParticle = (SourceIndices[InTrailIdx] != -1) ? SourceEmitter->GetParticleDirect(SourceIndices[InTrailIdx]) : NULL;
 					if (SourceParticle != NULL)
 					{
-						OutPosition = SourceParticle->Location;
+						OutPosition = SourceParticle->Location + SourceEmitter->SimulationToWorld.GetOrigin();
 						OutTangent = SourceParticle->Location - SourceParticle->OldLocation;
 						SourceTimes[InTrailIdx] = SourceParticle->RelativeTime;
 					}
