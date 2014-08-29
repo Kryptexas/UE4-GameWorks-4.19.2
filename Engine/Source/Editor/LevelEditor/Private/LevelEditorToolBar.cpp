@@ -954,7 +954,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 
 			// Player Controller
 			LevelEditorActionHelpers::FBlueprintMenuSettings PlayerControllerMenuSettings;
-			PlayerControllerMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenHUDBlueprint;
+			PlayerControllerMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenPlayerControllerBlueprint;
 			PlayerControllerMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreatePlayerControllerClassPicked, InLevelEditor );;
 			PlayerControllerMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectPlayerControllerClassPicked, InLevelEditor );;
 			PlayerControllerMenuSettings.CurrentClass = GetActivePlayerControllerClass(InLevelEditor);
