@@ -84,6 +84,8 @@ namespace K2ActionCategories
 	static FString const MakeStructSubCategory  = LOCTEXT("MakeStruct",      "Make Struct").ToString();
 	static FString const BreakStructSubCategory = LOCTEXT("BreakStruct",     "Break Struct").ToString();
 	static FString const TextSubCategory        = LOCTEXT("TextCategory",    "Text").ToString();
+	static FString const MathCategory           = LOCTEXT("MathCategory",    "Math").ToString();
+	static FString const InterpSubCategory      = LOCTEXT("InterpCategory", "Interpolation").ToString();
 
 	static FString const ArrayCategory         = UtilitiesCategory + SubCategoryDelim + ArraySubCategory;
 	static FString const CastingCategory       = UtilitiesCategory + SubCategoryDelim + CastingSubCategory;
@@ -96,6 +98,8 @@ namespace K2ActionCategories
 	static FString const StringCategory        = UtilitiesCategory + SubCategoryDelim + StringSubCategory;
 	static FString const TextCategory          = UtilitiesCategory + SubCategoryDelim + TextSubCategory;
 	static FString const FallbackMacroCategory = UtilitiesCategory;
+
+	static FString const InterpCategory = MathCategory + SubCategoryDelim + InterpSubCategory;
 
 
 	static FString const AddComponentCategory = LOCTEXT("AddComponentCategory", "Add Component").ToString();
@@ -792,6 +796,11 @@ void FK2ActionMenuBuilder::GetPaletteActions(FBlueprintPaletteListBuilder& Actio
 	GetMacroTools(ActionMenuBuilder, true, NULL);
 
 	GetRequestedAction<UK2Node_FormatText>(ActionMenuBuilder, K2ActionCategories::TextCategory);
+
+	{
+		// Actions that are part of Math
+		GetRequestedAction<UK2Node_EaseFunction>(ActionMenuBuilder, K2ActionCategories::InterpCategory);
+	}
 }
 
 /*******************************************************************************
@@ -834,6 +843,11 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 		GetRequestedAction<UK2Node_GetEnumeratorNameAsString>(ContextMenuBuilder, K2ActionCategories::StringCategory);
 
 		GetRequestedAction<UK2Node_FormatText>(ContextMenuBuilder, K2ActionCategories::TextCategory);
+
+		{
+			// Actions that are part of Math
+			GetRequestedAction<UK2Node_EaseFunction>(ContextMenuBuilder, K2ActionCategories::InterpCategory);
+		}
 
 		GetAnimNotifyMenuItems(ContextMenuBuilder);
 		GetVariableGettersSettersForClass(ContextMenuBuilder, Class, true, bAllowEvents);
@@ -1379,6 +1393,14 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 		else if(FromPin.PinType.PinCategory == K2Schema->PC_Text)
 		{
 			GetRequestedAction<UK2Node_FormatText>(ContextMenuBuilder, K2ActionCategories::ArrayCategory);
+		}
+		else if (FromPin.PinType.PinCategory == K2Schema->PC_Float ||
+			(FromPin.PinType.PinCategory == K2Schema->PC_Struct &&
+			(FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Vector") ||
+			FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Rotator") ||
+			FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Transform"))))
+		{
+			GetRequestedAction<UK2Node_EaseFunction>(ContextMenuBuilder, K2ActionCategories::InterpCategory);
 		}
 
 		UEnum* Enum = Cast<UEnum>(FromPin.PinType.PinSubCategoryObject.Get());

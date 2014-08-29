@@ -3,6 +3,28 @@
 #include "EnginePrivate.h"
 #include "CoreStats.h"
 
+/** Interpolate a linear alpha value using an ease mode and function, BlendExp used in cases where the easing is exponential */
+float EaseAlpha(float InAlpha, uint8 EasingFunc, float BlendExp, int32 Steps)
+{
+	switch (EasingFunc)
+	{
+	case EEasingFunc::Step:					return FMath::Clamp<float>(FMath::InterpStep(0.f, 1.f, InAlpha, Steps), 0.f, 1.f);
+	case EEasingFunc::SinusoidalIn:			return FMath::Clamp<float>(FMath::InterpSinIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::SinusoidalOut:		return FMath::Clamp<float>(FMath::InterpSinOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::SinusoidalInOut:		return FMath::Clamp<float>(FMath::InterpSinInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::EaseIn:				return FMath::Clamp<float>(FMath::InterpEaseIn<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::EaseOut:				return FMath::Clamp<float>(FMath::InterpEaseOut<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::EaseInOut:			return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::ExpoIn:				return FMath::Clamp<float>(FMath::InterpExpoIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::ExpoOut:				return FMath::Clamp<float>(FMath::InterpExpoOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::ExpoInOut:			return FMath::Clamp<float>(FMath::InterpExpoInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularIn:			return FMath::Clamp<float>(FMath::InterpCircularIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularOut:			return FMath::Clamp<float>(FMath::InterpCircularOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularInOut:		return FMath::Clamp<float>(FMath::InterpCircularInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	}
+	return InAlpha;
+}
+
 UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -575,6 +597,11 @@ float UKismetMathLibrary::Lerp(float A, float B, float V)
 	return A + V*(B-A);
 }	
 
+float UKismetMathLibrary::Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return Lerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
+}
+
 float UKismetMathLibrary::FInterpTo(float Current, float Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::FInterpTo(Current, Target, DeltaTime, InterpSpeed);
@@ -699,6 +726,11 @@ FVector UKismetMathLibrary::VLerp(FVector A, FVector B, float V)
 {
 	return A + V*(B-A);
 }	
+
+FVector UKismetMathLibrary::VEase(FVector A, FVector B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return VLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
+}
 
 FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float DeltaTime, float InterpSpeed)
 {
@@ -855,6 +887,11 @@ FRotator UKismetMathLibrary::RLerp(FRotator A, FRotator B, float Alpha, bool bSh
 	return A + Alpha*DeltaAngle;
 }
 
+FRotator UKismetMathLibrary::REase(FRotator A, FRotator B, float Alpha, bool bShortestPath, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return RLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps), bShortestPath);
+}
+
 FRotator UKismetMathLibrary::NormalizedDeltaRotator(FRotator A, FRotator B)
 {
 	FRotator Delta = A - B;
@@ -939,6 +976,11 @@ FTransform UKismetMathLibrary::TLerp(const FTransform& A, const FTransform& B, f
 	NB.NormalizeRotation();
 	Result.Blend(NA, NB, Alpha);
 	return Result;
+}
+
+FTransform UKismetMathLibrary::TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return TLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
 }
 
 FTransform UKismetMathLibrary::TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed)

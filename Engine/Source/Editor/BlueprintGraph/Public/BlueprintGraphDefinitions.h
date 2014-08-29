@@ -27,6 +27,7 @@
 #include "K2Node_CustomEvent.h"
 #include "K2Node_DelegateSet.h"
 #include "K2Node_DynamicCast.h"
+#include "K2Node_EaseFunction.h"
 #include "K2Node_Event.h"
 #include "K2Node_ExecutionSequence.h"
 #include "K2Node_FormatText.h"

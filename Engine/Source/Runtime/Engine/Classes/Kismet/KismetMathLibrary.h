@@ -4,6 +4,57 @@
 
 #include "KismetMathLibrary.generated.h"
 
+/** Provides different easing functions that can be used in blueprints */
+UENUM(BlueprintType)
+namespace EEasingFunc
+{
+	enum Type
+	{
+		/** Simple linear interpolation. */
+		Linear,
+
+		/** Simple step interpolation. */
+		Step,
+
+		/** Sinusoidal in interpolation. */
+		SinusoidalIn,
+
+		/** Sinusoidal out interpolation. */
+		SinusoidalOut,
+
+		/** Sinusoidal in/out interpolation. */
+		SinusoidalInOut,
+
+		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
+		EaseIn,
+
+		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
+		EaseOut,
+
+		/** Smoothly accelerates and decelerates.  Ease amount controlled by BlendExp. */
+		EaseInOut,
+
+		/** Easing in using an exponential */
+		ExpoIn,
+
+		/** Easing out using an exponential */
+		ExpoOut,
+
+		/** Easing in/out using an exponential method */
+		ExpoInOut,
+
+		/** Easing is based on a half circle. */
+		CircularIn,
+
+		/** Easing is based on an inverted half circle. */
+		CircularOut,
+
+		/** Easing is based on two half circles. */
+		CircularInOut,
+
+	};
+}
+
 UCLASS(MinimalAPI)
 class UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
@@ -383,6 +434,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static float Lerp(float A, float B, float Alpha);
 
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static float Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
+
 	/* Rounds A to the nearest integer */
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static int32 Round(float A);
@@ -502,6 +557,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (vector)"), Category="Math|Vector")
 	static FVector VLerp(FVector A, FVector B, float Alpha);
 
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (vector)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FVector VEase(FVector A, FVector B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
+
 	/* Returns a random vector with length of 1 */
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static FVector RandomUnitVector();
@@ -585,6 +644,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Rotator)"), Category="Math|Rotator")
 	static FRotator RLerp(FRotator A, FRotator B, float Alpha, bool bShortestPath);
+
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Rotator)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FRotator REase(FRotator A, FRotator B, float Alpha, bool bShortestPath, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
 	/** Normalized A-B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Delta (Rotator)"), Category="Math|Rotator")
@@ -1170,6 +1233,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Transform)"), Category="Math|Transform")
 	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha);
+
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Transform)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FTransform TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
 	/** Tries to reach a target transform */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
