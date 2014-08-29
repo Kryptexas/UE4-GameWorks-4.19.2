@@ -6,6 +6,7 @@
 #include "GraphActionNode.h"
 #include "SScrollBorder.h"
 #include "IDocumentation.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "GraphActionMenu"
 
@@ -87,8 +88,11 @@ public:
 	{
 		ActionNode = InActionNode;
 
-		FText CategoryText = FText::FromString(InActionNode->Category);
-		TSharedRef<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(CategoryText, NULL, TEXT("Shared/GraphNodes/Blueprint/NodeCategories"), InActionNode->Category);
+		FText CategoryTooltip;
+		FString CategoryLink, CategoryExcerpt;
+		FEditorCategoryUtils::GetCategoryTooltipInfo(*InActionNode->Category, CategoryTooltip, CategoryLink, CategoryExcerpt);
+
+		TSharedRef<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(CategoryTooltip, NULL, CategoryLink, CategoryExcerpt);
 
 		this->ChildSlot
 		[
@@ -98,7 +102,7 @@ public:
 			[
 				SAssignNew(InlineWidget, SInlineEditableTextBlock)
 				.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 )  )
-				.Text( CategoryText )
+				.Text( FEditorCategoryUtils::GetCategoryDisplayString(FText::FromString(InActionNode->Category)) )
 				.ToolTip( ToolTipWidget )
 				.HighlightText( InArgs._HighlightText )
 				.OnVerifyTextChanged( this, &SGraphActionCategoryWidget::OnVerifyTextChanged )

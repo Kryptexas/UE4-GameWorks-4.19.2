@@ -20,7 +20,7 @@ UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializePropertie
 
 FText UK2Node_AIMoveTo::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Ai);
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AI);
 }
 
 FString UK2Node_AIMoveTo::GetTooltip() const

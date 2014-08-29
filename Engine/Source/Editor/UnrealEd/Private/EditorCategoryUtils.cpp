@@ -2,15 +2,28 @@
 
 #include "UnrealEd.h"
 #include "EditorCategoryUtils.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "EditorCategoryUtils"
 
 /*******************************************************************************
- * Static FEditorCategoryUtils Helpers
+ * FEditorCategoryUtils Helpers
  ******************************************************************************/
 
 namespace FEditorCategoryUtilsImpl
 {
+	using namespace FEditorCategoryUtils;
+
+	struct FCategoryInfo
+	{
+		FText DisplayName;
+		FText Tooltip;
+		FString DocLink;
+		FString DocExcerpt;
+	};
+
+	typedef TMap<FString, FCategoryInfo> FCategoryInfoMap;
+
 	/**
 	 * Gets the table that tracks mappings from string keys to qualified 
 	 * category paths. Inits the structure if it hadn't been before (adds 
@@ -18,7 +31,7 @@ namespace FEditorCategoryUtilsImpl
 	 * 
 	 * @return A map from string category keys, to fully qualified category paths.
 	 */
-	static FFormatNamedArguments& GetCategoryTable();
+	FCategoryInfoMap& GetCategoryTable();
 
 	/**
 	 * Performs a lookup into the category key table, retrieving a fully 
@@ -27,20 +40,28 @@ namespace FEditorCategoryUtilsImpl
 	 * @param  Key	The key you want a category path for.
 	 * @return The category display string associated with the specified key (an empty string if an entry wasn't found).
 	 */
-	static FText const& GetCategory(FString const& Key);
+	FText const& GetCategory(const FString& Key);
 
+	/**
+	 * Performs a lookup into the category key table, retrieving a fully 
+	 * qualified category path for the specified key.
+	 * 
+	 * @param  CategoryDisplayName	Display name for the category, will be used if a tooltip can not be found in the Documentation Page
+	 * @param  DocLink				Path to the documentation page that contains the excerpt for this category
+	 * @param  DocExcerpt			Name of the excerpt within the document page for this category
+	 * @return						The tooltip (if any) stored at the doc path
+	 */
+	FText GetTooltipForCategory(FString const& CategoryDisplayName, FString const& DocLink, FString const& DocExcerpt);
 
 	/** Metadata tags */
-	static const FName ClassHideCategoriesMetaKey(TEXT("HideCategories"));
-	static const FName ClassShowCategoriesMetaKey(TEXT("ShowCategories"));
+	const FName ClassHideCategoriesMetaKey(TEXT("HideCategories"));
+	const FName ClassShowCategoriesMetaKey(TEXT("ShowCategories"));
 }
 
-#define ENUM_STRING(EnumVal) FString(#EnumVal)
-
 //------------------------------------------------------------------------------
-static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
+FEditorCategoryUtilsImpl::FCategoryInfoMap& FEditorCategoryUtilsImpl::GetCategoryTable()
 {
-	static FFormatNamedArguments CategoryLookup;
+	static FCategoryInfoMap CategoryLookup;
 
 	static bool bInitialized = false;
 	// this function is reentrant, so we have to guard against recursion
@@ -48,57 +69,83 @@ static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
 	{
 		bInitialized = true;
 
-#define ASSIGN_ROOT_CATEGORY(EnumVal, Text) FCommonEditorCategory::EnumVal; \
-		FEditorCategoryUtils::RegisterCategoryKey(ENUM_STRING(EnumVal), LOCTEXT(#EnumVal L"Category", Text))
-#define REGISTER_ROOT_CATEGORY(EnumVal) ASSIGN_ROOT_CATEGORY(EnumVal, #EnumVal)
+		RegisterCategoryKey("AI", LOCTEXT("AICategory", "AI"));
+		RegisterCategoryKey("Animation", LOCTEXT("AnimationCategory", "Animation"));
+		RegisterCategoryKey("Audio", LOCTEXT("AudioCategory", "Audio"));
+		RegisterCategoryKey("Development", LOCTEXT("DevelopmentCategory", "Development"));
+		RegisterCategoryKey("Effects", LOCTEXT("EffectsCategory", "Effects"));
+		RegisterCategoryKey("Gameplay", LOCTEXT("GameplayCategory", "Game"));
+		RegisterCategoryKey("Input", LOCTEXT("InputCategory", "Input"));
+		RegisterCategoryKey("Math", LOCTEXT("MathCategory", "Math"));
+		RegisterCategoryKey("Networking", LOCTEXT("NetworkingCategory", "Networking"));
+		RegisterCategoryKey("Pawn", LOCTEXT("PawnCategory", "Pawn"));
+		RegisterCategoryKey("Rendering", LOCTEXT("RenderingCategory", "Rendering"));
+		RegisterCategoryKey("Utilities", LOCTEXT("UtilitiesCategory", "Utilities"));
+		RegisterCategoryKey("Delegates", LOCTEXT("DelegatesCategory", "Event Dispatchers"));
+		RegisterCategoryKey("Variables", LOCTEXT("VariablesCategory", "Variables"));
 
-		ASSIGN_ROOT_CATEGORY(Ai, "AI");
-		REGISTER_ROOT_CATEGORY(Animation);
-		REGISTER_ROOT_CATEGORY(Audio);
-		REGISTER_ROOT_CATEGORY(Development);
-		REGISTER_ROOT_CATEGORY(Effects);
-		ASSIGN_ROOT_CATEGORY(Gameplay, "Game");
-		REGISTER_ROOT_CATEGORY(Input);
-		REGISTER_ROOT_CATEGORY(Math);
-		REGISTER_ROOT_CATEGORY(Networking);
-		REGISTER_ROOT_CATEGORY(Pawn);
-		REGISTER_ROOT_CATEGORY(Rendering);
-		REGISTER_ROOT_CATEGORY(Utilities);
-		ASSIGN_ROOT_CATEGORY(Delegates, "Event Dispatchers");
-		REGISTER_ROOT_CATEGORY(Variables);
-
-#undef REGISTER_ROOT_CATEGORY
-#undef ASSIGN_ROOT_CATEGORY
-
-		// NOTE: the root category has to be registered prior to this
-#define REGISTER_SUB_CATEGORY(RootId, EnumVal) FCommonEditorCategory::EnumVal; \
-		FText EnumVal##_Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::RootId, LOCTEXT(#EnumVal L"Category", #EnumVal)); \
-		FEditorCategoryUtils::RegisterCategoryKey(ENUM_STRING(EnumVal), EnumVal##_Category)
-
-		REGISTER_SUB_CATEGORY(Utilities, FlowControl);
-		REGISTER_SUB_CATEGORY(Utilities, Transformation);
-		REGISTER_SUB_CATEGORY(Utilities, String);
-		REGISTER_SUB_CATEGORY(Utilities, Text);
-		REGISTER_SUB_CATEGORY(Utilities, Name);
-		REGISTER_SUB_CATEGORY(Utilities, Enum);
-		REGISTER_SUB_CATEGORY(Utilities, Struct);
-		REGISTER_SUB_CATEGORY(Utilities, Macro);
-
-#undef REGISTER_SUB_CATEGORY
+		// Utilities sub categories
+		RegisterCategoryKey("FlowControl", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("FlowControlCategory", "Flow Control")));
+		RegisterCategoryKey("Transformation", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("TransformationCategory", "Transformation")));
+		RegisterCategoryKey("String", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("StringCategory", "String")));
+		RegisterCategoryKey("Text", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("TextCategory", "Text")));
+		RegisterCategoryKey("Name", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("NameCategory", "Name")));
+		RegisterCategoryKey("Enum", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("EnumCategory", "Enum")));
+		RegisterCategoryKey("Struct", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("StructCategory", "Struct")));
+		RegisterCategoryKey("Macro", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("MacroCategory", "Macro")));
 	}
 
 	return CategoryLookup;
 }
 
 //------------------------------------------------------------------------------
-static FText const& FEditorCategoryUtilsImpl::GetCategory(FString const& Key)
+FText const& FEditorCategoryUtilsImpl::GetCategory(const FString& Key)
 {
-	FFormatNamedArguments const& CategoryLookup = GetCategoryTable();
-	if (FFormatArgumentValue const* FoundCategory = CategoryLookup.Find(Key.ToUpper()))
+	if (FEditorCategoryUtilsImpl::FCategoryInfo const* FoundCategory = GetCategoryTable().Find(Key))
 	{
-		return *FoundCategory->TextValue;
+		return FoundCategory->DisplayName;
 	}
 	return FText::GetEmpty();
+}
+
+//------------------------------------------------------------------------------
+FText FEditorCategoryUtilsImpl::GetTooltipForCategory(FString const& CategoryDisplayName, FString const& DocLink, FString const& DocExcerpt)
+{
+	FText Tooltip;
+
+	TSharedRef<IDocumentation> Documentation = IDocumentation::Get();
+	if (Documentation->PageExists(DocLink))
+	{
+		TSharedRef<IDocumentationPage> DocPage = Documentation->GetPage(DocLink, NULL);
+	
+		const FString TooltipExcerptSuffix(TEXT("__Tooltip"));
+
+		FExcerpt Excerpt;
+		if (DocPage->GetExcerpt(DocExcerpt + TooltipExcerptSuffix, Excerpt))
+		{
+			static const FString TooltipVarKey(TEXT("Tooltip"));
+			if (FString* TooltipValue = Excerpt.Variables.Find(TooltipVarKey))
+			{
+				Tooltip = FText::FromString(TooltipValue->Replace(TEXT("\\n"),TEXT("\n")));
+			}
+		}
+	}
+
+	if (Tooltip.IsEmpty())
+	{
+		FString CategoryTooltip;
+
+		if (CategoryDisplayName.Split(TEXT("|"), nullptr, &CategoryTooltip, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+		{
+			Tooltip = FText::FromString(CategoryTooltip);
+		}
+		else
+		{
+			Tooltip = FText::FromString(CategoryDisplayName);
+		}
+	}
+
+	return Tooltip;
 }
 
 /*******************************************************************************
@@ -106,45 +153,55 @@ static FText const& FEditorCategoryUtilsImpl::GetCategory(FString const& Key)
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& Category)
+void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& Category, FText const& Tooltip)
 {
-	FEditorCategoryUtilsImpl::GetCategoryTable().Add(Key.ToUpper(), FEditorCategoryUtils::GetCategoryDisplayString(Category));
+	FEditorCategoryUtilsImpl::FCategoryInfo& CategoryInfo = FEditorCategoryUtilsImpl::GetCategoryTable().Add(Key);
+
+	CategoryInfo.DisplayName = GetCategoryDisplayString(Category);
+	CategoryInfo.DocLink = TEXT("Shared/GraphNodes/Blueprint/NodeCategories");
+	CategoryInfo.DocExcerpt = Key;
+	CategoryInfo.Tooltip = (Tooltip.IsEmpty() ? FEditorCategoryUtilsImpl::GetTooltipForCategory(CategoryInfo.DisplayName.ToString(), CategoryInfo.DocLink, CategoryInfo.DocExcerpt) : Tooltip);
+}
+
+void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& Category, FString const& DocLink, FString const& DocExcerpt)
+{
+	FEditorCategoryUtilsImpl::FCategoryInfo& CategoryInfo = FEditorCategoryUtilsImpl::GetCategoryTable().Add(Key);
+
+	CategoryInfo.DisplayName = GetCategoryDisplayString(Category);
+	CategoryInfo.DocLink = DocLink;
+	CategoryInfo.DocExcerpt = DocExcerpt;
+	CategoryInfo.Tooltip = FEditorCategoryUtilsImpl::GetTooltipForCategory(CategoryInfo.DisplayName.ToString(), CategoryInfo.DocLink, CategoryInfo.DocExcerpt);
 }
 
 //------------------------------------------------------------------------------
-FText const& FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::EValue CategoryId)
+FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory::EValue CategoryId)
 {
 	static TMap<FCommonEditorCategory::EValue, FString> CommonCategoryKeys;
 	if (CommonCategoryKeys.Num() == 0)
 	{
-#define REGISTER_COMMON_CATEGORY(EnumVal) \
-		CommonCategoryKeys.Add(FCommonEditorCategory::EnumVal, ENUM_STRING(EnumVal));
+		CommonCategoryKeys.Add(FCommonEditorCategory::AI, "AI");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Animation, "Animation");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Audio, "Audio");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Development, "Development");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Effects, "Effects");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Gameplay, "Gameplay");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Input, "Input");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Math, "Math");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Networking, "Networking");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Pawn, "Pawn");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Rendering, "Rendering");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Utilities, "Utilities");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Delegates, "Delegates");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Variables, "Variables");
 
-		REGISTER_COMMON_CATEGORY(Ai);
-		REGISTER_COMMON_CATEGORY(Animation);
-		REGISTER_COMMON_CATEGORY(Audio);
-		REGISTER_COMMON_CATEGORY(Development);
-		REGISTER_COMMON_CATEGORY(Effects);
-		REGISTER_COMMON_CATEGORY(Gameplay);
-		REGISTER_COMMON_CATEGORY(Input);
-		REGISTER_COMMON_CATEGORY(Math);
-		REGISTER_COMMON_CATEGORY(Networking);
-		REGISTER_COMMON_CATEGORY(Pawn);
-		REGISTER_COMMON_CATEGORY(Rendering);
-		REGISTER_COMMON_CATEGORY(Utilities);
-		REGISTER_COMMON_CATEGORY(Delegates);
-		REGISTER_COMMON_CATEGORY(Variables);
-
-		REGISTER_COMMON_CATEGORY(FlowControl);
-		REGISTER_COMMON_CATEGORY(Transformation);
-		REGISTER_COMMON_CATEGORY(String);
-		REGISTER_COMMON_CATEGORY(Text);
-		REGISTER_COMMON_CATEGORY(Name);
-		REGISTER_COMMON_CATEGORY(Enum);
-		REGISTER_COMMON_CATEGORY(Struct);
-		REGISTER_COMMON_CATEGORY(Macro);
-
-#undef REGISTER_COMMON_CATEGORY
+		CommonCategoryKeys.Add(FCommonEditorCategory::FlowControl, "FlowControl");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Transformation, "Transformation");
+		CommonCategoryKeys.Add(FCommonEditorCategory::String, "String");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Text, "Text");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Name, "Name");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Enum, "Enum");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Struct, "Struct");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Macro, "Macro");
 	}
 
 	if (FString* CategoryKey = CommonCategoryKeys.Find(CategoryId))
@@ -202,7 +259,7 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(FString const& Unsanitize
 				if (KeyLen > 0)
 				{
 					FString Key(KeyLen, *DisplayString + KeyIndex+1);
-					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(Key.Trim()).ToString();
+					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(*Key.Trim()).ToString();
 				}
 				DisplayString.ReplaceInline(*ToReplaceStr, *ReplacementStr);
 			}
@@ -316,5 +373,22 @@ bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FStrin
 	return bIsHidden;
 }
 
-#undef ENUM_STRING
+//------------------------------------------------------------------------------
+void FEditorCategoryUtils::GetCategoryTooltipInfo(const FString& Category, FText& Tooltip, FString& DocLink, FString& DocExcerpt)
+{
+	if (FEditorCategoryUtilsImpl::FCategoryInfo const* FoundCategory = FEditorCategoryUtilsImpl::GetCategoryTable().Find(Category))
+	{
+		DocLink = FoundCategory->DocLink;
+		DocExcerpt = FoundCategory->DocExcerpt;
+		Tooltip = FoundCategory->Tooltip;
+	}
+	else
+	{
+		// Fall back to some defaults
+		DocLink = TEXT("Shared/GraphNodes/Blueprint/NodeCategories");
+		DocExcerpt = Category;
+		Tooltip = FEditorCategoryUtilsImpl::GetTooltipForCategory(GetCategoryDisplayString(Category), DocLink, DocExcerpt);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

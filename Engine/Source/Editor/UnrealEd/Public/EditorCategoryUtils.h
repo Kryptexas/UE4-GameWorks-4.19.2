@@ -18,7 +18,7 @@ struct FCommonEditorCategory
 	enum EValue
 	{
 		// Function categories:
-		Ai,			
+		AI,			
 		Animation,	
 		Audio,		
 		Development,
@@ -51,7 +51,7 @@ struct FCommonEditorCategory
  * Set of utilities for parsing, querying, and resolving class/function/field 
  * category data.
  */
-struct UNREALED_API FEditorCategoryUtils
+namespace FEditorCategoryUtils
 {
 	/**
 	 * To facilitate simple category renaming/reordering, we offer a key 
@@ -65,8 +65,17 @@ struct UNREALED_API FEditorCategoryUtils
 	 * 
 	 * @param  Key		A string key that people will use in metadata to reflect this category mapping.
 	 * @param  Category	The qualified category path that you want the key expanded to.
+	 * @param  Tooltip  An optional tooltip text to use for the category.  If not specified an attempt to find it from the NodeCategories UDN file will be made
 	 */
-	static void RegisterCategoryKey(FString const& Key, FText const& Category);
+	UNREALED_API void RegisterCategoryKey(FString const& Key, FText const& Category, FText const& Tooltip = FText::GetEmpty());
+
+	/**
+	 * @param  Key			A string key that people will use in metadata to reflect this category mapping.
+	 * @param  Category		The qualified category path that you want the key expanded to.
+	 * @param  DocLink		Path to the document page that contains the excerpt for this category
+	 * @param  DocExcerpt	Name of the excerpt within the document page for this category
+	 */
+	UNREALED_API void RegisterCategoryKey(FString const& Key, FText const& Category, FString const& DocLink, FString const& DocExcerpt);
 
 	/**
 	 * Retrieves a qualified category path for the desired common category.
@@ -74,7 +83,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  CategoryId	The common category you want a path for.
 	 * @return A text string, (empty if the common category was not registered)
 	 */
-	static FText const& GetCommonCategory(FCommonEditorCategory::EValue CategoryId);
+	UNREALED_API FText const& GetCommonCategory(const FCommonEditorCategory::EValue CategoryId);
 
 	/**
 	 * Utility function that concatenates the supplied sub-category with one 
@@ -84,7 +93,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixed to the root category.
 	 * @return A concatenated text string, with the two categories separated by a pipe, '|', character.
 	 */
-	static FText BuildCategoryString(FCommonEditorCategory::EValue RootCategory, FText const& SubCategory);
+	UNREALED_API FText BuildCategoryString(const FCommonEditorCategory::EValue RootCategory, FText const& SubCategory);
 
 	/**
 	 * Expands any keys found in the category string (any terms found in square 
@@ -94,7 +103,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixing the result.
 	 * @return A concatenated text string, with the two categories separated by a pipe, '|', character.
 	 */
-	static FText GetCategoryDisplayString(FText const& UnsanitizedCategory);
+	UNREALED_API FText GetCategoryDisplayString(FText const& UnsanitizedCategory);
 
 	/**
 	 * Expands any keys found in the category string (any terms found in square 
@@ -104,7 +113,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixing the result.
 	 * @return A concatenated string, with the two categories separated by a pipe, '|', character.
 	 */
-	static FString GetCategoryDisplayString(FString const& UnsanitizedCategory);
+	UNREALED_API FString GetCategoryDisplayString(FString const& UnsanitizedCategory);
 
 	/**
 	 * Parses out the class's "HideCategories" metadata, and returns it 
@@ -113,7 +122,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  Class			The class you want to pull data from.
 	 * @param  CategoriesOut	An array that will be filled with a list of hidden categories.
 	 */
-	static void GetClassHideCategories(UClass const* Class, TArray<FString>& CategoriesOut);
+	UNREALED_API void GetClassHideCategories(UClass const* Class, TArray<FString>& CategoriesOut);
 
 	/**
 	 * Parses out the class's "ShowCategories" metadata, and returns it 
@@ -122,7 +131,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  Class			The class you want to pull data from.
 	 * @param  CategoriesOut	An array that will be filled with a list of shown categories.
 	 */
-	static void GetClassShowCategories(UClass const* Class, TArray<FString>& CategoriesOut);
+	UNREALED_API void GetClassShowCategories(UClass const* Class, TArray<FString>& CategoriesOut);
 
 	/**
 	 * Checks to see if the category associated with the supplied common 
@@ -132,7 +141,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  CategoryId	An id associated with a category that you want to check.
 	 * @return True if the common category is hidden, false if not.
 	 */
-	static bool IsCategoryHiddenFromClass(UClass const* Class, FCommonEditorCategory::EValue CategoryId);
+	UNREALED_API bool IsCategoryHiddenFromClass(UClass const* Class, const FCommonEditorCategory::EValue CategoryId);
 
 	/**
 	 * Checks to see if the specified category is hidden from the supplied class.
@@ -141,7 +150,7 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  Category A category path that you want to check.
 	 * @return True if the category is hidden, false if not.
 	 */
-	static bool IsCategoryHiddenFromClass(UClass const* Class, FText const& Category);
+	UNREALED_API bool IsCategoryHiddenFromClass(UClass const* Class, FText const& Category);
 
 	/**
 	 * Checks to see if the specified category is hidden from the supplied class.
@@ -150,5 +159,15 @@ struct UNREALED_API FEditorCategoryUtils
 	 * @param  Category A category path that you want to check.
 	 * @return True if the category is hidden, false if not.
 	 */
-	static bool IsCategoryHiddenFromClass(UClass const* Class, FString const& Category);
+	UNREALED_API bool IsCategoryHiddenFromClass(UClass const* Class, FString const& Category);
+
+	/**
+	 * Returns tooltip information for the specified category
+	 * 
+	 * @param  Category		The category that you want to tooltip details for.
+	 * @param  Tooltip		[OUT] The tooltip to display for this category.
+	 * @param  DocLink		[OUT] The link to the documentation page for this category.
+	 * @param  DocExcerpt	[OUT] A category path that you want to check.
+	 */
+	UNREALED_API void GetCategoryTooltipInfo(const FString& Category, FText& Tooltip, FString& DocLink, FString& DocExcerpt);
 };
