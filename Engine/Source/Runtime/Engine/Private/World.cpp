@@ -1671,17 +1671,18 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		// Make sure code thinks components are not currently attached.
 		Level->bAreComponentsCurrentlyRegistered = false;
 
+#if WITH_EDITOR
+			// Pretend here that we are loading package to avoid package dirtying during components registration
+		TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, (GIsEditor ? true : GIsEditorLoadingPackage));
+#endif
+		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
+		// from disk rather than duplicated
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsPlayInEditor() && Level->bWasDuplicatedForPIE));
+		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GEngine->LevelStreamingComponentsRegistrationGranularity;
 		do
 		{
-#if WITH_EDITOR
-			// Pretend here that we are loading package to avoid package dirtying during components registration
-			TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, (GIsEditor ? true : GIsEditorLoadingPackage));
-#endif
-			// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
-			// from disk rather than duplicated
-			const bool bRerunConstructionScript = !FPlatformProperties::RequiresCookedData() && (!IsPlayInEditor() || HasAnyFlags(RF_WasLoaded));
 			Level->IncrementalUpdateComponents( (!IsGameWorld() || IsRunningCommandlet()) ? 0 : NumComponentsToUpdate, bRerunConstructionScript );
 		}
 		while( (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("updating components"), StartTime, Level )) && !Level->bAreComponentsCurrentlyRegistered );
@@ -2754,7 +2755,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	// Update world and the components of all levels.	
 	// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 	// from disk rather than duplicated
-	const bool bRerunConstructionScript = !FPlatformProperties::RequiresCookedData() && (!IsPlayInEditor() || HasAnyFlags(RF_WasLoaded));
+	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsPlayInEditor() && PersistentLevel->bWasDuplicatedForPIE));
 	UpdateWorldComponents( bRerunConstructionScript, true );
 
 	// Reset indices till we have a chance to rearrange actor list at the end of this function.

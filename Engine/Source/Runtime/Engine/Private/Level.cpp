@@ -641,6 +641,13 @@ void ULevel::PostLoad()
 #endif
 }
 
+void ULevel::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+
+	bWasDuplicatedForPIE = bDuplicateForPIE;
+}
+
 UWorld* ULevel::GetWorld() const
 {
 	return OwningWorld;
