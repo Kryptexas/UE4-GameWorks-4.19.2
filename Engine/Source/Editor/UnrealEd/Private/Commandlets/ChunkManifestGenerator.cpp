@@ -403,21 +403,21 @@ bool FChunkManifestGenerator::GenerateAssetChunkInformationCSV(const FString& Ou
 						FileSize = 0;
 					}
 
+					FString SoftChain;
 					bool bHardChunk = false;
 					if (ChunkID < ChunkManifests.Num())
 					{
 						bHardChunk = ChunkManifests[ChunkID] && ChunkManifests[ChunkID]->Contains(AssetData.PackageName);
-					}
-
-					FString SoftChain;
-					if (!bHardChunk)
-					{
-						//
-						SoftChain = GetShortestReferenceChain(AssetData.PackageName, ChunkID);
-						if (SoftChain.IsEmpty())
+					
+						if (!bHardChunk)
 						{
-							SoftChain = TEXT("Soft: Possibly Unassigned Asset");
+							//
+							SoftChain = GetShortestReferenceChain(AssetData.PackageName, ChunkID);
 						}
+					}
+					if (SoftChain.IsEmpty())
+					{
+						SoftChain = TEXT("Soft: Possibly Unassigned Asset");
 					}
 
 					TmpString = FString::Printf(TEXT("%d,%s,%s,%s,%lld,"), ChunkID, *AssetData.PackageName.ToString(), *AssetData.AssetClass.ToString(), bHardChunk ? TEXT("Hard") : *SoftChain, FileSize);
