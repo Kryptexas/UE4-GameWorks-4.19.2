@@ -1135,6 +1135,7 @@ public:
 protected:
 
 	/** Internal. */
+	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedback(const float DeltaTime, const bool bGamePaused);
