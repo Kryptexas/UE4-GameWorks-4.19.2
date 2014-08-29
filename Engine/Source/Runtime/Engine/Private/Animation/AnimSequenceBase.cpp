@@ -165,7 +165,7 @@ void FRawCurveTracks::Serialize(FArchive& Ar)
 	}
 }
 
-void FRawCurveTracks::UpdateLastObservedNames(FSmartNameMapping* NameMapping)
+ENGINE_API void FRawCurveTracks::UpdateLastObservedNames(FSmartNameMapping* NameMapping)
 {
 	if(NameMapping)
 	{

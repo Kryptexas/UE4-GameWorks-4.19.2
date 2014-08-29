@@ -302,7 +302,7 @@ struct FRawCurveTracks
 	/**
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
-	void UpdateLastObservedNames(FSmartNameMapping* NameMapping);
+	ENGINE_API void UpdateLastObservedNames(FSmartNameMapping* NameMapping);
 
 	void Serialize(FArchive& Ar);
 };
