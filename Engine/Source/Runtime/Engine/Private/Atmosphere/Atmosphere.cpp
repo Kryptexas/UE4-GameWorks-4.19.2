@@ -206,16 +206,24 @@ public:
 };
 #endif
 
+
+static TAutoConsoleVariable<int32> CVarAtmosphereRender(
+	TEXT("r.Atmosphere"),
+	1,
+	TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command.\n")
+	TEXT("Enable/Disable Atmosphere, Load/Unload related data.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on (default)"));
+
 // On CPU
 void UAtmosphericFogComponent::InitResource()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AtmosphereRender"));
-	if (ICVar && ICVar->GetValueOnGameThread() == 0)
+	bool bNewAtmosphere = CVarAtmosphereRender.GetValueOnGameThread() != 0;
+
+	if(!bNewAtmosphere)
 	{
-		return; // Don't do intialize resource when r.AtmosphereRender is off
+		return; // Don't do initialize resource when Atmosphere Render is off
 	}
-#endif
 
 	if (PrecomputeCounter.GetValue() >= EValid)
 	{
@@ -788,3 +796,37 @@ void UAtmosphericFogComponent::ApplyComponentInstanceData(TSharedPtr<FComponentI
 	PrecomputeCounter.Set(EValid);
 	InitResource();
 }
+
+/**
+ * Gets called any time cvars change (on the main thread), we check if r.Atmosphere has changed and update the components.
+ */
+static void AtmosphereRenderSinkFunction()
+{
+	bool bNewAtmosphere = CVarAtmosphereRender.GetValueOnGameThread() != 0;
+
+	// by default we assume the state is true
+	static bool GAtmosphere = true;
+
+	if (GAtmosphere != bNewAtmosphere)
+	{
+		GAtmosphere = bNewAtmosphere;
+
+		for(TObjectIterator<UAtmosphericFogComponent> It; It; ++It)
+		{
+			UAtmosphericFogComponent* Comp = *It;
+			if (!Comp->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				if (bNewAtmosphere && Comp->IsRegistered())
+				{
+					Comp->InitResource();
+				}
+				else
+				{
+					Comp->ReleaseResource();
+				}
+			}
+		}
+	}
+}
+
+FAutoConsoleVariableSink CVarAtmosphereRenderSink(FConsoleCommandDelegate::CreateStatic(&AtmosphereRenderSinkFunction));

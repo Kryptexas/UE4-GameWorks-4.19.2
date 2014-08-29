@@ -1465,14 +1465,6 @@ static TAutoConsoleVariable<float> CVarAmbientOcclusionStaticFraction(TEXT("r.Am
 	TEXT(" 1: AO affects the stat lighting"),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarAtmosphereRender(
-	TEXT("r.AtmosphereRender"),
-	1,
-	TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command\n")
-	TEXT(" 0: off\n")
-	TEXT(" 1: on"),
-	ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarShadowQuality(
 	TEXT("r.ShadowQuality"),
 	5,

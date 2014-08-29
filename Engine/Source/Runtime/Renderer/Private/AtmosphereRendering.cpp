@@ -1612,64 +1612,11 @@ FAtmosphericFogSceneInfo::~FAtmosphericFogSceneInfo()
 #endif
 }
 
-/** A mip bias applied globally to all textures. */
-static int32 GAtmosphere = 1;
-
-/**
- * Sets the global texture mip bias and forces all textures to update and stream as needed.
- */
-static void SetAtmosphere(const TArray<FString>& Args)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (Args.Num() == 1 && Args[0].Len() > 0)
-	{
-		int32 NewAtmosphere = FPlatformString::Atoi(*Args[0]) > 0 ? 1 : 0;
-
-		if (GAtmosphere != NewAtmosphere )
-		{
-			GAtmosphere = NewAtmosphere;
-
-			IConsoleVariable* ICVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AtmosphereRender"));
-			if(ICVar)
-			{
-				ICVar->Set(GAtmosphere);
-			}
-
-			for(TObjectIterator<UAtmosphericFogComponent> It; It; ++It)
-			{
-				UAtmosphericFogComponent* Comp = *It;
-				if (!Comp->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
-				{
-					if (GAtmosphere > 0 && Comp->IsRegistered())
-					{
-						Comp->InitResource(); // Initialize resource
-					}
-					else
-					{
-						Comp->ReleaseResource();
-					}
-				}
-			}
-		}
-
-		UE_LOG(LogConsoleResponse,Display,TEXT("r.Atmosphere %s"), GAtmosphere ? TEXT("Enabled") : TEXT("Disabled"));
-	}
-#endif
-}
-
-/** Console command for setting the global texture mip bias. */
-static FAutoConsoleCommand GAtmosphereConsoleCmd(
-	TEXT("r.Atmosphere"),
-	TEXT("Enable/Disable Atmosphere, Load/Unload related data."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&SetAtmosphere)
-	);
-
 bool ShouldRenderAtmosphere(const FSceneViewFamily& Family)
 {
 	const FEngineShowFlags EngineShowFlags = Family.EngineShowFlags;
 
-	return GAtmosphere
-		&& GSupportsVolumeTextureRendering
+	return GSupportsVolumeTextureRendering
 		&& EngineShowFlags.Atmosphere
 		&& !EngineShowFlags.ShaderComplexity
 		&& !EngineShowFlags.StationaryLightOverlap 
