@@ -114,13 +114,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	const auto& Exception = CrashDebugHelper->CrashInfo.Exception;
 	const FString Assertion = FWindowsReportParser::Find( ReportDirectory, TEXT( "AssertLog=" ) );
 
-	return FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
-}
-
-FString FWindowsErrorReport::FindCrashedAppName() const
-{
-	const FString CrashedAppName = FWindowsReportParser::Find( ReportDirectory, TEXT( "AppName=" ) );
-	return CrashedAppName;
+	return FCrashReportUtil::FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
 }
 
 FString FWindowsErrorReport::FindMostRecentErrorReport()

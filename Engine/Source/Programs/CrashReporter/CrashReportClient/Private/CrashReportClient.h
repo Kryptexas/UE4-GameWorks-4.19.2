@@ -62,7 +62,7 @@ public:
 	 * Constructor: sets up background diagnosis
 	 * @param ErrorReport Error report to upload
 	 */
-	FCrashReportClient( const FPlatformErrorReport& InErrorReport, const FString& AppName );
+	FCrashReportClient( const FPlatformErrorReport& InErrorReport );
 
 	/**
 	 * Respond to the user pressing Submit
@@ -131,9 +131,6 @@ public:
 	 */
 	void RequestCloseWindow(const TSharedRef<SWindow>& Window);
 
-	/** Formats processed diagnostic text by adding additional information about machine and user. */
-	static FText FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot );
-
 private:
 	/**
 	 * Write the user's comment to the report and begin uploading the entire report 
@@ -163,9 +160,6 @@ private:
 		};
 	};
 
-	/** Complete path of report directory */
-	FString ReportDirectory;
-
 	/** What the app is currently doing */
 	EApplicationState::Type AppState;
 
@@ -189,9 +183,6 @@ private:
 
 	/** Object that uploads report files to the server */
 	FCrashUpload Uploader;
-
-	/** Name of the executable that crashed */
-	FString CrashedAppName;
 
 	/** Text for Cancel/Close button, including count-down value */
 	FText CancelButtonText;

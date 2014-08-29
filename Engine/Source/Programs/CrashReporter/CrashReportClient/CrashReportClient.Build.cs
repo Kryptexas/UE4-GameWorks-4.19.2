@@ -6,7 +6,14 @@ public class CrashReportClient : ModuleRules
 {
 	public CrashReportClient(TargetInfo Target)
 	{
-		PublicIncludePaths.Add("Runtime/Launch/Public");
+		PublicIncludePaths.AddRange
+		(
+			new string[] 
+			{ 
+				"Runtime/Launch/Public",
+				"Programs/CrashReporter/CrashReportClient/Private",
+			}
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
@@ -16,6 +23,8 @@ public class CrashReportClient : ModuleRules
 				"HTTP",
 				"Projects",
 				"XmlParser",
+				"Analytics",
+				"AnalyticsET",
 			}
 			);
 

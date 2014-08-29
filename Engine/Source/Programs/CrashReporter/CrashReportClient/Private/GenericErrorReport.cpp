@@ -5,6 +5,7 @@
 #include "GenericErrorReport.h"
 #include "XmlFile.h"
 #include "CrashReportUtil.h"
+#include "CrashDescription.h"
 
 // ----------------------------------------------------------------
 // Helpers
@@ -63,8 +64,19 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 
 	DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
 
+	FString MachineIDandUserID;
+	// Set global user name ID: will be added to the report
+	if( FRocketSupport::IsRocket() )
+	{
+		MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );
+	}
+	else
+	{
+		MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().UserName );
+	}
+
 	// Also write a user ID into the report
-	DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), GCrashUserId);
+	DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), MachineIDandUserID);
 
 	// Re-save over the top
 	return XmlFile.Save(XmlFilePath);
@@ -163,7 +175,7 @@ bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)
 			break;
 		}
 	}
-	OutReportDescription = FormatReportDescription(Exception, TEXT(""), Callstack);
+	OutReportDescription = FCrashReportUtil::FormatReportDescription( Exception, TEXT( "" ), Callstack );
 	return true;
 }
 
@@ -178,5 +190,11 @@ bool FGenericErrorReport::FindFirstReportFileWithExtension(FString& OutFilename,
 		}
 	}
 	return false;
+}
+
+FString FGenericErrorReport::FindCrashedAppName() const
+{
+	UE_LOG( LogTemp, Warning, TEXT( "FGenericPlatformMemory::Init not implemented on this platform" ) );
+	return FString( TEXT( "GenericAppName" ) );
 }
 

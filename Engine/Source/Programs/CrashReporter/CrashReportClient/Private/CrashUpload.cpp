@@ -226,9 +226,9 @@ void FCrashUpload::PostReportComplete()
 
 	UE_LOG(CrashReportClientLog, Log, TEXT("Sending HTTP request (posting \"Upload complete\")"));
 	auto Request = CreateHttpRequest();
-	Request->SetVerb(TEXT("POST"));
+	Request->SetVerb( TEXT( "POST" ) );
 	Request->SetURL(UrlPrefix / TEXT("UploadComplete"));
-	Request->SetHeader(TEXT("Content-Type"), TEXT("text/plain; charset=us-ascii"));
+	Request->SetHeader( TEXT( "Content-Type" ), TEXT( "text/plain; charset=us-ascii" ) );
 	Request->SetContent(PostData);
 
 	if (Request->ProcessRequest())

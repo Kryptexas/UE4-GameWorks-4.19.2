@@ -60,8 +60,8 @@ public:
 	bool LoadWindowsReportXmlFile( FString& OutString ) const;
 
 	/**
-	 * @param Description (exception and callstack) to fill in if succesful
-	 * @return Whether the file was found and succesfully read
+	 * @param Description (exception and callstack) to fill in if successful
+	 * @return Whether the file was found and successfully read
 	 */
 	bool TryReadDiagnosticsFile(FText& OutReportDescription);
 
@@ -83,6 +83,11 @@ public:
 	}
 
 	/**
+	 * Get the name of the crashed app from the report
+	 */
+	FString FindCrashedAppName() const;
+
+	/**
 	 * Is there anything to upload?
 	 */
 	bool HasFilesToUpload() const
@@ -90,13 +95,14 @@ public:
 		return ReportFilenames.Num() != 0;
 	}
 
-protected:
+
 	/**
-	 * Look throught the list of report files to find one with the given extension
+	 * Look thought the list of report files to find one with the given extension
 	 * @return Whether a file with the extension was found
 	 */
 	bool FindFirstReportFileWithExtension(FString& OutFilename, const TCHAR* Extension) const;
 
+protected:
 	/** Full path to the directory the report files are in */
 	FString ReportDirectory;
 

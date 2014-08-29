@@ -100,34 +100,40 @@ FunctorDirectoryVisitor<Functor> MakeDirectoryVisitor(Functor&& FunctorInstance)
 	return FunctorDirectoryVisitor<Functor>(MoveTemp(FunctorInstance));
 }
 
-/**
- * Create a multi line string to display from an exception and callstack
- * @param Exception Exception description string
- * @param Assertion Assertion description string
- * @param Callstack List of callstack entry strings
- * @return Multiline text
- */
-inline FText FormatReportDescription(const FString& Exception, const FString& Assertion, const TArray<FString>& Callstack)
+struct FCrashReportUtil
 {
-	FString Diagnostic = Exception + "\n\n";
-
-	if( !Assertion.IsEmpty() )
+	/**
+	 * Create a multi line string to display from an exception and callstack
+	 * @param Exception Exception description string
+	 * @param Assertion Assertion description string
+	 * @param Callstack List of callstack entry strings
+	 * @return Multiline text
+	 */
+	static inline FText FormatReportDescription( const FString& Exception, const FString& Assertion, const TArray<FString>& Callstack )
 	{
-		TArray<FString> MultilineAssertion;
-		Assertion.ParseIntoArray( &MultilineAssertion, TEXT( "#" ), true );
+		FString Diagnostic = Exception + "\n\n";
 
-		for( const auto& AssertionLine : MultilineAssertion )
+		if( !Assertion.IsEmpty() )
 		{
-			Diagnostic += AssertionLine;
+			TArray<FString> MultilineAssertion;
+			Assertion.ParseIntoArray( &MultilineAssertion, TEXT( "#" ), true );
+
+			for( const auto& AssertionLine : MultilineAssertion )
+			{
+				Diagnostic += AssertionLine;
+				Diagnostic += "\n";
+			}
+
 			Diagnostic += "\n";
 		}
 
-		Diagnostic += "\n";
+		for( const auto& Line : Callstack )
+		{
+			Diagnostic += Line + "\n";
+		}
+		return FText::FromString( Diagnostic );
 	}
 
-	for (const auto& Line: Callstack)
-	{
-		Diagnostic += Line + "\n";
-	}
-	return FText::FromString(Diagnostic);
-}
+	/** Formats processed diagnostic text by adding additional information about machine and user. */
+	static FText FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot );
+};

@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "CrashReportUtil.h"
+
+#include "CrashDescription.h"
 
 #include "CrashReportClient.h"
 #include "UniquePtr.h"
@@ -16,47 +19,32 @@
 
 // Must match filename specified in RunMinidumpDiagnostics
 const TCHAR* GDiagnosticsFilename = TEXT("Diagnostics.txt");
-FString GCrashUserId;
+
+
+FCrashDescription& GetCrashDescription()
+{
+	static FCrashDescription Singleton;
+	return Singleton;
+}
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport, const FString& AppName)
+FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
 	: AppState(EApplicationState::Ready)
 	, SubmittedCountdown(-1)
 	, bDiagnosticFileSent(false)
 	, ErrorReport( InErrorReport )
 	, Uploader(GServerIP)
-	, CrashedAppName(AppName)
 	, CancelButtonText(LOCTEXT("Cancel", "Don't Send"))
 {
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	const FString MachineId = DesktopPlatform->GetMachineId().ToString( EGuidFormats::Digits );
-
-	// The Epic ID can be looked up from this ID.
-	const FString EpicAccountId = DesktopPlatform->GetEpicAccountId();
-
-	// Remove periods from internal user names to match AutoReporter user names
-	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	const FString UserNameNoDot = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
-
-	// Set global user name ID: will be added to the report
-	if (FRocketSupport::IsRocket())
-	{
-		GCrashUserId = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *MachineId, *EpicAccountId );
-	}
-	else
-	{
-		GCrashUserId = FString::Printf( TEXT( "!MachineId:%s!Name:%s" ), *MachineId, *UserNameNoDot );
-	}
-
 	if (!ErrorReport.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
 	{
-		FDiagnoseReportWorker& Worker = DiagnoseReportTask.GetTask( &DiagnosticText, MachineId, EpicAccountId, UserNameNoDot, &ErrorReport );
+		FDiagnoseReportWorker& Worker = DiagnoseReportTask.GetTask( &DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName, &ErrorReport );
 		DiagnoseReportTask.StartBackgroundTask();
 	}
 	else if( !DiagnosticText.IsEmpty() )
 	{
-		DiagnosticText = FCrashReportClient::FormatDiagnosticText( DiagnosticText, MachineId, EpicAccountId, UserNameNoDot );
+		DiagnosticText = FCrashReportUtil::FormatDiagnosticText( DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName );
 	}
 }
 
@@ -112,11 +100,6 @@ EVisibility FCrashReportClient::SubmitButtonVisibility() const
 	return AppState == EApplicationState::Ready ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-FString FCrashReportClient::GetCrashedAppName() const
-{
-	return CrashedAppName;
-}
-
 void FCrashReportClient::UserCommentChanged(const FText& Comment, ETextCommit::Type CommitType)
 {
 	UserComment = Comment;
@@ -148,7 +131,8 @@ void FCrashReportClient::StartUIWillCloseTicker()
 void FCrashReportClient::StoreCommentAndUpload()
 {
 	// Call upload even if the report is empty: pending reports will be sent if any
-	ErrorReport.SetUserComment(UserComment.IsEmpty() ? LOCTEXT("NoComment", "No comment provided") : UserComment);
+	ErrorReport.SetUserComment(UserComment);
+
 	Uploader.BeginUpload(ErrorReport);
 
 	SubmittedCountdown = 5;
@@ -204,7 +188,20 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 	return false;
 }
 
-FText FCrashReportClient::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )
+FString FCrashReportClient::GetCrashedAppName() const
+{
+	return GetCrashDescription().GameName;
+}
+
+#endif // !CRASH_REPORT_UNATTENDED_ONLY
+
+void FDiagnoseReportWorker::DoWork()
+{
+	const FText ReportText = ErrorReport.DiagnoseReport();
+	DiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, MachineId, EpicAccountId, UserNameNoDot );
+}
+
+FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )
 {
 	if( FRocketSupport::IsRocket() )
 	{
@@ -215,14 +212,6 @@ FText FCrashReportClient::FormatDiagnosticText( const FText& DiagnosticText, con
 		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nUserName:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( UserNameNoDot ), DiagnosticText );
 	}
 
-}
-
-#endif // !CRASH_REPORT_UNATTENDED_ONLY
-
-void FDiagnoseReportWorker::DoWork()
-{
-	const FText ReportText = ErrorReport.DiagnoseReport();
-	DiagnosticText = FCrashReportClient::FormatDiagnosticText( ReportText, MachineId, EpicAccountId, UserNameNoDot );
 }
 
 #undef LOCTEXT_NAMESPACE

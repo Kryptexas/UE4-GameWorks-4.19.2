@@ -40,11 +40,6 @@ public:
 	FText DiagnoseReport() const;
 
 	/**
-	 * Get the name of the crashed app from the report
-	 */
-	FString FindCrashedAppName() const;
-
-	/**
 	 * Look for the most recent Windows Error Report
 	 * @return Full path to the most recent report, or an empty string if none found
 	 */
