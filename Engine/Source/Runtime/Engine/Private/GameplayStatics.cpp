@@ -601,7 +601,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 	if (GEngine && GEngine->UseSound() && ThisWorld->GetNetMode() != NM_DedicatedServer)
 	{
-		if( Sound->IsAudibleSimple( Location ) )
+		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
 		{
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
@@ -656,7 +656,7 @@ void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class
 		UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
 		const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
-		if( Sound->IsAudibleSimple( Location ) )
+		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
 		{
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
@@ -705,7 +705,14 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		return NULL;
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed );
+	// Location used to check whether to create a component if out of range
+	FVector TestLocation = Location;
+	if (LocationType != EAttachLocation::KeepWorldPosition)
+	{
+		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
 	if(AudioComponent)
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
@@ -725,7 +732,6 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
 		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->AttenuationSettings		= AttenuationSettings;
 		AudioComponent->Play(StartTime);
 	}
 
@@ -751,7 +757,14 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 		return NULL;
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed );
+	// Location used to check whether to create a component if out of range
+	FVector TestLocation = Location;
+	if (LocationType != EAttachLocation::KeepWorldPosition)
+	{
+		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
 	if(AudioComponent)
 	{
 		const bool bIsGameWorld = AudioComponent->GetWorld()->IsGameWorld();
@@ -771,7 +784,6 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 		AudioComponent->bIsUISound				= !bIsGameWorld;
 		AudioComponent->bAutoDestroy			= true;
 		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->AttenuationSettings		= AttenuationSettings;
 		AudioComponent->Play(StartTime);
 	}
 
