@@ -249,8 +249,6 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 
 	VALIDATE_BOUND_SHADER(VertexShaderRHI);
@@ -262,15 +260,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader
 		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
@@ -282,15 +275,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI,
 		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FDomainShaderRHIParamRef DomainShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
@@ -302,15 +290,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FDomainShaderRHIParamRef DomainShader
 		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FGeometryShaderRHIParamRef GeometryShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 
 	VALIDATE_BOUND_SHADER(GeometryShaderRHI);
@@ -322,14 +305,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FGeometryShaderRHIParamRef GeometrySh
 		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
 
 	GRHICommandList.Verify();
 
@@ -341,15 +320,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShaderRH
 		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 	//VALIDATE_BOUND_SHADER(ComputeShaderRHI);
 
@@ -360,9 +334,6 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShad
 		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
 		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
-
-	SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-	SetShaderTextureCalls++;
 }
 
 void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI)
@@ -1292,7 +1263,6 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 
 	// Mask the dirty bits by those buffers from which the shader has bound resources.
 	uint32 DirtyBits = Shader->ShaderResourceTable.ResourceTableBits & DirtyUniformBuffers[ShaderType::StaticFrequency];
-	uint32 NumSetCalls = 0;
 	while (DirtyBits)
 	{
 		// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
@@ -1306,17 +1276,14 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 		Buffer->CacheResources(ResourceTableFrameCounter);
 
 		// todo: could make this two pass: gather then set
-		NumSetCalls += SetShaderResourcesFromBuffer<ID3D11ShaderResourceView, (EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
-		NumSetCalls += SetShaderResourcesFromBuffer<ID3D11SamplerState, (EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
+		SetShaderResourcesFromBuffer<ID3D11ShaderResourceView, (EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+		SetShaderResourcesFromBuffer<ID3D11SamplerState, (EShaderFrequency)ShaderType::StaticFrequency>(this, &StateCache, Buffer, Shader->ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
 	}
 	DirtyUniformBuffers[ShaderType::StaticFrequency] = 0;
-	SetTextureInTableCalls += NumSetCalls;
 }
 
 void FD3D11DynamicRHI::CommitGraphicsResourceTables()
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	GRHICommandList.Verify();
 
 	FD3D11BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D11BoundShaderState*)BoundShaderStateHistory.GetLast();
@@ -1342,8 +1309,6 @@ void FD3D11DynamicRHI::CommitGraphicsResourceTables()
 	{
 		SetResourcesFromTables(Shader);
 	}
-
-	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
 }
 
 void FD3D11DynamicRHI::CommitComputeResourceTables(FD3D11ComputeShader* InComputeShader)

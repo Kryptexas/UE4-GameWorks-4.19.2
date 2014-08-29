@@ -244,8 +244,6 @@ FD3D11UniformBuffer::~FD3D11UniformBuffer()
 
 void FD3D11UniformBuffer::CacheResourcesInternal()
 {
-	uint32 Start = FPlatformTime::Cycles();
-
 	const FRHIUniformBufferLayout& Layout = GetLayout();
 	int32 NumResources = Layout.Resources.Num();
 	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
@@ -295,9 +293,6 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 			break;
 		}
 	}
-
-	D3D11RHI->CacheResourceTableCycles += (FPlatformTime::Cycles() - Start);
-	D3D11RHI->CacheResourceTableCalls++;
 }
 
 void FD3D11DynamicRHI::ReleasePooledUniformBuffers()
