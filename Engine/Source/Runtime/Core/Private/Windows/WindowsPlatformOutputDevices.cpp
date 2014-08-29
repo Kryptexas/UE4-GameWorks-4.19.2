@@ -67,32 +67,17 @@ void FOutputDeviceWindowsError::Serialize( const TCHAR* Msg, ELogVerbosity::Type
 {
 	FPlatformMisc::DebugBreak();
    
-	int32 Error = GetLastError();
 	if( !GIsCriticalError )
 	{   
+		const int32 LastError = ::GetLastError();
+
 		// First appError.
 		GIsCriticalError = 1;
 		TCHAR ErrorBuffer[1024];
 		ErrorBuffer[0] = 0;
-		// pop up a crash window if we are not in unattended mode
-		if( FApp::IsUnattended() == false )
-		{ 
-			UE_LOG(LogWindows, Error, TEXT("appError called: %s"), Msg );
 
-			// Windows error.
-			UE_LOG(LogWindows, Error, TEXT("Windows GetLastError: %s (%i)"), FPlatformMisc::GetSystemErrorMessage(ErrorBuffer,1024,Error), Error );
-		} 
-		// log the warnings to the log
-		else
-		{
-			UE_LOG(LogWindows, Error, TEXT("appError called: %s"), Msg );
-
-			// Windows error.
-			UE_LOG(LogWindows, Error, TEXT("Windows GetLastError: %s (%i)"), FPlatformMisc::GetSystemErrorMessage(ErrorBuffer,1024,Error), Error );
-		}
-
-		FCString::Strncpy( GErrorHist, Msg, ARRAY_COUNT(GErrorHist) - 5 );
-		FCString::Strncat( GErrorHist, TEXT("\r\n\r\n"), ARRAY_COUNT(GErrorHist) - 1  );
+		// Windows error.
+		UE_LOG( LogWindows, Error, TEXT( "Windows GetLastError: %s (%i)" ), FPlatformMisc::GetSystemErrorMessage( ErrorBuffer, 1024, LastError ), LastError );
 	}
 	else
 	{
@@ -137,10 +122,9 @@ void FOutputDeviceWindowsError::HandleError()
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
 	// Dump the error and flush the log.
-	UE_LOG(LogWindows, Log, TEXT("=== Critical error: ===") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR, GErrorExceptionDescription);
-	UE_LOG(LogWindows, Log, GErrorHist);
+	UE_LOG( LogWindows, Log, TEXT( "=== Critical error: ===" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR, GErrorHist );
 
-	GLog->Flush();
+	GLog->PanicFlushThreadedLogs();
 
 	// Unhide the mouse.
 	while( ::ShowCursor(true)<0 );

@@ -122,7 +122,10 @@ extern CORE_API ITransaction* GUndo;
 extern CORE_API FOutputDeviceConsole* GLogConsole;
 
 extern CORE_API TCHAR GErrorHist[16384];
-extern CORE_API TCHAR GErrorExceptionDescription[1024];
+
+// @TODO yrx 2014-08-19 Combine into one.
+extern CORE_API TCHAR GErrorExceptionDescription[4096];
+extern CORE_API TCHAR GErrorMessage[4096];
 
 extern CORE_API const FText GTrue, GFalse, GYes, GNo, GNone;
 
