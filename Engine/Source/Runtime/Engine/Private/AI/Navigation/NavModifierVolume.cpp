@@ -25,3 +25,17 @@ FBox ANavModifierVolume::GetNavigationBounds() const
 {
 	return GetComponentsBoundingBox();
 }
+
+#if WITH_EDITOR
+
+void ANavModifierVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ANavModifierVolume, AreaClass))
+	{
+		UNavigationSystem::UpdateNavOctree(this);
+	}
+}
+
+#endif

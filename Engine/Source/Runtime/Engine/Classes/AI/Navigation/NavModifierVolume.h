@@ -18,4 +18,8 @@ class ANavModifierVolume : public AVolume, public INavRelevantInterface
 
 	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const override;
 	virtual FBox GetNavigationBounds() const;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };
