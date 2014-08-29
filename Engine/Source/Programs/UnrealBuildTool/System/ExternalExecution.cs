@@ -88,7 +88,7 @@ namespace UnrealBuildTool
 
 		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
 		{
-			IsGameTarget  = TargetRules.IsGameType(Target.Rules.Type);
+			IsGameTarget  = TargetRules.IsGameType(Target.TargetType);
 			RootLocalPath = InRootLocalPath;
 			RootBuildPath = InRootBuildPath;
 			TargetName    = Target.GetTargetName();
@@ -98,7 +98,7 @@ namespace UnrealBuildTool
 				ModuleType				 = Info.ModuleType,
 				BaseDirectory            = Info.ModuleDirectory,
 				IncludeBase              = Info.ModuleDirectory,
-				OutputDirectory          = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Info.ModuleDirectory, Info.ModuleName),
+				OutputDirectory          = Path.GetDirectoryName( Info.GeneratedCPPFilenameBase ),
 				ClassesHeaders           = Info.PublicUObjectClassesHeaders.Select((Header) => Header.AbsolutePath).ToList(),
 				PublicHeaders            = Info.PublicUObjectHeaders       .Select((Header) => Header.AbsolutePath).ToList(),
 				PrivateHeaders           = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
@@ -270,7 +270,7 @@ namespace UnrealBuildTool
 		/// Gets the timestamp of CoreUObject.generated.cpp file.
 		/// </summary>
 		/// <returns>Last write time of CoreUObject.generated.cpp or DateTime.MaxValue if it doesn't exist.</returns>
-		private static DateTime GetCoreGeneratedTimestamp(UEBuildTarget Target, string ModuleName, string ModuleDirectory)
+		private static DateTime GetCoreGeneratedTimestamp(string ModuleName, string ModuleGeneratedCodeDirectory)
 		{			
 			DateTime Timestamp;
 			if( UnrealBuildTool.RunningRocket() )
@@ -280,7 +280,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				string CoreGeneratedFilename = Path.Combine(UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, ModuleDirectory, ModuleName), ModuleName + ".generated.cpp");
+				string CoreGeneratedFilename = Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + ".generated.cpp");
 				if (File.Exists(CoreGeneratedFilename))
 				{
 					Timestamp = new FileInfo(CoreGeneratedFilename).LastWriteTime;
@@ -301,7 +301,7 @@ namespace UnrealBuildTool
 		 * 
 		 * @return					True if the code files are out of date
 		 * */
-		private static bool AreGeneratedCodeFilesOutOfDate(UEBuildTarget Target, List<UHTModuleInfo> UObjectModules)
+		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules)
 		{
 			bool bIsOutOfDate = false;
 
@@ -317,7 +317,7 @@ namespace UnrealBuildTool
 				{
 					if( Module.ModuleName.Equals( "CoreUObject", StringComparison.InvariantCultureIgnoreCase ) )
 					{
-						CoreGeneratedTimestamp = GetCoreGeneratedTimestamp(Target, Module.ModuleName, Module.ModuleDirectory);
+						CoreGeneratedTimestamp = GetCoreGeneratedTimestamp(Module.ModuleName, Path.GetDirectoryName( Module.GeneratedCPPFilenameBase ));
 						break;
 					}
 				}
@@ -342,7 +342,7 @@ namespace UnrealBuildTool
 				}
 
 				// Make sure we have an existing folder for generated code.  If not, then we definitely need to generate code!
-				var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Module.ModuleDirectory, Module.ModuleName);
+				var GeneratedCodeDirectory = Path.GetDirectoryName( Module.GeneratedCPPFilenameBase );
 				var TestDirectory = (FileSystemInfo)new DirectoryInfo(GeneratedCodeDirectory);
 				if( TestDirectory.Exists )
 				{
@@ -422,11 +422,11 @@ namespace UnrealBuildTool
 		}
 
 		/** Updates the intermediate include directory timestamps of all the passed in UObject modules */
-		private static void UpdateDirectoryTimestamps(UEBuildTarget Target, List<UHTModuleInfo> UObjectModules)
+		private static void UpdateDirectoryTimestamps(List<UHTModuleInfo> UObjectModules)
 		{
 			foreach( var Module in UObjectModules )
 			{
-				string GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Module.ModuleDirectory, Module.ModuleName);
+				string GeneratedCodeDirectory = Path.GetDirectoryName( Module.GeneratedCPPFilenameBase );
 				var GeneratedCodeDirectoryInfo = new DirectoryInfo( GeneratedCodeDirectory );
 
 				try
@@ -530,7 +530,7 @@ namespace UnrealBuildTool
 
 
 				// ensure the headers are up to date
-				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules));
+				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(UObjectModules));
 				if( bUHTNeedsToRun )
 				{
 					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
@@ -660,11 +660,11 @@ namespace UnrealBuildTool
 					// generated headers include other generated headers using absolute paths which in case of building remotely are already
 					// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
 					// @todo ubtmake: Need to figure out what this does in the assembler case, and whether we need to run it
-					ToolChain.PostCodeGeneration(Target, Manifest);
+					ToolChain.PostCodeGeneration(Manifest);
 				}
 
 				// touch the directories
-				UpdateDirectoryTimestamps(Target, UObjectModules);
+				UpdateDirectoryTimestamps(UObjectModules);
 
 				Progress.Write(3, 3);
 			}

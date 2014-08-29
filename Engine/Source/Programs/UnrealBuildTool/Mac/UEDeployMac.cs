@@ -96,9 +96,9 @@ namespace UnrealBuildTool.IOS
 					try
 					{
 						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
-						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\Mac\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\Mac\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
-							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
 						}
 
 						string RemoteBinariesDir = Toolchain.ConvertPath( BinaryDir );

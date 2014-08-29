@@ -462,7 +462,7 @@ namespace UnrealBuildTool
             }
         }
 
-		public override void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest)
+		public override void PostCodeGeneration(UHTManifest Manifest)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -478,7 +478,7 @@ namespace UnrealBuildTool
 					// @todo uht: Ideally would only copy exactly the files emitted by UnrealHeaderTool, rather than scanning directory (could copy stale files; not a big deal though)
 					try
 					{
-						var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
+						var GeneratedCodeDirectory = Path.GetDirectoryName( UObjectModule.GeneratedCPPFilenameBase );
 						var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
 						foreach( var GeneratedCodeFile in GeneratedCodeFiles )
 						{

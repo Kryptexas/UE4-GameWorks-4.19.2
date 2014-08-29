@@ -962,7 +962,7 @@ namespace UnrealBuildTool
 		{
 			base.PostBuildSync(Target);
 
-			string AppName = Target.Rules.Type == TargetRules.TargetType.Game ? Target.GameName : Target.AppName;
+			string AppName = Target.TargetType == TargetRules.TargetType.Game ? Target.GameName : Target.AppName;
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -1100,7 +1100,7 @@ namespace UnrealBuildTool
 				}
 
 				// Generate static libraries for monolithic games in Rocket
-				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(Target.Rules.Type))
+				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(Target.TargetType))
 				{
 					List<UEBuildModule> Modules = Target.AppBinaries[0].GetAllDependencyModules(true, false);
 					foreach (UEBuildModuleCPP Module in Modules.OfType<UEBuildModuleCPP>())

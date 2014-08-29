@@ -7,6 +7,7 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
+	[Serializable]
 	public class UEBuildGame : UEBuildTarget
 	{
 		public UEBuildGame(

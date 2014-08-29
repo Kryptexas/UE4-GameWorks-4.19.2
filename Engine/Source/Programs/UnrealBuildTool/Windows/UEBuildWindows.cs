@@ -428,7 +428,7 @@ namespace UnrealBuildTool
                 // that is set by the modules the target includes to allow for easier tracking.
                 // Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
                 if (InBuildTarget.ShouldCompileMonolithic() && (InBuildTarget.Rules != null) &&
-                    (TargetRules.IsGameType(InBuildTarget.Rules.Type)) && (TargetRules.IsEditorType(InBuildTarget.Rules.Type) == false))
+                    (TargetRules.IsGameType(InBuildTarget.TargetType)) && (TargetRules.IsEditorType(InBuildTarget.TargetType) == false))
                 {
                     InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atl");
                     InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atls");

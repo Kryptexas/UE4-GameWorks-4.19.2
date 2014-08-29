@@ -82,7 +82,7 @@ namespace UnrealBuildTool
 		public static string GeneratePathForTarget(UEBuildTarget Target)
 		{
 			string Folder = null;
-			if (Target.ShouldCompileMonolithic() || Target.Rules.Type == TargetRules.TargetType.Program)
+			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program)
 			{
 				// Monolithic configs and programs have their Action History stored in their respective project folders
 				// or under engine intermediate folder + program name folder

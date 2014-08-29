@@ -298,9 +298,9 @@ namespace UnrealBuildTool.IOS
 					try
 					{
 						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
-						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
-							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
 						}
 
 						// Get the app bundle's name

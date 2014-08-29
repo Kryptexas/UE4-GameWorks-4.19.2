@@ -314,6 +314,7 @@ namespace UnrealBuildTool
 	public abstract class TargetRules
 	{
 		/// Type of target
+		[Serializable]
 		public enum TargetType
 		{
 			/// Cooked monolithic game executable (GameName.exe).  Also used for a game-agnostic engine executable (UE4Game.exe or RocketGame.exe)

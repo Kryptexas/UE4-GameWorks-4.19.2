@@ -27,8 +27,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
 		/// </summary>
-		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
-		void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest);
+		/// <param name="Manifest">List of UObject modules we generated code for.</param>
+		void PostCodeGeneration(UHTManifest Manifest);
 		
 		void PreBuildSync();
 		
@@ -133,8 +133,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
 		/// </summary>
-		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
-		public virtual void PostCodeGeneration(UEBuildTarget Target,  UHTManifest Manifest)
+		/// <param name="Manifest">List of UObject modules we generated code for.</param>
+		public virtual void PostCodeGeneration(UHTManifest Manifest)
 		{
 		}
 

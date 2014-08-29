@@ -1092,11 +1092,12 @@ namespace UnrealBuildTool
                                 {
                                     // We need to be able to identify the Target.Type we can derive it from the Arguments.
                                     BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
-                                    UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(Arguments);
+									var TargetDescs = UEBuildTarget.ParseTargetCommandLine( Arguments );
+			                        UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget( TargetDescs[0] );	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
                                     CheckTarget.SetupGlobalEnvironment();
-                                    if ((CheckTarget.Rules.Type == TargetRules.TargetType.Game) ||
-                                        (CheckTarget.Rules.Type == TargetRules.TargetType.Server) ||
-                                        (CheckTarget.Rules.Type == TargetRules.TargetType.Client))
+                                    if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
+                                        (CheckTarget.TargetType == TargetRules.TargetType.Server) ||
+                                        (CheckTarget.TargetType == TargetRules.TargetType.Client))
                                     {
                                         CheckTarget.AppName = CheckTarget.GameName;
                                     }
@@ -1261,7 +1262,7 @@ namespace UnrealBuildTool
             }
         }
 
-        // @todo: Ideally get rid of RunUBT() and all of the Clear/Reset stuff!
+        
         public static ECompilationResult RunUBT(string[] Arguments)
         {
             bool bSuccess = true;
@@ -1294,7 +1295,6 @@ namespace UnrealBuildTool
 
             BuildPlatform.ResetBuildConfiguration(ResetPlatform, ResetConfiguration);
 
-            var Targets = new List<UEBuildTarget>();
             string ExecutorName = "Unknown";
             ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
@@ -1328,27 +1328,21 @@ namespace UnrealBuildTool
 					Log.TraceInformation( "RunUBT initialization took " + RunUBTInitTime + "s" );
 				}
 
+	            var TargetDescs = new List<TargetDescriptor>();
 				{ 
-					var TargetInitStartTime = DateTime.UtcNow;
+					var TargetDescstStartTime = DateTime.UtcNow;
 
 					foreach (string[] TargetSetting in TargetSettings)
 					{
-						var Target = UEBuildTarget.CreateTarget(TargetSetting);	// @todo ubtmake: Optimization: Ideally we don't have to do this in the assembler.  It is pretty slow to scan all rules files.  Maybe we can skip the slow parts internally?  It has to scan for *.Target.cs files, and also Load the rules assembly up. :(
-						if ((Target == null) && (UEBuildConfiguration.bCleanProject))
-						{
-							continue;
-						}
-						Targets.Add(Target);
+						TargetDescs.AddRange( UEBuildTarget.ParseTargetCommandLine( TargetSetting ) );
 					}
 
 					if( BuildConfiguration.bPrintPerformanceInfo )
 					{ 
-						var TargetInitTime = (DateTime.UtcNow - TargetInitStartTime).TotalSeconds;
-						Log.TraceInformation( "Target init took " + TargetInitTime + "s" );
+						var TargetDescsTime = (DateTime.UtcNow - TargetDescstStartTime).TotalSeconds;
+						Log.TraceInformation( "Target descriptors took " + TargetDescsTime + "s" );
 					}
 				}
-
-                UBTMakefile UBTMakefile = null;
 
 
                 // If UBT is being used to build something different than it did last time
@@ -1361,7 +1355,7 @@ namespace UnrealBuildTool
                         // UHT.  In that (very common) case we definitely don't want to have to rebuild our cache from scratch.
                         bool bMustAssumeSameTargets = false;
 
-                        if( Targets[0].GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase ) )
+                        if( TargetDescs[0].TargetName.Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase ) )
                         {
                             int NoMutexArgumentIndex;
                             if (Utils.ParseCommandLineFlag(Arguments, "-NoMutex", out NoMutexArgumentIndex))
@@ -1377,7 +1371,7 @@ namespace UnrealBuildTool
                         }
                         else
                         {
-                            string TargetCollectionName = MakeTargetCollectionName( Targets );
+                            string TargetCollectionName = MakeTargetCollectionName( TargetDescs );
                             string LastBuiltTargetsFilePath = Path.Combine( BuildConfiguration.BaseIntermediatePath, "LastBuiltTargets.txt" );
                             if( File.Exists( LastBuiltTargetsFilePath ) && Utils.ReadAllText( LastBuiltTargetsFilePath ) == TargetCollectionName )
                             {
@@ -1406,6 +1400,7 @@ namespace UnrealBuildTool
             
 
 
+                UBTMakefile UBTMakefile = null;
                 { 
                     // If we're generating project files, then go ahead and wipe out the existing UBTMakefile for every target, to make sure that
                     // it gets a full dependency scan next time.
@@ -1413,7 +1408,7 @@ namespace UnrealBuildTool
                     if( ProjectFileGenerator.bGenerateProjectFiles )	// @todo ubtmake: This is only hit when generating IntelliSense for project files.  Probably should be done right inside ProjectFileGenerator.bat
                     {													// @todo ubtmake: Won't catch multi-target cases as GPF always builds one target at a time for Intellisense
                         // Delete the UBTMakefile
-                        var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( Targets );
+                        var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
                         if (File.Exists(UBTMakefilePath))
                         {
                             UEBuildTarget.CleanFile(UBTMakefilePath);
@@ -1435,7 +1430,7 @@ namespace UnrealBuildTool
 
                         // Try to load the UBTMakefile.  It will only be loaded if it has valid content and is not determined to be out of date.    
 						string ReasonNotLoaded;
-                        UBTMakefile = LoadUBTMakefile( Targets, out ReasonNotLoaded );
+                        UBTMakefile = LoadUBTMakefile( TargetDescs, out ReasonNotLoaded );
 
                         if( UBTMakefile == null )
                         { 
@@ -1443,7 +1438,7 @@ namespace UnrealBuildTool
                             // a 'gather' and 'assemble' in the same run.  This will take a while longer, but subsequent runs will be fast!
                             UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
 
-                            Log.TraceInformation( "Creating makefile for {0}{1} ({2})", Targets[0].GetTargetName(), Targets.Count > 1 ? ( " (and " + ( Targets.Count - 1 ).ToString() + " more)" ) : "", ReasonNotLoaded );
+                            Log.TraceInformation( "Creating makefile for {0}{1} ({2})", TargetDescs[0].TargetName, TargetDescs.Count > 1 ? ( " (and " + ( TargetDescs.Count - 1 ).ToString() + " more)" ) : "", ReasonNotLoaded );
                         }
                     }
 
@@ -1452,6 +1447,34 @@ namespace UnrealBuildTool
                     bIsSafeToCheckIfGatheringOrAssemblingBuild = true;
                 }
 
+
+				List<UEBuildTarget> Targets;
+				if( UBTMakefile != null && !IsGatheringBuild && IsAssemblingBuild )
+				{
+					// If we've loaded a makefile, then we can fill target information from this file!
+					Targets = UBTMakefile.Targets;
+				}
+				else
+				{ 
+					var TargetInitStartTime = DateTime.UtcNow;
+
+					Targets = new List<UEBuildTarget>();
+					foreach( var TargetDesc in TargetDescs )
+					{
+						var Target = UEBuildTarget.CreateTarget( TargetDesc );
+						if ((Target == null) && (UEBuildConfiguration.bCleanProject))
+						{
+							continue;
+						}
+						Targets.Add(Target);
+					}
+
+					if( BuildConfiguration.bPrintPerformanceInfo )
+					{ 
+						var TargetInitTime = (DateTime.UtcNow - TargetInitStartTime).TotalSeconds;
+						Log.TraceInformation( "Target init took " + TargetInitTime + "s" );
+					}
+				}
 
                 // Build action lists for all passed in targets.
                 var OutputItemsForAllTargets = new List<FileItem>();
@@ -1501,7 +1524,7 @@ namespace UnrealBuildTool
                         if ( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject))
                         {
                             // We don't currently support building game targets in rocket.
-                            if (UnrealBuildTool.RunningRocket() && Target.Rules != null && Target.Rules.Type == TargetRules.TargetType.Game)
+                            if (UnrealBuildTool.RunningRocket() && Target.Rules != null && Target.TargetType == TargetRules.TargetType.Game)
                             {
                                 throw new BuildException(
                                     "You currently can not build a game target in Rocket.\nTry again in a future release.\nFor now, build and run your editor project."
@@ -1537,7 +1560,7 @@ namespace UnrealBuildTool
                             "CleanTarget", UEBuildConfiguration.bCleanProject.ToString(),
                             "Monolithic", Target.ShouldCompileMonolithic().ToString(),
                             "CreateDebugInfo", Target.IsCreatingDebugInfo().ToString(),
-                            "TargetType", Target.Rules.Type.ToString(),
+                            "TargetType", Target.TargetType.ToString(),
                             "TargetCreateTimeSec", TargetBuildTime.ToString("0.00")
                             );
                     }
@@ -1571,6 +1594,7 @@ namespace UnrealBuildTool
                             UBTMakefile.EnvironmentVariables.Add( Tuple.Create( (string)EnvironmentVariable.Key, (string)EnvironmentVariable.Value ) );
                         }
                         UBTMakefile.TargetNameToUObjectModules = TargetNameToUObjectModules;
+						UBTMakefile.Targets = Targets;
 
 						if( BuildConfiguration.bUseExperimentalFastBuildIteration )
 						{ 
@@ -1578,7 +1602,7 @@ namespace UnrealBuildTool
 							// to assemble the build.  Even if we are configured to assemble the build in this same invocation, we want to save out the
 							// Makefile so that it can be used on subsequent 'assemble only' runs, for the fastest possible iteration times
 							// @todo ubtmake: Optimization: We could make 'gather + assemble' mode slightly faster by saving this while busy compiling (on our worker thread)
-							SaveUBTMakefile( Targets, UBTMakefile );
+							SaveUBTMakefile( TargetDescs, UBTMakefile );
 						}
                     }
 
@@ -1621,7 +1645,6 @@ namespace UnrealBuildTool
                         if( BuildResult == ECompilationResult.Succeeded )
                         { 
                             // Make sure any old DLL files from in-engine recompiles aren't lying around.  Must be called after the action graph is finalized.
-                            // @todo ubtmake: Will we even use traditional hot reload DLLs anymore in the future?  
                             ActionGraph.DeleteStaleHotReloadDLLs();
 
                             // Plan the actions to execute for the build.
@@ -1768,7 +1791,7 @@ namespace UnrealBuildTool
 		private static bool ShouldDoHotReload(UEBuildTarget Target)
 		{
 			bool bIsRunning = false;
-			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && Target.Rules.Type == TargetRules.TargetType.Editor)
+			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && Target.TargetType == TargetRules.TargetType.Editor)
 			{
 				var EditorProcessFilename = UEBuildTarget.MakeBinaryPath("Launcher", "UE4Editor", Target.Platform, Target.Configuration, UEBuildBinaryType.Executable, null, false, null, "UE4Editor");
 				var EditorProcessName = Path.GetFileNameWithoutExtension(EditorProcessFilename);
@@ -2009,6 +2032,9 @@ namespace UnrealBuildTool
             /** Maps each target to a list of UObject module info structures */
             public Dictionary<string,List<UHTModuleInfo>> TargetNameToUObjectModules;
 
+			/** List of targets being built */
+			public List<UEBuildTarget> Targets;
+
 
             /** @return	 True if this makefile's contents look valid.  Called after loading the file to make sure it is legit. */
             public bool IsValidMakefile()
@@ -2017,7 +2043,8 @@ namespace UnrealBuildTool
                     AllActions != null && AllActions.Count > 0 &&
                     PrerequisiteActions != null && PrerequisiteActions.Length > 0 &&
                     EnvironmentVariables != null &&
-                    TargetNameToUObjectModules != null && TargetNameToUObjectModules.Count > 0;
+                    TargetNameToUObjectModules != null && TargetNameToUObjectModules.Count > 0 &&
+					Targets != null && Targets.Count > 0;
             }
         }
 
@@ -2025,8 +2052,8 @@ namespace UnrealBuildTool
         /// <summary>
         /// Saves a UBTMakefile to disk
         /// </summary>
-        /// <param name="Targets">List of targets.  Order is not important</param>
-        static void SaveUBTMakefile( List<UEBuildTarget> Targets, UBTMakefile UBTMakefile )
+        /// <param name="TargetDescs">List of targets.  Order is not important</param>
+        static void SaveUBTMakefile( List<TargetDescriptor> TargetDescs, UBTMakefile UBTMakefile )
         {
             if( !UBTMakefile.IsValidMakefile() )
             {
@@ -2035,7 +2062,7 @@ namespace UnrealBuildTool
 
             var TimerStartTime = DateTime.UtcNow;
 
-            var UBTMakefileItem = FileItem.GetItemByFullPath( GetUBTMakefilePath( Targets ) );
+            var UBTMakefileItem = FileItem.GetItemByFullPath( GetUBTMakefilePath( TargetDescs ) );
 
             // @todo ubtmake: Optimization: The UBTMakefile saved for game projects is upwards of 9 MB.  We should try to shrink its content if possible
             // @todo ubtmake: Optimization: C# Serialization may be too slow for these big Makefiles.  Loading these files often shows up as the slower part of the assembling phase.
@@ -2066,12 +2093,12 @@ namespace UnrealBuildTool
         /// <summary>
         /// Loads a UBTMakefile from disk
         /// </summary>
-        /// <param name="Targets">List of targets.  Order is not important</param>
+        /// <param name="TargetDescs">List of targets.  Order is not important</param>
 		/// <param name="ReasonNotLoaded">If the function returns null, this string will contain the reason why</param>
 		/// <returns>The loaded makefile, or null if it failed for some reason.  On failure, the 'ReasonNotLoaded' variable will contain information about why</returns>
-        static UBTMakefile LoadUBTMakefile( List<UEBuildTarget> Targets, out string ReasonNotLoaded )
+        static UBTMakefile LoadUBTMakefile( List<TargetDescriptor> TargetDescs, out string ReasonNotLoaded )
         {
-            var UBTMakefileItem = FileItem.GetItemByFullPath( GetUBTMakefilePath( Targets ) );
+            var UBTMakefileItem = FileItem.GetItemByFullPath( GetUBTMakefilePath( TargetDescs ) );
 			ReasonNotLoaded = null;
 
             // Check the directory timestamp on the project files directory.  If the user has generated project files more
@@ -2193,11 +2220,11 @@ namespace UnrealBuildTool
         /// </summary>
         /// <param name="Targets">List of targets.  Order is not important</param>
         /// <returns>UBTMakefile path</returns>
-        public static string GetUBTMakefilePath( List<UEBuildTarget> Targets )
+        public static string GetUBTMakefilePath( List<TargetDescriptor> TargetDescs )
         {
             string UBTMakefilePath;
 
-            if( Targets.Count == 1 )
+            if( TargetDescs.Count == 1 )
             {
                 // If there's only one target, just save the UBTMakefile in the target's build intermediate directory
                 // under a folder for that target (and platform/config combo.)
@@ -2207,13 +2234,13 @@ namespace UnrealBuildTool
                     PlatformIntermediatePath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.PlatformIntermediateFolder);
                 }
 
-                UBTMakefilePath = Path.Combine(PlatformIntermediatePath, Targets[0].GetTargetName(), Targets[0].GetTargetInfo().Configuration.ToString(), "Makefile.ubt" );
+                UBTMakefilePath = Path.Combine(PlatformIntermediatePath, TargetDescs[0].TargetName, TargetDescs[0].Configuration.ToString(), "Makefile.ubt" );
             }
             else
             {
                 // For Makefiles that contain multiple targets, we'll make up a file name that contains all of the targets, their
                 // configurations and platforms, and save it into the base intermediate folder
-                var TargetCollectionName = MakeTargetCollectionName( Targets );
+                var TargetCollectionName = MakeTargetCollectionName( TargetDescs );
 
                 string ProjectIntermediatePath = BuildConfiguration.BaseIntermediatePath;
                 if (UnrealBuildTool.HasUProjectFile())
@@ -2232,18 +2259,18 @@ namespace UnrealBuildTool
         /// <summary>
         /// Makes up a name for a set of targets that we can use for file or directory names
         /// </summary>
-        /// <param name="Targets">List of targets.  Order is not important</param>
+        /// <param name="TargetDescs">List of targets.  Order is not important</param>
         /// <returns>The name to use</returns>
-        private static string MakeTargetCollectionName( List<UEBuildTarget> Targets )
+        private static string MakeTargetCollectionName( List<TargetDescriptor> TargetDescs )
         {
-            if( Targets.Count == 0 )
+            if( TargetDescs.Count == 0 )
             {
                 throw new BuildException( "Expecting at least one Target to be passed to MakeTargetCollectionName" );
             }
 
-            var SortedTargets = new List<UEBuildTarget>();
-            SortedTargets.AddRange( Targets );
-            SortedTargets.Sort( ( x, y ) => { return x.GetTargetName().CompareTo( y.GetTargetName() ); } );
+            var SortedTargets = new List<TargetDescriptor>();
+            SortedTargets.AddRange( TargetDescs );
+            SortedTargets.Sort( ( x, y ) => { return x.TargetName.CompareTo( y.TargetName ); } );
 
             // Figure out what to call our action graph based on everything we're building
             var TargetCollectionName = new StringBuilder();
@@ -2253,7 +2280,9 @@ namespace UnrealBuildTool
                 {
                     TargetCollectionName.Append( "_" );
                 }
-                TargetCollectionName.Append( Target.GetTargetName() + "-" + Target.GetTargetInfo().Platform.ToString() + "-" + Target.GetTargetInfo().Configuration.ToString() );
+
+				// @todo ubtmake: Should we also have the platform Architecture in this string?
+                TargetCollectionName.Append( Target.TargetName + "-" + Target.Platform.ToString() + "-" + Target.Configuration.ToString() );
             }
 
             return TargetCollectionName.ToString();
