@@ -223,8 +223,6 @@ bool FMaterialInstanceResource::GetScalarValue(
 			*OutValue = 0.0f;
 		}
 
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> MaterialInstance %p GetScalarValue %f\n"), this, *OutValue);
-
 		return true;
 	}
 

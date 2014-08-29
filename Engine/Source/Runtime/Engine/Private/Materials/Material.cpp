@@ -226,8 +226,6 @@ public:
 					*OutValue = 0.0f;
 				}
 
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> Material %p GetScalarValue %f\n"), this, *OutValue);
-
 				return true;
 			}
 
