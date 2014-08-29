@@ -341,6 +341,14 @@ public:
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
 
 	/**
+	* Gets the path to the solution for the current project
+	*
+	* @param OutSolutionPath	Receives the string 
+	* @return True if a solution file exists and OutSolutionPath has been updated
+	*/
+	virtual bool GetSolutionPath(FString& OutSolutionPath) = 0;
+
+	/**
 	* Gets a feedback context which can display progress information using the native platform GUI.
 	*
 	* @return FFeedbackContext for the native GUI.

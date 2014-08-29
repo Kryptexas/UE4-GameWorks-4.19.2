@@ -802,49 +802,6 @@ FString FModuleManager::GetModuleCompileMethod(FName InModuleName)
 }
 
 
-bool FModuleManager::IsSolutionFilePresent()
-{
-	return !GetSolutionFilepath().IsEmpty();
-}
-
-
-FString FModuleManager::GetSolutionFilepath()
-{
-#if PLATFORM_MAC
-	const TCHAR* Postfix = TEXT(".xcodeproj/project.pbxproj");
-#elif PLATFORM_LINUX
-	UE_LOG(LogModuleManager, Warning, TEXT("STUBBED: solution file path for Linux"));
-	const TCHAR* Postfix = TEXT("/stubbed/path/to.solution");
-#else
-	const TCHAR* Postfix = TEXT(".sln");
-#endif
-
-	FString SolutionFilepath;
-
-	if ( FPaths::IsProjectFilePathSet() )
-	{
-		// When using game specific uproject files, the solution is named after the game and in the uproject folder
-		SolutionFilepath = FPaths::GameDir() / FPaths::GetBaseFilename(FPaths::GetProjectFilePath()) + Postfix;
-		if ( !FPaths::FileExists(SolutionFilepath) )
-		{
-			SolutionFilepath = TEXT("");
-		}
-	}
-
-	if ( SolutionFilepath.IsEmpty() )
-	{
-		// Otherwise, it is simply titled UE4.sln
-		SolutionFilepath = FPaths::RootDir() / FString(TEXT("UE4")) + Postfix ;
-		if ( !FPaths::FileExists(SolutionFilepath) )
-		{
-			SolutionFilepath = TEXT("");
-		}
-	}
-
-	return SolutionFilepath;
-}
-
-
 bool FModuleManager::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
 {
 #if !IS_MONOLITHIC

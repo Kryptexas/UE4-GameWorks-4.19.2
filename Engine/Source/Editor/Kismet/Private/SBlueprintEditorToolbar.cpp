@@ -22,6 +22,7 @@
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Merge.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -78,7 +79,8 @@ void FKismet2Menu::FillFileMenuBlueprintSection( FMenuBuilder& MenuBuilder, FBlu
 	MenuBuilder.EndSection();
 
 	// Only show the developer menu on machines with the solution (assuming they can build it)
-	if (FModuleManager::Get().IsSolutionFilePresent())
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
 		MenuBuilder.BeginSection("FileDeveloper");
 		{

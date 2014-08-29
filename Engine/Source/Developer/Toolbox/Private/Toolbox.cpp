@@ -6,13 +6,15 @@
 #include "ModuleUIInterface.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MainFrame.h"
+#include "DesktopPlatformModule.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
 
 static bool CanShowModulesTab()
 {
-	return FModuleManager::Get().IsSolutionFilePresent();
+	FString SolutionPath;
+	return FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath);
 }
 
 class SDebugPanel : public SCompoundWidget

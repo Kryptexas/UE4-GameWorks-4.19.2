@@ -411,21 +411,6 @@ public:
 	void UnloadModulesAtShutdown( );
 
 	/**
-	 * Checks for the solution file using the hard-coded location on disk
-	 * Used to determine whether source code is potentially available for recompiles
-	 * 
-	 * @return	True if the solution file is found (source code MAY BE available)
-	 */
-	bool IsSolutionFilePresent();
-
-	/**
-	 * Returns the full path of the solution file
-	 * 
-	 * @return	SolutionFilepath
-	 */
-	FString GetSolutionFilepath();
-
-	/**
 	 * Tries to recompile the specified module.  If the module is loaded, it will first be unloaded (then reloaded after,
 	 * if the recompile was successful.)
 	 *

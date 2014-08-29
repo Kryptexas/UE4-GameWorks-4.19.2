@@ -39,6 +39,8 @@ public:
 	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 
+	virtual bool GetSolutionPath(FString& OutSolutionPath) override;
+
 	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) override;
 	virtual FString GetDefaultProjectCreationPath() override;
 

@@ -2,6 +2,7 @@
 
 #include "XCodeSourceCodeAccessPrivatePCH.h"
 #include "XCodeSourceCodeAccessor.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "XCodeSourceCodeAccessor"
 
@@ -59,11 +60,15 @@ FText FXCodeSourceCodeAccessor::GetDescriptionText() const
 
 bool FXCodeSourceCodeAccessor::OpenSolution()
 {
-	const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FModuleManager::Get().GetSolutionFilepath() );
-	if ( FPaths::FileExists( FullPath ) )
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
-		FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
-		return true;
+		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+		if ( FPaths::FileExists( FullPath ) )
+		{
+			FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
+			return true;
+		}
 	}
 	return false;
 }
@@ -82,9 +87,10 @@ bool FXCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 Lin
 		ColumnNumber++;
 	}
 		 
-	if ( FModuleManager::Get().IsSolutionFilePresent() )
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
-		FString ProjPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+		FString ProjPath = FPaths::ConvertRelativePathToFull(*SolutionPath);
 		CFStringRef ProjPathString = FPlatformString::TCHARToCFString(*ProjPath);
 		NSString* ProjectPath = [(NSString*)ProjPathString stringByDeletingLastPathComponent];
 		[[NSWorkspace sharedWorkspace] openFile:ProjectPath withApplication:@"Xcode" andDeactivate:YES];

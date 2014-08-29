@@ -5,6 +5,7 @@
 #include "VisualStudioSourceCodeAccessModule.h"
 #include "ISourceCodeAccessModule.h"
 #include "ModuleManager.h"
+#include "DesktopPlatformModule.h"
 
 
 #include "AllowWindowsPlatformTypes.h"
@@ -906,8 +907,8 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 	FScopeLock Lock(&CachedSolutionPathCriticalSection);
 	if(IsInGameThread())
 	{
-		FString SolutionPath = FModuleManager::Get().GetSolutionFilepath();
-		if(SolutionPath.Len() > 0)
+		FString SolutionPath;
+		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 		{
 			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
 		}

@@ -9,6 +9,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetEditorManager.h"
 #include "SourceCodeNavigation.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -1277,7 +1278,6 @@ bool FUDNParser::ParseCodeLink(FString &InternalLink)
 
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
 	ISourceCodeAccessor& SourceCodeAccessor = SourceCodeAccessModule.GetAccessor();
-	FString SolutionPath;
 
 	// If we specified generic project specified as the project name try to replace the name with the name of this project
 	if (InternalLink.Contains(ProjectSpecifier) == true)
@@ -1302,8 +1302,8 @@ bool FUDNParser::ParseCodeLink(FString &InternalLink)
 
 	// Finally create the complete path - project name and all
 	int32 PathEndIndex;
-	SolutionPath = FModuleManager::Get().GetSolutionFilepath();
-	if (SolutionPath.FindLastChar(TEXT('/'), PathEndIndex) == true)
+	FString SolutionPath;
+	if( FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath) && SolutionPath.FindLastChar(TEXT('/'), PathEndIndex) == true)
 	{
 		SolutionPath = SolutionPath.LeftChop(SolutionPath.Len() - PathEndIndex - 1);
 		SolutionPath += Path;

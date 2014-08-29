@@ -42,6 +42,7 @@ public class Kismet : ModuleRules
                 "Projects",
                 "JsonUtilities",
                 "DerivedDataCache",
+				"DesktopPlatform",
 			}
 			);
 

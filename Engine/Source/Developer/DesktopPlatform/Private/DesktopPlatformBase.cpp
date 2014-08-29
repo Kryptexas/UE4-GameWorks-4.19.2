@@ -434,6 +434,40 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	return bRes;
 }
 
+bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
+{
+	// Get the platform-specific suffix for solution files
+#if PLATFORM_MAC
+	const TCHAR* Suffix = TEXT(".xcodeproj/project.pbxproj");
+#elif PLATFORM_LINUX
+	UE_LOG(LogModuleManager, Warning, TEXT("STUBBED: solution file path for Linux"));
+	const TCHAR* Suffix = TEXT("/stubbed/path/to.solution");
+#else
+	const TCHAR* Suffix = TEXT(".sln");
+#endif
+
+	// When using game specific uproject files, the solution is named after the game and in the uproject folder
+	if(FPaths::IsProjectFilePathSet())
+	{
+		FString SolutionPath = FPaths::GameDir() / FPaths::GetBaseFilename(FPaths::GetProjectFilePath()) + Suffix;
+		if(FPaths::FileExists(SolutionPath))
+		{
+			OutSolutionPath = SolutionPath;
+			return true;
+		}
+	}
+
+	// Otherwise, it is simply titled UE4.sln
+	FString DefaultSolutionPath = FPaths::RootDir() / FString(TEXT("UE4")) + Suffix;
+	if(FPaths::FileExists(DefaultSolutionPath))
+	{
+		OutSolutionPath = DefaultSolutionPath;
+		return true;
+	}
+
+	return false;
+}
+
 FString FDesktopPlatformBase::GetDefaultProjectCreationPath()
 {
 	// My Documents
