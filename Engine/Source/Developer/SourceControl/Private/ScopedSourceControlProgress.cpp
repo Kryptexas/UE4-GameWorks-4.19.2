@@ -192,14 +192,7 @@ FScopedSourceControlProgress::FScopedSourceControlProgress(const FText& InText, 
 		);
 			
 		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-		if(RootWindow.IsValid())
-		{
-			FSlateApplication::Get().AddModalWindow(Window, RootWindow, true);
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(Window);
-		}
+		FSlateApplication::Get().AddModalWindow(Window, RootWindow, true);
 
 		Window->ShowWindow();	
 	
