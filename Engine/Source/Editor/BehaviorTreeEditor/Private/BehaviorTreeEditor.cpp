@@ -612,9 +612,8 @@ TSharedRef<SWidget> FBehaviorTreeEditor::SpawnProperties()
 	return
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
-		.AutoHeight()
+		.FillHeight(1.0f)
 		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Top)
 		[
 			DetailsView.ToSharedRef()
 		]
