@@ -7,7 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilityTask.h"
-
+#pragma optimize("",off)
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	UGameplayAbility
@@ -597,7 +597,7 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName) const
 {
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
-	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
+	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
 	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
 	ReturnLocation.SourceSocketName = SocketName;
 	return ReturnLocation;
