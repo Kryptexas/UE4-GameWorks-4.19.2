@@ -32,6 +32,14 @@ UMediaTexture::~UMediaTexture( )
 /* UMediaTexture interface
  *****************************************************************************/
 
+TSharedPtr<class IMediaPlayer> UMediaTexture::GetMediaPlayer( ) const
+{
+	return (MediaAsset != nullptr)
+		? MediaAsset->GetMediaPlayer()
+		: nullptr;
+}
+
+
 void UMediaTexture::SetMediaAsset( UMediaAsset* InMediaAsset )
 {
 	MediaAsset = InMediaAsset;

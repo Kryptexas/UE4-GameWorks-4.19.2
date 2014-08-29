@@ -41,16 +41,6 @@ public:
 public:
 
 	/**
-	 * Sets the media asset to be used for this texture.
-	 *
-	 * @param InMediaAsset The asset to set.
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
-	void SetMediaAsset( UMediaAsset* InMediaAsset );
-
-public:
-
-	/**
 	 * Gets the width and height of the texture (in pixels).
 	 *
 	 * @return Texture dimensions.
@@ -75,10 +65,7 @@ public:
 	 *
 	 * @return Media player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetMediaPlayer( ) const
-	{
-		return (MediaAsset != nullptr) ? MediaAsset->GetMediaPlayer() : nullptr;
-	}
+	TSharedPtr<class IMediaPlayer> GetMediaPlayer( ) const;
 
 	/**
 	 * Gets the currently selected video track, if any.
@@ -90,6 +77,14 @@ public:
 		return VideoTrack;
 	}
 	
+	/**
+	 * Sets the media asset to be used for this texture.
+	 *
+	 * @param InMediaAsset The asset to set.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	void SetMediaAsset( UMediaAsset* InMediaAsset );
+
 public:
 
 	// UTexture overrides.
