@@ -509,14 +509,14 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	return 0.f;
 }
 
-FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo()
+FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const
 {
 	check(CurrentActorInfo);
 	return *CurrentActorInfo;
 }
 
 /** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
-USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo()
+USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo() const
 {
 	check(CurrentActorInfo);
 	if (CurrentActorInfo->AnimInstance.IsValid())
@@ -584,6 +584,23 @@ void UGameplayAbility::MontageBranchPoint_AbilityDecisionStop(const FGameplayAbi
 void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 
+}
+
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerActor() const
+{
+	FGameplayAbilityTargetingLocationInfo ReturnLocation;
+	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
+	ReturnLocation.SourceActor = GetActorInfo().Actor.Get();
+	return ReturnLocation;
+}
+
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName) const
+{
+	FGameplayAbilityTargetingLocationInfo ReturnLocation;
+	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
+	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceSocketName = SocketName;
+	return ReturnLocation;
 }
 
 void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 PredictionKey)

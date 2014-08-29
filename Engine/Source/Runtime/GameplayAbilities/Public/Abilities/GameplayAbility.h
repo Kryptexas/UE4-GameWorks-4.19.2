@@ -332,11 +332,11 @@ protected:
 		}
 	}
 
-	UFUNCTION(BlueprintPure, Category=Ability)
-	FGameplayAbilityActorInfo GetActorInfo();
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	FGameplayAbilityActorInfo GetActorInfo() const;
 
-	UFUNCTION(BlueprintPure, Category = Ability)
-	USkeletalMeshComponent* GetOwningComponentFromActorInfo();
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
@@ -412,6 +412,12 @@ protected:
 	void MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerActor() const;
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName) const;
 private:
 
 	/** 

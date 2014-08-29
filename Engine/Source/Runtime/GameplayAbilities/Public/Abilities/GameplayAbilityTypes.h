@@ -322,6 +322,10 @@ public:
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<AActor*> TargetActors) const;
 
+	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
+	TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
+
 	/** A literal world transform can be used, if one has been calculated outside of the actor using the ability. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
 	FTransform LiteralTransform;
@@ -337,10 +341,6 @@ public:
 	/** If SourceComponent is valid, this is the name of the socket transform that will be used. If no Socket is provided, SourceComponent's transform will be used. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
 	FName SourceSocketName;
-
-	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
-	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-	TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
 
 	// -------------------------------------
 
