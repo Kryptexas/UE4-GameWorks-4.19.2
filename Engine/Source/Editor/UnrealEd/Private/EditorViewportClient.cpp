@@ -2149,7 +2149,7 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 }
 
 /** Convert the specified number (in cm or unreal units) into a readable string with relevant si units */
-FString UnrealUnitsToSiUnits(float UnrealUnits)
+FString FEditorViewportClient::UnrealUnitsToSiUnits(float UnrealUnits)
 {
 	// Put it in mm to start off with
 	UnrealUnits *= 10.f;

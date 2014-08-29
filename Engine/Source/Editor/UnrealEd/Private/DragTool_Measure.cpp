@@ -18,11 +18,8 @@ FDragTool_Measure::FDragTool_Measure(FEditorViewportClient* InViewportClient)
 	bConvertDelta = false;
 }
 
-void FDragTool_Measure::SetEndWorldPositionFromCursor()
+FVector2D FDragTool_Measure::GetSnappedPixelPos(FVector2D PixelPos)
 {
-	FIntPoint MousePos;
-	ViewportClient->Viewport->GetMousePos(MousePos);
-
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		ViewportClient->Viewport,
 		ViewportClient->GetScene(),
@@ -31,47 +28,50 @@ void FDragTool_Measure::SetEndWorldPositionFromCursor()
 
 	FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 
-	End = View->ScreenToWorld(View->PixelToScreen(MousePos.X, MousePos.Y, 0.5f));
+	// Put the mouse pos in world space
+	FVector WorldPos = View->ScreenToWorld(View->PixelToScreen(PixelPos.X, PixelPos.Y, 0.5f));;
 
+	// Snap the world position
 	const float GridSize = GEditor->GetGridSize();
 	const FVector GridBase( GridSize, GridSize, GridSize );
-	FSnappingUtils::SnapPointToGrid( End, GridBase );
+	FSnappingUtils::SnapPointToGrid( WorldPos, GridBase );
+
+	// And back into pixel-space (might fail, in which case we return the original)
+	View->WorldToPixel(WorldPos, PixelPos);
+
+	return PixelPos;
 }
 
 void FDragTool_Measure::StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen)
 {
 	FDragTool::StartDrag(InViewportClient, InStart, InStartScreen);
-	SetEndWorldPositionFromCursor();
+	PixelStart = GetSnappedPixelPos(InStartScreen);
+	PixelEnd = PixelStart;
 }
 
 void FDragTool_Measure::AddDelta(const FVector& InDelta)
 {
-	SetEndWorldPositionFromCursor();
+	FDragTool::AddDelta(InDelta);
+	
+	FIntPoint MousePos;
+	ViewportClient->Viewport->GetMousePos(MousePos);
+	PixelEnd = GetSnappedPixelPos(FVector2D(MousePos));
 }
 
 void FDragTool_Measure::Render(const FSceneView* View, FCanvas* Canvas)
 {
-	FVector2D PixelStart;
-	FVector2D PixelEnd;
-	if (View != nullptr && Canvas != nullptr && View->WorldToPixel(Start, PixelStart) && View->WorldToPixel(End, PixelEnd))
+	const float Length = FMath::RoundToFloat((PixelEnd - PixelStart).Size() * ViewportClient->GetOrthoUnitsPerPixel(ViewportClient->Viewport));
+
+	if (View != nullptr && Canvas != nullptr && Length >= 1.f)
 	{
 		FCanvasLineItem LineItem( PixelStart, PixelEnd );
 		Canvas->DrawItem( LineItem );
 
-		const int32 Length = FMath::CeilToInt((End - Start).Size());
-		if( Length == 0 )
-		{
-			return;
-		}
+		const FVector2D PixelMid = FVector2D(PixelStart + ((PixelEnd - PixelStart) / 2));
 
-		const FVector WorldMid = Start + ((End - Start) / 2);
-		FVector2D PixelMid;
-		if (View->WorldToPixel(WorldMid, PixelMid))
-		{
-			FString LengthStr = FString::Printf(TEXT("%d"), Length);
-			FCanvasTextItem TextItem( FVector2D( FMath::FloorToFloat(PixelMid.X), FMath::FloorToFloat(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
-			TextItem.bCentreX = true;
-			Canvas->DrawItem( TextItem );
-		}
+		const FString LengthStr = FEditorViewportClient::UnrealUnitsToSiUnits(Length);
+		FCanvasTextItem TextItem( FVector2D( FMath::FloorToFloat(PixelMid.X), FMath::FloorToFloat(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
+		TextItem.bCentreX = true;
+		Canvas->DrawItem( TextItem );
 	}
 }

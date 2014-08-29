@@ -399,6 +399,9 @@ public:
 	/** @return The number of units per pixel displayed in this viewport */
 	float GetOrthoUnitsPerPixel(const FViewport* Viewport) const;
 
+	/** Get a prettified string representation of the specified unreal units */
+	static FString UnrealUnitsToSiUnits(float UnrealUnits);
+
 	void RemoveCameraRoll()
 	{
 		FRotator Rotation = GetViewRotation();

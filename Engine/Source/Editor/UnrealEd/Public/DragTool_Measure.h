@@ -35,10 +35,12 @@ public:
 
 private:
 	/**
-	 * Sets the End member explicitly from the current cursor position, overriding the calculation based on
-	 * the deltas passed to AddDelta.
+	 * Gets the world-space snapped position of the specified pixel position
 	 */
-	void SetEndWorldPositionFromCursor();
+	FVector2D GetSnappedPixelPos(FVector2D PixelPos);
+
+	/** Pixel-space positions for start and end */
+	FVector2D PixelStart, PixelEnd;
 
 	FEditorViewportClient* ViewportClient;
 };
