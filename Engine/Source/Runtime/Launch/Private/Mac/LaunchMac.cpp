@@ -112,7 +112,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 				GEngine->DeferredCommands.Add(TEXT("EXIT"));
 			}
 		}
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 }
 
 - (IBAction)showAboutWindow:(id)Sender
@@ -123,7 +123,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		{
 			FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
 		}
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 #else
 	[NSApp orderFrontStandardAboutPanel:Sender];
 #endif
@@ -137,7 +137,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		{
 			FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer(FName("Editor"), FName("General"), FName("Appearance"));
 		}
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 }
 #endif
 

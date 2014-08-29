@@ -261,7 +261,7 @@ FMacNativeFeedbackContext::FMacNativeFeedbackContext()
 {
 	MainThreadCall(^{
 		WindowController = [[FMacNativeFeedbackContextWindowController alloc] init];
-	}, true);
+	}, UE4NilEventMode, true);
 	SetDefaultTextColor();
 }
 
@@ -274,7 +274,7 @@ FMacNativeFeedbackContext::~FMacNativeFeedbackContext()
 	
 	MainThreadCall(^{
 		[WindowController release];
-	}, true);
+	}, UE4NilEventMode, true);
 }
 
 void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
@@ -340,7 +340,7 @@ void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Typ
 						[Colors release];
 						[AttributeKeys release];
 						OutstandingTasks--;
-					}, false);
+					}, NSDefaultRunLoopMode, false);
 				}
 			}
 			else
@@ -360,7 +360,7 @@ void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Typ
 					[AttributedString release];
 					CFRelease(CocoaText);
 					OutstandingTasks--;
-				}, false);
+				}, NSDefaultRunLoopMode, false);
 				
 				if(!MacApplication)
 				{
@@ -417,7 +417,7 @@ void FMacNativeFeedbackContext::BeginSlowTask( const FText& Task, bool bShowProg
 			[WindowController showWindow];
 			
 			bShowingConsoleForSlowTask = true;
-		}, true);
+		});
 	}
 }
 
@@ -434,7 +434,7 @@ void FMacNativeFeedbackContext::EndSlowTask()
 				[WindowController hideWindow];
 			}
 			bShowingConsoleForSlowTask = false;
-		}, true);
+		});
 	}
 }
 
@@ -444,7 +444,7 @@ bool FMacNativeFeedbackContext::StatusUpdate( int32 Numerator, int32 Denominator
 	{
 		MainThreadCall(^{
 			[WindowController setStatusText:NewStatus.ToString().GetNSString()];
-		}, true);
+		});
 		UpdateProgress(Numerator, Denominator);
 	}
 	return true;
@@ -463,7 +463,7 @@ void FMacNativeFeedbackContext::UpdateProgress(int32 Numerator, int32 Denominato
 			[WindowController setShowProgress:true];
 			[WindowController setProgress:Numerator total:Denominator];
 		}
-	}, true);
+	});
 }
 
 FContextSupplier* FMacNativeFeedbackContext::GetContext() const
@@ -500,5 +500,5 @@ void FMacNativeFeedbackContext::SetDefaultTextColor()
 		[Colors release];
 		[AttributeKeys release];
 		OutstandingTasks--;
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 }

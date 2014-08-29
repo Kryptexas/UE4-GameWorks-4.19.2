@@ -42,7 +42,7 @@ FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
 	CFRelease(Event);
 }
 
-void FMacEvent::SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod)
+void FMacEvent::SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod, NSString* SendMode)
 {
 	NSThread* GameThread = [NSThread gameThread];
 	check(GameThread);
@@ -53,24 +53,24 @@ void FMacEvent::SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMet
 	dispatch_block_t Block = ^{ FMacApplication::ProcessEvent(Event); };
 	const bool bWait = (SendMethod == EMacEventSendMethod::Sync);
 	
-	[GameThread performBlock: Block onRunLoop: GameRunLoop forMode: NSDefaultRunLoopMode wait: bWait inMode: NSDefaultRunLoopMode];
+	[GameThread performBlock: Block onRunLoop: GameRunLoop forMode: SendMode wait: bWait inMode: NSDefaultRunLoopMode];
 }
 	
-void FMacEvent::SendToGameRunLoop(NSEvent* const Event, EMacEventSendMethod SendMethod)
+void FMacEvent::SendToGameRunLoop(NSEvent* const Event, EMacEventSendMethod SendMethod, NSString* SendMode)
 {
 	if(MacApplication)
 	{
 		FMacEvent* MacEvent = new FMacEvent(Event);
-		FMacEvent::SendToGameRunLoop(MacEvent, SendMethod);
+		FMacEvent::SendToGameRunLoop(MacEvent, SendMethod, SendMode);
 	}
 }
 
-void FMacEvent::SendToGameRunLoop(NSNotification* const Notification, NSWindow* const Window, EMacEventSendMethod SendMethod)
+void FMacEvent::SendToGameRunLoop(NSNotification* const Notification, NSWindow* const Window, EMacEventSendMethod SendMethod, NSString* SendMode)
 {
 	if(MacApplication)
 	{
 		FMacEvent* MacEvent = new FMacEvent(Notification, Window);
-		FMacEvent::SendToGameRunLoop(MacEvent, SendMethod);
+		FMacEvent::SendToGameRunLoop(MacEvent, SendMethod, SendMode);
 	}
 }
 

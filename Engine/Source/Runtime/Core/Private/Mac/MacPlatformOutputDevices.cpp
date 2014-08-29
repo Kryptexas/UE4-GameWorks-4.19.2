@@ -199,58 +199,58 @@ void FOutputDeviceConsoleMac::CreateConsole()
 		bHasY = GConfig->GetInt(TEXT("DebugMac"), TEXT("ConsoleY"), ConsolePosY, GGameIni);
 	}
 
-	ConsoleHandle = [[NSWindow alloc] initWithContentRect: NSMakeRect(ConsolePosX, ConsolePosY, ConsoleWidth, ConsoleHeight)
-									styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
-									  backing: NSBackingStoreBuffered
-										defer: NO];
+	MainThreadCall(^{
+		ConsoleHandle = [[NSWindow alloc] initWithContentRect: NSMakeRect(ConsolePosX, ConsolePosY, ConsoleWidth, ConsoleHeight)
+										styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
+										  backing: NSBackingStoreBuffered
+											defer: NO];
 
-	ScrollView = [[NSScrollView alloc] initWithFrame:[[ConsoleHandle contentView] frame]];
-	NSSize ContentSize = [ScrollView contentSize];
-	
-	[ScrollView setBorderType:NSNoBorder];
-	[ScrollView setHasVerticalScroller:YES];
-	[ScrollView setHasHorizontalScroller:NO];
-	[ScrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-	
-	TextView = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, ContentSize.width, ContentSize.height )];
-	[TextView setMinSize:NSMakeSize( 0.0, ContentSize.height ) ];
-	[TextView setMaxSize:NSMakeSize( FLT_MAX, FLT_MAX )];
-	[TextView setVerticallyResizable:YES];
-	[TextView setHorizontallyResizable:NO];
-	[TextView setAutoresizingMask:NSViewWidthSizable];
-	[TextView setBackgroundColor: [NSColor blackColor]];
-	
-	[[TextView textContainer] setContainerSize:NSMakeSize( ContentSize.width, FLT_MAX )];
-	[[TextView textContainer] setWidthTracksTextView:YES];
-	
-	[ScrollView setDocumentView:TextView];
-	[ConsoleHandle setContentView:ScrollView];
+		ScrollView = [[NSScrollView alloc] initWithFrame:[[ConsoleHandle contentView] frame]];
+		NSSize ContentSize = [ScrollView contentSize];
+		
+		[ScrollView setBorderType:NSNoBorder];
+		[ScrollView setHasVerticalScroller:YES];
+		[ScrollView setHasHorizontalScroller:NO];
+		[ScrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+		
+		TextView = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, ContentSize.width, ContentSize.height )];
+		[TextView setMinSize:NSMakeSize( 0.0, ContentSize.height ) ];
+		[TextView setMaxSize:NSMakeSize( FLT_MAX, FLT_MAX )];
+		[TextView setVerticallyResizable:YES];
+		[TextView setHorizontallyResizable:NO];
+		[TextView setAutoresizingMask:NSViewWidthSizable];
+		[TextView setBackgroundColor: [NSColor blackColor]];
+		
+		[[TextView textContainer] setContainerSize:NSMakeSize( ContentSize.width, FLT_MAX )];
+		[[TextView textContainer] setWidthTracksTextView:YES];
+		
+		[ScrollView setDocumentView:TextView];
+		[ConsoleHandle setContentView:ScrollView];
 
-	if (!bHasX || !bHasY)
-	{
-		[ConsoleHandle center];
-	}
-
-	[ConsoleHandle setOpaque: YES];
-	[ConsoleHandle makeKeyAndOrderFront:nil];
-	
-	if(!MacApplication)
-	{
-		do
+		if (!bHasX || !bHasY)
 		{
-			FPlatformMisc::PumpMessages( true );
-		} while(ConsoleHandle && ![ConsoleHandle isVisible]);
-	}
-	
-	SetDefaultTextColor();
+			[ConsoleHandle center];
+		}
+
+		[ConsoleHandle setOpaque: YES];
+		[ConsoleHandle makeKeyAndOrderFront:nil];
+		
+		if(!MacApplication)
+		{
+			do
+			{
+				FPlatformMisc::PumpMessages( true );
+			} while(ConsoleHandle && ![ConsoleHandle isVisible]);
+		}
+		
+		SetDefaultTextColor();
+	}, UE4NilEventMode, true);
 }
 
 void FOutputDeviceConsoleMac::DestroyConsole()
 {
 	if (ConsoleHandle)
 	{
-		SCOPED_AUTORELEASE_POOL;
-		
 		do
 		{
 			FPlatformMisc::PumpMessages( true );
@@ -258,12 +258,15 @@ void FOutputDeviceConsoleMac::DestroyConsole()
 
 		SaveToINI();
 		
-		if( TextViewTextColor )
-			[TextViewTextColor release];
-		
-		[ConsoleHandle close];
-		ConsoleHandle = NULL;
-		TextViewTextColor = NULL;
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+			if( TextViewTextColor )
+				[TextViewTextColor release];
+			
+			[ConsoleHandle close];
+			ConsoleHandle = NULL;
+			TextViewTextColor = NULL;
+		}, UE4NilEventMode, true);
 	}
 }
 
@@ -342,7 +345,7 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 						[Colors release];
 						[AttributeKeys release];
 						OutstandingTasks--;
-					}, false);
+					}, NSDefaultRunLoopMode, false);
 				}
 			}
 			else
@@ -362,7 +365,7 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 					[AttributedString release];
 					CFRelease(CocoaText);
 					OutstandingTasks--;
-				}, false);
+				}, NSDefaultRunLoopMode, false);
 				
 				if(!MacApplication)
 				{
@@ -409,5 +412,5 @@ void FOutputDeviceConsoleMac::SetDefaultTextColor()
 		[Colors release];
 		[AttributeKeys release];
 		OutstandingTasks--;
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 }

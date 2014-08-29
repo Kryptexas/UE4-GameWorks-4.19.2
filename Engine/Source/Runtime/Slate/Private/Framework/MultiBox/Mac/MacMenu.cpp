@@ -186,7 +186,7 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedRef< FMultiBox >& MultiBox)
 		{
 			[HelpMenu release];
 		}
-	}, true);
+	});
 }
 
 static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content)
@@ -281,7 +281,7 @@ void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEnt
 			(*MenuBlock)->GetDirectActions().Execute();
 		}
         delete MenuBlock;
-	}, false);
+	}, NSDefaultRunLoopMode, false);
 }
 
 CFStringRef FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class FMenuEntryBlock>& Block, uint32* OutModifiers)
@@ -392,7 +392,7 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 		{
 			[NSApp setWindowsMenu:Menu];
 		}
-	}, true);
+	});
 }
 
 bool FSlateMacMenu::IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlock>& Block)

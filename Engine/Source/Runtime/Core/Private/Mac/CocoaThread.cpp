@@ -5,8 +5,17 @@
 
 #define MAC_SEPARATE_GAME_THREAD 0 // Separate the main & game threads so that we better handle the interaction between the Cocoa's event delegates and UE4's event polling.
 
+NSString* UE4NilEventMode = @"UE4NilEventMode";
+NSString* UE4ShowEventMode = @"UE4ShowEventMode";
+NSString* UE4ResizeEventMode = @"UE4ResizeEventMode";
+NSString* UE4FullscreenEventMode = @"UE4FullscreenEventMode";
+NSString* UE4CloseEventMode = @"UE4CloseEventMode";
+NSString* UE4IMEEventMode = @"UE4IMEEventMode";
+
 static FCocoaGameThread* GCocoaGameThread = nil;
 static NSRunLoop* GCocoaGameRunLoop = nil;
+static TMap<NSRunLoop*, TArray<NSString*>> GRunLoopModes;
+static FCriticalSection GRunLoopModesLock;
 
 @implementation NSThread (FCocoaThread)
 
@@ -36,19 +45,35 @@ static NSRunLoop* GCocoaGameRunLoop = nil;
 	check(RunLoop);
 	if(RunLoop != [NSRunLoop currentRunLoop])
 	{
+		dispatch_block_t CopiedBlock = Block_copy(Block);
+		
 		if(bWait)
 		{
 			__block bool bDone = false;
-			[RunLoop performBlock:^{ Block(); bDone = true; } forMode:RunMode wake:true];
+			{
+				FScopeLock Lock(&GRunLoopModesLock);
+				TArray<NSString*>& Modes = GRunLoopModes.FindOrAdd([NSRunLoop currentRunLoop]);
+				Modes.Add([WaitMode retain]);
+			}
+			[RunLoop performBlock:^{ CopiedBlock(); bDone = true; } forMode:RunMode wake:true];
 			while(!bDone)
 			{
-				CFRunLoopRunInMode((CFStringRef)WaitMode, 0.0, true);
+				CFRunLoopRunInMode((CFStringRef)WaitMode, 0, true);
+			}
+			{
+				FScopeLock Lock(&GRunLoopModesLock);
+				TArray<NSString*>& Modes = GRunLoopModes.FindOrAdd([NSRunLoop currentRunLoop]);
+				check(Modes.Num() > 0);
+				[Modes.Last() release];
+				Modes.RemoveAt(Modes.Num() - 1);
 			}
 		}
 		else
 		{
-			[RunLoop performBlock:Block forMode:RunMode wake:true];
+			[RunLoop performBlock:CopiedBlock forMode:RunMode wake:true];
 		}
+		
+		Block_release(CopiedBlock);
 	}
 	else
 	{
@@ -78,6 +103,20 @@ static NSRunLoop* GCocoaGameRunLoop = nil;
 	{
 		CFRunLoopWakeUp(RunLoop);
 	}
+}
+
+- (NSString*)intendedMode
+{
+	NSString* Mode = nil;
+	{
+		FScopeLock Lock(&GRunLoopModesLock);
+		TArray<NSString*>& Modes = GRunLoopModes.FindOrAdd(self);
+		if(Modes.Num() > 0)
+		{
+			Mode = Modes.Last();
+		}
+	}
+	return Mode;
 }
 
 @end
@@ -119,19 +158,29 @@ static NSRunLoop* GCocoaGameRunLoop = nil;
 
 @end
 
-void PerformBlockOnRunLoop(dispatch_block_t Block, NSRunLoop* const RunLoop, bool const bWait)
+NSString* InGameRunLoopMode(NSArray* AllowedModes)
 {
-	[[NSThread currentThread] performBlock:Block onRunLoop:RunLoop forMode:NSDefaultRunLoopMode wait:bWait inMode:NSDefaultRunLoopMode];
+	NSString* Mode = [[NSRunLoop gameRunLoop] intendedMode];
+	if(Mode == nil || ![AllowedModes containsObject:Mode])
+	{
+		Mode = NSDefaultRunLoopMode;
+	}
+	return Mode;
 }
 
-void MainThreadCall(dispatch_block_t Block, bool const bWait)
+void PerformBlockOnRunLoop(dispatch_block_t Block, NSRunLoop* const RunLoop, NSString* SendMode, NSString* WaitMode, bool const bWait)
 {
-	[[NSThread currentThread] performBlock:Block onRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode wait:bWait inMode:NSDefaultRunLoopMode];
+	[[NSThread currentThread] performBlock:Block onRunLoop:RunLoop forMode:SendMode wait:bWait inMode:WaitMode];
 }
 
-void GameThreadCall(dispatch_block_t Block, bool const bWait)
+void MainThreadCall(dispatch_block_t Block, NSString* WaitMode, bool const bWait)
 {
-	[[NSThread currentThread] performBlock:Block onRunLoop:[NSRunLoop gameRunLoop] forMode:NSDefaultRunLoopMode wait:bWait inMode:NSDefaultRunLoopMode];
+	PerformBlockOnRunLoop(Block, [NSRunLoop mainRunLoop], NSDefaultRunLoopMode, WaitMode, bWait);
+}
+
+void GameThreadCall(dispatch_block_t Block, NSString* SendMode, bool const bWait)
+{
+	PerformBlockOnRunLoop(Block, [NSRunLoop gameRunLoop], SendMode, NSDefaultRunLoopMode, bWait);
 }
 
 void RunGameThread(id Target, SEL Selector)

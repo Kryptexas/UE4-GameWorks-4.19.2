@@ -56,7 +56,7 @@ namespace
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
 					[[TextView inputContext] invalidateCharacterCoordinates];
 				}
-			}, true);
+			}, UE4IMEEventMode, true);
 		}
 	}
 	
@@ -71,7 +71,7 @@ namespace
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
 					[[TextView inputContext] invalidateCharacterCoordinates];
 				}
-			}, true);
+			}, UE4IMEEventMode, true);
 		}
 	}
 	
@@ -86,7 +86,7 @@ namespace
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
 					[[TextView inputContext] invalidateCharacterCoordinates];
 				}
-			}, true);
+			}, UE4IMEEventMode, true);
 		}
 	}
 	
@@ -102,7 +102,7 @@ namespace
 					[[TextView inputContext] discardMarkedText];
 					[TextView unmarkText];
 				}
-			}, true);
+			}, UE4IMEEventMode, true);
 		}
 	}
 }
@@ -177,7 +177,7 @@ void FMacTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputMetho
 				}
 			}
 			return bSuccess;
-		});
+		}, UE4IMEEventMode);
 	}
 	if(!bActivatedContext)
 	{
@@ -214,7 +214,7 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 				}
 			}
 			return bSuccess;
-		});
+		}, UE4IMEEventMode);
 	}
 	if(!bDeactivatedContext)
 	{

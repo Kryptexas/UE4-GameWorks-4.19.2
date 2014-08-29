@@ -85,7 +85,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		WindowStyle &= ~(NSTexturedBackgroundWindowMask);
 	}
 
-	WindowHandle = MainThreadReturn(^{ return [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO]; });
+	WindowHandle = MainThreadReturn(^{ return [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO]; }, UE4NilEventMode);
 
 	if( WindowHandle == NULL )
 	{
@@ -167,7 +167,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		{
 			SetOpacity( 1.0f );
 		}
-	}, true);
+	}, UE4ResizeEventMode, true);
 }
 
 FMacWindow::FMacWindow()
@@ -214,7 +214,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 			}
 			
 			WindowHandle->bZoomed = [WindowHandle isZoomed];
-		}, true);
+		}, UE4ResizeEventMode, true);
 	}
 	
 	MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
@@ -238,7 +238,7 @@ void FMacWindow::MoveWindowTo( int32 X, int32 Y )
 		SCOPED_AUTORELEASE_POOL;
 		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - [WindowHandle frame].size.height + 1;
 		[WindowHandle setFrameOrigin: NSMakePoint(X, InvertedY)];
-	}, true);
+	}, UE4ResizeEventMode, true);
 }
 
 void FMacWindow::BringToFront( bool bForce )
@@ -248,7 +248,7 @@ void FMacWindow::BringToFront( bool bForce )
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
-		}, true);
+		}, UE4ShowEventMode, true);
 	}
 }
 
@@ -281,7 +281,7 @@ void FMacWindow::Destroy()
 			// Close the window, but don't destruct it...
 			MainThreadCall(^{
 				[Window performClose:nil];
-			}, true);
+			}, UE4CloseEventMode, true);
 			
 			// Since event handling of the change in focus may try to communicate with this window,
 			// dispatch a call to release it which should be handled afterward.
@@ -298,7 +298,7 @@ void FMacWindow::Minimize()
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle miniaturize:nil];
-	}, true);
+	}, UE4ResizeEventMode, true);
 }
 
 void FMacWindow::Maximize()
@@ -310,7 +310,7 @@ void FMacWindow::Maximize()
 			WindowHandle->bZoomed = true;
 			[WindowHandle zoom:nil];
 		}
-	}, true);
+	}, UE4ResizeEventMode, true);
 }
 
 void FMacWindow::Restore()
@@ -327,7 +327,7 @@ void FMacWindow::Restore()
 			WindowHandle->bZoomed = false;
 			[WindowHandle deminiaturize:nil];
 		}
-	}, true);
+	}, UE4ResizeEventMode, true);
 }
 
 void FMacWindow::Show()
@@ -344,7 +344,7 @@ void FMacWindow::Show()
 		
 		MainThreadCall(^{
 			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
-		}, true);
+		}, UE4ShowEventMode, true);
 		
 		bIsVisible = [WindowHandle isVisible];
 		static bool bCannotRecurse = false;
@@ -377,7 +377,7 @@ void FMacWindow::Hide()
 		}
 		MainThreadCall(^{
 			[WindowHandle orderOut:nil];
-		}, true);
+		}, UE4CloseEventMode, false);
 	}
 }
 
@@ -411,7 +411,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		MainThreadCall(^{
 			[WindowHandle setCollectionBehavior: Behaviour];
 			[WindowHandle toggleFullScreen:nil];
-		}, true);
+		}, UE4FullscreenEventMode, true);
 		
 		// Ensure that the window has transitioned BEFORE leaving this function
 		// this prevents problems with failure to correctly update mouse locks
@@ -467,7 +467,7 @@ void FMacWindow::SetWindowFocus()
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle orderFrontAndMakeMain:true andKey:true];
-	}, true);
+	}, UE4ShowEventMode, true);
 }
 
 void FMacWindow::SetOpacity( const float InOpacity )
@@ -475,7 +475,7 @@ void FMacWindow::SetOpacity( const float InOpacity )
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle setAlphaValue:InOpacity];
-	}, true);
+	}, UE4NilEventMode, true);
 }
 
 void FMacWindow::Enable( bool bEnable )
@@ -483,7 +483,7 @@ void FMacWindow::Enable( bool bEnable )
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle setIgnoresMouseEvents: !bEnable];
-	}, true);
+	}, UE4NilEventMode, true);
 }
 
 bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
@@ -547,7 +547,7 @@ void FMacWindow::SetText(const TCHAR* const Text)
 			[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
 		}
 		CFRelease( CFName );
-	}, true);
+	}, UE4NilEventMode, true);
 }
 
 bool FMacWindow::IsRegularWindow() const
@@ -576,7 +576,7 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 			{
 				[WindowHandle setDisplayReconfiguring: false];
 			}
-		}, true);
+		});
 	}
 }
 
@@ -587,7 +587,7 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 		return MainThreadReturn(^{
 			FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
 			return View && [View imkKeyDown:Event];
-		});
+		}, UE4IMEEventMode);
 	}
 	else
 	{

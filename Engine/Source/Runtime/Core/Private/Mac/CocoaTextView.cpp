@@ -178,7 +178,7 @@
 				GameThreadCall(^{
 					ITextInputMethodContext::ECaretPosition CaretPosition;
 					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
-				}, true);
+				}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 			}
 		}
 		else
@@ -201,7 +201,7 @@
 			FString TheFString(TheString);
 			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
 			IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
-		}, true);
+		}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		
 		[self unmarkText];
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
@@ -239,7 +239,7 @@
 				GameThreadCall(^{
 					ITextInputMethodContext::ECaretPosition CaretPosition;
 					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
-				}, true);
+				}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 			}
 		}
 		else
@@ -252,7 +252,7 @@
 		{
 			GameThreadCall(^{
 				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, FString());
-			}, true);
+			}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 			[self unmarkText];
 		}
 		else
@@ -261,7 +261,7 @@
 			{
 				GameThreadCall(^{
 					IMMContext->BeginComposition();
-				}, true);
+				}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 			}
 			markedRange = NSMakeRange(SelectionLocation, [aString length]);
 			
@@ -302,7 +302,7 @@
 				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
 				IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
 				IMMContext->SetSelectionRange(markedRange.location + selectedRange.location, 0, ITextInputMethodContext::ECaretPosition::Ending);
-			}, true);
+			}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		}
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
 	}
@@ -324,7 +324,7 @@
 			GameThreadCall(^{
 				IMMContext->UpdateCompositionRange(0, 0);
 				IMMContext->EndComposition();
-			}, true);
+			}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		}
 	}
 }
@@ -340,7 +340,7 @@
 		__block ITextInputMethodContext::ECaretPosition CaretPosition;
 		GameThreadCall(^{
 			IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
-		}, true);
+		}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		return {SelectionLocation, SelectionLength};
 	}
 	else
@@ -380,7 +380,7 @@
 		__block FString String;
 		GameThreadCall(^{
 			IMMContext->GetTextInRange(aRange.location, aRange.length, String);
-		}, true);
+		}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		CFStringRef CFString = FPlatformString::TCHARToCFString(*String);
 		if(CFString)
 		{
@@ -415,7 +415,7 @@
 		__block FVector2D Size;
 		GameThreadCall(^{
 			IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
-		}, true);
+		}, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		
 		if(actualRange)
 		{
@@ -443,7 +443,7 @@
 	if (IMMContext.IsValid())
 	{
 		FVector2D Pos(aPoint.x, aPoint.y);
-		int32 Index = GameThreadReturn(^{ return IMMContext->GetCharacterIndexFromPoint(Pos); });
+		int32 Index = GameThreadReturn(^{ return IMMContext->GetCharacterIndexFromPoint(Pos); }, InGameRunLoopMode(@[ UE4IMEEventMode ]));
 		NSUInteger Idx = Index == INDEX_NONE ? NSNotFound : (NSUInteger)Index;
 		return Idx;
 	}

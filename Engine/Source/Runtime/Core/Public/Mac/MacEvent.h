@@ -27,14 +27,14 @@ class FMacEvent
 	FMacEvent(NSNotification* const Notification, NSWindow* const Window);
 	
 	// Send the event to the game run loop for processing using the specified SendMethod.
-	static void SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod);
+	static void SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod, NSString* SendMode = NSDefaultRunLoopMode);
 	
 public:
 	// Send an NSEvent to the Game run loop as an FMacEvent using the specified SendMethod
-	static void SendToGameRunLoop(NSEvent* const Event, EMacEventSendMethod SendMethod);
+	static void SendToGameRunLoop(NSEvent* const Event, EMacEventSendMethod SendMethod, NSString* SendMode = NSDefaultRunLoopMode);
 	
 	// Send an NSNotification to the Game run loop as an FMacEvent using the specified SendMethod
-	static void SendToGameRunLoop(NSNotification* const Notification, NSWindow* const Window, EMacEventSendMethod SendMethod);
+	static void SendToGameRunLoop(NSNotification* const Notification, NSWindow* const Window, EMacEventSendMethod SendMethod, NSString* SendMode = NSDefaultRunLoopMode);
 	
 	// Destructor
 	~FMacEvent(void);
