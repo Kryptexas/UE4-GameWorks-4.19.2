@@ -187,6 +187,35 @@ private:
 		}
 	}
 
+	virtual bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage) override
+	{
+		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
+		TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(ActionPtr.Pin());
+
+		const FString NewTextAsString = InNewText.ToString();
+
+		// check for duplicate keys
+		for(const auto& Key : BlackboardEntryAction->BlackboardData->Keys)
+		{
+			if(&BlackboardEntryAction->Key != &Key && Key.EntryName.ToString() == NewTextAsString)
+			{
+				OutErrorMessage = LOCTEXT("DuplicateKeyWarning", "A key of this name already exists.");
+				return false;
+			}
+		}
+
+		for(const auto& Key : BlackboardEntryAction->BlackboardData->ParentKeys)
+		{
+			if(&BlackboardEntryAction->Key != &Key && Key.EntryName.ToString() == NewTextAsString)
+			{
+				OutErrorMessage = LOCTEXT("DuplicateParentKeyWarning", "An inherited key of this name already exists.");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	/** Create widget for displaying debug information about this blackboard entry */
 	TSharedRef<SWidget> CreateDebugSlotWidget(const FSlateFontInfo& InFontInfo)
 	{

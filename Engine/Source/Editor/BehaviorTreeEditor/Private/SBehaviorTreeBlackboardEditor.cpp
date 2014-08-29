@@ -174,6 +174,32 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 	NewKeyName = NewKeyName.Replace(TEXT(" "), TEXT(""));
 	NewKeyName += TEXT("Key");
 
+	int32 IndexSuffix = -1;
+	auto DuplicateFunction = [&](const FBlackboardEntry& Key)
+	{		
+		if(Key.EntryName.ToString() == NewKeyName)
+		{
+			IndexSuffix = FMath::Max(0, IndexSuffix);
+		}
+		if(Key.EntryName.ToString().StartsWith(NewKeyName))
+		{
+			const FString ExistingSuffix = Key.EntryName.ToString().RightChop(NewKeyName.Len());
+			if(ExistingSuffix.IsNumeric())
+			{
+				IndexSuffix = FMath::Max(FCString::Atoi(*ExistingSuffix) + 1, IndexSuffix);
+			}
+		}
+	};
+
+	// check for existing keys of the same name
+	for(const auto& Key : BlackboardData->Keys) { DuplicateFunction(Key); };
+	for(const auto& Key : BlackboardData->ParentKeys) { DuplicateFunction(Key); };
+
+	if(IndexSuffix != -1)
+	{
+		NewKeyName += FString::Printf(TEXT("%d"), IndexSuffix);
+	}
+
 	FBlackboardEntry Entry;
 	Entry.EntryName = FName(*NewKeyName);
 	Entry.KeyType = ConstructObject<UBlackboardKeyType>(InClass, BlackboardData);		
