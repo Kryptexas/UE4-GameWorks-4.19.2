@@ -2087,7 +2087,7 @@ UAnimMontage * UAnimInstance::GetCurrentActiveMontage()
 		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
 		if (MontageInstance && MontageInstance->IsActive())
 		{
-			MontageInstance->Montage;
+			return MontageInstance->Montage;
 		}
 	}
 
