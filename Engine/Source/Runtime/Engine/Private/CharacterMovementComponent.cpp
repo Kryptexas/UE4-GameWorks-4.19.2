@@ -5669,7 +5669,7 @@ void UCharacterMovementComponent::SendClientAdjustment()
 			ClientAdjustRootMotionPosition
 				(
 				ServerData->PendingAdjustment.TimeStamp,
-				CharacterOwner->GetRootMotionAnimMontageInstance()->Position,
+				CharacterOwner->GetRootMotionAnimMontageInstance()->GetPosition(),
 				ServerData->PendingAdjustment.NewLoc,
 				CompressedRotation,
 				ServerData->PendingAdjustment.NewVel.Z,
@@ -5897,7 +5897,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 		FAnimMontageInstance * RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
 		if( RootMotionMontageInstance )
 		{
-			RootMotionMontageInstance->Position = ServerMontageTrackPosition;
+			RootMotionMontageInstance->SetPosition(ServerMontageTrackPosition);
 			CharacterOwner->bClientResimulateRootMotion = true;
 		}
 	}
@@ -6467,7 +6467,7 @@ void FSavedMove_Character::PostUpdate(ACharacter* Character, FSavedMove_Characte
 		if( RootMotionMontageInstance )
 		{
 			RootMotionMontage = RootMotionMontageInstance->Montage;
-			RootMotionTrackPosition = RootMotionMontageInstance->Position;
+			RootMotionTrackPosition = RootMotionMontageInstance->GetPosition();
 			RootMotionMovement = Character->ClientRootMotionParams;
 		}
 	}
@@ -6569,8 +6569,9 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 			if( RootMotionMontageInstance && (RootMotionMontage == RootMotionMontageInstance->Montage) )
 			{
 				RootMotionMovement.Clear();
-				RootMotionMontageInstance->SimulateAdvance(DeltaTime, RootMotionMontageInstance->Position, RootMotionMovement);
-				RootMotionTrackPosition = RootMotionMontageInstance->Position;
+				RootMotionTrackPosition = RootMotionMontageInstance->GetPosition();
+				RootMotionMontageInstance->SimulateAdvance(DeltaTime, RootMotionTrackPosition, RootMotionMovement);
+				RootMotionMontageInstance->SetPosition(RootMotionTrackPosition);
 			}
 		}
 		Character->CharacterMovement->RootMotionParams = RootMotionMovement;

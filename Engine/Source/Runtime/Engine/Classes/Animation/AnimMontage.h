@@ -144,12 +144,6 @@ public:
 	TArray<int32> PrevSections;
 
 	UPROPERTY()
-	float Position;
-
-	UPROPERTY()
-	float PlayRate;
-
-	UPROPERTY()
 	bool bPlaying;
 
 	// delegates
@@ -166,6 +160,13 @@ public:
 	// transient PreviousWeight - Weight of previous tick
 	float PreviousWeight;
 
+private:
+	UPROPERTY()
+	float Position;
+
+	UPROPERTY()
+	float PlayRate;
+
 public:
 	FAnimMontageInstance()
 		: Montage(NULL)
@@ -173,12 +174,12 @@ public:
 		, Weight(0.f)
 		, BlendTime(0.f)
 		, DefaultBlendTimeMultiplier(1.0f)
-		, Position(0.f)
-		, PlayRate(1.f)
-		, bPlaying(false)		
+		, bPlaying(false)	
 		, AnimInstance(NULL)
 		, bInterrupted(false)
 		, PreviousWeight(0.f)
+		, Position(0.f)
+		, PlayRate(1.f)
 	{
 	}
 
@@ -188,16 +189,14 @@ public:
 		, Weight(0.f)
 		, BlendTime(0.f)
 		, DefaultBlendTimeMultiplier(1.0f)
-		, Position(0.f)
-		, PlayRate(1.f)
 		, bPlaying(false)		
 		, AnimInstance(InAnimInstance)
 		, bInterrupted(false)
-		, PreviousWeight(0.f)		
+		, PreviousWeight(0.f)	
+		, Position(0.f)
+		, PlayRate(1.f)
 	{
 	}
-
-	bool ChangeNextSection(FName SectionName, FName NextSectionName);
 
 	// montage instance interfaces
 	void Play(float InPlayRate = 1.f);
@@ -205,12 +204,31 @@ public:
 	void Pause();
 	void Initialize(class UAnimMontage * InMontage);
 
-	bool ChangePositionToSection(FName SectionName, bool bEndOfSection = false);
+	bool JumpToSectionName(FName const & SectionName, bool bEndOfSection = false);
+	bool SetNextSectionName(FName const & SectionName, FName const & NewNextSectionName);
+	bool SetNextSectionID(int32 const & SectionID, int32 const & NewNextSectionID);
 
 	bool IsValid() const { return (Montage!=NULL); }
 	bool IsPlaying() const { return IsValid() && bPlaying; }
+	bool IsStopped() const { return DesiredWeight == 0.f; }
+
+	/** Returns true if this montage is active (valid and not blending out) */
+	bool IsActive() const { return (IsValid() && !IsStopped()); }
 
 	void Terminate();
+
+	/**
+	 *  Getters
+	 */
+	float GetPosition() const { return Position; };
+	float GetPlayRate() const { return PlayRate; }
+
+	/** 
+	 * Setters
+	 */
+	void SetPosition(float const & InPosition) { Position = InPosition; }
+	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
+
 	/**
 	 * Montage Tick happens in 2 phases
 	 *
@@ -225,14 +243,19 @@ public:
 	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
 	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
 	bool SimulateAdvance(float DeltaTime, float & InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
-	void Advance(float DeltaTime, struct FRootMotionMovementParams & OutRootMotionParams);
+	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams);
 
 	FName GetCurrentSection() const;
 	FName GetNextSection() const;
+	int32 GetNextSectionID(int32 const & CurrentSectionID) const;
+	FName GetSectionNameFromID(int32 const & SectionID) const;
 
 	// reference has to be managed manually
 	void AddReferencedObjects( FReferenceCollector& Collector );
 private:
+	/** Called by blueprint functions that modify the montages current position. */
+	void OnMontagePositionChanged(FName const & ToSectionName);
+
 	/** Delegate function handlers
 	 */
 	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint * BranchingPoint);

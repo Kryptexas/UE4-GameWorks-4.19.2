@@ -698,6 +698,7 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 
 	if( Montage )
 	{
+		
 		// do not use default Montage->BlendOut  Time
 		// depending on situation, the BlendOut time changes
 		// check where this function gets called and see how we calculate BlendTime
@@ -705,6 +706,8 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 
 		if (UAnimInstance* Inst = AnimInstance.Get())
 		{
+			// Let AnimInstance know we are being stopped.
+			Inst->OnMontageInstanceStopped(*this);
 			Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
 		}
 		OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
@@ -775,6 +778,7 @@ void FAnimMontageInstance::Terminate()
 	{
 		return;
 	}
+
 	UAnimMontage* OldMontage = Montage;
 	Montage = NULL;
 
@@ -786,33 +790,71 @@ void FAnimMontageInstance::Terminate()
 	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
 
-bool FAnimMontageInstance::ChangeNextSection(FName SectionName, FName NextSectionName)
+bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)
 {
-	int32 SectionID = Montage->GetSectionIndex(SectionName);
-	int32 NextSectionID = Montage->GetSectionIndex(NextSectionName);
-	bool bHasValidNextSection = NextSections.IsValidIndex(SectionID);
-	
-	// disconnect prev section
-	if ( bHasValidNextSection && 
-		NextSections[SectionID] != INDEX_NONE &&
-		 PrevSections.IsValidIndex(NextSections[SectionID]) )
+	const int32 SectionID = Montage->GetSectionIndex(SectionName);
+
+	if (Montage->IsValidSectionIndex(SectionID))
 	{
-		PrevSections[NextSections[SectionID]] = INDEX_NONE;
-	}
-	// update in-reverse next section
-	if ( PrevSections.IsValidIndex(NextSectionID) )
-	{
-		PrevSections[NextSectionID] = SectionID;
-	}
-	// update next section for the SectionID
-	// NextSection can be invalid
-	if ( bHasValidNextSection )
-	{
-		NextSections[SectionID] = NextSectionID;
+		FCompositeSection & CurSection = Montage->GetAnimCompositeSection(SectionID);
+		Position = Montage->CalculatePos(CurSection, bEndOfSection ? Montage->GetSectionLength(SectionID) - KINDA_SMALL_NUMBER : 0.0f);
+		OnMontagePositionChanged(SectionName);
 		return true;
 	}
 
+	UE_LOG(LogAnimation, Warning, TEXT("JumpToSectionName %s bEndOfSection: %d failed for Montage %s"),
+		*SectionName.ToString(), bEndOfSection, *GetNameSafe(Montage));
 	return false;
+}
+
+bool FAnimMontageInstance::SetNextSectionName(FName const & SectionName, FName const & NewNextSectionName)
+{
+	int32 const SectionID = Montage->GetSectionIndex(SectionName);
+	int32 const NewNextSectionID = Montage->GetSectionIndex(NewNextSectionName);
+
+	return SetNextSectionID(SectionID, NewNextSectionID);
+}
+
+bool FAnimMontageInstance::SetNextSectionID(int32 const & SectionID, int32 const & NewNextSectionID)
+{
+	bool const bHasValidNextSection = NextSections.IsValidIndex(SectionID);
+
+	// disconnect prev section
+	if (bHasValidNextSection && (NextSections[SectionID] != INDEX_NONE) && PrevSections.IsValidIndex(NextSections[SectionID]))
+	{
+		PrevSections[NextSections[SectionID]] = INDEX_NONE;
+	}
+
+	// update in-reverse next section
+	if (PrevSections.IsValidIndex(NewNextSectionID))
+	{
+		PrevSections[NewNextSectionID] = SectionID;
+	}
+
+	// update next section for the SectionID
+	// NextSection can be invalid
+	if (bHasValidNextSection)
+	{
+		NextSections[SectionID] = NewNextSectionID;
+		OnMontagePositionChanged(GetSectionNameFromID(NewNextSectionID));
+		return true;
+	}
+
+	UE_LOG(LogAnimation, Warning, TEXT("SetNextSectionName %s to %s failed for Montage %s"),
+		*GetSectionNameFromID(SectionID).ToString(), *GetSectionNameFromID(NewNextSectionID).ToString(), *GetNameSafe(Montage));
+
+	return false;
+}
+
+void FAnimMontageInstance::OnMontagePositionChanged(FName const & ToSectionName) 
+{
+	if (bPlaying && (DesiredWeight == 0.f))
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"),
+			*GetNameSafe(Montage), *ToSectionName.ToString());
+
+		Play(PlayRate);
+	}
 }
 
 FName FAnimMontageInstance::GetCurrentSection() const
@@ -847,17 +889,20 @@ FName FAnimMontageInstance::GetNextSection() const
 	return NAME_None;
 }
 
-bool FAnimMontageInstance::ChangePositionToSection(FName SectionName, bool bEndOfSection)
+int32 FAnimMontageInstance::GetNextSectionID(int32 const & CurrentSectionID) const
 {
-	const int32 SectionID = Montage->GetSectionIndex(SectionName);
-	if ( Montage->IsValidSectionIndex(SectionID) )
+	return (IsActive() && (CurrentSectionID < NextSections.Num())) ? NextSections[CurrentSectionID] : INDEX_NONE;
+}
+
+FName FAnimMontageInstance::GetSectionNameFromID(int32 const & SectionID) const
+{
+	if (Montage && Montage->IsValidSectionIndex(SectionID))
 	{
-		FCompositeSection & CurSection = Montage->GetAnimCompositeSection(SectionID);
-		Position = Montage->CalculatePos(CurSection, bEndOfSection? Montage->GetSectionLength(SectionID) - KINDA_SMALL_NUMBER : 0.0f);
-		return true;
+		FCompositeSection const & CurrentSection = Montage->GetAnimCompositeSection(SectionID);
+		return CurrentSection.SectionName;
 	}
 
-	return false;
+	return NAME_None;
 }
 
 void FAnimMontageInstance::UpdateWeight(float DeltaTime)
@@ -961,7 +1006,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 	return true;
 }
 
-void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & OutRootMotionParams)
+void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams)
 {
 	if( IsValid() )
 	{
@@ -982,7 +1027,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 			const float CombinedPlayRate = PlayRate * Montage->RateScale;
 			const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-			const bool bExtractRootMotion = (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
+			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
 			
 			float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 			float OriginalMoveDelta = DesiredDeltaMove;
@@ -1033,7 +1078,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 						// Extract Root Motion for this time slice, and accumulate it.
 						if( bExtractRootMotion && AnimInstance.IsValid() )
 						{
-							OutRootMotionParams.Accumulate( Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position) );
+							OutRootMotionParams->Accumulate( Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position) );
 						}
 
 						// If about to reach the end of the montage...

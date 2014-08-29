@@ -665,15 +665,13 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
 
-		FAnimMontageInstance* ActiveMontageInstance = GetActiveMontageInstance();
-
 		for (int32 MontageIndex = 0; MontageIndex < MontageInstances.Num(); ++MontageIndex)
 		{
 			FIndenter PlayerIndent(Indent);
 
 			FAnimMontageInstance* MontageInstance = MontageInstances[MontageIndex];
 
-			Canvas->SetLinearDrawColor((MontageInstance == ActiveMontageInstance) ? ActiveColor : TextWhite);
+			Canvas->SetLinearDrawColor((MontageInstance->IsActive()) ? ActiveColor : TextWhite);
 
 			FString MontageEntry = FString::Printf(TEXT("%i) %s Sec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
 			Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
@@ -1185,6 +1183,7 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNo
 		if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
 		{
 			NodeTotalWeight += MontageInstance->Weight;
+
 			if( !MontageInstance->Montage->IsValidAdditive() )
 			{
 				NonAdditiveTotalWeight += MontageInstance->Weight;
@@ -1264,7 +1263,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 
 			// Extract pose from Track
 			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
-			FAnimExtractContext ExtractionContext(MontageInstance->Position, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
+			FAnimExtractContext ExtractionContext(MontageInstance->GetPosition(), MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
 			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
 
 			TotalWeight += MontageInstance->Weight;
@@ -1502,35 +1501,6 @@ float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
 	return 0.0f;
 }
 
-void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance )
-	{
-		CurMontageInstance->OnMontageEnded = OnMontageEnded;
-	}
-}
-
-void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance )
-	{
-		CurMontageInstance->OnMontageBlendingOutStarted = OnMontageBlendingOut;
-	}
-}
-
-FOnMontageBlendingOutStarted* UAnimInstance::Montage_GetBlendingOutDelegate()
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance )
-	{
-		return &CurMontageInstance->OnMontageBlendingOutStarted;
-	}
-
-	return NULL;
-}
-
 void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 {
 	// go through all montage instances, and update them
@@ -1546,25 +1516,27 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
-	bool bUpdateRootMotionMontageInstance = false;
 	FRootMotionMovementParams LocalExtractedRootMotion;
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
-	for (int32 I=0; I<MontageInstances.Num(); ++I)
+	for (int32 InstanceIndex = 0; InstanceIndex<MontageInstances.Num(); InstanceIndex++)
 	{
 		// should never be NULL
-		ensure(MontageInstances[I]);
-		if( MontageInstances[I] )
+		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+		ensure(MontageInstance);
+		if (MontageInstance)
 		{
-			MontageInstances[I]->Advance(DeltaSeconds, LocalExtractedRootMotion);
+			// Only use root motion from active root motion montage.
+			// we don't support blending/weighting because of networking constraints.
+			bool const bExtractRootMotion = (MontageInstance == GetRootMotionMontageInstance());
+			MontageInstance->Advance(DeltaSeconds, bExtractRootMotion ? &LocalExtractedRootMotion : NULL);
 
-			if( !MontageInstances[I]->IsValid() )
+			if (!MontageInstance->IsValid())
 			{
-				delete MontageInstances[I];
-				MontageInstances.RemoveAt(I);
-				bUpdateRootMotionMontageInstance = true;
-				--I;
+				delete MontageInstance;
+				MontageInstances.RemoveAt(InstanceIndex);
+				--InstanceIndex;
 			}
 #if DO_CHECK && WITH_EDITORONLY_DATA && 0
 			else
@@ -1578,8 +1550,6 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 #endif
 		}
 	}
-
-	UpdateRootMotionMontageInstance();
 
 	// If Root Motion has been extracted, store it.
 	if ((GetRootMotionMontageInstance() != NULL) && LocalExtractedRootMotion.bHasRootMotion)
@@ -1651,139 +1621,60 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime)
 
 bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName )
 {
-	// check if this is playing
-	FAnimMontageInstance * CurrentInstance = GetActiveMontageInstance();
-	// make sure what is active right now is transient that we created by request
-	if ( CurrentInstance && CurrentInstance->Montage && CurrentInstance->Montage->GetOuter() == GetTransientPackage() )
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
-		UAnimMontage * CurMontage = CurrentInstance->Montage;
-
-		const FAnimTrack * AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
-		if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
+		// check if this is playing
+		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+		// make sure what is active right now is transient that we created by request
+		if (MontageInstance && MontageInstance->IsActive() && MontageInstance->IsPlaying())
 		{
-			// find if the 
-			return (AnimTrack->AnimSegments[0].AnimReference == Asset);
+			UAnimMontage * CurMontage = MontageInstance->Montage;
+			if (CurMontage && CurMontage->GetOuter() == GetTransientPackage())
+			{
+				const FAnimTrack * AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
+				if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
+				{
+					// find if the 
+					return (AnimTrack->AnimSegments[0].AnimReference == Asset);
+				}
+			}
 		}
 	}
 
 	return false;
 }
 
-UAnimMontage * UAnimInstance::GetCurrentActiveMontage()
-{
-	FAnimMontageInstance* CurrentActiveMontage = GetActiveMontageInstance();
-	if (CurrentActiveMontage)
-	{
-		return CurrentActiveMontage->Montage;
-	}
-
-	return NULL;
-}
-
-FAnimMontageInstance* UAnimInstance::GetActiveMontageInstance()
-{
-	if ( MontageInstances.Num() > 0 )
-	{
-		FAnimMontageInstance * RetVal = MontageInstances.Last();
-		if ( RetVal->IsValid() )
-		{
-			return RetVal;
-		}
-	}
-
-	return NULL;
-}
-
-void UAnimInstance::OnMontagePositionChanged(FAnimMontageInstance* MontageInstance, FName ToSectionName)
-{
-	if(MontageInstance && MontageInstance->bPlaying)
-	{
-		if(MontageInstance->DesiredWeight == 0.f)
-		{
-			UE_LOG( LogAnimation, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"), 
-					*MontageInstance->Montage->GetName(), *ToSectionName.ToString() );
-			MontageInstance->Play(MontageInstance->PlayRate);
-		}
-	}
-}
-
-void UAnimInstance::Montage_JumpToSection(FName SectionName)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance && CurMontageInstance->ChangePositionToSection(SectionName, CurMontageInstance->PlayRate < 0.0f) == false )
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Jumping section to %s failed for Montage (%s) "), 
-			*SectionName.ToString(), *CurMontageInstance->Montage->GetName() );
-	}
-	else
-	{
-		OnMontagePositionChanged(CurMontageInstance, SectionName);
-	}
-}
-
-void UAnimInstance::Montage_JumpToSectionsEnd(FName SectionName)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance && CurMontageInstance->ChangePositionToSection(SectionName, CurMontageInstance->PlayRate >= 0.0f) == false )
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Jumping section to %s failed for Montage (%s) "), 
-			*SectionName.ToString(), *CurMontageInstance->Montage->GetName() );
-	}
-	else
-	{
-		OnMontagePositionChanged(CurMontageInstance, SectionName);
-	}
-}
-
-FName UAnimInstance::Montage_GetCurrentSection()
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance )
-	{
-		return CurMontageInstance->GetCurrentSection();
-	}
-
-	return NAME_None;
-}
-
-void UAnimInstance::Montage_SetNextSection(FName SectionNameToChange, FName NextSection)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance && CurMontageInstance->ChangeNextSection(SectionNameToChange, NextSection) == false )
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Changing section from %s to %s failed for Montage (%s) "), 
-			*SectionNameToChange.ToString(), *NextSection.ToString(), *CurMontageInstance->Montage->GetName() );
-	}
-	else
-	{
-		OnMontagePositionChanged(CurMontageInstance, NextSection);
-	}
-}
-
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
 float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate)
 {
-	if( MontageToPlay && (MontageToPlay->SequenceLength > 0.f) ) 
+	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f))
 	{
-		if( CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()) )
+		if (CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
+			//@fixme laurent -- only stop montages that belong to same group. 
+			// or to ensure single root motion montage playing.
 			// when stopping old animations, make sure it does give current new blendintime to blend out
 			StopAllMontages(MontageToPlay->BlendInTime);
 
 			FAnimMontageInstance * NewInstance = new FAnimMontageInstance(this);
-			check (NewInstance);
+			check(NewInstance);
 
 			NewInstance->Initialize(MontageToPlay);
 			NewInstance->Play(InPlayRate);
 			MontageInstances.Add(NewInstance);
+			ActiveMontagesMap.Add(MontageToPlay, NewInstance);
 
-			UpdateRootMotionMontageInstance();
+			// If we are playing root motion, set this instance as the one providing root motion.
+			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
+			{
+				RootMotionMontageInstance = NewInstance;
+			}
 
 			return NewInstance->Montage->SequenceLength;
 		}
 		else
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("Playing a Montage (%s) for the wrong Skeleton (%s) instead of (%s)."), 
+			UE_LOG(LogAnimation, Warning, TEXT("Playing a Montage (%s) for the wrong Skeleton (%s) instead of (%s)."),
 				*GetNameSafe(MontageToPlay), *GetNameSafe(MontageToPlay->GetSkeleton()), *GetNameSafe(CurrentSkeleton));
 		}
 	}
@@ -1791,14 +1682,465 @@ float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate
 	return 0.f;
 }
 
-void UAnimInstance::UpdateRootMotionMontageInstance()
+void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage * Montage)
 {
-	FAnimMontageInstance * ActiveMontageInstance = GetActiveMontageInstance();
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->Stop(InBlendOutTime);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->Stop(InBlendOutTime);
+			}
+		}
+	}
+}
 
-	const bool bValidRootMotionInstance = (ActiveMontageInstance && ActiveMontageInstance->IsValid() && (ActiveMontageInstance->DesiredWeight > 0.f) && ActiveMontageInstance->Montage 
-		&& (ActiveMontageInstance->Montage->bEnableRootMotionTranslation || ActiveMontageInstance->Montage->bEnableRootMotionRotation) );
+void UAnimInstance::Montage_JumpToSection(FName SectionName, UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			bool const bEndOfSection = (MontageInstance->GetPlayRate() < 0.f);
+			MontageInstance->JumpToSectionName(SectionName, bEndOfSection);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				bool const bEndOfSection = (MontageInstance->GetPlayRate() < 0.f);
+				MontageInstance->JumpToSectionName(SectionName, bEndOfSection);
+			}
+		}
+	}
+}
 
-	RootMotionMontageInstance = bValidRootMotionInstance ? ActiveMontageInstance : NULL;
+void UAnimInstance::Montage_JumpToSectionsEnd(FName SectionName, UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			bool const bEndOfSection = (MontageInstance->GetPlayRate() >= 0.f);
+			MontageInstance->JumpToSectionName(SectionName, bEndOfSection);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				bool const bEndOfSection = (MontageInstance->GetPlayRate() >= 0.f);
+				MontageInstance->JumpToSectionName(SectionName, bEndOfSection);
+			}
+		}
+	}
+}
+
+void UAnimInstance::Montage_SetNextSection(FName SectionNameToChange, FName NextSection, UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->SetNextSectionName(SectionNameToChange, NextSection);
+		}
+	}
+	else
+	{
+		bool bFoundOne = false;
+
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->SetNextSectionName(SectionNameToChange, NextSection);
+				bFoundOne = true;
+			}
+		}
+
+		if (!bFoundOne)
+		{
+			bFoundOne = true;
+		}
+	}
+}
+
+void UAnimInstance::Montage_SetPlayRate(UAnimMontage * Montage, float NewPlayRate)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->SetPlayRate(NewPlayRate);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->SetPlayRate(NewPlayRate);
+			}
+		}
+	}
+}
+
+bool UAnimInstance::Montage_IsActive(UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return true;
+		}
+	}
+	else
+	{
+		// If no Montage reference, return true if there is any active montage.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool UAnimInstance::Montage_IsPlaying(UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return MontageInstance->IsPlaying();
+		}
+	}
+	else
+	{
+		// If no Montage reference, return true if there is any active playing montage.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive() && MontageInstance->IsPlaying())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+FName UAnimInstance::Montage_GetCurrentSection(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return MontageInstance->GetCurrentSection();
+		}
+	}
+	else
+	{
+		// If no Montage reference, get first active one.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return MontageInstance->GetCurrentSection();
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
+void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded, UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->OnMontageEnded = OnMontageEnded;
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->OnMontageEnded = OnMontageEnded;
+			}
+		}
+	}
+}
+
+void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut, UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->OnMontageBlendingOutStarted = OnMontageBlendingOut;
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->OnMontageBlendingOutStarted = OnMontageBlendingOut;
+			}
+		}
+	}
+}
+
+FOnMontageBlendingOutStarted * UAnimInstance::Montage_GetBlendingOutDelegate(UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return &MontageInstance->OnMontageBlendingOutStarted;
+		}
+	}
+	else
+	{
+		// If no Montage reference, use first active one found.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return &MontageInstance->OnMontageBlendingOutStarted;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+void UAnimInstance::Montage_SetPosition(UAnimMontage* Montage, float NewPosition)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->SetPosition(NewPosition);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->SetPosition(NewPosition);
+			}
+		}
+	}
+}
+
+float UAnimInstance::Montage_GetPosition(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return MontageInstance->GetPosition();
+		}
+	}
+	else
+	{
+		// If no Montage reference, use first active one found.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return MontageInstance->GetPosition();
+			}
+		}
+	}
+
+	return 0.f;
+}
+
+bool UAnimInstance::Montage_GetIsStopped(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		return (!MontageInstance); // Not active == Stopped.
+	}
+	return true;
+}
+
+float UAnimInstance::Montage_GetPlayRate(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return MontageInstance->GetPlayRate();
+		}
+	}
+	else
+	{
+		// If no Montage reference, use first active one found.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return MontageInstance->GetPlayRate();
+			}
+		}
+	}
+
+	return 0.f;
+}
+
+int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage const * const Montage, int32 const & CurrentSectionID) const
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			return (CurrentSectionID < MontageInstance->NextSections.Num()) ? MontageInstance->NextSections[CurrentSectionID] : INDEX_NONE;
+		}
+	}
+	else
+	{
+		// If no Montage reference, use first active one found.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				return (CurrentSectionID < MontageInstance->NextSections.Num()) ? MontageInstance->NextSections[CurrentSectionID] : INDEX_NONE;
+			}
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+UAnimMontage * UAnimInstance::GetCurrentActiveMontage()
+{
+	// Start from end, as most recent instances are added at the end of the queue.
+	int32 const NumInstances = MontageInstances.Num();
+	for (int32 InstanceIndex = NumInstances - 1; InstanceIndex >= 0; InstanceIndex--)
+	{
+		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+		if (MontageInstance && MontageInstance->IsActive())
+		{
+			MontageInstance->Montage;
+		}
+	}
+
+	return NULL;
+}
+
+FAnimMontageInstance* UAnimInstance::GetActiveMontageInstance()
+{
+	// Start from end, as most recent instances are added at the end of the queue.
+	int32 const NumInstances = MontageInstances.Num();
+	for (int32 InstanceIndex = NumInstances - 1; InstanceIndex >= 0; InstanceIndex--)
+	{
+		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+		if (MontageInstance && MontageInstance->IsActive())
+		{
+			return MontageInstance;
+		}
+	}
+
+	return NULL;
+}
+
+void UAnimInstance::StopAllMontages(float BlendOut)
+{
+	for (int32 Index = MontageInstances.Num() - 1; Index >= 0; Index--)
+	{
+		MontageInstances[Index]->Stop(BlendOut, true);
+	}
+}
+
+void UAnimInstance::OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance)
+{
+	UAnimMontage * MontageStopped = StoppedMontageInstance.Montage;
+	ensure(MontageStopped != NULL);
+
+	// Remove instance for Active List.
+	FAnimMontageInstance** AnimInstancePtr = ActiveMontagesMap.Find(MontageStopped);
+	if (AnimInstancePtr && (*AnimInstancePtr == &StoppedMontageInstance))
+	{
+		ActiveMontagesMap.Remove(MontageStopped);
+	}
+
+	// Clear RootMotionMontageInstance
+	if (RootMotionMontageInstance == &StoppedMontageInstance)
+	{
+		RootMotionMontageInstance = NULL;
+	}
+}
+
+FAnimMontageInstance * UAnimInstance::GetActiveInstanceForMontage(UAnimMontage const & Montage) const
+{
+	FAnimMontageInstance * const * FoundInstancePtr = ActiveMontagesMap.Find(&Montage);
+	return FoundInstancePtr ? *FoundInstancePtr : NULL;
 }
 
 FAnimMontageInstance * UAnimInstance::GetRootMotionMontageInstance() const
@@ -1811,85 +2153,6 @@ FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion()
 	FRootMotionMovementParams RootMotion = ExtractedRootMotion;
 	ExtractedRootMotion.Clear();
 	return RootMotion;
-}
-
-void UAnimInstance::Montage_Stop(float InBlendOutTime)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if ( CurMontageInstance )
-	{
-		CurMontageInstance->Stop(InBlendOutTime);
-	}
-}
-
-/** Has Montage been stopped? */
-bool UAnimInstance::Montage_GetIsStopped(UAnimMontage* Montage)
-{
-	FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance();
-	return (!CurMontageInstance || (CurMontageInstance->Montage != Montage) || (CurMontageInstance->DesiredWeight == 0.f));
-}
-
-bool UAnimInstance::Montage_IsActive(UAnimMontage * Montage)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	return ( CurMontageInstance  && CurMontageInstance->Montage == Montage);
-}
-
-
-bool UAnimInstance::Montage_IsPlaying(UAnimMontage * Montage)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	return ( CurMontageInstance  && CurMontageInstance->Montage == Montage && CurMontageInstance->IsPlaying() );
-}
-
-float UAnimInstance::Montage_GetPosition(UAnimMontage* Montage)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	return CurMontageInstance ? CurMontageInstance->Position : 0.f;
-}
-
-void UAnimInstance::Montage_SetPosition(UAnimMontage* Montage, float NewPosition)
-{
-	// @laurent we probably want (an option?) to advance time rather than jump? As that skips notifies/events?
-	FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance();
-	if( CurMontageInstance )
-	{
-		CurMontageInstance->Position = NewPosition;
-	}
-}
-
-float UAnimInstance::Montage_GetPlayRate(UAnimMontage* Montage)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	return CurMontageInstance ? CurMontageInstance->PlayRate : 0.f;
-}
-
-void UAnimInstance::Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate)
-{
-	FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance();
-	if( CurMontageInstance && (CurMontageInstance->Montage == Montage) && CurMontageInstance->IsPlaying() )
-	{
-		CurMontageInstance->PlayRate = NewPlayRate;
-	}
-}
-
-int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage* Montage, int32 CurrentSectionID)
-{
-	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
-	if( CurMontageInstance && CurrentSectionID < CurMontageInstance->NextSections.Num() )
-	{
-		return CurMontageInstance->NextSections[CurrentSectionID];
-	}
-
-	return INDEX_NONE;
-}
-
-void UAnimInstance::StopAllMontages(float BlendOut)
-{
-	for ( int32 Index=MontageInstances.Num()-1; Index>=0; Index-- )
-	{
-		MontageInstances[Index]->Stop(BlendOut, true);
-	}
 }
 
 void UAnimInstance::SetMorphTarget(FName MorphTargetName, float Value)

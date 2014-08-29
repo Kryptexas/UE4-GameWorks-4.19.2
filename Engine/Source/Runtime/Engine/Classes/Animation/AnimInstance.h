@@ -334,6 +334,9 @@ public:
 	UFUNCTION()
 	void AnimNotify_Sound(UAnimNotify* Notify);
 
+	/*********************************************************************************************
+	* SlotAnimation
+	********************************************************************************************* */
 public:
 
 	/** Play normal animation asset on the slot node. You can only play one asset (whether montage or animsequence) at a time. */
@@ -348,13 +351,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName ); 
 
-	/** Makes a montage jump to a named section. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_JumpToSection(FName SectionName);
+	/*********************************************************************************************
+	 * AnimMontage
+	 ********************************************************************************************* */
+public:
+	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	float Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate);
 
-	/** Makes a montage jump to the end of a named section. */
+	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void Montage_Stop(float InBlendOutTime, UAnimMontage * Montage = NULL);
+
+	/** Makes a montage jump to a named section. If Montage reference is NULL, it will do that to all active montages. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_JumpToSectionsEnd(FName SectionName);
+	void Montage_JumpToSection(FName SectionName, UAnimMontage * Montage = NULL);
+
+	/** Makes a montage jump to the end of a named section. If Montage reference is NULL, it will do that to all active montages. */
+	UFUNCTION(BlueprintCallable, Category="Animation")
+	void Montage_JumpToSectionsEnd(FName SectionName, UAnimMontage * Montage = NULL);
 
 	/** Relink new next section AFTER SectionNameToChange in run-time
 	 *	You can link section order the way you like in editor, but in run-time if you'd like to change it dynamically, 
@@ -366,32 +381,93 @@ public:
 	 * @param NextSection	: new next section 
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection);
+	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection, UAnimMontage * Montage = NULL);
 
 	/** Change AnimMontage play rate. NewPlayRate = 1.0 is the default playback rate. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate = 1.f);
 
-	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f);
-
-	/** Stops the animation montage. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_Stop(float InBlendOutTime = 0.25f);
-
-	/** Returns true if the animation montage is active. */
+	/** Returns true if the animation montage is active. If the Montage reference is NULL, it will return true if any Montage is active. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	bool Montage_IsActive(UAnimMontage* Montage);  
 
-	/** Returns true if the animation montage is currently playing. */
+	/** Returns true if the animation montage is currently active and playing. 
+	If reference is NULL, it will return true is ANY montage is currently active and playing. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	bool Montage_IsPlaying(UAnimMontage* Montage); 
 
 	/** Returns the name of the current animation montage section. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	FName Montage_GetCurrentSection();
+	FName Montage_GetCurrentSection(UAnimMontage* Montage = NULL);
 
+	/** Called when a montage starts blending out, whether interrupted or finished */
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageBlendingOutStartedMCDelegate OnMontageBlendingOut;
+	
+	/** Called when a montage has ended, whether interrupted or finished*/
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageEndedMCDelegate OnMontageEnded;
+
+	/*********************************************************************************************
+	* AnimMontage native C++ interface
+	********************************************************************************************* */
+public:	
+	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded, UAnimMontage * Montage = NULL);
+	
+	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut, UAnimMontage* Montage = NULL);
+	
+	/** Get pointer to BlendingOutStarted delegate for Montage.
+	If Montage reference is NULL, it will pick the first active montage found. */
+	FOnMontageBlendingOutStarted * Montage_GetBlendingOutDelegate(UAnimMontage * Montage = NULL);
+
+	/** Get Current Montage Position */
+	float Montage_GetPosition(UAnimMontage* Montage);
+	
+	/** Set position. */
+	void Montage_SetPosition(UAnimMontage* Montage, float NewPosition);
+	
+	/** return true if Montage is not currently active. (not valid or blending out) */
+	bool Montage_GetIsStopped(UAnimMontage* Montage);
+
+	/** Get PlayRate for Montage.
+	If Montage reference is NULL, PlayRate for any Active Montage will be returned.
+	If Montage is not playing, 0 is returned. */
+	float Montage_GetPlayRate(UAnimMontage* Montage);
+
+	/** Get next sectionID for given section ID */
+	int32 Montage_GetNextSectionID(UAnimMontage const * const Montage, int32 const & CurrentSectionID) const;
+
+	/** Get a current Active Montage in this AnimInstance. 
+		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
+	UAnimMontage * GetCurrentActiveMontage();
+
+	/** Get Currently active montage instance.
+		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
+	FAnimMontageInstance * GetActiveMontageInstance();
+
+	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
+	FAnimMontageInstance * GetActiveInstanceForMontage(UAnimMontage const & Montage) const;
+
+	/** AnimMontage instances that are running currently
+	* - only one is primarily active per group, and the other ones are blending out
+	*/
+	TArray<struct FAnimMontageInstance*> MontageInstances;
+
+	void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
+
+protected:
+	/** Map between Active Montages and their FAnimMontageInstance */
+	TMap<class UAnimMontage *, struct FAnimMontageInstance*> ActiveMontagesMap;
+
+	/** Stop all montages that are active **/
+	void StopAllMontages(float BlendOut);
+
+	/** Update weight of montages  **/
+	virtual void Montage_UpdateWeight(float DeltaSeconds);
+	/** Advance montages **/
+	virtual void Montage_Advance(float DeltaSeconds);
+
+public:
 	/** Returns the value of a named curve. */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintProtected = "true"))
 	float GetCurveValue(FName CurveName);
@@ -490,11 +566,6 @@ public:
 		is removed correctly. */
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
-	/** AnimMontage instances that are running currently 
-	 * - only one is primarily active, but the other ones are blending out 
-	 */
-	TArray<struct FAnimMontageInstance*> MontageInstances;
-
 	/** Curve Values that are added to trigger in event**/
 	TMap<FName, float>	EventCurves;
 	/** Morph Target Curves that will be used for SkeletalMeshComponent **/
@@ -548,51 +619,7 @@ public:
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
 
-	/* native cpp montage interface functions **/
-	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded);
-	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut);
-	FOnMontageBlendingOutStarted* Montage_GetBlendingOutDelegate();
-
-
-	/** Called when a montage starts blending out, whether interrupted or finished */
-	UPROPERTY(BlueprintAssignable)
-	FOnMontageBlendingOutStartedMCDelegate OnMontageBlendingOut;
-	
-	/** Called when a montage has ended, whether interrupted or finished*/
-	UPROPERTY(BlueprintAssignable)
-	FOnMontageEndedMCDelegate OnMontageEnded;
-
-public:
-	/** Get Current Montage Position */
-	float Montage_GetPosition(UAnimMontage* Montage);
-	/** Has Montage been stopped? */
-	bool Montage_GetIsStopped(UAnimMontage* Montage);
-
-	/** Set position. */
-	void Montage_SetPosition(UAnimMontage* Montage, float NewPosition);
-
-	/** Get PlayRate */
-	float Montage_GetPlayRate(UAnimMontage* Montage);
-
-	/** Get next sectionID for given section ID */
-	int32 Montage_GetNextSectionID(UAnimMontage* Montage, int32 CurrentSectionID);
-
-	/** Get Current Active Montage in this AnimInstance **/
-	UAnimMontage * GetCurrentActiveMontage();
-
-	/** Get Currently active montage instace **/
-	FAnimMontageInstance* GetActiveMontageInstance();
-
 protected:
-	/** Update weight of montages  **/
-	virtual void Montage_UpdateWeight(float DeltaSeconds);
-	/** Advance montages **/
-	virtual void Montage_Advance(float DeltaSeconds);
-	/** Stop all montages that are active **/
-	void StopAllMontages(float BlendOut);
-	/** Called by blueprint functions that modify the montages current position. */
-	void OnMontagePositionChanged(FAnimMontageInstance* MontageInstance, FName ToSectionName);
-
 	/** 
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
@@ -615,9 +642,6 @@ public:
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;
-
-	/** Update RootMotionMontageInstance */
-	void UpdateRootMotionMontageInstance();
 
 	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
 	FRootMotionMovementParams ExtractedRootMotion;

@@ -275,7 +275,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 			FAnimMontageInstance * ActiveMontageInstance = GetActiveMontageInstance();
 			if (ActiveMontageInstance)
 			{
-				CurrentTime = ActiveMontageInstance->Position;
+				CurrentTime = ActiveMontageInstance->GetPosition();
 			}
 			else if (bPlaying)
 			{
@@ -427,7 +427,7 @@ void UAnimSingleNodeInstance::Montage_Advance(float DeltaTime)
 	FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance();
 	if ( CurMontageInstance )
 	{
-		CurrentTime = CurMontageInstance->Position;
+		CurrentTime = CurMontageInstance->GetPosition();
 	}
 }
 
@@ -478,7 +478,7 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 	{
-		CurMontageInstance->PlayRate = InPlayRate;
+		CurMontageInstance->SetPlayRate(InPlayRate);
 	}
 }
 
@@ -517,7 +517,7 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 	{
-		CurMontageInstance->Position = CurrentTime;
+		CurMontageInstance->SetPosition(CurrentTime);
 	}
 
 	// Handle notifies

@@ -174,7 +174,7 @@ void UAnimPreviewInstance::MontagePreview_SetReverse(bool bInReverse)
 	if (FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance())
 	{
 		// copy the current playrate
-		CurMontageInstance->PlayRate = PlayRate;
+		CurMontageInstance->SetPlayRate(PlayRate);
 	}
 }
 
