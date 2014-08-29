@@ -753,6 +753,11 @@ void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& 
 	TargetPlatformNames.Add(FPlatformProperties::PlatformName());
 }
 
+TArray<uint8> FGenericPlatformMisc::GetSystemFontBytes()
+{
+	return TArray<uint8>();
+}
+
 const TCHAR* FGenericPlatformMisc::GetDefaultPathSeparator()
 {
 	return TEXT( "/" );

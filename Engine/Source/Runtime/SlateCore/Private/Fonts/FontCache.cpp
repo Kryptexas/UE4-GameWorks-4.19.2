@@ -381,48 +381,59 @@ private:
 	 */
 	FT_Face GetFontFace( const FName& FontName )
 	{
+		static const FName SpecialName_DefaultSystemFont("DefaultSystemFont");
+
 		FFontFaceAndMemory* FaceAndMemory = FontFaceMap.Find( FontName );
 		if (!FaceAndMemory)
 		{
 			// make a new entry
 			FaceAndMemory = &FontFaceMap.Add(FontName, FFontFaceAndMemory());
 
-			// load the font via UE4 methods, so that it will route through all proper file management (network file loading, etc)
-			FString FontPath = FontName.ToString();
-
 			// default to error condition
 			bool Error = true;
 
-			int64 FileSize = IFileManager::Get().FileSize(*FontPath);
-			if ( FileSize > 0 )
+			if (FontName == SpecialName_DefaultSystemFont)
 			{
-				// allocate space for the font
-				FaceAndMemory->Memory = (uint8*)FMemory::Malloc((uint32)FileSize);
-				FArchive* Ar = IFileManager::Get().CreateFileReader(*FontPath);
-				if (Ar != nullptr)
+				// Ask the platform to load the data for a default system font.
+				const TArray<uint8> FontBytes = FPlatformMisc::GetSystemFontBytes();
+				if ( FontBytes.Num() > 0 )
 				{
-					// read in the file
-					Ar->Serialize( FaceAndMemory->Memory, FileSize );
-					delete Ar;
-
+					FaceAndMemory->Memory = static_cast<uint8*>( FMemory::Malloc(FontBytes.Num()) );
+					FMemory::Memcpy( FaceAndMemory->Memory, FontBytes.GetData(), FontBytes.Num() );
+					
 					// initialize the font, setting the error code
-					Error = FT_New_Memory_Face( FTLibrary, FaceAndMemory->Memory, (FT_Long)FileSize, 0, &FaceAndMemory->Face ) != 0;
+					Error = FT_New_Memory_Face( FTLibrary, FaceAndMemory->Memory, static_cast<FT_Long>(FontBytes.Num()), 0, &FaceAndMemory->Face ) != 0;
 				}
-
-				// if it failed, we don't want to keep the memory around
-				if ( Error )
+			}
+			else
+			{
+				// load the font via UE4 methods, so that it will route through all proper file management (network file loading, etc)
+				const FString FontPath = FontName.ToString();
+				int64 FileSize = IFileManager::Get().FileSize(*FontPath);
+				if ( FileSize > 0 )
 				{
-					FMemory::Free(FaceAndMemory->Memory);
-					FontFaceMap.Remove(FontName);
-					FaceAndMemory = nullptr;
+					// allocate space for the font
+					FaceAndMemory->Memory = (uint8*)FMemory::Malloc((uint32)FileSize);
+					FArchive* Ar = IFileManager::Get().CreateFileReader(*FontPath);
+					if (Ar != nullptr)
+					{
+						// read in the file
+						Ar->Serialize( FaceAndMemory->Memory, FileSize );
+						delete Ar;
+
+						// initialize the font, setting the error code
+						Error = FT_New_Memory_Face( FTLibrary, FaceAndMemory->Memory, (FT_Long)FileSize, 0, &FaceAndMemory->Face ) != 0;
+					}
 				}
 			}
 
+			// if it failed, we don't want to keep the memory around
 			if ( Error )
 			{
-				UE_LOG( LogSlate, Warning, TEXT("GetFontFace failed to load or process '%s'"), *FontPath);
+				FMemory::Free(FaceAndMemory->Memory);
 				FontFaceMap.Remove(FontName);
 				FaceAndMemory = nullptr;
+				UE_LOG( LogSlate, Warning, TEXT("GetFontFace failed to load or process '%s'"), *FontName.ToString());
 			}
 		}
 
