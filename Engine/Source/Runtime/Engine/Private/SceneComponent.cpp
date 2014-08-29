@@ -870,7 +870,7 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		{
 			if (FBodyInstance * BI = PrimitiveComponent->GetBodyInstance())
 			{
-				if (BI->bAutoWeld || bWeldSimulatedBodies)
+				if (bWeldSimulatedBodies)
 				{
 					PrimitiveComponent->WeldToImplementation(AttachParent, AttachSocketName, bWeldSimulatedBodies);
 				}

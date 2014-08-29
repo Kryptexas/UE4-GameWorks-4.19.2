@@ -208,6 +208,9 @@ public:
 	/** Constraint used to allow for easy DOF setup per bodyinstance */
 	FConstraintInstance * DOFConstraint;
 
+	/** The parent body that we are welded to*/
+	FBodyInstance * WeldParent;
+
 protected:
 
 	/** Whether this instance of the object has its own custom walkability override setting. */

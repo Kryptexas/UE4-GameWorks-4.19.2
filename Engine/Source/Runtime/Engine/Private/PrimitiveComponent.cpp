@@ -409,6 +409,8 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 		return false;
 	}
 
+	UnWeldFromParent();	//make sure to unweld from wherever we currently are
+
 	FName SocketName;
 	UPrimitiveComponent * RootComponent = GetRootWelded(this, ParentSocketName, &SocketName, true);
 
@@ -416,6 +418,11 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 	{
 		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName))
 		{
+			if (BI->WeldParent == RootBI)	//already welded so stop
+			{
+				return true;
+			}
+
 			BI->bWelded = true;
 			//There are multiple cases to handle:
 			//Root is kinematic, simulated
@@ -425,6 +432,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 			//if root is kinematic simply set child to be kinematic and we're done
 			if (RootComponent->IsSimulatingPhysics(SocketName) == false)
 			{
+				BI->WeldParent = NULL;
 				SetSimulatePhysics(false);
 				return false;	//return false because we need to continue with regular body initialization
 			}
@@ -432,6 +440,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 			//root is simulated so we actually weld the body
 			FTransform RelativeTM = RootComponent == AttachParent ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
 			RootBI->Weld(BI, GetComponentToWorld());
+			BI->WeldParent = RootBI;
 
 			return true;
 		}
@@ -469,6 +478,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 			//create new root
 			RootBI->UnWeld(NewRootBI);
 			NewRootBI->bWelded = false;
+			NewRootBI->WeldParent = NULL;
 
 			bool bHasBodySetup = GetBodySetup() != NULL;
 

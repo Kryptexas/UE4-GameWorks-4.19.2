@@ -206,6 +206,7 @@ FBodyInstance::FBodyInstance()
 , LockedAxisMode(0)
 , CustomLockedAxis(FVector::ZeroVector)
 , DOFConstraint(NULL)
+, WeldParent(NULL)
 , bOverrideWalkableSlopeOnInstance(false)
 , bOverrideMaxDepenetrationVelocity(false)
 , MaxDepenetrationVelocity(0.f)
@@ -1397,6 +1398,27 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
+
+	if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
+	{
+		for (USceneComponent * Child : OwnerComponentInst->AttachChildren)
+		{
+			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
+			{
+				if (FBodyInstance * ChildBI = PrimChild->GetBodyInstance())
+				{
+					if (ChildBI->bWelded)
+					{
+						if (ChildBI->OwnerComponent.IsValid())
+						{
+							ChildBI->OwnerComponent->UnWeldFromParent();
+						}
+					}
+				}
+			}
+		}
+	}
+
 #if WITH_BOX2D
 	if (BodyInstancePtr != NULL)
 	{
