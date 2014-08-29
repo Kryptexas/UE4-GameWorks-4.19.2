@@ -179,6 +179,9 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 	// Replace %ENGINEUSERDIR% with the user's engine directory.
 	Text = Text.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
 
+	// Replace %ENGINEVERSIONAGNOSTICUSERDIR% with the user's engine directory.
+	Text = Text.Replace(TEXT("%ENGINEVERSIONAGNOSTICUSERDIR%"), *FPaths::EngineVersionAgnosticUserDir(), ESearchCase::CaseSensitive);
+
 	// Replace %APPSETTINGSDIR% with the game directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
 	FPaths::NormalizeFilename(AppSettingsDir);

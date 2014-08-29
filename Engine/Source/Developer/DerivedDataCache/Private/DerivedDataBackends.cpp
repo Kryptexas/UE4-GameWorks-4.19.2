@@ -72,7 +72,7 @@ public:
 		if( !RootCache )
 		{
 			// Use default graph
-			GraphName = FApp::IsEngineInstalled() ? TEXT("RocketDerivedDataBackendGraph") : TEXT("DerivedDataBackendGraph");
+			GraphName = FApp::IsEngineInstalled() ? TEXT("InstalledDerivedDataBackendGraph") : TEXT("DerivedDataBackendGraph");
 			FString Entry;
 			if( !GConfig->GetString( *GraphName, TEXT("Root"), Entry, GEngineIni ) || !Entry.Len())
 			{

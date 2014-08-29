@@ -35,6 +35,18 @@ FString FPaths::EngineUserDir()
 	}
 }
 
+FString FPaths::EngineVersionAgnosticUserDir()
+{
+	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
+	{
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT(EPIC_PRODUCT_IDENTIFIER), TEXT("Common")) + TEXT("/");
+	}
+	else
+	{
+		return FPaths::EngineDir();
+	}
+}
+
 FString FPaths::EngineContentDir()
 {
 	return FPaths::EngineDir() + TEXT("Content/");
