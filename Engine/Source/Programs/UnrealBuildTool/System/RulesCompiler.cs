@@ -1701,6 +1701,8 @@ namespace UnrealBuildTool
 		public static UEBuildTarget CreateTarget(string TargetName, TargetInfo Target,
 			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile)
 		{
+			var CreateTargetStartTime = DateTime.UtcNow;
+
 			string TargetFileName;
 			TargetRules RulesObject = CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
 			if (bInEditorRecompile)
@@ -1789,6 +1791,12 @@ namespace UnrealBuildTool
 							bInEditorRecompile:bInEditorRecompile);
 					}
 					break;
+			}
+
+			if( BuildConfiguration.bPrintPerformanceInfo )
+			{ 
+				var CreateTargetTime = (DateTime.UtcNow - CreateTargetStartTime).TotalSeconds;
+				Log.TraceInformation( "CreateTarget for " + TargetName + " took " + CreateTargetTime + "s" );
 			}
 
 			if (BuildTarget == null)

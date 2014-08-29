@@ -657,6 +657,8 @@ namespace UnrealBuildTool
                 UProjectInfo.FillProjectInfo();
             }
 
+			var BasicInitStartTime = DateTime.UtcNow;
+
             ECompilationResult Result = ECompilationResult.Succeeded;
 
             // Reset early so we can access BuildConfiguration even before RunUBT() is called
@@ -702,6 +704,7 @@ namespace UnrealBuildTool
 				}
             }
             
+			
             // Don't allow simultaneous execution of Unreal Built Tool. Multi-selection in the UI e.g. causes this and you want serial
             // execution in this case to avoid contention issues with shared produced items.
             bool bCreatedMutex = false;
@@ -997,6 +1000,12 @@ namespace UnrealBuildTool
                     RegisterAllUBTClasses();
                     ProjectFileGenerator.bGenerateProjectFiles = false;
 
+					if( BuildConfiguration.bPrintPerformanceInfo )
+					{ 
+						var BasicInitTime = (DateTime.UtcNow - BasicInitStartTime).TotalSeconds;
+						Log.TraceInformation( "Basic UBT initialization took " + BasicInitTime + "s" );
+					}
+
                     // now that we know the available platforms, we can delete other platforms' junk. if we're only building specific modules from the editor, don't touch anything else (it may be in use).
                     if (!bSpecificModulesOnly && !bIgnoreJunk)
                     {
@@ -1257,6 +1266,10 @@ namespace UnrealBuildTool
         {
             bool bSuccess = true;
 
+			
+			var RunUBTInitStartTime = DateTime.UtcNow;
+
+
             // Reset global configurations
             ActionGraph.ResetAllActions();
 
@@ -1309,15 +1322,31 @@ namespace UnrealBuildTool
                 }
 
 
-                foreach (string[] TargetSetting in TargetSettings)
-                {
-                    var Target = UEBuildTarget.CreateTarget(TargetSetting);	// @todo ubtmake: Optimization: Ideally we don't have to do this in the assembler.  It is pretty slow to scan all rules files.  Maybe we can skip the slow parts internally?  It has to scan for *.Target.cs files, and also Load the rules assembly up. :(
-                    if ((Target == null) && (UEBuildConfiguration.bCleanProject))
-                    {
-                        continue;
-                    }
-                    Targets.Add(Target);
-                }
+				if( BuildConfiguration.bPrintPerformanceInfo )
+				{ 
+					var RunUBTInitTime = (DateTime.UtcNow - RunUBTInitStartTime).TotalSeconds;
+					Log.TraceInformation( "RunUBT initialization took " + RunUBTInitTime + "s" );
+				}
+
+				{ 
+					var TargetInitStartTime = DateTime.UtcNow;
+
+					foreach (string[] TargetSetting in TargetSettings)
+					{
+						var Target = UEBuildTarget.CreateTarget(TargetSetting);	// @todo ubtmake: Optimization: Ideally we don't have to do this in the assembler.  It is pretty slow to scan all rules files.  Maybe we can skip the slow parts internally?  It has to scan for *.Target.cs files, and also Load the rules assembly up. :(
+						if ((Target == null) && (UEBuildConfiguration.bCleanProject))
+						{
+							continue;
+						}
+						Targets.Add(Target);
+					}
+
+					if( BuildConfiguration.bPrintPerformanceInfo )
+					{ 
+						var TargetInitTime = (DateTime.UtcNow - TargetInitStartTime).TotalSeconds;
+						Log.TraceInformation( "Target init took " + TargetInitTime + "s" );
+					}
+				}
 
                 UBTMakefile UBTMakefile = null;
 
@@ -1575,6 +1604,7 @@ namespace UnrealBuildTool
                                     if( TargetUObjectModules.Count > 0 )
                                     {
                                         // Execute the header tool
+										// @todo ubtmake urgent: With a game project, I had a couple of failed builds, then suddenly all generated.cpp's were out of date, and failed to compile (needs repro)
                                         string ModuleInfoFileName = Path.GetFullPath( Path.Combine( Target.ProjectIntermediateDirectory, "UnrealHeaderTool.manifest" ) );
                                         ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
                                         if (!ExternalExecution.ExecuteHeaderToolIfNecessary(Target, GlobalCompileEnvironment:null, UObjectModules:TargetUObjectModules, ModuleInfoFileName:ModuleInfoFileName, UHTResult:ref UHTResult))
@@ -2126,11 +2156,19 @@ namespace UnrealBuildTool
             { 
                 try
                 {
+					var LoadUBTMakefileStartTime = DateTime.UtcNow;
+
                     using (FileStream Stream = new FileStream(UBTMakefileItem.AbsolutePath, FileMode.Open, FileAccess.Read))
                     {	
                         BinaryFormatter Formatter = new BinaryFormatter();
                         LoadedUBTMakefile = Formatter.Deserialize(Stream) as UBTMakefile;
                     }
+
+					if( BuildConfiguration.bPrintPerformanceInfo )
+					{ 
+						var LoadUBTMakefileTime = (DateTime.UtcNow - LoadUBTMakefileStartTime).TotalSeconds;
+						Log.TraceInformation( "LoadUBTMakefile took " + LoadUBTMakefileTime + "s" );
+					}
                 }
                 catch (Exception Ex)
                 {
