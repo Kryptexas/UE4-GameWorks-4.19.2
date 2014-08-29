@@ -318,6 +318,15 @@ class FTranslucencyShadowDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
 
+	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
+	{
+		const FProjectedShadowInfo* ShadowInfo;
+
+		explicit ContextDataType(const FProjectedShadowInfo* InShadowInfo)
+			: ShadowInfo(InShadowInfo)
+		{}
+	};
+
 	FTranslucencyShadowDepthDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
@@ -340,13 +349,13 @@ public:
 		}
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 	{
 		// Set the shared mesh resources.
-		FMeshDrawingPolicy::DrawShared(RHICmdList, View);
+		FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
 
-		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
-		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
+		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyContext.ShadowInfo);
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyContext.ShadowInfo);
 	}
 
 	/** 
@@ -372,24 +381,21 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const
 	{
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData,PolicyContext);
 	}
-
-	static const FProjectedShadowInfo* PolicyShadowInfo;
 
 private:
 	FTranslucencyShadowDepthVS* VertexShader;
 	FTranslucencyShadowDepthPS* PixelShader;
 };
-
-const FProjectedShadowInfo* FTranslucencyShadowDepthDrawingPolicy::PolicyShadowInfo = NULL;
 
 class FTranslucencyShadowDepthDrawingPolicyFactory
 {
@@ -398,10 +404,12 @@ public:
 	enum { bAllowSimpleElements = false };
 	struct ContextType 
 	{
-		ContextType(bool bInDirectionalLight) :
-			bDirectionalLight(bInDirectionalLight)
+		ContextType(const FProjectedShadowInfo* InShadowInfo, bool bInDirectionalLight)
+			: ShadowInfo(InShadowInfo)
+			, bDirectionalLight(bInDirectionalLight)
 		{}
 
+		const FProjectedShadowInfo* ShadowInfo;
 		bool bDirectionalLight;
 	};
 
@@ -429,11 +437,14 @@ public:
 			{
 				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), DrawingContext.bDirectionalLight);
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View);
+				DrawingPolicy.SetSharedState(RHICmdList, &View, FTranslucencyShadowDepthDrawingPolicy::ContextDataType(DrawingContext.ShadowInfo));
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,
+						FTranslucencyShadowDepthDrawingPolicy::ElementDataType(),
+						FTranslucencyShadowDepthDrawingPolicy::ContextDataType(DrawingContext.ShadowInfo)
+						);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 				bDirty = true;
@@ -513,8 +524,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	// Lighting only should only affect the material used with direct lighting, not the indirect lighting
 	FoundView->bForceShowMaterials = true;
 
-	FTranslucencyShadowDepthDrawingPolicy::PolicyShadowInfo = this;
-
 	{
 #if WANTS_DRAW_MESH_EVENTS
 		FString EventName;
@@ -559,7 +568,8 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 
 		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
-		TDynamicPrimitiveDrawer<FTranslucencyShadowDepthDrawingPolicyFactory> OpacityDrawer(RHICmdList, FoundView, FTranslucencyShadowDepthDrawingPolicyFactory::ContextType(bDirectionalLight), true);
+		FTranslucencyShadowDepthDrawingPolicyFactory::ContextType DrawingContext(this,bDirectionalLight);
+		TDynamicPrimitiveDrawer<FTranslucencyShadowDepthDrawingPolicyFactory> OpacityDrawer(RHICmdList, FoundView, DrawingContext, true);
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < SubjectTranslucentPrimitives.Num(); PrimitiveIndex++)
 		{
@@ -577,8 +587,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 			{
 				if (bUseGetMeshElements)
 				{
-					FTranslucencyShadowDepthDrawingPolicyFactory::ContextType Context(bDirectionalLight);
-
 					for (int32 MeshBatchIndex = 0; MeshBatchIndex < FoundView->DynamicMeshElements.Num(); MeshBatchIndex++)
 					{
 						const FMeshBatchAndRelevance& MeshBatchAndRelevance = FoundView->DynamicMeshElements[MeshBatchIndex];
@@ -586,7 +594,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 						if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
 						{
 							const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-							FTranslucencyShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+							FTranslucencyShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, DrawingContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 						}
 					}
 				}
@@ -603,7 +611,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 						FTranslucencyShadowDepthDrawingPolicyFactory::DrawStaticMesh(
 							RHICmdList, 
 							*FoundView,
-							FTranslucencyShadowDepthDrawingPolicyFactory::ContextType(bDirectionalLight),
+							DrawingContext,
 							PrimitiveSceneInfo->StaticMeshes[MeshIndex],
 							true,
 							PrimitiveSceneInfo->Proxy,
@@ -615,8 +623,6 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	}
 
 	// Restore overridden properties
-	FTranslucencyShadowDepthDrawingPolicy::PolicyShadowInfo = NULL;
-
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
 	FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;

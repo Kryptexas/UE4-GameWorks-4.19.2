@@ -283,12 +283,28 @@ template <bool bRenderingReflectiveShadowMaps> class TShadowDepthBasePS;
 class FShadowStaticMeshElement;
 
 /**
+ * The shadow depth drawing policy's context data.
+ */
+struct FShadowDepthDrawingPolicyContext : FMeshDrawingPolicy::ContextDataType
+{
+	/** The projected shadow info for which we are rendering shadow depths. */
+	const FProjectedShadowInfo* ShadowInfo;
+
+	/** Initialization constructor. */
+	explicit FShadowDepthDrawingPolicyContext(const FProjectedShadowInfo* InShadowInfo)
+		: ShadowInfo(InShadowInfo)
+	{}
+};
+
+/**
  * Outputs no color, but can be used to write the mesh's depth values to the depth buffer.
  */
 template <bool bRenderingReflectiveShadowMaps>
 class FShadowDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
+	typedef FShadowDepthDrawingPolicyContext ContextDataType;
+
 	FShadowDepthDrawingPolicy(
 		const FMaterial* InMaterialResource,
 		bool bInDirectionalLight,
@@ -333,7 +349,7 @@ public:
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
 			&& bPreShadow == Other.bPreShadow;
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
@@ -349,17 +365,12 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const;
 
 	template<bool T2>
 	friend int32 CompareDrawingPolicy(const FShadowDepthDrawingPolicy<T2>& A,const FShadowDepthDrawingPolicy<T2>& B);
-
-	/** 
-	 * Shadow currently being rendered by a FShadowDepthDrawingPolicy.  
-	 * This is global so that different shadows can be used with the same static draw list. 
-	 */
-	static const FProjectedShadowInfo* PolicyShadowInfo;
 
 	bool IsReversingCulling() const
 	{
@@ -382,13 +393,6 @@ public:
 	uint32 bUsePositionOnlyVS:1;
 	uint32 bPreShadow:1;
 };
-
-/** 
- * Shadow currently being rendered by a FShadowDepthDrawingPolicy.  
- * This is global so that different shadows can be used with the same static draw list. 
- */
-extern const FProjectedShadowInfo* GShadowInfo;
-
 
 /**
  * A drawing policy factory for the shadow depth drawing policy.

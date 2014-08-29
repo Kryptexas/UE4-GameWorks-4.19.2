@@ -49,7 +49,8 @@ void FMeshDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	const ElementDataType& ElementData
+	const ElementDataType& ElementData,
+	const ContextDataType PolicyContext
 	) const
 {
 	EmitMeshDrawEvents(PrimitiveSceneProxy, Mesh);
@@ -125,7 +126,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	}
 }
 
-void FMeshDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View) const
+void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
 	VertexFactory->Set(RHICmdList);

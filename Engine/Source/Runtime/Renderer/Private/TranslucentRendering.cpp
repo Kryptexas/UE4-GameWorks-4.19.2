@@ -277,7 +277,7 @@ public:
 			Parameters.bAllowFog
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType());
 
 		int32 BatchElementIndex = 0;
 		uint64 BatchElementMask = Parameters.BatchElementMask;
@@ -292,7 +292,8 @@ public:
 					Parameters.Mesh,
 					BatchElementIndex,
 					bBackFace,
-					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
+					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
+					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 					);
 				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh,BatchElementIndex);
 			}
