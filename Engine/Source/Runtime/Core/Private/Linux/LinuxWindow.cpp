@@ -44,7 +44,12 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	Definition = InDefinition;
 	OwningApplication = Application;
 
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxWindow::Initialize() : PlatformInitMultimedia() failed, cannot initialize window."));
+		// unreachable
+		return;
+	}
 
 #if DO_CHECK
 	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);

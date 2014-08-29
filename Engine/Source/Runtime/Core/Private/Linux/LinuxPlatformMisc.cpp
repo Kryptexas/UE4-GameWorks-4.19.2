@@ -159,7 +159,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	}
 }
 
-void FLinuxPlatformMisc::PlatformInitMultimedia()
+bool FLinuxPlatformMisc::PlatformInitMultimedia()
 {
 	if (!GInitializedSDL)
 	{
@@ -167,13 +167,16 @@ void FLinuxPlatformMisc::PlatformInitMultimedia()
 		if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) != 0)
 		{
 			const char * SDLError = SDL_GetError();
-			UE_LOG(LogInit, Fatal, TEXT("Could not initialize SDL: %s"), SDLError);
-			// unreachable
-			return;
+
+			// do not fail at this point, allow caller handle failure
+			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), SDLError);
+			return false;
 		}
 
 		GInitializedSDL = true;
 	}
+
+	return true;
 }
 
 void FLinuxPlatformMisc::PlatformTearDown()
@@ -278,7 +281,11 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 {
 	int NumberOfButtons = 0;
 
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	// if multimedia cannot be initialized for messagebox, just fall back to default implementation
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
+	}
 
 #if DO_CHECK
 	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);

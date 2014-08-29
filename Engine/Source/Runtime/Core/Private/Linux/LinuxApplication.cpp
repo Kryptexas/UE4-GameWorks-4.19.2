@@ -32,7 +32,12 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
 	LinuxApplication = new FLinuxApplication();
 	
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
+		// unreachable
+		return nullptr;
+	}
 
 #if DO_CHECK
 	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
@@ -960,7 +965,13 @@ bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& In
 
 void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		// consider making non-fatal and just returning bullshit? (which can be checked for and handled more gracefully)
+		UE_LOG(LogInit, Fatal, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		// unreachable
+		return;
+	}
 
 	SDL_Rect bounds;
 	SDL_GetDisplayBounds( 0, &bounds );

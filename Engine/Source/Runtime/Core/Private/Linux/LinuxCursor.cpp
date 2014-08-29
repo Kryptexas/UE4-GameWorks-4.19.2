@@ -7,7 +7,12 @@
 
 FLinuxCursor::FLinuxCursor() : bHidden(false)
 {
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxCursor::FLinuxCursor() : PlatformInitMultimedia() failed, cannot construct cursor."));
+		// unreachable
+		return;
+	}
 
 #if DO_CHECK
 	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);

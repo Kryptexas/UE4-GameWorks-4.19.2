@@ -684,12 +684,17 @@ void PlatformRestoreDesktopDisplayMode()
 }
 
 
-bool	PlatformInitOpenGL()
+bool PlatformInitOpenGL()
 {
 	static bool bInitialized = false;
 	static bool bOpenGLSupported = false;
 
-	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		UE_LOG(LogInit, Fatal, TEXT("PlatformInitOpenGL() : PlatformInitMultimedia() failed, cannot initialize OpenGL."));
+		// unreachable
+		return false;
+	}
 
 #if DO_CHECK
 	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);

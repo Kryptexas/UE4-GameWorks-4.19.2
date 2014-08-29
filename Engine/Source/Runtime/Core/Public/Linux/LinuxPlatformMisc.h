@@ -167,7 +167,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	/**
 	 * Linux-specific function initializing video (and not only) subsystem.
 	 */
-	static void PlatformInitMultimedia();
+	static bool PlatformInitMultimedia();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;
