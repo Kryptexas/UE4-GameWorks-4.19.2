@@ -171,6 +171,14 @@ namespace UnrealBuildTool
 			set;
 		}
 
+		/// Whether this project should be built for all solution targets
+		public bool ShouldBuildForAllSolutionTargets
+		{
+			get;
+			set;
+		}
+
+
 
 
 		/// All of the targets in this project.  All non-stub projects must have at least one target.
@@ -432,6 +440,12 @@ namespace UnrealBuildTool
 				Result = "\"" + Result + "\"";
 			}
 			return Result;
+		}
+
+		/** Visualizer for the debugger */
+		public override string ToString()
+		{
+			return RelativeProjectFilePath;
 		}
 
 		/// Map of file paths to files in the project.

@@ -575,6 +575,7 @@ namespace UnrealBuildTool
 											{
 												// UBT gets a pass because it is a dependency of every single configuration combination
 												if( CurProject != UBTProject &&
+													!CurProject.ShouldBuildForAllSolutionTargets &&
 													TargetConfigurationName != TargetRules.TargetType.Game.ToString() )
 												{
 													// Can't build non-generated project in configurations except for the default (Game)

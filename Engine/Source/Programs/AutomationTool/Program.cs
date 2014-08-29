@@ -67,14 +67,14 @@ namespace AutomationTool
 		}
 	};
 
-	class Program
+	public class Program
 	{
 		// This needs to be static, otherwise SetConsoleCtrlHandler will result in a crash on exit.
 		static ProcessManager.CtrlHandlerDelegate ProgramCtrlHandler = new ProcessManager.CtrlHandlerDelegate(CtrlHandler);
 		static public int ReturnCode = 0;
 
 		[STAThread]
-		static int Main()
+		public static int Main()
 		{
 			var CommandLine = SharedUtils.ParseCommandLine();
 			HostPlatform.Initialize();
