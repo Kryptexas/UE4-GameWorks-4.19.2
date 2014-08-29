@@ -131,6 +131,12 @@ bool UGameplayStatics::SetGamePaused(UObject* WorldContextObject, bool bPaused)
 	}
 }
 
+bool UGameplayStatics::IsGamePaused(UObject* WorldContextObject)
+{
+	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	return World->IsPaused();
+}
+
 /** @RETURN True if weapon trace from Origin hits component VictimComp.  OutHitResult will contain properties of the hit. */
 static bool ComponentIsDamageableFrom(UPrimitiveComponent* VictimComp, FVector const& Origin, AActor const* IgnoredActor, const TArray<AActor*>& IgnoreActors, ECollisionChannel TraceChannel, FHitResult& OutHitResult)
 {

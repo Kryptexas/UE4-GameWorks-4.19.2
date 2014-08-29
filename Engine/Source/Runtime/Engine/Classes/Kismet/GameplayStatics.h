@@ -145,12 +145,19 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static void SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation);
 
 	/**
-	 * Sets the global time dilation
-	 * @param	bPaused		whether the game should be paused or not
+	 * Sets the game's paused state
+	 * @param	bPaused		Whether the game should be paused or not
 	 * @return	Whether the game was successfully paused/unpaused
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
 	static bool SetGamePaused(UObject* WorldContextObject, bool bPaused);
+
+	/**
+	 * Returns the game's paused state
+	 * @return	Whether the game is currently paused or not
+	 */
+	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	static bool IsGamePaused(UObject* WorldContextObject);
 
 
 	/** Hurt locally authoritative actors within the radius. Will only hit components that block the Visibility channel.
