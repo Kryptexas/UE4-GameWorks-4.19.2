@@ -327,7 +327,7 @@ public:
 	/** Mass of pawn (for when momentum is imparted to it). */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float Mass;
-	
+
 	/** If enabled, the player will interact with physics objects when walking into them. */
 	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite)
 	bool bEnablePhysicsInteraction;
@@ -344,6 +344,10 @@ public:
 		scale the force down, it will never apply more force than defined by PushForceFactor. */
 	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
 	bool bScalePushForceToVelocity;
+
+	/** Force applied to objects we stand on (due to Mass and Gravity) is scaled by this amount. */
+	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
+	float StandingDownwardForceScale;
 
 	/** Initial impulse force to apply when the player bounces into a blocking physics object. */
 	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
@@ -369,7 +373,7 @@ public:
 	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
 	float MaxTouchForce;
 
-	/** Force per kg applied constanly to all overlapping components. */
+	/** Force per kg applied constantly to all overlapping components. */
 	UPROPERTY(Category="Agent Physics", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
 	float RepulsionForce;
 
@@ -1098,8 +1102,16 @@ protected:
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
 	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
 
-	/** Don't call for intermediate parts of move! */
+	/** Handle a blocking impact. Calls ApplyImpactPhysicsForces for the hit, if bEnablePhysicsInteraction is true. */
 	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
+
+	/**
+	 * Apply physics forces to the impacted component, if bEnablePhysicsInteraction is true.
+	 * @param Impact				HitResult that resulted in the impact
+	 * @param ImpactAcceleration	Acceleration of the character at the time of impact
+	 * @param ImpactVelocity		Velocity of the character at the time of impact
+	 */
+	virtual void ApplyImpactPhysicsForces(const FHitResult& Impact, const FVector& ImpactAcceleration, const FVector& ImpactVelocity);
 
 	/** Custom version of SlideAlongSurface that handles different movement modes separately; namely during walking physics we might not want to slide up slopes. */
 	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) override;
