@@ -6,7 +6,6 @@
 #include "EngineBuildSettings.h"
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "DesktopPlatformModule.h"
 
 // WARNING! Copied from EngineAnalytics.cpp
 

@@ -7,7 +7,6 @@
 
 #include "CrashReportClient.h"
 #include "UniquePtr.h"
-#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
