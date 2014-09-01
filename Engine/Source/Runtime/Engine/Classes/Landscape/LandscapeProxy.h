@@ -66,14 +66,9 @@ struct FLandscapeEditorLayerSettings
 	{
 	}
 
-	bool operator==(const FLandscapeEditorLayerSettings& rhs)
+	bool operator==(const FLandscapeEditorLayerSettings& rhs) const
 	{
 		return LayerInfoObj == rhs.LayerInfoObj;
-	}
-
-	bool operator==(const ULandscapeLayerInfoObject*& rhs)
-	{
-		return LayerInfoObj == rhs;
 	}
 #endif // WITH_EDITORONLY_DATA
 };
