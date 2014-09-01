@@ -56,6 +56,12 @@ void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChange
 	}
 }
 
+void UBehaviorTreeGraphNode_Root::PostEditUndo()
+{
+	Super::PostEditUndo();
+	UpdateBlackboard();
+}
+
 FString	UBehaviorTreeGraphNode_Root::GetDescription() const
 {
 	return *GetNameSafe(BlackboardAsset);
@@ -65,7 +71,7 @@ void UBehaviorTreeGraphNode_Root::UpdateBlackboard()
 {
 	UBehaviorTreeGraph* MyGraph = GetBehaviorTreeGraph();
 	UBehaviorTree* BTAsset = Cast<UBehaviorTree>(MyGraph->GetOuter());
-	if (BTAsset)
+	if (BTAsset && BTAsset->BlackboardAsset != BlackboardAsset)
 	{
 		BTAsset->BlackboardAsset = BlackboardAsset;
 		MyGraph->UpdateBlackboardChange();
