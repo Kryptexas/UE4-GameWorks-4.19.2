@@ -231,6 +231,10 @@ void UBehaviorTreeGraphNode::AutowireNewNode(UEdGraphPin* FromPin)
 		{
 			FromPin->GetOwningNode()->NodeConnectionListChanged();
 		}
+		else if(GetSchema()->TryCreateConnection(GetOutputPin(), FromPin))
+		{
+			NodeConnectionListChanged();
+		}
 	}
 }
 
