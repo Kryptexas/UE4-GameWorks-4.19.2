@@ -48,7 +48,7 @@ public:
 	{
 		if (InValue.bIsSet)
 		{
-			new(&Value) OptionalType((OptionalType&&)InValue.Value);
+			new(&Value) OptionalType(MoveTemp((OptionalType&)InValue.Value));
 			bIsSet = true;
 		}
 	}
@@ -68,7 +68,7 @@ public:
 		Reset();
 		if (InValue.bIsSet)
 		{
-			new(&Value) OptionalType((OptionalType&&)InValue.Value);
+			new(&Value) OptionalType(MoveTemp((OptionalType&)InValue.Value));
 			bIsSet = true;
 		}
 		return *this;
