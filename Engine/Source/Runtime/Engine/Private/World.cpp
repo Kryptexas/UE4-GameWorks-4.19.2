@@ -5133,7 +5133,7 @@ void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& O
 		ULandscapeComponent* LandscapeComponent = Cast<ULandscapeComponent>(ObjInLevel);
 		if (LandscapeComponent)
 		{
-			LandscapeComponent->GetAllReferencedTexturesAndMaterials(OutTexturesAndMaterials);
+			LandscapeComponent->GetGeneratedTexturesAndMaterialInstances(OutTexturesAndMaterials);
 		}
 	}
 }
