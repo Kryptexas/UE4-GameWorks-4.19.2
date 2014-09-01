@@ -247,7 +247,8 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 				.OnIsDebuggerReady(this, &FBehaviorTreeEditor::IsDebuggerReady)
 				.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)
 				.OnGetDebugTimeStamp(this, &FBehaviorTreeEditor::HandleGetDebugTimeStamp)
-				.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState);
+				.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState)
+				.OnBlackboardKeyChanged(this, &FBehaviorTreeEditor::HandleBlackboardKeyChanged);
 	}
 	else
 	{
@@ -385,6 +386,15 @@ bool FBehaviorTreeEditor::HandleGetDisplayCurrentState() const
 	}
 
 	return false;
+}
+
+void FBehaviorTreeEditor::HandleBlackboardKeyChanged(UBlackboardData* InBlackboardData, FBlackboardEntry* const InKey)
+{
+	if(BlackboardView.IsValid())
+	{
+		// re-set object in blackboard view to keep it up to date
+		BlackboardView->SetObject(InBlackboardData);
+	}
 }
 
 void FBehaviorTreeEditor::GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const
