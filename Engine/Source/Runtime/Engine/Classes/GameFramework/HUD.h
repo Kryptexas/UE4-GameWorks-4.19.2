@@ -419,12 +419,13 @@ public:
 	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
 	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
 	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bIncludeNonCollidingComponents 	Whether to include even non-colliding components of the actor when determining its bounds
 	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
 	 *
 	 * returns false if selection could not occur. Make sure template class is extending AActor.
 	 */
 	template <typename ClassFilter>
-	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bActorMustBeFullyEnclosed = false)
+	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bIncludeNonCollidingComponents = true, bool bActorMustBeFullyEnclosed = false)
 	{
 		//Is Actor subclass?
 		if (!ClassFilter::StaticClass()->IsChildOf(AActor::StaticClass()))
@@ -434,7 +435,7 @@ public:
 
 		//Run Inner Function, output to Base AActor Array
 		TArray<AActor*> OutActorsBaseArray;
-		GetActorsInSelectionRectangle(ClassFilter::StaticClass(), FirstPoint, SecondPoint, OutActorsBaseArray, bActorMustBeFullyEnclosed);
+		GetActorsInSelectionRectangle(ClassFilter::StaticClass(), FirstPoint, SecondPoint, OutActorsBaseArray, bIncludeNonCollidingComponents, bActorMustBeFullyEnclosed);
 
 		//Construct casted template type array
 		for (AActor* EachActor : OutActorsBaseArray)
@@ -457,11 +458,12 @@ public:
 	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
 	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
 	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bIncludeNonCollidingComponents 	Whether to include even non-colliding components of the actor when determining its bounds
 	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
 	 *
 	 */
 	UFUNCTION(BlueprintPure, Category=HUD)
-	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed = false);
+	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bIncludeNonCollidingComponents = true, bool bActorMustBeFullyEnclosed = false);
 
 
 	/**

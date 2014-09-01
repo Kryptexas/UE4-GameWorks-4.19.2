@@ -644,10 +644,14 @@ void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVect
 }
 
 
-void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed)
+void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bIncludeNonCollidingComponents, bool bActorMustBeFullyEnclosed)
 {
+	// Because this is a HUD function it is likely to get called each tick,
+	// so make sure any previous contents of the out actor array have been cleared!
+	OutActors.Empty();
+
 	//Create Selection Rectangle from Points
-	FBox2D SelectionRectangle;
+	FBox2D SelectionRectangle(0);
 
 	//This method ensures that an appropriate rectangle is generated, 
 	//		no matter what the coordinates of first and second point actually are.
@@ -676,7 +680,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		AActor* EachActor = *Itr;
 
 		//Get Actor Bounds				//casting to base class, checked by template in the .h
-		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(true); /* All Components */
+		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(bIncludeNonCollidingComponents); /* All Components? */
 
 		//Center
 		const FVector BoxCenter = EachActorBounds.GetCenter();
