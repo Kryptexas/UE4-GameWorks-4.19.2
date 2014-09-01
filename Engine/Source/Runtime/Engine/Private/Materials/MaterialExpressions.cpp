@@ -57,6 +57,7 @@
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLightmapUVs.h"
 #include "Materials/MaterialExpressionLightmassReplace.h"
@@ -173,6 +174,7 @@ bool IsAllowedExpressionType(UClass* Class, bool bMaterialFunction)
 			&& !Class->IsChildOf(UMaterialExpressionDynamicParameter::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionFontSampleParameter::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerWeight::StaticClass())
+			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerSample::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerSwitch::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerBlend::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeVisibilityMask::StaticClass());
@@ -8475,6 +8477,53 @@ const TCHAR* UMaterialExpressionAntialiasedTextureMask::GetRequirements()
 void UMaterialExpressionAntialiasedTextureMask::SetDefaultTexture()
 {
 	Texture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"), NULL, LOAD_None, NULL);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionLandscapeLayerSample
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionLandscapeLayerSample::UMaterialExpressionLandscapeLayerSample(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FString NAME_Landscape;
+		FConstructorStatics()
+			: NAME_Landscape(LOCTEXT("Landscape", "Landscape").ToString())
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	bIsParameterExpression = true;
+	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+}
+
+int32 UMaterialExpressionLandscapeLayerSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	const int32 WeightCode = Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(PreviewWeight));
+
+	return WeightCode;
+}
+
+UTexture* UMaterialExpressionLandscapeLayerSample::GetReferencedTexture()
+{
+	return GEngine->WeightMapPlaceholderTexture;
+}
+
+void UMaterialExpressionLandscapeLayerSample::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString::Printf(TEXT("Sample '%s'"), *ParameterName.ToString()));
+}
+
+void UMaterialExpressionLandscapeLayerSample::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+{
+	if (!OutParameterNames.Contains(ParameterName))
+	{
+		OutParameterNames.Add(ParameterName);
+		OutParameterIds.Add(ExpressionGUID);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

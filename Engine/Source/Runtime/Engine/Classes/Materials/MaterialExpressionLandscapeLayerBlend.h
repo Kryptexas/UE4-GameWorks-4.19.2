@@ -23,7 +23,7 @@ struct FLayerBlendInput
 	FName LayerName;
 
 	UPROPERTY(EditAnywhere, Category=LayerBlendInput)
-	TEnumAsByte<enum ELandscapeLayerBlendType> BlendType;
+	TEnumAsByte<ELandscapeLayerBlendType> BlendType;
 
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstLayerInput' if not specified"))
 	FExpressionInput LayerInput;
@@ -44,9 +44,9 @@ struct FLayerBlendInput
 
 	FLayerBlendInput()
 		: BlendType(0)
-		, PreviewWeight(0.f)		
-		, ConstLayerInput(0.f, 0.f, 0.f)
-		, ConstHeightInput(0.f)
+		, PreviewWeight(0.0f)
+		, ConstLayerInput(0.0f, 0.0f, 0.0f)
+		, ConstHeightInput(0.0f)
 	{
 	}
 };
@@ -57,7 +57,7 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerBlend)
-	TArray<struct FLayerBlendInput> Layers;
+	TArray<FLayerBlendInput> Layers;
 
 	/** GUID that should be unique within the material, this is used for parameter renaming. */
 	UPROPERTY()

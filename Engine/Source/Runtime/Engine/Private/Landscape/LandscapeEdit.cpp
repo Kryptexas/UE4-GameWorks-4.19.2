@@ -7,6 +7,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "EnginePrivate.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Landscape/LandscapeDataAccess.h"
@@ -1598,24 +1599,25 @@ TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* Materia
 		const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
 
 		// TODO: *Unconnected* layer expressions?
-		for (auto ItExpressions = Expressions.CreateConstIterator(); ItExpressions; ItExpressions++)
+		for (UMaterialExpression* Expression : Expressions)
 		{
-			UMaterialExpressionLandscapeLayerWeight* LayerWeightExpression = Cast<UMaterialExpressionLandscapeLayerWeight>(*ItExpressions);
-			UMaterialExpressionLandscapeLayerSwitch* LayerSwitchExpression = Cast<UMaterialExpressionLandscapeLayerSwitch>(*ItExpressions);
-			UMaterialExpressionLandscapeLayerBlend* LayerBlendExpression = Cast<UMaterialExpressionLandscapeLayerBlend>(*ItExpressions);
-			if (LayerWeightExpression)
+			if (auto LayerWeightExpression = Cast<UMaterialExpressionLandscapeLayerWeight>(Expression))
 			{
 				Result.AddUnique(LayerWeightExpression->ParameterName);
 			}
-			else if (LayerSwitchExpression)
+			else if (auto LayerSampleExpression = Cast<UMaterialExpressionLandscapeLayerSample>(Expression))
+			{
+				Result.AddUnique(LayerSampleExpression->ParameterName);
+			}
+			else if (auto LayerSwitchExpression = Cast<UMaterialExpressionLandscapeLayerSwitch>(Expression))
 			{
 				Result.AddUnique(LayerSwitchExpression->ParameterName);
 			}
-			else if (LayerBlendExpression)
+			else if (auto LayerBlendExpression = Cast<UMaterialExpressionLandscapeLayerBlend>(Expression))
 			{
-				for (auto ItExpressionLayers = LayerBlendExpression->Layers.CreateConstIterator(); ItExpressionLayers; ItExpressionLayers++)
+				for (const auto& ExpressionLayer : LayerBlendExpression->Layers)
 				{
-					Result.AddUnique(ItExpressionLayers->LayerName);
+					Result.AddUnique(ExpressionLayer.LayerName);
 				}
 			}
 		}
