@@ -366,7 +366,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(EditInline, Category=Compression, VisibleAnywhere)
+	UPROPERTY(Instanced, Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
@@ -476,7 +476,7 @@ class UAnimSequence : public UAnimSequenceBase
 	uint32 bWasCompressedWithoutTranslations:1;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, editinline, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category=Reimport)
 	class UAssetImportData* AssetImportData;
 
 	/***  for Reimport **/

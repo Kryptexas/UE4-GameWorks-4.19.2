@@ -189,7 +189,7 @@ public:
 	FStringAssetReference PreviewMesh;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 private:

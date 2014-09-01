@@ -417,7 +417,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category = Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif
 

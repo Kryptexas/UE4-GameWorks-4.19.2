@@ -80,15 +80,15 @@ class UFbxImportUI : public UObject
 	uint32 bImportTextures:1;
 
 	/** Import data used when importing static meshes */
-	UPROPERTY(EditAnywhere, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, Instanced, Category=StaticMesh)
 	class UFbxStaticMeshImportData* StaticMeshImportData;
 
 	/** Import data used when importing skeletal meshes */
-	UPROPERTY(EditAnywhere, editinline, Category=SkeletalMesh)
+	UPROPERTY(EditAnywhere, Instanced, Category=SkeletalMesh)
 	class UFbxSkeletalMeshImportData* SkeletalMeshImportData;
 
 	/** Import data used when importing animations */
-	UPROPERTY(EditAnywhere, editinline, Category=Animation)
+	UPROPERTY(EditAnywhere, Instanced, Category=Animation)
 	class UFbxAnimSequenceImportData* AnimSequenceImportData;
 
 	/** Type of asset to import from the FBX file */
@@ -96,7 +96,7 @@ class UFbxImportUI : public UObject
 	bool	bPreserveLocalTransform;
 
 	/** Import data used when importing textures */
-	UPROPERTY(EditAnywhere, editinline, Category=Textures)
+	UPROPERTY(EditAnywhere, Instanced, Category=Textures)
 	class UFbxTextureImportData* TextureImportData;
 
 	// Begin UObject Interface

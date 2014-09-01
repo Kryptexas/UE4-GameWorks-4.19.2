@@ -113,7 +113,7 @@ class ABrush : public AActor
 	TSubobjectPtr<class UBrushComponent> BrushComponent;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(VisibleAnywhere, EditInline, Category=BrushBuilder)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=BrushBuilder)
 	class UBrushBuilder* BrushBuilder;
 #endif
 

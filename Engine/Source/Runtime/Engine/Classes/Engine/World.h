@@ -483,7 +483,7 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	TArray<class AActor*> ActiveGroupActors;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif // WITH_EDITORONLY_DATA
 

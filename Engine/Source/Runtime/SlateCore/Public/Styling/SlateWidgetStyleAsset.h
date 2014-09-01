@@ -14,7 +14,7 @@ class SLATECORE_API USlateWidgetStyleAsset : public UObject
 		  
 public:  
 	/**  */
-	UPROPERTY(Category=Appearance, EditAnywhere, EditInline)
+	UPROPERTY(Category=Appearance, EditAnywhere, Instanced)
 	USlateWidgetStyleContainerBase* CustomStyle;
 
 	template< class WidgetStyleType >            

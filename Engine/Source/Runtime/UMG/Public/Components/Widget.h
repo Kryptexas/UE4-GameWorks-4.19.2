@@ -65,7 +65,7 @@ public:
 	/**
 	 * The parent slot of the UWidget.  Allows us to easily inline edit the layout controlling this widget.
 	 */
-	UPROPERTY(EditInline, EditAnywhere, BlueprintReadOnly, Category=Layout, meta=( ShowOnlyInnerProperties ))
+	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category = Layout, meta = (ShowOnlyInnerProperties))
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */

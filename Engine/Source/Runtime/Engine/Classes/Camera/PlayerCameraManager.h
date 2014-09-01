@@ -261,7 +261,7 @@ public:
 	/////////////////////
 	
 	/** Camera modifier for cone-driven screen shakes */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, transient, Category=PlayerCameraManager)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced, transient, Category = PlayerCameraManager)
 	class UCameraModifier_CameraShake* CameraShakeCamMod;
 
 protected:

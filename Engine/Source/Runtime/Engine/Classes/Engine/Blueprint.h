@@ -408,7 +408,7 @@ protected:
 	TWeakObjectPtr< class UWorld > CurrentWorldBeingDebugged;
 public:
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The blueprint is currently compiled */

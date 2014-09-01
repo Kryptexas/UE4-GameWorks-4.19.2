@@ -2495,7 +2495,7 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("EditInline"))
 			{
-				Flags |= CPF_EditInline;
+				FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
 			}
 			else if (Specifier == TEXT("NoClear"))
 			{
@@ -3270,7 +3270,7 @@ bool FHeaderParser::GetVarType
 	// Perform some more specific validation on the property flags
 	if ((VarProperty.PropertyFlags & CPF_EditInline) && VarProperty.Type != CPT_ObjectReference)
 	{
-		FError::Throwf(TEXT("'EditInline' is only allowed on object property (or array of objects)"));
+		FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
 	}
 
 	if ( VarProperty.IsObject() && VarProperty.MetaClass == NULL && (VarProperty.PropertyFlags&CPF_Config) != 0 )

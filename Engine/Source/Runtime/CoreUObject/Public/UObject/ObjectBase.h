@@ -741,9 +741,6 @@ namespace UP
 		/// Object property can be exported with it's owner.
 		Export,
 
-		/// Edit this object reference inline in the editor.
-		EditInline,
-
 		/// Hide clear (and browse) button in the editor.
 		NoClear,
 

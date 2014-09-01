@@ -100,7 +100,7 @@ public:
 	uint32 CombinedOutputTypes;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif
 };

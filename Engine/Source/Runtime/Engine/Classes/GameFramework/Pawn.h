@@ -97,7 +97,7 @@ public:
 	TSubclassOf<AController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
+	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
 	APlayerState* PlayerState;
 
 	/** Replicated so we can see where remote clients are looking. */
@@ -109,7 +109,7 @@ public:
 	AController* LastHitBy;
 
 	/** Controller currently possessing this Actor */
-	UPROPERTY(editinline, replicatedUsing=OnRep_Controller)
+	UPROPERTY(replicatedUsing=OnRep_Controller)
 	AController* Controller;
 
 	/** Max difference between pawn's Rotation.Yaw and GetDesiredRotation().Yaw for pawn to be considered as having reached its desired rotation */

@@ -39,7 +39,7 @@ private:
 
 public:
 	// The tile map used by this component
-	UPROPERTY(Category=Setup, EditAnywhere, EditInline, BlueprintReadOnly)
+	UPROPERTY(Category=Setup, EditAnywhere, Instanced, BlueprintReadOnly)
 	class UPaperTileMap* TileMap;
 
 protected:

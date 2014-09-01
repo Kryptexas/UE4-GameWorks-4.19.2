@@ -11,7 +11,7 @@ class APaperTileMapActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=TileMapActor, VisibleAnywhere, EditInline)
+	UPROPERTY(Category=TileMapActor, VisibleAnywhere)
 	TSubobjectPtr<class UPaperTileMapRenderComponent> RenderComponent;
 
 	// AActor interface

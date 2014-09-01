@@ -16,7 +16,7 @@ class AAmbientSound : public AActor
 	uint32 bAutoPlay_DEPRECATED:1;
 
 	/** Audio component to play */
-	UPROPERTY(EditInLine, Category=Sound, VisibleAnywhere, BlueprintReadOnly,meta=(ExposeFunctionCategories="Sound,Audio,Audio|Components|Audio"))
+	UPROPERTY(Category=Sound, VisibleAnywhere, BlueprintReadOnly,meta=(ExposeFunctionCategories="Sound,Audio,Audio|Components|Audio"))
 	TSubobjectPtr<class UAudioComponent> AudioComponent;
 	
 	/** Dummy sound node property to force instantiation of subobject.	*/

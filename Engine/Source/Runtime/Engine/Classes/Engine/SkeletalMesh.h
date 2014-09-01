@@ -623,7 +623,7 @@ public:
 	class UPhysicsAsset* BoundsPreviewAsset_DEPRECATED;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, editinline, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this skeletal mesh */
@@ -635,7 +635,7 @@ public:
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** Optimization settings used to simplify LODs of this mesh. */

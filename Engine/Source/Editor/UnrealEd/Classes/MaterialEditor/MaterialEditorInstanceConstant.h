@@ -18,7 +18,7 @@ struct FEditorParameterGroup
 	UPROPERTY()
 	FName GroupName;
 
-	UPROPERTY(EditAnywhere,  editfixedsize, editinline, Category=EditorParameterGroup)
+	UPROPERTY(EditAnywhere, editfixedsize, Instanced, Category=EditorParameterGroup)
 	TArray<class UDEditorParameterValue*> Parameters;
 
 };

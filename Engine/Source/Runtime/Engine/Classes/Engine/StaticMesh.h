@@ -360,7 +360,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	int32 LightMapCoordinateIndex;
 
 	// Physics data.
-	UPROPERTY(EditAnywhere, transient, duplicatetransient, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, transient, duplicatetransient, Instanced, Category = StaticMesh)
 	class UBodySetup* BodySetup;
 
 	// Artist-accessible options.
@@ -404,11 +404,11 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 #if WITH_EDITORONLY_DATA
 	/** Default settings when using this mesh for instanced foliage */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=StaticMesh)
 	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, editinline, Category=ImportSettings)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this static mesh */
@@ -420,7 +420,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The stored camera position to use as a default for the static mesh editor */
@@ -454,12 +454,12 @@ protected:
 	int32 ElementToIgnoreForTexFactor;
 
 	/** Array of user data stored with the asset */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = StaticMesh)
 	TArray<UAssetUserData*> AssetUserData;
 
 public:
 	/** Pre-build navigation collision */
-	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, editinline, Category=Navigation)
+	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
 	
 public:

@@ -68,7 +68,7 @@ class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it eas
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY(Category=Debug, VisibleAnywhere, EditInline) //@TODO: Remove this
+	UPROPERTY(Category=Debug, VisibleAnywhere, Instanced) //@TODO: Remove this
 	TArray<class UPaperTileLayer*> TileLayers;
 
 	// Collision domain (no collision, 2D, or 3D)
@@ -86,7 +86,7 @@ class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it eas
 public:
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this tile map */
-	UPROPERTY(Category=ImportSettings, VisibleAnywhere, EditInline)
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
 	class UAssetImportData* AssetImportData;
 #endif
 

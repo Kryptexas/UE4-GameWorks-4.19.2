@@ -400,7 +400,7 @@ public:
 	uint32 bIsViewRelevanceDirty:1;
 
 	/** Array of replay clips for this particle system component.  These are serialized to disk.  You really should never add anything to this in the editor.  It's exposed so that you can delete clips if you need to, but be careful when doing so! */
-	UPROPERTY(editinline)
+	UPROPERTY()
 	TArray<class UParticleSystemReplay*> ReplayClips;
 
 	/** Current particle 'replay state'.  This setting controls whether we're currently simulating/rendering particles normally, or whether we should capture or playback particle replay data instead. */

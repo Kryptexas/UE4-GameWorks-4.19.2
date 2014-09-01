@@ -422,12 +422,12 @@ class UDestructibleMesh : public USkeletalMesh
 	TArray<struct FFractureEffect> FractureEffects;
 
 	/** Physics data.  Fields from BodySetup which are relevant to the DestructibleMesh will be used. */
-	UPROPERTY(EditAnywhere, editinline, Category=DestructibleMesh)
+	UPROPERTY(EditAnywhere, Instanced, Category=DestructibleMesh)
 	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
 	/** Information used to author an NxDestructibleAsset*/
-	UPROPERTY(instanced, editinline)
+	UPROPERTY(instanced)
 	class UDestructibleFractureSettings* FractureSettings;
 	
 	/** Static mesh this destructible mesh is created from. Is NULL if not created from a static mesh */

@@ -21,7 +21,7 @@ struct FBlackboardEntry
 #endif // WITH_EDITORONLY_DATA
 
 	/** key type and additional properties */
-	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard)
+	UPROPERTY(EditAnywhere, Instanced, Category=Blackboard)
 	UBlackboardKeyType* KeyType;
 };
 

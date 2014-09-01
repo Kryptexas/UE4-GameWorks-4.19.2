@@ -101,7 +101,7 @@ class ENGINE_API APlayerController : public AController
 	// Camera/view related variables
 
 	/** Camera manager associated with this Player Controller. */
-	UPROPERTY(EditInline, BlueprintReadOnly, Category=PlayerController)
+	UPROPERTY(BlueprintReadOnly, Category=PlayerController)
 	class APlayerCameraManager* PlayerCameraManager;
 
 	/** PlayerCamera class should be set for each game, otherwise Engine.PlayerCameraManager is used */
