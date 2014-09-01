@@ -5,10 +5,16 @@
 #include "SpriteEditorOnlyTypes.generated.h"
 
 // A single polygon, may be convex or concave, etc...
+// bNegativeWinding tells us if the winding should be negative (CW) regardless of the order in Vertices
 USTRUCT()
 struct FSpritePolygon
 {
 	GENERATED_USTRUCT_BODY()
+
+	FSpritePolygon() 
+	: bNegativeWinding(false)
+	{
+	}
 
 	UPROPERTY(Category=Physics, EditAnywhere)
 	TArray<FVector2D> Vertices;
@@ -18,6 +24,9 @@ struct FSpritePolygon
 	
 	UPROPERTY()//Category=Physics, EditAnywhere)
 	FVector2D BoxPosition;
+
+	UPROPERTY()
+	bool bNegativeWinding;
 };
 
 

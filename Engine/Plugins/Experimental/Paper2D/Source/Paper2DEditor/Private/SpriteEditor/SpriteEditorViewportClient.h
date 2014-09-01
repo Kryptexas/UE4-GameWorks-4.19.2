@@ -106,7 +106,9 @@ public:
 	bool CanSplitEdge() const { return IsEditingGeometry(); } //@TODO: Need an edge
 
 	void AddPolygon();
+	void AddSubtractivePolygon();
 	bool CanAddPolygon() const { return IsEditingGeometry(); }
+	bool CanAddSubtractivePolygon() const { return CanAddPolygon() && IsInRenderingEditMode(); }
 
 	void SnapAllVerticesToPixelGrid();
 	bool CanSnapVerticesToPixelGrid() const { return IsEditingGeometry(); }
@@ -196,7 +198,7 @@ private:
 
 	void DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles);
 	void DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos);
-	void DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry);
+	void DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor, bool bIsRenderGeometry);
 	void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
 	void DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos);
 	void DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI);

@@ -48,5 +48,6 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteSelection;
 	TSharedPtr<FUICommandInfo> SplitEdge;
 	TSharedPtr<FUICommandInfo> AddPolygon;
+	TSharedPtr<FUICommandInfo> AddSubtractivePolygon;
 	TSharedPtr<FUICommandInfo> SnapAllVertices;
 };

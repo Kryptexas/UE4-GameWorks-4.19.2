@@ -10,6 +10,7 @@
 #include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
+#include "PaperGeomTools.h"
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
 
@@ -963,48 +964,51 @@ void UPaperSprite::CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOw
 void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target)
 {
 	Target.Empty();
+	TArray<FVector2D> AllGeneratedTriangles;
 
-	TArray<FClipSMTriangle> AllGeneratedTriangles;
-
-	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
+	// Correct polygon winding for additive and subtractive polygons
+	// Invalid polygons (< 3 verts) removed from this list
+	TArray<FSpritePolygon> ValidPolygons = PaperGeomTools::CorrectPolygonWinding(Source.Polygons);
+	
+	// Check if polygons overlap, or have inconsistent winding, or edges overlap
+	if (!PaperGeomTools::ArePolygonsValid(ValidPolygons))
 	{
-		const FSpritePolygon& SourcePoly = Source.Polygons[PolygonIndex];
-		if (SourcePoly.Vertices.Num() >= 3)
+		return;
+	}
+
+	// Merge each additive and associated subtractive polygons to form a list of polygons in CCW winding
+	ValidPolygons = PaperGeomTools::ReducePolygons(ValidPolygons);
+
+	// Triangulate the polygons
+	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygons.Num(); ++PolygonIndex)
+	{
+		const FSpritePolygon& SourcePoly = ValidPolygons[PolygonIndex];
+		TArray<FVector2D> Generated2DTriangles;
+		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, SourcePoly.Vertices, Source.bAvoidVertexMerging))
 		{
-			// Convert our format into one the triangulation library supports
-			FClipSMPolygon ClipPolygon(0);
-			for (int32 VertexIndex = 0; VertexIndex < SourcePoly.Vertices.Num(); ++VertexIndex)
-			{
-				FClipSMVertex* ClipVertex = new (ClipPolygon.Vertices) FClipSMVertex;
-				FMemory::Memzero(ClipVertex, sizeof(FClipSMVertex));
-
-				const FVector2D& SourceVertex = SourcePoly.Vertices[VertexIndex];
-				ClipVertex->Pos.X = SourceVertex.X;
-				ClipVertex->Pos.Z = SourceVertex.Y;
-			}
-			ClipPolygon.FaceNormal = FVector(0.0f, -1.0f, 0.0f);
-
-			// Attempt to triangulate this polygon
-			TArray<FClipSMTriangle> GeneratedTriangles;
-			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon, Source.bAvoidVertexMerging))
-			{
-				AllGeneratedTriangles.Append(GeneratedTriangles);
-			}
+			AllGeneratedTriangles.Append(Generated2DTriangles);
 		}
 	}
 
-	if (!Source.bAvoidVertexMerging && (Source.Polygons.Num() > 1) && (AllGeneratedTriangles.Num() > 1))
+	bool bSourcePolygonHasHoles = false;
+	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
 	{
-		RemoveRedundantTriangles(AllGeneratedTriangles);
+		if (Source.Polygons[PolygonIndex].bNegativeWinding)
+		{
+			bSourcePolygonHasHoles = true;
+			break;
+		}
 	}
 
-	// Convert the triangles back to our 2D data structure
-	for (const FClipSMTriangle& Triangle : AllGeneratedTriangles)
+	// This doesn't work when polys have holes as edges will likely form a loop around the poly
+	if (!bSourcePolygonHasHoles && !Source.bAvoidVertexMerging && (Source.Polygons.Num() > 1 && AllGeneratedTriangles.Num() > 1))
 	{
-		new (Target) FVector2D(Triangle.Vertices[0].Pos.X, Triangle.Vertices[0].Pos.Z);
-		new (Target) FVector2D(Triangle.Vertices[1].Pos.X, Triangle.Vertices[1].Pos.Z);
-		new (Target) FVector2D(Triangle.Vertices[2].Pos.X, Triangle.Vertices[2].Pos.Z);
+		TArray<FVector2D> TrianglesCopy = AllGeneratedTriangles;
+		AllGeneratedTriangles.Empty();
+		PaperGeomTools::RemoveRedundantTriangles(/*out*/AllGeneratedTriangles, TrianglesCopy);
 	}
+
+	Target.Append(AllGeneratedTriangles);
 }
 
 void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects)

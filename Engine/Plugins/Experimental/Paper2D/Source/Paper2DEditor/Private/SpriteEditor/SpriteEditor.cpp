@@ -186,8 +186,12 @@ void SSpriteEditorViewport::BindCommands()
 		FCanExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::CanSplitEdge ));
 	CommandList->MapAction(
 		Commands.AddPolygon,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::AddPolygon ),
-		FCanExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddPolygon ));
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::AddPolygon),
+		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddPolygon));
+	CommandList->MapAction(
+		Commands.AddSubtractivePolygon,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::AddSubtractivePolygon),
+		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddSubtractivePolygon));
 	CommandList->MapAction(
 		Commands.SnapAllVertices,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::SnapAllVerticesToPixelGrid ),
@@ -514,6 +518,7 @@ void FSpriteEditor::ExtendToolbar()
 			ToolbarBuilder.BeginSection("Tools");
 			{
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().AddPolygon);
+//				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().AddSubtractivePolygon); // disabled until polygon editing is improved
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SnapAllVertices);
 			}
 			ToolbarBuilder.EndSection();

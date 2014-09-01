@@ -291,7 +291,7 @@ void FSpriteEditorViewportClient::DrawMarquee(FViewport& InViewport, FSceneView&
 	}
 }
 
-void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry)
+void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor, bool bIsRenderGeometry)
 {
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
@@ -299,13 +299,14 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 	const float CollisionVertexSize = 8.0f;
 
 	const float NormalLength = 15.0f;
-	const FLinearColor GeometryLineColor(GeometryVertexColor.R, GeometryVertexColor.G, GeometryVertexColor.B, 0.5f * GeometryVertexColor.A);
 	const FLinearColor GeometryNormalColor(0.0f, 1.0f, 0.0f, 0.5f);
 
 	// Run thru the custom collision vertices and draw hit proxies for them
 	for (int32 PolygonIndex = 0; PolygonIndex < Geometry.Polygons.Num(); ++PolygonIndex)
 	{
 		const FSpritePolygon& Polygon = Geometry.Polygons[PolygonIndex];
+		const FLinearColor LineColor = Polygon.bNegativeWinding ? NegativeGeometryVertexColor : GeometryVertexColor;
+		const FLinearColor VertexColor = Polygon.bNegativeWinding ? NegativeGeometryVertexColor : GeometryVertexColor;
 
 		// Draw lines connecting the vertices of the polygon
 		for (int32 VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
@@ -341,7 +342,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 				}
 
 				FCanvasLineItem LineItem(ScreenPos, NextScreenPos);
-				LineItem.SetColor(GeometryLineColor);
+				LineItem.SetColor(LineColor);
 				Canvas.DrawItem(LineItem);
 
 				if (bIsHitTesting)
@@ -368,7 +369,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 				Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
 			}
 
-			Canvas.DrawTile(ScreenPos.X - CollisionVertexSize*0.5f, ScreenPos.Y - CollisionVertexSize*0.5f, CollisionVertexSize, CollisionVertexSize, 0.f, 0.f, 1.f, 1.f, GeometryVertexColor, GWhiteTexture);
+			Canvas.DrawTile(ScreenPos.X - CollisionVertexSize*0.5f, ScreenPos.Y - CollisionVertexSize*0.5f, CollisionVertexSize, CollisionVertexSize, 0.f, 0.f, 1.f, 1.f, VertexColor, GWhiteTexture);
 			
 			if (bIsHitTesting)
 			{
@@ -649,7 +650,8 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 
 			// Draw the custom collision geometry
 			const FLinearColor CollisionColor(1.0f, 1.0f, 0.0f, 1.0f);
-			DrawGeometry(Viewport, View, Canvas, Sprite->CollisionGeometry, CollisionColor, false);
+			const FLinearColor White(1, 1, 1, 1);
+			DrawGeometry(Viewport, View, Canvas, Sprite->CollisionGeometry, CollisionColor, White, false);
 			if (Sprite->BodySetup != nullptr)
 			{
 				DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
@@ -668,7 +670,8 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 
 			// Draw the custom render geometry
 			const FLinearColor RenderGeomColor(1.0f, 0.2f, 0.0f, 1.0f);
-			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, true);
+			const FLinearColor NegativeRenderGeomColor(0.0f, 0.2f, 1.0f, 1.0f);
+			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, NegativeRenderGeomColor, true);
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
 			DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
@@ -1244,6 +1247,33 @@ void FSpriteEditorViewportClient::AddPolygon()
 	if (FSpritePolygonCollection* Geometry = GetGeometryBeingEdited())
 	{
 		FSpritePolygon& NewPoly = *new (Geometry->Polygons) FSpritePolygon;
+		NewPoly.bNegativeWinding = false;
+
+		//@TODO: Should make this more awesome (or even just regular awesome)
+		// Hack adding verts since we don't have 'line drawing mode' where you can just click-click-click yet
+		UPaperSprite* Sprite = GetSpriteBeingEdited();
+		const FVector2D BaseUV = Sprite->GetSourceUV();
+		const float Size = 10.0f;
+
+		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y);
+		new (NewPoly.Vertices) FVector2D(BaseUV.X + Size, BaseUV.Y + Size);
+		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y + Size);
+		bManipulationDirtiedSomething = true;
+
+		Geometry->GeometryType = ESpritePolygonMode::FullyCustom;
+	}
+
+	EndTransaction();
+}
+
+void FSpriteEditorViewportClient::AddSubtractivePolygon()
+{
+	BeginTransaction(LOCTEXT("AddPolygonTransaction", "Add Subtractive Polygon"));
+
+	if (FSpritePolygonCollection* Geometry = GetGeometryBeingEdited())
+	{
+		FSpritePolygon& NewPoly = *new (Geometry->Polygons) FSpritePolygon;
+		NewPoly.bNegativeWinding = true;
 
 		//@TODO: Should make this more awesome (or even just regular awesome)
 		// Hack adding verts since we don't have 'line drawing mode' where you can just click-click-click yet
