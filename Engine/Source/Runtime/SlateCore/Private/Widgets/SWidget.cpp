@@ -27,7 +27,7 @@ SWidget::SWidget()
 }
 
 void SWidget::Construct(
-	const TAttribute<FString> & InToolTipText ,
+	const TAttribute<FText> & InToolTipText ,
 	const TSharedPtr<IToolTip> & InToolTip ,
 	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 	const TAttribute<bool> & InEnabledState ,

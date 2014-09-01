@@ -5,14 +5,16 @@
 #if WITH_FANCY_TEXT
 
 #include "TextLayoutEngine.h"
-#include "SlateTextLayout.h"
-#include "SlateTextHighlightRunRenderer.h"
+#include "TextBlockLayout.h"
 #include "IRichTextMarkupParser.h"
 #include "RichTextMarkupProcessing.h"
-
+#include "RichTextLayoutMarshaller.h"
 
 void SRichTextBlock::Construct( const FArguments& InArgs )
 {
+	BoundText = InArgs._Text;
+	HighlightText = InArgs._HighlightText;
+
 	TextStyle = *InArgs._TextStyle;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
@@ -20,7 +22,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
 
-	CachedSize = FVector2D::ZeroVector;
+	CachedScale = 1.0f;
 
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
@@ -29,169 +31,69 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Parser = FDefaultRichTextMarkupParser::Create();
 		}
 
-		Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet, TextStyle);
+		TSharedRef<FRichTextLayoutMarshaller> Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet, TextStyle);
 		for ( const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators )
 		{
 			Marshaller->AppendInlineDecorator( Decorator );
 		}
+
+		TextLayoutCache = FTextBlockLayout::Create(Marshaller, nullptr);
 	}
-
-	TextHighlighter = FSlateTextHighlightRunRenderer::Create();
-
-	TextLayout = FSlateTextLayout::Create();
-
-	SetText( InArgs._Text );
-
-	TextLayout->SetWrappingWidth( WrapTextAt.Get() );
-	TextLayout->SetMargin( Margin.Get() );
-	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
-	TextLayout->SetJustification( Justification.Get() );
-	TextLayout->UpdateIfNeeded();
-}
-
-void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	TextLayout->SetScale( AllottedGeometry.Scale );
-
-	bool bRequiresTextUpdate = false;
-	const FText& TextToSet = GetText();
-	if (!BoundTextLastTick.IdenticalTo(TextToSet))
-	{
-		// The pointer used by the bound text has changed, however the text may still be the same - check that now
-		if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
-		{
-			// The source text has changed, so update the internal editable text
-			bRequiresTextUpdate = true;
-		}
-
-		// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
-		BoundTextLastTick = FTextSnapshot(TextToSet);
-	}
-
-	if (bRequiresTextUpdate || Marshaller->IsDirty())
-	{
-		SetText(TextToSet);
-	}
-
-	TextLayout->SetVisibleRegion(AllottedGeometry.Size, FVector2D::ZeroVector);
 }
 
 int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SRichTextBlock );
 
-	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
-	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
-	CachedSize = AllottedGeometry.Size;
+	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
+	CachedScale = AllottedGeometry.Scale;
 
-	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+	// OnPaint will also update the text layout cache if required
+	LayerId = TextLayoutCache->OnPaint(
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+		Args.WithNewParent(this), AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled)
+		);
 
 	return LayerId;
 }
 
-void SRichTextBlock::CacheDesiredSize()
-{
-	float WrappingWidth = WrapTextAt.Get();
-
-	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText and CachedSize), 
-	// or a mixture of both.  Take whichever has the smallest value (>1)
-	if ( AutoWrapText.Get() && CachedSize.X >= 1.0f )
-	{
-		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedSize.X) : CachedSize.X;
-	}
-
-	TextLayout->SetWrappingWidth( WrappingWidth );
-	TextLayout->SetMargin( Margin.Get() );
-	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
-	TextLayout->SetJustification( Justification.Get() );
-	TextLayout->SetVisibleRegion( CachedSize, FVector2D::ZeroVector );
-	TextLayout->UpdateIfNeeded();
-
-	SWidget::CacheDesiredSize();
-}
-
 FVector2D SRichTextBlock::ComputeDesiredSize() const
 {
-	//The layouts current margin size. We should not report a size smaller then the margins.
-	const FMargin LayoutMargin = TextLayout->GetMargin();
-	const FVector2D TextLayoutSize = TextLayout->GetSize();
+	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
+	const float Scale = CachedScale;
 
-	//If a wrapping width has been provided that should be reported as the desired width.
-	const float Width = TextLayout->GetWrappingWidth() > 0 ? TextLayout->GetWrappingWidth() : TextLayoutSize.X;
+	// ComputeDesiredSize will also update the text layout cache if required
+	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+		Scale, TextStyle
+		);
 
-	return FVector2D(FMath::Max(LayoutMargin.GetTotalSpaceAlong<Orient_Horizontal>(), Width), FMath::Max(LayoutMargin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y));
+	return TextSize;
 }
 
 FChildren* SRichTextBlock::GetChildren()
 {
-	return TextLayout->GetChildren();
+	return TextLayoutCache->GetChildren();
 }
 
 void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	TextLayoutCache->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
 void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 {
 	BoundText = InTextAttr;
-
-	const FText& InText = GetText();
-
-	// Update the cached BoundText value to prevent it triggering another SetText update again next Tick
-	if (BoundText.IsBound())
-	{
-		BoundTextLastTick = FTextSnapshot(InText);
-	}
-
-	TextLayout->ClearLines();
-
-	Marshaller->SetText(InText.ToString(), *TextLayout);
 }
 
-void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
+void SRichTextBlock::SetHighlightText( const TAttribute<FText>& InHighlightText )
 {
-	if ( !TextHighlighter.IsValid() )
-	{
-		return;
-	}
-
 	HighlightText = InHighlightText;
-
-	const FString& HighlightTextString = HighlightText.ToString();
-	const int32 HighlightTextLength = HighlightTextString.Len();
-
-	const TArray< FTextLayout::FLineModel >& LineModels = TextLayout->GetLineModels();
-
-	TArray< FTextRunRenderer > TextHighlights;
-	for (int32 LineIndex = 0; LineIndex < LineModels.Num(); LineIndex++)
-	{
-		const FTextLayout::FLineModel& LineModel = LineModels[ LineIndex ];
-
-		int32 FindBegin = 0;
-		int32 CurrentHighlightBegin;
-		const int32 TextLength = LineModel.Text->Len();
-		while( FindBegin < TextLength && (CurrentHighlightBegin = LineModel.Text->Find(HighlightTextString, ESearchCase::IgnoreCase, ESearchDir::FromStart, FindBegin)) != INDEX_NONE )
-		{
-			FindBegin = CurrentHighlightBegin + HighlightTextLength;
-
-			if ( TextHighlights.Num() > 0 && TextHighlights.Last().LineIndex == LineIndex && TextHighlights.Last().Range.EndIndex == CurrentHighlightBegin )
-			{
-				TextHighlights[ TextHighlights.Num() - 1 ] = FTextRunRenderer( LineIndex, FTextRange( TextHighlights.Last().Range.BeginIndex, FindBegin ), TextHighlighter.ToSharedRef() );
-			}
-			else
-			{
-				TextHighlights.Add( FTextRunRenderer( LineIndex, FTextRange( CurrentHighlightBegin, FindBegin ), TextHighlighter.ToSharedRef() ) );
-			}
-		}
-	}
-
-	TextLayout->SetRunRenderers( TextHighlights );
 }
 
 void SRichTextBlock::Refresh()
 {
-	TextLayout->DirtyLayout();
+	TextLayoutCache->DirtyLayout();
 }
 
 #endif //WITH_FANCY_TEXT

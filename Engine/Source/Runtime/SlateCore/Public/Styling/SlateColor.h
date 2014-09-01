@@ -130,6 +130,32 @@ public:
 		return (ColorUseRule == ESlateColorStylingMode::UseColor_Specified) || (ColorUseRule == ESlateColorStylingMode::UseColor_Specified_Link);
 	}
 
+	/**
+	 * Compares this color with another for equality.
+	 *
+	 * @param Other The other color.
+	 *
+	 * @return true if the two colors are equal, false otherwise.
+	 */
+	bool operator==( const FSlateColor& Other ) const 
+	{
+		return SpecifiedColor == Other.SpecifiedColor
+			&& ColorUseRule == Other.ColorUseRule
+			&& (ColorUseRule != ESlateColorStylingMode::UseColor_Specified_Link || LinkedSpecifiedColor == Other.LinkedSpecifiedColor);
+	}
+
+	/**
+	 * Compares this color with another for inequality.
+	 *
+	 * @param Other The other color.
+	 *
+	 * @return false if the two colors are equal, true otherwise.
+	 */
+	bool operator!=( const FSlateColor& Other ) const 
+	{
+		return !(*this == Other);
+	}
+
 public:
 
 	/** @returns an FSlateColor that is the widget's foreground. */

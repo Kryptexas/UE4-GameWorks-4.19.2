@@ -138,8 +138,8 @@ public:
 
 	SLATE_BEGIN_ARGS(SWizard)
 		: _CanFinish(true)
-		, _FinishButtonText(NSLOCTEXT("SWizard", "DefaultFinishButtonText", "Finish").ToString())
-		, _FinishButtonToolTip(NSLOCTEXT("SWizard", "DefaultFinishButtonTooltip", "Finish the wizard").ToString())
+		, _FinishButtonText(NSLOCTEXT("SWizard", "DefaultFinishButtonText", "Finish"))
+		, _FinishButtonToolTip(NSLOCTEXT("SWizard", "DefaultFinishButtonTooltip", "Finish the wizard"))
 		, _InitialPageIndex(0)
 		, _DesiredSize(FVector2D(0, 0))
 		, _ShowPageList(true)

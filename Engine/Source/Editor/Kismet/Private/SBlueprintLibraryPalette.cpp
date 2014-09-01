@@ -186,9 +186,9 @@ public:
 void SBlueprintLibraryPalette::Construct(FArguments const& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
 {
 	SBlueprintSubPalette::FArguments SuperArgs;
-	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Find a Node").ToString();
+	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Find a Node");
 	SuperArgs._Icon        = FEditorStyle::GetBrush("Kismet.Palette.Library");
-	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "An all encompassing list of every node that is available for this blueprint.").ToString();
+	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "An all encompassing list of every node that is available for this blueprint.");
 	SuperArgs._ShowFavoriteToggles = true;
 
 	bUseLegacyLayout = InArgs._UseLegacyLayout.Get();
@@ -226,7 +226,7 @@ void SBlueprintLibraryPalette::CollectAllActions(FGraphActionListBuilderBase& Ou
 }
 
 //------------------------------------------------------------------------------
-TSharedRef<SVerticalBox> SBlueprintLibraryPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTip)
+TSharedRef<SVerticalBox> SBlueprintLibraryPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTip)
 {
 	TSharedRef<SVerticalBox> SuperHeading = SBlueprintSubPalette::ConstructHeadingWidget(Icon, TitleText, ToolTip);
 

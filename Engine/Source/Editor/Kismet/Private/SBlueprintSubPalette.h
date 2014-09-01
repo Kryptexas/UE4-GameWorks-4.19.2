@@ -82,7 +82,7 @@ protected:
 	 * @param  ToolTip		A tooltip you want displayed when the user hovers over the heading.
 	 * @return A reference to the newly created vertical slate box containing the header.
 	 */
-	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTip);
+	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTip);
 
 	/**
 	 * An overridable method, that fills out the provided menu-builder with 

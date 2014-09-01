@@ -3,12 +3,12 @@
 
 #if WITH_FANCY_TEXT
 
-#include "BaseTextLayoutMarshaller.h"
+#include "SlateTextLayoutMarshaller.h"
 
 /**
  * Get/set the raw text to/from a text layout as plain text
  */
-class SLATE_API FPlainTextLayoutMarshaller : public FBaseTextLayoutMarshaller
+class SLATE_API FPlainTextLayoutMarshaller : public FSlateTextLayoutMarshaller
 {
 public:
 
@@ -20,15 +20,9 @@ public:
 	virtual void SetText(const FString& SourceString, FTextLayout& TargetTextLayout) override;
 	virtual void GetText(FString& TargetString, const FTextLayout& SourceTextLayout) override;
 
-	void SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle);
-	const FTextBlockStyle& GetDefaultTextStyle() const;
-
 protected:
 
 	FPlainTextLayoutMarshaller(FTextBlockStyle InDefaultTextStyle);
-
-	/** Default style used by the TextLayout */
-	FTextBlockStyle DefaultTextStyle;
 
 };
 

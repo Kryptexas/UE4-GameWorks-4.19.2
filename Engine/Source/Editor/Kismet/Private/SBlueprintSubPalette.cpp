@@ -384,7 +384,7 @@ void SBlueprintSubPalette::RequestRefreshActionsList()
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTipText)
+TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTipText)
 {
 	TSharedPtr<SToolTip> ToolTip;
 	SAssignNew(ToolTip, SToolTip).Text(ToolTipText);

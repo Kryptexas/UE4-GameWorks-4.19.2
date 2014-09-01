@@ -35,19 +35,8 @@ void FPlainTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayou
 	SourceTextLayout.GetAsText(TargetString);
 }
 
-void FPlainTextLayoutMarshaller::SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle)
-{
-	DefaultTextStyle = MoveTemp(InDefaultTextStyle);
-	MakeDirty();
-}
-
-const FTextBlockStyle& FPlainTextLayoutMarshaller::GetDefaultTextStyle() const
-{
-	return DefaultTextStyle;
-}
-
 FPlainTextLayoutMarshaller::FPlainTextLayoutMarshaller(FTextBlockStyle InDefaultTextStyle)
-	: DefaultTextStyle(MoveTemp(InDefaultTextStyle))
+	: FSlateTextLayoutMarshaller(MoveTemp(InDefaultTextStyle))
 {
 }
 

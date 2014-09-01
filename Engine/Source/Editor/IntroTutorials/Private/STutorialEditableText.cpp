@@ -7,7 +7,7 @@
 #include "ContentBrowserModule.h"
 #include "SColorPicker.h"
 #include "DesktopPlatformModule.h"
-
+#include "RichTextLayoutMarshaller.h"
 
 #define LOCTEXT_NAMESPACE "STutorialEditableText"
 

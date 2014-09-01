@@ -67,7 +67,7 @@ public:
 	 * Construct a SWidget based on initial parameters.
 	 */
 	void Construct(
-		const TAttribute<FString> & InToolTipText ,
+		const TAttribute<FText> & InToolTipText ,
 		const TSharedPtr<IToolTip> & InToolTip ,
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
@@ -76,7 +76,7 @@ public:
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
-	void SWidgetConstruct( const TAttribute<FString> & InToolTipText ,
+	void SWidgetConstruct( const TAttribute<FText> & InToolTipText ,
 		const TSharedPtr<IToolTip> & InToolTip ,
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,

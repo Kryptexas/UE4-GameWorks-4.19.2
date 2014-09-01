@@ -276,9 +276,9 @@ SBlueprintFavoritesPalette::~SBlueprintFavoritesPalette()
 void SBlueprintFavoritesPalette::Construct(FArguments const& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
 {
 	SBlueprintSubPalette::FArguments SuperArgs;
-	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Favorites").ToString();
+	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Favorites");
 	SuperArgs._Icon        = FEditorStyle::GetBrush("Kismet.Palette.Favorites");
-	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "A listing of your favorite and most used nodes.").ToString();
+	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "A listing of your favorite and most used nodes.");
 
 	static FString const ShowFreqUsedConfigKey("bShowFrequentlyUsed");
 	// should be set before we call the super (so CollectAllActions() has the right value)

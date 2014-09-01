@@ -14,7 +14,7 @@ public:
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FExpandableAreaStyle>("ExpandableArea") )
 		, _BorderBackgroundColor( FLinearColor::White )
 		, _BorderImage( FCoreStyle::Get().GetBrush("ExpandableArea.Border") )
-		, _AreaTitle( TEXT("") )
+		, _AreaTitle( )
 		, _InitiallyCollapsed( false )
 		, _MaxHeight( 0.0f )
 		, _Padding( 1.0f )

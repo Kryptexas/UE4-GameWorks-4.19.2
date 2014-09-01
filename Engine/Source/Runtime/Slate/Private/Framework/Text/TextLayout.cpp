@@ -587,13 +587,13 @@ void FTextLayout::UpdateHighlights()
 
 void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
 {
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		FLineModel& LineModel = LineModels[LineModelIndex];
 
 		if (LineModel.HasWrappingInformation)
 		{
-			for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+			for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 			{
 				if (LineModel.Runs[RunIndex].GetRun() == Run)
 				{
@@ -609,20 +609,10 @@ void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
 
 void FTextLayout::DirtyLayout()
 {
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
-	{
-		FLineModel& LineModel = LineModels[LineModelIndex];
-
-		if (LineModel.HasWrappingInformation)
-		{
-			for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
-			{
-				LineModel.Runs[RunIndex].ClearCache();
-			}
-		}
-	}
-
 	DirtyFlags |= EDirtyState::Layout;
+
+	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
+	ClearWrappingCache();
 }
 
 void FTextLayout::ClearRunRenderers()

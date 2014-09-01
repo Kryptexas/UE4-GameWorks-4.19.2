@@ -171,7 +171,7 @@ public:
 		FName ColumnId;
 
 		/** Default text to use if no widget is passed in. */
-		TAttribute< FString > DefaultText;
+		TAttribute< FText > DefaultText;
 
 		/** A column width in Slate Units */
 		TAttribute< float > Width;

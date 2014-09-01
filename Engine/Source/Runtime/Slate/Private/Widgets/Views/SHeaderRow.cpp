@@ -48,11 +48,11 @@ public:
 
 		FMargin AdjustedDefaultHeaderContentPadding = DefaultHeaderContentPadding;
 
-		TAttribute< FString > LabelText = Column.DefaultText;
+		TAttribute< FText > LabelText = Column.DefaultText;
 
 		if (Column.HeaderContent.Widget == SNullWidget::NullWidget && !Column.DefaultText.IsBound() && Column.DefaultText.Get().IsEmpty())
 		{
-			LabelText = Column.ColumnId.ToString() + TEXT("[LabelMissing]");
+			LabelText = FText::FromString( Column.ColumnId.ToString() + TEXT("[LabelMissing]") );
 		}
 
 		TSharedPtr< SHorizontalBox > Box;

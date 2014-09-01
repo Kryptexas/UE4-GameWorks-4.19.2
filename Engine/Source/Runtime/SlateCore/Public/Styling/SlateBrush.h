@@ -223,6 +223,38 @@ public:
 		return bIsDynamicallyLoaded;
 	}
 
+	/**
+	 * Compares this brush with another for equality.
+	 *
+	 * @param Other The other brush.
+	 *
+	 * @return true if the two brushes are equal, false otherwise.
+	 */
+	bool operator==( const FSlateBrush& Other ) const 
+	{
+		return ImageSize == Other.ImageSize
+			&& DrawAs == Other.DrawAs
+			&& Margin == Other.Margin
+			&& TintColor == Other.TintColor
+			&& Tiling == Other.Tiling
+			&& Mirroring == Other.Mirroring
+			&& ResourceObject == Other.ResourceObject
+			&& ResourceName == Other.ResourceName
+			&& bIsDynamicallyLoaded == Other.bIsDynamicallyLoaded;
+	}
+
+	/**
+	 * Compares this brush with another for inequality.
+	 *
+	 * @param Other The other brush.
+	 *
+	 * @return false if the two brushes are equal, true otherwise.
+	 */
+	bool operator!=( const FSlateBrush& Other ) const 
+	{
+		return !(*this == Other);
+	}
+
 public:
 
 	/**

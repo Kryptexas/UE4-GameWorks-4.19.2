@@ -3,8 +3,6 @@
 
 #if WITH_FANCY_TEXT
 
-#include "RichTextLayoutMarshaller.h"
-
 /**
  * A rich static text widget. 
  * Through the use of markup and text decorators, text with different styles, embedded image and widgets can be achieved.
@@ -14,7 +12,8 @@ class SLATE_API SRichTextBlock : public SWidget
 public:
 
 	SLATE_BEGIN_ARGS( SRichTextBlock )
-		: _Text(  )
+		: _Text()
+		, _HighlightText()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
 		, _DecoratorStyleSet( &FCoreStyle::Get() )
@@ -27,6 +26,9 @@ public:
 	{}
 		/** The text displayed in this text block */
 		SLATE_ATTRIBUTE( FText, Text )
+
+		/** Highlight this text in the text block */
+		SLATE_ATTRIBUTE( FText, HighlightText )
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
@@ -103,9 +105,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
-	virtual void CacheDesiredSize() override;
 	virtual FVector2D ComputeDesiredSize() const override;
 
 	virtual FChildren* GetChildren() override;
@@ -126,7 +126,7 @@ public:
 	 */
 	void SetText( const TAttribute<FText>& InTextAttr );
 
-	void SetHighlightText( const FText& InHighlightText );
+	void SetHighlightText( const TAttribute<FText>& InHighlightText );
 
 	/**
 	 * Causes the text to reflow it's layout
@@ -138,19 +138,14 @@ private:
 	/** The text displayed in this text block */
 	TAttribute< FText > BoundText;
 
-	/** The state of BoundText last Tick() (used to allow updates when the text is changed) */
-	FTextSnapshot BoundTextLastTick;
-
-	/** The marshaller used to set the Text text in the text layout. */
-	TSharedPtr< FRichTextLayoutMarshaller > Marshaller;
-
-	TSharedPtr< FSlateTextLayout > TextLayout;
+	/** The wrapped layout for this text block */
+	TSharedPtr< FTextBlockLayout > TextLayoutCache;
 
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;
 
-	FText HighlightText;
-	TSharedPtr< ISlateRunRenderer> TextHighlighter;
+	/** Highlight this text in the textblock */
+	TAttribute<FText> HighlightText;
 
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	TAttribute<float> WrapTextAt;
@@ -158,12 +153,17 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute<bool> AutoWrapText;
 
-	/** The last known size of the control from the previous OnPaint, used to recalculate wrapping. */
-	mutable FVector2D CachedSize;
-
+	/** The amount of blank space left around the edges of text area. */
 	TAttribute< FMargin > Margin;
+
+	/** The amount to scale each lines height by. */
 	TAttribute< ETextJustify::Type > Justification; 
+
+	/** How the text should be aligned with the margin. */
 	TAttribute< float > LineHeightPercentage;
+
+	/** todo: jdale - The scale needs to be passed to ComputeDesiredSize */
+	mutable float CachedScale;
 };
 
 #endif //WITH_FANCY_TEXT

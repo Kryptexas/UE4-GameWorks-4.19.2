@@ -9,6 +9,7 @@
 #include "SThumbnailEditModeTools.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "BreakIterator.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1274,6 +1275,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					.IsSelected(InArgs._IsSelected)
 					.IsReadOnly(ThumbnailEditMode)
 					.WrapTextAt(this, &SAssetTileItem::GetNameTextWrapWidth)
+					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 			]
 		]
 	

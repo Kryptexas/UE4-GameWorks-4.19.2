@@ -5,6 +5,7 @@
 #include "SLayoutExample.h"
 #include "SWidgetGallery.h"
 #include "TestStyle.h"
+#include "RichTextLayoutMarshaller.h"
 #include "SyntaxHighlighterTextLayoutMarshaller.h"
 #include "STestSuite.h"
 #include "TransformCalculus3D.h"
@@ -1030,6 +1031,7 @@ class SMultiLineEditingTest : public SCompoundWidget
 
 	void Construct( const FArguments& InArgs )
 	{
+		bIsReadOnly = false;
 		MultilineEditableText = LOCTEXT( "MultiLineTextTest", "He has refused his Assent to Laws, the most wholesome and necessary for the public good.\nHe has forbidden his Governors to pass Laws of immediate and pressing importance, unless suspended in their operation till his Assent should be obtained; and when so suspended, he has utterly neglected to attend to them.\nHe has refused to pass other Laws for the accommodation of large districts of people, unless those people would relinquish the right of Representation in the Legislature, a right inestimable to them and formidable to tyrants only.\n\nHe has called together legislative bodies at places unusual, uncomfortable, and distant from the depository of their public Records, for the sole purpose of fatiguing them into compliance with his measures.\nHe has dissolved Representative Houses repeatedly, for opposing with manly firmness his invasions on the rights of the people.\nHe has refused for a long time, after such dissolutions, to cause others to be elected; whereby the Legislative powers, incapable of Annihilation, have returned to the People at large for their exercise; the State remaining in the mean time exposed to all the dangers of invasion from without, and convulsions within.\nHe has endeavoured to prevent the population of these States; for that purpose obstructing the Laws for Naturalization of Foreigners; refusing to pass others to encourage their migrations hither, and raising the conditions of new Appropriations of Lands.\n" );
 
 		this->ChildSlot
@@ -1070,14 +1072,33 @@ class SMultiLineEditingTest : public SCompoundWidget
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SNew( STextBlock )
-						.Text( LOCTEXT( "MultiLineTextAutoWrap", "Multi-line editable text auto-wrapping" ) )
+						SNew( SHorizontalBox )
+						
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew( STextBlock )
+							.Text( LOCTEXT( "MultiLineTextAutoWrap", "Multi-line editable text auto-wrapping" ) )
+						]
+
+						+SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						[
+							SNew( SCheckBox )
+							.IsChecked(this, &SMultiLineEditingTest::IsReadOnlyChecked)
+							.OnCheckStateChanged(this, &SMultiLineEditingTest::OnReadOnlyCheckedStateChanged)
+							[
+								SNew( STextBlock )
+								.Text( LOCTEXT( "MultiLineTextReadOnly", "Read-only?" ) )
+							]
+						]
 					]
 					+ SVerticalBox::Slot()
 					[
 						SNew( SMultiLineEditableTextBox )
 						.Margin( 10 )
 						.Text( MultilineEditableText )
+						.IsReadOnly( this, &SMultiLineEditingTest::IsReadOnly )
 						//.Justification(ETextJustify::Right)
 						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
 						.AutoWrapText( true )
@@ -1128,7 +1149,22 @@ private:
 		MultilineEditableText = Text;
 	}
 
+	bool IsReadOnly() const
+	{
+		return bIsReadOnly;
+	}
 
+	ESlateCheckBoxState::Type IsReadOnlyChecked() const
+	{
+		return (bIsReadOnly) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnReadOnlyCheckedStateChanged(ESlateCheckBoxState::Type InState)
+	{
+		bIsReadOnly = (InState == ESlateCheckBoxState::Checked);
+	}
+
+	bool bIsReadOnly;
 	FText MultilineEditableText;
 };
 

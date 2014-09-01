@@ -102,24 +102,13 @@ void FRichTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout
 	Writer->Write(WriterLines, TargetString);
 }
 
-void FRichTextLayoutMarshaller::SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle)
-{
-	DefaultTextStyle = MoveTemp(InDefaultTextStyle);
-	MakeDirty();
-}
-
-const FTextBlockStyle& FRichTextLayoutMarshaller::GetDefaultTextStyle() const
-{
-	return DefaultTextStyle;
-}
-
 FRichTextLayoutMarshaller::FRichTextLayoutMarshaller(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet, FTextBlockStyle InDefaultTextStyle)
-	: Parser(MoveTemp(InParser))
+	: FSlateTextLayoutMarshaller(MoveTemp(InDefaultTextStyle))
+	, Parser(MoveTemp(InParser))
 	, Writer(MoveTemp(InWriter))
 	, Decorators(MoveTemp(InDecorators))
 	, InlineDecorators()
 	, DecoratorStyleSet(InDecoratorStyleSet)
-	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
 {
 }
 

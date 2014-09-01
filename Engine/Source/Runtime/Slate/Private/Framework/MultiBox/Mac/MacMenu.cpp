@@ -227,7 +227,7 @@ CFStringRef FSlateMacMenu::GetMenuItemTitle(const TSharedRef<const FMenuEntryBlo
 			const TSharedRef<SWidget>& TextBlockWidget = FindTextBlockWidget(Block->EntryWidget.ToSharedRef());
 			if (TextBlockWidget != SNullWidget::NullWidget)
 			{
-				Label = FText::FromString(StaticCastSharedRef<STextBlock>(TextBlockWidget)->GetText());
+				Label = StaticCastSharedRef<STextBlock>(TextBlockWidget)->GetText();
 			}
 		}
 

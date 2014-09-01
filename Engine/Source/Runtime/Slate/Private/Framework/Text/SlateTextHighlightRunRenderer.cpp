@@ -27,11 +27,11 @@ int32 FSlateTextHighlightRunRenderer::OnPaint( const FPaintArgs& Args, const FTe
 		InWidgetStyle.GetColorAndOpacityTint() * DefaultStyle.HighlightColor
 		);
 
-	FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
-	InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
+	FLinearColor InvertedHighlightColor = FLinearColor::White - DefaultStyle.HighlightColor;
+	InvertedHighlightColor.A = InWidgetStyle.GetForegroundColor().A;
 
 	FWidgetStyle WidgetStyle( InWidgetStyle );
-	WidgetStyle.SetForegroundColor( InvertedForeground );
+	WidgetStyle.SetForegroundColor( InvertedHighlightColor );
 
 	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled );
 }

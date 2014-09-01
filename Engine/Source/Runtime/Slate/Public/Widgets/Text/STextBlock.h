@@ -2,7 +2,9 @@
  
 #pragma once
 
-#include "WordWrapper.h"
+#include "IBreakIterator.h"
+
+class FTextBlockLayout;
 
 namespace ETextRole
 {
@@ -35,7 +37,11 @@ public:
 		, _HighlightText()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
+		, _Margin()
+		, _LineHeightPercentage(1.0f)
+		, _Justification(ETextJustify::Left)
 		, _MinDesiredWidth(0.0f)
+		, _LineBreakPolicy()
 		{}
 
 		/** The text displayed in this text block */
@@ -73,8 +79,20 @@ public:
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
 
+		/** The amount of blank space left around the edges of text area. */
+		SLATE_ATTRIBUTE( FMargin, Margin )
+
+		/** The amount to scale each lines height by. */
+		SLATE_ATTRIBUTE( float, LineHeightPercentage )
+
+		/** How the text should be aligned with the margin. */
+		SLATE_ATTRIBUTE( ETextJustify::Type, Justification )
+
 		/** Minimum width that a text block should be */
 		SLATE_ATTRIBUTE( float, MinDesiredWidth )
+
+		/** The iterator to use to detect appropriate soft-wrapping points for lines (or null to use the default) */
+		SLATE_ARGUMENT( TSharedPtr<IBreakIterator>, LineBreakPolicy )
 
 		/** Called when this text is double clicked */
 		SLATE_EVENT( FOnClicked, OnDoubleClicked )
@@ -93,9 +111,9 @@ public:
 	 *
 	 * @return	This text block's text string
 	 */
-	const FString& GetText() const
+	const FText& GetText() const
 	{
-		return Text.Get();
+		return BoundText.Get();
 	}
 	
 	/**
@@ -103,35 +121,10 @@ public:
 	 *
 	 * @param	InText	The new text to display
 	 */
-	void SetText( const TAttribute< FString >& InText )
-	{
-		Text = InText;
-		bRequestCache = true;
-	}
-
-	void SetText( const FString& InText )
-	{
-		Text = InText;
-		bRequestCache = true;
-	}
-
-	static FString PassThroughAttribute( TAttribute< FText > TextAttribute )
-	{
-		return TextAttribute.Get( FText::GetEmpty() ).ToString();
-	}
-
-	/**
-	 * Sets the text for this text block
-	 *
-	 * @param	InText	The new text to display
-	 */
+	void SetText( const TAttribute< FString >& InText );
+	void SetText( const FString& InText );
 	void SetText( const TAttribute< FText >& InText );
-
-	void SetText( const FText& InText )
-	{
-		Text = InText.ToString();
-		bRequestCache = true;
-	}
+	void SetText( const FText& InText );
 
 	/**
 	 * Sets the font used to draw the text
@@ -167,13 +160,12 @@ public:
 	// SWidget interface
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
-	virtual void CacheDesiredSize() override;
 	virtual FVector2D ComputeDesiredSize() const override;
 	// End of SWidget interface
 
 private:
-	/** Caches string size to avoid remeasuring if possible */
-	void CacheStringSizeIfNeeded();
+	/** Get the computed text style to use with the text marshaller */
+	FTextBlockStyle GetComputedTextStyle() const;
 
 	/** Gets the current foreground color */
 	FSlateColor GetColorAndOpacity() const;
@@ -195,9 +187,16 @@ private:
 
 private:
 	/** The text displayed in this text block */
-	TAttribute< FString > Text;
+	TAttribute< FText > BoundText;
 
-	/** The style for the text block */
+#if WITH_FANCY_TEXT
+
+	/** The wrapped layout for this text block */
+	TSharedPtr< FTextBlockLayout > TextLayoutCache;
+
+#endif//WITH_FANCY_TEXT
+
+	/** Default style used by the TextLayout */
 	const FTextBlockStyle* TextStyle;
 
 	/** Sets the font used to draw the text */
@@ -225,30 +224,21 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute<bool> AutoWrapText;
 
-	/** The delegate to execute when this text is double clicked */
-	FOnClicked OnDoubleClicked;
+	/** The amount of blank space left around the edges of text area. */
+	TAttribute< FMargin > Margin;
 
-	/** Cached Font that this text is using. This is used when determining if the cached string size should be updated */
-	FSlateFontInfo CachedFont;
+	/** The amount to scale each lines height by. */
+	TAttribute< ETextJustify::Type > Justification; 
 
-	/** Cached wrap width that this text is using. This is used when determining if the cached string size should be updated */
-	float CachedWrapTextWidth;
-
-	/** Cached auto-wrap width that this text is using. This is used when determining if the cached string size should be updated */
-	mutable float CachedAutoWrapTextWidth;
-
-	/** Text that was used to generate CachedWrappedString */
-	FString CachedOriginalString;
-
-	/** Cached wrapped text. This gets cached once in tick so it does not have to be re-generated at paint time every frame */
-	FString CachedWrappedString;
-
-	/** Line break data for the original string -> cached string */
-	FWordWrapper::FWrappedLineData CachedWrappedLineData;
-
-	/** If a request to cache the string size occurred and we should recache the text */
-	mutable bool bRequestCache;
+	/** How the text should be aligned with the margin. */
+	TAttribute< float > LineHeightPercentage;
 
 	/** Prevents the text block from being smaller than desired in certain cases (e.g. when it is empty) */
 	TAttribute<float> MinDesiredWidth;
+
+	/** The delegate to execute when this text is double clicked */
+	FOnClicked OnDoubleClicked;
+
+	/** todo: jdale - The scale needs to be passed to ComputeDesiredSize */
+	mutable float CachedScale;
 };

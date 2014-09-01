@@ -3,7 +3,7 @@
 
 #if WITH_FANCY_TEXT
 
-#include "BaseTextLayoutMarshaller.h"
+#include "SlateTextLayoutMarshaller.h"
 #include "ITextDecorator.h"
 #include "IRichTextMarkupParser.h"
 #include "IRichTextMarkupWriter.h"
@@ -11,7 +11,7 @@
 /**
  * Get/set the raw text to/from a text layout as rich text
  */
-class SLATE_API FRichTextLayoutMarshaller : public FBaseTextLayoutMarshaller
+class SLATE_API FRichTextLayoutMarshaller : public FSlateTextLayoutMarshaller
 {
 public:
 
@@ -23,9 +23,6 @@ public:
 	// ITextLayoutMarshaller
 	virtual void SetText(const FString& SourceString, FTextLayout& TargetTextLayout) override;
 	virtual void GetText(FString& TargetString, const FTextLayout& SourceTextLayout) override;
-
-	void SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle);
-	const FTextBlockStyle& GetDefaultTextStyle() const;
 
 	/**
 	 * Append an inline decorator to this marshaller
@@ -56,9 +53,6 @@ protected:
 
 	/** The style set used for looking up styles used by decorators */
 	const ISlateStyle* DecoratorStyleSet;
-
-	/** Default style used by the TextLayout */
-	FTextBlockStyle DefaultTextStyle;
 
 };
 

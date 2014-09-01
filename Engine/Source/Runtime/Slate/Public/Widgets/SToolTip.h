@@ -78,7 +78,7 @@ public:
 private:
 
 	// Text block widget.
-	TAttribute<FString> TextContent;
+	TAttribute<FText> TextContent;
 
 	// Content widget.
 	TWeakPtr<SWidget> WidgetContent;

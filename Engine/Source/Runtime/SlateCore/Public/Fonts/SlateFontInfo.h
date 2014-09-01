@@ -72,6 +72,18 @@ public:
 	}
 
 	/**
+	 * Compares this font info with another for inequality.
+	 *
+	 * @param Other The other font info.
+	 *
+	 * @return false if the two font infos are equal, true otherwise.
+	 */
+	bool operator!=( const FSlateFontInfo& Other ) const 
+	{
+		return !(*this == Other);
+	}
+
+	/**
 	 * Calculates a type hash value for a font info.
 	 *
 	 * Type hashes are used in certain collection types, such as TMap.
