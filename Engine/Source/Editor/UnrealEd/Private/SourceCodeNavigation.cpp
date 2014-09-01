@@ -17,6 +17,7 @@
 #include <mach-o/nlist.h>
 #include <mach-o/stab.h>
 #include <cxxabi.h>
+#include "ApplePlatformSymbolication.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogSelectionDetails);
@@ -508,29 +509,11 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 							
 							if(FunctionSymbolName == SymbolName)
 							{
-								uint64 Address = SymbolEntry.n_value;
-								// Mavericks requires additional params to atos to silence a deprecation warning. On Yosemite same params cause "unrecognized option" error
-								FString AtoSCommand = FMacPlatformMisc::IsRunningOnMavericks() ? FString::Printf(TEXT("-nowarning -arch x86_64 -d -o \"%s\" 0x%x"), *FullModulePath, Address) : FString::Printf(TEXT("-arch x86_64 -o \"%s\" 0x%x"), *FullModulePath, Address);
-								int32 ReturnCode = 0;
-								FString Results;
-								FPlatformProcess::ExecProcess( TEXT("/usr/bin/atos"), *AtoSCommand, &ReturnCode, &Results, NULL );
-								if(ReturnCode == 0)
+								FString ModuleName = FPaths::GetCleanFilename(FullModulePath);
+								FProgramCounterSymbolInfo Info;
+								if(FApplePlatformSymbolication::SymbolInfoForFunctionFromModule((char const*)(StringTable+SymbolEntry.n_un.n_strx), TCHAR_TO_UTF8(*ModuleName), Info))
 								{
-									int32 FirstIndex = -1;
-									int32 LastIndex = -1;
-									if(Results.FindChar(TCHAR('('), FirstIndex) && Results.FindLastChar(TCHAR('('), LastIndex) && FirstIndex != LastIndex)
-									{
-										int32 CloseIndex = -1;
-										int32 ColonIndex = -1;
-										if(Results.FindLastChar(TCHAR(':'), ColonIndex) && Results.FindLastChar(TCHAR(')'), CloseIndex))
-										{
-											int32 FileNamePos = LastIndex+1;
-											int32 FileNameLen = ColonIndex-FileNamePos;
-											FString FileName = Results.Mid(FileNamePos, FileNameLen);
-											FString LineNumber = Results.Mid(ColonIndex + 1, CloseIndex-(ColonIndex + 1));
-											SourceCodeAccessor.OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
-										}
-									}
+									SourceCodeAccessor.OpenFileAtLine( Info.Filename, Info.LineNumber, 0 );
 								}
 								break;
 							}

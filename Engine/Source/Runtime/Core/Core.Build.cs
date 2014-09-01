@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -86,6 +86,7 @@ public class Core : ModuleRules
 			{
 				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
 			}
+			PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/Current/CoreSymbolication");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

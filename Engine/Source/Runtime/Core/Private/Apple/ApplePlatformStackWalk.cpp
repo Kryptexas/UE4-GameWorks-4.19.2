@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "Core.h"
+#include "ApplePlatformSymbolication.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <mach-o/dyld.h>
@@ -118,147 +119,63 @@ bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 
 void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo&  SymbolInfo )
 {
-	Dl_info DylibInfo;
-	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
-	if (Result == 0)
+	bool bOK = FApplePlatformSymbolication::SymbolInfoForAddress(ProgramCounter, SymbolInfo);
+	if(!bOK)
 	{
-		return;
-	}
-
-	int32 Status = 0;
-	ANSICHAR* DemangledName = NULL;
-	
-	// Increased the size of the demangle destination to reduce the chances that abi::__cxa_demangle will allocate
-	// this causes the app to hang as malloc isn't signal handler safe. Ideally we wouldn't call this function in a handler.
-	size_t DemangledNameLen = 65536;
-	ANSICHAR DemangledNameBuffer[65536]= {0};
-	DemangledName = abi::__cxa_demangle(DylibInfo.dli_sname, DemangledNameBuffer, &DemangledNameLen, &Status);
-
-	if (DemangledName)
-	{
-		// C++ function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
-	}
-	else if (DylibInfo.dli_sname && strchr(DylibInfo.dli_sname, ']'))
-	{
-		// ObjC function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
-	}
-	else if(DylibInfo.dli_sname)
-	{
-		// C function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
-	}
-	else
-	{
-		// Unknown!
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
-	}
-
-	bool OK = false;
-	
-#if PLATFORM_MAC
-	{
-		static char FileName[65536];
-		FMemory::MemSet(FileName, 0);
-		
-		// Use fork() & execl() as they are async-signal safe, ExecProcess can fail in Cocoa
-		int32 ReturnCode = 0;
-		int FileDesc[2];
-		pipe(FileDesc);
-		pid_t ForkPID = fork();
-		if(ForkPID == 0)
+		Dl_info DylibInfo;
+		int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
+		if (Result == 0)
 		{
-			// Child
-			close(FileDesc[0]);
-			dup2(FileDesc[1], STDOUT_FILENO);
-			
-			static char FBase[65];
-			static char Address[65];
-			FCStringAnsi::Sprintf(FBase, "%p", (void*)DylibInfo.dli_fbase);
-			FCStringAnsi::Sprintf(Address, "%p", (void*)ProgramCounter);
-			
-			// Mavericks requires additional params to atos to silence a deprecation warning. On Yosemite same params cause "unrecognized option" error
-			if (FPlatformMisc::IsRunningOnMavericks())
-			{
-				execl("/usr/bin/atos", "-nowarning", "-arch", "x86_64", "-d", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
-			}
-			else
-			{
-				execl("/usr/bin/atos", "-arch", "x86_64", "-l", FBase, "-o", DylibInfo.dli_fname, Address, NULL);
-			}
-			close(FileDesc[1]);
+			return;
+		}
+		
+		int32 Status = 0;
+		ANSICHAR* DemangledName = NULL;
+		
+		// Increased the size of the demangle destination to reduce the chances that abi::__cxa_demangle will allocate
+		// this causes the app to hang as malloc isn't signal handler safe. Ideally we wouldn't call this function in a handler.
+		size_t DemangledNameLen = 65536;
+		ANSICHAR DemangledNameBuffer[65536]= {0};
+		DemangledName = abi::__cxa_demangle(DylibInfo.dli_sname, DemangledNameBuffer, &DemangledNameLen, &Status);
+		
+		if (DemangledName)
+		{
+			// C++ function
+			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
+		}
+		else if (DylibInfo.dli_sname && strchr(DylibInfo.dli_sname, ']'))
+		{
+			// ObjC function
+			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
+		}
+		else if(DylibInfo.dli_sname)
+		{
+			// C function
+			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
 		}
 		else
 		{
-			// Parent
-			int StatLoc = 0;
-			pid_t WaitPID = waitpid(ForkPID, &StatLoc, 0);
-			int Bytes = 0;
-			close(FileDesc[1]);
-			int32 FirstIndex = -1;
-			int32 LastIndex = -1;
-			char* Buffer = FileName;
-			uint32 Len = ARRAY_COUNT(FileName) - 1;
-			while ((Bytes = read(FileDesc[0], Buffer, Len)) > 0)
-			{
-				Buffer += Bytes;
-				Len -= Bytes;
-			}
-			close(FileDesc[0]);
-			ReturnCode = WEXITSTATUS(StatLoc);
+			// Unknown!
+			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
 		}
 		
-		if(ReturnCode == 0)
-		{
-			char* FirstBracket = FCStringAnsi::Strchr(FileName, '(');
-			char* SecondBracket = FCStringAnsi::Strrchr(FileName, '(');
-			if(FirstBracket && SecondBracket && FirstBracket != SecondBracket)
-			{
-				char* CloseBracket = SecondBracket;
-				CloseBracket = FCStringAnsi::Strrchr(CloseBracket, ')');
-				if(CloseBracket)
-				{
-					char* Colon = SecondBracket;
-					Colon = FCStringAnsi::Strchr(Colon, ':');
-					if(Colon)
-					{
-						*Colon = 0;
-					}
-					*SecondBracket = 0;
-					
-					FCStringAnsi::Strncpy(SymbolInfo.Filename, (SecondBracket+1), ARRAY_COUNT(SymbolInfo.Filename)-1);
-					if(Colon)
-					{
-						// I'm going to assume that this is safe too
-						SymbolInfo.LineNumber = FCStringAnsi::Atoi(Colon+1);
-					}
-					OK = true;
-				}
-			}
-		}
-	}
-#endif
-	
-	if(!OK)
-	{
 		// No line number found.
 		FCStringAnsi::Strcat(SymbolInfo.Filename, "Unknown");
 		SymbolInfo.LineNumber = 0;
+		
+		// Write out Module information.
+		ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
+		ANSICHAR* DylibName = FCStringAnsi::Strrchr(DylibPath, '/');
+		if(DylibName)
+		{
+			DylibName += 1;
+		}
+		else
+		{
+			DylibName = DylibPath;
+		}
+		FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
 	}
-
-	// Write out Module information.
-	ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
-	ANSICHAR* DylibName = FCStringAnsi::Strrchr(DylibPath, '/');
-	if(DylibName)
-	{
-		DylibName += 1;
-	}
-	else
-	{
-		DylibName = DylibPath;
-	}
-	FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
 }
 
 int32 FApplePlatformStackWalk::GetProcessModuleCount()
