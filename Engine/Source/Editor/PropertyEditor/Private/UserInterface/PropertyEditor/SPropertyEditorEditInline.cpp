@@ -130,32 +130,10 @@ void SPropertyEditorEditInline::GetDesiredWidth( float& OutMinDesiredWidth, floa
 
 bool SPropertyEditorEditInline::Supports( const FPropertyNode* InTreeNode, int32 InArrayIdx )
 {
-	if (InTreeNode->IsEditConst())
-	{
-		return false;
-	}
-
-	bool bCanEditInline = false;
-
-	const FObjectPropertyNode* ObjectPropertyNode = InTreeNode->FindObjectItemParent();
-	if (ObjectPropertyNode && (InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline) != 0))
-	{
-		// Assume objects with the editinline flag can be editinline.  If any of the parent object is a default subobject then we cannot allow editinline
-		bCanEditInline = true;
-		for( int32 ObjectIndex = 0; ObjectIndex < ObjectPropertyNode->GetNumObjects(); ++ObjectIndex )
-		{
-			const UObject* Object = ObjectPropertyNode->GetUObject(ObjectIndex);
-
-			if( Object && Object->IsDefaultSubobject() && Object->IsTemplate() )
-			{
-				bCanEditInline = false;
-				break;
-			}
-		}
-
-	}
-
-	return bCanEditInline;
+	return InTreeNode 
+		&& !InTreeNode->IsEditConst()
+		&& InTreeNode->FindObjectItemParent()
+		&& InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline);
 }
 
 bool SPropertyEditorEditInline::Supports( const TSharedRef< class FPropertyEditor >& InPropertyEditor )
@@ -222,7 +200,11 @@ void SPropertyEditorEditInline::OnClassPicked(UClass* InClass)
 			UObject*		Object = Itor->Get();
 			UObject*		UseOuter			= ( InClass->IsChildOf( UClass::StaticClass() ) ? Cast<UClass>(Object)->GetDefaultObject() : Object );
 			EObjectFlags	MaskedOuterFlags	= UseOuter ? UseOuter->GetMaskedFlags(RF_PropagateToSubObjects) : RF_NoFlags;
-			UObject*		NewObject			= StaticConstructObject( InClass, UseOuter, NAME_None, MaskedOuterFlags, NULL );
+			if (UseOuter && UseOuter->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+			{
+				MaskedOuterFlags |= RF_ArchetypeObject;
+			}
+			UObject*		NewObject = StaticConstructObject(InClass, UseOuter, NAME_None, MaskedOuterFlags, NULL);
 
 			NewValues.Add( NewObject->GetPathName() );
 		}

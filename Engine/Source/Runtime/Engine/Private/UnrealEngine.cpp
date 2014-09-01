@@ -9582,7 +9582,7 @@ static TAutoConsoleVariable<int32> CVarDumpCopyPropertiesForUnrelatedObjects(
 	TEXT("Dump the objects that are cross class copied")
 	);
 
-struct FFindEditInlineSubobjectHelper
+struct FFindInstancedReferenceSubobjectHelper
 {
 	template<typename T>
 	static void Get(const UStruct* Struct, const uint8* ContainerAddress, T& OutObjects)
@@ -9590,10 +9590,8 @@ struct FFindEditInlineSubobjectHelper
 		check(ContainerAddress);
 		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
-			if (Prop->HasAnyPropertyFlags(CPF_EditInline))
+			if (Prop->HasAnyPropertyFlags(CPF_InstancedReference))
 			{
-				// Collect Objects referenced in EditInline properties
-
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
 				if (ObjectProperty)
 				{
@@ -9624,10 +9622,8 @@ struct FFindEditInlineSubobjectHelper
 					}
 				}
 			}
-			else
+			else if (Prop->HasAnyPropertyFlags(CPF_ContainsInstancedReference))
 			{
-				// Look for EditInline properties in structs varaibles
-
 				auto StructProperty = Cast<const UStructProperty>(Prop);
 				if (StructProperty && StructProperty->Struct)
 				{
@@ -9795,18 +9791,19 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		}
 	}
 
+	if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
+		NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
 	{
 		TSet<UObject*> OldEditInlineObjects;
-		FFindEditInlineSubobjectHelper::Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
+		FFindInstancedReferenceSubobjectHelper::Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
 		if (OldEditInlineObjects.Num())
 		{
 			TSet<UObject*> NewEditInlineObjects;
-			FFindEditInlineSubobjectHelper::Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
-			// if object exist in both sets, it's outer is old object, and its class is "editinline"
+			FFindInstancedReferenceSubobjectHelper::Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
 			for (auto Obj : NewEditInlineObjects)
 			{
 				const bool bProperOuter = (Obj->GetOuter() == OldObject);
-				const bool bEditInlineNew = Obj->GetClass()->HasAllClassFlags(CLASS_EditInlineNew);
+				const bool bEditInlineNew = Obj->GetClass()->HasAnyClassFlags(CLASS_EditInlineNew | CLASS_DefaultToInstanced);
 				if (bProperOuter && bEditInlineNew)
 				{
 					const bool bKeptByOld = OldEditInlineObjects.Contains(Obj);
