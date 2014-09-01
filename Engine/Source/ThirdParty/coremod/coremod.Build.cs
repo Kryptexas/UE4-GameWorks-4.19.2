@@ -40,19 +40,9 @@ public class coremod: ModuleRules
 		{
 			string AndroidPath = LibraryPath + "/lib/Android/";
 			// No 64bit support for Android yet
-			switch (Target.Architecture)
-			{
-			case "-armv7":
-				PublicLibraryPaths.Add(AndroidPath + "armeabi-v7a");
-				PublicAdditionalLibraries.Add("xmp-coremod");
-				break;
-			case "-x86":
-				PublicLibraryPaths.Add(AndroidPath + "x86");
-				PublicAdditionalLibraries.Add("xmp-coremod");
-				break;
-			}
-
-			
+			PublicLibraryPaths.Add(AndroidPath + "armeabi-v7a");
+			PublicLibraryPaths.Add(AndroidPath + "x86");
+			PublicAdditionalLibraries.Add("xmp-coremod");			
 		}
 	}
 }
