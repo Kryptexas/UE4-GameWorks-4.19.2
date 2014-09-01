@@ -17,10 +17,10 @@ USpinBox::USpinBox(const FPostConstructInitializeProperties& PCIP)
 	SSpinBox<float>::FArguments Defaults;
 
 	Value = Defaults._Value.Get();
-	MinValue = Defaults._MinValue.Get().GetValue();
-	MaxValue = Defaults._MaxValue.Get().GetValue();
-	MinSliderValue = Defaults._MinSliderValue.Get().GetValue();
-	MaxSliderValue = Defaults._MaxSliderValue.Get().GetValue();
+	MinValue = Defaults._MinValue.Get().Get(0.0f);
+	MaxValue = Defaults._MaxValue.Get().Get(0.0f);
+	MinSliderValue = Defaults._MinSliderValue.Get().Get(0.0f);
+	MaxSliderValue = Defaults._MaxSliderValue.Get().Get(0.0f);
 	Delta = Defaults._Delta.Get();
 	SliderExponent = Defaults._SliderExponent.Get();
 	MinDesiredWidth = Defaults._MinDesiredWidth.Get();
