@@ -147,10 +147,13 @@ void FGenericPlatformMemory::DumpPlatformAndAllocatorStats( class FOutputDevice&
 
 void FGenericPlatformMemory::Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
 {
-	void* Temp = FMemory_Alloca(Size);
-	FPlatformMemory::Memcpy( Temp, Ptr1, Size );
-	FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
-	FPlatformMemory::Memcpy( Ptr2, Temp, Size );
+	if (Ptr1 != Ptr2)
+	{
+		void* Temp = FMemory_Alloca(Size);
+		FPlatformMemory::Memcpy( Temp, Ptr1, Size );
+		FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
+		FPlatformMemory::Memcpy( Ptr2, Temp, Size );
+	}
 }
 
 FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize)
