@@ -121,10 +121,7 @@ FORCEINLINE VectorRegister VectorLoad( const void * Ptr )
  * @param Ptr	Unaligned memory pointer to the 3 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], undefined)
  */
-FORCEINLINE VectorRegister VectorLoadFloat3( const void * Ptr ) 
-{
-	return vld1q_f32( (float32_t*)Ptr );
-}
+#define VectorLoadFloat3( Ptr )			MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 /**
  * Loads 3 floats from unaligned memory and sets W=0.
@@ -132,10 +129,7 @@ FORCEINLINE VectorRegister VectorLoadFloat3( const void * Ptr )
  * @param Ptr	Unaligned memory pointer to the 3 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 0.0f)
  */
-FORCEINLINE VectorRegister VectorLoadFloat3_W0( const void * Ptr )
-{
-	return vmulq_f32( vld1q_f32( (float32_t*)Ptr ), Vec1110 );
-}
+#define VectorLoadFloat3_W0( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 /**
  * Loads 3 floats from unaligned memory and sets W=1.
@@ -143,10 +137,7 @@ FORCEINLINE VectorRegister VectorLoadFloat3_W0( const void * Ptr )
  * @param Ptr	Unaligned memory pointer to the 3 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 1.0f)
  */
-FORCEINLINE VectorRegister VectorLoadFloat3_W1( const void * Ptr )
-{
-	return vmlaq_f32( Vec0001, vld1q_f32( (float32_t*)Ptr ), Vec1110 );
-}
+#define VectorLoadFloat3_W1( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 1.0f )
 
 /**
  * Sets a single component of a vector. Must be a define since ElementIndex needs to be a constant integer
