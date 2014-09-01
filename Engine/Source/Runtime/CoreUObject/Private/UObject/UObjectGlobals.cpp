@@ -465,33 +465,33 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 //
 // Resolve a package and name.
 //
-bool ResolveName( UObject*& InPackage, FString& InName, bool Create, bool Throw )
+bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Throw )
 {
 	FString* IniFilename = NULL;
 
 	// See if the name is specified in the .ini file.
-	if( FCString::Strnicmp( *InName, TEXT("engine-ini:"), FCString::Strlen(TEXT("engine-ini:")) )==0 )
+	if( FCString::Strnicmp( *InOutName, TEXT("engine-ini:"), FCString::Strlen(TEXT("engine-ini:")) )==0 )
 	{
 		IniFilename = &GEngineIni;
 	}
-	else if( FCString::Strnicmp( *InName, TEXT("game-ini:"), FCString::Strlen(TEXT("game-ini:")) )==0 )
+	else if( FCString::Strnicmp( *InOutName, TEXT("game-ini:"), FCString::Strlen(TEXT("game-ini:")) )==0 )
 	{
 		IniFilename = &GGameIni;
 	}
-	else if( FCString::Strnicmp( *InName, TEXT("input-ini:"), FCString::Strlen(TEXT("input-ini:")) )==0 )
+	else if( FCString::Strnicmp( *InOutName, TEXT("input-ini:"), FCString::Strlen(TEXT("input-ini:")) )==0 )
 	{
 		IniFilename = &GInputIni;
 	}
-	else if( FCString::Strnicmp( *InName, TEXT("editor-ini:"), FCString::Strlen(TEXT("editor-ini:")) )==0 )
+	else if( FCString::Strnicmp( *InOutName, TEXT("editor-ini:"), FCString::Strlen(TEXT("editor-ini:")) )==0 )
 	{
 		IniFilename = &GEditorIni;
 	}
 
 
-	if( IniFilename && InName.Contains(TEXT(".")) )
+	if( IniFilename && InOutName.Contains(TEXT(".")) )
 	{
 		// Get .ini key and section.
-		FString Section = InName.Mid(1+InName.Find(TEXT(":"), ESearchCase::CaseSensitive));
+		FString Section = InOutName.Mid(1+InOutName.Find(TEXT(":"), ESearchCase::CaseSensitive));
 		int32 i = Section.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 		FString Key;
 		if( i != -1)
@@ -506,15 +506,15 @@ bool ResolveName( UObject*& InPackage, FString& InName, bool Create, bool Throw 
 		{
 			if( Throw == true )
 			{
-				UE_LOG(LogUObjectGlobals, Error, TEXT( " %s %s " ), *FString::Printf( TEXT("Can't find '%s' in configuration file section=%s key=%s"), *InName, *Section, *Key), **IniFilename );
+				UE_LOG(LogUObjectGlobals, Error, TEXT( " %s %s " ), *FString::Printf( TEXT("Can't find '%s' in configuration file section=%s key=%s"), *InOutName, *Section, *Key), **IniFilename );
 			}
 			return false;
 		}
-		InName = Result;
+		InOutName = Result;
 	}
 
 	// Strip off the object class.
-	ConstructorHelpers::StripObjectClass( InName );
+	ConstructorHelpers::StripObjectClass( InOutName );
 
 	// Handle specified packages.
 	int32 i;
@@ -529,58 +529,56 @@ bool ResolveName( UObject*& InPackage, FString& InName, bool Create, bool Throw 
 	bool bSubobjectPath = false;
 
 	// to make parsing the name easier, replace the subobject delimiter with an extra dot
-	InName.ReplaceInline(SUBOBJECT_DELIMITER, TEXT(".."));
-	while( (i=InName.Find(TEXT("."))) != -1 )
+	InOutName.ReplaceInline(SUBOBJECT_DELIMITER, TEXT(".."));
+	while( (i=InOutName.Find(TEXT("."))) != -1 )
 	{
-		FString PartialName = InName.Left(i);
+		FString PartialName = InOutName.Left(i);
 
-		// if the next part of InName ends in two dots, it indicates that the next object in the path name
+		// if the next part of InOutName ends in two dots, it indicates that the next object in the path name
 		// is not a top-level object (i.e. it's a subobject).  e.g. SomePackage.SomeGroup.SomeObject..Subobject
-		if ( InName.Mid(i+1,1) == TEXT(".") )
+		if ( InOutName.Mid(i+1,1) == TEXT(".") )
 		{
-			InName = PartialName + InName.Mid(i+1);
+			InOutName      = PartialName + InOutName.Mid(i+1);
 			bSubobjectPath = true;
-			Create = false;
+			Create         = false;
 		}
 
 		// In case this is a short script package name, convert to long name before passing to CreatePackage/FindObject.
 		FName* ScriptPackageName = FPackageName::FindScriptPackageName(*PartialName);
-		if (ScriptPackageName != NULL)
+		if (ScriptPackageName)
 		{
 			PartialName = ScriptPackageName->ToString();
 		}
 		// Only long package names are allowed so don't even attempt to create one because whatever the name represents
 		// it's not a valid package name anyway.
-		if (!Create || FPackageName::IsShortPackageName(PartialName) == false)
+		
+		if (!Create)
 		{
-			if( Create )
+			UObject* NewPackage = FindObject<UPackage>( InPackage, *PartialName );
+			if( !NewPackage )
 			{
-				if (!ScriptPackageName)
-				{
-					InPackage = LoadPackage(Cast<UPackage>(InPackage), *PartialName, 0);
-				}
-				if (!InPackage)
-				{
-					InPackage = CreatePackage(InPackage, *PartialName);
-				}
-
-				check(InPackage);
-			}
-			else
-			{
-				UObject* NewPackage = FindObject<UPackage>( InPackage, *PartialName );
+				NewPackage = FindObject<UObject>( InPackage == NULL ? ANY_PACKAGE : InPackage, *PartialName );
 				if( !NewPackage )
 				{
-					NewPackage = FindObject<UObject>( InPackage == NULL ? ANY_PACKAGE : InPackage, *PartialName );
-					if( !NewPackage )
-					{
-						return bSubobjectPath;
-					}
+					return bSubobjectPath;
 				}
-				InPackage = NewPackage;
 			}
+			InPackage = NewPackage;
 		}
-		InName = InName.Mid(i+1);
+		else if (!FPackageName::IsShortPackageName(PartialName))
+		{
+			if (!ScriptPackageName)
+			{
+				InPackage = LoadPackage(Cast<UPackage>(InPackage), *PartialName, 0);
+			}
+			if (!InPackage)
+			{
+				InPackage = CreatePackage(InPackage, *PartialName);
+			}
+
+			check(InPackage);
+		}
+		InOutName = InOutName.Mid(i+1);
 	}
 
 	return true;
@@ -654,12 +652,11 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 	check(ObjectClass);
 	check(InName);
 
-	FString		StrName				= InName;
-	UObject*	Result				=NULL;
+	FString StrName = InName;
 
 	// break up the name into packages, returning the innermost name and its outer
 	ResolveName(InOuter, StrName, true, true);
-	if ( InOuter != NULL )
+	if (InOuter)
 	{
 		if( bAllowObjectReconciliation && ((FApp::IsGame() && !GIsEditor && !IsRunningCommandlet()) 
 #if WITH_EDITOR
@@ -667,52 +664,51 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 #endif
 			))
 		{
-			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
+			if (UObject* Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName))
+			{
+				return Result;
+			}
 		}
 
-		if( !Result )
+		if( (FPlatformProperties::RequiresCookedData() || FPlatformProperties::IsServerOnly()) && GUseSeekFreeLoading )
 		{
-			if( (FPlatformProperties::RequiresCookedData() || FPlatformProperties::IsServerOnly()) && GUseSeekFreeLoading )
+			if ( (LoadFlags&LOAD_NoWarn) == 0 )
 			{
-				if ( (LoadFlags&LOAD_NoWarn) == 0 )
-				{
-					UE_LOG(LogUObjectGlobals, Warning ,TEXT("StaticLoadObject for %s %s %s couldn't find object in memory!"),
-						*ObjectClass->GetName(),
-						*InOuter->GetName(),
-						*StrName);
-				}
+				UE_LOG(LogUObjectGlobals, Warning ,TEXT("StaticLoadObject for %s %s %s couldn't find object in memory!"),
+					*ObjectClass->GetName(),
+					*InOuter->GetName(),
+					*StrName);
 			}
-			else
-			{
-				// now that we have one asset per package, we load the entire package whenever a single object is requested
-				LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
-				// now, find the object in the package
-				Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
+		}
+		else
+		{
+			// now that we have one asset per package, we load the entire package whenever a single object is requested
+			LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
 
-				if ( !Result )
-				{
-					// If the object was not found, check for a redirector and follow it if the class matches
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>(StaticFindObjectFast(UObjectRedirector::StaticClass(), InOuter, *StrName));
-					if ( Redirector && Redirector->DestinationObject && Redirector->DestinationObject->IsA(ObjectClass) )
-					{
-						Result = Redirector->DestinationObject;
-					}
-				}
+			// now, find the object in the package
+			if (UObject* Result = Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName))
+			{
+				return Result;
+			}
+
+			// If the object was not found, check for a redirector and follow it if the class matches
+			UObjectRedirector* Redirector = Cast<UObjectRedirector>(StaticFindObjectFast(UObjectRedirector::StaticClass(), InOuter, *StrName));
+			if ( Redirector && Redirector->DestinationObject && Redirector->DestinationObject->IsA(ObjectClass) )
+			{
+				return Redirector->DestinationObject;
 			}
 		}
 	}
-	// if we haven't created or found the object, error
-	if (!Result)
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ClassName"), FText::FromString( ObjectClass->GetName() ));
-		Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString( InOuter->GetPathName() ) : NSLOCTEXT( "Core", "None", "None" ));
-		Arguments.Add(TEXT("ObjectName"), FText::FromString( StrName ));
-		const FString Error = FText::Format( NSLOCTEXT( "Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'" ), Arguments ).ToString();
-		SafeLoadError(InOuter, LoadFlags, *Error, *Error);
-	}
 
-	return Result;
+	// we haven't created or found the object, error
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("ClassName"), FText::FromString( ObjectClass->GetName() ));
+	Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString( InOuter->GetPathName() ) : NSLOCTEXT( "Core", "None", "None" ));
+	Arguments.Add(TEXT("ObjectName"), FText::FromString( StrName ));
+	const FString Error = FText::Format( NSLOCTEXT( "Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'" ), Arguments ).ToString();
+	SafeLoadError(InOuter, LoadFlags, *Error, *Error);
+
+	return nullptr;
 }
 
 //
@@ -721,20 +717,21 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InName, const TCHAR* Filename, uint32 LoadFlags, UPackageMap* Sandbox )
 {
 	check(BaseClass);
-		UClass* Class = LoadObject<UClass>( InOuter, InName, Filename, LoadFlags, Sandbox );
-		if( Class && !Class->IsChildOf(BaseClass) )
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ClassName"), FText::FromString( Class->GetFullName() ));
-			Arguments.Add(TEXT("BaseClassName"), FText::FromString( BaseClass->GetFullName() ));
-			const FString Error = FText::Format( NSLOCTEXT( "Core", "LoadClassMismatch", "{ClassName} is not a child class of {BaseClassName}" ), Arguments ).ToString();
-			SafeLoadError(InOuter, LoadFlags,*Error, *Error);
 
-			// return NULL class due to error
-			Class = NULL;
-		}
-		return Class;
+	UClass* Class = LoadObject<UClass>( InOuter, InName, Filename, LoadFlags, Sandbox );
+	if( Class && !Class->IsChildOf(BaseClass) )
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ClassName"), FText::FromString( Class->GetFullName() ));
+		Arguments.Add(TEXT("BaseClassName"), FText::FromString( BaseClass->GetFullName() ));
+		const FString Error = FText::Format( NSLOCTEXT( "Core", "LoadClassMismatch", "{ClassName} is not a child class of {BaseClassName}" ), Arguments ).ToString();
+		SafeLoadError(InOuter, LoadFlags,*Error, *Error);
+
+		// return NULL class due to error
+		Class = NULL;
 	}
+	return Class;
+}
 
 /**
  * Loads a package and all contained objects that match context flags.
@@ -777,7 +774,7 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 	}
 
 #if WITH_EDITOR
-	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, (GIsEditor ? true : GIsEditorLoadingPackage));
+	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, GIsEditor || GIsEditorLoadingPackage);
 #endif
 
 	// Try to load.
@@ -788,19 +785,21 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 		const double StartTime = FPlatformTime::Seconds();
 
 		// Create a new linker object which goes off and tries load the file.
-		ULinkerLoad* Linker = GetPackageLinker( InOuter, *FileToLoad, LoadFlags, NULL, NULL );
-		if( !Linker )
+		ULinkerLoad* Linker = GetPackageLinker(InOuter, *FileToLoad, LoadFlags, nullptr, nullptr);
+		if (!Linker)
 		{
 			EndLoad();
-			return( NULL );
+			return nullptr;
 		}
-		else if (Linker->LinkerRoot && Linker->LinkerRoot->HasAnyFlags(RF_WasLoaded))
+
+		if (Linker->LinkerRoot && Linker->LinkerRoot->HasAnyFlags(RF_WasLoaded))
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
 			EndLoad();
-			return Cast<UPackage>(Linker->LinkerRoot);
+			return Linker->LinkerRoot;
 		}
+
 		Result = Linker->LinkerRoot;
 
 		// If we are loading a package for diff'ing, set the package flag

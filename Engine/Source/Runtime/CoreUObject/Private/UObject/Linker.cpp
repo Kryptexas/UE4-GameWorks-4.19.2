@@ -574,153 +574,146 @@ static void LogGetPackageLinkerError(const TCHAR* InFilename, const FText& InFul
 //
 ULinkerLoad* GetPackageLinker
 (
- UPackage*		InOuter,
- const TCHAR*	InLongPackageName,
- uint32			LoadFlags,
- UPackageMap*	Sandbox,
- FGuid*			CompatibleGuid
- )
+	UPackage*		InOuter,
+	const TCHAR*	InLongPackageName,
+	uint32			LoadFlags,
+	UPackageMap*	Sandbox,
+	FGuid*			CompatibleGuid
+)
 {
 	// See if there is already a linker for this package.
 	ULinkerLoad* Result = ULinkerLoad::FindExistingLinkerForPackage(InOuter);
 
 	// Try to load the linker.
 	// See if the linker is already loaded.
-	FString NewFilename;
 	if( Result )
 	{
-		// Linker already found.
-		NewFilename = TEXT("");
+		return Result;
 	}
-	else
+
+	FString NewFilename;
+	if( !InLongPackageName )
 	{
-		if( !InLongPackageName )
+		// Resolve filename from package name.
+		if( !InOuter )
 		{
-			// Resolve filename from package name.
-			if( !InOuter )
-			{
-				// try to recover from this instead of throwing, it seems recoverable just by doing this
-				FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
-				LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
-				return NULL;
-			}
+			// try to recover from this instead of throwing, it seems recoverable just by doing this
+			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
+			LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
+			return nullptr;
+		}
 
-			if( !FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &NewFilename) )
+		if( !FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &NewFilename) )
+		{
+			// Compiled in packages have no linker and this is ok
+			if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_CompiledIn))
 			{
-				if( (LoadFlags & LOAD_AllowDll) && InOuter->IsA(UPackage::StaticClass()) )
-				{
-					return NULL;
-				}
-				if( InOuter->IsA(UPackage::StaticClass()) && (((UPackage*)InOuter)->PackageFlags & PKG_CompiledIn) )
-				{
-					// this is a compiled in package and so it has no linker and this is ok
-					return NULL;
-				}
-
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
 				Arguments.Add(TEXT("PackageName"), FText::FromString(GSerializedPackageLinker ? *(GSerializedPackageLinker->Filename) : TEXT("NULL")));
-				LogGetPackageLinkerError(GSerializedPackageLinker ? *GSerializedPackageLinker->Filename : NULL,
-										 FText::Format(LOCTEXT("PackageNotFound", "Can't find file for asset '{AssetName}' while loading {PackageName}."), Arguments),
-										 LOCTEXT("PackageNotFoundShort", "Can't find file for asset."),
-										 InOuter,
-										 LoadFlags);
+				LogGetPackageLinkerError(GSerializedPackageLinker ? *GSerializedPackageLinker->Filename : nullptr,
+											FText::Format(LOCTEXT("PackageNotFound", "Can't find file for asset '{AssetName}' while loading {PackageName}."), Arguments),
+											LOCTEXT("PackageNotFoundShort", "Can't find file for asset."),
+											InOuter,
+											LoadFlags);
+			}
 
-				return NULL;
+			return nullptr;
+		}
+	}
+	else
+	{
+		FString PackageName(InLongPackageName);
+		if (!FPackageName::TryConvertFilenameToLongPackageName(InLongPackageName, PackageName))
+		{
+			// try to recover from this instead of throwing, it seems recoverable just by doing this
+			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
+			LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
+			return nullptr;
+		}
+
+		if (UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName))
+		{
+			if (!ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_CompiledIn))
+			{
+				// this is a compiled in package and so it has no linker and this is ok
+				return nullptr;
 			}
 		}
-		else
+
+		// Verify that the file exists.
+		if( !FPackageName::DoesPackageExist( PackageName, CompatibleGuid, &NewFilename ) )
 		{
-			FString PackageName(InLongPackageName);
-			if (!FPackageName::TryConvertFilenameToLongPackageName(InLongPackageName, PackageName))
-			{
-				// try to recover from this instead of throwing, it seems recoverable just by doing this
-				FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
-				LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
-				return NULL;
-			}
-			{			
-				UPackage* ExistingPackage = Cast<UPackage>(StaticFindObject(UPackage::StaticClass(), NULL, *PackageName) );
-				if (ExistingPackage && !ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_CompiledIn))
-				{
-					// this is a compiled in package and so it has no linker and this is ok
-					return NULL;
-				}
-			}
-			// Verify that the file exists.
-			if( !FPackageName::DoesPackageExist( PackageName, CompatibleGuid, &NewFilename ) )
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
+
+			// try to recover from this instead of throwing, it seems recoverable just by doing this
+			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
+			return nullptr;
+		}
+
+		// Create the package with the provided long package name.
+		UPackage* FilenamePkg = CreatePackage(nullptr, *PackageName);
+		if (LoadFlags & LOAD_PackageForPIE)
+		{
+			FilenamePkg->PackageFlags |= PKG_PlayInEditor;
+		}
+
+		// If no package specified, use package from file.
+		if (!InOuter)
+		{
+			if( !FilenamePkg )
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
-
-				// try to recover from this instead of throwing, it seems recoverable just by doing this
-				LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
-				return NULL;
+				LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FilenameToPackage", "Can't convert filename '{Filename}' to asset name"), Arguments), LOCTEXT("FilenameToPackageShort", "Can't convert filename to asset name"), InOuter, LoadFlags);
+				return nullptr;
 			}
-				
-			// Create the package with the provided long package name.
-			UPackage* FilenamePkg = CreatePackage( NULL, *PackageName );
-			if (LoadFlags & LOAD_PackageForPIE)
-			{
-				FilenamePkg->PackageFlags |= PKG_PlayInEditor;
-			}
-
-			// If no package specified, use package from file.
-			if( InOuter==NULL )
-			{
-				if( !FilenamePkg )
-				{
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
-					LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FilenameToPackage", "Can't convert filename '{Filename}' to asset name"), Arguments), LOCTEXT("FilenameToPackageShort", "Can't convert filename to asset name"), InOuter, LoadFlags);
-					return NULL;
-				}
-				InOuter = FilenamePkg;
-				Result = ULinkerLoad::FindExistingLinkerForPackage(InOuter);
-			}
-			else if( InOuter != FilenamePkg )//!!should be tested and validated in new UnrealEd
-			{
-				// Loading a new file into an existing package, so reset the loader.
-				//UE_LOG(LogLinker, Log,  TEXT("New File, Existing Package (%s, %s)"), *InOuter->GetFullName(), *FilenamePkg->GetFullName() );
-				ResetLoaders( InOuter );
-			}
+			InOuter = FilenamePkg;
+			Result = ULinkerLoad::FindExistingLinkerForPackage(InOuter);
 		}
-
-#if 0
-		// Make sure the package is accessible in the sandbox.
-		if( Sandbox && !Sandbox->SupportsPackage(InOuter) )
+		else if (InOuter != FilenamePkg) //!!should be tested and validated in new UnrealEd
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
-
-			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
-			return NULL;
-		}
-#endif
-
-		// Create new linker.
-		if( !Result )
-		{
-			check(IsLoading());
-
-			// we will already have found the filename above
-			check(NewFilename.Len() > 0);
-
-			Result = ULinkerLoad::CreateLinker( InOuter, *NewFilename, LoadFlags );
-		}
-
-		// Verify compatibility.
-		if( CompatibleGuid && Result->Summary.Guid!=*CompatibleGuid )
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
-
-			// This should never fire, because FindPackageFile should never return an incompatible file
-			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("PackageVersion", "Asset '{AssetName}' version mismatch"), Arguments), LOCTEXT("PackageVersionShort", "Asset version mismatch"), InOuter, LoadFlags);
-			return NULL;
+			// Loading a new file into an existing package, so reset the loader.
+			//UE_LOG(LogLinker, Log,  TEXT("New File, Existing Package (%s, %s)"), *InOuter->GetFullName(), *FilenamePkg->GetFullName() );
+			ResetLoaders( InOuter );
 		}
 	}
-	// Success.
+
+#if 0
+	// Make sure the package is accessible in the sandbox.
+	if( Sandbox && !Sandbox->SupportsPackage(InOuter) )
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
+
+		LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
+		return nullptr;
+	}
+#endif
+
+	// Create new linker.
+	if( !Result )
+	{
+		check(IsLoading());
+
+		// we will already have found the filename above
+		check(NewFilename.Len() > 0);
+
+		Result = ULinkerLoad::CreateLinker( InOuter, *NewFilename, LoadFlags );
+	}
+
+	// Verify compatibility.
+	if( CompatibleGuid && Result->Summary.Guid!=*CompatibleGuid )
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
+
+		// This should never fire, because FindPackageFile should never return an incompatible file
+		LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("PackageVersion", "Asset '{AssetName}' version mismatch"), Arguments), LOCTEXT("PackageVersionShort", "Asset version mismatch"), InOuter, LoadFlags);
+		return nullptr;
+	}
+
 	return Result;
 }
 

@@ -23,12 +23,7 @@ namespace PackageNameConstants
 
 bool FPackageName::IsShortPackageName(const FString& PossiblyLongName)
 {
-	int32 IndexOfLastSlash = PossiblyLongName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	if (IndexOfLastSlash != INDEX_NONE)
-	{
-		return false;
-	}
-	return true;
+	return !PossiblyLongName.Contains(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 }
 
 bool FPackageName::IsShortPackageName(const FName PossiblyLongName)
@@ -158,50 +153,50 @@ private:
 	FLongPackagePathsSingleton()
 	{
 		EngineRootPath = TEXT("/Engine/");
-		GameRootPath = TEXT("/Game/");
+		GameRootPath   = TEXT("/Game/");
 		ScriptRootPath = TEXT("/Script/");
-		TempRootPath = TEXT("/Temp/");
+		TempRootPath   = TEXT("/Temp/");
 
-		EngineContentPath = FPaths::EngineContentDir();
-		ContentPathShort = TEXT("../../Content/");
-		EngineShadersPath = FPaths::EngineDir() / TEXT("Shaders/");
+		EngineContentPath      = FPaths::EngineContentDir();
+		ContentPathShort       = TEXT("../../Content/");
+		EngineShadersPath      = FPaths::EngineDir() / TEXT("Shaders/");
 		EngineShadersPathShort = TEXT("../../Shaders/");
-		GameContentPath = FPaths::GameContentDir();
-		GameScriptPath = FPaths::GameDir() / TEXT("Script/");
-		GameSavedPath = FPaths::GameSavedDir();
+		GameContentPath        = FPaths::GameContentDir();
+		GameScriptPath         = FPaths::GameDir() / TEXT("Script/");
+		GameSavedPath          = FPaths::GameSavedDir();
 
 		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
 
         GameContentPathRebased = RebasedGameDir / TEXT("Content/");
-        GameScriptPathRebased = RebasedGameDir / TEXT("Script/");
-        GameSavedPathRebased = RebasedGameDir / TEXT("Saved/");
+        GameScriptPathRebased  = RebasedGameDir / TEXT("Script/");
+        GameSavedPathRebased   = RebasedGameDir / TEXT("Saved/");
 		
 		ContentPathToRoot.Empty(10);
-		new (ContentPathToRoot) FPathPair(EngineRootPath, EngineContentPath);
+		ContentPathToRoot.Emplace(EngineRootPath, EngineContentPath);
 #if IS_MONOLITHIC
-		new (ContentPathToRoot) FPathPair(GameRootPath, ContentPathShort);
+		ContentPathToRoot.Emplace(GameRootPath,   ContentPathShort);
 #else
-		new (ContentPathToRoot) FPathPair(EngineRootPath, ContentPathShort);
+		ContentPathToRoot.Emplace(EngineRootPath, ContentPathShort);
 #endif
-		new (ContentPathToRoot) FPathPair(EngineRootPath, EngineShadersPath);
-		new (ContentPathToRoot) FPathPair(EngineRootPath, EngineShadersPathShort);
-		new (ContentPathToRoot) FPathPair(GameRootPath, GameContentPath);
-		new (ContentPathToRoot) FPathPair(ScriptRootPath, GameScriptPath);
-		new (ContentPathToRoot) FPathPair(TempRootPath, GameSavedPath);
-		new (ContentPathToRoot) FPathPair(GameRootPath, GameContentPathRebased);
-		new (ContentPathToRoot) FPathPair(ScriptRootPath, GameScriptPathRebased);
-		new (ContentPathToRoot) FPathPair(TempRootPath, GameSavedPathRebased);
+		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPath);
+		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPathShort);
+		ContentPathToRoot.Emplace(GameRootPath,   GameContentPath);
+		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPath);
+		ContentPathToRoot.Emplace(TempRootPath,   GameSavedPath);
+		ContentPathToRoot.Emplace(GameRootPath,   GameContentPathRebased);
+		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPathRebased);
+		ContentPathToRoot.Emplace(TempRootPath,   GameSavedPathRebased);
 
 
 		ContentRootToPath.Empty(8);
-		new (ContentRootToPath) FPathPair(EngineRootPath, EngineContentPath);
-		new (ContentRootToPath) FPathPair(EngineRootPath, EngineShadersPath);
-		new (ContentRootToPath) FPathPair(GameRootPath, GameContentPath);
-		new (ContentRootToPath) FPathPair(ScriptRootPath, GameScriptPath);
-		new (ContentRootToPath) FPathPair(TempRootPath, GameSavedPath);
-		new (ContentRootToPath) FPathPair(GameRootPath, GameContentPathRebased);
-		new (ContentRootToPath) FPathPair(ScriptRootPath, GameScriptPathRebased);
-		new (ContentRootToPath) FPathPair(TempRootPath, GameSavedPathRebased);
+		ContentRootToPath.Emplace(EngineRootPath, EngineContentPath);
+		ContentRootToPath.Emplace(EngineRootPath, EngineShadersPath);
+		ContentRootToPath.Emplace(GameRootPath,   GameContentPath);
+		ContentRootToPath.Emplace(ScriptRootPath, GameScriptPath);
+		ContentRootToPath.Emplace(TempRootPath,   GameSavedPath);
+		ContentRootToPath.Emplace(GameRootPath,   GameContentPathRebased);
+		ContentRootToPath.Emplace(ScriptRootPath, GameScriptPathRebased);
+		ContentRootToPath.Emplace(TempRootPath,   GameSavedPathRebased);
 
 
 		// Allow the plugin manager to mount new content paths by exposing access through a delegate.  PluginManager is 
@@ -213,16 +208,16 @@ private:
 FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilename)
 {
 	const FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();
-	FString Filename = *InFilename.Replace(TEXT("\\"), TEXT("/"));
+	FString Filename = InFilename.Replace(TEXT("\\"), TEXT("/"));
 
 	// Convert to relative path if it's not already a long package name
 	bool bIsValidLongPackageName = false;
-	for (int32 PathIndex = 0; (PathIndex < Paths.ContentRootToPath.Num()) && !bIsValidLongPackageName; ++PathIndex)
+	for (const auto& Pair : Paths.ContentRootToPath)
 	{
-		const FString& TestRoot = Paths.ContentRootToPath[PathIndex].RootPath;
-		if (Filename.StartsWith(TestRoot))
+		if (Filename.StartsWith(Pair.RootPath))
 		{
 			bIsValidLongPackageName = true;
+			break;
 		}
 	}
 
@@ -231,16 +226,13 @@ FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilenam
 		Filename = IFileManager::Get().ConvertToRelativePath(*Filename);
 	}
 
-	FString PackageName = FPaths::GetBaseFilename(Filename);
-	int32 PackageNameStartsAt = Filename.Len() - FPaths::GetCleanFilename(Filename).Len();
-	FString NoExt = Filename.Mid(0, PackageNameStartsAt + PackageName.Len());
-
-	FString Result = NoExt;
+	FString PackageName         = FPaths::GetBaseFilename(Filename);
+	int32   PackageNameStartsAt = Filename.Len() - FPaths::GetCleanFilename(Filename).Len();
+	FString Result              = Filename.Mid(0, PackageNameStartsAt + PackageName.Len());
 	Result.ReplaceInline(TEXT("\\"), TEXT("/"));
 
-	for (int32 PathIndex = 0; PathIndex < Paths.ContentPathToRoot.Num(); ++PathIndex)
+	for (const auto& Pair : Paths.ContentPathToRoot)
 	{
-		const FPathPair& Pair = Paths.ContentPathToRoot[PathIndex];
 		if (Result.StartsWith(Pair.ContentPath))
 		{
 			Result = Pair.RootPath + Result.Mid(Pair.ContentPath.Len());
@@ -253,32 +245,26 @@ FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilenam
 
 bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename, FString& OutPackageName)
 {
-	const FString& Result = InternalFilenameToLongPackageName(InFilename);
+	FString Result = InternalFilenameToLongPackageName(InFilename);
 
 	// we don't support loading packages from outside of well defined places
-	const bool bContainsDot = Result.Contains(TEXT("."));
-	const bool bContainsBackslash = Result.Contains(TEXT("\\"));
-	const bool bContainsColon = Result.Contains(TEXT(":"));
-	
-	if (!(bContainsDot || bContainsBackslash || bContainsColon))
-	{
-		OutPackageName = Result;
-		return true;
-	}
-	else
+	if (Result.Contains(TEXT(".")) || Result.Contains(TEXT("\\")) || Result.Contains(TEXT(":")))
 	{
 		return false;
 	}
+
+	OutPackageName = MoveTemp(Result);
+	return true;
 }
 
 FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 {
-	const FString& Result = InternalFilenameToLongPackageName(InFilename);
+	FString Result = InternalFilenameToLongPackageName(InFilename);
 
 	// we don't support loading packages from outside of well defined places
-	const bool bContainsDot = Result.Contains(TEXT("."));
+	const bool bContainsDot       = Result.Contains(TEXT("."));
 	const bool bContainsBackslash = Result.Contains(TEXT("\\"));
-	const bool bContainsColon = Result.Contains(TEXT(":"));
+	const bool bContainsColon     = Result.Contains(TEXT(":"));
 
 	if (bContainsDot || bContainsBackslash || bContainsColon)
 	{
@@ -304,17 +290,13 @@ FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 
 FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension)
 {
-	FString Result = InLongPackageName;
-	const FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();
+	const auto& Paths = FLongPackagePathsSingleton::Get();
 
-	for (int32 PathIndex = 0; PathIndex < Paths.ContentRootToPath.Num(); ++PathIndex)
+	for (const auto& Pair : Paths.ContentRootToPath)
 	{
-		const FPathPair& Pair = Paths.ContentRootToPath[PathIndex];
 		if (InLongPackageName.StartsWith(Pair.RootPath))
 		{
-			Result = Pair.ContentPath + Result.Mid(Pair.RootPath.Len());
-			Result += InExtension;
-
+			FString Result = Pair.ContentPath + InLongPackageName.Mid(Pair.RootPath.Len()) + InExtension;
 			return Result;
 		}
 	}
@@ -322,7 +304,7 @@ FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName
 	// This is not a long package name or the root folder is not handled in the above cases
 	UE_LOG(LogPackageName, Fatal,TEXT("LongPackageNameToFilename failed to convert '%s'. Path does not map to any roots."), *InLongPackageName);
 
-	return Result;
+	return InLongPackageName;
 }
 
 FString FPackageName::GetLongPackagePath(const FString& InLongPackageName)
@@ -545,7 +527,9 @@ FName* FPackageName::FindScriptPackageName(FName InShortName)
 }
 
 bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename)
-{	
+{
+	auto& FileManager = IFileManager::Get();
+
 	static const FString* PackageExtensions[] =
 	{
 		&AssetPackageExtension,
@@ -553,20 +537,20 @@ bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilen
 	};
 
 	// Loop through all known extensions and check if the file exist.
-	bool bFound = false;
-	for (int32 ExtensionIndex = 0; ExtensionIndex < ARRAY_COUNT(PackageExtensions) && !bFound; ++ExtensionIndex)
+	for (auto Extension : PackageExtensions)
 	{
-		const FString PackageFilename = InPackageFilename + *PackageExtensions[ExtensionIndex];
-		const FDateTime Timestamp = IFileManager::Get().GetTimeStamp(*PackageFilename);
+		FString   PackageFilename = InPackageFilename + *Extension;
+		FDateTime Timestamp       = FileManager.GetTimeStamp(*PackageFilename);
 		if (Timestamp != FDateTime::MinValue())
 		{
 			// The package exists so exit. From now on InPackageFilename can be equal to OutFilename so
 			// don't attempt to use it anymore (case where &InPackageFilename == &OutFilename).
-			OutFilename = PackageFilename;
-			bFound = true;
+			OutFilename = MoveTemp(PackageFilename);
+			return true;
 		}
 	}
-	return bFound;
+
+	return false;
 }
 
 bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid* Guid /*= NULL*/, FString* OutFilename /*= NULL*/)
