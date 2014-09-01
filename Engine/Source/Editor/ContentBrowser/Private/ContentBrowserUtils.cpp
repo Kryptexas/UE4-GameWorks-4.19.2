@@ -1281,7 +1281,7 @@ FText ContentBrowserUtils::GetExploreFolderText()
 	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
 }
 
-bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, FText& OutErrorMessage)
+bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, FText& OutErrorMessage, bool bAllowExistingAsset)
 {
 	const FString ObjectName = FPackageName::ObjectPathToObjectName(ObjectPath);
 
@@ -1328,16 +1328,19 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 		return false;
 	}
 
-	// Check if the input is valid before we proceed with the rename.
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	FAssetData ExistingAsset = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*ObjectPath));
-	if (ExistingAsset.IsValid())
+	// Check for an existing asset, unless it we were asked not to.
+	if ( !bAllowExistingAsset )
 	{
-		// This asset already exists at this location, inform the user and continue
-		OutErrorMessage = FText::Format( LOCTEXT("RenameAssetAlreadyExists", "An asset already exists at this location with the name '{0}'."), FText::FromString( ObjectName ) );
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		FAssetData ExistingAsset = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*ObjectPath));
+		if (ExistingAsset.IsValid())
+		{
+			// This asset already exists at this location, inform the user and continue
+			OutErrorMessage = FText::Format( LOCTEXT("RenameAssetAlreadyExists", "An asset already exists at this location with the name '{0}'."), FText::FromString( ObjectName ) );
 
-		// Return false to indicate that the user should enter a new name
-		return false;
+			// Return false to indicate that the user should enter a new name
+			return false;
+		}
 	}
 
 	return true;

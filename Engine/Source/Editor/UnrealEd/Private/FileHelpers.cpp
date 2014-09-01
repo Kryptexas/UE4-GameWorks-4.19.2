@@ -26,6 +26,8 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
+#include "PackageTools.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
 //definition of flag used to do special work when we're attempting to load the "startup map"
@@ -599,6 +601,7 @@ static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& I
 	SaveAssetDialogConfig.DefaultPath = DefaultPath;
 	SaveAssetDialogConfig.DefaultAssetName = NewNameSuggestion;
 	SaveAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
+	SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
@@ -667,6 +670,19 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 
 			FText ErrorMessage;
 			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(SaveFilename, ErrorMessage);
+			
+			if ( bFilenameIsValid )
+			{
+				// If there is an existing world in memory that shares this name unload it now to prepare for overwrite.
+				// Don't do this if we are using save as to overwrite the current level since it will just save naturally.
+				const FString NewPackageName = FPackageName::FilenameToLongPackageName(SaveFilename);
+				UPackage* ExistingPackage = FindPackage(nullptr, *NewPackageName);
+				if ( ExistingPackage && ExistingPackage != InWorld->GetOutermost() )
+				{
+					bFilenameIsValid = FEditorFileUtils::AttemptUnloadInactiveWorldPackage(ExistingPackage, ErrorMessage);
+				}
+			}
+
 			if ( !bFilenameIsValid )
 			{
 				// Start the loop over, prompting for save again
@@ -1641,6 +1657,61 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 	return true;
 }
 
+bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnload, FText& OutErrorMessage)
+{
+	if ( ensure(PackageToUnload) )
+	{
+		UWorld* ExistingWorld = UWorld::FindWorldInPackage(PackageToUnload);
+		if ( ExistingWorld )
+		{
+			bool bContinueUnloadingExistingWorld = false;
+
+			switch (ExistingWorld->WorldType)
+			{
+				case EWorldType::None:
+				case EWorldType::Inactive:
+					// Untyped and inactive worlds are safe to unload
+					bContinueUnloadingExistingWorld = true;
+					break;
+
+				case EWorldType::Editor:
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "You can not unload a level you are currently editing.");
+					bContinueUnloadingExistingWorld = false;
+					break;
+
+				case EWorldType::Game:
+				case EWorldType::PIE:
+				case EWorldType::Preview:
+				default:
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "The level you are attempting to unload is invalid.");
+					bContinueUnloadingExistingWorld = false;
+					break;
+			}
+
+			if ( !bContinueUnloadingExistingWorld )
+			{
+				return false;
+			}
+		}
+
+		TArray<UPackage*> PackagesToUnload;
+		PackagesToUnload.Add(PackageToUnload);
+		TWeakObjectPtr<UPackage> WeakPackage = PackageToUnload;
+		if (!PackageTools::UnloadPackages(PackagesToUnload, OutErrorMessage))
+		{
+			return false;
+		}
+
+		if ( WeakPackage.IsValid() )
+		{
+			OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingPackageFailedToUnload", "Failed to unload existing level.");
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /**
  * Prompts the user to save the current map if necessary, the presents a load dialog and
  * loads a new map if selected by the user.
@@ -2174,6 +2245,18 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				if ( bValidFilename )
 				{
 					bValidFilename = bIsMapPackage ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );
+				}
+
+				if ( bValidFilename )
+				{
+					// If there is an existing world in memory that shares this name unload it now to prepare for overwrite.
+					// Don't do this if we are using save as to overwrite the current level since it will just save naturally.
+					const FString NewPackageName = FPackageName::FilenameToLongPackageName(FinalPackageFilename);
+					UPackage* ExistingPackage = FindPackage(nullptr, *NewPackageName);
+					if (ExistingPackage && ExistingPackage != PackageToSave)
+					{
+						bValidFilename = FEditorFileUtils::AttemptUnloadInactiveWorldPackage(ExistingPackage, ErrorMessage);
+					}
 				}
 
 				if ( !bValidFilename )

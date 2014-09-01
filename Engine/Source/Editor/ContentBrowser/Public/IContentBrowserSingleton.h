@@ -236,15 +236,30 @@ struct FOpenAssetDialogConfig : public FSharedAssetDialogConfig
 	{}
 };
 
+/** An enum to choose the behavior of the save asset dialog when the user chooses an asset that already exists */
+namespace ESaveAssetDialogExistingAssetPolicy
+{
+	enum Type
+	{
+		/** Display an error and disallow the save */
+		Disallow,
+
+		/** Allow the save, but warn that the existing file will be overwritten */
+		AllowButWarn
+	};
+}
+
 /** A struct containing details about how the save asset dialog should behave. */
 struct FSaveAssetDialogConfig : public FSharedAssetDialogConfig
 {
 	FString DefaultAssetName;
+	ESaveAssetDialogExistingAssetPolicy::Type ExistingAssetPolicy;
 
 	virtual EAssetDialogType::Type GetDialogType() const override { return EAssetDialogType::Save; }
 
 	FSaveAssetDialogConfig()
 		: FSharedAssetDialogConfig()
+		, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
 	{}
 };
 

@@ -9,6 +9,8 @@ public:
 
 	SLATE_END_ARGS()
 
+	SAssetDialog();
+
 	virtual void Construct(const FArguments& InArgs, const FSharedAssetDialogConfig& InConfig);
 
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
@@ -96,6 +98,9 @@ private:
 
 	/** The object name of the asset to save. Only used in save dialogs. */
 	FString CurrentlyEnteredAssetName;
+
+	/** The behavior when the user chooses an existing asset. Only used in save dialogs. */
+	ESaveAssetDialogExistingAssetPolicy::Type ExistingAssetPolicy;
 
 	/** The error text from the last validity check */
 	FText LastInputValidityErrorText;

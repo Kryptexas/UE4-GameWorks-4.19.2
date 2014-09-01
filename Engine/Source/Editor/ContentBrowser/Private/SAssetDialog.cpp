@@ -5,6 +5,13 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+SAssetDialog::SAssetDialog()
+	: DialogType(EAssetDialogType::Open)
+	, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
+	, bLastInputValidityCheckSuccessful(false)
+{
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogConfig& InConfig)
 {
@@ -53,6 +60,7 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 		ConfirmButtonText = LOCTEXT("AssetDialogSaveButton", "Save");
 		AssetPickerConfig.SelectionMode = ESelectionMode::Single;
 		bIncludeNameBox = true;
+		ExistingAssetPolicy = SaveAssetConfig.ExistingAssetPolicy;
 		SetCurrentlyEnteredAssetName(SaveAssetConfig.DefaultAssetName);
 	}
 	else
@@ -374,7 +382,8 @@ void SAssetDialog::UpdateInputValidity()
 		{
 			const FString ObjectPath = GetObjectPathForSave();
 			FText ErrorMessage;
-			if ( !ContentBrowserUtils::IsValidObjectPathForCreate(ObjectPath, ErrorMessage) )
+			const bool bAllowExistingAsset = (ExistingAssetPolicy == ESaveAssetDialogExistingAssetPolicy::AllowButWarn);
+			if ( !ContentBrowserUtils::IsValidObjectPathForCreate(ObjectPath, ErrorMessage, bAllowExistingAsset) )
 			{
 				LastInputValidityErrorText = ErrorMessage;
 				bLastInputValidityCheckSuccessful = false;
@@ -407,8 +416,26 @@ void SAssetDialog::CommitObjectPathForSave()
 		if ( bLastInputValidityCheckSuccessful )
 		{
 			const FString ObjectPath = GetObjectPathForSave();
-			OnObjectPathChosenForSave.ExecuteIfBound(ObjectPath);
-			CloseDialog();
+
+			bool bProceedWithSave = true;
+
+			// If we were asked to warn on existing assets, do it now
+			if ( ExistingAssetPolicy == ESaveAssetDialogExistingAssetPolicy::AllowButWarn )
+			{
+				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+				FAssetData ExistingAsset = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*ObjectPath));
+				if ( ExistingAsset.IsValid() && AssetClassNames.Contains(ExistingAsset.AssetClass) )
+				{
+					EAppReturnType::Type ShouldReplace = FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(LOCTEXT("ReplaceAssetMessage", "{ExistingAsset} already exists. Do you want to replace it?"), FText::FromString(CurrentlyEnteredAssetName)) );
+					bProceedWithSave = (ShouldReplace == EAppReturnType::Yes);
+				}
+			}
+
+			if ( bProceedWithSave )
+			{
+				OnObjectPathChosenForSave.ExecuteIfBound(ObjectPath);
+				CloseDialog();
+			}
 		}
 	}
 }
