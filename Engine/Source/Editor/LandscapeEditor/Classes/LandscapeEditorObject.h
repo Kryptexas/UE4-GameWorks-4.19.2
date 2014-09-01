@@ -485,7 +485,7 @@ class ULandscapeEditorObject : public UObject
 	// Target Layer Settings:
 
 	// Limits painting to only the components that already have the selected layer
-	UPROPERTY(Category="Target Layers", EditAnywhere, NonTransactional)
+	UPROPERTY(Category="Target Layers", EditAnywhere, NonTransactional, meta=(ShowForTargetTypes="Weightmap,Visibility"))
 	TEnumAsByte<ELandscapeLayerPaintingRestriction::Type> PaintingRestriction;
 
 #if WITH_EDITOR

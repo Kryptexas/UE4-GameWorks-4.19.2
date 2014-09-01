@@ -47,7 +47,8 @@ void FLandscapeEditorDetailCustomization_TargetLayers::CustomizeDetails(IDetailL
 
 	IDetailCategoryBuilder& TargetsCategory = DetailBuilder.EditCategory("Target Layers");
 
-	TargetsCategory.AddProperty(PropertyHandle_PaintingRestriction);
+	TargetsCategory.AddProperty(PropertyHandle_PaintingRestriction)
+		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_PaintingRestriction)));
 
 	TargetsCategory.AddCustomBuilder(MakeShareable(new FLandscapeEditorCustomNodeBuilder_TargetLayers(DetailBuilder.GetThumbnailPool().ToSharedRef())));
 }
@@ -71,6 +72,26 @@ bool FLandscapeEditorDetailCustomization_TargetLayers::ShouldShowTargetLayers()
 	}
 
 	return false;
+}
+
+bool FLandscapeEditorDetailCustomization_TargetLayers::ShouldShowPaintingRestriction()
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode)
+	{
+		if (LandscapeEdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap ||
+			LandscapeEdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Visibility)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+EVisibility FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_PaintingRestriction()
+{
+	return ShouldShowPaintingRestriction() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 //////////////////////////////////////////////////////////////////////////
