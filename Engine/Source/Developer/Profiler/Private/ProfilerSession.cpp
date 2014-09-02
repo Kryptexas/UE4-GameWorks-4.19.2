@@ -207,21 +207,32 @@ void FProfilerSession::UpdateAggregatedEventGraphData( const uint32 FrameIndex )
 	{
 		FGraphEventArray EventGraphCombineTasks;
 
-		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.CombineAndFindMax"),
+			STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax,
+			STATGROUP_TaskGraphTasks);
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.EventGraphCombineAndAdd"),
+			STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd,
+			STATGROUP_TaskGraphTasks);
+
+		new (EventGraphCombineTasks)FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndMax, EventGraphDataCurrent, NumFrames ), 
-			TEXT("EventGraphData.CombineAndFindMax"), nullptr
+			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax), nullptr
 		));
 
 		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndAdd, EventGraphDataCurrent, NumFrames ), 
-			TEXT("EventGraphData.EventGraphCombineAndAdd"), nullptr
+			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd), nullptr
 		));
+
+		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.EventGraphData.CombineJoinAndContinue"),
+			STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue,
+			STATGROUP_TaskGraphTasks);
 
 		// JoinThreads
 		CompletionSync = TGraphTask<FNullGraphTask>::CreateTask( &EventGraphCombineTasks, ENamedThreads::GameThread )
-			.ConstructAndDispatchWhenReady( TEXT("EventGraphData.CombineJoinAndContinue"), ENamedThreads::AnyThread );
+			.ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue), ENamedThreads::AnyThread);
 	}
 	else
 	{

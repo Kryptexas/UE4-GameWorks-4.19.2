@@ -1139,7 +1139,11 @@ void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedT
 		FGraphEventArray TempEventsToWaitFor;
 		Exchange(EventsToWaitFor, TempEventsToWaitFor);
 		// create the Gather...this uses a special version of private CreateTask that "assumes" the subsequent list (which other threads might still be adding too).
-		TGraphTask<FNullGraphTask>::CreateTask( FGraphEventRef( this ), &TempEventsToWaitFor, CurrentThreadIfKnown ).ConstructAndDispatchWhenReady( TEXT( "DontCompleteUntil" ) );
+		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.DontCompleteUntil"),
+			STAT_FNullGraphTask_DontCompleteUntil,
+			STATGROUP_TaskGraphTasks);
+
+		TGraphTask<FNullGraphTask>::CreateTask(FGraphEventRef(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_DontCompleteUntil));
 		return;
 	}
 

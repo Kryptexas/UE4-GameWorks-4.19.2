@@ -112,12 +112,14 @@ void UNavigationComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPat
 
 				Path->EnableRecalculationOnInvalidation(true);
 
-				/*FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal)
-					, TEXT("Deferred restore path")
-					, NULL
-					, ENamedThreads::GameThread
-					);*/
+				/*
+				const static TStatId StatId = TStatId::CreateAndRegisterFromName(TEXT("FSimpleDelegateGraphTask.Deferred restore path"));
+
+				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+					FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal),
+					StatId, NULL, ENamedThreads::GameThread
+				);
+				*/
 			}
 
 			// reset state
@@ -556,12 +558,14 @@ bool UNavigationComponent::FindPathToActor(const AActor* NewGoalActor, TSharedPt
 
 		if (bDoAsyncPathfinding == true)
 		{
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Deferred resume path"),
+				STAT_FSimpleDelegateGraphTask_DeferredResumePath,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath)
-				, TEXT("Deferred resume path")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_DeferredResumePath), NULL, ENamedThreads::GameThread
+			);
 			bPathGenerationSucceeded = true;
 		}
 		else
@@ -652,12 +656,14 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 
 		if (bDoAsyncPathfinding == true)
 		{
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Deferred resume path"),
+				STAT_FSimpleDelegateGraphTask_DeferredResumePath,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath)
-				, TEXT("Deferred resume path")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_DeferredResumePath), NULL, ENamedThreads::GameThread
+			);
 			bPathGenerationSucceeded = true;
 		}
 		else

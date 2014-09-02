@@ -456,12 +456,14 @@ public:
 		SharedPath->SetNavigationDataUsed(this);
 		SharedPath->SetQuerier(Querier);
 
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Adding a path to ActivePaths"),
+			STAT_FSimpleDelegateGraphTask_AddingPathToActivePaths,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ANavigationData::RegisterActivePath, SharedPath)
-			, TEXT("Adding a path to ActivePaths")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ANavigationData::RegisterActivePath, SharedPath),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_AddingPathToActivePaths), NULL, ENamedThreads::GameThread
+		);
 
 		return SharedPath;
 	}

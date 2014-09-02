@@ -142,12 +142,13 @@ public:
 				SCOPE_SECONDS_COUNTER(ThisTime);
 				RecastNavMeshGenerator->GenerateTile(TileId, Version);	
 			
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting to build next tile if necessary"),
+					STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary,
+					STATGROUP_TaskGraphTasks);
+
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(RecastNavMeshGenerator, &FRecastNavMeshGenerator::UpdateTileGenerationWorkers, TileId)
-					, TEXT("Requesting to build next tile if necessary")
-					, NULL
-					, ENamedThreads::GameThread
-					);
+					FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(RecastNavMeshGenerator, &FRecastNavMeshGenerator::UpdateTileGenerationWorkers, TileId),
+					GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary), NULL, ENamedThreads::GameThread);
 			}
 			INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 		}
@@ -3520,11 +3521,14 @@ void FRecastNavMeshGenerator::RequestGeneration()
 	}
 	else
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh rebuild from scratch from RequestGeneration"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRebuildFromScratchFromRequestGeneration,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RequestGeneration)
-			, TEXT("Requesting navmesh rebuild from scratch from RequestGeneration")
-			, NULL
-			, ENamedThreads::GameThread
+			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RequestGeneration),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRebuildFromScratchFromRequestGeneration),
+			NULL, ENamedThreads::GameThread
 		);
 	}
 }
@@ -3538,10 +3542,14 @@ void FRecastNavMeshGenerator::RequestDirtyTilesRebuild()
 
 	bRebuildDirtyTilesRequested = true;
 
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.NavMesh Tiles Regeneration"),
+		STAT_FSimpleDelegateGraphTask_NavMeshTilesRegeneration,
+		STATGROUP_TaskGraphTasks);
+
 		// kick off a task to rebuild influenced tiles			
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RegenerateDirtyTiles)
-		, TEXT("NavMesh Tiles Regeneration"), NULL, ENamedThreads::GameThread
+		FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RegenerateDirtyTiles),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_NavMeshTilesRegeneration), NULL, ENamedThreads::GameThread
 	);
 }
 
@@ -3762,11 +3770,14 @@ void FRecastNavMeshGenerator::UpdateBuilding()
 		}
 
 		// need to send it to main thread - uses some gamethread-only iterators
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh regen from UpdateBuilding"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRegenFromUpdateBuilding,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TriggerGeneration)
-			, TEXT("Requesting navmesh regen from UpdateBuilding")
-			, NULL
-			, ENamedThreads::GameThread
+			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TriggerGeneration),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRegenFromUpdateBuilding), NULL,
+			ENamedThreads::GameThread
 		);
 	}
 	else if(!UnrealNavBounds.IsValid)
@@ -3916,12 +3927,14 @@ bool FRecastNavMeshGenerator::AddTile(FRecastTileGenerator* TileGenerator, AReca
 		if (bOperationSuccessful)
 		{
 			// send off to game thread to not use critical section for modifying AsyncGenerationResultContainer
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Storing async nav generetion result"),
+				STAT_FSimpleDelegateGraphTask_StoringAsyncNavGeneretionResult,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::StoreAsyncResults, AsyncResults)
-				, TEXT("Storing async nav generetion result")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::StoreAsyncResults, AsyncResults),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StoringAsyncNavGeneretionResult), NULL, ENamedThreads::GameThread
+			);
 		}
 	}
 	INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
@@ -4308,9 +4321,15 @@ void FRecastNavMeshGenerator::UpdateTileGenerationWorkers(int32 TileId)
 	// prepare next batch of dirty generators in next tick
 	if (GeneratorsQueue.Num() == 0 && DirtyGenerators.Num() > 0)
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Prepare navmesh tile generators"),
+			STAT_FSimpleDelegateGraphTask_PrepareNavmeshTileGenerators,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FRecastNavMeshGenerator::StartDirtyGenerators), 
-			TEXT("Prepare navmesh tile generators"), NULL, ENamedThreads::GameThread);
+			GET_STATID(STAT_FSimpleDelegateGraphTask_PrepareNavmeshTileGenerators), NULL,
+			ENamedThreads::GameThread
+		);
 	}
 }
 
@@ -4382,12 +4401,13 @@ bool FRecastNavMeshGenerator::TransferGeneratedData()
 		DestNavMesh->GetRecastNavMeshImpl()->SetRecastMesh(DetourMesh, /*bOwnData=*/false);
 
 		// this should be done synchronously
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(DestNavMesh.Get(), &ARecastNavMesh::UpdateNavMeshDrawing)
-			, TEXT("Requesting navmesh redraw")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(DestNavMesh.Get(), &ARecastNavMesh::UpdateNavMeshDrawing),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread);
 
 		return true;
 	}

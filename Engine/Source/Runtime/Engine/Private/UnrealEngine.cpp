@@ -4012,7 +4012,18 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request") );
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FThread::Crash), TEXT("FThread::Crash")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Crash"),
+			STAT_FDelegateGraphTask_FThread__Crash,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Crash),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__Crash)
+			),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	if( FParse::Command(&Cmd,TEXT("THREADCHECK")) )
@@ -4025,7 +4036,18 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				check(!"Crashing a worker thread via check(0) at your request");
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FThread::Check), TEXT("FThread::Check")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Check"),
+			STAT_FDelegateGraphTask_FThread__Check,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Check),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__Check)
+			),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	if( FParse::Command(&Cmd,TEXT("THREADGPF")) )
@@ -4038,7 +4060,18 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				*(int32 *)3 = 123;
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FThread::GPF), TEXT("FThread::GPF")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::GPF"),
+			STAT_FDelegateGraphTask_FThread__GPF,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::GPF),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__GPF)
+			),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT( "THREADENSURE" ) ) )
@@ -4051,7 +4084,17 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				ensure( 0 );
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes( FDelegateGraphTask::CreateAndDispatchWhenReady( FDelegateGraphTask::FDelegate::CreateStatic( FThread::Ensure ), TEXT( "FThread::Ensure" ) ), ENamedThreads::GameThread );
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Ensure"),
+			STAT_FThread__Ensure,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Ensure),
+				GET_STATID(STAT_FThread__Ensure)),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT( "THREADFATAL" ) ) )
@@ -4064,7 +4107,17 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) );
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes( FDelegateGraphTask::CreateAndDispatchWhenReady( FDelegateGraphTask::FDelegate::CreateStatic( FThread::Fatal ), TEXT( "FThread::Fatal" ) ), ENamedThreads::GameThread );
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Fatal"),
+			STAT_FThread__Fatal,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Fatal),
+				GET_STATID(STAT_FThread__Fatal)),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	else if( FParse::Command(&Cmd,TEXT("CRASH")) )

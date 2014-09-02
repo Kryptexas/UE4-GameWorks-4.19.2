@@ -88,11 +88,13 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 			
 			if (GIsThreadedRendering)
 			{
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SuspendRendering"),
+					STAT_FSimpleDelegateGraphTask_SuspendRendering,
+					STATGROUP_TaskGraphTasks);
+
 				FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SuspendRendering),
-					TEXT("SuspendRendering"),
-					NULL,
-					ENamedThreads::RenderThread);
+					GET_STATID(STAT_FSimpleDelegateGraphTask_SuspendRendering), NULL, ENamedThreads::RenderThread);
 
 				// Busy wait while Kismet debugging, to avoid opportunistic execution of game thread tasks
 				// If the game thread is already executing tasks, then we have no choice but to spin
@@ -110,11 +112,13 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 				check(GIsRenderingThreadSuspended);
 			
 				// Now tell the render thread to busy wait until it's resumed
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.WaitAndResumeRendering"),
+					STAT_FSimpleDelegateGraphTask_WaitAndResumeRendering,
+					STATGROUP_TaskGraphTasks);
+
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&WaitAndResumeRendering),
-					TEXT("WaitAndResumeRendering"),
-					NULL,
-					ENamedThreads::RenderThread);
+					GET_STATID(STAT_FSimpleDelegateGraphTask_WaitAndResumeRendering), NULL, ENamedThreads::RenderThread);
 			}
 			else
 			{
@@ -141,11 +145,14 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 			StartRenderingThread();
             
             // Now tell the render thread to set it self to real time mode
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SetRealTimeMode"),
+				STAT_FSimpleDelegateGraphTask_SetRealTimeMode,
+				STATGROUP_TaskGraphTasks);
+
             FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
                 FSimpleDelegateGraphTask::FDelegate::CreateStatic(&FPlatformProcess::SetRealTimeMode),
-                TEXT("SetRealTimeMode"),
-                NULL,
-                ENamedThreads::RenderThread);
+				GET_STATID(STAT_FSimpleDelegateGraphTask_SetRealTimeMode), NULL, ENamedThreads::RenderThread
+			);
         }
 	}
 	else
@@ -588,16 +595,22 @@ void FRenderCommandFence::BeginFence()
 	}
 	else
 	{
+		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.FenceRenderCommand"),
+			STAT_FNullGraphTask_FenceRenderCommand,
+			STATGROUP_TaskGraphTasks);
+
 		if (IsFenceComplete())
 		{
-			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TEXT("FenceRenderCommand"), ENamedThreads::RenderThread);
+			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::RenderThread);
 		}
 		else
 		{
 			// we already had a fence, so we will chain this one to the old one as a prerequisite
 			FGraphEventArray Prerequistes;
 			Prerequistes.Add(CompletionEvent);
-			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(&Prerequistes, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TEXT("FenceRenderCommand"), ENamedThreads::RenderThread);
+			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(&Prerequistes, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::RenderThread);
 		}
 	}
 }

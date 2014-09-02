@@ -706,10 +706,13 @@ void UNavigationSystem::AbortAsyncFindPathRequest(uint32 AsynPathQueryID)
 
 void UNavigationSystem::TriggerAsyncQueries(TArray<FAsyncPathFindingQuery>& PathFindingQueries)
 {
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.NavigationSystem batched async queries"),
+		STAT_FSimpleDelegateGraphTask_NavigationSystemBatchedAsyncQueries,
+		STATGROUP_TaskGraphTasks);
+
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationSystem::PerformAsyncQueries, PathFindingQueries)
-		, TEXT("NavigationSystem batched async queries")
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationSystem::PerformAsyncQueries, PathFindingQueries),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_NavigationSystemBatchedAsyncQueries));
 }
 
 static void AsyncQueryDone(FAsyncPathFindingQuery Query)
@@ -754,12 +757,13 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 
 		// @todo make it return more informative results (bResult == false)
 		// trigger calling delegate on main thread - otherwise it may depend too much on stuff being thread safe
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Async nav query finished"),
+			STAT_FSimpleDelegateGraphTask_AsyncNavQueryFinished,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateStatic(AsyncQueryDone, *Query)
-			, TEXT("Async nav query finished")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateStatic(AsyncQueryDone, *Query),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_AsyncNavQueryFinished), NULL, ENamedThreads::GameThread);
 	}
 }
 
@@ -1276,12 +1280,13 @@ void UNavigationSystem::RequestRegistration(ANavigationData* NavData, bool bTrig
 		if (bTriggerRegistrationProcessing == true)
 		{
 			// trigger registration candidates processing
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Process registration candidates"),
+				STAT_FSimpleDelegateGraphTask_ProcessRegistrationCandidates,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationSystem::ProcessRegistrationCandidates)
-				, TEXT("Process registration candidates")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationSystem::ProcessRegistrationCandidates),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_ProcessRegistrationCandidates), NULL, ENamedThreads::GameThread);
 		}
 	}
 	else

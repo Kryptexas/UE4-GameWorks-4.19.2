@@ -499,12 +499,14 @@ void UActorComponent::SetComponentTickEnabledAsync(bool bEnabled)
 {
 	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SetComponentTickEnabledAsync"),
+			STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UActorComponent::SetComponentTickEnabled, bEnabled)
-			, TEXT("SetComponentTickEnabledAsync")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UActorComponent::SetComponentTickEnabled, bEnabled),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync), NULL, ENamedThreads::GameThread
+		);
 	}
 }
 

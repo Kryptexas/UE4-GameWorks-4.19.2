@@ -175,9 +175,15 @@ public:
 		}
 		else
 		{
+			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.DispatchTickGroup"),
+				STAT_FDelegateGraphTask_DispatchTickGroup,
+				STATGROUP_TaskGraphTasks);
+
 			// dispatch the tick group on another thread, that way, the game thread can be processing ticks while ticks are being queued by another thread
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-				FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::DispatchTickGroup, WorldTickGroup), TEXT("DispatchTickGroup")),	
+				FDelegateGraphTask::CreateAndDispatchWhenReady(
+					FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::DispatchTickGroup, WorldTickGroup),
+					GET_STATID(STAT_FDelegateGraphTask_DispatchTickGroup)),
 				ENamedThreads::GameThread);
 		}
 

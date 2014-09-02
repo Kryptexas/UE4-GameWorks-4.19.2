@@ -592,13 +592,21 @@ void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& Functi
 	}
 
 	// Kick off asynchronous task to load symbols
+	DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.EditorSourceCodeNavigation"),
+		STAT_FDelegateGraphTask_EditorSourceCodeNavigation,
+		STATGROUP_TaskGraphTasks);
+
 	FGraphEventRef PreloadSymbolsAsyncResult(
-		FDelegateGraphTask::CreateAndDispatchWhenReady( FDelegateGraphTask::FDelegate::CreateStatic(&FLocal::PreloadSymbolsTaskWrapper ), TEXT( "EditorSourceCodeNavigation" ) ) );
+		FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(&FLocal::PreloadSymbolsTaskWrapper), GET_STATID(STAT_FDelegateGraphTask_EditorSourceCodeNavigation)));
 
 	// add a dependent task to run on the main thread when symbols are loaded
 	FGraphEventRef UnusedAsyncResult(
-		FDelegateGraphTask::CreateAndDispatchWhenReady( FDelegateGraphTask::FDelegate::CreateStatic(
-				&FLocal::NavigateToFunctionSourceTaskWrapper, NavigateFunctionParams, CompileNotificationPtr ), TEXT( "EditorSourceCodeNavigation" ), PreloadSymbolsAsyncResult, ENamedThreads::GameThread, ENamedThreads::GameThread ));
+		FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(
+				&FLocal::NavigateToFunctionSourceTaskWrapper, NavigateFunctionParams, CompileNotificationPtr), GET_STATID(STAT_FDelegateGraphTask_EditorSourceCodeNavigation),
+				PreloadSymbolsAsyncResult, ENamedThreads::GameThread, ENamedThreads::GameThread
+			)
+		);
 }
 
 

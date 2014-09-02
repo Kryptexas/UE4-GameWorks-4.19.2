@@ -113,12 +113,14 @@ void FRendererModule::DebugLogOnCrash()
 			}
 		} Test;
 
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-			(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread)
-			, TEXT("DumpDataAfterCrash")
-			, nullptr, ENamedThreads::GameThread
-			);
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.DumpDataAfterCrash"),
+			STAT_FSimpleDelegateGraphTask_DumpDataAfterCrash,
+			STATGROUP_TaskGraphTasks);
+
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_DumpDataAfterCrash), nullptr, ENamedThreads::GameThread
+		);
 	}
 }
 

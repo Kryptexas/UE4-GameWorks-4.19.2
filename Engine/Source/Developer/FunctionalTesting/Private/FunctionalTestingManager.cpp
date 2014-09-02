@@ -198,12 +198,13 @@ void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnd
 void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
 {
 	// add a delay
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting to build next tile if necessary"),
+		STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary,
+		STATGROUP_TaskGraphTasks);
+
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UFunctionalTestingManager::NotifyTestDone, FTest)
-		, TEXT("Requesting to build next tile if necessary")
-		, NULL
-		, ENamedThreads::GameThread
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UFunctionalTestingManager::NotifyTestDone, FTest),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary), NULL, ENamedThreads::GameThread);
 }
 
 void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)

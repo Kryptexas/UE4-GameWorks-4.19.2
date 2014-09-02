@@ -420,13 +420,15 @@ void SLogBar::OnCurrentTimeChanged(float NewTime)
 
 	if (bUpdateSelection)
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Updating Log Entry shown in LogVisualizer"),
+			STAT_FSimpleDelegateGraphTask_UpdatingLogEntryShownInLogVisualizer,
+			STATGROUP_TaskGraphTasks);
+
 		// find entry closest to desired time
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateSP(this, &SLogBar::SelectEntryAtIndex, GetEntryIndexAtTime(NewTime))
-			, TEXT("Updating Log Entry shown in LogVisualizer")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateSP(this, &SLogBar::SelectEntryAtIndex, GetEntryIndexAtTime(NewTime)),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_UpdatingLogEntryShownInLogVisualizer), NULL, ENamedThreads::GameThread
+		);
 	}
 }
 

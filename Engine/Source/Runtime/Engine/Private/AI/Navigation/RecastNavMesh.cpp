@@ -1409,12 +1409,13 @@ void ARecastNavMesh::GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32&
 void ARecastNavMesh::RequestDrawingUpdate()
 {
 #if !UE_BUILD_SHIPPING
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
+		STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
+		STATGROUP_TaskGraphTasks);
+
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ARecastNavMesh::UpdateDrawing)
-		, TEXT("Requesting navmesh redraw")
-		, NULL
-		, ENamedThreads::GameThread
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ARecastNavMesh::UpdateDrawing),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread);
 #endif // !UE_BUILD_SHIPPING
 }
 

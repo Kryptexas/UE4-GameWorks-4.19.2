@@ -1127,12 +1127,14 @@ static class FFNameExec: private FSelfRegisteringExec
 
 				for (int32 ThreadIndex = 0; ThreadIndex < FTest::NUM_TASKS; ThreadIndex++)
 				{
+					DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.FName Test"),
+						STAT_FSimpleDelegateGraphTask_FName_Test,
+						STATGROUP_TaskGraphTasks);
+
 					new (Handles) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 						FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread),
-						TEXT("FName Test"),
-						NULL,
-						ENamedThreads::AnyThread
-						));
+						GET_STATID(STAT_FSimpleDelegateGraphTask_FName_Test), NULL,
+						ENamedThreads::AnyThread));
 				}
 				FTaskGraphInterface::Get().WaitUntilTasksComplete(Handles, ENamedThreads::GameThread);
 				check(Test.TestCounter.GetValue() == FTest::NUM_TESTS * FTest::NUM_TASKS);

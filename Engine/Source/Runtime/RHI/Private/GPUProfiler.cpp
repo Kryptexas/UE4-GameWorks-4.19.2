@@ -234,11 +234,13 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 
 				TSharedPtr<FVisualizerEvent> VisualizerData = CreateVisualizerData( EventTree );
 
-				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-				(
-					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&DisplayProfilerVisualizer, &FDisplayProfilerVisualizer::Thread, VisualizerData )
-					, TEXT("DisplayProfilerVisualizer")
-					, nullptr, ENamedThreads::GameThread
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.DisplayProfilerVisualizer"),
+					STAT_FSimpleDelegateGraphTask_DisplayProfilerVisualizer,
+					STATGROUP_TaskGraphTasks);
+
+				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&DisplayProfilerVisualizer, &FDisplayProfilerVisualizer::Thread, VisualizerData),
+					GET_STATID(STAT_FSimpleDelegateGraphTask_DisplayProfilerVisualizer), nullptr, ENamedThreads::GameThread
 				);
 			}
 

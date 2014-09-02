@@ -531,9 +531,6 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 	return *Singleton;
 }
 
-
-
-
 uint32 FThreadStats::TlsSlot = 0;
 FThreadSafeCounter FThreadStats::MasterEnableCounter;
 FThreadSafeCounter FThreadStats::MasterEnableUpdateNumber;
@@ -979,7 +976,12 @@ void FThreadStats::WaitForStats()
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(LastFramesEvents[(CurrentEventIndex + MAX_STAT_LAG - 1) % MAX_STAT_LAG], ENamedThreads::GameThread_Local);
 			}
 		}
-		LastFramesEvents[(CurrentEventIndex + MAX_STAT_LAG - 1) % MAX_STAT_LAG] = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TEXT("StatWaitFence"), FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.StatWaitFence"),
+			STAT_FNullGraphTask_StatWaitFence,
+			STATGROUP_TaskGraphTasks);
+
+		LastFramesEvents[(CurrentEventIndex + MAX_STAT_LAG - 1) % MAX_STAT_LAG] = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_StatWaitFence), FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread);
 		CurrentEventIndex++;
 	}
 }

@@ -596,11 +596,14 @@ struct FHUDGroupManager
 			StatsMasterEnableSubtract();
 			bEnabled = false;
 
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsToGame"),
+				STAT_FSimpleDelegateGraphTask_StatsToGame,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr)
-				, TEXT("StatsToGame")
-				, nullptr, ENamedThreads::GameThread
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsToGame), nullptr, ENamedThreads::GameThread
 			);
 		}
 	}
@@ -856,11 +859,14 @@ struct FHUDGroupManager
 				}
 			}
 
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsHierToGame"),
+				STAT_FSimpleDelegateGraphTask_StatsHierToGame,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame)
-				, TEXT("StatsHierToGame")
-				, nullptr, ENamedThreads::GameThread
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsHierToGame), nullptr, ENamedThreads::GameThread
 			);
 		}	
 	}
@@ -1365,12 +1371,14 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			FHUDGroupGameThreadRenderer::Get();
 			FStatGroupGameThreadNotifier::Get();
 #endif
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatCmd"),
+				STAT_FSimpleDelegateGraphTask_StatCmd,
+				STATGROUP_TaskGraphTasks);
+
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs)
-				, TEXT("StatCmd")
-				, NULL
-				, ThreadType
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatCmd), NULL, ThreadType
+			);
 			if (bBlockForCompletion)
 			{
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle);
@@ -1396,12 +1404,15 @@ static void GetPermanentStats_StatsThread(TArray<FStatMessage>* OutStats)
 
 void GetPermanentStats(TArray<FStatMessage>& OutStats)
 {
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.GetPermanentStatsString_StatsThread"),
+		STAT_FSimpleDelegateGraphTask_GetPermanentStatsString_StatsThread,
+		STATGROUP_TaskGraphTasks);
+
 	FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&GetPermanentStats_StatsThread, &OutStats)
-		, TEXT("GetPermanentStatsString_StatsThread")
-		, NULL
-		, FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&GetPermanentStats_StatsThread, &OutStats),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_GetPermanentStatsString_StatsThread), NULL,
+		FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+	);
 	FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle);
 }
 

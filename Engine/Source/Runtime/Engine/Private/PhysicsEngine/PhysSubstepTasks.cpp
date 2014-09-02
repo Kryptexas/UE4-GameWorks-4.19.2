@@ -299,7 +299,14 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	CompletionEvent = FGraphEvent::CreateGraphEvent();
 	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent, PAScene->getTaskManager());
 	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
-	FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd), TEXT("ProcessPhysSubstepSimulation"), CompletionEvent, NamedThread, NamedThread);
+
+	DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysSubstepSimulation"),
+		STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation,
+		STATGROUP_TaskGraphTasks);
+
+	FDelegateGraphTask::CreateAndDispatchWhenReady(
+		FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd),
+		GET_STATID(STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation), CompletionEvent, NamedThread, NamedThread);
 
 	++CurrentSubStep;	
 

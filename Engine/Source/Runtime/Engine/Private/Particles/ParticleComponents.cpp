@@ -3889,18 +3889,24 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	else
 	{
 		// set up async task and the game thread task to finalize the results.
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.AsyncParticleTick"),
+			STAT_FSimpleDelegateGraphTask_AsyncParticleTick,
+			STATGROUP_TaskGraphTasks);
+
 		AsyncWork = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::ComputeTickComponent_Concurrent)
-			, TEXT("AsyncParticleTick")
-			, NULL
-			, ENamedThreads::AnyThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::ComputeTickComponent_Concurrent),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_AsyncParticleTick), NULL, ENamedThreads::AnyThread
+		);
+
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.FinalizeParticleTick"),
+			STAT_FSimpleDelegateGraphTask_FinalizeParticleTick,
+			STATGROUP_TaskGraphTasks);
+
 		FGraphEventRef Finalize = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::FinalizeTickComponent)
-			, TEXT("FinalizeParticleTick")
-			, AsyncWork
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::FinalizeTickComponent),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_FinalizeParticleTick), AsyncWork, ENamedThreads::GameThread
+		);
+
 		ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(Finalize);
 	}
 }

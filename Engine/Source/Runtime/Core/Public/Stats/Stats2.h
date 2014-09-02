@@ -121,6 +121,7 @@ struct TStatId
 	{
 		return (WIDECHAR*)*(uint64*)(&StatIdPtr[INDEX_WIDE_STRING]);
 	}
+
 private:
 	/** NAME_None. */
 	CORE_API static FName TStatId_NAME_None;
