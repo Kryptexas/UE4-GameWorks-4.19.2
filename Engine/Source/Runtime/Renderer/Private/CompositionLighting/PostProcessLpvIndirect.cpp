@@ -132,6 +132,16 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 {
 	SCOPED_DRAW_EVENT(PostProcessLpvIndirect, DEC_SCENE_ITEMS);
 
+	{
+		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
+		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
+		OutputOfMyInput->RenderTargetDesc.DebugName = PassOutputs[0].RenderTargetDesc.DebugName;
+		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
+
+		check(PassOutputs[0].RenderTargetDesc.Extent.X);
+		check(PassOutputs[0].RenderTargetDesc.Extent.Y);
+	}
+
 	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
