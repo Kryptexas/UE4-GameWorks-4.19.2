@@ -56,20 +56,14 @@ private:
 /** Our global output log app spawner */
 static TSharedPtr<FOutputLogHistory> OutputLogHistory;
 
-
-/** Our global output log app spawner */
-static TSharedPtr<SOutputLog> OutputLogInstance;
-
 TSharedRef<SDockTab> SpawnOutputLog( const FSpawnTabArgs& Args )
 {
-	OutputLogInstance = SNew(SOutputLog).Messages( OutputLogHistory->GetMessages() );
-
 	return SNew(SDockTab)
 		.Icon(FEditorStyle::GetBrush("Log.TabIcon"))
 		.TabRole( ETabRole::NomadTab )
 		.Label( NSLOCTEXT("OutputLog", "TabTitle", "Output Log") )
 		[
-			OutputLogInstance.ToSharedRef()
+			SNew(SOutputLog).Messages( OutputLogHistory->GetMessages() )
 		];
 }
 
