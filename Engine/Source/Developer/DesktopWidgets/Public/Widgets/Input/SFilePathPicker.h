@@ -14,7 +14,7 @@ DECLARE_DELEGATE_OneParam(FOnPathPicked, const FString& /*PickedPath*/);
 /**
  * Implements an editable text box with a browse button.
  */
-class APPFRAMEWORK_API SFilePathPicker
+class DESKTOPWIDGETS_API SFilePathPicker
 	: public SCompoundWidget
 {
 public:

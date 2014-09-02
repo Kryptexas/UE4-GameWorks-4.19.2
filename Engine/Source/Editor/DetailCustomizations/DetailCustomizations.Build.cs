@@ -13,6 +13,7 @@ public class DetailCustomizations : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"DesktopWidgets",
 				"Engine",
                 "InputCore",
 				"Slate",

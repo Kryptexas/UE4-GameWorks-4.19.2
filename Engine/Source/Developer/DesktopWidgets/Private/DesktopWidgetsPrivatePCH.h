@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "AppFramework.h"
+#include "DesktopWidgets.h"
 
 
 /* Private dependencies
  *****************************************************************************/
+
+#include "DesktopPlatformModule.h"
 
 
 /* Private includes
