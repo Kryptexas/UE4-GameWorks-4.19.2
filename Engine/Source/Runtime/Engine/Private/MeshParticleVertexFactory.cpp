@@ -21,7 +21,9 @@ public:
 		Transform3.Bind(ParameterMap,TEXT("Transform3"));
 		SubUVParams.Bind(ParameterMap,TEXT("SubUVParams"));
 		SubUVLerp.Bind(ParameterMap,TEXT("SubUVLerp"));
-		DynamicParameter.Bind(ParameterMap,TEXT("DynamicParameter"));
+		ParticleDirection.Bind(ParameterMap, TEXT("ParticleDirection"));
+		RelativeTime.Bind(ParameterMap, TEXT("RelativeTime"));
+		DynamicParameter.Bind(ParameterMap, TEXT("DynamicParameter"));
 		ParticleColor.Bind(ParameterMap,TEXT("ParticleColor"));
 	}
 
@@ -32,6 +34,8 @@ public:
 		Ar << Transform3;
 		Ar << SubUVParams;
 		Ar << SubUVLerp;
+		Ar << ParticleDirection;
+		Ar << RelativeTime;
 		Ar << DynamicParameter;
 		Ar << ParticleColor;
 	}
@@ -54,6 +58,8 @@ public:
 			SetShaderValue(RHICmdList, VertexShaderRHI, Transform3, Vertex->Transform[2]);
 			SetShaderValue(RHICmdList, VertexShaderRHI, SubUVParams, FVector4((float)Vertex->SubUVParams[0], (float)Vertex->SubUVParams[1], (float)Vertex->SubUVParams[2], (float)Vertex->SubUVParams[3]));
 			SetShaderValue(RHICmdList, VertexShaderRHI, SubUVLerp, Vertex->SubUVLerp);
+			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleDirection, Vertex->Velocity);
+			SetShaderValue(RHICmdList, VertexShaderRHI, RelativeTime, Vertex->RelativeTime);
 			SetShaderValue(RHICmdList, VertexShaderRHI, DynamicParameter, FVector4(DynamicVertex->DynamicValue[0], DynamicVertex->DynamicValue[1], DynamicVertex->DynamicValue[2], DynamicVertex->DynamicValue[3]));
 			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleColor, FVector4(Vertex->Color.Component(0), Vertex->Color.Component(1), Vertex->Color.Component(2), Vertex->Color.Component(3)));
 		}
@@ -66,6 +72,8 @@ private:
 	FShaderParameter Transform3;
 	FShaderParameter SubUVParams;
 	FShaderParameter SubUVLerp;
+	FShaderParameter ParticleDirection;
+	FShaderParameter RelativeTime;
 	FShaderParameter DynamicParameter;
 	FShaderParameter ParticleColor;
 };

@@ -17,6 +17,8 @@ float4x4 PreviousLocalToWorld;
 	float4 Transform3;
 	float4 SubUVParams;
 	float SubUVLerp;
+	float4 ParticleDirection;
+	float RelativeTime;
 	float4 DynamicParameter;
 	float4 ParticleColor;
 #endif
@@ -311,8 +313,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.ParticleVelocity = Input.ParticleVelocity;
 	Intermediates.RelativeTime = Input.SubUVLerpAndRelTime.y;
 #else
-	Intermediates.ParticleVelocity = float4(0,1,0,0); // TODO: We don't have this data when instancing is disabled. Should we? 
-	Intermediates.RelativeTime = 0;
+	Intermediates.ParticleVelocity = ParticleDirection;
+	Intermediates.RelativeTime = RelativeTime;
 #endif
 
 	return Intermediates;
