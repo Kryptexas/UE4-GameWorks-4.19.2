@@ -138,9 +138,18 @@ FString UK2Node_ForEachElementInEnum::GetTooltip() const
 
 FText UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("EnumName"), Enum ? FText::FromString(Enum->GetName()) : LOCTEXT("Unknown", "UNKNOWN"));
-	return FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
+	if (Enum == nullptr)
+	{
+		return LOCTEXT("ForEachElementInUnknownEnum_Title", "ForEach UNKNOWN");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromName(Enum->GetFName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

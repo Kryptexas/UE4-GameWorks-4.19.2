@@ -39,16 +39,21 @@ void UK2Node_InputAxisEvent::Initialize(const FName AxisName)
 
 FText UK2Node_InputAxisEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
-
-	FText LocFormat = NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}");
 	if (TitleType == ENodeTitleType::ListView)
 	{
-		LocFormat = NSLOCTEXT("K2Node", "InputAxis_ListTitle", "{InputAxisName}");
+		return FText::FromName(InputAxisName);
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
+
+		FText LocFormat = NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}");
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LocFormat, Args);
 	}
 
-	return FText::Format(LocFormat, Args);
+	return CachedNodeTitle;
 }
 
 FString UK2Node_InputAxisEvent::GetTooltip() const

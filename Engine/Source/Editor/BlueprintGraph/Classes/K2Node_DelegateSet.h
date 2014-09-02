@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_DelegateSet.generated.h"
 
 UCLASS(MinimalAPI)
@@ -48,5 +49,9 @@ class UK2Node_DelegateSet : public UK2Node
 	// @todo document
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature();
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

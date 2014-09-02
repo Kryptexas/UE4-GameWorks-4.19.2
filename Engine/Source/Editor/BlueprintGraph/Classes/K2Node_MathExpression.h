@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "K2Node_Composite.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_MathExpression.generated.h"
 
 /**
@@ -59,8 +61,10 @@ private:
 
 private:
 	/** Cached so we don't have to regenerate it when the graph is recompiled */
-	//UPROPERTY(Transient)
 	TSharedPtr<class FCompilerResultsLog> CachedMessageLog;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

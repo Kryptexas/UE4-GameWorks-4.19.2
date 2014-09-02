@@ -12,10 +12,16 @@ UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const class FPostConstr
 
 FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
-	Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
-	return FText::Format(LOCTEXT("ComponentBoundEvent_Title", "{DelegatePropertyName} ({ComponentPropertyName})"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+		Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("ComponentBoundEvent_Title", "{DelegatePropertyName} ({ComponentPropertyName})"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectProperty const* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty)

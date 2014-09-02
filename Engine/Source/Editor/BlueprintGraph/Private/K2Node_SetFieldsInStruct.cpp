@@ -55,9 +55,14 @@ void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 
 FText UK2Node_SetFieldsInStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
-	return FText::Format(LOCTEXT("SetFieldsInStructNodeTitle", "Set members in {StructName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("SetFieldsInStructNodeTitle", "Set members in {StructName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FString UK2Node_SetFieldsInStruct::GetTooltip() const

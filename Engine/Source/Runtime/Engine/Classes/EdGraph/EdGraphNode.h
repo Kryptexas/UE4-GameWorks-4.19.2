@@ -31,7 +31,9 @@ namespace ENodeTitleType
 		// More concise, single line title
 		ListView,
 		// Returns the editable title (which might not be a title at all)
-		EditableTitle
+		EditableTitle,
+
+		MAX_TitleTypes,
 	};
 }
 

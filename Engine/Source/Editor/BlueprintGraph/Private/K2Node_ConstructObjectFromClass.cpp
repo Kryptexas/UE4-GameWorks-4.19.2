@@ -246,30 +246,35 @@ FText UK2Node_ConstructObjectFromClass::GetNodeTitleFormat() const
 
 FText UK2Node_ConstructObjectFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText NodeTitle = GetBaseNodeTitle();
-	if (TitleType != ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::ListView)
 	{
-		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-		if (UEdGraphPin* ClassPin = GetClassPin())
+		return GetBaseNodeTitle();
+	}
+	else if (UEdGraphPin* ClassPin = GetClassPin())
+	{
+		if (ClassPin->LinkedTo.Num() > 0)
 		{
-			if(ClassPin->LinkedTo.Num() > 0)
-			{
-				// Blueprint will be determined dynamically, so we don't have the name in this case
-				SpawnString = FText::GetEmpty();
-			}
-			else if(ClassPin->DefaultObject != NULL)
-			{
-				SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
-			}
+			// Blueprint will be determined dynamically, so we don't have the name in this case
+			return NSLOCTEXT("K2Node", "ConstructObject_Title_Unknown", "Construct");
 		}
-		
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ClassName"), SpawnString);
-		
-		NodeTitle = FText::Format(GetNodeTitleFormat(), Args);
+		else if (ClassPin->DefaultObject == nullptr)
+		{
+			return NSLOCTEXT("K2Node", "ConstructObject_Title_NONE", "Construct NONE");
+		}
+		else if (CachedNodeTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ClassName"), FText::FromString(ClassPin->DefaultObject->GetName()));
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitle = FText::Format(GetNodeTitleFormat(), Args);
+		}
+	}
+	else
+	{
+		return NSLOCTEXT("K2Node", "ConstructObject_Title_NONE", "Construct NONE");
 	}
 
-	return NodeTitle;
+	return CachedNodeTitle;
 }
 
 bool UK2Node_ConstructObjectFromClass::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const 

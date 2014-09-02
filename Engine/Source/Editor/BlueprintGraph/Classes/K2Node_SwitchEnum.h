@@ -4,6 +4,7 @@
 #pragma once
 #include "K2Node_Switch.h"
 #include "NodeDependingOnEnumInterface.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_SwitchEnum.generated.h"
 
 UCLASS(MinimalAPI)
@@ -57,4 +58,8 @@ protected:
 	
 	/** Don't support removing pins from an enum */
 	virtual void RemovePin(UEdGraphPin* TargetPin) override {}
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

@@ -279,23 +279,32 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
 		if (UEdGraphPin* ClassPin = GetClassPin())
 		{
-			if(ClassPin->LinkedTo.Num() > 0)
+			if (ClassPin->LinkedTo.Num() > 0)
 			{
 				// Blueprint will be determined dynamically, so we don't have the name in this case
-				SpawnString = FText::GetEmpty();
+				NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_Title_Unknown", "SpawnActor");
 			}
-			else if(ClassPin->DefaultObject != NULL)
+			else if (ClassPin->DefaultObject == nullptr)
 			{
-				SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
+				NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_Title_NONE", "SpawnActor NONE");
 			}
+			else
+			{
+				if (CachedNodeTitle.IsOutOfDate())
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("ClassName"), FText::FromString(ClassPin->DefaultObject->GetName()));
+					// FText::Format() is slow, so we cache this to save on performance
+					CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+				}
+				NodeTitle = CachedNodeTitle;
+			} 
 		}
-		
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ClassName"), SpawnString);
-		
-		NodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+		else
+		{
+			NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_Title_NONE", "SpawnActor NONE");
+		}
 	}
-
 	return NodeTitle;
 }
 

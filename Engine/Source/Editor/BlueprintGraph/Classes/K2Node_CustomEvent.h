@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_Event.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CustomEvent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -60,6 +61,10 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	 * @return If this CustomEvent is an override, then this is the super's net flags, otherwise it's from the FunctionFlags set on this node.
 	 */
 	BLUEPRINTGRAPH_API uint32 GetNetFlags() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

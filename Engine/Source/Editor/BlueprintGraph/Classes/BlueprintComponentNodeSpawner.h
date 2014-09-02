@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeSpawner.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintComponentNodeSpawner.generated.h"
 
 // Forward declarations
@@ -48,4 +49,7 @@ private:
 	/** The component class to configure new nodes with. */
 	UPROPERTY()
 	TSubclassOf<UActorComponent> ComponentClass;
+
+	/** Constructing FText strings can be costly, so we cache the default menu name */
+	FNodeTextCache CachedMenuName;
 };

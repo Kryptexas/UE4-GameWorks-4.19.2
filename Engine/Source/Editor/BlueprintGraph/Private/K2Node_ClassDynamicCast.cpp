@@ -57,7 +57,11 @@ FLinearColor UK2Node_ClassDynamicCast::GetNodeTitleColor() const
 
 FText UK2Node_ClassDynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::Format(LOCTEXT("NodeTitle", "{0} Class"), Super::GetNodeTitle(TitleType));
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		CachedNodeTitle = FText::Format(LOCTEXT("NodeTitle", "{0} Class"), Super::GetNodeTitle(TitleType));
+	}
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_ClassDynamicCast::GetCastSourcePin() const

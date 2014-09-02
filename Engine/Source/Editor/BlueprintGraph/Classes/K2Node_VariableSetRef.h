@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_VariableSetRef.generated.h"
 
 UCLASS(MinimalAPI)
@@ -36,5 +38,9 @@ class UK2Node_VariableSetRef : public UK2Node
 
 	/** Returns the pin that specifies the value to set */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetValuePin() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

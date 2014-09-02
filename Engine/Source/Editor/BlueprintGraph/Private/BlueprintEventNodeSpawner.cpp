@@ -140,21 +140,21 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 //------------------------------------------------------------------------------
 FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
 {
-	FText EventName;
-	if (EventFunc != nullptr)
+	if (CachedMenuName.IsOutOfDate())
 	{
-		EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
-	}
-	else if (!CustomEventName.IsNone())
-	{
-		EventName = FText::FromName(CustomEventName);
-	}
+		FText EventName;
+		if (EventFunc != nullptr)
+		{
+			EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
+		}
+		else if (!CustomEventName.IsNone())
+		{
+			EventName = FText::FromName(CustomEventName);
+		}
 
-	if (!EventName.IsEmpty())
-	{
-		EventName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
+		CachedMenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
 	}
-	return EventName;
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------

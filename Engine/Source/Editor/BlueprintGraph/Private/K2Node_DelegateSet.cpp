@@ -164,9 +164,14 @@ FString UK2Node_DelegateSet::GetTooltip() const
 
 FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
-	return FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const

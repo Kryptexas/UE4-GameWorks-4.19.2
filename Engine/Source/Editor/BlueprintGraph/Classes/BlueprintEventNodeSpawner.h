@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeSpawner.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintEventNodeSpawner.generated.h"
 
 class UK2Node_Event;
@@ -71,7 +72,9 @@ public:
 	 */
 	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint) const;
 
-	
+protected:
+	/** Constructing FText strings can be costly, so we cache the default menu name */
+	FNodeTextCache CachedMenuName;
 
 private:
 	/** The function to configure new nodes with. */
@@ -80,5 +83,5 @@ private:
 
 	/** The custom name to configure new event nodes with. */
 	UPROPERTY()
-	FName CustomEventName;
+	FName CustomEventName;	
 };

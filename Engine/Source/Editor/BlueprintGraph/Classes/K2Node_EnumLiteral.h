@@ -3,6 +3,7 @@
 #pragma once
 #include "K2Node.h"
 #include "NodeDependingOnEnumInterface.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_EnumLiteral.generated.h"
 
 UCLASS(MinimalAPI)
@@ -33,5 +34,9 @@ class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 	virtual class UEnum* GetEnum() const override { return Enum; }
 	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
 	// End of INodeDependingOnEnumInterface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tootltip */
+	FNodeTextCache CachedTooltip;
 };
 

@@ -131,17 +131,18 @@ FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEdGraphPin* TargetPin = GetTargetPin();
-
-	if( TargetPin && TargetPin->PinType.PinCategory != Schema->PC_Wildcard )
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinType"), Schema->TypeToText(TargetPin->PinType));
-		return FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
-	}
-	else
+	if ((TargetPin == nullptr) || (TargetPin->PinType.PinCategory == Schema->PC_Wildcard))
 	{
 		return NSLOCTEXT("K2Node", "SetRefVarNodeTitle", "Set By-Ref Var");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinType"), Schema->TypeToText(TargetPin->PinType));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_VariableSetRef::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
@@ -187,6 +188,8 @@ void UK2Node_VariableSetRef::CoerceTypeFromPin(const UEdGraphPin* Pin)
 		ValuePin->PinType.PinSubCategory = TEXT("");
 		ValuePin->PinType.PinSubCategoryObject = NULL;
 		ValuePin->BreakAllPinLinks();
+
+		CachedNodeTitle.MarkDirty();
 	}
 }
 

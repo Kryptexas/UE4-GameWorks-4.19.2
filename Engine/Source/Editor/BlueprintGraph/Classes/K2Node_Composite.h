@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "K2Node_Tunnel.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_Composite.generated.h"
 
 UCLASS(MinimalAPI)
@@ -45,6 +46,9 @@ private:
 
 	/** Determine if the name already used by another graph in composite nodes chain */
 	bool IsCompositeNameAvailable( const FString& NewName );
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

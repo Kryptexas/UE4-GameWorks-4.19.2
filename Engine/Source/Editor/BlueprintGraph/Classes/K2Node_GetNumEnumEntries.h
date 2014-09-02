@@ -2,6 +2,7 @@
 
 #pragma once
 #include "NodeDependingOnEnumInterface.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_GetNumEnumEntries.generated.h"
 
 UCLASS(MinimalAPI)
@@ -30,5 +31,9 @@ class UK2Node_GetNumEnumEntries : public UK2Node, public INodeDependingOnEnumInt
 	virtual class UEnum* GetEnum() const override { return Enum; }
 	virtual bool ShouldBeReconstructedAfterEnumChanged() const override {return false;}
 	// End of INodeDependingOnEnumInterface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

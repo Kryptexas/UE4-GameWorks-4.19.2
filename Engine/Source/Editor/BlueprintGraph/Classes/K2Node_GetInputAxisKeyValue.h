@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_CallFunction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_GetInputAxisKeyValue.generated.h"
 
 UCLASS(MinimalAPI)
@@ -38,4 +39,8 @@ class UK2Node_GetInputAxisKeyValue : public UK2Node_CallFunction
 	// End UK2Node interface
 	
 	void Initialize(const FKey AxisKey);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

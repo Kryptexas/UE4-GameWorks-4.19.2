@@ -324,7 +324,7 @@ void UK2Node_AddComponent::PostPasteNode()
 FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* TemplateNamePin = GetTemplateNamePin();
-	if (TemplateNamePin != NULL)
+	if (CachedNodeTitle.IsOutOfDate() && (TemplateNamePin != NULL))
 	{
 		FString TemplateName = TemplateNamePin->DefaultValue;
 		UBlueprint* Blueprint = GetBlueprint();
@@ -340,35 +340,40 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("StaticMeshName"), FText::FromString(StaticMeshComp->StaticMesh->GetName()));
-				return FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
 			}
 			else if(SkelMeshComp != NULL && SkelMeshComp->SkeletalMesh != NULL)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("SkeletalMeshName"), FText::FromString(SkelMeshComp->SkeletalMesh->GetName()));
-				return FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
 			}
 			else if(PSysComp != NULL && PSysComp->Template != NULL)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
-				return FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
 			}
 			else if (SubActorComp && SubActorComp->ChildActorClass)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ComponentClassName"), FText::FromString(SubActorComp->ChildActorClass->GetName()));
-				return FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
 			}
 			else
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ClassName"), FText::FromString(SourceTemplate->GetClass()->GetName()));
-				return FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);		
+				CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);
 			}
 		}
 	}
 
+	// FText::Format() is slow, so we cache the title to save on performance
+	if (!CachedNodeTitle.IsOutOfDate())
+	{
+		return CachedNodeTitle;
+	}
 	return Super::GetNodeTitle(TitleType);
 }
 

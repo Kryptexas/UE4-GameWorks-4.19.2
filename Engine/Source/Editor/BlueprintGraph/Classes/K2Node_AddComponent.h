@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_CallFunction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_AddComponent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -70,6 +71,9 @@ private:
 	}
 
 	const UClass* GetSpawnedType() const;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

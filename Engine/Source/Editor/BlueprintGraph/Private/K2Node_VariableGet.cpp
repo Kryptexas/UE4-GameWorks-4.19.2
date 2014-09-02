@@ -128,8 +128,6 @@ FString UK2Node_VariableGet::GetTooltip() const
 
 FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText Result;
-
 	// If there is only one variable being read, the title can be made the variable name
 	FString OutputPinName;
 	int32 NumOutputsFound = 0;
@@ -144,18 +142,18 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		}
 	}
 
-	if (NumOutputsFound == 1)
+	if (NumOutputsFound != 1)
+	{
+		return LOCTEXT("Get", "Get");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinName"), FText::FromString(OutputPinName));
-		Result = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
 	}
-	else
-	{
-		Result = LOCTEXT("Get", "Get");
-	}
-
-	return Result;
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

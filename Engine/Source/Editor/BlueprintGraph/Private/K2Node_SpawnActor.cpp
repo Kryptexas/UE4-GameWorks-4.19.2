@@ -228,24 +228,23 @@ FLinearColor UK2Node_SpawnActor::GetNodeTitleColor() const
 FText UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BlueprintPin = GetBlueprintPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(BlueprintPin != NULL)
+	if (BlueprintPin == NULL)
 	{
-		if(BlueprintPin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = FText::GetEmpty();
-		}
-		else if(BlueprintPin->DefaultObject != NULL)
-		{
-			SpawnString = FText::FromString(BlueprintPin->DefaultObject->GetName());
-		}
+		return NSLOCTEXT("K2Node", "SpawnActorNone_Title", "SpawnActor NONE");
 	}
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ActorName"), SpawnString);
-	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
+	else if (BlueprintPin->LinkedTo.Num() > 0)
+	{
+		// Blueprint will be determined dynamically, so we don't have the name in this case
+		return NSLOCTEXT("K2Node", "SpawnActorUnknown_Title", "SpawnActor");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ActorName"), FText::FromString(BlueprintPin->DefaultObject->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 bool UK2Node_SpawnActor::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const 

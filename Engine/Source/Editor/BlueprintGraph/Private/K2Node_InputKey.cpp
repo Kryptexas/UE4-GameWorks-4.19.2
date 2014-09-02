@@ -231,10 +231,16 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bControl || bAlt || bShift)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ModifierKey"), GetModifierText());
-		Args.Add(TEXT("Key"), GetKeyText());
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
+		if (CachedNodeTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ModifierKey"), GetModifierText());
+			Args.Add(TEXT("Key"), GetKeyText());
+			
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
+		}
+		return CachedNodeTitle;
 	}
 	else
 	{

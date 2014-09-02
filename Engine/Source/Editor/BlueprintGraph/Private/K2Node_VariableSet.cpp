@@ -88,8 +88,6 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	FText Result = HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
-
 	// If there is only one variable being written (one non-meta input pin), the title can be made the variable name
 	FString InputPinName;
 	int32 NumInputsFound = 0;
@@ -104,26 +102,26 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		}
 	}
 
-	if (NumInputsFound == 1)
+	if (NumInputsFound != 1)
+	{
+		return HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinName"), FText::FromString(InputPinName));
 
-		if(HasLocalRepNotify())
+		// FText::Format() is slow, so we cache this to save on performance
+		if (HasLocalRepNotify())
 		{
-			Result = FText::Format(NSLOCTEXT("K2Node", "SetWithNotifyPinName", "Set with Notify {PinName}"), Args);
+			CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SetWithNotifyPinName", "Set with Notify {PinName}"), Args);
 		}
 		else
 		{
-			Result = FText::Format(NSLOCTEXT("K2Node", "SetPinName", "Set {PinName}"), Args);
+			CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SetPinName", "Set {PinName}"), Args);
 		}
 	}
-	else
-	{
-		Result = HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
-	}
-
-	return Result;
+	return CachedNodeTitle;
 }
 
 /** Returns true if the variable we are setting has a RepNotify AND was defined in a blueprint

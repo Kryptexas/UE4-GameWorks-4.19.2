@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeSpawner.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintVariableNodeSpawner.generated.h"
 
 // Forward declarations
@@ -106,4 +107,7 @@ private:
 	/** */
 	UPROPERTY()
 	FBPVariableDescription    LocalVarDesc;
+
+	/** Constructing FText strings can be costly, so we cache the default menu name */
+	FNodeTextCache CachedMenuName;
 };

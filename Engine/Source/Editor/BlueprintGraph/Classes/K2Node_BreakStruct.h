@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_StructMemberGet.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_BreakStruct.generated.h"
 
 UCLASS(MinimalAPI)
@@ -29,5 +30,9 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	// End K2Node interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

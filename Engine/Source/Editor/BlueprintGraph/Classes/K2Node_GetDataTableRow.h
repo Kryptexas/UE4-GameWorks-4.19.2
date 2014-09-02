@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_GetDataTableRow.generated.h"
 
 UCLASS()
@@ -69,4 +70,7 @@ private:
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

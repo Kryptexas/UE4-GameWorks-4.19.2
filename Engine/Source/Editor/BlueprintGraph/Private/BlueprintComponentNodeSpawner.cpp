@@ -94,7 +94,12 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FVec
 FText UBlueprintComponentNodeSpawner::GetDefaultMenuName() const
 {
 	check(ComponentClass != nullptr);
-	return FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
+	if (CachedMenuName.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedMenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
+	}
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------

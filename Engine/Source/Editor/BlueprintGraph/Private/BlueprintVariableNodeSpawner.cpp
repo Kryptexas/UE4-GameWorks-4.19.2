@@ -94,20 +94,22 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FVect
 //------------------------------------------------------------------------------
 FText UBlueprintVariableNodeSpawner::GetDefaultMenuName() const
 {	
-	FText MenuName = GetVariableName();
-	if (NodeClass != nullptr)
+	if (CachedMenuName.IsOutOfDate())
 	{
+		FText VarName = GetVariableName();
+		check(NodeClass != nullptr);
+
+		// FText::Format() is slow, so we cache this to save on performance
 		if (NodeClass->IsChildOf<UK2Node_VariableGet>())
 		{
-			MenuName = FText::Format(LOCTEXT("GetterMenuName", "Get {0}"), MenuName);
+			CachedMenuName = FText::Format(LOCTEXT("GetterMenuName", "Get {0}"), VarName);
 		}
 		else if (NodeClass->IsChildOf<UK2Node_VariableSet>())
 		{
-			MenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), MenuName);
+			CachedMenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), VarName);
 		}
 	}
-
-	return MenuName;
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------

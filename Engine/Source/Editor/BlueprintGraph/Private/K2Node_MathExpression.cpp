@@ -2322,6 +2322,7 @@ TSharedPtr<class INameValidatorInterface> UK2Node_MathExpression::MakeNameValida
 void UK2Node_MathExpression::OnRenameNode(const FString& NewName)
 {
 	RebuildExpression(NewName);
+	CachedNodeTitle.MarkDirty();
 }
 
 //------------------------------------------------------------------------------
@@ -2440,21 +2441,20 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 //------------------------------------------------------------------------------
 FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText Result = FText::FromString(Expression);
-	if (Expression.IsEmpty())
+	if (Expression.IsEmpty() && (TitleType == ENodeTitleType::ListView))
 	{
-		//Result = LOCTEXT("NoExpressionTitle", "[Empty]").ToString();
+		return LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
 	}
-	
-	if (TitleType == ENodeTitleType::FullTitle)
+	else if (TitleType != ENodeTitleType::FullTitle)
 	{
-		Result = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), Result);
+		return FText::FromString(Expression);
 	}
-	else if ((TitleType == ENodeTitleType::ListView) && Expression.IsEmpty())
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
-		Result = LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), FText::FromString(Expression));
 	}
-	return Result;
+	return CachedNodeTitle;
 }
 
 //------------------------------------------------------------------------------

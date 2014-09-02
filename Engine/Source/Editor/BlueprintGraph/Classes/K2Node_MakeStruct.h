@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_StructMemberSet.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_MakeStruct.generated.h"
 
 // Pure kismet node that creates a struct with specified values for each member
@@ -41,4 +42,8 @@ protected:
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
 		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override;
 	};
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

@@ -30,19 +30,24 @@ void UK2Node_GetInputAxisKeyValue::Initialize(const FKey AxisKey)
 {
 	InputAxisKey = AxisKey;
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputAxisKeyValue")));
+	CachedNodeTitle.MarkDirty();
 }
 
 FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	
-	FText TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}");
 	if (TitleType == ENodeTitleType::ListView)
 	{
-		TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_ListTitle", "{AxisKey}");
+		return InputAxisKey.GetDisplayName();
 	}
-	return FText::Format(TitleFormat, Args);
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}"), Args);
+	}
+
+	return CachedNodeTitle;
 }
 
 FString UK2Node_GetInputAxisKeyValue::GetTooltip() const

@@ -56,12 +56,17 @@ FString UK2Node_TemporaryVariable::GetTooltip() const
 
 FText UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText Result = !bIsPersistent ? NSLOCTEXT("K2Node", "LocalVariable", "Local {VariableType}") : NSLOCTEXT("K2Node", "PersistentLocalVariable", "Persistent Local {VariableType}");
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
-	Result = FText::Format(Result, Args);
-	return Result;
+		FText TitleFormat = !bIsPersistent ? NSLOCTEXT("K2Node", "LocalVariable", "Local {VariableType}") : NSLOCTEXT("K2Node", "PersistentLocalVariable", "Persistent Local {VariableType}");
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(TitleFormat, Args);
+	}
+	
+	return CachedNodeTitle;
 }
 
 bool UK2Node_TemporaryVariable::IsNodePure() const

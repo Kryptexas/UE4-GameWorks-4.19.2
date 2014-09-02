@@ -106,23 +106,27 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (CustomFunctionName.IsNone() && (TitleType == ENodeTitleType::ListView))
+	if (CustomFunctionName.IsNone())
 	{
 		return LOCTEXT("ActionMenuTitle", "Custom Event...");
 	}
-	else if ((TitleType == ENodeTitleType::EditableTitle) || (TitleType == ENodeTitleType::ListView))
+	else if (TitleType != ENodeTitleType::FullTitle)
 	{
 		return FText::FromName(CustomFunctionName);
 	}
-	else
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
-
+		
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("FunctionName"), FText::FromName(CustomFunctionName));
 		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
-		return FText::Format(NSLOCTEXT("K2Node", "CustomEvent_Name", "{FunctionName}{RPCString}\nCustom Event"), Args);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "CustomEvent_Name", "{FunctionName}{RPCString}\nCustom Event"), Args);
 	}
+
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_CustomEvent::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
@@ -160,6 +164,7 @@ void UK2Node_CustomEvent::RenameCustomEventCloseToName(int32 StartIndex)
 void UK2Node_CustomEvent::OnRenameNode(const FString& NewName)
 {
 	CustomFunctionName = *NewName;
+	CachedNodeTitle.MarkDirty();
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
 }
 

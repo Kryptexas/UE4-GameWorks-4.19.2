@@ -299,6 +299,13 @@ namespace BlueprintActionDatabaseImpl
 	static void GetNodeSpecificActions(TSubclassOf<UEdGraphNode const> const NodeClass, FBlueprintActionDatabaseRegistrar& Registrar);
 
 	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 */
+	static void PrimeBlueprintAction(UBlueprintNodeSpawner* BlueprintAction);
+
+	/**
 	 * Callback to refresh the database when a blueprint has been altered 
 	 * (clears the database entries for the blueprint's classes and recreates 
 	 * them... a property/function could have been added/removed).
@@ -576,6 +583,31 @@ static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdG
 }
 
 //------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::PrimeBlueprintAction(UBlueprintNodeSpawner* BlueprintAction)
+{
+	// @TODO: for UBlueprintFunctionNodeSpawner, we almost completely don't need
+	//        a template node (we can gather all the info from the UFunction)...
+	//        so we should save on template cache and not do this for function
+	//        node spawners (have to fill the holes first).
+	UEdGraphNode* TemplateNode = BlueprintAction->GetTemplateNode();
+	if (TemplateNode != nullptr)
+	{
+		// since we're priming incrementally, someone could have already
+		// requested this template, and allocated its pins (don't need to do 
+		// redundant work)
+		if (TemplateNode->Pins.Num() == 0)
+		{
+			// in certain scenarios we need pin information from the 
+			// spawner (to help filter by pin context)
+			TemplateNode->AllocateDefaultPins();
+		}
+
+		// cache any FText::Format() calls 
+		TemplateNode->GetNodeTitle(ENodeTitleType::ListView);
+	}
+}
+
+//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::OnBlueprintChanged(UBlueprint* Blueprint)
 {
 	if (Blueprint->IsAsset())
@@ -727,16 +759,7 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 					FScopedDurationTimer ScopedTimer(TotalFrameDuration);
 
 					UBlueprintNodeSpawner* Action = (*ClassActionList)[ActionListIndex];
-					UEdGraphNode* TemplateNode = Action->GetTemplateNode();
-					// since we're doing this incrementally, someone could have 
-					// already requested this template, and allocated its pins 
-					// (don't need to do redundant work)
-					if ((TemplateNode != nullptr) && (TemplateNode->Pins.Num() == 0))
-					{
-						// in certain scenarios we need pin information from the 
-						// spawner (to help filter by pin context)
-						TemplateNode->AllocateDefaultPins();
-					}
+					BlueprintActionDatabaseImpl::PrimeBlueprintAction(Action);
 				}
 
 				if (ActionListIndex >= ClassActionList->Num())

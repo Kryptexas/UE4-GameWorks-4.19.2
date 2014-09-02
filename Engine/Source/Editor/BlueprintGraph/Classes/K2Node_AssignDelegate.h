@@ -2,6 +2,7 @@
 #pragma once
 
 #include "K2Node_AddDelegate.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_AssignDelegate.generated.h"
 
 /**
@@ -21,4 +22,8 @@ public:
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
 	virtual void PostPlacedNewNode() override;
 	// End of UEdGraphNode interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedListTitle;
 };

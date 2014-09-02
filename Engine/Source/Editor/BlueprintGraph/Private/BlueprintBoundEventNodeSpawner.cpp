@@ -49,8 +49,13 @@ UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVe
 //------------------------------------------------------------------------------
 FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuName() const
 {
-	FText const DelegateName = FText::FromName(EventDelegate->GetFName());
-	return FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
+	if (CachedMenuName.IsOutOfDate())
+	{
+		FText const DelegateName = FText::FromName(EventDelegate->GetFName());
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedMenuName = FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
+	}
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------

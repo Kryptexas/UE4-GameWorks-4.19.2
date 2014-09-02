@@ -51,12 +51,18 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 
 FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
-	FText EnumName = (Enum != NULL) ? FText::FromString(Enum->GetName()) : LOCTEXT("BadEnum", "(bad enum)");
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("EnumName"), EnumName);
-
-	return FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
+	if (Enum == nullptr)
+	{
+		return LOCTEXT("SwitchEnum_BadEnumTitle", "Switch on (bad enum)");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(Enum->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FString UK2Node_SwitchEnum::GetTooltip() const

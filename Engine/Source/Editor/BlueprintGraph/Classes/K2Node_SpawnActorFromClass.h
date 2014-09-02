@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_SpawnActorFromClass.generated.h"
 
 UCLASS(MinimalAPI)
@@ -65,4 +66,7 @@ private:
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

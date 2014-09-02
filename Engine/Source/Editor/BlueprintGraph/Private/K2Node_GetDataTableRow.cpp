@@ -267,32 +267,35 @@ UEdGraphPin* UK2Node_GetDataTableRow::GetResultPin() const
 
 FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UEdGraphPin* DataTablePin = GetDataTablePin();
-
-	FText DataTableString = NSLOCTEXT("K2Node", "None", "NONE");
-	if (DataTablePin != NULL)
-	{
-		if(DataTablePin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			DataTableString = FText::GetEmpty();
-		}
-		else if(DataTablePin->DefaultObject != NULL)
-		{
-			DataTableString = FText::FromString(DataTablePin->DefaultObject->GetName());
-		}
-	}
-
-	FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
 	if (TitleType == ENodeTitleType::ListView)
 	{
-		LocFormat = LOCTEXT("ListViewTitle", "Get Data Table Row");
+		return LOCTEXT("ListViewTitle", "Get Data Table Row");
 	}
+	else if (UEdGraphPin* DataTablePin = GetDataTablePin())
+	{
+		if (DataTablePin->LinkedTo.Num() > 0)
+		{
+			return NSLOCTEXT("K2Node", "DataTable_Title_Unknown", "Get Data Table Row");
+		}
+		else if (DataTablePin->DefaultObject == nullptr)
+		{
+			return NSLOCTEXT("K2Node", "DataTable_Title_None", "Get Data Table Row NONE");
+		}
+		else if (CachedNodeTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("DataTableName"), FText::FromString(DataTablePin->DefaultObject->GetName()));
 
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DataTableName"), DataTableString);
-	return FText::Format(LocFormat, Args);
+			FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitle = FText::Format(LocFormat, Args);
+		}
+	}
+	else
+	{
+		return NSLOCTEXT("K2Node", "DataTable_Title_None", "Get Data Table Row NONE");
+	}	
+	return CachedNodeTitle;
 }
 
 void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

@@ -164,16 +164,22 @@ FLinearColor UK2Node_Composite::GetNodeTitleColor() const
 
 FText UK2Node_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if(TitleType == ENodeTitleType::FullTitle)
+	if (BoundGraph == nullptr)
+	{
+		return LOCTEXT("InvalidGraph", "Invalid Graph");
+	}
+	else if (TitleType != ENodeTitleType::FullTitle)
+	{
+		return FText::FromString(BoundGraph->GetName());
+	}
+	else if (CachedNodeTitle.IsOutOfDate()) // TitleType == ENodeTitleType::FullTitle
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("BoundGraphName"), (BoundGraph)? FText::FromString(BoundGraph->GetName()) : LOCTEXT("InvalidGraph", "Invalid Graph"));
-		return FText::Format(LOCTEXT("Collapsed_Name", "{BoundGraphName}\nCollapsed Graph"), Args);
+		Args.Add(TEXT("BoundGraphName"), (BoundGraph) ? FText::FromString(BoundGraph->GetName()) : LOCTEXT("InvalidGraph", "Invalid Graph"));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("Collapsed_Name", "{BoundGraphName}\nCollapsed Graph"), Args);
 	}
-	else
-	{
-		return (BoundGraph)? FText::FromString(BoundGraph->GetName()) : LOCTEXT("InvalidGraph", "Invalid Graph");
-	}
+	return CachedNodeTitle;
 }
 
 bool UK2Node_Composite::CanUserDeleteNode() const

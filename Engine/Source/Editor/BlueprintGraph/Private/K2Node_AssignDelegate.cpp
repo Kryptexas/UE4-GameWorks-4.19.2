@@ -20,27 +20,28 @@ UK2Node_AssignDelegate::UK2Node_AssignDelegate(const class FPostConstructInitial
 //------------------------------------------------------------------------------
 FText UK2Node_AssignDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText NodeTitle;
 	if (TitleType == ENodeTitleType::ListView)
 	{
-		FText PropertyName;
-		if (UProperty* Property = GetProperty())
+		if (CachedListTitle.IsOutOfDate())
 		{
-			bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
-			PropertyName = FText::FromString(bShowFriendlyNames ? UEditorEngine::GetFriendlyName(Property) : Property->GetName());
-		}
-		else
-		{
-			PropertyName = LOCTEXT("InvalidPropertyTitle", "<invalid delegate>");
-		}
-		NodeTitle = FText::Format(LOCTEXT("AssignDelegateTitle", "Assign {0}"), PropertyName);
-	}
-	else
-	{
-		NodeTitle = Super::GetNodeTitle(TitleType);
-	}
+			FText PropertyName;
+			if (UProperty* Property = GetProperty())
+			{
+				bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
+				PropertyName = FText::FromString(bShowFriendlyNames ? UEditorEngine::GetFriendlyName(Property) : Property->GetName());
 
-	return NodeTitle;
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedNodeTitle = FText::Format(LOCTEXT("AssignDelegateTitle", "Assign {0}"), PropertyName);
+			}
+			else
+			{
+				return LOCTEXT("InvalidPropertyTitle", "Assign <invalid delegate>");
+			}
+		}
+		return CachedNodeTitle;
+	}
+	
+	return Super::GetNodeTitle(TitleType);
 }
 
 //------------------------------------------------------------------------------

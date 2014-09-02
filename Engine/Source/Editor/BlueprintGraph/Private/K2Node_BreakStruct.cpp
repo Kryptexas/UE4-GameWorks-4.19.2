@@ -194,9 +194,15 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 
 FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
-	return FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FString UK2Node_BreakStruct::GetTooltip() const

@@ -54,12 +54,16 @@ FLinearColor UK2Node_DynamicCast::GetNodeTitleColor() const
 
 FText UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if(TargetType != NULL)
+	if (TargetType == nullptr)
+	{
+		return NSLOCTEXT("K2Node_DynamicCast", "BadCastNode", "Bad cast node");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		// If casting to BP class, use BP name not class name (ie. remove the _C)
 		FString TargetName;
 		UBlueprint* CastToBP = UBlueprint::GetBlueprintFromClass(TargetType);
-		if(CastToBP != NULL)
+		if (CastToBP != NULL)
 		{
 			TargetName = CastToBP->GetName();
 		}
@@ -70,13 +74,11 @@ FText UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("TargetName"), FText::FromString(TargetName));
-		return FText::Format(NSLOCTEXT("K2Node_DynamicCast", "CastTo", "Cast To {TargetName}"), Args);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node_DynamicCast", "CastTo", "Cast To {TargetName}"), Args);
 	}
-	// No target type, bad node
-	else
-	{
-		return NSLOCTEXT("K2Node_DynamicCast", "BadCastNode", "Bad cast node");
-	}
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
