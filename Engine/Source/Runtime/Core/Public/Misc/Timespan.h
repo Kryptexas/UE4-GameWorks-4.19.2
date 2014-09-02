@@ -7,6 +7,10 @@
 #pragma once
 
 
+class UObject;
+class FOutputDevice;
+
+
 namespace ETimespan
 {
 	/** The number of timespan ticks per day. */
@@ -518,6 +522,8 @@ public:
 
 public:
 
+	friend class UObject;
+
 	/**
 	 * Serializes the given time span from or into the specified archive.
 	 *
@@ -555,7 +561,7 @@ protected:
 
 private:
 
-	// Holds the time span in 100 nanoseconds resolution.
+	/** Holds the time span in 100 nanoseconds resolution. */
 	int64 Ticks;
 };
 

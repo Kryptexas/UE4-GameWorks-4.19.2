@@ -7,6 +7,10 @@
 #pragma once
 
 
+class UObject;
+class FOutputDevice;
+
+
 namespace EGuidFormats
 {
 	/**

@@ -3,60 +3,32 @@
 #pragma once
 
 
-namespace EPropertyEditorGuidActions
-{
-	/**
-	 * Enumerates quick-set action types.
-	 */
-	enum Type
-	{
-		/** Generate a new GUID. */
-		Generate,
-
-		/** Set a null GUID. */
-		Invalidate
-	};
-}
-
-
 /**
- * Implements a details panel customization for FGuid structures.
+ * Implements a details view customization for the FTimespan structure.
  */
-class FGuidStructCustomization
+class FTimespanStructCustomization
 	: public IPropertyTypeCustomization
 {
 public:
 
 	/**
-	 * Creates a new instance.
+	 * Creates an instance of this class.
 	 *
-	 * @return A new struct customization for Guids.
+	 * @return The new instance.
 	 */
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance( )
 	{
-		return MakeShareable(new FGuidStructCustomization);
+		return MakeShareable(new FTimespanStructCustomization());
 	}
 
 public:
 
 	// IPropertyTypeCustomization interface
 
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-
-protected:
-
-	/**
-	 * Sets the property's value.
-	 *
-	 * @param Guid The value to set.
-	 */
-	void SetGuidValue( const FGuid& Guid );
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 private:
-
-	/** Callback for clicking an item in the quick-set menu. */
-	void HandleGuidActionClicked( EPropertyEditorGuidActions::Type Action );
 
 	/** Handles getting the text color of the editable text box. */
 	FSlateColor HandleTextBoxForegroundColor( ) const;

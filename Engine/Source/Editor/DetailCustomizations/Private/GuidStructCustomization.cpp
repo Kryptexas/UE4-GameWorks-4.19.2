@@ -7,15 +7,6 @@
 #define LOCTEXT_NAMESPACE "FGuidStructCustomization"
 
 
-/* FGuidStructCustomization static interface
- *****************************************************************************/
-
-TSharedRef<IPropertyTypeCustomization> FGuidStructCustomization::MakeInstance( )
-{
-	return MakeShareable(new FGuidStructCustomization);
-}
-
-
 /* IPropertyTypeCustomization interface
  *****************************************************************************/
 

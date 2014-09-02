@@ -3,8 +3,6 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "FilePathStructCustomization.h"
 #include "SFilePathPicker.h"
-//#include "DesktopPlatformModule.h"
-//#include "ContentBrowserDelegates.h"
 
 
 #define LOCTEXT_NAMESPACE "FilePathStructCustomization"
@@ -60,7 +58,7 @@ void FFilePathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> 
 }
 
 
-/* FMediaTextureCustomization callbacks
+/* FFilePathStructCustomization callbacks
  *****************************************************************************/
 
 FString FFilePathStructCustomization::HandleFilePathPickerFilePath( ) const

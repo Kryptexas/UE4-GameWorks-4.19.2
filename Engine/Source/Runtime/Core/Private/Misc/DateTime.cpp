@@ -64,6 +64,14 @@ FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
 /* FDateTime interface
  *****************************************************************************/
 
+bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
+{
+	ValueStr += ToString();
+
+	return true;
+}
+
+
 void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
 {
 	// Based on FORTRAN code in:
@@ -152,6 +160,24 @@ int32 FDateTime::GetYear( ) const
 	GetDate(Year, Month, Day);
 
 	return Year;
+}
+
+
+bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText )
+{
+	if (FPlatformString::Strlen(Buffer) < 19)
+	{
+		return false;
+	}
+
+	if (!Parse(FString(Buffer).Left(19), *this))
+	{
+		return false;
+	}
+
+	Buffer += 19;
+
+	return true;
 }
 
 
@@ -426,29 +452,4 @@ FDateTime FDateTime::UtcNow( )
 	FPlatformTime::UtcTime(Year, Month, DayOfWeek, Day, Hour, Minute, Second, Millisecond);
 
 	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
-}
-
-
-bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
-{
-	ValueStr += ToString();
-
-	return true;
-}
-
-bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
-{
-	if (FPlatformString::Strlen(Buffer) < 19)
-	{
-		return false;
-	}
-
-	if (!Parse(FString(Buffer).Left(19), *this))
-	{
-		return false;
-	}
-
-	Buffer += 19;
-
-	return true;
 }

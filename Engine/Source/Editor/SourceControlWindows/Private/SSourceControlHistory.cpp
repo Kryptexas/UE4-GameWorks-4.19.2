@@ -540,7 +540,7 @@ public:
 		{
 			return
 				SNew(STextBlock)
-				.Text( RevisionListItem->Date.Ticks == 0 ? FText() : FText::AsDateTime( RevisionListItem->Date ) );
+				.Text( RevisionListItem->Date > FDateTime::MinValue() == 0 ? FText() : FText::AsDateTime( RevisionListItem->Date ) );
 		}
 		else if (ColumnName == TEXT("UserName"))
 		{
