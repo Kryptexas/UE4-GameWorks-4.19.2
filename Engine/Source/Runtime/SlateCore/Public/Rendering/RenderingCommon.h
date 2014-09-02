@@ -6,6 +6,7 @@ struct FVector2D;
 class FSlateRect;
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
+#define SLATE_USE_FLOAT16 !PLATFORM_USES_ES2
 
 #if SLATE_USE_32BIT_INDICES
 typedef uint32 SlateIndex;
@@ -94,6 +95,7 @@ namespace ESlateLineJoinType
  */
 struct FSlateRotatedRect
 {
+	FSlateRotatedRect();
 	FSlateRotatedRect(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace);
 	/** transformed Top-left corner. */
 	FVector2D TopLeft;
@@ -113,6 +115,7 @@ struct FSlateRotatedRectFloat16
 {
 	FSlateRotatedRectFloat16();
 	FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect);
+	FSlateRotatedRectFloat16(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace);
 	/** transformed Top-left corner. */
 	FFloat16 TopLeft[2];
 	/** transformed X extent (right-left). */
@@ -120,6 +123,16 @@ struct FSlateRotatedRectFloat16
 	/** transformed Y extent (bottom-top). */
 	FFloat16 ExtentY[2];
 };
+
+/**
+ * Not all platforms support Float16, so we have to be tricky here and declare the proper vertex type.
+ */
+#if SLATE_USE_FLOAT16
+typedef FSlateRotatedRectFloat16 FSlateClipRectType;
+#else
+typedef FSlateRotatedRect FSlateClipRectType;
+#endif
+
 
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
@@ -131,13 +144,13 @@ struct FSlateVertex
 	/** Position of the vertex in window space */
 	int16 Position[2];
 	/** clip center/extents in render window space (window space with render transforms applied) */
-	FSlateRotatedRectFloat16 ClipRect;
+	FSlateClipRectType ClipRect;
 	/** Vertex color */
 	FColor Color;
 	
 	FSlateVertex();
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect );
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateClipRectType& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateClipRectType& InClipRect );
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };

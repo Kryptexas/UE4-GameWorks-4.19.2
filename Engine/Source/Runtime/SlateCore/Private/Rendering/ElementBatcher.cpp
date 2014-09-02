@@ -4,6 +4,9 @@
 #include "ElementBatcher.h"
 #include "SlateRenderTransform.h"
 
+/** Default ctor. */
+FSlateRotatedRect::FSlateRotatedRect() {}
+
 FSlateRotatedRect::FSlateRotatedRect(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace)
 {
 	const FSlateRenderTransform LayoutWindowSpaceToRenderWindowSpace = Concatenate(InverseLayoutTransform, RenderTransform);
@@ -53,7 +56,10 @@ bool FSlateRotatedRect::IsUnderLocation(const FVector2D& Location) const
 	return false;
 }
 
+/** Default ctor. */
 FSlateRotatedRectFloat16::FSlateRotatedRectFloat16() {}
+
+/** Construct a float16 version of a rotated rect from a full-float version. */
 FSlateRotatedRectFloat16::FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect)
 {
 	TopLeft[0] = RotatedRect.TopLeft[0];
@@ -64,9 +70,22 @@ FSlateRotatedRectFloat16::FSlateRotatedRectFloat16(const FSlateRotatedRect& Rota
 	ExtentY[1] = RotatedRect.ExtentY[1];
 }
 
+/** Used by the typedef magic to construct a rotated rect of the type needed by the RHI being used. */
+FSlateRotatedRectFloat16::FSlateRotatedRectFloat16(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace)
+{
+	FSlateRotatedRect RotatedRect(InverseLayoutTransform, RenderTransform, ClipRectInLayoutWindowSpace);
+	TopLeft[0] = RotatedRect.TopLeft[0];
+	TopLeft[1] = RotatedRect.TopLeft[1];
+	ExtentX[0] = RotatedRect.ExtentX[0];
+	ExtentX[1] = RotatedRect.ExtentX[1];
+	ExtentY[0] = RotatedRect.ExtentY[0];
+	ExtentY[1] = RotatedRect.ExtentY[1];
+}
+
+
 FSlateVertex::FSlateVertex() {}
 
-FSlateVertex::FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect )
+FSlateVertex::FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateClipRectType& InClipRect )
 	: TexCoords( InTexCoord, InTexCoord2 )
 	, ClipRect( InClipRect )
 	, Color( InColor )
@@ -76,7 +95,7 @@ FSlateVertex::FSlateVertex(const FSlateRenderTransform& RenderTransform, const F
 	Position[1] = FMath::RoundToInt(WindowPosition.Y);
 }
 
-FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRectFloat16& InClipRect )
+FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateClipRectType& InClipRect )
 	: TexCoords( InTexCoord, FVector2D(1.0f, 1.0f) )
 	, ClipRect( InClipRect )
 	, Color( InColor )
@@ -186,7 +205,7 @@ void FSlateElementBatcher::AddQuadElement( const FSlateDrawElement& DrawElement,
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, ESlateDrawEffect::None, ESlateBatchDrawFlag::Wireframe|ESlateBatchDrawFlag::NoBlending );
 	TArray<FSlateVertex>& BatchVertices = BatchVertexArrays[ElementBatch.VertexArrayIndex];
@@ -251,7 +270,7 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
 	// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, ElementRenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, ElementRenderTransform, InClippingRect);
 
 	check( InPayload.BrushResource );
 
@@ -550,7 +569,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	FSlateLayoutTransform InverseLayoutTransform = Inverse(Concatenate(Inverse(FontScale), LayoutTransform));
 	const FSlateRenderTransform RenderTransform = Concatenate(Inverse(FontScale), DrawElement.GetRenderTransform());
 
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 	// Used to clip individual characters as we generate them.
 	FSlateRect LocalClipRect = TransformRect(InverseLayoutTransform, InClippingRect);
 
@@ -713,7 +732,7 @@ void FSlateElementBatcher::AddGradientElement( const FSlateDrawElement& DrawElem
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	// There must be at least one gradient stop
 	check( InPayload.GradientStops.Num() > 0 );
@@ -840,7 +859,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	//@todo SLATE: Merge with AddLineElement?
 
@@ -986,7 +1005,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	if( InPayload.Points.Num() < 2 )
 	{
@@ -1164,7 +1183,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	const FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
 
@@ -1242,7 +1261,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedRectFloat16 RenderClipRect = FSlateRotatedRect(InverseLayoutTransform, RenderTransform, InClippingRect);
+	FSlateClipRectType RenderClipRect = FSlateClipRectType(InverseLayoutTransform, RenderTransform, InClippingRect);
 
 	check( InPayload.BrushResource );
 

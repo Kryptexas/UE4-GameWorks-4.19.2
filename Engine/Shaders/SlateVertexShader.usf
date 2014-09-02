@@ -21,8 +21,8 @@ VertexOut Main(
 */
 #if ES2_PROFILE && COMPILER_GLSL_ES2
 	in float2 InPosition : ATTRIBUTE1,
-	in half2 InClipOrigin : ATTRIBUTE2,
-	in half4 InClipExtents : ATTRIBUTE3,
+	in float2 InClipOrigin : ATTRIBUTE2,
+	in float4 InClipExtents : ATTRIBUTE3,
 #else
 	in int2 InPosition : ATTRIBUTE1,
 	in half2 InClipOrigin : ATTRIBUTE2,
