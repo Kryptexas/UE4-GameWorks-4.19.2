@@ -152,8 +152,8 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 					.MinValue(0.0f)
 					.MaxValue(4.0f)
 					.MaxSliderValue(2.0f)
-					.Value(this, &SFoliageEditMeshDisplayItem::GetDensity)
-					.OnValueChanged(this, &SFoliageEditMeshDisplayItem::OnDensityChanged)
+					.Value(this, &SFoliageEditMeshDisplayItem::GetDensityReapply)
+					.OnValueChanged(this, &SFoliageEditMeshDisplayItem::OnDensityReapplyChanged)
 				]
 			]
 
