@@ -21,8 +21,8 @@ public:
 
 	SLATE_BEGIN_ARGS(SFilePathPicker)
 		: _BrowseButtonToolTip(NSLOCTEXT("SFilePathPicker", "BrowseButtonToolTip", "Choose a file from this computer"))
-		, _Font()
 		, _FileTypeFilter(TEXT("All files (*.*)|*.*"))
+		, _Font()
 		, _IsReadOnly(false)
 	{ }
 
