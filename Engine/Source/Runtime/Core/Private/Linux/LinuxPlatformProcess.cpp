@@ -583,12 +583,19 @@ bool FProcHandle::IsRunning()
 				}
 				else
 				{
-					// since we used WNOWAIT, we don't have to collect all the info 
-					// even if child is indeed a zombie
 					bIsRunning = ( SignalInfo.si_pid != Get() );
 					break;
 				}
 			}
+		}
+
+		// If child is a zombie, wait() immediately to free up kernel resources. Higher level code
+		// (e.g. shader compiling manager) can hold on to handle of no longer running process for longer,
+		// which is a dubious, but valid behavior. We don't want to keep zombie around though.
+		if (!bIsRunning)
+		{
+			UE_LOG(LogHAL, Log, TEXT("Child %d is no more running (zombie), Wait()ing immediately."), Get() );
+			Wait();
 		}
 	}
 

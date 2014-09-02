@@ -302,22 +302,31 @@ struct CORE_API FGenericPlatformProcess
 	 * @return	The process handle for use in other process functions
 	 */
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
+
 	/** Returns true if the specified process is running 
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	* @return true if the process is still running
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 * @return true if the process is still running
+	 */
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
+	
 	/** Waits for a process to stop
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 */
 	static void WaitForProc( FProcHandle & ProcessHandle );
+
+	/** Cleans up FProcHandle after we're done with it.
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc.
+	 */
+	static void CloseProc( FProcHandle & ProcessHandle );
+
 	/** Terminates a process
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	* @param KillTree Whether the entire process tree should be terminated.
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 * @param KillTree Whether the entire process tree should be terminated.
+	 */
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	/** Retrieves the termination status of the specified process. **/
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );

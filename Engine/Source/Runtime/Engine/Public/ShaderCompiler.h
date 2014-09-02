@@ -213,8 +213,8 @@ private:
 	 */
 	double WorkersBusyTime;
 
-	/** Launches the worker, returns the launched Process Id. */
-	uint32 LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe);
+	/** Launches the worker, returns the launched process handle. */
+	FProcHandle LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe);
 
 	/** Blocks on completion of the given shader maps. */
 	void BlockOnShaderMapCompletion(const TArray<int32>& ShaderMapIdsToFinishCompiling, TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps);
@@ -311,9 +311,9 @@ public:
 	ENGINE_API void ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion);
 
 	/**
-	 * Returns true if the given PID is actually a ShaderCompilerWorker, and it's still running.
+	 * Returns true if the given shader compile worker is still running.
 	 */
-	static bool IsShaderCompilerWorkerRunning(uint32 ProcessId);
+	static bool IsShaderCompilerWorkerRunning(FProcHandle & WorkerHandle);
 };
 
 /** The global shader compiling thread manager. */
