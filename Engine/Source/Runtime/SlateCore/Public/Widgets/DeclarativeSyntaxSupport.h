@@ -457,7 +457,7 @@
 	{\
 		static FString PassThroughDelegate( TAttribute< FText >::FGetter TextDelegate )\
 		{\
-			return TextDelegate.Execute().ToString();\
+			return (TextDelegate.IsBound()) ? TextDelegate.Execute().ToString() : FString();\
 		}\
 		\
 		static FString PassThroughAttribute( TAttribute< FText > TextAttribute )\
@@ -499,7 +499,7 @@
 	{\
 		static FText PassThroughDelegate( TAttribute< FString >::FGetter StringDelegate )\
 		{\
-			return FText::FromString( StringDelegate.Execute() );\
+			return (StringDelegate.IsBound()) ? FText::FromString( StringDelegate.Execute() ) : FText::GetEmpty();\
 		}\
 		\
 		static FText PassThroughAttribute( TAttribute< FString > StringAttribute )\
