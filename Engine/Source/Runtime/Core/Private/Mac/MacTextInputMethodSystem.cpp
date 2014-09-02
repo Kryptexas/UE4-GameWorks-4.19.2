@@ -119,6 +119,10 @@ void FMacTextInputMethodSystem::Terminate()
 }
 
 // ITextInputMethodSystem Interface Begin
+void FMacTextInputMethodSystem::ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow)
+{
+}
+
 TSharedPtr<ITextInputMethodChangeNotifier> FMacTextInputMethodSystem::RegisterContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
 	TSharedRef<ITextInputMethodChangeNotifier> Notifier = MakeShareable( new FTextInputMethodChangeNotifier(Context) );
@@ -220,5 +224,34 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 	{
 		UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Deactivating a context failed when its window couldn't be found."));
 	}
+}
+
+bool FMacTextInputMethodSystem::IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const
+{
+	const TWeakPtr<ITextInputMethodChangeNotifier>& NotifierRef = ContextMap[Context];
+	if(!NotifierRef.IsValid())
+	{
+		UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Checking for an active context failed when its registration couldn't be found."));
+		return false;
+	}
+	
+	TSharedPtr<ITextInputMethodChangeNotifier> Notifier(NotifierRef.Pin());
+	FTextInputMethodChangeNotifier* MacNotifier = (FTextInputMethodChangeNotifier*)Notifier.Get();
+	TSharedPtr<FGenericWindow> GenericWindow = MacNotifier->GetContextWindow();
+	if(GenericWindow.IsValid())
+	{
+		FCocoaWindow* CocoaWindow = (FCocoaWindow*)GenericWindow->GetOSWindowHandle();
+		if(CocoaWindow && [CocoaWindow openGLView])
+		{
+			NSView* GLView = [CocoaWindow openGLView];
+			if([GLView isKindOfClass:[FCocoaTextView class]])
+			{
+				FCocoaTextView* TextView = (FCocoaTextView*)GLView;
+				return [TextView isActiveInputMethod:Context];
+			}
+		}
+	}
+	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Checking for an active context failed when its window couldn't be found."));
+	return false;
 }
 // ITextInputMethodSystem Interface End

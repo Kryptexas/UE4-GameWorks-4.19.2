@@ -15,6 +15,7 @@
 
 - (void)activateInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext;
 - (void)deactivateInputMethod;
+- (bool)isActiveInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext;
 
 - (bool)imkKeyDown:(NSEvent*)Event;
 

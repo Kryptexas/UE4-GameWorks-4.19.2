@@ -156,6 +156,11 @@
 	[[self inputContext] discardMarkedText];
 }
 
+- (bool)isActiveInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext
+{
+	return IMMContext == InContext;
+}
+
 //@protocol NSTextInputClient
 //@required
 /* The receiver inserts aString replacing the content specified by replacementRange. aString can be either an NSString or NSAttributedString instance.

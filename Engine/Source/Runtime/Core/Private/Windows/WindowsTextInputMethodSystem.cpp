@@ -151,7 +151,7 @@ bool FWindowsTextInputMethodSystem::Initialize()
 	{
 		const HKL KeyboardLayout = ::GetKeyboardLayout(0);
 
-		// We might already be using an IME if its set as the default language
+		// We might already be using an IME if it's set as the default language
 		// If so, work out what kind of IME it is
 		TF_INPUTPROCESSORPROFILE TSFProfile;
 		if(SUCCEEDED(TSFInputProcessorProfileManager->GetActiveProfile(GUID_TFCAT_TIP_KEYBOARD, &TSFProfile)) && TSFProfile.hkl && TSFProfile.dwProfileType == TF_PROFILETYPE_INPUTPROCESSOR)
@@ -175,6 +175,7 @@ bool FWindowsTextInputMethodSystem::InitializeIMM()
 {
 	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Initializing IMM..."));
 
+	IMMContextId = ::ImmCreateContext();
 	UpdateIMMProperty(::GetKeyboardLayout(0));
 
 	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Initialized IMM!"));
@@ -184,13 +185,13 @@ bool FWindowsTextInputMethodSystem::InitializeIMM()
 
 void FWindowsTextInputMethodSystem::UpdateIMMProperty(HKL KeyboardLayoutHandle)
 {
-	IMEProperties = ::ImmGetProperty(KeyboardLayoutHandle, IGP_PROPERTY);
+	IMMProperties = ::ImmGetProperty(KeyboardLayoutHandle, IGP_PROPERTY);
 }
 
 bool FWindowsTextInputMethodSystem::ShouldDrawIMMCompositionString() const
 {
 	// If the IME doesn't have any kind of special UI and it draws the composition window at the caret, we can draw it ourselves.
-	return !(IMEProperties & IME_PROP_SPECIAL_UI) && (IMEProperties & IME_PROP_AT_CARET);
+	return !(IMMProperties & IME_PROP_SPECIAL_UI) && (IMMProperties & IME_PROP_AT_CARET);
 }
 
 void FWindowsTextInputMethodSystem::UpdateIMMWindowPositions(HIMC IMMContext)
@@ -449,6 +450,55 @@ void FWindowsTextInputMethodSystem::Terminate()
 	}
 
 	TSFThreadManager.Reset();
+
+	::ImmDestroyContext(IMMContextId);
+}
+
+void FWindowsTextInputMethodSystem::ClearStaleWindowHandles()
+{
+	auto KnownWindowsTmp = KnownWindows;
+	for(const TWeakPtr<FGenericWindow>& Window : KnownWindowsTmp)
+	{
+		if(!Window.IsValid())
+		{
+			KnownWindows.Remove(Window);
+		}
+	}
+}
+
+void FWindowsTextInputMethodSystem::ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow)
+{
+	ClearStaleWindowHandles();
+	KnownWindows.Add(InWindow);
+
+	const HWND Hwnd = reinterpret_cast<HWND>(InWindow->GetOSWindowHandle());
+
+	// Typically we disable the IME when a new window is created, however, we don't want to do that if we have an active context, 
+	// as it will immediately disable the IME (which may be undesirable for things like a search suggestions window appearing)
+	// In that case, we set the window to use the same IME context as is currently active. If the window actually takes focus
+	// away from the currently active IME context, then that will be taken care of in DeactivateContext, and all windows using the
+	// IME context will be disabled
+	ITfDocumentMgr* TSFDocumentManagerToSet = nullptr;
+	HIMC IMMContextToSet = nullptr;
+	if(ActiveContext.IsValid())
+	{
+		TSFThreadManager->GetFocus(&TSFDocumentManagerToSet);
+		IMMContextToSet = IMMContextId;
+	}
+
+	// TSF Implementation
+	if(TSFDocumentManagerToSet)
+	{
+		TSFThreadManager->SetFocus(TSFDocumentManagerToSet);
+	}
+	else
+	{
+		ITfDocumentMgr* Unused;
+		TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused);
+	}
+
+	// IMM Implementation
+	::ImmAssociateContext(Hwnd, IMMContextToSet);
 }
 
 TSharedPtr<ITextInputMethodChangeNotifier> FWindowsTextInputMethodSystem::RegisterContext(const TSharedRef<ITextInputMethodContext>& Context)
@@ -511,6 +561,8 @@ void FWindowsTextInputMethodSystem::UnregisterContext(const TSharedRef<ITextInpu
 
 	HRESULT Result;
 
+	check(ActiveContext != Context);
+
 	check(ContextToInternalContextMap.Contains(Context));
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
@@ -539,16 +591,17 @@ void FWindowsTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputM
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
 	const TSharedPtr<FGenericWindow> GenericWindow = Context->GetWindow();
-	const HWND Hwnd = GenericWindow.IsValid() ? reinterpret_cast<HWND>(GenericWindow->GetOSWindowHandle()) : nullptr;
+	InternalContext.WindowHandle = GenericWindow.IsValid() ? reinterpret_cast<HWND>(GenericWindow->GetOSWindowHandle()) : nullptr;
 
 	// IMM Implementation
 	InternalContext.IMMContext.IsComposing = false;
 	InternalContext.IMMContext.IsDeactivating = false;
+	::ImmAssociateContext(InternalContext.WindowHandle, IMMContextId);
 
 	// TSF Implementation
 	TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
 	ITfDocumentMgr* Unused;
-	Result = TSFThreadManager->AssociateFocus(Hwnd, TextStore->TSFDocumentManager, &Unused);
+	Result = TSFThreadManager->AssociateFocus(InternalContext.WindowHandle, TextStore->TSFDocumentManager, &Unused);
 	if(FAILED(Result))
 	{
 		UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Activating a context failed while setting focus on a TSF document manager."));
@@ -560,47 +613,48 @@ void FWindowsTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputM
 void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
 	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivating context %p..."), &(Context.Get()));
-	HRESULT Result;
-
+	
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
-	const TSharedPtr<FGenericWindow> GenericWindow = Context->GetWindow();
-	const HWND Hwnd = GenericWindow.IsValid() ? reinterpret_cast<HWND>(GenericWindow->GetOSWindowHandle()) : nullptr;
-
-	// TSF Implementation
-	TComPtr<FTextStoreACP> TextStore = InternalContext.TSFContext;
-
-	ITfDocumentMgr* FocusedDocumentManger = nullptr;
-	Result = TSFThreadManager->GetFocus(&(FocusedDocumentManger));
-	if(FAILED(Result))
-	{
-		UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Deactivating a context failed while getting the currently focused document manager."));
-	}
-	else if(FocusedDocumentManger == TextStore->TSFDocumentManager)
-	{
-		ITfDocumentMgr* Unused;
-		Result = TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused);
-		if(FAILED(Result))
-		{
-			UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Deactivating a context failed while setting focus to the disabled TSF document manager."));
-		}
-	}
-	else
-	{
-		UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivating a context ignored because it is not the focused TSF document manager."));
-	}
-
 	// IMM Implementation
-	HIMC IMMContext = ::ImmGetContext(Hwnd);
+	HIMC IMMContext = ::ImmGetContext(InternalContext.WindowHandle);
 	InternalContext.IMMContext.IsDeactivating = true;
 	// Request the composition is completed to ensure that the composition input UI is closed, and that a WM_IME_ENDCOMPOSITION message is sent
 	::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
-	::ImmReleaseContext(Hwnd, IMMContext);
+	::ImmReleaseContext(InternalContext.WindowHandle, IMMContext);
+
+	// Ensure all known windows are associated with a disabled IME
+	ClearStaleWindowHandles();
+	for(const TWeakPtr<FGenericWindow>& Window : KnownWindows)
+	{
+		TSharedPtr<FGenericWindow> WindowPtr = Window.Pin();
+		if(WindowPtr.IsValid())
+		{
+			const HWND Hwnd = reinterpret_cast<HWND>(WindowPtr->GetOSWindowHandle());
+			if(Hwnd)
+			{
+				//  TSF Implementation
+				ITfDocumentMgr* Unused;
+				if(FAILED(TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused)))
+				{
+					UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Deactivating a context failed while setting focus to the disabled TSF document manager."));
+				}
+
+				// IMM Implementation
+				::ImmAssociateContext(InternalContext.WindowHandle, nullptr);
+			}
+		}
+	}
 
 	// General Implementation
 	ActiveContext = nullptr;
 
 	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivated context %p!"), &(Context.Get()));
+}
+
+bool FWindowsTextInputMethodSystem::IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const
+{
+	return ActiveContext == Context;
 }
 
 void FWindowsTextInputMethodSystem::OnIMEActivationStateChanged(const bool bIsEnabled)
@@ -627,7 +681,8 @@ void FWindowsTextInputMethodSystem::OnIMEActivationStateChanged(const bool bIsEn
 	}
 	else
 	{
-		check(CurrentAPI != EAPI::Unknown);
+		// It seems that switching away from an IMM based IME doesn't generate a deactivation notification
+		//check(CurrentAPI != EAPI::Unknown);
 
 		CurrentAPI = EAPI::Unknown;
 		UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("IME system now deactivated."));
@@ -687,13 +742,6 @@ int32 FWindowsTextInputMethodSystem::ProcessMessage(HWND hwnd, uint32 msg, WPARA
 				
 				UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Beginning IMM composition."));
 			}
-			else
-			{
-				// No valid context, so don't allow this composition to start
-				HIMC IMMContext = ::ImmGetContext(hwnd);
-				::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
-				::ImmReleaseContext(hwnd, IMMContext);
-			}
 
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		}
@@ -720,20 +768,11 @@ int32 FWindowsTextInputMethodSystem::ProcessMessage(HWND hwnd, uint32 msg, WPARA
 				{
 					UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("WM_IME_COMPOSITION Composition Canceled"));
 
-					// We might have been canceled from a mouse move, so we need to take the current selection so we can restore it properly
-					// otherwise calling SetTextInRange can cause the cursor/selection to jump around
-					uint32 SelectionBeginIndex = 0;
-					uint32 SelectionLength = 0;
-					ITextInputMethodContext::ECaretPosition SelectionCaretPosition = ITextInputMethodContext::ECaretPosition::Ending;
-					ActiveContext->GetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
-
 					// Clear Composition
 					ActiveContext->SetTextInRange(InternalContext.IMMContext.CompositionBeginIndex, InternalContext.IMMContext.CompositionLength, TEXT(""));
 					InternalContext.IMMContext.CompositionLength = 0;
 					ActiveContext->UpdateCompositionRange(InternalContext.IMMContext.CompositionBeginIndex, 0);
-
-					// Restore any previous selection
-					ActiveContext->SetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
+					ActiveContext->SetSelectionRange(InternalContext.IMMContext.CompositionBeginIndex, 0, ITextInputMethodContext::ECaretPosition::Beginning);
 
 					EndIMMComposition();
 				}

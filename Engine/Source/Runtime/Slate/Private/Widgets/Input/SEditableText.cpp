@@ -38,7 +38,14 @@ SEditableText::~SEditableText()
 	ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::IsInitialized() ? FSlateApplication::Get().GetTextInputMethodSystem() : nullptr;
 	if(TextInputMethodSystem)
 	{
-		TextInputMethodSystem->UnregisterContext(TextInputMethodContext.ToSharedRef());
+		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
+		if(TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
+		{
+			// This can happen if an entire tree of widgets is culled, as Slate isn't notified of the focus loss, the widget is just deleted
+			TextInputMethodSystem->DeactivateContext(TextInputMethodContextRef);
+		}
+
+		TextInputMethodSystem->UnregisterContext(TextInputMethodContextRef);
 	}
 }
 

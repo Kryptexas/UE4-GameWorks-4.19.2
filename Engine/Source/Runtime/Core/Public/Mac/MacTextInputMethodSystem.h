@@ -12,10 +12,12 @@ public:
 	void Terminate();
 	
 	// ITextInputMethodSystem Interface Begin
+	virtual void ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow) override;
 	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual bool IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const override;
 	// ITextInputMethodSystem Interface End
 	
 private:

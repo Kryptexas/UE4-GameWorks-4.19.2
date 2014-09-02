@@ -63,10 +63,12 @@ public:
 	void Terminate();
 
 	// ITextInputMethodSystem Interface Begin
+	virtual void ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow) override;
 	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual bool IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const override;
 	// ITextInputMethodSystem Interface End
 
 	int32 ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
@@ -84,6 +86,8 @@ private:
 	bool InitializeTSF();
 
 	void OnIMEActivationStateChanged(const bool bIsEnabled);
+
+	void ClearStaleWindowHandles();
 
 private:
 	TSharedPtr<ITextInputMethodContext> ActiveContext;
@@ -104,7 +108,19 @@ private:
 
 	struct FInternalContext
 	{
+		FInternalContext()
+			: WindowHandle(nullptr)
+		{
+			IMMContext.IsComposing = false;
+			IMMContext.IsDeactivating = false;
+			IMMContext.CompositionBeginIndex = 0;
+			IMMContext.CompositionLength = 0;
+		}
+
+		HWND WindowHandle;
+
 		TComPtr<FTextStoreACP> TSFContext;
+
 		struct
 		{
 			bool IsComposing;
@@ -116,7 +132,10 @@ private:
 	TMap< TWeakPtr<ITextInputMethodContext>, FInternalContext > ContextToInternalContextMap;
 
 	// IMM Implementation
-	DWORD IMEProperties;
+	HIMC IMMContextId;
+	DWORD IMMProperties;
+
+	TSet<TWeakPtr<FGenericWindow>> KnownWindows;
 };
 
 #include "HideWindowsPlatformTypes.h"

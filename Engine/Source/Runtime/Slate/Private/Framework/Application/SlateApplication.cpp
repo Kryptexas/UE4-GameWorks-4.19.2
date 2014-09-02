@@ -1066,6 +1066,12 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 
 	PlatformApplication->InitializeWindow( NewWindow, Definition, NativeParent, bShowImmediately );
 
+	ITextInputMethodSystem* const TextInputMethodSystem = PlatformApplication->GetTextInputMethodSystem();
+	if ( TextInputMethodSystem )
+	{
+		TextInputMethodSystem->ApplyDefaults( NewWindow );
+	}
+
 	return NewWindow;
 }
 
