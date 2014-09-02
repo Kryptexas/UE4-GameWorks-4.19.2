@@ -2,26 +2,42 @@
 
 #pragma once
 
-/** Delegate fired when a path is picked */
-DECLARE_DELEGATE_RetVal_OneParam(bool, FOnPathPicked, FString& /* InOutPath */);
 
-class FFilePathStructCustomization : public IPropertyTypeCustomization
+/**
+ * Implements a details view customization for the FFilePath structure.
+ */
+class FFilePathStructCustomization
+	: public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-	/** IPropertyTypeCustomization interface */
+	/**
+	 * Creates an instance of this class.
+	 *
+	 * @return The new instance.
+	 */
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance( )
+	{
+		return MakeShareable(new FFilePathStructCustomization());
+	}
+
+public:
+
+	// IPropertyTypeCustomization interface
+
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
-
-	static TSharedPtr<SWidget> CreatePickerWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle,  const FString& FileFilterExtension = FString(TEXT("*")), const FOnPathPicked& OnPathPicked = FOnPathPicked());
 
 private:
 
-	/** Delegate for displaying text value of file */
-	FText GetDisplayedText(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	/** Callback for getting the selected path in the picker widget. */
+	FString HandleFilePathPickerFilePath( ) const;
 
-	/** Delegate used to display a file picker */
-	static FReply OnPickFile(TSharedRef<IPropertyHandle> PropertyHandle);
+	/** Callback for picking a file in the file path picker. */
+	void HandleFilePathPickerPathPicked( const FString& PickedPath );
+
+private:
+
+	/** Pointer to the Path property handle. */
+	TSharedPtr<IPropertyHandle> PathProperty;
 };

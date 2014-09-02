@@ -268,34 +268,32 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	// We may have already setup a movie from a startup module
 	if( !LoadingScreenAttributes.IsValid() )
 	{
+		// fill out the attributes
+		FLoadingScreenAttributes LoadingScreen;
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
+		LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
+
 		// look in the settings for a list of loading movies
 		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		TArray<FFilePath> StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
 
-		// if we didn't have any, add default_startup, movie streamers should gracefully handle not finding this movie
 		if (StartupMovies.Num() == 0)
         {
-            FFilePath defaultMovie;
-            defaultMovie.FilePath = TEXT("Default_Startup");
-            StartupMovies.Add(defaultMovie);
+			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
         }
+		else
 		{
-			// fill out the attributes
-			FLoadingScreenAttributes LoadingScreen;
-			LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
-			LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
-
-			for(const auto& Movie : StartupMovies)
+			for (const FString& Movie : StartupMovies)
 			{
-				if(Movie.FilePath.Len() > 0)
+				if (!Movie.IsEmpty())
 				{
-					LoadingScreen.MoviePaths.Add(Movie.FilePath);
+					LoadingScreen.MoviePaths.Add(Movie);
 				}
 			}
-
-			// now setup the actual loading screen
-			SetupLoadingScreen(LoadingScreen);
 		}
+
+		// now setup the actual loading screen
+		SetupLoadingScreen(LoadingScreen);
 	}
 }
 

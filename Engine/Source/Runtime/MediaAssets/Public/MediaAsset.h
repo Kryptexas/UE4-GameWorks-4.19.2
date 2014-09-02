@@ -294,7 +294,7 @@ protected:
 
 	/** The URL to the media file to be played. */
 	UPROPERTY(EditAnywhere, Category=Source)
-	FFilePath URL;
+	FString URL;
 
 private:
 

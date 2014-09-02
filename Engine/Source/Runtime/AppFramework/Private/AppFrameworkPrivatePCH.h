@@ -8,6 +8,7 @@
 /* Private dependencies
  *****************************************************************************/
 
+#include "DesktopPlatformModule.h"
 
 
 /* Private includes

@@ -96,7 +96,7 @@ bool UMediaAsset::IsStopped( ) const
 
 bool UMediaAsset::OpenUrl( const FString& NewUrl )
 {
-	URL.FilePath = NewUrl;
+	URL = NewUrl;
 	InitializePlayer();
 
 	return (CurrentUrl == NewUrl);
@@ -211,9 +211,7 @@ void UMediaAsset::PostEditChangeProperty( FPropertyChangedEvent& PropertyChanged
 
 void UMediaAsset::InitializePlayer( )
 {
-	const FString& NewUrl = URL.FilePath;
-
-	if (NewUrl != CurrentUrl)
+	if (URL != CurrentUrl)
 	{
 		// close previous player
 		CurrentUrl = FString();
@@ -226,13 +224,13 @@ void UMediaAsset::InitializePlayer( )
 			MediaPlayer.Reset();
 		}
 
-		if (NewUrl.IsEmpty())
+		if (URL.IsEmpty())
 		{
 			return;
 		}
 
 		// create new player
-		MediaPlayer = IMediaModule::Get().CreatePlayer(NewUrl);
+		MediaPlayer = IMediaModule::Get().CreatePlayer(URL);
 
 		if (!MediaPlayer.IsValid())
 		{
@@ -247,11 +245,11 @@ void UMediaAsset::InitializePlayer( )
 
 		if (StreamMode == EMediaAssetStreamModes::MASM_FromUrl)
 		{
-			OpenedSuccessfully = MediaPlayer->Open(NewUrl);
+			OpenedSuccessfully = MediaPlayer->Open(FPaths::ConvertRelativePathToFull(URL));
 		}
-		else
+		else if (FPaths::FileExists(URL))
 		{
-			FArchive* FileReader = IFileManager::Get().CreateFileReader(*NewUrl);
+			FArchive* FileReader = IFileManager::Get().CreateFileReader(*URL);
 		
 			if (FileReader == nullptr)
 			{
@@ -265,7 +263,7 @@ void UMediaAsset::InitializePlayer( )
 				FileData->AddUninitialized(FileReader->TotalSize());
 				FileReader->Serialize(FileData->GetData(), FileReader->TotalSize());
 
-				OpenedSuccessfully = MediaPlayer->Open(MakeShareable(FileData), NewUrl);
+				OpenedSuccessfully = MediaPlayer->Open(MakeShareable(FileData), URL);
 			}
 
 			delete FileReader;
@@ -274,7 +272,7 @@ void UMediaAsset::InitializePlayer( )
 		// finish initialization
 		if (OpenedSuccessfully)
 		{
-			CurrentUrl = NewUrl;
+			CurrentUrl = URL;
 		}
 	}
 

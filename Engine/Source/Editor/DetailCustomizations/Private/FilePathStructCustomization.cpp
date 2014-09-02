@@ -2,156 +2,80 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "FilePathStructCustomization.h"
-#include "DesktopPlatformModule.h"
-#include "ContentBrowserDelegates.h"
+#include "SFilePathPicker.h"
+//#include "DesktopPlatformModule.h"
+//#include "ContentBrowserDelegates.h"
+
 
 #define LOCTEXT_NAMESPACE "FilePathStructCustomization"
 
-class SFilePathPicker : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SFilePathPicker ){}
 
-	SLATE_ARGUMENT(FOnPathPicked, OnPathPicked)
-
-	SLATE_ARGUMENT(FString, FileFilterExtension)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs, TSharedRef<IPropertyHandle> InStringProperty)
-	{
-		StringProperty = InStringProperty;
-		FileFilterExtension = InArgs._FileFilterExtension;
-		OnPathPicked = InArgs._OnPathPicked;
-
-		ChildSlot
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.VAlign(VAlign_Center)
-			[
-				StringProperty->CreatePropertyValueWidget()
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-			.VAlign(VAlign_Center)
-			[
-				SNew(SButton)
-				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ToolTipText( LOCTEXT( "FileButtonToolTipText", "Choose a file from this computer").ToString() )
-				.OnClicked( FOnClicked::CreateSP(this, &SFilePathPicker::OnPickFile) )
-				.ContentPadding( 2.0f )
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.IsFocusable( false )
-				[
-					SNew( SImage )
-					.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis") )
-					.ColorAndOpacity( FSlateColor::UseForeground() )
-				]
-			]
-		];
-	}
-
-private:
-	/** Delegate handling the picker button being clicked */
-	FReply OnPickFile()
-	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if ( DesktopPlatform )
-		{
-			const FString DefaultPath = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN);
-
-			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-			void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-			FString Filter;
-
-			if (FileFilterExtension.IsEmpty())
-			{
-				Filter = TEXT("All files (*.*)|*.*");
-			}
-			else
-			{
-				Filter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *FileFilterExtension, *FileFilterExtension, *FileFilterExtension);
-			}
-
-			TArray<FString> OutFiles;
-		
-			if (DesktopPlatform->OpenFileDialog(ParentWindowHandle, LOCTEXT("PropertyEditorTitle", "File picker...").ToString(), DefaultPath, TEXT(""), Filter, EFileDialogFlags::None, OutFiles))
-			{
-				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_OPEN, FPaths::GetPath(OutFiles[0]));
-
-				bool bSetProperty = true;
-				if(OnPathPicked.IsBound())
-				{
-					bSetProperty = OnPathPicked.Execute(OutFiles[0]);
-				}
-
-				if(bSetProperty)
-				{
-					StringProperty->SetValueFromFormattedString( OutFiles[0] );
-				}
-			}
-		}
-
-		return FReply::Handled();
-	}
-
-private:
-
-	/** Delegate fired when a path is picked */
-	FOnPathPicked OnPathPicked;
-
-	/** The property we are representing */
-	TSharedPtr<IPropertyHandle> StringProperty;
-
-	/** Extension to filter files with */
-	FString FileFilterExtension;
-};
-
-TSharedRef<IPropertyTypeCustomization> FFilePathStructCustomization::MakeInstance()
-{
-	return MakeShareable(new FFilePathStructCustomization());
-}
-
-void FFilePathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
-{
-	const UProperty* Property = StructPropertyHandle->GetProperty();
-	checkSlow(Property);
-
-	TSharedPtr<SWidget> PickerWidget = CreatePickerWidget(StructPropertyHandle, Property->GetMetaData( TEXT("FilePathFilter") ));
-
-	if(PickerWidget.IsValid())
-	{
-		HeaderRow.ValueContent()
-		.MinDesiredWidth(125.0f)
-		.MaxDesiredWidth(600.0f)
-		[
-			PickerWidget.ToSharedRef()
-		]
-		.NameContent()
-		[
-			StructPropertyHandle->CreatePropertyNameWidget()
-		];
-	}
-}
-
-TSharedPtr<SWidget> FFilePathStructCustomization::CreatePickerWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle, const FString& FileFilterExtension, const FOnPathPicked& OnPathPicked)
-{
-	TSharedPtr<IPropertyHandle> PathProperty = StructPropertyHandle->GetChildHandle("FilePath");
-	if(PathProperty.IsValid())
-	{
-		return SNew(SFilePathPicker, PathProperty.ToSharedRef())
-			.OnPathPicked(OnPathPicked)
-			.FileFilterExtension(FileFilterExtension);
-	}
-
-	return TSharedPtr<SWidget>();
-}
+/* IDetailCustomization interface
+ *****************************************************************************/
 
 void FFilePathStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
+	/* do nothing */
+}
+
+
+void FFilePathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+	PathProperty = StructPropertyHandle;
+
+	FString FileTypeFilter;
+
+	// construct file type filter
+	const FString& MetaData = PathProperty->GetMetaData(TEXT("FilePathFilter"));
+
+	if (MetaData.IsEmpty())
+	{
+		FileTypeFilter = TEXT("All files (*.*)|*.*");
+	}
+	else
+	{
+		FileTypeFilter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *MetaData, *MetaData, *MetaData);
+	}
+
+	// create path picker widget
+	HeaderRow
+		.NameContent()
+		[
+			StructPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.MaxDesiredWidth(0.0f)
+		.MinDesiredWidth(125.0f)
+		[
+			SNew(SFilePathPicker)
+				.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
+				.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file from this computer"))
+				.BrowseDirectory(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN))
+				.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
+				.FilePath(this, &FFilePathStructCustomization::HandleFilePathPickerFilePath)
+				.FileTypeFilter(FileTypeFilter)
+				.OnPathPicked(this, &FFilePathStructCustomization::HandleFilePathPickerPathPicked)
+		];
+}
+
+
+/* FMediaTextureCustomization callbacks
+ *****************************************************************************/
+
+FString FFilePathStructCustomization::HandleFilePathPickerFilePath( ) const
+{
+	FString FilePath;
+	PathProperty->GetValue(FilePath);
+
+	return FilePath;
+}
+
+
+void FFilePathStructCustomization::HandleFilePathPickerPathPicked( const FString& PickedPath )
+{
+	PathProperty->SetValueFromFormattedString(PickedPath);
+	FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_OPEN, FPaths::GetPath(PickedPath));
 }
 
 

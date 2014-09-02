@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "Media.h"
-#include "MediaAsset.h"
-
 
 /**
  * Implements a details view customization for the UMediaAsset class.
@@ -30,16 +27,6 @@ public:
 		return MakeShareable(new FMediaAssetCustomization());
 	}
 
-protected:
-
-	/**
-	 * Gets the playback rate range text for the specified playback direction.
-	 *
-	 * @param Direction The playback direction.
-	 * @return The supported playback rate range converted to text.
-	 */
-	FText GetRatesText( EMediaPlaybackDirections Direction ) const;
-
 private:
 
 	// Callback for getting the text of the Duration text block.
@@ -49,7 +36,7 @@ private:
 	FText HandleForwardRatesTextBlockText( ) const;
 
 	// Callback for getting the text of a supported playback rate text block.
-	FText HandleSupportedRatesTextBlockText( EMediaPlaybackDirections Direction, bool Unthinned ) const;
+	FText HandleSupportedRatesTextBlockText( enum class EMediaPlaybackDirections Direction, bool Unthinned ) const;
 
 	// Callback for getting the text of the SupportsScrubbing text block.
 	FText HandleSupportsScrubbingTextBlockText( ) const;
@@ -57,8 +44,23 @@ private:
 	// Callback for getting the text of the SupportsSeeking text block.
 	FText HandleSupportsSeekingTextBlockText( ) const;
 
+	// Callback for getting the selected path in the URL picker widget.
+	FString HandleUrlPickerFilePath( ) const;
+
+	// Callback for getting the file type filter for the URL picker.
+	FString HandleUrlPickerFileTypeFilter( ) const;
+
+	// Callback for picking a path in the URL picker.
+	void HandleUrlPickerPathPicked( const FString& PickedPath );
+
+	// Callback for getting the visibility of warning icon for invalid URLs.
+	EVisibility HandleUrlWarningIconVisibility( ) const;
+
 private:
 
 	/** The collection of media assets being customized */
 	TArray<TWeakObjectPtr<UObject>> CustomizedMediaAssets;
+
+	/** Pointer to the URL property handle. */
+	TSharedPtr<IPropertyHandle> UrlProperty;
 };
