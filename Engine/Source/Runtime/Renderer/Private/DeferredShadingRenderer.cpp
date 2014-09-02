@@ -936,15 +936,26 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 #endif
 
+	TRefCountPtr<IPooledRenderTarget> VelocityRT;
+
+	// Render the velocities of movable objects
+	RenderVelocities(RHICmdList, VelocityRT);
+
 	// Finish rendering for each view.
 	if(ViewFamily.bResolveScene)
 	{
-		SCOPED_DRAW_EVENT(FinishRendering, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(PostProcessing, DEC_SCENE_ITEMS);
 		SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
-		{	
+
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
-			FinishRenderViewTarget(RHICmdList, &Views[ViewIndex], ViewIndex == (Views.Num() - 1));
+
+			GPostProcessing.Process(RHICmdList, Views[ ViewIndex ], VelocityRT);
+
+			// we rendered to it during the frame, seems we haven't made use of it, because it should be released
+			FSceneViewState* ViewState = (FSceneViewState*)Views[ ViewIndex ].State;
+			check( !ViewState || !ViewState->SeparateTranslucencyRT );
 		}
 	}
 	else
@@ -952,6 +963,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Release the original reference on the scene render targets
 		GSceneRenderTargets.AdjustGBufferRefCount(-1);
 	}
+
+	VelocityRT.SafeRelease();
 
 	RenderFinish(RHICmdList);
 }

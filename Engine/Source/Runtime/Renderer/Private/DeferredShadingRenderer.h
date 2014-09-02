@@ -251,7 +251,7 @@ private:
 	const FProjectedShadowInfo* PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass);
 
 	/** Renders the velocities of movable objects for the motion blur effect. */
-	void RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame);
+	void RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
 	/** Renders the velocities for a subset of movable objects for the motion blur effect. */
 	friend class FRenderVelocityDynamicThreadTask;
@@ -266,12 +266,6 @@ private:
 
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
-
-	/**
-	 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
-	 * @param View - The view to process.
-	*/
-	void FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, FViewInfo* View, bool bLastView);
 
 	/**
 	  * Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.

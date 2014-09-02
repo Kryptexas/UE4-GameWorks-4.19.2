@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ScenePostProcessing.cpp: Scene post processing implementation.
+	GammaCorrection.cpp
 =============================================================================*/
 
 #include "RendererPrivate.h"
@@ -76,27 +76,6 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FGammaCorrectionPS,TEXT("GammaCorrection"),TEXT("MainPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(,FGammaCorrectionVS,TEXT("GammaCorrection"),TEXT("MainVS"),SF_Vertex);
-
-/**
-* Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
-* @param View - The view to process.
-*/
-void FDeferredShadingSceneRenderer::FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, FViewInfo* View, bool bLastView)
-{
-	TRefCountPtr<IPooledRenderTarget> VelocityRT;
-
-	// Render the velocities of movable objects for the motion blur effect (currently we only support one view)
-	RenderVelocities(RHICmdList, *View, VelocityRT, bLastView);
-
-	GPostProcessing.Process(RHICmdList, *View, VelocityRT);
-
-	// we rendered to it during the frame, seems we haven't made use of it, because there is should be released
-	FSceneViewState* ViewState = (FSceneViewState*)View->State;
-	if(ViewState)
-	{
-		check(!ViewState->SeparateTranslucencyRT);
-	}
-}
 
 // TODO: REMOVE if no longer needed:
 void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma)

@@ -202,7 +202,7 @@ public:
 	uint32 AppendData(FBoneSkinning *DataStart, uint32 BoneCount);
 
 	/** only call if LockData() */
-	ENGINE_API void UnlockData(bool bAdvance);
+	ENGINE_API void UnlockData();
 
 	/** @return 0 if there should be no bone based motion blur (no previous data available or it's not active) */
 	FBoneDataVertexBuffer* GetReadData();

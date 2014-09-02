@@ -1153,7 +1153,7 @@ uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 B
 	}
 }
 
-void FPreviousPerBoneMotionBlur::UnlockData(bool bAdvance)
+void FPreviousPerBoneMotionBlur::UnlockData()
 {
 	if(IsLocked())
 	{
@@ -1163,10 +1163,7 @@ void FPreviousPerBoneMotionBlur::UnlockData(bool bAdvance)
 
 		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData();
 
-		if(bAdvance) 
-		{
-			AdvanceBufferIndex();
-		}
+		AdvanceBufferIndex();
 	}
 	
 	{
@@ -1178,7 +1175,7 @@ void FPreviousPerBoneMotionBlur::UnlockData(bool bAdvance)
 
 			if((LogSpawmPrevent % 16) == 0)
 			{
-				UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh veclocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
+				UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
 			}
 			++LogSpawmPrevent;
 		}

@@ -161,7 +161,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 		else
 		{
-			SCOPED_DRAW_EVENT(FinishRendering, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(PostProcessing, DEC_SCENE_ITEMS);
 			SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{	

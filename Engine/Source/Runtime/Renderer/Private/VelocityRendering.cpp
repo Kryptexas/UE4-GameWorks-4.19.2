@@ -600,14 +600,22 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame)
+void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	check(FeatureLevel >= ERHIFeatureLevel::SM4);
 	SCOPE_CYCLE_COUNTER(STAT_RenderVelocities);
 
-	bool bTemporalAA = (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA) && !View.bCameraCut;
+	bool bNeedsVelocity = false;
+	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+	
+		bool bTemporalAA = (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA) && !View.bCameraCut;
+		bool bMotionBlur = IsMotionBlurEnabled(View);
 
-	if(!IsMotionBlurEnabled(View) && !bTemporalAA)
+		bNeedsVelocity |= bMotionBlur || bTemporalAA;
+	}
+	if( !bNeedsVelocity )
 	{
 		return;
 	}
@@ -617,44 +625,42 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
 
-	if(!VelocityRT)
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, TexCreate_None, TexCreate_RenderTargetable, false));
-
-		GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
-	}
+	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, TexCreate_None, TexCreate_RenderTargetable, false));
+	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
 
 	GPrevPerBoneMotionBlur.LockData();
-
-	const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
-	const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
-	const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
-	const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
+	
 	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
-
-	RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
-
+	
 	// Clear the velocity buffer (0.0f means "use static background velocity").
 	RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
-	// Blending is not supported with the velocity buffer format on other platforms
-	// opaque velocities in R|G channels, B is used to identify object motion
-	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
-	// Use depth tests, no z-writes, backface-culling. 
+	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
 
-	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
-			
-	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
+		const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
+		const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
+		const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
+		const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
+		
+		RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
 
-	RenderVelocitiesInner(RHICmdList, View);
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
+
+		RenderVelocitiesInner(RHICmdList, View);
+	}
 
 	RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 	// restore any color write state changes
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	GPrevPerBoneMotionBlur.UnlockData(bLastFrame);
+	
+	GPrevPerBoneMotionBlur.UnlockData();
 
 	// to be able to observe results with VisualizeTexture
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, VelocityRT);

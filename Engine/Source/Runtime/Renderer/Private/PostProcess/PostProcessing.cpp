@@ -810,9 +810,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			FRenderingCompositeOutputRef VelocityInput;
 			if(VelocityRT)
 			{
-				VelocityInput = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInputSingleUse(VelocityRT));
-				// the graph keeps a reference until it's no longer needed
-				VelocityRT.SafeRelease();
+				VelocityInput = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(VelocityRT));
 			}
 			
 			if( Context.View.FinalPostProcessSettings.AntiAliasingMethod != AAM_TemporalAA && ViewState )			
