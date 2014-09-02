@@ -30,7 +30,7 @@ FTargetDeviceId FHTML5TargetDevice::GetId( ) const
 
 FString FHTML5TargetDevice::GetName( ) const
 {
-	return FPlatformProcess::ComputerName();
+	return Name;
 }
 
 

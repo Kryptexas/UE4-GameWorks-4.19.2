@@ -15,10 +15,27 @@
 
 FHTML5TargetPlatform::FHTML5TargetPlatform( )
 {
-	LocalDevice = MakeShareable(new FHTML5TargetDevice(*this, FPlatformProcess::ComputerName()));
-
 	// load the final HTML5 engine settings for this game
 	FConfigCacheIni::LoadLocalIniFile(HTML5EngineSettings, TEXT("Engine"), true, *PlatformName());
+
+	FString DeviceSectionName;
+
+#if PLATFORM_WINDOWS
+	DeviceSectionName = "HTML5DevicesWindows";
+#elif PLATFORM_MAC
+	DeviceSectionName = "HTML5DevicesMac";
+#else 
+	DeviceSectionName = "HTML5DevicesLinux";
+#endif 
+
+	FConfigSection AvaliableDevicesSection = HTML5EngineSettings[DeviceSectionName];
+	for (auto It : AvaliableDevicesSection)
+	{
+		const FString& BrowserName = It.Key.ToString();
+		const FString& BrowserPath = It.Value;
+		if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*It.Value))
+			LocalDevice.Add(MakeShareable(new FHTML5TargetDevice(*this, It.Key.ToString())));
+	}
 
 #if WITH_ENGINE
 	// load up texture settings from the config file
@@ -34,7 +51,7 @@ FHTML5TargetPlatform::FHTML5TargetPlatform( )
 void FHTML5TargetPlatform::GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const
 {
 	OutDevices.Reset();
-	OutDevices.Add(LocalDevice);
+	OutDevices.Append(LocalDevice);
 }
 
 
@@ -46,17 +63,20 @@ ECompressionFlags FHTML5TargetPlatform::GetBaseCompressionMethod( ) const
 
 ITargetDevicePtr FHTML5TargetPlatform::GetDefaultDevice( ) const
 {
-	return LocalDevice;
+	if(LocalDevice.Num())
+		return LocalDevice[0];
+	else 
+		return NULL; 
 }
 
 
 ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceId )
 {
-	if (LocalDevice.IsValid() && (DeviceId == LocalDevice->GetId()))
+	for ( auto Device : LocalDevice )
 	{
-		return LocalDevice;
+		if ( Device.IsValid() && DeviceId == Device->GetId() )
+			return Device; 
 	}
-
 	return NULL;
 }
 

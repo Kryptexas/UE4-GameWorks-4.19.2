@@ -200,42 +200,30 @@ public class HTML5Platform : Platform
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
-		// look for firefox
-		string[] PossiblePaths = new string[] 
-		{
-			Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Nightly\firefox.exe"),
-			Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Nightly\firefox.exe"),
-			Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Mozilla Firefox\firefox.exe"),
-			Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Mozilla Firefox\firefox.exe"),
-		};
+        // look for browser
+        var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CombinePaths(CmdEnv.LocalRoot, "Engine"));
 
-		// set up a directory for temp profile
-		string FirefoxProfileCommand = " -no-remote ";
+        string DeviceSection; 
 
-		// look for the best firefox to tun
-		string FirefoxPath = null;
-		foreach (string PossiblePath in PossiblePaths)
-		{
-			if (File.Exists(PossiblePath))
-			{
-				FirefoxPath = PossiblePath;
-				break;
-			}
-		}
+        if ( Utils.IsRunningOnMono )
+        {
+            DeviceSection = "HTML5DevicesMac";
+        }
+        else
+        {
+            DeviceSection = "HTML5DevicesWindows";
+        }
 
-		// if we didn't find one, just use the shell to open it
-		if (FirefoxPath == null)
-		{
-			FirefoxPath = CmdEnv.CmdExe;
-			FirefoxProfileCommand = " ";
-		}
+        string browserPath;
+        string DeviceName = Params.Device.Split('@')[1];
+        bool ok = ConfigCache.GetString(DeviceSection, DeviceName, out browserPath);
+        
+		if (!ok)
+			throw new System.Exception ("Incorrect browser configuration in HTML5Engine.ini "); 
 
 		// open the webpage
-		// what to do with the commandline!??
-		string HTMLPath = Path.ChangeExtension(ClientApp, "html");
-		if (!File.Exists(HTMLPath))  // its probably a content only game - then it exists in the UE4 directory and not in the game directory. 
-			HTMLPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Binaries", "HTML5", Path.GetFileName(HTMLPath));
-
+        string directory = Path.GetDirectoryName(ClientApp);
+        string url = Path.GetFileName(ClientApp) +".html"; 
 		// Are we running via cook on the fly server? 
 		// find our http url - This is awkward because RunClient doesn't have real information that NFS is running or not. 
 		bool IsCookOnTheFly = false;
@@ -251,7 +239,7 @@ public class HTML5Platform : Platform
 				{
 					if (Url.Contains("http"))
 					{
-						HTMLPath = Url + "/" + Path.GetFileName(HTMLPath);
+						url = Url + "/" + Path.GetFileName(url);
 						IsCookOnTheFly = true;
 					}
 				}
@@ -260,25 +248,59 @@ public class HTML5Platform : Platform
 				break;
 		}
 
-		if (IsCookOnTheFly)
-		{
-			HTMLPath += "?cookonthefly=true";
-		}
+        if (IsCookOnTheFly)
+        {
+            url += "?cookonthefly=true";
+        }
+        else
+        {
 
-		if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-		{
-			FirefoxPath = "/bin/bash";
-			FirefoxProfileCommand = " -c  ' open -a Firefox.app  \"" + HTMLPath + "\"   ' ";
-		}
-		else if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64)
-		{
-			FirefoxProfileCommand = FirefoxProfileCommand + "\"" + HTMLPath + "\" ";
-		}
+            url = "http://127.0.0.1:8000/" + url;
+            // this will be killed UBT instances dies. 
+            string input = String.Format(" -m SimpleHTTPServer 8000");
 
-		System.Console.WriteLine("Firefox command line: " + FirefoxProfileCommand);
-		ProcessResult ClientProcess = Run(FirefoxPath, FirefoxProfileCommand, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 
-		return ClientProcess;
+			string PythonName = "python2.exe";
+
+			if (Utils.IsRunningOnMono)
+				PythonName = "python2"; 
+
+			ProcessResult Result = ProcessManager.CreateProcess(PythonName, true, "html5server.log");
+			Result.ProcessObject.StartInfo.FileName = PythonName;
+            Result.ProcessObject.StartInfo.UseShellExecute = false; 
+            Result.ProcessObject.StartInfo.RedirectStandardOutput = true;
+            Result.ProcessObject.StartInfo.RedirectStandardInput = true;
+            Result.ProcessObject.StartInfo.WorkingDirectory = directory;
+            Result.ProcessObject.StartInfo.Arguments = input;
+            Result.ProcessObject.Start();
+
+
+            Result.ProcessObject.OutputDataReceived += delegate(object sender, System.Diagnostics.DataReceivedEventArgs e)
+            {
+                System.Console.WriteLine(e.Data);
+            };
+
+            System.Console.WriteLine("Starting Browser Process"); 
+
+            ProcessResult ClientProcess = Run(browserPath, url, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+
+            ClientProcess.ProcessObject.EnableRaisingEvents = true; 
+            ClientProcess.ProcessObject.Exited += delegate(System.Object o, System.EventArgs e)
+            {
+                System.Console.WriteLine("Browser Process Ended - Killing Webserver");
+                // send kill. 
+                Result.ProcessObject.StandardInput.Close();
+                Result.ProcessObject.Kill();
+            };
+
+            return ClientProcess;
+        }
+
+        System.Console.WriteLine("Browser Path " + browserPath);
+        ProcessResult BrowserProcess = Run(browserPath, url, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+
+        return BrowserProcess; 
+
 	}
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)

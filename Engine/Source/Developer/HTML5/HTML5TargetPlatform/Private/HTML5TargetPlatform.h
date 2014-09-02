@@ -95,7 +95,7 @@ private:
 	FConfigFile HTML5EngineSettings;
 
 	// Holds the local device.
-	FHTML5TargetDevicePtr LocalDevice;
+	TArray<ITargetDevicePtr> LocalDevice;
 
 #if WITH_ENGINE
 	// Holds the cached target LOD settings.
