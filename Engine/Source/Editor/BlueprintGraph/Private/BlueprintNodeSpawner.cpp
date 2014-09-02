@@ -162,11 +162,6 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D con
 			NewNode->SetFlags(RF_Transactional);
 			NewNode->AllocateDefaultPins();
 			NewNode->PostPlacedNewNode();
-
-			ParentGraph->Modify();
-			// selections of this node happen up, out at the 
-			// FBlueprintActionMenuItem level
-			ParentGraph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 		}
 	}
 
