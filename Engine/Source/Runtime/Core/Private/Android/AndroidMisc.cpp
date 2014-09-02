@@ -135,9 +135,36 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 
 }
 
+bool FAndroidMisc::AllowRenderThread()
+{
+	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
+	// when running multithreaded it can't handle multiple threads using opengl (bug)
+	// tested with lg optimus 2x and motorola xoom 
+	// come back and revisit this later 
+	// https://code.google.com/p/android/issues/detail?id=32636
+	if (FAndroidMisc::GetGPUFamily() == FString(TEXT("NVIDIA Tegra")) && FPlatformMisc::NumberOfCores() <= 2)
+	{
+		return false;
+	}
+
+	// there is an issue with presenting the buffer on kindle fire (1st gen) with multiple threads using opengl
+	if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Kindle Fire")))
+	{
+		return false;
+	}
+
+	// there is an issue with swapbuffer ordering on startup on samsung s3 mini with multiple threads using opengl
+	if (FAndroidMisc::GetDeviceModel() == FString(TEXT("GT-I8190L")))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 int32 FAndroidMisc::NumberOfCores()
 {
-	int32 NumberOfCores = android_getCpuCount(); 
+	int32 NumberOfCores = android_getCpuCount();
 	return NumberOfCores;
 }
 

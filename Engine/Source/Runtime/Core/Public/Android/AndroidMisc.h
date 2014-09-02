@@ -66,6 +66,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
+	static bool AllowRenderThread();
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void BeforeRenderThreadStarts();

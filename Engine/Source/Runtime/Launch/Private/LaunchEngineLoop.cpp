@@ -1028,33 +1028,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Set all CVars which have been setup in the device profiles.
 	UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile();
 
-	if (FApp::ShouldUseThreadingForPerformance())
+	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowRenderThread())
 	{
 		GUseThreadedRendering = true;
-
-#if PLATFORM_ANDROID 
-		// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
-		// when running multithreaded it can't handle multiple threads using opengl (bug)
-		// tested with lg optimus 2x and motorola xoom 
-		// come back and revisit this later 
-		// https://code.google.com/p/android/issues/detail?id=32636
-		if ( FAndroidMisc::GetGPUFamily() == FString(TEXT("NVIDIA Tegra")) && FPlatformMisc::NumberOfCores() <= 2 )
-		{
-			GUseThreadedRendering = false;
-		}
-
-		// there is an issue with presenting the buffer on kindle fire (1st gen) with multiple threads using opengl
-		if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Kindle Fire")))
-		{
-			GUseThreadedRendering = false;
-		}
-
-		// there is an issue with swapbuffer ordering on startup on samsung s3 mini with multiple threads using opengl
-		if (FAndroidMisc::GetDeviceModel() == FString(TEXT("GT-I8190L")))
-		{
-			GUseThreadedRendering = false;
-		}
-#endif
 	}
 #endif
 

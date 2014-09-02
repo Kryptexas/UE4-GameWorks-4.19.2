@@ -594,6 +594,16 @@ public:
 	static const TCHAR* GetDefaultPathSeparator();
 
 	/**
+	 * Checks if platform wants to allow a rendering thread on current device (note: does not imply it will, only if okay given other criteria met)
+	 * @return true if allowed, false if shouldn't use a separate rendering thread
+	 */
+	static bool AllowRenderThread()
+	{
+		// allow if not overridden
+		return true;
+	}
+
+	/**
 	 * return the number of hardware CPU cores
 	 */
 	static int32 NumberOfCores()
