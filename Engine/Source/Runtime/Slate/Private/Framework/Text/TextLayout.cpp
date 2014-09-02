@@ -1207,6 +1207,11 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 				break;
 			}
 		}
+		else if(IntersectedRangeToRemove.IsEmpty() && RunRange.IsEmpty() && RemoveTextRange.Contains(RunRange.BeginIndex) && RemoveTextRange.Contains(RunRange.EndIndex))
+		{
+			// empty run that was inside our removed range, safe to remove
+			LineModel.Runs.RemoveAt(RunIndex);
+		}
 	}
 
 	DirtyFlags |= EDirtyState::Layout;
