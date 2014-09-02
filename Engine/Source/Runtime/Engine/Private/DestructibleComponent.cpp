@@ -354,9 +354,13 @@ void UDestructibleComponent::DestroyPhysicsState()
 	{
 		if(UWorld * World = GetWorld())
 		{
-			if(FPhysScene * PhysScene = World->GetPhysicsScene())
+			if (FPhysScene * PhysScene = World->GetPhysicsScene())
 			{
-				PhysScene->DeferredCommandHandler.DeferredRelease(ApexDestructibleActor);
+				const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+				PxScene * PScene = PhysScene->GetPhysXScene(SceneType);
+				SCOPED_SCENE_WRITE_LOCK(PScene);
+				ApexDestructibleActor->release();
+				//Deferring here is difficult because a call to CreatePhysicsState will re-use the same chunk info buffer for new chunks. Note this may be possible, but need to fix crash now
 			}
 		}
 		
@@ -798,6 +802,7 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 				check(InfoIndex == UserDataIdx);
 
 				PActor->userData = UserData;
+
 
 
 				// Set collision response to non-root chunks
