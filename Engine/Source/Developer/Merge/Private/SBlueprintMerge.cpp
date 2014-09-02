@@ -20,11 +20,31 @@ SBlueprintMerge::SBlueprintMerge()
 {
 }
 
+static void WriteBackup(UPackage& Package, const FString& Directory, const FString& Filename)
+{
+	if (GEditor)
+	{
+		const FString DestinationFilename = Directory + FString("/") + Filename;
+		FString OriginalFilename;
+		if (FPackageName::DoesPackageExist(Package.GetName(), NULL, &OriginalFilename))
+		{
+			IFileManager::Get().Copy(*DestinationFilename, *OriginalFilename);
+		}
+	}
+}
+
+static const FString BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
+
 void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
 {
 	check( InData.OwningEditor.Pin().IsValid() );
 
 	Data = InData;
+
+	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
+	WriteBackup(*Data.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension());
+	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension());
+	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
 	auto GraphView = SNew( SMergeGraphView, InData );
 	GraphControl.Widget = GraphView;
@@ -92,29 +112,6 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	OnModeChanged( InData.OwningEditor.Pin()->GetCurrentMode() );
 }
 
-template< typename T >
-static void CopyToShared( const TArray<T>& Source, TArray< TSharedPtr<T> >& Dest )
-{
-	check( Dest.Num() == 0 );
-	for( auto i : Source )
-	{
-		Dest.Add( MakeShareable(new T( i )) );
-	}
-}
-
-static void WriteBackup( UPackage& Package, const FString& Directory, const FString& Filename )
-{
-	if( GEditor )
-	{
-		const FString DestinationFilename = Directory + FString("/") + Filename;
-		FString OriginalFilename;
-		if( FPackageName::DoesPackageExist(Package.GetName(), NULL, &OriginalFilename) )
-		{
-			IFileManager::Get().Copy(*DestinationFilename, *OriginalFilename);
-		}
-	}
-}
-
 UBlueprint* SBlueprintMerge::GetTargetBlueprint()
 {
 	return Data.OwningEditor.Pin()->GetBlueprintObj();
@@ -142,12 +139,6 @@ bool SBlueprintMerge::HasPrevDiff() const
 
 void SBlueprintMerge::OnAcceptResultClicked()
 {
-	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
-	const FString BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
-	WriteBackup(*Data.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension() );
-	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension() );
-	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
-
 	UPackage* Package = GetTargetBlueprint()->GetOutermost();
 	TArray<UPackage*> PackagesToSave;
 	PackagesToSave.Add(Package);

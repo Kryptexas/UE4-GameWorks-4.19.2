@@ -143,11 +143,18 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 				->AddArea
 				(
 					FTabManager::NewArea(WindowSize)
+					->SetOrientation(Orient_Vertical)
 					->Split
 					(
 						FTabManager::NewStack()
 						->SetSizeCoefficient(1.0f)
 						->AddTab("StandaloneToolkit", ETabState::ClosedTab)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.35f)
+						->AddTab("MergeTool", ETabState::ClosedTab)
 					)
 				)
 			);
