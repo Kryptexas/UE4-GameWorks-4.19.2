@@ -33,13 +33,13 @@ static void WriteBackup(UPackage& Package, const FString& Directory, const FStri
 	}
 }
 
-static const FString BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
-
 void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
 {
 	check( InData.OwningEditor.Pin().IsValid() );
 
 	Data = InData;
+
+	BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
 
 	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
 	WriteBackup(*Data.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension());

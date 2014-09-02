@@ -29,7 +29,8 @@ private:
 	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);
 
-	FBlueprintMergeData Data;
+	FBlueprintMergeData		Data; 
+	FString					BackupSubDir;
 
 	TSharedPtr<SBorder>		MainView;
 
