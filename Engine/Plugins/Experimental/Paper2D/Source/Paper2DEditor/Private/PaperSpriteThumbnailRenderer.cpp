@@ -96,7 +96,7 @@ void UPaperSpriteThumbnailRenderer::DrawFrame(class UPaperSprite* Sprite, int32 
 		}
 
 		// Draw triangles
-		if (CanvasPositions.Num() > 0)
+		if (CanvasPositions.Num() > 0 && SourceTexture->Resource != nullptr)
 		{
 			TArray<FCanvasUVTri> Triangles;
 			const FLinearColor SpriteColor(FLinearColor::White);
