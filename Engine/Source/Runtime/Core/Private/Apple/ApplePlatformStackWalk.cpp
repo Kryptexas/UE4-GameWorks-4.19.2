@@ -260,22 +260,24 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 int32 ReportCrash(ucontext_t *Context, int32 Signal, struct __siginfo* Info)
 {
 	static bool GAlreadyCreatedMinidump = false;
+	
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
 	if ( GAlreadyCreatedMinidump == false )
 	{
 		GAlreadyCreatedMinidump = true;
 
+		// No malloc in a signal handler as it is unsafe & will deadlock the application!
 		const SIZE_T StackTraceSize = 65535;
-		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::Malloc( StackTraceSize );
+		static ANSICHAR StackTrace[ StackTraceSize ];
 		StackTrace[0] = 0;
+		
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, Context );
 #if WITH_EDITORONLY_DATA
         FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
 		CreateExceptionInfoString(Signal, Info);
 #endif
-		FMemory::Free( StackTrace );
 	}
 
 	return 0;

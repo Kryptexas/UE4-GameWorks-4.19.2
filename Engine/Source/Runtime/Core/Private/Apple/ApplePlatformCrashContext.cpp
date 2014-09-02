@@ -72,7 +72,7 @@ int32 FApplePlatformCrashContext::ReportCrash() const
 		*StackBuffer = 0;
 		
 		// Walk the stack and dump it to the allocated memory (ignore first 2 callstack lines as those are in stack walking code)
-		FPlatformStackWalk::StackWalkAndDump( StackBuffer, ARRAY_COUNT(MinidumpCallstackInfo) - 1, 2, Context );
+		FPlatformStackWalk::StackWalkAndDump( StackBuffer, ARRAY_COUNT(MinidumpCallstackInfo) - 1, 6, Context );
 		
 #if WITH_EDITORONLY_DATA
 		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(MinidumpCallstackInfo), ARRAY_COUNT(GErrorHist) - 1 );
@@ -167,9 +167,16 @@ ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base)
 	
 	uint64 i = 62;
 	
-	for(; Val && i ; --i, Val /= Base)
+	if(Val)
 	{
-		InternalBuffer[i] = "0123456789abcdef"[Val % Base];
+		for(; Val && i ; --i, Val /= Base)
+		{
+			InternalBuffer[i] = "0123456789abcdef"[Val % Base];
+		}
+	}
+	else
+	{
+		InternalBuffer[i--] = '0';
 	}
 	
 	return &InternalBuffer[i+1];
@@ -181,9 +188,16 @@ TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base)
 	
 	uint64 i = 62;
 	
-	for(; Val && i ; --i, Val /= Base)
+	if(Val)
 	{
-		InternalBuffer[i] = TEXT("0123456789abcdef")[Val % Base];
+		for(; Val && i ; --i, Val /= Base)
+		{
+			InternalBuffer[i] = TEXT("0123456789abcdef")[Val % Base];
+		}
+	}
+	else
+	{
+		InternalBuffer[i--] = TEXT('0');
 	}
 	
 	return &InternalBuffer[i+1];
