@@ -20,9 +20,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Radius)
 	float Radius;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
-	AActor* SourceActor;
-
 protected:
 
 	TArray<AActor*>	PerformOverlap(const FVector& Origin);

@@ -23,6 +23,7 @@ void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGameplayAbilityTargetActor, StartLocation);
+	DOREPLIFETIME(AGameplayAbilityTargetActor, SourceActor);
 	DOREPLIFETIME(AGameplayAbilityTargetActor, bDebug);
 }
 

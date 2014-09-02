@@ -22,13 +22,6 @@ AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const class
 	MaxRange = 999999.0f;
 }
 
-void AGameplayAbilityTargetActor_Trace::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	DOREPLIFETIME(AGameplayAbilityTargetActor_Trace, SourceActor);
-}
-
 void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (ReticleActor.IsValid())

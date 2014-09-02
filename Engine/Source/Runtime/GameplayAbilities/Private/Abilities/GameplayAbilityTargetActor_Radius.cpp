@@ -22,13 +22,6 @@ AGameplayAbilityTargetActor_Radius::AGameplayAbilityTargetActor_Radius(const cla
 	ShouldProduceTargetDataOnServer = true;
 }
 
-void AGameplayAbilityTargetActor_Radius::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AGameplayAbilityTargetActor_Radius, SourceActor);
-}
-
 void AGameplayAbilityTargetActor_Radius::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
