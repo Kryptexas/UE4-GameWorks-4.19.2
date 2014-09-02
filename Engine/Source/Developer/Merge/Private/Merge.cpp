@@ -226,7 +226,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 		}
 	}
 
-	TSharedRef<SDockTab> Tab = Editor->GetTabManager()->InvokeTab(MergeToolTabId);
+	TSharedRef<SDockTab> Tab =  FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
 	Tab->SetContent(Contents.ToSharedRef());
 	ActiveTab = Tab;
 	return Tab;
