@@ -16,6 +16,7 @@ static void VerifyWinResult(BOOL bResult, const TCHAR* InMessage)
 	verify(bResult != 0);
 }
 
+#if PLATFORM_SUPPORTS_NAMED_PIPES
 FWindowsPlatformNamedPipe::FWindowsPlatformNamedPipe() :
 	Pipe(NULL),
 	LastWaitingTime(0.0f),
@@ -523,3 +524,4 @@ bool FWindowsPlatformNamedPipe::HasFailed() const
 
 	return false;
 }
+#endif // PLATFORM_SUPPORTS_NAMED_PIPES
