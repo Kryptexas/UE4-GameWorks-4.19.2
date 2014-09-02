@@ -19,7 +19,6 @@ AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const class
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	StaticTargetFunction = false;
 
-	bDebug = false;
 	MaxRange = 999999.0f;
 }
 
@@ -27,7 +26,6 @@ void AGameplayAbilityTargetActor_Trace::GetLifetimeReplicatedProps(TArray< FLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(AGameplayAbilityTargetActor_Trace, bDebug);
 	DOREPLIFETIME(AGameplayAbilityTargetActor_Trace, SourceActor);
 }
 

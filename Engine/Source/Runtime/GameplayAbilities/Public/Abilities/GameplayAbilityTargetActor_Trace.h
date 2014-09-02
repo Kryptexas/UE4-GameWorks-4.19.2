@@ -23,9 +23,6 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
-	bool bDebug;
-
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Projectile)

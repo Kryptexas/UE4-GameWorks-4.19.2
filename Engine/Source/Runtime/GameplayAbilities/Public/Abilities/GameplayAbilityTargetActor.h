@@ -55,7 +55,10 @@ public:
 
 	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
 
-	UPROPERTY(BlueprintReadOnly, Category="Targeting")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	bool bDebug;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	APlayerController* MasterPC;
 
 	UPROPERTY()
