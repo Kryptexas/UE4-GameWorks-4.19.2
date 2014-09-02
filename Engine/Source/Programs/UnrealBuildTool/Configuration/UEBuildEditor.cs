@@ -52,7 +52,7 @@ namespace UnrealBuildTool
 			{
 				// Make the editor executable.
 				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable,
-																					InOutputFilePath: OutputPath,
+																					InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
 																					bInAllowExports:!ShouldCompileMonolithic(),

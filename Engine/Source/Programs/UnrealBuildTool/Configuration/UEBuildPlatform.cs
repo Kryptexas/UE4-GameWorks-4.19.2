@@ -172,6 +172,12 @@ namespace UnrealBuildTool
 		string ApplyArchitectureName(string BinaryName);
 
 		/**
+		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
+		 * this will emit multiple paths. By default, it simply makes an array from the input
+		 */
+		string[] FinalizeBinaryPaths(string BinaryName);
+
+		/**
 		 * Setup the configuration environment for building
 		 * 
 		 * @param InBuildTarget The target being built
@@ -645,6 +651,16 @@ namespace UnrealBuildTool
 		}
 
 		/**
+		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
+		 * this will emit multiple paths. By default, it simply makes an array from the input
+		 */
+		public virtual string[] FinalizeBinaryPaths(string BinaryName)
+		{
+			List<string> TempList = new List<string>() { BinaryName };
+			return TempList.ToArray();
+		}
+
+		/**
 		 *	Setup the configuration environment for building
 		 *	
 		 *	@param	InBuildTarget		The target being built
@@ -657,7 +673,7 @@ namespace UnrealBuildTool
 			//@todo SAS: Add a true Debug mode!
 			if (UnrealBuildTool.RunningRocket())
 			{
-				if (Utils.IsFileUnderDirectory(InBuildTarget.OutputPath, UnrealBuildTool.GetUProjectPath()))
+				if (Utils.IsFileUnderDirectory(InBuildTarget.OutputPaths[0], UnrealBuildTool.GetUProjectPath()))
 				{
 					if (CheckConfig == UnrealTargetConfiguration.Debug)
 					{

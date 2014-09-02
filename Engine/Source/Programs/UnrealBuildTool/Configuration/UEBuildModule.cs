@@ -544,6 +544,9 @@ namespace UnrealBuildTool
 				// If this module is being built into a DLL or EXE, set up an IMPORTS or EXPORTS definition for it.
 				if (Binary != null)
 				{
+					string BinaryPath = Binary.Config.OutputFilePaths[0];
+					string SourceBinaryPath = SourceBinary.Config.OutputFilePaths[0];
+
 					if (ProjectFileGenerator.bGenerateProjectFiles || (Binary.Config.Type == UEBuildBinaryType.StaticLibrary))
 					{
 						// When generating IntelliSense files, never add dllimport/dllexport specifiers as it
@@ -554,12 +557,12 @@ namespace UnrealBuildTool
 					{
 						if( Binary.Config.bAllowExports )
 						{
-							Log.TraceVerbose( "{0}: Exporting {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinary.Config.OutputFilePath ), Name, Path.GetFileNameWithoutExtension( Binary.Config.OutputFilePath ) );
+							Log.TraceVerbose( "{0}: Exporting {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=DLLEXPORT" );
 						}
 						else
 						{
-							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinary.Config.OutputFilePath ), Name, Path.GetFileNameWithoutExtension( Binary.Config.OutputFilePath ) );
+							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 					}
@@ -570,17 +573,17 @@ namespace UnrealBuildTool
 						//		this, we need to suppress warnings at compile time.
 						if( bIncludePathsOnly )
 						{
-							Log.TraceVerbose( "{0}: Include paths only for {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinary.Config.OutputFilePath ), Name, Path.GetFileNameWithoutExtension( Binary.Config.OutputFilePath ) );
+							Log.TraceVerbose( "{0}: Include paths only for {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 						else if (Binary.Config.bAllowExports)
 						{
-							Log.TraceVerbose( "{0}: Importing {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinary.Config.OutputFilePath ), Name, Path.GetFileNameWithoutExtension( Binary.Config.OutputFilePath ) );
+							Log.TraceVerbose( "{0}: Importing {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=DLLIMPORT" );
 						}
 						else
 						{
-							Log.TraceVerbose("{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension(SourceBinary.Config.OutputFilePath), Name, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath));
+							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ));
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 					}
@@ -961,7 +964,7 @@ namespace UnrealBuildTool
 		public bool bEnableExceptions = false;
 
 		/** Path to this module's redist static library */
-		public string RedistStaticLibraryPath = null;
+		public string[] RedistStaticLibraryPaths = null;
 
 		/** Whether we're building the redist static library (as well as using it). */
 		public bool bBuildingRedistStaticLibrary = false;
@@ -1111,7 +1114,7 @@ namespace UnrealBuildTool
 				return LinkInputFiles;
 			}
 
-			if(RedistStaticLibraryPath != null && !bBuildingRedistStaticLibrary)
+			if(RedistStaticLibraryPaths != null && !bBuildingRedistStaticLibrary)
 			{
 				// The redist static library will be added in SetupPrivateLinkEnvironment
 				return LinkInputFiles;
@@ -1480,7 +1483,7 @@ namespace UnrealBuildTool
 			LinkInputFiles.AddRange(CPPCompileEnvironment.CompileFiles( Target, SourceFilesToBuild.MMFiles, Name).ObjectFiles);
 
 			// If we're building Rocket, generate a static library for this module
-			if(RedistStaticLibraryPath != null)
+			if(RedistStaticLibraryPaths != null)
 			{
 				// Create a link environment for it
 				LinkEnvironment RedistLinkEnvironment = new LinkEnvironment();
@@ -1489,7 +1492,7 @@ namespace UnrealBuildTool
 				RedistLinkEnvironment.Config.bIsBuildingDLL        = false;
 				RedistLinkEnvironment.Config.bIsBuildingLibrary    = true;
 				RedistLinkEnvironment.Config.IntermediateDirectory = Binary.Config.IntermediateDirectory;
-				RedistLinkEnvironment.Config.OutputFilePath        = RedistStaticLibraryPath;
+				RedistLinkEnvironment.Config.OutputFilePaths        = RedistStaticLibraryPaths;
 
 				// Replace the items built so far with the library
 				RedistLinkEnvironment.LinkExecutable(false);
@@ -1776,9 +1779,12 @@ namespace UnrealBuildTool
 		{
 			base.SetupPrivateLinkEnvironment(ref LinkEnvironment,ref BinaryDependencies,ref VisitedModules);
 
-			if(RedistStaticLibraryPath != null)
+			if(RedistStaticLibraryPaths != null)
 			{
-				LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(RedistStaticLibraryPath));
+				foreach (string LibVar in RedistStaticLibraryPaths)
+				{
+					LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(LibVar));
+				}
 			}
 		}
 
@@ -1950,7 +1956,7 @@ namespace UnrealBuildTool
 								// Is this a plugin module?
 								var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
 
-								string OutputFilePath = Target.MakeBinaryPath(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, bIsRocketModule, PluginInfo, "");
+								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, bIsRocketModule, PluginInfo, "");
 
 								// If it's an engine module, output intermediates to the engine intermediates directory. 
 								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
@@ -1961,7 +1967,7 @@ namespace UnrealBuildTool
 
 								// When using modular linkage, unbound modules will be linked into their own DLL files
 								UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																									InOutputFilePath: OutputFilePath,
+																									InOutputFilePaths: OutputFilePaths,
 																									InIntermediateDirectory: IntermediateDirectory,
 																									bInAllowExports: true,
 																									InModuleNames: new List<string> { DependencyModule.Name },
@@ -1971,8 +1977,11 @@ namespace UnrealBuildTool
 																									bInCompileMonolithic: Target.ShouldCompileMonolithic() );
 
 								// Fix up the binary path if this is module specifies an alternate output directory
-								Config.OutputFilePath = DependencyModule.FixupOutputPath(Config.OutputFilePath);
-
+								for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
+								{
+									Config.OutputFilePaths[Index] = DependencyModule.FixupOutputPath(Config.OutputFilePaths[Index]);
+								}
+	
 								BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
 							}
 

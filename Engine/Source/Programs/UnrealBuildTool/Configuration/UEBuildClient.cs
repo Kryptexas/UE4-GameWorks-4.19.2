@@ -44,7 +44,10 @@ namespace UnrealBuildTool
                     // We want the output to go into the <GAME>\Binaries folder
                     if (InRulesObject.bOutputToEngineBinaries == false)
                     {
-                        OutputPath = OutputPath.Replace("Engine\\Binaries", InGameName + "\\Binaries");
+						for (int Index = 0; Index < OutputPaths.Length; Index++ )
+						{
+							OutputPaths[Index] = OutputPaths[Index].Replace("Engine\\Binaries", InGameName + "\\Binaries");
+						}
                     }
                 }
             }
@@ -57,13 +60,13 @@ namespace UnrealBuildTool
             {
                 // Make the game executable.
                 UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
-                                                                                    InOutputFilePath: OutputPath,
+                                                                                    InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
                                                                                     bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
                                                                                     bInAllowExports: !ShouldCompileMonolithic(),
                                                                                     InModuleNames: new List<string>() { "Launch" });
 
-                AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
             }
 
             // Add the other modules that we want to compile along with the executable.  These aren't necessarily

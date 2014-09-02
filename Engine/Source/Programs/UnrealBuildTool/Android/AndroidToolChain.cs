@@ -469,12 +469,24 @@ namespace UnrealBuildTool
 
 		static bool ShouldSkipLib(string Lib, string Arch)
 		{
+			// reject any libs we outright don't want to link with
 			foreach (var LibName in LibrariesToSkip[Arch])
 			{
-				// if there's a directory in the path with a bad architecture name, reject it
 				if (LibName == Lib)
 				{
 					return true;
+				}
+			}
+
+			// if another architecture is in the filename, reject it
+			foreach (string ArchName in Arches)
+			{
+				if (ArchName != Arch)
+				{
+					if (Path.GetFileNameWithoutExtension(Lib).EndsWith(ArchName))
+					{
+						return true;
+					}
 				}
 			}
 
@@ -685,12 +697,31 @@ namespace UnrealBuildTool
 			return Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileNameWithoutExtension(Pathname) + Arch + Path.GetExtension(Pathname));
 		}
 
+		static public string RemoveArchName(string Pathname)
+		{
+			// remove all architecture names
+			foreach (string Arch in Arches)
+			{
+				Pathname = Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileName(Pathname).Replace(Arch, ""));
+			}
+			return Pathname;
+		}
+
 		public override FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
-			foreach (string Arch in Arches)
+			for (int ArchIndex = 0; ArchIndex < Arches.Length; ArchIndex++)
 			{
+				string Arch = Arches[ArchIndex];
+
+				// Android will have an array of outputs
+				if (LinkEnvironment.Config.OutputFilePaths.Length < ArchIndex || 
+					!Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePaths[ArchIndex]).EndsWith(Arch))
+				{
+					throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");
+				}
+
 				// Create an action that invokes the linker.
 				Action LinkAction = new Action(ActionType.Link);
 				LinkAction.WorkingDirectory = Path.GetFullPath(".");
@@ -713,15 +744,7 @@ namespace UnrealBuildTool
 
 				// Add the output file as a production of the link action.
 				FileItem OutputFile;
-				// libraries don't have the platform name in it, so inline the name
-				if (LinkEnvironment.Config.bIsBuildingLibrary)
-				{
-					OutputFile = FileItem.GetItemByPath(InlineArchName(LinkEnvironment.Config.OutputFilePath, Arch));
-				}
-				else
-				{
-					OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
-				}
+				OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePaths[ArchIndex]);
 				Outputs.Add(OutputFile);
 				LinkAction.ProducedItems.Add(OutputFile);
 				LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
@@ -781,23 +804,18 @@ namespace UnrealBuildTool
 					LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
 					foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 					{
-						if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
+						if (!ShouldSkipLib(AdditionalLibrary, Arch))
 						{
-							if (!ShouldSkipLib(AdditionalLibrary, Arch))
+							if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
 							{
 								LinkAction.CommandArguments += string.Format(" \"-l{0}\"", AdditionalLibrary);
 							}
-						}
-						else
-						{
-							// full pathed libs are compiled by us, so we depend on linking them (look for extra architecture name if needed)
-							string LibPath = AdditionalLibrary;
-							if (!File.Exists(AdditionalLibrary))
+							else
 							{
-								LibPath = InlineArchName(AdditionalLibrary, Arch);
+								// full pathed libs are compiled by us, so we depend on linking them
+								LinkAction.CommandArguments += string.Format(" \"{0}\"", AdditionalLibrary);
+								LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
 							}
-							LinkAction.CommandArguments += string.Format(" \"{0}\"", LibPath);
-							LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(LibPath));
 						}
 					}
 					LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
@@ -812,6 +830,13 @@ namespace UnrealBuildTool
 			}
 
 			return Outputs.ToArray();
+		}
+
+		public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+		{
+			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
+			string ApkFile = Path.ChangeExtension(RemoveArchName(Binary.Config.OutputFilePaths[0]), ".apk");
+			Manifest.AddFileName(ApkFile);
 		}
 
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)

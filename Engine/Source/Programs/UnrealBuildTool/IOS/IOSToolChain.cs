@@ -1109,7 +1109,10 @@ namespace UnrealBuildTool
 						{
 							if (Module.bBuildingRedistStaticLibrary)
 							{
-								BuiltBinaries.Add(Path.GetFullPath(Module.RedistStaticLibraryPath));
+								foreach (var LibraryPath in Module.RedistStaticLibraryPaths)
+								{
+									BuiltBinaries.Add(Path.GetFullPath(LibraryPath));
+								}
 							}
 						}
 					}

@@ -37,12 +37,42 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The output file path. This must be set before a binary can be built using it.
 		/// </summary>
-		public string OutputFilePath;
+		public string[] OutputFilePaths;
+
+		/// <summary>
+		/// Returns the OutputFilePath is there is only one entry in OutputFilePaths
+		/// </summary>
+		public string OutputFilePath
+		{
+			get
+			{
+				if (OutputFilePaths.Length != 1)
+				{
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+				}
+				return OutputFilePaths[0];
+			}
+		}
 
 		/// <summary>
 		/// Original output filepath. This is the original binary name before hot-reload suffix has been appended to it.
 		/// </summary>
-		public string OriginalOutputFilePath;
+		public string[] OriginalOutputFilePaths;
+
+		/// <summary>
+		/// Returns the OutputFilePath is there is only one entry in OutputFilePaths
+		/// </summary>
+		public string OriginalOutputFilePath
+		{
+			get
+			{
+				if (OutputFilePaths.Length != 1)
+				{
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+				}
+				return OutputFilePaths[0];
+			}
+		}
 
 		/// <summary>
 		/// The intermediate directory for this binary. Modules should create separate intermediate directories below this. Must be set before a binary can be built using it.
@@ -116,7 +146,7 @@ namespace UnrealBuildTool
 		/// <param name="InModuleNames"></param>
 		public UEBuildBinaryConfiguration(
 				UEBuildBinaryType InType,
-				string InOutputFilePath = null,
+				string[] InOutputFilePaths = null,
 				string InIntermediateDirectory = null,
 				bool bInAllowExports = false,
 				bool bInCreateImportLibrarySeparately = false,
@@ -132,7 +162,7 @@ namespace UnrealBuildTool
 			)
 		{
 			Type = InType;
-			OutputFilePath = InOutputFilePath;
+			OutputFilePaths = InOutputFilePaths;
 			IntermediateDirectory = InIntermediateDirectory;
 			bAllowExports = bInAllowExports;
 			bCreateImportLibrarySeparately = bInCreateImportLibrarySeparately;
@@ -350,7 +380,10 @@ namespace UnrealBuildTool
 				if (Module != null && (Target.Rules == null || Target.Rules.bOutputToEngineBinaries == false))
 				{
 					// Fix up the binary path if this is module specifies an alternate output directory
-					Config.OutputFilePath = Module.FixupOutputPath(Config.OutputFilePath);
+					for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++ )
+					{
+						Config.OutputFilePaths[Index] = Module.FixupOutputPath(Config.OutputFilePaths[Index]);
+					}
 				}
 			}
 		}
@@ -485,10 +518,11 @@ namespace UnrealBuildTool
 			// this for each file when generating their dependencies.
 			BinaryCompileEnvironment.bHackHeaderGenerator = (Target.GetAppName() == "UnrealHeaderTool");
 
+			// @todo: This should be in some Windows code somewhere...
 			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
-			var OriginalFilename = !String.IsNullOrEmpty(Config.OriginalOutputFilePath) ?
-				Path.GetFileName(Config.OriginalOutputFilePath) :
-				Path.GetFileName(Config.OutputFilePath);
+			var OriginalFilename = (Config.OriginalOutputFilePaths != null) ?
+				Path.GetFileName(Config.OriginalOutputFilePaths[0]) :
+				Path.GetFileName(Config.OutputFilePaths[0]);
 			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
 
 			foreach (var ModuleName in ModuleNames)
@@ -535,7 +569,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the link output file.
-			BinaryLinkEnvironment.Config.OutputFilePath = Config.OutputFilePath;
+			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths;
 
 			// Set whether the link is allowed to have exports.
 			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
@@ -544,7 +578,7 @@ namespace UnrealBuildTool
 			BinaryLinkEnvironment.Config.IntermediateDirectory = Config.IntermediateDirectory;
 
 			// Put the non-executable output files (PDB, import library, etc) in the same directory as the production
-			BinaryLinkEnvironment.Config.OutputDirectory = Path.GetDirectoryName(Config.OutputFilePath);
+			BinaryLinkEnvironment.Config.OutputDirectory = Path.GetDirectoryName(Config.OutputFilePaths[0]);
 
 			// Determine the type of binary we're linking.
 			switch (Config.Type)
@@ -602,7 +636,10 @@ namespace UnrealBuildTool
 					var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
 					ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
 					ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
-					ConsoleAppLinkEvironment.Config.OutputFilePath = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePath);
+					for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
+					{
+						ConsoleAppLinkEvironment.Config.OutputFilePaths[Index] = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePaths[Index]);
+					}
 
 					// Link the console app executable
 					OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
@@ -624,18 +661,21 @@ namespace UnrealBuildTool
 		/// <param name="DependentLinkEnvironment">The link environment of the dependency</param>
 		public override void SetupDependentLinkEnvironment(ref LinkEnvironment DependentLinkEnvironment)
 		{
-			string LibraryFileName;
-			if (Config.Type == UEBuildBinaryType.StaticLibrary
-                || DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac
-                || DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
+			foreach (string OutputFilePath in Config.OutputFilePaths)
 			{
-				LibraryFileName = Config.OutputFilePath;
+				string LibraryFileName;
+				if (Config.Type == UEBuildBinaryType.StaticLibrary
+					|| DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac
+					|| DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
+				{
+					LibraryFileName = OutputFilePath;
+				}
+				else
+				{
+					LibraryFileName = Path.Combine(Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(OutputFilePath) + ".lib");
+				}
+				DependentLinkEnvironment.Config.AdditionalLibraries.Add(LibraryFileName);
 			}
-			else
-			{
-				LibraryFileName = Path.Combine(Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Config.OutputFilePath) + ".lib");
-			}
-			DependentLinkEnvironment.Config.AdditionalLibraries.Add(LibraryFileName);
 		}
 
 		/// <summary>

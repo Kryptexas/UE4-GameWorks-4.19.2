@@ -269,7 +269,18 @@ namespace UnrealBuildTool.Android
 				case "-armv7": return "armeabi-v7a";
 				case "-x86": return "x86";
 
-				default: throw new BuildException("Unknown architecture {0}", UE4Arch);
+				default: throw new BuildException("Unknown UE4 architecture {0}", UE4Arch);
+			}
+		}
+
+		public static string GetUE4Arch(string NDKArch)
+		{
+			switch (NDKArch)
+			{
+				case "armeabi-v7a": return "-armv7";
+				case "x86":			return "-x86";
+
+				default: throw new BuildException("Unknown NDK architecture '{0}'", NDKArch);
 			}
 		}
 
@@ -715,8 +726,10 @@ namespace UnrealBuildTool.Android
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
+			// we need to strip architecture from any of the output paths
+			string BaseSoName = AndroidToolChain.RemoveArchName(InTarget.OutputPaths[0]);
 			// this always makes a merged .apk since for debugging, there's no way to know which one to run
-			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, bForDistribution:false, CookFlavor:"", bMakeSeparateApks:false);
+			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution:false, CookFlavor:"", bMakeSeparateApks:false);
 			return true;
 		}
 

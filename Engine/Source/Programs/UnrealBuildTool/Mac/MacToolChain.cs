@@ -1073,12 +1073,12 @@ namespace UnrealBuildTool
 						// kind of protection to be deleted if they aren't supported for a current user that has the dylibs locally.
 						// string SubDir = DylibDir.Replace(ExeDir, "");
 						string SubDir = "";
-						Binary.Config.OutputFilePath = BundleContentsPath + "MacOS" + SubDir + "/" + BinaryFileName;
+						Binary.Config.OutputFilePaths[0] = BundleContentsPath + "MacOS" + SubDir + "/" + BinaryFileName;
 					}
 				}
 				else if (!BinaryFileName.EndsWith(".a"))
 				{
-					Binary.Config.OutputFilePath += ".app/Contents/MacOS/" + BinaryFileName;
+					Binary.Config.OutputFilePaths[0] += ".app/Contents/MacOS/" + BinaryFileName;
 				}
 			}
 		}

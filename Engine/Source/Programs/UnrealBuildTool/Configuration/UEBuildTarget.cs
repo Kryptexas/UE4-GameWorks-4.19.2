@@ -642,8 +642,21 @@ namespace UnrealBuildTool
 		/** Directory for engine intermediates. For an agnostic editor/game executable, this will be under the engine directory. For monolithic executables this will be the same as the project intermediate directory. */
 		public string EngineIntermediateDirectory;
 
-		/** Output path of final executable. */
-		public string OutputPath;
+		/** Output paths of final executable. */
+		public string[] OutputPaths;
+
+		/** Returns the OutputPath is there is only one entry in OutputPaths */
+		public string OutputPath
+		{
+			get
+			{
+				if (OutputPaths.Length != 1)
+				{
+					throw new BuildException("Attempted to use UEBuildTarget.OutputPath property, but there are multiple (or no) OutputPaths. You need to handle multiple in the code that called this (size = {0})", OutputPaths.Length);
+				}
+				return OutputPaths[0];
+			}
+		}
 
 		/** Remote path of the binary if it is to be synced with CookerSync */
 		public string RemoteRoot;
@@ -770,7 +783,11 @@ namespace UnrealBuildTool
 			bool bIsRocketGame = (InRulesObject != null) ? (TargetType == TargetRules.TargetType.RocketGame) : false;
 
 			// Construct the output path based on configuration, platform, game if not specified.
-            OutputPath = Path.GetFullPath(MakeBinaryPath("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder));
+            OutputPaths = MakeBinaryPaths("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder);
+			for (int Index = 0; Index < OutputPaths.Length; Index++)
+			{
+				OutputPaths[Index] = Path.GetFullPath(OutputPaths[Index]);
+			}
 
 			if (bCompileMonolithic && TargetRules.IsGameType(InRulesObject.Type))
 			{
@@ -781,7 +798,10 @@ namespace UnrealBuildTool
 					// We want the output to go into the <GAME>\Binaries folder
 					if (UnrealBuildTool.HasUProjectFile() == false)
 					{
-						OutputPath = OutputPath.Replace(Path.Combine("Engine", "Binaries"), Path.Combine(InGameName,"Binaries"));
+						for (int Index = 0; Index < OutputPaths.Length; Index++)
+						{
+							OutputPaths[Index] = OutputPaths[Index].Replace(Path.Combine("Engine", "Binaries"), Path.Combine(InGameName, "Binaries"));
+						}
 					}
 					else
 					{
@@ -794,7 +814,10 @@ namespace UnrealBuildTool
 							UProjectPath = Path.GetDirectoryName(FullPath);
 						}
 						string ProjectPath = Path.GetFullPath(Path.Combine(UProjectPath, "Binaries"));
-						OutputPath = OutputPath.Replace(EnginePath, ProjectPath);
+						for (int Index = 0; Index < OutputPaths.Length; Index++)
+						{
+							OutputPaths[Index] = OutputPaths[Index].Replace(EnginePath, ProjectPath);
+						}
 					}
 				}
 			}
@@ -1259,12 +1282,19 @@ namespace UnrealBuildTool
                 string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(Binary.Config.Type);
 
 				// Create and add the binary and associated debug info
-				Manifest.AddBinaryNames(Binary.Config.OutputFilePath, DebugInfoExtension);
-				if (Binary.Config.Type == UEBuildBinaryType.Executable && 
+				foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
+				{
+					Manifest.AddBinaryNames(OutputFilePath, DebugInfoExtension);
+				}
+
+				if (Binary.Config.Type == UEBuildBinaryType.Executable &&
 					  GlobalLinkEnvironment.Config.CanProduceAdditionalConsoleApp &&
 					  UEBuildConfiguration.bBuildEditor)
 				{
-					Manifest.AddBinaryNames(UEBuildBinary.GetAdditionalConsoleAppPath(Binary.Config.OutputFilePath), DebugInfoExtension);
+					foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
+					{
+						Manifest.AddBinaryNames(UEBuildBinary.GetAdditionalConsoleAppPath(OutputFilePath), DebugInfoExtension);
+					}
 				}
 
                 ToolChain.AddFilesToManifest(ref Manifest,Binary);
@@ -1358,11 +1388,11 @@ namespace UnrealBuildTool
 						if(Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == ExecutableBinary)
 						{
 							UnrealTargetConfiguration LibraryConfiguration = (Configuration == UnrealTargetConfiguration.DebugGame)? UnrealTargetConfiguration.Development : Configuration;
-							Module.RedistStaticLibraryPath = MakeBinaryPath("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, false, null, AppName);
+							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, false, null, AppName);
 							Module.bBuildingRedistStaticLibrary = UnrealBuildTool.BuildingRocket();
                             if (Module.bBuildingRedistStaticLibrary)
                             {
-                                SpecialRocketLibFilesThatAreBuildProducts.Add(Module.RedistStaticLibraryPath);
+                                SpecialRocketLibFilesThatAreBuildProducts.AddRange(Module.RedistStaticLibraryPaths);
                             }
 						}
 					}
@@ -1555,6 +1585,9 @@ namespace UnrealBuildTool
 				SpecialRocketLibFilesThatAreBuildProducts.AddRange(AddPlugin(Plugin));
 			}
 
+			// Allow the platform to setup binaries/plugins/modules
+			UEBuildPlatform.GetBuildPlatform(Platform).SetupBinaries(this);
+
 			// Describe what's being built.
 			Log.TraceVerbose("Building {0} - {1} - {2} - {3}", AppName, GameName, Platform, Configuration);
 
@@ -1716,8 +1749,11 @@ namespace UnrealBuildTool
 
 					if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
 					{
-						DLLBinary.Config.OriginalOutputFilePath = DLLBinary.Config.OutputFilePath;
-						DLLBinary.Config.OutputFilePath = AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, DLLBinary.Config.OutputFilePath, FoundOnlyModule.OnlyModuleSuffix);
+						DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
+						for (int Index = 0; Index < DLLBinary.Config.OutputFilePaths.Length; Index++ )
+						{
+							DLLBinary.Config.OutputFilePaths[Index] = AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, DLLBinary.Config.OutputFilePaths[Index], FoundOnlyModule.OnlyModuleSuffix);
+						}
 					}
 				}
 			}
@@ -1742,8 +1778,11 @@ namespace UnrealBuildTool
 				if (GameModules != null && GameModules.Count > 0)
 				{
 					var UniqueSuffix = (new Random((int)(DateTime.Now.Ticks % Int32.MaxValue)).Next(10000)).ToString();
-					DLLBinary.Config.OriginalOutputFilePath = DLLBinary.Config.OutputFilePath;
-					DLLBinary.Config.OutputFilePath = AddModuleFilenameSuffix(GameModules[0].Name, DLLBinary.Config.OutputFilePath, UniqueSuffix);
+					DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
+					for (int Index = 0; Index < DLLBinary.Config.OutputFilePaths.Length; Index++)
+					{
+						DLLBinary.Config.OutputFilePaths[Index] = AddModuleFilenameSuffix(GameModules[0].Name, DLLBinary.Config.OutputFilePaths[Index], UniqueSuffix);
+					}
 
 					FilteredBinaries.Add(DLLBinary);
 					AnyBinariesAdded = true;
@@ -2044,18 +2083,18 @@ namespace UnrealBuildTool
 			UEBuildBinaryType BinaryType = bCompileMonolithic ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
 
 			// Get the output path. Don't prefix the app name for Rocket
-			string OutputFilePath;
+			string[] OutputFilePaths;
 			if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && bCompileMonolithic)
 			{
-				OutputFilePath = MakeBinaryPath(Module.Name, Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
                 if (UnrealBuildTool.BuildingRocket())
                 {
-                    SpecialRocketLibFilesThatAreBuildProducts.Add(OutputFilePath);
+                    SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
                 }
 			}
 			else
 			{
-				OutputFilePath = MakeBinaryPath(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
 			}
 
 			// Try to determine if we have the rules file
@@ -2084,7 +2123,7 @@ namespace UnrealBuildTool
 
 			// Create the binary
 			UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType:                  BinaryType,
-																				InOutputFilePath:        OutputFilePath,
+																				InOutputFilePaths:       OutputFilePaths,
 																				InIntermediateDirectory: PluginIntermediateBuildPath,
 																				bInAllowExports:         true,
 																				bInAllowCompilation:     bShouldBeBuiltFromSource,
@@ -2113,15 +2152,15 @@ namespace UnrealBuildTool
 					bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(ModuleName);
 
 					// Create a DLL binary for this module
-					string OutputFilePath = MakeBinaryPath(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, bIsRocketModule, null, AppName);
+					string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, bIsRocketModule, null, AppName);
 					UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																						InOutputFilePath: OutputFilePath,
-																						InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName)? ProjectIntermediateDirectory : EngineIntermediateDirectory,
+																						InOutputFilePaths: OutputFilePaths,
+																						InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
 																						bInAllowExports: true,
 																						InModuleNames: new List<string> { ModuleName } );
 
 					// Tell the target about this new binary
-					AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
+					AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
 				}
 			}
 		}
@@ -2152,7 +2191,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */
-		public static string MakeBinaryPath(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
+		public static string[] MakeBinaryPaths(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
 			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			// Determine the binary extension for the platform and binary type.
@@ -2228,19 +2267,20 @@ namespace UnrealBuildTool
 				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{5}{0}-{1}-{2}{3}{4}", 
 					BinaryName, Platform.ToString(), LocalConfig.ToString(), BinarySuffix, BinaryExtension, Prefix));
 			}
-			return OutBinaryPath;
+
+			return BuildPlatform.FinalizeBinaryPaths(OutBinaryPath);
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../../Binaries/Win64/Core-Win64-Debug.lib") */
-		public string MakeBinaryPath(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
+		public string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			if (String.IsNullOrEmpty(ModuleName) && Configuration == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic)
 			{
-				return MakeBinaryPath(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
 			}
 			else
 			{
-				return MakeBinaryPath(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
 			}
 		}
 
@@ -2339,7 +2379,7 @@ namespace UnrealBuildTool
 
 				foreach (UEBuildBinaryConfiguration BinaryConfig in RulesBuildBinaryConfigurations)
 				{
-					BinaryConfig.OutputFilePath = OutputPath;
+					BinaryConfig.OutputFilePaths = OutputPaths;
 					BinaryConfig.IntermediateDirectory = ProjectIntermediateDirectory;
 
 					if (BinaryConfig.ModuleNames.Count > 0)
@@ -2623,7 +2663,7 @@ namespace UnrealBuildTool
 		{
 			UEBuildPlatform.GetBuildPlatform(Platform).SetUpConfigurationEnvironment(this);
 
-			var UpperExtension = Path.GetExtension (OutputPath).ToUpperInvariant (); 
+			var UpperExtension = Path.GetExtension (OutputPaths[0]).ToUpperInvariant (); 
 			// Check to see if we're compiling a library or not
 			bool bIsBuildingDLL = UpperExtension == ".DLL";
 			GlobalCompileEnvironment.Config.bIsBuildingDLL = bIsBuildingDLL;

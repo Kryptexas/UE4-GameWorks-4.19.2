@@ -273,63 +273,6 @@ namespace UnrealBuildTool
                 }
             }
         }
-
-        public override void SetupBinaries(UEBuildTarget InBuildTarget)
-        {
-            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-            {
-                // dangerously fast mode doesn't generate stub files
-                if (!IOSToolChain.bUseDangerouslyFastMode)
-                {
-                    List<UEBuildBinary> NewBinaries = new List<UEBuildBinary> ();
-                    // add the .stub to the binaries
-                    foreach (var Binary in InBuildTarget.AppBinaries)
-                    {
-                        // make a binary that just points to the .stub of this executable
-                        UEBuildBinaryConfiguration NewConfig = new UEBuildBinaryConfiguration(
-                                                                  InType: Binary.Config.Type,
-                                                                  InOutputFilePath: Binary.Config.OutputFilePath + ".stub",
-                                                                  InIntermediateDirectory: Binary.Config.IntermediateDirectory,
-                                                                  bInCreateImportLibrarySeparately: Binary.Config.bCreateImportLibrarySeparately,
-                                                                  bInAllowExports: Binary.Config.bAllowExports,
-                                                                  InModuleNames: Binary.Config.ModuleNames);
-
-                        NewBinaries.Add (new UEStubDummyBinary (InBuildTarget, NewConfig));
-                    }
-
-                    InBuildTarget.AppBinaries.AddRange (NewBinaries);
-                }
-            }
-        }
     }
-
-    /// <summary>
-    /// A .stub that has the executable and metadata included
-    /// Note that this doesn't actually build anything. It could potentially be used to perform the IPhonePackage stuff that happens in IOSToolChain.PostBuildSync()
-    /// </summary>
-    class UEStubDummyBinary : UEBuildBinary
-    {
-        /// <summary>
-        /// Create an instance initialized to the given configuration
-        /// </summary>
-        /// <param name="InConfig">The build binary configuration to initialize the instance to</param>
-        public UEStubDummyBinary(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
-            : base(InTarget, InConfig)
-        {
-        }
-
-        /// <summary>
-        /// Builds the binary.
-        /// </summary>
-        /// <param name="CompileEnvironment">The environment to compile the binary in</param>
-        /// <param name="LinkEnvironment">The environment to link the binary in</param>
-        /// <returns></returns>
-        public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-        {
-            // generate the .stub!
-            return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
-        }
-    }
-
 }
 

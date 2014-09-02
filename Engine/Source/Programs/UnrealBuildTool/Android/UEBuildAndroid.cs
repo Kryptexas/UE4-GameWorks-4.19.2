@@ -153,7 +153,8 @@ namespace UnrealBuildTool
 		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
 		{
 			// if we compile multiple architectures at once, PCH doesn't work right, so only use PCH when building for one platform
-			return AndroidToolChain.GetAllArchitectures().Length == 1;
+			// @todo android: Handle PCH files in the multiple architecture case
+			return false;// AndroidToolChain.GetAllArchitectures().Length == 1;
 		}
 
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
@@ -349,47 +350,18 @@ namespace UnrealBuildTool
 			};
 		}
 
-		public override void SetupBinaries(UEBuildTarget InBuildTarget)
+		public override string[] FinalizeBinaryPaths(string BinaryName)
 		{
-			// for "fat" binaries, we need to expand the .so's across the platforms
 			string[] Architectures = AndroidToolChain.GetAllArchitectures();
 
-			// all .so's have architecture name, the manifest won't by default, so expand across the binaries
-			List<UEBuildBinary> NewBinaries = new List<UEBuildBinary>();
+			// make multiple output binaries
+			List<string> AllBinaries = new List<string>();
 			foreach (string Architecture in Architectures)
 			{
-				foreach (var Binary in InBuildTarget.AppBinaries)
-				{
-					UEBuildBinaryConfiguration NewConfig = new UEBuildBinaryConfiguration(
-																	InType: Binary.Config.Type,
-																	InOutputFilePath: AndroidToolChain.InlineArchName(Binary.Config.OutputFilePath, Architecture),
-																	InIntermediateDirectory: Binary.Config.IntermediateDirectory,
-																	bInCreateImportLibrarySeparately: Binary.Config.bCreateImportLibrarySeparately,
-																	bInAllowExports: Binary.Config.bAllowExports,
-																	InModuleNames: Binary.Config.ModuleNames);
-
-					NewBinaries.Add(new UEBuildBinaryCPP(InBuildTarget, NewConfig));
-				}
+				AllBinaries.Add(AndroidToolChain.InlineArchName(BinaryName, Architecture));
 			}
 
-
-			// add the .apk to the binaries (UBT always generates the apk without an extension with all .so's inside)
-			foreach (var Binary in InBuildTarget.AppBinaries)
-			{
-				// make a binary that just points to the .stub of this executable
-				UEBuildBinaryConfiguration NewConfig = new UEBuildBinaryConfiguration(
-																InType: Binary.Config.Type,
-																InOutputFilePath: Path.ChangeExtension(Binary.Config.OutputFilePath, ".apk"),
-																InIntermediateDirectory: Binary.Config.IntermediateDirectory,
-																bInCreateImportLibrarySeparately: Binary.Config.bCreateImportLibrarySeparately,
-																bInAllowExports: Binary.Config.bAllowExports,
-																InModuleNames: Binary.Config.ModuleNames);
-
-				NewBinaries.Add(new UEStubDummyBinary(InBuildTarget, NewConfig));
-			}
-
-			// replace the old binaries with the new
-			InBuildTarget.AppBinaries = NewBinaries;
+			return AllBinaries.ToArray();
 		}
 	}
 }
