@@ -318,6 +318,7 @@ class UK2Node : public UEdGraphNode
 
 	BLUEPRINTGRAPH_API virtual int32 GetNodeRefreshPriority() const { return EBaseNodeRefreshPriority::Normal; }
 
+	BLUEPRINTGRAPH_API virtual bool DoesSingleInputWildcardPinAcceptsArray(const UEdGraphPin* Pin) const { return true; }
 protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up

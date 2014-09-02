@@ -2735,15 +2735,39 @@ void UEdGraphSchema_K2::GetVariableSubtypes(const FString& Type, TArray<UObject*
 	SubtypesList.Sort();
 }
 
+struct FWildcardArrayPinHelper
+{
+	static bool CheckArrayCompatibility(const UEdGraphPin* OutputPin, const UEdGraphPin* InputPin, bool bIgnoreArray)
+	{
+		if (bIgnoreArray)
+		{
+			return true;
+		}
+
+		const UK2Node* OwningNode = InputPin ? Cast<UK2Node>(InputPin->GetOwningNode()) : NULL;
+		const bool bInputWildcardPinAcceptsArray = !OwningNode || OwningNode->DoesSingleInputWildcardPinAcceptsArray(InputPin);
+		if (bInputWildcardPinAcceptsArray)
+		{
+			return true;
+		}
+
+		const bool bCheckInputPin = (InputPin->PinType.PinCategory == GetDefault<UEdGraphSchema_K2>()->PC_Wildcard) && !InputPin->PinType.bIsArray;
+		const bool bArrayOutputPin = OutputPin && OutputPin->PinType.bIsArray;
+		return !(bCheckInputPin && bArrayOutputPin);
+	}
+};
+
 bool UEdGraphSchema_K2::ArePinsCompatible(const UEdGraphPin* PinA, const UEdGraphPin* PinB, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
 {
 	if ((PinA->Direction == EGPD_Input) && (PinB->Direction == EGPD_Output))
 	{
-		return ArePinTypesCompatible(PinB->PinType, PinA->PinType, CallingContext, bIgnoreArray);
+		return FWildcardArrayPinHelper::CheckArrayCompatibility(PinB, PinA, bIgnoreArray)
+			&& ArePinTypesCompatible(PinB->PinType, PinA->PinType, CallingContext, bIgnoreArray);
 	}
 	else if ((PinB->Direction == EGPD_Input) && (PinA->Direction == EGPD_Output))
 	{
-		return ArePinTypesCompatible(PinA->PinType, PinB->PinType, CallingContext, bIgnoreArray);
+		return FWildcardArrayPinHelper::CheckArrayCompatibility(PinA, PinB, bIgnoreArray)
+			&& ArePinTypesCompatible(PinA->PinType, PinB->PinType, CallingContext, bIgnoreArray);
 	}
 	else
 	{
