@@ -76,11 +76,17 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 
-	WindowStyle |= SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS;
+	WindowStyle |= SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
 
-	if	( !Definition->HasOSWindowBorder )
+	if ( !Definition->HasOSWindowBorder )
 	{
 		WindowStyle |= SDL_WINDOW_BORDERLESS;
+	}
+
+	if ( Definition->AcceptsInput )
+	{
+		// @TODO: check if we need these flags at all
+		WindowStyle |= SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS;
 	}
 
 	if ( Definition->HasSizingFrame )
