@@ -66,8 +66,8 @@ public class Engine : ModuleRules
 				"VectorVM",
 			}
         );
-        
-		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+
+        if (UEBuildConfiguration.bBuildEditor)
 		{
             PrivateDependencyModuleNames.AddRange(new string[] { "CsvParser" });
 		}
