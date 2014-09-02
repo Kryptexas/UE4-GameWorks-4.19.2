@@ -533,7 +533,14 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				Load(PossibleConfigLocation.FSLocation);
+				try
+				{
+					Load(PossibleConfigLocation.FSLocation);
+				}
+				catch(Exception Ex)
+				{
+					Console.WriteLine("Problem parsing {0}:\n\t{1}", PossibleConfigLocation.FSLocation, Ex.ToString());
+				}
 			}
 		}
 
