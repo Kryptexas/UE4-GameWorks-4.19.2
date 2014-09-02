@@ -152,9 +152,7 @@ namespace UnrealBuildTool
 
 		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
 		{
-			// if we compile multiple architectures at once, PCH doesn't work right, so only use PCH when building for one platform
-			// @todo android: Handle PCH files in the multiple architecture case
-			return false;// AndroidToolChain.GetAllArchitectures().Length == 1;
+			return true;
 		}
 
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
