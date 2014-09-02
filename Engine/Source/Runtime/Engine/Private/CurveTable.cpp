@@ -216,34 +216,32 @@ void UCurveTable::EmptyTable()
 
 
 /** */
-void GetCurveValues(const FString& RowString, TArray<float>* Values)
+void GetCurveValues(const TArray<const TCHAR*>& Cells, TArray<float>* Values)
 {
-	// Find the x values from he first row
-	TArray<FString> ValuesAsStrings;
-	RowString.ParseIntoArray(&ValuesAsStrings, TEXT(","), false);
-
 	// Need at least 2 columns, first column is skipped, will contain row names
-	if(ValuesAsStrings.Num() >= 2)
+	if(Cells.Num() >= 2)
 	{
 		// first element always NULL - as first column is row names
-		for(int32 ColIdx = 1; ColIdx < ValuesAsStrings.Num(); ColIdx++)
+		for(int32 ColIdx = 1; ColIdx < Cells.Num(); ColIdx++)
 		{
-			Values->Add(FCString::Atof(*ValuesAsStrings[ColIdx]));
+			Values->Add(FCString::Atof(Cells[ColIdx]));
 		}
 	}
 }
+
+#if WITH_EDITOR
+#include "CsvParser.h"
 
 TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, ERichCurveInterpMode InterpMode)
 {
 	// Array used to store problems about table creation
 	TArray<FString> OutProblems;
 
-	// Split one giant string into one string per row
-	TArray<FString> RowStrings;
-	InString.ParseIntoArray(&RowStrings, TEXT("\r\n"), true);
+	const FCsvParser Parser(InString);
+	const FCsvParser::FRows& Rows = Parser.GetRows();
 
 	// Must have at least 2 rows (x values + y values for at least one row)
-	if(RowStrings.Num() <= 1)
+	if(Rows.Num() <= 1)
 	{
 		OutProblems.Add(FString(TEXT("Too few rows.")));
 		return OutProblems;
@@ -253,23 +251,22 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 	EmptyTable();
 
 	TArray<float> XValues;
-	GetCurveValues(RowStrings[0], &XValues);
+	GetCurveValues(Rows[0], &XValues);
 
 	// Iterate over rows
-	for(int32 RowIdx = 1; RowIdx < RowStrings.Num(); RowIdx++)
+	for(int32 RowIdx = 1; RowIdx < Rows.Num(); RowIdx++)
 	{
-		TArray<FString> CellStrings;
-		RowStrings[RowIdx].ParseIntoArray(&CellStrings, TEXT(","), false);
+		const TArray<const TCHAR*>& Row = Rows[RowIdx];
 
 		// Need at least 1 cells (row name)
-		if(CellStrings.Num() < 1)
+		if(Row.Num() < 1)
 		{
 			OutProblems.Add(FString::Printf(TEXT("Row '%d' has too few cells."), RowIdx));
 			continue;
 		}
 
 		// Get row name
-		FName RowName = MakeValidName(CellStrings[0]);
+		FName RowName = MakeValidName(Row[0]);
 
 		// Check its not 'none'
 		if(RowName == NAME_None)
@@ -286,7 +283,7 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 		}
 
 		TArray<float> YValues;
-		GetCurveValues(RowStrings[RowIdx], &YValues);
+		GetCurveValues(Row, &YValues);
 
 		if(XValues.Num() != YValues.Num())
 		{
@@ -308,6 +305,8 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 	Modify(true);
 	return OutProblems;
 }
+
+#endif	// WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 

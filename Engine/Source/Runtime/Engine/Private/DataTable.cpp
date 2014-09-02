@@ -235,6 +235,8 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
 
+#include "CsvParser.h"
+
 struct FPropertyDisplayNameHelper
 {
 	static inline FString Get(const UProperty* Prop, const FString& DefaultName)
@@ -387,27 +389,25 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 }
 
 /** Get array of UProperties that corresponds to columns in the table */
-TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
+TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
 	TArray<FName> ExpectedPropNames = GetStructPropertyNames(InRowStruct);
 
-	// Find the column names from first row
-	TArray<FString> ColumnNameStrings;
-	FirstRowString.ParseIntoArray(&ColumnNameStrings, TEXT(","), false);
-
 	// Need at least 2 columns, first column is skipped, will contain row names
-	if(ColumnNameStrings.Num() > 0)
+	if(Cells.Num() > 1)
 	{
-		ColumnProps.AddZeroed( ColumnNameStrings.Num() );
+		ColumnProps.AddZeroed( Cells.Num() );
 
 		// first element always NULL - as first column is row names
 
-		for(int32 ColIdx=1; ColIdx<ColumnNameStrings.Num(); ColIdx++)
+		for (int32 ColIdx = 1; ColIdx < Cells.Num(); ++ColIdx)
 		{
-			FName PropName = MakeValidName(ColumnNameStrings[ColIdx]);
+			const TCHAR* ColumnValue = Cells[ColIdx];
+
+			FName PropName = MakeValidName(ColumnValue);
 			if(PropName == NAME_None)
 			{
 				OutProblems.Add(FString(TEXT("Missing name for column %d."), ColIdx));
@@ -419,7 +419,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
 				{
 					const auto DisplayName = FPropertyDisplayNameHelper::Get(*It, FString());
-					ColumnProp = (!DisplayName.IsEmpty() && (DisplayName == ColumnNameStrings[ColIdx])) ? *It : NULL;
+					ColumnProp = (!DisplayName.IsEmpty() && DisplayName == ColumnValue) ? *It : NULL;
 				}
 
 				// Didn't find a property with this name, problem..
@@ -475,46 +475,49 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		OutProblems.Add(FString(TEXT("No RowStruct specified.")));
 		return OutProblems;
 	}
+	if (InString.IsEmpty())
+	{
+		OutProblems.Add(FString(TEXT("Input data is empty.")));
+		return OutProblems;
+	}
 
-	// Split one giant string into one string per row
-	TArray<FString> RowStrings;
-	InString.ParseIntoArray(&RowStrings, TEXT("\r\n"), true);
+	const FCsvParser Parser(InString);
+	const auto& Rows = Parser.GetRows();
 
 	// Must have at least 2 rows (column names + data)
-	if(RowStrings.Num() <= 1)
+	if(Rows.Num() <= 1)
 	{
 		OutProblems.Add(FString(TEXT("Too few rows.")));
 		return OutProblems;
 	}
 
 	// Find property for each column
-	TArray<UProperty*> ColumnProps = GetTablePropertyArray(RowStrings[0], RowStruct, OutProblems);
+	TArray<UProperty*> ColumnProps = GetTablePropertyArray(Rows[0], RowStruct, OutProblems);
 
 	// Empty existing data
 	EmptyTable();
 
 	// Iterate over rows
-	for(int32 RowIdx=1; RowIdx<RowStrings.Num(); RowIdx++)
+	for(int32 RowIdx=1; RowIdx<Rows.Num(); RowIdx++)
 	{
-		TArray<FString> CellStrings;
-		RowStrings[RowIdx].ParseIntoArray(&CellStrings, TEXT(","), false);
+		const TArray<const TCHAR*>& Cells = Rows[RowIdx];
 
 		// Need at least 1 cells (row name)
-		if(CellStrings.Num() < 1)
+		if(Cells.Num() < 1)
 		{
 			OutProblems.Add(FString::Printf(TEXT("Row '%d' has too few cells."), RowIdx));
 			continue;
 		}
 
 		// Need enough columns in the properties!
-		if( ColumnProps.Num() < CellStrings.Num() )
+		if( ColumnProps.Num() < Cells.Num() )
 		{
 			OutProblems.Add(FString::Printf(TEXT("Row '%d' has more cells than properties, is there a malformed string?"), RowIdx));
 			continue;
 		}
 
 		// Get row name
-		FName RowName = MakeValidName(CellStrings[0]);
+		FName RowName = MakeValidName(Cells[0]);
 
 		// Check its not 'none'
 		if(RowName == NAME_None)
@@ -546,11 +549,12 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		RowMap.Add(RowName, RowData);
 
 		// Now iterate over cells (skipping first cell, that was row name)
-		for(int32 CellIdx=1; CellIdx<CellStrings.Num(); CellIdx++)
+		for(int32 CellIdx=1; CellIdx<Cells.Num(); CellIdx++)
 		{
 			// Try and assign string to data using the column property
 			UProperty* ColumnProp = ColumnProps[CellIdx];
-			FString Error = AssignStringToProperty(CellStrings[CellIdx], ColumnProp, RowData);
+			const FString CellValue = Cells[CellIdx];
+			FString Error = AssignStringToProperty(CellValue, ColumnProp, RowData);
 
 			// If we failed, output a problem string
 			if(Error.Len() > 0)
@@ -558,12 +562,12 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 				FString ColumnName = (ColumnProp != NULL) 
 					? FPropertyDisplayNameHelper::Get(ColumnProp, ColumnProp->GetName())
 					: FString(TEXT("NONE"));
-				OutProblems.Add(FString::Printf(TEXT("Problem assigning string '%s' to property '%s' on row '%s' : %s"), *CellStrings[CellIdx], *ColumnName, *RowName.ToString(), *Error));
+				OutProblems.Add(FString::Printf(TEXT("Problem assigning string '%s' to property '%s' on row '%s' : %s"), *CellValue, *ColumnName, *RowName.ToString(), *Error));
 			}
 		}
 
 		// Problem if we didn't have enough cells on this row
-		if(CellStrings.Num() < ColumnProps.Num())
+		if(Cells.Num() < ColumnProps.Num())
 		{
 			OutProblems.Add(FString::Printf(TEXT("Too few cells on row '%s'."), *RowName.ToString()));			
 		}

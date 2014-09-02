@@ -155,7 +155,7 @@ public:
 	/** Get array of all the column titles */
 	ENGINE_API TArray<FString> GetColumnTitles() const;
 
-	TArray<UProperty*> GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems);
+	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
