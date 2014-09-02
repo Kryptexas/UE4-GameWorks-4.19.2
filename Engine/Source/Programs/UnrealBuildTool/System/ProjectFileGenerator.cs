@@ -566,10 +566,10 @@ namespace UnrealBuildTool
 				if( ( !bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles ) || bAlwaysIncludeEngineModules )
 				{
 					// Add AutomationTool to the master project
-					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", true));
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
 					// Add UnrealAutomationTool (launcher) to the master project
-					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationToolLauncher"));
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationToolLauncher", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
 					// Add automation.csproj files to the master project
 					List<VCSharpProjectFile> AutomationModules = AddAutomationModules(ProgramsFolder);
@@ -578,10 +578,10 @@ namespace UnrealBuildTool
 					ProgramsFolder.ChildProjects.Add(GenerateAutomationToolStubProject(AutomationModules));
 
 					// Add Distill to the master project
-					ProgramsFolder.ChildProjects.Add( AddSimpleCSharpProject( "Distill" ) );
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("Distill"));
 
 					// Add DotNETUtilities to the master project
-					ProgramsFolder.ChildProjects.Add( AddSimpleCSharpProject(  "DotNETCommon/DotNETUtilities", true ) );
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("DotNETCommon/DotNETUtilities", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
 					// Add all of the IOS C# projects
 					AddIOSProjects( ProgramsFolder );
@@ -1186,6 +1186,7 @@ namespace UnrealBuildTool
 		{
 			var ProjectFileName = Utils.MakePathRelativeTo( Path.Combine( Path.Combine( EngineRelativePath, "Source" ), "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj" ), MasterProjectRelativePath );
 			var UnrealBuildToolProject = new VCSharpProjectFile( ProjectFileName );
+			UnrealBuildToolProject.ShouldBuildForAllSolutionTargets = true;
 
 			// Store it off as we need it when generating target projects.
 			UBTProject = UnrealBuildToolProject;
@@ -1202,7 +1203,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ProjectName">Name of project file to add</param>
 		/// <returns>ProjectFile if the operation was successful, otherwise null.</returns>
-		private VCSharpProjectFile AddSimpleCSharpProject(string ProjectName, bool bShouldBuildForAllSolutionTargets = false)
+		private VCSharpProjectFile AddSimpleCSharpProject(string ProjectName, bool bShouldBuildForAllSolutionTargets = false, bool bForceDevelopmentConfiguration = false)
 		{
 			VCSharpProjectFile Project = null;
 
@@ -1213,7 +1214,7 @@ namespace UnrealBuildTool
 				var FileNameRelativeToMasterProject = Utils.MakePathRelativeTo( ProjectFileName, MasterProjectRelativePath );
 				Project = new VCSharpProjectFile(FileNameRelativeToMasterProject);
 				Project.ShouldBuildForAllSolutionTargets = bShouldBuildForAllSolutionTargets;
-				AddExistingProjectFile(Project);
+				AddExistingProjectFile(Project, bForceDevelopmentConfiguration: bForceDevelopmentConfiguration);
 			}
 			else
 			{
