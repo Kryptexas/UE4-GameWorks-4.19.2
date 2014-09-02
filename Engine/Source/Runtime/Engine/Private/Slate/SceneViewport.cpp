@@ -1051,7 +1051,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
-	if( bUseSeparateRenderTarget )
+	if (bUseSeparateRenderTarget)
 	{
 		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
 	}
@@ -1059,7 +1059,7 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 	{
 		// Get the backbuffer render target to render directly to it
 		RenderTargetTextureRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
-		if (GRHIShaderPlatform != SP_METAL)
+		if (GRHIRequiresEarlyBackBufferRenderTarget)
 		{
 			// unused set render targets are bad on Metal
 			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTexture2DRHIRef());

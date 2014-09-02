@@ -62,6 +62,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 // 	GReadTexturePoolSizeFromIni = true;
 
 	GRHISupportsBaseVertexIndex = false;
+	GRHIRequiresEarlyBackBufferRenderTarget = false;
 
 	GMaxTextureDimensions = 4096;
 	GMaxTextureMipCount = FPlatformMath::CeilLogTwo( GMaxTextureDimensions ) + 1;

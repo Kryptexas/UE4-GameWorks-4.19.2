@@ -186,6 +186,7 @@ bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
 bool GRHISupportsBaseVertexIndex = true;
+bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
