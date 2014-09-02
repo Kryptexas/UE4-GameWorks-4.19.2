@@ -219,6 +219,12 @@ public:
 		CommandLine += FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 			*InitialMap);
 
+		auto PackageDirectory = ChainState.Profile->GetPackageDirectory();
+		if (PackageDirectory.Len() > 0)
+		{
+			CommandLine += FString::Printf(TEXT(" -stagingdirectory=\"%s\""), *PackageDirectory);
+		}
+
 		CommandLine += FString::Printf(TEXT(" -addcmdline=\"%s -InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InitialMap,
 			*InstanceId.ToString(),
