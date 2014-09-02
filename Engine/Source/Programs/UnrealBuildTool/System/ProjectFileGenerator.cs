@@ -242,7 +242,7 @@ namespace UnrealBuildTool
 					var RelativeFileName = Utils.MakePathRelativeTo(ProjectFile, MasterProjectRelativePath);
 					var Project = new VCSharpProjectFile(RelativeFileName);
 					Project.ShouldBuildForAllSolutionTargets = true;
-					AddExistingProjectFile(Project);
+					AddExistingProjectFile(Project, bForceDevelopmentConfiguration: true);
 					ModuleProjects.Add(Project);
 
 					Folder.ChildProjects.Add( Project );
