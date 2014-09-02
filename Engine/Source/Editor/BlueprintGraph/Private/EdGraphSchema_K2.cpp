@@ -2745,7 +2745,7 @@ struct FWildcardArrayPinHelper
 		}
 
 		const UK2Node* OwningNode = InputPin ? Cast<UK2Node>(InputPin->GetOwningNode()) : NULL;
-		const bool bInputWildcardPinAcceptsArray = !OwningNode || OwningNode->DoesSingleInputWildcardPinAcceptsArray(InputPin);
+		const bool bInputWildcardPinAcceptsArray = !OwningNode || OwningNode->DoesInputWildcardPinAcceptArray(InputPin);
 		if (bInputWildcardPinAcceptsArray)
 		{
 			return true;
