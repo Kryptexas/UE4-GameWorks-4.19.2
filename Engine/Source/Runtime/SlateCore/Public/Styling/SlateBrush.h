@@ -100,21 +100,21 @@ namespace ESlateBrushImageType
 /**
  * An brush which contains information about how to draw a Slate element
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateBrush
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Size of the resource in Slate Units */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	FVector2D ImageSize;
 
 	/** How to draw the image */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushDrawType::Type > DrawAs;
 
 	/** The margin to use in Box and Border modes */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(UVSpace="true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( UVSpace="true" ))
 	FMargin Margin;
 
 	/** Tinting applied to the image. */
@@ -122,16 +122,16 @@ struct SLATECORE_API FSlateBrush
 	FLinearColor Tint_DEPRECATED;
 
 	/** Tinting applied to the image. */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayName="Tint"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayName="Tint" ))
 	FSlateColor TintColor;
 
 	/** How to tile the image in Image mode */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushTileType::Type> Tiling;
 
 	/** How to mirror the image in Image mode.  This is normally only used for dynamic image brushes where the source texture
 	    comes from a hardware device such as a web camera. */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushMirrorType::Type> Mirroring;
 
 	/** The type of image */
@@ -266,8 +266,10 @@ public:
 
 protected:
 
-	/** Pointer to the UTexture2D. Holding onto it as a UObject because UTexture2D is not available in Slate core. */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayThumbnail="true", DisplayName="Texture or Material Asset"))
+	/**
+	 * The image to render for this brush, can be a UTexture2D or Material.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayThumbnail="true", ThumbnailSize="X=40 Y=40", DisplayName="Image" ))
 	UObject* ResourceObject;
 
 	/** The name of the rendering resource to use */

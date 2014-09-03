@@ -85,7 +85,7 @@ private:
 /**
  * Base class for all mouse and keyboard events.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInputEvent
 {
 	GENERATED_USTRUCT_BODY()
@@ -284,7 +284,7 @@ protected:
  * FKeyboardEvent describes a keyboard action (key pressed or released.)
  * It is passed to event handlers dealing with keyboard input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FKeyboardEvent
 	: public FInputEvent
 {
@@ -421,7 +421,7 @@ public:
  * FPointerEvent describes a mouse or touch action (e.g. Press, Release, Move, etc).
  * It is passed to event handlers dealing with pointer-based input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FPointerEvent
 	: public FInputEvent
 {
@@ -608,7 +608,7 @@ private:
  * FControllerEvent describes a controller action (e.g. Button Press, Release, Analog stick move, etc).
  * It is passed to event handlers dealing with controller input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FControllerEvent
 	: public FInputEvent
 {
@@ -659,7 +659,7 @@ private:
  * FMotionEvent describes a touch pad action (press, move, lift)
  * It is passed to event handlers dealing with touch input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMotionEvent
 	: public FInputEvent
 {

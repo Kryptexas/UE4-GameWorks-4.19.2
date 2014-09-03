@@ -8,17 +8,17 @@
 /**
  * A representation of a font in Slate.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateFontInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** The name of the font */
-	UPROPERTY(EditAnywhere, Category=SlateStyleRules)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)
 	FName FontName;
 
 	/** The size of the font */
-	UPROPERTY(EditAnywhere, Category=SlateStyleRules)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)
 	int32 Size;
 
 public:

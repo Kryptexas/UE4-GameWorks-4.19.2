@@ -33,7 +33,7 @@ namespace ESlateColorStylingMode
 /**
  * A Slate color can be a directly specified value, or the color can be pulled from a WidgetStyle.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSlateColor
 {
 	GENERATED_USTRUCT_BODY()
@@ -181,11 +181,11 @@ protected:
 protected:
 
 	// The current specified color; only meaningful when ColorToUse == UseColor_Specified.
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color)
 	FLinearColor SpecifiedColor;
 
 	// The rule for which color to pick.
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color)
 	TEnumAsByte<ESlateColorStylingMode::Type> ColorUseRule;
 
 private:

@@ -20,7 +20,7 @@ class FLayoutGeometry;
  * A Geometry's parent is generally thought to be the Geometry of the
  * the corresponding parent widget.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FGeometry
 {
 	GENERATED_USTRUCT_BODY()
