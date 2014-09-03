@@ -29,15 +29,7 @@ FReply SDockTab::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 			TotalDraggedDistance = 0;
 			ActivateInParent(ETabActivationCause::UserClickedOnTab);
 
-			// If we're the last tab and we're disallowing the removal of the last tab, ignore the attempt to drag.
-			TSharedPtr<SDockingTabWell> ParentWell = ParentPtr.Pin();
-			TSharedPtr<SDockingArea> DockArea = GetDockArea();
-			if ( ParentWell.IsValid() && DockArea.IsValid() && ParentWell->GetNumTabs() == 1 && !DockArea->GetShouldAllowRemovalOfLastTab() )
-			{
-				return FReply::Unhandled();
-			}
-
-			return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
+			return FReply::Handled().DetectDrag( SharedThis(this), EKeys::LeftMouseButton );
 		}
 		else if ( MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton )
 		{
@@ -668,38 +660,6 @@ void SDockTab::SetTabToolTipWidget(TSharedPtr<SToolTip> InTabToolTipWidget)
 void SDockTab::SetTabIcon( const TAttribute<const FSlateBrush*> InTabIcon )
 {
 	TabIcon = InTabIcon;
-}
-
-bool SDockTab::CanDockInNode(const TSharedRef<SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const
-{
-	const TSharedRef<FTabManager> TargetTabManager = DockNode->GetDockArea()->GetTabManager();
-	if (this->TabRole == ETabRole::NomadTab)
-	{
-		if ( IsDockingViaTabwell == SDockTab::DockingViaTabWell )
-		{
-			// Nomad tabs can be docked in in any tab well.
-			return true;
-		}
-		else
-		{
-			return TargetTabManager != FGlobalTabmanager::Get();
-		}
-	}
-	else if (this->TabRole == ETabRole::MajorTab)
-	{
-		// Major tabs can only be stacked; they should not 
-		// be allowed to split areas. They are also confined to their
-		// tab manager of origin.
-		// The only exception is an empty area, where docking the tab should be really easy.
-		const bool bTabManagerMatches = TargetTabManager == this->GetTabManager();
-		const bool bCanDockInEmptyArea = DockNode->GetNodeType() == SDockingNode::DockArea && StaticCastSharedRef<SDockingArea>(DockNode)->GetChildNodes().Num() == 0;
-		return bTabManagerMatches && (IsDockingViaTabwell == SDockTab::DockingViaTabWell || bCanDockInEmptyArea);
-	}
-	else
-	{
-		// Most commonly, tabs are confined to their tab manager of origin.
-		return (TargetTabManager == this->GetTabManager());
-	}	
 }
 
 

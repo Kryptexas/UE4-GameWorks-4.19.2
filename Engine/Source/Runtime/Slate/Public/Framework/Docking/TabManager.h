@@ -466,6 +466,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 				void OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed );
 				void OnDockAreaClosing( const TSharedRef<SDockingArea>& DockAreaThatIsClosing );
 				void OnTabManagerClosing();
+				bool CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const;
 				const TArray< TWeakPtr<SDockingArea> >& GetLiveDockAreas() const;
 				/**
 				 * Notify the tab manager that the NewForegroundTab was brought to front and the BackgroundedTab was send to the background as a result.

@@ -338,7 +338,7 @@ FReply SDockingTabStack::OnDragOver( const FGeometry& MyGeometry, const FDragDro
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{	
-		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(SharedThis(this), SDockTab::DockingViaTarget))
+		if (DragDropOperation->CanDockInNode(SharedThis(this), FDockingDragOperation::DockingViaTarget))
 		{
 			FGeometry OverlayGeometry = this->FindChildGeometry( MyGeometry, OverlayManagement.ContentAreaOverlay.ToSharedRef() );
 	

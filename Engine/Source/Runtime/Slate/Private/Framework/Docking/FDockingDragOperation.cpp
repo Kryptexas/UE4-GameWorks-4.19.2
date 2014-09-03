@@ -241,6 +241,42 @@ FVector2D FDockingDragOperation::GetTabGrabOffsetFraction() const
 	return TabGrabOffsetFraction;
 }
 
+
+bool FDockingDragOperation::CanDockInNode(const TSharedRef<SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const
+{
+	const TSharedRef<FTabManager> TargetTabManager = DockNode->GetDockArea()->GetTabManager();
+	const TSharedRef<FTabManager> TabManagerOfOrigin = this->TabOwnerAreaOfOrigin->GetTabManager();
+
+	if (TabBeingDragged->GetTabRole() == ETabRole::NomadTab)
+	{
+		if ( IsDockingViaTabwell == FDockingDragOperation::DockingViaTabWell )
+		{
+			// Nomad tabs can be docked in in any tab well.
+			return true;
+		}
+		else
+		{
+			return TargetTabManager != FGlobalTabmanager::Get();
+		}
+	}
+	else if (TabBeingDragged->GetTabRole() == ETabRole::MajorTab)
+	{
+		// Major tabs can only be stacked; they should not 
+		// be allowed to split areas. They are also confined to their
+		// tab manager of origin.
+		// The only exception is an empty area, where docking the tab should be really easy.
+		const bool bTabManagerMatches = TargetTabManager == TabManagerOfOrigin;
+		const bool bCanDockInEmptyArea = DockNode->GetNodeType() == SDockingNode::DockArea && StaticCastSharedRef<SDockingArea>(DockNode)->GetChildNodes().Num() == 0;
+		return bTabManagerMatches && (IsDockingViaTabwell == FDockingDragOperation::DockingViaTabWell || bCanDockInEmptyArea);
+	}
+	else
+	{
+		// Most commonly, tabs are confined to their tab manager of origin.
+		return (TargetTabManager == TabManagerOfOrigin);
+	}	
+}
+
+
 FDockingDragOperation::~FDockingDragOperation()
 {
 }
@@ -251,6 +287,7 @@ FDockingDragOperation::FDockingDragOperation( const TSharedRef<SDockTab>& InTabT
 	: TabBeingDragged( InTabToBeDragged )
 	, TabGrabOffsetFraction( InTabGrabOffsetFraction )
 	, TabOwnerAreaOfOrigin( InTabOwnerArea )
+	, TabStackOfOrigin( InTabToBeDragged->GetParent()->GetParentDockTabStack() )
 	, HoveredTabPanelPtr( )
 	, HoveredDockTarget()
 	, LastContentSize( OwnerAreaSize )

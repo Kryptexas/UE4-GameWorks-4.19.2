@@ -240,29 +240,38 @@ float SDockingTabWell::ComputeDraggedTabOffset( const FGeometry& MyGeometry, con
 
 FReply SDockingTabWell::StartDraggingTab( TSharedRef<SDockTab> TabToStartDragging, FVector2D InTabGrabOffsetFraction, const FPointerEvent& MouseEvent )
 {
-	Tabs.Remove(TabToStartDragging);
-	// We just removed the foreground tab.
-	ForegroundTabIndex = INDEX_NONE;
-	ParentTabStackPtr.Pin()->OnTabRemoved(TabToStartDragging->GetLayoutIdentifier());
-
-	// Tha tab well keeps track of which tab we are dragging; we treat is specially during rendering and layout.
-	TabBeingDraggedPtr = TabToStartDragging;
-		
-	TabGrabOffsetFraction = InTabGrabOffsetFraction;
+	const bool bCanLeaveTabWell = TabToStartDragging->GetTabManager()->GetPrivateApi().CanTabLeaveTabWell( TabToStartDragging );
 
 	// We are about to start dragging a tab, so make sure its offset is correct
 	this->ChildBeingDraggedOffset = ComputeDraggedTabOffset( MouseEvent.FindGeometry(SharedThis(this)), MouseEvent, InTabGrabOffsetFraction );
 
-	// Start dragging.
-	TSharedRef<FDockingDragOperation> DragDropOperation =
-		FDockingDragOperation::New(
-			TabToStartDragging,
-			InTabGrabOffsetFraction,
-			GetDockArea().ToSharedRef(),
-			ParentTabStackPtr.Pin()->GetTabStackGeometry().Size
-		);
+	// Tha tab well keeps track of which tab we are dragging; we treat is specially during rendering and layout.
+	TabBeingDraggedPtr = TabToStartDragging;	
+	TabGrabOffsetFraction = InTabGrabOffsetFraction;
+	
 
-	return FReply::Handled().BeginDragDrop( DragDropOperation );
+	if (bCanLeaveTabWell)
+	{
+		Tabs.Remove(TabToStartDragging);
+		// We just removed the foreground tab.
+		ForegroundTabIndex = INDEX_NONE;
+		ParentTabStackPtr.Pin()->OnTabRemoved(TabToStartDragging->GetLayoutIdentifier());
+
+		// Start dragging.
+		TSharedRef<FDockingDragOperation> DragDropOperation =
+			FDockingDragOperation::New(
+				TabToStartDragging,
+				InTabGrabOffsetFraction,
+				GetDockArea().ToSharedRef(),
+				ParentTabStackPtr.Pin()->GetTabStackGeometry().Size
+			);
+
+		return FReply::Handled().BeginDragDrop( DragDropOperation );
+	}
+	else
+	{
+		return FReply::Handled().CaptureMouse(SharedThis(this));
+	}
 }
 
 void SDockingTabWell::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
@@ -270,7 +279,7 @@ void SDockingTabWell::OnDragEnter( const FGeometry& MyGeometry, const FDragDropE
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{
-		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
+		if (DragDropOperation->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), FDockingDragOperation::DockingViaTabWell))
 		{
 			// The user dragged a tab into this TabWell.
 
@@ -292,16 +301,16 @@ void SDockingTabWell::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{
+		TSharedRef<SDockingTabStack> ParentTabStack = ParentTabStackPtr.Pin().ToSharedRef();
+		TSharedPtr<SDockTab> TabBeingDragged = this->TabBeingDraggedPtr.Pin();
 		// Check for TabBeingDraggedPtr validity as it may no longer be valid when dragging tabs in game
-		if (this->TabBeingDraggedPtr.IsValid() && DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
+		if ( TabBeingDragged.IsValid() && DragDropOperation->CanDockInNode(ParentTabStack, FDockingDragOperation::DockingViaTabWell) )
 		{
 			// Update the DragAndDrop operation based on this change.
-			const int32 LastForegroundTabIndex = Tabs.Find(this->TabBeingDraggedPtr.Pin().ToSharedRef());
+			const int32 LastForegroundTabIndex = Tabs.Find(TabBeingDragged.ToSharedRef());
 
 			// The user is pulling a tab out of this TabWell.
-			this->TabBeingDraggedPtr.Pin()->SetParent();
-
-			TSharedPtr<SDockingTabStack> ParentDockNode = ParentTabStackPtr.Pin();
+			TabBeingDragged->SetParent();
 
 			// We are no longer dragging a tab in this tab well, so stop
 			// showing it in the TabWell.
@@ -311,15 +320,15 @@ void SDockingTabWell::OnDragLeave( const FDragDropEvent& DragDropEvent )
 			BringTabToFront( FMath::Max(LastForegroundTabIndex-1, 0) );
 
 			// We may have removed the last tab that this DockNode had.
-			if (Tabs.Num() == 0 )
+			if ( Tabs.Num() == 0 )
 			{
 				// Let the DockNode know that it is no longer needed.
-				ParentDockNode->OnLastTabRemoved();
+				ParentTabStack->OnLastTabRemoved();
 			}
 
 			GetDockArea()->CleanUp( SDockingNode::TabRemoval_DraggedOut );
 
-			const FGeometry& DockNodeGeometry = ParentDockNode->GetTabStackGeometry();
+			const FGeometry& DockNodeGeometry = ParentTabStack->GetTabStackGeometry();
 			DragDropOperation->OnTabWellLeft( SharedThis(this), DockNodeGeometry );
 		}
 	}
@@ -331,7 +340,7 @@ FReply SDockingTabWell::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{
-		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
+		if (DragDropOperation->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), FDockingDragOperation::DockingViaTabWell))
 		{
 			// We are dragging the tab through a TabWell.
 			// Update the position of the Tab that we are dragging in the panel.
@@ -347,7 +356,7 @@ FReply SDockingTabWell::OnDrop( const FGeometry& MyGeometry, const FDragDropEven
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if (DragDropOperation.IsValid())
 	{
-		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
+		if (DragDropOperation->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), FDockingDragOperation::DockingViaTabWell))
 		{
 			if ( ensure( TabBeingDraggedPtr.IsValid() ) )
 			{
@@ -382,6 +391,35 @@ EWindowZone::Type SDockingTabWell::GetWindowZoneOverride() const
 {
 	// Pretend we are a title bar so the user can grab the area to move the window around
 	return EWindowZone::TitleBar;
+}
+
+FReply SDockingTabWell::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (this->HasMouseCapture())
+	{
+		// We are no longer dragging a tab in this tab well, so stop showing it in the TabWell.
+		this->TabBeingDraggedPtr.Reset();
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
+}
+
+FReply SDockingTabWell::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (this->HasMouseCapture())
+	{
+		// We are dragging the tab through a TabWell.
+		// Update the position of the Tab that we are dragging in the panel.
+		this->ChildBeingDraggedOffset = ComputeDraggedTabOffset(MyGeometry, MouseEvent, TabGrabOffsetFraction);
+		return FReply::Handled();
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
 }
 
 

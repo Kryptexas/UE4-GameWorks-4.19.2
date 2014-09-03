@@ -2,6 +2,8 @@
 
 #pragma once
 
+class SDockingTabStack;
+
 /** A Sample implementation of IDragDropOperation */
 class FDockingDragOperation : public FDragDropOperation
 {
@@ -90,8 +92,10 @@ public:
 	/**
 	 * Create this Drag and Drop Content
 	 *
-	 * @param InWidgetBeingDragged    The Widget being dragged in this drag and drop operation
-	 * @param InTabOwnerStack         The Widget that originally contained what we are dragging
+	 * @param InTabToBeDragged    The tab being dragged (dragged within or outside of a tabwell).
+	 * @param InTabGrabOffset     Where within the tab we grabbed, so we're not dragging by the upper left of the tab.
+	 * @param InTabOwnerArea      The DockArea that owns this tab until it is relocated.
+	 * @param OwnerAreaSize       Size of the DockArea at the time when we start dragging.
 	 *
 	 * @return a new FDockingDragOperation
 	 */
@@ -102,6 +106,16 @@ public:
 
 	/** @return location where the user grabbed within the tab as a fraction of the tab's size */
 	FVector2D GetTabGrabOffsetFraction() const;
+
+	/**Is this dock tab being placed via a tab well or via a target*/
+	enum EViaTabwell
+	{
+		DockingViaTabWell,
+		DockingViaTarget
+	};
+
+	/** Checks to see if this tab can dock in this node. Some tabs can only dock via the tab well. */
+	bool CanDockInNode( const TSharedRef<SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const;
 
 	virtual ~FDockingDragOperation();
 
@@ -123,6 +137,9 @@ protected:
 
 	/** The area from which we initially started dragging */
 	TSharedPtr<SDockingArea> TabOwnerAreaOfOrigin;
+
+	/** Tab stack from which we started dragging this tab. */
+	TWeakPtr<class SDockingTabStack> TabStackOfOrigin;
 
 	/** The TabWell over which we are currently hovering */
 	TWeakPtr<class SDockingTabWell> HoveredTabPanelPtr;

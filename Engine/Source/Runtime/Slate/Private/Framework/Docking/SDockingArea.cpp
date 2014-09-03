@@ -10,7 +10,6 @@ void SDockingArea::Construct( const FArguments& InArgs, const TSharedRef<FTabMan
 	InTabManager->GetPrivateApi().OnDockAreaCreated( SharedThis(this) );
 
 	bManageParentWindow = InArgs._ShouldManageParentWindow;
-	bShouldAllowRemovalOfLastTab = InArgs._ShouldAllowRemovalOfLastTab;
 	bIsOverlayVisible = false;
 
 	bIsCenterTargetVisible = false;
@@ -103,7 +102,7 @@ void SDockingArea::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEven
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{
-		if ( DragDropOperation->GetTabBeingDragged()->CanDockInNode(SharedThis(this), SDockTab::DockingViaTarget) )
+		if ( DragDropOperation->CanDockInNode(SharedThis(this), FDockingDragOperation::DockingViaTarget) )
 		{
 			ShowCross();
 		}		
@@ -310,16 +309,6 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingArea::GatherPersistentLayout() cons
 TSharedRef<FTabManager> SDockingArea::GetTabManager() const
 {
 	return MyTabManager.Pin().ToSharedRef();
-}
-
-bool SDockingArea::GetShouldAllowRemovalOfLastTab() const
-{
-	return bShouldAllowRemovalOfLastTab;
-}
-
-void SDockingArea::SetShouldAllowRemovalOfLastTab(bool Allow)
-{
-	bShouldAllowRemovalOfLastTab = Allow;
 }
 
 SDockingNode::ECleanupRetVal SDockingArea::CleanUpNodes()

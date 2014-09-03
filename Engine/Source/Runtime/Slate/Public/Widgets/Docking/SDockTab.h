@@ -169,16 +169,6 @@ public:
 
 	/** Sets the tab icon */
 	void SetTabIcon( const TAttribute<const FSlateBrush*> InTabIcon );
-	
-	/**Is this dock tab being placed via a tab well or via a target*/
-	enum EViaTabwell
-	{
-		DockingViaTabWell,
-		DockingViaTarget
-	};
-
-	/** Checks to see if this tab can dock in this node. Some tabs can only dock via the tab well. */
-	bool CanDockInNode(const TSharedRef<class SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const;
 
 	/** Should this tab be sized based on its content. */
 	bool ShouldAutosize() const;
@@ -208,7 +198,7 @@ public:
 	void ActivateInParent(ETabActivationCause::Type InActivationCause);
 
 	/** Set the tab manager that is controlling this tab */
-	void SetTabManager( const TSharedPtr<class FTabManager>& InTabManager );
+	void SetTabManager( const TSharedPtr<FTabManager>& InTabManager );
 
 	/**
 	 * Set the custom code to execute for saving visual state in this tab.
@@ -294,7 +284,7 @@ protected:
 protected:
 
 	/** The tab manager that created this tab. */
-	TWeakPtr<class FTabManager> MyTabManager;
+	TWeakPtr<FTabManager> MyTabManager;
 
 	/** The stuff to show when this tab is selected */
 	TSharedRef<SWidget> Content;

@@ -390,6 +390,11 @@ void FTabManager::FPrivateApi::OnTabManagerClosing()
 	TabManager.OnTabManagerClosing();
 }
 
+bool FTabManager::FPrivateApi::CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const
+{
+	return TabToTest != TabManager.MainNonCloseableTab.Pin();
+}
+
 const TArray< TWeakPtr<SDockingArea> >& FTabManager::FPrivateApi::GetLiveDockAreas() const
 {
 	return TabManager.DockAreas;
@@ -1089,19 +1094,16 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 		}
 		else
 		{
-			SAssignNew(NewDockAreaWidget, SDockingArea, SharedThis(this), NodeAsArea.ToSharedRef())
+			SAssignNew( NewDockAreaWidget, SDockingArea, SharedThis(this), NodeAsArea.ToSharedRef() )
 
 				// We only want to set a parent window on this dock area, if we need to have title area content
 				// embedded within it.  SDockingArea assumes that if it has a parent window set, then it needs to have
 				// title area content 
-				.ParentWindow(bEmbedTitleAreaContent ? ParentWindow : TSharedPtr<SWindow>())
+				.ParentWindow( bEmbedTitleAreaContent ? ParentWindow : TSharedPtr<SWindow>() )
 
 				// Never manage these windows, even if a parent window is set.  The owner will take care of
 				// destroying these windows.
-				.ShouldManageParentWindow(false)
-
-				// Don't allow the removal of the last tab, because it will leave an orphaned main frame.
-				.ShouldAllowRemovalOfLastTab(OwnerTabPtr.IsValid() ? true : false);
+				.ShouldManageParentWindow( false );
 
 			RestoreSplitterContent( NodeAsArea.ToSharedRef(), NewDockAreaWidget.ToSharedRef(), ParentWindow );
 		}
