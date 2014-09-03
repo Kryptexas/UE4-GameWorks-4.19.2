@@ -11,7 +11,7 @@
 #include "SpectatorPawn.generated.h"
 
 
-UCLASS(config=Game, Blueprintable, BlueprintType)
+UCLASS(config=Game, Blueprintable, BlueprintType, notplaceable)
 class ENGINE_API ASpectatorPawn : public ADefaultPawn
 {
 	GENERATED_UCLASS_BODY()
