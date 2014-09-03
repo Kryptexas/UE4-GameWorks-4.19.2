@@ -8,6 +8,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "KismetNodeInfoContext.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeK2Base"
 
@@ -45,19 +46,9 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	}
 
 	// Setup a tag for this node
-	FString TagName;
-	if (GraphNode != nullptr)
-	{
-		// We want the name of the blueprint as our name - we can find the node from the GUID
-		UObject* Package = GraphNode->GetOutermost();
-		UObject* LastOuter = GraphNode->GetOuter();
-		while (LastOuter->GetOuter() != Package)
-		{
-			LastOuter = LastOuter->GetOuter();
-		}
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
-	}
-	
+	FBlueprintGraphNodeMetaData TagMeta(TEXT("Graphnode"), TEXT("None"), FGuid());
+	PopulateMetaTag(&TagMeta);
+
 	//
 	//             ______________________
 	//            | (>) L |      | R (>) |
@@ -84,7 +75,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			// NODE CONTENT AREA
 			SNew(SOverlay)
 			.ToolTip( NodeToolTip.ToSharedRef() )
-			.Tag(*TagName)
+			.AddMetaData<FBlueprintGraphNodeMetaData>(TagMeta)
 			+SOverlay::Slot()
 			[
 				SNew(SImage)
@@ -523,6 +514,49 @@ void SGraphNodeK2Base::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<
 	// Place this node smack between them
 	const float Height = 0.0f;
 	PositionThisNodeBetweenOtherNodes(NodeToWidgetLookup, PrevNodes, NextNodes, Height);
+}
+
+void SGraphNodeK2Base::PopulateMetaTag(FBlueprintGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
+		TagMeta->OuterName = LastOuter->GetFullName();
+		TagMeta->GUID = GraphNode->NodeGuid;
+		FString TitleText = GetNodeCompactTitle().ToString();
+		if (GraphNode->Pins.Num() > 0)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			for (int iPin = 0; iPin < GraphNode->Pins.Num(); iPin++)
+			{
+				if (GraphNode->Pins[iPin]->PinType.PinCategory != K2Schema->PC_Exec)
+				{
+					// Include the title if there is one
+					if (TitleText.IsEmpty())
+					{
+						TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
+					}
+					else
+					{
+						TagMeta->FriendlyName = FString::Printf(TEXT("%s %s in %s"), *TitleText, *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
+					}
+
+					break;
+				}
+			}
+		}
+		else
+		{
+			TagMeta->FriendlyName = TitleText;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

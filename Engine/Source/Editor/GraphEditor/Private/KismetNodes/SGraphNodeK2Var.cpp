@@ -8,6 +8,7 @@
 #include "ClassIconFinder.h"
 #include "IDocumentation.h"
 #include "BlueprintEditorUtils.h"
+#include "TutorialMetaData.h"
 
 void SGraphNodeK2Var::Construct( const FArguments& InArgs, UK2Node* InNode )
 {
@@ -160,18 +161,8 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
 
 	// Setup a tag for this node
-	FString TagName;
-	if (GraphNode != nullptr)
-	{
-		// We want the name of the blueprint as our name - we can find the node from the GUID
-		UObject* Package = GraphNode->GetOutermost();
-		UObject* LastOuter = GraphNode->GetOuter();
-		while (LastOuter->GetOuter() != Package)
-		{
-			LastOuter = LastOuter->GetOuter();
-		}
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
-	}
+	FBlueprintGraphNodeMetaData TagMeta(TEXT("Graphnode"), TEXT("None"), FGuid());	
+	PopulateMetaTag(&TagMeta, TitleText);
 
 	//             ________________
 	//            | (>) L |  R (>) |
@@ -197,7 +188,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		+SVerticalBox::Slot()
 		[
 			SNew(SOverlay)
-			.Tag(*TagName)
+			.AddMetaData<FBlueprintGraphNodeMetaData>(TagMeta)
 			+ SOverlay::Slot()
 			[
 				SNew(SImage)
@@ -273,4 +264,46 @@ void SGraphNodeK2Var::UpdateGraphNode()
 const FSlateBrush* SGraphNodeK2Var::GetShadowBrush(bool bSelected) const
 {
 	return bSelected ? FEditorStyle::GetBrush(TEXT("Graph.VarNode.ShadowSelected")) : FEditorStyle::GetBrush(TEXT("Graph.VarNode.Shadow"));
+}
+
+void SGraphNodeK2Var::PopulateMetaTag(FBlueprintGraphNodeMetaData* TagMeta, const FText &TitleText) const
+{
+	if (GraphNode != nullptr)
+	{
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
+		TagMeta->OuterName = LastOuter->GetFullName();
+		TagMeta->GUID = GraphNode->NodeGuid;
+		if (GraphNode->Pins.Num() > 0)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			for (int iPin = 0; iPin < GraphNode->Pins.Num(); iPin++)
+			{
+				if (GraphNode->Pins[iPin]->PinType.PinCategory != K2Schema->PC_Exec)
+				{
+					// Include the title if there is one
+					if (TitleText.IsEmpty())
+					{
+						TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
+					}
+					else
+					{
+						TagMeta->FriendlyName = FString::Printf(TEXT("%s %s in %s"), *TitleText.ToString(), *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
+					}
+
+					break;
+				}
+			}
+		}
+		else
+		{
+			TagMeta->FriendlyName = TitleText.ToString();
+		}
+	}
 }

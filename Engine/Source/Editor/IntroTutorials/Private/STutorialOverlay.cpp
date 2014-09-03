@@ -104,8 +104,7 @@ int32 STutorialOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeometry& InGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	TSharedPtr<FTagMetaData> MetaData = InWidget->GetMetaData<FTagMetaData>();
-
-	const FName Tag = InWidget->GetTag();
+	const FName Tag = (MetaData.IsValid() && MetaData->Tag.IsValid()) ? MetaData->Tag : InWidget->GetTag();	
 	if(Tag != NAME_None || MetaData.IsValid())
 	{
 		// we are a named widget - ask it to draw
@@ -180,31 +179,22 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 	{
 		return;
 	}
-	FString IdentString = WidgetContent.WidgetAnchor.WrapperIdentifier.ToString();
-	TArray<FString> Tokens;
-	IdentString.ParseIntoArray(&Tokens, TEXT(","), true);
-	if (Tokens.Num() > 1 )
+	FString Name = WidgetContent.WidgetAnchor.OuterName;
+	int32 NameIndex;
+	Name.FindLastChar(TEXT('.'), NameIndex);
+	FString BlueprintName = Name.RightChop(NameIndex + 1);
+	UBlueprint* Blueprint = FindObject<UBlueprint>(ANY_PACKAGE, *BlueprintName);
+	// If we find a blueprint
+	if (Blueprint != nullptr)
 	{
-		FString Name = Tokens[1];
-
-		// I'm sure this isnt how to do this. But probably this will all come from meta data anyway
-		int32 NameIndex;
-		Name.FindLastChar(TEXT('.'), NameIndex);
-		FString BlueprintName = Name.RightChop(NameIndex+1);		
-		UBlueprint* Blueprint = FindObject<UBlueprint>(ANY_PACKAGE, *BlueprintName);
-		// If we find a blueprint
-		if (Blueprint != nullptr)
+		// Try to grab guid
+		FGuid NodeGuid;
+		FGuid::Parse(WidgetContent.WidgetAnchor.GUIDString, NodeGuid);
+		UEdGraphNode* OutNode = NULL;
+		if (UEdGraphNode* GraphNode = FBlueprintEditorUtils::GetNodeByGUID(Blueprint, NodeGuid))
 		{
-			// Try to grab guid
-			FGuid NodeGuid;
-			FGuid::Parse(Tokens[Tokens.Num() - 1], NodeGuid);
-			UEdGraphNode* OutNode = NULL;
-			if (UEdGraphNode* GraphNode = FBlueprintEditorUtils::GetNodeByGUID(Blueprint, NodeGuid))
-			{
-				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
-			}
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
 		}
-
 	}
 }
 
