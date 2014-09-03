@@ -381,19 +381,84 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 	PrintString(DefaultContext, TEXT("\n"));
 
 	auto& CurrentLocalData = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex];
+
+	/** find and draw item selection */
+	int32 BestItemIndex = INDEX_NONE;
+	{
+		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+		FVector CamLocation;
+		FRotator CamRotation;
+		check(MyPC->PlayerCameraManager != NULL);
+		MyPC->PlayerCameraManager->GetCameraViewPoint(CamLocation, CamRotation);
+		FVector FireDir = CamRotation.Vector();
+
+		FVector out_Location;
+		FRotator out_Rotation;
+		MyPC->GetPlayerViewPoint(out_Location, out_Rotation);
+
+		float bestAim = 0;
+		for (int32 Index = 0; Index < CurrentLocalData.RenderDebugHelpers.Num(); ++Index)
+		{
+			auto& CurrentItem = CurrentLocalData.RenderDebugHelpers[Index];
+
+			// look for best controlled pawn target
+			const FVector AimDir = CurrentItem.Location - out_Location;
+			float FireDist = AimDir.SizeSquared();
+			// only find targets which are < 25000 units away
+
+			FireDist = FMath::Sqrt(FireDist);
+			float newAim = FireDir | AimDir;
+			newAim = newAim / FireDist;
+			if (newAim > bestAim)
+			{
+				BestItemIndex = Index;
+				bestAim = newAim;
+			}
+		}
+
+		if (BestItemIndex != INDEX_NONE)
+		{
+			DrawDebugSphere(World, CurrentLocalData.RenderDebugHelpers[BestItemIndex].Location, CurrentLocalData.RenderDebugHelpers[BestItemIndex].Radius, 8, FColor::Red, false);
+			int32 FailedTestIndex = CurrentLocalData.RenderDebugHelpers[BestItemIndex].FailedTestIndex;
+			if (FailedTestIndex != INDEX_NONE)
+			{
+				PrintString(DefaultContext, FString::Printf(TEXT("{red}Selected item failed with test %d: {yellow}%s {LightBlue}(%s)\n")
+					, FailedTestIndex
+					, *CurrentLocalData.Tests[FailedTestIndex].ShortName
+					, *CurrentLocalData.Tests[FailedTestIndex].Detailed
+					));
+				PrintString(DefaultContext, FString::Printf(TEXT("{white}'%s' with score %3.3f\n\n"), *CurrentLocalData.RenderDebugHelpers[BestItemIndex].AdditionalInformation, CurrentLocalData.RenderDebugHelpers[BestItemIndex].FailedScore));
+			}
+		}
+	}
+
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
+		, CurrentLocalData.Timestamp, PC->GetWorld()->GetTimeSeconds() - CurrentLocalData.Timestamp
+		));
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
+		, CurrentLocalData.Id
+		));
+
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Query contains %d options: "), CurrentLocalData.Options.Num()));
+	for (int32 OptionIndex = 0; OptionIndex < CurrentLocalData.Options.Num(); ++OptionIndex)
+	{
+		if (OptionIndex == CurrentLocalData.UsedOption)
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentLocalData.Options[OptionIndex]));
+		}
+		else
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentLocalData.Options[OptionIndex]));
+		}
+	}
+	PrintString(DefaultContext, TEXT("\n"));
+
+	const float RowHeight = 20.0f;
+	const int32 NumTests = CurrentLocalData.Tests.Num();
 	if (CurrentLocalData.NumValidItems > 0)
 	{
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
-			, CurrentLocalData.Timestamp, PC->GetWorld()->GetTimeSeconds() - CurrentLocalData.Timestamp
-			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
-			, CurrentLocalData.Id
-			));
-
 		// draw test weights for best X items
 		const int32 NumItems = CurrentLocalData.Items.Num();
-		const int32 NumTests = CurrentLocalData.Tests.Num();
-		const float RowHeight = 20.0f;
 
 		FCanvasTileItem TileItem(FVector2D(0, 0), GWhiteTexture, FVector2D(Canvas->SizeX, RowHeight), FLinearColor::Black);
 		FLinearColor ColorOdd(0, 0, 0, 0.6f);
@@ -432,18 +497,20 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			DrawEQSItemDetails(Idx, DebugComponent);
 			DefaultContext.CursorY += RowHeight;
 		}
-
-		// test description
 		DefaultContext.CursorY += RowHeight;
-		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
-		{
-			FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
-				*CurrentLocalData.Tests[TestIdx].ShortName,
-				*CurrentLocalData.Tests[TestIdx].Detailed);
-
-			PrintString(DefaultContext, TestDesc);
-		}
 	}
+
+	// test description
+	PrintString(DefaultContext, TEXT("All tests from used option:\n"));
+	for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+	{
+		FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
+			*CurrentLocalData.Tests[TestIdx].ShortName,
+			*CurrentLocalData.Tests[TestIdx].Detailed);
+
+		PrintString(DefaultContext, TestDesc);
+	}
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 

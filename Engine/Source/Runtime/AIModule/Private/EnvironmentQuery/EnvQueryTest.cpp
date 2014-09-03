@@ -302,7 +302,9 @@ void UEnvQueryTest::PostLoad()
 void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+#if USE_EQS_DEBUGGER
 	UEnvQueryManager::NotifyAssetUpdate(NULL);
+#endif
 }
 #endif //WITH_EDITOR && USE_EQS_DEBUGGER
 

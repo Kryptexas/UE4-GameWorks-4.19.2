@@ -53,7 +53,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 		}
 	}
 
-	FEQSSceneProxy::CollectEQSData(InComponent, QueryDataSource, SolidSpheres, Texts);
+#if  USE_EQS_DEBUGGER 
+	TArray<EQSDebug::FDebugHelper> DebugItems;
+	FEQSSceneProxy::CollectEQSData(InComponent, QueryDataSource, SolidSpheres, Texts, DebugItems);
+#endif
 }
 
 FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& InViewFlagName, bool bInDrawOnlyWhenSelected, const TArray<FSphere>& Spheres, const TArray<FText3d>& InTexts)
@@ -86,7 +89,8 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 }
 
-void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* InQueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts)
+#if  USE_EQS_DEBUGGER 
+void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* InQueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems)
 {
 	AActor* ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
 	IEQSQueryResultSourceInterface* QueryDataSource = const_cast<IEQSQueryResultSourceInterface*>(InQueryDataSource);
@@ -106,7 +110,7 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	const FEnvQueryResult* ResultItems = QueryDataSource->GetQueryResult();
 	const FEnvQueryInstance* QueryInstance = QueryDataSource->GetQueryInstance();
 
-	FEQSSceneProxy::CollectEQSData(ResultItems, QueryInstance, Spheres, Texts, QueryDataSource->GetShouldDrawFailedItems());
+	FEQSSceneProxy::CollectEQSData(ResultItems, QueryInstance, Spheres, Texts, QueryDataSource->GetShouldDrawFailedItems(), DebugItems);
 
 	if (ActorOwner && Spheres.Num() > EQSMaxItemsDrawn)
 	{
@@ -117,7 +121,7 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	}
 }
 
-void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems)
+void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems)
 {
 	if (ResultItems == NULL)
 	{
@@ -131,7 +135,6 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 		}
 	}
 
-#if USE_EQS_DEBUGGER
 	// using "mid-results" requires manual normalization
 	const bool bUseMidResults = QueryInstance && (QueryInstance->Items.Num() < QueryInstance->DebugData.DebugItems.Num());
 	const TArray<FEnvQueryItem>& Items = bUseMidResults ? QueryInstance->DebugData.DebugItems : ResultItems->Items;
@@ -140,12 +143,6 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 	const bool bNoTestsPerformed = QueryInstance != NULL && QueryInstance->CurrentTest <= 0;
 	
 	const bool bSingleItemResult = QueryInstance != NULL && QueryInstance->DebugData.bSingleItemResult;
-
-	//if (!bUseMidResults && Items.Num() > 0 && Items[0].IsValid())
-	//{
-	//	const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, ResultItems->RawData, Items, 0);
-	//	Cylinders.Add(FWireCylinder(Loc, ItemDrawRadius.X, 100, FColor::White));
-	//}
 
 	float MinScore = 0.f;
 	float MaxScore = -BIG_NUMBER;
@@ -175,6 +172,8 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 					? FLinearColor(FColor::MakeRedToGreenColorFromScalar(Score)) 
 					: FLinearColor(0.2, 1.0, 1.0, 1)));
 
+				DebugItems.Add(EQSDebug::FDebugHelper(Loc, ItemDrawRadius.X));
+
 				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
 				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
 			}
@@ -188,6 +187,8 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 			const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, 0);
 			Spheres.Add(FSphere(ItemDrawRadius.X, Loc, FLinearColor(0.0, 1.0, 0.12, 1)));
 
+			DebugItems.Add(EQSDebug::FDebugHelper(Loc, ItemDrawRadius.X));
+
 			const FString Label = FString::Printf(TEXT("Winner %.2f"), Score);
 			Texts.Add(FText3d(Label, Loc, FLinearColor::White));
 		}
@@ -200,6 +201,8 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 				const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, ItemIndex);
 				Spheres.Add(FSphere(ItemDrawRadius.X, Loc, FLinearColor(0.0, 0.2, 0.025, 1)));
 
+				DebugItems.Add(EQSDebug::FDebugHelper(Loc, ItemDrawRadius.X));
+				
 				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
 				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
 			}
@@ -225,13 +228,20 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 			const FVector Loc = FEQSRenderingHelper::ExtractLocation(QueryInstance->ItemType, InstanceDebugData.RawData, DebugQueryItems, ItemIndex);
 			Spheres.Add(FSphere(ItemDrawRadius.X, Loc, FLinearColor(0.0, 0.0, 0.6, 0.6)));
 
-			const FString Label = InstanceDebugData.PerformedTestNames[Details[ItemIndex].FailedTestIndex];
-			Texts.Add(FText3d(Label, Loc, FLinearColor::White));
+			auto& DebugHelper = DebugItems[DebugItems.Add(EQSDebug::FDebugHelper(Loc, ItemDrawRadius.X))];
+			DebugHelper.AdditionalInformation = Details[ItemIndex].FailedDescription;
+			if (Details[ItemIndex].FailedTestIndex != INDEX_NONE)
+			{
+				DebugHelper.FailedTestIndex = Details[ItemIndex].FailedTestIndex;
+				DebugHelper.FailedScore = Details[ItemIndex].TestResults[DebugHelper.FailedTestIndex];
+
+				const FString Label = InstanceDebugData.PerformedTestNames[DebugHelper.FailedTestIndex] + FString::Printf(TEXT("(%d)"), DebugHelper.FailedTestIndex);
+				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
+			}
 		}
 	}
-#endif // USE_EQS_DEBUGGER
 }
-
+#endif //USE_EQS_DEBUGGER 
 void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController* PC)
 {
 	if ( !ActorOwner

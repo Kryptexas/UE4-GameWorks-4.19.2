@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "EnvQueryTypes.h"
 #include "DebugRenderSceneProxy.h"
 #include "VisualLoggerExtension.h"
 #include "EnvQueryDebugHelpers.generated.h"
@@ -25,12 +26,29 @@ namespace EQSDebug
 		FString Detailed;
 	};
 
+	// struct filled while collecting data (to store additional debug data needed to display per rendered item)
+	struct FDebugHelper
+	{
+		FDebugHelper() : Location(FVector::ZeroVector), Radius(0), FailedTestIndex(INDEX_NONE){}
+		FDebugHelper(FVector Loc, float R) : Location(Loc), Radius(R), FailedTestIndex(INDEX_NONE) {}
+		FDebugHelper(FVector Loc, float R, const FString& Desc) : Location(Loc), Radius(R), FailedTestIndex(INDEX_NONE), AdditionalInformation(Desc) {}
+
+		FVector Location;
+		float Radius;
+		int32 FailedTestIndex;
+		float FailedScore;
+		FString AdditionalInformation;
+	};
+
 	struct FQueryData
 	{
 		TArray<FItemData> Items;
 		TArray<FTestData> Tests;
 		TArray<FDebugRenderSceneProxy::FSphere> SolidSpheres;
 		TArray<FDebugRenderSceneProxy::FText3d> Texts;
+		TArray<FDebugHelper> RenderDebugHelpers;
+		TArray<FString>	Options;
+		int32 UsedOption;
 		int32 NumValidItems;
 		int32 Id;
 		FString Name;
@@ -38,6 +56,8 @@ namespace EQSDebug
 
 		void Reset()
 		{
+			UsedOption = 0;
+			Options.Reset();
 			NumValidItems = 0;
 			Id = INDEX_NONE;
 			Name.Empty();
@@ -46,6 +66,7 @@ namespace EQSDebug
 			SolidSpheres.Reset();
 			Texts.Reset();
 			Timestamp = 0;
+			RenderDebugHelpers.Reset();
 		}
 	};
 }
@@ -88,6 +109,16 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FTestData& Data)
 }
 
 FORCEINLINE
+FArchive& operator<<(FArchive& Ar, EQSDebug::FDebugHelper& Data)
+{
+	Ar << Data.Location;
+	Ar << Data.Radius;
+	Ar << Data.AdditionalInformation;
+	Ar << Data.FailedTestIndex;
+	return Ar;
+}
+
+FORCEINLINE
 FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 {
 	Ar << Data.Items;
@@ -98,12 +129,15 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 	Ar << Data.Id;
 	Ar << Data.Name;
 	Ar << Data.Timestamp;
+	Ar << Data.RenderDebugHelpers;
+	Ar << Data.Options;
+	Ar << Data.UsedOption;
 	return Ar;
 }
 
 #endif //USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
 
-#if ENABLE_VISUAL_LOG
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 
 #define UE_VLOG_EQS(Query, CategoryName, Verbosity) \
 { \
@@ -124,7 +158,7 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 #else
 #define UE_VLOG_EQS(Query, CategoryName, Verbosity)
 
-#endif //ENABLE_VISUAL_LOG
+#endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 
 UCLASS(Abstract, CustomConstructor)
 class AIMODULE_API UEnvQueryDebugHelpers : public UObject
@@ -132,7 +166,7 @@ class AIMODULE_API UEnvQueryDebugHelpers : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UEnvQueryDebugHelpers(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
-#if USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+#if USE_EQS_DEBUGGER
 	static void QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData);
 	static void QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
 	static void BlobArrayToDebugData(const TArray<uint8>& BlobArray, EQSDebug::FQueryData& EQSLocalData, bool bUseCompression = false);

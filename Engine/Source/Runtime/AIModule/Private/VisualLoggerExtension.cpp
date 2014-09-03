@@ -13,24 +13,29 @@ FVisualLoggerExtension::FVisualLoggerExtension()
 
 void FVisualLoggerExtension::OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor )
 {
+#if USE_EQS_DEBUGGER
 	if (CurrentTimestamp != Timestamp)
 	{
 		CurrentTimestamp = Timestamp;
 		CachedEQSId = INDEX_NONE;
 		DisableEQSRendering(HelperActor);
 	}
+#endif
 }
 
 void FVisualLoggerExtension::DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp)
 {
+#if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && CurrentTimestamp == Timestamp)
 	{
 		DisableEQSRendering(HelperActor);
 	}
+#endif
 }
 
 void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
 {
+#if USE_EQS_DEBUGGER
 	if (HelperActor)
 	{
 		UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
@@ -42,10 +47,12 @@ void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
 			EQSRenderComp->MarkRenderStateDirty();
 		}
 	}
+#endif
 }
 
 void FVisualLoggerExtension::DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp)
 {
+#if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && HelperActor)
 	{
 		UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
@@ -68,5 +75,6 @@ void FVisualLoggerExtension::DrawData(class UWorld* InWorld, class UCanvas* Canv
 			EQSRenderComp->MarkRenderStateDirty();
 		}
 	}
+#endif
 }
 #endif //ENABLE_VISUAL_LOG

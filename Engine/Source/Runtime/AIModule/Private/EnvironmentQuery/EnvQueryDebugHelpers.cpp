@@ -6,7 +6,7 @@
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 
-#if USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+#if USE_EQS_DEBUGGER
 void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression)
 {
 	EQSDebug::FQueryData EQSLocalData;
@@ -43,7 +43,7 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 	// step 1: data for rendering component
 	EQSLocalData.Reset();
 
-	FEQSSceneProxy::CollectEQSData(Query, Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true);
+	FEQSSceneProxy::CollectEQSData(Query, Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true, EQSLocalData.RenderDebugHelpers);
 
 	// step 2: detailed scoring data for HUD
 	const int32 MaxDetailedItems = 10;
@@ -82,7 +82,8 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		EQSLocalData.Items.Add(ItemInfo);
 	}
 
-	for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+	const int32 NumAllTests = Query->Options[Query->OptionIndex].TestsToPerform.Num();
+	for (int32 TestIdx = 0; TestIdx < NumAllTests; TestIdx++)
 	{
 		EQSDebug::FTestData TestInfo;
 
@@ -91,6 +92,14 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 
 		EQSLocalData.Tests.Add(TestInfo);
+	}
+
+	EQSLocalData.UsedOption = Query->OptionIndex;
+	const int32 NumOptions = Query->Options.Num();
+	for (int32 OptionIndex = 0; OptionIndex < NumOptions; ++OptionIndex)
+	{
+		const FString UserName = Query->Options[OptionIndex].Generator->OptionName;
+		EQSLocalData.Options.Add(UserName.Len() > 0 ? UserName : Query->Options[OptionIndex].Generator->GetName());
 	}
 }
 

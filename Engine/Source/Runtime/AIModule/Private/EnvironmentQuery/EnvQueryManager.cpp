@@ -104,9 +104,10 @@ UEnvQueryManager* UEnvQueryManager::GetCurrent(UObject* WorldContextObject)
 	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
 }
 
-#if WITH_EDITOR && USE_EQS_DEBUGGER
+#if USE_EQS_DEBUGGER
 void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 {
+#if WITH_EDITOR
 	if (GEditor == NULL)
 	{
 		return;
@@ -137,8 +138,9 @@ void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 			}
 		}
 	}
+#endif //WITH_EDITOR
 }
-#endif // WITH_EDITOR && USE_EQS_DEBUGGER
+#endif // USE_EQS_DEBUGGER
 
 TStatId UEnvQueryManager::GetStatId() const
 {

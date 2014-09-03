@@ -473,6 +473,7 @@ struct AIMODULE_API FEnvQueryItemDetails
 
 	int32 FailedTestIndex;
 	int32 ItemIndex;
+	FString FailedDescription;
 #endif // USE_EQS_DEBUGGER
 
 	FEnvQueryItemDetails() {}
@@ -608,8 +609,6 @@ public:
 #if USE_EQS_DEBUGGER
 	/** set to true to store additional debug info */
 	uint8 bStoreDebugInfo : 1;
-	/** set to true when debug data has been stored before items sorting. This is time sensetive and gets reset to false every query step */
-	uint8 bDebugStoredBeforeSorting : 1;
 #endif // USE_EQS_DEBUGGER
 
 	/** run mode */
@@ -627,7 +626,6 @@ public:
 	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false)
 #if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
-		, bDebugStoredBeforeSorting(false)
 #endif // USE_EQS_DEBUGGER
 	{ IncStats(); }
 	FEnvQueryInstance(const FEnvQueryInstance& Other) { *this = Other; IncStats(); }
@@ -742,6 +740,18 @@ public:
 #if !NO_LOGGING
 	void Log(const FString Msg) const;
 #endif // #if !NO_LOGGING
+	
+#if USE_EQS_DEBUGGER
+#	define  UE_EQS_DBGMSG(Format, ...) \
+					Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__)
+
+#	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) \
+					UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
+					UE_EQS_DBGMSG(Format, ##__VA_ARGS__); 
+#else
+#	define UE_EQS_DBGMSG(Format, ...)
+#	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); 
+#endif
 
 #if CPP || UE_BUILD_DOCS
 	struct AIMODULE_API ItemIterator
@@ -764,6 +774,7 @@ public:
 					case EEnvTestFilterType::Maximum:
 						if (Score > Max)
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is above maximum value set to %f"), Score, Max);
 							bPassedTest = false;
 						}
 						break;
@@ -771,6 +782,7 @@ public:
 					case EEnvTestFilterType::Minimum:
 						if (Score < Min)
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is below minimum value set to %f"), Score, Min);
 							bPassedTest = false;
 						}
 						break;
@@ -778,17 +790,18 @@ public:
 					case EEnvTestFilterType::Range:
 						if ((Score < Min) || (Score > Max))
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is out of range set to (%f, %f)"), Score, Min, Max);
 							bPassedTest = false;
 						}
 						break;
 
 					case EEnvTestFilterType::Match:
-						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
+						UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
 						bPassedTest = false;
 						break;
 
 					default:
-						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
+						UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
 						bPassedTest = false;
 						break;
 				}
@@ -812,25 +825,31 @@ public:
 			{
 				case EEnvTestFilterType::Match:
 					bPassedTest = (bScore == bExpected);
+#if USE_EQS_DEBUGGER
+					if (!bPassedTest)
+					{
+						UE_EQS_DBGMSG(TEXT("Boolean score don't mach (expected %s and got %s)"), bExpected ? TEXT("TRUE") : TEXT("FALSE"), bScore ? TEXT("TRUE") : TEXT("FALSE"));
+					}
+#endif
 					break;
 
 				case EEnvTestFilterType::Maximum:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Maximum' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Maximum' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				case EEnvTestFilterType::Minimum:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Minimum' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Minimum' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				case EEnvTestFilterType::Range:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Range' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Range' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				default:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 			}
@@ -920,10 +939,14 @@ public:
 	};
 #endif
 
+#undef UE_EQS_LOG
+#undef UE_EQS_DBGMSG
+
 #if USE_EQS_DEBUGGER
 	FEQSQueryDebugData DebugData;
 	static bool bDebuggingInfoEnabled;
 #endif // USE_EQS_DEBUGGER
+
 	FBox GetBoundingBox() const;
 };
 

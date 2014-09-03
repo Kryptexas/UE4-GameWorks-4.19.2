@@ -86,7 +86,9 @@ void UEnvironmentQueryGraph::UpdateAsset()
 	}
 
 	RemoveOrphanedNodes();
+#if USE_EQS_DEBUGGER
 	UEnvQueryManager::NotifyAssetUpdate(Query);
+#endif
 }
 
 void UEnvironmentQueryGraph::CalculateAllWeights()

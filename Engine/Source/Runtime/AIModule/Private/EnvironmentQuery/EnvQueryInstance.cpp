@@ -188,9 +188,6 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	const bool bDoingLastTest = (CurrentTest == OptionItem.TestsToPerform.Num() - 1);
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
-#if USE_EQS_DEBUGGER
-	bDebugStoredBeforeSorting = false;
-#endif
 
 	if (CurrentTest < 0)
 	{
@@ -231,7 +228,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	if (bStepDone)
 	{
 #if USE_EQS_DEBUGGER
-		if (bStoreDebugInfo && !bDebugStoredBeforeSorting)
+		if (bStoreDebugInfo)
 		{
 			DebugData.Store(this);
 		}
@@ -379,12 +376,13 @@ void FEnvQueryInstance::NormalizeScores()
 
 void FEnvQueryInstance::SortScores()
 {
+	const int32 NumItems = Items.Num();
 	if (Options[OptionIndex].bShuffleItems)
 	{
-		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
+		for (int32 ItemIndex = 0; ItemIndex < NumItems; ItemIndex++)
 		{
-			const int32 Idx1 = FMath::RandHelper(Items.Num());
-			const int32 Idx2 = FMath::RandHelper(Items.Num());
+			const int32 Idx1 = FMath::RandHelper(NumItems);
+			const int32 Idx2 = FMath::RandHelper(NumItems);
 			Items.Swap(Idx1, Idx2);
 
 #if USE_EQS_DEBUGGER
@@ -393,7 +391,34 @@ void FEnvQueryInstance::SortScores()
 		}
 	}
 
+#if USE_EQS_DEBUGGER
+	struct FSortHelperForDebugData
+	{
+		FEnvQueryItem	Item;
+		struct FEnvQueryItemDetails ItemDetails;
+
+		FSortHelperForDebugData(const FEnvQueryItem&	InItem, struct FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
+		bool operator<(const FSortHelperForDebugData& Other) const
+		{
+			return Item < Other.Item;
+		}
+	};
+	TArray<FSortHelperForDebugData> AllData;
+	AllData.Reserve(NumItems);
+	for (int32 Index = 0; Index < NumItems; ++Index)
+	{
+		AllData.Add(FSortHelperForDebugData(Items[Index], ItemDetails[Index]));
+	}
+	AllData.Sort(TGreater<FSortHelperForDebugData>());
+
+	for (int32 Index = 0; Index < NumItems; ++Index)
+	{
+		Items[Index] = AllData[Index].Item;
+		ItemDetails[Index] = AllData[Index].ItemDetails;
+	}
+#else
 	Items.Sort(TGreater<FEnvQueryItem>());
+#endif
 }
 
 void FEnvQueryInstance::StripRedundantData()

@@ -22,6 +22,8 @@ FText UEnvQueryGenerator::GetDescriptionDetails() const
 void UEnvQueryGenerator::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+#if USE_EQS_DEBUGGER
 	UEnvQueryManager::NotifyAssetUpdate(NULL);
+#endif
 }
 #endif //WITH_EDITOR && USE_EQS_DEBUGGER
