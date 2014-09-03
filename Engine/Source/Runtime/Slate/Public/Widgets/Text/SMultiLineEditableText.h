@@ -121,6 +121,9 @@ public:
 	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
 	TSharedPtr<const IRun> GetRunUnderCursor() const;
 
+	/** Get the runs currently that are current selected, some of which may be only partially selected */
+	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+
 private:
 	
 	/** 

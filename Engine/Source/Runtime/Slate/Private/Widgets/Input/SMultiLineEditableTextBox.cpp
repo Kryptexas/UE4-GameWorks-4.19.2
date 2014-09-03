@@ -240,4 +240,9 @@ TSharedPtr<const IRun> SMultiLineEditableTextBox::GetRunUnderCursor() const
 	return EditableText->GetRunUnderCursor();
 }
 
+const TArray<TSharedRef<const IRun>> SMultiLineEditableTextBox::GetSelectedRuns() const
+{
+	return EditableText->GetSelectedRuns();
+}
+
 #endif //WITH_FANCY_TEXT
