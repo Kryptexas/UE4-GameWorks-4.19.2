@@ -27,13 +27,10 @@ namespace EHyperlinkType
 	};
 }
 
- /**
-  * This is used in conjunction with the TextStyle decorator to allow arbitrary styling of text within a rich-text editor
-  * This struct defines a set of known font families, as well as providing some utility functions for converting the text style to and from a text layout run
-  */
-struct FTextStyles
+/** Text style and name to display in the UI */
+struct FTextStyleAndName
 {
-	/** Flags controlling which TTF or OTF font should be picked from the given font family */
+	/** Legacy: Flags controlling which TTF or OTF font should be picked from the given font family */
 	struct EFontStyle
 	{
 		typedef uint8 Flags;
@@ -45,154 +42,100 @@ struct FTextStyles
 		};
 	};
 
-	/** This struct defines a font family, which combines multiple TTF or OTF fonts into a single group, allowing text to be styled as bold or italic */
-	struct FFontFamily
+	FTextStyleAndName(FName InStyle, FText InDisplayName)
+		: Style(InStyle)
+		, DisplayName(InDisplayName)
+	{}
+
+	FRunInfo CreateRunInfo() const
 	{
-		FFontFamily(FText InDisplayName, FName InFamilyName, FName InRegularFont, FName InBoldFont, FName InItalicFont, FName InBoldItalicFont)
-			: DisplayName(InDisplayName)
-			, FamilyName(InFamilyName)
-			, RegularFont(InRegularFont)
-			, BoldFont(InBoldFont)
-			, ItalicFont(InItalicFont)
-			, BoldItalicFont(InBoldItalicFont)
-		{
-		}
-
-		/** Name used for this font family in the UI */
-		FText DisplayName;
-
-		/** Named used to identify this family from the TextStyle decorator */
-		FName FamilyName;
-
-		/** File paths to the fonts on disk */
-		FName RegularFont;
-		FName BoldFont;
-		FName ItalicFont;
-		FName BoldItalicFont;
-	};
-
-	/** Convert the given text style into run meta-information, so that valid source rich-text formatting can be generated for it */
-	static FRunInfo CreateRunInfo(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
-	{
-		FString FontStyleString;
-		if(InFontStyle == EFontStyle::Regular)
-		{
-			FontStyleString = TEXT("Regular");
-		}
-		else
-		{
-			if(InFontStyle & EFontStyle::Bold)
-			{
-				FontStyleString += "Bold";
-			}
-			if(InFontStyle & EFontStyle::Italic)
-			{
-				FontStyleString += "Italic";
-			}
-		}
-
 		FRunInfo RunInfo(TEXT("TextStyle"));
-		RunInfo.MetaData.Add(TEXT("FontFamily"), InFontFamily->FamilyName.ToString());
-		RunInfo.MetaData.Add(TEXT("FontSize"), FString::FromInt(InFontSize));
-		RunInfo.MetaData.Add(TEXT("FontStyle"), FontStyleString);
-		RunInfo.MetaData.Add(TEXT("FontColor"), InFontColor.ToString());
+		RunInfo.MetaData.Add(TEXT("Style"), Style.ToString());
 		return RunInfo;
 	}
 
-	/** Explode some run meta-information back out into its component text style parts */
-	void ExplodeRunInfo(const FRunInfo& InRunInfo, TSharedPtr<FFontFamily>& OutFontFamily, uint8& OutFontSize, EFontStyle::Flags& OutFontStyle, FLinearColor& OutFontColor) const
+	static FName GetStyleFromRunInfo(const FRunInfo& InRunInfo)
 	{
-		check(AvailableFontFamilies.Num());
-
-		const FString* const FontFamilyString = InRunInfo.MetaData.Find(TEXT("FontFamily"));
-		if(FontFamilyString)
+		const FString* const StyleString = InRunInfo.MetaData.Find(TEXT("Style"));
+		if(StyleString)
 		{
-			OutFontFamily = FindFontFamily(FName(**FontFamilyString));
+			return **StyleString;
 		}
-		if(!OutFontFamily.IsValid())
+		else
 		{
-			OutFontFamily = AvailableFontFamilies[0];
-		}
+			// legacy styling support - try to map older flexible styles to new fixed styles
 
-		OutFontSize = 11;
-		const FString* const FontSizeString = InRunInfo.MetaData.Find(TEXT("FontSize"));
-		if(FontSizeString)
-		{
-			OutFontSize = static_cast<uint8>(FPlatformString::Atoi(**FontSizeString));
-		}
-
-		OutFontStyle = EFontStyle::Regular;
-		const FString* const FontStyleString = InRunInfo.MetaData.Find(TEXT("FontStyle"));
-		if(FontStyleString)
-		{
-			if(*FontStyleString == TEXT("Bold"))
+			int32 FontSize = 11;
+			const FString* const FontSizeString = InRunInfo.MetaData.Find(TEXT("FontSize"));
+			if(FontSizeString)
 			{
-				 OutFontStyle = EFontStyle::Bold;
+				FontSize = static_cast<uint8>(FPlatformString::Atoi(**FontSizeString));
 			}
-			else if(*FontStyleString == TEXT("Italic"))
+
+			if(FontSize > 24)
 			{
-				 OutFontStyle = EFontStyle::Italic;
+				return TEXT("Tutorials.Content.HeaderText2");
 			}
-			else if(*FontStyleString == TEXT("BoldItalic"))
+			else if(FontSize > 11 && FontSize <= 24)
 			{
-				 OutFontStyle = EFontStyle::Bold | EFontStyle::Italic;
+				return TEXT("Tutorials.Content.HeaderText1");
+			}
+			else
+			{
+				EFontStyle::Flags FontStyle = EFontStyle::Regular;
+				const FString* const FontStyleString = InRunInfo.MetaData.Find(TEXT("FontStyle"));
+				if(FontStyleString)
+				{
+					if(*FontStyleString == TEXT("Bold"))
+					{
+						FontStyle = EFontStyle::Bold;
+					}
+					else if(*FontStyleString == TEXT("Italic"))
+					{
+						FontStyle = EFontStyle::Italic;
+					}
+					else if(*FontStyleString == TEXT("BoldItalic"))
+					{
+						FontStyle = EFontStyle::Bold | EFontStyle::Italic;
+					}
+				}
+
+				FLinearColor FontColor = FLinearColor::Black;
+				const FString* const FontColorString = InRunInfo.MetaData.Find(TEXT("FontColor"));
+				if(FontColorString && !FontColor.InitFromString(*FontColorString))
+				{
+					FontColor = FLinearColor::Black;
+				}
+
+				if(FontStyle != EFontStyle::Regular || FontColor != FLinearColor::Black)
+				{
+					return TEXT("Tutorials.Content.TextBold");
+				}
+				else
+				{
+					return TEXT("Tutorials.Content.Text");
+				}
 			}
 		}
 
-		OutFontColor = FLinearColor::Black;
-		const FString* const FontColorString = InRunInfo.MetaData.Find(TEXT("FontColor"));
-		if(FontColorString && !OutFontColor.InitFromString(*FontColorString))
-		{
-			OutFontColor = FLinearColor::Black;
-		}
+		return NAME_None;
 	}
 
-	/** Convert the given text style into a text block style for use by Slate */
-	static FTextBlockStyle CreateTextBlockStyle(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
+	FTextBlockStyle CreateTextBlockStyle() const
 	{
-		FName FontName = InFontFamily->RegularFont;
-		if((InFontStyle & EFontStyle::Bold) && (InFontStyle & EFontStyle::Italic))
-		{
-			FontName = InFontFamily->BoldItalicFont;
-		}
-		else if(InFontStyle & EFontStyle::Bold)
-		{
-			FontName = InFontFamily->BoldFont;
-		}
-		else if(InFontStyle & EFontStyle::Italic)
-		{
-			FontName = InFontFamily->ItalicFont;
-		}
-
-		FTextBlockStyle TextBlockStyle;
-		TextBlockStyle.SetFontName(FontName);
-		TextBlockStyle.SetFontSize(InFontSize);
-		TextBlockStyle.SetColorAndOpacity(InFontColor);
-		return TextBlockStyle;
+		return FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(Style);
 	}
 
-	/** Convert the given run meta-information into a text block style for use by Slate */
-	FTextBlockStyle CreateTextBlockStyle(const FRunInfo& InRunInfo) const
+	static FTextBlockStyle CreateTextBlockStyle(const FRunInfo& InRunInfo)
 	{
-		TSharedPtr<FFontFamily> FontFamily;
-		uint8 FontSize;
-		EFontStyle::Flags FontStyle;
-		FLinearColor FontColor;
-		ExplodeRunInfo(InRunInfo, FontFamily, FontSize, FontStyle, FontColor);
-		return CreateTextBlockStyle(FontFamily, FontSize, FontStyle, FontColor);
+		return FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(GetStyleFromRunInfo(InRunInfo));
 	}
 
-	/** Try and find a font family with the given name */
-	TSharedPtr<FFontFamily> FindFontFamily(const FName InFamilyName) const
-	{
-		const TSharedPtr<FFontFamily>* const FoundFontFamily = AvailableFontFamilies.FindByPredicate([InFamilyName](TSharedPtr<FFontFamily>& Entry) -> bool
-		{
-			return Entry->FamilyName == InFamilyName;
-		});
-		return (FoundFontFamily) ? *FoundFontFamily : nullptr;
-	}
+	/** The style identifier */
+	FName Style;
 
-	TArray<TSharedPtr<FFontFamily>> AvailableFontFamilies;
+	/** The text to display for this style */
+	FText DisplayName;
 };
 
 /**
@@ -203,9 +146,9 @@ class FTextStyleDecorator : public ITextDecorator
 {
 public:
 
-	static TSharedRef<FTextStyleDecorator> Create(const FTextStyles& InTextStyles)
+	static TSharedRef<FTextStyleDecorator> Create()
 	{
-		return MakeShareable(new FTextStyleDecorator(InTextStyles));
+		return MakeShareable(new FTextStyleDecorator());
 	}
 
 	virtual ~FTextStyleDecorator()
@@ -230,17 +173,8 @@ public:
 		*InOutModelText += OriginalText.Mid(RunParseResult.ContentRange.BeginIndex, RunParseResult.ContentRange.EndIndex - RunParseResult.ContentRange.BeginIndex);
 		ModelRange.EndIndex = InOutModelText->Len();
 
-		return FSlateTextRun::Create(RunInfo, InOutModelText, TextStyles.CreateTextBlockStyle(RunInfo), ModelRange);
+		return FSlateTextRun::Create(RunInfo, InOutModelText, FTextStyleAndName::CreateTextBlockStyle(RunInfo), ModelRange);
 	}
-
-private:
-
-	FTextStyleDecorator(const FTextStyles& InTextStyles)
-		: TextStyles(InTextStyles)
-	{
-	}
-
-	FTextStyles TextStyles;
 };
 
 
@@ -268,43 +202,27 @@ public:
 
 protected:
 	
+	TSharedPtr<const IRun> GetCurrentRun() const;
+
 	void HandleRichEditableTextChanged(const FText& Text);
 
 	void HandleRichEditableTextCommitted(const FText& Text, ETextCommit::Type Type);
 
 	void HandleRichEditableTextCursorMoved(const FTextLocation& NewCursorPosition );
 
-	FText GetActiveFontFamilyName() const;
+	FText GetActiveStyleName() const;
 
-	void OnActiveFontFamilyChanged(TSharedPtr<FTextStyles::FFontFamily> NewValue, ESelectInfo::Type);
+	void OnActiveStyleChanged(TSharedPtr<FTextStyleAndName> NewValue, ESelectInfo::Type);
 
-	TSharedRef<SWidget> GenerateFontFamilyComboEntry(TSharedPtr<FTextStyles::FFontFamily> SourceEntry);
-
-	TOptional<uint8> GetFontSize() const;
-
-	void SetFontSize(uint8 NewValue, ETextCommit::Type);
-
-	ESlateCheckBoxState::Type IsFontStyleBold() const;
-
-	void OnFontStyleBoldChanged(ESlateCheckBoxState::Type InState);
-
-	ESlateCheckBoxState::Type IsFontStyleItalic() const;
-
-	void OnFontStyleItalicChanged(ESlateCheckBoxState::Type InState);
-
-	FLinearColor GetFontColor() const;
-
-	void SetFontColor(FLinearColor NewValue);
-
-	FReply OpenFontColorPicker();
-
-	void HandleColorPickerWindowClosed(const TSharedRef<SWindow>& InWindow);
+	TSharedRef<SWidget> GenerateStyleComboEntry(TSharedPtr<FTextStyleAndName> SourceEntry);
 
 	void StyleSelectedText();
 
 	void HandleHyperlinkComboOpened();
 
-	FReply HandleInsertBrowserLinkClicked();
+	bool IsHyperlinkComboEnabled() const;
+
+	FReply HandleInsertHyperLinkClicked();
 
 	EVisibility GetToolbarVisibility() const;
 
@@ -328,6 +246,8 @@ protected:
 
 	void OnCheckAssetLink(ESlateCheckBoxState::Type State);
 
+	FText GetHyperlinkButtonText() const;
+
 protected:
 	TSharedPtr<SMultiLineEditableTextBox> RichEditableTextBox;
 
@@ -338,20 +258,19 @@ protected:
 	FSlateHyperlinkRun::FOnClick OnAssetLinkClicked;
 
 	TSharedPtr<SComboButton> HyperlinkComboButton;
-	TSharedPtr<SComboBox<TSharedPtr<FTextStyles::FFontFamily>>> FontComboBox;
-	TSharedPtr<SEditableTextBox> HyperlinkNameTextBox;
+	TSharedPtr<SComboBox<TSharedPtr<FTextStyleAndName>>> FontComboBox;
+	TSharedPtr<STextBlock> HyperlinkNameTextBlock;
 	TSharedPtr<SEditableTextBox> HyperlinkURLTextBox;
 
-	FTextStyles TextStyles;
+	TSharedPtr<FTextStyleAndName> ActiveStyle;
+	TSharedPtr<FTextStyleAndName> HyperlinkStyle;
 
-	TSharedPtr<FTextStyles::FFontFamily> ActiveFontFamily;
-	uint8 FontSize;
-	FTextStyles::EFontStyle::Flags FontStyle;
-	FLinearColor FontColor;
-	bool bPickingColor;
+	TArray<TSharedPtr<FTextStyleAndName>> StylesAndNames;
 
 	FOnTextCommitted OnTextCommitted;
 	FOnTextChanged OnTextChanged;
 
 	EHyperlinkType::Type CurrentHyperlinkType;
+
+	bool bNewHyperlink;
 };

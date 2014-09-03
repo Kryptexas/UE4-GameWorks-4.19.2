@@ -173,13 +173,13 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 	// Style for the documentation
 	static FDocumentationStyle DocumentationStyle;
 	DocumentationStyle
-		.ContentStyle(TEXT("Tutorials.Content"))
-		.BoldContentStyle(TEXT("Tutorials.BoldContent"))
-		.NumberedContentStyle(TEXT("Tutorials.NumberedContent"))
-		.Header1Style(TEXT("Tutorials.Header1"))
-		.Header2Style(TEXT("Tutorials.Header2"))
-		.HyperlinkButtonStyle(TEXT("Tutorials.Hyperlink.Button"))
-		.HyperlinkTextStyle(TEXT("Tutorials.Hyperlink.Text"))
+		.ContentStyle(TEXT("Tutorials.Content.Text"))
+		.BoldContentStyle(TEXT("Tutorials.Content.TextBold"))
+		.NumberedContentStyle(TEXT("Tutorials.Content.Text"))
+		.Header1Style(TEXT("Tutorials.Content.Header1"))
+		.Header2Style(TEXT("Tutorials.Content.Header2"))
+		.HyperlinkButtonStyle(TEXT("Tutorials.Content.Hyperlink"))
+		.HyperlinkTextStyle(TEXT("Tutorials.Content.HyperlinkText"))
 		.SeparatorStyle(TEXT("Tutorials.Separator"));
 
 	OutDocumentationPage = nullptr;
@@ -222,27 +222,17 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 
 	case ETutorialContent::RichText:
 		{
-			FTextStyles TextStyles;
-			TextStyles.AvailableFontFamilies.Emplace(MakeShareable(new FTextStyles::FFontFamily(
-				LOCTEXT("RobotoFontFamily", "Roboto"), 
-				TEXT("Roboto"), 
-				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"))),
-				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"))),
-				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Italic.ttf"))),
-				FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldItalic.ttf")))
-				)));
-
 			TArray< TSharedRef< class ITextDecorator > > Decorators;
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("browser"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnBrowserLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("udn"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnDocLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("tutorial"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnTutorialLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("code"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnCodeLinkClicked)));
 			Decorators.Add(FHyperlinkDecorator::Create(TEXT("asset"), FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnAssetLinkClicked)));
-			Decorators.Add(FTextStyleDecorator::Create(TextStyles));
+			Decorators.Add(FTextStyleDecorator::Create());
 
 			return SNew(SRichTextBlock)
 					.Visibility(EVisibility::SelfHitTestInvisible)
-					.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Editor.Text")
+					.TextStyle(FEditorStyle::Get(), "Tutorials.Content.Text")
 					.DecoratorStyleSet(&FEditorStyle::Get())
 					.Decorators(Decorators)
 					.Text(InContent.Text)

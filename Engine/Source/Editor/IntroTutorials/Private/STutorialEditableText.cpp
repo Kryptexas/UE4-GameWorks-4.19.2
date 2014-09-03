@@ -151,29 +151,23 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
 
-	bPickingColor = false;
 	CurrentHyperlinkType = EHyperlinkType::Browser;
+	bNewHyperlink = true;
 
-	// Define and add the "Roboto" font family
-	TextStyles.AvailableFontFamilies.Emplace(MakeShareable(new FTextStyles::FFontFamily(
-		LOCTEXT("RobotoFontFamily", "Roboto"), 
-		TEXT("Roboto"), 
-		FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"))),
-		FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"))),
-		FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Italic.ttf"))),
-		FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldItalic.ttf")))
-		)));
-
-	// Set some sensible defaults (these also match the default text style of "TutorialEditableText.Editor.Text"
-	ActiveFontFamily = TextStyles.AvailableFontFamilies[0];
-	FontSize = 11;
-	FontStyle = FTextStyles::EFontStyle::Regular;
-	FontColor = FLinearColor::Black;
+	// Setup text styles
+	StylesAndNames.Add(MakeShareable(new FTextStyleAndName(TEXT("Tutorials.Content.Text"), LOCTEXT("NormalTextDesc", "Normal"))));
+	StylesAndNames.Add(MakeShareable(new FTextStyleAndName(TEXT("Tutorials.Content.TextBold"), LOCTEXT("BoldTextDesc", "Bold"))));
+	StylesAndNames.Add(MakeShareable(new FTextStyleAndName(TEXT("Tutorials.Content.HeaderText2"), LOCTEXT("Header2TextDesc", "Header 2"))));
+	StylesAndNames.Add(MakeShareable(new FTextStyleAndName(TEXT("Tutorials.Content.HeaderText1"), LOCTEXT("Header1TextDesc", "Header 1"))));
+	ActiveStyle = StylesAndNames[0];
+	
+	HyperlinkStyle = MakeShareable(new FTextStyleAndName(TEXT("Tutorials.Content.HyperlinkText"), LOCTEXT("HyperlinkTextDesc", "Hyperlink")));
+	StylesAndNames.Add(HyperlinkStyle);
 
 	TSharedRef<FRichTextLayoutMarshaller> RichTextMarshaller = FRichTextLayoutMarshaller::Create(
 		TArray<TSharedRef<ITextDecorator>>(), 
 		&FEditorStyle::Get(), 
-		FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("TutorialEditableText.Editor.Text")
+		FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Content.Text")
 		);
 
 	OnBrowserLinkClicked = FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnBrowserLinkClicked);
@@ -186,7 +180,7 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("tutorial"), OnTutorialLinkClicked));
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("code"), OnCodeLinkClicked));
 	RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("asset"), OnAssetLinkClicked));
-	RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create(TextStyles));
+	RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create());
 
 	this->ChildSlot
 	[
@@ -197,7 +191,7 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 		.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
 		[
 			SAssignNew(RichEditableTextBox, SMultiLineEditableTextBox)
-			.Font(FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("TutorialEditableText.Editor.Text").Font)
+			.Font(FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Content.Text").Font)
 			.Text(InArgs._Text)
 			.OnTextChanged(this, &STutorialEditableText::HandleRichEditableTextChanged)
 			.OnTextCommitted(this, &STutorialEditableText::HandleRichEditableTextCommitted)
@@ -222,102 +216,20 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SAssignNew(FontComboBox, SComboBox<TSharedPtr<FTextStyles::FFontFamily>>)
+					SAssignNew(FontComboBox, SComboBox<TSharedPtr<FTextStyleAndName>>)
 					.ComboBoxStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ComboBox")
-					.OptionsSource(&TextStyles.AvailableFontFamilies)
-					.OnSelectionChanged(this, &STutorialEditableText::OnActiveFontFamilyChanged)
-					.OnGenerateWidget(this, &STutorialEditableText::GenerateFontFamilyComboEntry)
-					.InitiallySelectedItem(ActiveFontFamily)
+					.OptionsSource(&StylesAndNames)
+					.OnSelectionChanged(this, &STutorialEditableText::OnActiveStyleChanged)
+					.OnGenerateWidget(this, &STutorialEditableText::GenerateStyleComboEntry)
+					.ContentPadding(0.0f)
+					.InitiallySelectedItem(nullptr)
 					[
 						SNew(SBox)
 						.Padding(FMargin(0.0f, 0.0f, 2.0f, 0.0f))
+						.MinDesiredWidth(100.0f)
 						[
 							SNew(STextBlock)
-							.Text(this, &STutorialEditableText::GetActiveFontFamilyName)
-						]
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SBox)
-					.WidthOverride(24)
-					[
-						SNew(SNumericEntryBox<uint8>)
-						.Value(this, &STutorialEditableText::GetFontSize)
-						.OnValueCommitted(this, &STutorialEditableText::SetFontSize)
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-				[
-					SNew(SCheckBox)
-					.Style(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ToggleButtonCheckbox")
-					.IsChecked(this, &STutorialEditableText::IsFontStyleBold)
-					.OnCheckStateChanged(this, &STutorialEditableText::OnFontStyleBoldChanged)
-					[
-						SNew(SBox)
-						.WidthOverride(24)
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.BoldText")
-							.Text(LOCTEXT("BoldLabel", "B"))
-						]
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SCheckBox)
-					.Style(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ToggleButtonCheckbox")
-					.IsChecked(this, &STutorialEditableText::IsFontStyleItalic)
-					.OnCheckStateChanged(this, &STutorialEditableText::OnFontStyleItalicChanged)
-					[
-						SNew(SBox)
-						.WidthOverride(24)
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ItalicText")
-							.Text(LOCTEXT("ItalicLabel", "I"))
-						]
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Button")
-					.OnClicked(this, &STutorialEditableText::OpenFontColorPicker)
-					[
-						SNew(SOverlay)
-
-						+SOverlay::Slot()
-						.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Bottom)
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.BoldText")
-							.Text(LOCTEXT("ColorLabel", "A"))
-						]
-
-						+SOverlay::Slot()
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Bottom)
-						[
-							SNew(SColorBlock)
-							.Color(this, &STutorialEditableText::GetFontColor)
-							.Size(FVector2D(20.0f, 6.0f))
+							.Text(this, &STutorialEditableText::GetActiveStyleName)
 						]
 					]
 				]
@@ -327,19 +239,15 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				[
 					SAssignNew(HyperlinkComboButton, SComboButton)
+					.ToolTipText(LOCTEXT("HyperlinkButtonTooltip", "Insert or Edit Hyperlink"))
 					.ComboButtonStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ComboButton")
-					.HasDownArrow(false)
 					.OnComboBoxOpened(this, &STutorialEditableText::HandleHyperlinkComboOpened)
+					.IsEnabled(this, &STutorialEditableText::IsHyperlinkComboEnabled)
+					.ContentPadding(1.0f)
 					.ButtonContent()
 					[
-						SNew(SBox)
-						.WidthOverride(20)
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("TutorialEditableText.Toolbar.HyperlinkImage"))
-						]
+						SNew(SImage)
+						.Image(FEditorStyle::Get().GetBrush("TutorialEditableText.Toolbar.HyperlinkImage"))
 					]
 					.MenuContent()
 					[
@@ -360,7 +268,8 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 							SNew(SBox)
 							.WidthOverride(300)
 							[
-								SAssignNew(HyperlinkNameTextBox, SEditableTextBox)
+								SAssignNew(HyperlinkNameTextBlock, STextBlock)
+								.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Text")
 							]
 						]
 
@@ -461,11 +370,11 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 							[
 								SNew(SButton)
 								.ButtonStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Button")
-								.OnClicked(this, &STutorialEditableText::HandleInsertBrowserLinkClicked)
+								.OnClicked(this, &STutorialEditableText::HandleInsertHyperLinkClicked)
 								[
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Text")
-									.Text(LOCTEXT("HyperlinkInsertLabel", "Insert Hyperlink"))
+									.Text(this, &STutorialEditableText::GetHyperlinkButtonText)
 								]
 							]
 						]
@@ -487,181 +396,208 @@ void STutorialEditableText::HandleRichEditableTextCommitted(const FText& Text, E
 	OnTextCommitted.ExecuteIfBound(Text, Type);
 }
 
+static bool AreRunsTheSame(const TArray<TSharedRef<const IRun>>& Runs)
+{
+	if(Runs.Num() == 0)
+	{
+		return false;
+	}
+
+	TSharedRef<const IRun> FirstRun = Runs[0];
+	for(const auto& Run : Runs)
+	{
+		if(Run != FirstRun)
+		{
+			if(Run->GetRunInfo().Name != FirstRun->GetRunInfo().Name)
+			{
+				return false;
+			}
+
+			for(const auto& MetaData : FirstRun->GetRunInfo().MetaData)
+			{
+				const FString* FoundMetaData = Run->GetRunInfo().MetaData.Find(MetaData.Key);
+				if(FoundMetaData == nullptr || *FoundMetaData != MetaData.Value)
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+TSharedPtr<const IRun> STutorialEditableText::GetCurrentRun() const
+{
+	if(!RichEditableTextBox->GetSelectedText().IsEmpty())
+	{
+		const TArray<TSharedRef<const IRun>> Runs = RichEditableTextBox->GetSelectedRuns();
+		if(Runs.Num() == 1 || AreRunsTheSame(Runs))
+		{
+			return Runs[0];
+		}
+	}
+	else
+	{
+		return RichEditableTextBox->GetRunUnderCursor();
+	}
+
+	return TSharedPtr<const IRun>();
+}
+
 void STutorialEditableText::HandleRichEditableTextCursorMoved(const FTextLocation& NewCursorPosition )
 {
-	// We can use GetRunUnderCursor to query the style of the text under the cursor
-	// We can then use this to update the toolbar
-	TSharedPtr<const IRun> Run = RichEditableTextBox->GetRunUnderCursor();
-	if(Run.IsValid() && Run->GetRunInfo().Name == TEXT("TextStyle"))
+	TSharedPtr<const IRun> Run = GetCurrentRun();
+	
+	if(Run.IsValid())
 	{
-		TextStyles.ExplodeRunInfo(Run->GetRunInfo(), ActiveFontFamily, FontSize, FontStyle, FontColor);
-	}
-}
+		if(Run->GetRunInfo().Name == TEXT("TextStyle"))
+		{
+			ActiveStyle = StylesAndNames[0];
 
-FText STutorialEditableText::GetActiveFontFamilyName() const
-{
-	return ActiveFontFamily->DisplayName;
-}
+			FName StyleName = FTextStyleAndName::GetStyleFromRunInfo(Run->GetRunInfo());
+			for(const auto& StyleAndName : StylesAndNames)
+			{
+				if(StyleAndName->Style == StyleName)
+				{
+					ActiveStyle = StyleAndName;
+					break;
+				}
+			}
+		}
+		else if(Run->GetRunInfo().Name == TEXT("a"))
+		{
+			ActiveStyle = HyperlinkStyle;
+		}
 
-void STutorialEditableText::OnActiveFontFamilyChanged(TSharedPtr<FTextStyles::FFontFamily> NewValue, ESelectInfo::Type)
-{
-	ActiveFontFamily = NewValue;
-	StyleSelectedText();
-}
-
-TSharedRef<SWidget> STutorialEditableText::GenerateFontFamilyComboEntry(TSharedPtr<FTextStyles::FFontFamily> SourceEntry)
-{
-	return SNew(STextBlock).Text(SourceEntry->DisplayName);
-}
-
-TOptional<uint8> STutorialEditableText::GetFontSize() const
-{
-	return FontSize;
-}
-
-void STutorialEditableText::SetFontSize(uint8 NewValue, ETextCommit::Type)
-{		
-	FontSize = NewValue;
-	StyleSelectedText();
-}
-
-ESlateCheckBoxState::Type STutorialEditableText::IsFontStyleBold() const
-{
-	return (FontStyle & FTextStyles::EFontStyle::Bold) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
-}
-
-void STutorialEditableText::OnFontStyleBoldChanged(ESlateCheckBoxState::Type InState)
-{
-	if(InState == ESlateCheckBoxState::Checked)
-	{
-		FontStyle |= FTextStyles::EFontStyle::Bold;
+		FontComboBox->SetSelectedItem(ActiveStyle);
 	}
 	else
 	{
-		FontStyle &= ~FTextStyles::EFontStyle::Bold;
+		FontComboBox->SetSelectedItem(nullptr);
 	}
-	StyleSelectedText();
 }
 
-ESlateCheckBoxState::Type STutorialEditableText::IsFontStyleItalic() const
+FText STutorialEditableText::GetActiveStyleName() const
 {
-	return (FontStyle & FTextStyles::EFontStyle::Italic) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return ActiveStyle.IsValid() ? ActiveStyle->DisplayName : FText();
 }
 
-void STutorialEditableText::OnFontStyleItalicChanged(ESlateCheckBoxState::Type InState)
+void STutorialEditableText::OnActiveStyleChanged(TSharedPtr<FTextStyleAndName> NewValue, ESelectInfo::Type SelectionType)
 {
-	if(InState == ESlateCheckBoxState::Checked)
+	ActiveStyle = NewValue;
+	if(SelectionType != ESelectInfo::Direct)
 	{
-		FontStyle |= FTextStyles::EFontStyle::Italic;
+		// style text if it was the user that made this selection
+		if(NewValue == HyperlinkStyle)
+		{
+			HandleHyperlinkComboOpened();
+			HyperlinkComboButton->SetIsOpen(true);
+		}
+		else
+		{
+			StyleSelectedText();
+		}
 	}
-	else
-	{
-		FontStyle &= ~FTextStyles::EFontStyle::Italic;
-	}
-	StyleSelectedText();
 }
 
-FLinearColor STutorialEditableText::GetFontColor() const
+TSharedRef<SWidget> STutorialEditableText::GenerateStyleComboEntry(TSharedPtr<FTextStyleAndName> SourceEntry)
 {
-	return FontColor;
-}
-
-void STutorialEditableText::SetFontColor(FLinearColor NewValue)
-{
-	FontColor = NewValue;
-	StyleSelectedText();
-}
-
-FReply STutorialEditableText::OpenFontColorPicker()
-{
-	FColorPickerArgs PickerArgs;
-	PickerArgs.bOnlyRefreshOnMouseUp = true;
-	PickerArgs.ParentWidget = AsShared();
-	PickerArgs.bUseAlpha = false;
-	PickerArgs.bOnlyRefreshOnOk = false;
-	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &STutorialEditableText::SetFontColor);
-	PickerArgs.OnColorPickerCancelled = FOnColorPickerCancelled::CreateSP(this, &STutorialEditableText::SetFontColor);
-	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateSP(this, &STutorialEditableText::HandleColorPickerWindowClosed);
-	PickerArgs.InitialColorOverride = FontColor;
-
-	OpenColorPicker(PickerArgs);
-
-	bPickingColor = true;
-
-	return FReply::Handled();
-}
-
-void STutorialEditableText::HandleColorPickerWindowClosed(const TSharedRef<SWindow>& /*InWindow*/)
-{
-	bPickingColor = false;
+	return SNew(SBorder)
+		.BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
+		.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+		[
+			SNew(STextBlock)
+			.Text(SourceEntry->DisplayName)
+			.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(SourceEntry->Style))
+		];
 }
 
 void STutorialEditableText::StyleSelectedText()
 {
 	// Apply the current style to the selected text
 	// If no text is selected, then a new (empty) run will be inserted with the appropriate style
-	const FRunInfo RunInfo = TextStyles.CreateRunInfo(ActiveFontFamily, FontSize, FontStyle, FontColor);
-	const FTextBlockStyle TextBlockStyle = TextStyles.CreateTextBlockStyle(ActiveFontFamily, FontSize, FontStyle, FontColor);
-	RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
-	FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+	if(ActiveStyle.IsValid())
+	{
+		const FRunInfo RunInfo = ActiveStyle->CreateRunInfo();
+		const FTextBlockStyle TextBlockStyle = ActiveStyle->CreateTextBlockStyle();
+		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+	}
 }
+
 
 void STutorialEditableText::HandleHyperlinkComboOpened()
 {
+	HyperlinkURLTextBox->SetText(FText());
+	HyperlinkNameTextBlock->SetText(FText());
+
 	// Read any currently selected text, and use this as the default name of the hyperlink
 	FString SelectedText = RichEditableTextBox->GetSelectedText().ToString();
-	for(int32 SelectedTextIndex = 0; SelectedTextIndex < SelectedText.Len(); ++SelectedTextIndex)
+	if(SelectedText.Len() > 0)
 	{
-		if(FChar::IsLinebreak(SelectedText[SelectedTextIndex]))
+		for(int32 SelectedTextIndex = 0; SelectedTextIndex < SelectedText.Len(); ++SelectedTextIndex)
 		{
-			SelectedText = SelectedText.Left(SelectedTextIndex);
-			break;
+			if(FChar::IsLinebreak(SelectedText[SelectedTextIndex]))
+			{
+				SelectedText = SelectedText.Left(SelectedTextIndex);
+				break;
+			}
 		}
+		HyperlinkNameTextBlock->SetText(FText::FromString(SelectedText));
 	}
-	HyperlinkNameTextBox->SetText(FText::FromString(SelectedText));
 
-	// We can use GetRunUnderCursor to query whether the cursor is currently over a hyperlink
-	// If it is, we can use that as the default URL for the hyperlink
-	TSharedPtr<const IRun> Run = RichEditableTextBox->GetRunUnderCursor();
+	TSharedPtr<const IRun> Run = GetCurrentRun();
 	if(Run.IsValid() && Run->GetRunInfo().Name == TEXT("a"))
 	{
 		const FString* const URLUnderCursor = Run->GetRunInfo().MetaData.Find(TEXT("href"));
 		HyperlinkURLTextBox->SetText((URLUnderCursor) ? FText::FromString(*URLUnderCursor) : FText());
-	}
-	else
-	{
-		HyperlinkURLTextBox->SetText(FText());
-	}
+		FString RunText;
+		Run->AppendTextTo(RunText);
+		HyperlinkNameTextBlock->SetText(FText::FromString(RunText));
+	}	
 }
 
-FReply STutorialEditableText::HandleInsertBrowserLinkClicked()
+bool STutorialEditableText::IsHyperlinkComboEnabled() const
+{
+	return ActiveStyle == HyperlinkStyle;
+}
+
+FReply STutorialEditableText::HandleInsertHyperLinkClicked()
 {
 	HyperlinkComboButton->SetIsOpen(false);
 
-	const FText& Name = HyperlinkNameTextBox->GetText();
-	const FText& URL = HyperlinkURLTextBox->GetText();
+	const FText& Name = HyperlinkNameTextBlock->GetText();
+	if(!Name.IsEmpty())
+	{
+		const FText& URL = HyperlinkURLTextBox->GetText();
 
-	// Create the correct meta-information for this run, so that valid source rich-text formatting can be generated for it
-	FRunInfo RunInfo(TEXT("a"));
-	RunInfo.MetaData.Add(TEXT("id"), TEXT("browser"));
-	RunInfo.MetaData.Add(TEXT("href"), URL.ToString());
-	RunInfo.MetaData.Add(TEXT("style"), TEXT("TutorialEditableText.Editor.Hyperlink"));
+		// Create the correct meta-information for this run, so that valid source rich-text formatting can be generated for it
+		FRunInfo RunInfo(TEXT("a"));
+		RunInfo.MetaData.Add(TEXT("id"), TEXT("browser"));
+		RunInfo.MetaData.Add(TEXT("href"), URL.ToString());
+		RunInfo.MetaData.Add(TEXT("style"), TEXT("Tutorials.Content.Hyperlink"));
 
-	// Create the new run, and then insert it at the cursor position
-	TSharedRef<FSlateHyperlinkRun> HyperlinkRun = FSlateHyperlinkRun::Create(
-		RunInfo, 
-		MakeShareable(new FString(Name.ToString())), 
-		FEditorStyle::Get().GetWidgetStyle<FHyperlinkStyle>(FName(TEXT("TutorialEditableText.Editor.Hyperlink"))), 
-		OnBrowserLinkClicked
-		);
-	RichEditableTextBox->InsertRunAtCursor(HyperlinkRun);
+		// Create the new run, and then insert it at the cursor position
+		TSharedRef<FSlateHyperlinkRun> HyperlinkRun = FSlateHyperlinkRun::Create(
+			RunInfo, 
+			MakeShareable(new FString(Name.ToString())), 
+			FEditorStyle::Get().GetWidgetStyle<FHyperlinkStyle>(FName(TEXT("Tutorials.Content.Hyperlink"))), 
+			OnBrowserLinkClicked
+			);
+
+		// @todo: if the rich editable text box allowed us to replace a run that we found under the cursor (or returned a non-const
+		// instance of it) then we could edit the hyperlink here. This would mean the user does not need to select the whole hyperlink 
+		// to edit its URL.
+		RichEditableTextBox->InsertRunAtCursor(HyperlinkRun);
+	}
 
 	return FReply::Handled();
 }
 
 EVisibility STutorialEditableText::GetToolbarVisibility() const
 {
-	return FontComboBox->IsOpen() || HyperlinkComboButton->IsOpen() || bPickingColor || HasKeyboardFocus() || HasFocusedDescendants() ? EVisibility::Visible : EVisibility::Collapsed;
+	return FontComboBox->IsOpen() || HyperlinkComboButton->IsOpen() || HasKeyboardFocus() || HasFocusedDescendants() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 ESlateCheckBoxState::Type STutorialEditableText::IsCreatingBrowserLink() const
@@ -727,6 +663,11 @@ void STutorialEditableText::OnCheckAssetLink(ESlateCheckBoxState::Type State)
 	{
 		CurrentHyperlinkType = EHyperlinkType::Asset;
 	}
+}
+
+FText STutorialEditableText::GetHyperlinkButtonText() const
+{
+	return bNewHyperlink ? LOCTEXT("HyperlinkInsertLabel", "Insert Hyperlink") : LOCTEXT("HyperlinkSetLabel", "Set Hyperlink");
 }
 
 #undef LOCTEXT_NAMESPACE

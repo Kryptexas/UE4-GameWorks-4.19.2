@@ -2472,24 +2472,44 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		// Default text styles
 		{
 			const FTextBlockStyle RichTextNormal = FTextBlockStyle()
-				.SetFont(TTF_FONT("Fonts/Roboto-Regular", 11))
+				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 11))
 				.SetColorAndOpacity(FSlateColor::UseForeground())
 				.SetShadowOffset(FVector2D::ZeroVector)
 				.SetShadowColorAndOpacity(FLinearColor::Black)
 				.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
 				.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f /8.f)));
-			Set( "TutorialEditableText.Editor.Text", RichTextNormal );
+			Set( "Tutorials.Content.Text", RichTextNormal );
+
+			Set( "Tutorials.Content.TextBold", FTextBlockStyle(RichTextNormal)
+				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11)));
+
+			Set( "Tutorials.Content.HeaderText1", FTextBlockStyle(RichTextNormal)
+				.SetFontSize(20));
+
+			Set( "Tutorials.Content.HeaderText2", FTextBlockStyle(RichTextNormal)
+				.SetFontSize(16));
 
 			{
 				const FButtonStyle RichTextHyperlinkButton = FButtonStyle()
-					.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground() ) )
+					.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0,0,0,3/16.0f), FLinearColor::Blue ) )
 					.SetPressed(FSlateNoResource() )
-					.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), FSlateColor::UseForeground() ) );
+					.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f), FLinearColor::Blue ) );
+
+				const FTextBlockStyle RichTextHyperlinkText = FTextBlockStyle(RichTextNormal)
+					.SetColorAndOpacity(FLinearColor::Blue);
+
+				Set( "Tutorials.Content.HyperlinkText", RichTextHyperlinkText );
+
+				// legacy style
+				Set( "TutorialEditableText.Editor.HyperlinkText", RichTextHyperlinkText );
 
 				const FHyperlinkStyle RichTextHyperlink = FHyperlinkStyle()
 					.SetUnderlineStyle(RichTextHyperlinkButton)
-					.SetTextStyle(RichTextNormal)
+					.SetTextStyle(RichTextHyperlinkText)
 					.SetPadding(FMargin(0.0f));
+				Set( "Tutorials.Content.Hyperlink", RichTextHyperlink );
+
+				// legacy style
 				Set( "TutorialEditableText.Editor.Hyperlink", RichTextHyperlink );
 			}
 		}
@@ -2509,17 +2529,17 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			Set("TutorialEditableText.Toolbar.TextColor", TextColor);
 
 			Set("TutorialEditableText.Toolbar.Text", FTextBlockStyle(NormalText)
-				.SetFont(TTF_FONT("Fonts/Roboto-Regular", 10))
+				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
 				.SetColorAndOpacity(TextColor)
 				);
 
 			Set("TutorialEditableText.Toolbar.BoldText", FTextBlockStyle(NormalText)
-				.SetFont(TTF_FONT("Fonts/Roboto-Bold", 10))
+				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10))
 				.SetColorAndOpacity(TextColor)
 				);
 
 			Set("TutorialEditableText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
-				.SetFont(TTF_FONT("Fonts/Roboto-Italic", 10))
+				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Italic", 10))
 				.SetColorAndOpacity(TextColor)
 				);
 

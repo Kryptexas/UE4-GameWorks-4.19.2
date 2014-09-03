@@ -724,7 +724,7 @@ void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString
 		);
 
 		AddLineSeperator(Excerpt);
-		Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Regular\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *ContentSource);
+		Excerpt.RichText += FString::Printf(TEXT("<TextStyle Style=\"%s\">%s</>"), *Style.ContentStyleName.ToString(), *ContentSource);
 	}
 }
 
@@ -860,7 +860,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					);
 
 				AddLineSeperator(Excerpt);
-				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"11\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle Style=\"%s\">%s</>"), *Style.BoldContentStyleName.ToString(), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::NumberedContent:
 				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
@@ -887,7 +887,6 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					];
 
 				AddLineSeperator(Excerpt);
-				Excerpt.RichText += TEXT("<hr></>");
 				break;
 			case FUDNLine::Header1:
 				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
@@ -900,7 +899,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					);
 
 				AddLineSeperator(Excerpt);
-				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"32\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle Style=\"%s\">%s</>"), *Style.Header1StyleName.ToString(), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::Header2:
 				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
@@ -913,7 +912,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 					);
 
 				AddLineSeperator(Excerpt);
-				Excerpt.RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"24\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>"), *Line.AdditionalContent[0]);
+				Excerpt.RichText += FString::Printf(TEXT("<TextStyle Style=\"%s\">%s</>"), *Style.Header2StyleName.ToString(), *Line.AdditionalContent[0]);
 				break;
 			case FUDNLine::Link:
 				AddContentToExcerpt(Box, CurrentStringContent, Excerpt);
