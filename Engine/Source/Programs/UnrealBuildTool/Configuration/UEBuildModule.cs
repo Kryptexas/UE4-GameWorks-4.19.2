@@ -1492,7 +1492,7 @@ namespace UnrealBuildTool
 				RedistLinkEnvironment.Config.bIsBuildingDLL        = false;
 				RedistLinkEnvironment.Config.bIsBuildingLibrary    = true;
 				RedistLinkEnvironment.Config.IntermediateDirectory = Binary.Config.IntermediateDirectory;
-				RedistLinkEnvironment.Config.OutputFilePaths        = RedistStaticLibraryPaths;
+				RedistLinkEnvironment.Config.OutputFilePaths       = RedistStaticLibraryPaths != null ? (string[])RedistStaticLibraryPaths.Clone() : null;
 
 				// Replace the items built so far with the library
 				RedistLinkEnvironment.LinkExecutable(false);
