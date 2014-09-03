@@ -83,6 +83,11 @@ const FSlateBrush* UTileView::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.TileView");
 }
 
+const FText UTileView::GetToolboxCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

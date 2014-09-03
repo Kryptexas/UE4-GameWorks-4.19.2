@@ -268,6 +268,7 @@ public:
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 	// End UWidget interface
 #endif
 

@@ -123,6 +123,11 @@ const FSlateBrush* UEditableText::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.EditableText");
 }
 
+const FText UEditableText::GetToolboxCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

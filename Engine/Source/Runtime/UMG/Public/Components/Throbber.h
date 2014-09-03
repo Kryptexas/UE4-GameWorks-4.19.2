@@ -7,7 +7,7 @@
 class USlateBrushAsset;
 
 /** A Throbber widget that shows several zooming circles in a row. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UThrobber : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -40,6 +40,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

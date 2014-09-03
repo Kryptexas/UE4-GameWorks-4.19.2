@@ -73,6 +73,11 @@ const FSlateBrush* UScaleBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ScaleBox");
 }
 
+const FText UScaleBox::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

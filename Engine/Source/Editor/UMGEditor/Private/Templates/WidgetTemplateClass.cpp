@@ -15,26 +15,8 @@ FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 
 FText FWidgetTemplateClass::GetCategory() const
 {
-	if ( Category.IsEmpty() )
-	{
-		const FString& MetadatCategory = WidgetClass->GetMetaData("Category");
-
-		if ( MetadatCategory.IsEmpty() )
-		{
-			if ( WidgetClass->IsChildOf(UUserWidget::StaticClass()) )
-			{
-				return LOCTEXT("UserControls", "User Controls");
-			}
-
-			return LOCTEXT("Misc", "Misc");
-		}
-		else
-		{
-			Category = FText::FromString(MetadatCategory);
-		}
-	}
-
-	return Category;
+	auto DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
+	return DefaultWidget->GetToolboxCategory();
 }
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)

@@ -88,6 +88,11 @@ const FSlateBrush* UGridPanel::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Grid");
 }
 
+const FText UGridPanel::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

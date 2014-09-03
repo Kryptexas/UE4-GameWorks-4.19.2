@@ -107,19 +107,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FText GetText() const;
 
-	/**  */
+	/** 
+	* Directly sets the text.
+	* *Warning*: This will wipe any binding created for the Text property!
+	*
+	* @param InText The text to assign to the widget
+	*/
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
 	
+	virtual void ReleaseNativeWidget() override;
+
+public:
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
-
-	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
+	// End of UWidget interface
 
 protected:
 	// UWidget interface

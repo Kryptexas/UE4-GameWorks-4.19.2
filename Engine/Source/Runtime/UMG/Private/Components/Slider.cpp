@@ -78,6 +78,11 @@ const FSlateBrush* USlider::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Slider");
 }
 
+const FText USlider::GetToolboxCategory()
+{
+	return LOCTEXT("Common", "Common");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

@@ -9,7 +9,7 @@ class USlateBrushAsset;
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.
  */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UImage : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -72,6 +72,7 @@ public:
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 	// End UWidget interface
 #endif
 

@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UCanvasPanel
 
@@ -108,4 +110,13 @@ const FSlateBrush* UCanvasPanel::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Canvas");
 }
 
+const FText UCanvasPanel::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

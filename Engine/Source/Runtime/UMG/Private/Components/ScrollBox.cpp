@@ -107,6 +107,11 @@ const FSlateBrush* UScrollBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ScrollBox");
 }
 
+const FText UScrollBox::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

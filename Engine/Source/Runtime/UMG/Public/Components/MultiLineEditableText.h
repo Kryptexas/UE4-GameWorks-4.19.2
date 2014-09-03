@@ -5,7 +5,7 @@
 #include "MultiLineEditableText.generated.h"
 
 /** Editable text box widget */
-UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UMultiLineEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -51,6 +51,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

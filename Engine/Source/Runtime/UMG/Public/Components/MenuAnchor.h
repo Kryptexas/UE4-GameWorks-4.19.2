@@ -8,7 +8,7 @@
  * The Menu Anchor allows you to specify an location that a popup menu should be anchored to, and should be
  * summoned from.
  */
-UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
+UCLASS(ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
 class UMG_API UMenuAnchor : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -56,6 +56,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

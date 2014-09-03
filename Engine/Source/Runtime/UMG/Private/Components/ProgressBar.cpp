@@ -61,6 +61,11 @@ const FSlateBrush* UProgressBar::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ProgressBar");
 }
 
+const FText UProgressBar::GetToolboxCategory()
+{
+	return LOCTEXT("Common", "Common");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

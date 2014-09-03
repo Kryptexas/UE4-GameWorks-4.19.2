@@ -225,6 +225,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 }
 
 #if WITH_EDITOR
+#define LOCTEXT_NAMESPACE "UMGEditor"
 
 bool UWidget::IsGeneratedName() const
 {
@@ -254,6 +255,11 @@ FString UWidget::GetLabel() const
 	{
 		return GetName();
 	}
+}
+
+const FText UWidget::GetToolboxCategory()
+{
+	return LOCTEXT("Uncategorized", "Uncategorized");
 }
 
 const FSlateBrush* UWidget::GetEditorIcon()
@@ -301,6 +307,7 @@ void UWidget::Deselect()
 	}
 }
 
+#undef LOCTEXT_NAMESPACE
 #endif
 
 bool UWidget::Modify(bool bAlwaysMarkDirty)

@@ -122,6 +122,11 @@ const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
 }
 
+const FText UWidgetSwitcher::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
 {
 	// Temporarily sets the active child to the selected child to make

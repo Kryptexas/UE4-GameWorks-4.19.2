@@ -52,6 +52,11 @@ const FSlateBrush* UNativeWidgetHost::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.NativeWidgetHost");
 }
 
+const FText UNativeWidgetHost::GetToolboxCategory()
+{
+	return LOCTEXT("Advanced", "Advanced");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

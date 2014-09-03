@@ -31,7 +31,4 @@ public:
 protected:
 	/** The widget class that will be created by this template */
 	TSubclassOf<UWidget> WidgetClass;
-
-	/** The cached category for the widget. */
-	mutable FText Category;
 };

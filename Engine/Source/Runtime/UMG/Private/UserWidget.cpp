@@ -7,6 +7,8 @@
 #include "WidgetAnimation.h"
 #include "WidgetBlueprintLibrary.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /**
  * This class holds onto the widget when it's placed into the viewport.
  */
@@ -719,4 +721,13 @@ const FSlateBrush* UUserWidget::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.UserWidget");
 }
 
+const FText UUserWidget::GetToolboxCategory()
+{
+	return LOCTEXT("UserCreated", "User Created");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

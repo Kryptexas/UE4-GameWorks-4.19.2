@@ -238,7 +238,7 @@ protected:
 /**
  * 
  */
-UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -272,6 +272,7 @@ class UMG_API UViewport : public UContentWidget
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

@@ -236,6 +236,11 @@ const FSlateBrush* USizeBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.SizeBox");
 }
 
+const FText USizeBox::GetToolboxCategory()
+{
+	return LOCTEXT("Common", "Common");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

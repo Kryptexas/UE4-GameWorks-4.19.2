@@ -66,6 +66,11 @@ const FSlateBrush* UListView::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ListView");
 }
 
+const FText UListView::GetToolboxCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

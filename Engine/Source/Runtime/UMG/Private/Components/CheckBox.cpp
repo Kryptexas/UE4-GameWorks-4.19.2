@@ -183,6 +183,11 @@ const FSlateBrush* UCheckBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.CheckBox");
 }
 
+const FText UCheckBox::GetToolboxCategory()
+{
+	return LOCTEXT("Common", "Common");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

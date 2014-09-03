@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UOverlay
 
@@ -71,4 +73,13 @@ const FSlateBrush* UOverlay::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Overlay");
 }
 
+const FText UOverlay::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

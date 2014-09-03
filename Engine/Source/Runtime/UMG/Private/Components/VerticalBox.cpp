@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UVerticalBox
 
@@ -76,4 +78,13 @@ const FSlateBrush* UVerticalBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.VerticalBox");
 }
 
+const FText UVerticalBox::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

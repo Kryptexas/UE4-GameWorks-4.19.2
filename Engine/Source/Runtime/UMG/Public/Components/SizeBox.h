@@ -10,7 +10,7 @@ class USlateBrushAsset;
  * A SizeBox is a container widget that can contain one child widget, providing an opportunity 
  * to surround it with a SizeBox image and adjustable padding.
  */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API USizeBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -71,6 +71,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

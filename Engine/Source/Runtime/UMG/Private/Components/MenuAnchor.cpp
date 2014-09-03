@@ -103,6 +103,11 @@ const FSlateBrush* UMenuAnchor::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
 }
 
+const FText UMenuAnchor::GetToolboxCategory()
+{
+	return LOCTEXT("Advanced", "Advanced");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

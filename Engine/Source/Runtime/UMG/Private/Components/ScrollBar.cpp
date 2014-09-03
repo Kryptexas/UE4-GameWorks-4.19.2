@@ -57,6 +57,11 @@ const FSlateBrush* UScrollBar::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ScrollBar");
 }
 
+const FText UScrollBar::GetToolboxCategory()
+{
+	return LOCTEXT("Advanced", "Advanced");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

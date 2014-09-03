@@ -215,6 +215,11 @@ const FSlateBrush* UButton::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Button");
 }
 
+const FText UButton::GetToolboxCategory()
+{
+	return LOCTEXT("Common", "Common");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

@@ -101,6 +101,11 @@ const FSlateBrush* UCircularThrobber::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.CircularThrobber");
 }
 
+const FText UCircularThrobber::GetToolboxCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

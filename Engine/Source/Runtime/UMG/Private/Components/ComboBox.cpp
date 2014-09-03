@@ -55,6 +55,11 @@ const FSlateBrush* UComboBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
 }
 
+const FText UComboBox::GetToolboxCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

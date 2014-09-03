@@ -7,7 +7,7 @@
 class USlateBrushAsset;
 
 /**  A throbber widget that orients images in a spinning circle. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UCircularThrobber : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -38,6 +38,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

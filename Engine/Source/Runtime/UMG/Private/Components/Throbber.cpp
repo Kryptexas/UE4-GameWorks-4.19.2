@@ -112,6 +112,11 @@ const FSlateBrush* UThrobber::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Throbber");
 }
 
+const FText UThrobber::GetToolboxCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

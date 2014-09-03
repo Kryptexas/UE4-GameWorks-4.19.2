@@ -48,6 +48,11 @@ const FSlateBrush* USpacer::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Spacer");
 }
 
+const FText USpacer::GetToolboxCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

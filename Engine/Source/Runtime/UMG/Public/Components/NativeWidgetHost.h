@@ -8,7 +8,7 @@
  * A NativeWidgetHost is a container widget that can contain one child slate widget.  This should
  * be used when all you need is to nest a native widget inside a UMG widget.
  */
-UCLASS(meta=( Category="Advanced" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UNativeWidgetHost : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -19,6 +19,7 @@ class UMG_API UNativeWidgetHost : public UWidget
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetToolboxCategory() override;
 #endif
 
 protected:

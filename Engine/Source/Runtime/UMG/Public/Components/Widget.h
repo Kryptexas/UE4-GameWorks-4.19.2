@@ -205,6 +205,9 @@ public:
 	/** Gets the label to display to the user for this widget. */
 	FString GetLabel() const;
 
+	/** Gets the toolbox category of the widget */
+	virtual const FText GetToolboxCategory();
+
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
 

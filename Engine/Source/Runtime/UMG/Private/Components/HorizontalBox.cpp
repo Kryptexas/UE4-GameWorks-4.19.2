@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UHorizontalBox
 
@@ -81,4 +83,13 @@ const FSlateBrush* UHorizontalBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.HorizontalBox");
 }
 
+const FText UHorizontalBox::GetToolboxCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE
