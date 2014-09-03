@@ -349,6 +349,7 @@ public:
 		{
 			this->OutDirty = true;
 		}
+		this->RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
 

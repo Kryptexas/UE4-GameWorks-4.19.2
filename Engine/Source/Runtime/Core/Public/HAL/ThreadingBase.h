@@ -888,6 +888,12 @@ extern CORE_API FRunnableThread* GRenderingThread;
 /** Whether the rendering thread is suspended (not even processing the tickables) */
 extern CORE_API int32 GIsRenderingThreadSuspended;
 
+/** @return True if called from the RHI thread, or if called from ANY thread during single threaded rendering */
+extern CORE_API bool IsInRHIThread();
+/** Thread used for RHI */
+extern CORE_API FRunnableThread* GRHIThread;
+
+
 /** Minimal base class for the thread singleton. */
 struct FThreadSingleton
 {

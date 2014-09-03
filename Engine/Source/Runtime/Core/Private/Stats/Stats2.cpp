@@ -868,7 +868,7 @@ void FThreadStats::Flush(bool bHasBrokenCallstacks)
 void FThreadStats::ExplicitFlush(bool DiscardCallstack)
 {
 	FThreadStats* ThreadStats = GetThreadStats();
-	check(ThreadStats->Packet.ThreadType != EThreadType::Other);
+	//check(ThreadStats->Packet.ThreadType != EThreadType::Other);
 	if (ThreadStats->bWaitForExplicitFlush)
 	{
 		ThreadStats->ScopeCount--; // the main thread pre-incremented this to prevent stats from being sent. we send them at the next available opportunity

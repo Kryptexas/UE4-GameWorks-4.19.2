@@ -255,6 +255,12 @@ private: // -------------------------------------------------------
 	/** Buffer size in texels */
 	uint32 SizeX;
 
+	/** Buffer size, as allocated */
+	uint32 AllocSize;
+
+	/** Allocated Buffer */
+	void *AllocBlock;
+
 	/** @return in bytes */
 	uint32 ComputeMemorySize();
 };

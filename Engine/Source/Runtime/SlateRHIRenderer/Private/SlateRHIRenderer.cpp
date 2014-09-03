@@ -450,7 +450,10 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	uint32 StartTime		= FPlatformTime::Cycles();
 		
 	// Note - We do not include present time in the slate render thread stat
-	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_SlatePresentRTTime);
+		RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
+	}
 
 	if (bNeedCallFinishFrameForStereo)
 	{

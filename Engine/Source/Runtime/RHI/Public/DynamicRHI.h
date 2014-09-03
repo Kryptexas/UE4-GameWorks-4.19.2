@@ -46,6 +46,8 @@ extern RHI_API FDynamicRHI* GDynamicRHI;
 #define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
 #define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type RHI##Name ParameterTypesAndNames;
 #define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
@@ -56,6 +58,8 @@ extern RHI_API FDynamicRHI* GDynamicRHI;
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 
 #endif	//#if USE_DYNAMIC_RHI
 

@@ -2259,6 +2259,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
 	}
+	else if( FParse::Command(&Cmd,TEXT("ToggleRHIThread")) )
+	{
+		return HandleToggleRHIThreadCommand( Cmd, Ar );
+	}
 	else if( FParse::Command(&Cmd,TEXT("RecompileShaders")) )				    
 	{
 		return HandleRecompileShadersCommand( Cmd, Ar );
@@ -2919,6 +2923,28 @@ bool UEngine::HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevic
 		StartRenderingThread();
 	}
 	Ar.Logf( TEXT("RenderThread is now in %s threaded mode."), GUseThreadedRendering ? TEXT("multi") : TEXT("single"));
+	return true;
+}
+
+bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	if (!GIsThreadedRendering)
+	{
+		check(!GRHIThread);
+		Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+	}
+	else
+	{
+		bool bWasRHIThread = !!GRHIThread;
+		StopRenderingThread();
+		GUseRHIThread = !bWasRHIThread;
+		StartRenderingThread();
+	}
+	Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
+#else
+	Ar.Logf( TEXT("This platform does not support the RHI thread."));
+#endif
 	return true;
 }
 

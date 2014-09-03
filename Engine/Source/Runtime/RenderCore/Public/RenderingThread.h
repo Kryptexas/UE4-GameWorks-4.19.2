@@ -26,6 +26,11 @@ extern RENDERCORE_API bool GIsThreadedRendering;
  * Currently set by command line parameter and by the ToggleRenderingThread console command.
  */
 extern RENDERCORE_API bool GUseThreadedRendering;
+/**
+ * Whether the RHI thread should be created or not, requires rendering thread
+ * Currently set by command line parameter and by the ToggleRHIThread console command.
+ */
+extern RENDERCORE_API bool GUseRHIThread;
 
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static FORCEINLINE void CheckNotBlockedOnRenderThread() {}

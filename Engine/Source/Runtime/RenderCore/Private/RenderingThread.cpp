@@ -20,6 +20,7 @@
 
 RENDERCORE_API bool GIsThreadedRendering = false;
 RENDERCORE_API bool GUseThreadedRendering = false;
+RENDERCORE_API bool GUseRHIThread = false;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
@@ -204,6 +205,46 @@ uint32 GRenderThreadIdle[ERenderThreadIdleTypes::Num] = {0};
 uint32 GRenderThreadNumIdle[ERenderThreadIdleTypes::Num] = {0};
 /** How many cycles the renderthread used (excluding idle time). It's set once per frame in FViewport::Draw. */
 uint32 GRenderThreadTime = 0;
+
+
+
+#if PLATFORM_SUPPORTS_RHI_THREAD
+/** The RHI thread runnable object. */
+class FRHIThread : public FRunnable
+{
+public:
+	FRunnableThread* Thread;
+
+	FRHIThread()
+		: Thread(nullptr)
+	{
+		check(IsInGameThread());
+	}
+
+	virtual uint32 Run()
+	{
+		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
+		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RHIThread);
+		return 0;
+	}
+
+	static FRHIThread& Get()
+	{
+		static FRHIThread Singleton;
+		return Singleton;
+	}
+
+	void Start()
+	{
+		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_Normal, 
+			//FPlatformAffinity::GetRHIThreadMask()
+			0xFFFFFFFFFFFFFFFF
+			);
+		check(Thread);
+	}
+};
+
+#endif
 
 /** The rendering thread main loop */
 void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
@@ -459,6 +500,23 @@ void StartRenderingThread()
 	static uint32 ThreadCount = 0;
 	check(!GIsThreadedRendering && GUseThreadedRendering);
 
+	check(!GRHIThread)
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	if (GUseRHIThread)
+	{
+		if (!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RHIThread))
+		{
+			FRHIThread::Get().Start();
+		}
+		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread"), STAT_WaitForRHIThread, STATGROUP_TaskGraphTasks);
+
+		FGraphEventRef CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThread), ENamedThreads::RHIThread);
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
+		GRHIThread = FRHIThread::Get().Thread;
+		check(GRHIThread);
+	}
+#endif
+
 	// Turn on the threaded rendering flag.
 	GIsThreadedRendering = true;
 
@@ -520,26 +578,39 @@ void StopRenderingThread()
 		// The rendering thread may have already been stopped during the call to GFlushStreamingFunc or FlushRenderingCommands.
 		if ( GIsThreadedRendering )
 		{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+			if (GRHIThread)
+			{
+				DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
+				FGraphEventRef FlushTask = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThreadFinish), ENamedThreads::RHIThread);
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlushTask, ENamedThreads::GameThread_Local);
+				GRHIThread = nullptr;
+			}
+#endif
+
+
 			check( GRenderingThread );
 			check(!GIsRenderingThreadSuspended);
 
 			// Turn off the threaded rendering flag.
 			GIsThreadedRendering = false;
 
-			FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RenderThread);
+			{
+				FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RenderThread);
 
-			// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
-			// If the game thread is already executing tasks, then we have no choice but to spin
-			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
-			{
-				while ((QuitTask.GetReference() != nullptr) && !QuitTask->IsComplete())
+				// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
+				// If the game thread is already executing tasks, then we have no choice but to spin
+				if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
 				{
-					FPlatformProcess::Sleep(0.0f);
+					while ((QuitTask.GetReference() != nullptr) && !QuitTask->IsComplete())
+					{
+						FPlatformProcess::Sleep(0.0f);
+					}
 				}
-			}
-			else
-			{
-				FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);
+				else
+				{
+					FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);
+				}
 			}
 
 			// Wait for the rendering thread to return.
@@ -556,6 +627,7 @@ void StopRenderingThread()
 		// Delete the pending cleanup objects which were in use by the rendering thread.
 		delete PendingCleanupObjects;
 	}
+	check(!GRHIThread);
 }
 
 void CheckRenderingThreadHealth()
@@ -779,16 +851,22 @@ void FlushRenderingCommands()
 
 void FlushPendingDeleteRHIResources_GameThread()
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND(
-		FlushPendingDeleteRHIResources,
+	if (!GRHIThread)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+			FlushPendingDeleteRHIResources,
 		{
 			FlushPendingDeleteRHIResources_RenderThread();
 		}
-	);
+		);
+	}
 }
 void FlushPendingDeleteRHIResources_RenderThread()
 {
-	FRHIResource::FlushPendingDeletes();
+	if (!GRHIThread)
+	{
+		FRHIResource::FlushPendingDeletes();
+	}
 }
 
 

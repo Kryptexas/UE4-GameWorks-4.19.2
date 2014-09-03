@@ -52,6 +52,16 @@
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH_7
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH_8
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH_9
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_8
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE_9
 
 #ifdef GENERATE_VAX_FUNCTION_DECLARATIONS
 
@@ -137,6 +147,27 @@
 	#define DEFINE_RHIMETHOD_GLOBALFLUSH_8(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ReturnStatement,NullImplementation) \
 		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH);
 	#define DEFINE_RHIMETHOD_GLOBALFLUSH_9(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ParameterTypeI,ParameterNameI,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH, ParameterTypeI ParameterNameI);
+
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(ReturnType,MethodName,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName();
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_8(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ReturnStatement,NullImplementation) \
+		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH);
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_9(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ParameterTypeI,ParameterNameI,ReturnStatement,NullImplementation) \
 		ReturnType RHI##MethodName(ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH, ParameterTypeI ParameterNameI);
 
 #else
@@ -294,6 +325,50 @@
 			DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH, ParameterTypeI ParameterNameI), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG, ParameterNameH, ParameterNameI), ReturnStatement, NullImplementation)
 	#endif
 
+#if defined(DEFINE_RHIMETHOD_GLOBALTHREADSAFE)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(ReturnType,MethodName,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (), (), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA), (ParameterNameA), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB), (ParameterNameA, ParameterNameB), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC), (ParameterNameA, ParameterNameB, ParameterNameC), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_8(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG, ParameterNameH), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_9(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ParameterTypeI,ParameterNameI,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD_GLOBALTHREADSAFE(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH, ParameterTypeI ParameterNameI), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG, ParameterNameH, ParameterNameI), ReturnStatement, NullImplementation)
+#else
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(ReturnType,MethodName,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (), (), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA), (ParameterNameA), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB), (ParameterNameA, ParameterNameB), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC), (ParameterNameA, ParameterNameB, ParameterNameC), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_8(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG, ParameterNameH), ReturnStatement, NullImplementation)
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE_9(ReturnType,MethodName,ParameterTypeA,ParameterNameA,ParameterTypeB,ParameterNameB,ParameterTypeC,ParameterNameC,ParameterTypeD,ParameterNameD,ParameterTypeE,ParameterNameE,ParameterTypeF,ParameterNameF,ParameterTypeG,ParameterNameG,ParameterTypeH,ParameterNameH,ParameterTypeI,ParameterNameI,ReturnStatement,NullImplementation) \
+		DEFINE_RHIMETHOD(ReturnType, MethodName, (ParameterTypeA ParameterNameA, ParameterTypeB ParameterNameB, ParameterTypeC ParameterNameC, ParameterTypeD ParameterNameD, ParameterTypeE ParameterNameE, ParameterTypeF ParameterNameF, ParameterTypeG ParameterNameG, ParameterTypeH ParameterNameH, ParameterTypeI ParameterNameI), (ParameterNameA, ParameterNameB, ParameterNameC, ParameterNameD, ParameterNameE, ParameterNameF, ParameterNameG, ParameterNameH, ParameterNameI), ReturnStatement, NullImplementation)
+#endif
+
 #endif
 
 //
@@ -319,22 +394,22 @@ DEFINE_RHIMETHOD_2(
 // RHI resource management functions.
 //
 
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	FSamplerStateRHIRef,CreateSamplerState,
 	const FSamplerStateInitializerRHI&,Initializer,
 	return,return new FRHISamplerState();
 	);
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	FRasterizerStateRHIRef,CreateRasterizerState,
 	const FRasterizerStateInitializerRHI&,Initializer,
 	return,return new FRHIRasterizerState();
 	);
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	FDepthStencilStateRHIRef,CreateDepthStencilState,
 	const FDepthStencilStateInitializerRHI&,Initializer,
 	return,return new FRHIDepthStencilState();
 	);
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	FBlendStateRHIRef,CreateBlendState,
 	const FBlendStateInitializerRHI&,Initializer,
 	return,return new FRHIBlendState();
@@ -465,13 +540,23 @@ DEFINE_RHIMETHOD_2(
  * @param NumBytes - The number of bytes the uniform buffer should contain.
  * @return The new uniform buffer.
  */
-DEFINE_RHIMETHOD_GLOBAL_3(
-	FUniformBufferRHIRef,CreateUniformBuffer,
-	const void*,Contents,
-	const FRHIUniformBufferLayout&,Layout,
-	EUniformBufferUsage,Usage,
-	return,return new FRHIUniformBuffer(Layout);
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
+		FUniformBufferRHIRef,CreateUniformBuffer,
+		const void*,Contents,
+		const FRHIUniformBufferLayout&,Layout,
+		EUniformBufferUsage,Usage,
+		return,return new FRHIUniformBuffer(Layout);
 	);
+#else
+	DEFINE_RHIMETHOD_GLOBAL_3(
+		FUniformBufferRHIRef,CreateUniformBuffer,
+		const void*,Contents,
+		const FRHIUniformBufferLayout&,Layout,
+		EUniformBufferUsage,Usage,
+		return,return new FRHIUniformBuffer(Layout);
+	);
+#endif
 
 
 DEFINE_RHIMETHOD_GLOBAL_4(
@@ -615,7 +700,7 @@ DEFINE_RHIMETHOD_GLOBAL_3(
  * @param Flags - ETextureCreateFlags creation flags
  * @param OutAlign - Alignment required for this texture.  Output parameter.
  */
-DEFINE_RHIMETHOD_GLOBAL_7(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7(
 	uint64,CalcTexture2DPlatformSize,
 	uint32, SizeX,
 	uint32, SizeY,	
@@ -636,7 +721,7 @@ DEFINE_RHIMETHOD_GLOBAL_7(
 * @param Flags - ETextureCreateFlags creation flags
 * @param OutAlign - Alignment required for this texture.  Output parameter.
 */
-DEFINE_RHIMETHOD_GLOBAL_7(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_7(
 	uint64,CalcTexture3DPlatformSize,
 	uint32,SizeX,
 	uint32,SizeY,
@@ -655,7 +740,7 @@ DEFINE_RHIMETHOD_GLOBAL_7(
 * @param Flags - ETextureCreateFlags creation flags
 * @param OutAlign - Alignment required for this texture.  Output parameter.
 */
-DEFINE_RHIMETHOD_GLOBAL_5(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_5(
 	uint64,CalcTextureCubePlatformSize,
 	uint32,Size,
 	uint8,Format,
@@ -668,7 +753,7 @@ DEFINE_RHIMETHOD_GLOBAL_5(
  * Retrieves texture memory stats.
  * safe to call on the main thread
  */
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	void,GetTextureMemoryStats,
 	FTextureMemoryStats&,OutStats,
 	,
@@ -813,7 +898,7 @@ DEFINE_RHIMETHOD_GLOBAL_7(
 /**
  * @param Ref may be 0
  */
-DEFINE_RHIMETHOD_GLOBAL_2(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(
 	void,GetResourceInfo,
 	FTextureRHIParamRef,Ref,
 	FRHIResourceInfo&,OutInfo,
@@ -859,7 +944,7 @@ DEFINE_RHIMETHOD_1(
  * @param	TextureRHI		- Texture we want to know the size of, 0 is safely ignored
  * @return					- Size in Bytes
  */
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	uint32,ComputeMemorySize,
 	FTextureRHIParamRef,TextureRHI,
 	return,return 0;
@@ -1120,7 +1205,7 @@ DEFINE_RHIMETHOD_CMDLIST_4(
 	,
 	);
 
-DEFINE_RHIMETHOD_GLOBAL_2(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(
 	void,BindDebugLabelName,
 	FTextureRHIParamRef, Texture,
 	const TCHAR*, Name,
@@ -1184,45 +1269,138 @@ DEFINE_RHIMETHOD_GLOBAL_1(
 	ERenderQueryType, QueryType,
 	return,return new FRHIRenderQuery();
 	);
-DEFINE_RHIMETHOD_1(
+
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,ResetRenderQuery,
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
-DEFINE_RHIMETHOD_3(
-	bool,GetRenderQueryResult,
-	FRenderQueryRHIParamRef,RenderQuery,
-	uint64&,OutResult,
-	bool,bWait,
-	return,return true;
-	);
-DEFINE_RHIMETHOD_1(
+
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,BeginRenderQuery,
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,EndRenderQuery,
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
 
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
+		bool,GetRenderQueryResult,
+		FRenderQueryRHIParamRef,RenderQuery,
+		uint64&,OutResult,
+		bool,bWait,
+		return,return true;
+	);
+	DEFINE_RHIMETHOD_CMDLIST_2(
+		void,BeginDrawingViewport,
+		FViewportRHIParamRef,Viewport,
+		FTextureRHIParamRef,RenderTargetRHI,
+		,
+		);
+	DEFINE_RHIMETHOD_CMDLIST_3(
+		void,EndDrawingViewport,
+		FViewportRHIParamRef,Viewport,
+		bool,bPresent,
+		bool,bLockToVsync,
+		,
+		);
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
+		FTexture2DRHIRef,GetViewportBackBuffer,
+		FViewportRHIParamRef,Viewport,
+		return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
+	);
+	DEFINE_RHIMETHOD_CMDLIST_0(
+		void,BeginFrame,
+		return,return;
+	);
 
-DEFINE_RHIMETHOD_2(
-	void,BeginDrawingViewport,
-	FViewportRHIParamRef,Viewport,
-	FTextureRHIParamRef,RenderTargetRHI,
-	,
+	DEFINE_RHIMETHOD_CMDLIST_0(
+		void,EndFrame,
+		return,return;
 	);
-DEFINE_RHIMETHOD_3(
-	void,EndDrawingViewport,
-	FViewportRHIParamRef,Viewport,
-	bool,bPresent,
-	bool,bLockToVsync,
-	,
+	/**
+	 * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
+	 * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
+	 * references.
+	 */
+	DEFINE_RHIMETHOD_CMDLIST_0(
+		void,BeginScene,
+		return,return;
+		);
+
+	/**
+	 * Signals the end of scene rendering. See RHIBeginScene.
+	 */
+	DEFINE_RHIMETHOD_CMDLIST_0(
+		void,EndScene,
+		return,return;
+		);
+
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
+		void,AdvanceFrameForGetViewportBackBuffer,
+		return,return;
+		);
+
+#else
+	DEFINE_RHIMETHOD_3(
+		bool,GetRenderQueryResult,
+		FRenderQueryRHIParamRef,RenderQuery,
+		uint64&,OutResult,
+		bool,bWait,
+		return,return true;
 	);
+	DEFINE_RHIMETHOD_2(
+		void,BeginDrawingViewport,
+		FViewportRHIParamRef,Viewport,
+		FTextureRHIParamRef,RenderTargetRHI,
+		,
+		);
+	DEFINE_RHIMETHOD_3(
+		void,EndDrawingViewport,
+		FViewportRHIParamRef,Viewport,
+		bool,bPresent,
+		bool,bLockToVsync,
+		,
+		);
+	DEFINE_RHIMETHOD_GLOBALFLUSH_1(
+		FTexture2DRHIRef,GetViewportBackBuffer,
+		FViewportRHIParamRef,Viewport,
+		return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
+	);
+	DEFINE_RHIMETHOD_0(
+		void,BeginFrame,
+		return,return;
+	);
+	DEFINE_RHIMETHOD_0(
+		void,EndFrame,
+		return,return;
+	);
+	/**
+	 * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
+	 * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
+	 * references.
+	 */
+	DEFINE_RHIMETHOD_0(
+		void,BeginScene,
+		return,return;
+		);
+
+	/**
+	 * Signals the end of scene rendering. See RHIBeginScene.
+	 */
+	DEFINE_RHIMETHOD_0(
+		void,EndScene,
+		return,return;
+		);
+#endif
+
 /**
  * Determine if currently drawing the viewport
+ * REMOVE THIS If you are updating the RHI for all platforms
  *
  * @return true if currently within a BeginDrawingViewport/EndDrawingViewport block
  */
@@ -1230,39 +1408,6 @@ DEFINE_RHIMETHOD_0(
 	bool,IsDrawingViewport,
 	return,return false;
 	);
-DEFINE_RHIMETHOD_GLOBALFLUSH_1(
-	FTexture2DRHIRef,GetViewportBackBuffer,
-	FViewportRHIParamRef,Viewport,
-	return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
-	);
-
-DEFINE_RHIMETHOD_0(
-	void,BeginFrame,
-	return,return;
-	);
-DEFINE_RHIMETHOD_0(
-	void,EndFrame,
-	return,return;
-	);
-
-/**
- * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
- * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
- * references.
- */
-DEFINE_RHIMETHOD_0(
-	void,BeginScene,
-	return,return;
-	);
-
-/**
- * Signals the end of scene rendering. See RHIBeginScene.
- */
-DEFINE_RHIMETHOD_0(
-	void,EndScene,
-	return,return;
-	);
-
 /*
  * Acquires or releases ownership of the platform-specific rendering context for the calling thread
  */
@@ -1283,7 +1428,7 @@ DEFINE_RHIMETHOD_GLOBALFLUSH_0(
 /*
  * Returns the total GPU time taken to render the last frame. Same metric as FPlatformTime::Cycles().
  */
-DEFINE_RHIMETHOD_GLOBAL_0(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
 	uint32,GetGPUFrameCycles,
 	return,return 0;
 	);
@@ -1291,7 +1436,7 @@ DEFINE_RHIMETHOD_GLOBAL_0(
 /**
  * The following RHI functions must be called from the main thread.
  */
-DEFINE_RHIMETHOD_GLOBAL_4(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(
 	FViewportRHIRef,CreateViewport,
 	void*,WindowHandle,
 	uint32,SizeX,
@@ -1299,7 +1444,7 @@ DEFINE_RHIMETHOD_GLOBAL_4(
 	bool,bIsFullscreen,
 	return,return new FRHIViewport();
 	);
-DEFINE_RHIMETHOD_GLOBAL_4(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_4(
 	void,ResizeViewport,
 	FViewportRHIParamRef,Viewport,
 	uint32,SizeX,
@@ -1307,7 +1452,7 @@ DEFINE_RHIMETHOD_GLOBAL_4(
 	bool,bIsFullscreen,
 	,
 	);
-DEFINE_RHIMETHOD_GLOBAL_1(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
 	void,Tick,
 	float,DeltaTime,
 	,
@@ -1899,7 +2044,7 @@ DEFINE_RHIMETHOD_0(
  *
  *	@return	bool				true if successfully filled the array
  */
-DEFINE_RHIMETHOD_GLOBAL_2(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(
 	bool,GetAvailableResolutions,
 	FScreenResolutionArray&,Resolutions,
 	bool,bIgnoreRefreshRate,
@@ -1911,7 +2056,7 @@ DEFINE_RHIMETHOD_GLOBAL_2(
  * @param Width - Input: Desired resolution width in pixels. Output: A width that the platform supports.
  * @param Height - Input: Desired resolution height in pixels. Output: A height that the platform supports.
  */
-DEFINE_RHIMETHOD_GLOBAL_2(
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_2(
 	void,GetSupportedResolution,
 	uint32&,Width,
 	uint32&,Height,
@@ -1967,7 +2112,7 @@ DEFINE_RHIMETHOD_CMDLIST_3(
 /**
  * Provides access to the native device. Generally this should be avoided but is useful for third party plugins.
  */
-DEFINE_RHIMETHOD_GLOBAL_0(
+DEFINE_RHIMETHOD_GLOBALFLUSH_0(
 	void*,GetNativeDevice,
 	return,return NULL
 	);

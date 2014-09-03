@@ -192,6 +192,11 @@ private:
 		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
 	}
 #define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	FORCEINLINE Type RHI##Name ParameterTypesAndNames \
 	{ \
 		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
@@ -211,6 +216,7 @@ private:
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
 
 #endif	//#if USE_STATIC_RHI
 

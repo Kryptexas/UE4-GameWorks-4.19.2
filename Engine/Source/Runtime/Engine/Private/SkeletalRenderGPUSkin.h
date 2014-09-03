@@ -216,7 +216,7 @@ private:
 	/* !=0 if data is locked, does not change during the lock */
 	float* LockedData;
 	/** only valid if LockedData != 0, advances with every Append() */
-	uint32 LockedTexelPosition;
+	FThreadSafeCounter LockedTexelPosition;
 	/** only valid if LockedData != 0 */
 	uint32 LockedTexelCount;
 

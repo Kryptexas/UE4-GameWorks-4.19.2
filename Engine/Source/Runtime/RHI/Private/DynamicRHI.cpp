@@ -82,6 +82,12 @@ void RHIExit()
 		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
 	}
 #define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	RHI_API Type RHI##Name ParameterTypesAndNames \
 	{ \
 		check(GDynamicRHI); \
@@ -104,6 +110,8 @@ void RHIExit()
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 
 #else
 

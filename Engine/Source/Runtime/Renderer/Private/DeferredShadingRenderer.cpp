@@ -479,6 +479,7 @@ public:
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		ThisRenderer.RenderBasePassDynamicData(RHICmdList, View, OutDirty);
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
 
@@ -599,15 +600,22 @@ void FDeferredShadingSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICm
 /** 
 * Renders the view family. 
 */
+
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	static FGraphEventRef OcclusionSubmittedFence;
+	if (GRHIThread)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Wait);
+		FRHICommandListExecutor::WaitOnRHIThreadFence(OcclusionSubmittedFence);
+	}
+
 	if(!ViewFamily.EngineShowFlags.Rendering)
 	{
 		return;
 	}
-
 	SCOPED_DRAW_EVENT(Scene,DEC_SCENE_ITEMS);
-
+	
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
@@ -616,6 +624,16 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
+
+	if (GRHIThread)
+	{
+		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionCull_Dispatch);
+		//FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we want to make sure this all gets to the GPU this frame and doesn't hang around
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	}
+
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 	static const auto ClearMethodCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearSceneMethod"));
@@ -791,7 +809,14 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
 	if ( bIsOcclusionTesting )
 	{
+		//FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 		BeginOcclusionTests(RHICmdList);
+	}
+
+	if (GRHIThread)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
+		OcclusionSubmittedFence = FRHICommandListExecutor::RHIThreadFence();
 	}
 	
 	// Render lighting.
@@ -1131,6 +1156,7 @@ public:
 		{
 			OutDirty = true;
 		}
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
 
@@ -1190,7 +1216,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	{
 		if (GRHICommandList.UseParallelAlgorithms())
 		{
-			FScopedCommandListFlush Flusher(RHICmdList);
+			FScopedCommandListWaitForTasks Flusher(RHICmdList);
 			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -1236,7 +1262,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 		if (GRHICommandList.UseParallelAlgorithms())
 		{
-			FScopedCommandListFlush Flusher(RHICmdList);
+			FScopedCommandListWaitForTasks Flusher(RHICmdList);
 			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)

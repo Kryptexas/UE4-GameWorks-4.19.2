@@ -2012,14 +2012,16 @@ void FEngineLoop::Tick()
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );	
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
-				BeginFrame,
+			BeginFrame,
+		{
+			GRHICommandList.LatchBypass();
+			GFrameNumberRenderThread++;
+			if (GRHICommandList.Bypass())
 			{
-				GRHICommandList.GetImmediateCommandList().Flush();
-				GRHICommandList.LatchBypass();
-				GFrameNumberRenderThread++;
 				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
-				RHICmdList.BeginFrame();
-			});
+			}
+			RHICmdList.BeginFrame();
+		});
 
 		// Flush debug output which has been buffered by other threads.
 		GLog->FlushThreadedLogs();
@@ -2190,7 +2192,10 @@ void FEngineLoop::Tick()
 			EndFrame,
 		{
 			RHICmdList.EndFrame();
-			GDynamicRHI->PopEvent();
+			if (GRHICommandList.Bypass())
+			{
+				GDynamicRHI->PopEvent();
+			}
 		});
 	} 
 

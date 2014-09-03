@@ -40,6 +40,9 @@ public:
 	void QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueCommandListSubmit(class FRHICommandList* CmdList);
+	void WaitForTasks(bool bKnownToBeComplete = false);
+	void WaitForRHIThreadTasks();
+	void HandleRTThreadTaskCompletion(const FGraphEventRef& MyCompletionGraphEvent);
 
 	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
 	{
@@ -77,6 +80,21 @@ public:
 
 	inline bool Bypass();
 
+	FORCEINLINE void ExchangeCmdList(FRHICommandListBase& Other)
+	{
+		check(!RTTasks.Num() && !Other.RTTasks.Num());
+		FMemory::Memswap(this, &Other, sizeof(FRHICommandListBase));
+		if (CommandLink == &Other.Root)
+		{
+			CommandLink = &Root;
+		}
+		if (Other.CommandLink == &Root)
+		{
+			Other.CommandLink = &Other.Root;
+		}
+	}
+
+
 	struct FDrawUpData
 	{
 
@@ -103,6 +121,7 @@ private:
 	FRHICommandBase* Root;
 	FRHICommandBase** CommandLink;
 	bool bExecuting;
+	FGraphEventArray RTTasks;
 	uint32 NumCommands;
 	uint32 UID;
 	FMemStackBase MemManager; // this has 1k inline storage, so we want to small members before it
@@ -1008,7 +1027,11 @@ struct FRHICommandBuildLocalUniformBuffer : public FRHICommand<FRHICommandBuildL
 		check(!IsValidRef(WorkArea.ComputedUniformBuffer->UniformBuffer) && WorkArea.Layout && WorkArea.Contents); // should not already have been created
 		if (WorkArea.ComputedUniformBuffer->UseCount)
 		{
+#if PLATFORM_SUPPORTS_RHI_THREAD
 			WorkArea.ComputedUniformBuffer->UniformBuffer = RHICreateUniformBuffer(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
+#else
+			WorkArea.ComputedUniformBuffer->UniformBuffer = CreateUniformBuffer_Internal(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
+#endif
 		}
 		WorkArea.Layout = nullptr;
 		WorkArea.Contents = nullptr;
@@ -1042,6 +1065,115 @@ struct FRHICommandSetLocalUniformBuffer : public FRHICommand<FRHICommandSetLocal
 	}
 
 };
+
+struct FRHICommandBeginRenderQuery : public FRHICommand<FRHICommandBeginRenderQuery>
+{
+	FRenderQueryRHIParamRef RenderQuery;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginRenderQuery(FRenderQueryRHIParamRef InRenderQuery)
+		: RenderQuery(InRenderQuery)
+	{
+	}
+	void Execute()
+	{
+		BeginRenderQuery_Internal(RenderQuery);
+	}
+};
+
+struct FRHICommandEndRenderQuery : public FRHICommand<FRHICommandEndRenderQuery>
+{
+	FRenderQueryRHIParamRef RenderQuery;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandEndRenderQuery(FRenderQueryRHIParamRef InRenderQuery)
+		: RenderQuery(InRenderQuery)
+	{
+	}
+	void Execute()
+	{
+		EndRenderQuery_Internal(RenderQuery);
+	}
+};
+
+struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQuery>
+{
+	FRenderQueryRHIParamRef RenderQuery;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandResetRenderQuery(FRenderQueryRHIParamRef InRenderQuery)
+		: RenderQuery(InRenderQuery)
+	{
+	}
+	void Execute()
+	{
+		ResetRenderQuery_Internal(RenderQuery);
+	}
+};
+
+struct FRHICommandBeginScene : public FRHICommand<FRHICommandBeginScene>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginScene()
+	{
+	}
+	void Execute()
+	{
+		BeginScene_Internal();
+	}
+};
+
+struct FRHICommandEndScene : public FRHICommand<FRHICommandEndScene>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandEndScene()
+	{
+	}
+	void Execute()
+	{
+		EndScene_Internal();
+	}
+};
+
+struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVertexBuffer>
+{
+	FVertexBufferRHIParamRef VertexBuffer;
+	void const* Buffer;
+	int32 BufferSize;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandUpdateVertexBuffer(FVertexBufferRHIParamRef InVertexBuffer, void const* InBuffer, int32 InBufferSize)
+		: VertexBuffer(InVertexBuffer)
+		, Buffer(InBuffer)
+		, BufferSize(InBufferSize)
+	{
+	}
+	void Execute()
+	{
+		void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
+		FMemory::Memcpy(Data, Buffer, BufferSize);
+		UnlockVertexBuffer_Internal(VertexBuffer);
+		FMemory::Free((void*)Buffer);
+	}
+};
+
+struct FRHICommandBeginFrame : public FRHICommand<FRHICommandBeginFrame>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginFrame()
+	{
+	}
+	void Execute()
+	{
+		BeginFrame_Internal();
+	}
+};
+
+struct FRHICommandEndFrame : public FRHICommand<FRHICommandEndFrame>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandEndFrame()
+	{
+	}
+	void Execute()
+	{
+		EndFrame_Internal();
+	}
+};
+
+
 
 class RHI_API FRHICommandList : public FRHICommandListBase
 {
@@ -1112,7 +1244,11 @@ public:
 		FLocalUniformBuffer Result;
 		if (Bypass())
 		{
+#if PLATFORM_SUPPORTS_RHI_THREAD
 			Result.BypassUniform = RHICreateUniformBuffer(Contents, Layout, UniformBuffer_SingleFrame);
+#else
+			Result.BypassUniform = CreateUniformBuffer_Internal(Contents, Layout, UniformBuffer_SingleFrame);
+#endif
 		}
 		else
 		{
@@ -1528,6 +1664,83 @@ public:
 		}
 		new (AllocCommand<FRHICommandClearMRT>()) FRHICommandClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
+
+	FORCEINLINE_DEBUGGABLE void UpdateVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, void const* Buffer, int32 BufferSize)
+	{
+		if (Bypass())
+		{
+			void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
+			FMemory::Memcpy(Data, Buffer, BufferSize);
+			UnlockVertexBuffer_Internal(VertexBuffer);
+			FMemory::Free((void*)Buffer);
+			return;
+		}
+		new (AllocCommand<FRHICommandUpdateVertexBuffer>()) FRHICommandUpdateVertexBuffer(VertexBuffer, Buffer, BufferSize);
+	}
+	FORCEINLINE_DEBUGGABLE void BeginRenderQuery(FRenderQueryRHIParamRef RenderQuery)
+	{
+		if (Bypass())
+		{
+			BeginRenderQuery_Internal(RenderQuery);
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginRenderQuery>()) FRHICommandBeginRenderQuery(RenderQuery);
+	}
+	FORCEINLINE_DEBUGGABLE void EndRenderQuery(FRenderQueryRHIParamRef RenderQuery)
+	{
+		if (Bypass())
+		{
+			EndRenderQuery_Internal(RenderQuery);
+			return;
+		}
+		new (AllocCommand<FRHICommandEndRenderQuery>()) FRHICommandEndRenderQuery(RenderQuery);
+	}
+	FORCEINLINE_DEBUGGABLE void ResetRenderQuery(FRenderQueryRHIParamRef RenderQuery)
+	{
+		if (Bypass())
+		{
+			ResetRenderQuery_Internal(RenderQuery);
+			return;
+		}
+		new (AllocCommand<FRHICommandResetRenderQuery>()) FRHICommandResetRenderQuery(RenderQuery);
+	}
+
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	FORCEINLINE_DEBUGGABLE void BeginScene()
+	{
+		if (Bypass())
+		{
+			BeginScene_Internal();
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginScene>()) FRHICommandBeginScene();
+	}
+	FORCEINLINE_DEBUGGABLE void EndScene()
+	{
+		if (Bypass())
+		{
+			EndScene_Internal();
+			return;
+		}
+		new (AllocCommand<FRHICommandEndScene>()) FRHICommandEndScene();
+	}
+	void BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI);
+	void EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync);
+	void BeginFrame();
+	void EndFrame();
+#endif
+};
+
+namespace EImmediateFlushType
+{
+	enum Type
+	{ 
+		WaitForOutstandingTasksOnly = 0, 
+		DispatchToRHIThread, 
+		WaitForRHIThread, 
+		FlushRHIThread,
+		FlushRHIThreadFlushResources
+	};
 };
 
 class RHI_API FRHICommandListImmediate : public FRHICommandList
@@ -1538,20 +1751,31 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	}
 	~FRHICommandListImmediate()
 	{
-		Flush(); // this probably never happens, but we want to be sure there are no commands, otherwise it will be executed like a non-immediate command list
+		check(!HasCommands());
 	}
 public:
 
-	inline void Flush();
+	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 
 	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
 		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
 		{ \
-			Flush(); \
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
+			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
 			ReturnStatement Name##_Internal ParameterNames; \
 		}
 	#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
+		{ \
+			if (GRHIThread) \
+			{ \
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_WaitRHI); \
+				ImmediateFlush(EImmediateFlushType::WaitForRHIThread); \
+			} \
+			ReturnStatement Name##_Internal ParameterNames; \
+		}
+	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
 		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
 		{ \
 			ReturnStatement RHI##Name ParameterNames; \
@@ -1559,7 +1783,8 @@ public:
 	#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
 		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
 		{ \
-			Flush(); \
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
+			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
 			ReturnStatement Name##_Internal ParameterNames; \
 		}
 	#include "RHIMethods.h"
@@ -1567,43 +1792,10 @@ public:
 	#undef DEFINE_RHIMETHOD_CMDLIST
 	#undef DEFINE_RHIMETHOD_GLOBAL
 	#undef DEFINE_RHIMETHOD_GLOBALFLUSH
+	#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 };
 
-#if 0
-class RHI_API FRHICommandListBypass
-{
-	friend class FRHICommandListExecutor;
-	FRHICommandListBypass()
-	{
-	}
-public:
-#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement Name##_Internal ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement Name##_Internal ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement RHI##Name ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement Name##_Internal ParameterNames; \
-	}
-#include "RHIMethods.h"
-#undef DEFINE_RHIMETHOD
-#undef DEFINE_RHIMETHOD_CMDLIST
-#undef DEFINE_RHIMETHOD_GLOBAL
-#undef DEFINE_RHIMETHOD_GLOBALFLUSH
-};
-#endif
 
 // typedef to mark the recursive use of commandlists in the RHI implmentations
 typedef FRHICommandList FRHICommandList_RecursiveHazardous;
@@ -1617,7 +1809,7 @@ public:
 	};
 	FRHICommandListExecutor()
 		: bLatchedBypass(!!DefaultBypass)
-		, bLatchedUseParallelAlgorithms(!DefaultBypass && FApp::ShouldUseThreadingForPerformance())
+		, bLatchedUseParallelAlgorithms(false)
 	{
 	}
 	static inline FRHICommandListImmediate& GetImmediateCommandList();
@@ -1626,9 +1818,11 @@ public:
 	void ExecuteList(FRHICommandListImmediate& CmdList);
 	void LatchBypass();
 
+	static FGraphEventRef RHIThreadFence();
+	static void WaitOnRHIThreadFence(FGraphEventRef& Fence);
+
 	FORCEINLINE_DEBUGGABLE void Verify()
 	{
-		check(CommandListImmediate.IsExecuting() || !CommandListImmediate.HasCommands());
 	}
 	FORCEINLINE_DEBUGGABLE bool Bypass()
 	{
@@ -1651,6 +1845,8 @@ public:
 private:
 
 	void ExecuteInner(FRHICommandListBase& CmdList);
+	friend class FExecuteRHIThreadTask;
+	static void ExecuteInner_DoExecute(FRHICommandListBase& CmdList);
 
 	bool bLatchedBypass;
 	bool bLatchedUseParallelAlgorithms;
@@ -1667,23 +1863,46 @@ FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImm
 	return GRHICommandList.CommandListImmediate;
 }
 
-struct FScopedCommandListFlush
+struct FScopedCommandListWaitForTasks
 {
 	FRHICommandListImmediate& RHICmdList;
 
-	FScopedCommandListFlush(FRHICommandListImmediate& InRHICmdList = FRHICommandListExecutor::GetImmediateCommandList())
+	FScopedCommandListWaitForTasks(FRHICommandListImmediate& InRHICmdList = FRHICommandListExecutor::GetImmediateCommandList())
 		: RHICmdList(InRHICmdList)
 	{
 	}
-	~FScopedCommandListFlush()
+	~FScopedCommandListWaitForTasks()
 	{
-		RHICmdList.Flush();
+		check(IsInRenderingThread());
+		if (GRHIThread)
+		{
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_Dispatch);
+				RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+			}
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_WaitAsync);
+				RHICmdList.ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+			}
+		}
+		else
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_Flush);
+			RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+		}
 	}
 };
 
 #define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 #define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
-#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
+
+#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+	FORCEINLINE_DEBUGGABLE Type RHI##Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement FRHICommandListExecutor::GetImmediateCommandList().Name ParameterNames; \
+	}
+
 #define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
 	FORCEINLINE_DEBUGGABLE Type RHI##Name ParameterTypesAndNames \
 	{ \
@@ -1694,5 +1913,7 @@ struct FScopedCommandListFlush
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 
 #include "RHICommandList.inl"

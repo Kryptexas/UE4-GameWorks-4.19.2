@@ -220,6 +220,8 @@ public:
 	enum { ALIGNMENT = (1 << 16) }; // 64KB
 	/** Pointer to the vertex buffer mapped in main memory. */
 	uint8* MappedBuffer;
+	/** Pointer to a buffer to map and copy later. */
+	uint8* DeferredBuffer;
 	/** Size of the vertex buffer in bytes. */
 	uint32 BufferSize;
 	/** Number of bytes currently allocated from the buffer. */
@@ -228,9 +230,33 @@ public:
 	/** Default constructor. */
 	explicit FDynamicVertexBuffer(uint32 InMinBufferSize)
 		: MappedBuffer(NULL)
+		, DeferredBuffer(NULL)
 		, BufferSize(FMath::Max<uint32>(Align(InMinBufferSize,ALIGNMENT),ALIGNMENT))
 		, AllocatedByteCount(0)
 	{
+	}
+
+	/**
+	 * Instead of locking, allocates a deferred memory block
+	 */
+	void AllocDeferred()
+	{
+		check(MappedBuffer == NULL && DeferredBuffer == NULL);
+		check(AllocatedByteCount == 0);
+		check(IsValidRef(VertexBufferRHI));
+		DeferredBuffer = (uint8*)FMemory::Malloc(BufferSize, 16);
+	}
+
+	/**
+	 * Lock, copy, free, unlock the deferred into place
+	 */
+	void CopyDeferred()
+	{
+		Lock();
+		FMemory::Memcpy(MappedBuffer, DeferredBuffer, AllocatedByteCount);
+		FMemory::Free(DeferredBuffer);
+		DeferredBuffer = nullptr;
+		Unlock();
 	}
 
 	/**
@@ -239,7 +265,7 @@ public:
 	void Lock()
 	{
 		check(MappedBuffer == NULL);
-		check(AllocatedByteCount == 0);
+		check(AllocatedByteCount == 0 || DeferredBuffer != NULL);
 		check(IsValidRef(VertexBufferRHI));
 		MappedBuffer = (uint8*)RHILockVertexBuffer(VertexBufferRHI, 0, BufferSize, RLM_WriteOnly);
 	}
@@ -249,7 +275,7 @@ public:
 	 */
 	void Unlock()
 	{
-		check(MappedBuffer != NULL);
+		check(MappedBuffer != NULL && DeferredBuffer == NULL);
 		check(IsValidRef(VertexBufferRHI));
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 		MappedBuffer = NULL;
@@ -263,6 +289,7 @@ public:
 		FRHIResourceCreateInfo CreateInfo;
 		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, BUF_Volatile, CreateInfo);
 		MappedBuffer = NULL;
+		DeferredBuffer = nullptr;
 		AllocatedByteCount = 0;
 	}
 
@@ -270,6 +297,7 @@ public:
 	{
 		FVertexBuffer::ReleaseRHI();
 		MappedBuffer = NULL;
+		DeferredBuffer = nullptr;
 		AllocatedByteCount = 0;
 	}
 
@@ -317,19 +345,21 @@ FGlobalDynamicVertexBuffer::~FGlobalDynamicVertexBuffer()
 	Pool = NULL;
 }
 
-FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uint32 SizeInBytes)
+FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uint32 SizeInBytes, bool bDeferLock)
 {
 	FAllocation Allocation;
 
 	FDynamicVertexBuffer* VertexBuffer = Pool->CurrentVertexBuffer;
-	if (VertexBuffer == NULL || VertexBuffer->AllocatedByteCount + SizeInBytes > VertexBuffer->BufferSize)
+	if (VertexBuffer == NULL || VertexBuffer->AllocatedByteCount + SizeInBytes > VertexBuffer->BufferSize
+		|| (bDeferLock && VertexBuffer->MappedBuffer) || (!bDeferLock && VertexBuffer->DeferredBuffer)) // we won't mix these styles of allocation
 	{
 		// Find a buffer in the pool big enough to service the request.
 		VertexBuffer = NULL;
 		for (int32 BufferIndex = 0, NumBuffers = Pool->VertexBuffers.Num(); BufferIndex < NumBuffers; ++BufferIndex)
 		{
 			FDynamicVertexBuffer& VertexBufferToCheck = Pool->VertexBuffers[BufferIndex];
-			if (VertexBufferToCheck.AllocatedByteCount + SizeInBytes <= VertexBufferToCheck.BufferSize)
+			bool bMismatch = (bDeferLock && VertexBufferToCheck.MappedBuffer) || (!bDeferLock && VertexBufferToCheck.DeferredBuffer);
+			if (VertexBufferToCheck.AllocatedByteCount + SizeInBytes <= VertexBufferToCheck.BufferSize && !bMismatch)
 			{
 				VertexBuffer = &VertexBufferToCheck;
 				break;
@@ -344,9 +374,15 @@ FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uin
 		}
 
 		// Lock the buffer if needed.
-		if (VertexBuffer->MappedBuffer == NULL)
+		if (!bDeferLock && VertexBuffer->MappedBuffer == NULL)
 		{
+			check(!VertexBuffer->DeferredBuffer);
 			VertexBuffer->Lock();
+		}
+		else if (bDeferLock && VertexBuffer->DeferredBuffer == NULL)
+		{
+			check(!VertexBuffer->MappedBuffer);
+			VertexBuffer->AllocDeferred();
 		}
 
 		// Remember this buffer, we'll try to allocate out of it in the future.
@@ -355,8 +391,9 @@ FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uin
 
 	check(VertexBuffer != NULL);
 	checkf(VertexBuffer->AllocatedByteCount + SizeInBytes <= VertexBuffer->BufferSize, TEXT("Global vertex buffer allocation failed: BufferSize=%d AllocatedByteCount=%d SizeInBytes=%d"), VertexBuffer->BufferSize, VertexBuffer->AllocatedByteCount, SizeInBytes);
-
-	Allocation.Buffer = VertexBuffer->MappedBuffer + VertexBuffer->AllocatedByteCount;
+	uint8* Base = bDeferLock ? VertexBuffer->DeferredBuffer : VertexBuffer->MappedBuffer;
+	check(Base);
+	Allocation.Buffer = Base + VertexBuffer->AllocatedByteCount;
 	Allocation.VertexBuffer = VertexBuffer;
 	Allocation.VertexOffset = VertexBuffer->AllocatedByteCount;
 	VertexBuffer->AllocatedByteCount += SizeInBytes;
@@ -372,6 +409,10 @@ void FGlobalDynamicVertexBuffer::Commit()
 		if (VertexBuffer.MappedBuffer != NULL)
 		{
 			VertexBuffer.Unlock();
+		}
+		else if (VertexBuffer.DeferredBuffer != NULL)
+		{
+			VertexBuffer.CopyDeferred();
 		}
 	}
 	Pool->CurrentVertexBuffer = NULL;

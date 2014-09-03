@@ -1385,6 +1385,7 @@ public:
 			// normal shadow map
 			DrawShadowMeshElements<false>(RHICmdList, View, ThisRenderer);
 		}
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
 
@@ -1425,6 +1426,7 @@ public:
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		ThisRenderer.RenderDepthDynamic(RHICmdList, SceneRenderer, &View);
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
 
@@ -1443,7 +1445,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FDeferr
 		GRHICommandList.UseParallelAlgorithms() && CVarParallelShadows.GetValueOnRenderThread())
 	{
 		// parallel version
-		FScopedCommandListFlush Flusher;
+		FScopedCommandListWaitForTasks Flusher;
 
 		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 		bool OutDirty = false; // unused

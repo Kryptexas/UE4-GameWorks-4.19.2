@@ -70,12 +70,15 @@ bool FRHIResource::Bypass()
 }
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("Delete Resources"), STAT_DeleteResources, STATGROUP_RHICMDLIST);
+
 void FRHIResource::FlushPendingDeletes()
 {
-	check(IsInRenderingThread());
-	FRHICommandListExecutor::GetImmediateCommandList().Flush();
-	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+	SCOPE_CYCLE_COUNTER(STAT_DeleteResources);
 
+	check(IsInRenderingThread());
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 	while (1)
 	{
 		TArray<FRHIResource*> ToDelete;

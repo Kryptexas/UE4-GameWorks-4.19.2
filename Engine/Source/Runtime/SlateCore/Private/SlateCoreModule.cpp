@@ -9,6 +9,7 @@ DEFINE_LOG_CATEGORY(LogSlateStyles);
 
 DEFINE_STAT(STAT_SlateMeasureStringTime);
 DEFINE_STAT(STAT_SlateRenderingRTTime);
+DEFINE_STAT(STAT_SlatePresentRTTime);
 DEFINE_STAT(STAT_SlateUpdateBufferRTTime);
 DEFINE_STAT(STAT_SlateDrawTime);
 DEFINE_STAT(STAT_SlateUpdateBufferGTTime);

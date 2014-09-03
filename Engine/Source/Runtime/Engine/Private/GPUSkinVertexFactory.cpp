@@ -155,25 +155,31 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 
 FBoneDataVertexBuffer::FBoneDataVertexBuffer()
 	: SizeX(80 * 1024)		// todo: we will replace this fixed size using FGlobalDynamicVertexBuffer
+	, AllocSize(0)
+	, AllocBlock(nullptr)
 {
 }
 
 float* FBoneDataVertexBuffer::LockData()
 {
-	checkSlow(IsInRenderingThread());
-	checkSlow(GetSizeX());
-	checkSlow(IsValidRef(BoneBuffer));
-
-	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
-	checkSlow(Data);
-
+	check(IsInRenderingThread() && GetSizeX() && IsValidRef(BoneBuffer));
+	check(!AllocSize && !AllocBlock);
+	AllocSize = ComputeMemorySize();
+	AllocBlock = FMemory::Malloc(((AllocSize + 15) / 16) * 16, 16);
+	float* Data = (float*)AllocBlock;
+	check(AllocSize && AllocBlock);
+	check(Data);
 	return Data;
 }
 
 void FBoneDataVertexBuffer::UnlockData()
 {
-	checkSlow(IsValidRef(BoneBuffer));
-	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+	check(IsValidRef(BoneBuffer));
+	check(IsInRenderingThread() && AllocBlock && AllocSize);
+	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, AllocSize);
+	// UpdateVertexBuffer will free the block after the update
+	AllocBlock = nullptr;
+	AllocSize = 0;
 }
 
 uint32 FBoneDataVertexBuffer::GetSizeX() const

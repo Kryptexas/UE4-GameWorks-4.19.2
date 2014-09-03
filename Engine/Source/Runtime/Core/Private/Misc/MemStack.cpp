@@ -14,6 +14,7 @@ DECLARE_MEMORY_STAT(TEXT("PageAllocator Used"), STAT_PageAllocatorUsed, STATGROU
 
 
 TLockFreeFixedSizeAllocator<FPageAllocator::PageSize, FThreadSafeCounter> FPageAllocator::TheAllocator;
+TLockFreeFixedSizeAllocator<FPageAllocator::SmallPageSize, FThreadSafeCounter> FPageAllocator::TheSmallAllocator;
 
 #if STATS
 void FPageAllocator::UpdateStats()
@@ -49,7 +50,7 @@ void FMemStackBase::AllocateNewChunk(int32 MinSize)
 	// Create new chunk.
 	int32 TotalSize = MinSize + (int32)sizeof(FTaggedMemory);
 	uint32 AllocSize;
-	if (TopChunk || TotalSize > SMALL_START_SIZE)
+	if (TopChunk || TotalSize > FPageAllocator::SmallPageSize)
 	{
 		AllocSize = AlignArbitrary<int32>(TotalSize, FPageAllocator::PageSize);
 		if (AllocSize == FPageAllocator::PageSize)
@@ -61,11 +62,12 @@ void FMemStackBase::AllocateNewChunk(int32 MinSize)
 			Chunk = (FTaggedMemory*)FMemory::Malloc(AllocSize);
 			INC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, AllocSize);
 		}
+		check(AllocSize != FPageAllocator::SmallPageSize);
 	}
 	else
 	{
-		AllocSize = SMALL_START_SIZE;
-		Chunk = (FTaggedMemory*)SmallStart;
+		AllocSize = FPageAllocator::SmallPageSize;
+		Chunk = (FTaggedMemory*)FPageAllocator::AllocSmall();
 	}
 	Chunk->DataSize = AllocSize - sizeof(FTaggedMemory);
 
@@ -81,17 +83,18 @@ void FMemStackBase::FreeChunks(FTaggedMemory* NewTopChunk)
 	{
 		FTaggedMemory* RemoveChunk = TopChunk;
 		TopChunk                   = TopChunk->Next;
-		if (RemoveChunk != (FTaggedMemory*)SmallStart)
+		if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::PageSize)
 		{
-			if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::PageSize)
-			{
-				FPageAllocator::Free(RemoveChunk);
-			}
-			else
-			{
-				DEC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, RemoveChunk->DataSize + sizeof(FTaggedMemory));
-				FMemory::Free(RemoveChunk);
-			}
+			FPageAllocator::Free(RemoveChunk);
+		}
+		else if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::SmallPageSize)
+		{
+			FPageAllocator::FreeSmall(RemoveChunk);
+		}
+		else
+		{
+			DEC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, RemoveChunk->DataSize + sizeof(FTaggedMemory));
+			FMemory::Free(RemoveChunk);
 		}
 	}
 	Top = nullptr;

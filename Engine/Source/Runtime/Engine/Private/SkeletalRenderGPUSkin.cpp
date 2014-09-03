@@ -1053,7 +1053,7 @@ FPreviousPerBoneMotionBlur
 -----------------------------------------------------------------------------*/
 
 FPreviousPerBoneMotionBlur::FPreviousPerBoneMotionBlur()
-	:BufferIndex(0), LockedData(0), LockedTexelPosition(0), LockedTexelCount(0), bWarningBufferSizeExceeded(false)
+	:BufferIndex(0), LockedData(0), LockedTexelCount(0), bWarningBufferSizeExceeded(false)
 {
 }
 
@@ -1110,8 +1110,8 @@ void FPreviousPerBoneMotionBlur::InitIfNeeded()
 }
 void FPreviousPerBoneMotionBlur::LockData()
 {
-	checkSlow(!LockedData);
-	checkSlow(IsInRenderingThread());
+	check(!LockedData);
+	check(IsInRenderingThread());
 
 	InitIfNeeded();
 
@@ -1120,24 +1120,23 @@ void FPreviousPerBoneMotionBlur::LockData()
 	if(WriteTexture.IsValid())
 	{
 		LockedData = WriteTexture.LockData();
-		LockedTexelPosition = 0;
+		check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
+		LockedTexelPosition.Set(0);
 		LockedTexelCount = WriteTexture.GetSizeX();
 	}
 }
 
 uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 BoneCount)
 {
-	checkSlow(LockedData);
+	check(LockedData);
 	checkSlow(DataStart);
 	checkSlow(BoneCount);
 
 	uint32 TexelCount = BoneCount * sizeof(FBoneSkinning) / sizeof(float) / 4;
 
-	uint32 OldLockedTexelPosition = LockedTexelPosition;
+	uint32 OldLockedTexelPosition = (uint32)LockedTexelPosition.Add(TexelCount);
 	
-	LockedTexelPosition += TexelCount;
-
-	if(LockedTexelPosition <= LockedTexelCount)
+	if(OldLockedTexelPosition + TexelCount <= LockedTexelCount)
 	{
 		FMemory::Memcpy(&LockedData[OldLockedTexelPosition * 4], DataStart, BoneCount * sizeof(FBoneSkinning));
 
@@ -1157,7 +1156,8 @@ void FPreviousPerBoneMotionBlur::UnlockData()
 {
 	if(IsLocked())
 	{
-		LockedTexelPosition = 0;
+		check(IsInRenderingThread());
+		LockedTexelPosition.Set(0);
 		LockedTexelCount = 0;
 		LockedData = 0;
 
