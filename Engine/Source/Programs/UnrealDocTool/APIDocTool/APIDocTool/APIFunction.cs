@@ -219,6 +219,11 @@ namespace APIDocTool
 			get { return APIMember.ConvertToMarkdown(Node.SelectSingleNode("type")); }
 		}
 
+		public string TypeText
+		{
+			get { return Node.SelectSingleNode("type").InnerText; }
+		}
+
 		public string GetAbbreviatedDefinition()
 		{
 			string Text = Definition;
@@ -286,6 +291,7 @@ namespace APIDocTool
 		public string BriefDescription = "";
 		public string FullDescription = "";
 		public string ReturnDescription = "";
+		public List<string> SeeAlso = new List<string>();
 
 		public APIEventParameters EventParameters;
 
@@ -392,6 +398,9 @@ namespace APIDocTool
 					}
 				}
 			}
+
+			// Get the @see directives
+			ParseSeeAlso(Node, SeeAlso);
 
 			// Get the modifiers
 			IsVirtual = Node.Attributes.GetNamedItem("virt").InnerText == "virtual";
@@ -682,17 +691,10 @@ namespace APIDocTool
 				Writer.LeaveSection();
 
 				// Write the description
-				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-					{
-						Writer.WriteLine(BriefDescription);
-					}
-					if (!Utility.IsNullOrWhitespace(FullDescription))
-					{
-						Writer.WriteLine(FullDescription);
-					}
+					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
 
@@ -737,6 +739,9 @@ namespace APIDocTool
 
 				// Write the source
 				WriteSourceSection(Writer);
+
+				// Write the @see directives
+				WriteSeeAlsoSection(Writer, SeeAlso);
 
 				// Write the reference info
 				WriteReferencesSection(Writer, Entity);
@@ -807,7 +812,7 @@ namespace APIDocTool
 			if (FunctionArray.Length > 0)
 			{
 				Writer.EnterSection(SectionId, SectionTitle);
-				WriteList(Writer, FunctionArray);
+				WriteList(Writer, Functions);
 				Writer.LeaveSection();
 				return true;
 			}

@@ -9,152 +9,243 @@ using System.Xml;
 
 namespace DoxygenLib
 {
+	public class MarkdownWriter
+	{
+		StringBuilder Buffer = new StringBuilder();
+		bool bWantNewParagraph;
+		bool bIsNewLine;
+		string Indent;
+		Stack<string> IndentStack = new Stack<string>();
+
+		public MarkdownWriter(string InIndent)
+		{
+			Indent = InIndent;
+		}
+
+		public void AddIndent(string ExtraIndent)
+		{
+			IndentStack.Push(Indent);
+			Indent += ExtraIndent;
+		}
+
+		public void RemoveIndent()
+		{
+			Indent = IndentStack.Pop();
+		}
+
+		public void WriteParagraph()
+		{
+			bWantNewParagraph = true;
+		}
+
+		public void Write(string Text)
+		{
+			FlushParagraph();
+			if(bIsNewLine)
+			{
+				Buffer.Append(Indent);
+				bIsNewLine = false;
+			}
+			Buffer.Append(Text);
+		}
+
+		public void WriteFormat(string Format, params object[] Args)
+		{
+			FlushParagraph();
+			if (bIsNewLine)
+			{
+				Buffer.Append(Indent);
+				bIsNewLine = false;
+			}
+			Buffer.AppendFormat(Format, Args);
+		}
+
+		public void WriteLine()
+		{
+			if (!bIsNewLine)
+			{
+				Buffer.AppendLine();
+				bIsNewLine = true;
+			}
+		}
+
+		public void WriteLink(string LinkText, string LinkUrl)
+		{
+			WriteFormat("[{0}]({1})", LinkText, LinkUrl);
+		}
+
+		void FlushParagraph()
+		{
+			if (bWantNewParagraph)
+			{
+				if (!bIsNewLine)
+				{
+					Buffer.AppendLine();
+					bIsNewLine = true;
+				}
+				Buffer.AppendLine();
+				bWantNewParagraph = false;
+			}
+		}
+
+		public override string ToString()
+		{
+			return Buffer.ToString();
+		}
+	}
+
 	public static class Markdown
 	{
 		const bool bDocToolCanParseExternalLinks = true;
 
 		public delegate string ResolveLinkDelegate(string Id);
 
-		/** Parses markdown text out of an XML node 
+		/** 
+		 * Parses markdown text out of an XML node 
 		 * 
 		 * @param child			xml node we want to parse into Markdown 
 		 * @param Indent		indenting prefix for each newline of text in the converted markdown
 		 * @param ResolveLink	delegate to call to resolve doxygen id's into link paths. may be null.
 		 * @return				a string containing the text from the child node 
 		 */
-		public static string ParseXml(XmlNode child, string Indent, ResolveLinkDelegate ResolveLink)
+		public static string ParseXml(XmlNode Node, string Indent, ResolveLinkDelegate ResolveLink)
 		{
-			string output = "";
+			MarkdownWriter Writer = new MarkdownWriter(Indent);
+			ConvertNodeContents(Node, Writer, ResolveLink);
+			return Writer.ToString();
+		}
 
-			XmlNode parent = child.ParentNode;
-			if (child.HasChildNodes)
+		/** 
+		 * Parses markdown text out of an XML node 
+		 * 
+		 * @param child			xml node we want to parse into Markdown 
+		 * @param Indent		indenting prefix for each newline of text in the converted markdown
+		 * @param Output		storage for the output string
+		 * @param ResolveLink	delegate to call to resolve doxygen id's into link paths. may be null.
+		 */
+		static void ConvertNode(XmlNode Node, MarkdownWriter Writer, ResolveLinkDelegate ResolveLink)
+		{
+			switch (Node.Name)
 			{
-				switch (child.Name)
+				case "ulink":
+					string LinkText = Node.InnerText;
+					string LinkUrl = Node.Attributes.GetNamedItem("url").InnerText;
+
+					const string WebPrefix = "docs.unrealengine.com/latest/INT/";
+					int WebPrefixIdx = LinkUrl.IndexOf(WebPrefix);
+					if (WebPrefixIdx != -1 && LinkText.Contains("docs.unrealengine.com"))
+					{
+						LinkText = "";
+						LinkUrl = LinkUrl.Substring(WebPrefixIdx + WebPrefix.Length);
+						if (LinkUrl.EndsWith(".html"))
+						{
+							LinkUrl = LinkUrl.Substring(0, LinkUrl.LastIndexOf('/') + 1);
+						}
+					}
+
+					Writer.WriteLink(LinkText, LinkUrl);
+					break;
+				case "ref":
+					XmlAttribute RefAttribute = Node.Attributes["refid"];
+					if (RefAttribute != null && ResolveLink != null)
+					{
+						string LinkPath = ResolveLink(RefAttribute.Value);
+						if (LinkPath != null)
+						{
+							Writer.WriteLink(Node.InnerText, LinkPath);
+							break;
+						}
+					}
+					Writer.Write(Node.InnerText);
+					break;
+				case "bold":
+					Writer.Write("**");
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					Writer.Write("**");
+					break;
+				case "emphasis":
+					Writer.Write("_");
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					Writer.Write("_");
+					break;
+				case "computeroutput":
+					Writer.Write("`");
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					Writer.Write("_");
+					break;
+				case "parameterlist":
+					break;
+				case "parameteritem":
+					break;
+				case "parameternamelist":
+					break;
+				case "parameterdescription":
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					break;
+				case "xrefsect":
+					break;
+				case "simplesect":
+					XmlAttribute KindAttribute = Node.Attributes["kind"];
+					if (KindAttribute == null || KindAttribute.Value != "see")
+					{
+						ConvertNodeContents(Node, Writer, ResolveLink);
+					}
+					break;
+				case "para":
+					Writer.WriteParagraph();
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					break;
+				case "itemizedlist":
+					Writer.WriteLine();
+					foreach (XmlNode ListItemNode in Node.SelectNodes("listitem"))
+					{
+						XmlNodeList ParaNodes = ListItemNode.SelectNodes("para");
+						if (ParaNodes.Count > 0)
+						{
+							// Write the first node
+							Writer.Write("* ");
+							Writer.AddIndent(" ");
+							ConvertNodeContents(ParaNodes[0], Writer, ResolveLink);
+
+							// Write anything else as an actual paragraph
+							for (int Idx = 1; Idx < ParaNodes.Count; Idx++)
+							{
+								Writer.WriteLine();
+								ConvertNodeContents(ParaNodes[Idx], Writer, ResolveLink);
+							}
+
+							// Finish the line
+							Writer.RemoveIndent();
+							Writer.WriteLine();
+						}
+					}
+					break;
+				default:
+					ConvertNodeContents(Node, Writer, ResolveLink);
+					break;
+			}
+		}
+
+		/** 
+		 * Converts all children of the given XML node
+		 * 
+		 * @param Node			Xml node we want to parse all children into Markdown 
+		 * @param Writer		Output for markdown text
+		 * @param ResolveLink	Delegate to call to resolve doxygen id's into link paths. may be null.
+		 */
+		static void ConvertNodeContents(XmlNode Node, MarkdownWriter Writer, ResolveLinkDelegate ResolveLink)
+		{
+			if (Node.HasChildNodes)
+			{
+				foreach (XmlNode ChildNode in Node.ChildNodes)
 				{
-					case "para":
-						if (parent.Name != "listitem" && parent.Name != "parameterdescription" && parent.Name != "simplesect")
-						{
-							output += Environment.NewLine;
-							output += ParseChildren(child, Indent, ResolveLink);
-						}
-						else if (parent.Name == "listitem")
-						{
-							output += Environment.NewLine;
-							if (child == parent.FirstChild)
-							{
-								output += Indent + "* " + ParseChildren(child, Indent, ResolveLink);
-							}
-							else
-							{
-								output += Environment.NewLine + Indent + "\t" + ParseChildren(child, Indent, ResolveLink);
-							}
-						}
-						else if (parent.Name == "parameterdescription" || parent.Name == "simplesect")
-						{
-							output += ParseChildren(child, Indent, ResolveLink);
-						}
-						break;
-					case "ulink":
-						if (bDocToolCanParseExternalLinks)
-						{
-							string LinkText = ParseChildren(child, Indent, ResolveLink);
-							string LinkUrl = child.Attributes.GetNamedItem("url").InnerText;
-
-							const string WebPrefix = "docs.unrealengine.com/latest/INT/";
-							int WebPrefixIdx = LinkUrl.IndexOf(WebPrefix);
-							if(WebPrefixIdx != -1 && LinkText.Contains("docs.unrealengine.com"))
-							{
-								LinkText = "";
-								LinkUrl = LinkUrl.Substring(WebPrefixIdx + WebPrefix.Length);
-								if(LinkUrl.EndsWith(".html"))
-								{
-									LinkUrl = LinkUrl.Substring(0, LinkUrl.LastIndexOf('/') + 1);
-								}
-							}
-
-							output += Indent + String.Format("[{0}]({1})", LinkText, LinkUrl);
-						}
-						else
-						{
-							output += Indent + EscapeText(child.Attributes.GetNamedItem("url").InnerText);
-						}
-						break;
-					case "ref":
-						XmlAttribute RefAttribute = child.Attributes["refid"];
-						if (RefAttribute != null && ResolveLink != null)
-						{
-							string LinkPath = ResolveLink(RefAttribute.Value);
-							if(LinkPath != null)
-							{
-								output += String.Format("[{0}]({1})", ParseChildren(child, Indent, ResolveLink), LinkPath);
-								break;
-							}
-						}
-						output += ParseChildren(child, Indent, ResolveLink);
-						break;
-					case "bold":
-						output += Indent + String.Format("**{0}**", ParseChildren(child, Indent, ResolveLink));
-						break;
-					case "emphasis":
-						output += Indent + String.Format("_{0}_", ParseChildren(child, Indent, ResolveLink));
-						break;
-					case "computeroutput":
-						output += Indent + String.Format("`{0}`", ParseChildren(child, Indent, ResolveLink));
-						break;
-					case "itemizedlist":
-						if (parent.ParentNode.Name == "listitem")
-						{
-							output += ParseChildren(child, Indent + "\t", ResolveLink);
-						}
-						else
-						{
-							output += Environment.NewLine + ParseChildren(child, Indent, ResolveLink) + Environment.NewLine + Environment.NewLine;
-						}
-						break;
-					case "parameterlist":
-						break;
-					case "parameteritem":
-						break;
-					case "parameternamelist":
-						break;
-					case "simplesect":
-						XmlAttribute KindAttribute = child.Attributes["kind"];
-						if (KindAttribute != null && KindAttribute.Value == "see")
-						{
-							output += "  \n  \nFor more information, see " + ParseChildren(child, Indent + "\t", ResolveLink) + ".";
-						}
-						break;
-					case "xrefsect":
-						break;
-					default:
-						output += ParseChildren(child, Indent, ResolveLink);
-						break;
+					ConvertNode(ChildNode, Writer, ResolveLink);
 				}
 			}
 			else
 			{
-				output += Indent + EscapeText(child.InnerText);
+				Writer.Write(Node.InnerText);
 			}
-
-			return output;
-		}
-
-		/** Class ParseXML for all child nodes of the given child
-		 * 
-		 * @param child xml node we want to parse all children into Markdown 
-		 * @return a string containing the text from the child node 
-		 */
-		static String ParseChildren(XmlNode child, string Indent, ResolveLinkDelegate ResolveLink)
-		{
-			String output = "";
-
-			foreach (XmlNode childNode in child.ChildNodes)
-			{
-				if (output.Length > 0 && output[output.Length - 1] != ' ') output += " ";
-				output += ParseXml(childNode, Indent, ResolveLink);
-			}
-
-			return output;
 		}
 
 		/** 
@@ -362,5 +453,38 @@ namespace DoxygenLib
             }
             return -1;
         }
+
+		public static int SkipCharacter(string Text, int Idx)
+		{
+			if(Text[Idx] == '&')
+			{
+				// Try to read a sequence of characters naming the entity
+				int EndIdx = Idx + 1;
+				while(EndIdx < Text.Length && Char.IsLetter(Text[EndIdx]))
+				{
+					EndIdx++;
+				}
+
+				// Check it finishes with a semicolon
+				if(EndIdx < Text.Length && Text[EndIdx] == ';')
+				{
+					return EndIdx + 1;
+				}
+			}
+			else if(Text[Idx] == '[')
+			{
+				// Find the end of the link
+				int EndIdx = Text.IndexOf(']', Idx + 1);
+				if(EndIdx != -1 && EndIdx + 1 < Text.Length && Text[EndIdx + 1] == '(')
+				{
+					EndIdx = Text.IndexOf(')', EndIdx + 1);
+					if(EndIdx != -1)
+					{
+						return EndIdx + 1;
+					}
+				}
+			}
+			return Idx + 1;
+		}
 	}
 }

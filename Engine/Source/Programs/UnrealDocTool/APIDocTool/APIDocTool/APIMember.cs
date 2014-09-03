@@ -364,6 +364,54 @@ namespace APIDocTool
 			}
 		}
 
+		protected static void ParseSeeAlso(XmlNode Node, List<string> SeeAlso)
+		{
+			// Parse out all the @see nodes
+			foreach (XmlNode SectionNode in Node.SelectNodes("detaileddescription/para/simplesect"))
+			{
+				XmlAttribute KindAttribute = SectionNode.Attributes["kind"];
+				if (KindAttribute != null && KindAttribute.Value == "see")
+				{
+					foreach (XmlNode ChildNode in SectionNode.ChildNodes)
+					{
+						if (ChildNode.Name != "simplesectsep")
+						{
+							SeeAlso.Add(ConvertToMarkdown(ChildNode));
+						}
+					}
+				}
+			}
+
+			// Split them all by commas
+			for (int SeeAlsoIdx = 0; SeeAlsoIdx < SeeAlso.Count; SeeAlsoIdx++)
+			{
+				string Line = SeeAlso[SeeAlsoIdx];
+				for (int Idx = 0; Idx < Line.Length; Idx = Markdown.SkipCharacter(Line, Idx))
+				{
+					if (Line[Idx] == ',')
+					{
+						SeeAlso[SeeAlsoIdx] = Line.Substring(0, Idx).TrimEnd();
+						SeeAlso.Insert(SeeAlsoIdx + 1, Line.Substring(Idx + 1).TrimStart());
+						break;
+					}
+				}
+			}
+		}
+
+		protected static void WriteSeeAlsoSection(UdnWriter Writer, List<string> SeeAlso)
+		{
+			if (SeeAlso.Count > 0)
+			{
+				Writer.EnterSection("seealso", "See Also");
+				foreach (string SeeAlsoLine in SeeAlso)
+				{
+					Writer.WriteLine(SeeAlsoLine);
+					Writer.WriteLine();
+				}
+				Writer.LeaveSection();
+			}
+		}
+
 		public static APIProtection ParseProtection(XmlNode Node)
 		{
 			XmlNode ProtNode = Node.Attributes.GetNamedItem("prot");

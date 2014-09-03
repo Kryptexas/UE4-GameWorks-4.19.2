@@ -38,17 +38,10 @@ namespace APIDocTool
 				Writer.LeaveSection();
 
 				// Write the description
-				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					if (!Utility.IsNullOrWhitespace(BriefDescription) && FullDescription != BriefDescription)
-					{
-						Writer.WriteLine(BriefDescription);
-					}
-					if(!Utility.IsNullOrWhitespace(FullDescription))
-					{
-						Writer.WriteLine(FullDescription);
-					}
+					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
 

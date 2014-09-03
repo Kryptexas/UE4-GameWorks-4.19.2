@@ -39,6 +39,7 @@ namespace APIDocTool
 
 		public string BriefDescription;
 		public string FullDescription;
+		public List<string> SeeAlso = new List<string>();
 
 		public string TemplateSignature;
 		public string Definition;
@@ -150,6 +151,9 @@ namespace APIDocTool
 
 			// Get the descriptions
 			ParseBriefAndFullDescription(Node, out BriefDescription, out FullDescription);
+
+			// Get the @see directives
+			ParseSeeAlso(Node, SeeAlso);
 
 			// Find the metadata for this definition
 			MetadataDirective = MetadataCache.FindMetadataForMember(Node);
@@ -360,17 +364,10 @@ namespace APIDocTool
 				}
 
 				// Write the class description
-				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-					{
-						Writer.WriteLine(BriefDescription);
-					}
-					if (!Utility.IsNullOrWhitespace(FullDescription))
-					{
-						Writer.WriteLine(FullDescription);
-					}
+					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
 
@@ -462,6 +459,9 @@ namespace APIDocTool
 					Writer.WriteLine("Parameters are marshalled using [{0}]({1})", DelegateEventParameters.FullName, DelegateEventParameters.LinkPath);
 					Writer.LeaveSection();
 				}
+
+				// Write the @see directives
+				WriteSeeAlsoSection(Writer, SeeAlso);
 
 				// Write the references
 				WriteReferencesSection(Writer, Entity);

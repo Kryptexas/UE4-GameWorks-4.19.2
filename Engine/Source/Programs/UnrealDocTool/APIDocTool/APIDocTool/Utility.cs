@@ -75,7 +75,13 @@ namespace APIDocTool
 		{
 			if (Directory.Exists(Dir))
 			{
-				Directory.Delete(Dir, true);
+				try
+				{
+					Directory.Delete(Dir, true);
+				}
+				catch(IOException)
+				{
+				}
 			}
 		}
 
@@ -266,14 +272,6 @@ namespace APIDocTool
 
 		public static string GetBriefDescription(string Description)
 		{
-			const int DesiredLength = 200;
-
-			// If the description is already short, just use that.
-			if(Description.Length < DesiredLength)
-			{
-				return Description;
-			}
-
 			// Find the first newline, or period that's followed by a space and not within any type of paren
 			int Nesting = 0;
 			for(int Idx = 0; Idx < Description.Length; Idx++)

@@ -22,7 +22,7 @@ namespace APIDocTool
 
 		public APITypeDef(APIPage InParent, DoxygenEntity InEntity) 
 			: base(InParent, InEntity.Node.SelectSingleNode("name").InnerText)
-        {
+		{
 			Entity = InEntity;
 			Node = Entity.Node;
 			Id = Node.Attributes["id"].Value;
@@ -44,7 +44,7 @@ namespace APIDocTool
 
 		public void ReplaceMarkdownVariables(ref string Text)
 		{
-			Text = Text.Replace("&#123;&#123; typedef&#45;type &#125;&#125;", Type);
+			Text = Text.Replace("{{ typedef-type }}", Type);
 		}
 
 		public override void WritePage(UdnManifest Manifest, string Path)
@@ -59,17 +59,10 @@ namespace APIDocTool
 				Writer.LeaveSection();
 
 				// Write the description
-				if (!Utility.IsNullOrWhitespace(BriefDescription) || !Utility.IsNullOrWhitespace(FullDescription))
+				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
-					if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-					{
-						Writer.WriteLine(BriefDescription);
-					}
-					if (!Utility.IsNullOrWhitespace(FullDescription))
-					{
-						Writer.WriteLine(FullDescription);
-					}
+					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
 

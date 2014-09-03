@@ -863,6 +863,8 @@ namespace APIDocTool
 			// Find all the entities
 			if(!bIndexOnly)
 			{
+				Console.WriteLine("Reading Doxygen output...");
+
 				// Read the engine module and split it into smaller modules
 				DoxygenModule RootModule = DoxygenModule.Read("UE4", EngineDir, Path.Combine(XmlDir, "xml"));
 				foreach(DoxygenEntity Entity in RootModule.Entities)

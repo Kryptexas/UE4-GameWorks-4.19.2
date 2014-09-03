@@ -56,7 +56,6 @@ namespace DoxygenLib
 				FormatSetting(Output, "WARN_NO_PARAMDOC", "NO");
 				FormatSetting(Output, "ENABLE_PREPROCESSING", "YES");
 				FormatSetting(Output, "MACRO_EXPANSION", "YES");
-				FormatSetting(Output, "JAVADOC_AUTOBRIEF", "YES");
 				FormatSetting(Output, "SKIP_FUNCTION_MACROS", "NO");
 
 				// Write the conditional settings
