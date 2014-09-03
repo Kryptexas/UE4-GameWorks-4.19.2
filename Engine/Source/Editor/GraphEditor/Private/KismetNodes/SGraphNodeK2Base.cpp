@@ -119,14 +119,20 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	CreatePinWidgets();
 
 	// Hide pin labels
-	for (int32 PinIndex=0; PinIndex < this->InputPins.Num(); ++PinIndex)
+	for (auto InputPin: this->InputPins)
 	{
-		InputPins[PinIndex]->SetShowLabel(false);
+		if (InputPin->GetPinObj()->ParentPin == nullptr)
+		{
+			InputPin->SetShowLabel(false);
+		}
 	}
 
-	for (int32 PinIndex = 0; PinIndex < this->OutputPins.Num(); ++PinIndex)
+	for (auto OutputPin : this->OutputPins)
 	{
-		OutputPins[PinIndex]->SetShowLabel(false);
+		if (OutputPin->GetPinObj()->ParentPin == nullptr)
+		{
+			OutputPin->SetShowLabel(false);
+		}
 	}
 
 	CreateInputSideAddButton(LeftNodeBox);
