@@ -337,6 +337,11 @@ namespace
 		{
 			FError::Throwf(TEXT("SealedEvent may only be used on events"));
 		}
+
+		if (FuncInfo.bSealedEvent && FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
+		{
+			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
+		}
 	}
 }
 	
@@ -5141,6 +5146,41 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 	FFuncInfo FuncInfo;
 	FuncInfo.FunctionFlags = FUNC_Native;
+
+	// Infer the function's access level from the currently declared C++ access level
+	if (CurrentAccessSpecifier == ACCESS_Public)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Public;
+	}
+	else if (CurrentAccessSpecifier == ACCESS_Protected)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Protected;
+	}
+	else if (CurrentAccessSpecifier == ACCESS_Private)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Private;
+		FuncInfo.FunctionFlags |= FUNC_Final;
+
+		// This is automatically final as well, but in a different way and for a different reason
+		bAutomaticallyFinal = false;
+	}
+	else
+	{
+		FError::Throwf(TEXT("Unknown access level"));
+	}
+
+	// non-static functions in a const class must be const themselves
+	if (Class->HasAnyClassFlags(CLASS_Const))
+	{
+		FuncInfo.FunctionFlags |= FUNC_Const;
+	}
+
+	if (MatchIdentifier(TEXT("static")))
+	{
+		FuncInfo.FunctionFlags |= FUNC_Static;
+		FuncInfo.FunctionExportFlags |= FUNCEXPORT_CppStatic;
+	}
+
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
 
 	if( (FuncInfo.FunctionFlags & FUNC_BlueprintPure) && Class->HasAnyClassFlags(CLASS_Interface) )
@@ -5204,41 +5244,6 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 				FError::Throwf(TEXT("Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents.  Use CannotImplementInterfaceInBlueprint on the interface if you wish to keep this function."));
 			}
 		}
-	}
-	
-
-	// Infer the function's access level from the currently declared C++ access level
-	if (CurrentAccessSpecifier == ACCESS_Public)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Public;
-	}
-	else if (CurrentAccessSpecifier == ACCESS_Protected)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Protected;
-	}
-	else if (CurrentAccessSpecifier == ACCESS_Private)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Private;
-		FuncInfo.FunctionFlags |= FUNC_Final;
-
-		// This is automatically final as well, but in a different way and for a different reason
-		bAutomaticallyFinal = false;
-	}
-	else
-	{
-		FError::Throwf(TEXT("Unknown access level"));
-	}
-
-	// non-static functions in a const class must be const themselves
-	if (Class->HasAnyClassFlags(CLASS_Const))
-	{
-		FuncInfo.FunctionFlags |= FUNC_Const;
-	}
-
-	if (MatchIdentifier(TEXT("static")))
-	{
-		FuncInfo.FunctionFlags |= FUNC_Static;
-		FuncInfo.FunctionExportFlags |= FUNCEXPORT_CppStatic;
 	}
 
 	// Peek ahead to look for a CORE_API style DLL import/export token if present
@@ -5484,6 +5489,10 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		if (Class->HasAnyClassFlags(CLASS_Interface))
 		{
 			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
+		}
+		else if (FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
+		{
+			FError::Throwf(TEXT("Blueprint events cannot be declared 'final'"));
 		}
 	}
 

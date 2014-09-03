@@ -231,7 +231,7 @@ public:
 	/** Called each tick so the Blueprint can optionally complete or skip stages */
 	void HandleTickCurrentStage(FName StageName);
 
-private:
+protected:
 	/** Event fired when a tutorial stage begins */
 	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
 	void OnTutorialStageStarted(FName StageName) const;
