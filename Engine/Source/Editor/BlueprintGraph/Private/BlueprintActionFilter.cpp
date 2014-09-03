@@ -41,7 +41,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  NodeSpawner	The action you want to query.
 	 * @return True if the action will spawn an impure node, false if not (or unknown).
 	 */
-	static bool IsImpure(UBlueprintNodeSpawner const* NodeSpawner);
+	static bool IsImpure(FBlueprintActionInfo& NodeSpawner);
 
 	/**
 	 * Utility method to check and see if the specified node-spawner would 
@@ -50,7 +50,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  NodeSpawner	The action you want to query.
 	 * @return True if the action will spawn a latent node, false if not (or unknown).
 	 */
-	static bool IsLatent(UBlueprintNodeSpawner const* NodeSpawner);
+	static bool IsLatent(FBlueprintActionInfo& NodeSpawner);
 	
 	/**
 	 * Utility method to check and see if the specified field is a public global
@@ -70,7 +70,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the node-spawner would produce an event incompatible with the specified blueprint(s).
 	 */
-	static bool IsEventUnimplementable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsEventUnimplementable(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner has an 
@@ -81,7 +81,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the node-spawner is associated with a private field.
 	 */
-	static bool IsFieldInaccessible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsFieldInaccessible(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner has an 
@@ -92,7 +92,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the node-spawner belongs to a class that is restricted to certain blueprints (not this one).
 	 */
-	static bool IsRestrictedClassMember(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsRestrictedClassMember(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
@@ -103,7 +103,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would spawn a variable-set node for a read-only property.
 	 */
-	static bool IsPermissionNotGranted(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsPermissionNotGranted(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
@@ -113,7 +113,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would spawn a node that is deprecated.
 	 */
-	static bool IsDeprecated(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsDeprecated(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
@@ -123,7 +123,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would spawn an impure node (and the graph doesn't allow them).
 	 */
-	static bool IsIncompatibleImpureNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsIncompatibleImpureNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
@@ -133,7 +133,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would spawn a node (and the graph wouldn't allow it).
 	 */
-	static bool IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
 	 * Rejection test that checks to see if the node-spawner has any associated
@@ -143,7 +143,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return 
 	 */
-	static bool IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is associated with 
@@ -155,7 +155,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  bPermitNonTargetGlobals	Determines if this test should pass for external global/static fields.
 	 * @return True if the action is associated with a non-whitelisted class member.
 	 */
-	static bool IsNonTargetMemeber(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bPermitNonTargetGlobals);
+	static bool IsNonTargetMemeber(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bPermitNonTargetGlobals);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is associated with 
@@ -165,7 +165,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action is associated with a hidden field.
 	 */
-	static bool IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner would produce a 
@@ -176,7 +176,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  bMatchExplicitly When true, the node's class has to perfectly match a white-listed type (sub-classes don't count).
 	 * @return True if the action would produce a non-whitelisted node.
 	 */
-	static bool IsFilteredNodeType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bMatchExplicitly = false);
+	static bool IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bMatchExplicitly = false);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is tied to a 
@@ -187,7 +187,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would produce a bound node, tied to an object that isn't selected.
 	 */
-	static bool IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -196,7 +196,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -205,7 +205,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsSchemaIncompatible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsSchemaIncompatible(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -214,7 +214,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  Pin	
 	 * @return 
 	 */
-	static bool HasMatchingPin(UBlueprintNodeSpawner const* BlueprintAction, UEdGraphPin const* Pin);
+	static bool HasMatchingPin(FBlueprintActionInfo& BlueprintAction, UEdGraphPin const* Pin);
 
 	/**
 	 * 
@@ -224,7 +224,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  MemberNodeSpawner
 	 * @return 
 	 */
-	static bool IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, UBlueprintNodeSpawner const* MemberNodeSpawner);
+	static bool IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, FBlueprintActionInfo& MemberNodeSpawner);
 
 	/**
 	 * 
@@ -233,7 +233,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -242,7 +242,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -251,16 +251,17 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
-	 * Dynamic casts should only show results for casting to classes that the context pin is a child of (and not itself)
+	 * Dynamic casts should only show results for casting to classes that the 
+	 * context pin is a child of (and not itself).
 	 * 
 	 * @param  Filter	
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsNotSubClassCast(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsNotSubClassCast(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 };
 
 
@@ -270,20 +271,20 @@ UClass* BlueprintActionFilterImpl::GetBlueprintClass(UBlueprint const* const Blu
 	return (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
 }
 
-
-
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsImpure(UBlueprintNodeSpawner const* NodeSpawner)
+static bool BlueprintActionFilterImpl::IsImpure(FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsImpure = false;
 	
-	if (UFunction const* Function = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(NodeSpawner))
+	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 	{
 		bIsImpure = (Function->HasAnyFunctionFlags(FUNC_BlueprintPure) == false);
 	}
-	else if (NodeSpawner->NodeClass != nullptr)
+	else
 	{
-		UClass* NodeClass = NodeSpawner->NodeClass;
+		UClass const* NodeClass = BlueprintAction.GetNodeClass();
+		check(NodeClass != nullptr);
+
 		// TODO: why are some of these "impure"?... we shouldn't have hardcoded 
 		//       node types here (game modules cannot add their node types here,
 		//       so we should find another way of identifying "pure" node types)
@@ -298,16 +299,16 @@ static bool BlueprintActionFilterImpl::IsImpure(UBlueprintNodeSpawner const* Nod
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsLatent(UBlueprintNodeSpawner const* NodeSpawner)
+static bool BlueprintActionFilterImpl::IsLatent(FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsLatent = false;
 
-	UClass* NodeClass = NodeSpawner->NodeClass;
+	UClass const* NodeClass = BlueprintAction.GetNodeClass();
 	if ((NodeClass != nullptr) && NodeClass->IsChildOf<UK2Node_BaseAsyncTask>())
 	{
 		bIsLatent = true;
 	}
-	else if (UFunction const* Function = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(NodeSpawner))
+	else if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 	{
 		bIsLatent = (Function->HasMetaData(FBlueprintMetadata::MD_Latent) != false);
 	}
@@ -339,12 +340,12 @@ static bool BlueprintActionFilterImpl::IsGloballyAccessible(UField const* Field)
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsEventUnimplementable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsEventUnimplementable(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 	
-	if (UBlueprintEventNodeSpawner const* EventSpawner = Cast<UBlueprintEventNodeSpawner>(BlueprintAction))
+	if (UBlueprintEventNodeSpawner const* EventSpawner = Cast<UBlueprintEventNodeSpawner>(BlueprintAction.NodeSpawner))
 	{
 		if (UFunction const* EventFunc = EventSpawner->GetEventFunction())
 		{
@@ -379,17 +380,17 @@ static bool BlueprintActionFilterImpl::IsEventUnimplementable(FBlueprintActionFi
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsFieldInaccessible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsFieldInaccessible(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 	
-	if (UField const* ClassField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
+	if (UField const* ClassField = BlueprintAction.GetAssociatedMemberField())
 	{
 		bool bIsProtected = ClassField->HasMetaData(FBlueprintMetadata::MD_Protected);
 		bool bIsPrivate   = ClassField->HasMetaData(FBlueprintMetadata::MD_Private);
 
-		UClass* FieldOwner = Cast<UClass>(ClassField->GetOuter());
+		UClass* FieldOwner = ClassField->GetOwnerClass();
 		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 		{
 			UClass* BpClass = Blueprint->GeneratedClass;
@@ -413,12 +414,12 @@ static bool BlueprintActionFilterImpl::IsFieldInaccessible(FBlueprintActionFilte
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsRestrictedClassMember(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsRestrictedClassMember(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 	
-	if (UClass const* ActionClass = FBlueprintNodeSpawnerUtils::GetAssociatedClass(BlueprintAction))
+	if (UClass const* ActionClass = BlueprintAction.GetOwnerClass())
 	{
 		if (ActionClass->HasMetaData(FBlueprintMetadata::MD_RestrictedToClasses))
 		{
@@ -453,14 +454,14 @@ static bool BlueprintActionFilterImpl::IsRestrictedClassMember(FBlueprintActionF
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsPermissionNotGranted(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsPermissionNotGranted(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 
-	if (UProperty const* const Property = FBlueprintNodeSpawnerUtils::GetAssociatedProperty(BlueprintAction))
+	if (UProperty const* const Property = BlueprintAction.GetAssociatedProperty())
 	{
-		UClass const* const NodeClass = BlueprintAction->NodeClass;
+		UClass const* const NodeClass = BlueprintAction.GetNodeClass();
 		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 		{
 			bool const bIsReadOnly = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, Property);
@@ -475,14 +476,16 @@ static bool BlueprintActionFilterImpl::IsPermissionNotGranted(FBlueprintActionFi
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsDeprecated(FBlueprintActionFilter const& /*Filter*/, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsDeprecated(FBlueprintActionFilter const& /*Filter*/, FBlueprintActionInfo& BlueprintAction)
 {
+	checkSlow(BlueprintAction.GetNodeClass() != nullptr);
+
 	bool bIsFilteredOut = false;	
-	if ((BlueprintAction->NodeClass != nullptr) && BlueprintAction->NodeClass->HasAnyClassFlags(CLASS_Deprecated))
+	if (BlueprintAction.GetNodeClass()->HasAnyClassFlags(CLASS_Deprecated))
 	{
 		bIsFilteredOut = true;
 	}
-	else if (UClass* ActionClass = FBlueprintNodeSpawnerUtils::GetAssociatedClass(BlueprintAction))
+	else if (UClass const* ActionClass = BlueprintAction.GetOwnerClass())
 	{
 		bIsFilteredOut = ActionClass->HasAnyClassFlags(CLASS_Deprecated);
 	}
@@ -490,10 +493,10 @@ static bool BlueprintActionFilterImpl::IsDeprecated(FBlueprintActionFilter const
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsPersistentNonTargetField(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UField const* ClassField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
+	if (UField const* ClassField = BlueprintAction.GetAssociatedMemberField())
 	{
 		bIsFilteredOut = IsGloballyAccessible(ClassField);
 		
@@ -516,10 +519,10 @@ static bool BlueprintActionFilterImpl::IsPersistentNonTargetField(FBlueprintActi
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsNonTargetMemeber(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool bPermitNonTargetGlobals)
+static bool BlueprintActionFilterImpl::IsNonTargetMemeber(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool bPermitNonTargetGlobals)
 {
 	bool bIsFilteredOut = false;
-	if (UField const* ClassField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
+	if (UField const* ClassField = BlueprintAction.GetAssociatedMemberField())
 	{
 		UClass* FieldClass = Cast<UClass>(ClassField->GetOuter());
 		bool const bIsInterfaceMethod = FieldClass->IsChildOf<UInterface>();
@@ -545,17 +548,17 @@ static bool BlueprintActionFilterImpl::IsNonTargetMemeber(FBlueprintActionFilter
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 
-	if (UField const* AssociatedField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction))
+	if (UField const* AssociatedField = BlueprintAction.GetAssociatedMemberField())
 	{
 		DECLARE_DELEGATE_RetVal_OneParam(bool, FIsFieldHiddenDelegate, UClass*);
 		FIsFieldHiddenDelegate IsFieldHiddenDelegate;
 
-		if (UFunction const* Function = Cast<UFunction>(AssociatedField))
+		if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 		{
 			auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* Function)->bool
 			{
@@ -563,7 +566,7 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 			};
 			IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsFunctionHiddenLambda, Function);
 		}
-		else if (UProperty const* Property = Cast<UProperty>(AssociatedField))
+		else if (UProperty const* Property = BlueprintAction.GetAssociatedProperty())
 		{
 			auto IsPropertyHiddenLambda = [](UClass* Class, UProperty const* Property)->bool
 			{
@@ -594,7 +597,7 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleImpureNode(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsIncompatibleImpureNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bAllowImpureNodes = true;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
@@ -612,14 +615,14 @@ static bool BlueprintActionFilterImpl::IsIncompatibleImpureNode(FBlueprintAction
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 	
-	if (UClass* NodeClass = BlueprintAction->NodeClass)
+	if (UClass const* NodeClass = BlueprintAction.GetNodeClass())
 	{
-		if (UEdGraphNode* NodeCDO = NodeClass->GetDefaultObject<UEdGraphNode>())
+		if (UEdGraphNode const* NodeCDO = CastChecked<UEdGraphNode>(NodeClass->ClassDefaultObject))
 		{
 			for (UEdGraph* Graph : FilterContext.Graphs)
 			{
@@ -635,11 +638,11 @@ static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintAct
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bExcludeChildClasses)
+static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bExcludeChildClasses)
 {
 	bool bIsFilteredOut = (Filter.PermittedNodeTypes.Num() > 0);
 
-	UClass* NodeClass = BlueprintAction->NodeClass;
+	UClass const* NodeClass = BlueprintAction.GetNodeClass();
 	if (NodeClass != nullptr)
 	{
 		for (TSubclassOf<UEdGraphNode> AllowedClass : Filter.PermittedNodeTypes)
@@ -667,10 +670,10 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UBlueprintBoundEventNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction))
+	if (UBlueprintBoundEventNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction.NodeSpawner))
 	{
 		bIsFilteredOut = true;
 		for (UObject const* SelectedObj : Filter.Context.SelectedObjects)
@@ -686,10 +689,10 @@ static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(BlueprintAction))
+	if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(BlueprintAction.NodeSpawner))
 	{
 		if (VarSpawner->IsLocalVariable())
 		{
@@ -710,12 +713,14 @@ static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsSchemaIncompatible(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsSchemaIncompatible(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 	FBlueprintActionContext const& FilterContext = Filter.Context;
 
-	UEdGraphNode const* NodeCDO = BlueprintAction->NodeClass->GetDefaultObject<UEdGraphNode>();
+	UClass const* NodeClass = BlueprintAction.GetNodeClass();
+	UEdGraphNode const* NodeCDO = CastChecked<UEdGraphNode>(NodeClass->ClassDefaultObject);
+	checkSlow(NodeCDO != nullptr);
 
 	auto IsSchemaIncompatibleLambda = [NodeCDO](TArray<UEdGraph*> const& GraphList)->bool
 	{
@@ -755,12 +760,12 @@ static bool BlueprintActionFilterImpl::IsSchemaIncompatible(FBlueprintActionFilt
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::HasMatchingPin(UBlueprintNodeSpawner const* BlueprintAction, UEdGraphPin const* Pin)
+static bool BlueprintActionFilterImpl::HasMatchingPin(FBlueprintActionInfo& BlueprintAction, UEdGraphPin const* Pin)
 {
 	bool bHasCompatiblePin = false;
 
 	UEdGraph* OuterGraph = Pin->GetOwningNode()->GetGraph();
-	if (UEdGraphNode* TemplateNode = BlueprintAction->GetTemplateNode(OuterGraph))
+	if (UEdGraphNode* TemplateNode = BlueprintAction.NodeSpawner->GetTemplateNode(OuterGraph))
 	{
 		if (TemplateNode->Pins.Num() == 0)
 		{
@@ -796,10 +801,10 @@ static bool BlueprintActionFilterImpl::HasMatchingPin(UBlueprintNodeSpawner cons
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, UBlueprintNodeSpawner const* MemberNodeSpawner)
+static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin const* Pin, UField const* MemberField, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsCompatible = false;
-	checkSlow(FBlueprintNodeSpawnerUtils::GetAssociatedField(MemberNodeSpawner) == MemberField);
+	checkSlow(BlueprintAction.GetAssociatedMemberField() == MemberField);
 
 	UClass* OwnerClass = Cast<UClass>(MemberField->GetOuter());
 	if ((Pin->Direction == EGPD_Output) && (OwnerClass != nullptr))
@@ -833,7 +838,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 					else
 					{
 						UEdGraph* OuterGraph = Pin->GetOwningNode()->GetGraph();
-						if (UK2Node* TemplateNode = Cast<UK2Node>(MemberNodeSpawner->GetTemplateNode(OuterGraph)))
+						if (UK2Node* TemplateNode = Cast<UK2Node>(BlueprintAction.NodeSpawner->GetTemplateNode(OuterGraph)))
 						{
 							bIsCompatible = TemplateNode->AllowMultipleSelfs(/*bInputAsArray =*/true);
 						}	
@@ -847,13 +852,13 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UFunction const* AssociatedFunc = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(BlueprintAction))
+	if (UFunction const* AssociatedFunc = BlueprintAction.GetAssociatedFunction())
 	{
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		bool const bIsEventSpawner = BlueprintAction->NodeClass->IsChildOf<UK2Node_Event>();
+		bool const bIsEventSpawner = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Event>();
 
 		for (int32 PinIndex = 0; !bIsFilteredOut && (PinIndex < Filter.Context.Pins.Num()); ++PinIndex)
 		{
@@ -892,17 +897,17 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
-	if (UProperty const* Property = FBlueprintNodeSpawnerUtils::GetAssociatedProperty(BlueprintAction))
+	if (UProperty const* Property = BlueprintAction.GetAssociatedProperty())
 	{
 		TArray<UEdGraphPin*> const& ContextPins = Filter.Context.Pins;
 		if (ContextPins.Num() > 0)
 		{
 			bool const bIsDelegate = Property->IsA<UMulticastDelegateProperty>();
-			bool const bIsGetter   = BlueprintAction->NodeClass->IsChildOf<UK2Node_VariableGet>();
-			bool const bIsSetter   = BlueprintAction->NodeClass->IsChildOf<UK2Node_VariableSet>();
+			bool const bIsGetter   = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_VariableGet>();
+			bool const bIsSetter   = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_VariableSet>();
 
 			//K2Schema->ConvertPropertyToPinType(VariableProperty, /*out*/ VariablePin->PinType);
 			for (int32 PinIndex = 0; !bIsFilteredOut && PinIndex < ContextPins.Num(); ++PinIndex)
@@ -957,11 +962,11 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsMissingMatchingPinParam(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 
-	UField const* AssociatedField = FBlueprintNodeSpawnerUtils::GetAssociatedField(BlueprintAction);
+	UField const* AssociatedField = BlueprintAction.GetAssociatedMemberField();
 	// we have a separate tests for field nodes (IsFunctionMissingPinParam/IsMissmatchedPropertyType)
 	if (AssociatedField == nullptr)
 	{
@@ -979,35 +984,148 @@ static bool BlueprintActionFilterImpl::IsMissingMatchingPinParam(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsNotSubClassCast(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionFilterImpl::IsNotSubClassCast(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFilteredOut = false;
 
-	if(BlueprintAction->NodeClass && BlueprintAction->NodeClass == UK2Node_DynamicCast::StaticClass())
+	if (BlueprintAction.GetNodeClass() == UK2Node_DynamicCast::StaticClass())
 	{
 		for(UEdGraphPin const* ContextPin : Filter.Context.Pins)
 		{
 			// Only worry about removing cast nodes when dragging off output pins
-			if(ContextPin->Direction == EGPD_Output)
+			if (ContextPin->Direction != EGPD_Output)
 			{
-				UEdGraph* OuterGraph = ContextPin->GetOwningNode()->GetGraph();
-				if (UK2Node_DynamicCast* CastNode = Cast<UK2Node_DynamicCast>(BlueprintAction->GetTemplateNode(OuterGraph)))
+				bIsFilteredOut = true;
+				break;
+			}
+			
+			if (ContextPin->PinType.PinSubCategoryObject.IsValid())
+			{
+				UClass const* CastClass = BlueprintAction.GetOwnerClass();
+				checkSlow(CastClass != nullptr);
+
+				UClass const* ContextPinClass = Cast<UClass>(ContextPin->PinType.PinSubCategoryObject.Get());
+				if ((ContextPinClass == CastClass) || !CastClass->IsChildOf(ContextPinClass))
 				{
-					if( ContextPin->PinType.PinSubCategoryObject.IsValid() && CastNode->TargetType)
-					{
-						UClass* ContextPinClass = Cast<UClass>(ContextPin->PinType.PinSubCategoryObject.Get());
-						UClass* ResultPinClass = CastNode->TargetType;
-						if( ContextPinClass == ResultPinClass || !ResultPinClass->IsChildOf(ContextPinClass) )
-						{
-							bIsFilteredOut = true;
-							break;
-						}
-					}
+					bIsFilteredOut = true;
+					break;
 				}
 			}
 		}
 	}
 	return bIsFilteredOut;
+}
+
+/*******************************************************************************
+ * FBlueprintActionInfo
+ ******************************************************************************/
+
+/** */
+namespace EBlueprintActionInfoFlags
+{
+	enum 
+	{
+		CachedClass    = (1 << 0),
+		CachedField    = (1 << 1),
+		CachedProperty = (1 << 2),
+		CachedFunction = (1 << 3),
+	};
+}
+
+//------------------------------------------------------------------------------
+FBlueprintActionInfo::FBlueprintActionInfo(UObject const* ActionOwnerIn, UBlueprintNodeSpawner const* Action)
+	: NodeSpawner(Action)
+	, ActionOwner(ActionOwnerIn)
+	, CacheFlags(0)
+	, CachedOwnerClass(nullptr)
+	, CachedActionField(nullptr)
+	, CachedActionProperty(nullptr)
+	, CachedActionFunction(nullptr)
+{
+	checkSlow(NodeSpawner != nullptr);
+}
+
+//------------------------------------------------------------------------------
+UObject const* FBlueprintActionInfo::GetActionOwner()
+{
+	return ActionOwner;
+}
+
+//------------------------------------------------------------------------------
+UClass const* FBlueprintActionInfo::GetOwnerClass()
+{
+	if ((CacheFlags & EBlueprintActionInfoFlags::CachedClass) == 0)
+	{
+		CachedOwnerClass = Cast<UClass>(ActionOwner);
+		if (CachedOwnerClass == GetNodeClass())
+		{
+			CachedOwnerClass = nullptr;
+		}
+
+		if (CachedOwnerClass == nullptr)
+		{
+			CachedOwnerClass = GetAssociatedMemberField()->GetOwnerClass();
+		}
+		CacheFlags |= EBlueprintActionInfoFlags::CachedClass;
+	}
+	return CachedOwnerClass;
+}
+
+//------------------------------------------------------------------------------
+UClass const* FBlueprintActionInfo::GetNodeClass()
+{
+	UClass const* NodeClass = NodeSpawner->NodeClass;
+	checkSlow(NodeClass != nullptr);
+	return NodeClass;
+}
+
+//------------------------------------------------------------------------------
+UField const* FBlueprintActionInfo::GetAssociatedMemberField()
+{
+	if ((CacheFlags & EBlueprintActionInfoFlags::CachedField) == 0)
+	{
+		CachedActionField = FBlueprintNodeSpawnerUtils::GetAssociatedField(NodeSpawner);
+		CacheFlags |= EBlueprintActionInfoFlags::CachedField;
+	}
+	return CachedActionField;
+}
+
+//------------------------------------------------------------------------------
+UProperty const* FBlueprintActionInfo::GetAssociatedProperty()
+{
+	if ((CacheFlags & EBlueprintActionInfoFlags::CachedProperty) == 0)
+	{
+		if (CacheFlags & EBlueprintActionInfoFlags::CachedField)
+		{
+			CachedActionProperty = Cast<UProperty>(CachedActionField);
+		}
+		else
+		{
+			CachedActionProperty = FBlueprintNodeSpawnerUtils::GetAssociatedProperty(NodeSpawner);
+			CachedActionField = CachedActionProperty;
+		}
+		CacheFlags |= (EBlueprintActionInfoFlags::CachedProperty | EBlueprintActionInfoFlags::CachedField);
+	}
+	return CachedActionProperty;
+}
+
+//------------------------------------------------------------------------------
+UFunction const* FBlueprintActionInfo::GetAssociatedFunction()
+{
+	if ((CacheFlags & EBlueprintActionInfoFlags::CachedFunction) == 0)
+	{
+		if (CacheFlags & EBlueprintActionInfoFlags::CachedField)
+		{
+			CachedActionFunction = Cast<UFunction>(CachedActionField);
+		}
+		else
+		{
+			CachedActionFunction = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(NodeSpawner);
+			CachedActionField = CachedActionFunction;
+		}
+		CacheFlags |= (EBlueprintActionInfoFlags::CachedFunction | EBlueprintActionInfoFlags::CachedField);
+	}
+	return CachedActionFunction;
 }
 
 /*******************************************************************************
@@ -1031,34 +1149,34 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	//
 	// this test in-particular spawns a template-node and then calls 
 	// AllocateDefaultPins() which is costly, so it should be very last!
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissingMatchingPinParam));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsMissmatchedPropertyType));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFunctionMissingPinParam));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleImpureNode));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsMissingMatchingPinParam));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsMissmatchedPropertyType));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFunctionMissingPinParam));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleImpureNode));
 	
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldCategoryHidden));	
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldCategoryHidden));
 	if (Flags & BPFILTER_RejectPersistentNonTargetFields)
 	{
-		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPersistentNonTargetField));
+		AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsPersistentNonTargetField));
 	}
 	
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFieldInaccessible));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNotSubClassCast));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsEventUnimplementable));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsPermissionNotGranted));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsRestrictedClassMember));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsIncompatibleWithGraphType));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsSchemaIncompatible));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldInaccessible));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNotSubClassCast));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsEventUnimplementable));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsPermissionNotGranted));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsRestrictedClassMember));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleWithGraphType));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsSchemaIncompatible));
 
 	if (!(Flags & BPFILTER_PermitDeprecated))
 	{
-		AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsDeprecated));
+		AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsDeprecated));
 	}
 
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses)   != 0));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) == 0));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsBoundToUnselectedObject));
-	AddIsFilteredTest(FIsFilteredDelegate::CreateStatic(IsOutOfScopeLocalVariable));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses) != 0));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) == 0));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsBoundToUnselectedObject));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
 
 	// @TODO: account for all K2ActionMenuBuilder checks...
 	//    NodeCDO->CanCreateUnderSpecifiedSchema(this)
@@ -1083,7 +1201,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionFilter::AddIsFilteredTest(FIsFilteredDelegate IsFilteredDelegate)
+void FBlueprintActionFilter::AddRejectionTest(FRejectionTestDelegate IsFilteredDelegate)
 {
 	if (IsFilteredDelegate.IsBound())
 	{
@@ -1092,7 +1210,7 @@ void FBlueprintActionFilter::AddIsFilteredTest(FIsFilteredDelegate IsFilteredDel
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintActionFilter::IsFiltered(UBlueprintNodeSpawner const* BlueprintAction)
+bool FBlueprintActionFilter::IsFiltered(FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsFiltered = IsFilteredByThis(BlueprintAction);
 	if (!bIsFiltered)
@@ -1133,7 +1251,7 @@ FBlueprintActionFilter const& FBlueprintActionFilter::operator&=(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintActionFilter::IsFilteredByThis(UBlueprintNodeSpawner const* BlueprintAction) const
+bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAction) const
 {
 	FBlueprintActionFilter const& FilterRef = *this;
 
@@ -1142,10 +1260,10 @@ bool FBlueprintActionFilter::IsFilteredByThis(UBlueprintNodeSpawner const* Bluep
 	// internal tests are ran last).
 	for (int32 TestIndex = FilterTests.Num()-1; TestIndex >= 0; --TestIndex)
 	{
-		FIsFilteredDelegate const& IsFilteredDelegate = FilterTests[TestIndex];
-		check(IsFilteredDelegate.IsBound());
+		FRejectionTestDelegate const& RejectionTestDelegate = FilterTests[TestIndex];
+		check(RejectionTestDelegate.IsBound());
 
-		if (IsFilteredDelegate.Execute(FilterRef, BlueprintAction))
+		if (RejectionTestDelegate.Execute(FilterRef, BlueprintAction))
 		{
 			bIsFiltered = true;
 			break;

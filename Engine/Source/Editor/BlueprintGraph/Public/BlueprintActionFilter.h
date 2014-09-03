@@ -41,6 +41,94 @@ struct FBlueprintActionContext
 	TArray<UObject*> SelectedObjects;
 };
 
+/*******************************************************************************
+ * FBlueprintActionInfo
+ ******************************************************************************/
+
+/**
+ * Info struct passed around to filter rejection tests. Wraps a 
+ * UBlueprintNodeSpawner, and caches associated fields/files/etc. as they're 
+ * requested (to optimize duplicated queries cross rejection tests).
+ */
+struct BLUEPRINTGRAPH_API FBlueprintActionInfo
+{
+	/** */
+	FBlueprintActionInfo(UObject const* ActionOwner, UBlueprintNodeSpawner const* Action);
+
+	/**
+	 * Retrieves the key that the wrapped action is associated with in the 
+	 * FBlueprintActionDatabase (either a UClass, or asset object).
+	 * 
+	 * @return The class/asset that this action conceptually belongs to.
+	 */
+	UObject const* GetActionOwner();
+
+	/**
+	 * Retrieves a class associated with the wrapped action. Intended to be the 
+	 * action's class "owner". Could be null if the action is keyed to an asset.
+	 * Will not be the spawner's NodeClass (even if it is keyed to it in the 
+	 * database).
+	 * 
+	 * @return The class that this action conceptually belongs to (null if the action is keyed to an asset that we cannot derive a class from).
+	 */
+	UClass const* GetOwnerClass();
+
+	/**
+	 * Retrieves the node class that the wrapped action will spawn (assume to 
+	 * be not null).
+	 * 
+	 * @return The node type that the action will spawn.
+	 */
+	UClass const* GetNodeClass();
+
+	/**
+	 * Certain actions are associated with specific member fields (a member 
+	 * function call, a variable get/set, etc.) This retrieves that member field 
+	 * if there is one (not all actions have an associated field).
+	 * 
+	 * @return The member field associated with the wrapped action (null if there isn't one).
+	 */
+	UField const* GetAssociatedMemberField();
+
+	/**
+	 * Certain actions are associated with specific properties (like delegate  
+	 * node spawners, or variable get/set spawners) This retrieves that property
+	 * from the wrapped action if it can (not all actions have an associated 
+	 * property).
+	 * 
+	 * @return The property associated with the wrapped action (null if there isn't one).
+	 */
+	UProperty const* GetAssociatedProperty();
+
+	/**
+	 * Certain actions are associated with specific functions (like function    
+	 * call spawners, or event spawners) This retrieves the function from the 
+	 * wrapped action if it can (not all actions have an associated function).
+	 * 
+	 * @return The function associated with the wrapped action (null if there isn't one).
+	 */
+	UFunction const* GetAssociatedFunction();
+
+	/** The raw action that this struct represent (const so we don't mutate the database) */
+	UBlueprintNodeSpawner const* const NodeSpawner;
+
+private:
+	/** The class or asset-object that the NodeSpawner action is keyed to (in the action database)*/
+	UObject const* ActionOwner;
+
+	/** Keeps track of the fields we've cached (needed in case one turns out to be null) */
+	uint32 CacheFlags;
+	
+	/** */
+	UClass const*    CachedOwnerClass;
+	/** */
+	UField const*    CachedActionField;
+	/** */
+	UProperty const* CachedActionProperty;
+	/** */
+	UFunction const* CachedActionFunction;
+};
+
 
 /*******************************************************************************
  * FBlueprintActionFilter
@@ -50,7 +138,7 @@ class BLUEPRINTGRAPH_API FBlueprintActionFilter
 {
 public:
 	/** The filter uses a series of rejection tests matching */
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FIsFilteredDelegate, FBlueprintActionFilter const&, UBlueprintNodeSpawner const*);
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FRejectionTestDelegate, FBlueprintActionFilter const&, FBlueprintActionInfo&);
 
 public:
 	enum EFlags // Flags, which configure certain rejection tests.
@@ -108,9 +196,9 @@ public:
 	 * method. We use rejection "IsFiltered" tests rather than inclusive tests 
 	 * because it is more optimal to whittle down the list of actions early.
 	 * 
-	 * @param  IsFilteredDelegate	The rejection test you wish to add to this filter.
+	 * @param  RejectionTestDelegate	The rejection test you wish to add to this filter.
 	 */
-	void AddIsFilteredTest(FIsFilteredDelegate IsFilteredDelegate);
+	void AddRejectionTest(FRejectionTestDelegate RejectionTestDelegate);
 
 	/**
 	 * Query to check and see if the specified action gets filtered out by this 
@@ -120,7 +208,7 @@ public:
 	 * @param  BlueprintAction	The node-spawner you wish to test.
 	 * @return False if the action passes the filter, otherwise false (the action got filtered out).
 	 */
-	bool IsFiltered(UBlueprintNodeSpawner const* BlueprintAction);
+	bool IsFiltered(FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Appends another filter to be utilized in IsFiltered() queries, extending  
@@ -154,10 +242,10 @@ private:
 	 * @param  BlueprintAction	The node-spawner you wish to test.
 	 * @return False if the action passes the filter, otherwise false (the action got filtered out).
 	 */
-	bool IsFilteredByThis(UBlueprintNodeSpawner const* BlueprintAction) const;
+	bool IsFilteredByThis(FBlueprintActionInfo& BlueprintAction) const;
 
 	/** Set of rejection tests for this specific filter. */
-	TArray<FIsFilteredDelegate> FilterTests;
+	TArray<FRejectionTestDelegate> FilterTests;
 
 	/** Filters to be logically and'd in with the IsFilteredByThis() result. */
 	TArray<FBlueprintActionFilter> AndFilters;
