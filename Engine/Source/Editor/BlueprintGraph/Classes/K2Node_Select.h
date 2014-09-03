@@ -37,6 +37,7 @@ class UK2Node_Select : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
+	virtual FString GetKeywords() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void NodeConnectionListChanged() override;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
@@ -46,7 +47,7 @@ class UK2Node_Select : public UK2Node
 
 	// Begin UK2Node interface
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
- 	virtual void PostReconstructNode() override;
+	virtual void PostReconstructNode() override;
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
 	virtual bool IsNodePure() const override { return true; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
